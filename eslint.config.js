@@ -27,8 +27,11 @@ export default tseslint.config(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
-      // React Refresh (HMR)
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // React Refresh (HMR) - allow hooks and constant exports
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true, allowExportNames: ['useMarket', 'useGameState', 'usePlayer', 'useGameStatus', 'usePnL', 'useDifficulty', 'usePrice', 'lerp'] },
+      ],
 
       // TypeScript
       '@typescript-eslint/no-unused-vars': [

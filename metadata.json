@@ -1,0 +1,5 @@
+{
+  "name": "Crypto Cyber Survivors",
+  "description": "A survival bullet-hell game where your survivability is tied to the real-time volatility of the Bitcoin market. Choose your position (Long or Short) and survive the liquidation bears!",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,86 @@
+/**
+ * Constants - Global Values Only
+ *
+ * Game-specific config moved to /config folder.
+ * This file now only contains truly global constants.
+ */
+
+// =============================================================================
+// SCREEN
+// =============================================================================
+
+// Note: GAME_WIDTH and GAME_HEIGHT are now managed dynamically in App.tsx
+// These are fallback/initial values
+export const INITIAL_GAME_WIDTH = window.innerWidth;
+export const INITIAL_GAME_HEIGHT = window.innerHeight;
+
+// =============================================================================
+// GAME ENGINE
+// =============================================================================
+
+export const GAME_ENGINE = {
+  BULLET_SPEED: 8,
+  PROJECTILE_SPREAD: 0.15, // radians (~8.5 degrees)
+  SHAKE_DECAY: 0.9,
+  CRIT_FLASH_DECAY: 0.85,
+  SPAWN_TIMER_BASE: 1200,
+  ENEMY_OFFSCREEN_THRESHOLD: 200,
+  GEM_MAGNET_BASE_RANGE: 150,
+};
+
+// =============================================================================
+// EXTERNAL APIs
+// =============================================================================
+
+export const BINANCE_WS_URL = 'wss://stream.binance.com/ws/btcusdt@kline_1m';
+export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';
+
+// =============================================================================
+// COLORS (Slot Machine / Casino Palette)
+// =============================================================================
+
+export const COLORS = {
+  // Market colors
+  LONG: '#22c55e', // green-500
+  SHORT: '#ef4444', // red-500
+
+  // Base UI
+  BG: '#0D0D0D', // Casino black
+  TEXT: '#f8fafc', // slate-50
+
+  // Collectibles
+  GEM: '#FFD700', // Casino gold
+  RARE_GEM: '#FF10F0', // Neon pink
+  BULLET: '#00FFFF', // Electric blue neon
+
+  // Enemies
+  WHALE: '#B026FF', // Neon purple
+
+  // Combat feedback
+  CRIT: '#FFD700', // Rich gold
+  SUPER_CRIT: '#DE0607', // Casino hot red
+
+  // Slot machine accents
+  NEON_GREEN: '#39FF14',
+  NEON_ORANGE: '#FF6600',
+  CASINO_GOLD: '#D4AF37',
+  CASINO_RED: '#D20202',
+};
+
+// =============================================================================
+// RE-EXPORTS FROM CONFIG (backwards compatibility)
+// =============================================================================
+
+export {
+  PLAYER_STATS,
+  PLAYER_INITIAL_HP,
+  INITIAL_FIRE_RATE,
+  createInitialPlayer,
+} from './config/PlayerConfig';
+
+export { ENEMY_BASE_SPEED } from './config/EnemyConfig';
+
+export { UI_CONFIG } from './config/GameConfig';
+
+// Legacy export for chart
+export const MAX_CHART_POINTS = 60;

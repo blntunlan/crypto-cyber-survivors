@@ -1,0 +1,150 @@
+/**
+ * PoolManager - High-Performance Object Pool Pattern
+ *
+ * Optimized for O(1) retrieval and minimal iteration overhead.
+ */
+
+import { Bullet, Gem, Particle, FloatingText, MarketPosition } from '../types';
+import { enemyFactory, GameEnemy } from '../factories/EnemyFactory';
+
+interface Activatable {
+  active: boolean;
+}
+
+export class PoolManager {
+  // Active objects for faster iteration in game loop
+  activeEnemies: GameEnemy[] = [];
+  activeBullets: Bullet[] = [];
+  activeGems: Gem[] = [];
+  activeParticles: Particle[] = [];
+  activeFloatingTexts: FloatingText[] = [];
+
+  // Inactive objects for recycling (FreeLists)
+  private freeEnemies: GameEnemy[] = [];
+  private freeBullets: Bullet[] = [];
+  private freeGems: Gem[] = [];
+  private freeParticles: Particle[] = [];
+  private freeFloatingTexts: FloatingText[] = [];
+
+  constructor() { }
+
+  /**
+   * Helper to move object back to free list
+   */
+  release<T extends Activatable>(obj: T, activeList: T[], freeList: T[]) {
+    obj.active = false;
+    const index = activeList.indexOf(obj);
+    if (index > -1) {
+      activeList.splice(index, 1);
+      freeList.push(obj);
+    }
+  }
+
+  getEnemy(x: number, y: number, difficulty: number, position: MarketPosition): GameEnemy {
+    let obj = this.freeEnemies.pop();
+    if (!obj) {
+      obj = enemyFactory.createRandomEnemy(x, y, difficulty, position);
+    } else {
+      const newEnemy = enemyFactory.createRandomEnemy(x, y, difficulty, position);
+      Object.assign(obj, newEnemy);
+    }
+    obj.active = true;
+    this.activeEnemies.push(obj);
+    return obj;
+  }
+
+  getBullet(
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
+    damage: number,
+    radius: number,
+    color: string,
+    isCrit: boolean,
+    isSuperCrit: boolean
+  ): Bullet {
+    let obj = this.freeBullets.pop();
+    if (!obj) {
+      obj = { active: true, x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit };
+    } else {
+      obj.active = true;
+      Object.assign(obj, { x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit });
+    }
+    this.activeBullets.push(obj);
+    return obj;
+  }
+
+  getGem(x: number, y: number, value: number, radius: number, color: string, isRare: boolean): Gem {
+    let obj = this.freeGems.pop();
+    if (!obj) {
+      obj = { active: true, x, y, radius, color, value, isRare };
+    } else {
+      obj.active = true;
+      Object.assign(obj, { x, y, radius, color, value, isRare });
+    }
+    this.activeGems.push(obj);
+    return obj;
+  }
+
+  getParticle(x: number, y: number, vx: number, vy: number, color: string): Particle {
+    let obj = this.freeParticles.pop();
+    if (!obj) {
+      obj = { active: true, x, y, vx, vy, color, radius: 2, life: 1 };
+    } else {
+      obj.active = true;
+      Object.assign(obj, { x, y, vx, vy, color, radius: 2, life: 1 });
+    }
+    this.activeParticles.push(obj);
+    return obj;
+  }
+
+  getFloatingText(x: number, y: number, text: string, color: string, size: number): FloatingText {
+    let obj = this.freeFloatingTexts.pop();
+    if (!obj) {
+      obj = { active: true, x, y, text, color, size, life: 1 };
+    } else {
+      obj.active = true;
+      Object.assign(obj, { x, y, text, color, size, life: 1 });
+    }
+    this.activeFloatingTexts.push(obj);
+    return obj;
+  }
+
+  /**
+   * Efficiently cleanup inactive objects from active lists
+   * Should be called at the end of each update loop
+   */
+  cleanup(): void {
+    this.moveInactive(this.activeEnemies, this.freeEnemies);
+    this.moveInactive(this.activeBullets, this.freeBullets);
+    this.moveInactive(this.activeGems, this.freeGems);
+    this.moveInactive(this.activeParticles, this.freeParticles);
+    this.moveInactive(this.activeFloatingTexts, this.freeFloatingTexts);
+  }
+
+  private moveInactive<T extends Activatable>(active: T[], free: T[]) {
+    for (let i = active.length - 1; i >= 0; i--) {
+      const item = active[i];
+      if (item && !item.active) {
+        const removed = active.splice(i, 1)[0];
+        if (removed) free.push(removed);
+      }
+    }
+  }
+
+  clearAll(): void {
+    while (this.activeEnemies.length) this.freeEnemies.push(this.activeEnemies.pop()!);
+    while (this.activeBullets.length) this.freeBullets.push(this.activeBullets.pop()!);
+    while (this.activeGems.length) this.freeGems.push(this.activeGems.pop()!);
+    while (this.activeParticles.length) this.freeParticles.push(this.activeParticles.pop()!);
+    while (this.activeFloatingTexts.length)
+      this.freeFloatingTexts.push(this.activeFloatingTexts.pop()!);
+
+    this.freeEnemies.forEach(e => (e.active = false));
+    this.freeBullets.forEach(e => (e.active = false));
+    this.freeGems.forEach(e => (e.active = false));
+    this.freeParticles.forEach(e => (e.active = false));
+    this.freeFloatingTexts.forEach(e => (e.active = false));
+  }
+}
