@@ -44,7 +44,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                                     {tierConfig.name}
                                 </div>
 
-                                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform flex items-center justify-center w-24 h-24 relative">
+                                <div className="text-5xl mb-4 flex items-center justify-center w-24 h-24 relative">
                                     {/* Icon Background Glow */}
                                     <div
                                         className="absolute inset-0 rounded-full blur-2xl opacity-20"
@@ -81,7 +81,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                                         <img
                                             src={card.icon}
                                             alt={card.name}
-                                            className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] relative z-10"
+                                            className="w-full h-full object-contain relative z-10"
+                                            style={{ mixBlendMode: 'plus-lighter' }}
                                         />
                                     ) : (
                                         <span className="relative z-10">{card.icon}</span>

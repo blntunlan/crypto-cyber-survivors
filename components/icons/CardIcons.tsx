@@ -167,16 +167,30 @@ export const IconBolt: React.FC<IconProps> = ({ className, color = 'currentColor
 );
 
 /**
- * Meme/Elite: Banano (Nano Banana)
- * Technical banana silhouette with circuitry internal paths.
+ * Currency: Nano (XNO)
+ * The standard for instant & feeless. A cybernetic 'N' node structure.
+ */
+export const IconNano: React.FC<IconProps> = ({ className, color = '#4A90E2' }) => (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+        <path d="M6 5V19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M18 5V19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M6 5L18 19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="6" cy="5" r="2" fill={color} />
+        <circle cx="18" cy="19" r="2" fill={color} />
+        <path d="M6 12L18 12" stroke={color} strokeWidth="1" strokeDasharray="2 2" opacity="0.5" />
+    </svg>
+);
+
+/**
+ * Currency: Banano (BAN)
+ * Potassium-rich meme currency. Sleek cyber-banana curve.
  */
 export const IconBanano: React.FC<IconProps> = ({ className, color = '#FBDD11' }) => (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <path d="M12 2C12 2 10 4 8 8C6 12 6 16 8 20C10 24 12 22 12 22" fill={color} fillOpacity="0.1" />
-        <path d="M12 2C12 2 10 4 8 8C6 12 6 16 8 20C10 24 12 22 12 22" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M12 2C12 2 14 4 16 8C18 12 18 16 16 20C14 24 12 22 12 22" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M12 2V5M12 22V19" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <rect x="11" y="9" width="2" height="6" rx="1" fill={color} fillOpacity="0.4" />
-        <path d="M9 12H15" stroke={color} strokeWidth="1.5" strokeDasharray="1 2" />
+        <path d="M5 20C5 20 5.5 11 12 7C16.5 4.2 20 2 22 2C22 2 21 8.5 18 12.5C14 18 9.5 21.5 5 20Z" fill={color} fillOpacity="0.15" />
+        <path d="M5 20C5 20 5.5 11 12 7C16.5 4.2 20 2 22 2C22 2 21 8.5 18 12.5C14 18 9.5 21.5 5 20Z" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M19 5.5L21.5 3" stroke={color} strokeWidth="2" strokeLinecap="round" />
+        <path d="M6 18.5L4 20.5" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </svg>
 );
+
