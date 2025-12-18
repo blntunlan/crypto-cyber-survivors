@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useMarketData } from '../../hooks/useMarketData';
 import { GameStatus, MarketPosition, Player } from '../../types';
 
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let capturedCallback: any;
 
 vi.mock('../../services/marketService', () => {

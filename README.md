@@ -43,6 +43,13 @@
 - **37 Unit Tests** - Comprehensive test coverage with Vitest
 - **Error Boundary** - Graceful crash recovery with themed UI
 
+### 📊 Analytics & Metrics
+- **Comprehensive Tracking** - 40+ metrics across 7 categories
+- **Bitcoin Impact Analysis** - Track how price affects gameplay
+- **Feature Flag System** - Easy enable/disable with zero performance impact
+- **Export Capabilities** - JSON/CSV exports for data analysis
+- **Future-Ready** - Designed for remote database integration
+
 ---
 
 ## 🚀 Quick Start
@@ -125,10 +132,12 @@ crypto-cyber-survivors/
 ├── components/           # React components
 │   ├── GameEngine.tsx   # Main game loop & rendering
 │   ├── GameUI.tsx       # HUD & stats display
+│   ├── MetricsDebugPanel.tsx # Dev-only metrics viewer
 │   └── ErrorBoundary.tsx # Crash recovery
 ├── services/            # Core services
 │   ├── CardSystem.ts    # Card generation & effects
 │   ├── DifficultyManager.ts # Dynamic difficulty
+│   ├── MetricsService.ts # Analytics & data collection
 │   ├── PoolManager.ts   # Object pooling
 │   ├── EventBus.ts      # Decoupled event system
 │   ├── marketService.ts # WebSocket market data
@@ -142,16 +151,25 @@ crypto-cyber-survivors/
 ├── contexts/            # React contexts
 │   └── GameContext.tsx  # State management
 ├── config/              # Game configuration
+│   └── MetricsConfig.ts # Metrics feature flags
+├── types/               # TypeScript interfaces
+│   └── metrics.ts       # Metrics type definitions
 ├── tests/               # Vitest test suites
-└── types.ts             # TypeScript interfaces
+├── docs/                # Documentation
+│   ├── MASTER_ROADMAP.md    # Project roadmap & timeline
+│   ├── METRICS_ROADMAP.md   # Metrics system design
+│   ├── BITCOIN_DATA_USAGE.md
+│   └── IMPROVEMENT_TASKS.md
+└── types.ts             # Core TypeScript interfaces
 ```
 
 ### Key Design Patterns
-- **Singleton** - Services (CardSystem, DifficultyManager, EventBus)
+- **Singleton** - Services (CardSystem, DifficultyManager, EventBus, MetricsService)
 - **Factory** - Enemy creation with weighted spawn rates
 - **Strategy** - Pluggable enemy movement behaviors
 - **Object Pool** - Efficient bullet/particle management
 - **Observer** - EventBus for decoupled communication
+- **Feature Flag** - Configurable metrics collection
 
 ---
 
@@ -174,11 +192,12 @@ crypto-cyber-survivors/
 
 | Stat | Value |
 |------|-------|
-| Lines of Code | ~10,000 |
-| TypeScript Files | 25+ |
+| Lines of Code | ~12,000 |
+| TypeScript Files | 30+ |
 | Unit Tests | 37 |
 | Card Types | 30+ |
 | Enemy Types | 6 |
+| Metrics Tracked | 40+ |
 | Test Coverage | Core services |
 
 ---

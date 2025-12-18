@@ -5,6 +5,7 @@ import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
 
 describe('SpawnSystem', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockPool: any;
 
     beforeEach(() => {

@@ -37,7 +37,6 @@ class MockAudioContext {
         gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
         connect: vi.fn(),
     }));
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     resume = vi.fn(() => Promise.resolve());
     destination = {};
 }

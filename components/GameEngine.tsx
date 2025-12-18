@@ -6,6 +6,8 @@ import { PoolManager } from '../services/poolManager';
 import { GameRenderer } from '../services/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
 import { EventBus } from '../services/EventBus';
+import { MetricsService } from '../services/MetricsService';
+import { DifficultyManager } from '../services/DifficultyManager';
 import { ComboSystem } from '../services/ComboSystem';
 
 import { PhysicsSystem } from '../services/PhysicsSystem';
@@ -148,6 +150,19 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       // Update combo system
       ComboSystem.update();
+
+      // Update metrics system
+      const wavePhase = DifficultyManager.getWavePhase();
+      const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
+      const hpPercent = (player.hp / maxHp) * 100;
+      MetricsService.update(deltaTime, {
+        pnl: marketData.pnl,
+        atr: 0.01, // ATR from market data if available
+        difficulty: marketData.difficulty,
+        wavePhase,
+        hpPercent,
+        enemyCount: p.activeEnemies.length,
+      });
 
       // Dash Logic Timers
       if (s.dashTimer > 0) {

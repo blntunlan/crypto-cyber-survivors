@@ -35,7 +35,7 @@ export interface EventData {
   comboEnd: { finalStreak: number; bonusXp: number };
   levelUpStart: Record<string, never>;
   gameReset: Record<string, never>;
-  settingsUpdate: Record<string, any>;
+  settingsUpdate: Record<string, unknown>;
 }
 
 type EventCallback<K extends GameEvent> = (data: EventData[K]) => void;

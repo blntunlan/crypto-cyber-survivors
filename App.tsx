@@ -8,6 +8,8 @@ import { DifficultyManager } from './services/DifficultyManager';
 import { CheatManager } from './services/CheatManager';
 import { EventBus } from './services/EventBus';
 import { ComboSystem } from './services/ComboSystem';
+import { MetricsService } from './services/MetricsService';
+import { GameEndReason } from './types/metrics';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MainMenu } from './components/screens/MainMenu';
 import { LevelUpScreen } from './components/screens/LevelUpScreen';
@@ -15,6 +17,7 @@ import { PauseMenu } from './components/screens/PauseMenu';
 import { GameOverScreen } from './components/screens/GameOverScreen';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
+import { MetricsDebugPanel } from './components/MetricsDebugPanel';
 
 const App: React.FC = () => {
   const [dimensions, setDimensions] = useState({
@@ -97,7 +100,7 @@ const App: React.FC = () => {
     const choices = CardSystem.generateChoices(playerRef.current.luck, playerRef.current.level);
     setUpgradeChoices(choices);
     audio.playLevelUp();
-  }, [healFull]);
+  }, [healFull, playerRef]);
 
   const resetGame = useCallback(() => {
     setGameStatus(GameStatus.MENU);
@@ -121,6 +124,9 @@ const App: React.FC = () => {
     setPositionColor(choice);
     setGameStatus(GameStatus.PLAYING);
     audio.playLevelUp();
+
+    // Start metrics session
+    MetricsService.startSession(choice, marketData.price);
   };
 
   const selectUpgrade = (card: Card) => {
@@ -129,6 +135,9 @@ const App: React.FC = () => {
     nextP.level += 1;
     nextP.exp -= nextP.nextLevelExp;
     nextP.nextLevelExp = Math.floor(nextP.nextLevelExp * 1.5);
+
+    // Track card selection in metrics
+    MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
 
     playerRef.current = nextP;
     setUiStats({ ...nextP });
@@ -163,7 +172,7 @@ const App: React.FC = () => {
       onRestart: resetGame,
     });
     return () => CheatManager.destroy();
-  }, [gameStatus, handleLevelUp, healFull, setUiStats, resetGame]);
+  }, [gameStatus, handleLevelUp, healFull, setUiStats, resetGame, playerRef]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-mono">
@@ -184,6 +193,26 @@ const App: React.FC = () => {
         onGameOver={() => {
           setFinalPnl(marketData.pnl);
           setGameStatus(GameStatus.GAMEOVER);
+
+          // End metrics session with all final data
+          MetricsService.endSession(GameEndReason.DEATH, {
+            price: marketData.price,
+            pnl: marketData.pnl,
+            level: playerRef.current.level,
+            hp: playerRef.current.hp,
+            difficulty: marketData.difficulty,
+            playerStats: {
+              damage: playerRef.current.baseDamage,
+              fireRate: playerRef.current.fireRate,
+              speed: playerRef.current.speed,
+              luck: playerRef.current.luck,
+              critChance: playerRef.current.critChance,
+              critDamage: playerRef.current.critChance * 2, // Estimate based on critChance
+            },
+            position,
+            entryPrice,
+            totalKills: runStats.totalKills,
+          });
         }}
         onLevelUp={handleLevelUp}
         updatePlayerStats={setUiStats}
@@ -227,6 +256,9 @@ const App: React.FC = () => {
           onRestart={resetGame}
         />
       )}
+
+      {/* Metrics Debug Panel (dev mode only) */}
+      <MetricsDebugPanel />
 
     </div>
   );
