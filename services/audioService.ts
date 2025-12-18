@@ -15,16 +15,32 @@ export class AudioService {
     }
   }
 
+  private volume: number = 1.0;
+
   toggleMute() {
     this.isMuted = !this.isMuted;
-    if (this.masterGain) {
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx?.currentTime || 0);
-    }
+    this.updateGain();
     return this.isMuted;
+  }
+
+  setVolume(value: number) {
+    this.volume = Math.max(0, Math.min(1, value));
+    this.updateGain();
+  }
+
+  private updateGain() {
+    if (this.masterGain && this.ctx) {
+      const targetGain = this.isMuted ? 0 : this.volume;
+      this.masterGain.gain.setValueAtTime(targetGain, this.ctx.currentTime);
+    }
   }
 
   getMuted() {
     return this.isMuted;
+  }
+
+  getVolume() {
+    return this.volume;
   }
 
   playShoot() {

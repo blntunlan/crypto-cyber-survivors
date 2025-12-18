@@ -10,6 +10,7 @@ import { DifficultyManager } from './services/DifficultyManager';
 import { CheatManager } from './services/CheatManager';
 import { EventBus } from './services/EventBus';
 import { ComboSystem } from './services/ComboSystem';
+import { SettingsPanel } from './components/SettingsPanel';
 
 const ATR_PERIOD = 14;
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [upgradeChoices, setUpgradeChoices] = useState<Card[]>([]);
   const [finalPnl, setFinalPnl] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(audio.getMuted());
+  const [showSettings, setShowSettings] = useState<boolean>(false);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [runStats, setRunStats] = useState({
     totalKills: 0,
@@ -385,10 +387,18 @@ const App: React.FC = () => {
                   <span className="font-black text-red-500 text-lg uppercase">Short</span>
                 </button>
               </div>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="w-full py-4 bg-slate-800 text-white font-black uppercase text-xs tracking-widest rounded-xl border border-white/10 hover:bg-slate-700 transition-all"
+              >
+                Settings
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
 
       {gameStatus === GameStatus.LEVEL_UP && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
@@ -501,10 +511,20 @@ const App: React.FC = () => {
             </div>
 
             <button
+              onClick={() => {
+                setShowSettings(true);
+                // Don't set state to playing, keep it paused
+              }}
+              className="w-full py-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-all underline underline-offset-4 decoration-white/10"
+            >
+              Settings
+            </button>
+
+            <button
               onClick={() => setIsMuted(audio.toggleMute())}
               className="w-full py-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-all underline underline-offset-4 decoration-white/10"
             >
-              Audio: {isMuted ? 'OFF' : 'ON'}
+              Quick Mute: {isMuted ? 'OFF' : 'ON'}
             </button>
 
             <p className="pt-4 text-slate-500 text-[9px] font-black uppercase tracking-[0.3em]">
