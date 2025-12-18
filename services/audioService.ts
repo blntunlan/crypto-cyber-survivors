@@ -1,19 +1,35 @@
 export class AudioService {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private isMuted: boolean = false;
 
   private init() {
     if (!this.ctx) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
 
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    if (this.masterGain) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx?.currentTime || 0);
+    }
+    return this.isMuted;
+  }
+
+  getMuted() {
+    return this.isMuted;
+  }
+
   playShoot() {
     this.init();
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGain) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
@@ -25,7 +41,7 @@ export class AudioService {
     gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.08);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.08);
@@ -33,7 +49,7 @@ export class AudioService {
 
   playCrit() {
     this.init();
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGain) return;
     const osc = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -51,7 +67,7 @@ export class AudioService {
 
     osc.connect(gain);
     osc2.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start();
     osc2.start();
@@ -61,7 +77,7 @@ export class AudioService {
 
   playHit() {
     this.init();
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGain) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
@@ -78,7 +94,7 @@ export class AudioService {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.1);
@@ -86,7 +102,7 @@ export class AudioService {
 
   playGem() {
     this.init();
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGain) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
@@ -98,7 +114,7 @@ export class AudioService {
     gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.06);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.06);
@@ -106,7 +122,7 @@ export class AudioService {
 
   playLevelUp() {
     this.init();
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGain) return;
     const freqs = [523.25, 659.25, 783.99, 1046.5];
     freqs.forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
@@ -120,7 +136,7 @@ export class AudioService {
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + i * 0.08 + 0.4);
 
       osc.connect(gain);
-      gain.connect(this.ctx!.destination);
+      gain.connect(this.masterGain!);
 
       osc.start(this.ctx!.currentTime + i * 0.08);
       osc.stop(this.ctx!.currentTime + i * 0.08 + 0.4);

@@ -12,11 +12,11 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 **Öncelik:** ⭐⭐⭐⭐⭐ (En Yüksek)
 
 ### 1.1 Kill Streak & Combo Sistemi
-- [ ] Kill streak sayacı (ardışık hızlı killerde artar)
-- [ ] Combo multiplier (5, 10, 25, 50, 100 killde bonus XP)
-- [ ] Streak UI göstergesi (ekranda görsel)
-- [ ] Streak kaybetme uyarısı (3 saniye kill yoksa sona erer)
-- [ ] Streak sesleri (artan tonlarda ses efekti)
+- [x] Kill streak sayacı (ardışık hızlı killerde artar)
+- [x] Combo multiplier (5, 10, 25, 50, 100 killde bonus XP)
+- [x] Streak UI göstergesi (ekranda görsel)
+- [x] Streak kaybetme uyarısı (3 saniye kill yoksa sona erer)
+- [x] Streak sesleri (artan tonlarda ses efekti)
 
 ### 1.2 Milestone & Achievement Sistemi
 - [ ] Kill milestone ödülleri (100, 500, 1000 killde)
@@ -192,11 +192,11 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 
 En az eforla en çok etki yapacak değişiklikler:
 
-1. **Kill Streak UI** - Sadece sayaç ve text (30 dk)
-2. **Screen shake intensity ayarı** - Daha fazla "juice" (15 dk)
-3. **Damage number renk kodlaması** - Normal/crit/super crit farklı renk (15 dk)
-4. **Level up pause** - Level up anında 0.5 sn yavaşlama (15 dk)
-5. **Wave başlangıç uyarısı** - "INTENSE WAVE INCOMING!" text (20 dk)
+1. **[x] Kill Streak UI** - Sadece sayaç ve text (30 dk)
+2. **[ ] Screen shake intensity ayarı** - Daha fazla "juice" (15 dk)
+3. **[x] Damage number renk kodlaması** - Normal/crit/super crit farklı renk (15 dk)
+4. **[ ] Level up pause** - Level up anında 0.5 sn yavaşlama (15 dk)
+5. **[ ] Wave başlangıç uyarısı** - "INTENSE WAVE INCOMING!" text (20 dk)
 
 ---
 
@@ -204,9 +204,9 @@ En az eforla en çok etki yapacak değişiklikler:
 
 Temizlenmesi gereken konular:
 
-- [ ] ESLint warning'ları temizle (setup.ts)
+- [x] ESLint warning'ları temizle (Ana kod temizlendi)
 - [ ] Test coverage artır (components için testler)
-- [ ] Type safety iyileştir (any kullanımlarını azalt)
+- [x] Type safety iyileştir (EventBus ve ComboSystem'de yapılandırıldı)
 - [ ] Code splitting (lazy load components)
 - [ ] Error boundary test coverage
 

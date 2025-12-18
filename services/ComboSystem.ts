@@ -13,6 +13,7 @@ export interface ComboState {
     maxStreak: number;
     comboMultiplier: number;
     lastKillTime: number;
+    totalKills: number;
     totalBonusXp: number;
 }
 
@@ -42,6 +43,7 @@ class ComboSystemClass {
         maxStreak: 0,
         comboMultiplier: 1.0,
         lastKillTime: 0,
+        totalKills: 0,
         totalBonusXp: 0,
     };
 
@@ -73,6 +75,7 @@ class ComboSystemClass {
             maxStreak: 0,
             comboMultiplier: 1.0,
             lastKillTime: 0,
+            totalKills: 0,
             totalBonusXp: 0,
         };
         this.lastMilestoneIndex = -1;
@@ -90,6 +93,7 @@ class ComboSystemClass {
         }
 
         this.state.killStreak++;
+        this.state.totalKills++;
         this.state.lastKillTime = now;
 
         // Update max streak
@@ -168,6 +172,13 @@ class ComboSystemClass {
      */
     getKillStreak(): number {
         return this.state.killStreak;
+    }
+
+    /**
+     * Get total kills this session
+     */
+    getTotalKills(): number {
+        return this.state.totalKills;
     }
 
     /**

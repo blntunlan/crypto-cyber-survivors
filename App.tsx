@@ -9,6 +9,7 @@ import { CardSystem, Card, TIER_CONFIG } from './services/CardSystem';
 import { DifficultyManager } from './services/DifficultyManager';
 import { CheatManager } from './services/CheatManager';
 import { EventBus } from './services/EventBus';
+import { ComboSystem } from './services/ComboSystem';
 
 const ATR_PERIOD = 14;
 
@@ -23,6 +24,8 @@ const App: React.FC = () => {
   const [_priceHistory, setPriceHistory] = useState<number[]>([]);
   const [upgradeChoices, setUpgradeChoices] = useState<Card[]>([]);
   const [finalPnl, setFinalPnl] = useState<number>(0);
+  const [isMuted, setIsMuted] = useState<boolean>(audio.getMuted());
+  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -169,6 +172,7 @@ const App: React.FC = () => {
     setGameStatus(GameStatus.MENU);
     setEntryPrice(0);
     setFinalPnl(0);
+    setSessionStartTime(0);
     playerRef.current = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
@@ -255,6 +259,7 @@ const App: React.FC = () => {
     // Initialize DifficultyManager for new game
     DifficultyManager.startGame();
 
+    setSessionStartTime(Date.now());
     setGameStatus(GameStatus.PLAYING);
     audio.playLevelUp();
   };
@@ -404,19 +409,66 @@ const App: React.FC = () => {
       )}
 
       {gameStatus === GameStatus.PAUSED && (
-        <div className="fixed inset-0 z-[150] bg-black/40 backdrop-blur-sm flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-6xl font-black text-white italic tracking-tighter mb-8">
+        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center">
+          <div className="text-center space-y-4 max-w-sm w-full px-6">
+            <h2 className="text-6xl font-black text-white italic tracking-tighter mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500">
               MARKET HALTED
             </h2>
+
+            {/* Run Stats */}
+            <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 mb-6 grid grid-cols-2 gap-4">
+              <div className="text-left">
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Run Duration</p>
+                <p className="text-lg font-bold text-white font-mono">
+                  {Math.floor((Date.now() - sessionStartTime) / 60000)}:
+                  {String(Math.floor(((Date.now() - sessionStartTime) % 60000) / 1000)).padStart(2, '0')}
+                </p>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Total Kills</p>
+                <p className="text-lg font-bold text-white font-mono">{ComboSystem.getTotalKills()}</p>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Max Combo</p>
+                <p className="text-lg font-bold text-white font-mono">{ComboSystem.getMaxStreak()}</p>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Bonus XP</p>
+                <p className="text-lg font-bold text-white font-mono">{Math.floor(ComboSystem.getState().totalBonusXp)}</p>
+              </div>
+            </div>
+
             <button
               onClick={() => setGameStatus(GameStatus.PLAYING)}
-              className="px-12 py-4 bg-white text-black font-black uppercase rounded-lg hover:bg-yellow-500 transition-all"
+              className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-lg hover:bg-yellow-500 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]"
             >
               Resume Session
             </button>
-            <p className="mt-4 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-              Press ESC to return
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={resetGame}
+                className="py-3 bg-slate-800 text-white font-black uppercase text-xs tracking-widest rounded-lg border border-white/10 hover:bg-red-600 transition-all"
+              >
+                Restart
+              </button>
+              <button
+                onClick={() => setGameStatus(GameStatus.MENU)}
+                className="py-3 bg-slate-800 text-white font-black uppercase text-xs tracking-widest rounded-lg border border-white/10 hover:bg-slate-700 transition-all"
+              >
+                Main Menu
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsMuted(audio.toggleMute())}
+              className="w-full py-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-all underline underline-offset-4 decoration-white/10"
+            >
+              Audio: {isMuted ? 'OFF' : 'ON'}
+            </button>
+
+            <p className="pt-4 text-slate-500 text-[9px] font-black uppercase tracking-[0.3em]">
+              Session ID: {Math.random().toString(36).substring(7).toUpperCase()}
             </p>
           </div>
         </div>

@@ -63,6 +63,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     comboMilestoneText: '',
     comboMilestoneColor: '',
     comboMilestoneTimer: 0,
+    levelUpFreeze: 0,
+    levelUpFlash: 0,
   });
 
   useEffect(() => {
@@ -85,15 +87,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Reset time trackers on any status change to prevent jumps/spikes
     state.current.lastTime = 0;
 
-    if (status === GameStatus.MENU) {
-      pool.current.clearAll();
-      state.current.spawnTimer = 0;
-      state.current.lastFireTime = 0;
+    if (status === GameStatus.MENU || status === GameStatus.PLAYING) {
+      if (status === GameStatus.MENU) {
+        pool.current.clearAll();
+        state.current.spawnTimer = 0;
+        state.current.lastFireTime = 0;
+      }
       ComboSystem.startGame();
-    }
-
-    if (status === GameStatus.PLAYING) {
-      ComboSystem.startGame();
+      // Manually reset UI display state
+      state.current.comboStreak = 0;
+      state.current.comboMultiplier = 1.0;
+      state.current.comboMilestoneTimer = 0;
+      state.current.comboMilestoneText = '';
     }
   }, [status]);
 
@@ -175,8 +180,23 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     }
 
     if (status === GameStatus.PLAYING) {
+      // Handle Level Up Freeze
+      if (s.levelUpFreeze > 0) {
+        s.levelUpFreeze -= deltaTime;
+        s.levelUpFlash = s.levelUpFreeze / 500; // Flash decays with freeze
+        if (s.levelUpFreeze <= 0) {
+          s.levelUpFlash = 0;
+          onLevelUp();
+        }
+        // During freeze, we still want to draw but not update physics
+        draw();
+        requestRef.current = requestAnimationFrame(update);
+        return;
+      }
+
       if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
       if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+      if (s.levelUpFlash > 0) s.levelUpFlash *= 0.9; // Extra safety decay
 
       // Update combo system
       ComboSystem.update();
@@ -396,7 +416,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           player.exp += xpGain;
           g.active = false;
           audio.playGem();
-          if (player.exp >= player.nextLevelExp) onLevelUp();
+          if (player.exp >= player.nextLevelExp) {
+            s.levelUpFreeze = 500; // 500ms pause
+            s.levelUpFlash = 1.0;
+            s.shake = 10;
+          }
         }
       });
       updatePlayerStats({ ...player });
@@ -590,6 +614,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         ctx.globalAlpha = 1;
       }
+    }
+
+    // Draw Level Up Flash
+    if (s.levelUpFlash > 0) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${s.levelUpFlash * 0.5})`;
+      ctx.fillRect(0, 0, width, height);
     }
 
     ctx.restore();
