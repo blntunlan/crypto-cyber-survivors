@@ -69,6 +69,7 @@ npm run dev
 | Key | Action |
 |-----|--------|
 | `W` `A` `S` `D` or `Arrow Keys` | Move |
+| `Space` | Dash (I-Frames) |
 | `Escape` / `P` | Pause |
 
 ### Objective

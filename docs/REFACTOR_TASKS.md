@@ -61,7 +61,28 @@ useEffect(() => {
 
 ---
 
+
+---
+
 ## 🟡 P1 - Önemli (Yakın Zamanda)
+
+### Task 10: App.tsx "God Component" Refactoring
+**Dosya:** `App.tsx` (~600 satır)
+**Sorun:** Tek bir bileşende Market Mantığı, Oyun Durumu, Oyuncu Verisi ve tüm UI Ekranları (Menu, LevelUp, Pause, GameOver) toplanmış durumda.
+**Çözüm:**
+- **UI Ekranlarını Ayır:** 
+  - `components/screens/MainMenu.tsx`
+  - `components/screens/LevelUpScreen.tsx` (LevelUp ismiyle karışmasın diye Screen ekiyle)
+  - `components/screens/PauseMenu.tsx`
+  - `components/screens/GameOverScreen.tsx`
+- **Logic'i Hook'lara Taşı:**
+  - `hooks/useMarketData.ts`: MarketService bağlantısı ve ATR hesaplaması.
+  - `hooks/useGameStats.ts`: Oyuncu verileri (`Player` state) ve resetleme mantığı.
+- **App.tsx Rolü:** Sadece global state orkestrasyonu ve üst seviye route yönetimi.
+
+**Durum:** [x] ✅ Tamamlandı (18 Aralık 2025) - UI ve Hook refactor tamamlandı, testler eklendi.
+
+---
 
 ### Task 3: PhysicsSystem Unused Imports Cleanup
 **Dosya:** `services/PhysicsSystem.ts`
@@ -245,18 +266,15 @@ if (edge === 0) {
 | Öncelik | Toplam | Tamamlanan | Yüzde |
 |---------|--------|------------|-------|
 | P0 | 2 | 2 | 100% ✅ |
-| P1 | 3 | 3 | 100% ✅ |
+| P1 | 4 | 3 | 75% |
 | P2 | 2 | 2 | 100% ✅ |
 | P3 | 2 | 1 | 50% |
-| **Toplam** | **9** | **8** | **89%** |
+| **Toplam** | **10** | **8** | **80%** |
 
 ---
 
 ## 🚀 Önerilen Sıra
 
-1. ✅ Task 1 - Memory leak fix (5 dk)
-2. ✅ Task 2 - useEffect fix (5 dk)
-3. ✅ Task 3 - Unused imports (2 dk)
-4. ✅ Task 4 - levelUpFlash duplikasyonu (10 dk)
-5. ✅ Task 5 - Frame-rate independence (5 dk)
-6. ⏸️ Task 6-9 - Sonraki sprint'e bırakılabilir
+1. ✅ Task 1-5 (Kritik bug fixler tamam)
+2. 🔄 Task 10 - App.tsx Refactoring (Önerilen)
+3. ⏸️ Task 6-9 - İyileştirmeler

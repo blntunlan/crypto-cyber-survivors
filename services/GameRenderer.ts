@@ -32,7 +32,7 @@ export class GameRenderer {
             this.drawBullets(ctx, pool);
             this.drawEnemies(ctx, pool);
             this.drawFloatingTexts(ctx, pool);
-            this.drawPlayer(ctx, player);
+            this.drawPlayer(ctx, player, state);
 
 
         }
@@ -213,7 +213,17 @@ export class GameRenderer {
         ctx.globalAlpha = 1;
     }
 
-    private drawPlayer(ctx: CanvasRenderingContext2D, player: Player) {
+    private drawPlayer(ctx: CanvasRenderingContext2D, player: Player, state: GameState) {
+        // Draw Dash Trail
+        state.dashTrail.forEach((pos, i) => {
+            ctx.globalAlpha = (i / state.dashTrail.length) * 0.4;
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(Math.round(pos.x), Math.round(pos.y), player.radius, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+
         ctx.shadowBlur = 15;
         ctx.shadowColor = player.color;
         ctx.fillStyle = player.color;

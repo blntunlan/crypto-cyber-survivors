@@ -31,5 +31,7 @@ export const useGameInput = () => {
         return { dx, dy };
     };
 
-    return { getMovementVector };
+    const isSpacePressed = () => keys.current[' '] || keys.current['Spacebar'];
+
+    return { getMovementVector, isSpacePressed };
 };

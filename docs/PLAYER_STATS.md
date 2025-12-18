@@ -77,6 +77,13 @@ This document provides a detailed breakdown of all player attributes, their base
 - **Description:** How fast the player character moves across the screen.
 - **Key Cards:** Bull Run (+15%), Flash Loan (+30%).
 
+### ⚡ Dash (Quick Burst)
+- **Control:** `SPACE`
+- **Cooldown:** 1.0s
+- **Duration:** 200ms
+- **Multiplier:** 3.0x Speed
+- **Effect:** Provides **I-Frames** (Invincibility Frames), allowing you to pass through enemies without taking damage. Leaves a visual trail behind.
+
 ---
 
 ## 🎰 Advanced Mechanics
@@ -86,4 +93,5 @@ This document provides a detailed breakdown of all player attributes, their base
 | **Super Crit** | `Crit + Luck > 3.0` | 3x Damage multiplier and enhanced visual effects. |
 | **Near Death** | `HP < 20%` | Game difficulty is temporarily reduced by 30%. |
 | **Kill Streak**| `3s kill window` | Increases XP multiplier up to 3.0x (Jackpot). |
+| **Dash (I-Frames)**| `SPACE` key | No damage taken during the 200ms burst. |
 | **Armor Floor**| `Math.max(0.1, ...)`| Ensures enemies always deal at least a tiny amount of damage. |

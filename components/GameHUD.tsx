@@ -81,11 +81,23 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
             }, 500);
         });
 
+        const unsubReset = EventBus.on('gameReset', () => {
+            setCombo({
+                streak: 0,
+                multiplier: 1.0,
+                milestoneText: '',
+                milestoneColor: '',
+                timeRemaining: 0,
+            });
+            setFlash(0);
+        });
+
         return () => {
             unsubUpdate();
             unsubMilestone();
             unsubEnd();
             unsubLevelUp();
+            unsubReset();
             // Cleanup timeouts on unmount
             if (milestoneTimeoutRef.current) {
                 clearTimeout(milestoneTimeoutRef.current);

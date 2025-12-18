@@ -28,6 +28,9 @@ export const GAME_ENGINE = {
   SPAWN_OFFSET: 50, // Offset for spawning enemies off-screen
   ENEMY_OFFSCREEN_THRESHOLD: 200,
   GEM_MAGNET_BASE_RANGE: 150,
+  DASH_SPEED_MULTIPLIER: 3,
+  DASH_DURATION: 200, // ms
+  DASH_COOLDOWN: 1000, // ms
 };
 
 // =============================================================================

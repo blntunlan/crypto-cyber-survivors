@@ -42,7 +42,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const requestRef = useRef<number | undefined>(undefined);
   const pool = useRef(new PoolManager());
   const renderer = useRef(new GameRenderer());
-  const { getMovementVector } = useGameInput();
+  const { getMovementVector, isSpacePressed } = useGameInput();
 
   const state = useRef<GameState>({
     bgCandles: [] as Candle[],
@@ -55,6 +55,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     lastTime: 0,
 
     levelUpFreeze: 0,
+    isDashing: false,
+    dashTimer: 0,
+    dashCooldownTimer: 0,
+    dashTrail: [],
   });
 
   useEffect(() => {
@@ -73,6 +77,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Clamp player to screen if dimensions change (e.g. resize while paused)
+  useEffect(() => {
+    const player = playerRef.current;
+    player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
+  }, [width, height, playerRef]);
+
   useEffect(() => {
     // Reset time trackers on any status change to prevent jumps/spikes
     state.current.lastTime = 0;
@@ -81,7 +92,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       pool.current.clearAll();
       state.current.spawnTimer = 0;
       state.current.lastFireTime = 0;
-
+      state.current.shake = 0;
+      state.current.critFlash = 0;
     }
   }, [status]);
 
@@ -137,12 +149,41 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       // Update combo system
       ComboSystem.update();
 
+      // Dash Logic Timers
+      if (s.dashTimer > 0) {
+        s.dashTimer -= deltaTime;
+        if (s.dashTimer <= 0) s.isDashing = false;
+
+        // Add current position to trail
+        s.dashTrail.push({ x: player.x, y: player.y });
+        if (s.dashTrail.length > 8) s.dashTrail.shift();
+      } else {
+        // Fade out trail
+        if (s.dashTrail.length > 0) {
+          s.dashTrail.shift();
+        }
+      }
+      if (s.dashCooldownTimer > 0) {
+        s.dashCooldownTimer -= deltaTime;
+      }
+
       const { dx, dy } = getMovementVector();
+
+      // Handle Dash Trigger
+      if (isSpacePressed() && s.dashCooldownTimer <= 0 && (dx !== 0 || dy !== 0)) {
+        s.isDashing = true;
+        s.dashTimer = GAME_ENGINE.DASH_DURATION;
+        s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
+        audio.playDash();
+      }
 
       if (dx !== 0 || dy !== 0) {
         const mag = Math.hypot(dx, dy);
-        player.x += (dx / mag) * player.speed * dtFactor;
-        player.y += (dy / mag) * player.speed * dtFactor;
+        let speedMult = 1;
+        if (s.isDashing) speedMult = GAME_ENGINE.DASH_SPEED_MULTIPLIER;
+
+        player.x += (dx / mag) * player.speed * speedMult * dtFactor;
+        player.y += (dy / mag) * player.speed * speedMult * dtFactor;
       }
 
       player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));

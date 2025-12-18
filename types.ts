@@ -102,4 +102,8 @@ export interface GameState {
   lastTime: number;
 
   levelUpFreeze: number;
+  isDashing: boolean;
+  dashTimer: number;
+  dashCooldownTimer: number;
+  dashTrail: { x: number; y: number }[];
 }
