@@ -26,20 +26,21 @@ export class SpawnSystem {
 
     private static getRandomSpawnPosition(width: number, height: number) {
         const edge = Math.floor(Math.random() * 4);
+        const offset = GAME_ENGINE.SPAWN_OFFSET;
         let x = 0,
             y = 0;
 
         if (edge === 0) {
             x = Math.random() * width;
-            y = -50;
+            y = -offset;
         } else if (edge === 1) {
             x = Math.random() * width;
-            y = height + 50;
+            y = height + offset;
         } else if (edge === 2) {
-            x = -50;
+            x = -offset;
             y = Math.random() * height;
         } else {
-            x = width + 50;
+            x = width + offset;
             y = Math.random() * height;
         }
 

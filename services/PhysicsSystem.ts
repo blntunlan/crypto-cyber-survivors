@@ -1,4 +1,4 @@
-import { Player, GameState, Bullet, Enemy, Gem, Particle } from '../types';
+import { Player, GameState, Enemy } from '../types';
 import { PoolManager } from './poolManager';
 import { CheatManager } from './CheatManager';
 import { audio } from './audioService';

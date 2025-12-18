@@ -102,5 +102,4 @@ export interface GameState {
   lastTime: number;
 
   levelUpFreeze: number;
-  levelUpFlash: number;
 }

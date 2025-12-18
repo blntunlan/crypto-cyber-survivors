@@ -28,6 +28,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
     const [flash, setFlash] = useState(0);
 
     const requestRef = useRef<number | null>(null);
+    const milestoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const unsubUpdate = EventBus.on('comboUpdate', (data) => {
@@ -35,19 +37,24 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
                 ...prev,
                 streak: data.killStreak,
                 multiplier: data.multiplier,
-                timeRemaining: 1, // Reset to full on kill
+                timeRemaining: 1,
             }));
         });
 
         const unsubMilestone = EventBus.on('comboMilestone', (data) => {
+            // Clear previous timeout if exists
+            if (milestoneTimeoutRef.current) {
+                clearTimeout(milestoneTimeoutRef.current);
+            }
+
             setCombo(prev => ({
                 ...prev,
                 milestoneText: data.name,
                 milestoneColor: data.color,
             }));
 
-            // Clear milestone text after 2 seconds
-            setTimeout(() => {
+            // Set new timeout with ref tracking
+            milestoneTimeoutRef.current = setTimeout(() => {
                 setCombo(prev => ({ ...prev, milestoneText: '' }));
             }, 2000);
         });
@@ -63,7 +70,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
         });
 
         const unsubLevelUp = EventBus.on('levelUpStart', () => {
-            setFlash(1.0); // Start full white
+            // Clear previous flash timeout if exists
+            if (flashTimeoutRef.current) {
+                clearTimeout(flashTimeoutRef.current);
+            }
+            setFlash(1.0);
+            // Reset flash after CSS transition completes
+            flashTimeoutRef.current = setTimeout(() => {
+                setFlash(0);
+            }, 500);
         });
 
         return () => {
@@ -71,50 +86,47 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
             unsubMilestone();
             unsubEnd();
             unsubLevelUp();
+            // Cleanup timeouts on unmount
+            if (milestoneTimeoutRef.current) {
+                clearTimeout(milestoneTimeoutRef.current);
+            }
+            if (flashTimeoutRef.current) {
+                clearTimeout(flashTimeoutRef.current);
+            }
         };
-
-
     }, []);
 
-    // Poll for smoother time bar
-    const updateLoop = () => {
-        if (status === GameStatus.PLAYING) {
-            const timeLeft = ComboSystem.getComboTimeRemaining();
-            setCombo(prev => {
-                // Optimization: only update state if value changed significantly
-                if (prev.streak > 0 && Math.abs(prev.timeRemaining - timeLeft) > 0.01) {
-                    return { ...prev, timeRemaining: timeLeft };
-                }
-                return prev;
-            });
-
-            // Handle Flash Decay
-            setFlash(prev => {
-                if (prev <= 0) return 0;
-                return Math.max(0, prev - 0.05);
-            });
-        }
-        requestRef.current = requestAnimationFrame(updateLoop);
-    };
-
+    // Animation loop for smooth updates
     useEffect(() => {
+        const updateLoop = () => {
+            if (status === GameStatus.PLAYING) {
+                const timeLeft = ComboSystem.getComboTimeRemaining();
+                setCombo(prev => {
+                    if (prev.streak > 0 && Math.abs(prev.timeRemaining - timeLeft) > 0.01) {
+                        return { ...prev, timeRemaining: timeLeft };
+                    }
+                    return prev;
+                });
+            }
+            requestRef.current = requestAnimationFrame(updateLoop);
+        };
+
         requestRef.current = requestAnimationFrame(updateLoop);
+
         return () => {
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    });
+    }, [status]);
 
     if (status === GameStatus.MENU) return null;
 
     return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {/* Level Up Flash */}
-            {flash > 0 && (
-                <div
-                    className="absolute inset-0 bg-white z-[60]"
-                    style={{ opacity: flash * 0.5 }}
-                />
-            )}
+            {/* Level Up Flash - CSS transition for frame-rate independence */}
+            <div
+                className="absolute inset-0 bg-white z-[60] pointer-events-none transition-opacity duration-500 ease-out"
+                style={{ opacity: flash > 0 ? 0.5 : 0 }}
+            />
 
             {/* Combo UI - Bottom Center */}
             {combo.streak >= 5 && (

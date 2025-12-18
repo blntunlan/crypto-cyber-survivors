@@ -10,6 +10,7 @@ import { ComboSystem } from '../services/ComboSystem';
 
 import { PhysicsSystem } from '../services/PhysicsSystem';
 import { SpawnSystem } from '../services/SpawnSystem';
+import { CombatSystem } from '../services/CombatSystem';
 import { GameHUD } from './GameHUD';
 
 interface GameEngineProps {
@@ -54,7 +55,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     lastTime: 0,
 
     levelUpFreeze: 0,
-    levelUpFlash: 0,
   });
 
   useEffect(() => {
@@ -108,28 +108,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     s.lastTime = time;
 
     if (status !== GameStatus.PAUSED) {
-      s.bgCandles.forEach(c => {
-        const trendMultiplier = marketData.pnl >= 0 ? -1 : 1;
-        const volatilitySpeed = c.speed * (1 + marketData.difficulty / 1.5);
-        c.y += volatilitySpeed * trendMultiplier * dtFactor;
-        if (c.y > height + 100) {
-          c.y = -100;
-          c.x = Math.random() * width;
-        }
-        if (c.y < -100) {
-          c.y = height + 100;
-          c.x = Math.random() * width;
-        }
-      });
+      renderer.current.updateBackgroundCandles(
+        s,
+        marketData.pnl,
+        marketData.difficulty,
+        dtFactor,
+        width,
+        height
+      );
     }
 
     if (status === GameStatus.PLAYING) {
       // Handle Level Up Freeze
       if (s.levelUpFreeze > 0) {
         s.levelUpFreeze -= deltaTime;
-        s.levelUpFlash = s.levelUpFreeze / 500; // Flash decays with freeze
         if (s.levelUpFreeze <= 0) {
-          s.levelUpFlash = 0;
           onLevelUp();
         }
         // During freeze, we still want to draw but not update physics
@@ -140,7 +133,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
       if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
-      if (s.levelUpFlash > 0) s.levelUpFlash *= 0.9; // Extra safety decay
 
       // Update combo system
       ComboSystem.update();
@@ -165,50 +157,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       s.currentBg.g = lerp(s.currentBg.g, targetBg.g, 0.05);
       s.currentBg.b = lerp(s.currentBg.b, targetBg.b, 0.05);
 
-      if (time - s.lastFireTime > player.fireRate) {
-        // Find nearest enemy using reduce for proper type narrowing
-        const nearest = p.activeEnemies.reduce<{ x: number; y: number; dist: number } | null>(
-          (best, e) => {
-            const d = Math.hypot(e.x - player.x, e.y - player.y);
-            if (!best || d < best.dist) {
-              return { x: e.x, y: e.y, dist: d };
-            }
-            return best;
-          },
-          null
-        );
-
-        if (nearest) {
-          const luckBonus = player.luck * 0.02;
-          const isSuperCrit = Math.random() < (player.critChance + luckBonus) * 0.2;
-          const isCrit = !isSuperCrit && Math.random() < player.critChance + luckBonus;
-          const baseAngle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
-          let damage = player.baseDamage;
-          if (isSuperCrit) damage *= 4;
-          else if (isCrit) damage *= 2;
-
-          for (let i = 0; i < player.projectiles; i++) {
-            const spread = GAME_ENGINE.PROJECTILE_SPREAD;
-            const angleOffset = (i - (player.projectiles - 1) / 2) * spread;
-            const finalAngle = baseAngle + angleOffset;
-
-            p.getBullet(
-              player.x,
-              player.y,
-              Math.cos(finalAngle) * GAME_ENGINE.BULLET_SPEED,
-              Math.sin(finalAngle) * GAME_ENGINE.BULLET_SPEED,
-              damage,
-              (isSuperCrit ? 12 : isCrit ? 8 : 4) * player.area,
-              isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET,
-              isCrit,
-              isSuperCrit
-            );
-          }
-
-          s.lastFireTime = time;
-          audio.playShoot();
-        }
-      }
+      // Combat System - Auto Fire
+      CombatSystem.processAutoFire(p, player, s, time);
 
       // Update Spawn System
       s.spawnTimer = SpawnSystem.update(

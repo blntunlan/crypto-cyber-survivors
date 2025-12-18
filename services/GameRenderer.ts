@@ -68,6 +68,43 @@ export class GameRenderer {
         ctx.globalAlpha = 1;
     }
 
+    /**
+     * Update background candle positions based on market trend.
+     * Candles move up when market is profitable (green), down when in loss (red).
+     *
+     * @param state - Current game state containing candle array
+     * @param pnl - Current profit/loss value
+     * @param difficulty - Market difficulty multiplier
+     * @param dtFactor - Delta time factor for frame-rate independence
+     * @param width - Canvas width for wrapping
+     * @param height - Canvas height for wrapping
+     */
+    public updateBackgroundCandles(
+        state: GameState,
+        pnl: number,
+        difficulty: number,
+        dtFactor: number,
+        width: number,
+        height: number
+    ): void {
+        const trendMultiplier = pnl >= 0 ? -1 : 1;
+
+        state.bgCandles.forEach(c => {
+            const volatilitySpeed = c.speed * (1 + difficulty / 1.5);
+            c.y += volatilitySpeed * trendMultiplier * dtFactor;
+
+            // Wrap around screen edges
+            if (c.y > height + 100) {
+                c.y = -100;
+                c.x = Math.random() * width;
+            }
+            if (c.y < -100) {
+                c.y = height + 100;
+                c.x = Math.random() * width;
+            }
+        });
+    }
+
     private drawCritFlash(
         ctx: CanvasRenderingContext2D,
         width: number,
