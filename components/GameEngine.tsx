@@ -311,6 +311,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
 
         p.activeBullets.forEach(b => {
+          if (!e.active) return; // Prevent multiple bullets killing same enemy in one frame
+
           const bDist = Math.hypot(e.x - b.x, e.y - b.y);
           if (bDist < e.radius + b.radius) {
             e.health -= b.damage;
@@ -319,13 +321,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               s.critFlash = b.isSuperCrit ? 0.15 : 0.08;
               s.critFlashColor = b.isSuperCrit ? COLORS.SUPER_CRIT : COLORS.CRIT;
               audio.playCrit();
-              p.getFloatingText(
-                e.x,
-                e.y - 20,
-                b.damage.toFixed(0),
-                b.color,
-                b.isSuperCrit ? 32 : 24
-              );
               EventBus.emit('critHit', {
                 damage: b.damage,
                 isSuperCrit: !!b.isSuperCrit,
@@ -333,6 +328,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 y: e.y,
               });
             }
+
+            // Damage feedback for EVERY hit
+            p.getFloatingText(
+              e.x + (Math.random() - 0.5) * 10,
+              e.y - 20,
+              b.damage.toFixed(0),
+              b.isSuperCrit ? COLORS.SUPER_CRIT : b.isCrit ? COLORS.CRIT : COLORS.SLOT_SILVER,
+              b.isSuperCrit ? 36 : b.isCrit ? 28 : 20
+            );
             if (e.health <= 0) {
               e.active = false;
               DifficultyManager.recordKill();
@@ -513,7 +517,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const displayX = Math.round(t.x);
         const scale = 1 + (t.size > 20 ? 0.2 : 0);
 
-        ctx.font = `bold ${Math.floor(t.size * scale)}px 'Arial Black', sans-serif`;
+        ctx.font = `bold ${Math.floor(t.size * scale)}px 'VT323', 'VCR OSD Mono', monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.strokeStyle = '#000';
@@ -545,12 +549,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         ctx.fillRect(comboX - barWidth / 2, comboY + 25, barWidth, barHeight);
 
         const milestone = ComboSystem.getCurrentMilestone();
-        const timerColor = milestone?.color ?? '#fbbf24';
+        const timerColor = milestone?.color ?? COLORS.NEON_ORANGE;
         ctx.fillStyle = timerColor;
         ctx.fillRect(comboX - barWidth / 2, comboY + 25, barWidth * s.comboTimeRemaining, barHeight);
 
         // Combo streak text
-        ctx.font = "bold 28px 'Arial Black', sans-serif";
+        ctx.font = "bold 32px 'VT323', monospace";
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.strokeStyle = '#000';
@@ -561,7 +565,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Multiplier text
         if (s.comboMultiplier > 1) {
-          ctx.font = "bold 16px 'Arial Black', sans-serif";
+          ctx.font = "bold 18px 'VT323', monospace";
           ctx.strokeText(`x${s.comboMultiplier.toFixed(1)} XP`, comboX, comboY + 45);
           ctx.fillText(`x${s.comboMultiplier.toFixed(1)} XP`, comboX, comboY + 45);
         }
@@ -575,7 +579,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const milestoneY = height / 3;
         const scale = 1 + (1 - alpha) * 0.3;
 
-        ctx.font = `bold ${Math.floor(48 * scale)}px 'Arial Black', sans-serif`;
+        ctx.font = `bold ${Math.floor(54 * scale)}px 'VT323', monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.strokeStyle = '#000';

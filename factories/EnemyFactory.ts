@@ -45,8 +45,8 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: 'fud',
     radius: 10,
     baseHealth: 30,
-    baseSpeed: 1.6, // Reduced from 2.2
-    color: '#94a3b8', // slate-400
+    baseSpeed: 1.6,
+    color: COLORS.SLOT_SILVER, // Use silver for FUD
     spawnWeight: 10,
   },
   whale: {
@@ -61,8 +61,8 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: 'liquidator',
     radius: 12,
     baseHealth: 40,
-    baseSpeed: 1.5, // Reduced from 2.0
-    color: COLORS.NEON_ORANGE,
+    baseSpeed: 1.5,
+    color: COLORS.DUMP_ORANGE, // Use dump orange for liquidators
     spawnWeight: 8,
   },
   pumpdump: {
@@ -70,7 +70,7 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     radius: 18,
     baseHealth: 80,
     baseSpeed: 1.2,
-    color: COLORS.NEON_GREEN,
+    color: COLORS.PUMP_GREEN, // Use pump green for pumpdump
     spawnWeight: 6,
   },
 };

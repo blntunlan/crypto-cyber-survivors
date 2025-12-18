@@ -1,6 +1,8 @@
 import React, { useEffect, useState, memo } from 'react';
 import { MarketPosition, MarketData, Player } from '../types';
 import { DifficultyManager } from '../services/DifficultyManager';
+import { ComboSystem } from '../services/ComboSystem';
+import { COLORS } from '../constants';
 
 interface GameUIProps {
   position: MarketPosition;
@@ -14,7 +16,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
     const [lastPrice, setLastPrice] = useState(marketData.price);
     const [priceColor, setPriceColor] = useState('text-white');
 
-    const pnlColor = marketData.pnl >= 0 ? 'text-green-400' : 'text-red-400';
+    const pnlHex = marketData.pnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
     const hpPercent = (player.hp / player.maxHp) * 100;
 
     useEffect(() => {
@@ -50,7 +52,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <div className={`text-lg font-black ${pnlColor} flex items-center gap-2`}>
+              <div className={`text-lg font-black flex items-center gap-2`} style={{ color: pnlHex }}>
                 {marketData.pnl >= 0 ? 'PROFIT' : 'LOSS'}
                 <span className="text-2xl">{(marketData.pnl * 100).toFixed(2)}%</span>
               </div>
@@ -68,7 +70,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
           {/* Right Panel: Enhanced Stats */}
           <div className="bg-slate-950/40 backdrop-blur-sm border border-white/5 p-4 rounded-xl flex flex-col gap-2 min-w-[220px] text-right">
-            <div className="text-[9px] text-blue-500 uppercase font-black tracking-[0.2em] mb-1">
+            <div className="text-[9px] uppercase font-black tracking-[0.2em] mb-1" style={{ color: COLORS.ELECTRIC_BLUE }}>
               Kernel Status
             </div>
 
@@ -137,14 +139,13 @@ export const GameUI: React.FC<GameUIProps> = memo(
             <div className="flex items-center gap-2">
               <span className="text-[9px] text-slate-500 uppercase font-bold">Streak</span>
               <span
-                className={`text-xs font-black px-2 py-0.5 rounded ${DifficultyManager.getKillStreak() >= 10
-                  ? 'bg-yellow-500/20 text-yellow-400 animate-pulse'
-                  : DifficultyManager.getKillStreak() >= 5
-                    ? 'bg-orange-500/20 text-orange-400'
-                    : 'bg-slate-700 text-slate-300'
-                  }`}
+                className={`text-xs font-black px-2 py-0.5 rounded`}
+                style={{
+                  backgroundColor: (ComboSystem.getKillStreak() >= 5 ? ComboSystem.getCurrentMilestone()?.color : '#334155') + '33',
+                  color: ComboSystem.getKillStreak() >= 5 ? ComboSystem.getCurrentMilestone()?.color : '#cbd5e1'
+                }}
               >
-                🔥 {DifficultyManager.getKillStreak()}
+                🔥 {ComboSystem.getKillStreak()}
               </span>
             </div>
           </div>
@@ -157,8 +158,12 @@ export const GameUI: React.FC<GameUIProps> = memo(
           </div>
           <div className="h-2 w-full bg-slate-950/80 rounded-full border border-white/5 overflow-hidden p-0.5">
             <div
-              className={`h-full transition-all duration-300 rounded-full ${hpPercent < 30 ? 'bg-red-600' : 'bg-green-500'}`}
-              style={{ width: `${hpPercent}%` }}
+              className={`h-full transition-all duration-300 rounded-full`}
+              style={{
+                width: `${hpPercent}%`,
+                backgroundColor: hpPercent < 30 ? COLORS.CASINO_RED : COLORS.CASINO_GREEN,
+                boxShadow: `0 0 10px ${hpPercent < 30 ? COLORS.CASINO_RED : COLORS.CASINO_GREEN}44`
+              }}
             />
           </div>
         </div>

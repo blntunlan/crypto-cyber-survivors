@@ -6,6 +6,7 @@
  */
 
 import { Player } from '../types';
+import { COLORS } from '../constants';
 
 export type CardTier = 'common' | 'rare' | 'epic' | 'legendary';
 
@@ -32,36 +33,36 @@ const TIER_CONFIG: Record<CardTier, TierConfig> = {
     common: {
         name: 'Common',
         color: '#9ca3af', // Silver gray
-        bgColor: '#0D0D0D', // Casino black
-        borderColor: '#4b5563', // Gray border
+        bgColor: COLORS.SLOT_BLACK,
+        borderColor: '#4b5563',
         glowColor: 'transparent',
         baseChance: 60,
         luckMultiplier: 0,
     },
     rare: {
         name: 'Rare',
-        color: '#00FFFF', // Electric blue neon
-        bgColor: '#0a1929', // Dark blue
-        borderColor: '#00FFFF', // Neon blue
-        glowColor: '#00FFFF',
+        color: COLORS.ELECTRIC_BLUE,
+        bgColor: '#0a1929',
+        borderColor: COLORS.ELECTRIC_BLUE,
+        glowColor: COLORS.ELECTRIC_BLUE,
         baseChance: 25,
         luckMultiplier: 2,
     },
     epic: {
         name: 'Epic',
-        color: '#B026FF', // Neon purple
-        bgColor: '#1a0a29', // Dark purple
-        borderColor: '#B026FF', // Neon purple
-        glowColor: '#B026FF',
+        color: COLORS.ROYAL_PURPLE,
+        bgColor: '#1a0a29',
+        borderColor: COLORS.ROYAL_PURPLE,
+        glowColor: COLORS.ROYAL_PURPLE,
         baseChance: 12,
         luckMultiplier: 3,
     },
     legendary: {
         name: 'Legendary',
-        color: '#FFD700', // Rich gold
-        bgColor: '#291a0a', // Dark gold
-        borderColor: '#D4AF37', // Casino gold
-        glowColor: '#FFD700',
+        color: COLORS.CASINO_GOLD,
+        bgColor: '#291a0a',
+        borderColor: COLORS.CASINO_GOLD,
+        glowColor: COLORS.CASINO_GOLD,
         baseChance: 3,
         luckMultiplier: 5,
     },

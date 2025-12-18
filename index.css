@@ -1,3 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+:root {
+  --casino-gold: #D6B85C;
+  --casino-red: #B22222;
+  --casino-hot-red: #D20202;
+  --roulette-green: #05732c;
+  --neon-orange: #FF6600;
+  --neon-green: #39FF14;
+  --neon-purple: #B026FF;
+  --neon-blue: #00FFFF;
+  --jackpot-yellow: #FFD600;
+  --pump-green: #00E676;
+  --dump-orange: #FF3D00;
+  --slot-black: #1A1A1A;
+  --slot-silver: #DCDCDC;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -6,7 +24,8 @@
 
 body {
   overflow: hidden;
-  background-color: #020617; /* slate-950 */
+  background-color: #020617;
+  /* slate-950 */
   color: white;
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',

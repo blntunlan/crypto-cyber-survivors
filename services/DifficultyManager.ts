@@ -78,7 +78,7 @@ class DifficultyManagerClass {
   recordKill(): void {
     const now = Date.now();
     if (now - this.lastKillTime < 3000) {
-      this.killStreak++;
+      this.killStreak += 1;
     } else {
       this.killStreak = 1;
     }

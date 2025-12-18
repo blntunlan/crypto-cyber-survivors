@@ -3,7 +3,7 @@ import { MarketPosition, MarketData, Player, GameStatus } from './types';
 import { MarketService, MarketUpdate } from './services/marketService';
 import { GameEngine } from './components/GameEngine';
 import { GameUI } from './components/GameUI';
-import { PLAYER_INITIAL_HP, MAX_CHART_POINTS, INITIAL_FIRE_RATE } from './constants';
+import { PLAYER_INITIAL_HP, MAX_CHART_POINTS, INITIAL_FIRE_RATE, COLORS } from './constants';
 import { audio } from './services/audioService';
 import { CardSystem, Card, TIER_CONFIG } from './services/CardSystem';
 import { DifficultyManager } from './services/DifficultyManager';
@@ -44,7 +44,7 @@ const App: React.FC = () => {
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
     radius: 12,
-    color: '',
+    color: COLORS.ELECTRIC_BLUE,
     hp: PLAYER_INITIAL_HP,
     maxHp: PLAYER_INITIAL_HP,
     level: 1,
@@ -173,7 +173,7 @@ const App: React.FC = () => {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
       radius: 12,
-      color: '',
+      color: COLORS.ELECTRIC_BLUE,
       hp: PLAYER_INITIAL_HP,
       maxHp: PLAYER_INITIAL_HP,
       level: 1,
@@ -350,7 +350,7 @@ const App: React.FC = () => {
           <div className="max-w-4xl w-full">
             <div className="text-center mb-10">
               <h3 className="text-5xl font-black italic text-white tracking-tighter">LEVEL UP</h3>
-              <p className="text-blue-500 font-bold uppercase text-xs mt-2">
+              <p className="font-bold uppercase text-xs mt-2" style={{ color: COLORS.ELECTRIC_BLUE }}>
                 Choose your upgrade - Luck affects rarity!
               </p>
             </div>
@@ -437,6 +437,7 @@ const App: React.FC = () => {
                 <p className="text-slate-500 text-[10px] font-black uppercase">P&L</p>
                 <p
                   className={`text-4xl font-black ${finalPnl >= 0 ? 'text-green-500' : 'text-red-500'}`}
+                  style={{ color: finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE }}
                 >
                   {(finalPnl * 100).toFixed(1)}%
                 </p>
