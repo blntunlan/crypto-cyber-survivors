@@ -15,16 +15,32 @@ export class AudioService {
     }
   }
 
+  private volume: number = 1.0;
+
   toggleMute() {
     this.isMuted = !this.isMuted;
-    if (this.masterGain) {
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx?.currentTime || 0);
-    }
+    this.updateGain();
     return this.isMuted;
+  }
+
+  setVolume(value: number) {
+    this.volume = Math.max(0, Math.min(1, value));
+    this.updateGain();
+  }
+
+  private updateGain() {
+    if (this.masterGain && this.ctx) {
+      const targetGain = this.isMuted ? 0 : this.volume;
+      this.masterGain.gain.setValueAtTime(targetGain, this.ctx.currentTime);
+    }
   }
 
   getMuted() {
     return this.isMuted;
+  }
+
+  getVolume() {
+    return this.volume;
   }
 
   playShoot() {
@@ -141,6 +157,26 @@ export class AudioService {
       osc.start(this.ctx!.currentTime + i * 0.08);
       osc.stop(this.ctx!.currentTime + i * 0.08 + 0.4);
     });
+  }
+
+  playDash() {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.2);
+
+    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.2);
   }
 }
 

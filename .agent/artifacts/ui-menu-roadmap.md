@@ -21,9 +21,9 @@ Bu doküman oyunun kullanıcı arayüzü (UI) ve menü sistemlerinin geliştiril
 - [ ] **Karakter/Silah Seçimi:**
     - [ ] Farklı kripto karakterleri (BTC, ETH, SOL) seçme alanı.
 - [ ] **Ayarlar (Settings) Paneli:**
-    - [ ] Ekran çözünürlüğü/Kalite ayarları.
-    - [ ] Ses düzey çubukları (Slider).
-    - [ ] Keybinding (Tuş atama) önizlemesi.
+    - [/] Ekran çözünürlüğü/Kalite ayarları (UI taslak eklendi).
+    - [x] Ses düzey çubukları (Slider - Master Volume eklendi).
+    - [x] Keybinding (Tuş atama) önizlemesi (Settings ekranında mevcut).
 - [ ] **Profil Özeti:**
     - [ ] Toplam kazanılan altın/XP.
     - [ ] En yüksek skor (High Score).

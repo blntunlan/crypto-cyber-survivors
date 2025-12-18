@@ -1,22 +1,26 @@
 # 👾 Enemy System Reference
 
-## Enemy Types (6 Total)
-
-| Tip | Icon | Renk | Spawn % |
-|-----|------|------|---------|
-| Bear | 🐻 | Kırmızı | 60% |
-| Bull | 🐂 | Yeşil | 25% |
-| FUD | 📰 | Gri | 10% |
-| Whale | 🐋 | Mor | 5% |
-| Liquidator | 💣 | Turuncu | 8% |
-| PumpDump | 🌪️ | Yeşil Neon | 6% |
+This document provides a detailed breakdown of all enemy types, their base attributes, and how they scale with difficulty.
 
 ---
 
-## Detaylı Stats
+## Enemy Types (6 Total)
 
-### 🐻 Bear (Temel Düşman)
-| Stat | Değer |
+| Tipo | Icon | Color | Spawn Weight |
+|-----|------|------|---------|
+| Bear | 🐻 | Red (SHORT) | 60 |
+| Bull | 🐂 | Green (LONG) | 25 |
+| FUD | 📰 | Slate (Silver) | 10 |
+| Whale | 🐋 | Neon Purple | 5 |
+| Liquidator | 💣 | Neon Orange | 8 |
+| PumpDump | 🌪️ | Neon Green | 6 |
+
+---
+
+## Detailed Stats (Base Level)
+
+### 🐻 Bear (Standard Enemy)
+| Stat | Value |
 |------|-------|
 | HP | 50 |
 | Speed | 1.6 |
@@ -24,12 +28,10 @@
 | Radius | 14 |
 | EXP | 10 |
 | Gems | 15 |
-| Hareket | Chase (düz takip) |
+| Movement | Chase (Straight follow) |
 
----
-
-### 🐂 Bull (Dayanıklı)
-| Stat | Değer |
+### 🐂 Bull (Tanky)
+| Stat | Value |
 |------|-------|
 | HP | 70 |
 | Speed | 1.8 |
@@ -37,12 +39,10 @@
 | Radius | 16 |
 | EXP | 15 |
 | Gems | 20 |
-| Hareket | Circle (dairesel) |
+| Movement | Circle (Orbiting) |
 
----
-
-### 📰 FUD (Hızlı & Zayıf)
-| Stat | Değer |
+### 📰 FUD (Fast & Fragile)
+| Stat | Value |
 |------|-------|
 | HP | 30 |
 | Speed | 2.2 |
@@ -50,12 +50,10 @@
 | Radius | 10 |
 | EXP | 8 |
 | Gems | 10 |
-| Hareket | ZigZag (zikzak) |
-
----
+| Movement | ZigZag |
 
 ### 🐋 Whale (Boss)
-| Stat | Değer |
+| Stat | Value |
 |------|-------|
 | HP | 300 |
 | Speed | 0.8 |
@@ -63,12 +61,10 @@
 | Radius | 35 |
 | EXP | 100 |
 | Gems | 100 |
-| Hareket | SlowApproach (yavaş) |
+| Movement | Slow Approach |
 
----
-
-### 💣 Liquidator (Patlayıcı)
-| Stat | Değer |
+### 💣 Liquidator (Explosive)
+| Stat | Value |
 |------|-------|
 | HP | 40 |
 | Speed | 2.0 |
@@ -76,13 +72,10 @@
 | Radius | 12 |
 | EXP | 20 |
 | Gems | 25 |
-| Hareket | Explosive (hızlanır) |
-| Özel | Yaklaştıkça 1.5x hız |
+| Movement | Explosive (Accelerates) |
 
----
-
-### 🌪️ PumpDump (Büyüyen)
-| Stat | Değer |
+### 🌪️ PumpDump (Growing)
+| Stat | Value |
 |------|-------|
 | HP | 80 |
 | Speed | 1.2 |
@@ -90,29 +83,35 @@
 | Radius | 18 |
 | EXP | 25 |
 | Gems | 30 |
-| Hareket | Growing (dalga) |
-| Özel | Zamanla büyür |
-
----
-
-## Hareket Stratejileri
-
-| Strateji | Kullanıcı | Açıklama |
-|----------|-----------|----------|
-| Chase | Bear | Düz takip |
-| ZigZag | FUD | Zikzak hareket |
-| Circle | Bull | Etrafta döner |
-| SlowApproach | Whale | Yavaş yaklaşır |
-| Explosive | Liquidator | Yakınlaşınca hızlanır |
-| Growing | PumpDump | Dalga paterni |
+| Movement | Growing (Wave) |
 
 ---
 
 ## Difficulty Scaling
 
-| Zorluk | HP | Speed | Spawn |
-|--------|-----|-------|-------|
-| 1x | Base | Base | 2000ms |
-| 2x | +20% | +10% | 1700ms |
-| 3x | +40% | +20% | 1400ms |
-| 5x | +80% | +40% | 1000ms |
+The game difficulty multiplier affects enemy stats dynamically over time:
+
+| Attribute | Scaling Formula | Effect |
+|-----------|-----------------|--------|
+| **HP** | `Base * (1 + (Diff - 1) * 0.2)` | +20% HP per difficulty level |
+| **Speed** | `Base * Diff` | Direct multiplier (Hard scaling) |
+| **Spawn Rate**| `2000 / (1 + (Diff - 1) * 0.5)`| ~33% faster spawns per level |
+
+**Current Scaling Examples:**
+*   **Difficulty 1x:** 100% Stats, 2000ms spawn delay.
+*   **Difficulty 2x:** 120% HP, 200% Speed, 1333ms spawn delay.
+*   **Difficulty 3x:** 140% HP, 300% Speed, 1000ms spawn delay.
+*   **Difficulty 5x:** 180% HP, 500% Speed, 666ms spawn delay.
+
+---
+
+## Movement Strategies
+
+| Strategy | User | Description |
+|----------|-----------|----------|
+| **Chase** | Bear | Direct line towards player |
+| **ZigZag** | FUD | Moves in a back-and-forth wave pattern |
+| **Circle** | Bull | Attempts to surround/orbit the player |
+| **SlowApproach** | Whale | High-health, slow-moving threat |
+| **Explosive** | Liquidator | Gains massive speed when close to player |
+| **Growing** | PumpDump | Increases in size/radius over time |

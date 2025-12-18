@@ -16,7 +16,10 @@ export type GameEvent =
   | 'killAll'
   | 'comboUpdate'
   | 'comboMilestone'
-  | 'comboEnd';
+  | 'comboEnd'
+  | 'levelUpStart'
+  | 'gameReset'
+  | 'settingsUpdate';
 
 export interface EventData {
   enemyKilled: { x: number; y: number; type: string; isCrit: boolean };
@@ -30,6 +33,9 @@ export interface EventData {
   comboUpdate: { killStreak: number; multiplier: number };
   comboMilestone: { name: string; kills: number; multiplier: number; color: string; sound: string };
   comboEnd: { finalStreak: number; bonusXp: number };
+  levelUpStart: Record<string, never>;
+  gameReset: Record<string, never>;
+  settingsUpdate: Record<string, unknown>;
 }
 
 type EventCallback<K extends GameEvent> = (data: EventData[K]) => void;
