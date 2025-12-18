@@ -81,3 +81,26 @@ export interface FloatingText {
   life: number;
   size: number;
 }
+
+export interface Candle {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string;
+  speed: number;
+}
+
+export interface GameState {
+  bgCandles: Candle[];
+  lastFireTime: number;
+  spawnTimer: number;
+  shake: number;
+  critFlash: number;
+  critFlashColor: string;
+  currentBg: { r: number; g: number; b: number };
+  lastTime: number;
+
+  levelUpFreeze: number;
+  levelUpFlash: number;
+}

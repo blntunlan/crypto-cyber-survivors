@@ -26,6 +26,11 @@ const App: React.FC = () => {
   const [finalPnl, setFinalPnl] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(audio.getMuted());
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
+  const [runStats, setRunStats] = useState({
+    totalKills: 0,
+    maxStreak: 0,
+    totalBonusXp: 0,
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -146,6 +151,42 @@ const App: React.FC = () => {
     return () => service.disconnect();
   }, []);
 
+  // Sync session and combo start with game status transitions
+  useEffect(() => {
+    if (gameStatus === GameStatus.PLAYING && sessionStartTime === 0) {
+      setSessionStartTime(Date.now());
+      ComboSystem.startGame();
+      DifficultyManager.startGame();
+      setRunStats({
+        totalKills: 0,
+        maxStreak: 0,
+        totalBonusXp: 0,
+      });
+    }
+    if (gameStatus === GameStatus.MENU) {
+      setSessionStartTime(0);
+      ComboSystem.startGame();
+      setRunStats({
+        totalKills: 0,
+        maxStreak: 0,
+        totalBonusXp: 0,
+      });
+    }
+  }, [gameStatus, sessionStartTime]);
+
+  // Subscribe to combo updates to keep App state in sync for stats display
+  useEffect(() => {
+    const unsub = EventBus.on('comboUpdate', () => {
+      const state = ComboSystem.getState();
+      setRunStats({
+        totalKills: state.totalKills,
+        maxStreak: state.maxStreak,
+        totalBonusXp: state.totalBonusXp,
+      });
+    });
+    return () => unsub();
+  }, []);
+
   const handlePauseToggle = useCallback(() => {
     if (gameStatus === GameStatus.PLAYING) setGameStatus(GameStatus.PAUSED);
     else if (gameStatus === GameStatus.PAUSED) setGameStatus(GameStatus.PLAYING);
@@ -255,11 +296,6 @@ const App: React.FC = () => {
     setPosition(choice);
     setEntryPrice(marketData.price);
     playerRef.current.color = choice === MarketPosition.LONG ? '#22c55e' : '#ef4444';
-
-    // Initialize DifficultyManager for new game
-    DifficultyManager.startGame();
-
-    setSessionStartTime(Date.now());
     setGameStatus(GameStatus.PLAYING);
     audio.playLevelUp();
   };
@@ -426,15 +462,15 @@ const App: React.FC = () => {
               </div>
               <div className="text-left">
                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Total Kills</p>
-                <p className="text-lg font-bold text-white font-mono">{ComboSystem.getTotalKills()}</p>
+                <p className="text-lg font-bold text-white font-mono">{runStats.totalKills}</p>
               </div>
               <div className="text-left">
                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Max Combo</p>
-                <p className="text-lg font-bold text-white font-mono">{ComboSystem.getMaxStreak()}</p>
+                <p className="text-lg font-bold text-white font-mono">{runStats.maxStreak}</p>
               </div>
               <div className="text-left">
                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Bonus XP</p>
-                <p className="text-lg font-bold text-white font-mono">{Math.floor(ComboSystem.getState().totalBonusXp)}</p>
+                <p className="text-lg font-bold text-white font-mono">{Math.floor(runStats.totalBonusXp)}</p>
               </div>
             </div>
 
