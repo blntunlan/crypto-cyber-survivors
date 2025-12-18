@@ -202,6 +202,10 @@ const App: React.FC = () => {
 
   // Level up handler (moved before CheatManager init)
   const handleLevelUp = useCallback(() => {
+    // Heal player to full health on level up
+    playerRef.current.hp = playerRef.current.maxHp;
+    setUiStats({ ...playerRef.current });
+
     setGameStatus(GameStatus.LEVEL_UP);
     const choices = CardSystem.generateChoices(playerRef.current.luck, playerRef.current.level);
     setUpgradeChoices(choices);

@@ -103,7 +103,7 @@ const COMMON_CARDS: Card[] = [
         description: '+30 Collection Range',
         icon: '/assets/icons/cards/yield-farm.png',
         tier: 'common',
-        effect: p => ({ ...p, magnet: p.magnet + 30 }),
+        effect: p => ({ ...p, magnet: Math.min(300, p.magnet + 30) }),
     },
     {
         id: 'armor_c1',
@@ -111,7 +111,7 @@ const COMMON_CARDS: Card[] = [
         description: '+1 Armor',
         icon: '/assets/icons/cards/stop-loss.png',
         tier: 'common',
-        effect: p => ({ ...p, armor: p.armor + 1 }),
+        effect: p => ({ ...p, armor: Math.min(15, p.armor + 1) }),
     },
     // NEW CARDS
     {
@@ -128,7 +128,7 @@ const COMMON_CARDS: Card[] = [
         description: '+0.3 Luck (lifesteal chance)',
         icon: '/assets/icons/cards/dca-mode.png',
         tier: 'common',
-        effect: p => ({ ...p, luck: p.luck + 0.3 }),
+        effect: p => ({ ...p, luck: Math.min(15, p.luck + 0.3) }),
     },
     {
         id: 'balance_c1',
