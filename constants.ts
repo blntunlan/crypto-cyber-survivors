@@ -23,7 +23,8 @@ export const GAME_ENGINE = {
   PROJECTILE_SPREAD: 0.15, // radians (~8.5 degrees)
   SHAKE_DECAY: 0.9,
   CRIT_FLASH_DECAY: 0.85,
-  SPAWN_TIMER_BASE: 1200,
+  SPAWN_TIMER_BASE: 2000, // Increased from 1200 for slower initial spawn
+  SPAWN_DIFFICULTY_SCALE: 0.5, // Softens difficulty impact on spawn rate
   ENEMY_OFFSCREEN_THRESHOLD: 200,
   GEM_MAGNET_BASE_RANGE: 150,
 };
@@ -32,7 +33,8 @@ export const GAME_ENGINE = {
 // EXTERNAL APIs
 // =============================================================================
 
-export const BINANCE_WS_URL = 'wss://stream.binance.com/ws/btcusdt@kline_1m';
+// Note: @ticker provides 1-second updates, @kline_1m was 1-minute
+export const BINANCE_WS_URL = 'wss://stream.binance.com:9443/ws/btcusdt@ticker';
 export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';
 
 // =============================================================================

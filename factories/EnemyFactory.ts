@@ -29,7 +29,7 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: 'bear',
     radius: 14,
     baseHealth: 50,
-    baseSpeed: 1.6,
+    baseSpeed: 1.2, // Reduced from 1.6
     color: COLORS.SHORT,
     spawnWeight: 60,
   },
@@ -37,7 +37,7 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: 'bull',
     radius: 16,
     baseHealth: 70,
-    baseSpeed: 1.8,
+    baseSpeed: 1.4, // Reduced from 1.8
     color: COLORS.LONG,
     spawnWeight: 25,
   },
@@ -45,7 +45,7 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: 'fud',
     radius: 10,
     baseHealth: 30,
-    baseSpeed: 2.2,
+    baseSpeed: 1.6, // Reduced from 2.2
     color: '#94a3b8', // slate-400
     spawnWeight: 10,
   },
@@ -61,7 +61,7 @@ const ENEMY_CONFIGS: Record<string, EnemyConfig> = {
     type: 'liquidator',
     radius: 12,
     baseHealth: 40,
-    baseSpeed: 2.0,
+    baseSpeed: 1.5, // Reduced from 2.0
     color: COLORS.NEON_ORANGE,
     spawnWeight: 8,
   },

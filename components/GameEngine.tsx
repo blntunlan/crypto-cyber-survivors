@@ -6,6 +6,7 @@ import { PoolManager } from '../services/poolManager';
 import { EventBus } from '../services/EventBus';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { CheatManager } from '../services/CheatManager';
+import { ComboSystem } from '../services/ComboSystem';
 
 interface Candle {
   x: number;
@@ -55,6 +56,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     keys: {} as Record<string, boolean>,
     currentBg: { r: 2, g: 6, b: 23 },
     lastTime: 0,
+    // Combo display state
+    comboStreak: 0,
+    comboMultiplier: 1.0,
+    comboTimeRemaining: 0,
+    comboMilestoneText: '',
+    comboMilestoneColor: '',
+    comboMilestoneTimer: 0,
   });
 
   useEffect(() => {
@@ -81,8 +89,38 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       pool.current.clearAll();
       state.current.spawnTimer = 0;
       state.current.lastFireTime = 0;
+      ComboSystem.startGame();
+    }
+
+    if (status === GameStatus.PLAYING) {
+      ComboSystem.startGame();
     }
   }, [status]);
+
+  // Setup combo milestone listener
+  useEffect(() => {
+    const unsubMilestone = EventBus.on('comboMilestone', data => {
+      state.current.comboMilestoneText = data.name;
+      state.current.comboMilestoneColor = data.color;
+      state.current.comboMilestoneTimer = 2.0; // Show for 2 seconds
+    });
+
+    const unsubUpdate = EventBus.on('comboUpdate', data => {
+      state.current.comboStreak = data.killStreak;
+      state.current.comboMultiplier = data.multiplier;
+    });
+
+    const unsubEnd = EventBus.on('comboEnd', () => {
+      state.current.comboStreak = 0;
+      state.current.comboMultiplier = 1.0;
+    });
+
+    return () => {
+      unsubMilestone();
+      unsubUpdate();
+      unsubEnd();
+    };
+  }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     state.current.keys[e.key] = true;
@@ -139,6 +177,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (status === GameStatus.PLAYING) {
       if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
       if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+
+      // Update combo system
+      ComboSystem.update();
+      s.comboTimeRemaining = ComboSystem.getComboTimeRemaining();
+      if (s.comboMilestoneTimer > 0) {
+        s.comboMilestoneTimer -= deltaTime / 1000;
+      }
 
       let dx = 0;
       let dy = 0;
@@ -211,7 +256,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       }
 
       s.spawnTimer += deltaTime;
-      if (s.spawnTimer > GAME_ENGINE.SPAWN_TIMER_BASE / marketData.difficulty) {
+      // Softer difficulty scaling: uses sqrt to smooth the curve
+      const scaledDifficulty = 1 + (marketData.difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE;
+      if (s.spawnTimer > GAME_ENGINE.SPAWN_TIMER_BASE / scaledDifficulty) {
         const edge = Math.floor(Math.random() * 4);
         let x = 0,
           y = 0;
@@ -340,7 +387,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           g.y += ((player.y - g.y) / dist) * pull;
         }
         if (dist < player.radius + g.radius) {
-          player.exp += g.value;
+          // Apply combo XP multiplier
+          const xpGain = Math.floor(g.value * ComboSystem.getXpMultiplier());
+          player.exp += xpGain;
           g.active = false;
           audio.playGem();
           if (player.exp >= player.nextLevelExp) onLevelUp();
@@ -483,6 +532,60 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       ctx.arc(Math.round(player.x), Math.round(player.y), player.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
+
+      // Draw combo UI (moved higher to avoid HUD overlap)
+      if (s.comboStreak >= 5) {
+        const comboX = width / 2;
+        const comboY = height - 220; // Moved from -80 to -220
+
+        // Combo timer bar
+        const barWidth = 120;
+        const barHeight = 6;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(comboX - barWidth / 2, comboY + 25, barWidth, barHeight);
+
+        const milestone = ComboSystem.getCurrentMilestone();
+        const timerColor = milestone?.color ?? '#fbbf24';
+        ctx.fillStyle = timerColor;
+        ctx.fillRect(comboX - barWidth / 2, comboY + 25, barWidth * s.comboTimeRemaining, barHeight);
+
+        // Combo streak text
+        ctx.font = "bold 28px 'Arial Black', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(`${s.comboStreak}x COMBO`, comboX, comboY);
+        ctx.fillStyle = timerColor;
+        ctx.fillText(`${s.comboStreak}x COMBO`, comboX, comboY);
+
+        // Multiplier text
+        if (s.comboMultiplier > 1) {
+          ctx.font = "bold 16px 'Arial Black', sans-serif";
+          ctx.strokeText(`x${s.comboMultiplier.toFixed(1)} XP`, comboX, comboY + 45);
+          ctx.fillText(`x${s.comboMultiplier.toFixed(1)} XP`, comboX, comboY + 45);
+        }
+      }
+
+      // Draw combo milestone announcement (center screen)
+      if (s.comboMilestoneTimer > 0) {
+        const alpha = Math.min(1, s.comboMilestoneTimer);
+        ctx.globalAlpha = alpha;
+
+        const milestoneY = height / 3;
+        const scale = 1 + (1 - alpha) * 0.3;
+
+        ctx.font = `bold ${Math.floor(48 * scale)}px 'Arial Black', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 6;
+        ctx.strokeText(s.comboMilestoneText, width / 2, milestoneY);
+        ctx.fillStyle = s.comboMilestoneColor;
+        ctx.fillText(s.comboMilestoneText, width / 2, milestoneY);
+
+        ctx.globalAlpha = 1;
+      }
     }
 
     ctx.restore();

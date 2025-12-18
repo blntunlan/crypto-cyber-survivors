@@ -29,12 +29,13 @@ export class MarketService {
       this.binanceSocket = new WebSocket(BINANCE_WS_URL);
       this.binanceSocket.onmessage = event => {
         const data = JSON.parse(event.data);
-        if (data?.k) {
+        // Ticker stream format: { c: close, h: high, l: low, v: volume, ... }
+        if (data?.c) {
           this.onDataCallback({
-            price: parseFloat(data.k.c),
-            high: parseFloat(data.k.h),
-            low: parseFloat(data.k.l),
-            volume: parseFloat(data.k.v),
+            price: parseFloat(data.c), // Current price (close)
+            high: parseFloat(data.h), // 24h high
+            low: parseFloat(data.l), // 24h low
+            volume: parseFloat(data.v), // 24h volume
             source: 'binance',
           });
         }

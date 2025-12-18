@@ -181,10 +181,10 @@ const RARE_CARDS: Card[] = [
     {
         id: 'area_r1',
         name: 'Market Cap',
-        description: '+25% Projectile Size',
+        description: '+50% Projectile Size',
         icon: '/assets/icons/cards/market-cap.png',
         tier: 'rare',
-        effect: p => ({ ...p, area: p.area + 0.25 }),
+        effect: p => ({ ...p, area: p.area + 0.5 }),
     },
     // NEW CARDS
     {
@@ -270,10 +270,10 @@ const EPIC_CARDS: Card[] = [
     {
         id: 'explode_e1',
         name: 'Liquidation',
-        description: '+20 DMG, +0.3 Area',
+        description: '+20 DMG, +60% Area',
         icon: '🌀',
         tier: 'epic',
-        effect: p => ({ ...p, baseDamage: p.baseDamage + 20, area: p.area + 0.3 }),
+        effect: p => ({ ...p, baseDamage: p.baseDamage + 20, area: p.area + 0.6 }),
     },
     {
         id: 'chain_e1',

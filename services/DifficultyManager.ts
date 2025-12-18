@@ -232,11 +232,11 @@ class DifficultyManagerClass {
     const total = this.clamp(technical * psychological * factors.momentumMod, 0.3, 8.0);
 
     return {
-      spawnRate: this.clamp(total * 0.8, 0.5, 5.0),
+      spawnRate: this.clamp(total * 0.6, 0.3, 3.5), // Reduced from 0.8, 0.5-5.0
       enemySpeed: this.clamp(
         factors.pnlEffect * factors.volatility * factors.waveMultiplier,
-        0.5,
-        2.5
+        0.4, // Lower minimum
+        1.8  // Reduced from 2.5 for slower max speed
       ),
       enemyHealth: this.clamp(factors.baseTime * factors.levelFactor, 0.8, 3.0),
       total,
@@ -251,7 +251,7 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Get kill streak for UI
+   * Get current kill streak
    */
   getKillStreak(): number {
     return this.killStreak;

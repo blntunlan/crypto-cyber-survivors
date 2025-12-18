@@ -13,7 +13,10 @@ export type GameEvent =
   | 'critHit'
   | 'playerHit'
   | 'bulletFired'
-  | 'killAll';
+  | 'killAll'
+  | 'comboUpdate'
+  | 'comboMilestone'
+  | 'comboEnd';
 
 export interface EventData {
   enemyKilled: { x: number; y: number; type: string; isCrit: boolean };
@@ -24,6 +27,9 @@ export interface EventData {
   playerHit: { damage: number; remainingHp: number };
   bulletFired: { x: number; y: number };
   killAll: Record<string, never>;
+  comboUpdate: { killStreak: number; multiplier: number };
+  comboMilestone: { name: string; kills: number; multiplier: number; color: string; sound: string };
+  comboEnd: { finalStreak: number; bonusXp: number };
 }
 
 type EventCallback<K extends GameEvent> = (data: EventData[K]) => void;
@@ -58,6 +64,13 @@ class EventBusClass {
 
     // Return unsubscribe function
     return () => this.unsubscribe(event, callback);
+  }
+
+  /**
+   * Alias for subscribe (convenience method)
+   */
+  on<K extends GameEvent>(event: K, callback: EventCallback<K>): () => void {
+    return this.subscribe(event, callback);
   }
 
   /**
