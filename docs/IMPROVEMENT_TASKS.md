@@ -103,6 +103,15 @@
 - ✅ `npm run lint` → 0 error, 0 warning
 - ✅ `npm test` → 150/150 tests passing (+24 yeni test)
 
+### ~~TASK-016: Combo UI & Logic Refine~~ ✅
+- **Tarih:** 2024-12-19
+- **Çözüm:** 
+  - Combo timer'ı RAF ile optimize edildi (DOM-direct).
+  - Bonus XP mekaniği (gem tabanlı) eklendi.
+  - Milestone animasyonları ve UI overlap sorunları giderildi.
+  - Reset race condition'ları için timeout ref sistemi kuruldu.
+- **Sonuç:** Akıcı, yüksek performanslı ve casino-style combo sistemi.
+
 ---
 
 ## 🔗 İlgili Dökümanlar
@@ -130,6 +139,7 @@
 - TASK-008 localStorage Quota
 - TASK-009 PhysicsSystem Tests
 - TASK-010 audioService Tests
+- TASK-016 ✅ Combo UI & Logic Refine
 - TASK-011 FPS Counter
 
 ### Backlog

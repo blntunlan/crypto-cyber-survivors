@@ -49,6 +49,11 @@ class ComboSystemClass {
 
     private lastMilestoneIndex = -1;
 
+    // Pause state for level up screen
+    private isPaused = false;
+    private pauseStartTime = 0;
+    private totalPausedTime = 0;
+
     private constructor() {
         this.setupListeners();
     }
@@ -63,6 +68,20 @@ class ComboSystemClass {
     private setupListeners(): void {
         EventBus.on('enemyKilled', () => {
             this.recordKill();
+        });
+
+        EventBus.on('gemCollected', (data) => {
+            if (this.state.killStreak > 0) {
+                const bonus = Math.floor(data.value * this.state.comboMultiplier) - data.value;
+                if (bonus > 0) {
+                    this.state.totalBonusXp += bonus;
+                    EventBus.emit('comboUpdate', {
+                        killStreak: this.state.killStreak,
+                        multiplier: this.state.comboMultiplier,
+                        totalBonusXp: this.state.totalBonusXp,
+                    });
+                }
+            }
         });
     }
 
@@ -79,6 +98,9 @@ class ComboSystemClass {
             totalBonusXp: 0,
         };
         this.lastMilestoneIndex = -1;
+        this.isPaused = false;
+        this.pauseStartTime = 0;
+        this.totalPausedTime = 0;
     }
 
     /**
@@ -108,6 +130,7 @@ class ComboSystemClass {
         EventBus.emit('comboUpdate', {
             killStreak: this.state.killStreak,
             multiplier: this.state.comboMultiplier,
+            totalBonusXp: this.state.totalBonusXp,
         });
     }
 
@@ -146,17 +169,47 @@ class ComboSystemClass {
         this.state.killStreak = 0;
         this.state.comboMultiplier = 1.0;
         this.lastMilestoneIndex = -1;
+        // Reset pause state
+        this.isPaused = false;
+        this.pauseStartTime = 0;
+        this.totalPausedTime = 0;
     }
 
     /**
      * Check if combo should timeout (call this in game loop)
+     * Respects pause state - combo timer doesn't run while paused
      */
     update(): void {
+        // Don't update while paused
+        if (this.isPaused) return;
+
         if (this.state.killStreak > 0 && this.state.lastKillTime > 0) {
             const now = Date.now();
-            if (now - this.state.lastKillTime > COMBO_TIMEOUT_MS) {
+            const effectiveElapsed = now - this.state.lastKillTime - this.totalPausedTime;
+            if (effectiveElapsed > COMBO_TIMEOUT_MS) {
                 this.resetCombo();
             }
+        }
+    }
+
+    /**
+     * Pause combo timer (call when level up screen opens)
+     */
+    pause(): void {
+        if (!this.isPaused && this.state.killStreak > 0) {
+            this.isPaused = true;
+            this.pauseStartTime = Date.now();
+        }
+    }
+
+    /**
+     * Resume combo timer (call when level up screen closes)
+     */
+    resume(): void {
+        if (this.isPaused) {
+            this.isPaused = false;
+            // Add the paused duration to totalPausedTime
+            this.totalPausedTime += Date.now() - this.pauseStartTime;
         }
     }
 
@@ -190,11 +243,20 @@ class ComboSystemClass {
 
     /**
      * Get time remaining before combo expires (0-1)
+     * Returns frozen value while paused
      */
     getComboTimeRemaining(): number {
         if (this.state.killStreak === 0 || this.state.lastKillTime === 0) return 0;
-        const elapsed = Date.now() - this.state.lastKillTime;
-        return Math.max(0, 1 - elapsed / COMBO_TIMEOUT_MS);
+
+        // Calculate effective elapsed time (excluding paused time)
+        let currentPausedTime = this.totalPausedTime;
+        if (this.isPaused) {
+            // Add current pause duration if we're currently paused
+            currentPausedTime += Date.now() - this.pauseStartTime;
+        }
+
+        const effectiveElapsed = Date.now() - this.state.lastKillTime - currentPausedTime;
+        return Math.max(0, 1 - effectiveElapsed / COMBO_TIMEOUT_MS);
     }
 
     /**

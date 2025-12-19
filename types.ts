@@ -11,10 +11,17 @@ export enum GameStatus {
   GAMEOVER = 'GAMEOVER',
 }
 
+// Available leverage options
+export type LeverageOption = 1 | 2 | 5 | 10 | 25 | 50 | 100;
+
+export const LEVERAGE_OPTIONS: LeverageOption[] = [1, 2, 5, 10, 25, 50, 100];
+
 export interface MarketData {
   price: number;
   volume: number;
-  pnl: number;
+  pnl: number; // Raw PnL (%)
+  effectivePnl: number; // PnL * Leverage
+  leverage: LeverageOption;
   rsi: number;
   difficulty: number;
 }

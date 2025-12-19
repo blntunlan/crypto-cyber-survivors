@@ -65,7 +65,7 @@ class MetricsServiceClass {
     /**
      * Start a new metrics session
      */
-    startSession(position: MarketPosition, entryPrice: number): string {
+    startSession(position: MarketPosition, entryPrice: number, leverage: number): string {
         // Skip if metrics disabled
         if (!this.config.enabled) return '';
 
@@ -140,6 +140,7 @@ class MetricsServiceClass {
         Logger.info(`[Metrics] Session started: ${sessionId}`, {
             position,
             entryPrice,
+            leverage,
         });
 
         return sessionId;
@@ -166,6 +167,7 @@ class MetricsServiceClass {
             };
             position: MarketPosition;
             entryPrice: number;
+            leverage: number;
             totalKills: number;
         }
     ): SessionMetrics | null {
@@ -433,6 +435,7 @@ class MetricsServiceClass {
         pnl: number;
         position: MarketPosition;
         entryPrice: number;
+        leverage: number;
     }): BitcoinMetrics {
         const pnlValues = this.state?.pnlHistory.map((h) => h.value) ?? [];
         const atrValues = this.state?.atrHistory.map((h) => h.value) ?? [];
@@ -458,7 +461,9 @@ class MetricsServiceClass {
             averagePnL: avgPnL,
             volatilityScore: avgAtr,
             positionChosen: finalData.position,
+            leverage: finalData.leverage,
             pnlAtDeath: finalData.pnl,
+            effectivePnLAtDeath: finalData.pnl * finalData.leverage,
             pnlSamples: pnlValues,
             atrSamples: atrValues,
         };

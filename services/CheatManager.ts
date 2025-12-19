@@ -13,6 +13,7 @@ export interface CheatCallbacks {
     onSetLuck: (luck: number) => void;
     onAddExp: (amount: number) => void;
     onRestart?: () => void;
+    onAddComboKill?: (count: number) => void;
 }
 
 class CheatManagerClass {
@@ -114,6 +115,15 @@ class CheatManagerClass {
                 if (!e.ctrlKey && !e.altKey && this.callbacks.onRestart) {
                     this.callbacks.onRestart();
                     this.showCheatMessage('🔄 RESTART');
+                }
+                break;
+            case 'C':
+                if (!e.ctrlKey && !e.altKey) {
+                    const count = e.shiftKey ? 10 : 1;
+                    if (this.callbacks.onAddComboKill) {
+                        this.callbacks.onAddComboKill(count);
+                        this.showCheatMessage(`⚡ COMBO +${count}`);
+                    }
                 }
                 break;
         }

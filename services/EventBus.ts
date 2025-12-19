@@ -19,6 +19,9 @@ export type GameEvent =
   | 'comboEnd'
   | 'levelUpStart'
   | 'gameReset'
+  | 'beforeReset'
+  | 'afterReset'
+  | 'gameInitialized'
   | 'settingsUpdate';
 
 export interface EventData {
@@ -30,11 +33,14 @@ export interface EventData {
   playerHit: { damage: number; remainingHp: number };
   bulletFired: { x: number; y: number };
   killAll: Record<string, never>;
-  comboUpdate: { killStreak: number; multiplier: number };
+  comboUpdate: { killStreak: number; multiplier: number; totalBonusXp: number };
   comboMilestone: { name: string; kills: number; multiplier: number; color: string; sound: string };
   comboEnd: { finalStreak: number; bonusXp: number };
   levelUpStart: Record<string, never>;
   gameReset: Record<string, never>;
+  beforeReset: Record<string, never>;
+  afterReset: Record<string, never>;
+  gameInitialized: { position: string; entryPrice: number; leverage: number };
   settingsUpdate: Record<string, unknown>;
 }
 

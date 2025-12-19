@@ -127,6 +127,11 @@ export class PhysicsSystem {
                 g.active = false;
                 audio.playGem();
 
+                EventBus.emit('gemCollected', {
+                    value: g.value,
+                    isRare: g.isRare || false
+                });
+
                 if (player.exp >= player.nextLevelExp) {
                     s.levelUpFreeze = 500;
                     s.shake = 10;

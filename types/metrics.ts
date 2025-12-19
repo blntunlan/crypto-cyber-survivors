@@ -38,7 +38,9 @@ export interface BitcoinMetrics {
     averagePnL: number;
     volatilityScore: number; // Average ATR
     positionChosen: MarketPosition;
+    leverage: number;
     pnlAtDeath: number;
+    effectivePnLAtDeath: number;
     pnlSamples: number[]; // For correlation analysis
     atrSamples: number[];
 }

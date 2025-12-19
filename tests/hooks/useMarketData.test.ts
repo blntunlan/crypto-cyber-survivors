@@ -34,7 +34,7 @@ describe('useMarketData', () => {
 
     it('should initialize with default market data', () => {
         const { result } = renderHook(() =>
-            useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, mockPlayerRef)
+            useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef)
         );
 
         expect(result.current.marketData.price).toBe(0);
@@ -43,7 +43,7 @@ describe('useMarketData', () => {
 
     it('should update price when in MENU status', () => {
         const { result } = renderHook(() =>
-            useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, mockPlayerRef)
+            useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef)
         );
 
         act(() => {
@@ -55,7 +55,7 @@ describe('useMarketData', () => {
 
     it('should calculate PNL when in PLAYING status', () => {
         const { result } = renderHook(() =>
-            useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, mockPlayerRef)
+            useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 1, mockPlayerRef)
         );
 
         act(() => {
@@ -69,7 +69,7 @@ describe('useMarketData', () => {
 
     it('should calculate inverse PNL for SHORT position', () => {
         const { result } = renderHook(() =>
-            useMarketData(GameStatus.PLAYING, MarketPosition.SHORT, 40000, mockPlayerRef)
+            useMarketData(GameStatus.PLAYING, MarketPosition.SHORT, 40000, 1, mockPlayerRef)
         );
 
         act(() => {
@@ -80,9 +80,24 @@ describe('useMarketData', () => {
         expect(result.current.marketData.pnl).toBe(0.1);
     });
 
+    it('should calculate effective PNL with leverage', () => {
+        const { result } = renderHook(() =>
+            useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 10, mockPlayerRef)
+        );
+
+        act(() => {
+            capturedCallback({ price: 44000, source: 'binance' });
+        });
+
+        // Raw PnL: 0.1, Effective: 0.1 * 10 = 1.0
+        expect(result.current.marketData.pnl).toBe(0.1);
+        expect(result.current.marketData.effectivePnl).toBe(1.0);
+        expect(result.current.marketData.leverage).toBe(10);
+    });
+
     it('should record price history', async () => {
         const { result } = renderHook(() =>
-            useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, mockPlayerRef)
+            useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef)
         );
 
         act(() => {

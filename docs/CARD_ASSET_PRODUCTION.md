@@ -31,13 +31,13 @@ This table lists every card in the game, its assigned tier, and the specific vis
 
 | Card ID | Name | Symbol Concept | Prompt Key | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `dmg_c1` | Market Order | Simple upward chart arrow | `icon_market_order_t1` | ❌ Pending |
+| `dmg_c1` | Market Order | Simple upward chart arrow | `icon_market_order_t1` | ✅ Done |
 | `spd_c1` | Quick Trade | Simple lightning bolt outline | `icon_bolt_t1` | ✅ Done |
 | `hp_c1` | Safety Net | Simple shield outline | `icon_shield_t1` | ✅ Done |
 | `magnet_c1` | Yield Farm | Simple U-magnet shape | `icon_magnet_t1` | ✅ Done |
 | `armor_c1` | Stop Loss | Broken shield or wall line | `icon_stop_loss_t1` | ✅ Done |
 | `crit_c1` | Sniper Bot | Crosshair reticle (simple) | `icon_sniper_bot_t1` | ✅ Done |
-| `lifesteal_c1` | DCA Mode | Recycling arrows loop | `icon_dca_mode_t1` | ❌ Pending (Quota) |
+| `lifesteal_c1` | DCA Mode | Recycling arrows loop | `icon_dca_mode_t1` | ✅ Done |
 | `balance_c1` | Rebalance | Scales (simple lines) | `icon_rebalance_t1` | ✅ Done |
 
 ### Tier 2: Rare (Electric Blue)
@@ -46,28 +46,28 @@ This table lists every card in the game, its assigned tier, and the specific vis
 | Card ID | Name | Symbol Concept | Prompt Key | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | `speed_r1` | Bull Run | Geometric Bull Head Outline | `icon_bull_run_t2` | ✅ Done |
-| `dmg_r1` | Limit Order | Target lock with borders | `icon_limit_order_t2` | ❌ Pending |
-| `spd_r1` | High Frequency | Multiple fast wave lines | `icon_high_freq_t2` | ❌ Pending |
-| `crit_r1` | Insider Info | Eye shape with data nodes | `icon_insider_info_t2` | ❌ Pending |
-| `luck_r1` | Alpha Leak | Keyhole or open door circuit | `icon_alpha_leak_t2` | ❌ Pending |
-| `area_r1` | Market Cap | Expanding circle/sphere grid | `icon_market_cap_t2` | ❌ Pending |
-| `proj_r1` | Double Down | Two overlapping ammo shells | `icon_double_down_t2` | ❌ Pending |
-| `shield_r1` | HODL Shield | Reinforced Shield (Hexagon) | `icon_hodl_shield_t2` | ❌ Pending |
-| `exec_r1` | Short Squeeze | Vice grip or squeezing hand | `icon_short_squeeze_t2` | ❌ Pending |
+| `dmg_r1` | Limit Order | Target lock with borders | `icon_limit_order_t2` | ✅ Done |
+| `spd_r1` | High Frequency | Multiple fast wave lines | `icon_high_freq_t2` | ✅ Done |
+| `crit_r1` | Insider Info | Eye shape with data nodes | `icon_insider_info_t2` | ✅ Done |
+| `luck_r1` | Alpha Leak | Keyhole or open door circuit | `icon_alpha_leak_t2` | ✅ Done |
+| `area_r1` | Market Cap | Expanding circle/sphere grid | `icon_market_cap_t2` | ✅ Done |
+| `proj_r1` | Double Down | Two overlapping ammo shells | `icon_double_down_t2` | ✅ Done |
+| `shield_r1` | HODL Shield | Reinforced Shield (Hexagon) | `icon_hodl_shield_t2` | ✅ Done |
+| `exec_r1` | Short Squeeze | Vice grip or squeezing hand | `icon_short_squeeze_t2` | ✅ Done |
 
 ### Tier 3: Epic (Royal Purple)
 *Style: Volumetric wireframes, internal glow, magical tech.*
 
 | Card ID | Name | Symbol Concept | Prompt Key | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `dmg_e1` | Leverage Trade | 100x multiplier symbol (3D) | `icon_leverage_trade_t3` | ❌ Pending |
-| `vamp_e1` | Staking Rewards | Dripping coin or liquid drop | `icon_staking_rewards_t3` | ❌ Pending |
-| `speed_e1` | Flash Loan | Speeding comet/flash orb | `icon_flash_loan_t3` | ❌ Pending |
-| `tank_e1` | Cold Wallet | Heavy vault door / Safe | `icon_cold_wallet_t3` | ❌ Pending |
-| `explode_e1` | Liquidation | Explosion / Shattered coin | `icon_liquidation_t3` | ❌ Pending |
-| `chain_e1` | Lightning Network | Chain links with electricity | `icon_lightning_net_t3` | ❌ Pending |
-| `regen_e1` | Smart Contract | Scroll/Contract with sigil | `icon_smart_contract_t3` | ❌ Pending |
-| `random_e1` | Degenerate | Neon Dice (Detailed) | `icon_degenerate_t3` | ❌ Pending |
+| `dmg_e1` | Leverage Trade | 100x multiplier symbol (3D) | `icon_leverage_trade_t3` | ✅ Done |
+| `vamp_e1` | Staking Rewards | Dripping coin or liquid drop | `icon_staking_rewards_t3` | ✅ Done |
+| `speed_e1` | Flash Loan | Speeding comet/flash orb | `icon_flash_loan_t3` | ✅ Done |
+| `tank_e1` | Cold Wallet | Heavy vault door / Safe | `icon_cold_wallet_t3` | ✅ Done |
+| `explode_e1` | Liquidation | Explosion / Shattered coin | `icon_liquidation_t3` | ✅ Done |
+| `chain_e1` | Lightning Network | Chain links with electricity | `icon_lightning_net_t3` | ✅ Done |
+| `regen_e1` | Smart Contract | Scroll/Contract with sigil | `icon_smart_contract_t3` | ✅ Done |
+| `random_e1` | Degenerate | Neon Dice (Detailed) | `icon_degenerate_t3` | ❌ Pending (Quota) |
 | `banano_e1` | Banano Split | Neon 3D Banana Split/Peel | `icon_banano_split_t3` | ❌ Pending |
 
 ### Tier 4: Legendary (Casino Gold)
@@ -76,7 +76,7 @@ This table lists every card in the game, its assigned tier, and the specific vis
 | Card ID | Name | Symbol Concept | Prompt Key | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | `moon_l1` | To The Moon | Solid Crystal Rocket | `icon_to_the_moon_t4` | ✅ Done (Bull Tier 3 used temporarily) |
-| `diamond_l1` | Diamond Hands | Solid Diamond Gem | `icon_diamond_hands_t4` | ❌ Pending |
+| `diamond_l1` | Diamond Hands | Solid Diamond Gem | `icon_diamond_hands_t4` | ✅ Done |
 | `whale_l1` | Whale Alert | Solid Gold Whale Signal | `icon_whale_alert_t4` | ❌ Pending |
 | `ape_l1` | Full Ape Mode | Solid Gold Gorilla Head | `icon_ape_mode_t4` | ❌ Pending |
 | `satoshi_l1` | Satoshi Mode | Genesis Block / Crown | `icon_satoshi_mode_t4` | ❌ Pending |
@@ -137,6 +137,6 @@ To ensure uninterrupted production despite AI generation limits, follow this wor
     *   Update this document's tables to `✅ Done`.
 
 ### Next Sprints
-1.  **Finish Tier 1:** Generate `icon_dca_mode_t1`.
-2.  **Start Tier 2:** Begin with `icon_limit_order_t2` and `icon_high_freq_t2`.
-3.  **Start Tier 4:** Generate `icon_diamond_hands_t4` (High Priority visual).
+1.  **Finish Tier 3:** Generate `icon_degenerate_t3`, `icon_banano_split_t3`.
+2.  **Start Tier 4:** Generate all Legendary icons.
+3.  **Integration:** Ensure all placeholder icons are replaced.

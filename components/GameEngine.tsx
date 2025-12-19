@@ -9,6 +9,7 @@ import { EventBus } from '../services/EventBus';
 import { MetricsService } from '../services/MetricsService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { ComboSystem } from '../services/ComboSystem';
+import { GAME_STATE_DEFAULTS } from '../services/GameStateManager';
 
 import { PhysicsSystem } from '../services/PhysicsSystem';
 import { SpawnSystem } from '../services/SpawnSystem';
@@ -100,6 +101,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   }, [status]);
 
 
+  // Listen for afterReset event from GameStateManager to fully reset all game state
+  useEffect(() => {
+    const unsub = EventBus.subscribe('afterReset', () => {
+      // Clear all game entities
+      pool.current.clearAll();
+
+      // Reset state using centralized defaults
+      Object.assign(state.current, {
+        ...GAME_STATE_DEFAULTS,
+        bgCandles: state.current.bgCandles, // Preserve background candles
+        dashTrail: [], // Reset trail array
+      });
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = EventBus.subscribe('killAll', () => {

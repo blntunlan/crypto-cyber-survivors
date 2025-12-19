@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MarketPosition, GameStatus } from './types';
+import { MarketPosition, GameStatus, LeverageOption } from './types';
 import { CardSystem, Card } from './services/CardSystem';
 import { GameEngine } from './components/GameEngine';
 import { GameUI } from './components/GameUI';
 import { audio } from './services/audioService';
-import { DifficultyManager } from './services/DifficultyManager';
 import { CheatManager } from './services/CheatManager';
 import { EventBus } from './services/EventBus';
 import { ComboSystem } from './services/ComboSystem';
-import { MetricsService } from './services/MetricsService';
 import { GameEndReason } from './types/metrics';
+import { MetricsService } from './services/MetricsService';
+import { GameStateManager, RUN_STATS_DEFAULTS } from './services/GameStateManager';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MainMenu } from './components/screens/MainMenu';
 import { LevelUpScreen } from './components/screens/LevelUpScreen';
@@ -18,6 +18,7 @@ import { GameOverScreen } from './components/screens/GameOverScreen';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
 import { MetricsDebugPanel } from './components/MetricsDebugPanel';
+import { ComboDebugPanel } from './components/ComboDebugPanel';
 
 const App: React.FC = () => {
   const [dimensions, setDimensions] = useState({
@@ -37,6 +38,8 @@ const App: React.FC = () => {
     maxStreak: 0,
     totalBonusXp: 0,
   });
+  const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
+  const [leverage, setLeverage] = useState<LeverageOption>(10);
 
   const {
     playerRef,
@@ -47,7 +50,7 @@ const App: React.FC = () => {
     setPositionColor,
   } = usePlayerState(dimensions.width, dimensions.height);
 
-  const { marketData } = useMarketData(gameStatus, position, entryPrice, playerRef);
+  const { marketData } = useMarketData(gameStatus, position, entryPrice, leverage, playerRef);
 
   useEffect(() => {
     const handleResize = () => {
@@ -57,12 +60,10 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sync session and systems
+  // Sync session timing
   useEffect(() => {
     if (gameStatus === GameStatus.PLAYING && sessionStartTime === 0) {
       setSessionStartTime(Date.now());
-      ComboSystem.startGame();
-      DifficultyManager.startGame();
     }
     if (gameStatus === GameStatus.MENU) {
       setSessionStartTime(0);
@@ -82,8 +83,13 @@ const App: React.FC = () => {
   }, []);
 
   const handlePauseToggle = useCallback(() => {
-    if (gameStatus === GameStatus.PLAYING) setGameStatus(GameStatus.PAUSED);
-    else if (gameStatus === GameStatus.PAUSED) setGameStatus(GameStatus.PLAYING);
+    if (gameStatus === GameStatus.PLAYING) {
+      ComboSystem.pause();
+      setGameStatus(GameStatus.PAUSED);
+    } else if (gameStatus === GameStatus.PAUSED) {
+      ComboSystem.resume();
+      setGameStatus(GameStatus.PLAYING);
+    }
   }, [gameStatus]);
 
   useEffect(() => {
@@ -100,33 +106,43 @@ const App: React.FC = () => {
     const choices = CardSystem.generateChoices(playerRef.current.luck, playerRef.current.level);
     setUpgradeChoices(choices);
     audio.playLevelUp();
+    // Pause combo timer while in level up screen
+    ComboSystem.pause();
   }, [healFull, playerRef]);
 
   const resetGame = useCallback(() => {
+    // Reset all game systems via centralized manager
+    GameStateManager.resetAll();
+
+    // Reset local UI state
     setGameStatus(GameStatus.MENU);
     setEntryPrice(0);
     setFinalPnl(0);
+    setRunStats({ ...RUN_STATS_DEFAULTS });
+
+    // Reset player state (handled separately for React state sync)
     resetPlayer();
-    setRunStats({
-      totalKills: 0,
-      maxStreak: 0,
-      totalBonusXp: 0,
-    });
-    DifficultyManager.startGame();
-    EventBus.emit('gameReset', {});
-    ComboSystem.startGame();
   }, [resetPlayer]);
 
-  const startGame = (choice: MarketPosition) => {
+  const startGame = (choice: MarketPosition, selectedLeverage: LeverageOption) => {
     if (marketData.price === 0) return;
+
+    // Reset player to fresh state
+    resetPlayer();
+
+    // Set leverage for this session
+    setLeverage(selectedLeverage);
+
+    // Initialize new game session via centralized manager
+    // This handles: DifficultyManager, ComboSystem, MetricsService
+    GameStateManager.initializeNewGame(choice, marketData.price, selectedLeverage);
+
+    // Set local state for this game session
     setPosition(choice);
     setEntryPrice(marketData.price);
     setPositionColor(choice);
     setGameStatus(GameStatus.PLAYING);
     audio.playLevelUp();
-
-    // Start metrics session
-    MetricsService.startSession(choice, marketData.price);
   };
 
   const selectUpgrade = (card: Card) => {
@@ -145,6 +161,8 @@ const App: React.FC = () => {
     if (nextP.exp >= nextP.nextLevelExp) {
       handleLevelUp();
     } else {
+      // Resume combo timer when returning to gameplay
+      ComboSystem.resume();
       setGameStatus(GameStatus.PLAYING);
     }
   };
@@ -170,6 +188,11 @@ const App: React.FC = () => {
         }
       },
       onRestart: resetGame,
+      onAddComboKill: (count) => {
+        for (let i = 0; i < count; i++) {
+          EventBus.emit('enemyKilled', { x: 0, y: 0, type: 'cheat', isCrit: false });
+        }
+      },
     });
     return () => CheatManager.destroy();
   }, [gameStatus, handleLevelUp, healFull, setUiStats, resetGame, playerRef]);
@@ -192,6 +215,7 @@ const App: React.FC = () => {
         marketData={marketData}
         onGameOver={() => {
           setFinalPnl(marketData.pnl);
+          setFinalSurvivalTime((Date.now() - sessionStartTime) / 1000);
           setGameStatus(GameStatus.GAMEOVER);
 
           // End metrics session with all final data
@@ -211,6 +235,7 @@ const App: React.FC = () => {
             },
             position,
             entryPrice,
+            leverage,
             totalKills: runStats.totalKills,
           });
         }}
@@ -253,12 +278,15 @@ const App: React.FC = () => {
         <GameOverScreen
           level={uiStats.level}
           finalPnl={finalPnl}
+          survivalTime={finalSurvivalTime}
+          kills={runStats.totalKills}
           onRestart={resetGame}
         />
       )}
 
       {/* Metrics Debug Panel (dev mode only) */}
       <MetricsDebugPanel />
+      <ComboDebugPanel />
 
     </div>
   );

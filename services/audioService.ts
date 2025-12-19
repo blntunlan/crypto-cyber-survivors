@@ -327,6 +327,211 @@ export class AudioService {
     osc.stop(this.ctx.currentTime + 0.15);
   }
 
+  // ========================================
+  // COMBO MILESTONE SOUNDS 🔥
+  // ========================================
+
+  /**
+   * Play combo milestone sound based on level
+   */
+  playComboMilestone(sound: 'combo1' | 'combo2' | 'combo3' | 'combo4' | 'combo5'): void {
+    switch (sound) {
+      case 'combo1':
+        this.playCombo1();
+        break;
+      case 'combo2':
+        this.playCombo2();
+        break;
+      case 'combo3':
+        this.playCombo3();
+        break;
+      case 'combo4':
+        this.playCombo4();
+        break;
+      case 'combo5':
+        this.playCombo5();
+        break;
+    }
+  }
+
+  /**
+   * COMBO! (5 kills) - Simple rising tone
+   */
+  private playCombo1(): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.15);
+
+    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.2);
+  }
+
+  /**
+   * SUPER COMBO! (10 kills) - Double tone
+   */
+  private playCombo2(): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    [0, 0.1].forEach((delay, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'triangle';
+      const freq = 600 + (i * 200);
+      osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + delay);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.5, this.ctx!.currentTime + delay + 0.15);
+
+      gain.gain.setValueAtTime(0.06, this.ctx!.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.2);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(this.ctx!.currentTime + delay);
+      osc.stop(this.ctx!.currentTime + delay + 0.2);
+    });
+  }
+
+  /**
+   * MEGA COMBO! (25 kills) - Triple arpeggio
+   */
+  private playCombo3(): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+
+    notes.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const delay = i * 0.08;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + delay);
+
+      gain.gain.setValueAtTime(0.06, this.ctx!.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(this.ctx!.currentTime + delay);
+      osc.stop(this.ctx!.currentTime + delay + 0.3);
+    });
+  }
+
+  /**
+   * ULTRA COMBO! (50 kills) - Epic fanfare
+   */
+  private playCombo4(): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+
+    notes.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const osc2 = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const delay = i * 0.1;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + delay);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq * 2, this.ctx!.currentTime + delay);
+
+      gain.gain.setValueAtTime(0.05, this.ctx!.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.4);
+
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(this.ctx!.currentTime + delay);
+      osc2.start(this.ctx!.currentTime + delay);
+      osc.stop(this.ctx!.currentTime + delay + 0.4);
+      osc2.stop(this.ctx!.currentTime + delay + 0.4);
+    });
+  }
+
+  /**
+   * JACKPOT! (100 kills) - Ultimate casino explosion 🎰💰
+   */
+  private playCombo5(): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    // Ascending jackpot fanfare
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98]; // C5 to G6
+
+    notes.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const osc2 = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const delay = i * 0.08;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + delay);
+
+      // Shimmer LFO
+      const lfo = this.ctx!.createOscillator();
+      const lfoGain = this.ctx!.createGain();
+      lfo.frequency.setValueAtTime(20, this.ctx!.currentTime);
+      lfoGain.gain.setValueAtTime(freq * 0.02, this.ctx!.currentTime);
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(freq * 1.5, this.ctx!.currentTime + delay);
+
+      gain.gain.setValueAtTime(0.05, this.ctx!.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.5);
+
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.masterGain!);
+
+      lfo.start(this.ctx!.currentTime + delay);
+      osc.start(this.ctx!.currentTime + delay);
+      osc2.start(this.ctx!.currentTime + delay);
+      lfo.stop(this.ctx!.currentTime + delay + 0.5);
+      osc.stop(this.ctx!.currentTime + delay + 0.5);
+      osc2.stop(this.ctx!.currentTime + delay + 0.5);
+    });
+
+    // Casino "ding-ding-ding" finish
+    [0.5, 0.6, 0.7, 0.8, 0.9].forEach((delay) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2500, this.ctx!.currentTime + delay);
+
+      gain.gain.setValueAtTime(0.04, this.ctx!.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.1);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(this.ctx!.currentTime + delay);
+      osc.stop(this.ctx!.currentTime + delay + 0.1);
+    });
+  }
+
   /**
    * Play death sound - descending doom
    */
@@ -385,6 +590,160 @@ export class AudioService {
 
     osc.start();
     osc.stop(this.ctx.currentTime + 0.05);
+  }
+
+  // ========================================
+  // SLOT MACHINE SOUNDS 🎰
+  // ========================================
+
+  /**
+   * Play slot tick sound - single card change
+   * Higher pitch = more anticipation
+   */
+  playSlotTick(pitch: number = 1): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    // Base frequency scaled by pitch (1.0 = normal, higher = more excited)
+    osc.frequency.setValueAtTime(800 * pitch, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(600 * pitch, this.ctx.currentTime + 0.03);
+
+    gain.gain.setValueAtTime(0.015, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.04);
+  }
+
+  /**
+   * Play reel stop sound - satisfying "clunk"
+   * reelNumber: 1, 2, or 3 - pitch increases for each
+   */
+  playReelStop(reelNumber: number = 1): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    const baseFreq = 300 + (reelNumber * 100);
+
+    // Main thud
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, this.ctx.currentTime + 0.15);
+
+    gain1.gain.setValueAtTime(0.08, this.ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+
+    // Metallic "ding" overlay
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(baseFreq * 3, this.ctx.currentTime);
+
+    gain2.gain.setValueAtTime(0.03, this.ctx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    gain1.connect(this.masterGain);
+    gain2.connect(this.masterGain);
+
+    osc1.start();
+    osc2.start();
+    osc1.stop(this.ctx.currentTime + 0.2);
+    osc2.stop(this.ctx.currentTime + 0.1);
+  }
+
+  /**
+   * Play slot win fanfare - all reels stopped, dopamine explosion! 🎉
+   */
+  playSlotWin(): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    // Ascending arpeggio with shimmer
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51]; // C5, E5, G5, C6, E6
+
+    notes.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const delay = i * 0.08;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + delay);
+
+      // Shimmer effect
+      const lfo = this.ctx!.createOscillator();
+      const lfoGain = this.ctx!.createGain();
+      lfo.frequency.setValueAtTime(15, this.ctx!.currentTime);
+      lfoGain.gain.setValueAtTime(freq * 0.02, this.ctx!.currentTime);
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      gain.gain.setValueAtTime(0, this.ctx!.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(0.05, this.ctx!.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.5);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      lfo.start(this.ctx!.currentTime + delay);
+      osc.start(this.ctx!.currentTime + delay);
+      lfo.stop(this.ctx!.currentTime + delay + 0.5);
+      osc.stop(this.ctx!.currentTime + delay + 0.5);
+    });
+
+    // Final "ding-ding-ding" casino effect
+    [0.4, 0.5, 0.6].forEach((delay) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2000, this.ctx!.currentTime + delay);
+
+      gain.gain.setValueAtTime(0.03, this.ctx!.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.15);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+
+      osc.start(this.ctx!.currentTime + delay);
+      osc.stop(this.ctx!.currentTime + delay + 0.15);
+    });
+  }
+
+  /**
+   * Play anticipation rising tone - for slowing down phase
+   */
+  playAnticipation(intensity: number = 1): void {
+    this.init();
+    if (!this.ctx || !this.masterGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400 * intensity, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(800 * intensity, this.ctx.currentTime + 0.2);
+
+    gain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.25);
   }
 
   // ========================================

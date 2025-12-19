@@ -14,20 +14,20 @@ describe('MainMenu', () => {
         expect(screen.getByText(/CONNECTING/i)).toBeDefined();
     });
 
-    it('should call onStart with LONG when Long button is clicked', () => {
+    it('should call onStart with LONG and default leverage when Long button is clicked', () => {
         const onStart = vi.fn();
         render(<MainMenu price={50000} onStart={onStart} onOpenSettings={() => { }} />);
 
         fireEvent.click(screen.getByText(/Long/i));
-        expect(onStart).toHaveBeenCalledWith(MarketPosition.LONG);
+        expect(onStart).toHaveBeenCalledWith(MarketPosition.LONG, 10); // Default leverage is 10
     });
 
-    it('should call onStart with SHORT when Short button is clicked', () => {
+    it('should call onStart with SHORT and default leverage when Short button is clicked', () => {
         const onStart = vi.fn();
         render(<MainMenu price={50000} onStart={onStart} onOpenSettings={() => { }} />);
 
         fireEvent.click(screen.getByText(/Short/i));
-        expect(onStart).toHaveBeenCalledWith(MarketPosition.SHORT);
+        expect(onStart).toHaveBeenCalledWith(MarketPosition.SHORT, 10); // Default leverage is 10
     });
 
     it('should call onOpenSettings when Settings button is clicked', () => {

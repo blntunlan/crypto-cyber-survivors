@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MarketPosition, MarketData, GameStatus, Player } from '../types';
+import { MarketPosition, MarketData, GameStatus, Player, LeverageOption } from '../types';
 import { MarketService, MarketUpdate } from '../services/marketService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { MAX_CHART_POINTS } from '../constants';
@@ -10,12 +10,15 @@ export const useMarketData = (
     gameStatus: GameStatus,
     position: MarketPosition,
     entryPrice: number,
+    leverage: LeverageOption,
     playerRef: React.MutableRefObject<Player>
 ) => {
     const [marketData, setMarketData] = useState<MarketData>({
         price: 0,
         volume: 0,
         pnl: 0,
+        effectivePnl: 0,
+        leverage: 1,
         rsi: 50,
         difficulty: 1,
     });
@@ -28,12 +31,14 @@ export const useMarketData = (
     const gameStatusRef = useRef(gameStatus);
     const positionRef = useRef(position);
     const entryPriceRef = useRef(entryPrice);
+    const leverageRef = useRef(leverage);
 
     useEffect(() => {
         gameStatusRef.current = gameStatus;
         positionRef.current = position;
         entryPriceRef.current = entryPrice;
-    }, [gameStatus, position, entryPrice]);
+        leverageRef.current = leverage;
+    }, [gameStatus, position, entryPrice, leverage]);
 
     useEffect(() => {
         const service = new MarketService((update: MarketUpdate) => {
@@ -66,26 +71,30 @@ export const useMarketData = (
             const currentStatus = gameStatusRef.current;
             const currentEntryPrice = entryPriceRef.current;
             const currentPosition = positionRef.current;
+            const currentLeverage = leverageRef.current;
 
             if (currentStatus === GameStatus.MENU) {
                 setMarketData(prev => ({ ...prev, price }));
                 return;
             }
 
-            // Calculate PNL
+            // Calculate Raw PnL
             let pnl = 0;
             if (currentEntryPrice > 0) {
                 pnl = (price - currentEntryPrice) / currentEntryPrice;
                 if (currentPosition === MarketPosition.SHORT) pnl = -pnl;
             }
 
+            // Calculate Effective PnL (with leverage)
+            const effectivePnl = pnl * currentLeverage;
+
             const atrPercent = price > 0 ? atr / price : 0;
             const hpPercent = (playerRef.current.hp / playerRef.current.maxHp) * 100;
             const playerLevel = playerRef.current.level;
 
-            // Calculate Difficulty
+            // Calculate Difficulty using EFFECTIVE PnL
             const difficultyOutput = DifficultyManager.calculate(
-                pnl,
+                effectivePnl, // Use amplified PnL for difficulty
                 atrPercent,
                 playerLevel,
                 hpPercent,
@@ -96,6 +105,8 @@ export const useMarketData = (
                 price,
                 volume: update.volume || 0,
                 pnl,
+                effectivePnl,
+                leverage: currentLeverage,
                 rsi: 50, // Static for now
                 difficulty: difficultyOutput.total,
             });

@@ -24,7 +24,7 @@ describe('MetricsService', () => {
 
     describe('Session Management', () => {
         it('should start a new session', () => {
-            const sessionId = MetricsService.startSession(MarketPosition.LONG, 50000);
+            const sessionId = MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             expect(sessionId).toBeTruthy();
             expect(sessionId).toContain('session_');
@@ -32,24 +32,26 @@ describe('MetricsService', () => {
         });
 
         it('should generate unique session IDs', () => {
-            const sessionId1 = MetricsService.startSession(MarketPosition.LONG, 50000);
+            const sessionId1 = MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
             vi.advanceTimersByTime(100);
-            const sessionId2 = MetricsService.startSession(MarketPosition.SHORT, 51000);
+            const sessionId2 = MetricsService.startSession(MarketPosition.SHORT, 51000, 10);
 
             expect(sessionId1).not.toBe(sessionId2);
         });
 
         it('should end session and compile metrics', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 25);
 
-            const finalData = createFinalData();
+            const finalData = createFinalData({ leverage: 25 });
             const session = MetricsService.endSession(GameEndReason.DEATH, finalData);
 
             expect(session).toBeTruthy();
             expect(session?.bitcoin.positionChosen).toBe(MarketPosition.LONG);
             expect(session?.bitcoin.priceAtStart).toBe(50000);
+            expect(session?.bitcoin.leverage).toBe(25);
+            expect(session?.bitcoin.effectivePnLAtDeath).toBe(finalData.pnl * 25);
             expect(session?.gameEndReason).toBe(GameEndReason.DEATH);
             expect(MetricsService.isSessionActive()).toBe(false);
         });
@@ -62,7 +64,7 @@ describe('MetricsService', () => {
 
     describe('Real-time Tracking', () => {
         it('should track max PnL', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.update(16.67, createUpdateData({ pnl: 0.05 }));
             MetricsService.update(16.67, createUpdateData({ pnl: 0.10 }));
@@ -74,7 +76,7 @@ describe('MetricsService', () => {
         });
 
         it('should track min PnL', () => {
-            MetricsService.startSession(MarketPosition.SHORT, 50000);
+            MetricsService.startSession(MarketPosition.SHORT, 50000, 10);
 
             MetricsService.update(16.67, createUpdateData({ pnl: -0.02 }));
             MetricsService.update(16.67, createUpdateData({ pnl: -0.08 }));
@@ -86,7 +88,7 @@ describe('MetricsService', () => {
         });
 
         it('should track max difficulty', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.update(16.67, createUpdateData({ difficulty: 1.5 }));
             MetricsService.update(16.67, createUpdateData({ difficulty: 3.2 }));
@@ -98,7 +100,7 @@ describe('MetricsService', () => {
         });
 
         it('should track max enemies on screen', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.update(16.67, createUpdateData({ enemyCount: 5 }));
             MetricsService.update(16.67, createUpdateData({ enemyCount: 15 }));
@@ -110,7 +112,7 @@ describe('MetricsService', () => {
         });
 
         it('should track high difficulty time', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             // Difficulty > 5 is considered high
             MetricsService.update(1000, createUpdateData({ difficulty: 6.0 }));
@@ -125,7 +127,7 @@ describe('MetricsService', () => {
 
     describe('Kill and Damage Tracking', () => {
         it('should track kills by type', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.trackKill('bear', 1000);
             MetricsService.trackKill('bear', 1200);
@@ -140,7 +142,7 @@ describe('MetricsService', () => {
         });
 
         it('should track damage dealt', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.trackDamageDealt(100, false, false);
             MetricsService.trackDamageDealt(200, true, false);
@@ -154,7 +156,7 @@ describe('MetricsService', () => {
         });
 
         it('should track damage taken', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.trackDamageTaken(10);
             MetricsService.trackDamageTaken(25);
@@ -168,7 +170,7 @@ describe('MetricsService', () => {
 
     describe('Level Up and Card Tracking', () => {
         it('should track level ups and card choices', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             vi.advanceTimersByTime(10000);
             MetricsService.trackLevelUp(2, 'Diamond Hands', 'common');
@@ -193,7 +195,7 @@ describe('MetricsService', () => {
 
     describe('Combo Tracking', () => {
         it('should track max streak', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.trackComboUpdate(5, 1.2);
             MetricsService.trackComboUpdate(10, 1.5);
@@ -206,7 +208,7 @@ describe('MetricsService', () => {
         });
 
         it('should track combo milestones', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.trackComboMilestone('COMBO!');
             MetricsService.trackComboMilestone('SUPER COMBO!');
@@ -220,7 +222,7 @@ describe('MetricsService', () => {
         });
 
         it('should track combo end with bonus XP', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             MetricsService.trackComboUpdate(1, 1.0);
             vi.advanceTimersByTime(1000);
@@ -236,7 +238,7 @@ describe('MetricsService', () => {
 
     describe('Export Functions', () => {
         it('should export sessions as JSON', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
             const json = MetricsService.exportAsJSON();
@@ -248,7 +250,7 @@ describe('MetricsService', () => {
         });
 
         it('should export sessions as CSV', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
             const csv = MetricsService.exportAsCSV();
@@ -265,14 +267,14 @@ describe('MetricsService', () => {
             MetricsService.clearSessions();
             expect(MetricsService.getSessionCount()).toBe(0);
 
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
             expect(MetricsService.getSessionCount()).toBe(1);
         });
 
         it('should retrieve stored sessions', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
             const sessions = MetricsService.getSessions();
@@ -282,7 +284,7 @@ describe('MetricsService', () => {
         });
 
         it('should clear all sessions', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
             MetricsService.clearSessions();
@@ -297,7 +299,7 @@ describe('MetricsService', () => {
         });
 
         it('should return current state during active session', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
             const state = MetricsService.getCurrentState();
 
             expect(state).toBeTruthy();
@@ -315,7 +317,7 @@ describe('MetricsService', () => {
 
     describe('Survival Time Calculation', () => {
         it('should calculate survival time correctly', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             vi.advanceTimersByTime(30000); // 30 seconds
 
@@ -327,7 +329,7 @@ describe('MetricsService', () => {
 
     describe('Average Calculations', () => {
         it('should calculate average PnL', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             // Simulate sampling interval
             vi.advanceTimersByTime(1000);
@@ -346,7 +348,7 @@ describe('MetricsService', () => {
         });
 
         it('should calculate average difficulty', () => {
-            MetricsService.startSession(MarketPosition.LONG, 50000);
+            MetricsService.startSession(MarketPosition.LONG, 50000, 10);
 
             vi.advanceTimersByTime(1000);
             MetricsService.update(16.67, createUpdateData({ difficulty: 1.0 }));
@@ -373,6 +375,7 @@ function createFinalData(overrides: Partial<{
     hp: number;
     difficulty: number;
     totalKills: number;
+    leverage: number;
 }> = {}) {
     return {
         price: overrides.price ?? 50500,
@@ -390,6 +393,7 @@ function createFinalData(overrides: Partial<{
         },
         position: MarketPosition.LONG,
         entryPrice: 50000,
+        leverage: overrides.leverage ?? 10,
         totalKills: overrides.totalKills ?? 50,
     };
 }
