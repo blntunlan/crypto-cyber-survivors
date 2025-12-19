@@ -110,7 +110,7 @@ class ComboSystemClass {
         const now = Date.now();
 
         // Check if combo should reset - account for paused time
-        const effectiveElapsed = now - this.state.lastKillTime - this.totalPausedTime;
+        const effectiveElapsed = now - (this.state.lastKillTime + this.totalPausedTime);
         if (this.state.lastKillTime > 0 && effectiveElapsed > COMBO_TIMEOUT_MS) {
             this.resetCombo();
         }
@@ -186,7 +186,7 @@ class ComboSystemClass {
 
         if (this.state.killStreak > 0 && this.state.lastKillTime > 0) {
             const now = Date.now();
-            const effectiveElapsed = now - this.state.lastKillTime - this.totalPausedTime;
+            const effectiveElapsed = now - (this.state.lastKillTime + this.totalPausedTime);
             if (effectiveElapsed > COMBO_TIMEOUT_MS) {
                 this.resetCombo();
             }
@@ -256,7 +256,7 @@ class ComboSystemClass {
             currentPausedTime += Date.now() - this.pauseStartTime;
         }
 
-        const effectiveElapsed = Date.now() - this.state.lastKillTime - currentPausedTime;
+        const effectiveElapsed = Date.now() - (this.state.lastKillTime + currentPausedTime);
         return Math.max(0, 1 - effectiveElapsed / COMBO_TIMEOUT_MS);
     }
 
