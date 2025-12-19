@@ -30,6 +30,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
     const requestRef = useRef<number | null>(null);
     const milestoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const fpsFramesRef = useRef<number[]>([]);
 
     useEffect(() => {
         const unsubUpdate = EventBus.on('comboUpdate', (data) => {
@@ -108,9 +109,39 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
         };
     }, []);
 
-    // Animation loop for smooth updates
+    // Animation loop for smooth updates + FPS counter (DOM-based, no React re-render)
     useEffect(() => {
-        const updateLoop = () => {
+        let lastTime = performance.now();
+        const fpsElement = document.getElementById('fps-counter');
+
+        const updateLoop = (currentTime: number) => {
+            // FPS calculation (DOM-based to avoid React re-renders)
+            const deltaMs = currentTime - lastTime;
+            lastTime = currentTime;
+
+            if (deltaMs > 0 && fpsElement) {
+                const currentFps = 1000 / deltaMs;
+                fpsFramesRef.current.push(currentFps);
+
+                // Keep last 30 frames for averaging
+                if (fpsFramesRef.current.length > 30) {
+                    fpsFramesRef.current.shift();
+                }
+
+                // Update FPS display every 15 frames (direct DOM, no setState)
+                if (fpsFramesRef.current.length % 15 === 0) {
+                    const avgFps = fpsFramesRef.current.reduce((a, b) => a + b, 0) / fpsFramesRef.current.length;
+                    const roundedFps = Math.round(avgFps);
+                    fpsElement.textContent = `${roundedFps} FPS`;
+
+                    // Update color class
+                    fpsElement.className = `px-2 py-1 rounded text-xs font-mono font-bold ${roundedFps >= 55 ? 'bg-green-500/80 text-white' :
+                        roundedFps >= 30 ? 'bg-yellow-500/80 text-black' :
+                            'bg-red-500/80 text-white'
+                        }`;
+                }
+            }
+
             if (status === GameStatus.PLAYING) {
                 const timeLeft = ComboSystem.getComboTimeRemaining();
                 setCombo(prev => {
@@ -134,6 +165,18 @@ export const GameHUD: React.FC<GameHUDProps> = ({ status }) => {
 
     return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {/* FPS Counter - Dev Mode Only (DOM-based, updated via JS) */}
+            {import.meta.env.DEV && (
+                <div className="absolute top-2 left-2 z-[100]">
+                    <div
+                        id="fps-counter"
+                        className="px-2 py-1 rounded text-xs font-mono font-bold bg-green-500/80 text-white"
+                    >
+                        -- FPS
+                    </div>
+                </div>
+            )}
+
             {/* Level Up Flash - CSS transition for frame-rate independence */}
             <div
                 className="absolute inset-0 bg-white z-[60] pointer-events-none transition-opacity duration-500 ease-out"

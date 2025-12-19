@@ -136,6 +136,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       // Handle Level Up Freeze
       if (s.levelUpFreeze > 0) {
         s.levelUpFreeze -= deltaTime;
+        // Reset shake during level up screen
+        s.shake = 0;
+        s.critFlash = 0;
         if (s.levelUpFreeze <= 0) {
           onLevelUp();
         }

@@ -10,78 +10,107 @@ interface LevelUpScreenProps {
     onSelect: (card: Card) => void;
 }
 
-// Animation variants
+// Animation variants - Slot Machine Style 🎰
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.2,
+            staggerChildren: 0.15,
+            delayChildren: 0.1,
         },
     },
     exit: {
         opacity: 0,
-        transition: { duration: 0.2 },
+        transition: { duration: 0.15 },
     },
 };
 
 const titleVariants = {
-    hidden: { opacity: 0, y: -50, scale: 0.8 },
+    hidden: { opacity: 0, y: -80, scale: 0.5 },
     visible: {
         opacity: 1,
         y: 0,
         scale: 1,
         transition: {
             type: 'spring' as const,
-            stiffness: 200,
+            stiffness: 400,
             damping: 15,
         },
     },
 };
 
+// Slot machine card animation - fast drop with bounce
 const cardVariants = {
-    hidden: { opacity: 0, y: 50, scale: 0.8, rotateX: -15 },
+    hidden: {
+        opacity: 0,
+        y: -300, // Start from above
+        scale: 0.8,
+        rotateZ: -5,
+    },
     visible: {
         opacity: 1,
         y: 0,
         scale: 1,
-        rotateX: 0,
+        rotateZ: 0,
         transition: {
             type: 'spring' as const,
-            stiffness: 150,
-            damping: 12,
+            stiffness: 500, // Fast
+            damping: 25,    // Bouncy
+            mass: 0.8,
         },
     },
     exit: {
         opacity: 0,
         scale: 0.5,
-        y: -50,
-        transition: { duration: 0.2 },
+        y: 100,
+        transition: { duration: 0.15 },
     },
     hover: {
         scale: 1.05,
-        y: -10,
+        y: -8,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
         transition: {
             type: 'spring' as const,
-            stiffness: 300,
+            stiffness: 400,
             damping: 20,
         },
     },
     tap: {
-        scale: 0.95,
+        scale: 0.98,
+        y: 0,
     },
 };
 
 const glowVariants = {
-    initial: { opacity: 0.2, scale: 1 },
+    initial: { opacity: 0, scale: 0.8 },
     animate: {
-        opacity: [0.2, 0.4, 0.2],
-        scale: [1, 1.1, 1],
+        opacity: [0.1, 0.4, 0.1],
+        scale: [0.9, 1.2, 0.9],
         transition: {
-            duration: 2,
+            duration: 1.5,
             repeat: Infinity,
             ease: 'easeInOut' as const,
+        },
+    },
+};
+
+// Icon slot spin animation
+const iconVariants = {
+    hidden: {
+        scale: 0,
+        opacity: 0,
+        y: -50,
+    },
+    visible: {
+        scale: 1,
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: 'spring' as const,
+            stiffness: 600,
+            damping: 15,
+            delay: 0.2,
         },
     },
 };
@@ -169,16 +198,13 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                                             animate="animate"
                                         />
 
-                                        {/* Icon */}
+                                        {/* Icon - slot spin animation */}
                                         <motion.div
-                                            initial={{ scale: 0, rotate: -180 }}
-                                            animate={{ scale: 1, rotate: 0 }}
-                                            transition={{
-                                                type: 'spring',
-                                                stiffness: 200,
-                                                damping: 15,
-                                                delay: 0.4 + index * 0.1,
-                                            }}
+                                            className="relative z-10"
+                                            style={{ mixBlendMode: 'plus-lighter' }}
+                                            variants={iconVariants}
+                                            initial="hidden"
+                                            animate="visible"
                                         >
                                             {renderCardIcon(card, tierConfig.color)}
                                         </motion.div>
