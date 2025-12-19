@@ -9,6 +9,7 @@ import { EventBus } from '../services/EventBus';
 import { MetricsService } from '../services/MetricsService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { ComboSystem } from '../services/ComboSystem';
+import { TimeService } from '../services/TimeService';
 import { GAME_STATE_DEFAULTS } from '../services/GameStateManager';
 import { getHUDLayout } from '../config/UILayout';
 import { useGameStore } from '../stores/gameStore';
@@ -107,7 +108,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Reset time trackers on any status change to prevent jumps/spikes
     state.current.lastTime = 0;
 
-    if (status === GameStatus.MENU) {
+    if (status === GameStatus.PLAYING) {
+      TimeService.start();
+    } else if (status === GameStatus.PAUSED || status === GameStatus.LEVEL_UP || status === GameStatus.GAMEOVER) {
+      TimeService.pause();
+    } else if (status === GameStatus.MENU) {
+      TimeService.reset();
       pool.current.clearAll();
       state.current.spawnTimer = 0;
       state.current.lastFireTime = 0;
@@ -149,10 +155,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     const player = playerRef.current;
     const p = pool.current;
 
-    const deltaMs = s.lastTime ? time - s.lastTime : 16.67;
-    // Cap delta at 100ms to prevent giant leaps after lag or tab switch
-    const deltaTime = Math.min(deltaMs, 100);
-    const dtFactor = deltaTime / 16.67;
+    const deltaTime = TimeService.update(time);
+    const dtFactor = deltaTime > 0 ? deltaTime / 16.67 : 0;
     s.lastTime = time;
 
     if (status !== GameStatus.PAUSED) {
@@ -169,16 +173,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (status === GameStatus.PLAYING) {
       // Handle Level Up Freeze
       if (s.levelUpFreeze > 0) {
-        // Pause combo timer during freeze
-        ComboSystem.pause();
-
         s.levelUpFreeze -= deltaTime;
         // Reset shake during level up screen
         s.shake = 0;
         s.critFlash = 0;
         if (s.levelUpFreeze <= 0) {
-          // Resume combo timer after freeze
-          ComboSystem.resume();
           onLevelUp();
         }
         // During freeze, we still want to draw but not update physics

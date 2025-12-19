@@ -3,16 +3,19 @@
  *
  * Tracks consecutive kills and provides XP bonuses.
  * Resets after a timeout (no kills for 3 seconds).
+ *
+ * Now uses TimeService for frame-rate and pause-independent timing.
  */
 
 import { EventBus } from './EventBus';
+import { TimeService } from './TimeService';
 import { COLORS } from '../constants';
 
 export interface ComboState {
     killStreak: number;
     maxStreak: number;
     comboMultiplier: number;
-    lastKillTime: number;
+    lastKillTime: number; // In Game Time (ms)
     totalKills: number;
     totalBonusXp: number;
 }
@@ -48,11 +51,6 @@ class ComboSystemClass {
     };
 
     private lastMilestoneIndex = -1;
-
-    // Pause state tracking - local to current kill interval
-    private isPaused = false;
-    private pauseStartTime = 0;
-    private pausedTimeSinceLastKill = 0;
 
     private constructor() {
         this.setupListeners();
@@ -98,37 +96,23 @@ class ComboSystemClass {
             totalBonusXp: 0,
         };
         this.lastMilestoneIndex = -1;
-        this.isPaused = false;
-        this.pauseStartTime = 0;
-        this.pausedTimeSinceLastKill = 0;
     }
 
     /**
      * Record a kill and update combo state
      */
     recordKill(): void {
-        const now = Date.now();
+        const now = TimeService.getGameTime();
 
-        // Check if combo should reset - account for paused time since last kill
-        let currentPausedTime = this.pausedTimeSinceLastKill;
-        if (this.isPaused) {
-            currentPausedTime += now - this.pauseStartTime;
-        }
-
-        const effectiveElapsed = now - (this.state.lastKillTime + currentPausedTime);
-        if (this.state.lastKillTime > 0 && effectiveElapsed > COMBO_TIMEOUT_MS) {
+        // Check if combo should have reset (if it wasn't already reset by update())
+        const elapsed = now - this.state.lastKillTime;
+        if (this.state.lastKillTime > 0 && elapsed > COMBO_TIMEOUT_MS) {
             this.resetCombo();
         }
 
         this.state.killStreak++;
         this.state.totalKills++;
         this.state.lastKillTime = now;
-
-        // Reset pause tracking for the next interval
-        this.resetPausedTime();
-        if (this.isPaused) {
-            this.pauseStartTime = now;
-        }
 
         // Update max streak
         if (this.state.killStreak > this.state.maxStreak) {
@@ -181,55 +165,20 @@ class ComboSystemClass {
         this.state.killStreak = 0;
         this.state.comboMultiplier = 1.0;
         this.lastMilestoneIndex = -1;
-        // Reset pause state
-        this.isPaused = false;
-        this.pauseStartTime = 0;
-        this.pausedTimeSinceLastKill = 0;
     }
 
     /**
      * Check if combo should timeout (call this in game loop)
-     * Respects pause state - combo timer doesn't run while paused
+     * Automatically ignores pause time because it uses TimeService.gameTime
      */
     update(): void {
-        // Don't update while paused
-        if (this.isPaused) return;
-
         if (this.state.killStreak > 0 && this.state.lastKillTime > 0) {
-            const now = Date.now();
-            const effectiveElapsed = now - (this.state.lastKillTime + this.pausedTimeSinceLastKill);
-            if (effectiveElapsed > COMBO_TIMEOUT_MS) {
+            const now = TimeService.getGameTime();
+            const elapsed = now - this.state.lastKillTime;
+            if (elapsed > COMBO_TIMEOUT_MS) {
                 this.resetCombo();
             }
         }
-    }
-
-    /**
-     * Pause combo timer (call when level up screen opens)
-     */
-    pause(): void {
-        if (!this.isPaused && this.state.killStreak > 0) {
-            this.isPaused = true;
-            this.pauseStartTime = Date.now();
-        }
-    }
-
-    /**
-     * Resume combo timer (call when level up screen closes)
-     */
-    resume(): void {
-        if (this.isPaused) {
-            this.isPaused = false;
-            // Add the paused duration since last kill
-            this.pausedTimeSinceLastKill += Date.now() - this.pauseStartTime;
-        }
-    }
-
-    /**
-     * Reset the accumulated pause time for the current interval
-     */
-    resetPausedTime(): void {
-        this.pausedTimeSinceLastKill = 0;
     }
 
     /**
@@ -262,20 +211,13 @@ class ComboSystemClass {
 
     /**
      * Get time remaining before combo expires (0-1)
-     * Returns frozen value while paused
+     * Automatically freezes while game is paused
      */
     getComboTimeRemaining(): number {
         if (this.state.killStreak === 0 || this.state.lastKillTime === 0) return 0;
-
-        // Calculate effective elapsed time (excluding paused time since last kill)
-        let currentPausedTime = this.pausedTimeSinceLastKill;
-        if (this.isPaused) {
-            // Add current pause duration if we're currently paused
-            currentPausedTime += Date.now() - this.pauseStartTime;
-        }
-
-        const effectiveElapsed = Date.now() - (this.state.lastKillTime + currentPausedTime);
-        return Math.max(0, 1 - effectiveElapsed / COMBO_TIMEOUT_MS);
+        const now = TimeService.getGameTime();
+        const elapsed = now - this.state.lastKillTime;
+        return Math.max(0, 1 - elapsed / COMBO_TIMEOUT_MS);
     }
 
     /**

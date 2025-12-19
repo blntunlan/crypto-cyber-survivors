@@ -91,10 +91,8 @@ const App: React.FC = () => {
 
   const handlePauseToggle = useCallback(() => {
     if (gameStatus === GameStatus.PLAYING) {
-      ComboSystem.pause();
       setGameStatus(GameStatus.PAUSED);
     } else if (gameStatus === GameStatus.PAUSED) {
-      ComboSystem.resume();
       setGameStatus(GameStatus.PLAYING);
     }
   }, [gameStatus]);
@@ -113,8 +111,6 @@ const App: React.FC = () => {
     const choices = CardSystem.generateChoices(playerRef.current.luck, playerRef.current.level);
     setUpgradeChoices(choices);
     audio.playLevelUp();
-    // Pause combo timer while in level up screen
-    ComboSystem.pause();
   }, [healFull, playerRef]);
 
   const resetGame = useCallback(() => {
@@ -173,8 +169,6 @@ const App: React.FC = () => {
     if (nextP.exp >= nextP.nextLevelExp) {
       handleLevelUp();
     } else {
-      // Resume combo timer when returning to gameplay
-      ComboSystem.resume();
       setGameStatus(GameStatus.PLAYING);
     }
   };

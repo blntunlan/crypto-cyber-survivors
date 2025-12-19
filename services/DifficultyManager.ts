@@ -3,7 +3,11 @@
  *
  * Combines technical factors (P&L, ATR, time, level) with
  * psychological mechanics (waves, near-death, streaks).
+ *
+ * Uses TimeService for accurate game-time tracking.
  */
+
+import { TimeService } from './TimeService';
 
 export interface DifficultyFactors {
   baseTime: number;
@@ -29,7 +33,6 @@ class DifficultyManagerClass {
   private static instance: DifficultyManagerClass | null = null;
 
   // State
-  private totalElapsedSeconds: number = 0;
   private lastPnlValues: number[] = [];
   private currentWavePhase: WavePhase = 'building';
   private waveTimer: number = 0;
@@ -64,7 +67,6 @@ class DifficultyManagerClass {
    * Start tracking difficulty for a new game
    */
   startGame(): void {
-    this.totalElapsedSeconds = 0;
     this.lastPnlValues = [];
     this.currentWavePhase = 'building';
     this.waveTimer = 0;
@@ -76,12 +78,13 @@ class DifficultyManagerClass {
    * Record a kill for streak tracking
    */
   recordKill(): void {
-    if (this.totalElapsedSeconds - this.lastKillStreakTime < 3.0) {
+    const gameTimeSec = TimeService.getGameTimeSeconds();
+    if (gameTimeSec - this.lastKillStreakTime < 3.0) {
       this.killStreak += 1;
     } else {
       this.killStreak = 1;
     }
-    this.lastKillStreakTime = this.totalElapsedSeconds;
+    this.lastKillStreakTime = gameTimeSec;
   }
 
 
@@ -90,7 +93,8 @@ class DifficultyManagerClass {
    */
   private getBaseTimeFactor(): number {
     // Increases by 15% per minute, caps at 2.5x
-    return Math.min(2.5, 1 + (this.totalElapsedSeconds / 60) * 0.15);
+    const totalElapsedSeconds = TimeService.getGameTimeSeconds();
+    return Math.min(2.5, 1 + (totalElapsedSeconds / 60) * 0.15);
   }
 
   /**
@@ -183,7 +187,6 @@ class DifficultyManagerClass {
    */
   update(deltaMs: number): void {
     const dtSeconds = deltaMs / 1000;
-    this.totalElapsedSeconds += dtSeconds;
     this.waveTimer += dtSeconds;
 
     const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
@@ -260,7 +263,7 @@ class DifficultyManagerClass {
    * Get total active game time in seconds
    */
   getTotalElapsedSeconds(): number {
-    return this.totalElapsedSeconds;
+    return TimeService.getGameTimeSeconds();
   }
 
   private clamp(value: number, min: number, max: number): number {
