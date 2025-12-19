@@ -46,6 +46,8 @@ describe('GameRenderer', () => {
             createRadialGradient: vi.fn(() => ({
                 addColorStop: vi.fn(),
             })),
+            rotate: vi.fn(),
+            globalCompositeOperation: 'source-over',
         } as unknown as CanvasRenderingContext2D;
 
         // Mock PoolManager
@@ -211,14 +213,16 @@ describe('GameRenderer', () => {
 
         it('should draw all active bullets', () => {
             mockPool.activeBullets = [
-                { x: 150, y: 150, radius: 4, color: '#fff', isCrit: false, isSuperCrit: false },
-                { x: 250, y: 250, radius: 8, color: '#ffd700', isCrit: true, isSuperCrit: false },
+                { x: 150, y: 150, vx: 5, vy: 0, radius: 4, color: '#fff', isCrit: false, isSuperCrit: false },
+                { x: 250, y: 250, vx: 0, vy: 5, radius: 8, color: '#ffd700', isCrit: true, isSuperCrit: false },
             ] as PoolManager['activeBullets'];
 
             renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
 
-            expect(mockCtx.arc).toHaveBeenCalledWith(150, 150, 4, 0, Math.PI * 2);
-            expect(mockCtx.arc).toHaveBeenCalledWith(250, 250, 8, 0, Math.PI * 2);
+            // With new laser style, it uses rotate/translate + moveTo/lineTo instead of arc
+            expect(mockCtx.rotate).toHaveBeenCalled();
+            expect(mockCtx.moveTo).toHaveBeenCalled();
+            expect(mockCtx.lineTo).toHaveBeenCalled();
         });
 
         it('should draw all active gems', () => {

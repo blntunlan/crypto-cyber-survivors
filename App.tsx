@@ -22,7 +22,11 @@ import { ComboDebugPanel } from './components/ComboDebugPanel';
 import { MilestoneService } from './services/MilestoneService';
 import { useDevice } from './hooks/useDevice';
 import { DifficultyManager } from './services/DifficultyManager';
+import { GameStateMachine } from './services/GameStateMachine';
+import { ImagePreloader } from './services/ImagePreloader';
 
+// Preload card images AFTER initial render (non-blocking)
+setTimeout(() => ImagePreloader.preloadAll(), 1000);
 
 const App: React.FC = () => {
   // Device detection for platform-specific behavior
@@ -89,11 +93,19 @@ const App: React.FC = () => {
     return () => unsub();
   }, []);
 
+  // Subscribe to GameStateMachine for state sync
+  useEffect(() => {
+    const unsub = GameStateMachine.subscribe((newState) => {
+      setGameStatus(newState);
+    });
+    return () => unsub();
+  }, []);
+
   const handlePauseToggle = useCallback(() => {
     if (gameStatus === GameStatus.PLAYING) {
-      setGameStatus(GameStatus.PAUSED);
+      GameStateMachine.transition(GameStatus.PAUSED);
     } else if (gameStatus === GameStatus.PAUSED) {
-      setGameStatus(GameStatus.PLAYING);
+      GameStateMachine.transition(GameStatus.PLAYING);
     }
   }, [gameStatus]);
 
@@ -105,9 +117,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeys);
   }, [handlePauseToggle]);
 
+  // Auto-pause when tab loses focus (prevents rAF throttling issues)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && gameStatus === GameStatus.PLAYING) {
+        GameStateMachine.transition(GameStatus.PAUSED);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [gameStatus]);
+
   const handleLevelUp = useCallback(() => {
     healFull();
-    setGameStatus(GameStatus.LEVEL_UP);
+    GameStateMachine.transition(GameStatus.LEVEL_UP);
     const choices = CardSystem.generateChoices(playerRef.current.luck, playerRef.current.level);
     setUpgradeChoices(choices);
     audio.playLevelUp();
@@ -117,8 +140,10 @@ const App: React.FC = () => {
     // Reset all game systems via centralized manager
     GameStateManager.resetAll();
 
+    // Transition to menu via state machine
+    GameStateMachine.forceState(GameStatus.MENU);
+
     // Reset local UI state
-    setGameStatus(GameStatus.MENU);
     setEntryPrice(0);
     setFinalPnl(0);
     setRunStats({ ...RUN_STATS_DEFAULTS });
@@ -144,7 +169,7 @@ const App: React.FC = () => {
     setPosition(choice);
     setEntryPrice(marketData.price);
     setPositionColor(choice);
-    setGameStatus(GameStatus.PLAYING);
+    GameStateMachine.transition(GameStatus.PLAYING);
     setSessionStartTime(Date.now());
     MilestoneService.startSession();
     audio.playLevelUp();
@@ -169,7 +194,7 @@ const App: React.FC = () => {
     if (nextP.exp >= nextP.nextLevelExp) {
       handleLevelUp();
     } else {
-      setGameStatus(GameStatus.PLAYING);
+      GameStateMachine.transition(GameStatus.PLAYING);
     }
   };
 
@@ -224,7 +249,7 @@ const App: React.FC = () => {
         onGameOver={() => {
           setFinalPnl(marketData.pnl);
           setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
-          setGameStatus(GameStatus.GAMEOVER);
+          GameStateMachine.transition(GameStatus.GAMEOVER);
 
           // End metrics session with all final data
           MetricsService.endSession(GameEndReason.DEATH, {

@@ -372,9 +372,10 @@ function renderCardIcon(card: Card, color: string, scaleDown: boolean = false) {
             return <IconAlphaEye {...iconProps} />;
         case 'icon-flash-pulse':
             return <IconFlashPulse {...iconProps} />;
-        case 'icon-genesis-emblem':
+        case 'icon-genesis-emblem': {
             const genesisSize = scaleDown ? 'w-12 h-12 md:w-20 md:h-20' : 'w-20 h-20';
             return <IconGenesisEmblem {...iconProps} className={`${genesisSize} relative z-10`} />;
+        }
         case 'icon-shield':
             return <IconShield {...iconProps} />;
         case 'icon-diamond':

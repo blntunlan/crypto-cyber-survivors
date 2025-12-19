@@ -12,7 +12,7 @@ export const AchievementPopup: React.FC<AchievementPopupProps> = ({ achievement 
 
     return (
         <div
-            className="absolute top-20 right-4 z-[140] pointer-events-none"
+            className="absolute top-64 right-4 z-[140] pointer-events-none"
             style={{ animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
         >
             <div

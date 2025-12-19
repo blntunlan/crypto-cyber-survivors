@@ -20,35 +20,35 @@ This roadmap focuses on eliminating "logic bugs" (like persistent timers, desync
 
 ---
 
-## 🚦 Phase 2: Unified Game State Machine
+## 🚦 Phase 2: Unified Game State Machine ✅ COMPLETE
 **Goal:** Prevent invalid state transitions (e.g., leveling up while dead) and simplify pause logic.
 
-- [ ] **Implement `GameStateMachine.ts`**:
+- [x] **Implement `GameStateMachine.ts`**:
     - Define strict transitions: `MENU` -> `PLAYING`, `PLAYING` -> `PAUSED`, `PLAYING` -> `LEVEL_UP`.
     - Automatically trigger `TimeService.pause()` on all menu states.
-- [ ] **Event Handlers**:
+- [x] **Event Handlers**:
     - Move logic out of `App.tsx` into the state machine for cleaner orchestration.
 
 ---
 
-## 🔍 Phase 3: Developer Tools & Observability
+## 🔍 Phase 3: Developer Tools & Observability ✅ COMPLETE
 **Goal:** Make hidden bugs visible and easy to report.
 
-- [ ] **State Snapshot Tool**:
+- [x] **State Snapshot Tool**:
     - Create a hidden command or button to export the current status of all services (Zustand, Combo, Physics) to JSON.
-- [ ] **Enhanced Debug Logs**:
+- [x] **Enhanced Debug Logs**:
     - Standardize logging for state transitions and milestone triggers.
-- [ ] **Performance Monitor**:
+- [x] **Performance Monitor**:
     - Real-time tracking of logic vs. render frame times.
 
 ---
 
-## 🧪 Phase 4: Logic Verification (Unit Testing)
+## 🧪 Phase 4: Logic Verification (Unit Testing) ✅ COMPLETE
 **Goal:** Ensure that bug fixes stay fixed.
 
-- [ ] **Setup `Vitest` or `Jest`**:
+- [x] **Setup `Vitest` or `Jest`**:
     - Target pure logic services (`CardSystem`, `ComboSystem`).
-- [ ] **Create Automated Scenarios**:
+- [x] **Create Automated Scenarios**:
     - "Test: Combo should reset exactly after 3 seconds of game time, regardless of real-world pauses."
 
 ---

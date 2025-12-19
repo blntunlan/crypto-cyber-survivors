@@ -108,12 +108,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Reset time trackers on any status change to prevent jumps/spikes
     state.current.lastTime = 0;
 
-    if (status === GameStatus.PLAYING) {
-      TimeService.start();
-    } else if (status === GameStatus.PAUSED || status === GameStatus.LEVEL_UP || status === GameStatus.GAMEOVER) {
-      TimeService.pause();
-    } else if (status === GameStatus.MENU) {
-      TimeService.reset();
+    // Handle MENU-specific cleanup (TimeService is now managed by GameStateMachine)
+    if (status === GameStatus.MENU) {
       pool.current.clearAll();
       state.current.spawnTimer = 0;
       state.current.lastFireTime = 0;

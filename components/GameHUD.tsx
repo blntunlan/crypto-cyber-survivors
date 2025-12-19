@@ -315,7 +315,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         return () => {
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [status, enemies, width, height, player, sessionStartTime, layout.elements.comboPanel.offset]);
+    }, [status, enemies, width, height, player, sessionStartTime, layout.elements.comboPanel.offset, globalScale]);
 
     // ---------- RENDER ----------
     if (status === GameStatus.MENU) return null;

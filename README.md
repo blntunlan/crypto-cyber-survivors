@@ -40,10 +40,11 @@
 - **Slot Machine Leveling** - Psychologically optimized level-up screen with "reel stop" anticipation
 
 ### ⚡ Performance & Core
-- **Game Engine Refactor** - Decoupled, event-driven architecture for better stability
-- **60 FPS Canvas Rendering** - Smooth gameplay with optimized draw calls
-- **Object Pooling** - O(1) object retrieval, minimal garbage collection
-- **Delta Time** - Framerate-independent game logic
+- **Modular Renderer System** - Decoupled rendering logic using specialized classes for Background, Entities, Projectiles, and Effects
+- **3-Tier Projectile Visuals** - High-quality Neon Laser beams with distinct visual styles for Normal (Cyan), Crit (Gold), and Super Crit (Red)
+- **Object Pooling** - O(1) object retrieval for high-performance recycling of bullets, enemies, and particles
+- **60 FPS Canvas Engine** - Optimized draw calls with intelligent shadow-culling for mobile stability
+- **Delta Time** - Framerate-independent game logic and smooth physics updates
 
 ---
 
@@ -111,6 +112,10 @@ crypto-cyber-survivors/
 │   ├── mobile/           # Touch Controllers
 │   └── screens/          # Menus (Settings, LevelUp, etc.)
 ├── services/             # Logic Singletons
+│   ├── renderers/        # specialized IRenderer implementations
+│   │   ├── ProjectileRenderer.ts
+│   │   ├── EntityRenderer.ts
+│   │   └── ...
 │   ├── PhysicsSystem.ts  # Optimized Collision Engine
 │   ├── DifficultyManager.ts # Market Scaling
 │   ├── ComboSystem.ts    # Streak Logic

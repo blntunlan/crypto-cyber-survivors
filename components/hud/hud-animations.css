@@ -8,17 +8,17 @@
 @keyframes milestoneIn {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3) rotate(-10deg);
+        transform: translateX(-50%) scale(0.3) rotate(-10deg);
     }
 
     70% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+        transform: translateX(-50%) scale(1.1) rotate(2deg);
     }
 
     100% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        transform: translateX(-50%) scale(1) rotate(0deg);
     }
 }
 

@@ -49,7 +49,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
     return (
         <div
-            className="fixed inset-0 z-[2200] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-6"
+            className="fixed inset-0 z-[2500] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-6"
             style={{
                 paddingTop: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
                 paddingBottom: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-bottom, 0px))`

@@ -6,6 +6,8 @@ import { COLORS } from '../constants';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
 
+import { KernelStatus, LiveFeed } from './hud';
+
 interface GameUIProps {
   position: MarketPosition;
   entryPrice: number;
@@ -35,9 +37,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
       area: player.area,
     }, { speed: 0.15, decimals: 2 });
 
-    const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
     const hpPercent = (smoothValues.hp / player.maxHp) * 100;
-    const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
 
     useEffect(() => {
       if (marketData.price > lastPrice) {
@@ -63,40 +63,12 @@ export const GameUI: React.FC<GameUIProps> = memo(
       >
         <div className="flex justify-between items-start w-full">
           {/* Left Panel: Transparent & Numerical Only */}
-          <div className={`bg-transparent p-2 flex flex-col gap-0 ${isMobile ? 'min-w-[150px]' : 'min-w-[280px]'}`}>
-            <div className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} text-slate-500 uppercase font-black tracking-[0.3em] flex items-center gap-2 mb-1`}>
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-ping`}
-              ></span>
-              Live Index Feed
-            </div>
-
-            <div className="flex flex-col">
-              <div
-                className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} ${isMobile ? 'text-2xl' : 'text-4xl'}`}
-              >
-                $
-                {smoothValues.price.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </div>
-              <div className={`${isMobile ? 'text-sm' : 'text-lg'} font-black flex items-center gap-2`} style={{ color: pnlHex }}>
-                {marketData.effectivePnl >= 0 ? 'PROFIT' : 'LOSS'}
-                <span className={isMobile ? 'text-lg' : 'text-2xl'}>{smoothValues.pnl.toFixed(2)}%</span>
-                <span className="text-[10px] opacity-60 font-mono">({marketData.leverage}x)</span>
-              </div>
-            </div>
-
-            <div className={`mt-2 ${isMobile ? 'space-y-0' : 'space-y-0.5'} opacity-60`}>
-              <div className="text-[9px] text-slate-400 uppercase tracking-widest">
-                Entry: ${entryPrice.toLocaleString()}
-              </div>
-              <div className="text-[9px] text-slate-400 uppercase tracking-widest">
-                Volatility: x{smoothValues.difficulty.toFixed(2)}
-              </div>
-            </div>
-          </div>
+          <LiveFeed
+            marketData={marketData}
+            entryPrice={entryPrice}
+            smoothValues={smoothValues}
+            priceColor={priceColor}
+          />
 
           <div className="flex flex-col items-end gap-3">
             {/* Pause Button - Visible during active play */}
@@ -117,56 +89,10 @@ export const GameUI: React.FC<GameUIProps> = memo(
             )}
 
             {/* Right Panel: Enhanced Stats */}
-            <div className={`bg-slate-950/40 backdrop-blur-sm border border-white/5 p-3 rounded-xl flex flex-col gap-2 ${isMobile ? 'min-w-[120px]' : 'min-w-[220px]'} text-right`}>
-              <div className="text-[9px] uppercase font-black tracking-[0.2em] mb-1" style={{ color: COLORS.ELECTRIC_BLUE }}>
-                Kernel Status
-              </div>
-
-              <div className="flex flex-col gap-0.5">
-                <div className={`${isMobile ? 'text-xl' : 'text-3xl'} font-black italic text-white leading-none tracking-tighter`}>
-                  LVL {player.level}
-                </div>
-                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mt-1">
-                  <div
-                    className="h-full bg-blue-500 shadow-[0_0_8px_#3b82f6] transition-all duration-100"
-                    style={{ width: `${Math.min(100, expPercent)}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className={`grid grid-cols-2 ${isMobile ? 'gap-y-0.5 gap-x-2' : 'gap-y-1 gap-x-4'} pt-2`}>
-                <div className="flex justify-between items-center text-[9px]">
-                  <span className="text-slate-500 uppercase font-bold">DMG</span>
-                  <span className="text-slate-100 font-black tabular-nums">{smoothValues.damage}</span>
-                </div>
-                <div className="flex justify-between items-center text-[9px]">
-                  <span className="text-slate-500 uppercase font-bold">Luck</span>
-                  <span className="text-green-400 font-black tabular-nums">+{smoothValues.luck.toFixed(1)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[9px]">
-                  <span className="text-slate-500 uppercase font-bold">Crit</span>
-                  <span className="text-yellow-400 font-black tabular-nums">
-                    {smoothValues.crit}%
-                  </span>
-                </div>
-                {!isMobile && (
-                  <>
-                    <div className="flex justify-between items-center text-[9px]">
-                      <span className="text-slate-500 uppercase font-bold">Magnet</span>
-                      <span className="text-purple-400 font-black tabular-nums">+{smoothValues.magnet}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px]">
-                      <span className="text-slate-500 uppercase font-bold">Armor</span>
-                      <span className="text-slate-300 font-black tabular-nums">{smoothValues.armor}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px]">
-                      <span className="text-slate-500 uppercase font-bold">Area</span>
-                      <span className="text-cyan-400 font-black tabular-nums">x{smoothValues.area.toFixed(1)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <KernelStatus
+              player={player}
+              smoothValues={smoothValues}
+            />
           </div>
         </div>
 

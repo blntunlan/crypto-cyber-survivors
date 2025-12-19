@@ -13,3 +13,5 @@ export { EnemyPointers } from './EnemyPointers';
 export { AchievementPopup } from './AchievementPopup';
 export { MilestoneAnnouncer } from './MilestoneAnnouncer';
 export { ComboPanel } from './ComboPanel';
+export { KernelStatus } from './KernelStatus';
+export { LiveFeed } from './LiveFeed';

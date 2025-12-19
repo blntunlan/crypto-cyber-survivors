@@ -1,7 +1,7 @@
 # 🗺️ Crypto Cyber Survivors - Master Roadmap
 
 > Bu döküman projenin stratejik yol haritasını, önceliklerini ve zaman çizelgesini içerir.
-> Son Güncelleme: 2024-12-19
+> Son Güncelleme: 2025-12-20
 
 ---
 
@@ -23,8 +23,8 @@
 
 ```
 Faz 1: Solid Foundation     ████████████████████ 100% ✅
-Faz 2: Polish & Quality     █████████████░░░░░░░  65% 🔶
-Faz 3: Backend & Web3       ░░░░░░░░░░░░░░░░░░░░   0% ⬜
+ Faz 2: Polish & Quality     ██████████████░░░░░░  70% 🔶
+ Faz 3: Backend & Web3       ░░░░░░░░░░░░░░░░░░░░   0% ⬜
 Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░░░░   0% ⬜
 ```
 
@@ -61,6 +61,8 @@ Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░�
 | Test coverage (+51 test) | ✅ |
 | WebSocket error handling | ✅ |
 | localStorage quota handling | ✅ |
+| **Modular Renderer Refactor** | ✅ |
+| **3-Tier Projectile Visuals** | ✅ |
 
 ### 2.2 🔶 Kütüphane Entegrasyonları (Bu Hafta)
 
