@@ -49,10 +49,10 @@ class ComboSystemClass {
 
     private lastMilestoneIndex = -1;
 
-    // Pause state for level up screen
+    // Pause state tracking - local to current kill interval
     private isPaused = false;
     private pauseStartTime = 0;
-    private totalPausedTime = 0;
+    private pausedTimeSinceLastKill = 0;
 
     private constructor() {
         this.setupListeners();
@@ -100,7 +100,7 @@ class ComboSystemClass {
         this.lastMilestoneIndex = -1;
         this.isPaused = false;
         this.pauseStartTime = 0;
-        this.totalPausedTime = 0;
+        this.pausedTimeSinceLastKill = 0;
     }
 
     /**
@@ -109,8 +109,13 @@ class ComboSystemClass {
     recordKill(): void {
         const now = Date.now();
 
-        // Check if combo should reset - account for paused time
-        const effectiveElapsed = now - (this.state.lastKillTime + this.totalPausedTime);
+        // Check if combo should reset - account for paused time since last kill
+        let currentPausedTime = this.pausedTimeSinceLastKill;
+        if (this.isPaused) {
+            currentPausedTime += now - this.pauseStartTime;
+        }
+
+        const effectiveElapsed = now - (this.state.lastKillTime + currentPausedTime);
         if (this.state.lastKillTime > 0 && effectiveElapsed > COMBO_TIMEOUT_MS) {
             this.resetCombo();
         }
@@ -118,6 +123,12 @@ class ComboSystemClass {
         this.state.killStreak++;
         this.state.totalKills++;
         this.state.lastKillTime = now;
+
+        // Reset pause tracking for the next interval
+        this.resetPausedTime();
+        if (this.isPaused) {
+            this.pauseStartTime = now;
+        }
 
         // Update max streak
         if (this.state.killStreak > this.state.maxStreak) {
@@ -173,7 +184,7 @@ class ComboSystemClass {
         // Reset pause state
         this.isPaused = false;
         this.pauseStartTime = 0;
-        this.totalPausedTime = 0;
+        this.pausedTimeSinceLastKill = 0;
     }
 
     /**
@@ -186,7 +197,7 @@ class ComboSystemClass {
 
         if (this.state.killStreak > 0 && this.state.lastKillTime > 0) {
             const now = Date.now();
-            const effectiveElapsed = now - (this.state.lastKillTime + this.totalPausedTime);
+            const effectiveElapsed = now - (this.state.lastKillTime + this.pausedTimeSinceLastKill);
             if (effectiveElapsed > COMBO_TIMEOUT_MS) {
                 this.resetCombo();
             }
@@ -209,9 +220,16 @@ class ComboSystemClass {
     resume(): void {
         if (this.isPaused) {
             this.isPaused = false;
-            // Add the paused duration to totalPausedTime
-            this.totalPausedTime += Date.now() - this.pauseStartTime;
+            // Add the paused duration since last kill
+            this.pausedTimeSinceLastKill += Date.now() - this.pauseStartTime;
         }
+    }
+
+    /**
+     * Reset the accumulated pause time for the current interval
+     */
+    resetPausedTime(): void {
+        this.pausedTimeSinceLastKill = 0;
     }
 
     /**
@@ -249,8 +267,8 @@ class ComboSystemClass {
     getComboTimeRemaining(): number {
         if (this.state.killStreak === 0 || this.state.lastKillTime === 0) return 0;
 
-        // Calculate effective elapsed time (excluding paused time)
-        let currentPausedTime = this.totalPausedTime;
+        // Calculate effective elapsed time (excluding paused time since last kill)
+        let currentPausedTime = this.pausedTimeSinceLastKill;
         if (this.isPaused) {
             // Add current pause duration if we're currently paused
             currentPausedTime += Date.now() - this.pauseStartTime;
