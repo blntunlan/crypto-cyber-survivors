@@ -7,6 +7,22 @@ import { GameStatus, Player } from '../types';
 import { audio } from '../services/audioService';
 import { GameEnemy } from '../factories/EnemyFactory';
 
+// Import HUD sub-components
+import {
+    WaveTimer,
+    FPSCounter,
+    ClutchAnnouncement,
+    LevelUpFlash,
+    NearDeathGlow,
+    EnemyPointers,
+    AchievementPopup,
+    MilestoneAnnouncer,
+    ComboPanel,
+} from './hud';
+
+// Import animations
+import './hud/hud-animations.css';
+
 interface ComboUIState {
     milestoneText: string;
     milestoneColor: string;
@@ -31,30 +47,31 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     player,
     sessionStartTime = 0
 }) => {
+    // ---------- STATE ----------
     const [uiMeta, setUiMeta] = useState<ComboUIState>({
         milestoneText: '',
         milestoneColor: COLORS.NEON_ORANGE,
         maxStreak: 0,
         totalBonusXp: 0,
     });
-
     const [flash, setFlash] = useState(0);
     const [showMilestone, setShowMilestone] = useState(false);
     const [clutchActive, setClutchActive] = useState(false);
     const [achievement, setAchievement] = useState<{ name: string; icon: string; color: string } | null>(null);
 
+    // ---------- REFS ----------
     const streakValueRef = useRef(0);
     const multiplierValueRef = useRef(1.0);
     const containerRef = useRef<HTMLDivElement>(null);
     const pointerContainerRef = useRef<HTMLDivElement>(null);
     const requestRef = useRef<number | null>(null);
-
     const milestoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const clutchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fpsFramesRef = useRef<number[]>([]);
 
+    // ---------- EVENT SUBSCRIPTIONS ----------
     useEffect(() => {
         const unsubUpdate = EventBus.on('comboUpdate', (data) => {
             setUiMeta(prev => ({
@@ -87,7 +104,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         });
 
         const unsubEnemyKilled = EventBus.on('enemyKilled', () => {
-            // Check for CLUTCH moment: kill enemy while health < 10%
             if (player && player.hp < player.maxHp * 0.1) {
                 setClutchActive(true);
                 if (clutchTimeoutRef.current) clearTimeout(clutchTimeoutRef.current);
@@ -131,7 +147,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         };
     }, [player]);
 
-    // PURE PERFORMANCE LOOP: No React setState here
+    // ---------- PERFORMANCE LOOP (Direct DOM) ----------
     useEffect(() => {
         let lastTime = performance.now();
         const fpsElement = document.getElementById('fps-counter');
@@ -142,7 +158,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             const deltaMs = currentTime - lastTime;
             lastTime = currentTime;
 
-            // Direct DOM FPS Update
+            // FPS Counter
             if (deltaMs > 0 && fpsElement) {
                 const currentFps = 1000 / deltaMs;
                 fpsFramesRef.current.push(currentFps);
@@ -153,22 +169,19 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 }
             }
 
-            // WAVE TIMER Update (Direct DOM)
+            // Wave Timer
             if (timerElement && status === GameStatus.PLAYING && sessionStartTime > 0) {
                 const elapsedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
                 const mins = Math.floor(elapsedSeconds / 60);
                 const secs = elapsedSeconds % 60;
                 timerElement.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-
-                // Check for time milestones (runs every frame but checkMilestones is debounced internally)
                 MilestoneService.checkTimeMilestones();
             }
 
-            // NEAR DEATH GLOW Update (Direct DOM)
+            // Near Death Glow
             if (healthGlowElement && player) {
                 const hpPercent = player.hp / player.maxHp;
                 if (hpPercent < 0.25) {
-                    // Pulse intensity based on time and how low health is
                     const pulse = 0.5 + Math.sin(currentTime / 200) * 0.3;
                     const intensity = (1 - (hpPercent / 0.25)) * pulse;
                     healthGlowElement.style.opacity = intensity.toString();
@@ -177,6 +190,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 }
             }
 
+            // Combo Streak Lerping
             const liveState = ComboSystem.getState();
             const streakTarget = liveState.killStreak;
             const multTarget = liveState.comboMultiplier;
@@ -193,6 +207,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 if (el) el.textContent = `${multiplierValueRef.current.toFixed(1)}x XP`;
             }
 
+            // Combo Panel Visibility
             if (containerRef.current) {
                 const isVisible = streakTarget >= 5;
                 const targetOpacity = isVisible ? '1' : '0';
@@ -212,7 +227,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 }
             }
 
-            // ENEMY POINTER LOGIC (Direct DOM)
+            // Enemy Pointers
             if (pointerContainerRef.current && status === GameStatus.PLAYING && width > 0 && height > 0) {
                 const offScreenEnemies = enemies.filter(e =>
                     e.active && (e.x < 0 || e.x > width || e.y < 0 || e.y > height)
@@ -285,146 +300,28 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         };
     }, [status, enemies, width, height, player, sessionStartTime]);
 
+    // ---------- RENDER ----------
     if (status === GameStatus.MENU) return null;
 
     return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-[100]">
-            {/* NEAR DEATH GLOW Overlay */}
-            <div
-                id="near-death-glow"
-                className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(239,68,68,0.8)] z-[101]"
-                style={{ opacity: 0, transition: 'opacity 0.2s ease-out' }}
+            <NearDeathGlow />
+            <WaveTimer />
+            <FPSCounter />
+            <EnemyPointers containerRef={pointerContainerRef} />
+            <LevelUpFlash intensity={flash} />
+            <ClutchAnnouncement active={clutchActive} />
+            <ComboPanel
+                containerRef={containerRef}
+                maxStreak={uiMeta.maxStreak}
+                totalBonusXp={uiMeta.totalBonusXp}
             />
-
-            {/* WAVE TIMER */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center">
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mb-1">Survival Time</div>
-                <div id="wave-timer-text" className="text-3xl font-black italic tracking-tighter text-white drop-shadow-lg tabular-nums">0:00</div>
-            </div>
-
-            {/* FPS */}
-            {import.meta.env.DEV && (
-                <div className="absolute top-2 left-2 z-[110]">
-                    <div id="fps-counter" className="px-2 py-1 rounded text-[10px] font-mono font-bold bg-green-500/80 text-white shadow-lg">-- FPS</div>
-                </div>
-            )}
-
-            {/* Enemy Pointers Container */}
-            <div ref={pointerContainerRef} className="absolute inset-0 z-[105]">
-                {[...Array(10)].map((_, i) => (
-                    <div
-                        key={i}
-                        className="absolute top-0 left-0 w-8 h-8 flex items-center justify-center transition-opacity duration-200"
-                        style={{ opacity: 0, willChange: 'transform, opacity' }}
-                    >
-                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="white" strokeWidth="2" className="w-full h-full drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">
-                            <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" />
-                        </svg>
-                    </div>
-                ))}
-            </div>
-
-            {/* Level Up Flash */}
-            <div className="absolute inset-0 bg-white z-[120] pointer-events-none transition-opacity duration-500 ease-out" style={{ opacity: flash > 0 ? 0.3 : 0 }} />
-
-            {/* CLUTCH! Announcement */}
-            {clutchActive && (
-                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-[130] animate-bounce">
-                    <div className="px-6 py-2 bg-red-600 text-white font-black italic text-4xl skew-x-[-12deg] shadow-[8px_8px_0_#000] border-4 border-black tracking-tighter">
-                        CLUTCH!
-                    </div>
-                </div>
-            )}
-
-            {/* COMBO HUD */}
-            <div
-                ref={containerRef}
-                className="absolute bottom-24 left-1/2 z-[115] bg-black/80 md:backdrop-blur-md rounded-xl p-3 border border-white/10 min-w-[150px] shadow-2xl transition-all duration-300 ease-out flex flex-col items-center"
-                style={{ opacity: 0, transform: 'translateX(-50%) translateY(20px)', willChange: 'transform, opacity' }}
-            >
-                <div className="flex gap-3 mb-2 text-[9px] font-black uppercase tracking-widest">
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
-                        <span>BEST</span>
-                        <span className="tabular-nums">{uiMeta.maxStreak}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-500">
-                        <span>BONUS</span>
-                        <span className="tabular-nums">+{Math.round(uiMeta.totalBonusXp)}</span>
-                    </div>
-                </div>
-
-                <div className="w-full">
-                    <div className="w-full h-1.5 bg-white/10 mb-3 rounded-full overflow-hidden p-[1px]">
-                        <div id="combo-timer-bar" className="h-full rounded-full bg-gradient-to-r from-orange-500 to-yellow-400 shadow-[0_0_10px_orange]" style={{ width: '100%' }} />
-                    </div>
-
-                    <div className="flex items-baseline justify-center gap-2">
-                        <span id="combo-streak-count" className="text-4xl font-black italic tracking-tighter text-white tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">0</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/60">COMBO</span>
-                    </div>
-
-                    <div id="combo-multiplier-badge" className="mt-2 px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-white font-black italic tracking-tighter text-center text-xs shadow-xl">1.0x XP</div>
-                </div>
-            </div>
-
-            {/* MILESTONE ANNOUNCER */}
-            {showMilestone && uiMeta.milestoneText && (
-                <div
-                    key={uiMeta.milestoneText}
-                    className="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[125] flex flex-col items-center pointer-events-none"
-                    style={{ animation: 'milestoneIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
-                >
-                    <div className="absolute inset-0 -m-20 blur-[100px] rounded-full" style={{ backgroundColor: uiMeta.milestoneColor, opacity: 0.5, animation: 'milestonePulse 2s ease-in-out infinite' }} />
-                    <div className="relative text-5xl md:text-7xl font-black italic uppercase tracking-tighter text-center" style={{ color: 'white', textShadow: `0 0 20px ${uiMeta.milestoneColor}, 0 0 40px ${uiMeta.milestoneColor}, 4px 4px 0 #000` }}>
-                        {uiMeta.milestoneText}
-                    </div>
-                    <div className="mt-4 px-6 py-2 bg-black border-2 rounded-2xl text-2xl font-black italic" style={{ color: uiMeta.milestoneColor, borderColor: uiMeta.milestoneColor, boxShadow: `0 0 30px ${uiMeta.milestoneColor}66` }}>
-                        XP MULTIPLIER UP!
-                    </div>
-                </div>
-            )}
-
-            <style>{`
-                @keyframes milestoneIn {
-                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); filter: brightness(5) blur(20px); }
-                    70% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(2deg); filter: brightness(1.5) blur(0px); }
-                    100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); filter: brightness(1) blur(0px); }
-                }
-                @keyframes milestonePulse {
-                    0%, 100% { opacity: 0.4; transform: scale(1); }
-                    50% { opacity: 0.7; transform: scale(1.3); }
-                }
-                @keyframes achievementSlideIn {
-                    0% { transform: translateX(100%) scale(0.8); opacity: 0; }
-                    20% { transform: translateX(0) scale(1.05); opacity: 1; }
-                    30% { transform: translateX(0) scale(1); }
-                    90% { transform: translateX(0) scale(1); opacity: 1; }
-                    100% { transform: translateX(100%); opacity: 0; }
-                }
-            `}</style>
-
-            {/* ACHIEVEMENT POPUP */}
-            {achievement && (
-                <div
-                    className="absolute top-20 right-4 z-[140] pointer-events-none"
-                    style={{ animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
-                >
-                    <div
-                        className="flex items-center gap-3 px-5 py-3 rounded-xl border-2 shadow-2xl"
-                        style={{
-                            background: `linear-gradient(135deg, ${achievement.color}22 0%, ${achievement.color}44 100%)`,
-                            borderColor: achievement.color,
-                            boxShadow: `0 0 30px ${achievement.color}66, inset 0 0 20px ${achievement.color}22`
-                        }}
-                    >
-                        <div className="text-4xl">{achievement.icon}</div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Achievement!</span>
-                            <span className="text-xl font-black italic tracking-tight" style={{ color: achievement.color }}>{achievement.name}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <MilestoneAnnouncer
+                show={showMilestone}
+                text={uiMeta.milestoneText}
+                color={uiMeta.milestoneColor}
+            />
+            <AchievementPopup achievement={achievement} />
         </div>
     );
 };
