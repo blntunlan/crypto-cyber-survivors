@@ -24,6 +24,7 @@ interface GameEngineProps {
   onLevelUp: () => void;
   updatePlayerStats: (player: Player) => void;
   playerRef: React.MutableRefObject<Player>;
+  sessionStartTime: number;
   width: number;
   height: number;
 }
@@ -38,6 +39,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   onLevelUp,
   updatePlayerStats,
   playerRef,
+  sessionStartTime,
   width,
   height,
 }) => {
@@ -291,7 +293,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   return (
     <div className="relative w-full h-full cursor-none">
       <canvas ref={canvasRef} width={width} height={height} className="block" />
-      <GameHUD status={status} />
+      <GameHUD
+        status={status}
+        enemies={pool.current.activeEnemies}
+        player={playerRef.current}
+        sessionStartTime={sessionStartTime}
+        width={width}
+        height={height}
+      />
     </div>
   );
 };

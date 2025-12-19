@@ -242,6 +242,7 @@ const App: React.FC = () => {
         onLevelUp={handleLevelUp}
         updatePlayerStats={setUiStats}
         playerRef={playerRef}
+        sessionStartTime={sessionStartTime}
         width={dimensions.width}
         height={dimensions.height}
       />

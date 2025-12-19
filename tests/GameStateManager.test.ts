@@ -220,18 +220,19 @@ describe('GameStateManager', () => {
             const beforeResetHandler = vi.fn();
             const unsub = EventBus.on('beforeReset', beforeResetHandler);
 
-            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000);
+            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10);
 
             expect(beforeResetHandler).toHaveBeenCalledTimes(1);
             unsub();
         });
 
         it('should call MetricsService.startSession()', () => {
-            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000);
+            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10);
 
             expect(MetricsService.startSession).toHaveBeenCalledWith(
                 MarketPosition.LONG,
-                50000
+                50000,
+                10
             );
         });
 
@@ -239,11 +240,12 @@ describe('GameStateManager', () => {
             const gameInitializedHandler = vi.fn();
             const unsub = EventBus.on('gameInitialized', gameInitializedHandler);
 
-            GameStateManager.initializeNewGame(MarketPosition.SHORT, 42000);
+            GameStateManager.initializeNewGame(MarketPosition.SHORT, 42000, 25);
 
             expect(gameInitializedHandler).toHaveBeenCalledWith({
                 position: MarketPosition.SHORT,
                 entryPrice: 42000,
+                leverage: 25,
             });
             unsub();
         });
@@ -252,11 +254,12 @@ describe('GameStateManager', () => {
             const gameInitializedHandler = vi.fn();
             const unsub = EventBus.on('gameInitialized', gameInitializedHandler);
 
-            GameStateManager.initializeNewGame(MarketPosition.LONG, 100000);
+            GameStateManager.initializeNewGame(MarketPosition.LONG, 100000, 1);
 
             expect(gameInitializedHandler).toHaveBeenCalledWith({
                 position: MarketPosition.LONG,
                 entryPrice: 100000,
+                leverage: 1,
             });
             unsub();
         });
@@ -265,11 +268,12 @@ describe('GameStateManager', () => {
             const gameInitializedHandler = vi.fn();
             const unsub = EventBus.on('gameInitialized', gameInitializedHandler);
 
-            GameStateManager.initializeNewGame(MarketPosition.SHORT, 30000);
+            GameStateManager.initializeNewGame(MarketPosition.SHORT, 30000, 100);
 
             expect(gameInitializedHandler).toHaveBeenCalledWith({
                 position: MarketPosition.SHORT,
                 entryPrice: 30000,
+                leverage: 100,
             });
             unsub();
         });
@@ -382,7 +386,7 @@ describe('GameStateManager', () => {
             const unsubAfter = EventBus.on('afterReset', () => events.push('afterReset'));
             const unsubInit = EventBus.on('gameInitialized', () => events.push('gameInitialized'));
 
-            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000);
+            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10);
 
             expect(events).toEqual(['beforeReset', 'afterReset', 'gameInitialized']);
 
@@ -406,7 +410,7 @@ describe('GameStateManager', () => {
         });
 
         it('should reset all systems before new game', () => {
-            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000);
+            GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10);
 
             expect(DifficultyManager.startGame).toHaveBeenCalled();
             expect(ComboSystem.startGame).toHaveBeenCalled();

@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-37%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-227%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 [🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#️-development) • [📦 Architecture](#-architecture)
@@ -21,34 +21,30 @@
 ### 🎲 Gameplay
 - **Vampire Survivors Style** - Auto-shooting survival gameplay with waves of enemies
 - **Real-Time Market Data** - Live BTC/USD prices from Binance & Coinbase WebSocket feeds
+- **PnL Leverage System** - Choose your leverage (1x to 100x). Higher leverage amplifies PnL impact on game difficulty
+- **Kill Streak Combo System** - Chain kills to build multipliers and earn massive XP bonuses
 - **Dynamic Difficulty** - Market volatility and P&L directly affect game difficulty
 - **Long/Short Positions** - Choose your position and survive the market chaos
 
 ### 🃏 Card System
-- **4-Tier Rarity** - Common, Rare, Epic, Legendary cards
-- **30+ Unique Upgrades** - Crypto-themed cards like "Diamond Hands", "Rug Pull", "Flash Loan"
-- **Luck-Based Drops** - Higher luck stat = better card chances
-- **Level-Gated Tiers** - Legendary cards only appear after level 12
+- **Tiered Rarity System** - Common, Rare, Epic, Legendary cards with visual distinction
+- **Premium Asset Design** - Hand-crafted SVG icons and generative art for high-tier cards
+- **40+ Unique Upgrades** - Crypto-themed cards like "Diamond Hands", "Rug Pull", "Flash Loan", "Satoshi Mode"
+- **Slot Machine Leveling** - Psychologically optimized level-up screen with "reel stop" anticipation
+- **Luck-Based Drops** - Higher luck stat = better card rarity chances
 
-### ⚡ Performance
+### ⚡ Performance & Core
+- **Game Engine Refactor** - Decoupled, event-driven architecture for better stability
 - **60 FPS Canvas Rendering** - Smooth gameplay with optimized draw calls
 - **Object Pooling** - O(1) object retrieval, minimal garbage collection
 - **Delta Time** - Framerate-independent game logic
-- **Sub-pixel Optimization** - Integer coordinates for crisp rendering
-
-### 🛡️ Production Ready
-- **TypeScript Strict Mode** - Full type safety with strict null checks
-- **ESLint + Prettier** - Consistent code style
-- **Husky Pre-commit** - Automated linting before commits
-- **37 Unit Tests** - Comprehensive test coverage with Vitest
-- **Error Boundary** - Graceful crash recovery with themed UI
+- **Strict TypeScript** - 100% type safety across the entire codebase
 
 ### 📊 Analytics & Metrics
-- **Comprehensive Tracking** - 40+ metrics across 7 categories
-- **Bitcoin Impact Analysis** - Track how price affects gameplay
-- **Feature Flag System** - Easy enable/disable with zero performance impact
-- **Export Capabilities** - JSON/CSV exports for data analysis
-- **Future-Ready** - Designed for remote database integration
+- **Comprehensive Tracking** - 40+ metrics across 7 categories (Combat, Market, Performance, etc.)
+- **Bitcoin Impact Analysis** - Track how price movements correlate with player survival
+- **Feature Flag System** - Scalable metrics collection with zero performance overhead
+- **Debug Overlays** - Real-time metrics and combo debug panels for balancing
 
 ---
 
@@ -75,22 +71,23 @@ npm run dev
 ### Controls
 | Key | Action |
 |-----|--------|
-| `W` `A` `S` `D` or `Arrow Keys` | Move |
+| `W` `A` `S` `D` / `Arrows` | Move |
 | `Space` | Dash (I-Frames) |
 | `Escape` / `P` | Pause |
 
 ### Objective
-1. **Choose Position** - Select LONG (green) or SHORT (red) at game start
+1. **Choose Position & Leverage** - Select LONG or SHORT and set your leverage (1x - 100x)
 2. **Survive** - Kill enemies and collect gems to level up
-3. **Upgrade** - Choose powerful cards when you level up
-4. **Endure** - Difficulty scales with time, level, and market volatility
+3. **Build Combos** - Kill enemies quickly to stack XP multipliers
+4. **Upgrade** - Choose powerful cards from the slot machine
+5. **Endure** - Survive "Liquidation Waves" as difficulty scales with time and market volatility
 
 ### Game Mechanics
-- 🟢 **Positive P&L** = Easier enemies (you're winning!)
-- 🔴 **Negative P&L** = Harder enemies (the market is against you)
-- 📈 **High Volatility** = Faster, stronger enemies
-- 💎 **Gems** = Experience points for leveling up
-- ⚡ **Critical Hits** = Extra damage with visual feedback
+- 🟢 **Positive P&L** = Easier enemies (Winning trade = Bullish vibes)
+- 🔴 **Negative P&L** = Harder enemies (Losing trade = Bears are attacking!)
+- 📈 **Leverage** = Multiplies the effect of P&L on difficulty
+- 🔥 **Combos** = 5 milestones (Combo, Super, Mega, Ultra, Jackpot) providing up to 3x XP
+- 💎 **Gems** = Experience points. Bonus XP awarded at the end of a combo streak
 
 ---
 
@@ -101,13 +98,9 @@ npm run dev
 ```bash
 npm run dev          # Start dev server with HMR
 npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run lint:fix     # Fix ESLint issues
-npm run format       # Format with Prettier
-npm run test         # Run tests once
-npm run test:watch   # Run tests in watch mode
-npm run test:coverage # Run tests with coverage
+npm run test         # Run 120+ unit tests
+npm run test:coverage # Check test coverage
+npm run lint         # Run ESLint & Format check
 ```
 
 ### Dev Cheats (Development Only)
@@ -120,8 +113,8 @@ npm run test:coverage # Run tests with coverage
 | `X` | +500 EXP |
 | `1-4` | Set Luck (0, 2, 5, 10) |
 | `R` | Restart Game |
-| Type `ape` | Full Ape Mode 🦍 |
-| Type `moon` | To The Moon 🚀 |
+| `ape` | Full Ape Mode 🦍 |
+| `moon` | To The Moon 🚀 |
 
 ---
 
@@ -129,47 +122,31 @@ npm run test:coverage # Run tests with coverage
 
 ```
 crypto-cyber-survivors/
-├── components/           # React components
-│   ├── GameEngine.tsx   # Main game loop & rendering
-│   ├── GameUI.tsx       # HUD & stats display
-│   ├── MetricsDebugPanel.tsx # Dev-only metrics viewer
-│   └── ErrorBoundary.tsx # Crash recovery
-├── services/            # Core services
+├── components/           # React Components
+│   ├── GameEngine.tsx   # Rendering & Loop
+│   ├── GameHUD.tsx      # Main Gameplay UI
+│   ├── ComboDebugPanel.tsx # Combo testing
+│   └── screens/          # MainMenu, LevelUp, GameOver
+├── services/            # Core Logic (Singletons)
 │   ├── CardSystem.ts    # Card generation & effects
-│   ├── DifficultyManager.ts # Dynamic difficulty
-│   ├── MetricsService.ts # Analytics & data collection
-│   ├── PoolManager.ts   # Object pooling
-│   ├── EventBus.ts      # Decoupled event system
-│   ├── marketService.ts # WebSocket market data
-│   ├── audioService.ts  # Sound effects
-│   ├── CheatManager.ts  # Dev cheats
-│   └── Logger.ts        # Centralized logging
-├── factories/           # Factory patterns
+│   ├── ComboSystem.ts   # Kill streak logic
+│   ├── DifficultyManager.ts # Market-based difficulty
+│   ├── MetricsService.ts # Analytics engine
+│   ├── PoolManager.ts   # Memory optimization
+│   └── marketService.ts # WebSocket data
+├── factories/           # Factory Pattern
 │   └── EnemyFactory.ts  # Enemy creation
-├── strategies/          # Strategy patterns
-│   └── EnemyBehaviors.ts # Movement AI
-├── contexts/            # React contexts
-│   └── GameContext.tsx  # State management
-├── config/              # Game configuration
-│   └── MetricsConfig.ts # Metrics feature flags
-├── types/               # TypeScript interfaces
-│   └── metrics.ts       # Metrics type definitions
-├── tests/               # Vitest test suites
-├── docs/                # Documentation
-│   ├── MASTER_ROADMAP.md    # Project roadmap & timeline
-│   ├── METRICS_ROADMAP.md   # Metrics system design
-│   ├── BITCOIN_DATA_USAGE.md
-│   └── IMPROVEMENT_TASKS.md
-└── types.ts             # Core TypeScript interfaces
+├── contexts/            # State Management
+│   └── GameContext.tsx  # Global game state
+└── tests/               # 120+ Vitest test suites
 ```
 
 ### Key Design Patterns
-- **Singleton** - Services (CardSystem, DifficultyManager, EventBus, MetricsService)
-- **Factory** - Enemy creation with weighted spawn rates
-- **Strategy** - Pluggable enemy movement behaviors
-- **Object Pool** - Efficient bullet/particle management
-- **Observer** - EventBus for decoupled communication
-- **Feature Flag** - Configurable metrics collection
+- **Singleton Services** - Global state for CardSystem, DifficultyManager, EventBus
+- **Factory Pattern** - Scalable enemy and particle creation
+- **Observer Pattern** - Decoupled communication via Centralized EventBus
+- **Object Pooling** - High-performance recycling for bullets and VFX
+- **Strategy Pattern** - Pluggable enemy AI and movement behaviors
 
 ---
 
@@ -179,32 +156,30 @@ crypto-cyber-survivors/
 |----------|------------|
 | **Framework** | React 19 |
 | **Language** | TypeScript 5.8 (Strict) |
+| **Animation** | Framer Motion |
 | **Build Tool** | Vite 6 |
 | **Styling** | Tailwind CSS |
-| **Testing** | Vitest + Testing Library |
-| **Linting** | ESLint 9 + Prettier |
-| **Git Hooks** | Husky + lint-staged |
-| **Data** | Binance & Coinbase WebSocket |
+| **Testing** | Vitest + RTL |
+| **Data** | Binance & Coinbase WS |
 
 ---
 
-## 📊 Game Stats
+## 📊 Project Stats
 
 | Stat | Value |
 |------|-------|
-| Lines of Code | ~12,000 |
-| TypeScript Files | 30+ |
-| Unit Tests | 37 |
-| Card Types | 30+ |
-| Enemy Types | 6 |
-| Metrics Tracked | 40+ |
-| Test Coverage | Core services |
+| TypeScript Files | 40+ |
+| Total Tests | 227 (All Passing) |
+| Unique Cards | 40+ |
+| Enemy Types | 6+ |
+| Metrics Tracked | 50+ |
+| Performance | 60 FPS (Canvas) |
 
 ---
 
 ## 📄 License
 
-MIT © 2024
+MIT © 2025
 
 ---
 

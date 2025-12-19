@@ -373,5 +373,36 @@ describe('PhysicsSystem', () => {
 
             expect(mockState.critFlash).toBeGreaterThan(0);
         });
+
+        it('should apply knockback to enemy on hit', () => {
+            const mockEnemy = {
+                x: 500,
+                y: 300,
+                radius: 15,
+                active: true,
+                health: 100,
+                behavior: { move: vi.fn() },
+            };
+            mockPool.activeEnemies = [mockEnemy];
+            // Bullet moving RIGHT (vx = 10)
+            mockPool.activeBullets = [
+                { x: 500, y: 300, radius: 5, damage: 25, active: true, vx: 10, vy: 0, isCrit: false, isSuperCrit: false },
+            ];
+
+            const initialX = mockEnemy.x;
+
+            PhysicsSystem.handleCollisions(
+                mockPool as PoolManager,
+                mockPlayer,
+                mockState,
+                1,
+                800,
+                600,
+                mockOnGameOver
+            );
+
+            // Enemy should have been pushed RIGHT
+            expect(mockEnemy.x).toBeGreaterThan(initialX);
+        });
     });
 });

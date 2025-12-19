@@ -82,6 +82,12 @@ export class PhysicsSystem {
                     e.health -= b.damage;
                     b.active = false;
 
+                    // Knockback: push enemy in bullet direction
+                    const kbStrength = 4;
+                    const bMag = Math.hypot(b.vx, b.vy) || 1;
+                    e.x += (b.vx / bMag) * kbStrength * dtFactor;
+                    e.y += (b.vy / bMag) * kbStrength * dtFactor;
+
                     if (b.isCrit || b.isSuperCrit) {
                         s.critFlash = b.isSuperCrit ? 0.15 : 0.08;
                         s.critFlashColor = b.isSuperCrit ? COLORS.SUPER_CRIT : COLORS.CRIT;
