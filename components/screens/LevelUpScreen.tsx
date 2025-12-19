@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../services/CardSystem';
 import { COLORS } from '../../constants';
 import { TIER_CONFIG } from '../../services/CardSystem';
@@ -9,99 +10,252 @@ interface LevelUpScreenProps {
     onSelect: (card: Card) => void;
 }
 
+// Animation variants
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.2,
+        },
+    },
+    exit: {
+        opacity: 0,
+        transition: { duration: 0.2 },
+    },
+};
+
+const titleVariants = {
+    hidden: { opacity: 0, y: -50, scale: 0.8 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: {
+            type: 'spring' as const,
+            stiffness: 200,
+            damping: 15,
+        },
+    },
+};
+
+const cardVariants = {
+    hidden: { opacity: 0, y: 50, scale: 0.8, rotateX: -15 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        rotateX: 0,
+        transition: {
+            type: 'spring' as const,
+            stiffness: 150,
+            damping: 12,
+        },
+    },
+    exit: {
+        opacity: 0,
+        scale: 0.5,
+        y: -50,
+        transition: { duration: 0.2 },
+    },
+    hover: {
+        scale: 1.05,
+        y: -10,
+        transition: {
+            type: 'spring' as const,
+            stiffness: 300,
+            damping: 20,
+        },
+    },
+    tap: {
+        scale: 0.95,
+    },
+};
+
+const glowVariants = {
+    initial: { opacity: 0.2, scale: 1 },
+    animate: {
+        opacity: [0.2, 0.4, 0.2],
+        scale: [1, 1.1, 1],
+        transition: {
+            duration: 2,
+            repeat: Infinity,
+            ease: 'easeInOut' as const,
+        },
+    },
+};
+
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, onSelect }) => {
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
-            <div className="max-w-4xl w-full my-auto">
-                <div className="text-center mb-6 md:mb-10">
-                    <h3 className="text-4xl md:text-5xl font-black italic text-white tracking-tighter">LEVEL UP</h3>
-                    <p className="font-bold uppercase text-xs mt-2" style={{ color: COLORS.ELECTRIC_BLUE }}>
-                        Choose your upgrade - Luck affects rarity!
-                    </p>
-                </div>
+        <AnimatePresence>
+            <motion.div
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+            >
+                <motion.div
+                    className="max-w-4xl w-full my-auto"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                >
+                    {/* Title */}
+                    <motion.div
+                        className="text-center mb-6 md:mb-10"
+                        variants={titleVariants}
+                    >
+                        <motion.h3
+                            className="text-4xl md:text-5xl font-black italic text-white tracking-tighter"
+                            animate={{
+                                textShadow: [
+                                    '0 0 20px rgba(255,255,255,0.3)',
+                                    '0 0 40px rgba(255,255,255,0.5)',
+                                    '0 0 20px rgba(255,255,255,0.3)',
+                                ],
+                            }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                        >
+                            LEVEL UP
+                        </motion.h3>
+                        <p className="font-bold uppercase text-xs mt-2" style={{ color: COLORS.ELECTRIC_BLUE }}>
+                            Choose your upgrade - Luck affects rarity!
+                        </p>
+                    </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {upgradeChoices.map(card => {
-                        const tierConfig = TIER_CONFIG[card.tier];
-                        return (
-                            <button
-                                key={card.id}
-                                onClick={() => onSelect(card)}
-                                className="group flex flex-col items-center text-center p-4 md:p-8 rounded-2xl transition-all hover:scale-105"
-                                style={{
-                                    backgroundColor: tierConfig.bgColor,
-                                    borderWidth: '2px',
-                                    borderStyle: 'solid',
-                                    borderColor: tierConfig.borderColor,
-                                    boxShadow:
-                                        card.tier !== 'common' ? `0 0 20px ${tierConfig.glowColor}40` : 'none',
-                                }}
-                            >
-                                <div
-                                    className="text-[10px] font-black uppercase tracking-widest mb-2"
-                                    style={{ color: tierConfig.color }}
+                    {/* Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {upgradeChoices.map((card, index) => {
+                            const tierConfig = TIER_CONFIG[card.tier];
+                            return (
+                                <motion.button
+                                    key={card.id}
+                                    onClick={() => onSelect(card)}
+                                    className="group flex flex-col items-center text-center p-4 md:p-8 rounded-2xl"
+                                    style={{
+                                        backgroundColor: tierConfig.bgColor,
+                                        borderWidth: '2px',
+                                        borderStyle: 'solid',
+                                        borderColor: tierConfig.borderColor,
+                                        boxShadow:
+                                            card.tier !== 'common' ? `0 0 20px ${tierConfig.glowColor}40` : 'none',
+                                    }}
+                                    variants={cardVariants}
+                                    whileHover="hover"
+                                    whileTap="tap"
+                                    custom={index}
                                 >
-                                    {tierConfig.name}
-                                </div>
+                                    {/* Tier Badge */}
+                                    <motion.div
+                                        className="text-[10px] font-black uppercase tracking-widest mb-2"
+                                        style={{ color: tierConfig.color }}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.3 + index * 0.1 }}
+                                    >
+                                        {tierConfig.name}
+                                    </motion.div>
 
-                                <div className="text-5xl mb-4 flex items-center justify-center w-24 h-24 relative">
-                                    {/* Icon Background Glow */}
-                                    <div
-                                        className="absolute inset-0 rounded-full blur-2xl opacity-20"
-                                        style={{ backgroundColor: tierConfig.color }}
-                                    ></div>
-
-                                    {card.icon === 'icon-market-chart' ? (
-                                        <IconMarketChart className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-alpha-eye' ? (
-                                        <IconAlphaEye className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-flash-pulse' ? (
-                                        <IconFlashPulse className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-genesis-emblem' ? (
-                                        <IconGenesisEmblem className="w-20 h-20 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-shield' ? (
-                                        <IconShield className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-diamond' ? (
-                                        <IconDiamond className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-rocket' ? (
-                                        <IconRocket className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-ape' ? (
-                                        <IconApe className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-bolt' ? (
-                                        <IconBolt className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-magnet' ? (
-                                        <IconMagnet className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-skull' ? (
-                                        <IconSkull className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-whale' ? (
-                                        <IconWhale className="w-16 h-16 relative z-10" color={tierConfig.color} />
-                                    ) : card.icon === 'icon-banano' ? (
-                                        <IconBanano className="w-16 h-16 relative z-10" color="#FBDD11" />
-                                    ) : card.icon.startsWith('/') ? (
-                                        <img
-                                            src={card.icon}
-                                            alt={card.name}
-                                            className="w-full h-full object-contain relative z-10"
-                                            style={{ mixBlendMode: 'plus-lighter' }}
+                                    {/* Icon Container */}
+                                    <div className="text-5xl mb-4 flex items-center justify-center w-24 h-24 relative">
+                                        {/* Animated Glow */}
+                                        <motion.div
+                                            className="absolute inset-0 rounded-full blur-2xl"
+                                            style={{ backgroundColor: tierConfig.color }}
+                                            variants={glowVariants}
+                                            initial="initial"
+                                            animate="animate"
                                         />
-                                    ) : (
-                                        <span className="relative z-10">{card.icon}</span>
-                                    )}
-                                </div>
 
-                                <div
-                                    className="text-lg font-black mb-2 uppercase"
-                                    style={{ color: tierConfig.color }}
-                                >
-                                    {card.name}
-                                </div>
+                                        {/* Icon */}
+                                        <motion.div
+                                            initial={{ scale: 0, rotate: -180 }}
+                                            animate={{ scale: 1, rotate: 0 }}
+                                            transition={{
+                                                type: 'spring',
+                                                stiffness: 200,
+                                                damping: 15,
+                                                delay: 0.4 + index * 0.1,
+                                            }}
+                                        >
+                                            {renderCardIcon(card, tierConfig.color)}
+                                        </motion.div>
+                                    </div>
 
-                                <div className="text-xs text-slate-400 font-bold">{card.description}</div>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-        </div>
+                                    {/* Card Name */}
+                                    <motion.div
+                                        className="text-lg font-black mb-2 uppercase"
+                                        style={{ color: tierConfig.color }}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.5 + index * 0.1 }}
+                                    >
+                                        {card.name}
+                                    </motion.div>
+
+                                    {/* Description */}
+                                    <motion.div
+                                        className="text-xs text-slate-400 font-bold"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.6 + index * 0.1 }}
+                                    >
+                                        {card.description}
+                                    </motion.div>
+                                </motion.button>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+            </motion.div>
+        </AnimatePresence>
     );
 };
+
+// Helper function to render card icons
+function renderCardIcon(card: Card, color: string) {
+    const iconProps = { className: 'w-16 h-16 relative z-10', color };
+
+    switch (card.icon) {
+        case 'icon-market-chart':
+            return <IconMarketChart {...iconProps} />;
+        case 'icon-alpha-eye':
+            return <IconAlphaEye {...iconProps} />;
+        case 'icon-flash-pulse':
+            return <IconFlashPulse {...iconProps} />;
+        case 'icon-genesis-emblem':
+            return <IconGenesisEmblem {...iconProps} className="w-20 h-20 relative z-10" />;
+        case 'icon-shield':
+            return <IconShield {...iconProps} />;
+        case 'icon-diamond':
+            return <IconDiamond {...iconProps} />;
+        case 'icon-rocket':
+            return <IconRocket {...iconProps} />;
+        case 'icon-ape':
+            return <IconApe {...iconProps} />;
+        case 'icon-bolt':
+            return <IconBolt {...iconProps} />;
+        case 'icon-magnet':
+            return <IconMagnet {...iconProps} />;
+        case 'icon-skull':
+            return <IconSkull {...iconProps} />;
+        case 'icon-whale':
+            return <IconWhale {...iconProps} />;
+        case 'icon-banano':
+            return <IconBanano {...iconProps} color="#FBDD11" />;
+        default:
+            if (card.icon.startsWith('/')) {
+                return (
+                    <img
+                        src={card.icon}
+                        alt={card.name}
+                        className="w-full h-full object-contain relative z-10"
+                        style={{ mixBlendMode: 'plus-lighter' }}
+                    />
+                );
+            }
+            return <span className="relative z-10">{card.icon}</span>;
+    }
+}
