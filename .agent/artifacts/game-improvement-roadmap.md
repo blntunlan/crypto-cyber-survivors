@@ -8,7 +8,7 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 ---
 
 ## Faz 1: Psikolojik Engagement Sistemleri 🧠
-**Durum:** %60 Tamamlandı
+**Durum:** %85 Tamamlandı
 **Öncelik:** ⭐⭐⭐⭐⭐ (En Yüksek)
 
 ### 1.1 Kill Streak & Combo Sistemi ✅
@@ -24,16 +24,16 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 - [x] Kaldıraç oranına göre zorluk katsayısı ölçekleme
 - [x] UI üzerinde seçili kaldıracı ve etkisini gösterme
 
-### 1.3 Milestone & Achievement Sistemi
-- [ ] Kill milestone ödülleri (100, 500, 1000 killde)
-- [ ] Zaman milestone'ları (1dk, 5dk, 10dk hayatta kalma)
-- [ ] Görsel milestone popup'ları
+### 1.3 Milestone & Achievement Sistemi ✅
+- [x] Kill milestone ödülleri (100, 500, 1000 killde)
+- [x] Zaman milestone'ları (1dk, 5dk, 10dk hayatta kalma) - WAVE TIMER eklendi
+- [x] Görsel milestone popup'ları (Achievement announcements)
 - [ ] Permanent unlock sistemi (karakterler, skin'ler)
 
-### 1.4 Near Miss & Clutch Moments (BEKLEMEDE 🟡)
-- [ ] "CLUTCH!" text HP < 5% iken kill yapınca
-- [ ] Near-death visual effects (ekran kenarları kırmızı parlaması)
-- [ ] Last stand modu (HP 0'a düşünce 1 saniye dokunulmazlık)
+### 1.4 Near Miss & Clutch Moments ✅
+- [x] "CLUTCH!" text HP < 10% iken kill yapınca
+- [x] Near-death visual effects (ekran kenarları kırmızı parlaması)
+- [ ] Last stand modu (HP 0'a düşeceği an 0.5s dokunulmazlık)
 
 ---
 
@@ -74,8 +74,9 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 ### 3.2 UI/UX İyileştirmeleri 🔶
 - [x] Modern HUD (Health, XP, Stats, Combo)
 - [x] Performance optmized canvas rendering
+- [x] Enemy Pointer (ekran dışı düşman takibi)
 - [ ] Damage number stacking
-- [ ] Wave timer göstergesi
+- [x] Wave timer göstergesi
 
 ### 3.3 Ses Sistemi
 - [ ] Background music (dynamic, duruma göre değişen)
@@ -189,10 +190,11 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 
 En az eforla en çok etki yapacak değişiklikler:
 
-1. **[ ] Near-death visual effects** - Ekran kenarlarında kırmızı parlama (15 dk)
-2. **[ ] Level up slow-mo** - Kart seçimi öncesi anlık yavaşlama (15 dk)
-3. **[ ] "WAVE START" uyarısı** - Yeni wave fazına girişte text uyarısı (20 dk)
-4. **[ ] Mermi trail efekti** - Basit neon izler (20 dk)
+1. **[x] Near-death visual effects** - Ekran kenarlarında kırmızı parlama (Tamamlandı)
+2. **[ ] Level up slow-mo** - Kart seçimi öncesi anlık yavaşlama (Planlanıyor)
+3. **[x] "WAVE TIMER" uyarısı** - Üst orta kısımda survival süresi (Tamamlandı)
+4. **[ ] Mermi trail efekti** - Basit neon izler (Beklemede)
+5. **[x] Hit Knockback** - Vuruş hissi için geri tepme (Tamamlandı)
 
 ---
 

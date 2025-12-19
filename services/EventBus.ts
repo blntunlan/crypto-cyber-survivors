@@ -9,6 +9,7 @@ export type GameEvent =
   | 'enemyKilled'
   | 'gemCollected'
   | 'levelUp'
+  | 'levelUpComplete'
   | 'gameOver'
   | 'critHit'
   | 'playerHit'
@@ -18,6 +19,7 @@ export type GameEvent =
   | 'comboMilestone'
   | 'comboEnd'
   | 'levelUpStart'
+  | 'milestoneAchieved'
   | 'gameReset'
   | 'beforeReset'
   | 'afterReset'
@@ -25,9 +27,10 @@ export type GameEvent =
   | 'settingsUpdate';
 
 export interface EventData {
-  enemyKilled: { x: number; y: number; type: string; isCrit: boolean };
+  enemyKilled: { x: number; y: number; type?: string; isCrit?: boolean };
   gemCollected: { value: number; isRare: boolean };
   levelUp: { level: number };
+  levelUpComplete: { newLevel: number };
   gameOver: { finalLevel: number; finalPnl: number };
   critHit: { damage: number; isSuperCrit: boolean; x: number; y: number };
   playerHit: { damage: number; remainingHp: number };
@@ -37,6 +40,7 @@ export interface EventData {
   comboMilestone: { name: string; kills: number; multiplier: number; color: string; sound: string };
   comboEnd: { finalStreak: number; bonusXp: number };
   levelUpStart: Record<string, never>;
+  milestoneAchieved: { id: string; name: string; icon: string; color: string; type: string; threshold: number };
   gameReset: Record<string, never>;
   beforeReset: Record<string, never>;
   afterReset: Record<string, never>;

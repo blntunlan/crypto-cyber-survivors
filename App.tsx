@@ -19,6 +19,7 @@ import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
 import { MetricsDebugPanel } from './components/MetricsDebugPanel';
 import { ComboDebugPanel } from './components/ComboDebugPanel';
+import { MilestoneService } from './services/MilestoneService';
 
 const App: React.FC = () => {
   const [dimensions, setDimensions] = useState({
@@ -142,6 +143,8 @@ const App: React.FC = () => {
     setEntryPrice(marketData.price);
     setPositionColor(choice);
     setGameStatus(GameStatus.PLAYING);
+    setSessionStartTime(Date.now());
+    MilestoneService.startSession();
     audio.playLevelUp();
   };
 
@@ -157,6 +160,9 @@ const App: React.FC = () => {
 
     playerRef.current = nextP;
     setUiStats({ ...nextP });
+
+    // Emit level up complete for milestone tracking
+    EventBus.emit('levelUpComplete', { newLevel: nextP.level });
 
     if (nextP.exp >= nextP.nextLevelExp) {
       handleLevelUp();

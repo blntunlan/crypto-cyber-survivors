@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { EventBus } from '../services/EventBus';
 import { ComboSystem } from '../services/ComboSystem';
+import { MilestoneService } from '../services/MilestoneService';
 import { COLORS } from '../constants';
 import { GameStatus, Player } from '../types';
 import { audio } from '../services/audioService';
@@ -40,6 +41,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     const [flash, setFlash] = useState(0);
     const [showMilestone, setShowMilestone] = useState(false);
     const [clutchActive, setClutchActive] = useState(false);
+    const [achievement, setAchievement] = useState<{ name: string; icon: string; color: string } | null>(null);
 
     const streakValueRef = useRef(0);
     const multiplierValueRef = useRef(1.0);
@@ -50,6 +52,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     const milestoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const clutchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fpsFramesRef = useRef<number[]>([]);
 
     useEffect(() => {
@@ -102,8 +105,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             setShowMilestone(false);
             setFlash(0);
             setClutchActive(false);
+            setAchievement(null);
             streakValueRef.current = 0;
             multiplierValueRef.current = 1.0;
+        });
+
+        const unsubAchievement = EventBus.on('milestoneAchieved', (data) => {
+            if (achievementTimeoutRef.current) clearTimeout(achievementTimeoutRef.current);
+            setAchievement({ name: data.name, icon: data.icon, color: data.color });
+            achievementTimeoutRef.current = setTimeout(() => setAchievement(null), 3500);
         });
 
         return () => {
@@ -113,9 +123,11 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             unsubLevelUp();
             unsubEnemyKilled();
             unsubReset();
+            unsubAchievement();
             if (milestoneTimeoutRef.current) clearTimeout(milestoneTimeoutRef.current);
             if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
             if (clutchTimeoutRef.current) clearTimeout(clutchTimeoutRef.current);
+            if (achievementTimeoutRef.current) clearTimeout(achievementTimeoutRef.current);
         };
     }, [player]);
 
@@ -147,6 +159,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 const mins = Math.floor(elapsedSeconds / 60);
                 const secs = elapsedSeconds % 60;
                 timerElement.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+                // Check for time milestones (runs every frame but checkMilestones is debounced internally)
+                MilestoneService.checkTimeMilestones();
             }
 
             // NEAR DEATH GLOW Update (Direct DOM)
@@ -379,7 +394,37 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                     0%, 100% { opacity: 0.4; transform: scale(1); }
                     50% { opacity: 0.7; transform: scale(1.3); }
                 }
+                @keyframes achievementSlideIn {
+                    0% { transform: translateX(100%) scale(0.8); opacity: 0; }
+                    20% { transform: translateX(0) scale(1.05); opacity: 1; }
+                    30% { transform: translateX(0) scale(1); }
+                    90% { transform: translateX(0) scale(1); opacity: 1; }
+                    100% { transform: translateX(100%); opacity: 0; }
+                }
             `}</style>
+
+            {/* ACHIEVEMENT POPUP */}
+            {achievement && (
+                <div
+                    className="absolute top-20 right-4 z-[140] pointer-events-none"
+                    style={{ animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+                >
+                    <div
+                        className="flex items-center gap-3 px-5 py-3 rounded-xl border-2 shadow-2xl"
+                        style={{
+                            background: `linear-gradient(135deg, ${achievement.color}22 0%, ${achievement.color}44 100%)`,
+                            borderColor: achievement.color,
+                            boxShadow: `0 0 30px ${achievement.color}66, inset 0 0 20px ${achievement.color}22`
+                        }}
+                    >
+                        <div className="text-4xl">{achievement.icon}</div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Achievement!</span>
+                            <span className="text-xl font-black italic tracking-tight" style={{ color: achievement.color }}>{achievement.name}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
