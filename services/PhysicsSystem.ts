@@ -61,7 +61,7 @@ export class PhysicsSystem {
                 return;
             }
 
-            e.behavior.move(e, player.x, player.y);
+            e.behavior.move(e, player.x, player.y, dtFactor);
 
             const dist = Math.hypot(player.x - e.x, player.y - e.y);
             if (dist < player.radius + e.radius) {

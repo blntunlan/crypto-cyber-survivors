@@ -246,7 +246,7 @@ describe('PhysicsSystem', () => {
                 mockOnGameOver
             );
 
-            expect(mockMove).toHaveBeenCalledWith(mockEnemy, mockPlayer.x, mockPlayer.y);
+            expect(mockMove).toHaveBeenCalledWith(mockEnemy, mockPlayer.x, mockPlayer.y, 1);
         });
 
         it('should collect gems when player touches them', () => {
