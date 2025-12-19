@@ -7,10 +7,16 @@
  * - Exponential backoff reconnection
  * - Connection state tracking
  * - Automatic failover
+ * - Zod validation for type safety
  */
 
 import { BINANCE_WS_URL, COINBASE_WS_URL } from '../constants';
 import { Logger } from './Logger';
+import {
+  parseBinanceData,
+  parseCoinbaseData,
+  isCoinbaseSubscription,
+} from '../schemas/marketSchemas';
 
 export interface MarketUpdate {
   price: number;
@@ -130,20 +136,13 @@ export class MarketService {
 
       this.binanceSocket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          // Ticker stream format: { c: close, h: high, l: low, v: volume, ... }
-          if (data?.c) {
-            const price = parseFloat(data.c);
-            this.lastKnownPrice = price;
-            this.lastPriceTime = Date.now();
+          const rawData = JSON.parse(event.data);
+          const update = parseBinanceData(rawData);
 
-            this.onDataCallback({
-              price,
-              high: parseFloat(data.h),
-              low: parseFloat(data.l),
-              volume: parseFloat(data.v),
-              source: 'binance',
-            });
+          if (update) {
+            this.lastKnownPrice = update.price;
+            this.lastPriceTime = Date.now();
+            this.onDataCallback(update);
           }
         } catch {
           Logger.warn('[Market] Failed to parse Binance message');
@@ -193,16 +192,19 @@ export class MarketService {
 
       this.coinbaseSocket.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          if (data?.type === 'ticker' && data.price) {
-            const price = parseFloat(data.price);
-            this.lastKnownPrice = price;
-            this.lastPriceTime = Date.now();
+          const rawData = JSON.parse(event.data);
 
-            this.onDataCallback({
-              price,
-              source: 'coinbase',
-            });
+          // Skip subscription confirmation messages
+          if (isCoinbaseSubscription(rawData)) {
+            return;
+          }
+
+          const update = parseCoinbaseData(rawData);
+
+          if (update) {
+            this.lastKnownPrice = update.price;
+            this.lastPriceTime = Date.now();
+            this.onDataCallback(update);
           }
         } catch {
           Logger.warn('[Market] Failed to parse Coinbase message');
