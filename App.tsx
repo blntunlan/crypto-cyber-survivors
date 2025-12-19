@@ -20,8 +20,14 @@ import { usePlayerState } from './hooks/usePlayerState';
 import { MetricsDebugPanel } from './components/MetricsDebugPanel';
 import { ComboDebugPanel } from './components/ComboDebugPanel';
 import { MilestoneService } from './services/MilestoneService';
+import { useDevice } from './hooks/useDevice';
+import { DifficultyManager } from './services/DifficultyManager';
+
 
 const App: React.FC = () => {
+  // Device detection for platform-specific behavior
+  const device = useDevice();
+
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -212,6 +218,8 @@ const App: React.FC = () => {
           entryPrice={entryPrice}
           marketData={marketData}
           player={uiStats}
+          onTogglePause={handlePauseToggle}
+          status={gameStatus}
         />
       )}
 
@@ -221,7 +229,7 @@ const App: React.FC = () => {
         marketData={marketData}
         onGameOver={() => {
           setFinalPnl(marketData.pnl);
-          setFinalSurvivalTime((Date.now() - sessionStartTime) / 1000);
+          setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
           setGameStatus(GameStatus.GAMEOVER);
 
           // End metrics session with all final data
@@ -291,9 +299,24 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Metrics Debug Panel (dev mode only) */}
-      <MetricsDebugPanel />
-      <ComboDebugPanel />
+      {/* Debug Panels - Desktop only */}
+      {!device.isMobile && (
+        <>
+          <MetricsDebugPanel />
+          <ComboDebugPanel />
+        </>
+      )}
+
+      {/* Mobile Orientation Lock Overlay - Disabled for now, evaluate after touch controls
+      {device.isMobile && (
+        <div className="orientation-lock-overlay">
+          <div className="rotate-icon">📱</div>
+          <div className="message">
+            Please rotate your device to landscape mode for the best experience
+          </div>
+        </div>
+      )}
+      */}
 
     </div>
   );

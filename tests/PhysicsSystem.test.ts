@@ -92,6 +92,7 @@ describe('PhysicsSystem', () => {
             critFlash: 0,
             critFlashColor: '#fff',
             lastFireTime: 0,
+            fireTimer: 0,
             dashTrail: [],
             bgCandles: [],
             currentBg: { r: 15, g: 23, b: 42 },

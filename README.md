@@ -10,7 +10,7 @@
 [![Tests](https://img.shields.io/badge/Tests-227%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-[🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#️-development) • [📦 Architecture](#-architecture)
+[🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#-development) • [📦 Architecture](#-architecture)
 
 </div>
 
@@ -26,25 +26,24 @@
 - **Dynamic Difficulty** - Market volatility and P&L directly affect game difficulty
 - **Long/Short Positions** - Choose your position and survive the market chaos
 
+### 📱 Mobile Optimization (New!)
+- **Fully Responsive HUD** - Dynamic scaling based on screen size (0.5x to 1.5x)
+- **Safe Area Support** - Explicit support for notches (iOS/Android) and home indicators using `env(safe-area-inset-*)`
+- **Dual Control Schemes** - Switch between **Virtual Joystick** and **Drag-to-Move**
+- **Performance Profiles** - Expensive canvas shadows and filters automatically disabled on mobile for stable 60 FPS
+- **Landscape Lock** - Intelligent orientation detection and instruction overlay
+
 ### 🃏 Card System
 - **Tiered Rarity System** - Common, Rare, Epic, Legendary cards with visual distinction
 - **Premium Asset Design** - Hand-crafted SVG icons and generative art for high-tier cards
 - **40+ Unique Upgrades** - Crypto-themed cards like "Diamond Hands", "Rug Pull", "Flash Loan", "Satoshi Mode"
 - **Slot Machine Leveling** - Psychologically optimized level-up screen with "reel stop" anticipation
-- **Luck-Based Drops** - Higher luck stat = better card rarity chances
 
 ### ⚡ Performance & Core
 - **Game Engine Refactor** - Decoupled, event-driven architecture for better stability
 - **60 FPS Canvas Rendering** - Smooth gameplay with optimized draw calls
 - **Object Pooling** - O(1) object retrieval, minimal garbage collection
 - **Delta Time** - Framerate-independent game logic
-- **Strict TypeScript** - 100% type safety across the entire codebase
-
-### 📊 Analytics & Metrics
-- **Comprehensive Tracking** - 40+ metrics across 7 categories (Combat, Market, Performance, etc.)
-- **Bitcoin Impact Analysis** - Track how price movements correlate with player survival
-- **Feature Flag System** - Scalable metrics collection with zero performance overhead
-- **Debug Overlays** - Real-time metrics and combo debug panels for balancing
 
 ---
 
@@ -69,52 +68,35 @@ npm run dev
 ## 🎮 How to Play
 
 ### Controls
-| Key | Action |
-|-----|--------|
-| `W` `A` `S` `D` / `Arrows` | Move |
-| `Space` | Dash (I-Frames) |
-| `Escape` / `P` | Pause |
+| Input Mode | Move | Special / Action |
+|------------|------|------------------|
+| **Desktop** | `W` `A` `S` `D` / `Arrows` | `Space` (Dash), `Esc/P` (Pause) |
+| **Touch (Joystick)** | Left/Right Thumb | Dedicated Dash Button |
+| **Touch (Drag)** | Drag anywhere | Second Finger Tap (Dash) |
 
-### Objective
-1. **Choose Position & Leverage** - Select LONG or SHORT and set your leverage (1x - 100x)
-2. **Survive** - Kill enemies and collect gems to level up
-3. **Build Combos** - Kill enemies quickly to stack XP multipliers
-4. **Upgrade** - Choose powerful cards from the slot machine
-5. **Endure** - Survive "Liquidation Waves" as difficulty scales with time and market volatility
+### UI Typography & Scaling
+The UI uses a precision-scaled technical typography system for maximum readability:
 
-### Game Mechanics
-- 🟢 **Positive P&L** = Easier enemies (Winning trade = Bullish vibes)
-- 🔴 **Negative P&L** = Harder enemies (Losing trade = Bears are attacking!)
-- 📈 **Leverage** = Multiplies the effect of P&L on difficulty
-- 🔥 **Combos** = 5 milestones (Combo, Super, Mega, Ultra, Jackpot) providing up to 3x XP
-- 💎 **Gems** = Experience points. Bonus XP awarded at the end of a combo streak
+| UI Element | Desktop Size | Mobile Size | Stil Özellikleri |
+| :--- | :--- | :--- | :--- |
+| **BTC Price** | 36px (`text-4xl`) | 24px (`text-2xl`) | Font-Black, Mono |
+| **PnL Percent** | 24px (`text-2xl`) | 18px (`text-lg`) | Font-Black, Mono |
+| **Large Headings** | 96px (`text-8xl`) | 60px (`text-6xl`) | Italic, Black |
+| **Kernel Status** | 12px (`text-xs`) | 10px (`text-[10px]`) | Uppercase, Spaced |
+| **Technical Labels** | 10px | 8px | Uppercase, Opacity-60 |
 
 ---
 
 ## 🛠️ Development
 
 ### Available Scripts
-
 ```bash
 npm run dev          # Start dev server with HMR
 npm run build        # Build for production
-npm run test         # Run 120+ unit tests
+npm run test         # Run 200+ unit tests
 npm run test:coverage # Check test coverage
 npm run lint         # Run ESLint & Format check
 ```
-
-### Dev Cheats (Development Only)
-| Key | Cheat |
-|-----|-------|
-| `L` | Level Up |
-| `H` | Full Heal |
-| `G` | Toggle God Mode |
-| `K` | Kill All Enemies |
-| `X` | +500 EXP |
-| `1-4` | Set Luck (0, 2, 5, 10) |
-| `R` | Restart Game |
-| `ape` | Full Ape Mode 🦍 |
-| `moon` | To The Moon 🚀 |
 
 ---
 
@@ -123,22 +105,22 @@ npm run lint         # Run ESLint & Format check
 ```
 crypto-cyber-survivors/
 ├── components/           # React Components
-│   ├── GameEngine.tsx   # Rendering & Loop
-│   ├── GameHUD.tsx      # Main Gameplay UI
-│   ├── ComboDebugPanel.tsx # Combo testing
-│   └── screens/          # MainMenu, LevelUp, GameOver
-├── services/            # Core Logic (Singletons)
-│   ├── CardSystem.ts    # Card generation & effects
-│   ├── ComboSystem.ts   # Kill streak logic
-│   ├── DifficultyManager.ts # Market-based difficulty
-│   ├── MetricsService.ts # Analytics engine
-│   ├── PoolManager.ts   # Memory optimization
-│   └── marketService.ts # WebSocket data
-├── factories/           # Factory Pattern
-│   └── EnemyFactory.ts  # Enemy creation
-├── contexts/            # State Management
-│   └── GameContext.tsx  # Global game state
-└── tests/               # 120+ Vitest test suites
+│   ├── GameEngine.tsx    # Rendering & Loop
+│   ├── GameHUD.tsx       # Direct Canvas Overlays
+│   ├── GameUI.tsx        # Responsive React HUD
+│   ├── mobile/           # Touch Controllers
+│   └── screens/          # Menus (Settings, LevelUp, etc.)
+├── services/             # Logic Singletons
+│   ├── PhysicsSystem.ts  # Optimized Collision Engine
+│   ├── DifficultyManager.ts # Market Scaling
+│   ├── ComboSystem.ts    # Streak Logic
+│   └── ScreenService.ts  # Device & Notch Handling
+├── stores/               # State Management
+│   └── gameStore.ts      # Zustand Persistent Settings
+├── hooks/                # Custom React Hooks
+│   ├── useLerpValue.ts   # Smooth UI Transitions
+│   └── useDevice.ts      # Screen detection
+└── tests/                # 200+ Vitest test suites
 ```
 
 ### Key Design Patterns
@@ -155,10 +137,9 @@ crypto-cyber-survivors/
 | Category | Technology |
 |----------|------------|
 | **Framework** | React 19 |
-| **Language** | TypeScript 5.8 (Strict) |
+| **State** | Zustand |
+| **Styling** | Vanilla CSS + Tailwind |
 | **Animation** | Framer Motion |
-| **Build Tool** | Vite 6 |
-| **Styling** | Tailwind CSS |
 | **Testing** | Vitest + RTL |
 | **Data** | Binance & Coinbase WS |
 
@@ -168,12 +149,10 @@ crypto-cyber-survivors/
 
 | Stat | Value |
 |------|-------|
-| TypeScript Files | 40+ |
+| TypeScript Files | 45+ |
 | Total Tests | 227 (All Passing) |
-| Unique Cards | 40+ |
-| Enemy Types | 6+ |
-| Metrics Tracked | 50+ |
-| Performance | 60 FPS (Canvas) |
+| Performance | Stable 60 FPS (Mobile & Web) |
+| Optimization | Object Pooling & Shadow-Culling |
 
 ---
 

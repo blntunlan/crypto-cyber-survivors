@@ -36,7 +36,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
     return (
         <motion.div
-            className="fixed inset-0 z-[200] bg-slate-950 flex flex-col items-center justify-center text-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-[2300] bg-slate-950 flex flex-col items-center justify-center text-center p-4 overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}

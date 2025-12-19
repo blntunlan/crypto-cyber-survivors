@@ -4,6 +4,7 @@ import { Card, TIER_CONFIG, ALL_CARDS_FLAT } from '../../services/CardSystem';
 import { COLORS } from '../../constants';
 import { audio } from '../../services/audioService';
 import { IconMarketChart, IconAlphaEye, IconFlashPulse, IconGenesisEmblem, IconShield, IconDiamond, IconRocket, IconApe, IconBolt, IconMagnet, IconSkull, IconWhale, IconBanano } from '../icons/CardIcons';
+import { screenService } from '../../services/ScreenService';
 
 interface LevelUpScreenProps {
     upgradeChoices: Card[];
@@ -135,7 +136,7 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
             clearTimeout(stopTimer);
             clearTimeout(slowdownTimer);
         };
-         
+
     }, [isSpinning, spinCards.length, stopOrder]);
 
     // Call onStopped when isStopped changes to true
@@ -155,7 +156,7 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
         <motion.button
             onClick={() => isStopped && onSelect(finalCard)}
             disabled={!isStopped}
-            className={`group flex flex-col items-center text-center p-4 md:p-8 rounded-2xl transition-all ${isStopped ? 'cursor-pointer hover:scale-105' : 'cursor-wait'
+            className={`group flex flex-col items-center text-center p-2 md:p-8 rounded-xl md:rounded-2xl transition-all ${isStopped ? 'cursor-pointer hover:scale-105' : 'cursor-wait'
                 }`}
             style={{
                 backgroundColor: tierConfig.bgColor,
@@ -181,7 +182,7 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
         >
             {/* Tier Badge */}
             <motion.div
-                className="text-[10px] font-black uppercase tracking-widest mb-2"
+                className="text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 md:mb-2"
                 style={{ color: tierConfig.color }}
                 animate={{ opacity: isSpinning ? [0.5, 1, 0.5] : 1 }}
                 transition={isSpinning ? { duration: 0.1, repeat: Infinity } : {}}
@@ -190,10 +191,10 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
             </motion.div>
 
             {/* Spinning Icon Container */}
-            <div className="text-5xl mb-4 flex items-center justify-center w-24 h-24 relative overflow-hidden">
+            <div className="text-3xl md:text-5xl mb-2 md:mb-4 flex items-center justify-center w-14 h-14 md:w-24 md:h-24 relative overflow-hidden">
                 {/* Glow - intensifies when slowing down */}
                 <motion.div
-                    className="absolute inset-0 rounded-full blur-2xl"
+                    className="absolute inset-0 rounded-full blur-xl md:blur-2xl"
                     style={{ backgroundColor: tierConfig.color }}
                     animate={{
                         opacity: isSlowingDown ? [0.3, 0.6, 0.3] : isSpinning ? [0.1, 0.3, 0.1] : [0.1, 0.4, 0.1],
@@ -222,13 +223,13 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
                                 : {}
                     }
                 >
-                    {renderCardIcon(displayCard, tierConfig.color)}
+                    {renderCardIcon(displayCard, tierConfig.color, true)}
                 </motion.div>
             </div>
 
             {/* Card Name */}
             <motion.div
-                className="text-lg font-black mb-2 uppercase"
+                className="text-xs md:text-lg font-black mb-1 md:mb-2 uppercase leading-tight"
                 style={{ color: tierConfig.color }}
                 animate={{
                     opacity: isSpinning ? 0.7 : 1,
@@ -240,7 +241,7 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
 
             {/* Description - only show when stopped */}
             <motion.div
-                className="text-xs text-slate-400 font-bold h-8"
+                className="text-[10px] md:text-xs text-slate-400 font-bold h-10 md:h-8 leading-tight overflow-hidden"
                 animate={{ opacity: isStopped ? 1 : 0 }}
             >
                 {isStopped && displayCard.description}
@@ -249,11 +250,11 @@ const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, on
             {/* Stopped indicator */}
             {isStopped && (
                 <motion.div
-                    className="mt-2 text-[8px] font-black uppercase tracking-widest text-white/50"
+                    className="mt-1 md:mt-2 text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white/50"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    Click to Select
+                    {screenService.isMobile() ? 'Tap to Select' : 'Click to Select'}
                 </motion.div>
             )}
         </motion.button>
@@ -296,7 +297,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     return (
         <AnimatePresence>
             <motion.div
-                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+                className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -309,9 +310,9 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                     exit="exit"
                 >
                     {/* Title */}
-                    <motion.div className="text-center mb-6 md:mb-10" variants={titleVariants}>
+                    <motion.div className="text-center mb-4 md:mb-10" variants={titleVariants}>
                         <motion.h3
-                            className="text-4xl md:text-5xl font-black italic text-white tracking-tighter"
+                            className="text-2xl md:text-5xl font-black italic text-white tracking-tighter"
                             animate={{
                                 textShadow: allStopped
                                     ? [
@@ -331,7 +332,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                             LEVEL UP
                         </motion.h3>
                         <motion.p
-                            className="font-bold uppercase text-xs mt-2"
+                            className="font-bold uppercase text-[10px] md:text-xs mt-1 md:mt-2"
                             style={{ color: allStopped ? '#4ade80' : COLORS.ELECTRIC_BLUE }}
                             animate={{ opacity: [0.7, 1, 0.7] }}
                             transition={{ duration: 0.8, repeat: Infinity }}
@@ -341,7 +342,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                     </motion.div>
 
                     {/* Slot Reels */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-3 gap-2 md:gap-6">
                         {upgradeChoices.map((card, index) => (
                             <SlotReel
                                 key={card.id}
@@ -360,8 +361,9 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
 };
 
 // Helper function to render card icons
-function renderCardIcon(card: Card, color: string) {
-    const iconProps = { className: 'w-16 h-16 relative z-10', color };
+function renderCardIcon(card: Card, color: string, scaleDown: boolean = false) {
+    const iconSizeClass = scaleDown ? 'w-10 h-10 md:w-16 md:h-16' : 'w-16 h-16';
+    const iconProps = { className: `${iconSizeClass} relative z-10`, color };
 
     switch (card.icon) {
         case 'icon-market-chart':
@@ -371,7 +373,8 @@ function renderCardIcon(card: Card, color: string) {
         case 'icon-flash-pulse':
             return <IconFlashPulse {...iconProps} />;
         case 'icon-genesis-emblem':
-            return <IconGenesisEmblem {...iconProps} className="w-20 h-20 relative z-10" />;
+            const genesisSize = scaleDown ? 'w-12 h-12 md:w-20 md:h-20' : 'w-20 h-20';
+            return <IconGenesisEmblem {...iconProps} className={`${genesisSize} relative z-10`} />;
         case 'icon-shield':
             return <IconShield {...iconProps} />;
         case 'icon-diamond':

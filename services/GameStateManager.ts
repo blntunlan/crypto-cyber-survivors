@@ -43,6 +43,7 @@ export const GAME_STATE_DEFAULTS = {
     isDashing: false,
     dashTimer: 0,
     dashCooldownTimer: 0,
+    dashTrailAccumulator: 0,
     currentBg: { r: 2, g: 6, b: 23 },
 } as const;
 

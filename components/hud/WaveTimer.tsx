@@ -12,7 +12,10 @@ interface WaveTimerProps {
  */
 export const WaveTimer: React.FC<WaveTimerProps> = ({ className = '' }) => {
     return (
-        <div className={`absolute top-6 left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center ${className}`}>
+        <div
+            className={`absolute left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center ${className}`}
+            style={{ top: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
+        >
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mb-1">
                 Survival Time
             </div>

@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 :root {
+  /* Casino Theme Colors */
   --casino-gold: #D6B85C;
   --casino-red: #B22222;
   --casino-hot-red: #D20202;
@@ -14,6 +15,12 @@
   --dump-orange: #FF3D00;
   --slot-black: #1A1A1A;
   --slot-silver: #DCDCDC;
+
+  /* Mobile Safe Area Insets (iOS notch, Android cutout) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
 }
 
 * {
@@ -25,20 +32,129 @@
 body {
   overflow: hidden;
   background-color: #020617;
-  /* slate-950 */
   color: white;
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
   width: 100vw;
   height: 100vh;
+
+  /* Mobile-specific: Prevent pull-to-refresh and overscroll */
+  overscroll-behavior: none;
+
+  /* Mobile-specific: Prevent text selection during gameplay */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+
+  /* Mobile-specific: Prevent zoom on double-tap, allow touch */
+  touch-action: manipulation;
+
+  /* Mobile-specific: Prevent tap highlight */
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
   width: 100%;
   height: 100%;
+  /* Safe area padding for notched devices */
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
 }
 
 canvas {
   display: block;
+  /* Prevent canvas from being dragged */
+  touch-action: none;
+}
+
+/* ========================================
+   LANDSCAPE ORIENTATION LOCK OVERLAY
+   Shows when device is in portrait mode
+   ======================================== */
+.orientation-lock-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #020617;
+  z-index: 99999;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  color: white;
+  font-size: 1.25rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.orientation-lock-overlay .rotate-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  animation: rotate-phone 2s ease-in-out infinite;
+}
+
+.orientation-lock-overlay .message {
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+@keyframes rotate-phone {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(45deg);
+  }
+
+  50% {
+    transform: rotate(90deg);
+  }
+
+  75% {
+    transform: rotate(45deg);
+  }
+}
+
+/* Show overlay only on mobile devices in portrait mode */
+@media screen and (orientation: portrait) and (pointer: coarse) {
+  .orientation-lock-overlay {
+    display: flex;
+  }
+}
+
+/* ========================================
+   MOBILE CONTROLS ZONE HELPERS
+   Safe zones for thumb-friendly interaction
+   ======================================== */
+.mobile-controls-zone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.mobile-controls-zone>* {
+  pointer-events: auto;
+}
+
+/* Left zone (joystick area) */
+.mobile-controls-zone--left {
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  height: 40%;
+  padding: var(--sal) 0 var(--sab) var(--sal);
+}
+
+/* Right zone (dash button area) */
+.mobile-controls-zone--right {
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  height: 40%;
+  padding: 0 var(--sar) var(--sab) 0;
 }

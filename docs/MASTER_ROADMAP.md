@@ -84,12 +84,33 @@ Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░�
 
 ### 2.4 ⬜ Mobil Uyumluluk
 
-| Task | Öncelik | Süre |
-|------|---------|------|
-| Touch controls (virtual joystick) | ⭐⭐⭐ | 4 saat |
-| Responsive canvas sizing | ⭐⭐⭐ | 2 saat |
-| PWA manifest | ⭐⭐ | 2 saat |
-| Service worker (offline) | ⭐⭐ | 2 saat |
+> 📱 **Detaylı Roadmap:** [MOBILE_INTEGRATION_ROADMAP.md](./MOBILE_INTEGRATION_ROADMAP.md)
+
+| Task | Öncelik | Süre | Durum |
+|------|---------|------|-------|
+| Touch controls (virtual joystick) | ⭐⭐⭐⭐⭐ | 1-2 gün | ⬜ |
+| Responsive canvas + safe area | ⭐⭐⭐⭐⭐ | 4 saat | ⬜ |
+| Mobile HUD optimization | ⭐⭐⭐⭐ | 2 saat | ⬜ |
+| PWA manifest + icons | ⭐⭐⭐⭐ | 3 saat | ⬜ |
+| Service worker (offline) | ⭐⭐⭐ | 3 saat | ⬜ |
+| Haptic feedback system | ⭐⭐⭐ | 2 saat | ⬜ |
+| Performance optimization | ⭐⭐⭐ | 1 gün | ⬜ |
+
+**Mobil Strateji:** PWA (Progressive Web App) - Tek codebase ile web + mobil
+
+### 2.5 ⬜ Native App Store Çıkışı (Gelecek)
+
+> 📲 **Detaylı Roadmap:** [NATIVE_APP_ROADMAP.md](./NATIVE_APP_ROADMAP.md)
+
+| Task | Öncelik | Süre | Durum |
+|------|---------|------|-------|
+| Pre-native hazırlık (Faz 0) | ⭐⭐⭐⭐ | Paralel | ⬜ |
+| Capacitor entegrasyonu | ⭐⭐⭐⭐ | 2-3 gün | ⬜ |
+| iOS App Store submission | ⭐⭐⭐ | 1 hafta | ⬜ |
+| Google Play submission | ⭐⭐⭐ | 1 hafta | ⬜ |
+| Beta testing (TestFlight/Internal) | ⭐⭐⭐ | 1 hafta | ⬜ |
+
+**Native Strateji:** Capacitor.js - React codebase korunur, native wrapper ile App Store dağıtımı
 
 ---
 
@@ -351,7 +372,8 @@ Neden:
 ### Dokümantasyon
 
 - [IMPROVEMENT_TASKS.md](./IMPROVEMENT_TASKS.md) - Sprint görevleri
-- [METRICS_ROADMAP.md](./METRICS_ROADMAP.md) - Metrik sistemi
+- [MOBILE_INTEGRATION_ROADMAP.md](./MOBILE_INTEGRATION_ROADMAP.md) - Mobil PWA entegrasyonu
+- [NATIVE_APP_ROADMAP.md](./NATIVE_APP_ROADMAP.md) - iOS/Android App Store çıkışı
 - [LEADERBOARD_ARCHITECTURE.md](./LEADERBOARD_ARCHITECTURE.md) - Backend planı
 - [CARD_SYSTEM_REFERENCE.md](./CARD_SYSTEM_REFERENCE.md) - Kart sistemi
 - [ENEMY_SYSTEM.md](./ENEMY_SYSTEM.md) - Düşman tipleri

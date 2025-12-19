@@ -30,7 +30,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
     const seconds = Math.floor((duration % 60000) / 1000);
 
     return (
-        <div className="fixed inset-0 z-[150] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[2100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
             <div className="text-center space-y-4 max-w-sm w-full px-6 my-auto">
                 <h2 className="text-6xl font-black text-white italic tracking-tighter mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500">
                     MARKET HALTED

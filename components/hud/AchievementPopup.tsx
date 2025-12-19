@@ -16,11 +16,12 @@ export const AchievementPopup: React.FC<AchievementPopupProps> = ({ achievement 
             style={{ animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
         >
             <div
-                className="flex items-center gap-3 px-5 py-3 rounded-xl border-2 shadow-2xl"
+                className="flex items-center gap-3 px-5 py-3 rounded-xl border-2 shadow-lg"
                 style={{
-                    background: `linear-gradient(135deg, ${achievement.color}22 0%, ${achievement.color}44 100%)`,
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)', // slate-900 with high opacity
                     borderColor: achievement.color,
-                    boxShadow: `0 0 30px ${achievement.color}66, inset 0 0 20px ${achievement.color}22`
+                    boxShadow: `0 0 15px ${achievement.color}44`,
+                    willChange: 'transform'
                 }}
             >
                 <div className="text-4xl">{achievement.icon}</div>

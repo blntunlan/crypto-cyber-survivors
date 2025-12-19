@@ -101,6 +101,7 @@ export interface Candle {
 export interface GameState {
   bgCandles: Candle[];
   lastFireTime: number;
+  fireTimer: number;
   spawnTimer: number;
   shake: number;
   critFlash: number;
@@ -113,4 +114,5 @@ export interface GameState {
   dashTimer: number;
   dashCooldownTimer: number;
   dashTrail: { x: number; y: number }[];
+  dashTrailAccumulator: number;
 }

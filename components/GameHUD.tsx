@@ -6,6 +6,10 @@ import { COLORS } from '../constants';
 import { GameStatus, Player } from '../types';
 import { audio } from '../services/audioService';
 import { GameEnemy } from '../factories/EnemyFactory';
+import { useDevice } from '../hooks/useDevice';
+import { useGameStore } from '../stores/gameStore';
+import { getHUDLayout } from '../config/UILayout';
+import { DifficultyManager } from '../services/DifficultyManager';
 
 // Import HUD sub-components
 import {
@@ -54,6 +58,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         maxStreak: 0,
         totalBonusXp: 0,
     });
+    const device = useDevice();
+    const { hudScale, showFPS: showFPSSource } = useGameStore(state => state.graphics);
+    const layout = getHUDLayout(device.platform);
+    const globalScale = layout.globalScale * hudScale;
     const [flash, setFlash] = useState(0);
     const [showMilestone, setShowMilestone] = useState(false);
     const [clutchActive, setClutchActive] = useState(false);
@@ -151,7 +159,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     useEffect(() => {
         let lastTime = performance.now();
         const fpsElement = document.getElementById('fps-counter');
-        const timerElement = document.getElementById('wave-timer-text');
         const healthGlowElement = document.getElementById('near-death-glow');
 
         const updateLoop = (currentTime: number) => {
@@ -170,12 +177,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             }
 
             // Wave Timer
-            if (timerElement && status === GameStatus.PLAYING && sessionStartTime > 0) {
-                const elapsedSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
-                const mins = Math.floor(elapsedSeconds / 60);
-                const secs = elapsedSeconds % 60;
+            // Survival Time
+            const timerElement = document.getElementById('wave-timer-text');
+            if (timerElement && status === GameStatus.PLAYING) {
+                const totalSeconds = DifficultyManager.getTotalElapsedSeconds();
+                const mins = Math.floor(totalSeconds / 60);
+                const secs = Math.floor(totalSeconds % 60);
                 timerElement.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-                MilestoneService.checkTimeMilestones();
+                MilestoneService.checkTimeMilestones(totalSeconds);
             }
 
             // Near Death Glow
@@ -211,12 +220,16 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             if (containerRef.current) {
                 const isVisible = streakTarget >= 5;
                 const targetOpacity = isVisible ? '1' : '0';
-                const targetTransform = isVisible ? 'translateX(-50%) translateY(0) scale(1)' : 'translateX(-50%) translateY(20px) scale(0.95)';
+                const offset = layout.elements.comboPanel.offset || { x: 0, y: 0 };
+                const targetTransform = isVisible
+                    ? `translateX(calc(-50% + ${offset.x}px)) translateY(${offset.y}px) scale(1)`
+                    : `translateX(calc(-50% + ${offset.x}px)) translateY(${offset.y + 20}px) scale(0.95)`;
 
                 if (containerRef.current.style.opacity !== targetOpacity) {
                     containerRef.current.style.opacity = targetOpacity;
                     containerRef.current.style.transform = targetTransform;
-                    containerRef.current.style.pointerEvents = isVisible ? 'auto' : 'none';
+                    // Keep pointer-events none to prevent stuttering/overlap issues on mobile
+                    containerRef.current.style.pointerEvents = 'none';
                 }
 
                 if (isVisible) {
@@ -229,6 +242,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
             // Enemy Pointers
             if (pointerContainerRef.current && status === GameStatus.PLAYING && width > 0 && height > 0) {
+                // Adjust dimensions for HUD scaling to ensure pointers hit screen edges
+                const logicalWidth = width / globalScale;
+                const logicalHeight = height / globalScale;
+
                 const offScreenEnemies = enemies.filter(e =>
                     e.active && (e.x < 0 || e.x > width || e.y < 0 || e.y > height)
                 ).slice(0, 10);
@@ -241,7 +258,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
                     const enemy = offScreenEnemies[i];
                     if (enemy) {
-                        const padding = 30;
+                        const padding = 20; // Slightly tighter padding for scaled UI
                         const cx = width / 2;
                         const cy = height / 2;
                         const dx = enemy.x - cx;
@@ -250,25 +267,25 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                         let px = 0, py = 0;
 
                         if (dx > 0) {
-                            px = width - padding;
-                            py = cy + (width / 2 - padding) * slope;
+                            px = logicalWidth - padding;
+                            py = (logicalHeight / 2) + ((logicalWidth / 2) - padding) * slope;
                         } else {
                             px = padding;
-                            py = cy - (width / 2 - padding) * slope;
+                            py = (logicalHeight / 2) - ((logicalWidth / 2) - padding) * slope;
                         }
 
                         if (py < padding) {
                             py = padding;
-                            px = cx + (padding - cy) / slope;
-                        } else if (py > height - padding) {
-                            py = height - padding;
-                            px = cx + (height - padding - cy) / slope;
+                            px = (logicalWidth / 2) + (padding - (logicalHeight / 2)) / slope;
+                        } else if (py > logicalHeight - padding) {
+                            py = logicalHeight - padding;
+                            px = (logicalWidth / 2) + (logicalHeight - padding - (logicalHeight / 2)) / slope;
                         }
 
-                        px = Math.max(padding, Math.min(width - padding, px));
-                        py = Math.max(padding, Math.min(height - padding, py));
+                        px = Math.max(padding, Math.min(logicalWidth - padding, px));
+                        py = Math.max(padding, Math.min(logicalHeight - padding, py));
 
-                        const angle = Math.atan2(enemy.y - py, enemy.x - px) * 180 / Math.PI + 90;
+                        const angle = Math.atan2(enemy.y - cy, enemy.x - cx) * 180 / Math.PI + 90;
 
                         el.style.opacity = '1';
                         el.style.transform = `translate(${px - 16}px, ${py - 16}px) rotate(${angle}deg)`;
@@ -298,30 +315,45 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         return () => {
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, [status, enemies, width, height, player, sessionStartTime]);
+    }, [status, enemies, width, height, player, sessionStartTime, layout.elements.comboPanel.offset]);
 
     // ---------- RENDER ----------
     if (status === GameStatus.MENU) return null;
 
     return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-[100]">
+        <div
+            className="absolute inset-0 pointer-events-none overflow-hidden select-none z-[100]"
+            style={{
+                '--hud-scale': globalScale.toString(),
+                transform: `scale(${globalScale})`,
+                transformOrigin: 'top left',
+                width: `${100 / globalScale}%`,
+                height: `${100 / globalScale}%`
+            } as React.CSSProperties}
+        >
             <NearDeathGlow />
-            <WaveTimer />
-            <FPSCounter />
+            {layout.elements.waveTimer.visible && <WaveTimer />}
+            {(layout.elements.fpsCounter.visible || showFPSSource) && <FPSCounter />}
             <EnemyPointers containerRef={pointerContainerRef} />
             <LevelUpFlash intensity={flash} />
             <ClutchAnnouncement active={clutchActive} />
-            <ComboPanel
-                containerRef={containerRef}
-                maxStreak={uiMeta.maxStreak}
-                totalBonusXp={uiMeta.totalBonusXp}
-            />
-            <MilestoneAnnouncer
-                show={showMilestone}
-                text={uiMeta.milestoneText}
-                color={uiMeta.milestoneColor}
-            />
-            <AchievementPopup achievement={achievement} />
+            {layout.elements.comboPanel.visible && (
+                <ComboPanel
+                    containerRef={containerRef}
+                    maxStreak={uiMeta.maxStreak}
+                    totalBonusXp={uiMeta.totalBonusXp}
+                />
+            )}
+            {layout.elements.milestoneAnnouncer.visible && (
+                <MilestoneAnnouncer
+                    show={showMilestone}
+                    text={uiMeta.milestoneText}
+                    color={uiMeta.milestoneColor}
+                />
+            )}
+            {layout.elements.achievementPopup.visible && (
+                <AchievementPopup achievement={achievement} />
+            )}
         </div>
     );
 };

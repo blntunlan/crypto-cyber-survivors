@@ -20,7 +20,7 @@ export const ComboPanel: React.FC<ComboPanelProps> = ({
     return (
         <div
             ref={containerRef}
-            className="absolute bottom-24 left-1/2 z-[115] bg-black/80 md:backdrop-blur-md rounded-xl p-3 border border-white/10 min-w-[150px] shadow-2xl transition-all duration-300 ease-out flex flex-col items-center"
+            className="absolute bottom-24 left-1/2 z-[115] bg-black/80 md:backdrop-blur-md rounded-xl p-3 border border-white/10 min-w-[150px] shadow-2xl transition-all duration-300 ease-out flex flex-col items-center pointer-events-none"
             style={{ opacity: 0, transform: 'translateX(-50%) translateY(20px)', willChange: 'transform, opacity' }}
         >
             {/* Stats Row */}

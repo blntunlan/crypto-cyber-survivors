@@ -109,8 +109,9 @@ class ComboSystemClass {
     recordKill(): void {
         const now = Date.now();
 
-        // Check if combo should reset
-        if (this.state.lastKillTime > 0 && now - this.state.lastKillTime > COMBO_TIMEOUT_MS) {
+        // Check if combo should reset - account for paused time
+        const effectiveElapsed = now - this.state.lastKillTime - this.totalPausedTime;
+        if (this.state.lastKillTime > 0 && effectiveElapsed > COMBO_TIMEOUT_MS) {
             this.resetCombo();
         }
 

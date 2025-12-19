@@ -41,7 +41,6 @@ class MilestoneServiceClass {
     private static instance: MilestoneServiceClass | null = null;
     private achievedMilestones: Set<string> = new Set();
     private totalKills: number = 0;
-    private sessionStartTime: number = 0;
 
     private constructor() {
         // Subscribe to game events
@@ -61,7 +60,7 @@ class MilestoneServiceClass {
      * Start tracking for a new session
      */
     startSession(): void {
-        this.sessionStartTime = Date.now();
+        // No longer using sessionStartTime, but kept for method compatibility
     }
 
     /**
@@ -70,7 +69,6 @@ class MilestoneServiceClass {
     reset(): void {
         this.achievedMilestones.clear();
         this.totalKills = 0;
-        this.sessionStartTime = 0;
     }
 
     /**
@@ -91,9 +89,7 @@ class MilestoneServiceClass {
     /**
      * Check for time-based milestones (called from game loop)
      */
-    checkTimeMilestones(): void {
-        if (this.sessionStartTime === 0) return;
-        const elapsedSeconds = Math.floor((Date.now() - this.sessionStartTime) / 1000);
+    checkTimeMilestones(elapsedSeconds: number): void {
         this.checkMilestones('time', elapsedSeconds);
     }
 

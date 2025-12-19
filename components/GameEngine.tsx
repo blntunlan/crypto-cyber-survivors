@@ -10,11 +10,15 @@ import { MetricsService } from '../services/MetricsService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { ComboSystem } from '../services/ComboSystem';
 import { GAME_STATE_DEFAULTS } from '../services/GameStateManager';
+import { getHUDLayout } from '../config/UILayout';
+import { useGameStore } from '../stores/gameStore';
 
 import { PhysicsSystem } from '../services/PhysicsSystem';
 import { SpawnSystem } from '../services/SpawnSystem';
 import { CombatSystem } from '../services/CombatSystem';
 import { GameHUD } from './GameHUD';
+import { MobileControls } from './mobile';
+import { useDevice } from '../hooks/useDevice';
 
 interface GameEngineProps {
   status: GameStatus;
@@ -47,11 +51,20 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const requestRef = useRef<number | undefined>(undefined);
   const pool = useRef(new PoolManager());
   const renderer = useRef(new GameRenderer());
-  const { getMovementVector, isSpacePressed } = useGameInput();
+  const {
+    getMovementVector,
+    isSpacePressed,
+    setTouchMovement,
+    setTouchDash,
+    consumeDash
+  } = useGameInput();
+  const device = useDevice();
+  const mobileSettings = useGameStore(state => state.mobile);
 
   const state = useRef<GameState>({
     bgCandles: [] as Candle[],
     lastFireTime: 0,
+    fireTimer: 0,
     spawnTimer: 0,
     shake: 0,
     critFlash: 0,
@@ -64,6 +77,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     dashTimer: 0,
     dashCooldownTimer: 0,
     dashTrail: [],
+    dashTrailAccumulator: 0,
   });
 
   useEffect(() => {
@@ -135,7 +149,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     const player = playerRef.current;
     const p = pool.current;
 
-    const deltaTime = s.lastTime ? time - s.lastTime : 16.67;
+    const deltaMs = s.lastTime ? time - s.lastTime : 16.67;
+    // Cap delta at 100ms to prevent giant leaps after lag or tab switch
+    const deltaTime = Math.min(deltaMs, 100);
     const dtFactor = deltaTime / 16.67;
     s.lastTime = time;
 
@@ -153,11 +169,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (status === GameStatus.PLAYING) {
       // Handle Level Up Freeze
       if (s.levelUpFreeze > 0) {
+        // Pause combo timer during freeze
+        ComboSystem.pause();
+
         s.levelUpFreeze -= deltaTime;
         // Reset shake during level up screen
         s.shake = 0;
         s.critFlash = 0;
         if (s.levelUpFreeze <= 0) {
+          // Resume combo timer after freeze
+          ComboSystem.resume();
           onLevelUp();
         }
         // During freeze, we still want to draw but not update physics
@@ -168,6 +189,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
       if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+
+      // Update difficulty time-based factors
+      DifficultyManager.update(deltaTime);
 
       // Update combo system
       ComboSystem.update();
@@ -194,9 +218,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         s.dashTrail.push({ x: player.x, y: player.y });
         if (s.dashTrail.length > 8) s.dashTrail.shift();
       } else {
-        // Fade out trail
+        // Fade out trail - frame-rate independent using accumulator
         if (s.dashTrail.length > 0) {
-          s.dashTrail.shift();
+          s.dashTrailAccumulator += dtFactor;
+          while (s.dashTrailAccumulator >= 1) {
+            if (s.dashTrail.length > 0) {
+              s.dashTrail.shift();
+            }
+            s.dashTrailAccumulator -= 1;
+          }
+        } else {
+          s.dashTrailAccumulator = 0;
         }
       }
       if (s.dashCooldownTimer > 0) {
@@ -211,15 +243,28 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         s.dashTimer = GAME_ENGINE.DASH_DURATION;
         s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
         audio.playDash();
+        consumeDash();
       }
 
       if (dx !== 0 || dy !== 0) {
         const mag = Math.hypot(dx, dy);
         let speedMult = 1;
-        if (s.isDashing) speedMult = GAME_ENGINE.DASH_SPEED_MULTIPLIER;
 
-        player.x += (dx / mag) * player.speed * speedMult * dtFactor;
-        player.y += (dy / mag) * player.speed * speedMult * dtFactor;
+        // Support analog move: if mag < 1 (joystick), move slower.
+        // If mag > 1 (keyboard diagonals), normalize to 1.
+        let inputFactor = Math.min(1, mag);
+
+        if (s.isDashing) {
+          speedMult = GAME_ENGINE.DASH_SPEED_MULTIPLIER;
+          // Forced fixed distance for dash, even if joystick is slightly pushed
+          inputFactor = 1.0;
+        }
+
+        const dirX = dx / mag;
+        const dirY = dy / mag;
+
+        player.x += dirX * inputFactor * player.speed * speedMult * dtFactor;
+        player.y += dirY * inputFactor * player.speed * speedMult * dtFactor;
       }
 
       player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
@@ -230,12 +275,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           ? { r: 2, g: lerp(6, 40, Math.min(1, marketData.pnl * 20)), b: 10 }
           : { r: lerp(2, 40, Math.min(1, Math.abs(marketData.pnl) * 20)), g: 2, b: 2 };
 
-      s.currentBg.r = lerp(s.currentBg.r, targetBg.r, 0.05);
-      s.currentBg.g = lerp(s.currentBg.g, targetBg.g, 0.05);
-      s.currentBg.b = lerp(s.currentBg.b, targetBg.b, 0.05);
+      const bgLerpFactor = 1 - Math.pow(0.95, dtFactor);
+      s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
+      s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
+      s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
 
       // Combat System - Auto Fire
-      CombatSystem.processAutoFire(p, player, s, time);
+      CombatSystem.processAutoFire(p, player, s, deltaTime);
+
+      const layout = getHUDLayout(device.platform);
 
       // Update Spawn System
       s.spawnTimer = SpawnSystem.update(
@@ -245,7 +293,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         width,
         height,
         position,
-        p
+        p,
+        layout.maxEnemies
       );
 
       // Update Physics & Collisions
@@ -287,8 +336,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         requestRef.current = undefined;
       }
     };
+    // Note: removed marketData and position to prevent shuttering on every update
+    // The update loop naturally reads these from current props on each frame
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marketData.difficulty, position, status, width, height]);
+  }, [status, width, height]);
 
   return (
     <div className="relative w-full h-full cursor-none">
@@ -301,6 +352,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         width={width}
         height={height}
       />
+
+      {device.isMobile && (
+        <MobileControls
+          status={status}
+          settings={mobileSettings}
+          onMove={setTouchMovement}
+          onDash={() => setTouchDash(true)}
+          dashCooldownMs={GAME_ENGINE.DASH_COOLDOWN}
+        />
+      )}
     </div>
   );
 };

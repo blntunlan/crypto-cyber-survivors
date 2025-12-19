@@ -29,12 +29,12 @@ class DifficultyManagerClass {
   private static instance: DifficultyManagerClass | null = null;
 
   // State
-  private gameStartTime: number = 0;
+  private totalElapsedSeconds: number = 0;
   private lastPnlValues: number[] = [];
   private currentWavePhase: WavePhase = 'building';
   private waveTimer: number = 0;
   private killStreak: number = 0;
-  private lastKillTime: number = 0;
+  private lastKillStreakTime: number = 0;
 
   // Wave configuration (seconds)
   private readonly WAVE_DURATIONS: Record<WavePhase, number> = {
@@ -64,51 +64,33 @@ class DifficultyManagerClass {
    * Start tracking difficulty for a new game
    */
   startGame(): void {
-    this.gameStartTime = Date.now();
+    this.totalElapsedSeconds = 0;
     this.lastPnlValues = [];
     this.currentWavePhase = 'building';
     this.waveTimer = 0;
     this.killStreak = 0;
-    this.lastKillTime = 0;
+    this.lastKillStreakTime = 0;
   }
 
   /**
    * Record a kill for streak tracking
    */
   recordKill(): void {
-    const now = Date.now();
-    if (now - this.lastKillTime < 3000) {
+    if (this.totalElapsedSeconds - this.lastKillStreakTime < 3.0) {
       this.killStreak += 1;
     } else {
       this.killStreak = 1;
     }
-    this.lastKillTime = now;
+    this.lastKillStreakTime = this.totalElapsedSeconds;
   }
 
-  /**
-   * Update wave phase based on time
-   */
-  private updateWavePhase(deltaMs: number): void {
-    this.waveTimer += deltaMs / 1000;
-
-    const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
-    if (this.waveTimer >= currentDuration) {
-      this.waveTimer = 0;
-
-      // Cycle through phases
-      const phases: WavePhase[] = ['calm', 'building', 'intense', 'peak'];
-      const currentIndex = phases.indexOf(this.currentWavePhase);
-      this.currentWavePhase = phases[(currentIndex + 1) % phases.length] ?? 'calm';
-    }
-  }
 
   /**
    * Calculate base time factor (always increasing)
    */
   private getBaseTimeFactor(): number {
-    const elapsedSeconds = (Date.now() - this.gameStartTime) / 1000;
     // Increases by 15% per minute, caps at 2.5x
-    return Math.min(2.5, 1 + (elapsedSeconds / 60) * 0.15);
+    return Math.min(2.5, 1 + (this.totalElapsedSeconds / 60) * 0.15);
   }
 
   /**
@@ -197,17 +179,34 @@ class DifficultyManagerClass {
   }
 
   /**
+   * Main game loop update for time-based difficulty factors
+   */
+  update(deltaMs: number): void {
+    const dtSeconds = deltaMs / 1000;
+    this.totalElapsedSeconds += dtSeconds;
+    this.waveTimer += dtSeconds;
+
+    const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
+    if (this.waveTimer >= currentDuration) {
+      this.waveTimer = 0;
+
+      // Cycle through phases
+      const phases: WavePhase[] = ['calm', 'building', 'intense', 'peak'];
+      const currentIndex = phases.indexOf(this.currentWavePhase);
+      this.currentWavePhase = phases[(currentIndex + 1) % phases.length] ?? 'calm';
+    }
+  }
+
+  /**
    * Main difficulty calculation
+   * Called when market data updates or periodically
    */
   calculate(
     pnl: number,
     atrPercent: number,
     level: number,
-    hpPercent: number,
-    deltaMs: number = 16.67
+    hpPercent: number
   ): DifficultyOutput {
-    // Update wave phase
-    this.updateWavePhase(deltaMs);
 
     // Calculate all factors
     const factors: DifficultyFactors = {
@@ -255,6 +254,13 @@ class DifficultyManagerClass {
    */
   getKillStreak(): number {
     return this.killStreak;
+  }
+
+  /**
+   * Get total active game time in seconds
+   */
+  getTotalElapsedSeconds(): number {
+    return this.totalElapsedSeconds;
   }
 
   private clamp(value: number, min: number, max: number): number {

@@ -1,7 +1,14 @@
 import { GameStatus, Player, GameState } from '../types';
 import { PoolManager } from './poolManager';
+import { screenService } from './ScreenService';
 
 export class GameRenderer {
+    private isMobileDevice: boolean = false;
+
+    constructor() {
+        this.isMobileDevice = screenService.isMobile();
+    }
+
     public render(
         ctx: CanvasRenderingContext2D,
         width: number,
@@ -143,7 +150,7 @@ export class GameRenderer {
 
     private drawGems(ctx: CanvasRenderingContext2D, pool: PoolManager) {
         pool.activeGems.forEach(g => {
-            if (g.isRare) {
+            if (g.isRare && !this.isMobileDevice) {
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = g.color;
             }
@@ -151,13 +158,13 @@ export class GameRenderer {
             ctx.beginPath();
             ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
             ctx.fill();
-            ctx.shadowBlur = 0;
+            if (!this.isMobileDevice) ctx.shadowBlur = 0;
         });
     }
 
     private drawBullets(ctx: CanvasRenderingContext2D, pool: PoolManager) {
         pool.activeBullets.forEach(b => {
-            if (b.isSuperCrit) {
+            if (b.isSuperCrit && !this.isMobileDevice) {
                 ctx.shadowBlur = 20;
                 ctx.shadowColor = b.color;
             }
@@ -165,7 +172,7 @@ export class GameRenderer {
             ctx.beginPath();
             ctx.arc(Math.round(b.x), Math.round(b.y), b.radius, 0, Math.PI * 2);
             ctx.fill();
-            ctx.shadowBlur = 0;
+            if (!this.isMobileDevice) ctx.shadowBlur = 0;
         });
     }
 
@@ -224,13 +231,15 @@ export class GameRenderer {
         });
         ctx.globalAlpha = 1;
 
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = player.color;
+        if (!this.isMobileDevice) {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = player.color;
+        }
         ctx.fillStyle = player.color;
         ctx.beginPath();
         ctx.arc(Math.round(player.x), Math.round(player.y), player.radius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
+        if (!this.isMobileDevice) ctx.shadowBlur = 0;
     }
 
 

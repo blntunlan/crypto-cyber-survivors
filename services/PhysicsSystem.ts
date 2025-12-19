@@ -77,14 +77,20 @@ export class PhysicsSystem {
             p.activeBullets.forEach(b => {
                 if (!e.active || !b.active) return;
 
-                const bDist = Math.hypot(e.x - b.x, e.y - b.y);
-                if (bDist < e.radius + b.radius) {
+                // Optimization: Use squared distance to avoid Math.hypot (sqrt) overhead
+                const dx = e.x - b.x;
+                const dy = e.y - b.y;
+                const distSq = dx * dx + dy * dy;
+                const combinedRadius = e.radius + b.radius;
+
+                if (distSq < combinedRadius * combinedRadius) {
                     e.health -= b.damage;
                     b.active = false;
 
                     // Knockback: push enemy in bullet direction
                     const kbStrength = 4;
-                    const bMag = Math.hypot(b.vx, b.vy) || 1;
+                    const bMagSq = b.vx * b.vx + b.vy * b.vy || 1;
+                    const bMag = Math.sqrt(bMagSq);
                     e.x += (b.vx / bMag) * kbStrength * dtFactor;
                     e.y += (b.vy / bMag) * kbStrength * dtFactor;
 
@@ -116,18 +122,22 @@ export class PhysicsSystem {
             });
         });
 
-        // 3. Player vs Gem Collisions (Magnet Logic)
         p.activeGems.forEach(g => {
-            const dist = Math.hypot(player.x - g.x, player.y - g.y);
+            const dx = player.x - g.x;
+            const dy = player.y - g.y;
+            const distSq = dx * dx + dy * dy;
             const range = GAME_ENGINE.GEM_MAGNET_BASE_RANGE + player.magnet;
+            const rangeSq = range * range;
 
-            if (dist < range) {
+            if (distSq < rangeSq) {
+                const dist = Math.sqrt(distSq);
                 const pull = this.lerp(12, 2, dist / range) * dtFactor;
                 g.x += ((player.x - g.x) / dist) * pull;
                 g.y += ((player.y - g.y) / dist) * pull;
             }
 
-            if (dist < player.radius + g.radius) {
+            const combinedRadius = player.radius + g.radius;
+            if (distSq < combinedRadius * combinedRadius) {
                 const xpGain = Math.floor(g.value * ComboSystem.getXpMultiplier());
                 player.exp += xpGain;
                 g.active = false;
@@ -138,7 +148,8 @@ export class PhysicsSystem {
                     isRare: g.isRare || false
                 });
 
-                if (player.exp >= player.nextLevelExp) {
+                // prevent multiple levelUpStart emissions if multiple gems collected in 1 frame
+                if (player.exp >= player.nextLevelExp && s.levelUpFreeze <= 0) {
                     s.levelUpFreeze = 500;
                     s.shake = 10;
                     EventBus.emit('levelUpStart', {});

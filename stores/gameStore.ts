@@ -11,6 +11,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
+import { MobileControlSettings, DEFAULT_MOBILE_SETTINGS } from '../types/MobileSettings';
 
 // ============================================
 // Types
@@ -28,6 +29,8 @@ export interface GraphicsSettings {
     showScreenShake: boolean;
     showDamageNumbers: boolean;
     reducedMotion: boolean;
+    hudScale: number;
+    showFPS: boolean;
 }
 
 export interface GameplaySettings {
@@ -60,6 +63,7 @@ export interface GameStoreState {
     audio: AudioSettings;
     graphics: GraphicsSettings;
     gameplay: GameplaySettings;
+    mobile: MobileControlSettings;
 
     // Progress
     progress: PlayerProgress;
@@ -84,6 +88,8 @@ export interface GameStoreActions {
     toggleScreenShake: () => void;
     toggleDamageNumbers: () => void;
     toggleReducedMotion: () => void;
+    setHudScale: (scale: number) => void;
+    toggleFPS: () => void;
 
     // Progress
     recordGameEnd: (score: number, level: number, survivalTime: number, kills: number) => void;
@@ -97,6 +103,12 @@ export interface GameStoreActions {
 
     // Tutorial
     markTutorialSeen: () => void;
+
+    // Mobile
+    setMobileSetting: <K extends keyof MobileControlSettings>(
+        key: K,
+        value: MobileControlSettings[K]
+    ) => void;
 
     // Utility
     resetSettings: () => void;
@@ -118,6 +130,8 @@ const DEFAULT_GRAPHICS: GraphicsSettings = {
     showScreenShake: true,
     showDamageNumbers: true,
     reducedMotion: false,
+    hudScale: 1.0,
+    showFPS: false,
 };
 
 const DEFAULT_GAMEPLAY: GameplaySettings = {
@@ -156,6 +170,7 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
             audio: DEFAULT_AUDIO,
             graphics: DEFAULT_GRAPHICS,
             gameplay: DEFAULT_GAMEPLAY,
+            mobile: DEFAULT_MOBILE_SETTINGS,
             progress: DEFAULT_PROGRESS,
             session: createNewSession(),
             hasSeenTutorial: false,
@@ -201,6 +216,16 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
             toggleReducedMotion: () =>
                 set((state) => ({
                     graphics: { ...state.graphics, reducedMotion: !state.graphics.reducedMotion },
+                })),
+
+            setHudScale: (scale) =>
+                set((state) => ({
+                    graphics: { ...state.graphics, hudScale: Math.max(0.5, Math.min(2.0, scale)) },
+                })),
+
+            toggleFPS: () =>
+                set((state) => ({
+                    graphics: { ...state.graphics, showFPS: !state.graphics.showFPS },
                 })),
 
             // Progress Actions
@@ -269,12 +294,19 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
                     hasSeenTutorial: true,
                 }),
 
+            // Mobile Actions
+            setMobileSetting: (key, value) =>
+                set((state) => ({
+                    mobile: { ...state.mobile, [key]: value },
+                })),
+
             // Reset Settings
             resetSettings: () =>
                 set({
                     audio: DEFAULT_AUDIO,
                     graphics: DEFAULT_GRAPHICS,
                     gameplay: DEFAULT_GAMEPLAY,
+                    mobile: DEFAULT_MOBILE_SETTINGS,
                 }),
         }),
         {
@@ -285,6 +317,7 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
                 audio: state.audio,
                 graphics: state.graphics,
                 gameplay: state.gameplay,
+                mobile: state.mobile,
                 progress: state.progress,
                 hasSeenTutorial: state.hasSeenTutorial,
                 lastPlayedVersion: state.lastPlayedVersion,

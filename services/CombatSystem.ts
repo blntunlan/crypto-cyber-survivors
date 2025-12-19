@@ -28,10 +28,12 @@ export class CombatSystem {
         pool: PoolManager,
         player: Player,
         state: GameState,
-        time: number
+        deltaMs: number
     ): void {
+        state.fireTimer += deltaMs;
+
         // Check fire rate cooldown
-        if (time - state.lastFireTime <= player.fireRate) {
+        if (state.fireTimer < player.fireRate) {
             return;
         }
 
@@ -42,8 +44,8 @@ export class CombatSystem {
         }
 
         // Fire projectiles
-        this.fireBullets(pool, player, nearest, state, time);
-        state.lastFireTime = time;
+        this.fireBullets(pool, player, nearest, state, 0);
+        state.fireTimer = 0;
         audio.playShoot();
     }
 

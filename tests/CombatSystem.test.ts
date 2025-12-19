@@ -60,6 +60,7 @@ describe('CombatSystem', () => {
             critFlash: 0,
             critFlashColor: '#fff',
             lastFireTime: 0,
+            fireTimer: 0,
             dashTrail: [],
             bgCandles: [],
             currentBg: { r: 15, g: 23, b: 42 },
@@ -83,31 +84,33 @@ describe('CombatSystem', () => {
 
         it('should not fire when fire rate cooldown is active', () => {
             mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
-            mockState.lastFireTime = 900; // Only 100ms ago
+            mockState.fireTimer = 100; // Accumulated 100ms
             mockPlayer.fireRate = 300;
 
-            CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+            CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 100); // +100 = 200 total
 
             expect(mockPool.getBullet).not.toHaveBeenCalled();
+            expect(mockState.fireTimer).toBe(200);
         });
 
         it('should fire when cooldown has passed and enemy exists', () => {
             mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
-            mockState.lastFireTime = 0;
+            mockState.fireTimer = 0;
             mockPlayer.fireRate = 300;
 
-            CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+            CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 400);
 
             expect(mockPool.getBullet).toHaveBeenCalled();
         });
 
-        it('should update lastFireTime when firing', () => {
+        it('should reset fireTimer when firing', () => {
             mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
-            mockState.lastFireTime = 0;
+            mockState.fireTimer = 0;
+            mockPlayer.fireRate = 300;
 
             CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
-            expect(mockState.lastFireTime).toBe(1000);
+            expect(mockState.fireTimer).toBe(0);
         });
 
         it('should fire multiple projectiles when player has projectiles > 1', () => {
