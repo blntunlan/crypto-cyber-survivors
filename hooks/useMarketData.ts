@@ -26,6 +26,7 @@ export const useMarketData = (
     const [_priceHistory, setPriceHistory] = useState<number[]>([]);
     const trHistoryRef = useRef<number[]>([]);
     const prevCloseRef = useRef<number | null>(null);
+    const lastUpdateTimeRef = useRef<number>(0);
 
     // Use refs for inputs to avoid stale closures in market service callback
     const gameStatusRef = useRef(gameStatus);
@@ -92,13 +93,20 @@ export const useMarketData = (
             const hpPercent = (playerRef.current.hp / playerRef.current.maxHp) * 100;
             const playerLevel = playerRef.current.level;
 
+            // Calculate real deltaTime for wave phase timing
+            const now = performance.now();
+            const deltaMs = lastUpdateTimeRef.current > 0
+                ? Math.min(now - lastUpdateTimeRef.current, 1000) // Cap at 1 second to prevent jumps
+                : 16.67;
+            lastUpdateTimeRef.current = now;
+
             // Calculate Difficulty using EFFECTIVE PnL
             const difficultyOutput = DifficultyManager.calculate(
                 effectivePnl, // Use amplified PnL for difficulty
                 atrPercent,
                 playerLevel,
                 hpPercent,
-                16.67
+                deltaMs
             );
 
             setMarketData({

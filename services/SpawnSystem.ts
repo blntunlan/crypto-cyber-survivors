@@ -2,6 +2,9 @@ import { MarketPosition } from '../types';
 import { PoolManager } from './poolManager';
 import { GAME_ENGINE } from '../constants';
 
+// Max enemies on screen to prevent performance issues
+const MAX_ENEMIES = 150;
+
 export class SpawnSystem {
     public static update(
         deltaTime: number,
@@ -16,9 +19,13 @@ export class SpawnSystem {
 
         const scaledDifficulty = 1 + (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE;
 
-        if (newTimer > GAME_ENGINE.SPAWN_TIMER_BASE / scaledDifficulty) {
+        // Check enemy limit before spawning
+        if (pool.activeEnemies.length < MAX_ENEMIES && newTimer > GAME_ENGINE.SPAWN_TIMER_BASE / scaledDifficulty) {
             const { x, y } = this.getRandomSpawnPosition(width, height);
             pool.getEnemy(x, y, difficulty, position);
+            newTimer = 0;
+        } else if (newTimer > GAME_ENGINE.SPAWN_TIMER_BASE / scaledDifficulty) {
+            // Reset timer even if at limit, so spawning resumes immediately when enemies die
             newTimer = 0;
         }
         return newTimer;

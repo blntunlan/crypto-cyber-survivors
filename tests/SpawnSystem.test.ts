@@ -10,7 +10,8 @@ describe('SpawnSystem', () => {
 
     beforeEach(() => {
         mockPool = {
-            getEnemy: vi.fn()
+            getEnemy: vi.fn(),
+            activeEnemies: [] // Mock active enemies array for limit check
         };
     });
 
