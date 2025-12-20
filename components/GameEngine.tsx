@@ -12,7 +12,7 @@ import { ComboSystem } from '../services/ComboSystem';
 import { TimeService } from '../services/TimeService';
 import { GAME_STATE_DEFAULTS } from '../services/GameStateManager';
 import { getHUDLayout } from '../config/UILayout';
-import { useGameStore } from '../stores/gameStore';
+import { useGameStore, selectGraphics } from '../stores/gameStore';
 
 import { PhysicsSystem } from '../services/PhysicsSystem';
 import { SpawnSystem } from '../services/SpawnSystem';
@@ -52,15 +52,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const requestRef = useRef<number | undefined>(undefined);
   const pool = useRef(new PoolManager());
   const renderer = useRef(new GameRenderer());
-  const {
-    getMovementVector,
-    isSpacePressed,
-    setTouchMovement,
-    setTouchDash,
-    consumeDash
-  } = useGameInput();
+  const { getMovementVector, isSpacePressed, setTouchMovement, setTouchDash, consumeDash } =
+    useGameInput();
   const device = useDevice();
   const mobileSettings = useGameStore(state => state.mobile);
+  const graphicsSettings = useGameStore(selectGraphics);
 
   const state = useRef<GameState>({
     bgCandles: [] as Candle[],
@@ -85,7 +81,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const lastSyncedStats = useRef({
     hp: 0,
     exp: 0,
-    level: 0
+    level: 0,
   });
 
   useEffect(() => {
@@ -124,7 +120,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       state.current.critFlash = 0;
     }
   }, [status]);
-
 
   // Listen for afterReset event from GameStateManager to fully reset all game state
   useEffect(() => {
@@ -313,7 +308,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         lastSyncedStats.current = {
           hp: player.hp,
           exp: player.exp,
-          level: player.level
+          level: player.level,
         };
       }
 
@@ -329,6 +324,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Pass graphics settings to renderer
+    const graphics = {
+      showParticles: graphicsSettings.showParticles,
+      showDamageNumbers: graphicsSettings.showDamageNumbers,
+      showScreenShake: graphicsSettings.showScreenShake,
+    };
+
     renderer.current.render(
       ctx,
       width,
@@ -336,7 +339,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       state.current,
       playerRef.current,
       pool.current,
-      status
+      status,
+      graphics
     );
   }
 
