@@ -24,6 +24,8 @@ import {
 // DEVICE BENCHMARK SERVICE
 // =============================================================================
 
+const MANUAL_PROFILE_KEY = 'ccs_manual_perf_profile';
+
 class DeviceBenchmarkServiceClass {
   private state: BenchmarkState = {
     status: BenchmarkStatus.IDLE,
@@ -36,9 +38,27 @@ class DeviceBenchmarkServiceClass {
   private listeners: Set<(state: BenchmarkState) => void> = new Set();
   private cachedConfig: PerformanceConfig | null = null;
 
+  constructor() {
+    this.loadManualProfile();
+  }
+
   // ===========================================================================
   // PUBLIC API
   // ===========================================================================
+
+  private loadManualProfile(): boolean {
+    try {
+      const stored = localStorage.getItem(MANUAL_PROFILE_KEY);
+      if (stored && Object.values(DeviceProfile).includes(stored as DeviceProfile)) {
+        const profile = stored as DeviceProfile;
+        this.cachedConfig = getPerformanceConfig(profile);
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }
 
   /**
    * Get current benchmark state
@@ -65,7 +85,10 @@ class DeviceBenchmarkServiceClass {
       if (cached) {
         this.state.result = cached;
         this.state.status = BenchmarkStatus.CACHED;
-        this.cachedConfig = getPerformanceConfig(cached.profile);
+        // Only update config from cache if NO manual profile override exists
+        if (!localStorage.getItem(MANUAL_PROFILE_KEY)) {
+          this.cachedConfig = getPerformanceConfig(cached.profile);
+        }
         this.notifyListeners();
         Logger.info('[Benchmark] Using cached result', { profile: cached.profile });
         return cached;
@@ -83,7 +106,13 @@ class DeviceBenchmarkServiceClass {
       this.state.result = result;
       this.state.status = BenchmarkStatus.COMPLETED;
       this.state.progress = 100;
-      this.cachedConfig = getPerformanceConfig(result.profile);
+      this.state.progress = 100;
+
+      // Only update config if NO manual profile override exists
+      if (!localStorage.getItem(MANUAL_PROFILE_KEY)) {
+        this.cachedConfig = getPerformanceConfig(result.profile);
+      }
+
       this.saveToCache(result);
       this.notifyListeners();
       Logger.info('[Benchmark] Completed', {
@@ -111,7 +140,12 @@ class DeviceBenchmarkServiceClass {
     if (this.cachedConfig) {
       return this.cachedConfig;
     }
-    // Default to MEDIUM if benchmark hasn't run
+    // Try to load manual profile one more time if config is null
+    if (this.loadManualProfile()) {
+      return this.cachedConfig!;
+    }
+
+    // Default to MEDIUM if benchmark hasn't run and no manual profile
     return getPerformanceConfig(DeviceProfile.MEDIUM);
   }
 
@@ -120,6 +154,11 @@ class DeviceBenchmarkServiceClass {
    */
   setManualProfile(profile: DeviceProfile): void {
     this.cachedConfig = getPerformanceConfig(profile);
+    try {
+      localStorage.setItem(MANUAL_PROFILE_KEY, profile);
+    } catch {
+      // ignore
+    }
     Logger.info('[Benchmark] Manual profile set', { profile });
     this.notifyListeners();
   }
@@ -128,10 +167,20 @@ class DeviceBenchmarkServiceClass {
    * Reset to automatic profile (from benchmark result)
    */
   resetToAuto(): void {
+    try {
+      localStorage.removeItem(MANUAL_PROFILE_KEY);
+    } catch {
+      // ignore
+    }
+
     if (this.state.result) {
       this.cachedConfig = getPerformanceConfig(this.state.result.profile);
       Logger.info('[Benchmark] Reset to auto profile', { profile: this.state.result.profile });
       this.notifyListeners();
+    } else {
+      // If no benchmark result, clear cached config so it defaults or re-runs
+      this.cachedConfig = null;
+      this.runBenchmark(false);
     }
   }
 
@@ -141,6 +190,7 @@ class DeviceBenchmarkServiceClass {
   clearCache(): void {
     try {
       localStorage.removeItem(BENCHMARK_CONFIG.CACHE_KEY);
+      localStorage.removeItem(MANUAL_PROFILE_KEY);
       this.state.result = null;
       this.state.status = BenchmarkStatus.IDLE;
       this.cachedConfig = null;
