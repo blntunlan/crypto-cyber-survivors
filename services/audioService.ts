@@ -15,7 +15,17 @@
 import { Howl, Howler } from 'howler';
 
 // Sound type for synthesized effects
-type SoundType = 'shoot' | 'crit' | 'hit' | 'gem' | 'levelUp' | 'dash' | 'combo' | 'death' | 'button' | 'slotTick';
+type SoundType =
+  | 'shoot'
+  | 'crit'
+  | 'hit'
+  | 'gem'
+  | 'levelUp'
+  | 'dash'
+  | 'combo'
+  | 'death'
+  | 'button'
+  | 'slotTick';
 
 // Sound configuration
 interface SoundConfig {
@@ -33,7 +43,7 @@ const SOUND_DEFAULTS: Record<SoundType, SoundConfig> = {
   combo: { volume: 0.04 },
   death: { volume: 0.08 },
   button: { volume: 0.03 },
-  slotTick: { volume: 0.012 },
+  slotTick: { volume: 0.1 },
 };
 
 export class AudioService {
@@ -48,9 +58,9 @@ export class AudioService {
   // Cooldowns to prevent sound spam
   private lastPlayTime: Map<SoundType, number> = new Map();
   private readonly COOLDOWN_MS: Partial<Record<SoundType, number>> = {
-    shoot: 50,    // Allow rapid fire sound
-    gem: 30,      // Rapid gem collection
-    hit: 100,     // Damage cooldown
+    shoot: 50, // Allow rapid fire sound
+    gem: 30, // Rapid gem collection
+    hit: 100, // Damage cooldown
     slotTick: 40, // Prevent slot sound overlap artifacts
   };
 
@@ -135,28 +145,61 @@ export class AudioService {
 
   /**
    * Play shoot sound - quick laser pew
+   * @param fireRate - Current fire rate (higher = faster shooting = higher pitch)
+   * @param projectileCount - Number of projectiles (more = richer sound)
    */
-  playShoot(): void {
+  playShoot(fireRate: number = 1, projectileCount: number = 1): void {
     if (this.isOnCooldown('shoot')) return;
     this.init();
     if (!this.ctx || !this.masterGain) return;
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
     const vol = SOUND_DEFAULTS.shoot.volume;
 
+    // Random pitch variation (±15%) for organic feel
+    const pitchVariation = 0.85 + Math.random() * 0.3;
+
+    // Dynamic pitch based on fire rate (1x = 400Hz, 3x = 600Hz)
+    const basePitch = (350 + fireRate * 50) * pitchVariation;
+    const endPitch = basePitch * 0.4;
+
+    // Main shot sound
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.08);
+    osc.frequency.setValueAtTime(basePitch, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(endPitch, this.ctx.currentTime + 0.07);
 
     gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.08);
+    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.07);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start();
-    osc.stop(this.ctx.currentTime + 0.08);
+    osc.stop(this.ctx.currentTime + 0.07);
+
+    // Extra harmonics for multi-projectile shots
+    if (projectileCount > 1) {
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(basePitch * 1.5, this.ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(endPitch * 1.5, this.ctx.currentTime + 0.05);
+
+      gain2.gain.setValueAtTime(
+        (vol * 0.3 * Math.min(projectileCount, 5)) / 5,
+        this.ctx.currentTime
+      );
+      gain2.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.05);
+
+      osc2.connect(gain2);
+      gain2.connect(this.masterGain);
+
+      osc2.start();
+      osc2.stop(this.ctx.currentTime + 0.05);
+    }
   }
 
   /**
@@ -310,7 +353,7 @@ export class AudioService {
     this.init();
     if (!this.ctx || !this.masterGain) return;
 
-    const baseFreq = 600 + (multiplier * 50); // Higher pitch for higher combos
+    const baseFreq = 600 + multiplier * 50; // Higher pitch for higher combos
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const vol = SOUND_DEFAULTS.combo.volume;
@@ -392,7 +435,7 @@ export class AudioService {
       const gain = this.ctx!.createGain();
 
       osc.type = 'triangle';
-      const freq = 600 + (i * 200);
+      const freq = 600 + i * 200;
       osc.frequency.setValueAtTime(freq, this.ctx!.currentTime + delay);
       osc.frequency.exponentialRampToValueAtTime(freq * 1.5, this.ctx!.currentTime + delay + 0.15);
 
@@ -516,7 +559,7 @@ export class AudioService {
     });
 
     // Casino "ding-ding-ding" finish
-    [0.5, 0.6, 0.7, 0.8, 0.9].forEach((delay) => {
+    [0.5, 0.6, 0.7, 0.8, 0.9].forEach(delay => {
       const osc = this.ctx!.createOscillator();
       const gain = this.ctx!.createGain();
 
@@ -549,9 +592,12 @@ export class AudioService {
       const gain = this.ctx!.createGain();
 
       osc.type = 'sawtooth';
-      const startFreq = 300 - (i * 50);
+      const startFreq = 300 - i * 50;
       osc.frequency.setValueAtTime(startFreq, this.ctx!.currentTime + delay);
-      osc.frequency.exponentialRampToValueAtTime(startFreq * 0.3, this.ctx!.currentTime + delay + 0.3);
+      osc.frequency.exponentialRampToValueAtTime(
+        startFreq * 0.3,
+        this.ctx!.currentTime + delay + 0.3
+      );
 
       gain.gain.setValueAtTime(vol, this.ctx!.currentTime + delay);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx!.currentTime + delay + 0.4);
@@ -630,44 +676,8 @@ export class AudioService {
    * reelNumber: 1, 2, or 3 - pitch increases for each
    */
   public playReelStop(_reelNumber: number): void {
-    // Muted by user request - keeping only spin ticks active
-    /*
-    this.init();
-    if (!this.ctx || !this.masterGain) return;
-
-    const baseFreq = 300 + (_reelNumber * 100);
-
-    // Main thud
-    const osc1 = this.ctx.createOscillator();
-    const gain1 = this.ctx.createGain();
-
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
-    osc1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, this.ctx.currentTime + 0.15);
-
-    gain1.gain.setValueAtTime(0.08, this.ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
-
-    // Metallic "ding" overlay
-    const osc2 = this.ctx.createOscillator();
-    const gain2 = this.ctx.createGain();
-
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(baseFreq * 3, this.ctx.currentTime);
-
-    gain2.gain.setValueAtTime(0.03, this.ctx.currentTime);
-    gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
-
-    osc1.connect(gain1);
-    osc2.connect(gain2);
-    gain1.connect(this.masterGain);
-    gain2.connect(this.masterGain);
-
-    osc1.start();
-    osc2.start();
-    osc1.stop(this.ctx.currentTime + 0.2);
-    osc2.stop(this.ctx.currentTime + 0.1);
-    */
+    // Disabled - synthesized sounds don't work well for this effect
+    // TODO: Use actual audio file for casino reel stop sound
   }
 
   /**
@@ -762,7 +772,11 @@ export class AudioService {
   /**
    * Load a sound file (for future music/voice)
    */
-  loadSound(id: string, src: string | string[], options?: { loop?: boolean; volume?: number }): Howl {
+  loadSound(
+    id: string,
+    src: string | string[],
+    options?: { loop?: boolean; volume?: number }
+  ): Howl {
     if (this.howlCache.has(id)) {
       return this.howlCache.get(id)!;
     }
@@ -802,7 +816,7 @@ export class AudioService {
    * Unload all sounds (cleanup)
    */
   unloadAll(): void {
-    this.howlCache.forEach((howl) => howl.unload());
+    this.howlCache.forEach(howl => howl.unload());
     this.howlCache.clear();
   }
 }
