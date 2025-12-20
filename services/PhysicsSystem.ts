@@ -89,10 +89,9 @@ export class PhysicsSystem {
 
                     // Knockback: push enemy in bullet direction
                     const kbStrength = 4;
-                    const bMagSq = b.vx * b.vx + b.vy * b.vy || 1;
-                    const bMag = Math.sqrt(bMagSq);
-                    e.x += (b.vx / bMag) * kbStrength * dtFactor;
-                    e.y += (b.vy / bMag) * kbStrength * dtFactor;
+                    // Optimized: Use constant BULLET_SPEED instead of calculating magnitude
+                    e.x += (b.vx / GAME_ENGINE.BULLET_SPEED) * kbStrength * dtFactor;
+                    e.y += (b.vy / GAME_ENGINE.BULLET_SPEED) * kbStrength * dtFactor;
 
                     if (b.isCrit || b.isSuperCrit) {
                         s.critFlash = b.isSuperCrit ? 0.15 : 0.08;
@@ -111,7 +110,7 @@ export class PhysicsSystem {
                         e.x + (Math.random() - 0.5) * 10,
                         e.y - 20,
                         b.damage.toFixed(0),
-                        b.isSuperCrit ? COLORS.SUPER_CRIT : b.isCrit ? COLORS.CRIT : COLORS.SLOT_SILVER,
+                        b.isSuperCrit ? COLORS.CASINO_RED : b.isCrit ? COLORS.CASINO_GOLD : COLORS.SLOT_SILVER,
                         b.isSuperCrit ? 36 : b.isCrit ? 28 : 20
                     );
 

@@ -15,7 +15,7 @@
 import { Howl, Howler } from 'howler';
 
 // Sound type for synthesized effects
-type SoundType = 'shoot' | 'crit' | 'hit' | 'gem' | 'levelUp' | 'dash' | 'combo' | 'death' | 'button';
+type SoundType = 'shoot' | 'crit' | 'hit' | 'gem' | 'levelUp' | 'dash' | 'combo' | 'death' | 'button' | 'slotTick';
 
 // Sound configuration
 interface SoundConfig {
@@ -33,6 +33,7 @@ const SOUND_DEFAULTS: Record<SoundType, SoundConfig> = {
   combo: { volume: 0.04 },
   death: { volume: 0.08 },
   button: { volume: 0.03 },
+  slotTick: { volume: 0.012 },
 };
 
 export class AudioService {
@@ -50,6 +51,7 @@ export class AudioService {
     shoot: 50,    // Allow rapid fire sound
     gem: 30,      // Rapid gem collection
     hit: 100,     // Damage cooldown
+    slotTick: 40, // Prevent slot sound overlap artifacts
   };
 
   constructor() {
@@ -601,36 +603,39 @@ export class AudioService {
    * Higher pitch = more anticipation
    */
   playSlotTick(pitch: number = 1): void {
+    if (this.isOnCooldown('slotTick')) return;
     this.init();
     if (!this.ctx || !this.masterGain) return;
 
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    const vol = SOUND_DEFAULTS.slotTick.volume;
 
     osc.type = 'sine';
-    // Base frequency scaled by pitch (1.0 = normal, higher = more excited)
     osc.frequency.setValueAtTime(800 * pitch, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(600 * pitch, this.ctx.currentTime + 0.03);
+    osc.frequency.exponentialRampToValueAtTime(400 * pitch, this.ctx.currentTime + 0.02);
 
-    gain.gain.setValueAtTime(0.015, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start();
-    osc.stop(this.ctx.currentTime + 0.04);
+    osc.stop(this.ctx.currentTime + 0.03);
   }
 
   /**
    * Play reel stop sound - satisfying "clunk"
    * reelNumber: 1, 2, or 3 - pitch increases for each
    */
-  playReelStop(reelNumber: number = 1): void {
+  public playReelStop(_reelNumber: number): void {
+    // Muted by user request - keeping only spin ticks active
+    /*
     this.init();
     if (!this.ctx || !this.masterGain) return;
 
-    const baseFreq = 300 + (reelNumber * 100);
+    const baseFreq = 300 + (_reelNumber * 100);
 
     // Main thud
     const osc1 = this.ctx.createOscillator();
@@ -662,12 +667,15 @@ export class AudioService {
     osc2.start();
     osc1.stop(this.ctx.currentTime + 0.2);
     osc2.stop(this.ctx.currentTime + 0.1);
+    */
   }
 
   /**
    * Play slot win fanfare - all reels stopped, dopamine explosion! 🎉
    */
   playSlotWin(): void {
+    // Muted by user request
+    /*
     this.init();
     if (!this.ctx || !this.masterGain) return;
 
@@ -720,6 +728,7 @@ export class AudioService {
       osc.start(this.ctx!.currentTime + delay);
       osc.stop(this.ctx!.currentTime + delay + 0.15);
     });
+    */
   }
 
   /**

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { memo, useEffect, useState } from 'react';
+import { screenService } from '../../services/ScreenService';
 
 /**
  * FPSCounter - Development-only FPS display
@@ -6,21 +7,41 @@ import React from 'react';
  * Note: The actual FPS value is updated via Direct DOM manipulation
  * from the parent's RAF loop using the ID 'fps-counter'
  */
-export const FPSCounter: React.FC = () => {
+
+const DesktopFPS: React.FC = () => (
+    <div
+        className="absolute left-2 z-[110]"
+        style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
+    >
+        <div id="fps-counter" className="px-2 py-1 rounded text-[10px] font-mono font-bold bg-green-500/80 text-white shadow-lg">
+            -- FPS
+        </div>
+    </div>
+);
+
+const MobileFPS: React.FC = () => (
+    <div
+        className="absolute left-4 z-[110]"
+        style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
+    >
+        <div id="fps-counter" className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-green-500/60 text-white">
+            -- FPS
+        </div>
+    </div>
+);
+
+export const FPSCounter: React.FC = memo(() => {
+    const [isMobile, setIsMobile] = useState(screenService.isMobile());
+
+    useEffect(() => {
+        const unsubscribe = screenService.onChange(() => {
+            setIsMobile(screenService.isMobile());
+        });
+        return unsubscribe;
+    }, []);
+
     // Only render in development mode
     if (!import.meta.env.DEV) return null;
 
-    return (
-        <div
-            className="absolute left-2 z-[110]"
-            style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
-        >
-            <div
-                id="fps-counter"
-                className="px-2 py-1 rounded text-[10px] font-mono font-bold bg-green-500/80 text-white shadow-lg"
-            >
-                -- FPS
-            </div>
-        </div>
-    );
-};
+    return isMobile ? <MobileFPS /> : <DesktopFPS />;
+});

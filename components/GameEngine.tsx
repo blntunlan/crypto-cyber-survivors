@@ -81,6 +81,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     dashTrailAccumulator: 0,
   });
 
+  // Track last synced stats to prevent unnecessary re-renders in App.tsx
+  const lastSyncedStats = useRef({
+    hp: 0,
+    exp: 0,
+    level: 0
+  });
+
   useEffect(() => {
     const candles: Candle[] = [];
     for (let i = 0; i < 30; i++) {
@@ -296,7 +303,20 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       PhysicsSystem.updateEntities(p, dtFactor, width, height);
       PhysicsSystem.handleCollisions(p, player, s, dtFactor, width, height, onGameOver);
 
-      updatePlayerStats({ ...player });
+      // Only update React state if meaningful stats changed to prevent 60fps re-renders of the whole UI
+      if (
+        player.hp !== lastSyncedStats.current.hp ||
+        player.exp !== lastSyncedStats.current.exp ||
+        player.level !== lastSyncedStats.current.level
+      ) {
+        updatePlayerStats({ ...player });
+        lastSyncedStats.current = {
+          hp: player.hp,
+          exp: player.exp,
+          level: player.level
+        };
+      }
+
       p.cleanup(); // Consolidate inactive objects
     }
 

@@ -70,6 +70,7 @@ describe('CombatSystem', () => {
             isDashing: false,
             dashTimer: 0,
             dashCooldownTimer: 0,
+            dashTrailAccumulator: 0,
         };
     });
 
@@ -83,7 +84,7 @@ describe('CombatSystem', () => {
         });
 
         it('should not fire when fire rate cooldown is active', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockState.fireTimer = 100; // Accumulated 100ms
             mockPlayer.fireRate = 300;
 
@@ -94,7 +95,7 @@ describe('CombatSystem', () => {
         });
 
         it('should fire when cooldown has passed and enemy exists', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockState.fireTimer = 0;
             mockPlayer.fireRate = 300;
 
@@ -104,7 +105,7 @@ describe('CombatSystem', () => {
         });
 
         it('should reset fireTimer when firing', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockState.fireTimer = 0;
             mockPlayer.fireRate = 300;
 
@@ -114,7 +115,7 @@ describe('CombatSystem', () => {
         });
 
         it('should fire multiple projectiles when player has projectiles > 1', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockPlayer.projectiles = 3;
             mockState.lastFireTime = 0;
 
@@ -128,8 +129,8 @@ describe('CombatSystem', () => {
         it('should target the nearest enemy', () => {
             // Far enemy
             mockPool.activeEnemies = [
-                { x: 700, y: 300, radius: 15 }, // 300 units away
-                { x: 450, y: 300, radius: 15 }, // 50 units away (closer)
+                { x: 700, y: 300, radius: 15, speed: 2 }, // 300 units away
+                { x: 450, y: 300, radius: 15, speed: 2 }, // 50 units away (closer)
             ];
             mockState.lastFireTime = 0;
 
@@ -149,7 +150,7 @@ describe('CombatSystem', () => {
 
     describe('damage calculation', () => {
         it('should use base damage for normal shots', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockPlayer.baseDamage = 20;
             mockPlayer.critChance = 0; // No crits
             mockState.lastFireTime = 0;
@@ -163,7 +164,7 @@ describe('CombatSystem', () => {
         });
 
         it('should apply player area to bullet radius', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockPlayer.area = 2; // Double area
             mockPlayer.critChance = 0;
             mockState.lastFireTime = 0;
@@ -180,7 +181,7 @@ describe('CombatSystem', () => {
 
     describe('bullet spawning', () => {
         it('should spawn bullet at player position', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockPlayer.x = 100;
             mockPlayer.y = 200;
             mockState.lastFireTime = 0;
@@ -196,7 +197,7 @@ describe('CombatSystem', () => {
         });
 
         it('should spread projectiles when firing multiple', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockPlayer.projectiles = 3;
             mockState.lastFireTime = 0;
 
@@ -219,7 +220,7 @@ describe('CombatSystem', () => {
 
     describe('crit behavior', () => {
         it('should pass crit flags to bullet', () => {
-            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15 }];
+            mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
             mockPlayer.critChance = 0; // No crits for predictable test
             mockState.lastFireTime = 0;
 

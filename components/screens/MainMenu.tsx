@@ -28,7 +28,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ price, onStart, onOpenSettin
     return (
         <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
             <div className="max-w-xl w-full text-center space-y-8">
-                <header className="space-y-4">
+                <header className="space-y-4 pt-12 sm:pt-0">
                     <h1 className="text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">
                         CRYPTO
                         <br />
@@ -62,8 +62,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ price, onStart, onOpenSettin
                                     key={lev}
                                     onClick={() => setSelectedLeverage(lev)}
                                     className={`px-3 py-2 rounded-lg border font-black text-sm transition-all ${selectedLeverage === lev
-                                            ? getLeverageColor(lev) + ' ring-2 ring-white/20 scale-110'
-                                            : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700'
+                                        ? getLeverageColor(lev) + ' ring-2 ring-white/20 scale-110'
+                                        : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700'
                                         }`}
                                 >
                                     {lev === 1 ? '1x' : `${lev}x`}

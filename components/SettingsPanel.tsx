@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { audio } from '../services/audioService';
-import { useGameStore } from '../stores/gameStore';
+import { useGameStore, selectAudio, selectGraphics } from '../stores/gameStore';
 import { useDevice } from '../hooks/useDevice';
 import { ControlType, JoystickPosition, JoystickSize } from '../types/MobileSettings';
 import { screenService } from '../services/ScreenService';
@@ -9,30 +9,11 @@ interface SettingsPanelProps {
     onClose: () => void;
 }
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
-    // Use Zustand store for persistent settings
-    const {
-        audio: audioSettings,
-        graphics,
-        mobile,
-        setMasterVolume,
-        toggleMute,
-        toggleParticles,
-        toggleScreenShake,
-        toggleDamageNumbers,
-        setMobileSetting,
-        resetSettings,
-    } = useGameStore();
-
-    const device = useDevice();
-
-    // Sync audio service with store
-    React.useEffect(() => {
-        audio.setVolume(audioSettings.masterVolume);
-        if (audioSettings.isMuted !== audio.getMuted()) {
-            audio.toggleMute();
-        }
-    }, [audioSettings.masterVolume, audioSettings.isMuted]);
+// Sub-components for better performance and organization
+const AudioSection = memo(() => {
+    const audioSettings = useGameStore(selectAudio);
+    const setMasterVolume = useGameStore(state => state.setMasterVolume);
+    const toggleMute = useGameStore(state => state.toggleMute);
 
     const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newVolume = parseFloat(e.target.value);
@@ -45,7 +26,172 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         audio.toggleMute();
     };
 
+    return (
+        <section className="space-y-3 md:space-y-4">
+            <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Audio</h3>
+            <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
+                <div className="flex justify-between items-center">
+                    <span className="text-xs md:text-sm font-bold text-white uppercase">Master Volume</span>
+                    <span className="text-[10px] md:text-xs font-mono text-slate-400">{Math.round(audioSettings.masterVolume * 100)}%</span>
+                </div>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={audioSettings.masterVolume}
+                    onChange={handleVolumeChange}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+                />
+                <button
+                    onClick={handleMuteToggle}
+                    className={`w-full py-2 rounded-lg font-black uppercase text-[10px] tracking-widest transition-all border ${audioSettings.isMuted
+                        ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                        : 'bg-green-500/10 border-green-500/50 text-green-500'
+                        }`}
+                >
+                    {audioSettings.isMuted ? '🔇 Sound OFF' : '🔊 Sound ON'}
+                </button>
+            </div>
+        </section>
+    );
+});
+AudioSection.displayName = 'AudioSection';
+
+const GraphicsSection = memo(({ isMobile }: { isMobile: boolean }) => {
+    const graphics = useGameStore(selectGraphics);
+    const { toggleParticles, toggleScreenShake, toggleDamageNumbers, setHudScale, toggleFPS } = useGameStore();
+
+    return (
+        <section className="space-y-3 md:space-y-4">
+            <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Graphics</h3>
+            <div className="space-y-1 md:space-y-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
+                <ToggleButton label="Particles" enabled={graphics.showParticles} onToggle={toggleParticles} />
+                <ToggleButton label="Screen Shake" enabled={graphics.showScreenShake} onToggle={toggleScreenShake} />
+                <ToggleButton label="Damage Numbers" enabled={graphics.showDamageNumbers} onToggle={toggleDamageNumbers} />
+
+                {isMobile && (
+                    <>
+                        <div className="pt-3 md:pt-4 space-y-3 md:space-y-4 border-t border-white/5">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs md:text-sm font-bold text-white uppercase tracking-tighter">HUD Scale</span>
+                                <span className="text-[10px] md:text-xs font-mono text-yellow-500">{Math.round(graphics.hudScale * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0.5"
+                                max="1.5"
+                                step="0.05"
+                                value={graphics.hudScale}
+                                onChange={(e) => setHudScale(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+                            />
+                        </div>
+                        <ToggleButton label="Show FPS" enabled={graphics.showFPS} onToggle={toggleFPS} />
+                    </>
+                )}
+            </div>
+        </section>
+    );
+});
+GraphicsSection.displayName = 'GraphicsSection';
+
+const MobileSection = memo(() => {
+    const mobile = useGameStore(state => state.mobile);
+    const setMobileSetting = useGameStore(state => state.setMobileSetting);
+
+    return (
+        <section className="space-y-3 md:space-y-4">
+            <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Mobile Controls</h3>
+            <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
+                <div className="space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Control Type</span>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={() => setMobileSetting('controlType', 'drag' as ControlType)}
+                            className={`py-2 rounded-lg text-xs font-bold uppercase transition-all ${mobile.controlType === 'drag'
+                                ? 'bg-yellow-500 text-black'
+                                : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
+                        >
+                            Drag
+                        </button>
+                        <button
+                            onClick={() => setMobileSetting('controlType', 'joystick' as ControlType)}
+                            className={`py-2 rounded-lg text-xs font-bold uppercase transition-all ${mobile.controlType === 'joystick'
+                                ? 'bg-yellow-500 text-black'
+                                : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
+                        >
+                            Joystick
+                        </button>
+                    </div>
+                </div>
+
+                {mobile.controlType === 'joystick' && (
+                    <>
+                        <div className="space-y-1">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase">Joystick Size</span>
+                            <div className="grid grid-cols-3 gap-2">
+                                {(['small', 'medium', 'large'] as JoystickSize[]).map((size) => (
+                                    <button
+                                        key={size}
+                                        onClick={() => setMobileSetting('joystickSize', size)}
+                                        className={`py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${mobile.joystickSize === size
+                                            ? 'bg-yellow-500 text-black'
+                                            : 'bg-white/5 text-slate-400 border border-white/5'}`}
+                                    >
+                                        {size}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase">Joystick Side</span>
+                            <div className="grid grid-cols-2 gap-2">
+                                {(['left', 'right'] as JoystickPosition[]).map((pos) => (
+                                    <button
+                                        key={pos}
+                                        onClick={() => setMobileSetting('joystickPosition', pos)}
+                                        className={`py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${mobile.joystickPosition === pos
+                                            ? 'bg-yellow-500 text-black'
+                                            : 'bg-white/5 text-slate-400 border border-white/5'}`}
+                                    >
+                                        {pos}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <ToggleButton
+                    label="Haptic Feedback"
+                    enabled={mobile.hapticFeedback}
+                    onToggle={() => setMobileSetting('hapticFeedback', !mobile.hapticFeedback)}
+                />
+                <ToggleButton
+                    label="Visual Feedback"
+                    enabled={mobile.showDragFeedback}
+                    onToggle={() => setMobileSetting('showDragFeedback', !mobile.showDragFeedback)}
+                />
+            </div>
+        </section>
+    );
+});
+MobileSection.displayName = 'MobileSection';
+
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
+    const resetSettings = useGameStore(state => state.resetSettings);
+    const audioSettings = useGameStore(selectAudio);
+    const device = useDevice();
     const isMobile = screenService.isMobile();
+
+    // Sync audio service with store
+    React.useEffect(() => {
+        audio.setVolume(audioSettings.masterVolume);
+        if (audioSettings.isMuted !== audio.getMuted()) {
+            audio.toggleMute();
+        }
+    }, [audioSettings.masterVolume, audioSettings.isMuted]);
 
     return (
         <div
@@ -64,161 +210,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                 </header>
 
                 <div className="space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar">
-                    {/* Audio Section */}
-                    <section className="space-y-3 md:space-y-4">
-                        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Audio</h3>
+                    <AudioSection />
+                    {(device.isMobile || device.isTablet) && <MobileSection />}
+                    <GraphicsSection isMobile={device.isMobile || device.isTablet} />
 
-                        <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs md:text-sm font-bold text-white uppercase">Master Volume</span>
-                                <span className="text-[10px] md:text-xs font-mono text-slate-400">{Math.round(audioSettings.masterVolume * 100)}%</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.01"
-                                value={audioSettings.masterVolume}
-                                onChange={handleVolumeChange}
-                                className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
-                            />
-
-                            <button
-                                onClick={handleMuteToggle}
-                                className={`w-full py-2 rounded-lg font-black uppercase text-[10px] tracking-widest transition-all border ${audioSettings.isMuted
-                                    ? 'bg-red-500/10 border-red-500/50 text-red-500'
-                                    : 'bg-green-500/10 border-green-500/50 text-green-500'
-                                    }`}
-                            >
-                                {audioSettings.isMuted ? '🔇 Sound OFF' : '🔊 Sound ON'}
-                            </button>
-                        </div>
-                    </section>
-
-                    {/* Mobile Controls Section - Only visible on mobile/tablet */}
-                    {(device.isMobile || device.isTablet) && (
-                        <section className="space-y-3 md:space-y-4">
-                            <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Mobile Controls</h3>
-                            <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase">Control Type</span>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            onClick={() => setMobileSetting('controlType', 'drag' as ControlType)}
-                                            className={`py-2 rounded-lg text-xs font-bold uppercase transition-all ${mobile.controlType === 'drag'
-                                                ? 'bg-yellow-500 text-black'
-                                                : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
-                                        >
-                                            Drag
-                                        </button>
-                                        <button
-                                            onClick={() => setMobileSetting('controlType', 'joystick' as ControlType)}
-                                            className={`py-2 rounded-lg text-xs font-bold uppercase transition-all ${mobile.controlType === 'joystick'
-                                                ? 'bg-yellow-500 text-black'
-                                                : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'}`}
-                                        >
-                                            Joystick
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {mobile.controlType === 'joystick' && (
-                                    <>
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] text-slate-500 font-bold uppercase">Joystick Size</span>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {(['small', 'medium', 'large'] as JoystickSize[]).map((size) => (
-                                                    <button
-                                                        key={size}
-                                                        onClick={() => setMobileSetting('joystickSize', size)}
-                                                        className={`py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${mobile.joystickSize === size
-                                                            ? 'bg-yellow-500 text-black'
-                                                            : 'bg-white/5 text-slate-400 border border-white/5'}`}
-                                                    >
-                                                        {size}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] text-slate-500 font-bold uppercase">Joystick Side</span>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {(['left', 'right'] as JoystickPosition[]).map((pos) => (
-                                                    <button
-                                                        key={pos}
-                                                        onClick={() => setMobileSetting('joystickPosition', pos)}
-                                                        className={`py-2 rounded-lg text-[10px] font-bold uppercase transition-all ${mobile.joystickPosition === pos
-                                                            ? 'bg-yellow-500 text-black'
-                                                            : 'bg-white/5 text-slate-400 border border-white/5'}`}
-                                                    >
-                                                        {pos}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                <ToggleButton
-                                    label="Haptic Feedback"
-                                    enabled={mobile.hapticFeedback}
-                                    onToggle={() => setMobileSetting('hapticFeedback', !mobile.hapticFeedback)}
-                                />
-                                <ToggleButton
-                                    label="Visual Feedback"
-                                    enabled={mobile.showDragFeedback}
-                                    onToggle={() => setMobileSetting('showDragFeedback', !mobile.showDragFeedback)}
-                                />
-                            </div>
-                        </section>
-                    )}
-                    <section className="space-y-3 md:space-y-4">
-                        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Graphics</h3>
-                        <div className="space-y-1 md:space-y-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
-                            <ToggleButton
-                                label="Particles"
-                                enabled={graphics.showParticles}
-                                onToggle={toggleParticles}
-                            />
-                            <ToggleButton
-                                label="Screen Shake"
-                                enabled={graphics.showScreenShake}
-                                onToggle={toggleScreenShake}
-                            />
-                            <ToggleButton
-                                label="Damage Numbers"
-                                enabled={graphics.showDamageNumbers}
-                                onToggle={toggleDamageNumbers}
-                            />
-
-                            {(device.isMobile || device.isTablet) && (
-                                <>
-                                    <div className="pt-3 md:pt-4 space-y-3 md:space-y-4 border-t border-white/5">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs md:text-sm font-bold text-white uppercase tracking-tighter">HUD Scale</span>
-                                            <span className="text-[10px] md:text-xs font-mono text-yellow-500">{Math.round(graphics.hudScale * 100)}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0.5"
-                                            max="1.5"
-                                            step="0.05"
-                                            value={graphics.hudScale}
-                                            onChange={(e) => useGameStore.getState().setHudScale(parseFloat(e.target.value))}
-                                            className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
-                                        />
-                                    </div>
-                                    <ToggleButton
-                                        label="Show FPS"
-                                        enabled={graphics.showFPS}
-                                        onToggle={() => useGameStore.getState().toggleFPS()}
-                                    />
-                                </>
-                            )}
-                        </div>
-                    </section>
-
-                    {/* Controls Section */}
                     <section className="space-y-3 md:space-y-4">
                         <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">Controls</h3>
                         <div className="grid grid-cols-2 gap-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">

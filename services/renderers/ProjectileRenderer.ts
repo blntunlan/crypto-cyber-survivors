@@ -39,8 +39,8 @@ export class ProjectileRenderer implements IRenderer {
 
             // 3. Draw Laser Bolt (Line instead of Circle)
             const angle = Math.atan2(b.vy, b.vx);
-            const length = b.radius * (isSuperCrit ? 4.5 : 3); // Reduced length
-            const width = b.radius * (isSuperCrit ? 1.0 : 0.6); // Reduced width
+            const length = b.radius * (isSuperCrit ? 4.0 : 3.0);
+            const width = b.radius * (isSuperCrit ? 0.8 : 0.6);
 
             ctx.save();
             ctx.translate(b.x, b.y);

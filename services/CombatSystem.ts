@@ -7,6 +7,7 @@ interface NearestEnemy {
     x: number;
     y: number;
     dist: number;
+    speed: number;
 }
 
 /**
@@ -63,7 +64,7 @@ export class CombatSystem {
         return pool.activeEnemies.reduce<NearestEnemy | null>((best, enemy) => {
             const dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
             if (!best || dist < best.dist) {
-                return { x: enemy.x, y: enemy.y, dist };
+                return { x: enemy.x, y: enemy.y, dist, speed: enemy.speed };
             }
             return best;
         }, null);
@@ -89,7 +90,20 @@ export class CombatSystem {
         const isSuperCrit = Math.random() < (player.critChance + luckBonus) * 0.2;
         const isCrit = !isSuperCrit && Math.random() < player.critChance + luckBonus;
 
-        const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+        // LEAD SHOOTING LOGIC
+        // 1. Calculate time for bullet to reach target's current position
+        const timeToReach = target.dist / GAME_ENGINE.BULLET_SPEED;
+
+        // 2. Estimate where the enemy will be. 
+        // Most enemies move towards the player. We estimate their velocity vector.
+        const enemyVx = ((player.x - target.x) / (target.dist || 1)) * target.speed;
+        const enemyVy = ((player.y - target.y) / (target.dist || 1)) * target.speed;
+
+        // 3. Predicted target position
+        const predictedX = target.x + enemyVx * timeToReach;
+        const predictedY = target.y + enemyVy * timeToReach;
+
+        const baseAngle = Math.atan2(predictedY - player.y, predictedX - player.x);
 
         let damage = player.baseDamage;
         if (isSuperCrit) {
@@ -104,7 +118,7 @@ export class CombatSystem {
             const angleOffset = (i - (player.projectiles - 1) / 2) * spread;
             const finalAngle = baseAngle + angleOffset;
 
-            const bulletRadius = (isSuperCrit ? 12 : isCrit ? 8 : 4) * player.area;
+            const bulletRadius = (isSuperCrit ? 9 : isCrit ? 6 : 4) * player.area;
             const bulletColor = isSuperCrit
                 ? COLORS.SUPER_CRIT
                 : isCrit

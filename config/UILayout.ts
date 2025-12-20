@@ -61,7 +61,7 @@ export const MOBILE_LAYOUT: HUDLayout = {
     elements: {
         waveTimer: { visible: true, scale: 1.2, opacity: 0.9, offset: { x: 0, y: 10 } },
         fpsCounter: { visible: false, scale: 0.8, opacity: 0.5 }, // Hide FPS on mobile by default
-        comboPanel: { visible: true, scale: 1.1, opacity: 1.0, offset: { x: 0, y: -80 } },
+        comboPanel: { visible: true, scale: 1.1, opacity: 1.0, offset: { x: 0, y: 0 } },
         milestoneAnnouncer: { visible: true, scale: 0.8, opacity: 1.0 },
         achievementPopup: { visible: true, scale: 0.9, opacity: 1.0 },
         enemyPointers: { visible: true, scale: 1.0, opacity: 0.8 },

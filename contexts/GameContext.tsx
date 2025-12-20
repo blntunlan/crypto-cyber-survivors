@@ -90,8 +90,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   // Player State
   const playerRef = useRef<Player>({
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2,
+    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
+    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
     radius: 12,
     color: '',
     hp: PLAYER_INITIAL_HP,

@@ -4,7 +4,6 @@ import { Card, TIER_CONFIG, ALL_CARDS_FLAT } from '../../services/CardSystem';
 import { COLORS } from '../../constants';
 import { audio } from '../../services/audioService';
 import { IconMarketChart, IconAlphaEye, IconFlashPulse, IconGenesisEmblem, IconShield, IconDiamond, IconRocket, IconApe, IconBolt, IconMagnet, IconSkull, IconWhale, IconBanano } from '../icons/CardIcons';
-import { screenService } from '../../services/ScreenService';
 
 interface LevelUpScreenProps {
     upgradeChoices: Card[];
@@ -54,209 +53,192 @@ interface SlotReelProps {
 }
 
 const SlotReel: React.FC<SlotReelProps> = ({ finalCard, reelIndex, stopOrder, onSelect, onStopped }) => {
-    const [isSpinning, setIsSpinning] = useState(true);
-    const [isSlowingDown, setIsSlowingDown] = useState(false);
-    const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [isStopped, setIsStopped] = useState(false);
+    const [displayIndex, setDisplayIndex] = useState(0);
+    const [phase, setPhase] = useState<'spinning' | 'slowing' | 'stopped'>('spinning');
 
-    const tickCountRef = useRef(0);
+    // Ref-based animation state to avoid React overhead during high-speed spinning
+    const animRef = useRef({
+        startTime: Date.now(),
+        lastTickTime: 0,
+        tickCount: 0,
+        isSlowing: false,
+        isDone: false
+    });
 
-    // Get random cards for spinning (including all possible cards)
     const spinCards = useMemo(() => {
-        const cards = ALL_CARDS_FLAT.filter((c: Card) => c.id !== finalCard.id);
-        const shuffled = [...cards].sort(() => Math.random() - 0.5);
-        return [...shuffled.slice(0, SLOT_CONFIG.CARDS_PER_SPIN - 1), finalCard];
+        const pool = ALL_CARDS_FLAT.filter(c => c.id !== finalCard.id);
+        const cards = [];
+        for (let i = 0; i < SLOT_CONFIG.CARDS_PER_SPIN; i++) {
+            cards.push(pool[Math.floor(Math.random() * pool.length)]);
+        }
+        return [...cards, finalCard];
     }, [finalCard]);
 
-    // Spinning effect with slowdown
     useEffect(() => {
-        if (!isSpinning) return;
-
-        // Use ref-like approach with local variable for dynamic speed
-        let currentSpeed = SLOT_CONFIG.SPIN_INTERVAL;
-        let spinIntervalId: NodeJS.Timeout;
-        tickCountRef.current = 0;
-
-        const startSpinning = () => {
-            spinIntervalId = setInterval(() => {
-                setCurrentCardIndex(prev => (prev + 1) % spinCards.length);
-                // Play tick sound every 3rd tick (not too spammy)
-                tickCountRef.current++;
-                if (tickCountRef.current % 3 === 0) {
-                    audio.playSlotTick(1);
-                }
-            }, currentSpeed);
-        };
-
-        startSpinning();
-
-        // Calculate cumulative stop delay: each reel waits longer
-        // stopOrder 0 = 600ms, stopOrder 1 = 1200ms, stopOrder 2 = 1800ms
         const stopDelay = SLOT_CONFIG.SPIN_DURATION +
             (stopOrder * SLOT_CONFIG.STOP_DELAY_INCREMENT) +
             SLOT_CONFIG.STOP_DELAY_BASE;
 
-        // Start slowdown phase before stopping
-        const slowdownTimer = setTimeout(() => {
-            setIsSlowingDown(true);
-            // Restart interval with increasing delay
-            clearInterval(spinIntervalId);
+        const totalDuration = stopDelay;
+        const slowdownStartTime = stopDelay - SLOT_CONFIG.SLOWDOWN_DURATION;
 
-            let slowdownStep = 0;
-            const slowdownLoop = () => {
-                slowdownStep++;
-                currentSpeed = SLOT_CONFIG.SPIN_INTERVAL + (slowdownStep * 25);
+        let rafId: number;
 
-                spinIntervalId = setTimeout(() => {
-                    setCurrentCardIndex(prev => (prev + 1) % spinCards.length);
-                    if (currentSpeed < 180) {
-                        slowdownLoop();
-                    }
-                }, currentSpeed);
-            };
-            slowdownLoop();
-        }, stopDelay - SLOT_CONFIG.SLOWDOWN_DURATION);
+        const animate = (_time: number) => {
+            const now = Date.now();
+            const elapsed = now - animRef.current.startTime;
 
-        // Final stop
-        const stopTimer = setTimeout(() => {
-            clearInterval(spinIntervalId);
-            clearTimeout(spinIntervalId as unknown as NodeJS.Timeout);
-            setIsSpinning(false);
-            setIsSlowingDown(false);
-            // Animate to final card
-            setCurrentCardIndex(spinCards.length - 1);
-            setTimeout(() => {
-                setIsStopped(true);
-            }, 300);
-        }, stopDelay);
+            if (elapsed >= totalDuration) {
+                if (!animRef.current.isDone) {
+                    animRef.current.isDone = true;
+                    setDisplayIndex(spinCards.length - 1);
+                    setPhase('stopped');
+                    setIsStopped(true);
+                }
+                return;
+            }
 
-        return () => {
-            clearInterval(spinIntervalId);
-            clearTimeout(spinIntervalId as unknown as NodeJS.Timeout);
-            clearTimeout(stopTimer);
-            clearTimeout(slowdownTimer);
+            // Determine current speed based on phase
+            let currentInterval = SLOT_CONFIG.SPIN_INTERVAL;
+            if (elapsed > slowdownStartTime) {
+                if (!animRef.current.isSlowing) {
+                    animRef.current.isSlowing = true;
+                    setPhase('slowing');
+                }
+                const slowdownProgress = (elapsed - slowdownStartTime) / SLOT_CONFIG.SLOWDOWN_DURATION;
+                currentInterval = SLOT_CONFIG.SPIN_INTERVAL + (slowdownProgress * 200);
+            }
+
+            // High-precision ticking for sounds and visual swaps
+            if (now - animRef.current.lastTickTime > currentInterval) {
+                animRef.current.lastTickTime = now;
+                animRef.current.tickCount++;
+
+                setDisplayIndex(prev => (prev + 1) % (spinCards.length - 1));
+
+                // Sound on every display change, AudioService handles cooldown
+                audio.playSlotTick(animRef.current.isSlowing ? 0.8 : 1);
+            }
+
+            rafId = requestAnimationFrame(animate);
         };
 
-    }, [isSpinning, spinCards.length, stopOrder]);
+        rafId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(rafId);
+    }, [stopOrder, spinCards.length]);
 
-    // Call onStopped when isStopped changes to true
     useEffect(() => {
         if (isStopped) {
-            // Play reel stop sound with pitch based on stop order
             audio.playReelStop(stopOrder + 1);
             onStopped?.();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isStopped]);
+    }, [isStopped, stopOrder, onStopped]);
 
-    const displayCard = (isSpinning ? spinCards[currentCardIndex] : finalCard) ?? finalCard;
+    const displayCard = (phase === 'stopped' ? finalCard : spinCards[displayIndex]) ?? finalCard;
     const tierConfig = TIER_CONFIG[displayCard.tier];
+    const isSpinning = phase !== 'stopped';
+    const isSlowingDown = phase === 'slowing';
 
     return (
         <motion.button
             onClick={() => isStopped && onSelect(finalCard)}
             disabled={!isStopped}
-            className={`group flex flex-col items-center text-center p-2 md:p-8 rounded-xl md:rounded-2xl transition-all ${isStopped ? 'cursor-pointer hover:scale-105' : 'cursor-wait'
-                }`}
+            className={`group flex flex-row items-center text-left p-3 md:p-5 rounded-xl md:rounded-2xl transition-all w-full relative overflow-hidden ${isStopped ? 'cursor-pointer hover:translate-x-2' : 'cursor-wait'}`}
             style={{
                 backgroundColor: tierConfig.bgColor,
                 borderWidth: '2px',
                 borderStyle: 'solid',
                 borderColor: tierConfig.borderColor,
-                boxShadow: displayCard.tier !== 'common' ? `0 0 20px ${tierConfig.glowColor}40` : 'none',
+                boxShadow: displayCard.tier !== 'common' ? `0 0 30px ${tierConfig.glowColor}30` : 'none',
             }}
-            initial={{ opacity: 0, y: -300, scale: 0.8 }}
+            initial={{ opacity: 0, x: -100 }}
             animate={{
                 opacity: 1,
-                y: 0,
-                scale: 1,
-                transition: {
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 25,
-                    delay: reelIndex * 0.15,
-                },
+                x: 0,
+                transition: { type: 'spring', stiffness: 400, damping: 30, delay: reelIndex * 0.1 }
             }}
-            whileHover={isStopped ? { scale: 1.05, y: -8 } : {}}
-            whileTap={isStopped ? { scale: 0.98 } : {}}
+            whileHover={isStopped ? { backgroundColor: `${tierConfig.bgColor}ee` } : {}}
+            whileTap={isStopped ? { scale: 0.99 } : {}}
         >
-            {/* Tier Badge */}
-            <motion.div
-                className="text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 md:mb-2"
-                style={{ color: tierConfig.color }}
-                animate={{ opacity: isSpinning ? [0.5, 1, 0.5] : 1 }}
-                transition={isSpinning ? { duration: 0.1, repeat: Infinity } : {}}
-            >
-                {tierConfig.name}
-            </motion.div>
-
-            {/* Spinning Icon Container */}
-            <div className="text-3xl md:text-5xl mb-2 md:mb-4 flex items-center justify-center w-14 h-14 md:w-24 md:h-24 relative overflow-hidden">
-                {/* Glow - intensifies when slowing down */}
+            {/* Left: Icon & Badge */}
+            <div className="flex flex-col items-center justify-center mr-4 md:mr-8 shrink-0 w-20 md:w-28">
+                {/* Tier Badge */}
                 <motion.div
-                    className="absolute inset-0 rounded-full blur-xl md:blur-2xl"
-                    style={{ backgroundColor: tierConfig.color }}
-                    animate={{
-                        opacity: isSlowingDown ? [0.3, 0.6, 0.3] : isSpinning ? [0.1, 0.3, 0.1] : [0.1, 0.4, 0.1],
-                        scale: isSlowingDown ? [1, 1.3, 1] : isSpinning ? 1 : [0.9, 1.2, 0.9],
-                    }}
-                    transition={{
-                        duration: isSlowingDown ? 0.3 : isSpinning ? 0.2 : 1.5,
-                        repeat: Infinity,
-                    }}
-                />
-
-                {/* Card Icon with spin effect - slows down visually */}
-                <motion.div
-                    className="relative z-10"
-                    style={{ mixBlendMode: 'plus-lighter' }}
-                    animate={{
-                        y: isSpinning ? (isSlowingDown ? [-10, 10] : [-20, 20]) : 0,
-                        opacity: isSpinning ? (isSlowingDown ? [0.9, 1, 0.9] : [0.7, 1, 0.7]) : 1,
-                        scale: isStopped ? [0.8, 1.15, 1] : isSlowingDown ? 1.05 : 1,
-                    }}
-                    transition={
-                        isSpinning
-                            ? { duration: isSlowingDown ? 0.15 : 0.1, repeat: Infinity, ease: 'linear' }
-                            : isStopped
-                                ? { duration: 0.4, ease: 'easeOut' }
-                                : {}
-                    }
+                    className="text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 md:mb-2 text-center"
+                    style={{ color: tierConfig.color }}
+                    animate={{ opacity: isSpinning ? [0.5, 1, 0.5] : 1 }}
+                    transition={isSpinning ? { duration: 0.1, repeat: Infinity } : {}}
                 >
-                    {renderCardIcon(displayCard, tierConfig.color, true)}
+                    {tierConfig.name}
+                </motion.div>
+
+                {/* Spinning Icon Container */}
+                <div className="text-3xl md:text-5xl flex items-center justify-center w-14 h-14 md:w-20 md:h-20 relative">
+                    <motion.div
+                        className="absolute inset-0 rounded-full blur-xl"
+                        style={{ backgroundColor: tierConfig.color }}
+                        animate={{
+                            opacity: isSlowingDown ? [0.3, 0.6, 0.3] : isSpinning ? [0.1, 0.3, 0.1] : [0.1, 0.4, 0.1],
+                            scale: isSlowingDown ? [1, 1.3, 1] : isSpinning ? 1 : [0.9, 1.2, 0.9],
+                        }}
+                        transition={{ duration: isSlowingDown ? 0.3 : isSpinning ? 0.2 : 1.5, repeat: Infinity }}
+                    />
+
+                    <motion.div
+                        className="relative z-10"
+                        style={{ mixBlendMode: 'plus-lighter' }}
+                        animate={{
+                            y: isSpinning ? (isSlowingDown ? [-10, 10] : [-20, 20]) : 0,
+                            opacity: isSpinning ? (isSlowingDown ? [0.9, 1, 0.9] : [0.7, 1, 0.7]) : 1,
+                            scale: isStopped ? [0.8, 1.15, 1] : isSlowingDown ? 1.05 : 1,
+                        }}
+                        transition={isSpinning ? { duration: isSlowingDown ? 0.15 : 0.1, repeat: Infinity, ease: 'linear' } : isStopped ? { duration: 0.4, ease: 'easeOut' } : {}}
+                    >
+                        <MemoizedCardIcon card={displayCard} color={tierConfig.color} scaleDown={true} />
+                    </motion.div>
+                </div>
+            </div>
+
+            {/* Middle/Right: Info */}
+            <div className="flex-1 flex flex-col justify-center">
+                <motion.div
+                    className="text-base md:text-2xl font-black uppercase leading-none mb-1"
+                    style={{ color: tierConfig.color }}
+                    animate={{
+                        opacity: isSpinning ? 0.7 : 1,
+                        filter: isSpinning ? 'blur(2px)' : 'blur(0px)',
+                    }}
+                >
+                    {displayCard.name}
+                </motion.div>
+
+                <motion.div
+                    className="text-[10px] md:text-sm text-slate-300 font-bold leading-tight"
+                    animate={{ opacity: isStopped ? 1 : 0 }}
+                >
+                    {isStopped ? displayCard.description : 'Decrypting slot...'}
                 </motion.div>
             </div>
 
-            {/* Card Name */}
-            <motion.div
-                className="text-xs md:text-lg font-black mb-1 md:mb-2 uppercase leading-tight"
-                style={{ color: tierConfig.color }}
-                animate={{
-                    opacity: isSpinning ? 0.7 : 1,
-                    filter: isSpinning ? 'blur(2px)' : 'blur(0px)',
-                }}
-            >
-                {displayCard.name}
-            </motion.div>
-
-            {/* Description - only show when stopped */}
-            <motion.div
-                className="text-[10px] md:text-xs text-slate-400 font-bold h-10 md:h-8 leading-tight overflow-hidden"
-                animate={{ opacity: isStopped ? 1 : 0 }}
-            >
-                {isStopped && displayCard.description}
-            </motion.div>
-
-            {/* Stopped indicator */}
-            {isStopped && (
-                <motion.div
-                    className="mt-1 md:mt-2 text-[7px] md:text-[8px] font-black uppercase tracking-widest text-white/50"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    {screenService.isMobile() ? 'Tap to Select' : 'Click to Select'}
-                </motion.div>
-            )}
+            {/* Far Right: Status/Instruction */}
+            <div className="ml-4 shrink-0 hidden md:block">
+                {isStopped ? (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="px-3 py-1 rounded bg-white/10 border border-white/20 text-[10px] font-black uppercase tracking-tighter text-white"
+                    >
+                        Select
+                    </motion.div>
+                ) : (
+                    <div className="w-8 h-8 flex items-center justify-center">
+                        <div className="w-1 h-4 bg-white/20 animate-pulse rounded-full mx-0.5" />
+                        <div className="w-1 h-6 bg-white/40 animate-pulse rounded-full mx-0.5" style={{ animationDelay: '0.1s' }} />
+                        <div className="w-1 h-4 bg-white/20 animate-pulse rounded-full mx-0.5" style={{ animationDelay: '0.2s' }} />
+                    </div>
+                )}
+            </div>
         </motion.button>
     );
 };
@@ -341,8 +323,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                         </motion.p>
                     </motion.div>
 
-                    {/* Slot Reels */}
-                    <div className="grid grid-cols-3 gap-2 md:gap-6">
+                    {/* Slot Reels - Vertical Layout for Web */}
+                    <div className="flex flex-col gap-3 md:gap-4 max-w-2xl mx-auto">
                         {upgradeChoices.map((card, index) => (
                             <SlotReel
                                 key={card.id}
@@ -360,8 +342,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     );
 };
 
-// Helper function to render card icons
-function renderCardIcon(card: Card, color: string, scaleDown: boolean = false) {
+// Helper function to render card icons - memoized for performance
+const MemoizedCardIcon = React.memo(({ card, color, scaleDown = false }: { card: Card; color: string; scaleDown?: boolean }) => {
     const iconSizeClass = scaleDown ? 'w-10 h-10 md:w-16 md:h-16' : 'w-16 h-16';
     const iconProps = { className: `${iconSizeClass} relative z-10`, color };
 
@@ -407,4 +389,5 @@ function renderCardIcon(card: Card, color: string, scaleDown: boolean = false) {
             }
             return <span className="relative z-10">{card.icon}</span>;
     }
-}
+});
+MemoizedCardIcon.displayName = 'MemoizedCardIcon';

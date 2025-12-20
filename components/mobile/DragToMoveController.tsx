@@ -1,12 +1,4 @@
-/**
- * DragToMoveController - Modern Touch Control System
- * 
- * Touch anywhere to set movement origin, drag to move.
- * Second finger tap triggers dash in movement direction.
- * Provides smooth, threshold-based speed control.
- */
-
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { DRAG_THRESHOLDS } from '../../types/MobileSettings';
 
 interface DragState {
@@ -19,17 +11,11 @@ interface DragState {
 }
 
 interface DragToMoveProps {
-    /** Called with movement vector on each update */
     onMove: (dx: number, dy: number, speed: number) => void;
-    /** Called when dash is triggered */
     onDash: () => void;
-    /** Disabled state */
     disabled?: boolean;
-    /** Show visual feedback lines */
     showVisualFeedback?: boolean;
-    /** Enable haptic feedback */
     hapticFeedback?: boolean;
-    /** Sensitivity multiplier */
     sensitivity?: number;
 }
 
@@ -41,7 +27,8 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
     hapticFeedback = true,
     sensitivity = 1.0,
 }) => {
-    const [dragState, setDragState] = useState<DragState>({
+    // 1. Logic State (Ref) - Zero Latency
+    const dragRef = useRef<DragState>({
         active: false,
         touchId: null,
         startX: 0,
@@ -50,262 +37,150 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
         currentY: 0,
     });
 
+    // 2. UI State (State) - Only for visual feedback
+    const [uiState, setUiState] = useState({ active: false, currentX: 0, currentY: 0, startX: 0, speed: 0 });
     const [secondTouchActive, setSecondTouchActive] = useState(false);
     const secondTouchIdRef = useRef<number | null>(null);
-    const lastMoveRef = useRef({ dx: 0, dy: 0, speed: 0 });
 
-    // Calculate movement with threshold-based speed
-    const calculateMovement = useCallback((state: DragState) => {
-        if (!state.active) return { dx: 0, dy: 0, speed: 0 };
-
-        const deltaX = state.currentX - state.startX;
-        const deltaY = state.currentY - state.startY;
+    // High performance movement calculation
+    const getMovement = useCallback((currentX: number, currentY: number, startX: number, startY: number) => {
+        const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
         const distance = Math.hypot(deltaX, deltaY) * sensitivity;
 
-        // Apply thresholds
         const { DEADZONE, WALK_START, RUN_START, MAX_DISTANCE } = DRAG_THRESHOLDS;
 
-        if (distance < DEADZONE) {
-            return { dx: 0, dy: 0, speed: 0 };
-        }
+        if (distance < DEADZONE) return { dx: 0, dy: 0, speed: 0 };
 
-        // Calculate direction (normalized)
         const dirX = deltaX / Math.hypot(deltaX, deltaY);
         const dirY = deltaY / Math.hypot(deltaX, deltaY);
 
-        // Calculate speed multiplier (0 to 1)
         let speedMultiplier = 0;
+        if (distance < WALK_START) speedMultiplier = 0;
+        else if (distance < RUN_START) speedMultiplier = ((distance - WALK_START) / (RUN_START - WALK_START)) * 0.5;
+        else if (distance < MAX_DISTANCE) speedMultiplier = 0.5 + ((distance - RUN_START) / (MAX_DISTANCE - RUN_START)) * 0.5;
+        else speedMultiplier = 1.0;
 
-        if (distance < WALK_START) {
-            speedMultiplier = 0;
-        } else if (distance < RUN_START) {
-            // Linear ramp 0 to 0.5
-            const progress = (distance - WALK_START) / (RUN_START - WALK_START);
-            speedMultiplier = progress * 0.5;
-        } else if (distance < MAX_DISTANCE) {
-            // Linear ramp 0.5 to 1.0
-            const progress = (distance - RUN_START) / (MAX_DISTANCE - RUN_START);
-            speedMultiplier = 0.5 + progress * 0.5;
-        } else {
-            speedMultiplier = 1.0;
-        }
-
-        return {
-            dx: dirX * speedMultiplier,
-            dy: dirY * speedMultiplier,
-            speed: speedMultiplier,
-        };
+        return { dx: dirX * speedMultiplier, dy: dirY * speedMultiplier, speed: speedMultiplier };
     }, [sensitivity]);
 
-    // Touch start handler
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
         if (disabled) return;
         e.preventDefault();
 
         for (const touch of Array.from(e.changedTouches)) {
-            // First finger - movement
-            if (dragState.touchId === null) {
-                setDragState({
+            if (dragRef.current.touchId === null) {
+                // Initialize drag
+                const state = {
                     active: true,
                     touchId: touch.identifier,
                     startX: touch.clientX,
                     startY: touch.clientY,
                     currentX: touch.clientX,
                     currentY: touch.clientY,
-                });
+                };
+                dragRef.current = state;
 
-                if (hapticFeedback) {
-                    navigator.vibrate?.(10);
-                }
-            }
-            // Second finger - DASH!
-            else if (secondTouchIdRef.current === null) {
+                // Immediate logic update
+                onMove(0, 0, 0);
+
+                // Visual update
+                setUiState({ ...state, speed: 0 });
+
+                if (hapticFeedback) navigator.vibrate?.(10);
+            } else if (secondTouchIdRef.current === null) {
+                // Dash trigger
                 secondTouchIdRef.current = touch.identifier;
                 setSecondTouchActive(true);
                 onDash();
-
-                if (hapticFeedback) {
-                    navigator.vibrate?.(25);
-                }
+                if (hapticFeedback) navigator.vibrate?.(25);
             }
         }
-    }, [disabled, dragState.touchId, onDash, hapticFeedback]);
+    }, [disabled, onMove, onDash, hapticFeedback]);
 
-    // Touch move handler
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
-        if (!dragState.active) return;
+        if (!dragRef.current.active) return;
         e.preventDefault();
 
         for (const touch of Array.from(e.changedTouches)) {
-            if (touch.identifier === dragState.touchId) {
-                setDragState(prev => ({
-                    ...prev,
-                    currentX: touch.clientX,
-                    currentY: touch.clientY,
-                }));
+            if (touch.identifier === dragRef.current.touchId) {
+                const d = dragRef.current;
+                d.currentX = touch.clientX;
+                d.currentY = touch.clientY;
+
+                // 3. DIRECT MAPPING: Calculate and call onMove immediately
+                const move = getMovement(d.currentX, d.currentY, d.startX, d.startY);
+                onMove(move.dx, move.dy, move.speed);
+
+                // Update UI state for feedback (can be slightly throttled if needed, but keeping simple for now)
+                if (showVisualFeedback) {
+                    setUiState({
+                        active: true,
+                        currentX: d.currentX,
+                        currentY: d.currentY,
+                        startX: d.startX,
+                        speed: move.speed
+                    });
+                }
             }
         }
-    }, [dragState.active, dragState.touchId]);
+    }, [onMove, getMovement, showVisualFeedback]);
 
-    // Touch end handler
     const handleTouchEnd = useCallback((e: React.TouchEvent) => {
         for (const touch of Array.from(e.changedTouches)) {
-            // Movement finger lifted
-            if (touch.identifier === dragState.touchId) {
-                setDragState({
-                    active: false,
-                    touchId: null,
-                    startX: 0,
-                    startY: 0,
-                    currentX: 0,
-                    currentY: 0,
-                });
-                lastMoveRef.current = { dx: 0, dy: 0, speed: 0 };
+            if (touch.identifier === dragRef.current.touchId) {
+                dragRef.current = { active: false, touchId: null, startX: 0, startY: 0, currentX: 0, currentY: 0 };
                 onMove(0, 0, 0);
+                setUiState(prev => ({ ...prev, active: false }));
             }
-
-            // Dash finger lifted
             if (touch.identifier === secondTouchIdRef.current) {
                 secondTouchIdRef.current = null;
                 setSecondTouchActive(false);
             }
         }
-    }, [dragState.touchId, onMove]);
-
-    // Update movement on drag change
-    useEffect(() => {
-        if (dragState.active) {
-            const movement = calculateMovement(dragState);
-            lastMoveRef.current = movement;
-            onMove(movement.dx, movement.dy, movement.speed);
-        }
-    }, [dragState, calculateMovement, onMove]);
-
-    // Visual feedback rendering
-    const renderFeedback = () => {
-        if (!showVisualFeedback || !dragState.active) return null;
-
-        const movement = lastMoveRef.current;
-        const distance = Math.min(
-            Math.hypot(
-                dragState.currentX - dragState.startX,
-                dragState.currentY - dragState.startY
-            ),
-            DRAG_THRESHOLDS.MAX_DISTANCE
-        );
-
-        // Only show if moving past deadzone
-        if (distance < DRAG_THRESHOLDS.DEADZONE) return null;
-
-        return (
-            <>
-                {/* Start point indicator */}
-                <div
-                    style={{
-                        position: 'fixed',
-                        left: dragState.startX - 20,
-                        top: dragState.startY - 20,
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        border: '2px solid rgba(255, 255, 255, 0.3)',
-                        pointerEvents: 'none',
-                        zIndex: 1001,
-                    }}
-                />
-
-                {/* Direction line */}
-                <svg
-                    style={{
-                        position: 'fixed',
-                        left: 0,
-                        top: 0,
-                        width: '100%',
-                        height: '100%',
-                        pointerEvents: 'none',
-                        zIndex: 1000,
-                    }}
-                >
-                    <line
-                        x1={dragState.startX}
-                        y1={dragState.startY}
-                        x2={dragState.currentX}
-                        y2={dragState.currentY}
-                        stroke={`rgba(34, 211, 238, ${0.3 + movement.speed * 0.5})`}
-                        strokeWidth={2 + movement.speed * 2}
-                        strokeLinecap="round"
-                    />
-                </svg>
-
-                {/* Current position indicator */}
-                <div
-                    style={{
-                        position: 'fixed',
-                        left: dragState.currentX - 25,
-                        top: dragState.currentY - 25,
-                        width: 50,
-                        height: 50,
-                        borderRadius: '50%',
-                        background: `radial-gradient(circle, 
-              rgba(34, 211, 238, ${0.3 + movement.speed * 0.4}) 0%, 
-              transparent 70%)`,
-                        pointerEvents: 'none',
-                        zIndex: 1001,
-                    }}
-                />
-
-                {/* Speed indicator */}
-                {movement.speed > 0 && (
-                    <div
-                        style={{
-                            position: 'fixed',
-                            left: dragState.startX + 30,
-                            top: dragState.startY - 10,
-                            fontSize: 12,
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            pointerEvents: 'none',
-                            zIndex: 1002,
-                        }}
-                    >
-                        {Math.round(movement.speed * 100)}%
-                    </div>
-                )}
-            </>
-        );
-    };
+    }, [onMove]);
 
     return (
         <div
-            style={{
-                position: 'fixed',
-                inset: 0,
-                touchAction: 'none',
-                zIndex: 998,
-                // Don't block pointer events on UI elements - transparent
-            }}
+            className="fixed inset-0 touch-none z-[998]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
         >
-            {renderFeedback()}
+            {showVisualFeedback && uiState.active && (
+                <>
+                    {/* Start point */}
+                    <div
+                        className="fixed w-10 h-10 -ml-5 -mt-5 rounded-full border-2 border-white/30 pointer-events-none z-[1001]"
+                        style={{ left: uiState.startX, top: dragRef.current.startY }}
+                    />
+                    {/* Direction line */}
+                    <svg className="fixed inset-0 w-full h-full pointer-events-none z-[1000]">
+                        <line
+                            x1={uiState.startX}
+                            y1={dragRef.current.startY}
+                            x2={uiState.currentX}
+                            y2={uiState.currentY}
+                            stroke={`rgba(34, 211, 238, ${0.3 + uiState.speed * 0.5})`}
+                            strokeWidth={2 + uiState.speed * 2}
+                            strokeLinecap="round"
+                        />
+                    </svg>
+                    {/* Glow at finger */}
+                    <div
+                        className="fixed w-12 h-12 -ml-6 -mt-6 rounded-full pointer-events-none z-[1001]"
+                        style={{
+                            left: uiState.currentX,
+                            top: uiState.currentY,
+                            background: `radial-gradient(circle, rgba(34, 211, 238, ${0.3 + uiState.speed * 0.4}) 0%, transparent 70%)`
+                        }}
+                    />
+                </>
+            )}
 
-            {/* Dash indicator when second touch is active */}
             {secondTouchActive && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: 48,
-                        color: 'rgba(34, 211, 238, 0.8)',
-                        textShadow: '0 0 20px rgba(34, 211, 238, 0.6)',
-                        pointerEvents: 'none',
-                        zIndex: 1003,
-                        animation: 'pulse 0.3s ease-out',
-                    }}
-                >
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl text-cyan-400/80 pointer-events-none z-[1003] animate-pulse">
                     ⚡
                 </div>
             )}

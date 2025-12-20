@@ -29,9 +29,9 @@ export interface ComboMilestone {
 }
 
 const COMBO_MILESTONES: ComboMilestone[] = [
-    { kills: 5, name: 'COMBO!', multiplier: 1.2, color: COLORS.NEON_ORANGE, sound: 'combo1' },
-    { kills: 10, name: 'SUPER COMBO!', multiplier: 1.5, color: COLORS.PUMP_GREEN, sound: 'combo2' },
-    { kills: 25, name: 'MEGA COMBO!', multiplier: 2.0, color: COLORS.ELECTRIC_BLUE, sound: 'combo3' },
+    { kills: 5, name: 'COMBO!', multiplier: 1.2, color: COLORS.ELECTRIC_BLUE, sound: 'combo1' },
+    { kills: 10, name: 'SUPER COMBO!', multiplier: 1.5, color: COLORS.NEON_ORANGE, sound: 'combo2' },
+    { kills: 25, name: 'MEGA COMBO!', multiplier: 2.0, color: COLORS.BRILLIANT_ROSE, sound: 'combo3' },
     { kills: 50, name: 'ULTRA COMBO!', multiplier: 2.5, color: COLORS.ROYAL_PURPLE, sound: 'combo4' },
     { kills: 100, name: 'JACKPOT!', multiplier: 3.0, color: COLORS.JACKPOT_YELLOW, sound: 'combo5' },
 ];
