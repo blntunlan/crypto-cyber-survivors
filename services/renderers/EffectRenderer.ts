@@ -55,7 +55,7 @@ export class EffectRenderer implements IRenderer {
       ctx.globalAlpha = part.life;
       ctx.fillStyle = part.color;
       ctx.beginPath();
-      ctx.arc(Math.round(part.x), Math.round(part.y), 2, 0, Math.PI * 2);
+      ctx.arc(Math.round(part.x), Math.round(part.y), part.radius || 2, 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.globalAlpha = 1;

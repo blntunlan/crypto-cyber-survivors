@@ -8,13 +8,34 @@ import { ComboSystem } from './ComboSystem';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { bulletGrid, enemyGrid } from './SpatialGrid';
 import { DeviceBenchmarkService } from './DeviceBenchmarkService';
+import { ParticleConfigService } from './ParticleConfigService';
 
 export class PhysicsSystem {
   public static updateEntities(p: PoolManager, dtFactor: number, width: number, height: number) {
     // 1. Update Bullets
+    const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
     p.activeBullets.forEach(b => {
       b.x += b.vx * dtFactor;
       b.y += b.vy * dtFactor;
+
+      // TRAIL EFFECT: Spawn small particles behind bullets periodically
+      const trailCfg = ParticleConfigService.trail;
+      if (Math.random() < (trailCfg.spawnChance ?? 0.4) * perfConfig.particleMultiplier) {
+        const offX = (Math.random() - 0.5) * 4;
+        const offY = (Math.random() - 0.5) * 4;
+        const trailPart = p.getParticle(
+          b.x + offX,
+          b.y + offY,
+          -b.vx * (trailCfg.speedMultiplier ?? 0.1),
+          -b.vy * (trailCfg.speedMultiplier ?? 0.1),
+          b.color
+        );
+        if (trailPart) {
+          trailPart.life = trailCfg.life;
+          trailPart.radius = b.radius * trailCfg.radiusMultiplier;
+        }
+      }
+
       if (b.x < -100 || b.x > width + 100 || b.y < -100 || b.y > height + 100) {
         b.active = false;
       }
@@ -94,8 +115,23 @@ export class PhysicsSystem {
         const combinedRadius = e.radius + b.radius;
 
         if (distSq < combinedRadius * combinedRadius) {
+          const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
           e.health -= b.damage;
           b.active = false;
+
+          // IMPACT PARTICLES: Small burst when bullet hits enemy
+          const impactCfg = ParticleConfigService.impact;
+          const impactCount = Math.round((impactCfg.count ?? 5) * perfConfig.particleMultiplier);
+          for (let i = 0; i < impactCount; i++) {
+            const part = p.getParticle(
+              b.x,
+              b.y,
+              (Math.random() - 0.5) * (impactCfg.speed ?? 6),
+              (Math.random() - 0.5) * (impactCfg.speed ?? 6),
+              b.isSuperCrit ? COLORS.SUPER_CRIT : b.color
+            );
+            if (part) part.life = impactCfg.life;
+          }
 
           // Knockback: push enemy in bullet direction
           const kbStrength = 4;
@@ -146,10 +182,30 @@ export class PhysicsSystem {
 
       const combinedRadius = player.radius + g.radius;
       if (distSq < combinedRadius * combinedRadius) {
+        const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
         const xpGain = Math.floor(g.value * ComboSystem.getXpMultiplier());
         player.exp += xpGain;
         g.active = false;
         audio.playGem();
+
+        // COLLECT EFFECT: Spiral/Circular burst of particles when gem is collected
+        const collectCfg = ParticleConfigService.collect;
+        const collectCount = Math.round((collectCfg.count ?? 12) * perfConfig.particleMultiplier);
+        for (let i = 0; i < collectCount; i++) {
+          const angle = (i / collectCount) * Math.PI * 2;
+          const speed = (collectCfg.speed ?? 3) * (0.6 + Math.random() * 0.4);
+          const part = p.getParticle(
+            g.x,
+            g.y,
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed,
+            g.color
+          );
+          if (part) {
+            part.life = collectCfg.life;
+            part.radius = collectCfg.radius ?? 3;
+          }
+        }
 
         EventBus.emit('gemCollected', {
           value: g.value,

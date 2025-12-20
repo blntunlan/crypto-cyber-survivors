@@ -1,6 +1,6 @@
 /**
  * HUD Component Exports
- * 
+ *
  * All HUD sub-components for the game overlay
  */
 
@@ -15,4 +15,4 @@ export { MilestoneAnnouncer } from './MilestoneAnnouncer';
 export { ComboPanel } from './ComboPanel';
 export { KernelStatus } from './KernelStatus';
 export { LiveFeed } from './LiveFeed';
-export { AccountHealth } from './AccountHealth';
+export { AccountHealthPremium } from './AccountHealthPremium';

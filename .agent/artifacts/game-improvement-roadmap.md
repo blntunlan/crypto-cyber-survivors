@@ -61,15 +61,15 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 ---
 
 ## Faz 3: Görsel & Ses Polish ✨
-**Durum:** %30 Tamamlandı
+**Durum:** %50 Tamamlandı
 **Öncelik:** ⭐⭐⭐⭐
 
-### 3.1 Görsel Efektler 🔶
+### 3.1 Görsel Efektler ✅
 - [x] Damage number renk kodlaması (Crit/Super Crit)
 - [x] Dash trail shadow efekti
-- [ ] Trail effect (mermi arkasında iz)
-- [ ] Impact particles (düşman vurulunca)
-- [ ] Collect effect (gem alırken spiral animasyon)
+- [x] Trail effect (mermi arkasında iz)
+- [x] Impact particles (düşman vurulunca)
+- [x] Collect effect (gem alırken spiral animasyon)
 
 ### 3.2 UI/UX İyileştirmeleri 🔶
 - [x] Modern HUD (Health, XP, Stats, Combo)

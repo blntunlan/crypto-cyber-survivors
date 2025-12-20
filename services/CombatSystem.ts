@@ -2,6 +2,8 @@ import { Player, GameState } from '../types';
 import { PoolManager } from './poolManager';
 import { audio } from './audioService';
 import { COLORS, GAME_ENGINE } from '../constants';
+import { ParticleConfigService } from './ParticleConfigService';
+import { CheatManager } from './CheatManager';
 
 interface NearestEnemy {
   x: number;
@@ -87,8 +89,11 @@ export class CombatSystem {
     _time: number
   ): void {
     const luckBonus = player.luck * 0.02;
-    const isSuperCrit = Math.random() < (player.critChance + luckBonus) * 0.2;
-    const isCrit = !isSuperCrit && Math.random() < player.critChance + luckBonus;
+    const isSuperCrit =
+      CheatManager.isForcedSuperCrit() || Math.random() < (player.critChance + luckBonus) * 0.2;
+    const isCrit =
+      !isSuperCrit &&
+      (CheatManager.isForcedCrit() || Math.random() < player.critChance + luckBonus);
 
     // IMPROVED LEAD SHOOTING LOGIC
     // Uses quadratic intercept calculation for more accurate predictions
@@ -163,7 +168,18 @@ export class CombatSystem {
       const angleOffset = (i - (player.projectiles - 1) / 2) * spread;
       const finalAngle = baseAngle + angleOffset;
 
-      const bulletRadius = (isSuperCrit ? 9 : isCrit ? 6 : 4) * player.area;
+      const baseRadius = isSuperCrit ? 9 : isCrit ? 6 : 4;
+      const typeMultiplier = isSuperCrit
+        ? (ParticleConfigService.bullets.superCritSizeMultiplier ?? 1.0)
+        : isCrit
+          ? (ParticleConfigService.bullets.critSizeMultiplier ?? 1.0)
+          : 1.0;
+
+      const bulletRadius =
+        baseRadius *
+        player.area *
+        (ParticleConfigService.bullets.baseSizeMultiplier ?? 1.0) *
+        typeMultiplier;
       const bulletColor = isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET;
 
       pool.getBullet(

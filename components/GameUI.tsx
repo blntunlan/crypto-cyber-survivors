@@ -3,7 +3,7 @@ import { MarketPosition, MarketData, Player, GameStatus } from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
 
-import { KernelStatus, LiveFeed, AccountHealth } from './hud';
+import { KernelStatus, LiveFeed, AccountHealthPremium } from './hud';
 
 interface GameUIProps {
   position: MarketPosition;
@@ -20,19 +20,22 @@ export const GameUI: React.FC<GameUIProps> = memo(
     const [priceColor, setPriceColor] = useState('text-white');
 
     // Smooth lerp for all dynamic values using a single animation loop
-    const smoothValues = useLerpValues({
-      price: marketData.price,
-      pnl: marketData.effectivePnl * 100,
-      difficulty: marketData.difficulty,
-      hp: player.hp,
-      exp: player.exp,
-      damage: player.baseDamage,
-      luck: player.luck,
-      crit: player.critChance * 100,
-      magnet: player.magnet,
-      armor: player.armor,
-      area: player.area,
-    }, { speed: 0.15, decimals: 2 });
+    const smoothValues = useLerpValues(
+      {
+        price: marketData.price,
+        pnl: marketData.effectivePnl * 100,
+        difficulty: marketData.difficulty,
+        hp: player.hp,
+        exp: player.exp,
+        damage: player.baseDamage,
+        luck: player.luck,
+        crit: player.critChance * 100,
+        magnet: player.magnet,
+        armor: player.armor,
+        area: player.area,
+      },
+      { speed: 0.15, decimals: 2 }
+    );
 
     const hpPercent = (smoothValues.hp / player.maxHp) * 100;
 
@@ -55,7 +58,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
         style={{
           paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`,
           paddingLeft: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-left, 0px))`,
-          paddingRight: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-right, 0px))`
+          paddingRight: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-right, 0px))`,
         }}
       >
         <div className="flex justify-between items-start w-full">
@@ -70,31 +73,37 @@ export const GameUI: React.FC<GameUIProps> = memo(
           <div className="flex flex-col items-end gap-3">
             {/* Pause Button - Visible during active play */}
             {status === GameStatus.PLAYING && onTogglePause && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTogglePause();
-                }}
-                className="pointer-events-auto bg-slate-900/60 backdrop-blur-md border border-white/10 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-95 transition-all"
-                title="Pause (Esc)"
-              >
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-5 bg-white rounded-full"></div>
-                  <div className="w-1.5 h-5 bg-white rounded-full"></div>
-                </div>
-              </button>
+              <div className="pointer-events-auto p-2 -m-2">
+                {' '}
+                {/* Larger invisible hit area */}
+                <button
+                  onPointerDown={e => {
+                    e.stopPropagation();
+                    onTogglePause();
+                  }}
+                  onClick={e => {
+                    e.stopPropagation();
+                    // Fallback for browsers that might not support onPointerDown correctly or click events
+                  }}
+                  className="bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
+                  title="Pause (Esc)"
+                  aria-label="Pause Game"
+                >
+                  <div className="flex gap-1.5">
+                    <div className="w-1.5 h-5 bg-white rounded-full"></div>
+                    <div className="w-1.5 h-5 bg-white rounded-full"></div>
+                  </div>
+                </button>
+              </div>
             )}
 
             {/* Right Panel: Enhanced Stats */}
-            <KernelStatus
-              player={player}
-              smoothValues={smoothValues}
-            />
+            <KernelStatus player={player} smoothValues={smoothValues} />
           </div>
         </div>
 
         {/* Account Health (Bottom) - Adaptive Component */}
-        <AccountHealth hpPercent={hpPercent} />
+        <AccountHealthPremium hpPercent={hpPercent} />
       </div>
     );
   }

@@ -44,6 +44,9 @@ const MetricsDebugPanel = React.lazy(() =>
 const ComboDebugPanel = React.lazy(() =>
   import('./components/ComboDebugPanel').then(m => ({ default: m.ComboDebugPanel }))
 );
+const ParticleDebugPanel = React.lazy(() =>
+  import('./components/ParticleDebugPanel').then(m => ({ default: m.ParticleDebugPanel }))
+);
 
 const FallbackLoader = () => (
   <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-yellow-500 font-mono text-sm tracking-widest animate-pulse">
@@ -369,6 +372,7 @@ const App: React.FC = () => {
         <React.Suspense fallback={<UIFallback />}>
           <MetricsDebugPanel />
           <ComboDebugPanel />
+          <ParticleDebugPanel />
         </React.Suspense>
       )}
 

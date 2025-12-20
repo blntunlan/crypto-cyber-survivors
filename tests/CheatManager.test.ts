@@ -55,9 +55,40 @@ describe('CheatManager', () => {
     expect(CheatManager.isGodMode()).toBe(false);
   });
 
-  it('should handle luck keys "1", "2", "3", "4"', () => {
-    const keys = ['1', '2', '3', '4'] as const;
-    const expectedLucks = [0, 2, 5, 10];
+  it('should handle "1" key for forced crit toggle', () => {
+    const event = new KeyboardEvent('keydown', { key: '1' });
+    window.dispatchEvent(event);
+    expect(CheatManager.isForcedCrit()).toBe(true);
+
+    // Toggle off
+    window.dispatchEvent(event);
+    expect(CheatManager.isForcedCrit()).toBe(false);
+  });
+
+  it('should handle "2" key for forced super crit toggle', () => {
+    const event = new KeyboardEvent('keydown', { key: '2' });
+    window.dispatchEvent(event);
+    expect(CheatManager.isForcedSuperCrit()).toBe(true);
+
+    // Toggle off
+    window.dispatchEvent(event);
+    expect(CheatManager.isForcedSuperCrit()).toBe(false);
+  });
+
+  it('should handle "3" key for normal firing mode', () => {
+    // First enable crit mode
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '1' }));
+    expect(CheatManager.isForcedCrit()).toBe(true);
+
+    // Then press 3 to reset
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }));
+    expect(CheatManager.isForcedCrit()).toBe(false);
+    expect(CheatManager.isForcedSuperCrit()).toBe(false);
+  });
+
+  it('should handle luck keys "4", "5"', () => {
+    const keys = ['4', '5'] as const;
+    const expectedLucks = [5, 10];
 
     keys.forEach((key, index) => {
       const event = new KeyboardEvent('keydown', { key });
@@ -136,5 +167,30 @@ describe('CheatManager', () => {
 
     expect(mockCallbacks.onLevelUp).not.toHaveBeenCalled();
     document.body.removeChild(input);
+  });
+
+  it('should turn off forced crit when super crit is enabled', () => {
+    // Enable crit
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '1' }));
+    expect(CheatManager.isForcedCrit()).toBe(true);
+
+    // Enable super crit - should disable normal crit
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '2' }));
+    expect(CheatManager.isForcedSuperCrit()).toBe(true);
+    expect(CheatManager.isForcedCrit()).toBe(false);
+  });
+
+  it('should turn off super crit when normal crit is enabled', () => {
+    // First reset to clean state
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }));
+
+    // Enable super crit
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '2' }));
+    expect(CheatManager.isForcedSuperCrit()).toBe(true);
+
+    // Enable normal crit - should disable super crit
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '1' }));
+    expect(CheatManager.isForcedCrit()).toBe(true);
+    expect(CheatManager.isForcedSuperCrit()).toBe(false);
   });
 });
