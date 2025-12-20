@@ -39,11 +39,14 @@ const INITIAL_RECONNECT_DELAY = 1000; // 1 second
 const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 const RECONNECT_MULTIPLIER = 2;
 
+export type WebSocketFactory = (url: string) => WebSocket;
+
 export class MarketService {
   private binanceSocket: WebSocket | null = null;
   private coinbaseSocket: WebSocket | null = null;
   private onDataCallback: (update: MarketUpdate) => void;
   private wasClosedIntentionally: boolean = false;
+  private wsFactory: WebSocketFactory;
 
   // Connection state tracking
   private binanceState: ConnectionState = 'disconnected';
@@ -64,10 +67,12 @@ export class MarketService {
 
   constructor(
     onData: (update: MarketUpdate) => void,
-    onStatusChange?: (status: ConnectionStatus) => void
+    onStatusChange?: (status: ConnectionStatus) => void,
+    wsFactory?: WebSocketFactory
   ) {
     this.onDataCallback = onData;
     this.onStatusChange = onStatusChange;
+    this.wsFactory = wsFactory || ((url: string) => new WebSocket(url));
   }
 
   /**
@@ -126,7 +131,7 @@ export class MarketService {
       this.updateState('binance', 'connecting');
       Logger.debug('[Market] Connecting to Binance...');
 
-      this.binanceSocket = new WebSocket(BINANCE_WS_URL);
+      this.binanceSocket = this.wsFactory(BINANCE_WS_URL);
 
       this.binanceSocket.onopen = () => {
         Logger.info('[Market] Binance connected');
@@ -134,7 +139,7 @@ export class MarketService {
         this.binanceReconnectDelay = INITIAL_RECONNECT_DELAY; // Reset backoff
       };
 
-      this.binanceSocket.onmessage = (event) => {
+      this.binanceSocket.onmessage = event => {
         try {
           const rawData = JSON.parse(event.data);
           const update = parseBinanceData(rawData);
@@ -158,7 +163,7 @@ export class MarketService {
         }
       };
 
-      this.binanceSocket.onerror = (error) => {
+      this.binanceSocket.onerror = error => {
         Logger.warn('[Market] Binance WebSocket error', error);
       };
     } catch (e) {
@@ -175,7 +180,7 @@ export class MarketService {
       this.updateState('coinbase', 'connecting');
       Logger.debug('[Market] Connecting to Coinbase...');
 
-      this.coinbaseSocket = new WebSocket(COINBASE_WS_URL);
+      this.coinbaseSocket = this.wsFactory(COINBASE_WS_URL);
 
       this.coinbaseSocket.onopen = () => {
         Logger.info('[Market] Coinbase connected');
@@ -190,7 +195,7 @@ export class MarketService {
         this.coinbaseReconnectDelay = INITIAL_RECONNECT_DELAY; // Reset backoff
       };
 
-      this.coinbaseSocket.onmessage = (event) => {
+      this.coinbaseSocket.onmessage = event => {
         try {
           const rawData = JSON.parse(event.data);
 
@@ -220,7 +225,7 @@ export class MarketService {
         }
       };
 
-      this.coinbaseSocket.onerror = (error) => {
+      this.coinbaseSocket.onerror = error => {
         Logger.warn('[Market] Coinbase WebSocket error', error);
       };
     } catch (e) {

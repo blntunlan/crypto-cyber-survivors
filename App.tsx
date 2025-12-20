@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MarketPosition, GameStatus, LeverageOption } from './types';
 import { CardSystem, Card } from './services/CardSystem';
-import { GameEngine } from './components/GameEngine';
-import { GameUI } from './components/GameUI';
 import { audio } from './services/audioService';
 import { CheatManager } from './services/CheatManager';
 import { EventBus } from './services/EventBus';
@@ -10,20 +8,48 @@ import { ComboSystem } from './services/ComboSystem';
 import { GameEndReason } from './types/metrics';
 import { MetricsService } from './services/MetricsService';
 import { GameStateManager, RUN_STATS_DEFAULTS } from './services/GameStateManager';
-import { SettingsPanel } from './components/SettingsPanel';
-import { MainMenu } from './components/screens/MainMenu';
-import { LevelUpScreen } from './components/screens/LevelUpScreen';
-import { PauseMenu } from './components/screens/PauseMenu';
-import { GameOverScreen } from './components/screens/GameOverScreen';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
-import { MetricsDebugPanel } from './components/MetricsDebugPanel';
-import { ComboDebugPanel } from './components/ComboDebugPanel';
 import { MilestoneService } from './services/MilestoneService';
 import { useDevice } from './hooks/useDevice';
 import { DifficultyManager } from './services/DifficultyManager';
 import { GameStateMachine } from './services/GameStateMachine';
 import { ImagePreloader } from './services/ImagePreloader';
+
+// Lazy load heavy components for performance optimization
+const GameEngine = React.lazy(() =>
+  import('./components/GameEngine').then(m => ({ default: m.GameEngine }))
+);
+const GameUI = React.lazy(() => import('./components/GameUI').then(m => ({ default: m.GameUI })));
+const SettingsPanel = React.lazy(() =>
+  import('./components/SettingsPanel').then(m => ({ default: m.SettingsPanel }))
+);
+const MainMenu = React.lazy(() =>
+  import('./components/screens/MainMenu').then(m => ({ default: m.MainMenu }))
+);
+const LevelUpScreen = React.lazy(() =>
+  import('./components/screens/LevelUpScreen').then(m => ({ default: m.LevelUpScreen }))
+);
+const PauseMenu = React.lazy(() =>
+  import('./components/screens/PauseMenu').then(m => ({ default: m.PauseMenu }))
+);
+const GameOverScreen = React.lazy(() =>
+  import('./components/screens/GameOverScreen').then(m => ({ default: m.GameOverScreen }))
+);
+const MetricsDebugPanel = React.lazy(() =>
+  import('./components/MetricsDebugPanel').then(m => ({ default: m.MetricsDebugPanel }))
+);
+const ComboDebugPanel = React.lazy(() =>
+  import('./components/ComboDebugPanel').then(m => ({ default: m.ComboDebugPanel }))
+);
+
+const FallbackLoader = () => (
+  <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-yellow-500 font-mono text-sm tracking-widest animate-pulse">
+    LOADING ENGINE...
+  </div>
+);
+
+const UIFallback = () => null;
 
 // Preload card images AFTER initial render (non-blocking)
 setTimeout(() => ImagePreloader.preloadAll(), 1000);
@@ -52,14 +78,8 @@ const App: React.FC = () => {
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
 
-  const {
-    playerRef,
-    uiStats,
-    setUiStats,
-    resetPlayer,
-    healFull,
-    setPositionColor,
-  } = usePlayerState(dimensions.width, dimensions.height);
+  const { playerRef, uiStats, setUiStats, resetPlayer, healFull, setPositionColor } =
+    usePlayerState(dimensions.width, dimensions.height);
 
   const { marketData } = useMarketData(gameStatus, position, entryPrice, leverage, playerRef);
 
@@ -95,7 +115,7 @@ const App: React.FC = () => {
 
   // Subscribe to GameStateMachine for state sync
   useEffect(() => {
-    const unsub = GameStateMachine.subscribe((newState) => {
+    const unsub = GameStateMachine.subscribe(newState => {
       setGameStatus(newState);
     });
     return () => unsub();
@@ -206,20 +226,23 @@ const App: React.FC = () => {
       },
       onHeal: healFull,
       onKillAll: () => EventBus.emit('killAll', {}),
-      onToggleGodMode: () => { },
-      onSetLuck: (luck) => {
+      onToggleGodMode: () => {},
+      onSetLuck: (luck: number) => {
         playerRef.current.luck = luck;
         setUiStats({ ...playerRef.current });
       },
-      onAddExp: (amount) => {
+      onAddExp: (amount: number) => {
         playerRef.current.exp += amount;
         setUiStats({ ...playerRef.current });
-        if (playerRef.current.exp >= playerRef.current.nextLevelExp && gameStatus === GameStatus.PLAYING) {
+        if (
+          playerRef.current.exp >= playerRef.current.nextLevelExp &&
+          gameStatus === GameStatus.PLAYING
+        ) {
           handleLevelUp();
         }
       },
       onRestart: resetGame,
-      onAddComboKill: (count) => {
+      onAddComboKill: (count: number) => {
         for (let i = 0; i < count; i++) {
           EventBus.emit('enemyKilled', { x: 0, y: 0, type: 'cheat', isCrit: false });
         }
@@ -232,98 +255,114 @@ const App: React.FC = () => {
     <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-mono">
       {/* Background UI always active or contextual */}
       {gameStatus !== GameStatus.MENU && (
-        <GameUI
-          position={position}
-          entryPrice={entryPrice}
-          marketData={marketData}
-          player={uiStats}
-          onTogglePause={handlePauseToggle}
-          status={gameStatus}
-        />
+        <React.Suspense fallback={<UIFallback />}>
+          <GameUI
+            position={position}
+            entryPrice={entryPrice}
+            marketData={marketData}
+            player={uiStats}
+            onTogglePause={handlePauseToggle}
+            status={gameStatus}
+          />
+        </React.Suspense>
       )}
 
-      <GameEngine
-        status={gameStatus}
-        position={position}
-        marketData={marketData}
-        onGameOver={() => {
-          setFinalPnl(marketData.pnl);
-          setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
-          GameStateMachine.transition(GameStatus.GAMEOVER);
+      <React.Suspense fallback={<FallbackLoader />}>
+        <GameEngine
+          status={gameStatus}
+          position={position}
+          marketData={marketData}
+          onGameOver={() => {
+            setFinalPnl(marketData.pnl);
+            setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
+            GameStateMachine.transition(GameStatus.GAMEOVER);
 
-          // End metrics session with all final data
-          MetricsService.endSession(GameEndReason.DEATH, {
-            price: marketData.price,
-            pnl: marketData.pnl,
-            level: playerRef.current.level,
-            hp: playerRef.current.hp,
-            difficulty: marketData.difficulty,
-            playerStats: {
-              damage: playerRef.current.baseDamage,
-              fireRate: playerRef.current.fireRate,
-              speed: playerRef.current.speed,
-              luck: playerRef.current.luck,
-              critChance: playerRef.current.critChance,
-              critDamage: playerRef.current.critChance * 2, // Estimate based on critChance
-            },
-            position,
-            entryPrice,
-            leverage,
-            totalKills: runStats.totalKills,
-          });
-        }}
-        onLevelUp={handleLevelUp}
-        updatePlayerStats={setUiStats}
-        playerRef={playerRef}
-        sessionStartTime={sessionStartTime}
-        width={dimensions.width}
-        height={dimensions.height}
-      />
+            // End metrics session with all final data
+            MetricsService.endSession(GameEndReason.DEATH, {
+              price: marketData.price,
+              pnl: marketData.pnl,
+              level: playerRef.current.level,
+              hp: playerRef.current.hp,
+              difficulty: marketData.difficulty,
+              playerStats: {
+                damage: playerRef.current.baseDamage,
+                fireRate: playerRef.current.fireRate,
+                speed: playerRef.current.speed,
+                luck: playerRef.current.luck,
+                critChance: playerRef.current.critChance,
+                critDamage: playerRef.current.critChance * 2, // Estimate based on critChance
+              },
+              position,
+              entryPrice,
+              leverage,
+              totalKills: runStats.totalKills,
+            });
+          }}
+          onLevelUp={handleLevelUp}
+          updatePlayerStats={setUiStats}
+          playerRef={playerRef}
+          sessionStartTime={sessionStartTime}
+          width={dimensions.width}
+          height={dimensions.height}
+        />
+      </React.Suspense>
 
       {/* States UI Overlays */}
       {gameStatus === GameStatus.MENU && (
-        <MainMenu
-          price={marketData.price}
-          onStart={startGame}
-          onOpenSettings={() => setShowSettings(true)}
-        />
+        <React.Suspense fallback={<UIFallback />}>
+          <MainMenu
+            price={marketData.price}
+            onStart={startGame}
+            onOpenSettings={() => setShowSettings(true)}
+          />
+        </React.Suspense>
       )}
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <React.Suspense fallback={<UIFallback />}>
+          <SettingsPanel onClose={() => setShowSettings(false)} />
+        </React.Suspense>
+      )}
 
       {gameStatus === GameStatus.LEVEL_UP && (
-        <LevelUpScreen upgradeChoices={upgradeChoices} onSelect={selectUpgrade} />
+        <React.Suspense fallback={<UIFallback />}>
+          <LevelUpScreen upgradeChoices={upgradeChoices} onSelect={selectUpgrade} />
+        </React.Suspense>
       )}
 
       {gameStatus === GameStatus.PAUSED && (
-        <PauseMenu
-          sessionStartTime={sessionStartTime}
-          runStats={runStats}
-          onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
-          onRestart={resetGame}
-          onMainMenu={resetGame}
-          onOpenSettings={() => setShowSettings(true)}
-          isMuted={isMuted}
-          onToggleMute={() => setIsMuted(audio.toggleMute())}
-        />
+        <React.Suspense fallback={<UIFallback />}>
+          <PauseMenu
+            sessionStartTime={sessionStartTime}
+            runStats={runStats}
+            onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
+            onRestart={resetGame}
+            onMainMenu={resetGame}
+            onOpenSettings={() => setShowSettings(true)}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(audio.toggleMute())}
+          />
+        </React.Suspense>
       )}
 
       {gameStatus === GameStatus.GAMEOVER && (
-        <GameOverScreen
-          level={uiStats.level}
-          finalPnl={finalPnl}
-          survivalTime={finalSurvivalTime}
-          kills={runStats.totalKills}
-          onRestart={resetGame}
-        />
+        <React.Suspense fallback={<UIFallback />}>
+          <GameOverScreen
+            level={uiStats.level}
+            finalPnl={finalPnl}
+            survivalTime={finalSurvivalTime}
+            kills={runStats.totalKills}
+            onRestart={resetGame}
+          />
+        </React.Suspense>
       )}
 
       {/* Debug Panels - Desktop only */}
       {!device.isMobile && (
-        <>
+        <React.Suspense fallback={<UIFallback />}>
           <MetricsDebugPanel />
           <ComboDebugPanel />
-        </>
+        </React.Suspense>
       )}
 
       {/* Mobile Orientation Lock Overlay - Disabled for now, evaluate after touch controls
@@ -336,7 +375,6 @@ const App: React.FC = () => {
         </div>
       )}
       */}
-
     </div>
   );
 };

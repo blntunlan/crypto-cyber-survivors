@@ -6,7 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 export default tseslint.config(
   // Ignore patterns
   {
-    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts'],
+    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts', '*.config.cjs'],
   },
 
   // Base JS rules

@@ -1,20 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   /* Casino Theme Colors */
-  --casino-gold: #D6B85C;
-  --casino-red: #B22222;
-  --casino-hot-red: #D20202;
+  --casino-gold: #d6b85c;
+  --casino-red: #b22222;
+  --casino-hot-red: #d20202;
   --roulette-green: #05732c;
-  --neon-orange: #FF6600;
-  --neon-green: #39FF14;
-  --neon-purple: #B026FF;
-  --neon-blue: #00FFFF;
-  --jackpot-yellow: #FFD600;
-  --pump-green: #00E676;
-  --dump-orange: #FF3D00;
-  --slot-black: #1A1A1A;
-  --slot-silver: #DCDCDC;
+  --neon-orange: #ff6600;
+  --neon-green: #39ff14;
+  --neon-purple: #b026ff;
+  --neon-blue: #00ffff;
+  --jackpot-yellow: #ffd600;
+  --pump-green: #00e676;
+  --dump-orange: #ff3d00;
+  --slot-black: #1a1a1a;
+  --slot-silver: #dcdcdc;
 
   /* Mobile Safe Area Insets (iOS notch, Android cutout) */
   --sat: env(safe-area-inset-top, 0px);
@@ -101,7 +103,6 @@ canvas {
 }
 
 @keyframes rotate-phone {
-
   0%,
   100% {
     transform: rotate(0deg);
@@ -137,7 +138,7 @@ canvas {
   z-index: 1000;
 }
 
-.mobile-controls-zone>* {
+.mobile-controls-zone > * {
   pointer-events: auto;
 }
 
