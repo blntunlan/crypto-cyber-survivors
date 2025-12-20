@@ -7,6 +7,7 @@ import { DifficultyManager } from './DifficultyManager';
 import { ComboSystem } from './ComboSystem';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { bulletGrid, enemyGrid } from './SpatialGrid';
+import { DeviceBenchmarkService } from './DeviceBenchmarkService';
 
 export class PhysicsSystem {
   public static updateEntities(p: PoolManager, dtFactor: number, width: number, height: number) {
@@ -175,8 +176,10 @@ export class PhysicsSystem {
       isCrit: !!isSuperCrit,
     });
 
-    // Spawn particles
-    const particleCount = isSuperCrit ? 30 : 10;
+    // Spawn particles (scaled by performance config)
+    const config = DeviceBenchmarkService.getPerformanceConfig();
+    const baseParticleCount = isSuperCrit ? 30 : 10;
+    const particleCount = Math.round(baseParticleCount * config.particleMultiplier);
     for (let k = 0; k < particleCount; k++) {
       p.getParticle(e.x, e.y, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, e.color);
     }

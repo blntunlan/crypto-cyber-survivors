@@ -20,6 +20,9 @@ import { CombatSystem } from '../services/CombatSystem';
 import { GameHUD } from './GameHUD';
 import { MobileControls } from './mobile';
 import { useDevice } from '../hooks/useDevice';
+import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
+import { generateBackgroundCandles } from '../utils/backgroundCandles';
+import { FPSMonitor } from '../services/FPSMonitor';
 
 interface GameEngineProps {
   status: GameStatus;
@@ -85,18 +88,26 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   });
 
   useEffect(() => {
-    const candles: Candle[] = [];
-    for (let i = 0; i < 30; i++) {
-      candles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        w: 2 + Math.random() * 3,
-        h: 20 + Math.random() * 60,
-        color: Math.random() > 0.5 ? COLORS.LONG : COLORS.SHORT,
-        speed: 0.2 + Math.random() * 1.5,
-      });
-    }
-    state.current.bgCandles = candles;
+    // Start FPS monitor
+    FPSMonitor.start();
+
+    // Initial candle generation
+    const updateCandles = () => {
+      const config = DeviceBenchmarkService.getPerformanceConfig();
+      state.current.bgCandles = generateBackgroundCandles(width, height, config);
+    };
+
+    updateCandles();
+
+    // Listen for profile changes (adaptive performance)
+    const unsubscribe = DeviceBenchmarkService.subscribe(() => {
+      updateCandles();
+    });
+
+    return () => {
+      FPSMonitor.stop();
+      unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,6 +167,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     const deltaTime = TimeService.update(time);
     const dtFactor = deltaTime > 0 ? deltaTime / 16.67 : 0;
     s.lastTime = time;
+    FPSMonitor.tick();
 
     if (status !== GameStatus.PAUSED) {
       renderer.current.updateBackgroundCandles(
@@ -281,6 +293,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       CombatSystem.processAutoFire(p, player, s, deltaTime);
 
       const layout = getHUDLayout(device.platform);
+      const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+
+      // Use the lower of layout limit and performance config limit
+      const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
 
       // Update Spawn System
       s.spawnTimer = SpawnSystem.update(
@@ -291,7 +307,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         height,
         position,
         p,
-        layout.maxEnemies
+        maxEnemies
       );
 
       // Update Physics & Collisions
