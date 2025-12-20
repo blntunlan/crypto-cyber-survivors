@@ -26,7 +26,7 @@ export class PoolManager {
   private freeParticles: Particle[] = [];
   private freeFloatingTexts: FloatingText[] = [];
 
-  constructor() { }
+  constructor() {}
 
   /**
    * Helper to move object back to free list
@@ -146,5 +146,26 @@ export class PoolManager {
     this.freeGems.forEach(e => (e.active = false));
     this.freeParticles.forEach(e => (e.active = false));
     this.freeFloatingTexts.forEach(e => (e.active = false));
+
+    // Trim free lists to prevent memory bloat after clearing
+    this.trimFreeLists();
+  }
+
+  /**
+   * Trim free lists to prevent unbounded memory growth.
+   * Keeps a reasonable pool size for recycling while freeing excess memory.
+   */
+  trimFreeLists(maxPoolSize: number = 50): void {
+    const trim = <T>(list: T[], max: number) => {
+      if (list.length > max) {
+        list.length = max;
+      }
+    };
+
+    trim(this.freeEnemies, maxPoolSize);
+    trim(this.freeBullets, maxPoolSize * 2); // Bullets spawn more frequently
+    trim(this.freeGems, maxPoolSize);
+    trim(this.freeParticles, maxPoolSize * 3); // Particles are most numerous
+    trim(this.freeFloatingTexts, maxPoolSize);
   }
 }

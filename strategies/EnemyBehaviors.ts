@@ -181,6 +181,7 @@ export class GrowingStrategy implements MovementStrategy {
   private growthRate: number = 0.02;
   private maxGrowth: number = 2.0;
   private currentGrowth: number = 1.0;
+  private wavePhase: number = 0;
 
   move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
     const dx = playerX - enemy.x;
@@ -192,9 +193,10 @@ export class GrowingStrategy implements MovementStrategy {
       this.currentGrowth += this.growthRate * dtFactor;
     }
 
-    // Move with slight wave pattern
+    // Move with slight wave pattern (frame-rate independent)
     if (dist > 0) {
-      const wave = Math.sin(Date.now() * 0.003) * 0.3;
+      this.wavePhase += 0.05 * dtFactor; // ~0.003 * 16.67 ≈ 0.05 per frame
+      const wave = Math.sin(this.wavePhase) * 0.3;
       enemy.x += (dx / dist) * enemy.speed * (1 + wave) * dtFactor;
       enemy.y += (dy / dist) * enemy.speed * (1 - wave) * dtFactor;
     }
