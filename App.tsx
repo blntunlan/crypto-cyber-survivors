@@ -299,9 +299,9 @@ const App: React.FC = () => {
         <PauseMenu
           sessionStartTime={sessionStartTime}
           runStats={runStats}
-          onResume={() => setGameStatus(GameStatus.PLAYING)}
+          onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
           onRestart={resetGame}
-          onMainMenu={() => setGameStatus(GameStatus.MENU)}
+          onMainMenu={resetGame}
           onOpenSettings={() => setShowSettings(true)}
           isMuted={isMuted}
           onToggleMute={() => setIsMuted(audio.toggleMute())}

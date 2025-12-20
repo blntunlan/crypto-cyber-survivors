@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { EventBus } from '../services/EventBus';
-import { ComboSystem } from '../services/ComboSystem';
+import { ComboSystem, COMBO_MILESTONES } from '../services/ComboSystem';
 import { MilestoneService } from '../services/MilestoneService';
 import { COLORS } from '../constants';
 import { GameStatus, Player } from '../types';
@@ -207,7 +207,20 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             if (Math.abs(streakValueRef.current - streakTarget) > 0.01) {
                 streakValueRef.current += (streakTarget - streakValueRef.current) * 0.2;
                 const el = document.getElementById('combo-streak-count');
-                if (el) el.textContent = Math.round(streakValueRef.current).toString();
+                if (el) {
+                    el.textContent = Math.round(streakValueRef.current).toString();
+                    // Update color based on milestone tier
+                    let color = '#ffffff'; // Default white
+                    for (let i = COMBO_MILESTONES.length - 1; i >= 0; i--) {
+                        const milestone = COMBO_MILESTONES[i];
+                        if (milestone && streakTarget >= milestone.kills) {
+                            color = milestone.color;
+                            break;
+                        }
+                    }
+                    el.style.color = color;
+                    el.style.textShadow = `0 0 15px ${color}80`;
+                }
             }
 
             if (Math.abs(multiplierValueRef.current - multTarget) > 0.001) {
