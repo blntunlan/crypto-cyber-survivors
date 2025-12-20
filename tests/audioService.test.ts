@@ -5,6 +5,8 @@
  * Note: Sound playback tests are skipped as they require a real AudioContext.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AudioService } from '../services/audioService';
 
@@ -110,6 +112,7 @@ describe('AudioService', () => {
     it('should initialize AudioContext on first play', () => {
       audioService.playButton();
       // Accessing private field
+
       expect((audioService as any).ctx).not.toBeNull();
     });
 

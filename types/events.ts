@@ -1,0 +1,167 @@
+/**
+ * Event Types - Strongly typed event definitions
+ *
+ * All game events are defined here with their payload types.
+ * This provides type-safety across the entire event system.
+ */
+
+// =============================================================================
+// EVENT NAMES
+// =============================================================================
+
+export type GameEvent =
+  | 'enemyKilled'
+  | 'gemCollected'
+  | 'levelUp'
+  | 'levelUpComplete'
+  | 'gameOver'
+  | 'critHit'
+  | 'playerHit'
+  | 'bulletFired'
+  | 'killAll'
+  | 'comboUpdate'
+  | 'comboMilestone'
+  | 'comboEnd'
+  | 'levelUpStart'
+  | 'milestoneAchieved'
+  | 'gameReset'
+  | 'beforeReset'
+  | 'afterReset'
+  | 'gameInitialized'
+  | 'settingsUpdate';
+
+// =============================================================================
+// EVENT PAYLOADS
+// =============================================================================
+
+/** Enemy killed event data */
+export interface EnemyKilledEvent {
+  x: number;
+  y: number;
+  type?: string;
+  isCrit?: boolean;
+}
+
+/** Gem collected event data */
+export interface GemCollectedEvent {
+  value: number;
+  isRare: boolean;
+}
+
+/** Level up event data */
+export interface LevelUpEvent {
+  level: number;
+}
+
+/** Level up complete event data */
+export interface LevelUpCompleteEvent {
+  newLevel: number;
+}
+
+/** Game over event data */
+export interface GameOverEvent {
+  finalLevel: number;
+  finalPnl: number;
+}
+
+/** Critical hit event data */
+export interface CritHitEvent {
+  damage: number;
+  isSuperCrit: boolean;
+  x: number;
+  y: number;
+}
+
+/** Player hit event data */
+export interface PlayerHitEvent {
+  damage: number;
+  remainingHp: number;
+}
+
+/** Bullet fired event data */
+export interface BulletFiredEvent {
+  x: number;
+  y: number;
+}
+
+/** Combo update event data */
+export interface ComboUpdateEvent {
+  killStreak: number;
+  multiplier: number;
+  totalBonusXp: number;
+}
+
+/** Combo milestone event data */
+export interface ComboMilestoneEvent {
+  name: string;
+  kills: number;
+  multiplier: number;
+  color: string;
+  sound: string;
+}
+
+/** Combo end event data */
+export interface ComboEndEvent {
+  finalStreak: number;
+  bonusXp: number;
+}
+
+/** Milestone achieved event data */
+export interface MilestoneAchievedEvent {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  type: string;
+  threshold: number;
+}
+
+/** Game initialized event data */
+export interface GameInitializedEvent {
+  position: string;
+  entryPrice: number;
+  leverage: number;
+}
+
+/** Empty event (no payload) */
+export type EmptyEvent = Record<string, never>;
+
+/** Settings update event data */
+export type SettingsUpdateEvent = Record<string, unknown>;
+
+// =============================================================================
+// EVENT DATA MAP
+// =============================================================================
+
+/**
+ * Maps event names to their payload types.
+ * Used by EventBus for type-safe emit and subscribe.
+ */
+export interface EventDataMap {
+  enemyKilled: EnemyKilledEvent;
+  gemCollected: GemCollectedEvent;
+  levelUp: LevelUpEvent;
+  levelUpComplete: LevelUpCompleteEvent;
+  gameOver: GameOverEvent;
+  critHit: CritHitEvent;
+  playerHit: PlayerHitEvent;
+  bulletFired: BulletFiredEvent;
+  killAll: EmptyEvent;
+  comboUpdate: ComboUpdateEvent;
+  comboMilestone: ComboMilestoneEvent;
+  comboEnd: ComboEndEvent;
+  levelUpStart: EmptyEvent;
+  milestoneAchieved: MilestoneAchievedEvent;
+  gameReset: EmptyEvent;
+  beforeReset: EmptyEvent;
+  afterReset: EmptyEvent;
+  gameInitialized: GameInitializedEvent;
+  settingsUpdate: SettingsUpdateEvent;
+}
+
+// =============================================================================
+// TYPE HELPERS
+// =============================================================================
+
+/** Callback type for event handlers */
+export type EventCallback<K extends GameEvent> = (data: EventDataMap[K]) => void;

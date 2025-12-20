@@ -17,11 +17,15 @@ describe('ImagePreloader', () => {
     vi.clearAllMocks();
 
     // Mock global Image
+
     global.Image = class {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onload: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onerror: any;
 
       set src(value: string) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this as any)._src = value;
         // Auto-trigger load on next tick
         setTimeout(() => {
@@ -33,8 +37,10 @@ describe('ImagePreloader', () => {
         }, 0);
       }
       get src() {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this as any)._src;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
   });
 
@@ -43,6 +49,7 @@ describe('ImagePreloader', () => {
   });
 
   it('should extract correct image paths', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const paths = (ImagePreloader as any).getCardImagePaths();
     expect(paths).toEqual(['/assets/card1.png', '/assets/card2.png']);
   });
@@ -56,6 +63,7 @@ describe('ImagePreloader', () => {
   });
 
   it('should handle load errors gracefully', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(ImagePreloader as any, 'getCardImagePaths').mockReturnValue(['/assets/error.png']);
 
     await ImagePreloader.preloadAll();

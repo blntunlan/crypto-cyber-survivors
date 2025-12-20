@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DebugService } from '../services/DebugService';
-
 describe('DebugService', () => {
   beforeEach(() => {
     DebugService.clearLogs();
@@ -40,6 +40,7 @@ describe('DebugService', () => {
 
   it('should expose global access on window', () => {
     expect((window as any).gameDebug).toBeDefined();
+
     expect(typeof (window as any).gameDebug.snapshot).toBe('function');
   });
 
@@ -53,6 +54,7 @@ describe('DebugService', () => {
     });
 
     // Mock document.createElement
+
     const mockAnchor = {
       href: '',
       download: '',

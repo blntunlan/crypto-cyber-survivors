@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MarketService, MarketUpdate, ConnectionStatus } from '../services/marketService';
+import { MarketService } from '../services/marketService';
 
 describe('MarketService', () => {
   let service: MarketService;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockOnData: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockOnStatus: any;
-  let mockWebSocket: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockFactory: any;
 
   beforeEach(() => {

@@ -79,6 +79,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     price: 0,
     volume: 0,
     pnl: 0,
+    effectivePnl: 0,
+    leverage: 1,
     rsi: 50,
     difficulty: 1,
   });

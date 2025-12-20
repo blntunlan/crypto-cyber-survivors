@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-227%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-380%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 [🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#-development) • [📦 Architecture](#-architecture)
@@ -42,7 +42,9 @@
 ### ⚡ Performance & Core
 - **Modular Renderer System** - Decoupled rendering logic using specialized classes for Background, Entities, Projectiles, and Effects
 - **3-Tier Projectile Visuals** - High-quality Neon Laser beams with distinct visual styles for Normal (Cyan), Crit (Gold), and Super Crit (Red)
+- **Spatial Grid Collision** - O(1) neighbor lookup for efficient bullet-enemy collision detection
 - **Object Pooling** - O(1) object retrieval for high-performance recycling of bullets, enemies, and particles
+- **Strongly Typed EventBus** - Type-safe event system with individual interfaces for each game event
 - **60 FPS Canvas Engine** - Optimized draw calls with intelligent shadow-culling for mobile stability
 - **Delta Time** - Framerate-independent game logic and smooth physics updates
 
@@ -94,7 +96,7 @@ The UI uses a precision-scaled technical typography system for maximum readabili
 ```bash
 npm run dev          # Start dev server with HMR
 npm run build        # Build for production
-npm run test         # Run 200+ unit tests
+npm run test         # Run 380+ unit tests
 npm run test:coverage # Check test coverage
 npm run lint         # Run ESLint & Format check
 ```
@@ -116,16 +118,25 @@ crypto-cyber-survivors/
 │   │   ├── ProjectileRenderer.ts
 │   │   ├── EntityRenderer.ts
 │   │   └── ...
-│   ├── PhysicsSystem.ts  # Optimized Collision Engine
+│   ├── metrics/          # Modular analytics subsystem
+│   │   ├── MetricsStorage.ts    # localStorage with quota handling
+│   │   ├── MetricsCompiler.ts   # Session data compilation
+│   │   ├── MetricsAnalyzer.ts   # Insights & recommendations
+│   │   └── MetricsExporter.ts   # JSON/CSV export
+│   ├── PhysicsSystem.ts  # Spatial Grid Collision Engine
+│   ├── SpatialGrid.ts    # O(1) neighbor lookup
 │   ├── DifficultyManager.ts # Market Scaling
 │   ├── ComboSystem.ts    # Streak Logic
+│   ├── EventBus.ts       # Strongly Typed Event System
 │   └── ScreenService.ts  # Device & Notch Handling
+├── types/                # TypeScript Definitions
+│   └── events.ts         # Typed event payloads
 ├── stores/               # State Management
 │   └── gameStore.ts      # Zustand Persistent Settings
 ├── hooks/                # Custom React Hooks
 │   ├── useLerpValue.ts   # Smooth UI Transitions
 │   └── useDevice.ts      # Screen detection
-└── tests/                # 200+ Vitest test suites
+└── tests/                # 380+ Vitest test suites
 ```
 
 ### Key Design Patterns
@@ -154,10 +165,11 @@ crypto-cyber-survivors/
 
 | Stat | Value |
 |------|-------|
-| TypeScript Files | 45+ |
-| Total Tests | 227 (All Passing) |
+| TypeScript Files | 50+ |
+| Total Tests | 380 (All Passing) |
+| ESLint | 0 errors, 0 warnings |
 | Performance | Stable 60 FPS (Mobile & Web) |
-| Optimization | Object Pooling & Shadow-Culling |
+| Optimization | Spatial Grid, Object Pooling, Shadow-Culling |
 
 ---
 

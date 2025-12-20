@@ -118,7 +118,7 @@ describe('DifficultyManager', () => {
 
       // Recent (last 10) are smaller (worse) than older (first 10)
       // Should result in lower difficulty (mercy)
-      const withMercy = DifficultyManager.calculate(0, 0, 1, 100);
+      DifficultyManager.calculate(0, 0, 1, 100);
 
       // Now simulate "improving" trend
       DifficultyManager.startGame();
@@ -126,7 +126,7 @@ describe('DifficultyManager', () => {
         DifficultyManager.calculate(i * 0.01, 0, 1, 100);
       }
 
-      const withMomentum = DifficultyManager.calculate(0.25, 0, 1, 100);
+      DifficultyManager.calculate(0.25, 0, 1, 100);
 
       // Hard to compare exact values without peeking internals,
       // but we can trust the logic flow if coverge hits it.

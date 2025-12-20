@@ -90,18 +90,63 @@ export class CombatSystem {
     const isSuperCrit = Math.random() < (player.critChance + luckBonus) * 0.2;
     const isCrit = !isSuperCrit && Math.random() < player.critChance + luckBonus;
 
-    // LEAD SHOOTING LOGIC
-    // 1. Calculate time for bullet to reach target's current position
-    const timeToReach = target.dist / GAME_ENGINE.BULLET_SPEED;
+    // IMPROVED LEAD SHOOTING LOGIC
+    // Uses quadratic intercept calculation for more accurate predictions
 
-    // 2. Estimate where the enemy will be.
-    // Most enemies move towards the player. We estimate their velocity vector.
-    const enemyVx = ((player.x - target.x) / (target.dist || 1)) * target.speed;
-    const enemyVy = ((player.y - target.y) / (target.dist || 1)) * target.speed;
+    // 1. Calculate enemy velocity vector (most enemies move towards player)
+    const distSafe = target.dist || 1;
+    const enemyVx = ((player.x - target.x) / distSafe) * target.speed;
+    const enemyVy = ((player.y - target.y) / distSafe) * target.speed;
 
-    // 3. Predicted target position
-    const predictedX = target.x + enemyVx * timeToReach;
-    const predictedY = target.y + enemyVy * timeToReach;
+    // 2. Relative position and velocity
+    const relX = target.x - player.x;
+    const relY = target.y - player.y;
+    const bulletSpeed = GAME_ENGINE.BULLET_SPEED;
+
+    // 3. Solve quadratic equation for intercept time: |P + V*t| = bulletSpeed * t
+    // a*t^2 + b*t + c = 0
+    const a = enemyVx * enemyVx + enemyVy * enemyVy - bulletSpeed * bulletSpeed;
+    const b = 2 * (relX * enemyVx + relY * enemyVy);
+    const c = relX * relX + relY * relY;
+
+    let interceptTime = 0;
+    if (Math.abs(a) < 0.0001) {
+      // Linear case (enemy speed ≈ bullet speed)
+      if (Math.abs(b) > 0.0001) {
+        interceptTime = -c / b;
+      }
+    } else {
+      const discriminant = b * b - 4 * a * c;
+      if (discriminant >= 0) {
+        const sqrtD = Math.sqrt(discriminant);
+        const t1 = (-b - sqrtD) / (2 * a);
+        const t2 = (-b + sqrtD) / (2 * a);
+        // Use the smallest positive time
+        if (t1 > 0 && t2 > 0) {
+          interceptTime = Math.min(t1, t2);
+        } else if (t1 > 0) {
+          interceptTime = t1;
+        } else if (t2 > 0) {
+          interceptTime = t2;
+        }
+      }
+    }
+
+    // 4. Apply distance-based lead factor (reduce prediction for close enemies)
+    const minLeadDistance = 100; // No lead for enemies closer than this
+    const maxLeadDistance = 400; // Full lead for enemies farther than this
+    const leadFactor = Math.min(
+      1,
+      Math.max(0, (target.dist - minLeadDistance) / (maxLeadDistance - minLeadDistance))
+    );
+
+    // 5. Clamp intercept time to prevent extreme predictions
+    const maxInterceptTime = 60; // Max ~60 frames of prediction
+    interceptTime = Math.min(interceptTime, maxInterceptTime) * leadFactor;
+
+    // 6. Calculate predicted target position
+    const predictedX = target.x + enemyVx * interceptTime;
+    const predictedY = target.y + enemyVy * interceptTime;
 
     const baseAngle = Math.atan2(predictedY - player.y, predictedX - player.x);
 

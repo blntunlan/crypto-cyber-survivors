@@ -1,58 +1,30 @@
 /**
  * EventBus - Observer Pattern Implementation
  *
- * Provides a decoupled event system for game-wide communication.
+ * Provides a strongly-typed, decoupled event system for game-wide communication.
  * Allows components to subscribe to events without direct dependencies.
+ *
+ * @example
+ * // Subscribe to event (returns unsubscribe function)
+ * const unsub = EventBus.on('enemyKilled', (data) => {
+ *   console.log(data.x, data.y); // Fully typed!
+ * });
+ *
+ * // Emit event (type-safe payload)
+ * EventBus.emit('enemyKilled', { x: 100, y: 200, type: 'bear' });
+ *
+ * // Cleanup
+ * unsub();
  */
 
-export type GameEvent =
-  | 'enemyKilled'
-  | 'gemCollected'
-  | 'levelUp'
-  | 'levelUpComplete'
-  | 'gameOver'
-  | 'critHit'
-  | 'playerHit'
-  | 'bulletFired'
-  | 'killAll'
-  | 'comboUpdate'
-  | 'comboMilestone'
-  | 'comboEnd'
-  | 'levelUpStart'
-  | 'milestoneAchieved'
-  | 'gameReset'
-  | 'beforeReset'
-  | 'afterReset'
-  | 'gameInitialized'
-  | 'settingsUpdate';
+import { GameEvent, EventDataMap, EventCallback } from '../types/events';
 
-export interface EventData {
-  enemyKilled: { x: number; y: number; type?: string; isCrit?: boolean };
-  gemCollected: { value: number; isRare: boolean };
-  levelUp: { level: number };
-  levelUpComplete: { newLevel: number };
-  gameOver: { finalLevel: number; finalPnl: number };
-  critHit: { damage: number; isSuperCrit: boolean; x: number; y: number };
-  playerHit: { damage: number; remainingHp: number };
-  bulletFired: { x: number; y: number };
-  killAll: Record<string, never>;
-  comboUpdate: { killStreak: number; multiplier: number; totalBonusXp: number };
-  comboMilestone: { name: string; kills: number; multiplier: number; color: string; sound: string };
-  comboEnd: { finalStreak: number; bonusXp: number };
-  levelUpStart: Record<string, never>;
-  milestoneAchieved: { id: string; name: string; icon: string; color: string; type: string; threshold: number };
-  gameReset: Record<string, never>;
-  beforeReset: Record<string, never>;
-  afterReset: Record<string, never>;
-  gameInitialized: { position: string; entryPrice: number; leverage: number };
-  settingsUpdate: Record<string, unknown>;
-}
-
-type EventCallback<K extends GameEvent> = (data: EventData[K]) => void;
+// Re-export types for convenience
+export type { GameEvent, EventDataMap, EventCallback } from '../types/events';
+export * from '../types/events';
 
 class EventBusClass {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private listeners: Map<GameEvent, Set<EventCallback<any>>> = new Map();
+  private listeners: Map<GameEvent, Set<EventCallback<GameEvent>>> = new Map();
   private static instance: EventBusClass | null = null;
 
   private constructor() {
@@ -70,13 +42,15 @@ class EventBusClass {
   }
 
   /**
-   * Subscribe to an event
+   * Subscribe to an event with type-safe callback
+   * @returns Unsubscribe function
    */
   subscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(callback);
+    // Cast is safe because we control the event-to-callback mapping
+    this.listeners.get(event)!.add(callback as EventCallback<GameEvent>);
 
     // Return unsubscribe function
     return () => this.unsubscribe(event, callback);
@@ -95,14 +69,14 @@ class EventBusClass {
   unsubscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
-      eventListeners.delete(callback);
+      eventListeners.delete(callback as EventCallback<GameEvent>);
     }
   }
 
   /**
-   * Emit an event to all subscribers
+   * Emit an event to all subscribers with type-safe payload
    */
-  emit<K extends GameEvent>(event: K, data: EventData[K]): void {
+  emit<K extends GameEvent>(event: K, data: EventDataMap[K]): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.forEach(callback => {
@@ -116,7 +90,25 @@ class EventBusClass {
   }
 
   /**
-   * Clear all listeners (useful for cleanup)
+   * Subscribe to an event and automatically unsubscribe after first emit
+   */
+  once<K extends GameEvent>(event: K, callback: EventCallback<K>): () => void {
+    const wrapper: EventCallback<K> = data => {
+      this.unsubscribe(event, wrapper);
+      callback(data);
+    };
+    return this.subscribe(event, wrapper);
+  }
+
+  /**
+   * Get the number of listeners for a specific event
+   */
+  listenerCount(event: GameEvent): number {
+    return this.listeners.get(event)?.size ?? 0;
+  }
+
+  /**
+   * Clear all listeners (useful for cleanup/testing)
    */
   clear(): void {
     this.listeners.clear();
