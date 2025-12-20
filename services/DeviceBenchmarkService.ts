@@ -121,6 +121,18 @@ class DeviceBenchmarkServiceClass {
   setManualProfile(profile: DeviceProfile): void {
     this.cachedConfig = getPerformanceConfig(profile);
     Logger.info('[Benchmark] Manual profile set', { profile });
+    this.notifyListeners();
+  }
+
+  /**
+   * Reset to automatic profile (from benchmark result)
+   */
+  resetToAuto(): void {
+    if (this.state.result) {
+      this.cachedConfig = getPerformanceConfig(this.state.result.profile);
+      Logger.info('[Benchmark] Reset to auto profile', { profile: this.state.result.profile });
+      this.notifyListeners();
+    }
   }
 
   /**

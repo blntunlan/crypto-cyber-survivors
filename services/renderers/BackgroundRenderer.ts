@@ -19,9 +19,9 @@ export class BackgroundRenderer implements IRenderer {
     opts: RenderOptions
   ): void {
     const { width, height, graphics } = opts;
-    const shadowsEnabled = graphics.showScreenShake && !this.isMobileDevice;
-
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+    const shadowsEnabled =
+      graphics.showScreenShake && perfConfig.shadowsEnabled && !this.isMobileDevice;
 
     // Fill background color
     const { r, g, b } = state.currentBg;

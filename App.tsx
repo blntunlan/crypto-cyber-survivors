@@ -14,7 +14,9 @@ import { MilestoneService } from './services/MilestoneService';
 import { useDevice } from './hooks/useDevice';
 import { DifficultyManager } from './services/DifficultyManager';
 import { GameStateMachine } from './services/GameStateMachine';
+
 import { ImagePreloader } from './services/ImagePreloader';
+import { DeviceBenchmarkService } from './services/DeviceBenchmarkService';
 
 // Lazy load heavy components for performance optimization
 const GameEngine = React.lazy(() =>
@@ -62,6 +64,11 @@ const App: React.FC = () => {
     width: window.innerWidth,
     height: window.innerHeight,
   });
+
+  // Run benchmark on mount (cached check is fast, full run is async)
+  useEffect(() => {
+    DeviceBenchmarkService.runBenchmark();
+  }, []);
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.MENU);
   const [position, setPosition] = useState<MarketPosition>(MarketPosition.LONG);
   const [entryPrice, setEntryPrice] = useState<number>(0);
