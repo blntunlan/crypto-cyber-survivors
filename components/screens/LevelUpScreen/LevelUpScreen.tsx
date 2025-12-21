@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '../../../constants';
 import { audio } from '../../../services/audioService';
@@ -18,9 +18,9 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     return order.sort(() => Math.random() - 0.5);
   }, []);
 
-  const handleReelStopped = () => {
+  const handleReelStopped = useCallback(() => {
     setStoppedCount(prev => prev + 1);
-  };
+  }, []);
 
   // Play win fanfare when all reels stopped
   useEffect(() => {

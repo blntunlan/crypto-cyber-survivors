@@ -17,16 +17,6 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   const [displayIndex, setDisplayIndex] = useState(0);
   const [phase, setPhase] = useState<'spinning' | 'slowing' | 'stopped'>('spinning');
 
-  // Ref-based animation state to avoid React overhead during high-speed spinning
-  const animRef = useRef({
-    startTime: 0,
-    lastTickTime: 0,
-    tickCount: 0,
-    isSlowing: false,
-    isDone: false,
-    hasStarted: false,
-  });
-
   const spinCards = useMemo(() => {
     const pool = ALL_CARDS_FLAT.filter(c => c.id !== finalCard.id);
     const cards: Card[] = [];
@@ -37,10 +27,10 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   }, [finalCard]);
 
   useEffect(() => {
-    // Prevent re-running if already started (strict mode protection)
-    if (animRef.current.hasStarted) return;
-    animRef.current.hasStarted = true;
-    animRef.current.startTime = Date.now();
+    const startTime = Date.now();
+    let lastTickTime = 0;
+    let isSlowing = false;
+    let isDone = false;
 
     const stopDelay =
       SLOT_CONFIG.SPIN_DURATION +
@@ -52,13 +42,13 @@ export const SlotReel: React.FC<SlotReelProps> = ({
 
     let rafId: number;
 
-    const animate = (_time: number) => {
+    const animate = () => {
       const now = Date.now();
-      const elapsed = now - animRef.current.startTime;
+      const elapsed = now - startTime;
 
       if (elapsed >= totalDuration) {
-        if (!animRef.current.isDone) {
-          animRef.current.isDone = true;
+        if (!isDone) {
+          isDone = true;
           setDisplayIndex(spinCards.length - 1);
           setPhase('stopped');
           setIsStopped(true);
@@ -69,8 +59,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       // Determine current speed based on phase
       let currentInterval = SLOT_CONFIG.SPIN_INTERVAL;
       if (elapsed > slowdownStartTime) {
-        if (!animRef.current.isSlowing) {
-          animRef.current.isSlowing = true;
+        if (!isSlowing) {
+          isSlowing = true;
           setPhase('slowing');
           // Play anticipation sound when slowing starts
           audio.playAnticipation(0.8 + stopOrder * 0.2);
@@ -80,16 +70,15 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       }
 
       // High-precision ticking for sounds and visual swaps
-      if (now - animRef.current.lastTickTime > currentInterval) {
-        animRef.current.lastTickTime = now;
-        animRef.current.tickCount++;
+      if (now - lastTickTime > currentInterval) {
+        lastTickTime = now;
 
         setDisplayIndex(prev => (prev + 1) % (spinCards.length - 1));
 
         // Sound on every display change, AudioService handles cooldown
         // Don't play tick if we are about to stop (within 100ms) to ensure clean Stop sound
         if (totalDuration - elapsed > 100) {
-          audio.playSlotTick(animRef.current.isSlowing ? 0.8 : 1);
+          audio.playSlotTick(isSlowing ? 0.8 : 1);
         }
       }
 
@@ -97,9 +86,10 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     };
 
     rafId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - run only once on mount
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [stopOrder, spinCards]);
 
   const hasCalledOnStopped = useRef(false);
 
