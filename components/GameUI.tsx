@@ -1,10 +1,12 @@
-import React, { useEffect, useState, memo } from 'react';
+import React, { useEffect, useState, memo, useMemo } from 'react';
 import { type MarketPosition, type MarketData, type Player, GameStatus } from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
 import { useGameStore } from '../stores/gameStore';
+import { BuffManager } from '../services/patterns/decorators/BuffManager';
+import { EventBus } from '../services/EventBus';
 
-import { KernelStatus, LiveFeed, AccountHealthPremium } from './hud';
+import { KernelStatus, LiveFeed, AccountHealthPremium, BuffIndicator } from './hud';
 
 interface GameUIProps {
   position: MarketPosition;
@@ -19,6 +21,48 @@ export const GameUI: React.FC<GameUIProps> = memo(
   ({ position: _position, entryPrice, marketData, player, onTogglePause, status }) => {
     const [lastPrice, setLastPrice] = useState(marketData.price);
     const [priceColor, setPriceColor] = useState('text-white');
+    const [buffTrigger, setBuffTrigger] = useState(0);
+
+    // Listen to buff changes to trigger re-render
+    useEffect(() => {
+      const unsubApply = EventBus.on('buffApplied', () => setBuffTrigger(t => t + 1));
+      const unsubExpire = EventBus.on('buffExpired', () => setBuffTrigger(t => t + 1));
+      return () => {
+        unsubApply();
+        unsubExpire();
+      };
+    }, []);
+
+    // Calculate effective stats with buffs applied
+    const effectiveStats = useMemo(() => {
+      if (BuffManager.isInitialized() && status === GameStatus.PLAYING) {
+        try {
+          const decorated = BuffManager.getDecoratedStats();
+          return {
+            damage: decorated.getDamage(),
+            speed: decorated.getSpeed(),
+            fireRate: decorated.getFireRate(),
+            luck: decorated.getLuck(),
+            crit: decorated.getCritChance() * 100,
+            magnet: decorated.getMagnet(),
+            armor: decorated.getArmor(),
+            area: decorated.getArea(),
+          };
+        } catch {
+          // Fallback to player stats
+        }
+      }
+      return {
+        damage: player.baseDamage,
+        speed: player.speed,
+        fireRate: player.fireRate,
+        luck: player.luck,
+        crit: player.critChance * 100,
+        magnet: player.magnet,
+        armor: player.armor,
+        area: player.area,
+      };
+    }, [player, status, buffTrigger]);
 
     // Smooth lerp for all dynamic values using a single animation loop
     const smoothValues = useLerpValues(
@@ -28,12 +72,14 @@ export const GameUI: React.FC<GameUIProps> = memo(
         difficulty: marketData.difficulty,
         hp: player.hp,
         exp: player.exp,
-        damage: player.baseDamage,
-        luck: player.luck,
-        crit: player.critChance * 100,
-        magnet: player.magnet,
-        armor: player.armor,
-        area: player.area,
+        damage: effectiveStats.damage,
+        speed: effectiveStats.speed,
+        fireRate: effectiveStats.fireRate,
+        luck: effectiveStats.luck,
+        crit: effectiveStats.crit,
+        magnet: effectiveStats.magnet,
+        armor: effectiveStats.armor,
+        area: effectiveStats.area,
       },
       { speed: 0.15, decimals: 2 }
     );
@@ -72,6 +118,8 @@ export const GameUI: React.FC<GameUIProps> = memo(
               smoothValues={smoothValues}
               priceColor={priceColor}
             />
+            {/* Buff Indicator - Below LiveFeed */}
+            {status === GameStatus.PLAYING && <BuffIndicator status={status} />}
             {/* Mobile FPS Counter - Below LiveFeed */}
             {isMobile && showFPS && (
               <div className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-green-500/60 text-white w-fit">

@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-380%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-427%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 [🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#-development) • [📦 Architecture](#-architecture)
@@ -38,6 +38,14 @@
 - **Premium Asset Design** - Hand-crafted SVG icons and generative art for high-tier cards
 - **40+ Unique Upgrades** - Crypto-themed cards like "Diamond Hands", "Rug Pull", "Flash Loan", "Satoshi Mode"
 - **Slot Machine Leveling** - Psychologically optimized level-up screen with "reel stop" anticipation
+
+### ✨ Buff/Debuff System (New!)
+- **Decorator Pattern** - Dynamic stat modifiers with stackable effects
+- **Volume-Based Spawning** - Buff gems spawn when market volatility changes
+- **Temporary & Permanent Effects** - 🔥 Rage Mode, 💎 Diamond Hands, ⚡ Berserk, 🍀 Lucky Star
+- **Debuff Mechanics** - 🐌 Slow, 💀 Vulnerable, 📉 Liquidated, 😵 Weakened
+- **Pause-Aware Timers** - Buff timers freeze during LevelUp and Pause screens
+- **Visual Indicators** - Real-time buff status with countdown timers below LiveFeed
 
 ### ⚡ Performance & Core
 - **Modular Renderer System** - Decoupled rendering logic using specialized classes for Background, Entities, Projectiles, and Effects
@@ -96,7 +104,7 @@ The UI uses a precision-scaled technical typography system for maximum readabili
 ```bash
 npm run dev          # Start dev server with HMR
 npm run build        # Build for production
-npm run test         # Run 380+ unit tests
+npm run test         # Run 427+ unit tests
 npm run test:coverage # Check test coverage
 npm run lint         # Run ESLint & Format check
 ```
@@ -130,13 +138,14 @@ crypto-cyber-survivors/
 │   ├── EventBus.ts       # Strongly Typed Event System
 │   └── ScreenService.ts  # Device & Notch Handling
 ├── types/                # TypeScript Definitions
-│   └── events.ts         # Typed event payloads
+│   ├── events.ts         # Typed event payloads
+│   └── BuffGem.ts        # Buff gem configurations
 ├── stores/               # State Management
 │   └── gameStore.ts      # Zustand Persistent Settings
 ├── hooks/                # Custom React Hooks
 │   ├── useLerpValue.ts   # Smooth UI Transitions
 │   └── useDevice.ts      # Screen detection
-└── tests/                # 380+ Vitest test suites
+└── tests/                # 427+ Vitest test suites
 ```
 
 ### Key Design Patterns
@@ -145,6 +154,7 @@ crypto-cyber-survivors/
 - **Observer Pattern** - Decoupled communication via Centralized EventBus
 - **Object Pooling** - High-performance recycling for bullets and VFX
 - **Strategy Pattern** - Pluggable enemy AI and movement behaviors
+- **Decorator Pattern** - Stackable buff/debuff stat modifiers
 
 ---
 
@@ -165,9 +175,9 @@ crypto-cyber-survivors/
 
 | Stat | Value |
 |------|-------|
-| TypeScript Files | 50+ |
-| Total Tests | 380 (All Passing) |
-| ESLint | 0 errors, 0 warnings |
+| TypeScript Files | 60+ |
+| Total Tests | 427 (All Passing) |
+| ESLint | 0 errors, 48 warnings |
 | Performance | Stable 60 FPS (Mobile & Web) |
 | Optimization | Spatial Grid, Object Pooling, Shadow-Culling |
 

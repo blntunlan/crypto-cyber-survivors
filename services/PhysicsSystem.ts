@@ -9,6 +9,8 @@ import { COLORS, GAME_ENGINE } from '../constants';
 import { bulletGrid, enemyGrid } from './SpatialGrid';
 import { DeviceBenchmarkService } from './DeviceBenchmarkService';
 import { ParticleConfigService } from './ParticleConfigService';
+import { BuffGemSpawner } from './spawners/BuffGemSpawner';
+import { BuffManager } from './patterns/decorators/BuffManager';
 
 export class PhysicsSystem {
   public static updateEntities(p: PoolManager, dtFactor: number, width: number, height: number) {
@@ -220,6 +222,61 @@ export class PhysicsSystem {
         }
       }
     });
+
+    // 4. Player vs Buff Gem Collisions
+    const buffGems = BuffGemSpawner.getActiveGems();
+    for (const gem of buffGems) {
+      if (!gem.active) continue;
+
+      const dx = player.x - gem.x;
+      const dy = player.y - gem.y;
+      const distSq = dx * dx + dy * dy;
+
+      // Magnet effect for buff gems (weaker than regular gems)
+      const magnetRange = (GAME_ENGINE.GEM_MAGNET_BASE_RANGE + player.magnet) * 0.6;
+      if (distSq < magnetRange * magnetRange) {
+        const dist = Math.sqrt(distSq);
+        const pull = this.lerp(8, 2, dist / magnetRange) * dtFactor;
+        gem.x += (dx / dist) * pull;
+        gem.y += (dy / dist) * pull;
+      }
+
+      // Collection check
+      const combinedRadius = player.radius + gem.radius;
+      if (distSq < combinedRadius * combinedRadius) {
+        // Apply the buff
+        BuffManager.addEffect(gem.decoratorClass);
+
+        // Collect effects
+        audio.playGem();
+        s.shake = 5;
+
+        // Particle burst with gem color
+        const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+        const burstCount = Math.round(16 * perfConfig.particleMultiplier);
+        for (let i = 0; i < burstCount; i++) {
+          const angle = (i / burstCount) * Math.PI * 2;
+          const speed = 4 + Math.random() * 2;
+          const part = p.getParticle(
+            gem.x,
+            gem.y,
+            Math.cos(angle) * speed,
+            Math.sin(angle) * speed,
+            gem.color
+          );
+          if (part) {
+            part.life = 0.8;
+            part.radius = 4;
+          }
+        }
+
+        // Floating text with buff icon
+        p.getFloatingText(gem.x, gem.y - 20, gem.icon, gem.color, 32);
+
+        // Mark as collected
+        BuffGemSpawner.collectGem(gem);
+      }
+    }
   }
 
   private static handleEnemyDeath(p: PoolManager, e: Enemy, player: Player, isSuperCrit?: boolean) {

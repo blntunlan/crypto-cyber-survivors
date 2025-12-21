@@ -28,7 +28,11 @@ export type GameEvent =
   | 'beforeReset'
   | 'afterReset'
   | 'gameInitialized'
-  | 'settingsUpdate';
+  | 'settingsUpdate'
+  | 'buffApplied'
+  | 'buffExpired'
+  | 'buffGemSpawned'
+  | 'buffGemCollected';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -134,6 +138,32 @@ export type EmptyEvent = Record<string, never>;
 /** Settings update event data */
 export type SettingsUpdateEvent = Record<string, unknown>;
 
+/** Buff applied event data */
+export interface BuffAppliedEvent {
+  name: string;
+  icon: string;
+  duration: number; // ms, -1 = permanent
+}
+
+/** Buff expired event data */
+export interface BuffExpiredEvent {
+  name: string;
+}
+
+/** Buff gem spawned event data */
+export interface BuffGemSpawnedEvent {
+  type: string;
+  x: number;
+  y: number;
+  isDebuff: boolean;
+}
+
+/** Buff gem collected event data */
+export interface BuffGemCollectedEvent {
+  type: string;
+  decoratorClass: string;
+}
+
 // =============================================================================
 // EVENT DATA MAP
 // =============================================================================
@@ -162,6 +192,10 @@ export interface EventDataMap {
   afterReset: EmptyEvent;
   gameInitialized: GameInitializedEvent;
   settingsUpdate: SettingsUpdateEvent;
+  buffApplied: BuffAppliedEvent;
+  buffExpired: BuffExpiredEvent;
+  buffGemSpawned: BuffGemSpawnedEvent;
+  buffGemCollected: BuffGemCollectedEvent;
 }
 
 // =============================================================================

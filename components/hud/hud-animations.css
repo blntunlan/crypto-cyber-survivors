@@ -77,3 +77,36 @@
     opacity: 0;
   }
 }
+
+/* Buff Indicator Slow Pulse */
+@keyframes pulseSlow {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 2s ease-in-out infinite;
+}
+
+/* Buff Entry Animation */
+@keyframes buffSlideIn {
+  0% {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.buff-enter {
+  animation: buffSlideIn 0.3s ease-out forwards;
+}

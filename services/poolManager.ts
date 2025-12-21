@@ -12,6 +12,7 @@ import {
   type MarketPosition,
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
+import { Logger } from './Logger';
 
 interface Activatable {
   active: boolean;
@@ -109,7 +110,7 @@ export class PoolManager {
       });
     }
 
-    console.log(
+    Logger.debug(
       `[PoolManager] Pre-warmed pools: ${counts.bullets} bullets, ${counts.particles} particles, ${counts.gems} gems, ${counts.texts} texts`
     );
   }

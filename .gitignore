@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 coverage/
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local

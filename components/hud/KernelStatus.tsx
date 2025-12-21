@@ -8,6 +8,8 @@ interface KernelStatusProps {
   smoothValues: {
     exp: number;
     damage: number;
+    speed: number;
+    fireRate: number;
     luck: number;
     crit: number;
     magnet: number;
@@ -41,10 +43,20 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
 
       <div className="grid grid-cols-2 gap-y-1 gap-x-4 pt-2">
         <StatRow label="DMG" value={Math.round(smoothValues.damage)} />
-        <StatRow label="Luck" value={`+${smoothValues.luck.toFixed(1)}`} color="text-green-400" />
+        <StatRow label="SPD" value={smoothValues.speed.toFixed(1)} color="text-blue-400" />
+        <StatRow
+          label="A/S"
+          value={(1000 / smoothValues.fireRate).toFixed(1)}
+          color="text-orange-400"
+        />
         <StatRow label="Crit" value={`${smoothValues.crit.toFixed(0)}%`} color="text-yellow-400" />
-        <StatRow label="Magnet" value={`+${smoothValues.magnet}`} color="text-purple-400" />
-        <StatRow label="Armor" value={smoothValues.armor} color="text-slate-300" />
+        <StatRow label="Luck" value={`+${smoothValues.luck.toFixed(1)}`} color="text-green-400" />
+        <StatRow
+          label="Magnet"
+          value={`+${Math.round(smoothValues.magnet)}`}
+          color="text-purple-400"
+        />
+        <StatRow label="Armor" value={Math.round(smoothValues.armor)} color="text-slate-300" />
         <StatRow label="Area" value={`x${smoothValues.area.toFixed(1)}`} color="text-cyan-400" />
       </div>
     </div>
@@ -71,18 +83,32 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-0.5 pt-1 border-t border-white/5">
-        <div className="flex justify-between items-center text-[8px] gap-4">
+      <div className="grid grid-cols-2 gap-0.5 pt-1 border-t border-white/5">
+        <div className="flex justify-between items-center text-[8px] gap-2">
           <span className="text-slate-500 font-bold uppercase">DMG</span>
           <span className="text-white font-black">{Math.round(smoothValues.damage)}</span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-4">
+        <div className="flex justify-between items-center text-[8px] gap-2">
+          <span className="text-slate-500 font-bold uppercase">SPD</span>
+          <span className="text-blue-400 font-black">{smoothValues.speed.toFixed(1)}</span>
+        </div>
+        <div className="flex justify-between items-center text-[8px] gap-2">
+          <span className="text-slate-500 font-bold uppercase">A/S</span>
+          <span className="text-orange-400 font-black">
+            {(1000 / smoothValues.fireRate).toFixed(1)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center text-[8px] gap-2">
           <span className="text-slate-500 font-bold uppercase">CRIT</span>
           <span className="text-yellow-400 font-black">{smoothValues.crit.toFixed(0)}%</span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-4">
+        <div className="flex justify-between items-center text-[8px] gap-2">
           <span className="text-slate-500 font-bold uppercase">LUCK</span>
           <span className="text-green-400 font-black">+{smoothValues.luck.toFixed(1)}</span>
+        </div>
+        <div className="flex justify-between items-center text-[8px] gap-2">
+          <span className="text-slate-500 font-bold uppercase">ARM</span>
+          <span className="text-slate-300 font-black">{Math.round(smoothValues.armor)}</span>
         </div>
       </div>
     </div>

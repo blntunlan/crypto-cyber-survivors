@@ -478,11 +478,9 @@ class MetricsServiceClass {
    */
   private isQuotaExceededError(error: unknown): boolean {
     if (error instanceof DOMException) {
-      // Most browsers
+      // Use .name instead of deprecated .code property
       return (
-        error.code === 22 || // Legacy code
-        error.name === 'QuotaExceededError' ||
-        error.name === 'NS_ERROR_DOM_QUOTA_REACHED' // Firefox
+        error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' // Firefox
       );
     }
     return false;

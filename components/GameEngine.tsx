@@ -30,6 +30,8 @@ import { useDevice } from '../hooks/useDevice';
 import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
 import { generateBackgroundCandles } from '../utils/backgroundCandles';
 import { FPSMonitor } from '../services/FPSMonitor';
+import { BuffManager } from '../services/patterns/decorators/BuffManager';
+import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 
 interface GameEngineProps {
   status: GameStatus;
@@ -145,8 +147,22 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       state.current.lastFireTime = 0;
       state.current.shake = 0;
       state.current.critFlash = 0;
+      BuffManager.reset(); // Reset buffs on menu
     }
-  }, [status]);
+
+    // Initialize BuffManager when game starts
+    if (status === GameStatus.PLAYING && !BuffManager.isInitialized()) {
+      BuffManager.initialize(playerRef.current);
+      BuffGemSpawner.initialize(width, height);
+    }
+
+    // Pause/Resume buff timers based on game status
+    if (status === GameStatus.PAUSED || status === GameStatus.LEVEL_UP) {
+      BuffManager.pause();
+    } else if (status === GameStatus.PLAYING && BuffManager.isPaused()) {
+      BuffManager.resume();
+    }
+  }, [status, playerRef, width, height]);
 
   // Listen for afterReset event from GameStateManager to fully reset all game state
   useEffect(() => {
@@ -160,6 +176,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         bgCandles: state.current.bgCandles, // Preserve background candles
         dashTrail: [], // Reset trail array
       });
+
+      // Reset buff manager
+      BuffManager.reset();
+      BuffGemSpawner.reset();
     });
     return () => unsub();
   }, []);
@@ -220,6 +240,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       // Update combo system
       ComboSystem.update();
+
+      // Update buff manager (handles effect expiration)
+      BuffManager.update();
+      BuffManager.updateBaseStats(player);
+
+      // Update buff gem spawner (spawns gems based on volatility)
+      BuffGemSpawner.updateDimensions(width, height);
+      BuffGemSpawner.update(marketData.difficulty, deltaTime);
 
       // Update metrics system
       const wavePhase = DifficultyManager.getWavePhase();

@@ -3,6 +3,7 @@ import { type PoolManager } from '../poolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
+import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
@@ -22,6 +23,7 @@ export class EntityRenderer implements IRenderer {
     const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
 
     this.drawGems(ctx, pool, shadowsEnabled);
+    this.drawBuffGems(ctx, shadowsEnabled);
     this.drawEnemies(ctx, pool);
     this.drawPlayer(ctx, player, state, shadowsEnabled);
   }
@@ -37,6 +39,82 @@ export class EntityRenderer implements IRenderer {
       ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
       ctx.fill();
       if (shadowsEnabled) ctx.shadowBlur = 0;
+    });
+  }
+
+  private drawBuffGems(ctx: CanvasRenderingContext2D, shadowsEnabled: boolean) {
+    const buffGems = BuffGemSpawner.getActiveGems();
+    const now = Date.now();
+
+    buffGems.forEach(gem => {
+      if (!gem.active) return;
+
+      // Calculate lifetime ratio for fade effect
+      const lifetimeRatio = BuffGemSpawner.getGemLifetimeRatio(gem);
+      const isAlmostExpired = lifetimeRatio < 0.3;
+
+      // Pulse animation
+      const pulseScale = 1 + Math.sin(gem.pulsePhase) * 0.15;
+      const radius = gem.radius * pulseScale;
+
+      // Flash when almost expired
+      const flashAlpha = isAlmostExpired ? 0.5 + Math.sin(now * 0.02) * 0.3 : 1;
+
+      ctx.save();
+      ctx.globalAlpha = flashAlpha * Math.max(0.3, lifetimeRatio);
+
+      // Glow effect
+      if (shadowsEnabled) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = gem.color;
+      }
+
+      // Outer ring
+      ctx.strokeStyle = gem.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(Math.round(gem.x), Math.round(gem.y), radius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner filled circle
+      ctx.fillStyle = gem.color;
+      ctx.beginPath();
+      ctx.arc(Math.round(gem.x), Math.round(gem.y), radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Dark center for icon
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.beginPath();
+      ctx.arc(Math.round(gem.x), Math.round(gem.y), radius * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (shadowsEnabled) ctx.shadowBlur = 0;
+
+      // Draw icon (emoji)
+      ctx.font = `${Math.round(radius * 1.2)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.globalAlpha = flashAlpha;
+      ctx.fillText(gem.icon, Math.round(gem.x), Math.round(gem.y + 1));
+
+      // Lifetime indicator ring
+      if (lifetimeRatio < 1) {
+        ctx.globalAlpha = 0.6;
+        ctx.strokeStyle = isAlmostExpired ? '#FF4444' : '#FFFFFF';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(
+          Math.round(gem.x),
+          Math.round(gem.y),
+          radius + 8,
+          -Math.PI / 2,
+          -Math.PI / 2 + lifetimeRatio * Math.PI * 2,
+          false
+        );
+        ctx.stroke();
+      }
+
+      ctx.restore();
     });
   }
 

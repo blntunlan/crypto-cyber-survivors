@@ -16,3 +16,4 @@ export { ComboPanel } from './ComboPanel';
 export { KernelStatus } from './KernelStatus';
 export { LiveFeed } from './LiveFeed';
 export { AccountHealthPremium } from './AccountHealthPremium';
+export { BuffIndicator } from './BuffIndicator';
