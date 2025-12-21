@@ -32,10 +32,7 @@ class CheatManagerClass {
   private constructor() {}
 
   static getInstance(): CheatManagerClass {
-    if (!CheatManagerClass.instance) {
-      CheatManagerClass.instance = new CheatManagerClass();
-    }
-    return CheatManagerClass.instance;
+    return (CheatManagerClass.instance ??= new CheatManagerClass());
   }
 
   /**

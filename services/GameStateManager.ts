@@ -58,6 +58,8 @@ export const RUN_STATS_DEFAULTS = {
 // GAME STATE MANAGER CLASS
 // ============================================================================
 
+import { Logger } from './Logger';
+
 class GameStateManagerClass {
   private static instance: GameStateManagerClass | null = null;
   private isResetting: boolean = false;
@@ -68,10 +70,7 @@ class GameStateManagerClass {
    * Get singleton instance
    */
   static getInstance(): GameStateManagerClass {
-    if (!GameStateManagerClass.instance) {
-      GameStateManagerClass.instance = new GameStateManagerClass();
-    }
-    return GameStateManagerClass.instance;
+    return (GameStateManagerClass.instance ??= new GameStateManagerClass());
   }
 
   /**
@@ -80,7 +79,7 @@ class GameStateManagerClass {
    */
   resetAll(): void {
     if (this.isResetting) {
-      console.warn('[GameStateManager] Reset already in progress, skipping duplicate call');
+      Logger.warn('[GameStateManager] Reset already in progress, skipping duplicate call');
       return;
     }
 

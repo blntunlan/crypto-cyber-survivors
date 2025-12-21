@@ -54,13 +54,10 @@ class DifficultyManagerClass {
     peak: 1.5,
   };
 
-  private constructor() { }
+  private constructor() {}
 
   static getInstance(): DifficultyManagerClass {
-    if (!DifficultyManagerClass.instance) {
-      DifficultyManagerClass.instance = new DifficultyManagerClass();
-    }
-    return DifficultyManagerClass.instance;
+    return (DifficultyManagerClass.instance ??= new DifficultyManagerClass());
   }
 
   /**
@@ -86,7 +83,6 @@ class DifficultyManagerClass {
     }
     this.lastKillStreakTime = gameTimeSec;
   }
-
 
   /**
    * Calculate base time factor (always increasing)
@@ -196,7 +192,7 @@ class DifficultyManagerClass {
       // Cycle through phases
       const phases: WavePhase[] = ['calm', 'building', 'intense', 'peak'];
       const currentIndex = phases.indexOf(this.currentWavePhase);
-      this.currentWavePhase = phases[(currentIndex + 1) % phases.length] ?? 'calm';
+      this.currentWavePhase = phases[(currentIndex + 1) % phases.length]!;
     }
   }
 
@@ -204,13 +200,7 @@ class DifficultyManagerClass {
    * Main difficulty calculation
    * Called when market data updates or periodically
    */
-  calculate(
-    pnl: number,
-    atrPercent: number,
-    level: number,
-    hpPercent: number
-  ): DifficultyOutput {
-
+  calculate(pnl: number, atrPercent: number, level: number, hpPercent: number): DifficultyOutput {
     // Calculate all factors
     const factors: DifficultyFactors = {
       baseTime: this.getBaseTimeFactor(),
@@ -238,7 +228,7 @@ class DifficultyManagerClass {
       enemySpeed: this.clamp(
         factors.pnlEffect * factors.volatility * factors.waveMultiplier,
         0.4, // Lower minimum
-        1.8  // Reduced from 2.5 for slower max speed
+        1.8 // Reduced from 2.5 for slower max speed
       ),
       enemyHealth: this.clamp(factors.baseTime * factors.levelFactor, 0.8, 3.0),
       total,

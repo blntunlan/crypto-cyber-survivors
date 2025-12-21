@@ -96,8 +96,9 @@ export const SlotReel: React.FC<SlotReelProps> = ({
 
   useEffect(() => {
     if (isStopped) {
-      audio.playReelStop(stopOrder + 1);
-      onStopped?.();
+      // Note: playReelStop is deprecated, using playSlotTick as final stop sound
+      audio.playSlotTick(1);
+      onStopped();
     }
   }, [isStopped, stopOrder, onStopped]);
 

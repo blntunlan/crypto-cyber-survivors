@@ -148,11 +148,7 @@ export class MetricsStorage {
    */
   private isQuotaExceededError(error: unknown): boolean {
     if (error instanceof DOMException) {
-      return (
-        error.code === 22 ||
-        error.name === 'QuotaExceededError' ||
-        error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
-      );
+      return error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED';
     }
     return false;
   }

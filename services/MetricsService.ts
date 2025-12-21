@@ -59,10 +59,7 @@ class MetricsServiceClass {
   }
 
   static getInstance(): MetricsServiceClass {
-    if (!MetricsServiceClass.instance) {
-      MetricsServiceClass.instance = new MetricsServiceClass();
-    }
-    return MetricsServiceClass.instance;
+    return (MetricsServiceClass.instance ??= new MetricsServiceClass());
   }
 
   // ============= Session Management =============

@@ -126,7 +126,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
 
       // Haptic feedback
       if (hapticFeedback) {
-        navigator.vibrate?.(10);
+        navigator.vibrate(10);
       }
     },
     [disabled, state.active, hapticFeedback]

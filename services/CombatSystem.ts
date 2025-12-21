@@ -170,15 +170,15 @@ export class CombatSystem {
 
       const baseRadius = isSuperCrit ? 9 : isCrit ? 6 : 4;
       const typeMultiplier = isSuperCrit
-        ? (ParticleConfigService.bullets.superCritSizeMultiplier ?? 1.0)
+        ? ParticleConfigService.bullets.superCritSizeMultiplier
         : isCrit
-          ? (ParticleConfigService.bullets.critSizeMultiplier ?? 1.0)
+          ? ParticleConfigService.bullets.critSizeMultiplier
           : 1.0;
 
       const bulletRadius =
         baseRadius *
         player.area *
-        (ParticleConfigService.bullets.baseSizeMultiplier ?? 1.0) *
+        ParticleConfigService.bullets.baseSizeMultiplier *
         typeMultiplier;
       const bulletColor = isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET;
 

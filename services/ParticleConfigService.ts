@@ -46,10 +46,7 @@ class ParticleConfigServiceClass {
   private constructor() {}
 
   static getInstance(): ParticleConfigServiceClass {
-    if (!ParticleConfigServiceClass.instance) {
-      ParticleConfigServiceClass.instance = new ParticleConfigServiceClass();
-    }
-    return ParticleConfigServiceClass.instance;
+    return (ParticleConfigServiceClass.instance ??= new ParticleConfigServiceClass());
   }
 
   /**
@@ -61,6 +58,7 @@ class ParticleConfigServiceClass {
   ): void {
     if (this[group]) {
       Object.assign(this[group], params);
+      // eslint-disable-next-line no-console
       console.log(
         `%c✨ Particle Config Updated: ${group}`,
         'color: #39FF14; font-weight: bold;',
@@ -93,6 +91,7 @@ class ParticleConfigServiceClass {
       critSizeMultiplier: 1.0,
       superCritSizeMultiplier: 0.7,
     };
+    // eslint-disable-next-line no-console
     console.log('%c🔄 Particle Config Reset', 'color: #fbbf24; font-weight: bold;');
   }
 }

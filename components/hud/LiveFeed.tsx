@@ -23,7 +23,7 @@ const DesktopLiveFeed: React.FC<LiveFeedProps> = ({
   priceColor,
 }) => {
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
-  const pairConfig = CRYPTO_PAIRS[marketData.pair || 'BTC'];
+  const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
     <div className="bg-transparent p-2 flex flex-col gap-0 min-w-[220px]">
@@ -83,7 +83,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps> = ({
   priceColor,
 }) => {
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
-  const pairConfig = CRYPTO_PAIRS[marketData.pair || 'BTC'];
+  const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
     <div className="bg-white/5 backdrop-blur-md px-3 py-2 rounded-lg flex flex-col gap-0 min-w-[140px] border border-white/5 shadow-xl">

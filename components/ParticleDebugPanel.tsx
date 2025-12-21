@@ -52,7 +52,21 @@ export const ParticleDebugPanel: React.FC = () => {
     );
   }
 
-  const Slider = ({ label, min, max, step, value, onChange }: any) => (
+  const Slider = ({
+    label,
+    min,
+    max,
+    step,
+    value,
+    onChange,
+  }: {
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+    value: number;
+    onChange: (v: number) => void;
+  }) => (
     <div className="flex flex-col gap-1 mb-2">
       <div className="flex justify-between text-[9px] uppercase font-bold tracking-wider">
         <span className="text-slate-500">{label}</span>
