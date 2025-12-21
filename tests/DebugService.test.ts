@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DebugService } from '../services/DebugService';
 describe('DebugService', () => {
@@ -64,6 +63,7 @@ describe('DebugService', () => {
 
     DebugService.exportSnapshot();
 
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     expect(document.createElement).toHaveBeenCalledWith('a');
     expect(mockAnchor.href).toBe(mockURL);
     expect(mockAnchor.download).toContain('game-snapshot');

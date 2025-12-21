@@ -4,88 +4,93 @@ import { useDevice } from '../../hooks/useDevice';
 import { screenService } from '../../services/ScreenService';
 
 // Mock ScreenService
-vi.mock('../../services/ScreenService', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../services/ScreenService')>();
-    return {
-        ...actual,
-        screenService: {
-            ...actual.screenService,
-            getDeviceInfo: vi.fn(),
-            onChange: vi.fn(),
-            isMobile: vi.fn(),
-        },
-    };
+vi.mock('../../services/ScreenService', async importOriginal => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actual = (await importOriginal()) as typeof import('../../services/ScreenService');
+  return {
+    ...actual,
+    screenService: {
+      ...actual.screenService,
+      getDeviceInfo: vi.fn(),
+      onChange: vi.fn(),
+      isMobile: vi.fn(),
+    },
+  };
 });
 
 describe('useDevice', () => {
-    const mockDeviceInfo = {
-        isMobile: true,
-        isTablet: false,
-        isDesktop: false,
-        isIOS: true,
-        isAndroid: false,
-        isPWA: false,
-        platform: 'mobile' as const,
-        os: 'ios' as const,
-        hasTouch: true,
-        screen: {
-            width: 390,
-            height: 844,
-            isLandscape: false,
-            safeArea: { top: 47, bottom: 34, left: 0, right: 0 },
-        },
+  const mockDeviceInfo = {
+    isMobile: true,
+    isTablet: false,
+    isDesktop: false,
+    isIOS: true,
+    isAndroid: false,
+    isPWA: false,
+    platform: 'mobile' as const,
+    os: 'ios' as const,
+    hasTouch: true,
+    screen: {
+      width: 390,
+      height: 844,
+      isLandscape: false,
+      safeArea: { top: 47, bottom: 34, left: 0, right: 0 },
+    },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(screenService.getDeviceInfo).mockReturnValue(mockDeviceInfo);
+    vi.mocked(screenService.isMobile).mockReturnValue(true);
+    // Default mock implementation for onChange returns a dummy unsubscribe
+    vi.mocked(screenService.onChange).mockReturnValue(() => {});
+  });
+
+  it('should return initial device info', () => {
+    const { result } = renderHook(() => useDevice());
+
+    expect(result.current.isMobile).toBe(true);
+    expect(result.current.platform).toBe('mobile');
+    expect(result.current.os).toBe('ios');
+    expect(screenService.getDeviceInfo).toHaveBeenCalled();
+  });
+
+  it('should subscribe to screen changes on mount', () => {
+    renderHook(() => useDevice());
+    expect(screenService.onChange).toHaveBeenCalled();
+  });
+
+  it('should update state when screen changes', () => {
+    let changeCallback: () => void = () => {};
+    vi.mocked(screenService.onChange).mockImplementation(cb => {
+      changeCallback = cb;
+      return () => {};
+    });
+
+    const { result } = renderHook(() => useDevice());
+
+    // Setup next value
+    const updatedInfo = {
+      ...mockDeviceInfo,
+      isLandscape: true,
+      screen: { ...mockDeviceInfo.screen, isLandscape: true },
     };
+    vi.mocked(screenService.getDeviceInfo).mockReturnValue(updatedInfo);
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        vi.mocked(screenService.getDeviceInfo).mockReturnValue(mockDeviceInfo);
-        vi.mocked(screenService.isMobile).mockReturnValue(true);
-        // Default mock implementation for onChange returns a dummy unsubscribe
-        vi.mocked(screenService.onChange).mockReturnValue(() => { });
+    // Trigger change
+    act(() => {
+      changeCallback();
     });
 
-    it('should return initial device info', () => {
-        const { result } = renderHook(() => useDevice());
+    expect(result.current.screen.isLandscape).toBe(true);
+  });
 
-        expect(result.current.isMobile).toBe(true);
-        expect(result.current.platform).toBe('mobile');
-        expect(result.current.os).toBe('ios');
-        expect(screenService.getDeviceInfo).toHaveBeenCalled();
-    });
+  it('should unsubscribe on unmount', () => {
+    const unsubscribe = vi.fn();
+    vi.mocked(screenService.onChange).mockReturnValue(unsubscribe);
 
-    it('should subscribe to screen changes on mount', () => {
-        renderHook(() => useDevice());
-        expect(screenService.onChange).toHaveBeenCalled();
-    });
+    const { unmount } = renderHook(() => useDevice());
+    unmount();
 
-    it('should update state when screen changes', () => {
-        let changeCallback: () => void = () => { };
-        vi.mocked(screenService.onChange).mockImplementation((cb) => {
-            changeCallback = cb;
-            return () => { };
-        });
-
-        const { result } = renderHook(() => useDevice());
-
-        // Setup next value
-        const updatedInfo = { ...mockDeviceInfo, isLandscape: true, screen: { ...mockDeviceInfo.screen, isLandscape: true } };
-        vi.mocked(screenService.getDeviceInfo).mockReturnValue(updatedInfo);
-
-        // Trigger change
-        act(() => {
-            changeCallback();
-        });
-
-        expect(result.current.screen.isLandscape).toBe(true);
-    });
-
-    it('should unsubscribe on unmount', () => {
-        const unsubscribe = vi.fn();
-        vi.mocked(screenService.onChange).mockReturnValue(unsubscribe);
-
-        const { unmount } = renderHook(() => useDevice());
-        unmount();
-
-        expect(unsubscribe).toHaveBeenCalled();
-    });
+    expect(unsubscribe).toHaveBeenCalled();
+  });
 });

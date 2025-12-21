@@ -5,7 +5,6 @@ import React from 'react';
 // Mock framer-motion BEFORE importing LevelUpScreen
 vi.mock('framer-motion', () => {
   const createMotionComponent = (tag: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const Component = React.forwardRef<HTMLElement, any>(
       (
         {
@@ -46,11 +45,12 @@ vi.mock('../../services/audioService', () => ({
     playSlotTick: vi.fn(),
     playReelStop: vi.fn(),
     playSlotWin: vi.fn(),
+    playAnticipation: vi.fn(),
   },
 }));
 
 import { LevelUpScreen } from '../../components/screens/LevelUpScreen';
-import { Card } from '../../services/CardSystem';
+import { type Card } from '../../services/CardSystem';
 
 describe('LevelUpScreen', () => {
   const mockChoices: Card[] = [
