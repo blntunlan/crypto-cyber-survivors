@@ -33,7 +33,7 @@ describe('MetricsService', () => {
 
   describe('Session Management', () => {
     it('should start a new session', () => {
-      const sessionId = MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      const sessionId = MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       expect(sessionId).toBeTruthy();
       expect(sessionId).toContain('session_');
@@ -41,17 +41,17 @@ describe('MetricsService', () => {
     });
 
     it('should generate unique session IDs', () => {
-      const sessionId1 = MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      const sessionId1 = MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       vi.advanceTimersByTime(100);
-      const sessionId2 = MetricsService.startSession(MarketPosition.SHORT, 51000, 10);
+      const sessionId2 = MetricsService.startSession(MarketPosition.SHORT, 51000, 10, 'ETH');
 
       expect(sessionId1).not.toBe(sessionId2);
     });
 
     it('should end session and compile metrics', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 25);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 25, 'BTC');
 
       const finalData = createFinalData({ leverage: 25 });
       const session = MetricsService.endSession(GameEndReason.DEATH, finalData);
@@ -65,6 +65,14 @@ describe('MetricsService', () => {
       expect(MetricsService.isSessionActive()).toBe(false);
     });
 
+    it('should track the correct crypto pair', () => {
+      MetricsService.startSession(MarketPosition.LONG, 150, 5, 'SOL');
+
+      const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
+
+      expect(session?.pair).toBe('SOL');
+    });
+
     it('should return null when ending non-existent session', () => {
       const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
       expect(session).toBeNull();
@@ -73,7 +81,7 @@ describe('MetricsService', () => {
 
   describe('Real-time Tracking', () => {
     it('should track max PnL', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.update(16.67, createUpdateData({ pnl: 0.05 }));
       MetricsService.update(16.67, createUpdateData({ pnl: 0.1 }));
@@ -88,7 +96,7 @@ describe('MetricsService', () => {
     });
 
     it('should track min PnL', () => {
-      MetricsService.startSession(MarketPosition.SHORT, 50000, 10);
+      MetricsService.startSession(MarketPosition.SHORT, 50000, 10, 'BTC');
 
       MetricsService.update(16.67, createUpdateData({ pnl: -0.02 }));
       MetricsService.update(16.67, createUpdateData({ pnl: -0.08 }));
@@ -103,7 +111,7 @@ describe('MetricsService', () => {
     });
 
     it('should track max difficulty', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.update(16.67, createUpdateData({ difficulty: 1.5 }));
       MetricsService.update(16.67, createUpdateData({ difficulty: 3.2 }));
@@ -118,7 +126,7 @@ describe('MetricsService', () => {
     });
 
     it('should track max enemies on screen', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.update(16.67, createUpdateData({ enemyCount: 5 }));
       MetricsService.update(16.67, createUpdateData({ enemyCount: 15 }));
@@ -130,7 +138,7 @@ describe('MetricsService', () => {
     });
 
     it('should track high difficulty time', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       // Difficulty > 5 is considered high
       MetricsService.update(1000, createUpdateData({ difficulty: 6.0 }));
@@ -145,7 +153,7 @@ describe('MetricsService', () => {
 
   describe('Kill and Damage Tracking', () => {
     it('should track kills by type', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.trackKill('bear', 1000);
       MetricsService.trackKill('bear', 1200);
@@ -160,7 +168,7 @@ describe('MetricsService', () => {
     });
 
     it('should track damage dealt', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.trackDamageDealt(100, false, false);
       MetricsService.trackDamageDealt(200, true, false);
@@ -174,7 +182,7 @@ describe('MetricsService', () => {
     });
 
     it('should track damage taken', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.trackDamageTaken(10);
       MetricsService.trackDamageTaken(25);
@@ -188,7 +196,7 @@ describe('MetricsService', () => {
 
   describe('Level Up and Card Tracking', () => {
     it('should track level ups and card choices', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       vi.advanceTimersByTime(10000);
       MetricsService.trackLevelUp(2, 'Diamond Hands', 'common');
@@ -213,7 +221,7 @@ describe('MetricsService', () => {
 
   describe('Combo Tracking', () => {
     it('should track max streak', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.trackComboUpdate(5, 1.2);
       MetricsService.trackComboUpdate(10, 1.5);
@@ -226,7 +234,7 @@ describe('MetricsService', () => {
     });
 
     it('should track combo milestones', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.trackComboMilestone('COMBO!');
       MetricsService.trackComboMilestone('SUPER COMBO!');
@@ -240,7 +248,7 @@ describe('MetricsService', () => {
     });
 
     it('should track combo end with bonus XP', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       MetricsService.trackComboUpdate(1, 1.0);
       vi.advanceTimersByTime(1000);
@@ -256,7 +264,7 @@ describe('MetricsService', () => {
 
   describe('Export Functions', () => {
     it('should export sessions as JSON', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       const json = MetricsService.exportAsJSON();
@@ -268,7 +276,7 @@ describe('MetricsService', () => {
     });
 
     it('should export sessions as CSV', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       const csv = MetricsService.exportAsCSV();
@@ -285,14 +293,14 @@ describe('MetricsService', () => {
       MetricsService.clearSessions();
       expect(MetricsService.getSessionCount()).toBe(0);
 
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       expect(MetricsService.getSessionCount()).toBe(1);
     });
 
     it('should retrieve stored sessions', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       const sessions = MetricsService.getSessions();
@@ -302,7 +310,7 @@ describe('MetricsService', () => {
     });
 
     it('should clear all sessions', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       MetricsService.clearSessions();
@@ -313,7 +321,7 @@ describe('MetricsService', () => {
 
   describe('Event Bus Integration', () => {
     it('should handle enemyKilled event', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0, isCrit: false });
       EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0, isCrit: true });
@@ -324,7 +332,7 @@ describe('MetricsService', () => {
     });
 
     it('should handle gemCollected event', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       EventBus.emit('gemCollected', { value: 10, isRare: false });
 
@@ -333,7 +341,7 @@ describe('MetricsService', () => {
     });
 
     it('should handle playerHit event', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       EventBus.emit('playerHit', { damage: 20, remainingHp: 80 });
 
@@ -342,7 +350,7 @@ describe('MetricsService', () => {
     });
 
     it('should handle bulletFired event', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       EventBus.emit('bulletFired', { x: 0, y: 0 });
 
@@ -365,7 +373,7 @@ describe('MetricsService', () => {
         throw err;
       });
 
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       // Should have retried logic (which includes slicing array)
@@ -386,7 +394,7 @@ describe('MetricsService', () => {
     });
 
     it('should return current state during active session', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       const state = MetricsService.getCurrentState();
 
       expect(state).toBeTruthy();
@@ -404,7 +412,7 @@ describe('MetricsService', () => {
 
   describe('Survival Time Calculation', () => {
     it('should calculate survival time correctly', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       vi.advanceTimersByTime(30000); // 30 seconds
 
@@ -416,7 +424,7 @@ describe('MetricsService', () => {
 
   describe('Average Calculations', () => {
     it('should calculate average PnL', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       // Simulate sampling interval
       vi.advanceTimersByTime(1000);
@@ -438,7 +446,7 @@ describe('MetricsService', () => {
     });
 
     it('should calculate average difficulty', () => {
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       vi.advanceTimersByTime(1000);
       MetricsService.update(16.67, createUpdateData({ difficulty: 1.0 }));
@@ -465,7 +473,7 @@ describe('MetricsService', () => {
 
       // Populate with diverse sessions
       // Short/Easy session
-      MetricsService.startSession(MarketPosition.LONG, 50000, 5);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 5, 'BTC');
       vi.advanceTimersByTime(30000); // 30s
       MetricsService.update(16.67, createUpdateData({ difficulty: 1.5, pnl: 0.05 }));
       MetricsService.trackKill('bear', 0);
@@ -479,7 +487,7 @@ describe('MetricsService', () => {
       );
 
       // Long/Hard session
-      MetricsService.startSession(MarketPosition.SHORT, 60000, 20);
+      MetricsService.startSession(MarketPosition.SHORT, 60000, 20, 'BTC');
       vi.advanceTimersByTime(600000); // 10m
       MetricsService.update(16.67, createUpdateData({ difficulty: 7.0, pnl: -0.15 }));
       MetricsService.trackKill('bear', 0);
@@ -496,7 +504,7 @@ describe('MetricsService', () => {
       );
 
       // Winning session (simulated by non-death reason if applicable, or just high stats)
-      MetricsService.startSession(MarketPosition.LONG, 40000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 40000, 10, 'BTC');
       vi.advanceTimersByTime(900000); // 15m
       MetricsService.update(16.67, createUpdateData({ difficulty: 5.0, pnl: 0.2 }));
       MetricsService.endSession(
@@ -565,11 +573,11 @@ describe('MetricsService', () => {
 
     it('should generate recommendations', () => {
       // Add enough sessions to trigger recommendation logic (> 5 sessions)
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
-      MetricsService.startSession(MarketPosition.LONG, 50000, 10);
+      MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       const insights = MetricsService.getInsights();

@@ -3,11 +3,8 @@ import { MarketService } from '../services/marketService';
 
 describe('MarketService', () => {
   let service: MarketService;
-
   let mockOnData: any;
-
   let mockOnStatus: any;
-
   let mockFactory: any;
 
   beforeEach(() => {
@@ -29,22 +26,68 @@ describe('MarketService', () => {
         readyState: 1, // OPEN
       };
     });
-
-    service = new MarketService(mockOnData, mockOnStatus, mockFactory);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('should connect to both sources on init', () => {
+  it('should initialize with BTC by default configuration', () => {
+    service = new MarketService({
+      pair: 'BTC',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
     service.connect();
 
     // Binance and Coinbase
     expect(mockFactory).toHaveBeenCalledTimes(2);
+
+    // Verify Binance URL for BTC
+    const binanceCall = mockFactory.mock.calls[0][0];
+    expect(binanceCall).toContain('btcusdt@ticker');
   });
 
-  it('should handle successful connection', () => {
+  it('should initialize with ETH when configured', () => {
+    service = new MarketService({
+      pair: 'ETH',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
+    service.connect();
+
+    // Verify Binance URL for ETH
+    const binanceCall = mockFactory.mock.calls[0][0];
+    expect(binanceCall).toContain('ethusdt@ticker');
+  });
+
+  it('should initialize with SOL when configured', () => {
+    service = new MarketService({
+      pair: 'SOL',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
+    service.connect();
+
+    // Verify Binance URL for SOL
+    const binanceCall = mockFactory.mock.calls[0][0];
+    expect(binanceCall).toContain('solusdt@ticker');
+  });
+
+  it('should handle successful connection and status updates', () => {
+    service = new MarketService({
+      pair: 'BTC',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
     service.connect();
 
     // Get the mocked socket instances
@@ -71,17 +114,24 @@ describe('MarketService', () => {
     );
   });
 
-  it('should handle incoming messages from Binance', () => {
+  it('should handle incoming messages from Binance with correct pair info', () => {
+    service = new MarketService({
+      pair: 'ETH',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
     service.connect();
     const binanceSocket = mockFactory.mock.results[0].value;
     binanceSocket.onopen();
 
     const testData = {
-      s: 'BTCUSDT',
-      c: '50000.00',
-      h: '51000.00',
-      l: '49000.00',
-      v: '100.0',
+      s: 'ETHUSDT',
+      c: '3000.00',
+      h: '3100.00',
+      l: '2900.00',
+      v: '500.0',
     };
 
     // Simulate message
@@ -90,15 +140,23 @@ describe('MarketService', () => {
     expect(mockOnData).toHaveBeenCalledWith(
       expect.objectContaining({
         source: 'binance',
-        price: 50000,
-        high: 51000,
-        low: 49000,
-        volume: 100,
+        price: 3000,
+        high: 3100,
+        low: 2900,
+        volume: 500,
+        pair: 'ETH', // Verify pair is passed correctly
       })
     );
   });
 
-  it('should reconnect on close', () => {
+  it('should reconnect on close using the correct URL', () => {
+    service = new MarketService({
+      pair: 'SOL',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
     service.connect();
     const binanceSocket = mockFactory.mock.results[0].value;
     binanceSocket.onopen();
@@ -117,9 +175,20 @@ describe('MarketService', () => {
 
     // Should have called factory again
     expect(mockFactory).toHaveBeenCalledTimes(3); // 2 initial + 1 reconnect
+
+    // Verify reconnect URL matches the configured pair
+    const reconnectCall = mockFactory.mock.calls[2][0];
+    expect(reconnectCall).toContain('solusdt@ticker');
   });
 
   it('should disconnect cleanly', () => {
+    service = new MarketService({
+      pair: 'BTC',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
     service.connect();
     const binanceSocket = mockFactory.mock.results[0].value;
     const coinbaseSocket = mockFactory.mock.results[1].value;

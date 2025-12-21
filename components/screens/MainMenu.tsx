@@ -2,15 +2,26 @@ import React, { useState } from 'react';
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
+import { CryptoSelector } from '../ui/CryptoSelector';
+import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 
 interface MainMenuProps {
   price: number;
   onStart: (choice: MarketPosition, leverage: LeverageOption) => void;
   onOpenSettings: () => void;
+  selectedPair: CryptoPair;
+  onPairChange: (pair: CryptoPair) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ price, onStart, onOpenSettings }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({
+  price,
+  onStart,
+  onOpenSettings,
+  selectedPair,
+  onPairChange,
+}) => {
   const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
+  const pairConfig = CRYPTO_PAIRS[selectedPair];
 
   const getLeverageColor = (lev: LeverageOption) => {
     if (lev <= 2) return 'text-green-400 border-green-500/30 bg-green-500/10';
@@ -34,7 +45,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ price, onStart, onOpenSettin
           <h1 className="text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">
             CRYPTO
             <br />
-            <span className="text-yellow-500">SURVIVORS</span>
+            <span style={{ color: pairConfig.color }}>SURVIVORS</span>
           </h1>
           <div className="flex flex-col items-center gap-2">
             <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">
@@ -45,7 +56,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({ price, onStart, onOpenSettin
         </header>
 
         <div className="bg-slate-900/40 border border-white/5 p-8 rounded-2xl space-y-6">
-          <div className="text-5xl font-black text-white tracking-tighter">
+          {/* Pair Selector */}
+          <div className="space-y-3">
+            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+              Select Asset
+            </span>
+            <CryptoSelector selected={selectedPair} onSelect={onPairChange} />
+          </div>
+
+          <div
+            className="text-5xl font-black tracking-tighter transition-colors duration-500"
+            style={{ color: pairConfig.color, textShadow: `0 0 30px ${pairConfig.color}40` }}
+          >
             {price > 0
               ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
               : 'CONNECTING...'}

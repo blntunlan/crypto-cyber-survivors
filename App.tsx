@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
+import { type CryptoPair } from './types/crypto';
 import { CardSystem, type Card } from './services/CardSystem';
 import { audio } from './services/audioService';
 import { EventBus } from './services/EventBus';
@@ -96,6 +97,7 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
+  const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
 
   // ========================================
   // Player & Market Hooks
@@ -103,7 +105,14 @@ const App: React.FC = () => {
   const { playerRef, uiStats, setUiStats, resetPlayer, healFull, setPositionColor } =
     usePlayerState(dimensions.width, dimensions.height);
 
-  const { marketData } = useMarketData(gameStatus, position, entryPrice, leverage, playerRef);
+  const { marketData } = useMarketData(
+    gameStatus,
+    position,
+    entryPrice,
+    leverage,
+    playerRef,
+    selectedPair
+  );
 
   // ========================================
   // Initialization Effects
@@ -138,7 +147,7 @@ const App: React.FC = () => {
 
       resetPlayer();
       setLeverage(selectedLeverage);
-      GameStateManager.initializeNewGame(choice, marketData.price, selectedLeverage);
+      GameStateManager.initializeNewGame(choice, marketData.price, selectedLeverage, selectedPair);
       setPosition(choice);
       setEntryPrice(marketData.price);
       setPositionColor(choice);
@@ -146,7 +155,15 @@ const App: React.FC = () => {
       MilestoneService.startSession();
       audio.playLevelUp();
     },
-    [marketData.price, resetPlayer, setPositionColor]
+    [
+      marketData.price,
+      resetPlayer,
+      setPositionColor,
+      selectedPair,
+      setLeverage,
+      setPosition,
+      setEntryPrice,
+    ]
   );
 
   const selectUpgrade = useCallback(
@@ -264,6 +281,8 @@ const App: React.FC = () => {
             price={marketData.price}
             onStart={startGame}
             onOpenSettings={() => setShowSettings(true)}
+            selectedPair={selectedPair}
+            onPairChange={setSelectedPair}
           />
         </React.Suspense>
       )}

@@ -15,20 +15,42 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   hpPercent,
   isMobile,
 }) => {
-  const isCritical = hpPercent < 30;
   const wavePhase = DifficultyManager.getWavePhase();
-
-  const getStatusText = () => {
-    if (hpPercent > 70) return 'EQUITY SECURE';
-    if (hpPercent > 30) return 'MARGIN UNDER PRESSURE';
-    return 'LIQUIDATION RISK EXTREME';
+  const getStatusConfig = () => {
+    if (hpPercent > 75) {
+      return {
+        text: 'EQUITY SECURE',
+        color: 'text-cyan-400',
+        bg: `linear-gradient(90deg, ${COLORS.CASINO_GREEN}, ${COLORS.PUMP_GREEN})`,
+        glow: COLORS.CASINO_GREEN,
+      };
+    }
+    if (hpPercent > 50) {
+      return {
+        text: 'MARGIN CAUTION',
+        color: 'text-yellow-400',
+        bg: `linear-gradient(90deg, ${COLORS.CASINO_GOLD}, ${COLORS.JACKPOT_YELLOW})`,
+        glow: COLORS.CASINO_GOLD,
+      };
+    }
+    if (hpPercent > 25) {
+      return {
+        text: 'MARGIN PRESSURE',
+        color: 'text-orange-500',
+        bg: `linear-gradient(90deg, ${COLORS.NEON_ORANGE}, ${COLORS.DUMP_ORANGE})`,
+        glow: COLORS.NEON_ORANGE,
+      };
+    }
+    return {
+      text: 'LIQUIDATION RISK',
+      color: 'text-red-600',
+      bg: `linear-gradient(90deg, ${COLORS.CASINO_RED}, ${COLORS.SUPER_CRIT})`,
+      glow: COLORS.CASINO_RED,
+    };
   };
 
-  const getStatusColor = () => {
-    if (hpPercent > 70) return 'text-cyan-400';
-    if (hpPercent > 30) return 'text-amber-400';
-    return 'text-red-500';
-  };
+  const status = getStatusConfig();
+  const isCritical = hpPercent <= 25;
 
   return (
     <div
@@ -49,9 +71,9 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
 
         <div className="flex flex-col items-center">
           <div
-            className={`text-[9px] font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${getStatusColor()} ${hpPercent < 30 ? 'animate-pulse' : ''}`}
+            className={`text-[9px] font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
           >
-            {getStatusText()}
+            {status.text}
           </div>
           <div className="text-2xl font-black text-white leading-none tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
             {Math.ceil(hpPercent)}
@@ -89,10 +111,8 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           }`}
           style={{
             width: `${hpPercent}%`,
-            background: isCritical
-              ? `linear-gradient(90deg, ${COLORS.CASINO_RED}, #ff4b2b)`
-              : `linear-gradient(90deg, ${COLORS.CASINO_GREEN}, #00f2fe)`,
-            boxShadow: `0 0 20px ${isCritical ? COLORS.CASINO_RED : COLORS.CASINO_GREEN}66`,
+            background: status.bg,
+            boxShadow: `0 0 20px ${status.glow}66`,
           }}
         >
           {/* Inner Texture */}

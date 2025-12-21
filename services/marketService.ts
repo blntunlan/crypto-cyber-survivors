@@ -10,8 +10,9 @@
  * - Zod validation for type safety
  */
 
-import { BINANCE_WS_URL, COINBASE_WS_URL } from '../constants';
+import { COINBASE_WS_URL, getBinanceWsUrl } from '../constants';
 import { Logger } from './Logger';
+import { CRYPTO_PAIRS, type CryptoPair, type CryptoConfig } from '../types/crypto';
 import {
   parseBinanceData,
   parseCoinbaseData,
@@ -24,6 +25,14 @@ export interface MarketUpdate {
   low?: number;
   source: 'binance' | 'coinbase';
   volume?: number;
+  pair: CryptoPair;
+}
+
+export interface MarketServiceConfig {
+  pair: CryptoPair;
+  onData: (update: MarketUpdate) => void;
+  onStatusChange?: (status: ConnectionStatus) => void;
+  wsFactory?: WebSocketFactory;
 }
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
@@ -65,14 +74,15 @@ export class MarketService {
   // Status change callback
   private onStatusChange?: (status: ConnectionStatus) => void;
 
-  constructor(
-    onData: (update: MarketUpdate) => void,
-    onStatusChange?: (status: ConnectionStatus) => void,
-    wsFactory?: WebSocketFactory
-  ) {
-    this.onDataCallback = onData;
-    this.onStatusChange = onStatusChange;
-    this.wsFactory = wsFactory || ((url: string) => new WebSocket(url));
+  private pair: CryptoPair;
+  private config: CryptoConfig;
+
+  constructor(config: MarketServiceConfig) {
+    this.pair = config.pair;
+    this.config = CRYPTO_PAIRS[config.pair];
+    this.onDataCallback = config.onData;
+    this.onStatusChange = config.onStatusChange;
+    this.wsFactory = config.wsFactory ?? ((url: string) => new WebSocket(url));
   }
 
   /**
@@ -129,9 +139,10 @@ export class MarketService {
 
     try {
       this.updateState('binance', 'connecting');
-      Logger.debug('[Market] Connecting to Binance...');
+      Logger.debug(`[Market] Connecting to Binance (${this.pair})...`);
 
-      this.binanceSocket = this.wsFactory(BINANCE_WS_URL);
+      const wsUrl = getBinanceWsUrl(this.pair);
+      this.binanceSocket = this.wsFactory(wsUrl);
 
       this.binanceSocket.onopen = () => {
         Logger.info('[Market] Binance connected');
@@ -147,7 +158,7 @@ export class MarketService {
           if (update) {
             this.lastKnownPrice = update.price;
             this.lastPriceTime = Date.now();
-            this.onDataCallback(update);
+            this.onDataCallback({ ...update, pair: this.pair });
           }
         } catch {
           Logger.warn('[Market] Failed to parse Binance message');
@@ -187,7 +198,7 @@ export class MarketService {
         this.coinbaseSocket?.send(
           JSON.stringify({
             type: 'subscribe',
-            product_ids: ['BTC-USD'],
+            product_ids: [this.config.coinbaseProductId],
             channels: ['ticker'],
           })
         );
@@ -209,7 +220,7 @@ export class MarketService {
           if (update) {
             this.lastKnownPrice = update.price;
             this.lastPriceTime = Date.now();
-            this.onDataCallback(update);
+            this.onDataCallback({ ...update, pair: this.pair });
           }
         } catch {
           Logger.warn('[Market] Failed to parse Coinbase message');

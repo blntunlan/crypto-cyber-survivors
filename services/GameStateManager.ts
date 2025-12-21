@@ -6,6 +6,7 @@
  */
 
 import { type MarketPosition } from '../types';
+import { type CryptoPair } from '../types/crypto';
 import { EventBus } from './EventBus';
 import { DifficultyManager } from './DifficultyManager';
 import { ComboSystem } from './ComboSystem';
@@ -107,15 +108,20 @@ class GameStateManagerClass {
    * Initialize a new game session.
    * Called when player selects Long/Short and starts playing.
    */
-  initializeNewGame(position: MarketPosition, entryPrice: number, leverage: number): void {
+  initializeNewGame(
+    position: MarketPosition,
+    entryPrice: number,
+    leverage: number,
+    pair: CryptoPair
+  ): void {
     // Ensure clean state before starting
     this.resetAll();
 
     // Start metrics tracking for this session
-    MetricsService.startSession(position, entryPrice, leverage);
+    MetricsService.startSession(position, entryPrice, leverage, pair);
 
     // Emit game initialized event
-    EventBus.emit('gameInitialized', { position, entryPrice, leverage });
+    EventBus.emit('gameInitialized', { position, entryPrice, leverage, pair });
   }
 
   /**

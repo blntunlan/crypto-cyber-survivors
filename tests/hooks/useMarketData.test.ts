@@ -3,17 +3,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useMarketData } from '../../hooks/useMarketData';
 import { GameStatus, MarketPosition, type Player } from '../../types';
 
-let capturedCallback: any;
+// Use vi.hoisted to share state between mock factory and tests
+const { callbackRef } = vi.hoisted(() => ({
+  callbackRef: { current: null as any },
+}));
 
 vi.mock('../../services/marketService', () => {
   return {
-    MarketService: vi.fn().mockImplementation(function (onData) {
-      capturedCallback = onData;
-      return {
-        connect: vi.fn(),
-        disconnect: vi.fn(),
-      };
-    }),
+    MarketService: class MockMarketService {
+      constructor(config: any) {
+        callbackRef.current = config.onData;
+      }
+      connect() {
+        // connect simulation
+      }
+      disconnect() {
+        // cleanup simulation
+      }
+    },
   };
 });
 
@@ -28,25 +35,28 @@ describe('useMarketData', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    capturedCallback = null;
+    callbackRef.current = null;
   });
 
   it('should initialize with default market data', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef)
+      useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef, 'BTC')
     );
 
     expect(result.current.marketData.price).toBe(0);
     expect(result.current.marketData.difficulty).toBe(1);
+    expect(result.current.marketData.pair).toBe('BTC');
   });
 
   it('should update price when in MENU status', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef)
+      useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef, 'BTC')
     );
 
     act(() => {
-      capturedCallback({ price: 50000, source: 'binance' });
+      if (callbackRef.current) {
+        callbackRef.current({ price: 50000, source: 'binance' });
+      }
     });
 
     expect(result.current.marketData.price).toBe(50000);
@@ -54,11 +64,13 @@ describe('useMarketData', () => {
 
   it('should calculate PNL when in PLAYING status', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 1, mockPlayerRef)
+      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 1, mockPlayerRef, 'BTC')
     );
 
     act(() => {
-      capturedCallback({ price: 44000, source: 'binance' });
+      if (callbackRef.current) {
+        callbackRef.current({ price: 44000, source: 'binance' });
+      }
     });
 
     // (44000 - 40000) / 40000 = 4000 / 40000 = 0.1
@@ -68,11 +80,13 @@ describe('useMarketData', () => {
 
   it('should calculate inverse PNL for SHORT position', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.SHORT, 40000, 1, mockPlayerRef)
+      useMarketData(GameStatus.PLAYING, MarketPosition.SHORT, 40000, 1, mockPlayerRef, 'BTC')
     );
 
     act(() => {
-      capturedCallback({ price: 36000, source: 'binance' });
+      if (callbackRef.current) {
+        callbackRef.current({ price: 36000, source: 'binance' });
+      }
     });
 
     // -(36000 - 40000) / 40000 = -(-4000) / 40000 = 0.1
@@ -81,11 +95,13 @@ describe('useMarketData', () => {
 
   it('should calculate effective PNL with leverage', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 10, mockPlayerRef)
+      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 10, mockPlayerRef, 'BTC')
     );
 
     act(() => {
-      capturedCallback({ price: 44000, source: 'binance' });
+      if (callbackRef.current) {
+        callbackRef.current({ price: 44000, source: 'binance' });
+      }
     });
 
     // Raw PnL: 0.1, Effective: 0.1 * 10 = 1.0
@@ -96,14 +112,18 @@ describe('useMarketData', () => {
 
   it('should record price history', async () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef)
+      useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef, 'BTC')
     );
 
     act(() => {
-      capturedCallback({ price: 100, source: 'binance' });
+      if (callbackRef.current) {
+        callbackRef.current({ price: 100, source: 'binance' });
+      }
     });
     act(() => {
-      capturedCallback({ price: 200, source: 'binance' });
+      if (callbackRef.current) {
+        callbackRef.current({ price: 200, source: 'binance' });
+      }
     });
 
     expect(result.current.priceHistory).toContain(100);

@@ -1,3 +1,5 @@
+import { type CryptoPair } from './types/crypto';
+
 export enum MarketPosition {
   LONG = 'LONG',
   SHORT = 'SHORT',
@@ -24,6 +26,8 @@ export interface MarketData {
   leverage: LeverageOption;
   rsi: number;
   difficulty: number;
+  pair?: CryptoPair;
+  symbol?: string; // e.g. 'BTCUSDT'
 }
 
 export interface Entity {

@@ -116,11 +116,16 @@ export interface MilestoneAchievedEvent {
   threshold: number;
 }
 
+import { type CryptoPair } from './crypto';
+
+// ...
+
 /** Game initialized event data */
 export interface GameInitializedEvent {
   position: string;
   entryPrice: number;
   leverage: number;
+  pair: CryptoPair;
 }
 
 /** Empty event (no payload) */

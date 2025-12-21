@@ -11,6 +11,7 @@
 import { EventBus } from './EventBus';
 import { Logger } from './Logger';
 import { MarketPosition } from '../types';
+import { type CryptoPair } from '../types/crypto';
 import { getMetricsConfig, type MetricsConfig } from '../config/MetricsConfig';
 import {
   type MetricsState,
@@ -69,7 +70,12 @@ class MetricsServiceClass {
   /**
    * Start a new metrics session
    */
-  startSession(position: MarketPosition, entryPrice: number, leverage: number): string {
+  startSession(
+    position: MarketPosition,
+    entryPrice: number,
+    leverage: number,
+    pair: CryptoPair
+  ): string {
     // Skip if metrics disabled
     if (!this.config.enabled) return '';
 
@@ -81,6 +87,7 @@ class MetricsServiceClass {
       sessionStartTime: now,
       isActive: true,
       lastUpdateTime: now,
+      pair,
 
       // History
       pnlHistory: [],
@@ -191,6 +198,7 @@ class MetricsServiceClass {
       sessionId: this.state.sessionId,
       sessionTimestamp: this.state.sessionStartTime,
       gameEndReason: reason,
+      pair: this.state.pair,
 
       bitcoin: MetricsCompiler.compileBitcoinMetrics(this.state, finalData),
       difficulty: MetricsCompiler.compileDifficultyMetrics(this.state, finalData.difficulty),

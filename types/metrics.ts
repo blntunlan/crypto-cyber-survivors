@@ -6,6 +6,7 @@
  */
 
 import { type MarketPosition } from '../types';
+import { type CryptoPair } from './crypto';
 
 // ============= Enums =============
 
@@ -122,6 +123,7 @@ export interface SessionMetrics {
   sessionId: string;
   sessionTimestamp: number;
   gameEndReason: GameEndReason;
+  pair: CryptoPair;
   bitcoin: BitcoinMetrics;
   difficulty: DifficultyMetrics;
   player: PlayerMetrics;
@@ -136,6 +138,7 @@ export interface MetricsState {
   sessionId: string;
   sessionStartTime: number;
   isActive: boolean;
+  pair: CryptoPair;
 
   // Real-time accumulators
   lastUpdateTime: number;

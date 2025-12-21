@@ -5,6 +5,8 @@
  * This file now only contains truly global constants.
  */
 
+import { CRYPTO_PAIRS, type CryptoPair } from './types/crypto';
+
 // =============================================================================
 // SCREEN
 // =============================================================================
@@ -37,8 +39,15 @@ export const GAME_ENGINE = {
 // EXTERNAL APIs
 // =============================================================================
 
+// Dynamic WS URL generation
+export const getBinanceWsUrl = (pair: CryptoPair): string => {
+  const config = CRYPTO_PAIRS[pair];
+  return `wss://stream.binance.com:9443/ws/${config.binanceSymbol}@ticker`;
+};
+
 // Note: @ticker provides 1-second updates, @kline_1m was 1-minute
-export const BINANCE_WS_URL = 'wss://stream.binance.com:9443/ws/btcusdt@ticker';
+// Legacy export for backward compatibility
+export const BINANCE_WS_URL = getBinanceWsUrl('BTC');
 export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';
 
 // =============================================================================
