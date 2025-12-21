@@ -50,14 +50,48 @@ export class EffectRenderer implements IRenderer {
     ctx.restore();
   }
 
+  /**
+   * Batch render particles by color for better performance.
+   * Groups particles by color and draws them in single path operations.
+   */
   private drawParticles(ctx: CanvasRenderingContext2D, pool: PoolManager) {
+    if (pool.activeParticles.length === 0) return;
+
+    // Group particles by color and approximate life (for alpha batching)
+    const groups = new Map<string, typeof pool.activeParticles>();
+
     pool.activeParticles.forEach(part => {
-      ctx.globalAlpha = part.life;
-      ctx.fillStyle = part.color;
+      // Round life to nearest 0.1 for batching (10 alpha levels instead of 100)
+      const alphaKey = Math.round(part.life * 10);
+      const key = `${part.color}-${alphaKey}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(part);
+    });
+
+    // Draw each group in a single path
+    groups.forEach(particles => {
+      if (particles.length === 0) return;
+
+      const firstParticle = particles[0]!;
+      ctx.globalAlpha = firstParticle.life;
+      ctx.fillStyle = firstParticle.color;
       ctx.beginPath();
-      ctx.arc(Math.round(part.x), Math.round(part.y), part.radius || 2, 0, Math.PI * 2);
+
+      particles.forEach(part => {
+        const x = Math.round(part.x);
+        const y = Math.round(part.y);
+        const radius = part.radius || 2;
+        // Move to edge then draw arc (avoids connecting lines between circles)
+        ctx.moveTo(x + radius, y);
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+      });
+
       ctx.fill();
     });
+
     ctx.globalAlpha = 1;
   }
 

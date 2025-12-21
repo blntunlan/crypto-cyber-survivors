@@ -98,6 +98,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Start FPS monitor
     FPSMonitor.start();
 
+    // Pre-warm object pools to prevent allocation stutters during gameplay
+    const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+    pool.current.preWarm({
+      bullets: Math.round(80 * perfConfig.particleMultiplier),
+      particles: Math.round(150 * perfConfig.particleMultiplier),
+      gems: 20,
+      texts: 30,
+    });
+
     // Initial candle generation
     const updateCandles = () => {
       const config = DeviceBenchmarkService.getPerformanceConfig();

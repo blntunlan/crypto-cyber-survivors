@@ -30,7 +30,7 @@ const DesktopLiveFeed: React.FC<LiveFeedProps> = ({
       <div className="flex items-center justify-between mb-2">
         <div className="text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] flex items-center gap-2">
           <span
-            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-ping`}
+            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
           ></span>
           Live Feed
         </div>
@@ -90,7 +90,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps> = ({
       <div className="flex items-center justify-between mb-1">
         <div className="text-[8px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
           <span
-            className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-ping`}
+            className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} opacity-75`}
           ></span>
           LIVE
         </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, memo } from 'react';
 import { type MarketPosition, type MarketData, type Player, GameStatus } from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
+import { useGameStore } from '../stores/gameStore';
 
 import { KernelStatus, LiveFeed, AccountHealthPremium } from './hud';
 
@@ -51,6 +52,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
     }, [marketData.price, lastPrice]);
 
     const isMobile = screenService.isMobile();
+    const showFPS = useGameStore(state => state.graphics.showFPS);
 
     return (
       <div
@@ -63,12 +65,20 @@ export const GameUI: React.FC<GameUIProps> = memo(
       >
         <div className="flex justify-between items-start w-full">
           {/* Left Panel: Transparent & Numerical Only */}
-          <LiveFeed
-            marketData={marketData}
-            entryPrice={entryPrice}
-            smoothValues={smoothValues}
-            priceColor={priceColor}
-          />
+          <div className="flex flex-col gap-2">
+            <LiveFeed
+              marketData={marketData}
+              entryPrice={entryPrice}
+              smoothValues={smoothValues}
+              priceColor={priceColor}
+            />
+            {/* Mobile FPS Counter - Below LiveFeed */}
+            {isMobile && showFPS && (
+              <div className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-green-500/60 text-white w-fit">
+                <span id="fps-counter-mobile">-- FPS</span>
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-col items-end gap-3">
             {/* Pause Button - Visible during active play */}

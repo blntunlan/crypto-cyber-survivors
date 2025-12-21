@@ -45,22 +45,27 @@ export function useHUDUpdateLoop({
 
   useEffect(() => {
     let lastTime = performance.now();
-    const fpsElement = document.getElementById('fps-counter');
     const healthGlowElement = document.getElementById('near-death-glow');
 
     const updateLoop = (currentTime: number) => {
       const deltaMs = currentTime - lastTime;
       lastTime = currentTime;
 
-      // FPS Counter
-      if (deltaMs > 0 && fpsElement) {
+      // FPS Counter (update both desktop and mobile elements)
+      if (deltaMs > 0) {
         const currentFps = 1000 / deltaMs;
         fpsFramesRef.current.push(currentFps);
         if (fpsFramesRef.current.length > 30) fpsFramesRef.current.shift();
         if (fpsFramesRef.current.length % 15 === 0) {
           const avgFps =
             fpsFramesRef.current.reduce((a, b) => a + b, 0) / fpsFramesRef.current.length;
-          fpsElement.textContent = `${Math.round(avgFps)} FPS`;
+          const fpsText = `${Math.round(avgFps)} FPS`;
+          // Update desktop FPS element
+          const fpsElement = document.getElementById('fps-counter');
+          if (fpsElement) fpsElement.textContent = fpsText;
+          // Update mobile FPS element
+          const fpsMobileElement = document.getElementById('fps-counter-mobile');
+          if (fpsMobileElement) fpsMobileElement.textContent = fpsText;
         }
       }
 

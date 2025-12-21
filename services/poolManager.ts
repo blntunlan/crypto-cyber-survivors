@@ -35,6 +35,86 @@ export class PoolManager {
   constructor() {}
 
   /**
+   * Pre-warm pools to prevent allocation stutters during gameplay.
+   * Call this before the game starts (e.g., during loading screen).
+   */
+  preWarm(config?: {
+    enemies?: number;
+    bullets?: number;
+    particles?: number;
+    gems?: number;
+    texts?: number;
+  }): void {
+    const counts = {
+      enemies: config?.enemies ?? 30,
+      bullets: config?.bullets ?? 80,
+      particles: config?.particles ?? 150,
+      gems: config?.gems ?? 20,
+      texts: config?.texts ?? 30,
+    };
+
+    // Pre-allocate bullets
+    for (let i = 0; i < counts.bullets; i++) {
+      this.freeBullets.push({
+        active: false,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        damage: 0,
+        radius: 0,
+        color: '',
+        isCrit: false,
+        isSuperCrit: false,
+      });
+    }
+
+    // Pre-allocate particles
+    for (let i = 0; i < counts.particles; i++) {
+      this.freeParticles.push({
+        active: false,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        color: '',
+        radius: 2,
+        life: 0,
+      });
+    }
+
+    // Pre-allocate gems
+    for (let i = 0; i < counts.gems; i++) {
+      this.freeGems.push({
+        active: false,
+        x: 0,
+        y: 0,
+        radius: 0,
+        color: '',
+        value: 0,
+        isRare: false,
+      });
+    }
+
+    // Pre-allocate floating texts
+    for (let i = 0; i < counts.texts; i++) {
+      this.freeFloatingTexts.push({
+        active: false,
+        x: 0,
+        y: 0,
+        text: '',
+        color: '',
+        size: 0,
+        life: 0,
+      });
+    }
+
+    console.log(
+      `[PoolManager] Pre-warmed pools: ${counts.bullets} bullets, ${counts.particles} particles, ${counts.gems} gems, ${counts.texts} texts`
+    );
+  }
+
+  /**
    * Helper to move object back to free list
    */
   release<T extends Activatable>(obj: T, activeList: T[], freeList: T[]) {

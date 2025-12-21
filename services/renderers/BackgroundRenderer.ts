@@ -7,6 +7,12 @@ import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 export class BackgroundRenderer implements IRenderer {
   private isMobileDevice: boolean;
 
+  // Cached gradient to avoid creating new gradient every frame
+  private cachedGradient: CanvasGradient | null = null;
+  private cachedWidth: number = 0;
+  private cachedHeight: number = 0;
+  private cachedBgColor: string = '';
+
   constructor() {
     this.isMobileDevice = screenService.isMobile();
   }
@@ -25,23 +31,37 @@ export class BackgroundRenderer implements IRenderer {
 
     // Fill background color
     const { r, g, b } = state.currentBg;
+    const bgColorKey = `${r}-${g}-${b}`;
 
     if (perfConfig.gradientBackground) {
-      // Subtle radial gradient for high/ultra profiles
-      const bgGradient = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
-        0,
-        width / 2,
-        height / 2,
-        Math.max(width, height) * 0.8
-      );
-      bgGradient.addColorStop(
-        0,
-        `rgb(${Math.min(r + 8, 30)}, ${Math.min(g + 8, 30)}, ${Math.min(b + 8, 40)})`
-      );
-      bgGradient.addColorStop(1, `rgb(${r}, ${g}, ${b})`);
-      ctx.fillStyle = bgGradient;
+      // Use cached gradient if dimensions and color haven't changed
+      const needsNewGradient =
+        !this.cachedGradient ||
+        width !== this.cachedWidth ||
+        height !== this.cachedHeight ||
+        bgColorKey !== this.cachedBgColor;
+
+      if (needsNewGradient) {
+        // Create and cache new gradient
+        this.cachedGradient = ctx.createRadialGradient(
+          width / 2,
+          height / 2,
+          0,
+          width / 2,
+          height / 2,
+          Math.max(width, height) * 0.8
+        );
+        this.cachedGradient.addColorStop(
+          0,
+          `rgb(${Math.min(r + 8, 30)}, ${Math.min(g + 8, 30)}, ${Math.min(b + 8, 40)})`
+        );
+        this.cachedGradient.addColorStop(1, `rgb(${r}, ${g}, ${b})`);
+        this.cachedWidth = width;
+        this.cachedHeight = height;
+        this.cachedBgColor = bgColorKey;
+      }
+
+      ctx.fillStyle = this.cachedGradient!;
     } else {
       // Simple solid color for low/medium
       ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;

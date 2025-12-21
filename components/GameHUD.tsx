@@ -101,7 +101,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     >
       <NearDeathGlow />
       {layout.elements.waveTimer.visible && <WaveTimer />}
-      {(layout.elements.fpsCounter.visible || showFPSSource) && <FPSCounter />}
+      {/* FPS Counter - Desktop only (mobile version is in GameUI below LiveFeed) */}
+      {device.platform === 'desktop' && (layout.elements.fpsCounter.visible || showFPSSource) && (
+        <FPSCounter />
+      )}
       <EnemyPointers containerRef={pointerContainerRef} />
       <LevelUpFlash intensity={flash} />
       <ClutchAnnouncement active={clutchActive} />
