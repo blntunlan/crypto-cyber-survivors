@@ -10,12 +10,12 @@
 
 import { MarketPosition } from '../../types';
 import {
-  SessionMetrics,
-  WavePhase,
-  GameInsights,
-  BitcoinInsights,
-  DifficultyInsights,
-  PlayerExperienceInsights,
+  type SessionMetrics,
+  type WavePhase,
+  type GameInsights,
+  type BitcoinInsights,
+  type DifficultyInsights,
+  type PlayerExperienceInsights,
 } from '../../types/metrics';
 
 export class MetricsAnalyzer {

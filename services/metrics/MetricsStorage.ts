@@ -5,10 +5,12 @@
  * - Load/save sessions to localStorage
  * - Quota exceeded handling with graceful degradation
  * - Session limiting
+ * - Cloud sync to Supabase
  */
 
 import { Logger } from '../Logger';
-import { SessionMetrics } from '../../types/metrics';
+import { type SessionMetrics } from '../../types/metrics';
+import { supabase } from '../supabase';
 
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
@@ -71,6 +73,47 @@ export class MetricsStorage {
     }
 
     this.save();
+
+    // Sync to Supabase (fire and forget)
+    void this.syncToSupabase(session);
+  }
+
+  /**
+   * Sync session to Supabase
+   */
+  private async syncToSupabase(session: SessionMetrics): Promise<void> {
+    try {
+      const { error } = await supabase.from('game_sessions').insert({
+        player_id: 'anon-user', // Allow connecting to auth later
+        session_timestamp: new Date(session.sessionTimestamp).toISOString(),
+        survival_time_ms: session.player.survivalTimeMs,
+        end_reason: session.gameEndReason,
+        max_level: session.player.maxLevel,
+        total_kills: session.player.totalKills,
+        metrics: session, // Store full JSON
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      Logger.info('[MetricsStorage] Synced to Supabase');
+
+      // Update leaderboard if good run (>1 min)
+      if (session.player.survivalTimeMs > 60000) {
+        const score = Math.floor(
+          session.player.totalKills * 100 + session.player.survivalTimeMs / 1000
+        );
+        await supabase.from('leaderboard').insert({
+          player_name: `Survivor-${session.sessionId.substring(0, 4)}`,
+          score,
+          survival_time_ms: session.player.survivalTimeMs,
+        });
+      }
+    } catch (err) {
+      // Silent fail is okay for metrics, but log warning
+      Logger.warn('[MetricsStorage] Supabase sync failed', err);
+    }
   }
 
   /**

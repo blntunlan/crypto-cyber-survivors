@@ -1,5 +1,5 @@
-import { PoolManager } from '../poolManager';
-import { GameState, Player, GameStatus } from '../../types';
+import { type PoolManager } from '../poolManager';
+import { type GameState, type Player, type GameStatus } from '../../types';
 
 export interface GraphicsConfig {
   showParticles: boolean;

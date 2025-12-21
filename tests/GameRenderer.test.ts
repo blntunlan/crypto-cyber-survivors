@@ -6,15 +6,15 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameRenderer } from '../services/GameRenderer';
-import { GameStatus, GameState } from '../types';
-import { PoolManager } from '../services/poolManager';
+import { GameStatus, type GameState } from '../types';
+import { type PoolManager } from '../services/poolManager';
 
 describe('GameRenderer', () => {
   let renderer: GameRenderer;
   let mockCtx: CanvasRenderingContext2D;
   let mockPool: PoolManager;
   let mockState: GameState;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let mockPlayer: any;
 
   beforeEach(() => {

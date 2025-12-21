@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { CardSystem, CardTier, ALL_CARDS_FLAT, Card } from '../services/CardSystem';
+import { CardSystem, type CardTier, ALL_CARDS_FLAT, type Card } from '../services/CardSystem';
 
 describe('CardSystem', () => {
   describe('rollTier', () => {

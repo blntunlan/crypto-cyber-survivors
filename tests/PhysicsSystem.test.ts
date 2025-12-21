@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PhysicsSystem } from '../services/PhysicsSystem';
-import { Player, GameState } from '../types';
-import { PoolManager } from '../services/poolManager';
+import { type Player, type GameState } from '../types';
+import { type PoolManager } from '../services/poolManager';
 
 // Mock dependencies
 vi.mock('../services/audioService', () => ({
@@ -43,7 +43,6 @@ vi.mock('../services/EventBus', () => ({
 }));
 
 describe('PhysicsSystem', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockPool: any;
   let mockPlayer: Player;
   let mockState: GameState;

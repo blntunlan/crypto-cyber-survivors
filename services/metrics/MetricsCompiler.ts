@@ -5,15 +5,15 @@
  * for better maintainability.
  */
 
-import { MarketPosition } from '../../types';
+import { type MarketPosition } from '../../types';
 import {
-  MetricsState,
-  BitcoinMetrics,
-  DifficultyMetrics,
-  PlayerMetrics,
-  ComboMetrics,
-  CardMetrics,
-  EnemyMetrics,
+  type MetricsState,
+  type BitcoinMetrics,
+  type DifficultyMetrics,
+  type PlayerMetrics,
+  type ComboMetrics,
+  type CardMetrics,
+  type EnemyMetrics,
 } from '../../types/metrics';
 
 export interface PlayerFinalData {

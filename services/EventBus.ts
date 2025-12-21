@@ -17,7 +17,7 @@
  * unsub();
  */
 
-import { GameEvent, EventDataMap, EventCallback } from '../types/events';
+import { type GameEvent, type EventDataMap, type EventCallback } from '../types/events';
 
 // Re-export types for convenience
 export type { GameEvent, EventDataMap, EventCallback } from '../types/events';

@@ -1,5 +1,12 @@
 import React, { useRef, useEffect } from 'react';
-import { MarketPosition, MarketData, Player, GameStatus, GameState, Candle } from '../types';
+import {
+  type MarketPosition,
+  type MarketData,
+  type Player,
+  GameStatus,
+  type GameState,
+  type Candle,
+} from '../types';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { audio } from '../services/audioService';
 import { PoolManager } from '../services/poolManager';
@@ -31,7 +38,7 @@ interface GameEngineProps {
   onGameOver: () => void;
   onLevelUp: () => void;
   updatePlayerStats: (player: Player) => void;
-  playerRef: React.MutableRefObject<Player>;
+  playerRef: React.RefObject<Player>;
   sessionStartTime: number;
   width: number;
   height: number;

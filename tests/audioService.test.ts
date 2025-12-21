@@ -2,13 +2,12 @@
  * AudioService Tests
  *
  * Tests for audio management including mute/volume controls.
- * Note: Sound playback tests are skipped as they require a real AudioContext.
+ * Updated for modular audio system architecture.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AudioService } from '../services/audioService';
+import { AudioService } from '../services/audio/AudioService';
+import { synthEngine } from '../services/audio/SynthEngine';
 
 vi.mock('howler', () => {
   return {
@@ -30,6 +29,13 @@ describe('AudioService', () => {
   let audioService: AudioService;
 
   beforeEach(() => {
+    // Reset synthEngine state between tests
+    (synthEngine as any).ctx = null;
+    (synthEngine as any).masterGain = null;
+    (synthEngine as any).isMuted = false;
+    (synthEngine as any).volume = 1.0;
+    (synthEngine as any).lastPlayTime.clear();
+
     audioService = new AudioService();
   });
 
@@ -111,14 +117,14 @@ describe('AudioService', () => {
 
     it('should initialize AudioContext on first play', () => {
       audioService.playButton();
-      // Accessing private field
-
-      expect((audioService as any).ctx).not.toBeNull();
+      // Access synthEngine's context
+      const context = (synthEngine as any).ctx;
+      expect(context).not.toBeNull();
     });
 
     it('should play shoot sound', () => {
       audioService.playShoot();
-      const ctx = (audioService as any).ctx;
+      const ctx = (synthEngine as any).ctx;
       expect(ctx).not.toBeNull();
       expect(ctx?.createOscillator).toHaveBeenCalled();
       expect(ctx?.createGain).toHaveBeenCalled();
@@ -126,43 +132,44 @@ describe('AudioService', () => {
 
     it('should handle multi-projectile shoot sound', () => {
       audioService.playShoot(1, 3);
-      const oscillators = (audioService as any).ctx!.createOscillator.mock.results.length;
+      const ctx = (synthEngine as any).ctx;
+      const oscillators = ctx!.createOscillator.mock.results.length;
       expect(oscillators).toBeGreaterThanOrEqual(1);
     });
 
     it('should play crit sound', () => {
       audioService.playCrit();
-      expect((audioService as any).ctx!.createOscillator).toHaveBeenCalled();
+      expect((synthEngine as any).ctx!.createOscillator).toHaveBeenCalled();
     });
 
     it('should play hit sound', () => {
       audioService.playHit();
-      expect((audioService as any).ctx.createBiquadFilter).toHaveBeenCalled();
+      expect((synthEngine as any).ctx.createBiquadFilter).toHaveBeenCalled();
     });
 
     it('should play gem sound', () => {
       audioService.playGem();
-      expect((audioService as any).ctx.createOscillator).toHaveBeenCalled();
+      expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalled();
     });
 
     it('should play level up sound', () => {
       audioService.playLevelUp();
-      expect((audioService as any).ctx.createOscillator).toHaveBeenCalled();
+      expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalled();
     });
 
     it('should play dash sound', () => {
       audioService.playDash();
-      expect((audioService as any).ctx.createOscillator).toHaveBeenCalled();
+      expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalled();
     });
 
     it('should play combo sound', () => {
       audioService.playCombo(2);
-      expect((audioService as any).ctx.createOscillator).toHaveBeenCalled();
+      expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalled();
     });
 
     it('should play death sound', () => {
       audioService.playDeath();
-      expect((audioService as any).ctx.createOscillator).toHaveBeenCalled();
+      expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalled();
     });
 
     it('should respect cooldowns', () => {
@@ -173,8 +180,8 @@ describe('AudioService', () => {
       // First call initializes and plays
       audioService.playShoot();
 
-      // Access private ctx safely
-      const ctx = (audioService as any).ctx;
+      // Access synthEngine's ctx
+      const ctx = (synthEngine as any).ctx;
       expect(ctx).not.toBeNull();
 
       const initialCalls = ctx.createOscillator.mock.calls.length;
@@ -197,13 +204,13 @@ describe('AudioService', () => {
 
         milestones.forEach(m => {
           // Clear mocks to ensure isolated counting
-          const ctx = (audioService as any).ctx;
-          if (ctx && ctx.createOscillator) {
+          const ctx = (synthEngine as any).ctx;
+          if (ctx?.createOscillator) {
             ctx.createOscillator.mockClear();
           }
 
           audioService.playComboMilestone(m);
-          expect((audioService as any).ctx!.createOscillator).toHaveBeenCalled();
+          expect((synthEngine as any).ctx!.createOscillator).toHaveBeenCalled();
         });
       });
     });
@@ -211,12 +218,12 @@ describe('AudioService', () => {
     describe('Slot Machine Sounds', () => {
       it('should play slot tick', () => {
         audioService.playSlotTick(1.0);
-        expect((audioService as any).ctx!.createOscillator).toHaveBeenCalled();
+        expect((synthEngine as any).ctx!.createOscillator).toHaveBeenCalled();
       });
 
       it('should play anticipation sound', () => {
         audioService.playAnticipation(1.0);
-        expect((audioService as any).ctx!.createOscillator).toHaveBeenCalled();
+        expect((synthEngine as any).ctx!.createOscillator).toHaveBeenCalled();
       });
 
       it('should respect slot tick cooldown', () => {
@@ -225,19 +232,19 @@ describe('AudioService', () => {
 
         audioService.playSlotTick(1.0);
 
-        const ctx = (audioService as any).ctx;
+        const ctx = (synthEngine as any).ctx;
         expect(ctx).toBeDefined();
 
         const initialCalls = ctx.createOscillator.mock.calls.length;
 
         // Immediate call should be blocked
         audioService.playSlotTick(1.0);
-        expect((audioService as any).ctx.createOscillator).toHaveBeenCalledTimes(initialCalls);
+        expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalledTimes(initialCalls);
 
         // Advance time
         vi.advanceTimersByTime(100);
         audioService.playSlotTick(1.0);
-        expect((audioService as any).ctx.createOscillator).toHaveBeenCalledTimes(initialCalls + 1);
+        expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalledTimes(initialCalls + 1);
 
         vi.useRealTimers();
       });

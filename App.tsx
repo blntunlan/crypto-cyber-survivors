@@ -1,22 +1,38 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MarketPosition, GameStatus, LeverageOption } from './types';
-import { CardSystem, Card } from './services/CardSystem';
+/**
+ * App.tsx - Main Application Component
+ *
+ * Refactored to use custom hooks for better separation of concerns.
+ * Hooks used:
+ * - useWindowDimensions: Window resize handling
+ * - useGameStatus: Game state machine subscription
+ * - useRunStats: Run statistics tracking
+ * - useSessionTiming: Session timing management
+ * - useCheatManager: Cheat system integration
+ */
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { MarketPosition, GameStatus, type LeverageOption } from './types';
+import { CardSystem, type Card } from './services/CardSystem';
 import { audio } from './services/audioService';
-import { CheatManager } from './services/CheatManager';
 import { EventBus } from './services/EventBus';
-import { ComboSystem } from './services/ComboSystem';
 import { GameEndReason } from './types/metrics';
 import { MetricsService } from './services/MetricsService';
-import { GameStateManager, RUN_STATS_DEFAULTS } from './services/GameStateManager';
-import { useMarketData } from './hooks/useMarketData';
-import { usePlayerState } from './hooks/usePlayerState';
+import { GameStateManager } from './services/GameStateManager';
 import { MilestoneService } from './services/MilestoneService';
-import { useDevice } from './hooks/useDevice';
 import { DifficultyManager } from './services/DifficultyManager';
 import { GameStateMachine } from './services/GameStateMachine';
-
-import { ImagePreloader } from './services/ImagePreloader';
 import { DeviceBenchmarkService } from './services/DeviceBenchmarkService';
+import { ImagePreloader } from './services/ImagePreloader';
+
+// Custom hooks
+import { useDevice } from './hooks/useDevice';
+import { useMarketData } from './hooks/useMarketData';
+import { usePlayerState } from './hooks/usePlayerState';
+import { useWindowDimensions } from './hooks/useWindowDimensions';
+import { useGameStatus } from './hooks/useGameStatus';
+import { useRunStats } from './hooks/useRunStats';
+import { useSessionTiming } from './hooks/useSessionTiming';
+import { useCheatManager } from './hooks/useCheatManager';
 
 // Lazy load heavy components for performance optimization
 const GameEngine = React.lazy(() =>
@@ -48,116 +64,57 @@ const ParticleDebugPanel = React.lazy(() =>
   import('./components/ParticleDebugPanel').then(m => ({ default: m.ParticleDebugPanel }))
 );
 
+// Fallback components
 const FallbackLoader = () => (
   <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-yellow-500 font-mono text-sm tracking-widest animate-pulse">
     LOADING ENGINE...
   </div>
 );
-
 const UIFallback = () => null;
 
 // Preload card images AFTER initial render (non-blocking)
-setTimeout(() => ImagePreloader.preloadAll(), 1000);
+setTimeout(() => void ImagePreloader.preloadAll(), 1000);
 
 const App: React.FC = () => {
-  // Device detection for platform-specific behavior
+  // ========================================
+  // Custom Hooks
+  // ========================================
   const device = useDevice();
+  const dimensions = useWindowDimensions();
+  const { gameStatus, handlePauseToggle } = useGameStatus();
+  const { runStats, resetRunStats } = useRunStats();
+  const { sessionStartTime } = useSessionTiming(gameStatus);
 
-  const [dimensions, setDimensions] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-
-  // Run benchmark on mount (cached check is fast, full run is async)
-  useEffect(() => {
-    DeviceBenchmarkService.runBenchmark();
-  }, []);
-  const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.MENU);
+  // ========================================
+  // Local State
+  // ========================================
   const [position, setPosition] = useState<MarketPosition>(MarketPosition.LONG);
   const [entryPrice, setEntryPrice] = useState<number>(0);
   const [upgradeChoices, setUpgradeChoices] = useState<Card[]>([]);
   const [finalPnl, setFinalPnl] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(audio.getMuted());
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
-  const [runStats, setRunStats] = useState({
-    totalKills: 0,
-    maxStreak: 0,
-    totalBonusXp: 0,
-  });
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
 
+  // ========================================
+  // Player & Market Hooks
+  // ========================================
   const { playerRef, uiStats, setUiStats, resetPlayer, healFull, setPositionColor } =
     usePlayerState(dimensions.width, dimensions.height);
 
   const { marketData } = useMarketData(gameStatus, position, entryPrice, leverage, playerRef);
 
+  // ========================================
+  // Initialization Effects
+  // ========================================
   useEffect(() => {
-    const handleResize = () => {
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    void DeviceBenchmarkService.runBenchmark();
   }, []);
 
-  // Sync session timing
-  useEffect(() => {
-    if (gameStatus === GameStatus.PLAYING && sessionStartTime === 0) {
-      setSessionStartTime(Date.now());
-    }
-    if (gameStatus === GameStatus.MENU) {
-      setSessionStartTime(0);
-    }
-  }, [gameStatus, sessionStartTime]);
-
-  useEffect(() => {
-    const unsub = EventBus.on('comboUpdate', () => {
-      const state = ComboSystem.getState();
-      setRunStats({
-        totalKills: state.totalKills,
-        maxStreak: state.maxStreak,
-        totalBonusXp: state.totalBonusXp,
-      });
-    });
-    return () => unsub();
-  }, []);
-
-  // Subscribe to GameStateMachine for state sync
-  useEffect(() => {
-    const unsub = GameStateMachine.subscribe(newState => {
-      setGameStatus(newState);
-    });
-    return () => unsub();
-  }, []);
-
-  const handlePauseToggle = useCallback(() => {
-    if (gameStatus === GameStatus.PLAYING) {
-      GameStateMachine.transition(GameStatus.PAUSED);
-    } else if (gameStatus === GameStatus.PAUSED) {
-      GameStateMachine.transition(GameStatus.PLAYING);
-    }
-  }, [gameStatus]);
-
-  useEffect(() => {
-    const handleGlobalKeys = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === 'p') handlePauseToggle();
-    };
-    window.addEventListener('keydown', handleGlobalKeys);
-    return () => window.removeEventListener('keydown', handleGlobalKeys);
-  }, [handlePauseToggle]);
-
-  // Auto-pause when tab loses focus (prevents rAF throttling issues)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && gameStatus === GameStatus.PLAYING) {
-        GameStateMachine.transition(GameStatus.PAUSED);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [gameStatus]);
-
+  // ========================================
+  // Game Actions
+  // ========================================
   const handleLevelUp = useCallback(() => {
     healFull();
     GameStateMachine.transition(GameStatus.LEVEL_UP);
@@ -167,76 +124,86 @@ const App: React.FC = () => {
   }, [healFull, playerRef]);
 
   const resetGame = useCallback(() => {
-    // Reset all game systems via centralized manager
     GameStateManager.resetAll();
-
-    // Transition to menu via state machine
     GameStateMachine.forceState(GameStatus.MENU);
-
-    // Reset local UI state
     setEntryPrice(0);
     setFinalPnl(0);
-    setRunStats({ ...RUN_STATS_DEFAULTS });
-
-    // Reset player state (handled separately for React state sync)
+    resetRunStats();
     resetPlayer();
-  }, [resetPlayer]);
+  }, [resetPlayer, resetRunStats]);
 
-  const startGame = (choice: MarketPosition, selectedLeverage: LeverageOption) => {
-    if (marketData.price === 0) return;
+  const startGame = useCallback(
+    (choice: MarketPosition, selectedLeverage: LeverageOption) => {
+      if (marketData.price === 0) return;
 
-    // Reset player to fresh state
-    resetPlayer();
-
-    // Set leverage for this session
-    setLeverage(selectedLeverage);
-
-    // Initialize new game session via centralized manager
-    // This handles: DifficultyManager, ComboSystem, MetricsService
-    GameStateManager.initializeNewGame(choice, marketData.price, selectedLeverage);
-
-    // Set local state for this game session
-    setPosition(choice);
-    setEntryPrice(marketData.price);
-    setPositionColor(choice);
-    GameStateMachine.transition(GameStatus.PLAYING);
-    setSessionStartTime(Date.now());
-    MilestoneService.startSession();
-    audio.playLevelUp();
-  };
-
-  const selectUpgrade = (card: Card) => {
-    const p = playerRef.current;
-    const nextP = card.effect(p);
-    nextP.level += 1;
-    nextP.exp -= nextP.nextLevelExp;
-    nextP.nextLevelExp = Math.floor(nextP.nextLevelExp * 1.5);
-
-    // Track card selection in metrics
-    MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
-
-    playerRef.current = nextP;
-    setUiStats({ ...nextP });
-
-    // Emit level up complete for milestone tracking
-    EventBus.emit('levelUpComplete', { newLevel: nextP.level });
-
-    if (nextP.exp >= nextP.nextLevelExp) {
-      handleLevelUp();
-    } else {
+      resetPlayer();
+      setLeverage(selectedLeverage);
+      GameStateManager.initializeNewGame(choice, marketData.price, selectedLeverage);
+      setPosition(choice);
+      setEntryPrice(marketData.price);
+      setPositionColor(choice);
       GameStateMachine.transition(GameStatus.PLAYING);
-    }
-  };
+      MilestoneService.startSession();
+      audio.playLevelUp();
+    },
+    [marketData.price, resetPlayer, setPositionColor]
+  );
 
-  // CheatManager Integration
-  useEffect(() => {
-    CheatManager.init({
-      onLevelUp: () => {
-        if (gameStatus === GameStatus.PLAYING) handleLevelUp();
+  const selectUpgrade = useCallback(
+    (card: Card) => {
+      const p = playerRef.current;
+      const nextP = card.effect(p);
+      nextP.level += 1;
+      nextP.exp -= nextP.nextLevelExp;
+      nextP.nextLevelExp = Math.floor(nextP.nextLevelExp * 1.5);
+
+      MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
+      playerRef.current = nextP;
+      setUiStats({ ...nextP });
+      EventBus.emit('levelUpComplete', { newLevel: nextP.level });
+
+      if (nextP.exp >= nextP.nextLevelExp) {
+        handleLevelUp();
+      } else {
+        GameStateMachine.transition(GameStatus.PLAYING);
+      }
+    },
+    [playerRef, setUiStats, handleLevelUp]
+  );
+
+  const handleGameOver = useCallback(() => {
+    setFinalPnl(marketData.pnl);
+    setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
+    GameStateMachine.transition(GameStatus.GAMEOVER);
+
+    MetricsService.endSession(GameEndReason.DEATH, {
+      price: marketData.price,
+      pnl: marketData.pnl,
+      level: playerRef.current.level,
+      hp: playerRef.current.hp,
+      difficulty: marketData.difficulty,
+      playerStats: {
+        damage: playerRef.current.baseDamage,
+        fireRate: playerRef.current.fireRate,
+        speed: playerRef.current.speed,
+        luck: playerRef.current.luck,
+        critChance: playerRef.current.critChance,
+        critDamage: playerRef.current.critChance * 2,
       },
+      position,
+      entryPrice,
+      leverage,
+      totalKills: runStats.totalKills,
+    });
+  }, [marketData, playerRef, position, entryPrice, leverage, runStats.totalKills]);
+
+  // ========================================
+  // Cheat Manager Integration
+  // ========================================
+  const cheatHandlers = useMemo(
+    () => ({
+      onLevelUp: handleLevelUp,
       onHeal: healFull,
-      onKillAll: () => EventBus.emit('killAll', {}),
-      onToggleGodMode: () => {},
       onSetLuck: (luck: number) => {
         playerRef.current.luck = luck;
         setUiStats({ ...playerRef.current });
@@ -244,26 +211,23 @@ const App: React.FC = () => {
       onAddExp: (amount: number) => {
         playerRef.current.exp += amount;
         setUiStats({ ...playerRef.current });
-        if (
-          playerRef.current.exp >= playerRef.current.nextLevelExp &&
-          gameStatus === GameStatus.PLAYING
-        ) {
+        if (playerRef.current.exp >= playerRef.current.nextLevelExp) {
           handleLevelUp();
         }
       },
       onRestart: resetGame,
-      onAddComboKill: (count: number) => {
-        for (let i = 0; i < count; i++) {
-          EventBus.emit('enemyKilled', { x: 0, y: 0, type: 'cheat', isCrit: false });
-        }
-      },
-    });
-    return () => CheatManager.destroy();
-  }, [gameStatus, handleLevelUp, healFull, setUiStats, resetGame, playerRef]);
+    }),
+    [handleLevelUp, healFull, playerRef, setUiStats, resetGame]
+  );
 
+  useCheatManager(gameStatus, cheatHandlers);
+
+  // ========================================
+  // Render
+  // ========================================
   return (
     <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-mono">
-      {/* Background UI always active or contextual */}
+      {/* Game UI Overlay */}
       {gameStatus !== GameStatus.MENU && (
         <React.Suspense fallback={<UIFallback />}>
           <GameUI
@@ -277,37 +241,13 @@ const App: React.FC = () => {
         </React.Suspense>
       )}
 
+      {/* Game Engine */}
       <React.Suspense fallback={<FallbackLoader />}>
         <GameEngine
           status={gameStatus}
           position={position}
           marketData={marketData}
-          onGameOver={() => {
-            setFinalPnl(marketData.pnl);
-            setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
-            GameStateMachine.transition(GameStatus.GAMEOVER);
-
-            // End metrics session with all final data
-            MetricsService.endSession(GameEndReason.DEATH, {
-              price: marketData.price,
-              pnl: marketData.pnl,
-              level: playerRef.current.level,
-              hp: playerRef.current.hp,
-              difficulty: marketData.difficulty,
-              playerStats: {
-                damage: playerRef.current.baseDamage,
-                fireRate: playerRef.current.fireRate,
-                speed: playerRef.current.speed,
-                luck: playerRef.current.luck,
-                critChance: playerRef.current.critChance,
-                critDamage: playerRef.current.critChance * 2, // Estimate based on critChance
-              },
-              position,
-              entryPrice,
-              leverage,
-              totalKills: runStats.totalKills,
-            });
-          }}
+          onGameOver={handleGameOver}
           onLevelUp={handleLevelUp}
           updatePlayerStats={setUiStats}
           playerRef={playerRef}
@@ -317,7 +257,7 @@ const App: React.FC = () => {
         />
       </React.Suspense>
 
-      {/* States UI Overlays */}
+      {/* Screen Overlays */}
       {gameStatus === GameStatus.MENU && (
         <React.Suspense fallback={<UIFallback />}>
           <MainMenu
@@ -375,17 +315,6 @@ const App: React.FC = () => {
           <ParticleDebugPanel />
         </React.Suspense>
       )}
-
-      {/* Mobile Orientation Lock Overlay - Disabled for now, evaluate after touch controls
-      {device.isMobile && (
-        <div className="orientation-lock-overlay">
-          <div className="rotate-icon">📱</div>
-          <div className="message">
-            Please rotate your device to landscape mode for the best experience
-          </div>
-        </div>
-      )}
-      */}
     </div>
   );
 };

@@ -6,7 +6,7 @@
  * Reduces O(n×m) to approximately O(n+m) in practice.
  */
 
-import { Bullet, Enemy } from '../types';
+import { type Bullet, type Enemy } from '../types';
 
 export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   private cellSize: number;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, memo } from 'react';
-import { MarketPosition, MarketData, Player, GameStatus } from '../types';
+import { type MarketPosition, type MarketData, type Player, GameStatus } from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
 

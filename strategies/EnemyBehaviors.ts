@@ -5,7 +5,7 @@
  * Each strategy encapsulates a specific movement algorithm.
  */
 
-import { Enemy } from '../types';
+import { type Enemy } from '../types';
 
 /**
  * Movement Strategy Interface

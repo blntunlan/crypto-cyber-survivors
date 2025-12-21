@@ -1,0 +1,106 @@
+/**
+ * QualitySection - Performance Settings Component
+ *
+ * Controls for performance profile selection (Auto, Low, Medium, High, Ultra).
+ */
+
+import { memo, useState, useEffect } from 'react';
+import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
+import { DeviceProfile } from '../../types/DeviceProfile';
+
+export const QualitySection = memo(() => {
+  const [currentProfile, setCurrentProfile] = useState(
+    DeviceBenchmarkService.getPerformanceConfig().profile
+  );
+  const [isAuto, setIsAuto] = useState<boolean>(true);
+
+  useEffect(() => {
+    const updateState = () => {
+      const config = DeviceBenchmarkService.getPerformanceConfig();
+      const state = DeviceBenchmarkService.getState();
+
+      setCurrentProfile(config.profile);
+      setIsAuto(state.result?.profile === config.profile);
+    };
+
+    updateState();
+    return DeviceBenchmarkService.subscribe(updateState);
+  }, []);
+
+  const handleProfileChange = (profile: DeviceProfile) => {
+    DeviceBenchmarkService.setManualProfile(profile);
+    setIsAuto(false);
+  };
+
+  const handleAutoClick = () => {
+    DeviceBenchmarkService.resetToAuto();
+  };
+
+  const getProfileColor = (p: DeviceProfile) => {
+    switch (p) {
+      case DeviceProfile.ULTRA:
+        return 'text-purple-400 border-purple-400/50 bg-purple-400/10';
+      case DeviceProfile.HIGH:
+        return 'text-green-400 border-green-400/50 bg-green-400/10';
+      case DeviceProfile.MEDIUM:
+        return 'text-yellow-400 border-yellow-400/50 bg-yellow-400/10';
+      case DeviceProfile.LOW:
+        return 'text-red-400 border-red-400/50 bg-red-400/10';
+      default:
+        return 'text-slate-400';
+    }
+  };
+
+  return (
+    <section className="space-y-3 md:space-y-4">
+      <div className="flex justify-between items-end">
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
+          Performance
+        </h3>
+        {isAuto && (
+          <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">
+            ● Auto Optimized
+          </span>
+        )}
+      </div>
+
+      <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-3">
+        <div className="flex gap-2">
+          <button
+            onClick={handleAutoClick}
+            className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all border ${
+              isAuto
+                ? 'bg-blue-500 text-white border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+                : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
+            }`}
+          >
+            Auto
+          </button>
+          {Object.values(DeviceProfile).map(profile => (
+            <button
+              key={profile}
+              onClick={() => handleProfileChange(profile)}
+              className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all border ${
+                !isAuto && currentProfile === profile
+                  ? getProfileColor(profile) + ' shadow-[0_0_10px_rgba(255,255,255,0.1)]'
+                  : 'bg-white/5 text-slate-500 border-transparent hover:bg-white/10'
+              }`}
+            >
+              {profile}
+            </button>
+          ))}
+        </div>
+
+        <div className="text-[10px] text-slate-400 font-mono text-center">
+          {currentProfile === DeviceProfile.ULTRA &&
+            'Cinematic lighting, max effects (High-end only)'}
+          {currentProfile === DeviceProfile.HIGH && 'Full effects, shadows enabled'}
+          {currentProfile === DeviceProfile.MEDIUM && 'Balanced performance and visuals'}
+          {currentProfile === DeviceProfile.LOW && 'Max FPS, simplified graphics'}
+        </div>
+      </div>
+    </section>
+  );
+});
+
+QualitySection.displayName = 'QualitySection';

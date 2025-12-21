@@ -1,6 +1,6 @@
-import { IRenderer, RenderOptions } from './types';
-import { PoolManager } from '../poolManager';
-import { GameState, Player } from '../../types';
+import { type IRenderer, type RenderOptions } from './types';
+import { type PoolManager } from '../poolManager';
+import { type GameState, type Player } from '../../types';
 
 export class EffectRenderer implements IRenderer {
   render(

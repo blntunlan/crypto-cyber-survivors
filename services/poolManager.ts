@@ -4,8 +4,14 @@
  * Optimized for O(1) retrieval and minimal iteration overhead.
  */
 
-import { Bullet, Gem, Particle, FloatingText, MarketPosition } from '../types';
-import { enemyFactory, GameEnemy } from '../factories/EnemyFactory';
+import {
+  type Bullet,
+  type Gem,
+  type Particle,
+  type FloatingText,
+  type MarketPosition,
+} from '../types';
+import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 
 interface Activatable {
   active: boolean;
@@ -138,8 +144,9 @@ export class PoolManager {
     while (this.activeBullets.length) this.freeBullets.push(this.activeBullets.pop()!);
     while (this.activeGems.length) this.freeGems.push(this.activeGems.pop()!);
     while (this.activeParticles.length) this.freeParticles.push(this.activeParticles.pop()!);
-    while (this.activeFloatingTexts.length)
+    while (this.activeFloatingTexts.length) {
       this.freeFloatingTexts.push(this.activeFloatingTexts.pop()!);
+    }
 
     this.freeEnemies.forEach(e => (e.active = false));
     this.freeBullets.forEach(e => (e.active = false));

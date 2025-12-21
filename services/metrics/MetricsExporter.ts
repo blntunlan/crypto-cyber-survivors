@@ -4,7 +4,7 @@
  * Handles JSON and CSV export of session metrics.
  */
 
-import { SessionMetrics, MetricsExport } from '../../types/metrics';
+import { type SessionMetrics, type MetricsExport } from '../../types/metrics';
 
 const METRICS_VERSION = '1.0.0';
 

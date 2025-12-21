@@ -1,0 +1,149 @@
+﻿
+D:\crypto-cyber-survivors\components\MetricsDebugPanel.tsx
+  35:17  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read  @typescript-eslint/prefer-optional-chain
+
+D:\crypto-cyber-survivors\components\ParticleDebugPanel.tsx
+  55:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\crypto-cyber-survivors\components\mobile\DashButton.tsx
+  57:30  warning  Unnecessary optional chain on a non-nullish value  @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\components\mobile\DragToMoveController.tsx
+  90:54  warning  Unnecessary optional chain on a non-nullish value  @typescript-eslint/no-unnecessary-condition
+  96:54  warning  Unnecessary optional chain on a non-nullish value  @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\components\mobile\VirtualJoystick.tsx
+  128:30  warning  Unnecessary optional chain on a non-nullish value  @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\components\screens\LevelUpScreen\SlotReel.tsx
+   99:19  warning  `playReelStop` is deprecated. Disabled - use audio files instead  @typescript-eslint/no-deprecated
+  100:22  warning  Unnecessary optional chain on a non-nullish value                 @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\config\MetricsConfig.ts
+  130:9   warning  Prefer using an optional chain expression instead, as it's more concise and easier to read  @typescript-eslint/prefer-optional-chain
+  130:47  warning  Unnecessary conditional, value is always truthy                                             @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\factories\EnemyFactory.ts
+  103:5  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\hooks\useEnemyPointers.ts
+  53:25  warning  Unnecessary conditional, value is always falsy  @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\hooks\useGameInput.ts
+  54:27  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  54:55  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\hooks\useMarketData.ts
+  105:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\CheatManager.ts
+  35:5  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\CombatSystem.ts
+  173:12  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined  @typescript-eslint/no-unnecessary-condition
+  175:14  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined  @typescript-eslint/no-unnecessary-condition
+  181:10  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined  @typescript-eslint/no-unnecessary-condition
+
+D:\crypto-cyber-survivors\services\ComboSystem.ts
+  60:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\DebugService.ts
+  51:5   warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+  72:67  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  85:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  89:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  90:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  91:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  92:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  93:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  94:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  95:11  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+
+D:\crypto-cyber-survivors\services\DeviceBenchmarkService.ts
+  324:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\DifficultyManager.ts
+  60:5  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\EventBus.ts
+  38:5  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\GameStateMachine.ts
+  42:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\GameStateManager.ts
+  70:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\ImagePreloader.ts
+  24:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\Logger.ts
+  28:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\MetricsService.ts
+   61:5   warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+  478:15  warning  `code` is deprecated. [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMException/code)             @typescript-eslint/no-deprecated
+  900:9   warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\MilestoneService.ts
+  53:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\ParticleConfigService.ts
+  49:5  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+  62:9  warning  Unnecessary conditional, value is always truthy                                                                 @typescript-eslint/no-unnecessary-condition
+  64:7  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+  96:5  warning  Unexpected console statement. Only these console methods are allowed: warn, error                               no-console
+
+D:\crypto-cyber-survivors\services\PhysicsSystem.ts
+   23:28  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+   29:20  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+   30:20  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+   33:13  warning  Unnecessary conditional, value is always truthy                                                            @typescript-eslint/no-unnecessary-condition
+  124:43  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+  129:40  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+  130:40  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+  133:17  warning  Unnecessary conditional, value is always truthy                                                            @typescript-eslint/no-unnecessary-condition
+  193:42  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+  196:26  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+  204:15  warning  Unnecessary conditional, value is always truthy                                                            @typescript-eslint/no-unnecessary-condition
+  206:27  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined         @typescript-eslint/no-unnecessary-condition
+  212:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\ScreenService.ts
+   62:13  warning  Unnecessary conditional, value is always falsy                                                            @typescript-eslint/no-unnecessary-condition
+  138:34  warning  `platform` is deprecated. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/platform)  @typescript-eslint/no-deprecated
+
+D:\crypto-cyber-survivors\services\TimeService.ts
+  34:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\audio\AudioService.ts
+  155:20  warning  `playReelStop` is deprecated. Disabled - synthesized sounds don't work well for this effect  @typescript-eslint/no-deprecated
+
+D:\crypto-cyber-survivors\services\audio\SynthEngine.ts
+  27:29  warning  Unnecessary conditional, value is always truthy                                                            @typescript-eslint/no-unnecessary-condition
+  34:13  warning  Unnecessary conditional, value is always truthy                                                            @typescript-eslint/no-unnecessary-condition
+  57:54  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\cards\CardSystem.ts
+  23:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\marketService.ts
+  75:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\metrics\MetricsAnalyzer.ts
+  241:9  warning  Prefer using nullish coalescing operator (`??=`) instead of an assignment expression, as it is simpler to read  @typescript-eslint/prefer-nullish-coalescing
+
+D:\crypto-cyber-survivors\services\metrics\MetricsStorage.ts
+  151:15  warning  `code` is deprecated. [MDN Reference](https://developer.mozilla.org/docs/Web/API/DOMException/code)  @typescript-eslint/no-deprecated
+
+D:\crypto-cyber-survivors\tests\DebugService.test.ts
+  67:21  warning  `createElement` is deprecated  @typescript-eslint/no-deprecated
+
+D:\crypto-cyber-survivors\tests\ScreenService.test.ts
+  7:40  warning  `platform` is deprecated. [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/platform)  @typescript-eslint/no-deprecated
+
+D:\crypto-cyber-survivors\tests\hooks\useDevice.test.tsx
+  8:48  warning  `import()` type annotations are forbidden  @typescript-eslint/consistent-type-imports
+
+Ô£û 72 problems (0 errors, 72 warnings)
+

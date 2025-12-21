@@ -5,7 +5,7 @@
  * These are applied based on benchmark results.
  */
 
-import { DeviceProfile, PerformanceConfig } from '../types/DeviceProfile';
+import { DeviceProfile, type PerformanceConfig } from '../types/DeviceProfile';
 
 // =============================================================================
 // PERFORMANCE PRESETS

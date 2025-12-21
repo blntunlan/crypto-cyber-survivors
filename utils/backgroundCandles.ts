@@ -5,9 +5,9 @@
  * Uses casino color palette and layered depth system.
  */
 
-import { Candle } from '../types';
+import { type Candle } from '../types';
 import { COLORS } from '../constants';
-import { PerformanceConfig } from '../types/DeviceProfile';
+import { type PerformanceConfig } from '../types/DeviceProfile';
 
 // Casino color palette
 const CASINO_COLORS = [

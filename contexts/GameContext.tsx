@@ -5,8 +5,15 @@
  * Components only subscribe to the context they actually need.
  */
 
-import React, { createContext, useContext, useState, useRef, useCallback, ReactNode } from 'react';
-import { Player, MarketData, GameStatus, MarketPosition } from '../types';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from 'react';
+import { type Player, type MarketData, GameStatus, MarketPosition } from '../types';
 import { PLAYER_INITIAL_HP, INITIAL_FIRE_RATE } from '../constants';
 
 // =============================================================================
@@ -53,7 +60,7 @@ export const useGameState = () => {
 
 interface PlayerContextType {
   player: Player;
-  playerRef: React.MutableRefObject<Player>;
+  playerRef: React.RefObject<Player>;
   updatePlayer: (updates: Partial<Player>) => void;
 }
 

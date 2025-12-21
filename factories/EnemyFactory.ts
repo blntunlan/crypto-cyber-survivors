@@ -5,9 +5,9 @@
  * Makes it easy to add new enemy types without modifying client code.
  */
 
-import { Enemy, MarketPosition } from '../types';
+import { type Enemy, MarketPosition } from '../types';
 import { COLORS } from '../constants';
-import { MovementStrategy, createMovementStrategy } from '../strategies/EnemyBehaviors';
+import { type MovementStrategy, createMovementStrategy } from '../strategies/EnemyBehaviors';
 
 /**
  * Enemy configuration blueprint

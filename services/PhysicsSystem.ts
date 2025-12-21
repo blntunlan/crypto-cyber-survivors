@@ -1,5 +1,5 @@
-import { Player, GameState, Enemy } from '../types';
-import { PoolManager } from './poolManager';
+import { type Player, type GameState, type Enemy } from '../types';
+import { type PoolManager } from './poolManager';
 import { CheatManager } from './CheatManager';
 import { audio } from './audioService';
 import { EventBus } from './EventBus';

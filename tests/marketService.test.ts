@@ -3,11 +3,11 @@ import { MarketService } from '../services/marketService';
 
 describe('MarketService', () => {
   let service: MarketService;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let mockOnData: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let mockOnStatus: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let mockFactory: any;
 
   beforeEach(() => {

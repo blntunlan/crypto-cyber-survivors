@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Logger } from '../services/Logger';
 
 describe('Logger', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let consoleLogSpy: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let consoleWarnSpy: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let consoleErrorSpy: any;
 
   beforeEach(() => {
@@ -58,12 +57,10 @@ describe('Logger', () => {
 
   describe('Production Mode (Simulated)', () => {
     beforeEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (Logger as any).isDev = false;
     });
 
     afterEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (Logger as any).isDev = true;
     });
 
@@ -117,12 +114,11 @@ describe('Logger', () => {
     });
 
     it('should ignore fast ops in prod', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (Logger as any).isDev = false;
       Logger.perf('FastOp', 5);
       expect(consoleLogSpy).not.toHaveBeenCalled();
       expect(consoleWarnSpy).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       (Logger as any).isDev = true;
     });
   });

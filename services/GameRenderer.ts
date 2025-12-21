@@ -1,12 +1,12 @@
-import { GameStatus, Player, GameState } from '../types';
-import { PoolManager } from './poolManager';
+import { GameStatus, type Player, type GameState } from '../types';
+import { type PoolManager } from './poolManager';
 import {
   BackgroundRenderer,
   EntityRenderer,
   ProjectileRenderer,
   EffectRenderer,
 } from './renderers';
-import { GraphicsConfig } from './renderers/types';
+import { type GraphicsConfig } from './renderers/types';
 
 export class GameRenderer {
   private backgroundRenderer: BackgroundRenderer;

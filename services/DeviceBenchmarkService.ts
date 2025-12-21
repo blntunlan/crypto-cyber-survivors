@@ -8,10 +8,10 @@
 import { Logger } from './Logger';
 import {
   DeviceProfile,
-  BenchmarkResult,
+  type BenchmarkResult,
   BenchmarkStatus,
-  BenchmarkState,
-  PerformanceConfig,
+  type BenchmarkState,
+  type PerformanceConfig,
 } from '../types/DeviceProfile';
 import {
   BENCHMARK_CONFIG,
@@ -180,7 +180,7 @@ class DeviceBenchmarkServiceClass {
     } else {
       // If no benchmark result, clear cached config so it defaults or re-runs
       this.cachedConfig = null;
-      this.runBenchmark(false);
+      void this.runBenchmark(false);
     }
   }
 

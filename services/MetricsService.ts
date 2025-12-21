@@ -11,23 +11,17 @@
 import { EventBus } from './EventBus';
 import { Logger } from './Logger';
 import { MarketPosition } from '../types';
-import { getMetricsConfig, MetricsConfig } from '../config/MetricsConfig';
+import { getMetricsConfig, type MetricsConfig } from '../config/MetricsConfig';
 import {
-  MetricsState,
-  SessionMetrics,
-  BitcoinMetrics,
-  DifficultyMetrics,
-  PlayerMetrics,
-  ComboMetrics,
-  CardMetrics,
-  EnemyMetrics,
-  GameEndReason,
-  WavePhase,
-  MetricsExport,
-  GameInsights,
-  BitcoinInsights,
-  DifficultyInsights,
-  PlayerExperienceInsights,
+  type MetricsState,
+  type SessionMetrics,
+  type GameEndReason,
+  type WavePhase,
+  type MetricsExport,
+  type GameInsights,
+  type BitcoinInsights,
+  type DifficultyInsights,
+  type PlayerExperienceInsights,
 } from '../types/metrics';
 
 // Import modular components for external use
@@ -36,6 +30,9 @@ export { MetricsStorage } from './metrics/MetricsStorage';
 export { MetricsCompiler } from './metrics/MetricsCompiler';
 export { MetricsExporter } from './metrics/MetricsExporter';
 export { MetricsAnalyzer } from './metrics/MetricsAnalyzer';
+
+// Import MetricsCompiler for internal use
+import { MetricsCompiler } from './metrics/MetricsCompiler';
 
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
@@ -181,7 +178,7 @@ class MetricsServiceClass {
     // Skip if metrics disabled
     if (!this.config.enabled) return null;
 
-    if (!this.state || !this.state.isActive) {
+    if (!this.state?.isActive) {
       Logger.warn('[Metrics] No active session to end');
       return null;
     }
@@ -189,18 +186,18 @@ class MetricsServiceClass {
     const now = Date.now();
     const survivalTime = now - this.state.sessionStartTime;
 
-    // Compile final metrics
+    // Compile final metrics using MetricsCompiler
     const session: SessionMetrics = {
       sessionId: this.state.sessionId,
       sessionTimestamp: this.state.sessionStartTime,
       gameEndReason: reason,
 
-      bitcoin: this.compileBitcoinMetrics(finalData),
-      difficulty: this.compileDifficultyMetrics(finalData.difficulty),
-      player: this.compilePlayerMetrics(finalData, survivalTime),
-      combo: this.compileComboMetrics(),
-      card: this.compileCardMetrics(),
-      enemy: this.compileEnemyMetrics(),
+      bitcoin: MetricsCompiler.compileBitcoinMetrics(this.state, finalData),
+      difficulty: MetricsCompiler.compileDifficultyMetrics(this.state, finalData.difficulty),
+      player: MetricsCompiler.compilePlayerMetrics(this.state, finalData, survivalTime),
+      combo: MetricsCompiler.compileComboMetrics(this.state),
+      card: MetricsCompiler.compileCardMetrics(this.state),
+      enemy: MetricsCompiler.compileEnemyMetrics(this.state),
     };
 
     // Store session
@@ -237,7 +234,7 @@ class MetricsServiceClass {
   ): void {
     // Skip if metrics disabled - zero performance impact
     if (!this.config.enabled) return;
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
 
     const now = Date.now();
 
@@ -284,7 +281,7 @@ class MetricsServiceClass {
    * Track damage dealt
    */
   trackDamageDealt(amount: number, isCrit: boolean, isSuperCrit: boolean): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
 
     this.state.totalDamageDealt += amount;
     if (isCrit) this.state.totalCrits++;
@@ -295,7 +292,7 @@ class MetricsServiceClass {
    * Track damage taken
    */
   trackDamageTaken(amount: number): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.totalDamageTaken += amount;
   }
 
@@ -303,7 +300,7 @@ class MetricsServiceClass {
    * Track enemy kill
    */
   trackKill(enemyType: string, lifetime: number): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
 
     this.state.killsByType[enemyType] = (this.state.killsByType[enemyType] ?? 0) + 1;
     this.state.enemyLifetimes.push(lifetime);
@@ -313,7 +310,7 @@ class MetricsServiceClass {
    * Track enemy spawn
    */
   trackSpawn(): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.totalSpawns++;
   }
 
@@ -321,7 +318,7 @@ class MetricsServiceClass {
    * Track gem collected
    */
   trackGemCollected(value: number): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.totalGems++;
     this.state.totalExp += value;
   }
@@ -330,7 +327,7 @@ class MetricsServiceClass {
    * Track healing
    */
   trackHealing(amount: number): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.totalHealing += amount;
   }
 
@@ -338,7 +335,7 @@ class MetricsServiceClass {
    * Track bullet fired
    */
   trackBulletFired(): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.totalBullets++;
   }
 
@@ -346,7 +343,7 @@ class MetricsServiceClass {
    * Track level up
    */
   trackLevelUp(level: number, cardChosen: string, cardTier: string): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
 
     const now = Date.now();
     const timeSinceLastLevelUp = now - this.state.lastLevelUpTime;
@@ -364,7 +361,7 @@ class MetricsServiceClass {
    * Track combo update
    */
   trackComboUpdate(streak: number, _multiplier: number): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
 
     if (streak > this.state.maxStreak) {
       this.state.maxStreak = streak;
@@ -380,7 +377,7 @@ class MetricsServiceClass {
    * Track combo milestone
    */
   trackComboMilestone(milestoneName: string): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.mileStonesReached.push(milestoneName);
   }
 
@@ -388,7 +385,7 @@ class MetricsServiceClass {
    * Track combo end
    */
   trackComboEnd(finalStreak: number, bonusXp: number): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
 
     if (finalStreak > 0) {
       this.state.streakHistory.push(finalStreak);
@@ -410,7 +407,7 @@ class MetricsServiceClass {
    * Track near-death activation
    */
   trackNearDeathActivation(): void {
-    if (!this.state || !this.state.isActive) return;
+    if (!this.state?.isActive) return;
     this.state.nearDeathActivations++;
   }
 
@@ -435,151 +432,6 @@ class MetricsServiceClass {
     } else if (difficulty < 2) {
       this.state.lowDifficultyTime += deltaMs;
     }
-  }
-
-  private compileBitcoinMetrics(finalData: {
-    price: number;
-    pnl: number;
-    position: MarketPosition;
-    entryPrice: number;
-    leverage: number;
-  }): BitcoinMetrics {
-    const pnlValues = this.state?.pnlHistory.map(h => h.value) ?? [];
-    const atrValues = this.state?.atrHistory.map(h => h.value) ?? [];
-
-    const avgPnL =
-      pnlValues.length > 0 ? pnlValues.reduce((a, b) => a + b, 0) / pnlValues.length : 0;
-
-    const avgAtr =
-      atrValues.length > 0 ? atrValues.reduce((a, b) => a + b, 0) / atrValues.length : 0;
-
-    const priceChange =
-      finalData.entryPrice > 0
-        ? ((finalData.price - finalData.entryPrice) / finalData.entryPrice) * 100
-        : 0;
-
-    return {
-      priceAtStart: finalData.entryPrice,
-      priceAtEnd: finalData.price,
-      priceChange,
-      maxPnL: this.state?.maxPnL ?? 0,
-      minPnL: this.state?.minPnL ?? 0,
-      averagePnL: avgPnL,
-      volatilityScore: avgAtr,
-      positionChosen: finalData.position,
-      leverage: finalData.leverage,
-      pnlAtDeath: finalData.pnl,
-      effectivePnLAtDeath: finalData.pnl * finalData.leverage,
-      pnlSamples: pnlValues,
-      atrSamples: atrValues,
-    };
-  }
-
-  private compileDifficultyMetrics(finalDifficulty: number): DifficultyMetrics {
-    const difficultyValues = this.state?.difficultyHistory.map(h => h.value) ?? [];
-
-    const avgDifficulty =
-      difficultyValues.length > 0
-        ? difficultyValues.reduce((a, b) => a + b, 0) / difficultyValues.length
-        : 0;
-
-    return {
-      averageDifficulty: avgDifficulty,
-      maxDifficulty: this.state?.maxDifficulty ?? 0,
-      difficultyAtDeath: finalDifficulty,
-      timeInEachWavePhase: this.state?.wavePhaseTime ?? {
-        calm: 0,
-        building: 0,
-        intense: 0,
-        peak: 0,
-      },
-      timeInHighDifficulty: this.state?.highDifficultyTime ?? 0,
-      timeInLowDifficulty: this.state?.lowDifficultyTime ?? 0,
-      nearDeathActivations: this.state?.nearDeathActivations ?? 0,
-      difficultySamples: difficultyValues,
-      wavePhaseTransitions: [],
-    };
-  }
-
-  private compilePlayerMetrics(
-    finalData: {
-      level: number;
-      hp: number;
-      totalKills: number;
-      playerStats: {
-        damage: number;
-        fireRate: number;
-        speed: number;
-        luck: number;
-        critChance: number;
-        critDamage: number;
-      };
-    },
-    survivalTime: number
-  ): PlayerMetrics {
-    return {
-      totalKills: finalData.totalKills,
-      survivalTimeMs: survivalTime,
-      maxLevel: finalData.level,
-      damageDealt: this.state?.totalDamageDealt ?? 0,
-      damageTaken: this.state?.totalDamageTaken ?? 0,
-      healingReceived: this.state?.totalHealing ?? 0,
-      gemsCollected: this.state?.totalGems ?? 0,
-      expEarned: this.state?.totalExp ?? 0,
-      criticalHits: this.state?.totalCrits ?? 0,
-      superCriticalHits: this.state?.totalSuperCrits ?? 0,
-      bulletsFired: this.state?.totalBullets ?? 0,
-      hpAtDeath: finalData.hp,
-      finalStats: finalData.playerStats,
-    };
-  }
-
-  private compileComboMetrics(): ComboMetrics {
-    const streaks = this.state?.streakHistory ?? [];
-    const avgStreak = streaks.length > 0 ? streaks.reduce((a, b) => a + b, 0) / streaks.length : 0;
-
-    return {
-      maxStreak: this.state?.maxStreak ?? 0,
-      averageStreak: avgStreak,
-      streakSamples: streaks,
-      milestonesReached: this.state?.mileStonesReached ?? [],
-      comboTimeouts: this.state?.comboTimeouts ?? 0,
-      totalBonusXp: this.state?.totalBonusXp ?? 0,
-      longestComboTime: this.state?.longestComboTime ?? 0,
-    };
-  }
-
-  private compileCardMetrics(): CardMetrics {
-    const levelUpTimes = this.state?.levelUpTimes ?? [];
-    const avgTimeToLevelUp =
-      levelUpTimes.length > 0 ? levelUpTimes.reduce((a, b) => a + b, 0) / levelUpTimes.length : 0;
-
-    const cardsByTier: Record<string, number> = {};
-    for (const card of this.state?.cardsChosen ?? []) {
-      cardsByTier[card.tier] = (cardsByTier[card.tier] ?? 0) + 1;
-    }
-
-    return {
-      cardsChosen: this.state?.cardsChosen ?? [],
-      cardsByTier,
-      levelUpCount: this.state?.cardsChosen.length ?? 0,
-      averageTimeToLevelUp: avgTimeToLevelUp,
-      timesBetweenLevelUps: levelUpTimes,
-    };
-  }
-
-  private compileEnemyMetrics(): EnemyMetrics {
-    const lifetimes = this.state?.enemyLifetimes ?? [];
-    const avgLifetime =
-      lifetimes.length > 0 ? lifetimes.reduce((a, b) => a + b, 0) / lifetimes.length : 0;
-
-    return {
-      killsByType: this.state?.killsByType ?? {},
-      maxEnemiesOnScreen: this.state?.maxEnemiesOnScreen ?? 0,
-      averageEnemyLifetime: avgLifetime,
-      spawnsTotal: this.state?.totalSpawns ?? 0,
-      enemyLifetimeSamples: lifetimes,
-    };
   }
 
   // ============= Storage =============
@@ -1179,7 +1031,7 @@ class MetricsServiceClass {
   // ============= Utility Functions =============
 
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   private calculateCorrelation(x: number[], y: number[]): number {

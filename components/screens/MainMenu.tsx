@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MarketPosition, LeverageOption, LEVERAGE_OPTIONS } from '../../types';
+import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 

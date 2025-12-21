@@ -1,0 +1,210 @@
+/**
+ * AudioService - Unified Audio System Facade
+ *
+ * Provides a unified API for all audio operations:
+ * - Synthesized sounds via Web Audio API
+ * - File-based audio via Howler.js
+ *
+ * This is the main entry point for the audio system,
+ * maintaining backward compatibility with the original API.
+ */
+
+import { type Howl } from 'howler';
+import { synthEngine } from './SynthEngine';
+import { howlerManager } from './HowlerManager';
+import { type ComboMilestoneSound } from './types';
+
+// Import sound modules
+import * as GameSounds from './GameSounds';
+import * as ComboSounds from './ComboSounds';
+import * as SlotSounds from './SlotMachineSounds';
+
+/**
+ * Main AudioService class - Facade for all audio operations
+ */
+export class AudioService {
+  // ========================================
+  // Volume & Mute Control
+  // ========================================
+
+  /**
+   * Toggle mute state
+   */
+  toggleMute(): boolean {
+    const newState = synthEngine.toggleMute();
+    howlerManager.setMuted(newState);
+    return newState;
+  }
+
+  /**
+   * Set master volume (0-1)
+   */
+  setVolume(value: number): void {
+    synthEngine.setVolume(value);
+    howlerManager.setVolume(value);
+  }
+
+  /**
+   * Get current volume
+   */
+  getVolume(): number {
+    return synthEngine.getVolume();
+  }
+
+  /**
+   * Get mute state
+   */
+  getMuted(): boolean {
+    return synthEngine.getMuted();
+  }
+
+  // ========================================
+  // Game Sounds (Synthesized)
+  // ========================================
+
+  /**
+   * Play shoot sound - quick laser pew
+   */
+  playShoot(fireRate: number = 1, projectileCount: number = 1): void {
+    GameSounds.playShoot(fireRate, projectileCount);
+  }
+
+  /**
+   * Play critical hit sound
+   */
+  playCrit(): void {
+    GameSounds.playCrit();
+  }
+
+  /**
+   * Play hit/damage sound
+   */
+  playHit(): void {
+    GameSounds.playHit();
+  }
+
+  /**
+   * Play gem collection sound
+   */
+  playGem(): void {
+    GameSounds.playGem();
+  }
+
+  /**
+   * Play level up sound
+   */
+  playLevelUp(): void {
+    GameSounds.playLevelUp();
+  }
+
+  /**
+   * Play dash sound
+   */
+  playDash(): void {
+    GameSounds.playDash();
+  }
+
+  /**
+   * Play combo sound
+   */
+  playCombo(multiplier: number = 1): void {
+    GameSounds.playCombo(multiplier);
+  }
+
+  /**
+   * Play death sound
+   */
+  playDeath(): void {
+    GameSounds.playDeath();
+  }
+
+  /**
+   * Play button click sound
+   */
+  playButton(): void {
+    GameSounds.playButton();
+  }
+
+  // ========================================
+  // Combo Milestone Sounds
+  // ========================================
+
+  /**
+   * Play combo milestone sound based on level
+   */
+  playComboMilestone(sound: ComboMilestoneSound): void {
+    ComboSounds.playComboMilestone(sound);
+  }
+
+  // ========================================
+  // Slot Machine Sounds
+  // ========================================
+
+  /**
+   * Play slot tick sound
+   */
+  playSlotTick(pitch: number = 1): void {
+    SlotSounds.playSlotTick(pitch);
+  }
+
+  /**
+   * Play reel stop sound
+   * @deprecated Disabled - use audio files instead
+   */
+  playReelStop(reelNumber: number): void {
+    SlotSounds.playReelStop(reelNumber);
+  }
+
+  /**
+   * Play slot win fanfare
+   */
+  playSlotWin(): void {
+    SlotSounds.playSlotWin();
+  }
+
+  /**
+   * Play anticipation rising tone
+   */
+  playAnticipation(intensity: number = 1): void {
+    SlotSounds.playAnticipation(intensity);
+  }
+
+  // ========================================
+  // Howler.js Methods (File-based Audio)
+  // ========================================
+
+  /**
+   * Load a sound file
+   */
+  loadSound(
+    id: string,
+    src: string | string[],
+    options?: { loop?: boolean; volume?: number }
+  ): Howl {
+    return howlerManager.loadSound(id, src, options);
+  }
+
+  /**
+   * Play a loaded sound
+   */
+  playSound(id: string): number | undefined {
+    return howlerManager.playSound(id);
+  }
+
+  /**
+   * Stop a sound
+   */
+  stopSound(id: string): void {
+    howlerManager.stopSound(id);
+  }
+
+  /**
+   * Unload all sounds (cleanup)
+   */
+  unloadAll(): void {
+    howlerManager.unloadAll();
+  }
+}
+
+// Singleton export - maintains backward compatibility
+export const audio = new AudioService();
