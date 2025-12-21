@@ -19,11 +19,12 @@ export const SlotReel: React.FC<SlotReelProps> = ({
 
   // Ref-based animation state to avoid React overhead during high-speed spinning
   const animRef = useRef({
-    startTime: Date.now(),
+    startTime: 0,
     lastTickTime: 0,
     tickCount: 0,
     isSlowing: false,
     isDone: false,
+    hasStarted: false,
   });
 
   const spinCards = useMemo(() => {
@@ -36,6 +37,11 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   }, [finalCard]);
 
   useEffect(() => {
+    // Prevent re-running if already started (strict mode protection)
+    if (animRef.current.hasStarted) return;
+    animRef.current.hasStarted = true;
+    animRef.current.startTime = Date.now();
+
     const stopDelay =
       SLOT_CONFIG.SPIN_DURATION +
       stopOrder * SLOT_CONFIG.STOP_DELAY_INCREMENT +
@@ -92,15 +98,19 @@ export const SlotReel: React.FC<SlotReelProps> = ({
 
     rafId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafId);
-  }, [stopOrder, spinCards.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - run only once on mount
+
+  const hasCalledOnStopped = useRef(false);
 
   useEffect(() => {
-    if (isStopped) {
+    if (isStopped && !hasCalledOnStopped.current) {
+      hasCalledOnStopped.current = true;
       // Note: playReelStop is deprecated, using playSlotTick as final stop sound
       audio.playSlotTick(1);
       onStopped();
     }
-  }, [isStopped, stopOrder, onStopped]);
+  }, [isStopped, onStopped]);
 
   const displayCard = (phase === 'stopped' ? finalCard : spinCards[displayIndex]) ?? finalCard;
   const tierConfig = TIER_CONFIG[displayCard.tier];
