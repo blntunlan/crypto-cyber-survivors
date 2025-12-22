@@ -20,10 +20,7 @@ class CardSystemClass {
   private constructor() {}
 
   static getInstance(): CardSystemClass {
-    if (!CardSystemClass.instance) {
-      CardSystemClass.instance = new CardSystemClass();
-    }
-    return CardSystemClass.instance;
+    return (CardSystemClass.instance ??= new CardSystemClass());
   }
 
   /**

@@ -12,6 +12,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   stopOrder,
   onSelect,
   onStopped,
+  isSelected = false,
 }) => {
   const [isStopped, setIsStopped] = useState(false);
   const [displayIndex, setDisplayIndex] = useState(0);
@@ -111,18 +112,24 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     <motion.button
       onClick={() => isStopped && onSelect(finalCard)}
       disabled={!isStopped}
-      className={`group flex flex-row items-center text-left p-3 md:p-5 rounded-xl md:rounded-2xl transition-all w-full relative overflow-hidden ${isStopped ? 'cursor-pointer hover:translate-x-2' : 'cursor-wait'}`}
+      className={`group flex flex-row items-center text-left p-3 md:p-5 rounded-xl md:rounded-2xl transition-all w-full relative overflow-hidden ${isStopped ? 'cursor-pointer hover:translate-x-2' : 'cursor-wait'} ${isSelected && isStopped ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent translate-x-2' : ''}`}
       style={{
-        backgroundColor: tierConfig.bgColor,
-        borderWidth: '2px',
+        backgroundColor: isSelected && isStopped ? `${tierConfig.bgColor}` : tierConfig.bgColor,
+        borderWidth: isSelected && isStopped ? '3px' : '2px',
         borderStyle: 'solid',
-        borderColor: tierConfig.borderColor,
-        boxShadow: displayCard.tier !== 'common' ? `0 0 30px ${tierConfig.glowColor}30` : 'none',
+        borderColor: isSelected && isStopped ? '#ffffff' : tierConfig.borderColor,
+        boxShadow:
+          isSelected && isStopped
+            ? `0 0 40px ${tierConfig.glowColor}80, 0 0 20px #ffffff40`
+            : displayCard.tier !== 'common'
+              ? `0 0 30px ${tierConfig.glowColor}30`
+              : 'none',
       }}
       initial={{ opacity: 0, x: -100 }}
       animate={{
         opacity: 1,
-        x: 0,
+        x: isSelected && isStopped ? 8 : 0,
+        scale: isSelected && isStopped ? 1.02 : 1,
         transition: { type: 'spring', stiffness: 400, damping: 30, delay: reelIndex * 0.1 },
       }}
       whileHover={isStopped ? { backgroundColor: `${tierConfig.bgColor}ee` } : {}}

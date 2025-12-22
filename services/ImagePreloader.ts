@@ -1,6 +1,6 @@
 /**
  * ImagePreloader - Preloads and caches card images
- * 
+ *
  * Loads all card images at app startup to prevent
  * visual loading delays during LevelUp screen.
  */
@@ -9,123 +9,120 @@ import { ALL_CARDS_FLAT } from './CardSystem';
 import { Logger } from './Logger';
 
 class ImagePreloaderClass {
-    private static instance: ImagePreloaderClass | null = null;
+  private static instance: ImagePreloaderClass | null = null;
 
-    // Cache for preloaded images
-    private imageCache: Map<string, HTMLImageElement> = new Map();
+  // Cache for preloaded images
+  private imageCache: Map<string, HTMLImageElement> = new Map();
 
-    // Loading state
-    private loadingPromise: Promise<void> | null = null;
-    private isLoaded: boolean = false;
+  // Loading state
+  private loadingPromise: Promise<void> | null = null;
+  private isLoaded: boolean = false;
 
-    private constructor() { }
+  private constructor() {}
 
-    static getInstance(): ImagePreloaderClass {
-        if (!ImagePreloaderClass.instance) {
-            ImagePreloaderClass.instance = new ImagePreloaderClass();
-        }
-        return ImagePreloaderClass.instance;
+  static getInstance(): ImagePreloaderClass {
+    return (ImagePreloaderClass.instance ??= new ImagePreloaderClass());
+  }
+
+  /**
+   * Get all unique image paths from card system
+   */
+  private getCardImagePaths(): string[] {
+    const paths = new Set<string>();
+
+    for (const card of ALL_CARDS_FLAT) {
+      // Only include PNG/image paths, skip SVG component names and emoji
+      if (card.icon.startsWith('/')) {
+        paths.add(card.icon);
+      }
     }
 
-    /**
-     * Get all unique image paths from card system
-     */
-    private getCardImagePaths(): string[] {
-        const paths = new Set<string>();
+    return Array.from(paths);
+  }
 
-        for (const card of ALL_CARDS_FLAT) {
-            // Only include PNG/image paths, skip SVG component names and emoji
-            if (card.icon.startsWith('/')) {
-                paths.add(card.icon);
-            }
-        }
+  /**
+   * Preload a single image and cache it
+   */
+  private preloadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      // Check if already cached
+      const cached = this.imageCache.get(src);
+      if (cached) {
+        resolve(cached);
+        return;
+      }
 
-        return Array.from(paths);
-    }
+      const img = new Image();
+      img.onload = () => {
+        this.imageCache.set(src, img);
+        resolve(img);
+      };
+      img.onerror = () => {
+        Logger.warn(`[ImagePreloader] Failed to load: ${src}`);
+        reject(new Error(`Failed to load image: ${src}`));
+      };
+      img.src = src;
+    });
+  }
 
-    /**
-     * Preload a single image and cache it
-     */
-    private preloadImage(src: string): Promise<HTMLImageElement> {
-        return new Promise((resolve, reject) => {
-            // Check if already cached
-            const cached = this.imageCache.get(src);
-            if (cached) {
-                resolve(cached);
-                return;
-            }
+  /**
+   * Preload all card images
+   * Call this at app startup
+   */
+  async preloadAll(): Promise<void> {
+    // If already loaded or loading, return existing promise
+    if (this.isLoaded) return;
+    if (this.loadingPromise) return this.loadingPromise;
 
-            const img = new Image();
-            img.onload = () => {
-                this.imageCache.set(src, img);
-                resolve(img);
-            };
-            img.onerror = () => {
-                Logger.warn(`[ImagePreloader] Failed to load: ${src}`);
-                reject(new Error(`Failed to load image: ${src}`));
-            };
-            img.src = src;
-        });
-    }
+    const paths = this.getCardImagePaths();
+    Logger.info(`[ImagePreloader] Starting preload of ${paths.length} card images...`);
 
-    /**
-     * Preload all card images
-     * Call this at app startup
-     */
-    async preloadAll(): Promise<void> {
-        // If already loaded or loading, return existing promise
-        if (this.isLoaded) return;
-        if (this.loadingPromise) return this.loadingPromise;
+    this.loadingPromise = Promise.allSettled(paths.map(path => this.preloadImage(path))).then(
+      results => {
+        const succeeded = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
 
-        const paths = this.getCardImagePaths();
-        Logger.info(`[ImagePreloader] Starting preload of ${paths.length} card images...`);
+        Logger.info(`[ImagePreloader] Preload complete: ${succeeded} loaded, ${failed} failed`);
+        this.isLoaded = true;
+      }
+    );
 
-        this.loadingPromise = Promise.allSettled(
-            paths.map(path => this.preloadImage(path))
-        ).then(results => {
-            const succeeded = results.filter(r => r.status === 'fulfilled').length;
-            const failed = results.filter(r => r.status === 'rejected').length;
+    return this.loadingPromise;
+  }
 
-            Logger.info(`[ImagePreloader] Preload complete: ${succeeded} loaded, ${failed} failed`);
-            this.isLoaded = true;
-        });
+  /**
+   * Get a preloaded image from cache
+   * Returns undefined if not cached
+   */
+  getCached(src: string): HTMLImageElement | undefined {
+    return this.imageCache.get(src);
+  }
 
-        return this.loadingPromise;
-    }
+  /**
+   * Check if preloading is complete
+   */
+  isPreloaded(): boolean {
+    return this.isLoaded;
+  }
 
-    /**
-     * Get a preloaded image from cache
-     * Returns undefined if not cached
-     */
-    getCached(src: string): HTMLImageElement | undefined {
-        return this.imageCache.get(src);
-    }
+  /**
+   * Get preload progress (0-1)
+   */
+  getProgress(): number {
+    if (this.isLoaded) return 1;
+    const total = this.getCardImagePaths().length;
+    if (total === 0) return 1;
+    return this.imageCache.size / total;
+  }
 
-    /**
-     * Check if preloading is complete
-     */
-    isPreloaded(): boolean {
-        return this.isLoaded;
-    }
-
-    /**
-     * Get preload progress (0-1)
-     */
-    getProgress(): number {
-        if (this.isLoaded) return 1;
-        const total = this.getCardImagePaths().length;
-        if (total === 0) return 1;
-        return this.imageCache.size / total;
-    }
-
-    /**
-     * Clear cache (for testing or memory management)
-     */
-    clearCache(): void {
-        this.imageCache.clear();
-        this.isLoaded = false;
-        this.loadingPromise = null;
-    }
+  /**
+   * Clear cache (for testing or memory management)
+   */
+  clearCache(): void {
+    this.imageCache.clear();
+    this.isLoaded = false;
+    this.loadingPromise = null;
+  }
 }
 
 export const ImagePreloader = ImagePreloaderClass.getInstance();

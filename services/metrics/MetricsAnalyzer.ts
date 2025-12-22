@@ -238,13 +238,8 @@ export class MetricsAnalyzer {
     const cardCounts: Record<string, { count: number; tier: string }> = {};
     for (const s of sessions) {
       for (const card of s.card.cardsChosen) {
-        if (!cardCounts[card.card]) {
-          cardCounts[card.card] = { count: 0, tier: card.tier };
-        }
-        const cardCount = cardCounts[card.card];
-        if (cardCount) {
-          cardCount.count++;
-        }
+        cardCounts[card.card] ??= { count: 0, tier: card.tier };
+        cardCounts[card.card]!.count++;
       }
     }
     const totalCardPicks = Object.values(cardCounts).reduce((a, b) => a + b.count, 0);

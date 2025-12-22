@@ -134,7 +134,7 @@ export const useMarketData = (
 
         setMarketData({
           price,
-          volume: update.volume || 0,
+          volume: update.volume ?? 0,
           pnl,
           effectivePnl,
           leverage: currentLeverage,

@@ -56,6 +56,7 @@ class ParticleConfigServiceClass {
     group: 'trail' | 'impact' | 'collect' | 'bullets',
     params: Partial<ParticleEffectConfig>
   ): void {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this[group]) {
       Object.assign(this[group], params);
       // eslint-disable-next-line no-console

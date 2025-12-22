@@ -39,10 +39,7 @@ class GameStateMachineClass {
   }
 
   static getInstance(): GameStateMachineClass {
-    if (!GameStateMachineClass.instance) {
-      GameStateMachineClass.instance = new GameStateMachineClass();
-    }
-    return GameStateMachineClass.instance;
+    return (GameStateMachineClass.instance ??= new GameStateMachineClass());
   }
 
   private setupListeners(): void {

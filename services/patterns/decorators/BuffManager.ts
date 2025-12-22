@@ -52,7 +52,12 @@ class BuffManagerClass {
 
   private effectIdCounter: number = 0;
 
-  private constructor() {}
+  private constructor() {
+    // Listen for game reset to clear all effects
+    EventBus.on('gameReset', () => {
+      this.reset();
+    });
+  }
 
   static getInstance(): BuffManagerClass {
     return (BuffManagerClass.instance ??= new BuffManagerClass());

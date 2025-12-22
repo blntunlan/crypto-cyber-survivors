@@ -209,7 +209,8 @@ class DeviceBenchmarkServiceClass {
     // Device info
     this.updateProgress(5, 'Detecting device info...');
     const deviceMemory = this.getDeviceMemory();
-    const hardwareConcurrency = navigator.hardwareConcurrency || 4;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const hardwareConcurrency = navigator.hardwareConcurrency ?? 4;
     const gpuRenderer = this.getGPURenderer();
 
     // GPU Test
@@ -321,7 +322,7 @@ class DeviceBenchmarkServiceClass {
   private getGPURenderer(): string | null {
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      const gl = canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl');
       if (!gl) return null;
 
       const debugInfo = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
@@ -393,7 +394,8 @@ class DeviceBenchmarkServiceClass {
       combinedScore: 300,
       profile: DeviceProfile.MEDIUM,
       deviceMemory: null,
-      hardwareConcurrency: navigator.hardwareConcurrency || 4,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      hardwareConcurrency: navigator.hardwareConcurrency ?? 4,
       gpuRenderer: null,
       timestamp: Date.now(),
       version: BENCHMARK_CONFIG.VERSION,

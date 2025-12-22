@@ -2,6 +2,7 @@ import { type IRenderer, type RenderOptions } from './types';
 import { type PoolManager } from '../poolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
+import { createViewportBounds, isCircleVisible } from './CullingUtils';
 
 export class ProjectileRenderer implements IRenderer {
   private isMobileDevice: boolean;
@@ -15,9 +16,15 @@ export class ProjectileRenderer implements IRenderer {
     pool: PoolManager,
     _state: GameState,
     _player: Player,
-    _opts: RenderOptions
+    opts: RenderOptions
   ): void {
+    // Create viewport bounds for culling (larger padding for fast-moving bullets)
+    const bounds = createViewportBounds(opts.width, opts.height, 100);
+
     pool.activeBullets.forEach(b => {
+      // Off-screen culling
+      if (!isCircleVisible(b.x, b.y, b.radius * 4, bounds)) return;
+
       const isSuperCrit = b.isSuperCrit;
       const isCrit = b.isCrit;
 

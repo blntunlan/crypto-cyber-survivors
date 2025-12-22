@@ -23,7 +23,7 @@ export class SynthEngine {
    */
   init(): SynthContext | null {
     if (!this.ctx) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-explicit-any
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
       this.masterGain.connect(this.ctx.destination);
@@ -31,10 +31,8 @@ export class SynthEngine {
     if (this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
-    if (this.ctx && this.masterGain) {
-      return { ctx: this.ctx, masterGain: this.masterGain };
-    }
-    return null;
+    // After initialization, both ctx and masterGain are guaranteed to exist
+    return this.masterGain ? { ctx: this.ctx, masterGain: this.masterGain } : null;
   }
 
   /**
@@ -54,7 +52,7 @@ export class SynthEngine {
     const cooldown = COOLDOWN_MS[type];
     if (!cooldown) return false;
 
-    const lastTime = this.lastPlayTime.get(type) || 0;
+    const lastTime = this.lastPlayTime.get(type) ?? 0;
     const now = performance.now();
 
     if (now - lastTime < cooldown) {

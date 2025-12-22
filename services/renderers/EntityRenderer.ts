@@ -4,6 +4,7 @@ import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
+import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
 
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
@@ -17,19 +18,30 @@ export class EntityRenderer implements IRenderer {
     pool: PoolManager,
     state: GameState,
     player: Player,
-    _opts: RenderOptions
+    opts: RenderOptions
   ): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
     const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
 
-    this.drawGems(ctx, pool, shadowsEnabled);
-    this.drawBuffGems(ctx, shadowsEnabled);
-    this.drawEnemies(ctx, pool);
+    // Create viewport bounds for culling (with 50px padding to prevent pop-in)
+    const bounds = createViewportBounds(opts.width, opts.height, 50);
+
+    this.drawGems(ctx, pool, shadowsEnabled, bounds);
+    this.drawBuffGems(ctx, shadowsEnabled, bounds);
+    this.drawEnemies(ctx, pool, bounds);
     this.drawPlayer(ctx, player, state, shadowsEnabled);
   }
 
-  private drawGems(ctx: CanvasRenderingContext2D, pool: PoolManager, shadowsEnabled: boolean) {
+  private drawGems(
+    ctx: CanvasRenderingContext2D,
+    pool: PoolManager,
+    shadowsEnabled: boolean,
+    bounds: ViewportBounds
+  ) {
     pool.activeGems.forEach(g => {
+      // Off-screen culling
+      if (!isCircleVisible(g.x, g.y, g.radius, bounds)) return;
+
       if (g.isRare && shadowsEnabled) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = g.color;
@@ -42,12 +54,19 @@ export class EntityRenderer implements IRenderer {
     });
   }
 
-  private drawBuffGems(ctx: CanvasRenderingContext2D, shadowsEnabled: boolean) {
+  private drawBuffGems(
+    ctx: CanvasRenderingContext2D,
+    shadowsEnabled: boolean,
+    bounds: ViewportBounds
+  ) {
     const buffGems = BuffGemSpawner.getActiveGems();
     const now = Date.now();
 
     buffGems.forEach(gem => {
       if (!gem.active) return;
+
+      // Off-screen culling (use larger radius for pulse effect)
+      if (!isCircleVisible(gem.x, gem.y, gem.radius * 1.5 + 10, bounds)) return;
 
       // Calculate lifetime ratio for fade effect
       const lifetimeRatio = BuffGemSpawner.getGemLifetimeRatio(gem);
@@ -118,8 +137,11 @@ export class EntityRenderer implements IRenderer {
     });
   }
 
-  private drawEnemies(ctx: CanvasRenderingContext2D, pool: PoolManager) {
+  private drawEnemies(ctx: CanvasRenderingContext2D, pool: PoolManager, bounds: ViewportBounds) {
     pool.activeEnemies.forEach(e => {
+      // Off-screen culling
+      if (!isCircleVisible(e.x, e.y, e.radius + 8, bounds)) return;
+
       const ex = Math.round(e.x);
       const ey = Math.round(e.y);
       ctx.fillStyle = e.color;

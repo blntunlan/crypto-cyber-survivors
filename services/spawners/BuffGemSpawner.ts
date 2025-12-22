@@ -73,7 +73,12 @@ class BuffGemSpawnerClass {
   private screenWidth: number = 800;
   private screenHeight: number = 600;
 
-  private constructor() {}
+  private constructor() {
+    // Listen for game reset to clear all gems
+    EventBus.on('gameReset', () => {
+      this.reset();
+    });
+  }
 
   static getInstance(): BuffGemSpawnerClass {
     return (BuffGemSpawnerClass.instance ??= new BuffGemSpawnerClass());

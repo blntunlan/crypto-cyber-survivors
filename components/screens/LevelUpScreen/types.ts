@@ -12,6 +12,8 @@ export interface SlotReelProps {
   stopOrder: number;
   onSelect: (card: Card) => void;
   onStopped: () => void;
+  /** Keyboard navigation - whether this card is currently selected */
+  isSelected?: boolean;
 }
 
 export interface ErrorBoundaryState {

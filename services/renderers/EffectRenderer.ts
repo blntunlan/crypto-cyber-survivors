@@ -1,6 +1,7 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type PoolManager } from '../poolManager';
 import { type GameState, type Player } from '../../types';
+import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
 
 export class EffectRenderer implements IRenderer {
   render(
@@ -12,16 +13,19 @@ export class EffectRenderer implements IRenderer {
   ): void {
     const { width, height, graphics } = opts;
 
+    // Create viewport bounds for culling
+    const bounds = createViewportBounds(width, height, 30);
+
     this.drawCritFlash(ctx, width, height, state);
 
     // Only draw particles if enabled
     if (graphics.showParticles) {
-      this.drawParticles(ctx, pool);
+      this.drawParticles(ctx, pool, bounds);
     }
 
     // Only draw damage/floating texts if enabled
     if (graphics.showDamageNumbers) {
-      this.drawFloatingTexts(ctx, pool);
+      this.drawFloatingTexts(ctx, pool, bounds);
     }
   }
 
@@ -53,14 +57,19 @@ export class EffectRenderer implements IRenderer {
   /**
    * Batch render particles by color for better performance.
    * Groups particles by color and draws them in single path operations.
+   * Includes off-screen culling for additional performance gains.
    */
-  private drawParticles(ctx: CanvasRenderingContext2D, pool: PoolManager) {
+  private drawParticles(ctx: CanvasRenderingContext2D, pool: PoolManager, bounds: ViewportBounds) {
     if (pool.activeParticles.length === 0) return;
 
     // Group particles by color and approximate life (for alpha batching)
+    // Also filter out off-screen particles during grouping
     const groups = new Map<string, typeof pool.activeParticles>();
 
     pool.activeParticles.forEach(part => {
+      // Off-screen culling
+      if (!isCircleVisible(part.x, part.y, part.radius || 2, bounds)) return;
+
       // Round life to nearest 0.1 for batching (10 alpha levels instead of 100)
       const alphaKey = Math.round(part.life * 10);
       const key = `${part.color}-${alphaKey}`;
@@ -95,8 +104,15 @@ export class EffectRenderer implements IRenderer {
     ctx.globalAlpha = 1;
   }
 
-  private drawFloatingTexts(ctx: CanvasRenderingContext2D, pool: PoolManager) {
+  private drawFloatingTexts(
+    ctx: CanvasRenderingContext2D,
+    pool: PoolManager,
+    bounds: ViewportBounds
+  ) {
     pool.activeFloatingTexts.forEach(t => {
+      // Off-screen culling (approximate text size)
+      if (!isCircleVisible(t.x, t.y, t.size * 2, bounds)) return;
+
       ctx.save();
       ctx.globalAlpha = t.life;
       const floatOffset = (1 - t.life) * 30;

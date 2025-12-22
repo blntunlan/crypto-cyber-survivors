@@ -32,6 +32,7 @@ import { generateBackgroundCandles } from '../utils/backgroundCandles';
 import { FPSMonitor } from '../services/FPSMonitor';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
+import { lerp } from '../utils/math';
 
 interface GameEngineProps {
   status: GameStatus;
@@ -46,7 +47,7 @@ interface GameEngineProps {
   height: number;
 }
 
-const lerp = (start: number, end: number, t: number) => start * (1 - t) + end * t;
+// lerp imported from utils/math.ts
 
 export const GameEngine: React.FC<GameEngineProps> = ({
   status,

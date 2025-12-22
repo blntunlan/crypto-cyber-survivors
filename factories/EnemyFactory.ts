@@ -100,10 +100,7 @@ export class EnemyFactory {
    * Singleton instance
    */
   static getInstance(): EnemyFactory {
-    if (!EnemyFactory.instance) {
-      EnemyFactory.instance = new EnemyFactory();
-    }
-    return EnemyFactory.instance;
+    return (EnemyFactory.instance ??= new EnemyFactory());
   }
 
   /**

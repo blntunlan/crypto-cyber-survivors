@@ -127,22 +127,21 @@ export function getMetricsConfig(): MetricsConfig {
   const config = { ...METRICS_CONFIG };
 
   // Override from environment variables if available
-  if (import.meta?.env) {
-    // Master switch from env
-    if (import.meta.env.VITE_METRICS_ENABLED !== undefined) {
-      config.enabled = import.meta.env.VITE_METRICS_ENABLED === 'true';
-    }
+  // Note: import.meta.env is always defined in Vite, so we check values directly
+  // Master switch from env
+  if (import.meta.env.VITE_METRICS_ENABLED !== undefined) {
+    config.enabled = import.meta.env.VITE_METRICS_ENABLED === 'true';
+  }
 
-    // Remote endpoint from env
-    if (import.meta.env.VITE_METRICS_REMOTE_ENDPOINT) {
-      config.storage.remoteEndpoint = import.meta.env.VITE_METRICS_REMOTE_ENDPOINT;
-      config.storage.type = 'remote';
-    }
+  // Remote endpoint from env
+  if (import.meta.env.VITE_METRICS_REMOTE_ENDPOINT) {
+    config.storage.remoteEndpoint = import.meta.env.VITE_METRICS_REMOTE_ENDPOINT;
+    config.storage.type = 'remote';
+  }
 
-    // API key from env
-    if (import.meta.env.VITE_METRICS_API_KEY) {
-      config.storage.apiKey = import.meta.env.VITE_METRICS_API_KEY;
-    }
+  // API key from env
+  if (import.meta.env.VITE_METRICS_API_KEY) {
+    config.storage.apiKey = import.meta.env.VITE_METRICS_API_KEY;
   }
 
   return config;

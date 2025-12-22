@@ -152,6 +152,7 @@ export class AudioService {
    * @deprecated Disabled - use audio files instead
    */
   playReelStop(reelNumber: number): void {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     SlotSounds.playReelStop(reelNumber);
   }
 

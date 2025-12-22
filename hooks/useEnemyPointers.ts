@@ -44,8 +44,8 @@ export function useEnemyPointers({
         const pointerElements = pointerContainerRef.current.children;
 
         for (let i = 0; i < 10; i++) {
-          const el = pointerElements[i] as HTMLElement;
-          if (!el) continue;
+          const el = pointerElements[i] as HTMLElement | undefined;
+          if (el === undefined) continue;
 
           const enemy = offScreenEnemies[i];
           if (enemy) {

@@ -10,7 +10,7 @@ import { TimeService } from './TimeService';
 import { ComboSystem } from './ComboSystem';
 import { DifficultyManager } from './DifficultyManager';
 import { useGameStore } from '../stores/gameStore';
-import { ParticleConfigService } from './ParticleConfigService';
+import { ParticleConfigService, type ParticleEffectConfig } from './ParticleConfigService';
 
 export interface GameSnapshot {
   timestamp: string;
@@ -48,10 +48,7 @@ class DebugServiceClass {
   }
 
   static getInstance(): DebugServiceClass {
-    if (!DebugServiceClass.instance) {
-      DebugServiceClass.instance = new DebugServiceClass();
-    }
-    return DebugServiceClass.instance;
+    return (DebugServiceClass.instance ??= new DebugServiceClass());
   }
 
   /**
@@ -69,7 +66,7 @@ class DebugServiceClass {
 
         // Canlı Partikül Ayarları
         particles: {
-          update: (group: 'trail' | 'impact' | 'collect', params: any) =>
+          update: (group: 'trail' | 'impact' | 'collect', params: Partial<ParticleEffectConfig>) =>
             ParticleConfigService.update(group, params),
           reset: () => ParticleConfigService.reset(),
           current: () => ({
@@ -82,6 +79,7 @@ class DebugServiceClass {
         // Müdahale (CheatManager Köprüsü)
         // Bu özellikler sadece DEV modda CheatManager üzerinden tetiklenebilir
         help: () => {
+          /* eslint-disable no-console */
           console.log(
             '%c🚀 CCS Gelişmiş Debug Araçları',
             'color: #fbbf24; font-size: 14px; font-weight: bold;'
@@ -93,6 +91,7 @@ class DebugServiceClass {
           console.log('L: Level Up | G: God Mode | K: Kill All | H: Heal');
           console.log('--- Kelime Kodları ---');
           console.log('"moon", "ape", "rekt"');
+          /* eslint-enable no-console */
         },
       };
     }

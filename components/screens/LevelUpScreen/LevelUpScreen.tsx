@@ -12,6 +12,9 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
   const [stoppedCount, setStoppedCount] = useState(0);
   const allStopped = stoppedCount >= upgradeChoices.length;
 
+  // Keyboard navigation state
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   // Generate random stop order (e.g., [2, 0, 1] means middle stops first, then right, then left)
   const stopOrder = useMemo(() => {
     const order = [0, 1, 2];
@@ -32,9 +35,51 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     }
   }, [allStopped]);
 
+  // Keyboard navigation
+  useEffect(() => {
+    if (!allStopped) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'w':
+        case 'W':
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex(prev => {
+            const newIndex = prev > 0 ? prev - 1 : upgradeChoices.length - 1;
+            audio.playSlotTick(0.5);
+            return newIndex;
+          });
+          break;
+        case 's':
+        case 'S':
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex(prev => {
+            const newIndex = prev < upgradeChoices.length - 1 ? prev + 1 : 0;
+            audio.playSlotTick(0.5);
+            return newIndex;
+          });
+          break;
+        case ' ':
+        case 'Enter': {
+          e.preventDefault();
+          const selected = upgradeChoices[selectedIndex];
+          if (selected) {
+            onSelect(selected);
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [allStopped, selectedIndex, upgradeChoices, onSelect]);
+
   // Get status text
   const getStatusText = () => {
-    if (allStopped) return '✨ Choose your upgrade!';
+    if (allStopped) return '✨ Choose your upgrade! (W/S + Space)';
     if (stoppedCount === 0) return '🎰 Spinning...';
     if (stoppedCount === 1) return '🎯 Almost there...';
     return '⚡ Last one!';
@@ -49,6 +94,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
       stoppedCount,
       allStopped,
       stopOrder,
+      selectedIndex,
       timestamp: new Date().toISOString(),
     },
     null,
@@ -113,6 +159,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                   stopOrder={stopOrder[index] ?? index}
                   onSelect={onSelect}
                   onStopped={handleReelStopped}
+                  isSelected={allStopped && selectedIndex === index}
                 />
               ))}
             </div>

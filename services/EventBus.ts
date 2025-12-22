@@ -35,10 +35,7 @@ class EventBusClass {
    * Get the singleton instance of EventBus
    */
   static getInstance(): EventBusClass {
-    if (!EventBusClass.instance) {
-      EventBusClass.instance = new EventBusClass();
-    }
-    return EventBusClass.instance;
+    return (EventBusClass.instance ??= new EventBusClass());
   }
 
   /**

@@ -10,7 +10,7 @@
 
 import { Logger } from '../Logger';
 import { type SessionMetrics } from '../../types/metrics';
-import { supabase } from '../supabase';
+import { supabase, isSupabaseConfigured } from '../supabase';
 
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
@@ -82,6 +82,12 @@ export class MetricsStorage {
    * Sync session to Supabase
    */
   private async syncToSupabase(session: SessionMetrics): Promise<void> {
+    // Skip sync if Supabase is not configured
+    if (!isSupabaseConfigured() || !supabase) {
+      Logger.debug('[MetricsStorage] Supabase not configured, skipping sync');
+      return;
+    }
+
     try {
       const { error } = await supabase.from('game_sessions').insert({
         player_id: 'anon-user', // Allow connecting to auth later

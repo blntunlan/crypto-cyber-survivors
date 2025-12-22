@@ -38,11 +38,12 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 ---
 
 ## Faz 2: Oynanış Dengeleme & Polish 🎯
-**Durum:** %40 Tamamlandı
+**Durum:** %70 Tamamlandı
 **Öncelik:** ⭐⭐⭐⭐⭐ (En Yüksek)
 
 ### 2.1 Spawn Sistemi & Wave Mantığı 🔶
 - [x] Merkezi SpawnSystem servisi (Extract edildi)
+- [x] Buff Gem Spawner sistemi (RageModeDecorator, DiamondHandsDecorator vb.)
 - [ ] Vampire Survivors tarzı min/max enemy sistemi
 - [ ] Wave tabanlı enemy tipi değişimi (her 60 saniyede yeni tip)
 - [ ] Elite enemy spawn sistemi (her 2 dakikada mini-boss)
@@ -61,7 +62,7 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 ---
 
 ## Faz 3: Görsel & Ses Polish ✨
-**Durum:** %50 Tamamlandı
+**Durum:** %70 Tamamlandı
 **Öncelik:** ⭐⭐⭐⭐
 
 ### 3.1 Görsel Efektler ✅
@@ -78,9 +79,11 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 - [ ] Damage number stacking
 - [x] Wave timer göstergesi
 
-### 3.3 Ses Sistemi
+### 3.3 Ses Sistemi 🔶
+- [x] Web Audio API synthesizer engine (SynthEngine)
+- [x] Kill combo ses efektleri (artan pitch)
+- [x] Slot machine sesleri (tick, win, anticipation)
 - [ ] Background music (dynamic, duruma göre değişen)
-- [ ] Kill combo ses efektleri (artan pitch)
 - [ ] Ambient market sounds
 - [ ] Wave transition sounds
 - [ ] Victory/defeat jingles
@@ -131,24 +134,28 @@ Her faz bağımsız olarak tamamlanabilir ve oyuna değer katar.
 ---
 
 ## Faz 6: Performans & Optimizasyon ⚡
-**Tahmini Süre:** 2-3 saat
+**Durum:** %60 Tamamlandı
 **Öncelik:** ⭐⭐⭐
 
 ### 6.1 Render Optimizasyonu
-- [ ] Spatial partitioning (quadtree) çarpışma tespiti için
-- [ ] Off-screen culling (görünmeyen nesneleri çizme)
+- [x] Spatial partitioning (SpatialGrid) çarpışma tespiti için
+- [x] Object pooling sistemi (PoolManager)
+- [x] Performance presets (LOW/MEDIUM/HIGH/ULTRA)
+- [x] Off-screen culling (görünmeyen nesneler çizilmiyor)
 - [ ] Batch rendering (aynı tipte nesneleri grupla)
 - [ ] WebGL renderer seçeneği
 
 ### 6.2 Memory Optimizasyonu
-- [ ] Object pool boyutlarını optimize et
+- [x] Object pool boyutlarını optimize et (trimFreeLists)
+- [x] Pre-warm pools (PoolManager.preWarm)
 - [ ] Texture atlas kullanımı
 - [ ] Lazy loading (ihtiyaç halinde yükle)
 
-### 6.3 Mobile Optimizasyon
-- [ ] Touch controls
-- [ ] Responsive UI
-- [ ] Performance profiling
+### 6.3 Mobile Optimizasyon ✅
+- [x] Touch controls (VirtualJoystick, DashButton)
+- [x] Responsive UI (ScreenService)
+- [x] Device benchmark (DeviceBenchmarkService)
+- [x] Performance profiling (auto profile detection)
 - [ ] Battery optimization
 
 ---
@@ -202,7 +209,10 @@ En az eforla en çok etki yapacak değişiklikler:
 
 Temizlenmesi gereken konular:
 
-- [x] ESLint warning'ları temizle (Ana kod temizlendi)
+- [x] ESLint warning'ları temizle (49 → 16 warning, %67 azalma)
+- [x] Singleton pattern modernizasyonu (??= operatörü)
+- [x] Deprecated API düzeltmeleri (navigator.platform → userAgentData)
+- [x] Nullish coalescing düzeltmeleri (|| → ??)
 - [ ] Test coverage artır (components için testler)
 - [x] Type safety iyileştir (EventBus ve ComboSystem'de yapılandırıldı)
 - [ ] Code splitting (lazy load components)
@@ -210,5 +220,5 @@ Temizlenmesi gereken konular:
 
 ---
 
-**Son Güncelleme:** 2025-12-19
-**Versiyon:** 1.1
+**Son Güncelleme:** 2025-12-22
+**Versiyon:** 1.2

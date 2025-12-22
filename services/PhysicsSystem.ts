@@ -11,6 +11,7 @@ import { DeviceBenchmarkService } from './DeviceBenchmarkService';
 import { ParticleConfigService } from './ParticleConfigService';
 import { BuffGemSpawner } from './spawners/BuffGemSpawner';
 import { BuffManager } from './patterns/decorators/BuffManager';
+import { lerp } from '../utils/math';
 
 export class PhysicsSystem {
   public static updateEntities(p: PoolManager, dtFactor: number, width: number, height: number) {
@@ -22,16 +23,17 @@ export class PhysicsSystem {
 
       // TRAIL EFFECT: Spawn small particles behind bullets periodically
       const trailCfg = ParticleConfigService.trail;
-      if (Math.random() < (trailCfg.spawnChance ?? 0.4) * perfConfig.particleMultiplier) {
+      if (Math.random() < trailCfg.spawnChance * perfConfig.particleMultiplier) {
         const offX = (Math.random() - 0.5) * 4;
         const offY = (Math.random() - 0.5) * 4;
         const trailPart = p.getParticle(
           b.x + offX,
           b.y + offY,
-          -b.vx * (trailCfg.speedMultiplier ?? 0.1),
-          -b.vy * (trailCfg.speedMultiplier ?? 0.1),
+          -b.vx * trailCfg.speedMultiplier,
+          -b.vy * trailCfg.speedMultiplier,
           b.color
         );
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
         if (trailPart) {
           trailPart.life = trailCfg.life;
           trailPart.radius = b.radius * trailCfg.radiusMultiplier;
@@ -123,15 +125,16 @@ export class PhysicsSystem {
 
           // IMPACT PARTICLES: Small burst when bullet hits enemy
           const impactCfg = ParticleConfigService.impact;
-          const impactCount = Math.round((impactCfg.count ?? 5) * perfConfig.particleMultiplier);
+          const impactCount = Math.round(impactCfg.count * perfConfig.particleMultiplier);
           for (let i = 0; i < impactCount; i++) {
             const part = p.getParticle(
               b.x,
               b.y,
-              (Math.random() - 0.5) * (impactCfg.speed ?? 6),
-              (Math.random() - 0.5) * (impactCfg.speed ?? 6),
+              (Math.random() - 0.5) * impactCfg.speed,
+              (Math.random() - 0.5) * impactCfg.speed,
               b.isSuperCrit ? COLORS.SUPER_CRIT : b.color
             );
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
             if (part) part.life = impactCfg.life;
           }
 
@@ -177,7 +180,7 @@ export class PhysicsSystem {
 
       if (distSq < rangeSq) {
         const dist = Math.sqrt(distSq);
-        const pull = this.lerp(12, 2, dist / range) * dtFactor;
+        const pull = lerp(12, 2, dist / range) * dtFactor;
         g.x += ((player.x - g.x) / dist) * pull;
         g.y += ((player.y - g.y) / dist) * pull;
       }
@@ -192,10 +195,10 @@ export class PhysicsSystem {
 
         // COLLECT EFFECT: Spiral/Circular burst of particles when gem is collected
         const collectCfg = ParticleConfigService.collect;
-        const collectCount = Math.round((collectCfg.count ?? 12) * perfConfig.particleMultiplier);
+        const collectCount = Math.round(collectCfg.count * perfConfig.particleMultiplier);
         for (let i = 0; i < collectCount; i++) {
           const angle = (i / collectCount) * Math.PI * 2;
-          const speed = (collectCfg.speed ?? 3) * (0.6 + Math.random() * 0.4);
+          const speed = collectCfg.speed * (0.6 + Math.random() * 0.4);
           const part = p.getParticle(
             g.x,
             g.y,
@@ -203,15 +206,16 @@ export class PhysicsSystem {
             Math.sin(angle) * speed,
             g.color
           );
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
           if (part) {
             part.life = collectCfg.life;
-            part.radius = collectCfg.radius ?? 3;
+            part.radius = collectCfg.radius;
           }
         }
 
         EventBus.emit('gemCollected', {
           value: g.value,
-          isRare: g.isRare || false,
+          isRare: g.isRare ?? false,
         });
 
         // prevent multiple levelUpStart emissions if multiple gems collected in 1 frame
@@ -236,7 +240,7 @@ export class PhysicsSystem {
       const magnetRange = (GAME_ENGINE.GEM_MAGNET_BASE_RANGE + player.magnet) * 0.6;
       if (distSq < magnetRange * magnetRange) {
         const dist = Math.sqrt(distSq);
-        const pull = this.lerp(8, 2, dist / magnetRange) * dtFactor;
+        const pull = lerp(8, 2, dist / magnetRange) * dtFactor;
         gem.x += (dx / dist) * pull;
         gem.y += (dy / dist) * pull;
       }
@@ -264,6 +268,7 @@ export class PhysicsSystem {
             Math.sin(angle) * speed,
             gem.color
           );
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
           if (part) {
             part.life = 0.8;
             part.radius = 4;
@@ -308,8 +313,5 @@ export class PhysicsSystem {
       isRare
     );
   }
-
-  private static lerp(start: number, end: number, t: number) {
-    return start * (1 - t) + end * t;
-  }
+  // lerp imported from utils/math.ts
 }
