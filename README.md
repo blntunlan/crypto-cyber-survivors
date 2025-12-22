@@ -56,6 +56,12 @@
 - **60 FPS Canvas Engine** - Optimized draw calls with intelligent shadow-culling for mobile stability
 - **Delta Time** - Framerate-independent game logic and smooth physics updates
 
+### 🔐 Beta User System
+- **Nickname Login** - Frictionless onboarding without passwords or wallets
+- **Device Fingerprinting** - Secure identifier for account recovery and anti-cheat
+- **Analytics Dashboard** - Real-time monitoring of session stats, errors, and performance (Ctrl+Shift+A)
+- **Supabase Integration** - Cloud sync for Leaderboards, User Profiles, and Crash Reporting
+
 ---
 
 ## 🚀 Quick Start

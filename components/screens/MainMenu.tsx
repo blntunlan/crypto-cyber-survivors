@@ -109,7 +109,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <div className="grid grid-cols-2 gap-6">
             <button
               onClick={() => onStart(MarketPosition.LONG, selectedLeverage)}
-              className="flex flex-col items-center p-6 bg-green-500/10 border border-green-500/20 rounded-xl hover:border-green-500 transition-all hover:bg-green-500/20 group"
+              disabled={price === 0}
+              className={`flex flex-col items-center p-6 bg-green-500/10 border border-green-500/20 rounded-xl transition-all group ${
+                price === 0
+                  ? 'opacity-50 cursor-not-allowed grayscale'
+                  : 'hover:border-green-500 hover:bg-green-500/20'
+              }`}
             >
               <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">📈</div>
               <span className="font-black text-green-500 text-lg uppercase">Long</span>
@@ -117,7 +122,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </button>
             <button
               onClick={() => onStart(MarketPosition.SHORT, selectedLeverage)}
-              className="flex flex-col items-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl hover:border-red-500 transition-all hover:bg-red-500/20 group"
+              disabled={price === 0}
+              className={`flex flex-col items-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl transition-all group ${
+                price === 0
+                  ? 'opacity-50 cursor-not-allowed grayscale'
+                  : 'hover:border-red-500 hover:bg-red-500/20'
+              }`}
             >
               <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">📉</div>
               <span className="font-black text-red-500 text-lg uppercase">Short</span>

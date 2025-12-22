@@ -24,7 +24,7 @@
 ```
 Faz 1: Solid Foundation     ████████████████████ 100% ✅
  Faz 2: Polish & Quality     ██████████████░░░░░░  70% 🔶
- Faz 3: Backend & Web3       ░░░░░░░░░░░░░░░░░░░░   0% ⬜
+ Faz 3: Backend & Web3       ████████░░░░░░░░░░░░  40% 🔶
 Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░░░░   0% ⬜
 ```
 
@@ -127,11 +127,11 @@ Teknoloji: Supabase (veya Node.js + PostgreSQL)
 
 | Milestone | Bileşenler | Süre |
 |-----------|------------|------|
-| **M1: API Scaffold** | Supabase setup, tables, Edge functions | 1 gün |
-| **M2: Auth** | Wallet connection (Phantom), session tokens | 2 gün |
-| **M3: Score System** | Submit, validate, store scores | 2 gün |
-| **M4: Leaderboard** | Daily/Season/All-time rankings | 2 gün |
-| **M5: Anti-Cheat** | Replay hash, time validation, rate limit | 3 gün |
+| **M1: API Scaffold** | Supabase setup, tables, Edge functions | ✅ Tamamlandı |
+| **M2: Auth System** | Device Fingerprint + Nickname Login | ✅ Tamamlandı |
+| **M3: Score System** | Submit, validate, store scores | 🚧 Devam Ediyor |
+| **M4: Leaderboard** | Daily/Season/All-time rankings | ⬜ Beklemede |
+| **M5: Anti-Cheat** | Replay hash, time validation, rate limit | 🚧 Devam Ediyor |
 
 ### 3.2 Database Schema
 

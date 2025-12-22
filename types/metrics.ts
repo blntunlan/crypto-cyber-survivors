@@ -130,6 +130,13 @@ export interface SessionMetrics {
   combo: ComboMetrics;
   card: CardMetrics;
   enemy: EnemyMetrics;
+
+  // Analytics & Performance
+  performance?: {
+    avgFps: number;
+    minFps: number;
+    deviceFingerprint: string;
+  };
 }
 
 // ============= Real-time Tracking State =============

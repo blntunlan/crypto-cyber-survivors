@@ -24,6 +24,8 @@ import { DifficultyManager } from './services/DifficultyManager';
 import { GameStateMachine } from './services/GameStateMachine';
 import { DeviceBenchmarkService } from './services/DeviceBenchmarkService';
 import { ImagePreloader } from './services/ImagePreloader';
+import { UserSessionService } from './services/auth/UserSessionService';
+import { Logger } from './services/Logger';
 
 // Custom hooks
 import { useDevice } from './hooks/useDevice';
@@ -36,6 +38,11 @@ import { useSessionTiming } from './hooks/useSessionTiming';
 import { useCheatManager } from './hooks/useCheatManager';
 
 // Lazy load heavy components for performance optimization
+const NicknameEntryScreen = React.lazy(() =>
+  import('./components/screens/NicknameEntryScreen').then(m => ({
+    default: m.NicknameEntryScreen,
+  }))
+);
 const GameEngine = React.lazy(() =>
   import('./components/GameEngine').then(m => ({ default: m.GameEngine }))
 );
@@ -63,6 +70,9 @@ const ComboDebugPanel = React.lazy(() =>
 );
 const ParticleDebugPanel = React.lazy(() =>
   import('./components/ParticleDebugPanel').then(m => ({ default: m.ParticleDebugPanel }))
+);
+const AnalyticsDashboard = React.lazy(() =>
+  import('./components/admin/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
 );
 
 // Fallback components
@@ -98,6 +108,8 @@ const App: React.FC = () => {
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
+  const [needsNickname, setNeedsNickname] = useState<boolean>(false);
+  const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
 
   // ========================================
   // Player & Market Hooks
@@ -118,7 +130,39 @@ const App: React.FC = () => {
   // Initialization Effects
   // ========================================
   useEffect(() => {
+    // Initialize crash/error reporting
+    void import('./services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
+      ErrorReporter.init();
+    });
+
+    // Sync device profile
+    void import('./services/analytics/DeviceProfiler').then(({ DeviceProfiler }) => {
+      void DeviceProfiler.syncToSupabase();
+    });
+
+    // Check if player needs to set a nickname
+    if (!UserSessionService.hasStoredUser()) {
+      setNeedsNickname(true);
+    }
+
     void DeviceBenchmarkService.runBenchmark();
+  }, []);
+
+  const handleNicknameComplete = useCallback((nickname: string) => {
+    setNeedsNickname(false);
+    Logger.info(`Signed in as ${nickname}`);
+  }, []);
+
+  // Analytics Dashboard keyboard shortcut (Ctrl+Shift+A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        setShowAnalytics(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // ========================================
@@ -154,6 +198,11 @@ const App: React.FC = () => {
       GameStateMachine.transition(GameStatus.PLAYING);
       MilestoneService.startSession();
       audio.playLevelUp();
+
+      // Start performance tracking
+      void import('./services/analytics/PerformanceTracker').then(({ PerformanceTracker }) => {
+        PerformanceTracker.getInstance().start();
+      });
     },
     [
       marketData.price,
@@ -188,10 +237,18 @@ const App: React.FC = () => {
     [playerRef, setUiStats, handleLevelUp]
   );
 
-  const handleGameOver = useCallback(() => {
+  const handleGameOver = useCallback(async () => {
     setFinalPnl(marketData.pnl);
     setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
     GameStateMachine.transition(GameStatus.GAMEOVER);
+
+    // Stop performance tracking and get results
+    const { PerformanceTracker } = await import('./services/analytics/PerformanceTracker');
+    const { DeviceProfiler } = await import('./services/analytics/DeviceProfiler');
+
+    const tracker = PerformanceTracker.getInstance();
+    tracker.stop();
+    const perfStats = tracker.getStats();
 
     MetricsService.endSession(GameEndReason.DEATH, {
       price: marketData.price,
@@ -211,6 +268,10 @@ const App: React.FC = () => {
       entryPrice,
       leverage,
       totalKills: runStats.totalKills,
+      // Pass performance stats
+      avgFps: perfStats.avgFps,
+      minFps: perfStats.minFps,
+      deviceFingerprint: DeviceProfiler.getFingerprint(),
     });
   }, [marketData, playerRef, position, entryPrice, leverage, runStats.totalKills]);
 
@@ -258,13 +319,20 @@ const App: React.FC = () => {
         </React.Suspense>
       )}
 
+      {/* Nickname Entry - Initial Login */}
+      {needsNickname && (
+        <React.Suspense fallback={<FallbackLoader />}>
+          <NicknameEntryScreen onComplete={handleNicknameComplete} />
+        </React.Suspense>
+      )}
+
       {/* Game Engine */}
       <React.Suspense fallback={<FallbackLoader />}>
         <GameEngine
           status={gameStatus}
           position={position}
           marketData={marketData}
-          onGameOver={handleGameOver}
+          onGameOver={() => void handleGameOver()}
           onLevelUp={handleLevelUp}
           updatePlayerStats={setUiStats}
           playerRef={playerRef}
@@ -332,6 +400,19 @@ const App: React.FC = () => {
           <MetricsDebugPanel />
           <ComboDebugPanel />
           <ParticleDebugPanel />
+        </React.Suspense>
+      )}
+
+      {/* Analytics Dashboard - Admin only (Ctrl+Shift+A) */}
+      {showAnalytics && (
+        <React.Suspense fallback={<FallbackLoader />}>
+          <AnalyticsDashboard />
+          <button
+            onClick={() => setShowAnalytics(false)}
+            className="fixed top-4 right-4 z-[110] px-3 py-1 bg-red-600/80 hover:bg-red-500 rounded text-white text-sm"
+          >
+            ✕ Close (Ctrl+Shift+A)
+          </button>
         </React.Suspense>
       )}
     </div>

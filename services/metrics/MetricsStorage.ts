@@ -11,6 +11,7 @@
 import { Logger } from '../Logger';
 import { type SessionMetrics } from '../../types/metrics';
 import { supabase, isSupabaseConfigured } from '../supabase';
+import { UserSessionService } from '../auth/UserSessionService';
 
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
@@ -88,19 +89,55 @@ export class MetricsStorage {
       return;
     }
 
+    // Skip sync on localhost to keep data clean
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      Logger.debug('[MetricsStorage] Localhost detected, skipping Supabase sync');
+      return;
+    }
+
     try {
-      const { error } = await supabase.from('game_sessions').insert({
-        player_id: 'anon-user', // Allow connecting to auth later
-        session_timestamp: new Date(session.sessionTimestamp).toISOString(),
-        survival_time_ms: session.player.survivalTimeMs,
-        end_reason: session.gameEndReason,
-        max_level: session.player.maxLevel,
-        total_kills: session.player.totalKills,
-        metrics: session, // Store full JSON
-      });
+      const { data: sessionData, error } = await supabase
+        .from('game_sessions')
+        .insert({
+          player_id: UserSessionService.getPlayerId().startsWith('anon-')
+            ? null
+            : UserSessionService.getPlayerId(),
+          session_timestamp: new Date(session.sessionTimestamp).toISOString(),
+          survival_time_ms: session.player.survivalTimeMs,
+          end_reason: session.gameEndReason,
+          max_level: session.player.maxLevel,
+          total_kills: session.player.totalKills,
+          metrics: session, // Store full JSON
+
+          // New columns
+          crypto_pair: session.pair,
+          position: session.bitcoin.positionChosen,
+          leverage: session.bitcoin.leverage,
+          entry_price: session.bitcoin.priceAtStart,
+          exit_price: session.bitcoin.priceAtEnd,
+          pnl_percent: session.bitcoin.pnlAtDeath,
+          device_fingerprint: session.performance?.deviceFingerprint,
+          avg_fps: session.performance?.avgFps,
+          min_fps: session.performance?.minFps,
+        })
+        .select('id')
+        .single();
 
       if (error) {
         throw error;
+      }
+
+      // Sync performance details if available
+      if (session.performance) {
+        await supabase.from('performance_metrics').insert({
+          session_id: sessionData.id,
+          player_id: UserSessionService.getPlayerId(),
+          avg_fps: session.performance.avgFps,
+          min_fps: session.performance.minFps,
+          max_fps: session.performance.avgFps, // Estimate
+          fps_samples: 1, // Summary sample
+          device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',
+        });
       }
 
       Logger.info('[MetricsStorage] Synced to Supabase');
@@ -110,8 +147,11 @@ export class MetricsStorage {
         const score = Math.floor(
           session.player.totalKills * 100 + session.player.survivalTimeMs / 1000
         );
+        const nickname =
+          UserSessionService.getNickname() ?? `Survivor-${session.sessionId.substring(0, 4)}`;
+
         await supabase.from('leaderboard').insert({
-          player_name: `Survivor-${session.sessionId.substring(0, 4)}`,
+          player_name: nickname,
           score,
           survival_time_ms: session.player.survivalTimeMs,
         });

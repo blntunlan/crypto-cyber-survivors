@@ -8,6 +8,7 @@
 import { type MarketPosition } from '../../types';
 import {
   type MetricsState,
+  type SessionMetrics,
   type BitcoinMetrics,
   type DifficultyMetrics,
   type PlayerMetrics,
@@ -188,6 +189,21 @@ export class MetricsCompiler {
       averageEnemyLifetime: avgLifetime,
       spawnsTotal: state?.totalSpawns ?? 0,
       enemyLifetimeSamples: lifetimes,
+    };
+  }
+
+  /**
+   * Compile Performance metrics
+   */
+  static compilePerformanceMetrics(perfData: {
+    avgFps: number;
+    minFps: number;
+    deviceFingerprint: string;
+  }): SessionMetrics['performance'] {
+    return {
+      avgFps: perfData.avgFps,
+      minFps: perfData.minFps,
+      deviceFingerprint: perfData.deviceFingerprint,
     };
   }
 }

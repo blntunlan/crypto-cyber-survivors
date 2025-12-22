@@ -177,6 +177,9 @@ class MetricsServiceClass {
       entryPrice: number;
       leverage: number;
       totalKills: number;
+      avgFps?: number;
+      minFps?: number;
+      deviceFingerprint?: string;
     }
   ): SessionMetrics | null {
     // Skip if metrics disabled
@@ -203,6 +206,14 @@ class MetricsServiceClass {
       combo: MetricsCompiler.compileComboMetrics(this.state),
       card: MetricsCompiler.compileCardMetrics(this.state),
       enemy: MetricsCompiler.compileEnemyMetrics(this.state),
+      performance:
+        finalData.avgFps !== undefined
+          ? MetricsCompiler.compilePerformanceMetrics({
+              avgFps: finalData.avgFps,
+              minFps: finalData.minFps ?? 0,
+              deviceFingerprint: finalData.deviceFingerprint ?? '',
+            })
+          : undefined,
     };
 
     // Store session
