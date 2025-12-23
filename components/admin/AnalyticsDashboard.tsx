@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import {
   Users,
   Activity,
@@ -130,11 +129,9 @@ export const AnalyticsDashboard: React.FC = () => {
     value: string | number;
     subValue?: string;
     color?: string;
-  }> = ({ icon, label, value, subValue, color = 'cyan' }) => (
-    <motion.div
-      className={`bg-slate-800/50 border border-${color}-500/30 rounded-lg p-4`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+  }> = React.memo(({ icon, label, value, subValue, color = 'cyan' }) => (
+    <div
+      className={`bg-slate-800/50 border border-${color}-500/30 rounded-lg p-4 transition-all duration-300`}
     >
       <div className="flex items-center gap-3">
         <div className={`text-${color}-400`}>{icon}</div>
@@ -144,8 +141,8 @@ export const AnalyticsDashboard: React.FC = () => {
           {subValue && <p className="text-xs text-slate-500">{subValue}</p>}
         </div>
       </div>
-    </motion.div>
-  );
+    </div>
+  ));
 
   if (loading && !summary) {
     return (

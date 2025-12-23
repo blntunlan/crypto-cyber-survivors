@@ -27,20 +27,20 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
     const validationError = NicknameValidator.validate(nickname);
     if (validationError) {
       setError(validationError);
-      audio.playHit(); // Use hit sound for error
+      audio.playHit();
       return;
     }
 
     // 2. Submit
     setIsSubmitting(true);
     setError(null);
-    audio.playLevelUp(); // Feedback for clicking button
+    audio.playLevelUp();
 
     try {
       const result = await UserSessionService.registerNickname(nickname);
 
       if (result.success) {
-        audio.playLevelUp(); // Success sound
+        audio.playLevelUp();
         onComplete(nickname);
       } else {
         setError(result.error ?? 'Registration failed');
@@ -58,34 +58,79 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950 px-6 font-mono overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#3b82f633,transparent_70%)]" />
-        <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 animate-pulse" />
+      {/* Background Effects - Cyan/Neon Theme */}
+      <div className="absolute inset-0 pointer-events-none">
+        {/* Radial gradient glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(34,211,238,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(168,85,247,0.1),transparent_50%)]" />
+
+        {/* Grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(34,211,238,0.5) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(34,211,238,0.5) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+          }}
+        />
+
+        {/* Animated scanline */}
+        <motion.div
+          className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent"
+          animate={{
+            top: ['0%', '100%'],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+        />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
         className="w-full max-w-md relative"
       >
-        {/* Decorative corner elements */}
-        <div className="absolute -top-4 -left-4 w-12 h-12 border-t-2 border-l-2 border-blue-500 rounded-tl-xl" />
-        <div className="absolute -bottom-4 -right-4 w-12 h-12 border-b-2 border-r-2 border-blue-500 rounded-br-xl" />
+        {/* Decorative corner elements - Cyan theme */}
+        <div className="absolute -top-3 -left-3 w-10 h-10 border-t-2 border-l-2 border-cyan-500/60 rounded-tl-lg" />
+        <div className="absolute -top-3 -right-3 w-10 h-10 border-t-2 border-r-2 border-cyan-500/60 rounded-tr-lg" />
+        <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-2 border-l-2 border-cyan-500/60 rounded-bl-lg" />
+        <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-2 border-r-2 border-cyan-500/60 rounded-br-lg" />
 
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl relative overflow-hidden">
-          {/* Progress light top */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_10px_#3b82f6]" />
+        <div className="bg-slate-900/90 backdrop-blur-xl border border-cyan-500/20 p-8 rounded-xl shadow-2xl shadow-cyan-500/5 relative overflow-hidden">
+          {/* Animated top border */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
 
-          <header className="text-center space-y-2 mb-8">
-            <div className="inline-flex p-3 rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
-              <User className="w-6 h-6 text-blue-400" />
-            </div>
-            <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">
-              Identify <span className="text-blue-500">Survivor</span>
+          {/* Glow effect behind */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 rounded-xl blur-xl opacity-50" />
+
+          <header className="text-center space-y-3 mb-8 relative">
+            {/* Icon with glow */}
+            <motion.div
+              className="inline-flex p-4 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/10 border border-cyan-500/30 mb-4 relative"
+              animate={{
+                boxShadow: [
+                  '0 0 20px rgba(34,211,238,0.2)',
+                  '0 0 40px rgba(34,211,238,0.3)',
+                  '0 0 20px rgba(34,211,238,0.2)',
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <User className="w-7 h-7 text-cyan-400" />
+            </motion.div>
+
+            <h1 className="text-3xl font-black tracking-tight text-white">
+              Identify{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-300">
+                Survivor
+              </span>
             </h1>
             <p className="text-slate-500 text-[10px] font-bold tracking-[0.3em] uppercase">
-              Alpha Generation Protocol v1.0
+              Beta Access Protocol v1.0
             </p>
           </header>
 
@@ -93,14 +138,18 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
             onSubmit={e => {
               void handleSubmit(e);
             }}
-            className="space-y-6"
+            className="space-y-6 relative"
           >
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Digital Alias
+                <label className="text-[10px] text-cyan-400/80 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                  <Shield className="w-3 h-3" /> Callsign
                 </label>
-                <span className="text-[10px] text-slate-500 font-black tracking-tighter">
+                <span
+                  className={`text-[10px] font-black tracking-tighter transition-colors ${
+                    nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'
+                  }`}
+                >
                   {nickname.length}/16
                 </span>
               </div>
@@ -114,80 +163,108 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
                     setNickname(e.target.value);
                     if (error) setError(null);
                   }}
-                  placeholder="ENTER NICKNAME..."
-                  className={`w-full bg-slate-950/50 border ${
+                  placeholder="Enter your nickname..."
+                  className={`w-full bg-slate-950/80 border-2 ${
                     error
-                      ? 'border-red-500/50 text-red-400'
-                      : 'border-white/10 text-white group-hover:border-blue-500/50'
-                  } px-5 py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-black tracking-wider uppercase placeholder:text-slate-800`}
+                      ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
+                      : 'border-slate-700/50 text-white focus:border-cyan-500/50 group-hover:border-slate-600'
+                  } px-5 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 transition-all font-semibold tracking-wide placeholder:text-slate-600 placeholder:font-normal`}
                   maxLength={16}
                   disabled={isSubmitting}
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                 />
-                <div
-                  className={`absolute right-4 top-1/2 -translate-y-1/2 transition-opacity ${nickname.length >= 3 ? 'opacity-100' : 'opacity-0'}`}
+
+                {/* Valid indicator */}
+                <motion.div
+                  className={`absolute right-4 top-1/2 -translate-y-1/2`}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{
+                    opacity: nickname.length >= 3 ? 1 : 0,
+                    scale: nickname.length >= 3 ? 1 : 0.5,
+                  }}
                 >
-                  <Zap className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                </div>
+                  <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+                </motion.div>
               </div>
 
               <AnimatePresence mode="wait">
                 {error && (
                   <motion.p
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="flex items-center gap-1.5 text-red-500 text-[10px] font-bold uppercase tracking-tight pl-1"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-2 text-red-400 text-xs font-medium pl-1"
                   >
-                    <AlertCircle className="w-3 h-3" /> {error}
+                    <AlertCircle className="w-3.5 h-3.5" /> {error}
                   </motion.p>
                 )}
               </AnimatePresence>
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={isSubmitting || nickname.length < 3}
-              className={`w-full relative py-5 flex items-center justify-center gap-2 rounded-xl font-black text-sm uppercase tracking-[0.2em] transition-all group overflow-hidden ${
+              className={`w-full relative py-4 flex items-center justify-center gap-2 rounded-lg font-bold text-sm tracking-wide transition-all group overflow-hidden ${
                 nickname.length >= 3
-                  ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-[0_0_20px_#2563eb66]'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5'
+                  ? 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white hover:from-cyan-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25'
+                  : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-700/50'
               }`}
+              whileHover={nickname.length >= 3 ? { scale: 1.02 } : {}}
+              whileTap={nickname.length >= 3 ? { scale: 0.98 } : {}}
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  INITIALIZING...
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Connecting...</span>
                 </div>
               ) : (
                 <>
-                  Connect{' '}
+                  <span>Enter the Arena</span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
 
               {/* Shine effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
-            </button>
+              {nickname.length >= 3 && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    repeatDelay: 2,
+                    ease: 'easeInOut',
+                  }}
+                />
+              )}
+            </motion.button>
           </form>
 
-          <footer className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center text-[8px] text-slate-600 font-bold uppercase tracking-widest">
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              Mainnet Connected
+          <footer className="mt-8 pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium">
+            <div className="flex items-center gap-2">
+              <motion.div
+                className="w-2 h-2 bg-green-500 rounded-full"
+                animate={{ opacity: [1, 0.5, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <span>Systems Online</span>
             </div>
-            <div>Build 1.0.0-Beta</div>
+            <div className="text-slate-600">Crypto Cyber Survivors</div>
           </footer>
         </div>
 
         {/* Info hints */}
-        <div className="mt-6 flex gap-4 justify-center">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/50 border border-white/5 rounded-full">
-            <div className="w-1 h-1 bg-blue-500 rounded-full" />
-            <span className="text-[8px] text-slate-500 font-bold uppercase">3-16 Characters</span>
+        <div className="mt-6 flex gap-3 justify-center">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 rounded-full backdrop-blur-sm">
+            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
+            <span className="text-[9px] text-slate-400 font-medium">3-16 Characters</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/50 border border-white/5 rounded-full">
-            <div className="w-1 h-1 bg-blue-500 rounded-full" />
-            <span className="text-[8px] text-slate-500 font-bold uppercase">Alphanumeric</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 rounded-full backdrop-blur-sm">
+            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
+            <span className="text-[9px] text-slate-400 font-medium">Letters & Numbers</span>
           </div>
         </div>
       </motion.div>

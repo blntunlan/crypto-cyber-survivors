@@ -74,6 +74,9 @@ const ParticleDebugPanel = React.lazy(() =>
 const AnalyticsDashboard = React.lazy(() =>
   import('./components/admin/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
 );
+const LeaderboardPanel = React.lazy(() =>
+  import('./components/hud/LeaderboardPanel').then(m => ({ default: m.LeaderboardPanel }))
+);
 
 // Fallback components
 const FallbackLoader = () => (
@@ -84,7 +87,9 @@ const FallbackLoader = () => (
 const UIFallback = () => null;
 
 // Preload card images AFTER initial render (non-blocking)
-setTimeout(() => void ImagePreloader.preloadAll(), 1000);
+setTimeout(() => {
+  void ImagePreloader.preloadAll();
+}, 1000);
 
 const App: React.FC = () => {
   // ========================================
@@ -130,6 +135,12 @@ const App: React.FC = () => {
   // Initialization Effects
   // ========================================
   useEffect(() => {
+    // Initialize error tracking (auto-initializes on import)
+    void import('./services/analytics/ErrorTracker');
+
+    // Initialize player tracking (auto-initializes on import)
+    void import('./services/analytics/PlayerTracker');
+
     // Initialize crash/error reporting
     void import('./services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
       ErrorReporter.init();
@@ -151,10 +162,18 @@ const App: React.FC = () => {
   const handleNicknameComplete = useCallback((nickname: string) => {
     setNeedsNickname(false);
     Logger.info(`Signed in as ${nickname}`);
+
+    // Refresh player tracker with new nickname
+    void import('./services/analytics/PlayerTracker').then(({ default: playerTracker }) => {
+      void playerTracker.refresh();
+    });
   }, []);
 
-  // Analytics Dashboard keyboard shortcut (Ctrl+Shift+A)
+  // Analytics Dashboard keyboard shortcut (Ctrl+Shift+A) - DEV ONLY
   useEffect(() => {
+    // Only enable in development mode
+    if (!import.meta.env.DEV) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
         e.preventDefault();
@@ -355,6 +374,13 @@ const App: React.FC = () => {
         </React.Suspense>
       )}
 
+      {/* Leaderboard Panel - Desktop only, visible in MENU */}
+      {gameStatus === GameStatus.MENU && (
+        <React.Suspense fallback={null}>
+          <LeaderboardPanel />
+        </React.Suspense>
+      )}
+
       {showSettings && (
         <React.Suspense fallback={<UIFallback />}>
           <SettingsPanel onClose={() => setShowSettings(false)} />
@@ -403,8 +429,8 @@ const App: React.FC = () => {
         </React.Suspense>
       )}
 
-      {/* Analytics Dashboard - Admin only (Ctrl+Shift+A) */}
-      {showAnalytics && (
+      {/* Analytics Dashboard - DEV ONLY (Ctrl+Shift+A) */}
+      {import.meta.env.DEV && showAnalytics && (
         <React.Suspense fallback={<FallbackLoader />}>
           <AnalyticsDashboard />
           <button

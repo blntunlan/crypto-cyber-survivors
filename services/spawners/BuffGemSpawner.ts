@@ -73,6 +73,13 @@ class BuffGemSpawnerClass {
   private screenWidth: number = 800;
   private screenHeight: number = 600;
 
+  /** Game start timestamp - no spawns for first 10 seconds */
+  private gameStartTime: number = 0;
+  private static readonly GRACE_PERIOD_MS = 10000; // 10 seconds
+
+  /** Track collected permanent buffs so they don't spawn again */
+  private collectedPermanentBuffs: Set<BuffGemType> = new Set();
+
   private constructor() {
     // Listen for game reset to clear all gems
     EventBus.on('gameReset', () => {
@@ -93,6 +100,8 @@ class BuffGemSpawnerClass {
     this.activeGems = [];
     this.lastDifficulty = 1;
     this.lastSpawnTime = 0;
+    this.gameStartTime = Date.now();
+    this.collectedPermanentBuffs.clear();
     Logger.debug('[BuffGemSpawner] Initialized');
   }
 
@@ -114,6 +123,13 @@ class BuffGemSpawnerClass {
 
     // Update existing gems (pulse animation, lifetime check)
     this.updateActiveGems(now, deltaMs);
+
+    // Grace period: no spawns for first 10 seconds
+    const timeSinceStart = now - this.gameStartTime;
+    if (timeSinceStart < BuffGemSpawnerClass.GRACE_PERIOD_MS) {
+      this.lastDifficulty = difficulty;
+      return;
+    }
 
     // Check for volatility spike
     const diffChange = Math.abs(difficulty - this.lastDifficulty);
@@ -177,16 +193,23 @@ class BuffGemSpawnerClass {
    * Select a buff type weighted by rarity
    */
   private selectWeightedBuffType(types: BuffGemType[]): BuffGemType | null {
-    const totalWeight = types.reduce((sum, t) => sum + BUFF_GEM_CONFIGS[t].rarity, 0);
+    // Filter out already collected permanent buffs
+    const availableTypes = types.filter(t => !this.collectedPermanentBuffs.has(t));
+
+    if (availableTypes.length === 0) {
+      return null;
+    }
+
+    const totalWeight = availableTypes.reduce((sum, t) => sum + BUFF_GEM_CONFIGS[t].rarity, 0);
     let random = Math.random() * totalWeight;
 
-    for (const type of types) {
+    for (const type of availableTypes) {
       random -= BUFF_GEM_CONFIGS[type].rarity;
       if (random <= 0) {
         return type;
       }
     }
-    return types[0] ?? null;
+    return availableTypes[0] ?? null;
   }
 
   /**
@@ -260,6 +283,26 @@ class BuffGemSpawnerClass {
     gem.active = false;
     this.releaseGem(gem);
 
+    // Check if this is a permanent buff (duration === -1)
+    // If so, add to collected set so it won't spawn again
+    const decoratorInstance = new gem.decoratorClass({
+      getDamage: () => 0,
+      getSpeed: () => 0,
+      getFireRate: () => 0,
+      getCritChance: () => 0,
+      getCritDamage: () => 0,
+      getArmor: () => 0,
+      getMagnet: () => 0,
+      getProjectiles: () => 1,
+      getArea: () => 1,
+      getLuck: () => 0,
+    });
+
+    if (decoratorInstance.getDuration() === -1) {
+      this.collectedPermanentBuffs.add(gem.buffType);
+      Logger.info(`[BuffGemSpawner] Permanent buff collected: ${gem.buffType} - won't spawn again`);
+    }
+
     EventBus.emit('buffGemCollected', {
       type: gem.buffType,
       decoratorClass: gem.decoratorClass.name,
@@ -304,6 +347,8 @@ class BuffGemSpawnerClass {
     this.clearAll();
     this.lastDifficulty = 1;
     this.lastSpawnTime = 0;
+    this.gameStartTime = Date.now();
+    this.collectedPermanentBuffs.clear();
   }
 
   /**

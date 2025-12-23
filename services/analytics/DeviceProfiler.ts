@@ -73,8 +73,9 @@ export class DeviceProfiler {
     if (!isSupabaseConfigured() || !supabase) return;
 
     // Skip sync on localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return;
+    }
 
     const profile = this.getProfile();
 

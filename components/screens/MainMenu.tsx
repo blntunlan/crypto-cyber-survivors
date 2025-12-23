@@ -42,13 +42,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
       <div className="max-w-xl w-full text-center space-y-8">
         <header className="space-y-4 pt-12 sm:pt-0">
-          <h1 className="text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500">
+          <h1 className="font-display text-4xl sm:text-5xl tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 leading-relaxed">
             CRYPTO
             <br />
             <span style={{ color: pairConfig.color }}>SURVIVORS</span>
           </h1>
           <div className="flex flex-col items-center gap-2">
-            <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px]">
+            <p className="font-heading text-slate-500 font-medium uppercase tracking-[0.2em] text-[10px]">
               Market Sentiment Engine
             </p>
             <OptimizationBadge />
@@ -65,7 +65,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <div
-            className="text-5xl font-black tracking-tighter transition-colors duration-500"
+            className="font-heading text-5xl font-bold tracking-tight transition-colors duration-500"
             style={{ color: pairConfig.color, textShadow: `0 0 30px ${pairConfig.color}40` }}
           >
             {price > 0
@@ -116,7 +116,22 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   : 'hover:border-green-500 hover:bg-green-500/20'
               }`}
             >
-              <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">📈</div>
+              <div className="mb-2 group-hover:scale-110 transition-transform">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-green-400"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                  <polyline points="16 7 22 7 22 13" />
+                </svg>
+              </div>
               <span className="font-black text-green-500 text-lg uppercase">Long</span>
               <span className="text-[10px] text-green-500/60 mt-1">{selectedLeverage}x</span>
             </button>
@@ -129,7 +144,22 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   : 'hover:border-red-500 hover:bg-red-500/20'
               }`}
             >
-              <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">📉</div>
+              <div className="mb-2 group-hover:scale-110 transition-transform">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-red-400"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+                  <polyline points="16 17 22 17 22 11" />
+                </svg>
+              </div>
               <span className="font-black text-red-500 text-lg uppercase">Short</span>
               <span className="text-[10px] text-red-500/60 mt-1">{selectedLeverage}x</span>
             </button>

@@ -89,9 +89,12 @@ export class MetricsStorage {
       return;
     }
 
-    // Skip sync on localhost to keep data clean
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      Logger.debug('[MetricsStorage] Localhost detected, skipping Supabase sync');
+    // Check if analytics is enabled via environment variable
+    // Set VITE_ENABLE_ANALYTICS=false in .env.local to disable during development
+    const analyticsEnabled = import.meta.env.VITE_ENABLE_ANALYTICS !== 'false';
+
+    if (!analyticsEnabled) {
+      Logger.debug('[MetricsStorage] Analytics disabled via environment variable');
       return;
     }
 
