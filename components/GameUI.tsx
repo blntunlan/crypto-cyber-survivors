@@ -123,7 +123,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
             {status === GameStatus.PLAYING && <BuffIndicator status={status} />}
             {/* Mobile FPS Counter - Below LiveFeed */}
             {isMobile && showFPS && (
-              <div className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-green-500/60 text-white w-fit">
+              <div className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white w-fit">
                 <span id="fps-counter-mobile">-- FPS</span>
               </div>
             )}

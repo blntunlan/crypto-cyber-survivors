@@ -46,7 +46,7 @@ export const GraphicsSection = memo(({ isMobile }: GraphicsSectionProps) => {
                 <span className="text-xs md:text-sm font-bold text-white uppercase tracking-tighter">
                   HUD Scale
                 </span>
-                <span className="text-[10px] md:text-xs font-mono text-yellow-500">
+                <span className="text-[10px] md:text-xs font-tech text-yellow-500">
                   {Math.round(graphics.hudScale * 100)}%
                 </span>
               </div>

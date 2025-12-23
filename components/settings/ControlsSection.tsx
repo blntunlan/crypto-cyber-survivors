@@ -17,13 +17,13 @@ export const ControlsSection: React.FC = () => {
           <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">
             Movement
           </span>
-          <span className="text-xs md:text-sm font-bold text-white font-mono leading-tight">
+          <span className="text-xs md:text-sm font-bold text-white font-tech leading-tight">
             WASD / ARROWS
           </span>
         </div>
         <div className="flex flex-col">
           <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">Dash</span>
-          <span className="text-xs md:text-sm font-bold text-white font-mono leading-tight">
+          <span className="text-xs md:text-sm font-bold text-white font-tech leading-tight">
             SPACE
           </span>
         </div>
@@ -31,7 +31,7 @@ export const ControlsSection: React.FC = () => {
           <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">
             Pause
           </span>
-          <span className="text-xs md:text-sm font-bold text-white font-mono leading-tight">
+          <span className="text-xs md:text-sm font-bold text-white font-tech leading-tight">
             ESC / P
           </span>
         </div>

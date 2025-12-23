@@ -32,7 +32,7 @@ export const AudioSection = memo(() => {
       <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
         <div className="flex justify-between items-center">
           <span className="text-xs md:text-sm font-bold text-white uppercase">Master Volume</span>
-          <span className="text-[10px] md:text-xs font-mono text-slate-400">
+          <span className="text-[10px] md:text-xs font-tech text-slate-400">
             {Math.round(audioSettings.masterVolume * 100)}%
           </span>
         </div>

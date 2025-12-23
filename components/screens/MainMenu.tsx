@@ -39,10 +39,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm">
-      <div className="max-w-xl w-full text-center space-y-8">
-        <header className="space-y-4 pt-12 sm:pt-0">
-          <h1 className="font-display text-4xl sm:text-5xl tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 leading-relaxed">
+    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+      <div className="max-w-xl w-full text-center space-y-4 sm:space-y-8 py-4 sm:py-0">
+        <header className="space-y-2 sm:space-y-4">
+          <h1 className="font-display text-2xl sm:text-4xl md:text-5xl tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 leading-relaxed">
             CRYPTO
             <br />
             <span style={{ color: pairConfig.color }}>SURVIVORS</span>
@@ -55,7 +55,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
         </header>
 
-        <div className="bg-slate-900/40 border border-white/5 p-8 rounded-2xl space-y-6">
+        <div className="bg-slate-900/40 border border-white/5 p-4 sm:p-8 rounded-2xl space-y-4 sm:space-y-6">
           {/* Pair Selector */}
           <div className="space-y-3">
             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
@@ -65,7 +65,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <div
-            className="font-heading text-5xl font-bold tracking-tight transition-colors duration-500"
+            className="font-heading text-3xl sm:text-5xl font-bold tracking-tight transition-colors duration-500"
             style={{ color: pairConfig.color, textShadow: `0 0 30px ${pairConfig.color}40` }}
           >
             {price > 0
@@ -74,7 +74,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           {/* Leverage Selection */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
                 Leverage
@@ -106,24 +106,24 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           {/* Position Selection */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6">
             <button
               onClick={() => onStart(MarketPosition.LONG, selectedLeverage)}
               disabled={price === 0}
-              className={`flex flex-col items-center p-6 bg-green-500/10 border border-green-500/20 rounded-xl transition-all group ${
+              className={`flex flex-col items-center p-4 sm:p-6 bg-green-500/10 border border-green-500/20 rounded-xl transition-all group ${
                 price === 0
                   ? 'opacity-50 cursor-not-allowed grayscale'
                   : 'hover:border-green-500 hover:bg-green-500/20'
               }`}
             >
-              <div className="mb-2 group-hover:scale-110 transition-transform">
+              <div className="mb-1 sm:mb-2 group-hover:scale-110 transition-transform">
                 <svg
-                  width="48"
-                  height="48"
+                  width="36"
+                  height="36"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  className="text-green-400"
+                  className="text-green-400 sm:w-12 sm:h-12"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -138,20 +138,20 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <button
               onClick={() => onStart(MarketPosition.SHORT, selectedLeverage)}
               disabled={price === 0}
-              className={`flex flex-col items-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl transition-all group ${
+              className={`flex flex-col items-center p-4 sm:p-6 bg-red-500/10 border border-red-500/20 rounded-xl transition-all group ${
                 price === 0
                   ? 'opacity-50 cursor-not-allowed grayscale'
                   : 'hover:border-red-500 hover:bg-red-500/20'
               }`}
             >
-              <div className="mb-2 group-hover:scale-110 transition-transform">
+              <div className="mb-1 sm:mb-2 group-hover:scale-110 transition-transform">
                 <svg
-                  width="48"
-                  height="48"
+                  width="36"
+                  height="36"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  className="text-red-400"
+                  className="text-red-400 sm:w-12 sm:h-12"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -167,7 +167,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           <button
             onClick={onOpenSettings}
-            className="w-full py-4 bg-slate-800 text-white font-black uppercase text-xs tracking-widest rounded-xl border border-white/10 hover:bg-slate-700 transition-all"
+            className="w-full py-3 sm:py-4 bg-slate-800 text-white font-black uppercase text-xs tracking-widest rounded-xl border border-white/10 hover:bg-slate-700 transition-all"
           >
             Settings
           </button>

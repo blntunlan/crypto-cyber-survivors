@@ -34,7 +34,7 @@ const DesktopLiveFeed: React.FC<LiveFeedProps> = ({
           ></span>
           Live Feed
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-mono text-white">
+        <div className="flex items-center gap-2 text-[10px] font-feed text-white">
           <span className="opacity-40">{marketData.leverage}X</span>
           <span style={{ color: pairConfig.color }} className="font-black">
             {pairConfig.id}
@@ -98,7 +98,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps> = ({
           <span className="text-[8px] font-bold" style={{ color: pairConfig.color }}>
             {pairConfig.id}
           </span>
-          <div className="text-[8px] text-slate-400 font-mono opacity-60">
+          <div className="text-[8px] text-slate-400 font-feed opacity-60">
             {marketData.leverage}X
           </div>
         </div>

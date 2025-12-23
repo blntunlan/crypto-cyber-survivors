@@ -120,19 +120,7 @@ Oyuncuya anlık karar verdiren mekanik:
 | **+30%** | 💰 "Take Profit" butonu belirer | Kârı kilitle, ama 30sn buff alamazsın |
 | **+30%** | 💎 "Diamond Hands" | Kârı tutmaya devam, risk artar |
 | **-30%** | 🛑 "Stop Loss" butonu belirer | Zararı kabul et, difficulty reset |
-| **-30%** | 🎲 "Double Down" | Leverage 2x, ya kurtul ya bat |
-
----
-
-### Konsept 4: "Trend Following Enemies"
-
-PnL'in **yönü** (trend) de önemli:
-
-| Trend | Durum | Enemy Davranışı |
-|-------|-------|-----------------|
-| 📈 **Uptrend** (PnL artıyor) | Düşmanlar "kaçmaya" başlar | Kovalaman lazım, ama spawn azalır |
-| 📉 **Downtrend** (PnL düşüyor) | Düşmanlar "kovalar" | Kaçman lazım, spawn artar |
-| ↔️ **Sideways** (PnL stabil) | Düşmanlar "bekler" | Ani saldırı riski, tahmin edilemez |
+| **-30%** | 🎲 "Double Down" | Leverage 2x, ya kurtul ya bat max 50x kaldıraçla girenlere bu şansı sun|
 
 ---
 

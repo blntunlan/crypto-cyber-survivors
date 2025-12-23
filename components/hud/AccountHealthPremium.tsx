@@ -59,7 +59,9 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
       }`}
     >
       {/* Top Info Bar */}
-      <div className={`w-full flex justify-between items-end mb-2 px-1 font-mono tracking-tighter`}>
+      <div
+        className={`w-full flex justify-between items-end mb-2 px-1 font-stats tracking-tighter`}
+      >
         <div className="flex flex-col">
           <span className="text-[10px] text-slate-500 font-bold uppercase opacity-60">
             System Phase

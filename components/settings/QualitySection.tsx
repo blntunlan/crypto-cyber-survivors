@@ -91,7 +91,7 @@ export const QualitySection = memo(() => {
           ))}
         </div>
 
-        <div className="text-[10px] text-slate-400 font-mono text-center">
+        <div className="text-[10px] text-slate-400 font-tech text-center">
           {currentProfile === DeviceProfile.ULTRA &&
             'Cinematic lighting, max effects (High-end only)'}
           {currentProfile === DeviceProfile.HIGH && 'Full effects, shadows enabled'}

@@ -124,7 +124,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
 
   return (
     <motion.div
-      className="fixed right-4 top-20 z-[100] w-72 font-mono hidden lg:block"
+      className="fixed right-4 top-20 z-[100] w-72 font-feed hidden lg:block"
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: 0.5 }}

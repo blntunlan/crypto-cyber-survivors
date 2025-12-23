@@ -104,7 +104,7 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       {remainingSeconds !== null && (
         <span
           className={`
-            text-xs font-mono ml-1 px-1.5 py-0.5 rounded
+            text-xs font-stats ml-1 px-1.5 py-0.5 rounded
             ${
               remainingSeconds <= 3
                 ? 'bg-red-600/80 text-white animate-pulse'
