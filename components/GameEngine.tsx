@@ -9,7 +9,7 @@ import {
 } from '../types';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { audio } from '../services/audioService';
-import { PoolManager } from '../services/poolManager';
+import { PoolManager } from '../services/PoolManager';
 import { GameRenderer } from '../services/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
 import { EventBus } from '../services/EventBus';

@@ -1,10 +1,11 @@
-import React, { useEffect, useState, memo, useMemo } from 'react';
+import React, { useEffect, useState, memo, useMemo, useRef } from 'react';
 import { type MarketPosition, type MarketData, type Player, GameStatus } from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
 import { useGameStore } from '../stores/gameStore';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { EventBus } from '../services/EventBus';
+import { Logger } from '../services/Logger';
 
 import { KernelStatus, LiveFeed, AccountHealthPremium, BuffIndicator } from './hud';
 
@@ -48,8 +49,11 @@ export const GameUI: React.FC<GameUIProps> = memo(
             armor: decorated.getArmor(),
             area: decorated.getArea(),
           };
-        } catch {
-          // Fallback to player stats
+        } catch (err) {
+          // Fallback to player stats - BuffManager may not be ready
+          Logger.debug('[GameUI] BuffManager not ready, using player stats', {
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       }
       return {
@@ -87,15 +91,30 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
     const hpPercent = (smoothValues.hp / player.maxHp) * 100;
 
+    // FIXED: Store timeout ref to prevent memory leaks and unmount errors
+    const priceColorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useEffect(() => {
+      // Clear previous timeout before setting new one
+      if (priceColorTimeoutRef.current) {
+        clearTimeout(priceColorTimeoutRef.current);
+      }
+
       if (marketData.price > lastPrice) {
         setPriceColor('text-green-400 animate-pulse');
-        setTimeout(() => setPriceColor('text-green-400'), 300);
+        priceColorTimeoutRef.current = setTimeout(() => setPriceColor('text-green-400'), 300);
       } else if (marketData.price < lastPrice) {
         setPriceColor('text-red-400 animate-pulse');
-        setTimeout(() => setPriceColor('text-red-400'), 300);
+        priceColorTimeoutRef.current = setTimeout(() => setPriceColor('text-red-400'), 300);
       }
       setLastPrice(marketData.price);
+
+      // Cleanup on unmount
+      return () => {
+        if (priceColorTimeoutRef.current) {
+          clearTimeout(priceColorTimeoutRef.current);
+        }
+      };
     }, [marketData.price, lastPrice]);
 
     const isMobile = screenService.isMobile();

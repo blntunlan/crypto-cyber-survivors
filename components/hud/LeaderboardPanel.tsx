@@ -42,7 +42,94 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
   const currentNickname = UserSessionService.getNickname();
 
   const fetchLeaderboard = useCallback(async () => {
+    // MOCK DATA for Phase A
+    // Since Phase B (Supabase integration) is not yet complete for leaderboard
+    const MOCK_ENTRIES: LeaderboardEntry[] = [
+      {
+        id: '1',
+        player_name: 'Satoshi_Nakamoto',
+        score: 1000000,
+        survival_time_ms: 1800000,
+        created_at: new Date().toISOString(),
+        rank: 1,
+      },
+      {
+        id: '2',
+        player_name: 'Vitalik_B',
+        score: 850000,
+        survival_time_ms: 1500000,
+        created_at: new Date().toISOString(),
+        rank: 2,
+      },
+      {
+        id: '3',
+        player_name: 'CZ_Binance',
+        score: 720000,
+        survival_time_ms: 1200000,
+        created_at: new Date().toISOString(),
+        rank: 3,
+      },
+      {
+        id: '4',
+        player_name: 'Elon_Doge',
+        score: 500000,
+        survival_time_ms: 900000,
+        created_at: new Date().toISOString(),
+        rank: 4,
+      },
+      {
+        id: '5',
+        player_name: 'Michael_Saylor',
+        score: 450000,
+        survival_time_ms: 850000,
+        created_at: new Date().toISOString(),
+        rank: 5,
+      },
+      {
+        id: '6',
+        player_name: 'Crypto_Whale',
+        score: 300000,
+        survival_time_ms: 600000,
+        created_at: new Date().toISOString(),
+        rank: 6,
+      },
+      {
+        id: '7',
+        player_name: 'Diamond_Hands',
+        score: 250000,
+        survival_time_ms: 500000,
+        created_at: new Date().toISOString(),
+        rank: 7,
+      },
+      {
+        id: '8',
+        player_name: 'HODLer_01',
+        score: 150000,
+        survival_time_ms: 300000,
+        created_at: new Date().toISOString(),
+        rank: 8,
+      },
+      {
+        id: '9',
+        player_name: 'Paper_Hands',
+        score: 50000,
+        survival_time_ms: 100000,
+        created_at: new Date().toISOString(),
+        rank: 9,
+      },
+      {
+        id: '10',
+        player_name: 'Rekt_Plebs',
+        score: 10000,
+        survival_time_ms: 50000,
+        created_at: new Date().toISOString(),
+        rank: 10,
+      },
+    ];
+
     if (!isSupabaseConfigured() || !supabase) {
+      setEntries(MOCK_ENTRIES);
+      setLastUpdated(new Date());
       setLoading(false);
       return;
     }
@@ -54,19 +141,26 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
         .order('score', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        // Fallback to mock data if table doesn't exist yet
+        Logger.warn('[Leaderboard] Fetch failed, using mock data', error);
+        setEntries(MOCK_ENTRIES);
+        setLastUpdated(new Date());
+      } else {
+        // Add rank to entries
+        const rankedEntries = data.map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
 
-      // Add rank to entries
-      const rankedEntries = data.map((entry, index) => ({
-        ...entry,
-        rank: index + 1,
-      }));
-
-      setEntries(rankedEntries);
-      setLastUpdated(new Date());
-      Logger.debug('[Leaderboard] Fetched', { count: rankedEntries.length });
+        setEntries(rankedEntries);
+        setLastUpdated(new Date());
+        Logger.debug('[Leaderboard] Fetched', { count: rankedEntries.length });
+      }
     } catch (err) {
       Logger.error('[Leaderboard] Fetch failed', err);
+      // Fallback on crash
+      setEntries(MOCK_ENTRIES);
     } finally {
       setLoading(false);
     }
