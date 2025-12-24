@@ -27,7 +27,7 @@ export const PLAYER_STATS = {
   // =========================
   // MOVEMENT STATS
   // =========================
-  INITIAL_SPEED: 4,
+  INITIAL_SPEED: 5,
 
   // =========================
   // ECONOMY STATS
@@ -51,7 +51,7 @@ export const PLAYER_STATS = {
   MAX_FIRE_RATE: 50, // minimum ms between shots
   MAX_CRIT_CHANCE: 0.95, // 95% max
   MAX_ARMOR: 15, // 75% damage reduction at max
-  MAX_SPEED: 12,
+  MAX_SPEED: 15,
   MAX_LUCK: 15,
   MAX_PROJECTILES: 8,
   MAX_DODGE: 0.5, // 50%
