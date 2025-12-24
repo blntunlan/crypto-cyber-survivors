@@ -360,10 +360,11 @@ describe('CardSystem', () => {
 
       it('should have no duplicate card ids', () => {
         const choices = CardSystem.generateChoices(10, 15);
+        expect(choices).toHaveLength(3);
 
-        const id1 = choices[0].id;
-        const id2 = choices[1].id;
-        const id3 = choices[2].id;
+        const id1 = choices[0]!.id;
+        const id2 = choices[1]!.id;
+        const id3 = choices[2]!.id;
 
         expect(id1).not.toBe(id2);
         expect(id2).not.toBe(id3);
@@ -385,8 +386,10 @@ describe('CardSystem', () => {
 
         // Verify sorting order
         for (let i = 0; i < choices.length - 1; i++) {
-          const currentTierIndex = TIER_ORDER.indexOf(choices[i].tier);
-          const nextTierIndex = TIER_ORDER.indexOf(choices[i + 1].tier);
+          const current = choices[i]!;
+          const next = choices[i + 1]!;
+          const currentTierIndex = TIER_ORDER.indexOf(current.tier);
+          const nextTierIndex = TIER_ORDER.indexOf(next.tier);
           expect(currentTierIndex).toBeLessThanOrEqual(nextTierIndex);
         }
 
@@ -402,8 +405,10 @@ describe('CardSystem', () => {
           if (hasMixedTiers) {
             // Check order - higher tier cards should come first
             for (let j = 0; j < choices.length - 1; j++) {
-              const currentIndex = TIER_ORDER.indexOf(choices[j].tier);
-              const nextIndex = TIER_ORDER.indexOf(choices[j + 1].tier);
+              const current = choices[j]!;
+              const next = choices[j + 1]!;
+              const currentIndex = TIER_ORDER.indexOf(current.tier);
+              const nextIndex = TIER_ORDER.indexOf(next.tier);
               expect(currentIndex).toBeLessThanOrEqual(nextIndex);
             }
           }
