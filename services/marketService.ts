@@ -230,6 +230,19 @@ export class MarketService {
       this.binanceSocket.onmessage = event => {
         try {
           const rawData = JSON.parse(event.data);
+
+          // CRITICAL: Validate that the message is for the correct pair
+          // Binance kline messages have 's' (symbol) field, kline data has 'k.s'
+          const messageSymbol = rawData.s ?? rawData.k?.s;
+          const expectedSymbol = this.config.symbol; // e.g., 'BTCUSDT'
+
+          if (messageSymbol && messageSymbol.toUpperCase() !== expectedSymbol.toUpperCase()) {
+            Logger.debug(
+              `[Market] Ignoring Binance message for wrong pair: ${messageSymbol} (expected: ${expectedSymbol})`
+            );
+            return;
+          }
+
           const update = parseBinanceData(rawData);
 
           if (update) {
@@ -237,8 +250,10 @@ export class MarketService {
             this.lastPriceTime = Date.now();
             this.onDataCallback({ ...update, pair: this.pair });
           }
-        } catch {
-          Logger.warn('[Market] Failed to parse Binance message');
+        } catch (err) {
+          Logger.warn('[Market] Failed to parse Binance message', {
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       };
 
@@ -308,6 +323,15 @@ export class MarketService {
             return;
           }
 
+          // CRITICAL: Validate that the message is for the correct pair
+          // This prevents data corruption when multiple pairs might be subscribed
+          if (rawData.product_id && rawData.product_id !== this.config.coinbaseProductId) {
+            Logger.debug(
+              `[Market] Ignoring Coinbase message for wrong pair: ${rawData.product_id} (expected: ${this.config.coinbaseProductId})`
+            );
+            return;
+          }
+
           const update = parseCoinbaseData(rawData);
 
           if (update) {
@@ -315,8 +339,10 @@ export class MarketService {
             this.lastPriceTime = Date.now();
             this.onDataCallback({ ...update, pair: this.pair });
           }
-        } catch {
-          Logger.warn('[Market] Failed to parse Coinbase message');
+        } catch (err) {
+          Logger.warn('[Market] Failed to parse Coinbase message', {
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       };
 

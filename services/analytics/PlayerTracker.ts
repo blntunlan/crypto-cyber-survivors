@@ -243,6 +243,16 @@ export class PlayerTracker {
     this.currentPlayer = null;
     Logger.info('[PlayerTracker] Stopped');
   }
+
+  /**
+   * Reset instance for testing
+   */
+  static resetForTesting(): void {
+    if (PlayerTracker.instance) {
+      PlayerTracker.instance.stop();
+      PlayerTracker.instance = null;
+    }
+  }
 }
 
 // Auto-initialize on import

@@ -5,6 +5,8 @@
  * Automatically disabled in production.
  */
 
+import { EventBus } from './EventBus';
+
 export interface CheatCallbacks {
   onLevelUp: () => void;
   onHeal: () => void;
@@ -29,10 +31,27 @@ class CheatManagerClass {
   private initialized: boolean = false;
   private boundHandleKeyDown: ((e: KeyboardEvent) => void) | null = null;
 
-  private constructor() {}
+  private constructor() {
+    // FIXED: Listen to gameReset to clear cheat states between games
+    EventBus.on('gameReset', () => this.reset());
+  }
 
   static getInstance(): CheatManagerClass {
     return (CheatManagerClass.instance ??= new CheatManagerClass());
+  }
+
+  /**
+   * Reset cheat states for new game session
+   */
+  reset(): void {
+    this.godMode = false;
+    this.forcedCrit = false;
+    this.forcedSuperCrit = false;
+    this.cheatBuffer = '';
+    if (this.cheatTimeout) {
+      clearTimeout(this.cheatTimeout);
+      this.cheatTimeout = null;
+    }
   }
 
   /**

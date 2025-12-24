@@ -38,7 +38,7 @@ import { MetricsCompiler } from './metrics/MetricsCompiler';
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
 
-class MetricsServiceClass {
+export class MetricsServiceClass {
   private static instance: MetricsServiceClass | null = null;
   private state: MetricsState | null = null;
   private storedSessions: SessionMetrics[] = [];
@@ -1085,6 +1085,17 @@ class MetricsServiceClass {
    */
   getConfig(): MetricsConfig {
     return { ...this.config };
+  }
+
+  /**
+   * Reset for testing purposes
+   */
+  resetStateForTesting(): void {
+    this.eventUnsubscribers.forEach(unsub => unsub());
+    this.eventUnsubscribers = [];
+    this.state = null;
+    this.storedSessions = [];
+    this.setupEventListeners();
   }
 }
 

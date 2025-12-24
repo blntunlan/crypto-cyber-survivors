@@ -23,7 +23,7 @@ export const PLAYER_DEFAULTS = {
   level: 1,
   exp: 0,
   nextLevelExp: 100,
-  speed: 4,
+  speed: 5,
   fireRate: 400, // INITIAL_FIRE_RATE
   critChance: 0.05,
   baseDamage: 25,

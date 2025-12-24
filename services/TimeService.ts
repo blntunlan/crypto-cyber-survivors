@@ -26,6 +26,9 @@ class TimeServiceClass {
   // Whether the game clock is currently active
   private isPaused: boolean = true;
 
+  // FIXED: Store unsubscribe functions for proper cleanup
+  private unsubscribeFns: (() => void)[] = [];
+
   private constructor() {
     this.setupListeners();
   }
@@ -35,9 +38,11 @@ class TimeServiceClass {
   }
 
   private setupListeners(): void {
-    // Listen for game reset to reset clocks
-    EventBus.on('gameReset', () => this.reset());
-    EventBus.on('beforeReset', () => this.reset());
+    // FIXED: Store unsubscribe functions
+    this.unsubscribeFns.push(
+      EventBus.on('gameReset', () => this.reset()),
+      EventBus.on('beforeReset', () => this.reset())
+    );
   }
 
   /**
@@ -139,6 +144,17 @@ class TimeServiceClass {
    */
   isClockPaused(): boolean {
     return this.isPaused;
+  }
+
+  /**
+   * Reset for testing - cleanup EventBus listeners
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      this.instance.unsubscribeFns.forEach(unsub => unsub());
+      this.instance.unsubscribeFns = [];
+      this.instance = null;
+    }
   }
 }
 

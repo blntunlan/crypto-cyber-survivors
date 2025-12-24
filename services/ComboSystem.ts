@@ -60,6 +60,9 @@ class ComboSystemClass {
   private lastMilestoneSoundTime = 0; // For sound cooldown
   private static readonly MILESTONE_SOUND_COOLDOWN = 300; // ms
 
+  // FIXED: Store unsubscribe functions for proper cleanup
+  private unsubscribeFns: (() => void)[] = [];
+
   private constructor() {
     this.setupListeners();
   }
@@ -69,23 +72,25 @@ class ComboSystemClass {
   }
 
   private setupListeners(): void {
-    EventBus.on('enemyKilled', () => {
-      this.recordKill();
-    });
-
-    EventBus.on('gemCollected', data => {
-      if (this.state.killStreak > 0) {
-        const bonus = Math.floor(data.value * this.state.comboMultiplier) - data.value;
-        if (bonus > 0) {
-          this.state.totalBonusXp += bonus;
-          EventBus.emit('comboUpdate', {
-            killStreak: this.state.killStreak,
-            multiplier: this.state.comboMultiplier,
-            totalBonusXp: this.state.totalBonusXp,
-          });
+    // FIXED: Store unsubscribe functions
+    this.unsubscribeFns.push(
+      EventBus.on('enemyKilled', () => {
+        this.recordKill();
+      }),
+      EventBus.on('gemCollected', data => {
+        if (this.state.killStreak > 0) {
+          const bonus = Math.floor(data.value * this.state.comboMultiplier) - data.value;
+          if (bonus > 0) {
+            this.state.totalBonusXp += bonus;
+            EventBus.emit('comboUpdate', {
+              killStreak: this.state.killStreak,
+              multiplier: this.state.comboMultiplier,
+              totalBonusXp: this.state.totalBonusXp,
+            });
+          }
         }
-      }
-    });
+      })
+    );
   }
 
   /**
@@ -263,6 +268,17 @@ class ComboSystemClass {
       return COMBO_MILESTONES[nextIndex] ?? null;
     }
     return null;
+  }
+
+  /**
+   * Reset for testing - cleanup EventBus listeners
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      this.instance.unsubscribeFns.forEach(unsub => unsub());
+      this.instance.unsubscribeFns = [];
+      this.instance = null;
+    }
   }
 }
 

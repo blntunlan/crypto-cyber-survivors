@@ -26,7 +26,7 @@ import {
 
 const MANUAL_PROFILE_KEY = 'ccs_manual_perf_profile';
 
-class DeviceBenchmarkServiceClass {
+export class DeviceBenchmarkServiceClass {
   private state: BenchmarkState = {
     status: BenchmarkStatus.IDLE,
     progress: 0,
@@ -39,6 +39,22 @@ class DeviceBenchmarkServiceClass {
   private cachedConfig: PerformanceConfig | null = null;
 
   constructor() {
+    this.loadManualProfile();
+  }
+
+  /**
+   * Reset state for testing
+   */
+  resetStateForTesting(): void {
+    this.state = {
+      status: BenchmarkStatus.IDLE,
+      progress: 0,
+      currentTest: '',
+      result: null,
+      error: null,
+    };
+    this.listeners.clear();
+    this.cachedConfig = null;
     this.loadManualProfile();
   }
 

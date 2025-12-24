@@ -187,4 +187,12 @@ export class UserSessionService {
     this.cachedUser = null;
     Logger.info('[UserSession] User identity cleared');
   }
+
+  /**
+   * Reset for testing purposes.
+   */
+  static resetForTesting(): void {
+    this.cachedUser = null;
+    localStorage.clear();
+  }
 }

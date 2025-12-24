@@ -109,6 +109,14 @@ export class ErrorTracker {
   private originalConsoleError: typeof console.error;
   private tags: string[] = [];
 
+  // FIXED: Store references for proper cleanup
+  private queueProcessorInterval: ReturnType<typeof setInterval> | null = null;
+  private boundErrorHandler: ((event: ErrorEvent) => void) | null = null;
+  private boundRejectionHandler: ((event: PromiseRejectionEvent) => void) | null = null;
+  private boundOnlineHandler: (() => void) | null = null;
+  private boundOfflineHandler: (() => void) | null = null;
+  private boundResourceHandler: ((event: Event) => void) | null = null;
+
   private constructor() {
     this.originalConsoleError = console.error.bind(console);
     this.loadQueue();
@@ -331,8 +339,8 @@ export class ErrorTracker {
   // ============================================
 
   private setupGlobalHandlers(): void {
-    // Unhandled errors
-    window.addEventListener('error', event => {
+    // FIXED: Store handler references for cleanup
+    this.boundErrorHandler = (event: ErrorEvent) => {
       this.captureError({
         errorType: 'UnhandledError',
         errorMessage: event.message || 'Unknown error',
@@ -346,10 +354,9 @@ export class ErrorTracker {
         },
         tags: ['unhandled'],
       });
-    });
+    };
 
-    // Unhandled promise rejections
-    window.addEventListener('unhandledrejection', event => {
+    this.boundRejectionHandler = (event: PromiseRejectionEvent) => {
       const message = event.reason?.message ?? String(event.reason);
       this.captureError({
         errorType: 'UnhandledPromiseRejection',
@@ -362,24 +369,31 @@ export class ErrorTracker {
         },
         tags: ['unhandled', 'promise'],
       });
-    });
+    };
+
+    window.addEventListener('error', this.boundErrorHandler);
+    window.addEventListener('unhandledrejection', this.boundRejectionHandler);
 
     Logger.info('[ErrorTracker] Global error handlers installed');
   }
 
   private setupNetworkMonitoring(): void {
-    window.addEventListener('online', () => {
+    // FIXED: Store handler references for cleanup
+    this.boundOnlineHandler = () => {
       this.isOnline = true;
       this.addBreadcrumb('network', 'Online');
       Logger.info('[ErrorTracker] Network online - processing queue');
       void this.processQueue();
-    });
+    };
 
-    window.addEventListener('offline', () => {
+    this.boundOfflineHandler = () => {
       this.isOnline = false;
       this.addBreadcrumb('network', 'Offline');
       Logger.warn('[ErrorTracker] Network offline - queueing errors');
-    });
+    };
+
+    window.addEventListener('online', this.boundOnlineHandler);
+    window.addEventListener('offline', this.boundOfflineHandler);
 
     // Intercept fetch
     const originalFetch = window.fetch;
@@ -414,28 +428,26 @@ export class ErrorTracker {
   }
 
   private setupResourceMonitoring(): void {
-    // Track resource loading errors (images, scripts, etc.)
-    window.addEventListener(
-      'error',
-      event => {
-        const target = event.target;
-        if (target && target instanceof Element && 'src' in target) {
-          const src = (target as HTMLImageElement | HTMLScriptElement).src;
-          this.captureError({
-            errorType: 'ResourceLoadError',
-            errorMessage: `Failed to load resource: ${src}`,
-            category: 'resource',
-            severity: 'low',
-            context: {
-              tagName: target.tagName,
-              src: this.sanitizeUrl(src),
-            },
-            tags: ['resource', target.tagName.toLowerCase()],
-          });
-        }
-      },
-      true
-    );
+    // FIXED: Store handler reference for cleanup
+    this.boundResourceHandler = (event: Event) => {
+      const target = event.target;
+      if (target && target instanceof Element && 'src' in target) {
+        const src = (target as HTMLImageElement | HTMLScriptElement).src;
+        this.captureError({
+          errorType: 'ResourceLoadError',
+          errorMessage: `Failed to load resource: ${src}`,
+          category: 'resource',
+          severity: 'low',
+          context: {
+            tagName: target.tagName,
+            src: this.sanitizeUrl(src),
+          },
+          tags: ['resource', target.tagName.toLowerCase()],
+        });
+      }
+    };
+
+    window.addEventListener('error', this.boundResourceHandler, true);
   }
 
   private setupConsoleInterception(): void {
@@ -463,7 +475,8 @@ export class ErrorTracker {
   }
 
   private startQueueProcessor(): void {
-    setInterval(() => {
+    // FIXED: Store interval reference for cleanup
+    this.queueProcessorInterval = setInterval(() => {
       if (this.isOnline && this.errorQueue.length > 0) {
         void this.processQueue();
       }
@@ -677,6 +690,40 @@ export class ErrorTracker {
       hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * Reset for testing purposes - now with proper cleanup!
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      // Restore original console.error
+      console.error = this.instance.originalConsoleError;
+
+      // FIXED: Clear interval
+      if (this.instance.queueProcessorInterval) {
+        clearInterval(this.instance.queueProcessorInterval);
+      }
+
+      // FIXED: Remove event listeners
+      if (this.instance.boundErrorHandler) {
+        window.removeEventListener('error', this.instance.boundErrorHandler);
+      }
+      if (this.instance.boundRejectionHandler) {
+        window.removeEventListener('unhandledrejection', this.instance.boundRejectionHandler);
+      }
+      if (this.instance.boundOnlineHandler) {
+        window.removeEventListener('online', this.instance.boundOnlineHandler);
+      }
+      if (this.instance.boundOfflineHandler) {
+        window.removeEventListener('offline', this.instance.boundOfflineHandler);
+      }
+      if (this.instance.boundResourceHandler) {
+        window.removeEventListener('error', this.instance.boundResourceHandler, true);
+      }
+
+      this.instance = null;
+    }
   }
 }
 

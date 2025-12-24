@@ -91,11 +91,20 @@ class MilestoneServiceClass {
   private achievedMilestones: Set<string> = new Set();
   private totalKills: number = 0;
 
+  // FIXED: Store unsubscribe functions for proper cleanup
+  private unsubscribeFns: (() => void)[] = [];
+
   private constructor() {
-    // Subscribe to game events
-    EventBus.on('enemyKilled', () => this.recordKill());
-    EventBus.on('levelUpComplete', data => this.recordLevelUp(data.newLevel));
-    EventBus.on('gameReset', () => this.reset());
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
+    // Subscribe to game events and store unsubscribe functions
+    this.unsubscribeFns.push(
+      EventBus.on('enemyKilled', () => this.recordKill()),
+      EventBus.on('levelUpComplete', data => this.recordLevelUp(data.newLevel)),
+      EventBus.on('gameReset', () => this.reset())
+    );
   }
 
   static getInstance(): MilestoneServiceClass {
@@ -172,6 +181,18 @@ class MilestoneServiceClass {
    */
   getAchievedMilestones(): string[] {
     return Array.from(this.achievedMilestones);
+  }
+
+  /**
+   * Reset for testing - cleanup EventBus listeners
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      // Unsubscribe all listeners
+      this.instance.unsubscribeFns.forEach(unsub => unsub());
+      this.instance.unsubscribeFns = [];
+      this.instance = null;
+    }
   }
 }
 

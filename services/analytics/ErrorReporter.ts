@@ -123,4 +123,12 @@ export class ErrorReporter {
 
     Logger.info('[ErrorReporter] Initialized global handlers');
   }
+
+  /**
+   * Reset for testing purposes.
+   */
+  static resetForTesting(): void {
+    this.errorCounts.clear();
+    this.lastReportTime.clear();
+  }
 }

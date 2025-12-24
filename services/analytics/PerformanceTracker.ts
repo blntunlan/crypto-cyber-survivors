@@ -130,4 +130,14 @@ export class PerformanceTracker {
 
     return Math.round(1000 / onePercentTime);
   }
+
+  /**
+   * Reset for testing purposes.
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      this.instance.stop();
+      this.instance = undefined;
+    }
+  }
 }

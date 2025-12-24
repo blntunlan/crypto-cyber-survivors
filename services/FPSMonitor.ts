@@ -8,6 +8,7 @@
 import { DeviceBenchmarkService } from './DeviceBenchmarkService';
 import { DeviceProfile } from '../types/DeviceProfile';
 import { Logger } from './Logger';
+import { EventBus } from './EventBus';
 
 // Config
 const CONFIG = {
@@ -29,6 +30,22 @@ class FPSMonitorClass {
     DeviceProfile.HIGH,
     DeviceProfile.ULTRA,
   ];
+
+  constructor() {
+    // FIXED: Listen to gameReset to clear state between games
+    EventBus.on('gameReset', () => this.reset());
+  }
+
+  /**
+   * Reset state for new game session
+   */
+  public reset(): void {
+    this.frames = [];
+    this.lastTime = 0;
+    this.lastCheckTime = 0;
+    // Note: Don't stop monitoring, just clear accumulated data
+    Logger.debug('[FPSMonitor] State reset for new game');
+  }
 
   /**
    * Start monitoring frame loop
