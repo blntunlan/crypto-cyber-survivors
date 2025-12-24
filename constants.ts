@@ -39,13 +39,16 @@ export const GAME_ENGINE = {
 // EXTERNAL APIs
 // =============================================================================
 
-// Dynamic WS URL generation
+// Dynamic WS URL generation - BINANCE SPOT with kline data
+// Note: Using spot stream (stream.binance.com) instead of futures (fstream)
+// Spot API has better global availability and works in regions where futures is blocked
 export const getBinanceWsUrl = (pair: CryptoPair): string => {
   const config = CRYPTO_PAIRS[pair];
-  return `wss://stream.binance.com:9443/ws/${config.binanceSymbol}@ticker`;
+  // Using Spot stream with 1-second kline for real-time updates
+  return `wss://stream.binance.com:9443/ws/${config.binanceSymbol}@kline_1s`;
 };
 
-// Note: @ticker provides 1-second updates, @kline_1m was 1-minute
+// Note: @kline_1s provides 1-second candle updates from Spot market
 // Legacy export for backward compatibility
 export const BINANCE_WS_URL = getBinanceWsUrl('BTC');
 export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';

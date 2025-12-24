@@ -33,6 +33,15 @@ export class PoolManager {
   private freeParticles: Particle[] = [];
   private freeFloatingTexts: FloatingText[] = [];
 
+  // Maximum active entities to prevent memory issues
+  private static readonly MAX_ACTIVE = {
+    enemies: 150,
+    bullets: 500,
+    particles: 400,
+    gems: 100,
+    texts: 50,
+  };
+
   constructor() {}
 
   /**
@@ -151,6 +160,15 @@ export class PoolManager {
     isCrit: boolean,
     isSuperCrit: boolean
   ): Bullet {
+    // Enforce limit - recycle oldest if at capacity
+    if (this.activeBullets.length >= PoolManager.MAX_ACTIVE.bullets) {
+      const oldest = this.activeBullets.shift();
+      if (oldest) {
+        oldest.active = false;
+        this.freeBullets.push(oldest);
+      }
+    }
+
     let obj = this.freeBullets.pop();
     if (!obj) {
       obj = { active: true, x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit };
@@ -175,6 +193,15 @@ export class PoolManager {
   }
 
   getParticle(x: number, y: number, vx: number, vy: number, color: string): Particle {
+    // Enforce limit - recycle oldest if at capacity
+    if (this.activeParticles.length >= PoolManager.MAX_ACTIVE.particles) {
+      const oldest = this.activeParticles.shift();
+      if (oldest) {
+        oldest.active = false;
+        this.freeParticles.push(oldest);
+      }
+    }
+
     let obj = this.freeParticles.pop();
     if (!obj) {
       obj = { active: true, x, y, vx, vy, color, radius: 2, life: 1 };

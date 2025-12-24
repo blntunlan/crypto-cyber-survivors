@@ -103,6 +103,7 @@ describe('PhysicsSystem', () => {
       isDashing: false,
       dashTimer: 0,
       dashCooldownTimer: 0,
+      isGameOverTriggered: false,
     };
 
     mockOnGameOver = vi.fn();

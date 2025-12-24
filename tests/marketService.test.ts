@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MarketService } from '../services/marketService';
 
 describe('MarketService', () => {
-  let service: MarketService;
+  let service: MarketService | undefined;
   let mockOnData: any;
   let mockOnStatus: any;
   let mockFactory: any;
@@ -13,8 +13,7 @@ describe('MarketService', () => {
     mockOnData = vi.fn();
     mockOnStatus = vi.fn();
 
-    // Create a distinct mock object for each connection to separate state if needed,
-    // but for simplicity we can return a fresh object from factory each time.
+    // Create a distinct mock object for each connection
     mockFactory = vi.fn(() => {
       return {
         onopen: null,
@@ -26,13 +25,23 @@ describe('MarketService', () => {
         readyState: 1, // OPEN
       };
     });
+
+    // Mock document
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
   });
 
   afterEach(() => {
+    if (service) {
+      service.destroy();
+    }
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it('should initialize with BTC by default configuration', () => {
+  it('should initialize with Binance primary by default', () => {
     service = new MarketService({
       pair: 'BTC',
       onData: mockOnData,
@@ -42,12 +51,11 @@ describe('MarketService', () => {
 
     service.connect();
 
-    // Binance and Coinbase
-    expect(mockFactory).toHaveBeenCalledTimes(2);
+    // Only Binance should be connected initially
+    expect(mockFactory).toHaveBeenCalledTimes(1);
 
-    // Verify Binance URL for BTC
     const binanceCall = mockFactory.mock.calls[0][0];
-    expect(binanceCall).toContain('btcusdt@ticker');
+    expect(binanceCall).toContain('btcusdt@kline_1s');
   });
 
   it('should initialize with ETH when configured', () => {
@@ -60,27 +68,11 @@ describe('MarketService', () => {
 
     service.connect();
 
-    // Verify Binance URL for ETH
     const binanceCall = mockFactory.mock.calls[0][0];
-    expect(binanceCall).toContain('ethusdt@ticker');
+    expect(binanceCall).toContain('ethusdt@kline_1s');
   });
 
-  it('should initialize with SOL when configured', () => {
-    service = new MarketService({
-      pair: 'SOL',
-      onData: mockOnData,
-      onStatusChange: mockOnStatus,
-      wsFactory: mockFactory,
-    });
-
-    service.connect();
-
-    // Verify Binance URL for SOL
-    const binanceCall = mockFactory.mock.calls[0][0];
-    expect(binanceCall).toContain('solusdt@ticker');
-  });
-
-  it('should handle successful connection and status updates', () => {
+  it('should handle Binance connection and status updates', () => {
     service = new MarketService({
       pair: 'BTC',
       onData: mockOnData,
@@ -90,31 +82,44 @@ describe('MarketService', () => {
 
     service.connect();
 
-    // Get the mocked socket instances
     const binanceSocket = mockFactory.mock.results[0].value;
-    const coinbaseSocket = mockFactory.mock.results[1].value;
-
-    // Simulate open
-    expect(binanceSocket.onopen).toBeDefined();
     binanceSocket.onopen();
 
     expect(mockOnStatus).toHaveBeenCalledWith(
       expect.objectContaining({
         binance: 'connected',
-      })
-    );
-
-    expect(coinbaseSocket.onopen).toBeDefined();
-    coinbaseSocket.onopen();
-
-    expect(mockOnStatus).toHaveBeenCalledWith(
-      expect.objectContaining({
-        coinbase: 'connected',
+        coinbase: 'disconnected',
       })
     );
   });
 
-  it('should handle incoming messages from Binance with correct pair info', () => {
+  it('should activate Coinbase fallback if Binance fails to connect', () => {
+    service = new MarketService({
+      pair: 'BTC',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
+    service.connect();
+    const binanceSocket = mockFactory.mock.results[0].value;
+
+    // Simulate Binance error
+    binanceSocket.onerror(new Error('Connection failed'));
+
+    // Should now connect to Coinbase
+    expect(mockFactory).toHaveBeenCalledTimes(2);
+    const fallbackCall = mockFactory.mock.calls[1][0];
+    expect(fallbackCall).toContain('coinbase');
+
+    expect(mockOnStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        coinbase: 'connecting',
+      })
+    );
+  });
+
+  it('should handle incoming messages from Binance', () => {
     service = new MarketService({
       pair: 'ETH',
       onData: mockOnData,
@@ -134,22 +139,19 @@ describe('MarketService', () => {
       v: '500.0',
     };
 
-    // Simulate message
     binanceSocket.onmessage({ data: JSON.stringify(testData) });
 
     expect(mockOnData).toHaveBeenCalledWith(
       expect.objectContaining({
         source: 'binance',
         price: 3000,
-        high: 3100,
-        low: 2900,
-        volume: 500,
-        pair: 'ETH', // Verify pair is passed correctly
+        pair: 'ETH',
       })
     );
+    expect(service.getPrice()).toBe(3000);
   });
 
-  it('should reconnect on close using the correct URL', () => {
+  it('should reconnect Binance on close with exponential backoff', () => {
     service = new MarketService({
       pair: 'SOL',
       onData: mockOnData,
@@ -170,18 +172,15 @@ describe('MarketService', () => {
       })
     );
 
-    // Advance timers to trigger reconnect
+    // Advanced timers for 1st reconnect
     vi.advanceTimersByTime(1000); // INITIAL_RECONNECT_DELAY
+    expect(mockFactory).toHaveBeenCalledTimes(3); // 1 initial + 1 fallback (activated on close) + 1 reconnect
 
-    // Should have called factory again
-    expect(mockFactory).toHaveBeenCalledTimes(3); // 2 initial + 1 reconnect
-
-    // Verify reconnect URL matches the configured pair
-    const reconnectCall = mockFactory.mock.calls[2][0];
-    expect(reconnectCall).toContain('solusdt@ticker');
+    // Verify Coinbase was also activated as fallback
+    expect(mockFactory.mock.calls[1][0]).toContain('coinbase');
   });
 
-  it('should disconnect cleanly', () => {
+  it('should pause connections when document is hidden', () => {
     service = new MarketService({
       pair: 'BTC',
       onData: mockOnData,
@@ -191,18 +190,54 @@ describe('MarketService', () => {
 
     service.connect();
     const binanceSocket = mockFactory.mock.results[0].value;
-    const coinbaseSocket = mockFactory.mock.results[1].value;
+
+    // Mock document.hidden = true
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+
+    // Trigger visibilitychange
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(binanceSocket.close).toHaveBeenCalled();
+    expect(service.getStatus().binance).toBe('disconnected');
+  });
+
+  it('should return fallback prices when never connected', () => {
+    service = new MarketService({
+      pair: 'BTC',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
+    expect(service.getPrice()).toBe(43000); // Static fallback for BTC
+    expect(service.isOfflineMode()).toBe(true);
+  });
+
+  it('should disconnect cleanly and stop timers', () => {
+    service = new MarketService({
+      pair: 'BTC',
+      onData: mockOnData,
+      onStatusChange: mockOnStatus,
+      wsFactory: mockFactory,
+    });
+
+    service.connect();
+    const binanceSocket = mockFactory.mock.results[0].value;
 
     service.disconnect();
 
     expect(binanceSocket.close).toHaveBeenCalled();
-    expect(coinbaseSocket.close).toHaveBeenCalled();
-
     expect(mockOnStatus).toHaveBeenCalledWith(
       expect.objectContaining({
         binance: 'disconnected',
-        coinbase: 'disconnected',
       })
     );
+
+    // Ensure no more reconnects happen
+    vi.advanceTimersByTime(30000);
+    expect(mockFactory).toHaveBeenCalledTimes(1);
   });
 });

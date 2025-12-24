@@ -98,7 +98,8 @@ describe('SpawnSystem', () => {
     const threshold = GAME_ENGINE.SPAWN_TIMER_BASE;
     const width = 800;
     const height = 600;
-    const offset = GAME_ENGINE.SPAWN_OFFSET;
+    // safeOffset now uses Math.max(SPAWN_OFFSET, 80) to cover large enemies
+    const safeOffset = Math.max(GAME_ENGINE.SPAWN_OFFSET, 80);
 
     SpawnSystem.update(
       threshold + 1,
@@ -113,11 +114,11 @@ describe('SpawnSystem', () => {
     expect(mockPool.getEnemy).toHaveBeenCalled();
     const [x, y] = mockPool.getEnemy.mock.calls[0];
 
-    // Check if it's on one of the 4 edges
-    const onTop = y === -offset && x >= 0 && x <= width;
-    const onBottom = y === height + offset && x >= 0 && x <= width;
-    const onLeft = x === -offset && y >= 0 && y <= height;
-    const onRight = x === width + offset && y >= 0 && y <= height;
+    // Check if it's on one of the 4 edges (using safeOffset)
+    const onTop = y === -safeOffset && x >= 0 && x <= width;
+    const onBottom = y === height + safeOffset && x >= 0 && x <= width;
+    const onLeft = x === -safeOffset && y >= 0 && y <= height;
+    const onRight = x === width + safeOffset && y >= 0 && y <= height;
 
     expect(onTop || onBottom || onLeft || onRight).toBe(true);
   });

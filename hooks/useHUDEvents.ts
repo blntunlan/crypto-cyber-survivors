@@ -71,7 +71,7 @@ export function useHUDEvents(player?: Player): UseHUDEventsReturn {
 
     const unsubMilestone = EventBus.on(
       'comboMilestone',
-      (data: { name: string; color: string; sound: string }) => {
+      (data: { name: string; color: string; sound?: string }) => {
         if (milestoneTimeoutRef.current) clearTimeout(milestoneTimeoutRef.current);
         setUiMeta(prev => ({
           ...prev,
@@ -79,9 +79,12 @@ export function useHUDEvents(player?: Player): UseHUDEventsReturn {
           milestoneColor: data.color,
         }));
         setShowMilestone(true);
-        audio.playComboMilestone(
-          data.sound as 'combo1' | 'combo2' | 'combo3' | 'combo4' | 'combo5'
-        );
+        // Only play sound if provided (may be on cooldown)
+        if (data.sound) {
+          audio.playComboMilestone(
+            data.sound as 'combo1' | 'combo2' | 'combo3' | 'combo4' | 'combo5'
+          );
+        }
         milestoneTimeoutRef.current = setTimeout(() => setShowMilestone(false), 2500);
       }
     );

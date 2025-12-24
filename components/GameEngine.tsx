@@ -88,6 +88,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     dashCooldownTimer: 0,
     dashTrail: [],
     dashTrailAccumulator: 0,
+    isGameOverTriggered: false,
   });
 
   // Track last synced stats to prevent unnecessary re-renders in App.tsx
@@ -334,8 +335,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
       s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
 
-      // Combat System - Auto Fire
-      CombatSystem.processAutoFire(p, player, s, deltaTime);
+      // Combat System - Auto Fire (only targets on-screen enemies)
+      CombatSystem.processAutoFire(p, player, s, deltaTime, width, height);
 
       const layout = getHUDLayout(device.platform);
       const perfConfig = DeviceBenchmarkService.getPerformanceConfig();

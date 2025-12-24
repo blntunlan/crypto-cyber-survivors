@@ -32,7 +32,8 @@ export type GameEvent =
   | 'buffApplied'
   | 'buffExpired'
   | 'buffGemSpawned'
-  | 'buffGemCollected';
+  | 'buffGemCollected'
+  | 'marketDataTimeout';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -101,7 +102,7 @@ export interface ComboMilestoneEvent {
   kills: number;
   multiplier: number;
   color: string;
-  sound: string;
+  sound?: string; // Optional - may be undefined when on cooldown
 }
 
 /** Combo end event data */
@@ -164,6 +165,13 @@ export interface BuffGemCollectedEvent {
   decoratorClass: string;
 }
 
+/** Market data timeout event data */
+export interface MarketDataTimeoutEvent {
+  lastPriceTime: number | null;
+  disconnectedDuration: number; // ms
+  pair: string;
+}
+
 // =============================================================================
 // EVENT DATA MAP
 // =============================================================================
@@ -196,6 +204,7 @@ export interface EventDataMap {
   buffExpired: BuffExpiredEvent;
   buffGemSpawned: BuffGemSpawnedEvent;
   buffGemCollected: BuffGemCollectedEvent;
+  marketDataTimeout: MarketDataTimeoutEvent;
 }
 
 // =============================================================================

@@ -55,7 +55,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
 
       // Haptic feedback (with safe check for unsupported browsers)
       if (hapticFeedback) {
-        navigator.vibrate?.(20);
+        navigator.vibrate(20);
       }
     },
     [isReady, cooldownMs, onDash, hapticFeedback]

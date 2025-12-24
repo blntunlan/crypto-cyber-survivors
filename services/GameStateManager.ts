@@ -46,6 +46,7 @@ export const GAME_STATE_DEFAULTS = {
   dashCooldownTimer: 0,
   dashTrailAccumulator: 0,
   currentBg: { r: 2, g: 6, b: 23 },
+  isGameOverTriggered: false,
 } as const;
 
 export const RUN_STATS_DEFAULTS = {

@@ -10,8 +10,14 @@ import { MarketService, type MarketUpdate } from '../services/marketService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { MAX_CHART_POINTS } from '../constants';
 import { type CryptoPair } from '../types/crypto';
+import { EventBus } from '../services/EventBus';
+import { Logger } from '../services/Logger';
 
 const ATR_PERIOD = 14;
+
+// Market data timeout configuration
+const MARKET_DATA_TIMEOUT_MS = 30000; // 30 seconds without data = timeout
+const TIMEOUT_CHECK_INTERVAL_MS = 5000; // Check every 5 seconds
 
 export const useMarketData = (
   gameStatus: GameStatus,
@@ -37,24 +43,63 @@ export const useMarketData = (
   const trHistoryRef = useRef<number[]>([]);
   const prevCloseRef = useRef<number | null>(null);
 
+  // Timeout tracking
+  const lastPriceTimeRef = useRef<number>(Date.now());
+  const timeoutTriggeredRef = useRef<boolean>(false);
+
   // Use refs for inputs to avoid stale closures in market service callback
   const gameStatusRef = useRef(gameStatus);
   const positionRef = useRef(position);
   const entryPriceRef = useRef(entryPrice);
   const leverageRef = useRef(leverage);
+  const pairRef = useRef(pair);
 
   useEffect(() => {
     gameStatusRef.current = gameStatus;
     positionRef.current = position;
     entryPriceRef.current = entryPrice;
     leverageRef.current = leverage;
-  }, [gameStatus, position, entryPrice, leverage]);
+    pairRef.current = pair;
+  }, [gameStatus, position, entryPrice, leverage, pair]);
+
+  // Market data timeout checker
+  useEffect(() => {
+    const checkTimeout = () => {
+      const currentStatus = gameStatusRef.current;
+
+      // Only check during active gameplay
+      if (currentStatus !== GameStatus.PLAYING) {
+        timeoutTriggeredRef.current = false; // Reset flag when not playing
+        return;
+      }
+
+      const timeSinceLastPrice = Date.now() - lastPriceTimeRef.current;
+
+      if (timeSinceLastPrice > MARKET_DATA_TIMEOUT_MS && !timeoutTriggeredRef.current) {
+        timeoutTriggeredRef.current = true;
+
+        Logger.error(`[Market] Data timeout - no price updates for ${timeSinceLastPrice}ms`);
+
+        // Emit timeout event for game to handle
+        EventBus.emit('marketDataTimeout', {
+          lastPriceTime: lastPriceTimeRef.current,
+          disconnectedDuration: timeSinceLastPrice,
+          pair: pairRef.current,
+        });
+      }
+    };
+
+    const intervalId = setInterval(checkTimeout, TIMEOUT_CHECK_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Session Reset & Cleanup (CRITICAL for pair switching)
   useEffect(() => {
     setPriceHistory([]);
     trHistoryRef.current = [];
     prevCloseRef.current = null;
+    lastPriceTimeRef.current = Date.now(); // Reset timeout on pair switch
+    timeoutTriggeredRef.current = false;
 
     setMarketData(prev => ({
       ...prev,
@@ -71,6 +116,10 @@ export const useMarketData = (
       pair,
       onData: (update: MarketUpdate) => {
         const price = update.price;
+
+        // Update last price time for timeout tracking
+        lastPriceTimeRef.current = Date.now();
+        timeoutTriggeredRef.current = false; // Reset timeout flag on successful data
 
         // Update Price History
         setPriceHistory(prevHistory => {
@@ -105,7 +154,17 @@ export const useMarketData = (
           setMarketData(prev => ({
             ...prev,
             price,
-            pair: update.pair,
+            pair: pairRef.current, // Use locked pair
+          }));
+          return;
+        }
+
+        // Guard: If price is invalid, only update price but keep difficulty stable
+        if (!price || price <= 0) {
+          setMarketData(prev => ({
+            ...prev,
+            price: prev.price, // Keep last known price
+            pair: pairRef.current, // Use locked pair
           }));
           return;
         }
@@ -140,8 +199,8 @@ export const useMarketData = (
           leverage: currentLeverage,
           rsi: 50, // Static for now
           difficulty: difficultyOutput.total,
-          pair: update.pair,
-          symbol: update.pair + 'USDT', // Approximate, can get from update if available or config
+          pair: pairRef.current, // Use locked pair from props, not from update
+          symbol: pairRef.current + 'USDT',
         });
       },
     });

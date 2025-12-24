@@ -31,9 +31,7 @@ export class PlayerTracker {
   }
 
   static getInstance(): PlayerTracker {
-    if (!PlayerTracker.instance) {
-      PlayerTracker.instance = new PlayerTracker();
-    }
+    PlayerTracker.instance ??= new PlayerTracker();
     return PlayerTracker.instance;
   }
 

@@ -99,7 +99,7 @@ export class MetricsStorage {
     }
 
     try {
-      const { data: sessionData, error } = await supabase
+      const { error } = await supabase
         .from('game_sessions')
         .insert({
           player_id: UserSessionService.getPlayerId().startsWith('anon-')
@@ -110,9 +110,7 @@ export class MetricsStorage {
           end_reason: session.gameEndReason,
           max_level: session.player.maxLevel,
           total_kills: session.player.totalKills,
-          metrics: session, // Store full JSON
 
-          // New columns
           crypto_pair: session.pair,
           position: session.bitcoin.positionChosen,
           leverage: session.bitcoin.leverage,
@@ -130,35 +128,10 @@ export class MetricsStorage {
         throw error;
       }
 
-      // Sync performance details if available
-      if (session.performance) {
-        await supabase.from('performance_metrics').insert({
-          session_id: sessionData.id,
-          player_id: UserSessionService.getPlayerId(),
-          avg_fps: session.performance.avgFps,
-          min_fps: session.performance.minFps,
-          max_fps: session.performance.avgFps, // Estimate
-          fps_samples: 1, // Summary sample
-          device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',
-        });
-      }
-
       Logger.info('[MetricsStorage] Synced to Supabase');
 
-      // Update leaderboard if good run (>1 min)
-      if (session.player.survivalTimeMs > 60000) {
-        const score = Math.floor(
-          session.player.totalKills * 100 + session.player.survivalTimeMs / 1000
-        );
-        const nickname =
-          UserSessionService.getNickname() ?? `Survivor-${session.sessionId.substring(0, 4)}`;
-
-        await supabase.from('leaderboard').insert({
-          player_name: nickname,
-          score,
-          survival_time_ms: session.player.survivalTimeMs,
-        });
-      }
+      // Leaderboard is now a VIEW, so we don't insert directly.
+      // The view automatically picks up the new game_session.
     } catch (err) {
       // Silent fail is okay for metrics, but log warning
       Logger.warn('[MetricsStorage] Supabase sync failed', err);

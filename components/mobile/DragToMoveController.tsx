@@ -99,13 +99,13 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
           // Visual update
           setUiState({ ...state, speed: 0 });
 
-          if (hapticFeedback) navigator.vibrate?.(10);
+          if (hapticFeedback) navigator.vibrate(10);
         } else if (secondTouchIdRef.current === null) {
           // Dash trigger
           secondTouchIdRef.current = touch.identifier;
           setSecondTouchActive(true);
           onDash();
-          if (hapticFeedback) navigator.vibrate?.(25);
+          if (hapticFeedback) navigator.vibrate(25);
         }
       }
     },

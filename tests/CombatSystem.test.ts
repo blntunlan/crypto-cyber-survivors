@@ -70,6 +70,7 @@ describe('CombatSystem', () => {
       dashTimer: 0,
       dashCooldownTimer: 0,
       dashTrailAccumulator: 0,
+      isGameOverTriggered: false,
     };
   });
 
@@ -144,6 +145,49 @@ describe('CombatSystem', () => {
       // That's positive X direction, near-zero Y
       expect(vx).toBeGreaterThan(0);
       expect(Math.abs(vy)).toBeLessThan(1); // Nearly horizontal
+    });
+
+    it('should not target off-screen enemies when screen dimensions provided', () => {
+      // Enemy is outside the screen (screen is 800x600, enemy at x=1000)
+      mockPool.activeEnemies = [{ x: 1000, y: 300, radius: 15, speed: 2 }];
+      mockState.fireTimer = 0;
+      mockPlayer.fireRate = 300;
+
+      // Provide screen dimensions - enemy is off-screen
+      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
+
+      expect(mockPool.getBullet).not.toHaveBeenCalled();
+    });
+
+    it('should target on-screen enemy when screen dimensions provided', () => {
+      // Enemy is inside the screen (screen is 800x600, enemy at x=500)
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockState.fireTimer = 0;
+      mockPlayer.fireRate = 300;
+
+      // Provide screen dimensions - enemy is on-screen
+      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
+
+      expect(mockPool.getBullet).toHaveBeenCalled();
+    });
+
+    it('should skip off-screen enemies and target on-screen one', () => {
+      // Two enemies: one off-screen (closer), one on-screen (farther)
+      mockPool.activeEnemies = [
+        { x: -100, y: 300, radius: 15, speed: 2 }, // Off-screen (left), 500 units away
+        { x: 600, y: 300, radius: 15, speed: 2 }, // On-screen, 200 units away
+      ];
+      mockState.fireTimer = 0;
+      mockPlayer.fireRate = 300;
+
+      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
+
+      // Bullet should target the on-screen enemy (600, 300)
+      const bulletCallArgs = mockPool.getBullet.mock.calls[0];
+      const vx = bulletCallArgs[2]; // velocity x
+
+      // Direction should be positive X (towards 600, not -100)
+      expect(vx).toBeGreaterThan(0);
     });
   });
 

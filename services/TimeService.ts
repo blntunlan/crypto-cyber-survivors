@@ -84,7 +84,8 @@ class TimeServiceClass {
     const realDelta = currentTime - this.lastRealTime;
 
     // Cap delta to prevent huge jumps (e.g. after tab return)
-    const cappedDelta = Math.min(realDelta, 100);
+    // 50ms = 20 FPS minimum, prevents physics glitches at extreme low framerates
+    const cappedDelta = Math.min(realDelta, 50);
 
     // Apply timescale to get game delta
     this.deltaTime = cappedDelta * this.timeScale;

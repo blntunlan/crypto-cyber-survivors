@@ -97,6 +97,11 @@ class DifficultyManagerClass {
    * Calculate P&L effect with smoothing
    */
   private getPnlFactor(pnl: number): number {
+    // Guard against invalid pnl values
+    if (!Number.isFinite(pnl)) {
+      return 1.0; // Neutral factor
+    }
+
     // Track recent P&L for momentum
     this.lastPnlValues.push(pnl);
     if (this.lastPnlValues.length > 30) {
@@ -185,9 +190,10 @@ class DifficultyManagerClass {
     const dtSeconds = deltaMs / 1000;
     this.waveTimer += dtSeconds;
 
-    const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
-    if (this.waveTimer >= currentDuration) {
-      this.waveTimer = 0;
+    while (this.waveTimer >= this.WAVE_DURATIONS[this.currentWavePhase]) {
+      const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
+      // Carry over excess time to prevent phase drift over long sessions
+      this.waveTimer -= currentDuration;
 
       // Cycle through phases
       const phases: WavePhase[] = ['calm', 'building', 'intense', 'peak'];

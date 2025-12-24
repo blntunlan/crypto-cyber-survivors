@@ -34,21 +34,28 @@ export class SpawnSystem {
 
   private static getRandomSpawnPosition(width: number, height: number) {
     const edge = Math.floor(Math.random() * 4);
-    const offset = GAME_ENGINE.SPAWN_OFFSET;
+    // Use larger offset to ensure even big enemies spawn fully off-screen
+    // This prevents "jumpscare" from enemies appearing partially visible
+    const baseOffset = GAME_ENGINE.SPAWN_OFFSET;
+    const safeOffset = Math.max(baseOffset, 80); // At least 80px to cover largest enemies
     let x = 0,
       y = 0;
 
     if (edge === 0) {
+      // Top edge
       x = Math.random() * width;
-      y = -offset;
+      y = -safeOffset;
     } else if (edge === 1) {
+      // Bottom edge
       x = Math.random() * width;
-      y = height + offset;
+      y = height + safeOffset;
     } else if (edge === 2) {
-      x = -offset;
+      // Left edge
+      x = -safeOffset;
       y = Math.random() * height;
     } else {
-      x = width + offset;
+      // Right edge
+      x = width + safeOffset;
       y = Math.random() * height;
     }
 

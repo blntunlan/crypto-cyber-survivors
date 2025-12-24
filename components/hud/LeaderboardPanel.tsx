@@ -57,7 +57,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
       if (error) throw error;
 
       // Add rank to entries
-      const rankedEntries = (data || []).map((entry, index) => ({
+      const rankedEntries = data.map((entry, index) => ({
         ...entry,
         rank: index + 1,
       }));
@@ -195,7 +195,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                       }`}
                     >
                       {/* Rank */}
-                      {getRankDisplay(entry.rank || index + 1)}
+                      {getRankDisplay(entry.rank!)}
 
                       {/* Player Info */}
                       <div className="flex-1 min-w-0">

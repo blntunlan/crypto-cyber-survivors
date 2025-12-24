@@ -119,4 +119,5 @@ export interface GameState {
   dashCooldownTimer: number;
   dashTrail: { x: number; y: number }[];
   dashTrailAccumulator: number;
+  isGameOverTriggered: boolean; // Prevents multiple game over calls
 }

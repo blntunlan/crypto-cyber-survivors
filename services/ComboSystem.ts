@@ -57,6 +57,8 @@ class ComboSystemClass {
   };
 
   private lastMilestoneIndex = -1;
+  private lastMilestoneSoundTime = 0; // For sound cooldown
+  private static readonly MILESTONE_SOUND_COOLDOWN = 300; // ms
 
   private constructor() {
     this.setupListeners();
@@ -99,6 +101,7 @@ class ComboSystemClass {
       totalBonusXp: 0,
     };
     this.lastMilestoneIndex = -1;
+    this.lastMilestoneSoundTime = 0;
   }
 
   /**
@@ -137,19 +140,30 @@ class ComboSystemClass {
    * Check and trigger milestones
    */
   private checkMilestone(): void {
+    const currentTime = TimeService.getGameTime();
+
     for (let i = COMBO_MILESTONES.length - 1; i >= 0; i--) {
       const milestone = COMBO_MILESTONES[i]!;
       if (this.state.killStreak >= milestone.kills && i > this.lastMilestoneIndex) {
         this.lastMilestoneIndex = i;
         this.state.comboMultiplier = milestone.multiplier;
 
+        // Check sound cooldown to prevent audio spam from multi-kills
+        const canPlaySound =
+          currentTime - this.lastMilestoneSoundTime >= ComboSystemClass.MILESTONE_SOUND_COOLDOWN;
+
         EventBus.emit('comboMilestone', {
           name: milestone.name,
           kills: milestone.kills,
           multiplier: milestone.multiplier,
           color: milestone.color,
-          sound: milestone.sound,
+          sound: canPlaySound ? milestone.sound : undefined, // Only include sound if cooldown passed
         });
+
+        if (canPlaySound) {
+          this.lastMilestoneSoundTime = currentTime;
+        }
+
         break;
       }
     }

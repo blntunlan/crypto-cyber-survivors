@@ -79,6 +79,7 @@ describe('GameRenderer', () => {
       isDashing: false,
       dashTimer: 0,
       dashCooldownTimer: 0,
+      isGameOverTriggered: false,
     };
 
     // Mock Player

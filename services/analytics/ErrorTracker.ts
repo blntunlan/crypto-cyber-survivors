@@ -121,9 +121,7 @@ export class ErrorTracker {
   }
 
   static getInstance(): ErrorTracker {
-    if (!ErrorTracker.instance) {
-      ErrorTracker.instance = new ErrorTracker();
-    }
+    ErrorTracker.instance ??= new ErrorTracker();
     return ErrorTracker.instance;
   }
 
@@ -352,7 +350,7 @@ export class ErrorTracker {
 
     // Unhandled promise rejections
     window.addEventListener('unhandledrejection', event => {
-      const message = event.reason?.message || String(event.reason);
+      const message = event.reason?.message ?? String(event.reason);
       this.captureError({
         errorType: 'UnhandledPromiseRejection',
         errorMessage: message,
@@ -388,7 +386,7 @@ export class ErrorTracker {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-      const method = init?.method || 'GET';
+      const method = init?.method ?? 'GET';
 
       try {
         const response = await originalFetch(input, init);
@@ -600,7 +598,7 @@ export class ErrorTracker {
 
   private createFingerprint(type: string, message: string, stack?: string): string {
     // Extract first meaningful line from stack if available
-    const stackLine = stack?.split('\n')[1]?.trim().substring(0, 100) || '';
+    const stackLine = stack?.split('\n')[1]?.trim().substring(0, 100) ?? '';
     const input = `${type}|${message.substring(0, 100)}|${stackLine}`;
     return this.simpleHash(input);
   }

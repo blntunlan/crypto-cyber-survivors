@@ -159,6 +159,78 @@ const App: React.FC = () => {
     void DeviceBenchmarkService.runBenchmark();
   }, []);
 
+  // Market Data Timeout Handler - End game if live feed disconnected too long
+  useEffect(() => {
+    const unsubscribe = EventBus.on('marketDataTimeout', data => {
+      Logger.error(
+        `[App] Market data timeout - game ending due to ${data.disconnectedDuration}ms without data`
+      );
+
+      // Report error for analytics
+      void import('./services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
+        void ErrorReporter.report(
+          new Error('Market data timeout - live feed disconnected'),
+          'MarketDataTimeout',
+          {
+            pair: data.pair,
+            disconnectedDuration: data.disconnectedDuration,
+            lastPriceTime: data.lastPriceTime,
+            playerLevel: playerRef.current.level,
+            survivalTime: DifficultyManager.getTotalElapsedSeconds(),
+          }
+        );
+      });
+
+      // End the game with special reason
+      setFinalPnl(marketData.pnl);
+      setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
+      GameStateMachine.transition(GameStatus.GAMEOVER);
+
+      // Track in metrics with special end reason
+      MetricsService.endSession(GameEndReason.DISCONNECT, {
+        price: marketData.price,
+        pnl: marketData.pnl,
+        level: playerRef.current.level,
+        hp: playerRef.current.hp,
+        difficulty: marketData.difficulty,
+        playerStats: {
+          damage: playerRef.current.baseDamage,
+          fireRate: playerRef.current.fireRate,
+          speed: playerRef.current.speed,
+          luck: playerRef.current.luck,
+          critChance: playerRef.current.critChance,
+          critDamage: playerRef.current.critChance * 2,
+        },
+        position,
+        entryPrice,
+        leverage,
+        totalKills: runStats.totalKills,
+      });
+    });
+
+    return () => unsubscribe();
+  }, [marketData, playerRef, position, entryPrice, leverage, runStats]);
+
+  // Prevent accidental tab closure during active gameplay
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+      // Only show warning during active gameplay
+      if (
+        gameStatus === GameStatus.PLAYING ||
+        gameStatus === GameStatus.PAUSED ||
+        gameStatus === GameStatus.LEVEL_UP
+      ) {
+        e.preventDefault();
+        // Modern browsers require returnValue to be set (legacy support)
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [gameStatus]);
+
   const handleNicknameComplete = useCallback((nickname: string) => {
     setNeedsNickname(false);
     Logger.info(`Signed in as ${nickname}`);

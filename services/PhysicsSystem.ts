@@ -100,9 +100,14 @@ export class PhysicsSystem {
       if (playerEnemyDistSq < playerEnemyCombined * playerEnemyCombined) {
         if (!CheatManager.isGodMode() && !s.isDashing) {
           player.hp -= Math.max(0.1, 0.8 - player.armor * 0.05) * dtFactor;
+          player.hp = Math.max(0, player.hp); // Floor HP at 0
           s.shake = 10;
           if (Math.random() > 0.9) audio.playHit();
-          if (player.hp <= 0) onGameOver();
+          // Prevent multiple game over calls
+          if (player.hp <= 0 && !s.isGameOverTriggered) {
+            s.isGameOverTriggered = true;
+            onGameOver();
+          }
         }
       }
 

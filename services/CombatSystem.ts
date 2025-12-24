@@ -4,6 +4,7 @@ import { audio } from './audioService';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { ParticleConfigService } from './ParticleConfigService';
 import { CheatManager } from './CheatManager';
+import { createViewportBounds, isCircleVisible } from './renderers/CullingUtils';
 
 interface NearestEnemy {
   x: number;
@@ -31,17 +32,23 @@ export class CombatSystem {
     pool: PoolManager,
     player: Player,
     state: GameState,
-    deltaMs: number
+    deltaMs: number,
+    screenWidth?: number,
+    screenHeight?: number
   ): void {
     state.fireTimer += deltaMs;
 
+    // Cap fire rate to prevent performance issues (minimum 50ms = 20 shots/sec)
+    const MIN_FIRE_RATE = 50;
+    const effectiveFireRate = Math.max(MIN_FIRE_RATE, player.fireRate);
+
     // Check fire rate cooldown
-    if (state.fireTimer < player.fireRate) {
+    if (state.fireTimer < effectiveFireRate) {
       return;
     }
 
-    // Find nearest enemy
-    const nearest = this.findNearestEnemy(pool, player);
+    // Find nearest enemy (only on-screen enemies)
+    const nearest = this.findNearestEnemy(pool, player, screenWidth, screenHeight);
     if (!nearest) {
       return;
     }
@@ -62,8 +69,28 @@ export class CombatSystem {
    * @param player - The player entity
    * @returns Nearest enemy position and distance, or null if no enemies
    */
-  private static findNearestEnemy(pool: PoolManager, player: Player): NearestEnemy | null {
+  private static findNearestEnemy(
+    pool: PoolManager,
+    player: Player,
+    screenWidth?: number,
+    screenHeight?: number
+  ): NearestEnemy | null {
+    // Create viewport bounds to filter on-screen enemies only
+    // If screen dimensions not provided, consider all enemies (fallback)
+    const viewportBounds =
+      screenWidth && screenHeight
+        ? createViewportBounds(screenWidth, screenHeight, 0) // No padding - only truly visible enemies
+        : null;
+
     return pool.activeEnemies.reduce<NearestEnemy | null>((best, enemy) => {
+      // Skip off-screen enemies to prevent shooting at invisible targets
+      if (viewportBounds) {
+        const enemyRadius = enemy.radius || 20; // Default enemy radius
+        if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
+          return best;
+        }
+      }
+
       const dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
       if (!best || dist < best.dist) {
         return { x: enemy.x, y: enemy.y, dist, speed: enemy.speed };
@@ -175,9 +202,13 @@ export class CombatSystem {
           ? ParticleConfigService.bullets.critSizeMultiplier
           : 1.0;
 
+      // Cap area to prevent excessively large bullets at max upgrades
+      const MAX_AREA_MULTIPLIER = 3.0;
+      const effectiveArea = Math.min(player.area, MAX_AREA_MULTIPLIER);
+
       const bulletRadius =
         baseRadius *
-        player.area *
+        effectiveArea *
         ParticleConfigService.bullets.baseSizeMultiplier *
         typeMultiplier;
       const bulletColor = isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET;

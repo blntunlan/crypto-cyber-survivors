@@ -77,6 +77,16 @@ export class MarketService {
   private pair: CryptoPair;
   private config: CryptoConfig;
 
+  // Fallback prices when offline (approximate market prices)
+  private static readonly FALLBACK_PRICES: Record<CryptoPair, number> = {
+    BTC: 43000,
+    ETH: 2300,
+    SOL: 100,
+  };
+
+  // Visibility change handler reference (for cleanup)
+  private visibilityHandler: (() => void) | null = null;
+
   constructor(config: MarketServiceConfig) {
     this.pair = config.pair;
     this.config = CRYPTO_PAIRS[config.pair];
@@ -86,12 +96,64 @@ export class MarketService {
   }
 
   /**
-   * Connect to all price feeds
+   * Connect to price feeds
+   * Primary: Binance Futures
+   * Fallback: Coinbase (only if Binance fails)
    */
   connect(): void {
     this.wasClosedIntentionally = false;
+    this.setupVisibilityHandler();
+    // Start with Binance as primary source
     this.connectBinance();
-    this.connectCoinbase();
+    // Coinbase will be started as fallback if Binance fails
+  }
+
+  /**
+   * Setup tab visibility handler to pause/resume connections
+   */
+  private setupVisibilityHandler(): void {
+    if (this.visibilityHandler) return; // Already setup
+
+    this.visibilityHandler = () => {
+      if (document.hidden) {
+        // Tab hidden - disconnect to save resources
+        Logger.info('[Market] Tab hidden, pausing connections');
+        this.pauseConnections();
+      } else {
+        // Tab visible - reconnect
+        Logger.info('[Market] Tab visible, resuming connections');
+        this.resumeConnections();
+      }
+    };
+
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+
+  /**
+   * Pause connections without full disconnect (keeps state)
+   */
+  private pauseConnections(): void {
+    // Close sockets but don't mark as intentionally closed
+    if (this.binanceSocket) {
+      this.binanceSocket.close();
+      this.binanceSocket = null;
+    }
+    if (this.coinbaseSocket) {
+      this.coinbaseSocket.close();
+      this.coinbaseSocket = null;
+    }
+    this.updateState('binance', 'disconnected');
+    this.updateState('coinbase', 'disconnected');
+  }
+
+  /**
+   * Resume connections after pause
+   */
+  private resumeConnections(): void {
+    if (!this.wasClosedIntentionally) {
+      this.connectBinance();
+      this.connectCoinbase();
+    }
   }
 
   /**
@@ -110,6 +172,21 @@ export class MarketService {
    */
   getLastKnownPrice(): number | null {
     return this.lastKnownPrice;
+  }
+
+  /**
+   * Get current price with fallback support
+   * Returns last known price, or fallback price if never connected
+   */
+  getPrice(): number {
+    return this.lastKnownPrice ?? MarketService.FALLBACK_PRICES[this.pair];
+  }
+
+  /**
+   * Check if running in offline mode (using fallback prices)
+   */
+  isOfflineMode(): boolean {
+    return !this.isConnected() && this.lastKnownPrice === null;
   }
 
   /**
@@ -169,6 +246,8 @@ export class MarketService {
         if (!this.wasClosedIntentionally) {
           this.updateState('binance', 'reconnecting');
           this.scheduleReconnect('binance');
+          // Activate Coinbase as fallback if not already connected
+          this.activateFallback();
         } else {
           this.updateState('binance', 'disconnected');
         }
@@ -176,11 +255,25 @@ export class MarketService {
 
       this.binanceSocket.onerror = error => {
         Logger.warn('[Market] Binance WebSocket error', error);
+        // Activate Coinbase as fallback
+        this.activateFallback();
       };
     } catch (e) {
       Logger.error('[Market] Binance connection failed', e);
       this.updateState('binance', 'disconnected');
       this.scheduleReconnect('binance');
+      // Activate Coinbase as fallback
+      this.activateFallback();
+    }
+  }
+
+  /**
+   * Activate Coinbase as fallback when Binance is unavailable
+   */
+  private activateFallback(): void {
+    if (this.coinbaseState === 'disconnected' && !this.wasClosedIntentionally) {
+      Logger.info('[Market] Activating Coinbase as fallback...');
+      this.connectCoinbase();
     }
   }
 
@@ -326,5 +419,20 @@ export class MarketService {
     setTimeout(() => {
       this.connect();
     }, 500);
+  }
+
+  /**
+   * Cleanup all resources (call on unmount)
+   */
+  destroy(): void {
+    this.disconnect();
+
+    // Remove visibility handler
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+
+    Logger.info('[Market] Service destroyed');
   }
 }
