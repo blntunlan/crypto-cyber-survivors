@@ -521,16 +521,15 @@ describe('EventBus', () => {
     it('should handle unsubscribing during emit', () => {
       const callback1 = vi.fn();
       const callback2 = vi.fn();
-      // eslint-disable-next-line prefer-const -- assigned after callback definition
-      let unsubscribe2: () => void;
+      const unsubscribeHolder: { fn: (() => void) | null } = { fn: null };
 
       const selfUnsubscribeCallback = vi.fn(() => {
-        unsubscribe2();
+        unsubscribeHolder.fn?.();
       });
 
       EventBus.subscribe('levelUp', callback1);
       EventBus.subscribe('levelUp', selfUnsubscribeCallback);
-      unsubscribe2 = EventBus.subscribe('levelUp', callback2);
+      unsubscribeHolder.fn = EventBus.subscribe('levelUp', callback2);
 
       // Emit should not crash even though callback2 is unsubscribed during iteration
       // Due to Set iteration behavior, this should be safe

@@ -375,11 +375,10 @@ describe('CardSystem', () => {
       it('should sort cards by tier (legendary first)', () => {
         // Mock to always return different tiers
         let callCount = 0;
-        const _originalRollTier = CardSystem.rollTier.bind(CardSystem);
 
         vi.spyOn(CardSystem, 'rollTier').mockImplementation(() => {
           const tiers: CardTier[] = ['common', 'legendary', 'rare'];
-          return tiers[callCount++ % 3];
+          return tiers[callCount++ % 3] as CardTier;
         });
 
         const choices = CardSystem.generateChoices(10, 15);
@@ -396,16 +395,12 @@ describe('CardSystem', () => {
 
       it('should have legendary cards before epic cards', () => {
         // Test with many iterations to catch sorting
-        let _foundMixedTiers = false;
-
         for (let i = 0; i < 20; i++) {
           const choices = CardSystem.generateChoices(15, 20);
           const hasMixedTiers = new Set(choices.map(c => c.tier)).size > 1;
 
           if (hasMixedTiers) {
-            _foundMixedTiers = true;
-
-            // Check order
+            // Check order - higher tier cards should come first
             for (let j = 0; j < choices.length - 1; j++) {
               const currentIndex = TIER_ORDER.indexOf(choices[j].tier);
               const nextIndex = TIER_ORDER.indexOf(choices[j + 1].tier);

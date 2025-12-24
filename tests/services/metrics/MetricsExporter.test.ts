@@ -107,7 +107,7 @@ describe('MetricsExporter', () => {
     global.URL.revokeObjectURL = vi.fn();
 
     const clickSpy = vi.fn();
-    const _createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue({
+    const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue({
       click: clickSpy,
       setAttribute: vi.fn(),
       style: {},
@@ -118,6 +118,7 @@ describe('MetricsExporter', () => {
 
     MetricsExporter.downloadJSON([createMockSession()]);
 
+    expect(createElementSpy).toHaveBeenCalledWith('a');
     expect(createObjectURLSpy).toHaveBeenCalled();
     expect(clickSpy).toHaveBeenCalled();
     expect(appendSpy).toHaveBeenCalled();
