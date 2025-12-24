@@ -6,7 +6,7 @@ import {
   type Player,
   type LeverageOption,
 } from '../types';
-import { MarketService, type MarketUpdate } from '../services/marketService';
+import { MarketService, type MarketUpdate } from '../services/MarketService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { MAX_CHART_POINTS } from '../constants';
 import { type CryptoPair } from '../types/crypto';
@@ -112,9 +112,32 @@ export const useMarketData = (
   }, [pair]);
 
   useEffect(() => {
+    // CRITICAL: Flag to prevent stale callbacks from old MarketService instances
+    let isCancelled = false;
+
+    // Capture the pair at the time of service creation to prevent race conditions
+    const expectedPair = pair;
+
+    Logger.info(`[useMarketData] Creating MarketService for ${expectedPair}`);
+
     const service = new MarketService({
       pair,
       onData: (update: MarketUpdate) => {
+        // CRITICAL: Ignore callbacks if this effect has been cleaned up
+        if (isCancelled) {
+          Logger.debug(`[useMarketData] Ignoring stale callback after cleanup for ${update.pair}`);
+          return;
+        }
+
+        // CRITICAL: Verify the update is for the expected pair
+        // This prevents race conditions when switching pairs quickly
+        if (update.pair !== expectedPair) {
+          Logger.warn(
+            `[useMarketData] Pair mismatch! Expected ${expectedPair}, got ${update.pair}. Ignoring update.`
+          );
+          return;
+        }
+
         const price = update.price;
 
         // Update last price time for timeout tracking
@@ -154,7 +177,7 @@ export const useMarketData = (
           setMarketData(prev => ({
             ...prev,
             price,
-            pair: pairRef.current, // Use locked pair
+            pair: expectedPair, // Use captured pair, not ref
           }));
           return;
         }
@@ -164,7 +187,7 @@ export const useMarketData = (
           setMarketData(prev => ({
             ...prev,
             price: prev.price, // Keep last known price
-            pair: pairRef.current, // Use locked pair
+            pair: expectedPair, // Use captured pair
           }));
           return;
         }
@@ -199,14 +222,21 @@ export const useMarketData = (
           leverage: currentLeverage,
           rsi: 50, // Static for now
           difficulty: difficultyOutput.total,
-          pair: pairRef.current, // Use locked pair from props, not from update
-          symbol: pairRef.current + 'USDT',
+          pair: expectedPair, // Use captured pair, not ref
+          symbol: expectedPair + 'USDT',
         });
       },
     });
 
     service.connect();
-    return () => service.disconnect();
+
+    return () => {
+      // CRITICAL: Set cancelled flag BEFORE destroying service
+      // This ensures any pending callbacks are ignored
+      isCancelled = true;
+      Logger.info(`[useMarketData] Destroying MarketService for ${expectedPair}`);
+      service.destroy(); // Use destroy() instead of disconnect() for complete cleanup
+    };
   }, [playerRef, pair]);
 
   return { marketData, priceHistory: _priceHistory };
