@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameRenderer } from '../services/GameRenderer';
 import { GameStatus, type GameState } from '../types';
-import { type PoolManager } from '../services/poolManager';
+import { type PoolManager } from '../services/PoolManager';
 
 describe('GameRenderer', () => {
   let renderer: GameRenderer;

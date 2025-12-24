@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PhysicsSystem } from '../../services/PhysicsSystem';
 import { type Player, type GameState } from '../../types';
-import { type PoolManager } from '../../services/poolManager';
+import { type PoolManager } from '../../services/PoolManager';
 
 // Mock dependencies
 vi.mock('../../services/audioService', () => ({

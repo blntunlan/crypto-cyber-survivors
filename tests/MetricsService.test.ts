@@ -15,7 +15,10 @@ describe('MetricsService', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-01T12:00:00Z'));
 
-    // Clear any existing sessions for clean tests
+    // Reset singleton state for clean tests
+    MetricsService.resetStateForTesting();
+
+    // Clear any existing sessions
     MetricsService.clearSessions();
 
     // Clear localStorage mock

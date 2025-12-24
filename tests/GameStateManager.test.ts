@@ -72,7 +72,7 @@ describe('GameStateManager', () => {
     });
 
     it('should have correct initial utility stats', () => {
-      expect(PLAYER_DEFAULTS.speed).toBe(4);
+      expect(PLAYER_DEFAULTS.speed).toBe(5);
       expect(PLAYER_DEFAULTS.luck).toBe(0);
       expect(PLAYER_DEFAULTS.magnet).toBe(0);
       expect(PLAYER_DEFAULTS.armor).toBe(0);

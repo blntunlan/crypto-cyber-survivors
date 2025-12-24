@@ -4,21 +4,31 @@ import { useMarketData } from '../../hooks/useMarketData';
 import { GameStatus, MarketPosition, type Player } from '../../types';
 
 // Use vi.hoisted to share state between mock factory and tests
-const { callbackRef } = vi.hoisted(() => ({
+const { callbackRef, pairRef } = vi.hoisted(() => ({
   callbackRef: { current: null as any },
+  pairRef: { current: 'BTC' as string },
 }));
 
 vi.mock('../../services/marketService', () => {
   return {
     MarketService: class MockMarketService {
+      private pair: string;
       constructor(config: any) {
-        callbackRef.current = config.onData;
+        callbackRef.current = (data: any) => {
+          // Ensure pair is always included in the callback data
+          config.onData({ ...data, pair: config.pair });
+        };
+        this.pair = config.pair;
+        pairRef.current = config.pair;
       }
       connect() {
         // connect simulation
       }
       disconnect() {
         // cleanup simulation
+      }
+      destroy() {
+        // full cleanup simulation
       }
     },
   };

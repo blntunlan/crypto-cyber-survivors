@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SpawnSystem } from '../services/SpawnSystem';
-import { type PoolManager } from '../services/poolManager';
+import { type PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
 
