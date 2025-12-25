@@ -27,7 +27,7 @@ interface KlinePayload {
 }
 
 export class BinanceService extends EventEmitter {
-  private static instance: BinanceService;
+  private static instance: BinanceService | null = null;
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectDelay = 1000;
@@ -42,10 +42,7 @@ export class BinanceService extends EventEmitter {
   }
 
   static getInstance(): BinanceService {
-    if (!BinanceService.instance) {
-      BinanceService.instance = new BinanceService();
-    }
-    return BinanceService.instance;
+    return (BinanceService.instance ??= new BinanceService());
   }
 
   async connect(): Promise<void> {

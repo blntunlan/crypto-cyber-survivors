@@ -6,7 +6,7 @@ import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT ?? 3001;
 
 // Health check endpoint (Railway için)
 app.get('/health', (_req, res) => {

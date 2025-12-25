@@ -156,7 +156,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
         const rankedEntries = validEntries.map((entry, index) => ({
           ...entry,
           // Ensure player_name is never null/undefined in display
-          player_name: entry.player_name || 'Anonymous',
+          player_name: entry.player_name ?? 'Anonymous',
           rank: index + 1,
         }));
 

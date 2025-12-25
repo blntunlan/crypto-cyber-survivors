@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * CheatManager - Development Testing Utilities
  *
@@ -67,7 +68,6 @@ class CheatManagerClass {
       window.addEventListener('keydown', this.boundHandleKeyDown);
       this.initialized = true;
 
-      // eslint-disable-next-line no-console
       console.log(
         '%c🎮 CHEAT MODE ENABLED (DEV ONLY)',
         'color: #fbbf24; font-size: 16px; font-weight: bold;'
@@ -217,7 +217,6 @@ class CheatManagerClass {
    * Show cheat activation message on screen
    */
   private showCheatMessage(message: string): void {
-    // eslint-disable-next-line no-console
     console.log(`%c${message}`, 'color: #fbbf24; font-weight: bold;');
 
     // Add essential animation styles only once

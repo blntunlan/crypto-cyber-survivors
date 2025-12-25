@@ -13,7 +13,7 @@ const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 saat
 const BATCH_SIZE = 10000; // Bir seferde silinecek maksimum kayıt
 
 export class CleanupCron {
-  private static instance: CleanupCron;
+  private static instance: CleanupCron | null = null;
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;
   private lastCleanup: Date | null = null;
@@ -22,10 +22,7 @@ export class CleanupCron {
   private constructor() {}
 
   static getInstance(): CleanupCron {
-    if (!CleanupCron.instance) {
-      CleanupCron.instance = new CleanupCron();
-    }
-    return CleanupCron.instance;
+    return (CleanupCron.instance ??= new CleanupCron());
   }
 
   /**
@@ -101,7 +98,7 @@ export class CleanupCron {
           throw selectError;
         }
 
-        if (!toDelete || toDelete.length === 0) {
+        if (toDelete.length === 0) {
           break;
         }
 

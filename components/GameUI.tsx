@@ -36,6 +36,8 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
     // Calculate effective stats with buffs applied
     const effectiveStats = useMemo(() => {
+      // buffTrigger intentionally triggers recalculation
+      void buffTrigger;
       if (BuffManager.isInitialized() && status === GameStatus.PLAYING) {
         try {
           const decorated = BuffManager.getDecoratedStats();
@@ -66,7 +68,6 @@ export const GameUI: React.FC<GameUIProps> = memo(
         armor: player.armor,
         area: player.area,
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- buffTrigger intentionally triggers recalculation
     }, [player, status, buffTrigger]);
 
     // Smooth lerp for all dynamic values using a single animation loop

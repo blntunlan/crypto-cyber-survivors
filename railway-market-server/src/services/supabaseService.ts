@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Logger } from '../utils/logger';
 
 export class SupabaseService {
-  private static instance: SupabaseService;
+  private static instance: SupabaseService | null = null;
   private client: SupabaseClient;
 
   private constructor() {
@@ -24,10 +24,7 @@ export class SupabaseService {
   }
 
   static getInstance(): SupabaseService {
-    if (!SupabaseService.instance) {
-      SupabaseService.instance = new SupabaseService();
-    }
-    return SupabaseService.instance;
+    return (SupabaseService.instance ??= new SupabaseService());
   }
 
   getClient(): SupabaseClient {

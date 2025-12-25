@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger - Centralized Logging Service
  *
@@ -58,10 +59,8 @@ class LoggerClass {
     this.store(entry);
 
     if (data !== undefined) {
-      // eslint-disable-next-line no-console
       console.log(`🔍 ${this.formatMessage(entry)}`, data);
     } else {
-      // eslint-disable-next-line no-console
       console.log(`🔍 ${this.formatMessage(entry)}`);
     }
   }
@@ -75,10 +74,8 @@ class LoggerClass {
 
     if (this.isDev) {
       if (data !== undefined) {
-        // eslint-disable-next-line no-console
         console.log(`ℹ️ ${this.formatMessage(entry)}`, data);
       } else {
-        // eslint-disable-next-line no-console
         console.log(`ℹ️ ${this.formatMessage(entry)}`);
       }
     }

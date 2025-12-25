@@ -6,7 +6,7 @@
  */
 
 import { Logger } from '../Logger';
-import { EventBus } from '../EventBus';
+import { EventBus, type GameEvent } from '../EventBus';
 
 const STORAGE_KEY = 'verification_queue';
 const MAX_RETRIES = 5;
@@ -54,7 +54,7 @@ type QueueEventType =
   | 'verification:retrying';
 
 class VerificationQueueService {
-  private static instance: VerificationQueueService;
+  private static instance: VerificationQueueService | null = null;
   private queue: VerificationRequest[] = [];
   private isProcessing = false;
   private processTimer: ReturnType<typeof setTimeout> | null = null;
@@ -71,10 +71,7 @@ class VerificationQueueService {
   }
 
   static getInstance(): VerificationQueueService {
-    if (!VerificationQueueService.instance) {
-      VerificationQueueService.instance = new VerificationQueueService();
-    }
-    return VerificationQueueService.instance;
+    return (VerificationQueueService.instance ??= new VerificationQueueService());
   }
 
   /**
@@ -207,7 +204,7 @@ class VerificationQueueService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP ${response.status}`);
+      throw new Error(errorData.error ?? `HTTP ${response.status}`);
     }
 
     return response.json();
@@ -296,7 +293,7 @@ class VerificationQueueService {
    * Emit queue event
    */
   private emit(event: QueueEventType, data: Record<string, unknown>): void {
-    EventBus.emit(event as any, data);
+    EventBus.emit(event as GameEvent, data);
   }
 
   /**

@@ -12,6 +12,7 @@ import { MAX_CHART_POINTS } from '../constants';
 import { type CryptoPair } from '../types/crypto';
 import { EventBus } from '../services/EventBus';
 import { Logger } from '../services/Logger';
+import { priceAnalyzer } from '../services/admin/PriceAnalyzerService';
 
 const ATR_PERIOD = 14;
 
@@ -143,6 +144,9 @@ export const useMarketData = (
         // Update last price time for timeout tracking
         lastPriceTimeRef.current = Date.now();
         timeoutTriggeredRef.current = false; // Reset timeout flag on successful data
+
+        // Feed price data to Admin Dashboard's PriceAnalyzerService
+        priceAnalyzer.addPrice(update.pair, price, update.source);
 
         // Update Price History
         setPriceHistory(prevHistory => {

@@ -225,8 +225,7 @@ export class DeviceBenchmarkServiceClass {
     // Device info
     this.updateProgress(5, 'Detecting device info...');
     const deviceMemory = this.getDeviceMemory();
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const hardwareConcurrency = navigator.hardwareConcurrency ?? 4;
+    const hardwareConcurrency = navigator.hardwareConcurrency;
     const gpuRenderer = this.getGPURenderer();
 
     // GPU Test
@@ -410,8 +409,7 @@ export class DeviceBenchmarkServiceClass {
       combinedScore: 300,
       profile: DeviceProfile.MEDIUM,
       deviceMemory: null,
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      hardwareConcurrency: navigator.hardwareConcurrency ?? 4,
+      hardwareConcurrency: navigator.hardwareConcurrency,
       gpuRenderer: null,
       timestamp: Date.now(),
       version: BENCHMARK_CONFIG.VERSION,

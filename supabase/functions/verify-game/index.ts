@@ -59,9 +59,7 @@ serve(async req => {
       );
     }
 
-    // Fetch price logs from database
-    const startTimeISO = new Date(startTime).toISOString();
-    const endTimeISO = new Date(endTime).toISOString();
+    // Fetch price logs from database (using inline ISO conversion)
 
     const { data: entryPrices } = await supabaseClient
       .from('price_logs')

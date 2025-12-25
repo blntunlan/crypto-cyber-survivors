@@ -11,6 +11,31 @@ import { ComboSystem } from './ComboSystem';
 import { DifficultyManager } from './DifficultyManager';
 import { useGameStore } from '../stores/gameStore';
 import { ParticleConfigService, type ParticleEffectConfig } from './ParticleConfigService';
+import { Logger } from './Logger';
+
+declare global {
+  interface Window {
+    gameDebug: {
+      snapshot: () => GameSnapshot;
+      exportSnapshot: () => void;
+      logs: () => string[];
+      clearLogs: () => void;
+      particles: {
+        update: (
+          group: 'trail' | 'impact' | 'collect',
+          params: Partial<ParticleEffectConfig>
+        ) => void;
+        reset: () => void;
+        current: () => {
+          trail: ParticleEffectConfig;
+          impact: ParticleEffectConfig;
+          collect: ParticleEffectConfig;
+        };
+      };
+      help: () => void;
+    };
+  }
+}
 
 export interface GameSnapshot {
   timestamp: string;
@@ -56,8 +81,7 @@ class DebugServiceClass {
    */
   private setupGlobalAccess(): void {
     if (typeof window !== 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).gameDebug = {
+      window.gameDebug = {
         // Raporlama
         snapshot: () => this.captureSnapshot(),
         exportSnapshot: () => this.exportSnapshot(),
@@ -163,8 +187,7 @@ class DebugServiceClass {
     }
 
     // Also log to console in development
-    // eslint-disable-next-line no-console
-    console.log(`[DebugService] ${message}`);
+    Logger.info(`[DebugService] ${message}`);
   }
 
   /**

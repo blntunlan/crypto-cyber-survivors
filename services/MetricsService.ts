@@ -611,7 +611,7 @@ export class MetricsServiceClass {
       Logger.info('[Metrics] Game session synced to Supabase');
 
       // 2. Insert performance metrics (if available)
-      if (session.performance && gameSession?.id) {
+      if (session.performance && gameSession.id) {
         const { error: perfError } = await supabase.from('performance_metrics').insert({
           session_id: gameSession.id,
           avg_fps: session.performance.avgFps,
@@ -654,12 +654,12 @@ export class MetricsServiceClass {
         .eq('id', playerId)
         .single();
 
-      if (fetchError || !player) return;
+      if (fetchError) return;
 
       const newHighScore = Math.max(player.high_score, session.player.survivalTimeMs);
       const newTotalKills = player.total_kills + session.player.totalKills;
       const newTotalPlaytime = player.total_playtime_ms + session.player.survivalTimeMs;
-      const pnl = session.bitcoin.pnlAtDeath ?? 0;
+      const pnl = session.bitcoin.pnlAtDeath;
       const newBestPnl = pnl > player.best_pnl_percent ? pnl : player.best_pnl_percent;
 
       const { error: updateError } = await supabase

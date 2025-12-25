@@ -74,6 +74,9 @@ const ParticleDebugPanel = React.lazy(() =>
 const AnalyticsDashboard = React.lazy(() =>
   import('./components/admin/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard }))
 );
+const AdminDashboard = React.lazy(() =>
+  import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard }))
+);
 const LeaderboardPanel = React.lazy(() =>
   import('./components/hud/LeaderboardPanel').then(m => ({ default: m.LeaderboardPanel }))
 );
@@ -115,6 +118,7 @@ const App: React.FC = () => {
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
   const [needsNickname, setNeedsNickname] = useState<boolean>(false);
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState<boolean>(false);
 
   // ========================================
   // Player & Market Hooks
@@ -250,6 +254,20 @@ const App: React.FC = () => {
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
         e.preventDefault();
         setShowAnalytics(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Admin Dashboard keyboard shortcut (Ctrl+Shift+D) - DEV ONLY
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        setShowAdminDashboard(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -511,6 +529,13 @@ const App: React.FC = () => {
           >
             ✕ Close (Ctrl+Shift+A)
           </button>
+        </React.Suspense>
+      )}
+
+      {/* Admin Dashboard - DEV ONLY (Ctrl+Shift+D) */}
+      {import.meta.env.DEV && showAdminDashboard && (
+        <React.Suspense fallback={<FallbackLoader />}>
+          <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
         </React.Suspense>
       )}
     </div>

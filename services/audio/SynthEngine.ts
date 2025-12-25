@@ -8,6 +8,12 @@
 import { type SoundType, type SynthContext } from './types';
 import { COOLDOWN_MS } from './constants';
 
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext;
+  }
+}
+
 /**
  * Core synthesizer engine for Web Audio API operations
  */
@@ -23,8 +29,9 @@ export class SynthEngine {
    */
   init(): SynthContext | null {
     if (!this.ctx) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-explicit-any
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
+      this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
       this.masterGain.connect(this.ctx.destination);
     }

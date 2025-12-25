@@ -1,5 +1,5 @@
 import { type Player, type GameState, type Enemy } from '../types';
-import { type PoolManager } from './poolManager';
+import { type PoolManager } from './PoolManager';
 import { CheatManager } from './CheatManager';
 import { audio } from './audioService';
 import { EventBus } from './EventBus';
@@ -33,11 +33,8 @@ export class PhysicsSystem {
           -b.vy * trailCfg.speedMultiplier,
           b.color
         );
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
-        if (trailPart) {
-          trailPart.life = trailCfg.life;
-          trailPart.radius = b.radius * trailCfg.radiusMultiplier;
-        }
+        trailPart.life = trailCfg.life;
+        trailPart.radius = b.radius * trailCfg.radiusMultiplier;
       }
 
       if (b.x < -100 || b.x > width + 100 || b.y < -100 || b.y > height + 100) {
@@ -139,8 +136,7 @@ export class PhysicsSystem {
               (Math.random() - 0.5) * impactCfg.speed,
               b.isSuperCrit ? COLORS.SUPER_CRIT : b.color
             );
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
-            if (part) part.life = impactCfg.life;
+            part.life = impactCfg.life;
           }
 
           // Knockback: push enemy in bullet direction
@@ -211,11 +207,8 @@ export class PhysicsSystem {
             Math.sin(angle) * speed,
             g.color
           );
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
-          if (part) {
-            part.life = collectCfg.life;
-            part.radius = collectCfg.radius;
-          }
+          part.life = collectCfg.life;
+          part.radius = collectCfg.radius;
         }
 
         EventBus.emit('gemCollected', {
@@ -273,11 +266,8 @@ export class PhysicsSystem {
             Math.sin(angle) * speed,
             gem.color
           );
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- part can be undefined in tests
-          if (part) {
-            part.life = 0.8;
-            part.radius = 4;
-          }
+          part.life = 0.8;
+          part.radius = 4;
         }
 
         // Floating text with buff icon

@@ -11,7 +11,7 @@ interface LoggerStats {
 }
 
 export class PriceLogger {
-  private static instance: PriceLogger;
+  private static instance: PriceLogger | null = null;
   private binance: BinanceService;
   private supabase: SupabaseService;
   private stats: LoggerStats = {
@@ -27,10 +27,7 @@ export class PriceLogger {
   }
 
   static getInstance(): PriceLogger {
-    if (!PriceLogger.instance) {
-      PriceLogger.instance = new PriceLogger();
-    }
-    return PriceLogger.instance;
+    return (PriceLogger.instance ??= new PriceLogger());
   }
 
   async start(): Promise<void> {

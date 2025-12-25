@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import {
   type MarketPosition,
   type MarketData,
@@ -46,8 +46,6 @@ interface GameEngineProps {
   width: number;
   height: number;
 }
-
-// lerp imported from utils/math.ts
 
 export const GameEngine: React.FC<GameEngineProps> = ({
   status,
@@ -98,6 +96,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     level: 0,
   });
 
+  // Ref for market data to avoid loop restarts while keeping data fresh
+  const marketDataRef = useRef(marketData);
+  useEffect(() => {
+    marketDataRef.current = marketData;
+  }, [marketData]);
+
+  // Initial setup and object pool pre-warming
   useEffect(() => {
     // Start FPS monitor
     FPSMonitor.start();
@@ -111,7 +116,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       texts: 30,
     });
 
-    // Initial candle generation
+    return () => {
+      FPSMonitor.stop();
+    };
+  }, []);
+
+  // Update background candles on dimensions or adaptive profile changes
+  useEffect(() => {
     const updateCandles = () => {
       const config = DeviceBenchmarkService.getPerformanceConfig();
       state.current.bgCandles = generateBackgroundCandles(width, height, config);
@@ -119,17 +130,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     updateCandles();
 
-    // Listen for profile changes (adaptive performance)
     const unsubscribe = DeviceBenchmarkService.subscribe(() => {
       updateCandles();
     });
 
-    return () => {
-      FPSMonitor.stop();
-      unsubscribe();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => unsubscribe();
+  }, [width, height]);
 
   // Clamp player to screen if dimensions change (e.g. resize while paused)
   useEffect(() => {
@@ -138,11 +144,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
   }, [width, height, playerRef]);
 
+  // Handle game status changes
   useEffect(() => {
     // Reset time trackers on any status change to prevent jumps/spikes
     state.current.lastTime = 0;
 
-    // Handle MENU-specific cleanup (TimeService is now managed by GameStateMachine)
+    // Handle MENU-specific cleanup
     if (status === GameStatus.MENU) {
       pool.current.clearAll();
       state.current.spawnTimer = 0;
@@ -154,7 +161,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     // Initialize BuffManager when game starts
     if (status === GameStatus.PLAYING && !BuffManager.isInitialized()) {
-      BuffManager.initialize(playerRef.current);
+      const player = playerRef.current;
+      BuffManager.initialize(player);
       BuffGemSpawner.initialize(width, height);
     }
 
@@ -197,191 +205,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return () => unsub();
   }, []);
 
-  const update = (time: number) => {
-    const s = state.current;
-    const player = playerRef.current;
-    const p = pool.current;
-
-    const deltaTime = TimeService.update(time);
-    const dtFactor = deltaTime > 0 ? deltaTime / 16.67 : 0;
-    s.lastTime = time;
-    FPSMonitor.tick();
-
-    if (status !== GameStatus.PAUSED) {
-      renderer.current.updateBackgroundCandles(
-        s,
-        marketData.pnl,
-        marketData.difficulty,
-        dtFactor,
-        width,
-        height
-      );
-    }
-
-    if (status === GameStatus.PLAYING) {
-      // Handle Level Up Freeze
-      if (s.levelUpFreeze > 0) {
-        s.levelUpFreeze -= deltaTime;
-        // Reset shake during level up screen
-        s.shake = 0;
-        s.critFlash = 0;
-        if (s.levelUpFreeze <= 0) {
-          onLevelUp();
-        }
-        // During freeze, we still want to draw but not update physics
-        draw();
-        requestRef.current = requestAnimationFrame(update);
-        return;
-      }
-
-      if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
-      if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
-
-      // Update difficulty time-based factors
-      DifficultyManager.update(deltaTime);
-
-      // Update combo system
-      ComboSystem.update();
-
-      // Update buff manager (handles effect expiration)
-      BuffManager.update();
-      BuffManager.updateBaseStats(player);
-
-      // Update buff gem spawner (spawns gems based on volatility)
-      BuffGemSpawner.updateDimensions(width, height);
-      BuffGemSpawner.update(marketData.difficulty, deltaTime);
-
-      // Update metrics system
-      const wavePhase = DifficultyManager.getWavePhase();
-      const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
-      const hpPercent = (player.hp / maxHp) * 100;
-      MetricsService.update(deltaTime, {
-        pnl: marketData.pnl,
-        atr: 0.01, // ATR from market data if available
-        difficulty: marketData.difficulty,
-        wavePhase,
-        hpPercent,
-        enemyCount: p.activeEnemies.length,
-      });
-
-      // Dash Logic Timers
-      if (s.dashTimer > 0) {
-        s.dashTimer -= deltaTime;
-        if (s.dashTimer <= 0) s.isDashing = false;
-
-        // Add current position to trail
-        s.dashTrail.push({ x: player.x, y: player.y });
-        if (s.dashTrail.length > 8) s.dashTrail.shift();
-      } else {
-        // Fade out trail - frame-rate independent using accumulator
-        if (s.dashTrail.length > 0) {
-          s.dashTrailAccumulator += dtFactor;
-          while (s.dashTrailAccumulator >= 1) {
-            if (s.dashTrail.length > 0) {
-              s.dashTrail.shift();
-            }
-            s.dashTrailAccumulator -= 1;
-          }
-        } else {
-          s.dashTrailAccumulator = 0;
-        }
-      }
-      if (s.dashCooldownTimer > 0) {
-        s.dashCooldownTimer -= deltaTime;
-      }
-
-      const { dx, dy } = getMovementVector();
-
-      // Handle Dash Trigger
-      if (isSpacePressed() && s.dashCooldownTimer <= 0 && (dx !== 0 || dy !== 0)) {
-        s.isDashing = true;
-        s.dashTimer = GAME_ENGINE.DASH_DURATION;
-        s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
-        audio.playDash();
-        consumeDash();
-      }
-
-      if (dx !== 0 || dy !== 0) {
-        const mag = Math.hypot(dx, dy);
-        let speedMult = 1;
-
-        // Support analog move: if mag < 1 (joystick), move slower.
-        // If mag > 1 (keyboard diagonals), normalize to 1.
-        let inputFactor = Math.min(1, mag);
-
-        if (s.isDashing) {
-          speedMult = GAME_ENGINE.DASH_SPEED_MULTIPLIER;
-          // Forced fixed distance for dash, even if joystick is slightly pushed
-          inputFactor = 1.0;
-        }
-
-        const dirX = dx / mag;
-        const dirY = dy / mag;
-
-        player.x += dirX * inputFactor * player.speed * speedMult * dtFactor;
-        player.y += dirY * inputFactor * player.speed * speedMult * dtFactor;
-      }
-
-      player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
-      player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
-
-      const targetBg =
-        marketData.pnl >= 0
-          ? { r: 2, g: lerp(6, 40, Math.min(1, marketData.pnl * 20)), b: 10 }
-          : { r: lerp(2, 40, Math.min(1, Math.abs(marketData.pnl) * 20)), g: 2, b: 2 };
-
-      const bgLerpFactor = 1 - Math.pow(0.95, dtFactor);
-      s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
-      s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
-      s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
-
-      // Combat System - Auto Fire (only targets on-screen enemies)
-      CombatSystem.processAutoFire(p, player, s, deltaTime, width, height);
-
-      const layout = getHUDLayout(device.platform);
-      const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
-
-      // Use the lower of layout limit and performance config limit
-      const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
-
-      // Update Spawn System
-      s.spawnTimer = SpawnSystem.update(
-        deltaTime,
-        s.spawnTimer,
-        marketData.difficulty,
-        width,
-        height,
-        position,
-        p,
-        maxEnemies
-      );
-
-      // Update Physics & Collisions
-      PhysicsSystem.updateEntities(p, dtFactor, width, height);
-      PhysicsSystem.handleCollisions(p, player, s, dtFactor, width, height, onGameOver);
-
-      // Only update React state if meaningful stats changed to prevent 60fps re-renders of the whole UI
-      if (
-        player.hp !== lastSyncedStats.current.hp ||
-        player.exp !== lastSyncedStats.current.exp ||
-        player.level !== lastSyncedStats.current.level
-      ) {
-        updatePlayerStats({ ...player });
-        lastSyncedStats.current = {
-          hp: player.hp,
-          exp: player.exp,
-          level: player.level,
-        };
-      }
-
-      p.cleanup(); // Consolidate inactive objects
-    }
-
-    draw();
-    requestRef.current = requestAnimationFrame(update);
-  };
-
-  function draw() {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -399,13 +223,213 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       width,
       height,
       state.current,
-      playerRef.current,
+      playerRef.current!,
       pool.current,
       status,
       graphics
     );
-  }
+  }, [width, height, status, graphicsSettings, playerRef]);
 
+  const update = useCallback(
+    (time: number) => {
+      const s = state.current;
+      const player = playerRef.current;
+      const p = pool.current;
+
+      const deltaTime = TimeService.update(time);
+      const dtFactor = deltaTime / 16.67;
+      s.lastTime = time;
+      FPSMonitor.tick();
+
+      if (status !== GameStatus.PAUSED) {
+        renderer.current.updateBackgroundCandles(
+          s,
+          marketDataRef.current.pnl,
+          marketDataRef.current.difficulty,
+          dtFactor,
+          width,
+          height
+        );
+      }
+
+      if (status === GameStatus.PLAYING) {
+        // Handle Level Up Freeze
+        if (s.levelUpFreeze > 0) {
+          s.levelUpFreeze -= deltaTime;
+          // Reset shake during level up screen
+          s.shake = 0;
+          s.critFlash = 0;
+          if (s.levelUpFreeze <= 0) {
+            onLevelUp();
+          }
+          // During freeze, we still want to draw but not update physics
+          draw();
+          requestRef.current = requestAnimationFrame(update);
+          return;
+        }
+
+        if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
+        if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+
+        // Update difficulty time-based factors
+        DifficultyManager.update(deltaTime);
+
+        // Update combo system
+        ComboSystem.update();
+
+        // Update buff manager (handles effect expiration)
+        BuffManager.update();
+        BuffManager.updateBaseStats(player);
+
+        // Update buff gem spawner (spawns gems based on volatility)
+        BuffGemSpawner.updateDimensions(width, height);
+        BuffGemSpawner.update(marketDataRef.current.difficulty, deltaTime);
+
+        // Update metrics system
+        const wavePhase = DifficultyManager.getWavePhase();
+        const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
+        const hpPercent = (player.hp / maxHp) * 100;
+        MetricsService.update(deltaTime, {
+          pnl: marketDataRef.current.pnl,
+          atr: 0.01, // ATR from market data if available
+          difficulty: marketDataRef.current.difficulty,
+          wavePhase,
+          hpPercent,
+          enemyCount: p.activeEnemies.length,
+        });
+
+        // Dash Logic Timers
+        if (s.dashTimer > 0) {
+          s.dashTimer -= deltaTime;
+          if (s.dashTimer <= 0) s.isDashing = false;
+
+          // Add current position to trail
+          s.dashTrail.push({ x: player.x, y: player.y });
+          if (s.dashTrail.length > 8) s.dashTrail.shift();
+        } else {
+          // Fade out trail - frame-rate independent using accumulator
+          if (s.dashTrail.length > 0) {
+            s.dashTrailAccumulator += dtFactor;
+            while (s.dashTrailAccumulator >= 1) {
+              if (s.dashTrail.length > 0) {
+                s.dashTrail.shift();
+              }
+              s.dashTrailAccumulator -= 1;
+            }
+          } else {
+            s.dashTrailAccumulator = 0;
+          }
+        }
+        if (s.dashCooldownTimer > 0) {
+          s.dashCooldownTimer -= deltaTime;
+        }
+
+        const { dx, dy } = getMovementVector();
+
+        // Handle Dash Trigger
+        if (isSpacePressed() && s.dashCooldownTimer <= 0 && (dx !== 0 || dy !== 0)) {
+          s.isDashing = true;
+          s.dashTimer = GAME_ENGINE.DASH_DURATION;
+          s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
+          audio.playDash();
+          consumeDash();
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          const mag = Math.hypot(dx, dy);
+          let speedMult = 1;
+
+          // Support analog move
+          let inputFactor = Math.min(1, mag);
+
+          if (s.isDashing) {
+            speedMult = GAME_ENGINE.DASH_SPEED_MULTIPLIER;
+            inputFactor = 1.0;
+          }
+
+          const dirX = dx / mag;
+          const dirY = dy / mag;
+
+          player.x += dirX * inputFactor * player.speed * speedMult * dtFactor;
+          player.y += dirY * inputFactor * player.speed * speedMult * dtFactor;
+        }
+
+        player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
+
+        const targetBg =
+          marketDataRef.current.pnl >= 0
+            ? { r: 2, g: lerp(6, 40, Math.min(1, marketDataRef.current.pnl * 20)), b: 10 }
+            : { r: lerp(2, 40, Math.min(1, Math.abs(marketDataRef.current.pnl) * 20)), g: 2, b: 2 };
+
+        const bgLerpFactor = 1 - Math.pow(0.95, dtFactor);
+        s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
+        s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
+        s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
+
+        // Combat System - Auto Fire (only targets on-screen enemies)
+        CombatSystem.processAutoFire(p, player, s, deltaTime, width, height);
+
+        const layout = getHUDLayout(device.platform);
+        const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+
+        // Use the lower of layout limit and performance config limit
+        const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
+
+        // Update Spawn System
+        s.spawnTimer = SpawnSystem.update(
+          deltaTime,
+          s.spawnTimer,
+          marketDataRef.current.difficulty,
+          width,
+          height,
+          position,
+          p,
+          maxEnemies
+        );
+
+        // Update Physics & Collisions
+        PhysicsSystem.updateEntities(p, dtFactor, width, height);
+        PhysicsSystem.handleCollisions(p, player, s, dtFactor, width, height, onGameOver);
+
+        // Only update React state if meaningful stats changed
+        if (
+          player.hp !== lastSyncedStats.current.hp ||
+          player.exp !== lastSyncedStats.current.exp ||
+          player.level !== lastSyncedStats.current.level
+        ) {
+          updatePlayerStats({ ...player });
+          lastSyncedStats.current = {
+            hp: player.hp,
+            exp: player.exp,
+            level: player.level,
+          };
+        }
+
+        p.cleanup(); // Consolidate inactive objects
+      }
+
+      draw();
+      requestRef.current = requestAnimationFrame(update);
+    },
+    [
+      status,
+      width,
+      height,
+      onLevelUp,
+      onGameOver,
+      draw,
+      playerRef,
+      getMovementVector,
+      isSpacePressed,
+      consumeDash,
+      device.platform,
+      position,
+      updatePlayerStats,
+    ]
+  );
+
+  // Animation frame setup
   useEffect(() => {
     if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
@@ -417,10 +441,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         requestRef.current = undefined;
       }
     };
-    // Note: removed marketData and position to prevent shuttering on every update
-    // The update loop naturally reads these from current props on each frame
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, width, height]);
+  }, [update]);
 
   return (
     <div className="relative w-full h-full cursor-none">
@@ -428,7 +449,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       <GameHUD
         status={status}
         enemies={pool.current.activeEnemies}
-        player={playerRef.current}
+        player={playerRef.current!}
         sessionStartTime={sessionStartTime}
         width={width}
         height={height}
@@ -446,3 +467,5 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     </div>
   );
 };
+
+export default GameEngine;

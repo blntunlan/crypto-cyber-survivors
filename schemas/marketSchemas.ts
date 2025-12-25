@@ -240,7 +240,7 @@ export const VerificationRequestSchema = z.object({
   kills: z.number().int().nonnegative(),
   level: z.number().int().min(1),
   goldCollected: z.number().nonnegative(),
-  sessionId: z.string().uuid().optional(),
+  sessionId: z.uuid().optional(),
 });
 
 export type VerificationRequest = z.infer<typeof VerificationRequestSchema>;
@@ -333,7 +333,7 @@ export type ComboUpdatePayload = z.infer<typeof ComboUpdatePayloadSchema>;
 /**
  * Validate and parse unknown data with error logging
  */
-export function safeValidate<T>(schema: z.ZodSchema<T>, data: unknown, context?: string): T | null {
+export function safeValidate<T>(schema: z.ZodType<T>, data: unknown, context?: string): T | null {
   const result = schema.safeParse(data);
   if (result.success) {
     return result.data;

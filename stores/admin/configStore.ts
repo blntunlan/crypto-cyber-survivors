@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { Logger } from '../../services/Logger';
 import type {
   GameConfig,
   DifficultyConfig,
@@ -236,18 +237,18 @@ export const useAdminConfigStore = create<AdminConfigState>()(
 
       importConfig: (json: string) => {
         try {
-          const parsed = JSON.parse(json) as GameConfig;
+          const parsed = JSON.parse(json) as Partial<GameConfig>;
 
           // Basic validation
           if (!parsed.version || !parsed.difficulty || !parsed.spawn) {
-            console.error('Invalid config format');
+            Logger.error('Invalid config format');
             return false;
           }
 
-          get().setConfig(parsed);
+          get().setConfig(parsed as GameConfig);
           return true;
         } catch (error) {
-          console.error('Failed to parse config JSON:', error);
+          Logger.error('Failed to parse config JSON:', { error });
           return false;
         }
       },

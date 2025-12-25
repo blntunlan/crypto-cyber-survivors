@@ -17,6 +17,7 @@ export default tseslint.config(
       'coverage/**',
       'playwright-report/**',
       'test-results/**',
+      'supabase/functions/**', // Deno environment - different runtime
     ],
   },
 

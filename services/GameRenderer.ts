@@ -1,5 +1,5 @@
 import { GameStatus, type Player, type GameState } from '../types';
-import { type PoolManager } from './poolManager';
+import { type PoolManager } from './PoolManager';
 import {
   BackgroundRenderer,
   EntityRenderer,

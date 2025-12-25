@@ -1,10 +1,8 @@
-/**
- * ParticleConfigService - Live Tuning for Game Effects
- */
+import { Logger } from './Logger';
 
 export interface ParticleEffectConfig {
   life: number;
-  radiusMultiplier: number;
+  radiusMultiplier?: number;
   spawnChance?: number;
   count?: number;
   speed?: number;
@@ -56,16 +54,8 @@ class ParticleConfigServiceClass {
     group: 'trail' | 'impact' | 'collect' | 'bullets',
     params: Partial<ParticleEffectConfig>
   ): void {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (this[group]) {
-      Object.assign(this[group], params);
-      // eslint-disable-next-line no-console
-      console.log(
-        `%c✨ Particle Config Updated: ${group}`,
-        'color: #39FF14; font-weight: bold;',
-        this[group]
-      );
-    }
+    Object.assign(this[group], params);
+    Logger.info(`✨ Particle Config Updated: ${group}`, this[group]);
   }
 
   /**
@@ -92,8 +82,7 @@ class ParticleConfigServiceClass {
       critSizeMultiplier: 1.0,
       superCritSizeMultiplier: 0.7,
     };
-    // eslint-disable-next-line no-console
-    console.log('%c🔄 Particle Config Reset', 'color: #fbbf24; font-weight: bold;');
+    Logger.info('🔄 Particle Config Reset');
   }
 }
 

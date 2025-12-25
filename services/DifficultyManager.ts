@@ -5,9 +5,12 @@
  * psychological mechanics (waves, near-death, streaks).
  *
  * Uses TimeService for accurate game-time tracking.
+ * Integrates with Admin Dashboard config for runtime adjustments.
  */
 
 import { TimeService } from './TimeService';
+import { useAdminConfigStore } from '../stores/admin/configStore';
+import type { DifficultyConfig } from '../types/admin';
 
 export interface DifficultyFactors {
   baseTime: number;
@@ -203,15 +206,35 @@ class DifficultyManagerClass {
   }
 
   /**
+   * Get Admin Dashboard difficulty config (if available)
+   */
+  private getAdminConfig(): DifficultyConfig | null {
+    try {
+      const store = useAdminConfigStore.getState();
+      return store.config.difficulty;
+    } catch {
+      // Admin store may not be available in all contexts
+      return null;
+    }
+  }
+
+  /**
    * Main difficulty calculation
    * Called when market data updates or periodically
+   * Now integrates with Admin Dashboard config
    */
   calculate(pnl: number, atrPercent: number, level: number, hpPercent: number): DifficultyOutput {
+    // Get admin config overrides
+    const adminConfig = this.getAdminConfig();
+    const baseMultiplier = adminConfig?.base ? adminConfig.base / 5 : 1.0; // base 5 = 1.0x
+    const volatilityMultiplier = adminConfig?.volatilityMultiplier ?? 1.0;
+    const maxDifficulty = adminConfig?.maxDifficulty ?? 8.0;
+
     // Calculate all factors
     const factors: DifficultyFactors = {
       baseTime: this.getBaseTimeFactor(),
       pnlEffect: this.getPnlFactor(pnl),
-      volatility: this.getVolatilityFactor(atrPercent),
+      volatility: this.getVolatilityFactor(atrPercent) * volatilityMultiplier,
       levelFactor: this.getLevelFactor(level),
       waveMultiplier: this.WAVE_MULTIPLIERS[this.currentWavePhase],
       nearDeathMod: this.getNearDeathMod(hpPercent),
@@ -219,22 +242,26 @@ class DifficultyManagerClass {
       momentumMod: this.getMomentumMod(),
     };
 
-    // Combine technical factors
+    // Combine technical factors with base multiplier from admin config
     const technical =
-      factors.baseTime * factors.pnlEffect * factors.volatility * factors.levelFactor;
+      factors.baseTime *
+      factors.pnlEffect *
+      factors.volatility *
+      factors.levelFactor *
+      baseMultiplier;
 
     // Combine psychological factors
     const psychological = factors.waveMultiplier * factors.nearDeathMod * (1 + factors.streakBonus);
 
-    // Final difficulty with momentum adjustment
-    const total = this.clamp(technical * psychological * factors.momentumMod, 0.3, 8.0);
+    // Final difficulty with momentum adjustment, capped by admin config
+    const total = this.clamp(technical * psychological * factors.momentumMod, 0.3, maxDifficulty);
 
     return {
-      spawnRate: this.clamp(total * 0.6, 0.3, 3.5), // Reduced from 0.8, 0.5-5.0
+      spawnRate: this.clamp(total * 0.6, 0.3, 3.5),
       enemySpeed: this.clamp(
         factors.pnlEffect * factors.volatility * factors.waveMultiplier,
-        0.4, // Lower minimum
-        1.8 // Reduced from 2.5 for slower max speed
+        0.4,
+        1.8
       ),
       enemyHealth: this.clamp(factors.baseTime * factors.levelFactor, 0.8, 3.0),
       total,

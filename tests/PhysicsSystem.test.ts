@@ -59,7 +59,16 @@ describe('PhysicsSystem', () => {
       activeFloatingTexts: [],
       activeEnemies: [],
       activeGems: [],
-      getParticle: vi.fn(),
+      getParticle: vi.fn(() => ({
+        active: true,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        color: '#fff',
+        radius: 2,
+        life: 1,
+      })),
       getGem: vi.fn(),
       getFloatingText: vi.fn(),
     };

@@ -1,5 +1,5 @@
 import { type IRenderer, type RenderOptions } from './types';
-import { type PoolManager } from '../poolManager';
+import { type PoolManager } from '../PoolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { createViewportBounds, isCircleVisible } from './CullingUtils';

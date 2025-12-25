@@ -1,4 +1,4 @@
-import { type PoolManager } from '../poolManager';
+import { type PoolManager } from '../PoolManager';
 import { type GameState, type Player, type GameStatus } from '../../types';
 
 export interface GraphicsConfig {

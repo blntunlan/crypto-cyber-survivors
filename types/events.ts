@@ -33,7 +33,12 @@ export type GameEvent =
   | 'buffExpired'
   | 'buffGemSpawned'
   | 'buffGemCollected'
-  | 'marketDataTimeout';
+  | 'marketDataTimeout'
+  | 'verification:queued'
+  | 'verification:processing'
+  | 'verification:success'
+  | 'verification:failed'
+  | 'verification:retrying';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -205,6 +210,11 @@ export interface EventDataMap {
   buffGemSpawned: BuffGemSpawnedEvent;
   buffGemCollected: BuffGemCollectedEvent;
   marketDataTimeout: MarketDataTimeoutEvent;
+  'verification:queued': Record<string, unknown>;
+  'verification:processing': Record<string, unknown>;
+  'verification:success': Record<string, unknown>;
+  'verification:failed': Record<string, unknown>;
+  'verification:retrying': Record<string, unknown>;
 }
 
 // =============================================================================

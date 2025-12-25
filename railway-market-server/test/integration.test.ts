@@ -15,8 +15,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Test configuration
 const TEST_CONFIG = {
-  SUPABASE_URL: process.env.SUPABASE_URL || '',
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  SUPABASE_URL: process.env.SUPABASE_URL ?? '',
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
   TEST_PAIR: 'BTCUSDT',
   CLEANUP_AFTER_TEST: true,
 };
@@ -81,7 +81,7 @@ class IntegrationTester {
       const { data, error } = await this.client.from('price_logs').select('id').limit(1);
 
       if (error) throw new Error(`Connection failed: ${error.message}`);
-      log.info(`Connected successfully. Sample data: ${data?.length ?? 0} rows`);
+      log.info(`Connected successfully. Sample data: ${data.length} rows`);
     });
   }
 
@@ -107,7 +107,7 @@ class IntegrationTester {
         .single();
 
       if (error) throw new Error(`Insert failed: ${error.message}`);
-      if (!data?.id) throw new Error('No ID returned after insert');
+      if (!data.id) throw new Error('No ID returned after insert');
 
       this.testIds.push(data.id);
       log.info(`Inserted price_log with ID: ${data.id}`);
@@ -210,7 +210,7 @@ class IntegrationTester {
 
       if (error) throw new Error(`Batch insert failed: ${error.message}`);
 
-      const insertedIds = data?.map(d => d.id) ?? [];
+      const insertedIds = data.map(d => d.id);
       this.testIds.push(...insertedIds);
 
       const rate = (batchSize / (duration / 1000)).toFixed(2);

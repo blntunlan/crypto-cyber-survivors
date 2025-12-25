@@ -41,7 +41,7 @@ export interface DeviceInfo {
 }
 
 class ScreenServiceClass {
-  private static instance: ScreenServiceClass;
+  private static instance: ScreenServiceClass | null = null;
   private listeners: Set<() => void> = new Set();
   private cachedInfo: DeviceInfo | null = null;
   private cacheTime: number = 0;
@@ -59,7 +59,6 @@ class ScreenServiceClass {
    * Get singleton instance
    */
   static getInstance(): ScreenServiceClass {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return (ScreenServiceClass.instance ??= new ScreenServiceClass());
   }
 
