@@ -104,19 +104,35 @@ CREATE INDEX idx_price_logs_lookup ON price_logs(pair, timestamp DESC);
 
 ### 2. `player_wallets` (Bakiye + Cüzdan)
 
-**Amaç:** Her oyuncunun mock coin bakiyesini ve cüzdan adresini saklamak
+**Amaç:** Her oyuncunun coin bakiyesini ve cüzdan adresini saklamak
+
+> **⚠️ Önemli:** Optimistic UI için `confirmed_balance` ve `pending_balance` ayrı tutulmalı.
+> Client oyun bitince hemen `pending_balance`'a ekler, server doğruladıktan sonra `confirmed_balance`'a geçer.
 
 ```sql
 CREATE TABLE player_wallets (
-    player_id UUID PRIMARY KEY REFERENCES players(id),
-    mock_coin_balance NUMERIC DEFAULT 0,    -- Şu anki bakiye
+    player_id UUID PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+    
+    -- Bakiyeler (Optimistic UI Pattern)
+    confirmed_balance NUMERIC DEFAULT 0,   -- Server onaylı, kesinleşmiş bakiye
+    pending_balance NUMERIC DEFAULT 0,     -- Pending verification (optimistic)
+    
+    -- Lifetime stats
     total_earned NUMERIC DEFAULT 0,         -- Toplam kazanç (lifetime)
     total_withdrawn NUMERIC DEFAULT 0,      -- Toplam çekim (lifetime)
+    
+    -- Wallet info (gelecek)
     wallet_address TEXT,                    -- Kripto cüzdan adresi (opsiyonel)
     wallet_chain TEXT,                      -- 'ethereum', 'solana', etc.
     is_wallet_verified BOOLEAN DEFAULT FALSE,
+    
+    -- Metadata
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT positive_confirmed_balance CHECK (confirmed_balance >= 0),
+    CONSTRAINT positive_pending_balance CHECK (pending_balance >= 0)
 );
 
 -- RLS: Oyuncular sadece kendi cüzdanını görebilir
@@ -131,6 +147,12 @@ ON player_wallets FOR UPDATE
 USING (auth.uid() = player_id)
 WITH CHECK (auth.uid() = player_id);
 ```
+
+**Optimistic UI Flow:**
+1. Oyun biter → Client `pending_balance += optimisticReward` yapar
+2. Server doğrular → `pending_balance -= optimisticReward`, `confirmed_balance += verifiedReward`
+3. Server reddederse → `pending_balance -= optimisticReward` (rollback)
+
 
 ---
 

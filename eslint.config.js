@@ -9,12 +9,14 @@ export default tseslint.config(
   // ============================================
   {
     ignores: [
-      'dist/**',
-      'node_modules/**',
+      '**/dist/**',
+      '**/node_modules/**',
       '*.config.js',
       '*.config.ts',
       '*.config.cjs',
       'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
     ],
   },
 

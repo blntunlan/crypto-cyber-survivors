@@ -27,6 +27,7 @@ interface LeaderboardEntry {
   score: number;
   survival_time_ms: number;
   created_at: string;
+  crypto_pair?: string;
   rank?: number;
 }
 
@@ -147,15 +148,24 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
         setEntries(MOCK_ENTRIES);
         setLastUpdated(new Date());
       } else {
-        // Add rank to entries
-        const rankedEntries = data.map((entry, index) => ({
+        // Filter out entries with null/empty player names and add rank
+        const validEntries = data.filter(
+          entry => entry.player_name && entry.player_name.trim() !== ''
+        );
+
+        const rankedEntries = validEntries.map((entry, index) => ({
           ...entry,
+          // Ensure player_name is never null/undefined in display
+          player_name: entry.player_name || 'Anonymous',
           rank: index + 1,
         }));
 
         setEntries(rankedEntries);
         setLastUpdated(new Date());
-        Logger.debug('[Leaderboard] Fetched', { count: rankedEntries.length });
+        Logger.debug('[Leaderboard] Fetched', {
+          count: rankedEntries.length,
+          filtered: data.length - validEntries.length,
+        });
       }
     } catch (err) {
       Logger.error('[Leaderboard] Fetch failed', err);
@@ -308,6 +318,31 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
+                          {entry.crypto_pair && (
+                            <span
+                              className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase"
+                              style={{
+                                backgroundColor:
+                                  entry.crypto_pair === 'BTC'
+                                    ? '#F7931A20'
+                                    : entry.crypto_pair === 'ETH'
+                                      ? '#627EEA20'
+                                      : entry.crypto_pair === 'SOL'
+                                        ? '#9945FF20'
+                                        : '#64748b20',
+                                color:
+                                  entry.crypto_pair === 'BTC'
+                                    ? '#F7931A'
+                                    : entry.crypto_pair === 'ETH'
+                                      ? '#627EEA'
+                                      : entry.crypto_pair === 'SOL'
+                                        ? '#9945FF'
+                                        : '#64748b',
+                              }}
+                            >
+                              {entry.crypto_pair}
+                            </span>
+                          )}
                           <span className="text-[10px] text-slate-500 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {formatTime(entry.survival_time_ms)}

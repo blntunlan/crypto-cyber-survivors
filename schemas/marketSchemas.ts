@@ -219,3 +219,129 @@ export const SavedGameStateSchema = z.object({
 });
 
 export type SavedGameState = z.infer<typeof SavedGameStateSchema>;
+
+// ============================================
+// Verification Request Schemas
+// ============================================
+
+/**
+ * Verification Request - Used for anti-cheat server-side validation
+ */
+export const VerificationRequestSchema = z.object({
+  userId: z.string().min(1),
+  startTime: z.number().positive(),
+  endTime: z.number().positive(),
+  pair: z.enum(['BTC', 'ETH', 'SOL']),
+  position: z.enum(['long', 'short']),
+  leverage: z.number().int().min(1).max(125),
+  claimedEntryPrice: z.number().positive(),
+  claimedExitPrice: z.number().positive(),
+  claimedPnL: z.number(),
+  kills: z.number().int().nonnegative(),
+  level: z.number().int().min(1),
+  goldCollected: z.number().nonnegative(),
+  sessionId: z.string().uuid().optional(),
+});
+
+export type VerificationRequest = z.infer<typeof VerificationRequestSchema>;
+
+/**
+ * Verification Response from Edge Function
+ */
+export const VerificationResponseSchema = z.object({
+  verified: z.boolean(),
+  reward: z.number().optional(),
+  verifiedPnL: z.number().optional(),
+  method: z.enum(['exact', 'interpolated', 'window', 'trusted']).optional(),
+  error: z.string().optional(),
+  tolerances: z
+    .object({
+      priceTolerancePercent: z.number(),
+      pnlTolerancePercent: z.number(),
+      timeToleranceMs: z.number(),
+    })
+    .optional(),
+});
+
+export type VerificationResponse = z.infer<typeof VerificationResponseSchema>;
+
+// ============================================
+// Critical Event Payload Schemas
+// ============================================
+
+/**
+ * Enemy Killed Event
+ */
+export const EnemyKilledPayloadSchema = z.object({
+  type: z.string().optional(),
+  x: z.number(),
+  y: z.number(),
+  damage: z.number().optional(),
+  isCrit: z.boolean().optional(),
+  killer: z.enum(['player', 'system']).optional(),
+});
+
+export type EnemyKilledPayload = z.infer<typeof EnemyKilledPayloadSchema>;
+
+/**
+ * Player Hit Event
+ */
+export const PlayerHitPayloadSchema = z.object({
+  damage: z.number().positive(),
+  source: z.string().optional(),
+  remainingHp: z.number().optional(),
+});
+
+export type PlayerHitPayload = z.infer<typeof PlayerHitPayloadSchema>;
+
+/**
+ * Gem Collected Event
+ */
+export const GemCollectedPayloadSchema = z.object({
+  value: z.number().positive(),
+  x: z.number(),
+  y: z.number(),
+});
+
+export type GemCollectedPayload = z.infer<typeof GemCollectedPayloadSchema>;
+
+/**
+ * Level Up Event
+ */
+export const LevelUpPayloadSchema = z.object({
+  newLevel: z.number().int().min(2),
+  cardChosen: z.string().optional(),
+  cardTier: z.string().optional(),
+});
+
+export type LevelUpPayload = z.infer<typeof LevelUpPayloadSchema>;
+
+/**
+ * Combo Update Event
+ */
+export const ComboUpdatePayloadSchema = z.object({
+  killStreak: z.number().int().nonnegative(),
+  multiplier: z.number().min(1),
+});
+
+export type ComboUpdatePayload = z.infer<typeof ComboUpdatePayloadSchema>;
+
+// ============================================
+// Validation Utility
+// ============================================
+
+/**
+ * Validate and parse unknown data with error logging
+ */
+export function safeValidate<T>(schema: z.ZodSchema<T>, data: unknown, context?: string): T | null {
+  const result = schema.safeParse(data);
+  if (result.success) {
+    return result.data;
+  }
+
+  if (context) {
+    console.warn(`[Zod] Validation failed for ${context}:`, result.error.issues);
+  }
+
+  return null;
+}

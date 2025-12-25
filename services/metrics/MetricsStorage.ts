@@ -99,18 +99,19 @@ export class MetricsStorage {
     }
 
     try {
-      const { error } = await supabase
+      const playerId = UserSessionService.getPlayerId();
+      const isAnonymous = playerId.startsWith('anon-');
+
+      // 1. Insert game session (without FPS - moved to performance_metrics)
+      const { data: gameSession, error: sessionError } = await supabase
         .from('game_sessions')
         .insert({
-          player_id: UserSessionService.getPlayerId().startsWith('anon-')
-            ? null
-            : UserSessionService.getPlayerId(),
+          player_id: isAnonymous ? null : playerId,
           session_timestamp: new Date(session.sessionTimestamp).toISOString(),
           survival_time_ms: session.player.survivalTimeMs,
           end_reason: session.gameEndReason,
           max_level: session.player.maxLevel,
           total_kills: session.player.totalKills,
-
           crypto_pair: session.pair,
           position: session.bitcoin.positionChosen,
           leverage: session.bitcoin.leverage,
@@ -118,23 +119,90 @@ export class MetricsStorage {
           exit_price: session.bitcoin.priceAtEnd,
           pnl_percent: session.bitcoin.pnlAtDeath,
           device_fingerprint: session.performance?.deviceFingerprint,
-          avg_fps: session.performance?.avgFps,
-          min_fps: session.performance?.minFps,
         })
         .select('id')
         .single();
 
-      if (error) {
-        throw error;
+      if (sessionError) {
+        throw sessionError;
       }
 
-      Logger.info('[MetricsStorage] Synced to Supabase');
+      Logger.info('[MetricsStorage] Game session synced');
 
-      // Leaderboard is now a VIEW, so we don't insert directly.
-      // The view automatically picks up the new game_session.
+      // 2. Insert performance metrics (if available)
+      if (session.performance && gameSession?.id) {
+        const { error: perfError } = await supabase.from('performance_metrics').insert({
+          session_id: gameSession.id,
+          avg_fps: session.performance.avgFps,
+          min_fps: session.performance.minFps,
+          max_fps: session.performance.maxFps ?? session.performance.avgFps,
+          fps_samples: session.performance.fpsSamples ?? 1,
+          frame_drops: session.performance.frameDrops ?? 0,
+          memory_used_mb: session.performance.memoryUsedMb,
+          memory_peak_mb: session.performance.memoryPeakMb,
+          enemy_count_max: session.performance.enemyCountMax,
+          optimization_profile: session.performance.optimizationProfile,
+          device_fingerprint: session.performance.deviceFingerprint,
+        });
+
+        if (perfError) {
+          Logger.warn('[MetricsStorage] Performance metrics sync failed', perfError);
+        } else {
+          Logger.debug('[MetricsStorage] Performance metrics synced');
+        }
+      }
+
+      // 3. Update player stats (if not anonymous)
+      if (!isAnonymous) {
+        await this.updatePlayerStats(playerId, session);
+      }
     } catch (err) {
       // Silent fail is okay for metrics, but log warning
       Logger.warn('[MetricsStorage] Supabase sync failed', err);
+    }
+  }
+
+  /**
+   * Update player aggregate stats after game session
+   */
+  private async updatePlayerStats(playerId: string, session: SessionMetrics): Promise<void> {
+    if (!supabase) return;
+
+    try {
+      // Get current player stats
+      const { data: player, error: fetchError } = await supabase
+        .from('players')
+        .select('high_score, total_kills, total_playtime_ms, best_pnl_percent')
+        .eq('id', playerId)
+        .single();
+
+      if (fetchError || !player) return;
+
+      // Calculate updates
+      const newHighScore = Math.max(player.high_score, session.player.survivalTimeMs);
+      const newTotalKills = player.total_kills + session.player.totalKills;
+      const newTotalPlaytime = player.total_playtime_ms + session.player.survivalTimeMs;
+      const pnl = session.bitcoin.pnlAtDeath ?? 0;
+      const newBestPnl = pnl > player.best_pnl_percent ? pnl : player.best_pnl_percent;
+
+      // Update player
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({
+          high_score: newHighScore,
+          total_kills: newTotalKills,
+          total_playtime_ms: newTotalPlaytime,
+          best_pnl_percent: newBestPnl,
+        })
+        .eq('id', playerId);
+
+      if (updateError) {
+        Logger.warn('[MetricsStorage] Player stats update failed', updateError);
+      } else if (newHighScore > player.high_score) {
+        Logger.info(`[MetricsStorage] New high score! ${player.high_score} → ${newHighScore}`);
+      }
+    } catch (err) {
+      Logger.warn('[MetricsStorage] Player stats update error', err);
     }
   }
 

@@ -550,6 +550,136 @@ export class MetricsServiceClass {
     }
 
     this.saveToStorage();
+
+    // Sync to Supabase (fire and forget)
+    void this.syncSessionToSupabase(session);
+  }
+
+  /**
+   * Sync session to Supabase for analytics and leaderboard
+   */
+  private async syncSessionToSupabase(session: SessionMetrics): Promise<void> {
+    const { supabase, isSupabaseConfigured } = await import('./supabase');
+    const { UserSessionService } = await import('./auth/UserSessionService');
+
+    if (!isSupabaseConfigured() || !supabase) {
+      Logger.debug('[Metrics] Supabase not configured, skipping sync');
+      return;
+    }
+
+    try {
+      const playerId = UserSessionService.getPlayerId();
+      const isAnonymous = playerId.startsWith('anon-');
+
+      // 1. Insert game session with replay attack protection
+      // session_id: Client-generated unique ID (prevents duplicate submissions)
+      // session_timestamp: Game start time (UNIQUE with player_id)
+      const { data: gameSession, error: sessionError } = await supabase
+        .from('game_sessions')
+        .insert({
+          player_id: isAnonymous ? null : playerId,
+          session_id: session.sessionId, // Unique client-generated ID for replay protection
+          session_timestamp: new Date(session.sessionTimestamp).toISOString(),
+          survival_time_ms: session.player.survivalTimeMs,
+          end_reason: session.gameEndReason,
+          max_level: session.player.maxLevel,
+          total_kills: session.player.totalKills,
+          crypto_pair: session.pair,
+          position: session.bitcoin.positionChosen,
+          leverage: session.bitcoin.leverage,
+          entry_price: session.bitcoin.priceAtStart,
+          exit_price: session.bitcoin.priceAtEnd,
+          pnl_percent: session.bitcoin.pnlAtDeath,
+          device_fingerprint: session.performance?.deviceFingerprint,
+        })
+        .select('id')
+        .single();
+
+      // Handle duplicate session error (replay attack protection)
+      if (sessionError) {
+        // PostgreSQL unique constraint violation code: 23505
+        if (sessionError.code === '23505') {
+          Logger.warn('[Metrics] Duplicate session detected - replay attack blocked', {
+            sessionId: session.sessionId,
+            playerId,
+          });
+          return; // Silently ignore duplicate - this is expected for replay attempts
+        }
+        throw sessionError;
+      }
+
+      Logger.info('[Metrics] Game session synced to Supabase');
+
+      // 2. Insert performance metrics (if available)
+      if (session.performance && gameSession?.id) {
+        const { error: perfError } = await supabase.from('performance_metrics').insert({
+          session_id: gameSession.id,
+          avg_fps: session.performance.avgFps,
+          min_fps: session.performance.minFps,
+          max_fps: session.performance.maxFps ?? session.performance.avgFps,
+          fps_samples: session.performance.fpsSamples ?? 1,
+          frame_drops: session.performance.frameDrops ?? 0,
+          memory_used_mb: session.performance.memoryUsedMb,
+          memory_peak_mb: session.performance.memoryPeakMb,
+          enemy_count_max: session.performance.enemyCountMax,
+          optimization_profile: session.performance.optimizationProfile,
+          device_fingerprint: session.performance.deviceFingerprint,
+        });
+
+        if (perfError) {
+          Logger.warn('[Metrics] Performance metrics sync failed', perfError);
+        }
+      }
+
+      // 3. Update player stats (if not anonymous)
+      if (!isAnonymous) {
+        await this.updatePlayerStats(playerId, session);
+      }
+    } catch (err) {
+      Logger.warn('[Metrics] Supabase sync failed', err);
+    }
+  }
+
+  /**
+   * Update player aggregate stats after game session
+   */
+  private async updatePlayerStats(playerId: string, session: SessionMetrics): Promise<void> {
+    const { supabase } = await import('./supabase');
+    if (!supabase) return;
+
+    try {
+      const { data: player, error: fetchError } = await supabase
+        .from('players')
+        .select('high_score, total_kills, total_playtime_ms, best_pnl_percent')
+        .eq('id', playerId)
+        .single();
+
+      if (fetchError || !player) return;
+
+      const newHighScore = Math.max(player.high_score, session.player.survivalTimeMs);
+      const newTotalKills = player.total_kills + session.player.totalKills;
+      const newTotalPlaytime = player.total_playtime_ms + session.player.survivalTimeMs;
+      const pnl = session.bitcoin.pnlAtDeath ?? 0;
+      const newBestPnl = pnl > player.best_pnl_percent ? pnl : player.best_pnl_percent;
+
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({
+          high_score: newHighScore,
+          total_kills: newTotalKills,
+          total_playtime_ms: newTotalPlaytime,
+          best_pnl_percent: newBestPnl,
+        })
+        .eq('id', playerId);
+
+      if (updateError) {
+        Logger.warn('[Metrics] Player stats update failed', updateError);
+      } else if (newHighScore > player.high_score) {
+        Logger.info(`[Metrics] New high score! ${player.high_score} → ${newHighScore}`);
+      }
+    } catch (err) {
+      Logger.warn('[Metrics] Player stats update error', err);
+    }
   }
 
   // ============= Event Listeners =============

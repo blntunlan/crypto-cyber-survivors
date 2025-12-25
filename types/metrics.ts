@@ -135,6 +135,13 @@ export interface SessionMetrics {
   performance?: {
     avgFps: number;
     minFps: number;
+    maxFps?: number;
+    fpsSamples?: number;
+    frameDrops?: number;
+    memoryUsedMb?: number;
+    memoryPeakMb?: number;
+    enemyCountMax?: number;
+    optimizationProfile?: string;
     deviceFingerprint: string;
   };
 }

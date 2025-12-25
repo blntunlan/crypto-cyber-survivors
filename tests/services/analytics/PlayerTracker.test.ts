@@ -227,4 +227,81 @@ describe('PlayerTracker', () => {
       );
     });
   });
+
+  describe('high score', () => {
+    it('should update high score if new score is higher', async () => {
+      // Arrange
+      const existingPlayer = {
+        id: 'test-player-id',
+        display_name: 'test-nickname',
+        created_at: '2023-01-01',
+        last_seen_at: '2023-01-01',
+        total_sessions: 1,
+        high_score: 100,
+      };
+      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+
+      const tracker = PlayerTracker.getInstance();
+      await waitForInit(tracker);
+
+      // Verify initial high score
+      expect(tracker.getHighScore()).toBe(100);
+
+      // Setup mock for updateHighScore call
+      mockSupabase.eq.mockResolvedValueOnce({ error: null });
+
+      // Act
+      const result = await tracker.updateHighScore(200);
+
+      // Assert
+      expect(result).toBe(true);
+      expect(tracker.getHighScore()).toBe(200);
+      expect(mockSupabase.update).toHaveBeenCalledWith(
+        expect.objectContaining({ high_score: 200 })
+      );
+    });
+
+    it('should not update high score if new score is lower', async () => {
+      // Arrange
+      const existingPlayer = {
+        id: 'test-player-id',
+        display_name: 'test-nickname',
+        created_at: '2023-01-01',
+        last_seen_at: '2023-01-01',
+        total_sessions: 1,
+        high_score: 500,
+      };
+      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+
+      const tracker = PlayerTracker.getInstance();
+      await waitForInit(tracker);
+
+      // Verify initial high score loaded
+      expect(tracker.getHighScore()).toBe(500);
+
+      // Clear update mock calls from init
+      mockSupabase.update.mockClear();
+
+      // Act
+      const result = await tracker.updateHighScore(100);
+
+      // Assert
+      expect(result).toBe(false);
+      expect(tracker.getHighScore()).toBe(500); // Should remain unchanged
+      // update should NOT have been called for high_score
+      expect(mockSupabase.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({ high_score: expect.anything() })
+      );
+    });
+
+    it('should return 0 if no player is initialized', async () => {
+      // Arrange
+      (isSupabaseConfigured as any).mockReturnValue(false);
+      const tracker = PlayerTracker.getInstance();
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      // Assert
+      expect(tracker.getHighScore()).toBe(0);
+    });
+  });
 });

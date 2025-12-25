@@ -18,6 +18,7 @@ interface PlayerData {
   createdAt: string;
   lastSeenAt: string;
   totalSessions: number;
+  highScore: number;
 }
 
 export class PlayerTracker {
@@ -88,6 +89,7 @@ export class PlayerTracker {
           createdAt: existing.created_at,
           lastSeenAt: new Date().toISOString(),
           totalSessions: existing.total_sessions + 1,
+          highScore: existing.high_score ?? 0,
         };
 
         Logger.info(`[PlayerTracker] Welcome back, ${nickname}!`);
@@ -113,6 +115,7 @@ export class PlayerTracker {
           createdAt: newPlayer.created_at,
           lastSeenAt: newPlayer.last_seen_at,
           totalSessions: 1,
+          highScore: 0,
         };
 
         Logger.info(`[PlayerTracker] New player registered: ${nickname}`);
@@ -167,6 +170,50 @@ export class PlayerTracker {
     } catch (err) {
       Logger.warn('[PlayerTracker] Failed to update last seen', err);
     }
+  }
+
+  /**
+   * Update high score if new score is higher
+   * @returns true if high score was updated, false otherwise
+   */
+  async updateHighScore(newScore: number): Promise<boolean> {
+    if (!this.currentPlayer || !isSupabaseConfigured() || !supabase) {
+      return false;
+    }
+
+    // Only update if new score is higher
+    if (newScore <= this.currentPlayer.highScore) {
+      Logger.debug(
+        `[PlayerTracker] Score ${newScore} not higher than high score ${this.currentPlayer.highScore}`
+      );
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('players')
+        .update({
+          high_score: newScore,
+        })
+        .eq('id', this.currentPlayer.id);
+
+      if (error) throw error;
+
+      const oldScore = this.currentPlayer.highScore;
+      this.currentPlayer.highScore = newScore;
+      Logger.info(`[PlayerTracker] New high score! ${oldScore} → ${newScore}`);
+      return true;
+    } catch (err) {
+      Logger.warn('[PlayerTracker] Failed to update high score', err);
+      return false;
+    }
+  }
+
+  /**
+   * Get player's current high score
+   */
+  getHighScore(): number {
+    return this.currentPlayer?.highScore ?? 0;
   }
 
   /**
