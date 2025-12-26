@@ -8,19 +8,15 @@ import {
   type Candle,
 } from '../types';
 import { COLORS, GAME_ENGINE } from '../constants';
-import { audio } from '../services/audioService';
 import { PoolManager } from '../services/PoolManager';
 import { GameRenderer } from '../services/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
-import { EventBus } from '../services/EventBus';
 import { MetricsService } from '../services/MetricsService';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { ComboSystem } from '../services/ComboSystem';
 import { TimeService } from '../services/TimeService';
-import { GAME_STATE_DEFAULTS } from '../services/GameStateManager';
 import { getHUDLayout } from '../config/UILayout';
 import { useGameStore, selectGraphics } from '../stores/gameStore';
-
 import { PhysicsSystem } from '../services/PhysicsSystem';
 import { SpawnSystem } from '../services/SpawnSystem';
 import { CombatSystem } from '../services/CombatSystem';
@@ -28,11 +24,16 @@ import { GameHUD } from './GameHUD';
 import { MobileControls } from './mobile';
 import { useDevice } from '../hooks/useDevice';
 import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
-import { generateBackgroundCandles } from '../utils/backgroundCandles';
 import { FPSMonitor } from '../services/FPSMonitor';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { lerp } from '../utils/math';
+import { audio } from '../services/audioService';
+
+// Custom hooks for GameEngine
+import { useGameSetup } from '../hooks/useGameSetup';
+import { useGameEvents } from '../hooks/useGameEvents';
+import { useGameStatusEffects } from '../hooks/useGameStatusEffects';
 
 interface GameEngineProps {
   status: GameStatus;
@@ -102,108 +103,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     marketDataRef.current = marketData;
   }, [marketData]);
 
-  // Initial setup and object pool pre-warming
-  useEffect(() => {
-    // Start FPS monitor
-    FPSMonitor.start();
+  // ========================================
+  // Custom Hooks for Setup, Events & Status
+  // ========================================
 
-    // Pre-warm object pools to prevent allocation stutters during gameplay
-    const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
-    pool.current.preWarm({
-      bullets: Math.round(80 * perfConfig.particleMultiplier),
-      particles: Math.round(150 * perfConfig.particleMultiplier),
-      gems: 20,
-      texts: 30,
-    });
+  // Initial setup: FPS monitor, pool pre-warming, background candles
+  useGameSetup({ pool, state, width, height });
 
-    return () => {
-      FPSMonitor.stop();
-    };
-  }, []);
+  // Event subscriptions: afterReset, killAll
+  useGameEvents({ pool, state });
 
-  // Update background candles on dimensions or adaptive profile changes
-  useEffect(() => {
-    const updateCandles = () => {
-      const config = DeviceBenchmarkService.getPerformanceConfig();
-      state.current.bgCandles = generateBackgroundCandles(width, height, config);
-    };
-
-    updateCandles();
-
-    const unsubscribe = DeviceBenchmarkService.subscribe(() => {
-      updateCandles();
-    });
-
-    return () => unsubscribe();
-  }, [width, height]);
-
-  // Clamp player to screen if dimensions change (e.g. resize while paused)
-  useEffect(() => {
-    const player = playerRef.current;
-    player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
-    player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
-  }, [width, height, playerRef]);
-
-  // Handle game status changes
-  useEffect(() => {
-    // Reset time trackers on any status change to prevent jumps/spikes
-    state.current.lastTime = 0;
-
-    // Handle MENU-specific cleanup
-    if (status === GameStatus.MENU) {
-      pool.current.clearAll();
-      state.current.spawnTimer = 0;
-      state.current.lastFireTime = 0;
-      state.current.shake = 0;
-      state.current.critFlash = 0;
-      BuffManager.reset(); // Reset buffs on menu
-    }
-
-    // Initialize BuffManager when game starts
-    if (status === GameStatus.PLAYING && !BuffManager.isInitialized()) {
-      const player = playerRef.current;
-      BuffManager.initialize(player);
-      BuffGemSpawner.initialize(width, height);
-    }
-
-    // Pause/Resume buff timers based on game status
-    if (status === GameStatus.PAUSED || status === GameStatus.LEVEL_UP) {
-      BuffManager.pause();
-    } else if (status === GameStatus.PLAYING && BuffManager.isPaused()) {
-      BuffManager.resume();
-    }
-  }, [status, playerRef, width, height]);
-
-  // Listen for afterReset event from GameStateManager to fully reset all game state
-  useEffect(() => {
-    const unsub = EventBus.subscribe('afterReset', () => {
-      // Clear all game entities
-      pool.current.clearAll();
-
-      // Reset state using centralized defaults
-      Object.assign(state.current, {
-        ...GAME_STATE_DEFAULTS,
-        bgCandles: state.current.bgCandles, // Preserve background candles
-        dashTrail: [], // Reset trail array
-      });
-
-      // Reset buff manager
-      BuffManager.reset();
-      BuffGemSpawner.reset();
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const unsub = EventBus.subscribe('killAll', () => {
-      state.current.shake = 20;
-      audio.playHit();
-      pool.current.activeEnemies.forEach(e => {
-        e.health = 0;
-      });
-    });
-    return () => unsub();
-  }, []);
+  // Status change effects: menu cleanup, buff initialization, pause handling
+  useGameStatusEffects({ status, pool, state, playerRef, width, height });
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

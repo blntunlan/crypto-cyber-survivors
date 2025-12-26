@@ -12,192 +12,192 @@ import { DifficultyManager } from '../services/DifficultyManager';
 import { MarketPosition } from '../types';
 
 describe('Bitcoin-PNL-Difficulty System', () => {
-    beforeEach(() => {
-        DifficultyManager.startGame();
+  beforeEach(() => {
+    DifficultyManager.startGame();
+  });
+
+  // Helper function to calculate PNL based on position
+  const calculatePnl = (
+    entryPrice: number,
+    currentPrice: number,
+    position: MarketPosition
+  ): number => {
+    let pnl = (currentPrice - entryPrice) / entryPrice;
+    if (position === MarketPosition.SHORT) {
+      pnl = -pnl;
+    }
+    return pnl;
+  };
+
+  describe('PNL Calculation', () => {
+    it('should calculate positive PNL when LONG and price goes UP', () => {
+      const pnl = calculatePnl(100000, 101000, MarketPosition.LONG);
+      expect(pnl).toBeCloseTo(0.01, 4); // +1% profit
     });
 
-    // Helper function to calculate PNL based on position
-    const calculatePnl = (
-        entryPrice: number,
-        currentPrice: number,
-        position: MarketPosition
-    ): number => {
-        let pnl = (currentPrice - entryPrice) / entryPrice;
-        if (position === MarketPosition.SHORT) {
-            pnl = -pnl;
-        }
-        return pnl;
-    };
-
-    describe('PNL Calculation', () => {
-        it('should calculate positive PNL when LONG and price goes UP', () => {
-            const pnl = calculatePnl(100000, 101000, MarketPosition.LONG);
-            expect(pnl).toBeCloseTo(0.01, 4); // +1% profit
-        });
-
-        it('should calculate negative PNL when LONG and price goes DOWN', () => {
-            const pnl = calculatePnl(100000, 99000, MarketPosition.LONG);
-            expect(pnl).toBeCloseTo(-0.01, 4); // -1% loss
-        });
-
-        it('should calculate positive PNL when SHORT and price goes DOWN', () => {
-            const pnl = calculatePnl(100000, 99000, MarketPosition.SHORT);
-            expect(pnl).toBeCloseTo(0.01, 4); // +1% profit (inverted)
-        });
-
-        it('should calculate negative PNL when SHORT and price goes UP', () => {
-            const pnl = calculatePnl(100000, 101000, MarketPosition.SHORT);
-            expect(pnl).toBeCloseTo(-0.01, 4); // -1% loss (inverted)
-        });
+    it('should calculate negative PNL when LONG and price goes DOWN', () => {
+      const pnl = calculatePnl(100000, 99000, MarketPosition.LONG);
+      expect(pnl).toBeCloseTo(-0.01, 4); // -1% loss
     });
 
-    describe('Leverage Effect', () => {
-        it('should amplify PNL by leverage multiplier', () => {
-            const basePnl = 0.01; // 1%
-            const leverage = 10;
-            const effectivePnl = basePnl * leverage;
-
-            expect(effectivePnl).toBe(0.1); // 10%
-        });
-
-        it('should amplify losses as well as profits', () => {
-            const basePnl = -0.01; // -1%
-            const leverage = 25;
-            const effectivePnl = basePnl * leverage;
-
-            expect(effectivePnl).toBe(-0.25); // -25%
-        });
+    it('should calculate positive PNL when SHORT and price goes DOWN', () => {
+      const pnl = calculatePnl(100000, 99000, MarketPosition.SHORT);
+      expect(pnl).toBeCloseTo(0.01, 4); // +1% profit (inverted)
     });
 
-    describe('Difficulty Response to PNL', () => {
-        it('should make game EASIER when player is profiting', () => {
-            const neutralDifficulty = DifficultyManager.calculate(0, 0, 1, 100);
+    it('should calculate negative PNL when SHORT and price goes UP', () => {
+      const pnl = calculatePnl(100000, 101000, MarketPosition.SHORT);
+      expect(pnl).toBeCloseTo(-0.01, 4); // -1% loss (inverted)
+    });
+  });
 
-            DifficultyManager.startGame();
-            const profitDifficulty = DifficultyManager.calculate(0.05, 0, 1, 100); // +5% profit
+  describe('Leverage Effect', () => {
+    it('should amplify PNL by leverage multiplier', () => {
+      const basePnl = 0.01; // 1%
+      const leverage = 10;
+      const effectivePnl = basePnl * leverage;
 
-            expect(profitDifficulty.total).toBeLessThan(neutralDifficulty.total);
-            expect(profitDifficulty.spawnRate).toBeLessThanOrEqual(neutralDifficulty.spawnRate);
-            expect(profitDifficulty.enemySpeed).toBeLessThanOrEqual(neutralDifficulty.enemySpeed);
-        });
-
-        it('should make game HARDER when player is losing', () => {
-            const neutralDifficulty = DifficultyManager.calculate(0, 0, 1, 100);
-
-            DifficultyManager.startGame();
-            const lossDifficulty = DifficultyManager.calculate(-0.05, 0, 1, 100); // -5% loss
-
-            expect(lossDifficulty.total).toBeGreaterThan(neutralDifficulty.total);
-            expect(lossDifficulty.spawnRate).toBeGreaterThanOrEqual(neutralDifficulty.spawnRate);
-            expect(lossDifficulty.enemySpeed).toBeGreaterThanOrEqual(neutralDifficulty.enemySpeed);
-        });
-
-        it('should scale difficulty with loss magnitude', () => {
-            DifficultyManager.startGame();
-            const smallLoss = DifficultyManager.calculate(-0.02, 0, 1, 100);
-
-            DifficultyManager.startGame();
-            const largeLoss = DifficultyManager.calculate(-0.10, 0, 1, 100);
-
-            expect(largeLoss.total).toBeGreaterThan(smallLoss.total);
-        });
-
-        it('should not go below minimum difficulty even with huge profits', () => {
-            const hugeProfitDifficulty = DifficultyManager.calculate(0.50, 0, 1, 100); // +50% profit
-
-            expect(hugeProfitDifficulty.total).toBeGreaterThanOrEqual(0.3);
-        });
-
-        it('should not exceed maximum difficulty even with huge losses', () => {
-            const hugeLossDifficulty = DifficultyManager.calculate(-0.50, 0, 1, 100); // -50% loss
-
-            expect(hugeLossDifficulty.total).toBeLessThanOrEqual(8.0);
-        });
+      expect(effectivePnl).toBe(0.1); // 10%
     });
 
-    describe('Volatility (ATR) Effect', () => {
-        it('should increase difficulty during high volatility', () => {
-            const lowVolatility = DifficultyManager.calculate(0, 0.002, 1, 100); // 0.2% ATR
+    it('should amplify losses as well as profits', () => {
+      const basePnl = -0.01; // -1%
+      const leverage = 25;
+      const effectivePnl = basePnl * leverage;
 
-            DifficultyManager.startGame();
-            const highVolatility = DifficultyManager.calculate(0, 0.03, 1, 100); // 3% ATR
+      expect(effectivePnl).toBe(-0.25); // -25%
+    });
+  });
 
-            expect(highVolatility.enemySpeed).toBeGreaterThan(lowVolatility.enemySpeed);
-        });
+  describe('Difficulty Response to PNL', () => {
+    it('should make game EASIER when player is profiting', () => {
+      const neutralDifficulty = DifficultyManager.calculate(0, 0, 1, 100);
 
-        it('should combine volatility with PNL effect', () => {
-            // High volatility + losing = very hard
-            DifficultyManager.startGame();
-            const hardMode = DifficultyManager.calculate(-0.05, 0.025, 1, 100);
+      DifficultyManager.startGame();
+      const profitDifficulty = DifficultyManager.calculate(0.05, 0, 1, 100); // +5% profit
 
-            // Low volatility + winning = very easy
-            DifficultyManager.startGame();
-            const easyMode = DifficultyManager.calculate(0.05, 0.002, 1, 100);
-
-            expect(hardMode.total).toBeGreaterThan(easyMode.total * 1.5); // Significantly harder
-        });
+      expect(profitDifficulty.total).toBeLessThan(neutralDifficulty.total);
+      expect(profitDifficulty.spawnRate).toBeLessThanOrEqual(neutralDifficulty.spawnRate);
+      expect(profitDifficulty.enemySpeed).toBeLessThanOrEqual(neutralDifficulty.enemySpeed);
     });
 
-    describe('Near-Death Mercy', () => {
-        it('should reduce difficulty when HP drops below 20%', () => {
-            const normalHp = DifficultyManager.calculate(-0.03, 0, 5, 100);
+    it('should make game HARDER when player is losing', () => {
+      const neutralDifficulty = DifficultyManager.calculate(0, 0, 1, 100);
 
-            DifficultyManager.startGame();
-            const lowHp = DifficultyManager.calculate(-0.03, 0, 5, 15); // 15% HP
+      DifficultyManager.startGame();
+      const lossDifficulty = DifficultyManager.calculate(-0.05, 0, 1, 100); // -5% loss
 
-            expect(lowHp.total).toBeLessThan(normalHp.total);
-        });
-
-        it('should give losing players a chance to recover', () => {
-            // Losing + low HP = mercy kick in
-            DifficultyManager.startGame();
-            const desperateSituation = DifficultyManager.calculate(-0.10, 0.02, 5, 10);
-
-            // Even with -10% PNL and high volatility, near-death should help
-            expect(desperateSituation.total).toBeLessThan(8.0); // Not max difficulty
-        });
+      expect(lossDifficulty.total).toBeGreaterThan(neutralDifficulty.total);
+      expect(lossDifficulty.spawnRate).toBeGreaterThanOrEqual(neutralDifficulty.spawnRate);
+      expect(lossDifficulty.enemySpeed).toBeGreaterThanOrEqual(neutralDifficulty.enemySpeed);
     });
 
-    describe('Real-World Scenarios', () => {
-        it('Scenario: LONG position, BTC pumps 3% with 10x leverage', () => {
-            // Entry: $100,000, Current: $103,000
-            const rawPnl = 0.03; // +3%
-            const leverage = 10;
-            const effectivePnl = rawPnl * leverage; // +30%
+    it('should scale difficulty with loss magnitude', () => {
+      DifficultyManager.startGame();
+      const smallLoss = DifficultyManager.calculate(-0.02, 0, 1, 100);
 
-            const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 80);
+      DifficultyManager.startGame();
+      const largeLoss = DifficultyManager.calculate(-0.1, 0, 1, 100);
 
-            // Should be relatively easy
-            expect(difficulty.total).toBeLessThan(1.5);
-        });
-
-        it('Scenario: SHORT position, BTC pumps 3% with 10x leverage', () => {
-            // Entry: $100,000, Current: $103,000 - SHORT is losing
-            const rawPnl = -0.03; // -3% (inverted for SHORT)
-            const leverage = 10;
-            const effectivePnl = rawPnl * leverage; // -30%
-
-            const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 80);
-
-            // Should be quite hard
-            expect(difficulty.total).toBeGreaterThan(2.0);
-        });
-
-        it('Scenario: Sideways market with high volatility', () => {
-            // No directional PNL but market is choppy
-            const difficulty = DifficultyManager.calculate(0, 0.04, 5, 80);
-
-            // Volatility alone should increase difficulty somewhat
-            expect(difficulty.enemySpeed).toBeGreaterThanOrEqual(1.0);
-        });
-
-        it('Scenario: Player recovering from near-death during crash', () => {
-            // Market crashing (-5%), player is LONG, HP is critical
-            DifficultyManager.startGame();
-            const criticalMoment = DifficultyManager.calculate(-0.05, 0.02, 5, 12);
-
-            // Mercy system should prevent total destruction
-            expect(criticalMoment.total).toBeLessThan(4.0);
-        });
+      expect(largeLoss.total).toBeGreaterThan(smallLoss.total);
     });
+
+    it('should not go below minimum difficulty even with huge profits', () => {
+      const hugeProfitDifficulty = DifficultyManager.calculate(0.5, 0, 1, 100); // +50% profit
+
+      expect(hugeProfitDifficulty.total).toBeGreaterThanOrEqual(0.3);
+    });
+
+    it('should not exceed maximum difficulty even with huge losses', () => {
+      const hugeLossDifficulty = DifficultyManager.calculate(-0.5, 0, 1, 100); // -50% loss
+
+      expect(hugeLossDifficulty.total).toBeLessThanOrEqual(8.0);
+    });
+  });
+
+  describe('Volatility (ATR) Effect', () => {
+    it('should increase difficulty during high volatility', () => {
+      const lowVolatility = DifficultyManager.calculate(0, 0.002, 1, 100); // 0.2% ATR
+
+      DifficultyManager.startGame();
+      const highVolatility = DifficultyManager.calculate(0, 0.03, 1, 100); // 3% ATR
+
+      expect(highVolatility.enemySpeed).toBeGreaterThan(lowVolatility.enemySpeed);
+    });
+
+    it('should combine volatility with PNL effect', () => {
+      // High volatility + losing = very hard
+      DifficultyManager.startGame();
+      const hardMode = DifficultyManager.calculate(-0.05, 0.025, 1, 100);
+
+      // Low volatility + winning = very easy
+      DifficultyManager.startGame();
+      const easyMode = DifficultyManager.calculate(0.05, 0.002, 1, 100);
+
+      expect(hardMode.total).toBeGreaterThan(easyMode.total * 1.5); // Significantly harder
+    });
+  });
+
+  describe('Near-Death Mercy', () => {
+    it('should reduce difficulty when HP drops below 20%', () => {
+      const normalHp = DifficultyManager.calculate(-0.03, 0, 5, 100);
+
+      DifficultyManager.startGame();
+      const lowHp = DifficultyManager.calculate(-0.03, 0, 5, 15); // 15% HP
+
+      expect(lowHp.total).toBeLessThan(normalHp.total);
+    });
+
+    it('should give losing players a chance to recover', () => {
+      // Losing + low HP = mercy kick in
+      DifficultyManager.startGame();
+      const desperateSituation = DifficultyManager.calculate(-0.1, 0.02, 5, 10);
+
+      // Even with -10% PNL and high volatility, near-death should help
+      expect(desperateSituation.total).toBeLessThan(8.0); // Not max difficulty
+    });
+  });
+
+  describe('Real-World Scenarios', () => {
+    it('Scenario: LONG position, BTC pumps 3% with 10x leverage', () => {
+      // Entry: $100,000, Current: $103,000
+      const rawPnl = 0.03; // +3%
+      const leverage = 10;
+      const effectivePnl = rawPnl * leverage; // +30%
+
+      const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 80);
+
+      // Should be relatively easy
+      expect(difficulty.total).toBeLessThan(1.5);
+    });
+
+    it('Scenario: SHORT position, BTC pumps 3% with 10x leverage', () => {
+      // Entry: $100,000, Current: $103,000 - SHORT is losing
+      const rawPnl = -0.03; // -3% (inverted for SHORT)
+      const leverage = 10;
+      const effectivePnl = rawPnl * leverage; // -30%
+
+      const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 80);
+
+      // Should be quite hard
+      expect(difficulty.total).toBeGreaterThan(2.0);
+    });
+
+    it('Scenario: Sideways market with high volatility', () => {
+      // No directional PNL but market is choppy
+      const difficulty = DifficultyManager.calculate(0, 0.04, 5, 80);
+
+      // Volatility alone should increase difficulty somewhat
+      expect(difficulty.enemySpeed).toBeGreaterThanOrEqual(1.0);
+    });
+
+    it('Scenario: Player recovering from near-death during crash', () => {
+      // Market crashing (-5%), player is LONG, HP is critical
+      DifficultyManager.startGame();
+      const criticalMoment = DifficultyManager.calculate(-0.05, 0.02, 5, 12);
+
+      // Mercy system should prevent total destruction
+      expect(criticalMoment.total).toBeLessThan(4.0);
+    });
+  });
 });

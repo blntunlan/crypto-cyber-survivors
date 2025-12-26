@@ -1,3 +1,5 @@
+// @ts-nocheck - This file runs in Deno (Supabase Edge Functions), not Node.js
+// IDE errors are expected; see: https://supabase.com/docs/guides/functions
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
@@ -14,7 +16,7 @@ const TOLERANCE = {
   MAX_PNL: 1.0, // %100 - Reject obviously fake PnL (>100% in short session)
 };
 
-serve(async req => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

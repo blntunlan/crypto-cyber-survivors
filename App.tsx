@@ -8,9 +8,13 @@
  * - useRunStats: Run statistics tracking
  * - useSessionTiming: Session timing management
  * - useCheatManager: Cheat system integration
+ * - useAppInitialization: App startup logic
+ * - useBeforeUnload: Tab close warning
+ * - useDevShortcuts: Developer keyboard shortcuts
+ * - useMarketTimeout: Market data timeout handling
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
 import { CardSystem, type Card } from './services/CardSystem';
@@ -22,9 +26,7 @@ import { GameStateManager } from './services/GameStateManager';
 import { MilestoneService } from './services/MilestoneService';
 import { DifficultyManager } from './services/DifficultyManager';
 import { GameStateMachine } from './services/GameStateMachine';
-import { DeviceBenchmarkService } from './services/DeviceBenchmarkService';
 import { ImagePreloader } from './services/ImagePreloader';
-import { UserSessionService } from './services/auth/UserSessionService';
 import { Logger } from './services/Logger';
 
 // Custom hooks
@@ -36,6 +38,10 @@ import { useGameStatus } from './hooks/useGameStatus';
 import { useRunStats } from './hooks/useRunStats';
 import { useSessionTiming } from './hooks/useSessionTiming';
 import { useCheatManager } from './hooks/useCheatManager';
+import { useAppInitialization } from './hooks/useAppInitialization';
+import { useBeforeUnload } from './hooks/useBeforeUnload';
+import { useDevShortcuts } from './hooks/useDevShortcuts';
+import { useMarketTimeout } from './hooks/useMarketTimeout';
 
 // Lazy load heavy components for performance optimization
 const NicknameEntryScreen = React.lazy(() =>
@@ -116,9 +122,16 @@ const App: React.FC = () => {
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
-  const [needsNickname, setNeedsNickname] = useState<boolean>(false);
-  const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
-  const [showAdminDashboard, setShowAdminDashboard] = useState<boolean>(false);
+
+  // ========================================
+  // Initialization & Utility Hooks (refactored from inline useEffects)
+  // ========================================
+  const { needsNickname, setNeedsNickname } = useAppInitialization();
+  const { showAnalytics, showAdminDashboard, closeAnalytics, closeAdminDashboard } =
+    useDevShortcuts();
+
+  // Handle tab close warning during gameplay
+  useBeforeUnload(gameStatus);
 
   // ========================================
   // Player & Market Hooks
@@ -135,144 +148,33 @@ const App: React.FC = () => {
     selectedPair
   );
 
+  // Handle market data timeout (ends game if feed disconnects)
+  useMarketTimeout({
+    marketData,
+    playerRef,
+    position,
+    entryPrice,
+    leverage,
+    totalKills: runStats.totalKills,
+    setFinalPnl,
+    setFinalSurvivalTime,
+  });
+
   // ========================================
-  // Initialization Effects
+  // Callbacks
   // ========================================
-  useEffect(() => {
-    // Initialize error tracking (auto-initializes on import)
-    void import('./services/analytics/ErrorTracker');
+  const handleNicknameComplete = useCallback(
+    (nickname: string) => {
+      setNeedsNickname(false);
+      Logger.info(`Signed in as ${nickname}`);
 
-    // Initialize player tracking (auto-initializes on import)
-    void import('./services/analytics/PlayerTracker');
-
-    // Initialize crash/error reporting
-    void import('./services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
-      ErrorReporter.init();
-    });
-
-    // Sync device profile
-    void import('./services/analytics/DeviceProfiler').then(({ DeviceProfiler }) => {
-      void DeviceProfiler.syncToSupabase();
-    });
-
-    // Check if player needs to set a nickname
-    if (!UserSessionService.hasStoredUser()) {
-      setNeedsNickname(true);
-    }
-
-    void DeviceBenchmarkService.runBenchmark();
-  }, []);
-
-  // Market Data Timeout Handler - End game if live feed disconnected too long
-  useEffect(() => {
-    const unsubscribe = EventBus.on('marketDataTimeout', data => {
-      Logger.error(
-        `[App] Market data timeout - game ending due to ${data.disconnectedDuration}ms without data`
-      );
-
-      // Report error for analytics
-      void import('./services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
-        void ErrorReporter.report(
-          new Error('Market data timeout - live feed disconnected'),
-          'MarketDataTimeout',
-          {
-            pair: data.pair,
-            disconnectedDuration: data.disconnectedDuration,
-            lastPriceTime: data.lastPriceTime,
-            playerLevel: playerRef.current.level,
-            survivalTime: DifficultyManager.getTotalElapsedSeconds(),
-          }
-        );
+      // Refresh player tracker with new nickname
+      void import('./services/analytics/PlayerTracker').then(({ default: playerTracker }) => {
+        void playerTracker.refresh();
       });
-
-      // End the game with special reason
-      setFinalPnl(marketData.pnl);
-      setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
-      GameStateMachine.transition(GameStatus.GAMEOVER);
-
-      // Track in metrics with special end reason
-      MetricsService.endSession(GameEndReason.DISCONNECT, {
-        price: marketData.price,
-        pnl: marketData.pnl,
-        level: playerRef.current.level,
-        hp: playerRef.current.hp,
-        difficulty: marketData.difficulty,
-        playerStats: {
-          damage: playerRef.current.baseDamage,
-          fireRate: playerRef.current.fireRate,
-          speed: playerRef.current.speed,
-          luck: playerRef.current.luck,
-          critChance: playerRef.current.critChance,
-          critDamage: playerRef.current.critChance * 2,
-        },
-        position,
-        entryPrice,
-        leverage,
-        totalKills: runStats.totalKills,
-      });
-    });
-
-    return () => unsubscribe();
-  }, [marketData, playerRef, position, entryPrice, leverage, runStats]);
-
-  // Prevent accidental tab closure during active gameplay
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
-      // Only show warning during active gameplay
-      if (
-        gameStatus === GameStatus.PLAYING ||
-        gameStatus === GameStatus.PAUSED ||
-        gameStatus === GameStatus.LEVEL_UP
-      ) {
-        e.preventDefault();
-        // Modern browsers require returnValue to be set (legacy support)
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [gameStatus]);
-
-  const handleNicknameComplete = useCallback((nickname: string) => {
-    setNeedsNickname(false);
-    Logger.info(`Signed in as ${nickname}`);
-
-    // Refresh player tracker with new nickname
-    void import('./services/analytics/PlayerTracker').then(({ default: playerTracker }) => {
-      void playerTracker.refresh();
-    });
-  }, []);
-
-  // Analytics Dashboard keyboard shortcut (Ctrl+Shift+A) - DEV ONLY
-  useEffect(() => {
-    // Only enable in development mode
-    if (!import.meta.env.DEV) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        e.preventDefault();
-        setShowAnalytics(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Admin Dashboard keyboard shortcut (Ctrl+Shift+D) - DEV ONLY
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-        e.preventDefault();
-        setShowAdminDashboard(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    },
+    [setNeedsNickname]
+  );
 
   // ========================================
   // Game Actions
@@ -524,7 +426,7 @@ const App: React.FC = () => {
         <React.Suspense fallback={<FallbackLoader />}>
           <AnalyticsDashboard />
           <button
-            onClick={() => setShowAnalytics(false)}
+            onClick={closeAnalytics}
             className="fixed top-4 right-4 z-[110] px-3 py-1 bg-red-600/80 hover:bg-red-500 rounded text-white text-sm"
           >
             ✕ Close (Ctrl+Shift+A)
@@ -535,7 +437,7 @@ const App: React.FC = () => {
       {/* Admin Dashboard - DEV ONLY (Ctrl+Shift+D) */}
       {import.meta.env.DEV && showAdminDashboard && (
         <React.Suspense fallback={<FallbackLoader />}>
-          <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
+          <AdminDashboard onClose={closeAdminDashboard} />
         </React.Suspense>
       )}
     </div>
