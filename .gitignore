@@ -7,7 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
 *.local
@@ -23,10 +26,66 @@ dist-ssr
 *.sln
 *.sw?
 
+# Test coverage
 coverage/
+
+# Test reports and results
+playwright-report/
+test-results/
+*.spec.js.map
 
 # Environment files (contain secrets)
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+
+# Railway server environment files
+railway-market-server/.env
+railway-market-server/.env.local
+railway-market-server/.env.*.local
+
+# AI Assistant files (contain project-specific context)
+.agent/
+.claude/
+
+# Session logs and debugging
+sessionlog/
+Logtarayıcı/
+*.session.json
+
+# Husky generated files
+.husky/_
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+._*
+
+# Certificate and key files (security)
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.credentials
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+*.temp
+*~
+
+# Database files (if any local DBs)
+*.sqlite
+*.sqlite3
+*.db
+
+# Package manager lock files (optional - uncomment if needed)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 
