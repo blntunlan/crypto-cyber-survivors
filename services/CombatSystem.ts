@@ -1,6 +1,6 @@
 import { type Player, type GameState } from '../types';
 import { type PoolManager } from './PoolManager';
-import { audio } from './audioService';
+import { audio } from './AudioService';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { ParticleConfigService } from './ParticleConfigService';
 import { CheatManager } from './CheatManager';

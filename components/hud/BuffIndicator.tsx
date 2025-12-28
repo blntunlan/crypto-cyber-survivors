@@ -93,10 +93,10 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       title={effect.description}
     >
       {/* Icon */}
-      <span className="text-lg">{effect.icon}</span>
+      <span className="text-xl">{effect.icon}</span>
 
       {/* Name */}
-      <span className={`text-xs font-medium ${isDebuff ? 'text-red-300' : 'text-emerald-300'}`}>
+      <span className={`text-sm font-medium ${isDebuff ? 'text-red-300' : 'text-emerald-300'}`}>
         {effect.name}
       </span>
 
@@ -104,7 +104,7 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       {remainingSeconds !== null && (
         <span
           className={`
-            text-xs font-stats ml-1 px-1.5 py-0.5 rounded
+            text-sm font-stats ml-1 px-1.5 py-0.5 rounded
             ${
               remainingSeconds <= 3
                 ? 'bg-red-600/80 text-white animate-pulse'

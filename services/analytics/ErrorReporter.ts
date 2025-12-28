@@ -66,7 +66,7 @@ export class ErrorReporter {
     Logger.error(`[ErrorReporter] Reporting ${type}: ${message}`, report);
 
     // Sync to Supabase
-    const { supabase, isSupabaseConfigured } = await import('../supabase');
+    const { supabase, isSupabaseConfigured } = await import('../Supabase');
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('error_reports').insert({

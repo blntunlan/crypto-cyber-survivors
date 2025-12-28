@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { EventBus } from '../services/EventBus';
 import { ComboSystem } from '../services/ComboSystem';
-import { audio } from '../services/audioService';
+import { audio } from '../services/AudioService';
 import { COLORS } from '../constants';
 import { type Player } from '../types';
 

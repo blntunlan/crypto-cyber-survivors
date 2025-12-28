@@ -22,7 +22,7 @@ vi.mock('../services/ComboSystem', () => ({
 }));
 
 // Mock audioService
-vi.mock('../services/audioService', () => ({
+vi.mock('../services/AudioService', () => ({
   audio: {
     playComboMilestone: vi.fn(),
   },

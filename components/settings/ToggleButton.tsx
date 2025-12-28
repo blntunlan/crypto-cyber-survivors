@@ -10,12 +10,20 @@ export interface ToggleButtonProps {
   label: string;
   enabled: boolean;
   onToggle: () => void;
+  isFocused?: boolean;
 }
 
-export const ToggleButton: React.FC<ToggleButtonProps> = ({ label, enabled, onToggle }) => (
+export const ToggleButton: React.FC<ToggleButtonProps> = ({
+  label,
+  enabled,
+  onToggle,
+  isFocused = false,
+}) => (
   <button
     onClick={onToggle}
-    className="w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-white/5 transition-all"
+    className={`w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-white/5 transition-all ${
+      isFocused ? 'bg-white/10 ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : ''
+    }`}
   >
     <span className="text-sm font-bold text-white">{label}</span>
     <div

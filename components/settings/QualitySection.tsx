@@ -7,20 +7,27 @@
 import { memo, useState, useEffect } from 'react';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
+import { Logger } from '../../services/Logger';
 
-export const QualitySection = memo(() => {
+export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean }) => {
   const [currentProfile, setCurrentProfile] = useState(
     DeviceBenchmarkService.getPerformanceConfig().profile
   );
-  const [isAuto, setIsAuto] = useState<boolean>(true);
+  const [isAuto, setIsAuto] = useState<boolean>(!DeviceBenchmarkService.isInManualMode());
 
   useEffect(() => {
     const updateState = () => {
       const config = DeviceBenchmarkService.getPerformanceConfig();
-      const state = DeviceBenchmarkService.getState();
+      const inManualMode = DeviceBenchmarkService.isInManualMode();
 
       setCurrentProfile(config.profile);
-      setIsAuto(state.result?.profile === config.profile);
+      setIsAuto(!inManualMode);
+
+      Logger.debug('[QualitySection] updateState called', {
+        profile: config.profile,
+        isManualMode: inManualMode,
+        isAuto: !inManualMode,
+      });
     };
 
     updateState();
@@ -29,7 +36,6 @@ export const QualitySection = memo(() => {
 
   const handleProfileChange = (profile: DeviceProfile) => {
     DeviceBenchmarkService.setManualProfile(profile);
-    setIsAuto(false);
   };
 
   const handleAutoClick = () => {
@@ -64,7 +70,11 @@ export const QualitySection = memo(() => {
         )}
       </div>
 
-      <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-3">
+      <div
+        className={`bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-3 transition-all ${
+          isFocused ? 'ring-2 ring-white shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/10' : ''
+        }`}
+      >
         <div className="flex gap-2">
           <button
             onClick={handleAutoClick}

@@ -62,9 +62,15 @@ interface CryptoSelectorProps {
   selected: CryptoPair;
   onSelect: (pair: CryptoPair) => void;
   disabled?: boolean;
+  isFocused?: boolean;
 }
 
-export const CryptoSelector: React.FC<CryptoSelectorProps> = ({ selected, onSelect, disabled }) => {
+export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
+  selected,
+  onSelect,
+  disabled,
+  isFocused = false,
+}) => {
   const pairs = Object.values(CRYPTO_PAIRS);
 
   return (
@@ -78,7 +84,9 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({ selected, onSele
             px-5 py-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 min-w-[80px]
             ${
               selected === pair.id
-                ? 'ring-2 ring-offset-2 ring-offset-slate-900 scale-105'
+                ? `ring-2 ring-offset-2 ring-offset-slate-900 scale-105 ${
+                    isFocused ? 'ring-white shadow-[0_0_15px_rgba(255,255,255,0.5)]' : ''
+                  }`
                 : 'opacity-50 hover:opacity-90 hover:bg-white/5'
             }
           `}

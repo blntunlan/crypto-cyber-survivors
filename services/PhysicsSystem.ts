@@ -2,7 +2,7 @@ import { type Player, type GameState, type Enemy } from '../types';
 import { type BuffGem } from '../types/BuffGem';
 import { type PoolManager } from './PoolManager';
 import { CheatManager } from './CheatManager';
-import { audio } from './audioService';
+import { audio } from './AudioService';
 import { EventBus } from './EventBus';
 import { DifficultyManager } from './DifficultyManager';
 import { ComboSystem } from './ComboSystem';

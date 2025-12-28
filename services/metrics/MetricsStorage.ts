@@ -10,7 +10,7 @@
 
 import { Logger } from '../Logger';
 import { type SessionMetrics } from '../../types/metrics';
-import { supabase, isSupabaseConfigured } from '../supabase';
+import { supabase, isSupabaseConfigured } from '../Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
 
 const METRICS_VERSION = '1.0.0';

@@ -17,7 +17,7 @@
  */
 
 import { Logger } from '../Logger';
-import { supabase, isSupabaseConfigured } from '../supabase';
+import { supabase, isSupabaseConfigured } from '../Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
 
 // ============================================

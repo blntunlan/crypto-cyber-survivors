@@ -68,10 +68,10 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/5 p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[120px] text-right shadow-xl">
       <div className="flex justify-between items-center gap-3">
-        <div className="text-[8px] uppercase font-black tracking-widest text-blue-400 opacity-80">
+        <div className="text-[9px] uppercase font-black tracking-widest text-blue-400 opacity-80">
           LEVEL
         </div>
-        <div className="text-2xl font-black italic text-white leading-none tracking-tighter">
+        <div className="text-3xl font-black italic text-white leading-none tracking-tighter">
           {player.level}
         </div>
       </div>
@@ -84,31 +84,41 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
       </div>
 
       <div className="grid grid-cols-2 gap-0.5 pt-1 border-t border-white/5">
-        <div className="flex justify-between items-center text-[8px] gap-2">
+        <div className="flex justify-between items-center text-[9px] gap-2">
           <span className="text-slate-500 font-bold uppercase">DMG</span>
-          <span className="text-white font-black">{Math.round(smoothValues.damage)}</span>
+          <span className="text-white font-black text-[10px]">
+            {Math.round(smoothValues.damage)}
+          </span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-2">
+        <div className="flex justify-between items-center text-[9px] gap-2">
           <span className="text-slate-500 font-bold uppercase">SPD</span>
-          <span className="text-blue-400 font-black">{smoothValues.speed.toFixed(1)}</span>
+          <span className="text-blue-400 font-black text-[10px]">
+            {smoothValues.speed.toFixed(1)}
+          </span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-2">
+        <div className="flex justify-between items-center text-[9px] gap-2">
           <span className="text-slate-500 font-bold uppercase">A/S</span>
-          <span className="text-orange-400 font-black">
+          <span className="text-orange-400 font-black text-[10px]">
             {(1000 / smoothValues.fireRate).toFixed(1)}
           </span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-2">
+        <div className="flex justify-between items-center text-[9px] gap-2">
           <span className="text-slate-500 font-bold uppercase">CRIT</span>
-          <span className="text-yellow-400 font-black">{smoothValues.crit.toFixed(0)}%</span>
+          <span className="text-yellow-400 font-black text-[10px]">
+            {smoothValues.crit.toFixed(0)}%
+          </span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-2">
+        <div className="flex justify-between items-center text-[9px] gap-2">
           <span className="text-slate-500 font-bold uppercase">LUCK</span>
-          <span className="text-green-400 font-black">+{smoothValues.luck.toFixed(1)}</span>
+          <span className="text-green-400 font-black text-[10px]">
+            +{smoothValues.luck.toFixed(1)}
+          </span>
         </div>
-        <div className="flex justify-between items-center text-[8px] gap-2">
+        <div className="flex justify-between items-center text-[9px] gap-2">
           <span className="text-slate-500 font-bold uppercase">ARM</span>
-          <span className="text-slate-300 font-black">{Math.round(smoothValues.armor)}</span>
+          <span className="text-slate-300 font-black text-[10px]">
+            {Math.round(smoothValues.armor)}
+          </span>
         </div>
       </div>
     </div>

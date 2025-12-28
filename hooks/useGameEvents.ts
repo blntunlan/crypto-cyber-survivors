@@ -9,7 +9,7 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import { EventBus } from '../services/EventBus';
-import { audio } from '../services/audioService';
+import { audio } from '../services/AudioService';
 import { type PoolManager } from '../services/PoolManager';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';

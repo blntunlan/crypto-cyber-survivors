@@ -73,21 +73,14 @@ describe('BuffGemSpawner', () => {
   });
 
   describe('gem expiration', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
     it('should expire gems after lifetime', () => {
       BuffGemSpawner.forceSpawn('berserk');
       expect(BuffGemSpawner.getActiveGems()).toHaveLength(1);
 
-      // Advance time by 6 seconds (lifetime is 5 seconds)
-      vi.advanceTimersByTime(6000);
-      BuffGemSpawner.update(1, 100); // Trigger update
+      // The gem lifetime is 5000ms. We need to pass deltaMs that accumulates
+      // to more than 5000ms to expire the gem. update() adds deltaMs to elapsedLifetime.
+      // Pass 6000ms as deltaMs to exceed the 5000ms lifetime
+      BuffGemSpawner.update(1, 6000);
 
       expect(BuffGemSpawner.getActiveGems()).toHaveLength(0);
     });
@@ -95,12 +88,13 @@ describe('BuffGemSpawner', () => {
     it('should calculate lifetime ratio correctly', () => {
       const gem = BuffGemSpawner.forceSpawn();
 
-      // Initially should be close to 1
+      // Initially elapsedLifetime is 0, so ratio should be 1
       const initialRatio = BuffGemSpawner.getGemLifetimeRatio(gem!);
       expect(initialRatio).toBeCloseTo(1, 1);
 
-      // After 2.5 seconds, should be ~0.5
-      vi.advanceTimersByTime(2500);
+      // After updating with 2500ms deltaMs, elapsedLifetime = 2500
+      // Ratio = 1 - (2500/5000) = 0.5
+      BuffGemSpawner.update(1, 2500);
       const halfRatio = BuffGemSpawner.getGemLifetimeRatio(gem!);
       expect(halfRatio).toBeCloseTo(0.5, 1);
     });

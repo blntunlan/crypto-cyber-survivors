@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
-import { audio } from '../../services/audioService';
+import { audio } from '../../services/AudioService';
 import { User, Shield, Zap, ChevronRight, AlertCircle } from 'lucide-react';
 
 interface NicknameEntryScreenProps {

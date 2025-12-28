@@ -88,7 +88,7 @@ export class PriceAnalyzerService {
 
     try {
       // Dynamic import to avoid circular dependencies
-      const { supabase, isSupabaseConfigured } = await import('../supabase');
+      const { supabase, isSupabaseConfigured } = await import('../Supabase');
 
       if (!isSupabaseConfigured() || !supabase) {
         Logger.info('[PriceAnalyzer] Supabase not configured, skipping history load');

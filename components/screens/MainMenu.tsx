@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
+import { audio } from '../../services/AudioService';
 
 interface MainMenuProps {
   price: number;
@@ -21,7 +22,100 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onPairChange,
 }) => {
   const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
+
+  // Navigation State
+  const [activeRow, setActiveRow] = useState<number>(0);
+  // 0: Assets, 1: Leverage, 2: Actions (Long/Short), 3: Settings
+  const [actionCol, setActionCol] = useState<number>(0);
+  // 0: Long, 1: Short
+
   const pairConfig = CRYPTO_PAIRS[selectedPair];
+  const pairsList = useMemo(() => Object.values(CRYPTO_PAIRS), []);
+  const leverageList = LEVERAGE_OPTIONS;
+
+  // Keyboard Handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if settings is likely open (managed by parent, but simple check helps)
+      // For now, we assume MainMenu is only mounted when visible/active
+
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          e.preventDefault();
+          setActiveRow(prev => Math.max(0, prev - 1));
+          // audio.playHover(); // Optional: Add nav sound
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          e.preventDefault();
+          setActiveRow(prev => Math.min(3, prev + 1));
+          // audio.playHover();
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          e.preventDefault();
+          if (activeRow === 0) {
+            // Cycle Assets
+            const currIdx = pairsList.findIndex(p => p.id === selectedPair);
+            const nextIdx = (currIdx - 1 + pairsList.length) % pairsList.length;
+            onPairChange(pairsList[nextIdx]!.id);
+          } else if (activeRow === 1) {
+            // Cycle Leverage
+            const currIdx = leverageList.indexOf(selectedLeverage);
+            const nextIdx = (currIdx - 1 + leverageList.length) % leverageList.length;
+            setSelectedLeverage(leverageList[nextIdx]!);
+          } else if (activeRow === 2) {
+            setActionCol(0); // Focus Long
+          }
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          e.preventDefault();
+          if (activeRow === 0) {
+            const currIdx = pairsList.findIndex(p => p.id === selectedPair);
+            const nextIdx = (currIdx + 1) % pairsList.length;
+            onPairChange(pairsList[nextIdx]!.id);
+          } else if (activeRow === 1) {
+            const currIdx = leverageList.indexOf(selectedLeverage);
+            const nextIdx = (currIdx + 1) % leverageList.length;
+            setSelectedLeverage(leverageList[nextIdx]!);
+          } else if (activeRow === 2) {
+            setActionCol(1); // Focus Short
+          }
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          audio.playButton();
+          if (activeRow === 2) {
+            // Start Game
+            if (actionCol === 0) onStart(MarketPosition.LONG, selectedLeverage);
+            else onStart(MarketPosition.SHORT, selectedLeverage);
+          } else if (activeRow === 3) {
+            onOpenSettings();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    activeRow,
+    actionCol,
+    selectedPair,
+    selectedLeverage,
+    pairsList,
+    leverageList,
+    onStart,
+    onPairChange,
+    onOpenSettings,
+  ]);
 
   const getLeverageColor = (lev: LeverageOption) => {
     if (lev <= 2) return 'text-green-400 border-green-500/30 bg-green-500/10';
@@ -61,7 +155,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
               Select Asset
             </span>
-            <CryptoSelector selected={selectedPair} onSelect={onPairChange} />
+            <CryptoSelector
+              selected={selectedPair}
+              onSelect={onPairChange}
+              isFocused={activeRow === 0}
+            />
           </div>
 
           <div
@@ -92,7 +190,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   onClick={() => setSelectedLeverage(lev)}
                   className={`min-w-[44px] min-h-[44px] px-2.5 sm:px-3 py-2 rounded-lg border font-black text-sm transition-all touch-manipulation ${
                     selectedLeverage === lev
-                      ? getLeverageColor(lev) + ' ring-2 ring-white/20 scale-105'
+                      ? getLeverageColor(lev) +
+                        ' ring-2 ring-white/20 scale-105' +
+                        (activeRow === 1
+                          ? ' ring-white shadow-[0_0_15px_rgba(255,255,255,0.5)]'
+                          : '')
                       : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700 active:scale-95'
                   }`}
                 >
@@ -114,7 +216,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 price === 0
                   ? 'opacity-50 cursor-not-allowed grayscale'
                   : 'hover:border-green-500 hover:bg-green-500/20'
-              }`}
+              } ${activeRow === 2 && actionCol === 0 ? 'ring-2 ring-white scale-105 shadow-[0_0_20px_rgba(34,197,94,0.4)] bg-green-500/20' : ''}`}
             >
               <div className="mb-1 sm:mb-2 group-hover:scale-110 transition-transform">
                 <svg
@@ -144,7 +246,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 price === 0
                   ? 'opacity-50 cursor-not-allowed grayscale'
                   : 'hover:border-red-500 hover:bg-red-500/20'
-              }`}
+              } ${activeRow === 2 && actionCol === 1 ? 'ring-2 ring-white scale-105 shadow-[0_0_20px_rgba(239,68,68,0.4)] bg-red-500/20' : ''}`}
             >
               <div className="mb-1 sm:mb-2 group-hover:scale-110 transition-transform">
                 <svg
@@ -171,7 +273,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           <button
             onClick={onOpenSettings}
-            className="w-full min-h-[44px] py-2.5 sm:py-3 bg-slate-800 text-white font-black uppercase text-xs sm:text-sm tracking-widest rounded-xl border border-white/10 hover:bg-slate-700 active:scale-[0.98] transition-all touch-manipulation"
+            className={`w-full min-h-[44px] py-2.5 sm:py-3 bg-slate-800 text-white font-black uppercase text-xs sm:text-sm tracking-widest rounded-xl border border-white/10 hover:bg-slate-700 active:scale-[0.98] transition-all touch-manipulation ${
+              activeRow === 3 ? 'ring-2 ring-white scale-[1.02] bg-slate-700' : ''
+            }`}
           >
             Settings
           </button>

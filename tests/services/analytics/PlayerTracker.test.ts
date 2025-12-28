@@ -38,7 +38,7 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
   },
 }));
 
-import { isSupabaseConfigured } from '../../../services/supabase';
+import { isSupabaseConfigured } from '../../../services/Supabase';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
 
 describe('PlayerTracker', () => {

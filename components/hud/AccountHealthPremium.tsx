@@ -66,18 +66,18 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           <span className="text-[10px] text-slate-500 font-bold uppercase opacity-60">
             System Phase
           </span>
-          <span className={`text-sm font-black uppercase italic ${getWaveColorText(wavePhase)}`}>
+          <span className={`text-base font-black uppercase italic ${getWaveColorText(wavePhase)}`}>
             {wavePhase}
           </span>
         </div>
 
         <div className="flex flex-col items-center">
           <div
-            className={`text-[9px] font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
+            className={`text-[10px] font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
           >
             {status.text}
           </div>
-          <div className="text-2xl font-black text-white leading-none tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+          <div className="text-3xl font-black text-white leading-none tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
             {Math.ceil(hpPercent)}
             <span className="text-xs opacity-50 ml-0.5">%</span>
           </div>

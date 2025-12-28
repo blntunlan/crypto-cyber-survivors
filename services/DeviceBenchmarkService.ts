@@ -38,8 +38,15 @@ export class DeviceBenchmarkServiceClass {
   private listeners: Set<(state: BenchmarkState) => void> = new Set();
   private cachedConfig: PerformanceConfig | null = null;
 
+  // Track if user has manually set a profile (persists in memory, survives component unmount)
+  private isManualMode: boolean = false;
+
   constructor() {
-    this.loadManualProfile();
+    // Try to load from localStorage first
+    const hasStoredManualProfile = this.loadManualProfile();
+    if (hasStoredManualProfile) {
+      this.isManualMode = true;
+    }
   }
 
   /**
@@ -65,14 +72,17 @@ export class DeviceBenchmarkServiceClass {
   private loadManualProfile(): boolean {
     try {
       const stored = localStorage.getItem(MANUAL_PROFILE_KEY);
+      Logger.info('[Benchmark] loadManualProfile called', { stored });
       if (stored && Object.values(DeviceProfile).includes(stored as DeviceProfile)) {
         const profile = stored as DeviceProfile;
         this.cachedConfig = getPerformanceConfig(profile);
+        Logger.info('[Benchmark] Manual profile loaded from localStorage', { profile });
         return true;
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      Logger.error('[Benchmark] Failed to load manual profile', err);
     }
+    Logger.info('[Benchmark] No manual profile found');
     return false;
   }
 
@@ -92,21 +102,41 @@ export class DeviceBenchmarkServiceClass {
   }
 
   /**
+   * Check if user is in manual mode (has manually selected a profile)
+   */
+  isInManualMode(): boolean {
+    return this.isManualMode;
+  }
+
+  /**
    * Run benchmark or return cached result
+   *
+   * Benchmark always runs to establish baseline device capabilities.
+   * However, if user has chosen a manual profile, that takes precedence
+   * for the active config (but benchmark result is still stored).
    */
   async runBenchmark(forceRun = false): Promise<BenchmarkResult> {
-    // Check cache first
+    const hasManualProfile = localStorage.getItem(MANUAL_PROFILE_KEY) !== null;
+
+    // Check cache first (unless forced)
     if (!forceRun) {
       const cached = this.loadFromCache();
       if (cached) {
         this.state.result = cached;
         this.state.status = BenchmarkStatus.CACHED;
-        // Only update config from cache if NO manual profile override exists
-        if (!localStorage.getItem(MANUAL_PROFILE_KEY)) {
+
+        // If NO manual profile exists, use benchmark result for active config
+        if (!hasManualProfile) {
           this.cachedConfig = getPerformanceConfig(cached.profile);
+          Logger.info('[Benchmark] Using cached benchmark result for config', {
+            profile: cached.profile,
+          });
+        } else {
+          Logger.info('[Benchmark] Cached benchmark loaded, but manual profile is active');
         }
+
+        // Always notify listeners so UI can update
         this.notifyListeners();
-        Logger.info('[Benchmark] Using cached result', { profile: cached.profile });
         return cached;
       }
     }
@@ -122,20 +152,25 @@ export class DeviceBenchmarkServiceClass {
       this.state.result = result;
       this.state.status = BenchmarkStatus.COMPLETED;
       this.state.progress = 100;
-      this.state.progress = 100;
 
-      // Only update config if NO manual profile override exists
-      if (!localStorage.getItem(MANUAL_PROFILE_KEY)) {
+      // If NO manual profile exists, use benchmark result for active config
+      if (!hasManualProfile) {
         this.cachedConfig = getPerformanceConfig(result.profile);
+        Logger.info('[Benchmark] Completed - using result for config', {
+          profile: result.profile,
+          gpuScore: result.gpuScore,
+          cpuScore: result.cpuScore,
+        });
+      } else {
+        Logger.info('[Benchmark] Completed - saved for reference but manual profile is active', {
+          benchmarkProfile: result.profile,
+          gpuScore: result.gpuScore,
+          cpuScore: result.cpuScore,
+        });
       }
 
       this.saveToCache(result);
       this.notifyListeners();
-      Logger.info('[Benchmark] Completed', {
-        profile: result.profile,
-        gpuScore: result.gpuScore,
-        cpuScore: result.cpuScore,
-      });
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -170,31 +205,62 @@ export class DeviceBenchmarkServiceClass {
    */
   setManualProfile(profile: DeviceProfile): void {
     this.cachedConfig = getPerformanceConfig(profile);
+
+    // Set manual mode flag FIRST (persistent in memory)
+    this.isManualMode = true;
+
+    // Try to save to localStorage (best effort)
     try {
       localStorage.setItem(MANUAL_PROFILE_KEY, profile);
-    } catch {
-      // ignore
+
+      // Verify it was actually saved (important for mobile browsers)
+      const readBack = localStorage.getItem(MANUAL_PROFILE_KEY);
+      if (readBack === profile) {
+        Logger.info('[Benchmark] Manual profile saved and verified in localStorage', { profile });
+      } else {
+        Logger.warn('[Benchmark] localStorage save verification FAILED - using memory only', {
+          profile,
+          readBack,
+          message: 'Value was not persisted correctly',
+        });
+      }
+    } catch (err) {
+      Logger.warn('[Benchmark] localStorage not available - using memory only', err);
     }
-    Logger.info('[Benchmark] Manual profile set', { profile });
+
+    // Always notify listeners (config is in memory even if localStorage fails)
+    Logger.info('[Benchmark] Manual profile set (isManualMode=true)', { profile });
     this.notifyListeners();
   }
 
   /**
    * Reset to automatic profile (from benchmark result)
+   *
+   * Removes manual profile override and switches back to using
+   * the benchmark result for performance optimization.
    */
   resetToAuto(): void {
+    // Clear manual mode flag FIRST
+    this.isManualMode = false;
+
+    // Remove manual profile from localStorage (best effort)
     try {
       localStorage.removeItem(MANUAL_PROFILE_KEY);
-    } catch {
-      // ignore
+      Logger.info('[Benchmark] Manual profile removed from localStorage');
+    } catch (err) {
+      Logger.warn('[Benchmark] Failed to remove manual profile from localStorage', err);
     }
 
+    // Use cached benchmark result if available
     if (this.state.result) {
       this.cachedConfig = getPerformanceConfig(this.state.result.profile);
-      Logger.info('[Benchmark] Reset to auto profile', { profile: this.state.result.profile });
+      Logger.info('[Benchmark] Reset to auto (isManualMode=false) - using benchmark result', {
+        profile: this.state.result.profile,
+      });
       this.notifyListeners();
     } else {
-      // If no benchmark result, clear cached config so it defaults or re-runs
+      // No benchmark result yet, run it now
+      Logger.info('[Benchmark] Reset to auto - no cached result, running benchmark');
       this.cachedConfig = null;
       void this.runBenchmark(false);
     }

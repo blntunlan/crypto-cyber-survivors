@@ -7,7 +7,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-427%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-805%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 [🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#-development) • [📦 Architecture](#-architecture)
@@ -110,7 +111,8 @@ The UI uses a precision-scaled technical typography system for maximum readabili
 ```bash
 npm run dev          # Start dev server with HMR
 npm run build        # Build for production
-npm run test         # Run 427+ unit tests
+npm run test         # Run 805+ unit tests
+npm run test:e2e     # Run 72 E2E tests (Playwright)
 npm run test:coverage # Check test coverage
 npm run lint         # Run ESLint & Format check
 ```
@@ -151,7 +153,9 @@ crypto-cyber-survivors/
 ├── hooks/                # Custom React Hooks
 │   ├── useLerpValue.ts   # Smooth UI Transitions
 │   └── useDevice.ts      # Screen detection
-└── tests/                # 427+ Vitest test suites
+├── tests/                # 805+ Vitest unit tests
+└── e2e/                  # 72 Playwright E2E tests
+    └── mobile-touch-controls.spec.ts  # Mobile edge cases
 ```
 
 ### Key Design Patterns
@@ -181,26 +185,27 @@ crypto-cyber-survivors/
 
 | Stat | Value |
 |------|-------|
-| **Code Quality** | Grade A- (88/100) |
+| **Code Quality** | Grade A (92/100) |
 | TypeScript Files | 60+ services, 40+ components |
 | React Components | 40+ |
-| Total Tests | **805 passing** (61 test suites) |
+| Unit Tests | **805 passing** (61 test suites) |
+| E2E Tests | **72 passing** (mobile edge cases) |
 | Test Coverage | 80%+ |
-| ESLint | **0 errors**, 2 warnings |
+| ESLint | **0 errors, 0 warnings** |
 | Performance | Stable 60 FPS (Mobile & Web) |
 | Optimization | Spatial Grid, Object Pooling, Shadow-Culling |
 
 ### 🔍 Code Review
 
-Latest comprehensive code review: [**December 26, 2025**](.agent/reviews/code-review-2025-12-26.md)
+Latest comprehensive code review: [**December 28, 2025**](.agent/reviews/code-review-2025-12-28.md)
 
 **Key Highlights:**
 - ✅ Excellent architecture with clean separation of concerns
 - ✅ Strong type safety with TypeScript strict mode
-- ✅ High test coverage (805 passing tests)
+- ✅ High test coverage (805 unit + 72 E2E tests)
 - ✅ Performance optimizations (object pooling, spatial grid)
-- ⚠️ Minor security improvements needed (RLS policies)
-- 🟡 Refactoring in progress (MetricsService delegation)
+- ✅ Security hardened (RLS policies applied)
+- ✅ MetricsService refactored (1234 → 748 lines)
 
 ---
 

@@ -122,7 +122,7 @@ class BuffGemSpawnerClass {
     const now = Date.now();
 
     // Update existing gems (pulse animation, lifetime check)
-    this.updateActiveGems(now, deltaMs);
+    this.updateActiveGems(deltaMs);
 
     // Grace period: no spawns for first 10 seconds
     const timeSinceStart = now - this.gameStartTime;
@@ -148,7 +148,7 @@ class BuffGemSpawnerClass {
   /**
    * Update active gems - handle lifetime and animations
    */
-  private updateActiveGems(now: number, deltaMs: number): void {
+  private updateActiveGems(deltaMs: number): void {
     for (let i = this.activeGems.length - 1; i >= 0; i--) {
       const gem = this.activeGems[i];
       if (!gem) continue;
@@ -160,8 +160,8 @@ class BuffGemSpawnerClass {
       }
 
       // Check lifetime expiration
-      const age = now - gem.spawnTime;
-      if (age >= gem.lifetime) {
+      gem.elapsedLifetime += deltaMs;
+      if (gem.elapsedLifetime >= gem.lifetime) {
         gem.active = false;
         this.releaseGem(gem);
         Logger.debug(`[BuffGemSpawner] Gem expired: ${gem.buffType}`);
@@ -232,6 +232,7 @@ class BuffGemSpawnerClass {
         buffType,
         decoratorClass: BUFF_DECORATORS[buffType],
         spawnTime: now,
+        elapsedLifetime: 0,
         lifetime: this.config.gemLifetime,
         pulsePhase: 0,
       };
@@ -246,6 +247,7 @@ class BuffGemSpawnerClass {
         buffType,
         decoratorClass: BUFF_DECORATORS[buffType],
         spawnTime: now,
+        elapsedLifetime: 0,
         lifetime: this.config.gemLifetime,
         pulsePhase: 0,
       });
@@ -362,8 +364,7 @@ class BuffGemSpawnerClass {
    * Get remaining lifetime ratio for a gem (0-1)
    */
   getGemLifetimeRatio(gem: BuffGem): number {
-    const age = Date.now() - gem.spawnTime;
-    return Math.max(0, 1 - age / gem.lifetime);
+    return Math.max(0, 1 - gem.elapsedLifetime / gem.lifetime);
   }
 }
 

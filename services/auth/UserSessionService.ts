@@ -85,7 +85,7 @@ export class UserSessionService {
    * Register a new nickname in Supabase and save to local storage.
    */
   static async registerNickname(nickname: string): Promise<{ success: boolean; error?: string }> {
-    const { supabase, isSupabaseConfigured } = await import('../supabase');
+    const { supabase, isSupabaseConfigured } = await import('../Supabase');
 
     if (
       !isSupabaseConfigured() ||
@@ -161,7 +161,7 @@ export class UserSessionService {
         this.cachedUser = user;
 
         // Async sync to Supabase (fire and forget)
-        const { supabase, isSupabaseConfigured } = await import('../supabase');
+        const { supabase, isSupabaseConfigured } = await import('../Supabase');
         if (
           isSupabaseConfigured() &&
           supabase &&

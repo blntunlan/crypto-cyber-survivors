@@ -10,7 +10,7 @@ import { type Player, type GameState } from '../types';
 import { type PoolManager } from '../services/PoolManager';
 
 // Mock audio service
-vi.mock('../services/audioService', () => ({
+vi.mock('../services/AudioService', () => ({
   audio: {
     playShoot: vi.fn(),
     playCrit: vi.fn(),

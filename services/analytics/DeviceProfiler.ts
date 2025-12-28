@@ -69,7 +69,7 @@ export class DeviceProfiler {
    * Sync profile to Supabase.
    */
   static async syncToSupabase(): Promise<void> {
-    const { supabase, isSupabaseConfigured } = await import('../supabase');
+    const { supabase, isSupabaseConfigured } = await import('../Supabase');
     if (!isSupabaseConfigured() || !supabase) return;
 
     // Skip sync on localhost

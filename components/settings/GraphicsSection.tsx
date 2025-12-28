@@ -10,9 +10,10 @@ import { ToggleButton } from './ToggleButton';
 
 interface GraphicsSectionProps {
   isMobile: boolean;
+  focusedToggle?: 'particles' | 'shake' | 'damage' | null;
 }
 
-export const GraphicsSection = memo(({ isMobile }: GraphicsSectionProps) => {
+export const GraphicsSection = memo(({ isMobile, focusedToggle }: GraphicsSectionProps) => {
   const graphics = useGameStore(selectGraphics);
   const { toggleParticles, toggleScreenShake, toggleDamageNumbers, setHudScale, toggleFPS } =
     useGameStore();
@@ -27,16 +28,19 @@ export const GraphicsSection = memo(({ isMobile }: GraphicsSectionProps) => {
           label="Particles"
           enabled={graphics.showParticles}
           onToggle={toggleParticles}
+          isFocused={focusedToggle === 'particles'}
         />
         <ToggleButton
           label="Screen Shake"
           enabled={graphics.showScreenShake}
           onToggle={toggleScreenShake}
+          isFocused={focusedToggle === 'shake'}
         />
         <ToggleButton
           label="Damage Numbers"
           enabled={graphics.showDamageNumbers}
           onToggle={toggleDamageNumbers}
+          isFocused={focusedToggle === 'damage'}
         />
 
         {isMobile && (

@@ -88,17 +88,17 @@ const MobileLiveFeed: React.FC<LiveFeedProps> = ({
   return (
     <div className="bg-white/5 backdrop-blur-md px-3 py-2 rounded-lg flex flex-col gap-0 min-w-[140px] border border-white/5 shadow-xl">
       <div className="flex items-center justify-between mb-1">
-        <div className="text-[8px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
+        <div className="text-[9px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
           <span
             className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} opacity-75`}
           ></span>
           LIVE
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] font-bold" style={{ color: pairConfig.color }}>
+          <span className="text-[10px] font-bold" style={{ color: pairConfig.color }}>
             {pairConfig.id}
           </span>
-          <div className="text-[8px] text-slate-400 font-feed opacity-60">
+          <div className="text-[9px] text-slate-400 font-feed opacity-60">
             {marketData.leverage}X
           </div>
         </div>
@@ -106,7 +106,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps> = ({
 
       <div className="flex flex-col">
         <div
-          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} text-xl leading-none`}
+          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} text-2xl leading-none`}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
@@ -118,18 +118,18 @@ const MobileLiveFeed: React.FC<LiveFeedProps> = ({
           className="text-xs font-black flex items-center gap-1.5 mt-0.5"
           style={{ color: pnlHex }}
         >
-          <span className="text-sm">{smoothValues.pnl.toFixed(2)}%</span>
-          <span className="text-[8px] opacity-70 tracking-tighter">
+          <span className="text-base">{smoothValues.pnl.toFixed(2)}%</span>
+          <span className="text-[9px] opacity-70 tracking-tighter">
             {marketData.effectivePnl >= 0 ? 'PROFIT' : 'LOSS'}
           </span>
         </div>
       </div>
 
       <div className="mt-1.5 flex gap-2 opacity-50 border-t border-white/5 pt-1">
-        <div className="text-[7px] text-slate-300 uppercase leading-none">
+        <div className="text-[8px] text-slate-300 uppercase leading-none">
           Entry ${Math.floor(entryPrice)}
         </div>
-        <div className="text-[7px] text-slate-300 uppercase leading-none">
+        <div className="text-[8px] text-slate-300 uppercase leading-none">
           Vol x{smoothValues.difficulty.toFixed(1)}
         </div>
       </div>

@@ -19,7 +19,8 @@ export interface BuffGem {
   icon: string;
   buffType: BuffGemType;
   decoratorClass: DecoratorConstructor;
-  spawnTime: number; // Timestamp when spawned
+  spawnTime: number; // Timestamp when spawned (for sorting/debug)
+  elapsedLifetime: number; // Time active in ms (pausable)
   lifetime: number; // Max lifetime in ms
   pulsePhase: number; // Animation phase
 }

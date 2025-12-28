@@ -5,10 +5,14 @@
  */
 
 import React, { memo } from 'react';
-import { audio } from '../../services/audioService';
+import { audio } from '../../services/AudioService';
 import { useGameStore, selectAudio } from '../../stores/gameStore';
 
-export const AudioSection = memo(() => {
+interface AudioSectionProps {
+  focusedItem?: 'volume' | 'mute' | null;
+}
+
+export const AudioSection = memo(({ focusedItem }: AudioSectionProps) => {
   const audioSettings = useGameStore(selectAudio);
   const setMasterVolume = useGameStore(state => state.setMasterVolume);
   const toggleMute = useGameStore(state => state.toggleMute);
@@ -43,7 +47,11 @@ export const AudioSection = memo(() => {
           step="0.01"
           value={audioSettings.masterVolume}
           onChange={handleVolumeChange}
-          className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+          className={`w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all ${
+            focusedItem === 'volume'
+              ? 'ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)]'
+              : ''
+          }`}
         />
         <button
           onClick={handleMuteToggle}
@@ -51,7 +59,7 @@ export const AudioSection = memo(() => {
             audioSettings.isMuted
               ? 'bg-red-500/10 border-red-500/50 text-red-500'
               : 'bg-green-500/10 border-green-500/50 text-green-500'
-          }`}
+          } ${focusedItem === 'mute' ? 'ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)] scale-[1.02]' : ''}`}
         >
           {audioSettings.isMuted ? '🔇 Sound OFF' : '🔊 Sound ON'}
         </button>

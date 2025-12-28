@@ -19,7 +19,7 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color
     <div
       className="fixed left-1/2 -translate-x-1/2 z-[125] flex flex-col items-center pointer-events-none"
       style={{
-        top: 'calc(6rem + env(safe-area-inset-top, 0px))',
+        top: 'calc(10rem + env(safe-area-inset-top, 0px))',
         animation: 'milestoneIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
       }}
     >
@@ -76,12 +76,12 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color 
           exit={{ opacity: 0, scale: 0.9, y: 10 }}
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           style={{
-            top: '35%',
+            top: '45%',
             width: '100vw',
           }}
         >
           <motion.div
-            className="text-3xl font-black italic uppercase tracking-tighter text-center"
+            className="text-4xl font-black italic uppercase tracking-tighter text-center"
             style={{
               color: 'white',
               textShadow: `2px 2px 0 #000, 0 0 10px ${color}`,
@@ -97,7 +97,7 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color 
             transition={{ delay: 0.1 }}
           >
             <div
-              className="relative px-6 py-1.5 border-2 rounded-lg text-sm font-black italic flex items-center justify-center backdrop-blur-sm"
+              className="relative px-6 py-1.5 border-2 rounded-lg text-base font-black italic flex items-center justify-center backdrop-blur-sm"
               style={{
                 color: COLORS.JACKPOT_YELLOW,
                 borderColor: COLORS.CASINO_GOLD,

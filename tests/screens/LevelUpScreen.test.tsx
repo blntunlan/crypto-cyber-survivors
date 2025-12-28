@@ -40,7 +40,7 @@ vi.mock('framer-motion', () => {
 });
 
 // Mock audio service
-vi.mock('../../services/audioService', () => ({
+vi.mock('../../services/AudioService', () => ({
   audio: {
     playSlotTick: vi.fn(),
     playReelStop: vi.fn(),

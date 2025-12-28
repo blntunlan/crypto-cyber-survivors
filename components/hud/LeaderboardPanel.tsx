@@ -17,7 +17,7 @@ import {
   ChevronDown,
   RefreshCw,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../../services/supabase';
+import { supabase, isSupabaseConfigured } from '../../services/Supabase';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/Logger';
 

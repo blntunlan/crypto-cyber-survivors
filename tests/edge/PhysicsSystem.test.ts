@@ -4,7 +4,7 @@ import { type Player, type GameState } from '../../types';
 import { type PoolManager } from '../../services/PoolManager';
 
 // Mock dependencies
-vi.mock('../../services/audioService', () => ({
+vi.mock('../../services/AudioService', () => ({
   audio: {
     playHit: vi.fn(),
     playCrit: vi.fn(),

@@ -66,7 +66,7 @@ export const AnalyticsDashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { supabase, isSupabaseConfigured } = await import('../../services/supabase');
+      const { supabase, isSupabaseConfigured } = await import('../../services/Supabase');
 
       if (!isSupabaseConfigured() || !supabase) {
         Logger.warn('[AnalyticsDashboard] Supabase not configured');

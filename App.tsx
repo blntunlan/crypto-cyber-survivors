@@ -18,7 +18,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
 import { CardSystem, type Card } from './services/CardSystem';
-import { audio } from './services/audioService';
+import { audio } from './services/AudioService';
 import { EventBus } from './services/EventBus';
 import { GameEndReason } from './types/metrics';
 import { MetricsService } from './services/MetricsService';
@@ -85,6 +85,9 @@ const AdminDashboard = React.lazy(() =>
 );
 const LeaderboardPanel = React.lazy(() =>
   import('./components/hud/LeaderboardPanel').then(m => ({ default: m.LeaderboardPanel }))
+);
+const DebugPanel = React.lazy(() =>
+  import('./components/DebugPanel').then(m => ({ default: m.DebugPanel }))
 );
 
 // Fallback components
@@ -438,6 +441,13 @@ const App: React.FC = () => {
       {import.meta.env.DEV && showAdminDashboard && (
         <React.Suspense fallback={<FallbackLoader />}>
           <AdminDashboard onClose={closeAdminDashboard} />
+        </React.Suspense>
+      )}
+
+      {/* Debug Panel - DEV ONLY (Desktop only) */}
+      {import.meta.env.DEV && !device.isMobile && (
+        <React.Suspense fallback={null}>
+          <DebugPanel />
         </React.Suspense>
       )}
     </div>

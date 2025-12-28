@@ -28,7 +28,7 @@ import { FPSMonitor } from '../services/FPSMonitor';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { lerp } from '../utils/math';
-import { audio } from '../services/audioService';
+import { audio } from '../services/AudioService';
 
 // Custom hooks for GameEngine
 import { useGameSetup } from '../hooks/useGameSetup';
