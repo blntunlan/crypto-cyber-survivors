@@ -1,0 +1,56 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Crypto Cyber Survivors API Documentation",
+  "entryPoints": ["services", "stores", "hooks", "types", "components"],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/tests/**",
+    "**/e2e/**",
+    "**/*.spec.ts",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/playwright-report/**",
+    "**/test-results/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeExternals": true,
+  "excludeInternal": false,
+  "readme": "README.md",
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "sort": ["source-order"],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "theme": "default",
+  "plugin": ["typedoc-plugin-markdown"],
+  "searchInComments": true,
+  "searchInDocuments": true,
+  "treatWarningsAsErrors": false,
+  "treatValidationWarningsAsErrors": false,
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true,
+    "includeFolders": true
+  },
+  "kindSortOrder": ["Class", "Interface", "TypeAlias", "Function", "Variable", "Enum"],
+  "visibilityFilters": {
+    "protected": true,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
+  "commentStyle": "jsdoc",
+  "excludeTags": ["@internal"],
+  "tsconfig": "tsconfig.typedoc.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}

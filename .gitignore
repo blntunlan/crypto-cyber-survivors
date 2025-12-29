@@ -34,6 +34,9 @@ playwright-report/
 test-results/
 *.spec.js.map
 
+# Generated documentation
+docs/api/
+
 # Environment files (contain secrets)
 .env
 .env.local
