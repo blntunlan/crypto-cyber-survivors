@@ -5,6 +5,7 @@ import { COLORS, GAME_ENGINE } from '../constants';
 import { ParticleConfigService } from './ParticleConfigService';
 import { CheatManager } from './CheatManager';
 import { createViewportBounds, isCircleVisible } from './renderers/CullingUtils';
+import { BuffManager } from './patterns/decorators/BuffManager';
 
 interface NearestEnemy {
   x: number;
@@ -38,12 +39,17 @@ export class CombatSystem {
   ): void {
     state.fireTimer += deltaMs;
 
+    // Get decorated stats (with buffs/cards applied)
+    const stats = BuffManager.isInitialized() ? BuffManager.getDecoratedStats() : null;
+    const effectiveFireRate = stats ? stats.getFireRate() : player.fireRate;
+    const effectiveProjectiles = stats ? stats.getProjectiles() : player.projectiles;
+
     // Cap fire rate to prevent performance issues (minimum 50ms = 20 shots/sec)
     const MIN_FIRE_RATE = 50;
-    const effectiveFireRate = Math.max(MIN_FIRE_RATE, player.fireRate);
+    const cappedFireRate = Math.max(MIN_FIRE_RATE, effectiveFireRate);
 
     // Check fire rate cooldown
-    if (state.fireTimer < effectiveFireRate) {
+    if (state.fireTimer < cappedFireRate) {
       return;
     }
 
@@ -53,13 +59,13 @@ export class CombatSystem {
       return;
     }
 
-    // Fire projectiles
-    this.fireBullets(pool, player, nearest, state, 0);
+    // Fire projectiles (pass stats for damage calculation)
+    this.fireBullets(pool, player, nearest, state, 0, stats);
     state.fireTimer = 0;
 
     // Dynamic audio based on fire rate and projectile count
-    const fireRateMultiplier = 200 / player.fireRate; // Higher for faster firing
-    audio.playShoot(fireRateMultiplier, player.projectiles);
+    const fireRateMultiplier = 200 / cappedFireRate; // Higher for faster firing
+    audio.playShoot(fireRateMultiplier, effectiveProjectiles);
   }
 
   /**
@@ -113,14 +119,22 @@ export class CombatSystem {
     player: Player,
     target: NearestEnemy,
     _state: GameState,
-    _time: number
+    _time: number,
+    stats?: ReturnType<typeof BuffManager.getDecoratedStats> | null
   ): void {
-    const luckBonus = player.luck * 0.02;
+    // Use decorated stats if available, otherwise fallback to player base stats
+    const effectiveLuck = stats ? stats.getLuck() : player.luck;
+    const effectiveCritChance = stats ? stats.getCritChance() : player.critChance;
+    const effectiveDamage = stats ? stats.getDamage() : player.baseDamage;
+    const effectiveProjectiles = stats ? stats.getProjectiles() : player.projectiles;
+    const effectiveArea = stats ? stats.getArea() : player.area;
+
+    const luckBonus = effectiveLuck * 0.02;
     const isSuperCrit =
-      CheatManager.isForcedSuperCrit() || Math.random() < (player.critChance + luckBonus) * 0.2;
+      CheatManager.isForcedSuperCrit() || Math.random() < (effectiveCritChance + luckBonus) * 0.2;
     const isCrit =
       !isSuperCrit &&
-      (CheatManager.isForcedCrit() || Math.random() < player.critChance + luckBonus);
+      (CheatManager.isForcedCrit() || Math.random() < effectiveCritChance + luckBonus);
 
     // IMPROVED LEAD SHOOTING LOGIC
     // Uses quadratic intercept calculation for more accurate predictions
@@ -182,7 +196,7 @@ export class CombatSystem {
 
     const baseAngle = Math.atan2(predictedY - player.y, predictedX - player.x);
 
-    let damage = player.baseDamage;
+    let damage = effectiveDamage;
     if (isSuperCrit) {
       damage *= 4;
     } else if (isCrit) {
@@ -190,9 +204,9 @@ export class CombatSystem {
     }
 
     // Fire all projectiles with spread
-    for (let i = 0; i < player.projectiles; i++) {
+    for (let i = 0; i < effectiveProjectiles; i++) {
       const spread = GAME_ENGINE.PROJECTILE_SPREAD;
-      const angleOffset = (i - (player.projectiles - 1) / 2) * spread;
+      const angleOffset = (i - (effectiveProjectiles - 1) / 2) * spread;
       const finalAngle = baseAngle + angleOffset;
 
       const baseRadius = isSuperCrit ? 9 : isCrit ? 6 : 4;
@@ -204,13 +218,10 @@ export class CombatSystem {
 
       // Cap area to prevent excessively large bullets at max upgrades
       const MAX_AREA_MULTIPLIER = 3.0;
-      const effectiveArea = Math.min(player.area, MAX_AREA_MULTIPLIER);
+      const cappedArea = Math.min(effectiveArea, MAX_AREA_MULTIPLIER);
 
       const bulletRadius =
-        baseRadius *
-        effectiveArea *
-        ParticleConfigService.bullets.baseSizeMultiplier *
-        typeMultiplier;
+        baseRadius * cappedArea * ParticleConfigService.bullets.baseSizeMultiplier * typeMultiplier;
       const bulletColor = isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET;
 
       pool.getBullet(

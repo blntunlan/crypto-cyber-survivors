@@ -261,8 +261,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           const dirX = dx / mag;
           const dirY = dy / mag;
 
-          player.x += dirX * inputFactor * player.speed * speedMult * dtFactor;
-          player.y += dirY * inputFactor * player.speed * speedMult * dtFactor;
+          // Get effective speed from BuffManager (includes buff/card bonuses)
+          const effectiveSpeed = BuffManager.isInitialized()
+            ? BuffManager.getDecoratedStats().getSpeed()
+            : player.speed;
+
+          player.x += dirX * inputFactor * effectiveSpeed * speedMult * dtFactor;
+          player.y += dirY * inputFactor * effectiveSpeed * speedMult * dtFactor;
         }
 
         player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));

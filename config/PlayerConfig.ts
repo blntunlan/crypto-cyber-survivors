@@ -20,7 +20,7 @@ export const PLAYER_STATS = {
   // =========================
   INITIAL_HP: 100,
   INITIAL_MAX_HP: 100,
-  INITIAL_ARMOR: 0,
+  INITIAL_ARMOR: 1, // Start with 1 so armor buffs/debuffs have effect
   INITIAL_REGEN: 0,
   INITIAL_DODGE: 0,
 
@@ -32,8 +32,8 @@ export const PLAYER_STATS = {
   // =========================
   // ECONOMY STATS
   // =========================
-  INITIAL_LUCK: 0,
-  INITIAL_MAGNET: 0,
+  INITIAL_LUCK: 1, // Start with 1 so luck buffs have effect
+  INITIAL_MAGNET: 30, // Start with 30 for base collection range
   INITIAL_EXP_MULT: 1.0,
   INITIAL_GEM_VALUE_MULT: 1.0,
 
@@ -82,6 +82,7 @@ export function createInitialPlayer(x: number, y: number, color: string = '') {
     magnet: PLAYER_STATS.INITIAL_MAGNET,
     armor: PLAYER_STATS.INITIAL_ARMOR,
     area: PLAYER_STATS.INITIAL_AREA,
+    projectiles: PLAYER_STATS.INITIAL_PROJECTILES,
   };
 }
 

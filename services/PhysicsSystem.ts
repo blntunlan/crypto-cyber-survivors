@@ -138,7 +138,11 @@ export class PhysicsSystem {
 
     if (playerEnemyDistSq < playerEnemyCombined * playerEnemyCombined) {
       if (!CheatManager.isGodMode() && !s.isDashing) {
-        player.hp -= Math.max(0.1, 0.8 - player.armor * 0.05) * dtFactor;
+        // Get effective armor from BuffManager (includes buff/card bonuses)
+        const effectiveArmor = BuffManager.isInitialized()
+          ? BuffManager.getDecoratedStats().getArmor()
+          : player.armor;
+        player.hp -= Math.max(0.1, 0.8 - effectiveArmor * 0.05) * dtFactor;
         player.hp = Math.max(0, player.hp);
         s.shake = 10;
         if (Math.random() > 0.9) audio.playHit();
@@ -244,11 +248,16 @@ export class PhysicsSystem {
     s: GameState,
     dtFactor: number
   ) {
+    // Get effective magnet from BuffManager (includes buff/card bonuses)
+    const effectiveMagnet = BuffManager.isInitialized()
+      ? BuffManager.getDecoratedStats().getMagnet()
+      : player.magnet;
+
     p.activeGems.forEach(g => {
       const dx = player.x - g.x;
       const dy = player.y - g.y;
       const distSq = dx * dx + dy * dy;
-      const range = GAME_ENGINE.GEM_MAGNET_BASE_RANGE + player.magnet;
+      const range = GAME_ENGINE.GEM_MAGNET_BASE_RANGE + effectiveMagnet;
       const rangeSq = range * range;
 
       // Magnet pull
@@ -329,6 +338,11 @@ export class PhysicsSystem {
     s: GameState,
     dtFactor: number
   ) {
+    // Get effective magnet from BuffManager (includes buff/card bonuses)
+    const effectiveMagnet = BuffManager.isInitialized()
+      ? BuffManager.getDecoratedStats().getMagnet()
+      : player.magnet;
+
     const buffGems = BuffGemSpawner.getActiveGems();
     for (const gem of buffGems) {
       if (!gem.active) continue;
@@ -338,7 +352,7 @@ export class PhysicsSystem {
       const distSq = dx * dx + dy * dy;
 
       // Weaker magnet for buff gems
-      const magnetRange = (GAME_ENGINE.GEM_MAGNET_BASE_RANGE + player.magnet) * 0.6;
+      const magnetRange = (GAME_ENGINE.GEM_MAGNET_BASE_RANGE + effectiveMagnet) * 0.6;
       if (distSq < magnetRange * magnetRange) {
         const dist = Math.sqrt(distSq);
         const pull = lerp(8, 2, dist / magnetRange) * dtFactor;

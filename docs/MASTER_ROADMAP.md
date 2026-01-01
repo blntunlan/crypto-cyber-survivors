@@ -1,7 +1,7 @@
 # 🗺️ Crypto Cyber Survivors - Master Roadmap
 
 > Bu döküman projenin stratejik yol haritasını, önceliklerini ve zaman çizelgesini içerir.
-> Son Güncelleme: 2025-12-20
+> Son Güncelleme: 2025-12-30
 
 ---
 
@@ -10,10 +10,11 @@
 | Metrik | Değer |
 |--------|-------|
 | **Versiyon** | 0.0.0 (Alpha) |
-| **Test Coverage** | 227 test ✅ |
+| **Test Coverage** | 767+ test ✅ |
 | **Lint Status** | 0 error, 0 warning ✅ |
 | **Core Features** | ✅ Tamamlandı |
-| **Production Ready** | 🔶 Kısmen (Architecture Finalized) |
+| **Code Review Tasks** | ✅ 13/13 Tamamlandı |
+| **Production Ready** | 🔶 Kısmen (Backend Integration Ongoing) |
 
 ---
 
@@ -64,15 +65,15 @@ Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░�
 | **Modular Renderer Refactor** | ✅ |
 | **3-Tier Projectile Visuals** | ✅ |
 
-### 2.2 🔶 Kütüphane Entegrasyonları (Bu Hafta)
+### 2.2 🔶 Kütüphane Entegrasyonları
 
-| Kütüphane | Öncelik | Amaç | Süre |
-|-----------|---------|------|------|
-| **nanoid** | ⭐⭐⭐⭐⭐ | Collision-free ID generation | 30 dk |
-| **Zustand** | ⭐⭐⭐⭐⭐ | State management, settings persist | 2 saat |
-| **Zod** | ⭐⭐⭐⭐ | WebSocket data validation | 1 saat |
-| **Howler.js** | ⭐⭐⭐ | Profesyonel ses sistemi | 2 saat |
-| **Framer Motion** | ⭐⭐⭐ | UI animasyonları | 3 saat |
+| Kütüphane | Öncelik | Amaç | Durum |
+|-----------|---------|------|-------|
+| **nanoid** | ⭐⭐⭐⭐⭐ | Collision-free ID generation | ⬜ |
+| **Zustand** | ⭐⭐⭐⭐⭐ | State management, settings persist | ✅ gameStore |
+| **Zod** | ⭐⭐⭐⭐ | WebSocket data validation | ✅ marketSchemas |
+| **Howler.js** | ⭐⭐⭐ | Profesyonel ses sistemi | ⬜ |
+| **Framer Motion** | ⭐⭐⭐ | UI animasyonları | ⬜ |
 
 ### 2.3 🔶 UI/UX İyileştirmeleri
 

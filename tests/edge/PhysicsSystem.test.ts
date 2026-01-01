@@ -47,6 +47,15 @@ vi.mock('../../services/spawners/BuffGemSpawner', () => ({
 vi.mock('../../services/patterns/decorators/BuffManager', () => ({
   BuffManager: {
     addEffect: vi.fn(),
+    isInitialized: vi.fn(() => false),
+    getDecoratedStats: vi.fn(() => ({
+      getMagnet: vi.fn(() => 0),
+      getArmor: vi.fn(() => 0),
+      getSpeed: vi.fn(() => 4),
+      getDamage: vi.fn(() => 10),
+      getCritChance: vi.fn(() => 0),
+      getLuck: vi.fn(() => 0),
+    })),
   },
 }));
 

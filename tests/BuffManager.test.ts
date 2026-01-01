@@ -108,8 +108,8 @@ describe('BuffManager', () => {
 
       const stats = BuffManager.getDecoratedStats();
 
-      expect(stats.getLuck()).toBe(1.3); // 1 * 1.3
-      expect(stats.getMagnet()).toBe(150); // 100 * 1.5
+      expect(stats.getLuck()).toBe(3); // 1 + 2 (additive)
+      expect(stats.getMagnet()).toBe(150); // 100 + 50 (additive)
     });
   });
 

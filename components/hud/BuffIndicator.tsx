@@ -82,7 +82,7 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-1.5 rounded-lg backdrop-blur-md
+        flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg backdrop-blur-md
         ${
           isDebuff
             ? 'bg-red-900/60 border border-red-500/50'
@@ -92,19 +92,21 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       `}
       title={effect.description}
     >
-      {/* Icon */}
-      <span className="text-xl">{effect.icon}</span>
+      {/* Icon - smaller on mobile */}
+      <span className="text-base md:text-xl">{effect.icon}</span>
 
-      {/* Name */}
-      <span className={`text-sm font-medium ${isDebuff ? 'text-red-300' : 'text-emerald-300'}`}>
+      {/* Name - smaller on mobile */}
+      <span
+        className={`text-xs md:text-sm font-medium ${isDebuff ? 'text-red-300' : 'text-emerald-300'}`}
+      >
         {effect.name}
       </span>
 
-      {/* Duration */}
+      {/* Duration - smaller on mobile */}
       {remainingSeconds !== null && (
         <span
           className={`
-            text-sm font-stats ml-1 px-1.5 py-0.5 rounded
+            text-[10px] md:text-sm font-stats ml-0.5 md:ml-1 px-1 md:px-1.5 py-0.5 rounded
             ${
               remainingSeconds <= 3
                 ? 'bg-red-600/80 text-white animate-pulse'
@@ -119,7 +121,7 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       )}
 
       {/* Permanent indicator */}
-      {effect.isPermanent && <span className="text-xs text-yellow-400">∞</span>}
+      {effect.isPermanent && <span className="text-[10px] md:text-xs text-yellow-400">∞</span>}
     </div>
   );
 };
