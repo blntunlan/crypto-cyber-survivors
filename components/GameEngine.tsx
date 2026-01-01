@@ -29,6 +29,7 @@ import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
+import { marketIndicatorService } from '../services/indicators';
 
 // Custom hooks for GameEngine
 import { useGameSetup } from '../hooks/useGameSetup';
@@ -195,6 +196,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update buff gem spawner (spawns gems based on volatility)
         BuffGemSpawner.updateDimensions(width, height);
         BuffGemSpawner.update(marketDataRef.current.difficulty, deltaTime);
+
+        // Update market indicators (RSI, Volume, ATR) for gameplay effects
+        // This updates enemy modifiers, spawn rate multiplier, and whale spawning
+        marketIndicatorService.update(
+          marketDataRef.current.price,
+          marketDataRef.current.volume,
+          position
+        );
 
         // Update metrics system
         const wavePhase = DifficultyManager.getWavePhase();

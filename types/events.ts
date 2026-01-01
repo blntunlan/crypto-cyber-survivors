@@ -34,6 +34,8 @@ export type GameEvent =
   | 'buffGemSpawned'
   | 'buffGemCollected'
   | 'marketDataTimeout'
+  | 'marketStateChanged'
+  | 'whaleSpawned'
   | 'verification:queued'
   | 'verification:processing'
   | 'verification:success'
@@ -177,6 +179,36 @@ export interface MarketDataTimeoutEvent {
   pair: string;
 }
 
+/** Market state changed event data (indicator system) */
+export interface MarketStateChangedEvent {
+  /** Normalized volume (0-1) */
+  normalizedVolume: number;
+  /** Current RSI value (0-100) */
+  rsi: number;
+  /** RSI state: OVERSOLD | NEUTRAL | OVERBOUGHT */
+  rsiState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  /** Spawn rate multiplier from ATR */
+  spawnRateMultiplier: number;
+  /** Whether current market favors player position */
+  isFavorable: boolean;
+  /** Player's current position */
+  position: 'LONG' | 'SHORT';
+}
+
+/** Whale spawned event data */
+export interface WhaleSpawnedEvent {
+  /** Whale tier (1=Baby, 2=Normal, 3=Mega) */
+  tier: number;
+  /** Spawn X position */
+  x: number;
+  /** Spawn Y position */
+  y: number;
+  /** Health multiplier applied */
+  healthMultiplier: number;
+  /** Size multiplier applied */
+  sizeMultiplier: number;
+}
+
 // =============================================================================
 // EVENT DATA MAP
 // =============================================================================
@@ -210,6 +242,8 @@ export interface EventDataMap {
   buffGemSpawned: BuffGemSpawnedEvent;
   buffGemCollected: BuffGemCollectedEvent;
   marketDataTimeout: MarketDataTimeoutEvent;
+  marketStateChanged: MarketStateChangedEvent;
+  whaleSpawned: WhaleSpawnedEvent;
   'verification:queued': Record<string, unknown>;
   'verification:processing': Record<string, unknown>;
   'verification:success': Record<string, unknown>;

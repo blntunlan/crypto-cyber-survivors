@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
+import { type WhaleTier, WHALE_TIER_CONFIGS } from '../types/indicators';
 
 interface Activatable {
   active: boolean;
@@ -146,6 +147,54 @@ export class PoolManager {
     }
     obj.active = true;
     this.activeEnemies.push(obj);
+    return obj;
+  }
+
+  /**
+   * Get a whale enemy with tier-specific stat multipliers
+   *
+   * Whale enemies are spawned based on volume spikes in the market.
+   * Higher tiers are larger, have more HP, but give more rewards.
+   *
+   * @param x Spawn X position
+   * @param y Spawn Y position
+   * @param difficulty Current difficulty level
+   * @param position Player's market position (LONG/SHORT)
+   * @param tier Whale tier (BABY_WHALE, WHALE, or MEGA_WHALE)
+   * @returns The spawned whale enemy
+   */
+  getWhaleEnemy(
+    x: number,
+    y: number,
+    difficulty: number,
+    position: MarketPosition,
+    tier: WhaleTier
+  ): GameEnemy {
+    const tierConfig = WHALE_TIER_CONFIGS[tier];
+
+    // Create base whale enemy
+    let obj = this.freeEnemies.pop();
+    if (!obj) {
+      obj = enemyFactory.createEnemy('whale', x, y, difficulty, position);
+    } else {
+      const newEnemy = enemyFactory.createEnemy('whale', x, y, difficulty, position);
+      Object.assign(obj, newEnemy);
+    }
+
+    // Apply tier-specific multipliers if available
+    if (tierConfig) {
+      obj.radius *= tierConfig.sizeMultiplier;
+      obj.health *= tierConfig.healthMultiplier;
+      obj.maxHealth = obj.health;
+      // Store value multiplier for gem drops
+      (obj as unknown as { valueMultiplier: number }).valueMultiplier = tierConfig.valueMultiplier;
+    }
+
+    obj.active = true;
+    this.activeEnemies.push(obj);
+
+    Logger.debug(`[PoolManager] Spawned whale tier ${tier} at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+
     return obj;
   }
 

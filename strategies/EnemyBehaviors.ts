@@ -46,6 +46,38 @@ export class ChaseStrategy implements MovementStrategy {
 }
 
 /**
+ * StraightStrategy - Direct, slow approach with no evasion
+ *
+ * Used for "friendly" enemies when RSI favors the player.
+ * These enemies are easy to hit (~95% accuracy) due to:
+ * - No zigzag or erratic movement
+ * - Slower speed (0.7x multiplier)
+ * - Predictable, straight-line path
+ *
+ * Psychological: Represents favorable market conditions
+ */
+export class StraightStrategy implements MovementStrategy {
+  readonly name = 'straight';
+  private speedMultiplier: number;
+
+  constructor(speedMultiplier: number = 0.7) {
+    this.speedMultiplier = speedMultiplier;
+  }
+
+  move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
+    const dx = playerX - enemy.x;
+    const dy = playerY - enemy.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 0) {
+      // Simple, direct, slow approach - easy target
+      enemy.x += (dx / dist) * enemy.speed * this.speedMultiplier * dtFactor;
+      enemy.y += (dy / dist) * enemy.speed * this.speedMultiplier * dtFactor;
+    }
+  }
+}
+
+/**
  * ZigZagStrategy - Side-to-side movement while approaching
  * Makes enemies harder to hit
  */
@@ -219,6 +251,33 @@ export function createMovementStrategy(type: string): MovementStrategy {
     case 'pumpdump':
       return new GrowingStrategy();
     case 'bear':
+    default:
+      return new ChaseStrategy();
+  }
+}
+
+/**
+ * Creates movement strategy based on market indicator pattern
+ *
+ * Used by the MarketIndicatorService to apply RSI-based movement:
+ * - 'straight': Friendly enemies (favorable RSI) - easy to hit
+ * - 'zigzag': Aggressive enemies (unfavorable RSI) - hard to hit
+ * - 'chase': Neutral enemies - default behavior
+ *
+ * @param pattern Movement pattern from RSIEnemyModifier
+ * @returns Movement strategy instance
+ */
+export function createMarketMovementStrategy(
+  pattern: 'straight' | 'zigzag' | 'chase' | 'circle'
+): MovementStrategy {
+  switch (pattern) {
+    case 'straight':
+      return new StraightStrategy(0.7);
+    case 'zigzag':
+      return new ZigZagStrategy(5, 0.2); // More aggressive zigzag
+    case 'circle':
+      return new CircleStrategy(0.03);
+    case 'chase':
     default:
       return new ChaseStrategy();
   }

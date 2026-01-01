@@ -2,6 +2,7 @@ import { type MarketPosition } from '../types';
 import { type PoolManager } from './PoolManager';
 import { GAME_ENGINE } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
+import { marketIndicatorService } from './indicators';
 
 export class SpawnSystem {
   /**
@@ -43,15 +44,42 @@ export class SpawnSystem {
     const maxEnemies = maxEnemiesOverride ?? spawnConfig.maxEnemies;
     const waveIntensity = spawnConfig.waveIntensity;
 
+    // Get market-based spawn rate multiplier (ATR-based)
+    // This increases spawn rate during high volatility (chaos mode)
+    const marketSpawnMultiplier = marketIndicatorService.getSpawnRateMultiplier();
+
     let newTimer = spawnTimer + deltaTime;
 
-    // Apply wave intensity to difficulty scaling
+    // Apply wave intensity and market multiplier to difficulty scaling
     const intensityMultiplier = 0.5 + waveIntensity; // 0.5 to 1.5x
     const scaledDifficulty =
-      1 + (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE * intensityMultiplier;
+      1 +
+      (difficulty - 1) *
+        GAME_ENGINE.SPAWN_DIFFICULTY_SCALE *
+        intensityMultiplier *
+        marketSpawnMultiplier;
 
-    // Check enemy limit before spawning
-    if (pool.activeEnemies.length < maxEnemies && newTimer > baseInterval / scaledDifficulty) {
+    // Calculate effective max enemies based on spawn multiplier
+    // Prevent too many enemies when spawn rate is very high
+    const effectiveMaxEnemies =
+      marketSpawnMultiplier > 1.5
+        ? Math.min(maxEnemies, Math.floor(maxEnemies * 0.8)) // 80% cap during chaos
+        : maxEnemies;
+
+    // Check for whale spawn opportunity
+    const whaleSpawn = marketIndicatorService.shouldSpawnWhale();
+    if (whaleSpawn.shouldSpawn && pool.activeEnemies.length < effectiveMaxEnemies) {
+      const { x, y } = this.getRandomSpawnPosition(width, height);
+      // Spawn whale with tier-specific config
+      pool.getWhaleEnemy(x, y, difficulty, position, whaleSpawn.tier);
+      marketIndicatorService.recordWhaleSpawn();
+    }
+
+    // Regular enemy spawn
+    if (
+      pool.activeEnemies.length < effectiveMaxEnemies &&
+      newTimer > baseInterval / scaledDifficulty
+    ) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
       pool.getEnemy(x, y, difficulty, position);
       newTimer = 0;
