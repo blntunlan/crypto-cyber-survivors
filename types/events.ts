@@ -34,6 +34,9 @@ export type GameEvent =
   | 'buffGemSpawned'
   | 'buffGemCollected'
   | 'marketDataTimeout'
+  | 'whaleTierChanged'
+  | 'rsiStateChanged'
+  | 'marketStateUpdated'
   | 'marketStateChanged'
   | 'whaleSpawned'
   | 'verification:queued'
@@ -172,6 +175,38 @@ export interface BuffGemCollectedEvent {
   decoratorClass: string;
 }
 
+/** MarketState (imported dynamically to avoid circular deps or re-defined) */
+export interface MarketStateData {
+  pair: string;
+  price: number;
+  volume: number;
+  rsi: number;
+  rsiState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  atr: number;
+  atrPercent: number;
+  spawnRateMultiplier: number;
+  normalizedVolume: number;
+  volumePercentile: number;
+  whaleTier: 0 | 1 | 2 | 3;
+  enemyAggroMultiplier: number;
+  updatedAt: Date;
+}
+
+/** Whale tier changed event data */
+export interface WhaleTierChangedEvent {
+  tier: 0 | 1 | 2 | 3;
+  percentile: number;
+}
+
+/** RSI state changed event data */
+export interface RSIStateChangedEvent {
+  state: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  rsi: number;
+}
+
+/** Market state updated event data (full state) */
+export type MarketStateUpdatedEvent = MarketStateData;
+
 /** Market data timeout event data */
 export interface MarketDataTimeoutEvent {
   lastPriceTime: number | null;
@@ -242,8 +277,12 @@ export interface EventDataMap {
   buffGemSpawned: BuffGemSpawnedEvent;
   buffGemCollected: BuffGemCollectedEvent;
   marketDataTimeout: MarketDataTimeoutEvent;
-  marketStateChanged: MarketStateChangedEvent;
+  // Deprecated: marketStateChanged: MarketStateChangedEvent;
+  marketStateChanged: any; // Keeping for compatibility if needed, but should move to new ones
   whaleSpawned: WhaleSpawnedEvent;
+  whaleTierChanged: WhaleTierChangedEvent;
+  rsiStateChanged: RSIStateChangedEvent;
+  marketStateUpdated: MarketStateUpdatedEvent;
   'verification:queued': Record<string, unknown>;
   'verification:processing': Record<string, unknown>;
   'verification:success': Record<string, unknown>;

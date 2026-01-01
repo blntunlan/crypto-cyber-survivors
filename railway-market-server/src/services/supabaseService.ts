@@ -57,6 +57,39 @@ export class SupabaseService {
     }
   }
 
+  async updateMarketState(state: {
+    pair: string;
+    price: number;
+    volume: number;
+    high: number;
+    low: number;
+    rsi: number;
+    rsi_state: string;
+    atr: number;
+    atr_percent: number;
+    spawn_rate_multiplier: number;
+    normalized_volume: number;
+    volume_percentile: number;
+    whale_tier: number;
+    volume_history_min: number;
+    volume_history_max: number;
+    volume_history_count: number;
+    enemy_aggro_multiplier_long: number;
+    enemy_aggro_multiplier_short: number;
+  }): Promise<void> {
+    const { error } = await this.client.from('market_state').upsert(
+      {
+        ...state,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'pair' }
+    );
+
+    if (error) {
+      throw new Error(`Failed to update market_state: ${error.message}`);
+    }
+  }
+
   async checkHealth(): Promise<boolean> {
     try {
       const { error } = await this.client.from('price_logs').select('id').limit(1);

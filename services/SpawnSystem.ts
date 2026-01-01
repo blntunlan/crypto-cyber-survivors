@@ -2,7 +2,8 @@ import { type MarketPosition } from '../types';
 import { type PoolManager } from './PoolManager';
 import { GAME_ENGINE } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
-import { marketIndicatorService } from './indicators';
+import { marketStateService } from './MarketStateService';
+import { WHALE_TIER_CONFIGS } from '../types/indicators';
 
 export class SpawnSystem {
   /**
@@ -44,9 +45,9 @@ export class SpawnSystem {
     const maxEnemies = maxEnemiesOverride ?? spawnConfig.maxEnemies;
     const waveIntensity = spawnConfig.waveIntensity;
 
-    // Get market-based spawn rate multiplier (ATR-based)
-    // This increases spawn rate during high volatility (chaos mode)
-    const marketSpawnMultiplier = marketIndicatorService.getSpawnRateMultiplier();
+    // Get market-based spawn rate multiplier (ATR-based) from server state
+    const marketState = marketStateService.getState();
+    const marketSpawnMultiplier = marketState?.spawnRateMultiplier ?? 1.0;
 
     let newTimer = spawnTimer + deltaTime;
 
@@ -66,13 +67,29 @@ export class SpawnSystem {
         ? Math.min(maxEnemies, Math.floor(maxEnemies * 0.8)) // 80% cap during chaos
         : maxEnemies;
 
-    // Check for whale spawn opportunity
-    const whaleSpawn = marketIndicatorService.shouldSpawnWhale();
-    if (whaleSpawn.shouldSpawn && pool.activeEnemies.length < effectiveMaxEnemies) {
-      const { x, y } = this.getRandomSpawnPosition(width, height);
-      // Spawn whale with tier-specific config
-      pool.getWhaleEnemy(x, y, difficulty, position, whaleSpawn.tier);
-      marketIndicatorService.recordWhaleSpawn();
+    // Check for whale spawn opportunity (Server-side indicators)
+    if (marketState && marketState.whaleTier > 0) {
+      // Use local cooldown check or just simple random chance based on config
+      // The server will sustain the 'whaleTier' state as long as volume is high
+      // We rely on random chance to prevent spamming, similar to legacy logic
+      const config = WHALE_TIER_CONFIGS[marketState.whaleTier];
+
+      if (config) {
+        // We need a way to limit spawn rate locally since server state might persist for seconds
+        // Using a very low probability check per frame:
+        // Assuming 60 FPS, a 0.1% chance is ~once per 16 seconds
+        const spawnChancePerFrame = config.spawnChance * 0.01;
+
+        if (
+          Math.random() < spawnChancePerFrame &&
+          pool.activeEnemies.length < effectiveMaxEnemies
+        ) {
+          const { x, y } = this.getRandomSpawnPosition(width, height);
+          pool.getWhaleEnemy(x, y, difficulty, position, marketState.whaleTier);
+          // No need to record spawn locally for logic's sake, as we don't manage global cooldown anymore
+          // But we could emit an event for UI if needed
+        }
+      }
     }
 
     // Regular enemy spawn

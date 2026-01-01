@@ -2,6 +2,7 @@ import { BinanceService, type KlineData } from './binanceService';
 import { SupabaseService } from './supabaseService';
 import { Logger } from '../utils/logger';
 import { withRetry } from '../utils/retry';
+import { IndicatorService } from './indicatorService';
 
 interface LoggerStats {
   totalLogged: number;
@@ -61,6 +62,16 @@ export class PriceLogger {
           backoff: true,
         }
       );
+
+      // Update real-time indicators
+      // No retry needed here as it's fire-and-forget for real-time state
+      void IndicatorService.getInstance().update({
+        pair: data.pair,
+        price: data.close,
+        high: data.high,
+        low: data.low,
+        volume: data.volume,
+      });
 
       // Update stats
       this.stats.totalLogged++;

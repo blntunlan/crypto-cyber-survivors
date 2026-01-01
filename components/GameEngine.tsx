@@ -29,7 +29,8 @@ import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
-import { marketIndicatorService } from '../services/indicators';
+import { marketStateService } from '../services/MarketStateService';
+import { Logger } from '../services/Logger';
 
 // Custom hooks for GameEngine
 import { useGameSetup } from '../hooks/useGameSetup';
@@ -117,6 +118,29 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Status change effects: menu cleanup, buff initialization, pause handling
   useGameStatusEffects({ status, pool, state, playerRef, width, height });
 
+  // Market State Initialization (Server-Side Indicators)
+  useEffect(() => {
+    if (status === GameStatus.PLAYING) {
+      // TODO: Get active pair dynamically. Defaulting to BTC for now matching server init.
+      const pair = 'BTC';
+
+      marketStateService
+        .initialize(pair, position)
+        .then(state => {
+          Logger.info('[GameEngine] Market state initialized:', state);
+        })
+        .catch(err => {
+          Logger.error('[GameEngine] Failed to initialize market state:', err);
+        });
+    }
+
+    return () => {
+      if (status !== GameStatus.PLAYING) {
+        void marketStateService.destroy();
+      }
+    };
+  }, [status, position]);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -197,13 +221,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         BuffGemSpawner.updateDimensions(width, height);
         BuffGemSpawner.update(marketDataRef.current.difficulty, deltaTime);
 
-        // Update market indicators (RSI, Volume, ATR) for gameplay effects
-        // This updates enemy modifiers, spawn rate multiplier, and whale spawning
-        marketIndicatorService.update(
-          marketDataRef.current.price,
-          marketDataRef.current.volume,
-          position
-        );
+        // REMOVED: marketIndicatorService.update(...) - handled by realtime service now
+        // Indicators flow directly to SpawnSystem via marketStateService
 
         // Update metrics system
         const wavePhase = DifficultyManager.getWavePhase();
