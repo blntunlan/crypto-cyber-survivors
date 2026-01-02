@@ -28,6 +28,8 @@ const createInitialPlayer = (centerX: number, centerY: number): Player => ({
   critChance: PLAYER_DEFAULTS.critChance,
   baseDamage: PLAYER_DEFAULTS.baseDamage,
   luck: PLAYER_DEFAULTS.luck,
+  lifesteal: PLAYER_DEFAULTS.lifesteal,
+  dodge: PLAYER_DEFAULTS.dodge,
   magnet: PLAYER_DEFAULTS.magnet,
   armor: PLAYER_DEFAULTS.armor,
   area: PLAYER_DEFAULTS.area,

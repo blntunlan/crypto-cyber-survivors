@@ -28,6 +28,8 @@ export const PLAYER_DEFAULTS = {
   critChance: 0.05,
   baseDamage: 25,
   luck: 0,
+  lifesteal: 0,
+  dodge: 0,
   magnet: 0,
   armor: 0,
   area: 1,
