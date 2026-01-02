@@ -30,7 +30,7 @@ export class IndicatorService {
     // Whale cooldown: 30 seconds (prevents spam during sustained high volume)
     ['BTC', 'ETH', 'SOL'].forEach(pair => {
       this.indicators.set(pair, {
-        rsi: new RSICalculator(7),
+        rsi: new RSICalculator(14),
         atr: new ATRCalculator(14),
         volume: new VolumeAnalyzer(300, 30000), // 5 min history, 30s cooldown
       });

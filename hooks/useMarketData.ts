@@ -94,6 +94,26 @@ export const useMarketData = (
     return () => clearInterval(intervalId);
   }, []);
 
+  // Sync with MarketStateService for indicators (RSI, Volume, etc.)
+  useEffect(() => {
+    const handleMarketStateUpdate = (state: any) => {
+      if (state && state.pair === pairRef.current) {
+        setMarketData(prev => ({
+          ...prev,
+          rsi: state.rsi,
+          rsiState: state.rsiState,
+          whaleTier: state.whaleTier,
+          spawnRateMultiplier: state.spawnRateMultiplier,
+        }));
+      }
+    };
+
+    const unsub = EventBus.on('marketStateUpdated', handleMarketStateUpdate);
+    return () => {
+      unsub();
+    };
+  }, [pair]);
+
   // Session Reset & Cleanup (CRITICAL for pair switching)
   useEffect(() => {
     setPriceHistory([]);
@@ -224,7 +244,7 @@ export const useMarketData = (
           pnl,
           effectivePnl,
           leverage: currentLeverage,
-          rsi: 50, // Static for now
+          rsi: marketData.rsi, // Sync from MarketStateService
           difficulty: difficultyOutput.total,
           pair: expectedPair, // Use captured pair, not ref
           symbol: expectedPair + 'USDT',

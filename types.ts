@@ -25,6 +25,7 @@ export interface MarketData {
   effectivePnl: number; // PnL * Leverage
   leverage: LeverageOption;
   rsi: number;
+  rsiState?: string;
   difficulty: number;
   pair?: CryptoPair;
   symbol?: string; // e.g. 'BTCUSDT'
