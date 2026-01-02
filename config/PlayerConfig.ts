@@ -1,40 +1,44 @@
+import { type Player } from '../types';
+import { STAT_DEFINITIONS } from './StatRegistry';
+
 /**
  * PlayerConfig - Player Base Stats and Caps
  *
- * Centralized player stat configuration for easy balancing.
+ * NOW DRIVEN BY StatRegistry.
+ * KEPT FOR BACKWARD COMPATIBILITY.
  */
 
 export const PLAYER_STATS = {
   // =========================
   // COMBAT STATS
   // =========================
-  INITIAL_DAMAGE: 25,
-  INITIAL_FIRE_RATE: 500, // ms between shots
-  INITIAL_CRIT_CHANCE: 0.05, // 5%
-  INITIAL_CRIT_DAMAGE: 2.0, // 2x multiplier
-  INITIAL_AREA: 1.0,
-  INITIAL_PROJECTILES: 1,
+  INITIAL_DAMAGE: STAT_DEFINITIONS.baseDamage.defaultValue,
+  INITIAL_FIRE_RATE: STAT_DEFINITIONS.fireRate.defaultValue,
+  INITIAL_CRIT_CHANCE: STAT_DEFINITIONS.critChance.defaultValue,
+  INITIAL_CRIT_DAMAGE: STAT_DEFINITIONS.critDamage.defaultValue,
+  INITIAL_AREA: STAT_DEFINITIONS.area.defaultValue,
+  INITIAL_PROJECTILES: STAT_DEFINITIONS.projectiles.defaultValue,
 
   // =========================
   // DEFENSE STATS
   // =========================
-  INITIAL_HP: 100,
-  INITIAL_MAX_HP: 100,
-  INITIAL_ARMOR: 1, // Start with 1 so armor buffs/debuffs have effect
-  INITIAL_REGEN: 0,
-  INITIAL_DODGE: 0,
+  INITIAL_HP: STAT_DEFINITIONS.hp.defaultValue,
+  INITIAL_MAX_HP: STAT_DEFINITIONS.maxHp.defaultValue,
+  INITIAL_ARMOR: STAT_DEFINITIONS.armor.defaultValue,
+  INITIAL_REGEN: STAT_DEFINITIONS.regen.defaultValue,
+  INITIAL_DODGE: STAT_DEFINITIONS.dodge.defaultValue,
 
   // =========================
   // MOVEMENT STATS
   // =========================
-  INITIAL_SPEED: 5,
+  INITIAL_SPEED: STAT_DEFINITIONS.speed.defaultValue,
 
   // =========================
   // ECONOMY STATS
   // =========================
-  INITIAL_LUCK: 1, // Affects gem drop quality/quantity
-  INITIAL_LIFESTEAL: 0, // % chance to heal on kill (0-50%)
-  INITIAL_MAGNET: 30, // Base collection range
+  INITIAL_LUCK: STAT_DEFINITIONS.luck.defaultValue,
+  INITIAL_LIFESTEAL: STAT_DEFINITIONS.lifesteal.defaultValue,
+  INITIAL_MAGNET: STAT_DEFINITIONS.magnet.defaultValue,
   INITIAL_EXP_MULT: 1.0,
   INITIAL_GEM_VALUE_MULT: 1.0,
 
@@ -49,16 +53,16 @@ export const PLAYER_STATS = {
   // =========================
   // STAT CAPS (prevents game breaking)
   // =========================
-  MAX_FIRE_RATE: 50, // minimum ms between shots
-  MAX_CRIT_CHANCE: 0.95, // 95% max
-  MAX_ARMOR: 15, // 75% damage reduction at max
-  MAX_SPEED: 15,
-  MAX_LUCK: 20, // Higher cap for better gem drops
-  MAX_LIFESTEAL: 0.5, // 50% max lifesteal chance
-  MAX_MAGNET: 300, // Max collection range
-  MAX_AREA: 3.0, // Max projectile size multiplier
-  MAX_PROJECTILES: 8,
-  MAX_DODGE: 0.5, // 50%
+  MAX_FIRE_RATE: STAT_DEFINITIONS.fireRate.cap,
+  MAX_CRIT_CHANCE: STAT_DEFINITIONS.critChance.cap,
+  MAX_ARMOR: STAT_DEFINITIONS.armor.cap,
+  MAX_SPEED: STAT_DEFINITIONS.speed.cap,
+  MAX_LUCK: STAT_DEFINITIONS.luck.cap,
+  MAX_LIFESTEAL: STAT_DEFINITIONS.lifesteal.cap,
+  MAX_MAGNET: STAT_DEFINITIONS.magnet.cap,
+  MAX_AREA: STAT_DEFINITIONS.area.cap,
+  MAX_PROJECTILES: STAT_DEFINITIONS.projectiles.cap,
+  MAX_DODGE: STAT_DEFINITIONS.dodge.cap,
 
   // =========================
   // VISUAL
@@ -67,29 +71,28 @@ export const PLAYER_STATS = {
 };
 
 // Helper function to create initial player state
-export function createInitialPlayer(x: number, y: number, color: string = '') {
-  return {
+// Now dynamically builds stats from registry
+export function createInitialPlayer(x: number, y: number, color: string = ''): Player {
+  const playerBase = {
     x,
     y,
     radius: PLAYER_STATS.RADIUS,
     color,
-    hp: PLAYER_STATS.INITIAL_HP,
-    maxHp: PLAYER_STATS.INITIAL_MAX_HP,
     level: PLAYER_STATS.INITIAL_LEVEL,
     exp: PLAYER_STATS.INITIAL_EXP,
     nextLevelExp: PLAYER_STATS.INITIAL_NEXT_LEVEL_EXP,
-    speed: PLAYER_STATS.INITIAL_SPEED,
-    fireRate: PLAYER_STATS.INITIAL_FIRE_RATE,
-    critChance: PLAYER_STATS.INITIAL_CRIT_CHANCE,
-    baseDamage: PLAYER_STATS.INITIAL_DAMAGE,
-    luck: PLAYER_STATS.INITIAL_LUCK,
-    lifesteal: PLAYER_STATS.INITIAL_LIFESTEAL,
-    dodge: PLAYER_STATS.INITIAL_DODGE,
-    magnet: PLAYER_STATS.INITIAL_MAGNET,
-    armor: PLAYER_STATS.INITIAL_ARMOR,
-    area: PLAYER_STATS.INITIAL_AREA,
-    projectiles: PLAYER_STATS.INITIAL_PROJECTILES,
   };
+
+  // Populate all stats from registry using a typed reducer
+  const stats = Object.values(STAT_DEFINITIONS).reduce(
+    (acc, stat) => {
+      acc[stat.id] = stat.defaultValue;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  return { ...playerBase, ...stats } as unknown as Player;
 }
 
 // Legacy export for backwards compatibility

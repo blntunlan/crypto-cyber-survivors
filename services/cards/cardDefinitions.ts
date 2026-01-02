@@ -6,6 +6,7 @@
  */
 
 import { type Card, type CardTier } from './types';
+import { STAT_DEFINITIONS } from '../../config/StatRegistry';
 
 // =============================================================================
 // COMMON CARDS
@@ -26,7 +27,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+8% Attack Speed',
     icon: 'lucide:zap',
     tier: 'common',
-    // No cap here - system caps fire rate at 50ms in CombatSystem
+    // No cap here - system caps fireRate in CombatSystem/PlayerConfig
     effect: p => ({ ...p, fireRate: p.fireRate * 0.92 }),
   },
   {
@@ -43,8 +44,8 @@ export const COMMON_CARDS: Card[] = [
     description: '+30 Collection Range',
     icon: 'lucide:wheat',
     tier: 'common',
-    // No cap here - system applies max magnet in PlayerConfig
-    effect: p => ({ ...p, magnet: p.magnet + 30 }),
+    // system applies max magnet cap
+    effect: p => ({ ...p, magnet: Math.min(STAT_DEFINITIONS.magnet.cap, p.magnet + 30) }),
   },
   {
     id: 'armor_c1',
@@ -52,7 +53,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+1 Armor',
     icon: 'lucide:octagon-x',
     tier: 'common',
-    effect: p => ({ ...p, armor: Math.min(15, p.armor + 1) }),
+    effect: p => ({ ...p, armor: Math.min(STAT_DEFINITIONS.armor.cap, p.armor + 1) }),
   },
   {
     id: 'crit_c1',
@@ -60,7 +61,10 @@ export const COMMON_CARDS: Card[] = [
     description: '+3% Crit Chance',
     icon: 'lucide:crosshair',
     tier: 'common',
-    effect: p => ({ ...p, critChance: Math.min(0.95, p.critChance + 0.03) }),
+    effect: p => ({
+      ...p,
+      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.03),
+    }),
   },
   {
     id: 'lifesteal_c1',
@@ -68,7 +72,10 @@ export const COMMON_CARDS: Card[] = [
     description: '+5% Lifesteal Chance',
     icon: 'lucide:repeat',
     tier: 'common',
-    effect: p => ({ ...p, lifesteal: Math.min(0.5, p.lifesteal + 0.05) }),
+    effect: p => ({
+      ...p,
+      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.05),
+    }),
   },
   {
     id: 'balance_c1',
@@ -82,7 +89,7 @@ export const COMMON_CARDS: Card[] = [
       speed: p.speed * 1.05,
       maxHp: p.maxHp * 1.05,
       hp: p.hp * 1.05,
-      fireRate: p.fireRate * 0.95, // 5% faster attack speed
+      fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.95), // 5% faster attack speed (lower ms)
       magnet: p.magnet * 1.05,
     }),
   },
@@ -107,8 +114,7 @@ export const RARE_CARDS: Card[] = [
     description: '+18% Attack Speed',
     icon: 'lucide:activity',
     tier: 'rare',
-    // No cap here - system caps fire rate at 50ms
-    effect: p => ({ ...p, fireRate: p.fireRate * 0.82 }),
+    effect: p => ({ ...p, fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.82) }),
   },
   {
     id: 'crit_r1',
@@ -116,7 +122,10 @@ export const RARE_CARDS: Card[] = [
     description: '+5% Crit Chance',
     icon: 'lucide:eye',
     tier: 'rare',
-    effect: p => ({ ...p, critChance: Math.min(0.95, p.critChance + 0.05) }),
+    effect: p => ({
+      ...p,
+      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.05),
+    }),
   },
   {
     id: 'luck_r1',
@@ -124,7 +133,7 @@ export const RARE_CARDS: Card[] = [
     description: '+2 Luck (better gem drops)',
     icon: 'lucide:key',
     tier: 'rare',
-    effect: p => ({ ...p, luck: Math.min(20, p.luck + 2) }),
+    effect: p => ({ ...p, luck: Math.min(STAT_DEFINITIONS.luck.cap, p.luck + 2) }),
   },
   {
     id: 'area_r1',
@@ -132,7 +141,7 @@ export const RARE_CARDS: Card[] = [
     description: '+50% Projectile Size',
     icon: 'lucide:circle-dollar-sign',
     tier: 'rare',
-    effect: p => ({ ...p, area: p.area + 0.5 }),
+    effect: p => ({ ...p, area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.5) }),
   },
   {
     id: 'proj_r1',
@@ -140,7 +149,10 @@ export const RARE_CARDS: Card[] = [
     description: '+1 Projectile',
     icon: 'lucide:copy-plus',
     tier: 'rare',
-    effect: p => ({ ...p, projectiles: p.projectiles + 1 }),
+    effect: p => ({
+      ...p,
+      projectiles: Math.min(STAT_DEFINITIONS.projectiles.cap, p.projectiles + 1),
+    }),
   },
   {
     id: 'speed_r1',
@@ -148,8 +160,7 @@ export const RARE_CARDS: Card[] = [
     description: '+15% Speed',
     icon: 'lucide:arrow-up-right',
     tier: 'rare',
-    // No cap here - system caps speed in GameEngine
-    effect: p => ({ ...p, speed: p.speed * 1.15 }),
+    effect: p => ({ ...p, speed: Math.min(STAT_DEFINITIONS.speed.cap, p.speed * 1.15) }),
   },
   {
     id: 'shield_r1',
@@ -159,7 +170,7 @@ export const RARE_CARDS: Card[] = [
     tier: 'rare',
     effect: p => ({
       ...p,
-      armor: Math.min(15, p.armor + 2),
+      armor: Math.min(STAT_DEFINITIONS.armor.cap, p.armor + 2),
       maxHp: p.maxHp + 10,
       hp: p.hp + 10,
     }),
@@ -173,7 +184,7 @@ export const RARE_CARDS: Card[] = [
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 12,
-      critChance: Math.min(0.95, p.critChance + 0.03),
+      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.03),
     }),
   },
 ];
@@ -192,7 +203,7 @@ export const EPIC_CARDS: Card[] = [
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 25,
-      critChance: Math.min(0.95, p.critChance + 0.1),
+      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.1),
     }),
   },
   {
@@ -201,7 +212,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+12% Lifesteal Chance',
     icon: 'lucide:coins',
     tier: 'epic',
-    effect: p => ({ ...p, lifesteal: Math.min(0.5, p.lifesteal + 0.12) }),
+    effect: p => ({
+      ...p,
+      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.12),
+    }),
   },
   {
     id: 'speed_e1',
@@ -209,11 +223,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+30% Speed, +15% Attack Speed',
     icon: 'lucide:bolt',
     tier: 'epic',
-    // No caps here - system handles limits
     effect: p => ({
       ...p,
-      speed: p.speed * 1.3,
-      fireRate: p.fireRate * 0.85,
+      speed: Math.min(STAT_DEFINITIONS.speed.cap, p.speed * 1.3),
+      fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.85),
     }),
   },
   {
@@ -226,7 +239,7 @@ export const EPIC_CARDS: Card[] = [
       ...p,
       maxHp: p.maxHp + 40,
       hp: p.hp + 40,
-      armor: Math.min(15, p.armor + 3),
+      armor: Math.min(STAT_DEFINITIONS.armor.cap, p.armor + 3),
     }),
   },
   {
@@ -235,7 +248,11 @@ export const EPIC_CARDS: Card[] = [
     description: '+20 DMG, +60% Area',
     icon: 'lucide:flame',
     tier: 'epic',
-    effect: p => ({ ...p, baseDamage: p.baseDamage + 20, area: p.area + 0.6 }),
+    effect: p => ({
+      ...p,
+      baseDamage: p.baseDamage + 20,
+      area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.6),
+    }),
   },
   {
     id: 'chain_e1',
@@ -246,7 +263,7 @@ export const EPIC_CARDS: Card[] = [
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 15,
-      critChance: Math.min(0.95, p.critChance + 0.08),
+      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.08),
     }),
   },
   {
@@ -259,7 +276,7 @@ export const EPIC_CARDS: Card[] = [
       ...p,
       maxHp: p.maxHp + 30,
       hp: p.hp + 30,
-      lifesteal: Math.min(0.5, p.lifesteal + 0.08),
+      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.08),
     }),
   },
   {
@@ -276,11 +293,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+20% Speed, +1 Luck',
     icon: 'icon-banano',
     tier: 'epic',
-    // No caps here - system handles limits
     effect: p => ({
       ...p,
-      speed: p.speed * 1.2,
-      luck: p.luck + 1,
+      speed: Math.min(STAT_DEFINITIONS.speed.cap, p.speed * 1.2),
+      luck: Math.min(STAT_DEFINITIONS.luck.cap, p.luck + 1),
     }),
   },
 ];
@@ -299,7 +315,7 @@ export const LEGENDARY_CARDS: Card[] = [
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 40,
-      critChance: Math.min(0.95, p.critChance + 0.15),
+      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.15),
     }),
   },
   {
@@ -311,7 +327,7 @@ export const LEGENDARY_CARDS: Card[] = [
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 30,
-      luck: Math.min(20, p.luck + 3),
+      luck: Math.min(STAT_DEFINITIONS.luck.cap, p.luck + 3),
     }),
   },
   {
@@ -320,7 +336,11 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+20 DMG, +0.5 Area',
     icon: 'icon-whale',
     tier: 'legendary',
-    effect: p => ({ ...p, baseDamage: p.baseDamage + 20, area: p.area + 0.5 }),
+    effect: p => ({
+      ...p,
+      baseDamage: p.baseDamage + 20,
+      area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.5),
+    }),
   },
   {
     id: 'ape_l1',
@@ -328,10 +348,9 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '2x Fire Rate, -20% HP',
     icon: 'icon-ape',
     tier: 'legendary',
-    // No fire rate cap here - system caps at 50ms in CombatSystem
     effect: p => ({
       ...p,
-      fireRate: p.fireRate * 0.5,
+      fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.5),
       maxHp: Math.max(20, p.maxHp * 0.8),
       hp: Math.min(p.hp, Math.max(20, p.maxHp * 0.8)),
     }),
@@ -356,7 +375,7 @@ export const LEGENDARY_CARDS: Card[] = [
     tier: 'legendary',
     effect: p => ({
       ...p,
-      lifesteal: Math.min(0.5, p.lifesteal + 0.2),
+      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.2),
       maxHp: Math.max(30, p.maxHp * 0.85),
       hp: Math.min(p.hp, Math.max(30, p.maxHp * 0.85)),
     }),
@@ -367,7 +386,6 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+5 random stat boosts',
     icon: '🌈',
     tier: 'legendary',
-    // No caps here - system handles limits
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 15,
@@ -396,7 +414,11 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+25 DMG, +0.4 Area',
     icon: '🔥',
     tier: 'legendary',
-    effect: p => ({ ...p, baseDamage: p.baseDamage + 25, area: p.area + 0.4 }),
+    effect: p => ({
+      ...p,
+      baseDamage: p.baseDamage + 25,
+      area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.4),
+    }),
   },
 ];
 

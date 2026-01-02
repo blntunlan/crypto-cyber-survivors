@@ -13,28 +13,13 @@ import { PLAYER_DEFAULTS } from '../services/GameStateManager';
 /**
  * Create a fresh player object with initial values
  */
-const createInitialPlayer = (centerX: number, centerY: number): Player => ({
-  x: centerX,
-  y: centerY,
-  radius: PLAYER_DEFAULTS.radius,
-  color: COLORS.ELECTRIC_BLUE,
-  hp: PLAYER_DEFAULTS.hp,
-  maxHp: PLAYER_DEFAULTS.maxHp,
-  level: PLAYER_DEFAULTS.level,
-  exp: PLAYER_DEFAULTS.exp,
-  nextLevelExp: PLAYER_DEFAULTS.nextLevelExp,
-  speed: PLAYER_DEFAULTS.speed,
-  fireRate: PLAYER_DEFAULTS.fireRate,
-  critChance: PLAYER_DEFAULTS.critChance,
-  baseDamage: PLAYER_DEFAULTS.baseDamage,
-  luck: PLAYER_DEFAULTS.luck,
-  lifesteal: PLAYER_DEFAULTS.lifesteal,
-  dodge: PLAYER_DEFAULTS.dodge,
-  magnet: PLAYER_DEFAULTS.magnet,
-  armor: PLAYER_DEFAULTS.armor,
-  area: PLAYER_DEFAULTS.area,
-  projectiles: PLAYER_DEFAULTS.projectiles,
-});
+const createInitialPlayer = (centerX: number, centerY: number): Player =>
+  ({
+    x: centerX,
+    y: centerY,
+    color: COLORS.ELECTRIC_BLUE,
+    ...PLAYER_DEFAULTS,
+  }) as Player;
 
 export const usePlayerState = (width: number, height: number) => {
   // Memoize initial player to prevent unnecessary recalculations

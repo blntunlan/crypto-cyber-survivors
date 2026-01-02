@@ -39,23 +39,16 @@ export interface Entity {
   color: string;
 }
 
-export interface Player extends Omit<Entity, 'active'> {
-  hp: number;
-  maxHp: number;
+import { type StatKey } from './config/StatRegistry';
+
+export type PlayerStats = {
+  [K in StatKey]: number;
+};
+
+export interface Player extends Omit<Entity, 'active'>, PlayerStats {
   level: number;
   exp: number;
   nextLevelExp: number;
-  speed: number;
-  fireRate: number;
-  critChance: number;
-  baseDamage: number;
-  luck: number; // Affects gem drop quality and quantity
-  lifesteal: number; // % chance to heal on kill
-  dodge: number; // % chance to avoid damage
-  magnet: number;
-  armor: number;
-  area: number;
-  projectiles: number;
 }
 
 // Note: UpgradeOption removed - now using Card from CardSystem

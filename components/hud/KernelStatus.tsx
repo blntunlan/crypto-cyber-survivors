@@ -2,6 +2,7 @@ import React, { memo, useEffect, useState } from 'react';
 import { type Player } from '../../types';
 import { COLORS } from '../../constants';
 import { screenService } from '../../services/ScreenService';
+import { STAT_DEFINITIONS } from '../../config/StatRegistry';
 
 interface KernelStatusProps {
   player: Player;
@@ -43,27 +44,43 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
       </div>
 
       <div className="grid grid-cols-2 gap-y-1 gap-x-4 pt-2">
-        <StatRow label="DMG" value={Math.round(smoothValues.damage)} />
-        <StatRow label="SPD" value={smoothValues.speed.toFixed(1)} color="text-blue-400" />
-        <StatRow
-          label="A/S"
-          value={(1000 / smoothValues.fireRate).toFixed(1)}
-          color="text-orange-400"
-        />
-        <StatRow label="Crit" value={`${smoothValues.crit.toFixed(0)}%`} color="text-yellow-400" />
-        <StatRow label="Luck" value={`+${smoothValues.luck.toFixed(1)}`} color="text-green-400" />
-        <StatRow
-          label="Vamp"
-          value={`${((isNaN(smoothValues.lifesteal) ? 0 : smoothValues.lifesteal) * 100).toFixed(0)}%`}
-          color="text-red-400"
-        />
-        <StatRow
-          label="Magnet"
-          value={`+${Math.round(smoothValues.magnet)}`}
-          color="text-purple-400"
-        />
-        <StatRow label="Armor" value={Math.round(smoothValues.armor)} color="text-slate-300" />
-        <StatRow label="Area" value={`x${smoothValues.area.toFixed(1)}`} color="text-cyan-400" />
+        {Object.values(STAT_DEFINITIONS).map(stat => {
+          if (!stat.showInKernel) return null;
+
+          let value = smoothValues[stat.id as keyof typeof smoothValues];
+
+          // Special handling for naming mismatch
+          if (stat.id === 'baseDamage') {
+            value = smoothValues.damage;
+          }
+          if (stat.id === 'critChance') {
+            value = smoothValues.crit;
+          }
+
+          // Format based on type
+          let displayValue: string | number = value;
+
+          if (stat.isPercentage) {
+            const safeValue = isNaN(value) ? 0 : value;
+            displayValue = `${(safeValue * 100).toFixed(0)}%`;
+          } else if (stat.id === 'fireRate') {
+            // Special case for Fire Rate (A/S) - show attacks per second
+            displayValue = (1000 / (value || 500)).toFixed(1);
+          } else if (stat.id === 'baseDamage' || stat.id === 'armor' || stat.id === 'magnet') {
+            displayValue = Math.round(value);
+            if (stat.id === 'magnet') displayValue = `+${displayValue}`;
+          } else if (stat.id === 'luck') {
+            displayValue = `+${Number(value).toFixed(1)}`;
+          } else {
+            // covers speed and area
+            displayValue = Number(value).toFixed(1);
+            if (stat.id === 'area') displayValue = `x${displayValue}`;
+          }
+
+          return (
+            <StatRow key={stat.id} label={stat.label} value={displayValue} color={stat.uiColor} />
+          );
+        })}
       </div>
     </div>
   );
@@ -90,48 +107,44 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
       </div>
 
       <div className="grid grid-cols-2 gap-0.5 pt-1 border-t border-white/5">
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">DMG</span>
-          <span className="text-white font-black text-[10px]">
-            {Math.round(smoothValues.damage)}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">SPD</span>
-          <span className="text-blue-400 font-black text-[10px]">
-            {smoothValues.speed.toFixed(1)}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">A/S</span>
-          <span className="text-orange-400 font-black text-[10px]">
-            {(1000 / smoothValues.fireRate).toFixed(1)}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">CRIT</span>
-          <span className="text-yellow-400 font-black text-[10px]">
-            {smoothValues.crit.toFixed(0)}%
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">LUCK</span>
-          <span className="text-green-400 font-black text-[10px]">
-            +{smoothValues.luck.toFixed(1)}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">VAMP</span>
-          <span className="text-red-400 font-black text-[10px]">
-            {((isNaN(smoothValues.lifesteal) ? 0 : smoothValues.lifesteal) * 100).toFixed(0)}%
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[9px] gap-2">
-          <span className="text-slate-500 font-bold uppercase">ARM</span>
-          <span className="text-slate-300 font-black text-[10px]">
-            {Math.round(smoothValues.armor)}
-          </span>
-        </div>
+        {Object.values(STAT_DEFINITIONS).map(stat => {
+          if (!stat.showInKernel) return null;
+
+          let value = smoothValues[stat.id as keyof typeof smoothValues];
+          // Special handling for naming mismatch in KernelStatus props vs Registry
+          if (stat.id === 'baseDamage') {
+            value = smoothValues.damage;
+          }
+          if (stat.id === 'critChance') {
+            value = smoothValues.crit;
+          }
+
+          let displayValue: string | number = value;
+
+          if (stat.isPercentage) {
+            const safeValue = isNaN(value) ? 0 : value;
+            displayValue = `${(safeValue * 100).toFixed(0)}%`;
+          } else if (stat.id === 'fireRate') {
+            displayValue = (1000 / (value || 500)).toFixed(1);
+          } else if (stat.id === 'baseDamage' || stat.id === 'armor' || stat.id === 'magnet') {
+            // Use baseDamage here
+            displayValue = Math.round(value);
+            if (stat.id === 'magnet') displayValue = `+${displayValue}`;
+          } else if (stat.id === 'luck') {
+            displayValue = `+${Number(value).toFixed(1)}`;
+          } else {
+            // covers speed and area
+            displayValue = Number(value).toFixed(1);
+            if (stat.id === 'area') displayValue = `x${displayValue}`;
+          }
+
+          return (
+            <div key={stat.id} className="flex justify-between items-center text-[9px] gap-2">
+              <span className="text-slate-500 font-bold uppercase">{stat.label}</span>
+              <span className={`${stat.uiColor} font-black text-[10px]`}>{displayValue}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

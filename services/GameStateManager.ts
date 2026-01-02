@@ -5,7 +5,7 @@
  * Coordinates reset across all game systems to ensure consistency.
  */
 
-import { type MarketPosition } from '../types';
+import { type MarketPosition, type PlayerStats } from '../types';
 import { type CryptoPair } from '../types/crypto';
 import { EventBus } from './EventBus';
 import { DifficultyManager } from './DifficultyManager';
@@ -16,25 +16,21 @@ import { MetricsService } from './MetricsService';
 // INITIAL STATE CONSTANTS
 // ============================================================================
 
+import { STAT_DEFINITIONS } from '../config/StatRegistry';
+import { PLAYER_STATS } from '../config/PlayerConfig';
+
 export const PLAYER_DEFAULTS = {
-  radius: 12,
-  hp: 100,
-  maxHp: 100,
-  level: 1,
-  exp: 0,
-  nextLevelExp: 100,
-  speed: 5,
-  fireRate: 400, // INITIAL_FIRE_RATE
-  critChance: 0.05,
-  baseDamage: 25,
-  luck: 0,
-  lifesteal: 0,
-  dodge: 0,
-  magnet: 0,
-  armor: 0,
-  area: 1,
-  projectiles: 1,
-} as const;
+  radius: PLAYER_STATS.RADIUS,
+  level: PLAYER_STATS.INITIAL_LEVEL,
+  exp: PLAYER_STATS.INITIAL_EXP,
+  nextLevelExp: PLAYER_STATS.INITIAL_NEXT_LEVEL_EXP,
+
+  // Directly from Registry
+  ...(Object.values(STAT_DEFINITIONS).reduce((acc, stat) => {
+    acc[stat.id as keyof PlayerStats] = stat.defaultValue;
+    return acc;
+  }, {} as Partial<PlayerStats>) as PlayerStats),
+};
 
 export const GAME_STATE_DEFAULTS = {
   spawnTimer: 0,
