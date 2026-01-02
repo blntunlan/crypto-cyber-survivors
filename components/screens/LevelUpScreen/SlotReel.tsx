@@ -63,8 +63,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         if (!isSlowing) {
           isSlowing = true;
           setPhase('slowing');
-          // Play anticipation sound when slowing starts
-          audio.playAnticipation(0.8 + stopOrder * 0.2);
+          // Note: playAnticipation removed - caused overlapping hum sounds
         }
         const slowdownProgress = (elapsed - slowdownStartTime) / SLOT_CONFIG.SLOWDOWN_DURATION;
         currentInterval = SLOT_CONFIG.SPIN_INTERVAL + slowdownProgress * 200;
