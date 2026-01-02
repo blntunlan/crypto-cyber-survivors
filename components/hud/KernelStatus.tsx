@@ -11,6 +11,7 @@ interface KernelStatusProps {
     speed: number;
     fireRate: number;
     luck: number;
+    lifesteal: number;
     crit: number;
     magnet: number;
     armor: number;
@@ -51,6 +52,11 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
         />
         <StatRow label="Crit" value={`${smoothValues.crit.toFixed(0)}%`} color="text-yellow-400" />
         <StatRow label="Luck" value={`+${smoothValues.luck.toFixed(1)}`} color="text-green-400" />
+        <StatRow
+          label="Vamp"
+          value={`${(smoothValues.lifesteal * 100).toFixed(0)}%`}
+          color="text-red-400"
+        />
         <StatRow
           label="Magnet"
           value={`+${Math.round(smoothValues.magnet)}`}
@@ -112,6 +118,12 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
           <span className="text-slate-500 font-bold uppercase">LUCK</span>
           <span className="text-green-400 font-black text-[10px]">
             +{smoothValues.luck.toFixed(1)}
+          </span>
+        </div>
+        <div className="flex justify-between items-center text-[9px] gap-2">
+          <span className="text-slate-500 font-bold uppercase">VAMP</span>
+          <span className="text-red-400 font-black text-[10px]">
+            {(smoothValues.lifesteal * 100).toFixed(0)}%
           </span>
         </div>
         <div className="flex justify-between items-center text-[9px] gap-2">

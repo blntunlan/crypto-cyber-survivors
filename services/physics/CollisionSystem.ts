@@ -4,11 +4,13 @@ import { CheatManager } from '../CheatManager';
 import { audio } from '../AudioService';
 import { EventBus } from '../EventBus';
 import { COLORS, GAME_ENGINE } from '../../constants';
+import { PLAYER_STATS } from '../../config/PlayerConfig';
 import { bulletGrid } from '../SpatialGrid';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { ParticleConfigService } from '../ParticleConfigService';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { CombatResolutionService } from './CombatResolutionService';
+import { type PerformanceConfig } from '../../types/DeviceProfile';
 
 /**
  * CollisionSystem - Handles physical interactions between high-level entities.
@@ -40,7 +42,7 @@ export class CollisionSystem {
       enemy.behavior.move(enemy, player.x, player.y, dtFactor);
 
       // 3. Player-Enemy collision
-      this.checkPlayerEnemyCollision(player, enemy, state, dtFactor, onGameOver);
+      this.checkPlayerEnemyCollision(pool, player, enemy, state, dtFactor, onGameOver);
 
       // 4. Bullet-Enemy collision (using spatial grid)
       this.processBulletCollisions(pool, enemy, player, state, dtFactor, perfConfig);
@@ -58,6 +60,7 @@ export class CollisionSystem {
   }
 
   private static checkPlayerEnemyCollision(
+    pool: PoolManager,
     player: Player,
     enemy: Enemy,
     state: GameState,
@@ -71,11 +74,35 @@ export class CollisionSystem {
 
     if (distSq < combinedRadius * combinedRadius) {
       if (!CheatManager.isGodMode() && !state.isDashing) {
-        const effectiveArmor = BuffManager.isInitialized()
+        // Calculate dodge chance
+        const rawDodge = BuffManager.isInitialized()
+          ? BuffManager.getDecoratedStats().getDodge()
+          : player.dodge;
+        const dodgeChance = Math.min(rawDodge, PLAYER_STATS.MAX_DODGE);
+
+        // Try to dodge
+        if (Math.random() < dodgeChance) {
+          // Successful dodge
+          pool.getFloatingText(player.x, player.y - 20, 'DODGE!', COLORS.BULLET, 16);
+          // Optional: Add dodge sound
+          return; // No damage taken
+        }
+
+        // Get armor with system-level cap
+        const rawArmor = BuffManager.isInitialized()
           ? BuffManager.getDecoratedStats().getArmor()
           : player.armor;
+        const effectiveArmor = Math.min(rawArmor, PLAYER_STATS.MAX_ARMOR);
 
-        player.hp -= Math.max(0.1, 0.8 - effectiveArmor * 0.05) * dtFactor;
+        // Diminishing returns armor formula:
+        // At 0 armor: 100% damage (0.8 base)
+        // At 5 armor: ~62% damage
+        // At 10 armor: ~44% damage
+        // At 15 armor: ~35% damage (min 0.1 = 10%)
+        const armorReduction = effectiveArmor / (effectiveArmor + 10);
+        const damageMultiplier = Math.max(0.1, 0.8 * (1 - armorReduction));
+
+        player.hp -= damageMultiplier * dtFactor;
         player.hp = Math.max(0, player.hp);
         state.shake = 10;
 
@@ -95,7 +122,7 @@ export class CollisionSystem {
     player: Player,
     state: GameState,
     dtFactor: number,
-    perfConfig: any
+    perfConfig: PerformanceConfig
   ): void {
     const nearbyBullets = bulletGrid.getNearby(enemy.x, enemy.y);
 
@@ -120,7 +147,7 @@ export class CollisionSystem {
     player: Player,
     state: GameState,
     dtFactor: number,
-    perfConfig: any
+    perfConfig: PerformanceConfig
   ): void {
     enemy.health -= bullet.damage;
     bullet.active = false;
@@ -175,7 +202,11 @@ export class CollisionSystem {
     );
   }
 
-  private static spawnImpactParticles(pool: PoolManager, bullet: Bullet, perfConfig: any): void {
+  private static spawnImpactParticles(
+    pool: PoolManager,
+    bullet: Bullet,
+    perfConfig: PerformanceConfig
+  ): void {
     const impactCfg = ParticleConfigService.impact;
     const count = Math.round(impactCfg.count * perfConfig.particleMultiplier);
 

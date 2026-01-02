@@ -71,34 +71,34 @@ describe('CardSystem', () => {
         expect(tier).toBe('common');
       });
 
-      it('should allow epic tier at level 7', () => {
-        // At level 7: legendary=0, epic=12, rare=25
+      it('should allow epic tier at level 6', () => {
+        // At level 6: legendary=0, epic=12, rare=25
         // Roll needs to be < 12 for epic
         Math.random = vi.fn(() => 0.05); // 5% < 12%
 
-        const tier = CardSystem.rollTier(0, 7);
+        const tier = CardSystem.rollTier(0, 6);
         expect(tier).toBe('epic');
       });
 
-      it('should not allow epic tier at level 6', () => {
+      it('should not allow epic tier at level 5', () => {
         Math.random = vi.fn(() => 0.05);
-        const tier = CardSystem.rollTier(0, 6);
+        const tier = CardSystem.rollTier(0, 5);
         // Should fall into rare category since epic is blocked
         expect(tier).toBe('rare');
       });
 
-      it('should allow legendary tier at level 12', () => {
-        // At level 12: legendary=3, epic=12, rare=25
+      it('should allow legendary tier at level 10', () => {
+        // At level 10: legendary=3, epic=12, rare=25
         // Roll needs to be < 3 for legendary
         Math.random = vi.fn(() => 0.01); // 1% < 3%
 
-        const tier = CardSystem.rollTier(0, 12);
+        const tier = CardSystem.rollTier(0, 10);
         expect(tier).toBe('legendary');
       });
 
-      it('should not allow legendary tier at level 11', () => {
+      it('should not allow legendary tier at level 9', () => {
         Math.random = vi.fn(() => 0.01);
-        const tier = CardSystem.rollTier(0, 11);
+        const tier = CardSystem.rollTier(0, 9);
         // Should fall into epic category since legendary is blocked
         expect(tier).toBe('epic');
       });
@@ -178,15 +178,15 @@ describe('CardSystem', () => {
         expect(tier).toBe('rare');
       });
 
-      it('should handle level boundary at exactly 7', () => {
+      it('should handle level boundary at exactly 6', () => {
         Math.random = vi.fn(() => 0.08);
-        const tier = CardSystem.rollTier(0, 7);
+        const tier = CardSystem.rollTier(0, 6);
         expect(tier).toBe('epic');
       });
 
-      it('should handle level boundary at exactly 12', () => {
+      it('should handle level boundary at exactly 10', () => {
         Math.random = vi.fn(() => 0.02);
-        const tier = CardSystem.rollTier(0, 12);
+        const tier = CardSystem.rollTier(0, 10);
         expect(tier).toBe('legendary');
       });
     });

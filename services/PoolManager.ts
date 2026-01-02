@@ -43,9 +43,7 @@ class ObjectPool<T extends { active: boolean }> {
     }
 
     let obj = this.free.pop();
-    if (!obj) {
-      obj = factory();
-    }
+    obj ??= factory();
 
     obj.active = true;
     if (initializer) initializer(obj);
@@ -252,7 +250,7 @@ export class PoolManager {
           e.radius *= tierConfig.sizeMultiplier;
           e.health *= tierConfig.healthMultiplier;
           e.maxHealth = e.health;
-          (e as any).valueMultiplier = tierConfig.valueMultiplier;
+          e.valueMultiplier = tierConfig.valueMultiplier;
         }
         return e;
       },
@@ -262,7 +260,7 @@ export class PoolManager {
           e.radius *= tierConfig.sizeMultiplier;
           e.health *= tierConfig.healthMultiplier;
           e.maxHealth = e.health;
-          (e as any).valueMultiplier = tierConfig.valueMultiplier;
+          e.valueMultiplier = tierConfig.valueMultiplier;
         }
         Object.assign(obj, e);
         obj.active = true;

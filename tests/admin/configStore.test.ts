@@ -20,9 +20,9 @@ describe('AdminConfigStore', () => {
           curve: 'linear',
         },
         spawn: {
-          baseInterval: 2000,
-          minInterval: 500,
-          maxEnemies: 50,
+          baseInterval: 1000,
+          minInterval: 200,
+          maxEnemies: 200,
           waveIntensity: 0.5,
           bossSpawnTime: 120000,
           enemyDistribution: {
@@ -63,7 +63,7 @@ describe('AdminConfigStore', () => {
       const { config } = useAdminConfigStore.getState();
 
       expect(config.difficulty.base).toBe(5);
-      expect(config.spawn.baseInterval).toBe(2000);
+      expect(config.spawn.baseInterval).toBe(1000);
       expect(config.items.gemDropRate).toBe(0.8);
       expect(config.visuals.theme).toBe('btc');
     });
@@ -167,7 +167,7 @@ describe('AdminConfigStore', () => {
       const parsed = JSON.parse(json);
 
       expect(parsed.difficulty.base).toBe(5);
-      expect(parsed.spawn.baseInterval).toBe(2000);
+      expect(parsed.spawn.baseInterval).toBe(1000);
     });
 
     it('should import valid config', () => {
@@ -253,7 +253,7 @@ describe('AdminConfigStore', () => {
 
       const { config } = useAdminConfigStore.getState();
       expect(config.difficulty.base).toBe(5);
-      expect(config.spawn.maxEnemies).toBe(50);
+      expect(config.spawn.maxEnemies).toBe(200);
     });
   });
 });

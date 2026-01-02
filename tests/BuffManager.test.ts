@@ -35,6 +35,8 @@ const createMockPlayer = (): Player => ({
   critChance: 0.1,
   baseDamage: 10,
   luck: 1,
+  lifesteal: 0,
+  dodge: 0,
   magnet: 100,
   armor: 5,
   area: 1,
@@ -99,7 +101,8 @@ describe('BuffManager', () => {
       const stats = BuffManager.getDecoratedStats();
 
       expect(stats.getDamage()).toBe(20); // 10 * 2.0
-      expect(stats.getFireRate()).toBe(300); // 200 * 1.5
+      // Fire rate is delay in ms, so 0.67x = faster attacks
+      expect(stats.getFireRate()).toBe(200 * 0.67); // 200 * 0.67 = 134
       expect(stats.getArmor()).toBe(3.5); // 5 * 0.7
     });
 
@@ -442,6 +445,8 @@ describe('Individual Decorators', () => {
       getProjectiles: () => 1,
       getArea: () => 1,
       getLuck: () => 1,
+      getLifesteal: () => 0,
+      getDodge: () => 0,
     };
 
     const decorator = new RageModeDecorator(mockStats);
@@ -464,6 +469,8 @@ describe('Individual Decorators', () => {
       getProjectiles: () => 1,
       getArea: () => 1,
       getLuck: () => 1,
+      getLifesteal: () => 0,
+      getDodge: () => 0,
     };
 
     const decorator = new DiamondHandsDecorator(mockStats);

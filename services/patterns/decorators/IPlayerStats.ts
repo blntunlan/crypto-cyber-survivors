@@ -15,5 +15,7 @@ export interface IPlayerStats {
   getMagnet(): number;
   getProjectiles(): number;
   getArea(): number;
-  getLuck(): number;
+  getLuck(): number; // Gem drop quality/quantity
+  getLifesteal(): number; // % chance to heal on kill
+  getDodge(): number; // % chance to avoid damage
 }

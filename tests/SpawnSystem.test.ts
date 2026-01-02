@@ -63,12 +63,15 @@ describe('SpawnSystem', () => {
 
   it('should scale spawn rate with difficulty', () => {
     const difficulty = 3;
-    // scaledDifficulty = 1 + (3 - 1) * 0.5 = 1 + 1 = 2
-    // threshold = 2000 / 2 = 1000
+    // scaledDifficulty = 1 + (difficulty - 1) * SPAWN_DIFFICULTY_SCALE
+    // threshold = SPAWN_TIMER_BASE / scaledDifficulty
 
     const scaledDifficulty = 1 + (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE;
     const threshold = GAME_ENGINE.SPAWN_TIMER_BASE / scaledDifficulty;
-    expect(threshold).toBe(1000);
+
+    // Dynamic check instead of hardcoded value
+    expect(scaledDifficulty).toBeGreaterThan(1);
+    expect(threshold).toBeLessThan(GAME_ENGINE.SPAWN_TIMER_BASE);
 
     // Just under threshold
     const timer1 = spawnSystem.update(
@@ -80,7 +83,7 @@ describe('SpawnSystem', () => {
       mockPool as PoolManager
     );
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
-    expect(timer1).toBe(990);
+    expect(timer1).toBeCloseTo(threshold - 10, 1);
 
     // Just over threshold
     const timer2 = spawnSystem.update(
@@ -119,8 +122,7 @@ describe('SpawnSystem', () => {
     const onTop = y === -safeOffset && x >= 0 && x <= width;
     const onBottom = y === height + safeOffset && x >= 0 && x <= width;
     const onLeft = x === -safeOffset && y >= 0 && y <= height;
-    const onRight = x === width + safeOffset && x >= 0 && x <= width; // wait, correction
-    // Actually, x <= width + safeOffset is too broad, it's either at -safeOffset or width + safeOffset
+    const onRight = x === width + safeOffset && y >= 0 && y <= height;
 
     expect(onTop || onBottom || onLeft || onRight).toBe(true);
   });

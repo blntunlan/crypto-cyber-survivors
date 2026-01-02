@@ -13,6 +13,7 @@ import { type CryptoPair } from '../types/crypto';
 import { EventBus } from '../services/EventBus';
 import { Logger } from '../services/Logger';
 import { priceAnalyzer } from '../services/admin/PriceAnalyzerService';
+import { type MarketStateData } from '../types/events';
 
 const ATR_PERIOD = 14;
 
@@ -96,8 +97,8 @@ export const useMarketData = (
 
   // Sync with MarketStateService for indicators (RSI, Volume, etc.)
   useEffect(() => {
-    const handleMarketStateUpdate = (state: any) => {
-      if (state && state.pair === pairRef.current) {
+    const handleMarketStateUpdate = (state: MarketStateData) => {
+      if (state.pair === pairRef.current) {
         setMarketData(prev => ({
           ...prev,
           rsi: state.rsi,
@@ -238,17 +239,17 @@ export const useMarketData = (
           hpPercent
         );
 
-        setMarketData({
+        setMarketData(prev => ({
+          ...prev,
           price,
           volume: update.volume ?? 0,
           pnl,
           effectivePnl,
           leverage: currentLeverage,
-          rsi: marketData.rsi, // Sync from MarketStateService
           difficulty: difficultyOutput.total,
           pair: expectedPair, // Use captured pair, not ref
           symbol: expectedPair + 'USDT',
-        });
+        }));
       },
     });
 

@@ -35,9 +35,9 @@ class CardSystemClass {
     let epicChance = TIER_CONFIG.epic.baseChance + playerLuck * TIER_CONFIG.epic.luckMultiplier;
     let rareChance = TIER_CONFIG.rare.baseChance + playerLuck * TIER_CONFIG.rare.luckMultiplier;
 
-    // Level-based restrictions
-    if (playerLevel < 12) legendaryChance = 0;
-    if (playerLevel < 7) epicChance = 0;
+    // Level-based restrictions (adjusted for better progression)
+    if (playerLevel < 10) legendaryChance = 0; // Was 12
+    if (playerLevel < 6) epicChance = 0; // Was 7
     if (playerLevel < 3) rareChance = 0;
 
     if (roll < legendaryChance) return 'legendary';

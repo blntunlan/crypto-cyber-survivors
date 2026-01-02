@@ -33,7 +33,7 @@ describe('CardSystem', () => {
       expect(tiers.filter(t => t === 'rare').length).toBeGreaterThan(0);
     });
 
-    it('should allow epic tier at level 7+', () => {
+    it('should allow epic tier at level 6+', () => {
       const tiers: CardTier[] = [];
       for (let i = 0; i < 200; i++) {
         tiers.push(CardSystem.rollTier(10, 10)); // High luck at level 10
@@ -42,7 +42,7 @@ describe('CardSystem', () => {
       expect(tiers.filter(t => t === 'epic').length).toBeGreaterThan(0);
     });
 
-    it('should allow legendary tier at level 12+', () => {
+    it('should allow legendary tier at level 10+', () => {
       const tiers: CardTier[] = [];
       for (let i = 0; i < 500; i++) {
         tiers.push(CardSystem.rollTier(10, 15)); // High luck at level 15
@@ -51,9 +51,9 @@ describe('CardSystem', () => {
       expect(tiers.filter(t => t === 'legendary').length).toBeGreaterThan(0);
     });
 
-    it('should not allow legendary tier before level 12', () => {
+    it('should not allow legendary tier before level 10', () => {
       for (let i = 0; i < 100; i++) {
-        const tier = CardSystem.rollTier(15, 11); // Max luck at level 11
+        const tier = CardSystem.rollTier(15, 9); // Max luck at level 9
         expect(tier).not.toBe('legendary');
       }
     });
@@ -121,6 +121,8 @@ describe('CardSystem', () => {
       fireRate: 500,
       critChance: 0.05,
       luck: 0,
+      lifesteal: 0,
+      dodge: 0,
       magnet: 100,
       armor: 0,
       area: 1,

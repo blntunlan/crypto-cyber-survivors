@@ -17,6 +17,7 @@ export type GameEvent =
   | 'gameOver'
   | 'critHit'
   | 'playerHit'
+  | 'playerHealed'
   | 'bulletFired'
   | 'killAll'
   | 'comboUpdate'
@@ -98,6 +99,14 @@ export interface PlayerHitEvent {
 export interface BulletFiredEvent {
   x: number;
   y: number;
+}
+
+/** Player healed event data (lifesteal, regen, etc.) */
+export interface PlayerHealedEvent {
+  amount: number;
+  x: number;
+  y: number;
+  source: 'lifesteal' | 'regen' | 'pickup' | 'card';
 }
 
 /** Combo update event data */
@@ -261,6 +270,7 @@ export interface EventDataMap {
   gameOver: GameOverEvent;
   critHit: CritHitEvent;
   playerHit: PlayerHitEvent;
+  playerHealed: PlayerHealedEvent;
   bulletFired: BulletFiredEvent;
   killAll: EmptyEvent;
   comboUpdate: ComboUpdateEvent;

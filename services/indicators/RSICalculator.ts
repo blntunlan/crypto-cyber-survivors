@@ -191,13 +191,11 @@ export class RSICalculator {
     // Prevent extreme decay: if both averages are near-zero, reset to fresh SMA
     // This prevents RSI from getting stuck at 0 or 100 due to floating-point decay
     const MIN_AVG_THRESHOLD = 1e-12; // Much smaller threshold for higher precision
-    if (this.prevAvgGain !== null && this.prevAvgLoss !== null) {
-      if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-        // Both have decayed too much - reset to recalculate fresh SMA next update
-        this.prevAvgGain = null;
-        this.prevAvgLoss = null;
-        return 50;
-      }
+    if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+      // Both have decayed too much - reset to recalculate fresh SMA next update
+      this.prevAvgGain = null;
+      this.prevAvgLoss = null;
+      return 50;
     }
 
     // Edge cases - use threshold instead of exact 0 check

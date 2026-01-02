@@ -68,6 +68,7 @@ describe('PhysicsSystem', () => {
       getArmor: () => mockPlayer.armor,
       getMagnet: () => mockPlayer.magnet,
       getSpeed: () => mockPlayer.speed,
+      getDodge: () => mockPlayer.dodge,
     } as any);
 
     // Mock PoolManager
@@ -103,6 +104,8 @@ describe('PhysicsSystem', () => {
       fireRate: 300,
       speed: 4,
       luck: 0,
+      lifesteal: 0,
+      dodge: 0,
       critChance: 0.1,
       projectiles: 1,
       area: 1,
@@ -230,11 +233,14 @@ describe('PhysicsSystem', () => {
       mockPool.activeEnemies = [mockEnemy];
       mockPlayer.hp = 100;
 
-      // Base damage factor (no armor): Math.max(0.1, 0.8 - 0 * 0.05) = 0.8
-      // With armor 4: Math.max(0.1, 0.8 - 4 * 0.05) = 0.8 - 0.2 = 0.6
+      // Diminishing returns formula:
+      // armorReduction = armor / (armor + 10)
+      // damage = 0.8 * (1 - armorReduction)
+      // With armor 4: reduction = 4/14 ≈ 0.286, damage = 0.8 * 0.714 ≈ 0.571
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getArmor: () => 4,
         getMagnet: () => 1,
+        getDodge: () => 0,
       } as any);
 
       PhysicsSystem.handleCollisions(
@@ -247,7 +253,56 @@ describe('PhysicsSystem', () => {
         mockOnGameOver
       );
 
-      expect(mockPlayer.hp).toBe(100 - 0.6);
+      // Use closeTo for floating point comparison
+      expect(mockPlayer.hp).toBeCloseTo(100 - 0.571, 2);
+    });
+
+    it('should avoid damage when dodge is successful', () => {
+      const mockEnemy = {
+        x: 400 + 15,
+        y: 300,
+        radius: 10,
+        active: true,
+        health: 100,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [mockEnemy];
+      mockPlayer.hp = 100;
+      mockPool.getFloatingText.mockReturnValue({
+        active: false,
+        x: 0,
+        y: 0,
+        text: '',
+        color: '',
+        life: 0,
+        size: 0,
+      });
+
+      // 100% Dodge Chance
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getArmor: () => 0,
+        getMagnet: () => 1,
+        getDodge: () => 1.0,
+      } as any);
+
+      // Force Math.random to return 0.1 (successful dodge since 0.1 < 0.5 (max dodge))
+      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+
+      PhysicsSystem.handleCollisions(
+        mockPool as PoolManager,
+        mockPlayer,
+        mockState,
+        1,
+        800,
+        600,
+        mockOnGameOver
+      );
+
+      // Should ensure no damage taken
+      expect(mockPlayer.hp).toBe(100);
+
+      // Should show 'DODGE!' text
+      expect(mockPool.getFloatingText).toHaveBeenCalled();
     });
 
     it('should deactivate off-screen enemies', () => {
@@ -299,6 +354,7 @@ describe('PhysicsSystem', () => {
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getMagnet: () => 100,
         getArmor: () => 0,
+        getDodge: () => 0,
       } as any);
 
       const initialX = mockPool.activeGems[0].x;

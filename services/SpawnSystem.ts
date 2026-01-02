@@ -2,7 +2,7 @@ import { MarketPosition } from '../types';
 import { type PoolManager } from './PoolManager';
 import { GAME_ENGINE } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
-import { marketStateService } from './MarketStateService';
+import { marketStateService, type MarketState } from './MarketStateService';
 import { WHALE_TIER_CONFIGS } from '../types/indicators';
 import { Logger } from './Logger';
 
@@ -100,7 +100,7 @@ export class SpawnSystem {
    * Internal logic for whale spawning with frame-based probability control.
    */
   private handleWhaleSpawning(
-    marketState: any,
+    marketState: MarketState,
     pool: PoolManager,
     difficulty: number,
     position: MarketPosition,

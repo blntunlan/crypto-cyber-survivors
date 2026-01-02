@@ -51,4 +51,12 @@ export class PlayerStatsAdapter implements IPlayerStats {
   getLuck(): number {
     return this.player.luck;
   }
+
+  getLifesteal(): number {
+    return this.player.lifesteal;
+  }
+
+  getDodge(): number {
+    return this.player.dodge;
+  }
 }

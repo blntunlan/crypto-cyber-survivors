@@ -5,11 +5,13 @@ import { audio } from '../AudioService';
 import { EventBus } from '../EventBus';
 import { ComboSystem } from '../ComboSystem';
 import { GAME_ENGINE } from '../../constants';
+import { PLAYER_STATS } from '../../config/PlayerConfig';
 import { ParticleConfigService } from '../ParticleConfigService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import { lerp } from '../../utils/math';
+import { type PerformanceConfig } from '../../types/DeviceProfile';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
@@ -25,9 +27,11 @@ export class CollectionSystem {
     state: GameState,
     dtFactor: number
   ): void {
-    const effectiveMagnet = BuffManager.isInitialized()
+    // Get effective magnet with system-level cap
+    const rawMagnet = BuffManager.isInitialized()
       ? BuffManager.getDecoratedStats().getMagnet()
       : player.magnet;
+    const effectiveMagnet = Math.min(rawMagnet, PLAYER_STATS.MAX_MAGNET);
 
     this.handleGemCollections(pool, player, state, dtFactor, effectiveMagnet);
     this.handleBuffGemCollections(pool, player, state, dtFactor, effectiveMagnet);
@@ -134,7 +138,11 @@ export class CollectionSystem {
     BuffGemSpawner.collectGem(gem);
   }
 
-  private static spawnCollectionParticles(pool: PoolManager, gem: Gem, perfConfig: any): void {
+  private static spawnCollectionParticles(
+    pool: PoolManager,
+    gem: Gem,
+    perfConfig: PerformanceConfig
+  ): void {
     const collectCfg = ParticleConfigService.collect;
     const count = Math.round(collectCfg.count * perfConfig.particleMultiplier);
 

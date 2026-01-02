@@ -85,8 +85,8 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
         flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg backdrop-blur-md
         ${
           isDebuff
-            ? 'bg-red-900/60 border border-red-500/50'
-            : 'bg-emerald-900/60 border border-emerald-500/50'
+            ? 'bg-rose-950/30 border border-rose-500/30 shadow-[0_0_10px_rgba(225,29,72,0.1)]'
+            : 'bg-emerald-950/30 border border-emerald-400/30 shadow-[0_0_10px_rgba(52,211,153,0.1)]'
         }
         animate-pulse-slow
       `}
@@ -97,7 +97,7 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
 
       {/* Name - smaller on mobile */}
       <span
-        className={`text-xs md:text-sm font-medium ${isDebuff ? 'text-red-300' : 'text-emerald-300'}`}
+        className={`text-xs md:text-sm font-medium ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
       >
         {effect.name}
       </span>
@@ -109,10 +109,10 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
             text-[10px] md:text-sm font-stats ml-0.5 md:ml-1 px-1 md:px-1.5 py-0.5 rounded
             ${
               remainingSeconds <= 3
-                ? 'bg-red-600/80 text-white animate-pulse'
+                ? 'bg-rose-600/80 text-white animate-pulse'
                 : isDebuff
-                  ? 'bg-red-800/60 text-red-200'
-                  : 'bg-emerald-800/60 text-emerald-200'
+                  ? 'bg-rose-900/40 text-rose-200'
+                  : 'bg-emerald-900/40 text-emerald-200'
             }
           `}
         >

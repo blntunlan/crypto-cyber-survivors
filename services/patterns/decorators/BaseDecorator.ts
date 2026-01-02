@@ -51,6 +51,14 @@ export abstract class StatDecorator implements IPlayerStats {
     return this.wrapped.getLuck();
   }
 
+  getLifesteal(): number {
+    return this.wrapped.getLifesteal();
+  }
+
+  getDodge(): number {
+    return this.wrapped.getDodge();
+  }
+
   // Decorator metadata - subclasses must implement
   abstract getName(): string;
   abstract getIcon(): string;

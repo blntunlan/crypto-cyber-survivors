@@ -2,6 +2,7 @@ import { type Player, type GameState } from '../types';
 import { type PoolManager } from './PoolManager';
 import { audio } from './AudioService';
 import { COLORS, GAME_ENGINE } from '../constants';
+import { PLAYER_STATS } from '../config/PlayerConfig';
 import { ParticleConfigService } from './ParticleConfigService';
 import { CheatManager } from './CheatManager';
 import { createViewportBounds, isCircleVisible } from './renderers/CullingUtils';
@@ -44,9 +45,8 @@ export class CombatSystem {
     const effectiveFireRate = stats ? stats.getFireRate() : player.fireRate;
     const effectiveProjectiles = stats ? stats.getProjectiles() : player.projectiles;
 
-    // Cap fire rate to prevent performance issues (minimum 50ms = 20 shots/sec)
-    const MIN_FIRE_RATE = 50;
-    const cappedFireRate = Math.max(MIN_FIRE_RATE, effectiveFireRate);
+    // Cap fire rate using PlayerConfig (prevents performance issues)
+    const cappedFireRate = Math.max(PLAYER_STATS.MAX_FIRE_RATE, effectiveFireRate);
 
     // Check fire rate cooldown
     if (state.fireTimer < cappedFireRate) {
@@ -122,12 +122,15 @@ export class CombatSystem {
     _time: number,
     stats?: ReturnType<typeof BuffManager.getDecoratedStats> | null
   ): void {
-    // 1. Get effective stats
+    // 1. Get effective stats with system-level caps
     const effectiveLuck = stats ? stats.getLuck() : player.luck;
-    const effectiveCritChance = stats ? stats.getCritChance() : player.critChance;
+    const rawCritChance = stats ? stats.getCritChance() : player.critChance;
+    const effectiveCritChance = Math.min(rawCritChance, PLAYER_STATS.MAX_CRIT_CHANCE);
     const effectiveDamage = stats ? stats.getDamage() : player.baseDamage;
-    const effectiveProjectiles = stats ? stats.getProjectiles() : player.projectiles;
-    const effectiveArea = stats ? stats.getArea() : player.area;
+    const rawProjectiles = stats ? stats.getProjectiles() : player.projectiles;
+    const effectiveProjectiles = Math.min(rawProjectiles, PLAYER_STATS.MAX_PROJECTILES);
+    const rawArea = stats ? stats.getArea() : player.area;
+    const effectiveArea = Math.min(rawArea, PLAYER_STATS.MAX_AREA);
 
     // 2. Calculate Crit Status
     const { isCrit, isSuperCrit } = this.calculateCritStatus(effectiveCritChance, effectiveLuck);
@@ -151,13 +154,12 @@ export class CombatSystem {
 
   private static calculateCritStatus(
     critChance: number,
-    luck: number
+    _luck: number // Luck no longer affects crit - kept for API compatibility
   ): { isCrit: boolean; isSuperCrit: boolean } {
-    const luckBonus = luck * 0.02;
-    const isSuperCrit =
-      CheatManager.isForcedSuperCrit() || Math.random() < (critChance + luckBonus) * 0.2;
-    const isCrit =
-      !isSuperCrit && (CheatManager.isForcedCrit() || Math.random() < critChance + luckBonus);
+    // Crit is purely based on critChance stat
+    // Super crit has 20% chance of the crit chance
+    const isSuperCrit = CheatManager.isForcedSuperCrit() || Math.random() < critChance * 0.2;
+    const isCrit = !isSuperCrit && (CheatManager.isForcedCrit() || Math.random() < critChance);
 
     return { isCrit, isSuperCrit };
   }
@@ -245,12 +247,12 @@ export class CombatSystem {
           ? ParticleConfigService.bullets.critSizeMultiplier
           : 1.0;
 
-      // Cap area to prevent excessively large bullets at max upgrades
-      const MAX_AREA_MULTIPLIER = 3.0;
-      const cappedArea = Math.min(effectiveArea, MAX_AREA_MULTIPLIER);
-
+      // Area is already capped in fireBullets, use directly
       const bulletRadius =
-        baseRadius * cappedArea * ParticleConfigService.bullets.baseSizeMultiplier * typeMultiplier;
+        baseRadius *
+        effectiveArea *
+        ParticleConfigService.bullets.baseSizeMultiplier *
+        typeMultiplier;
       const bulletColor = isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET;
 
       pool.getBullet(

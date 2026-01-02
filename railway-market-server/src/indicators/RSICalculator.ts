@@ -74,25 +74,21 @@ export class RSICalculator {
     // Prevent extreme decay: if both averages are near-zero, reset to fresh SMA
     // This prevents RSI from getting stuck at 0 or 100 due to floating-point decay
     const MIN_AVG_THRESHOLD = 1e-12; // High precision
-    if (this.prevAvgGain !== null && this.prevAvgLoss !== null) {
-      if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-        // Both have decayed too much - reset to recalculate fresh SMA next update
-        this.prevAvgGain = null;
-        this.prevAvgLoss = null;
-        return { rsi: 50, state: 'NEUTRAL' };
-      }
+    if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+      // Both have decayed too much - reset to recalculate fresh SMA next update
+      this.prevAvgGain = null;
+      this.prevAvgLoss = null;
+      return { rsi: 50, state: 'NEUTRAL' };
     }
 
     // Calculate RSI
-    if (this.prevAvgLoss !== null && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      this.currentRSI = (this.prevAvgGain ?? 0) < MIN_AVG_THRESHOLD ? 50 : 100;
-    } else if (this.prevAvgGain !== null && this.prevAvgGain < MIN_AVG_THRESHOLD) {
+    if (this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+      this.currentRSI = this.prevAvgGain < MIN_AVG_THRESHOLD ? 50 : 100;
+    } else if (this.prevAvgGain < MIN_AVG_THRESHOLD) {
       this.currentRSI = 0;
-    } else if (this.prevAvgGain !== null && this.prevAvgLoss !== null) {
+    } else {
       const rs = this.prevAvgGain / this.prevAvgLoss;
       this.currentRSI = 100 - 100 / (1 + rs);
-    } else {
-      this.currentRSI = 50;
     }
 
     // Update state with hysteresis

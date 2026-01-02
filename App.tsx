@@ -220,6 +220,7 @@ const App: React.FC = () => {
     },
     [
       marketData.price,
+      gameStatus,
       resetPlayer,
       setPositionColor,
       selectedPair,

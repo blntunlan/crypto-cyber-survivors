@@ -26,7 +26,8 @@ export const COMMON_CARDS: Card[] = [
     description: '+8% Attack Speed',
     icon: 'lucide:zap',
     tier: 'common',
-    effect: p => ({ ...p, fireRate: Math.max(100, p.fireRate * 0.92) }),
+    // No cap here - system caps fire rate at 50ms in CombatSystem
+    effect: p => ({ ...p, fireRate: p.fireRate * 0.92 }),
   },
   {
     id: 'hp_c1',
@@ -42,7 +43,8 @@ export const COMMON_CARDS: Card[] = [
     description: '+30 Collection Range',
     icon: 'lucide:wheat',
     tier: 'common',
-    effect: p => ({ ...p, magnet: Math.min(300, p.magnet + 30) }),
+    // No cap here - system applies max magnet in PlayerConfig
+    effect: p => ({ ...p, magnet: p.magnet + 30 }),
   },
   {
     id: 'armor_c1',
@@ -63,10 +65,10 @@ export const COMMON_CARDS: Card[] = [
   {
     id: 'lifesteal_c1',
     name: 'DCA Mode',
-    description: '+0.3 Luck (lifesteal chance)',
+    description: '+5% Lifesteal Chance',
     icon: 'lucide:repeat',
     tier: 'common',
-    effect: p => ({ ...p, luck: Math.min(15, p.luck + 0.3) }),
+    effect: p => ({ ...p, lifesteal: Math.min(0.5, p.lifesteal + 0.05) }),
   },
   {
     id: 'balance_c1',
@@ -77,7 +79,7 @@ export const COMMON_CARDS: Card[] = [
     effect: p => ({
       ...p,
       baseDamage: Math.floor(p.baseDamage * 1.05),
-      speed: Math.min(12, p.speed * 1.05),
+      speed: p.speed * 1.05, // No cap here
       maxHp: Math.floor(p.maxHp * 1.05),
       hp: Math.floor(p.hp * 1.05),
     }),
@@ -103,7 +105,8 @@ export const RARE_CARDS: Card[] = [
     description: '+18% Attack Speed',
     icon: 'lucide:activity',
     tier: 'rare',
-    effect: p => ({ ...p, fireRate: Math.max(80, p.fireRate * 0.82) }),
+    // No cap here - system caps fire rate at 50ms
+    effect: p => ({ ...p, fireRate: p.fireRate * 0.82 }),
   },
   {
     id: 'crit_r1',
@@ -116,10 +119,10 @@ export const RARE_CARDS: Card[] = [
   {
     id: 'luck_r1',
     name: 'Alpha Leak',
-    description: '+0.8 Luck',
+    description: '+2 Luck (better gem drops)',
     icon: 'lucide:key',
     tier: 'rare',
-    effect: p => ({ ...p, luck: Math.min(15, p.luck + 0.8) }),
+    effect: p => ({ ...p, luck: Math.min(20, p.luck + 2) }),
   },
   {
     id: 'area_r1',
@@ -143,7 +146,8 @@ export const RARE_CARDS: Card[] = [
     description: '+15% Speed',
     icon: 'lucide:arrow-up-right',
     tier: 'rare',
-    effect: p => ({ ...p, speed: Math.min(12, p.speed * 1.15) }),
+    // No cap here - system caps speed in GameEngine
+    effect: p => ({ ...p, speed: p.speed * 1.15 }),
   },
   {
     id: 'shield_r1',
@@ -192,10 +196,10 @@ export const EPIC_CARDS: Card[] = [
   {
     id: 'vamp_e1',
     name: 'Staking Rewards',
-    description: '+1.5 Luck',
+    description: '+12% Lifesteal Chance',
     icon: 'lucide:coins',
     tier: 'epic',
-    effect: p => ({ ...p, luck: Math.min(15, p.luck + 1.5) }),
+    effect: p => ({ ...p, lifesteal: Math.min(0.5, p.lifesteal + 0.12) }),
   },
   {
     id: 'speed_e1',
@@ -203,10 +207,11 @@ export const EPIC_CARDS: Card[] = [
     description: '+30% Speed, +15% Attack Speed',
     icon: 'lucide:bolt',
     tier: 'epic',
+    // No caps here - system handles limits
     effect: p => ({
       ...p,
-      speed: Math.min(12, p.speed * 1.3),
-      fireRate: Math.max(80, p.fireRate * 0.85),
+      speed: p.speed * 1.3,
+      fireRate: p.fireRate * 0.85,
     }),
   },
   {
@@ -245,14 +250,14 @@ export const EPIC_CARDS: Card[] = [
   {
     id: 'regen_e1',
     name: 'Smart Contract',
-    description: '+30 Max HP, +1 Luck',
+    description: '+30 Max HP, +8% Lifesteal',
     icon: 'lucide:file-code',
     tier: 'epic',
     effect: p => ({
       ...p,
       maxHp: p.maxHp + 30,
       hp: p.hp + 30,
-      luck: Math.min(15, p.luck + 1),
+      lifesteal: Math.min(0.5, p.lifesteal + 0.08),
     }),
   },
   {
@@ -266,13 +271,14 @@ export const EPIC_CARDS: Card[] = [
   {
     id: 'banano_e1',
     name: 'Banano Split',
-    description: '+20% Speed, +0.5 Luck',
+    description: '+20% Speed, +1 Luck',
     icon: 'icon-banano',
     tier: 'epic',
+    // No caps here - system handles limits
     effect: p => ({
       ...p,
-      speed: Math.min(12, p.speed * 1.2),
-      luck: Math.min(15, p.luck + 0.5),
+      speed: p.speed * 1.2,
+      luck: p.luck + 1,
     }),
   },
 ];
@@ -297,13 +303,13 @@ export const LEGENDARY_CARDS: Card[] = [
   {
     id: 'moon_l1',
     name: 'To The Moon',
-    description: '+30 DMG, +2 Luck',
+    description: '+30 DMG, +3 Luck',
     icon: 'lucide:rocket',
     tier: 'legendary',
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 30,
-      luck: Math.min(15, p.luck + 2),
+      luck: Math.min(20, p.luck + 3),
     }),
   },
   {
@@ -320,9 +326,10 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '2x Fire Rate, -20% HP',
     icon: 'icon-ape',
     tier: 'legendary',
+    // No fire rate cap here - system caps at 50ms in CombatSystem
     effect: p => ({
       ...p,
-      fireRate: Math.max(50, p.fireRate * 0.5),
+      fireRate: p.fireRate * 0.5,
       maxHp: Math.max(20, p.maxHp * 0.8),
       hp: Math.min(p.hp, Math.max(20, p.maxHp * 0.8)),
     }),
@@ -342,12 +349,12 @@ export const LEGENDARY_CARDS: Card[] = [
   {
     id: 'rug_l1',
     name: 'Rug Pull',
-    description: '+2.5 Luck, -15% Max HP',
+    description: '+20% Lifesteal, -15% Max HP',
     icon: 'icon-skull',
     tier: 'legendary',
     effect: p => ({
       ...p,
-      luck: Math.min(15, p.luck + 2.5),
+      lifesteal: Math.min(0.5, p.lifesteal + 0.2),
       maxHp: Math.max(30, p.maxHp * 0.85),
       hp: Math.min(p.hp, Math.max(30, p.maxHp * 0.85)),
     }),
@@ -358,13 +365,14 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+5 random stat boosts',
     icon: '🌈',
     tier: 'legendary',
+    // No caps here - system handles limits
     effect: p => ({
       ...p,
       baseDamage: p.baseDamage + 15,
-      critChance: Math.min(0.95, p.critChance + 0.05),
-      luck: Math.min(15, p.luck + 1),
-      speed: Math.min(12, p.speed + 0.5),
-      armor: Math.min(15, p.armor + 1),
+      critChance: p.critChance + 0.05,
+      luck: p.luck + 2,
+      speed: p.speed + 0.5,
+      armor: p.armor + 1,
     }),
   },
   {

@@ -12,7 +12,8 @@ export class VulnerableDecorator extends StatDecorator {
   private static readonly DURATION_MS = 5000;
 
   getArmor(): number {
-    return this.wrapped.getArmor() * VulnerableDecorator.ARMOR_REDUCTION;
+    // Ensure armor doesn't go negative
+    return Math.max(0, this.wrapped.getArmor() * VulnerableDecorator.ARMOR_REDUCTION);
   }
 
   getName(): string {

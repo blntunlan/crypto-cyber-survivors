@@ -35,13 +35,7 @@ export class SynthEngine {
   init(): SynthContext | null {
     try {
       if (!this.ctx) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
-        if (!AudioCtx) {
-          Logger.error('[SynthEngine] Web Audio API not supported');
-          return null;
-        }
-
+        const AudioCtx = window.AudioContext;
         this.ctx = new AudioCtx();
         this.masterGain = this.ctx.createGain();
         this.masterGain.connect(this.ctx.destination);

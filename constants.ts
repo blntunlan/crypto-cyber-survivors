@@ -25,8 +25,8 @@ export const GAME_ENGINE = {
   PROJECTILE_SPREAD: 0.15, // radians (~8.5 degrees)
   SHAKE_DECAY: 0.9,
   CRIT_FLASH_DECAY: 0.85,
-  SPAWN_TIMER_BASE: 2000, // Increased from 1200 for slower initial spawn
-  SPAWN_DIFFICULTY_SCALE: 0.5, // Softens difficulty impact on spawn rate
+  SPAWN_TIMER_BASE: 1000, // Reduced from 2000 for faster initial action
+  SPAWN_DIFFICULTY_SCALE: 0.8, // Increases difficulty impact on spawn rate
   SPAWN_OFFSET: 50, // Offset for spawning enemies off-screen
   ENEMY_OFFSCREEN_THRESHOLD: 200,
   GEM_MAGNET_BASE_RANGE: 150,

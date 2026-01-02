@@ -49,7 +49,9 @@ export interface Player extends Omit<Entity, 'active'> {
   fireRate: number;
   critChance: number;
   baseDamage: number;
-  luck: number;
+  luck: number; // Affects gem drop quality and quantity
+  lifesteal: number; // % chance to heal on kill
+  dodge: number; // % chance to avoid damage
   magnet: number;
   armor: number;
   area: number;
@@ -63,6 +65,7 @@ export interface Enemy extends Entity {
   health: number;
   maxHealth: number;
   type: 'bear' | 'bull' | 'fud' | 'whale' | 'liquidator' | 'pumpdump';
+  valueMultiplier?: number;
 }
 
 export interface Bullet extends Entity {

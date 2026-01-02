@@ -16,7 +16,8 @@ export class DiamondHandsDecorator extends StatDecorator {
   }
 
   getCritChance(): number {
-    return Math.min(1, this.wrapped.getCritChance() + DiamondHandsDecorator.CRIT_BONUS);
+    // No cap here - system level cap (0.95) is applied in CombatSystem
+    return this.wrapped.getCritChance() + DiamondHandsDecorator.CRIT_BONUS;
   }
 
   getName(): string {

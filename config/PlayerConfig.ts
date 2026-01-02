@@ -32,8 +32,9 @@ export const PLAYER_STATS = {
   // =========================
   // ECONOMY STATS
   // =========================
-  INITIAL_LUCK: 1, // Start with 1 so luck buffs have effect
-  INITIAL_MAGNET: 30, // Start with 30 for base collection range
+  INITIAL_LUCK: 1, // Affects gem drop quality/quantity
+  INITIAL_LIFESTEAL: 0, // % chance to heal on kill (0-50%)
+  INITIAL_MAGNET: 30, // Base collection range
   INITIAL_EXP_MULT: 1.0,
   INITIAL_GEM_VALUE_MULT: 1.0,
 
@@ -52,7 +53,10 @@ export const PLAYER_STATS = {
   MAX_CRIT_CHANCE: 0.95, // 95% max
   MAX_ARMOR: 15, // 75% damage reduction at max
   MAX_SPEED: 15,
-  MAX_LUCK: 15,
+  MAX_LUCK: 20, // Higher cap for better gem drops
+  MAX_LIFESTEAL: 0.5, // 50% max lifesteal chance
+  MAX_MAGNET: 300, // Max collection range
+  MAX_AREA: 3.0, // Max projectile size multiplier
   MAX_PROJECTILES: 8,
   MAX_DODGE: 0.5, // 50%
 
@@ -79,6 +83,8 @@ export function createInitialPlayer(x: number, y: number, color: string = '') {
     critChance: PLAYER_STATS.INITIAL_CRIT_CHANCE,
     baseDamage: PLAYER_STATS.INITIAL_DAMAGE,
     luck: PLAYER_STATS.INITIAL_LUCK,
+    lifesteal: PLAYER_STATS.INITIAL_LIFESTEAL,
+    dodge: PLAYER_STATS.INITIAL_DODGE,
     magnet: PLAYER_STATS.INITIAL_MAGNET,
     armor: PLAYER_STATS.INITIAL_ARMOR,
     area: PLAYER_STATS.INITIAL_AREA,

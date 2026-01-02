@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { type CryptoPair } from '../types/crypto';
 import { COLORS, GAME_ENGINE } from '../constants';
+import { PLAYER_STATS } from '../config/PlayerConfig';
 import { PoolManager } from '../services/PoolManager';
 import { GameRenderer } from '../services/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
@@ -290,9 +291,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           const dirY = dy / mag;
 
           // Get effective speed from BuffManager (includes buff/card bonuses)
-          const effectiveSpeed = BuffManager.isInitialized()
+          // Apply system-level cap from PlayerConfig
+          const rawSpeed = BuffManager.isInitialized()
             ? BuffManager.getDecoratedStats().getSpeed()
             : player.speed;
+          const effectiveSpeed = Math.min(rawSpeed, PLAYER_STATS.MAX_SPEED);
 
           player.x += dirX * inputFactor * effectiveSpeed * speedMult * dtFactor;
           player.y += dirY * inputFactor * effectiveSpeed * speedMult * dtFactor;

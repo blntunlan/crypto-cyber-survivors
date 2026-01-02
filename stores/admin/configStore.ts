@@ -80,9 +80,9 @@ const getDefaultConfig = (): GameConfig => ({
     curve: 'linear',
   },
   spawn: {
-    baseInterval: 2000,
-    minInterval: 500,
-    maxEnemies: 50,
+    baseInterval: 1000,
+    minInterval: 200,
+    maxEnemies: 200,
     waveIntensity: 0.5,
     bossSpawnTime: 120000,
     enemyDistribution: {

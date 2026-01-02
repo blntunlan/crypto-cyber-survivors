@@ -325,9 +325,7 @@ let instance: VolumeAnalyzer | null = null;
  * Note: Config is only used on first call. Subsequent calls return existing instance.
  */
 export function getVolumeAnalyzer(config?: VolumeConfig): VolumeAnalyzer {
-  if (!instance) {
-    instance = new VolumeAnalyzer(config);
-  }
+  instance ??= new VolumeAnalyzer(config);
   return instance;
 }
 
