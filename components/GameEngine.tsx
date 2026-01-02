@@ -19,7 +19,7 @@ import { TimeService } from '../services/TimeService';
 import { getHUDLayout } from '../config/UILayout';
 import { useGameStore, selectGraphics } from '../stores/gameStore';
 import { PhysicsSystem } from '../services/PhysicsSystem';
-import { SpawnSystem } from '../services/SpawnSystem';
+import { spawnSystem } from '../services/SpawnSystem';
 import { CombatSystem } from '../services/CombatSystem';
 import { GameHUD } from './GameHUD';
 import { MobileControls } from './mobile';
@@ -321,9 +321,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
 
         // Update Spawn System
-        s.spawnTimer = SpawnSystem.update(
+        spawnSystem.update(
           deltaTime,
-          s.spawnTimer,
           marketDataRef.current.difficulty,
           width,
           height,

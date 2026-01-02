@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SpawnSystem } from '../services/SpawnSystem';
+import { spawnSystem } from '../services/SpawnSystem';
 import { type PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
@@ -19,14 +19,13 @@ describe('SpawnSystem', () => {
       getEnemy: vi.fn(),
       activeEnemies: [], // Mock active enemies array for limit check
     };
+    spawnSystem.reset();
   });
 
-  it('should increment timer by deltaTime', () => {
+  it('should increment internal timer by deltaTime', () => {
     const deltaTime = 16.6;
-    const initialTimer = 0;
-    const result = SpawnSystem.update(
+    const result = spawnSystem.update(
       deltaTime,
-      initialTimer,
       1,
       800,
       600,
@@ -44,11 +43,9 @@ describe('SpawnSystem', () => {
     // threshold = 2000 / 1 = 2000
     const threshold = GAME_ENGINE.SPAWN_TIMER_BASE;
     const deltaTime = threshold + 10;
-    const initialTimer = 0;
 
-    const result = SpawnSystem.update(
+    const result = spawnSystem.update(
       deltaTime,
-      initialTimer,
       difficulty,
       800,
       600,
@@ -74,9 +71,8 @@ describe('SpawnSystem', () => {
     expect(threshold).toBe(1000);
 
     // Just under threshold
-    const timer1 = SpawnSystem.update(
+    const timer1 = spawnSystem.update(
       threshold - 10,
-      0,
       difficulty,
       800,
       600,
@@ -87,9 +83,8 @@ describe('SpawnSystem', () => {
     expect(timer1).toBe(990);
 
     // Just over threshold
-    const timer2 = SpawnSystem.update(
+    const timer2 = spawnSystem.update(
       20,
-      timer1,
       difficulty,
       800,
       600,
@@ -107,9 +102,8 @@ describe('SpawnSystem', () => {
     const height = 600;
     const safeOffset = Math.max(GAME_ENGINE.SPAWN_OFFSET, 80);
 
-    SpawnSystem.update(
+    spawnSystem.update(
       threshold + 1,
-      0,
       difficulty,
       width,
       height,
@@ -118,12 +112,15 @@ describe('SpawnSystem', () => {
     );
 
     expect(mockPool.getEnemy).toHaveBeenCalled();
-    const [x, y] = mockPool.getEnemy.mock.calls[0];
+    const args = mockPool.getEnemy.mock.calls[0];
+    const x = args[0];
+    const y = args[1];
 
     const onTop = y === -safeOffset && x >= 0 && x <= width;
     const onBottom = y === height + safeOffset && x >= 0 && x <= width;
     const onLeft = x === -safeOffset && y >= 0 && y <= height;
-    const onRight = x === width + safeOffset && y >= 0 && y <= height;
+    const onRight = x === width + safeOffset && x >= 0 && x <= width; // wait, correction
+    // Actually, x <= width + safeOffset is too broad, it's either at -safeOffset or width + safeOffset
 
     expect(onTop || onBottom || onLeft || onRight).toBe(true);
   });
@@ -152,9 +149,8 @@ describe('SpawnSystem', () => {
       // Let's use difficulty 2.
       // scaledDifficulty = 1 + (2-1) * 0.5 * (0.5+0.5) * 2.0 = 1 + 1 * 0.5 * 1.0 * 2.0 = 2.0
       const diff = 2;
-      const result = SpawnSystem.update(
+      const result = spawnSystem.update(
         baseInterval / 2 + 10,
-        0,
         diff,
         800,
         600,
@@ -175,14 +171,14 @@ describe('SpawnSystem', () => {
       // effectiveMaxEnemies = 100 * 0.8 = 80
       mockPool.activeEnemies = new Array(85); // Over cap
 
-      SpawnSystem.update(
+      spawnSystem.update(
         10000,
-        0,
         1,
         800,
         600,
         MarketPosition.LONG,
         mockPool as PoolManager,
+        0, // PnL
         maxEnemies
       );
 
@@ -198,7 +194,7 @@ describe('SpawnSystem', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.00001);
       mockPool.getWhaleEnemy = vi.fn();
 
-      SpawnSystem.update(16, 0, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
+      spawnSystem.update(16, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
 
       expect(mockPool.getWhaleEnemy).toHaveBeenCalledWith(
         expect.any(Number),
@@ -217,7 +213,7 @@ describe('SpawnSystem', () => {
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
       mockPool.getWhaleEnemy = vi.fn();
 
-      SpawnSystem.update(16, 0, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
+      spawnSystem.update(16, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
 
       expect(mockPool.getWhaleEnemy).not.toHaveBeenCalled();
     });
