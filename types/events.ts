@@ -39,6 +39,7 @@ export type GameEvent =
   | 'marketStateUpdated'
   | 'marketStateChanged'
   | 'whaleSpawned'
+  | 'xpGained'
   | 'verification:queued'
   | 'verification:processing'
   | 'verification:success'
@@ -283,6 +284,7 @@ export interface EventDataMap {
   whaleTierChanged: WhaleTierChangedEvent;
   rsiStateChanged: RSIStateChangedEvent;
   marketStateUpdated: MarketStateUpdatedEvent;
+  xpGained: { amount: number };
   'verification:queued': Record<string, unknown>;
   'verification:processing': Record<string, unknown>;
   'verification:success': Record<string, unknown>;
