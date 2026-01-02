@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import { EventBus } from '../services/EventBus';
 import { audio } from '../services/AudioService';
+import { COLORS } from '../constants';
 import { type PoolManager } from '../services/PoolManager';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
@@ -59,4 +60,22 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
     });
     return () => unsub();
   }, [pool, state]);
+
+  // Listen for healing events (Lifesteal)
+  useEffect(() => {
+    const unsub = EventBus.subscribe('playerHealed', data => {
+      // Data is typed as any in EventBus implementation usually, but we know the shape
+      // { amount: number, x: number, y: number, source: string }
+      const { amount, x, y } = data as { amount: number; x: number; y: number };
+
+      pool.current.getFloatingText(
+        x,
+        y - 20, // Offset slightly up
+        `+${amount}`,
+        COLORS.PUMP_GREEN,
+        20
+      );
+    });
+    return () => unsub();
+  }, [pool]);
 }
