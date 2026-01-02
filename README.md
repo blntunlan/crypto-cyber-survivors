@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-805%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-979%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -58,9 +58,11 @@
 - **3-Tier Projectile Visuals** - Neon Laser beams: Normal (Cyan), Crit (Gold), Super Crit (Red)
 - **Spatial Grid Collision** - O(1) neighbor lookup for efficient bullet-enemy collision detection
 - **Object Pooling** - O(1) object retrieval for high-performance recycling
-- **Strongly Typed EventBus** - Type-safe event system with individual interfaces for each game event
+- **Strongly Typed EventBus** - Type-safe event system with tracing mode for debugging
+- **Physics Context DI** - Dependency injection for testable physics systems
 - **60 FPS Canvas Engine** - Optimized draw calls with intelligent shadow-culling
 - **Delta Time Physics** - Framerate-independent game logic
+- **Debug State Methods** - Runtime inspection for DifficultyManager, ComboSystem, SpawnSystem
 
 ### 🔐 Beta User System
 - **Nickname Login** - Frictionless onboarding without passwords or wallets
@@ -165,7 +167,7 @@ npm run build        # Build for production
 npm run preview      # Preview production build
 
 # Testing
-npm run test         # Run 805+ unit tests
+npm run test         # Run 979 unit tests
 npm run test:watch   # Watch mode
 npm run test:coverage # Check test coverage (80%+)
 npm run test:e2e     # Run 72 E2E tests (Playwright)
@@ -210,15 +212,16 @@ crypto-cyber-survivors/
 │   │   └── GameOverScreen.tsx
 │   └── settings/            # Settings components (8 files)
 │
-├── services/                 # Logic Singletons (79 files)
+├── services/                 # Logic Singletons (95 files)
 │   ├── MarketService.ts     # Binance/Coinbase WebSocket client
 │   ├── PhysicsSystem.ts     # Spatial grid collision engine
 │   ├── DifficultyManager.ts # Market-based difficulty scaling
 │   ├── ComboSystem.ts       # Kill streak logic
-│   ├── EventBus.ts          # Type-safe event system
+│   ├── EventBus.ts          # Type-safe event system with tracing
 │   ├── ScreenService.ts     # Device & notch handling
 │   ├── PoolManager.ts       # Object pooling (O(1) retrieval)
 │   ├── SpatialGrid.ts       # O(1) neighbor lookup
+│   ├── StatService.ts       # Centralized stat formatting
 │   ├── renderers/           # IRenderer implementations (7 files)
 │   │   ├── ProjectileRenderer.ts
 │   │   ├── EntityRenderer.ts
@@ -229,17 +232,27 @@ crypto-cyber-survivors/
 │   │   ├── MetricsCompiler.ts   # Session data compilation
 │   │   ├── MetricsAnalyzer.ts   # Insights & recommendations
 │   │   └── MetricsExporter.ts   # JSON/CSV export
-│   ├── analytics/           # Analytics & tracking (5 files)
+│   ├── analytics/           # Analytics & tracking (8 files)
 │   │   ├── PlayerTracker.ts
-│   │   ├── ErrorTracker.ts
+│   │   ├── ErrorTracker.ts      # Modular error tracking
+│   │   ├── ErrorQueue.ts        # Offline queue management
+│   │   ├── ErrorSanitizer.ts    # Privacy-safe sanitization
+│   │   ├── ErrorTypes.ts        # Error type definitions
 │   │   └── DeviceProfiler.ts
+│   ├── physics/             # Physics subsystem (3 files)
+│   │   ├── PhysicsContext.ts    # DI container
+│   │   ├── PhysicsTypes.ts      # Interface definitions
+│   │   └── CollisionSystem.ts
 │   ├── patterns/decorators/ # Buff/Debuff system (15 files)
 │   │   ├── BuffManager.ts
 │   │   ├── buffs/           # Rage, DiamondHands, Berserk...
 │   │   └── debuffs/         # Slow, Vulnerable, Liquidated...
 │   ├── audio/               # Sound system (9 files)
 │   │   └── SynthEngine.ts
-│   ├── cards/               # Card system (5 files)
+│   ├── cards/               # Card system (6 files)
+│   │   ├── CardSystem.ts
+│   │   ├── CardApplicator.ts    # Card effect application
+│   │   └── cardDefinitions.ts
 │   └── auth/                # Authentication (3 files)
 │
 ├── hooks/                    # Custom React Hooks (21 files)
@@ -260,7 +273,7 @@ crypto-cyber-survivors/
 │   ├── metrics.ts           # Analytics types
 │   └── admin.ts             # Admin panel types
 │
-├── tests/                    # Vitest Unit Tests (62 files)
+├── tests/                    # Vitest Unit Tests (59 files)
 │   ├── services/            # Service tests (15 files)
 │   ├── hooks/               # Hook tests (3 files)
 │   └── edge/                # Edge function tests (5 files)
@@ -286,7 +299,11 @@ crypto-cyber-survivors/
 │   ├── ANTI_CHEAT_ROADMAP.md
 │   └── completed/           # Completed features (15 files)
 │
-└── config/                   # Configuration (7 files)
+└── config/                   # Configuration (11 files)
+    ├── Colors.ts            # Decoupled color constants
+    ├── EnemyRegistry.ts     # Enemy type definitions
+    ├── AudioRegistry.ts     # Audio sound definitions
+    └── StatRegistry.ts      # Stat definitions
 ```
 
 ### Key Design Patterns
@@ -300,6 +317,7 @@ crypto-cyber-survivors/
 | **Strategy** | Pluggable enemy AI and movement behaviors |
 | **Decorator** | Stackable buff/debuff stat modifiers |
 | **State Machine** | Game state transitions (Menu → Playing → Paused → GameOver) |
+| **Dependency Injection** | PhysicsContext for testable collision systems |
 
 ---
 
@@ -325,27 +343,32 @@ crypto-cyber-survivors/
 
 | Stat | Value |
 |------|-------|
-| **TypeScript Files** | 1000+ |
-| **React Components** | 53 |
-| **Services** | 79 |
+| **TypeScript Files** | 300+ |
+| **React Components** | 46 |
+| **Services** | 95 |
 | **Custom Hooks** | 21 |
-| **Unit Tests** | **805 passing** (61 test suites) |
+| **Config Files** | 11 |
+| **Unit Tests** | **979 passing** (71 test suites) |
 | **E2E Tests** | **72 passing** |
 | **Test Coverage** | 80%+ |
 | **ESLint** | **0 errors, 0 warnings** |
+| **Circular Dependencies** | **0** |
 | **Performance** | Stable 60 FPS (Mobile & Desktop) |
 
 ### 🔍 Code Quality
 
-Latest review: **January 1, 2026**
+Latest review: **January 3, 2026**
 
 **Highlights:**
 - ✅ Excellent architecture with clean separation of concerns
 - ✅ Strong type safety with TypeScript strict mode
-- ✅ High test coverage (805 unit + 72 E2E tests)
+- ✅ High test coverage (979 unit + 72 E2E tests)
 - ✅ Performance optimizations (object pooling, spatial grid)
 - ✅ Security hardened (RLS policies, replay protection)
 - ✅ Modular metrics subsystem
+- ✅ Zero circular dependencies
+- ✅ Debug state methods for runtime inspection
+- ✅ EventBus tracing mode for debugging
 
 ---
 
