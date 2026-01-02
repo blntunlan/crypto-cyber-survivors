@@ -46,8 +46,8 @@ describe('MarketIndicatorService', () => {
     });
 
     it('should become initialized after enough data', () => {
-      // Add enough data for RSI (8 points) or Volume (10 points)
-      for (let i = 0; i < 10; i++) {
+      // Add enough data for RSI (14 points) + something extra
+      for (let i = 0; i < 20; i++) {
         service.update(100 + i, 1000 + i * 100, 'LONG' as MarketPosition);
       }
 
@@ -68,27 +68,31 @@ describe('MarketIndicatorService', () => {
      */
     function buildOversoldState() {
       // Strong downtrend to get RSI < 30
-      const downPrices = [100, 95, 90, 85, 80, 75, 70, 65, 60];
-      downPrices.forEach(p => service.update(p, 1000, 'LONG' as MarketPosition));
+      // Need at least 15 points for 14-period RSI
+      for (let i = 0; i < 20; i++) {
+        service.update(100 - i * 5, 1000, 'LONG' as MarketPosition);
+      }
     }
 
     function buildOverboughtState() {
       // Strong uptrend to get RSI > 70
-      const upPrices = [100, 110, 120, 130, 140, 150, 160, 170, 180];
-      upPrices.forEach(p => service.update(p, 1000, 'LONG' as MarketPosition));
+      for (let i = 0; i < 20; i++) {
+        service.update(100 + i * 5, 1000, 'LONG' as MarketPosition);
+      }
     }
 
     function buildNeutralState() {
       // Balanced price action
-      const prices = [100, 101, 100, 101, 100, 101, 100, 101, 100];
-      prices.forEach(p => service.update(p, 1000, 'LONG' as MarketPosition));
+      for (let i = 0; i < 20; i++) {
+        service.update(i % 2 === 0 ? 100 : 101, 1000, 'LONG' as MarketPosition);
+      }
     }
 
     it('should return FRIENDLY modifier for LONG + OVERSOLD', () => {
       buildOversoldState();
 
-      // Update with LONG position
-      service.update(60, 1000, 'LONG' as MarketPosition);
+      // Update with LONG position, keeping price low
+      service.update(5, 1000, 'LONG' as MarketPosition);
 
       const modifier = service.getEnemyModifier();
       expect(modifier.visualStyle).toBe('friendly');
@@ -99,8 +103,8 @@ describe('MarketIndicatorService', () => {
     it('should return AGGRESSIVE modifier for LONG + OVERBOUGHT', () => {
       buildOverboughtState();
 
-      // Update with LONG position
-      service.update(180, 1000, 'LONG' as MarketPosition);
+      // Update with LONG position, keeping price high
+      service.update(200, 1000, 'LONG' as MarketPosition);
 
       const modifier = service.getEnemyModifier();
       expect(modifier.visualStyle).toBe('aggressive');
@@ -111,8 +115,8 @@ describe('MarketIndicatorService', () => {
     it('should return AGGRESSIVE modifier for SHORT + OVERSOLD', () => {
       buildOversoldState();
 
-      // Update with SHORT position
-      service.update(60, 1000, 'SHORT' as MarketPosition);
+      // Update with SHORT position, keeping price low
+      service.update(5, 1000, 'SHORT' as MarketPosition);
 
       const modifier = service.getEnemyModifier();
       expect(modifier.visualStyle).toBe('aggressive');
@@ -121,8 +125,8 @@ describe('MarketIndicatorService', () => {
     it('should return FRIENDLY modifier for SHORT + OVERBOUGHT', () => {
       buildOverboughtState();
 
-      // Update with SHORT position
-      service.update(180, 1000, 'SHORT' as MarketPosition);
+      // Update with SHORT position, keeping price high
+      service.update(200, 1000, 'SHORT' as MarketPosition);
 
       const modifier = service.getEnemyModifier();
       expect(modifier.visualStyle).toBe('friendly');
@@ -139,13 +143,15 @@ describe('MarketIndicatorService', () => {
 
   describe('Favorability Detection', () => {
     function buildOversoldState() {
-      const downPrices = [100, 95, 90, 85, 80, 75, 70, 65, 60];
-      downPrices.forEach(p => service.update(p, 1000, 'LONG' as MarketPosition));
+      for (let i = 0; i < 20; i++) {
+        service.update(100 - i * 5, 1000, 'LONG' as MarketPosition);
+      }
     }
 
     function buildOverboughtState() {
-      const upPrices = [100, 110, 120, 130, 140, 150, 160, 170, 180];
-      upPrices.forEach(p => service.update(p, 1000, 'SHORT' as MarketPosition));
+      for (let i = 0; i < 20; i++) {
+        service.update(100 + i * 5, 1000, 'SHORT' as MarketPosition);
+      }
     }
 
     it('should detect favorable state for LONG + OVERSOLD', () => {
@@ -161,8 +167,9 @@ describe('MarketIndicatorService', () => {
     });
 
     it('should return false for neutral state', () => {
-      const prices = [100, 101, 100, 101, 100, 101, 100, 101, 100];
-      prices.forEach(p => service.update(p, 1000, 'LONG' as MarketPosition));
+      for (let i = 0; i < 20; i++) {
+        service.update(i % 2 === 0 ? 100 : 101, 1000, 'LONG' as MarketPosition);
+      }
 
       expect(service.isFavorable()).toBe(false);
       expect(service.isUnfavorable()).toBe(false);
@@ -175,8 +182,8 @@ describe('MarketIndicatorService', () => {
     });
 
     it('should update multiplier based on state', () => {
-      // Update with some data
-      for (let i = 0; i < 10; i++) {
+      // Update with enough data
+      for (let i = 0; i < 20; i++) {
         service.update(100 + i, 1000, 'LONG' as MarketPosition);
       }
 
@@ -228,8 +235,8 @@ describe('MarketIndicatorService', () => {
 
   describe('Reset', () => {
     it('should reset all state', () => {
-      // Build up state
-      for (let i = 0; i < 10; i++) {
+      // Build up state (need > 14 points)
+      for (let i = 0; i < 20; i++) {
         service.update(100 - i * 5, 1000 + i * 100, 'LONG' as MarketPosition);
       }
 
