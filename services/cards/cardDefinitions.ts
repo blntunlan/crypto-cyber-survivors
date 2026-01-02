@@ -78,10 +78,12 @@ export const COMMON_CARDS: Card[] = [
     tier: 'common',
     effect: p => ({
       ...p,
-      baseDamage: Math.floor(p.baseDamage * 1.05),
-      speed: p.speed * 1.05, // No cap here
-      maxHp: Math.floor(p.maxHp * 1.05),
-      hp: Math.floor(p.hp * 1.05),
+      baseDamage: p.baseDamage * 1.05,
+      speed: p.speed * 1.05,
+      maxHp: p.maxHp * 1.05,
+      hp: p.hp * 1.05,
+      fireRate: p.fireRate * 0.95, // 5% faster attack speed
+      magnet: p.magnet * 1.05,
     }),
   },
 ];
