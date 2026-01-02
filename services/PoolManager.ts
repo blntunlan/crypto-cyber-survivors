@@ -20,22 +20,83 @@ interface Activatable {
   active: boolean;
 }
 
+/**
+ * ObjectPool - A generic, high-performance object pooling container.
+ */
+class ObjectPool<T extends { active: boolean }> {
+  public active: T[] = [];
+  public free: T[] = [];
+  private maxActive: number;
+
+  constructor(maxActive: number) {
+    this.maxActive = maxActive;
+  }
+
+  get(factory: () => T, initializer?: (obj: T) => void): T {
+    // If at capacity, recycle oldest
+    if (this.active.length >= this.maxActive) {
+      const oldest = this.active.shift();
+      if (oldest) {
+        oldest.active = false;
+        this.free.push(oldest);
+      }
+    }
+
+    let obj = this.free.pop();
+    if (!obj) {
+      obj = factory();
+    }
+
+    obj.active = true;
+    if (initializer) initializer(obj);
+
+    this.active.push(obj);
+    return obj;
+  }
+
+  release(obj: T): void {
+    obj.active = false;
+    const index = this.active.indexOf(obj);
+    if (index > -1) {
+      this.active.splice(index, 1);
+      this.free.push(obj);
+    }
+  }
+
+  cleanup(): void {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const item = this.active[i];
+      if (item && !item.active) {
+        const removed = this.active.splice(i, 1)[0];
+        if (removed) this.free.push(removed);
+      }
+    }
+  }
+
+  clear(): void {
+    while (this.active.length) {
+      const item = this.active.pop();
+      if (item) {
+        item.active = false;
+        this.free.push(item);
+      }
+    }
+  }
+
+  trim(maxFree: number): void {
+    if (this.free.length > maxFree) {
+      this.free.length = maxFree;
+    }
+  }
+}
+
 export class PoolManager {
-  // Active objects for faster iteration in game loop
-  activeEnemies: GameEnemy[] = [];
-  activeBullets: Bullet[] = [];
-  activeGems: Gem[] = [];
-  activeParticles: Particle[] = [];
-  activeFloatingTexts: FloatingText[] = [];
+  private enemies: ObjectPool<GameEnemy>;
+  private bullets: ObjectPool<Bullet>;
+  private gems: ObjectPool<Gem>;
+  private particles: ObjectPool<Particle>;
+  private floatingTexts: ObjectPool<FloatingText>;
 
-  // Inactive objects for recycling (FreeLists)
-  private freeEnemies: GameEnemy[] = [];
-  private freeBullets: Bullet[] = [];
-  private freeGems: Gem[] = [];
-  private freeParticles: Particle[] = [];
-  private freeFloatingTexts: FloatingText[] = [];
-
-  // Maximum active entities to prevent memory issues
   private static readonly MAX_ACTIVE = {
     enemies: 150,
     bullets: 500,
@@ -44,11 +105,33 @@ export class PoolManager {
     texts: 50,
   };
 
-  constructor() {}
+  constructor() {
+    this.enemies = new ObjectPool(PoolManager.MAX_ACTIVE.enemies);
+    this.bullets = new ObjectPool(PoolManager.MAX_ACTIVE.bullets);
+    this.gems = new ObjectPool(PoolManager.MAX_ACTIVE.gems);
+    this.particles = new ObjectPool(PoolManager.MAX_ACTIVE.particles);
+    this.floatingTexts = new ObjectPool(PoolManager.MAX_ACTIVE.texts);
+  }
+
+  // Preserve public array access for external systems (e.g. PhysicsSystem)
+  get activeEnemies() {
+    return this.enemies.active;
+  }
+  get activeBullets() {
+    return this.bullets.active;
+  }
+  get activeGems() {
+    return this.gems.active;
+  }
+  get activeParticles() {
+    return this.particles.active;
+  }
+  get activeFloatingTexts() {
+    return this.floatingTexts.active;
+  }
 
   /**
-   * Pre-warm pools to prevent allocation stutters during gameplay.
-   * Call this before the game starts (e.g., during loading screen).
+   * Pre-warm pools.
    */
   preWarm(config?: {
     enemies?: number;
@@ -65,9 +148,8 @@ export class PoolManager {
       texts: config?.texts ?? 30,
     };
 
-    // Pre-allocate bullets
     for (let i = 0; i < counts.bullets; i++) {
-      this.freeBullets.push({
+      this.bullets.free.push({
         active: false,
         x: 0,
         y: 0,
@@ -80,10 +162,8 @@ export class PoolManager {
         isSuperCrit: false,
       });
     }
-
-    // Pre-allocate particles
     for (let i = 0; i < counts.particles; i++) {
-      this.freeParticles.push({
+      this.particles.free.push({
         active: false,
         x: 0,
         y: 0,
@@ -94,10 +174,8 @@ export class PoolManager {
         life: 0,
       });
     }
-
-    // Pre-allocate gems
     for (let i = 0; i < counts.gems; i++) {
-      this.freeGems.push({
+      this.gems.free.push({
         active: false,
         x: 0,
         y: 0,
@@ -107,10 +185,8 @@ export class PoolManager {
         isRare: false,
       });
     }
-
-    // Pre-allocate floating texts
     for (let i = 0; i < counts.texts; i++) {
-      this.freeFloatingTexts.push({
+      this.floatingTexts.free.push({
         active: false,
         x: 0,
         y: 0,
@@ -121,15 +197,11 @@ export class PoolManager {
       });
     }
 
-    Logger.debug(
-      `[PoolManager] Pre-warmed pools: ${counts.bullets} bullets, ${counts.particles} particles, ${counts.gems} gems, ${counts.texts} texts`
-    );
+    Logger.debug(`[PoolManager] Pre-warmed pools`);
   }
 
-  /**
-   * Helper to move object back to free list
-   */
   release<T extends Activatable>(obj: T, activeList: T[], freeList: T[]) {
+    // Legacy support or generic release
     obj.active = false;
     const index = activeList.indexOf(obj);
     if (index > -1) {
@@ -145,42 +217,25 @@ export class PoolManager {
     position: MarketPosition,
     enemyType: string = 'bear'
   ): GameEnemy {
-    // Get RSI-based aggro multiplier from server state
     const aggroMultiplier = marketStateService.getState()?.enemyAggroMultiplier ?? 1.0;
 
-    let obj = this.freeEnemies.pop();
-    if (!obj) {
-      // Use specific enemy type based on PnL + Position
-      obj = enemyFactory.createEnemy(enemyType, x, y, difficulty, position, aggroMultiplier);
-    } else {
-      const newEnemy = enemyFactory.createEnemy(
-        enemyType,
-        x,
-        y,
-        difficulty,
-        position,
-        aggroMultiplier
-      );
-      Object.assign(obj, newEnemy);
-    }
-    obj.active = true;
-    this.activeEnemies.push(obj);
-    return obj;
+    return this.enemies.get(
+      () => enemyFactory.createEnemy(enemyType, x, y, difficulty, position, aggroMultiplier),
+      obj => {
+        const newEnemy = enemyFactory.createEnemy(
+          enemyType,
+          x,
+          y,
+          difficulty,
+          position,
+          aggroMultiplier
+        );
+        Object.assign(obj, newEnemy);
+        obj.active = true;
+      }
+    );
   }
 
-  /**
-   * Get a whale enemy with tier-specific stat multipliers
-   *
-   * Whale enemies are spawned based on volume spikes in the market.
-   * Higher tiers are larger, have more HP, but give more rewards.
-   *
-   * @param x Spawn X position
-   * @param y Spawn Y position
-   * @param difficulty Current difficulty level
-   * @param position Player's market position (LONG/SHORT)
-   * @param tier Whale tier (BABY_WHALE, WHALE, or MEGA_WHALE)
-   * @returns The spawned whale enemy
-   */
   getWhaleEnemy(
     x: number,
     y: number,
@@ -190,30 +245,29 @@ export class PoolManager {
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
 
-    // Create base whale enemy
-    let obj = this.freeEnemies.pop();
-    if (!obj) {
-      obj = enemyFactory.createEnemy('whale', x, y, difficulty, position);
-    } else {
-      const newEnemy = enemyFactory.createEnemy('whale', x, y, difficulty, position);
-      Object.assign(obj, newEnemy);
-    }
-
-    // Apply tier-specific multipliers if available
-    if (tierConfig) {
-      obj.radius *= tierConfig.sizeMultiplier;
-      obj.health *= tierConfig.healthMultiplier;
-      obj.maxHealth = obj.health;
-      // Store value multiplier for gem drops
-      (obj as unknown as { valueMultiplier: number }).valueMultiplier = tierConfig.valueMultiplier;
-    }
-
-    obj.active = true;
-    this.activeEnemies.push(obj);
-
-    Logger.debug(`[PoolManager] Spawned whale tier ${tier} at (${x.toFixed(0)}, ${y.toFixed(0)})`);
-
-    return obj;
+    return this.enemies.get(
+      () => {
+        const e = enemyFactory.createEnemy('whale', x, y, difficulty, position);
+        if (tierConfig) {
+          e.radius *= tierConfig.sizeMultiplier;
+          e.health *= tierConfig.healthMultiplier;
+          e.maxHealth = e.health;
+          (e as any).valueMultiplier = tierConfig.valueMultiplier;
+        }
+        return e;
+      },
+      obj => {
+        const e = enemyFactory.createEnemy('whale', x, y, difficulty, position);
+        if (tierConfig) {
+          e.radius *= tierConfig.sizeMultiplier;
+          e.health *= tierConfig.healthMultiplier;
+          e.maxHealth = e.health;
+          (e as any).valueMultiplier = tierConfig.valueMultiplier;
+        }
+        Object.assign(obj, e);
+        obj.active = true;
+      }
+    );
   }
 
   getBullet(
@@ -227,127 +281,67 @@ export class PoolManager {
     isCrit: boolean,
     isSuperCrit: boolean
   ): Bullet {
-    // Enforce limit - recycle oldest if at capacity
-    if (this.activeBullets.length >= PoolManager.MAX_ACTIVE.bullets) {
-      const oldest = this.activeBullets.shift();
-      if (oldest) {
-        oldest.active = false;
-        this.freeBullets.push(oldest);
-      }
-    }
-
-    let obj = this.freeBullets.pop();
-    if (!obj) {
-      obj = { active: true, x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit };
-    } else {
-      obj.active = true;
-      Object.assign(obj, { x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit });
-    }
-    this.activeBullets.push(obj);
-    return obj;
+    return this.bullets.get(
+      () => ({ active: true, x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit }),
+      obj =>
+        Object.assign(obj, {
+          x,
+          y,
+          vx,
+          vy,
+          damage,
+          radius,
+          color,
+          isCrit,
+          isSuperCrit,
+          active: true,
+        })
+    );
   }
 
   getGem(x: number, y: number, value: number, radius: number, color: string, isRare: boolean): Gem {
-    let obj = this.freeGems.pop();
-    if (!obj) {
-      obj = { active: true, x, y, radius, color, value, isRare };
-    } else {
-      obj.active = true;
-      Object.assign(obj, { x, y, radius, color, value, isRare });
-    }
-    this.activeGems.push(obj);
-    return obj;
+    return this.gems.get(
+      () => ({ active: true, x, y, radius, color, value, isRare }),
+      obj => Object.assign(obj, { x, y, radius, color, value, isRare, active: true })
+    );
   }
 
   getParticle(x: number, y: number, vx: number, vy: number, color: string): Particle {
-    // Enforce limit - recycle oldest if at capacity
-    if (this.activeParticles.length >= PoolManager.MAX_ACTIVE.particles) {
-      const oldest = this.activeParticles.shift();
-      if (oldest) {
-        oldest.active = false;
-        this.freeParticles.push(oldest);
-      }
-    }
-
-    let obj = this.freeParticles.pop();
-    if (!obj) {
-      obj = { active: true, x, y, vx, vy, color, radius: 2, life: 1 };
-    } else {
-      obj.active = true;
-      Object.assign(obj, { x, y, vx, vy, color, radius: 2, life: 1 });
-    }
-    this.activeParticles.push(obj);
-    return obj;
+    return this.particles.get(
+      () => ({ active: true, x, y, vx, vy, color, radius: 2, life: 1 }),
+      obj => Object.assign(obj, { x, y, vx, vy, color, radius: 2, life: 1, active: true })
+    );
   }
 
   getFloatingText(x: number, y: number, text: string, color: string, size: number): FloatingText {
-    let obj = this.freeFloatingTexts.pop();
-    if (!obj) {
-      obj = { active: true, x, y, text, color, size, life: 1 };
-    } else {
-      obj.active = true;
-      Object.assign(obj, { x, y, text, color, size, life: 1 });
-    }
-    this.activeFloatingTexts.push(obj);
-    return obj;
+    return this.floatingTexts.get(
+      () => ({ active: true, x, y, text, color, size, life: 1 }),
+      obj => Object.assign(obj, { x, y, text, color, size, life: 1, active: true })
+    );
   }
 
-  /**
-   * Efficiently cleanup inactive objects from active lists
-   * Should be called at the end of each update loop
-   */
   cleanup(): void {
-    this.moveInactive(this.activeEnemies, this.freeEnemies);
-    this.moveInactive(this.activeBullets, this.freeBullets);
-    this.moveInactive(this.activeGems, this.freeGems);
-    this.moveInactive(this.activeParticles, this.freeParticles);
-    this.moveInactive(this.activeFloatingTexts, this.freeFloatingTexts);
-  }
-
-  private moveInactive<T extends Activatable>(active: T[], free: T[]) {
-    for (let i = active.length - 1; i >= 0; i--) {
-      const item = active[i];
-      if (item && !item.active) {
-        const removed = active.splice(i, 1)[0];
-        if (removed) free.push(removed);
-      }
-    }
+    this.enemies.cleanup();
+    this.bullets.cleanup();
+    this.gems.cleanup();
+    this.particles.cleanup();
+    this.floatingTexts.cleanup();
   }
 
   clearAll(): void {
-    while (this.activeEnemies.length) this.freeEnemies.push(this.activeEnemies.pop()!);
-    while (this.activeBullets.length) this.freeBullets.push(this.activeBullets.pop()!);
-    while (this.activeGems.length) this.freeGems.push(this.activeGems.pop()!);
-    while (this.activeParticles.length) this.freeParticles.push(this.activeParticles.pop()!);
-    while (this.activeFloatingTexts.length) {
-      this.freeFloatingTexts.push(this.activeFloatingTexts.pop()!);
-    }
-
-    this.freeEnemies.forEach(e => (e.active = false));
-    this.freeBullets.forEach(e => (e.active = false));
-    this.freeGems.forEach(e => (e.active = false));
-    this.freeParticles.forEach(e => (e.active = false));
-    this.freeFloatingTexts.forEach(e => (e.active = false));
-
-    // Trim free lists to prevent memory bloat after clearing
+    this.enemies.clear();
+    this.bullets.clear();
+    this.gems.clear();
+    this.particles.clear();
+    this.floatingTexts.clear();
     this.trimFreeLists();
   }
 
-  /**
-   * Trim free lists to prevent unbounded memory growth.
-   * Keeps a reasonable pool size for recycling while freeing excess memory.
-   */
   trimFreeLists(maxPoolSize: number = 50): void {
-    const trim = <T>(list: T[], max: number) => {
-      if (list.length > max) {
-        list.length = max;
-      }
-    };
-
-    trim(this.freeEnemies, maxPoolSize);
-    trim(this.freeBullets, maxPoolSize * 2); // Bullets spawn more frequently
-    trim(this.freeGems, maxPoolSize);
-    trim(this.freeParticles, maxPoolSize * 3); // Particles are most numerous
-    trim(this.freeFloatingTexts, maxPoolSize);
+    this.enemies.trim(maxPoolSize);
+    this.bullets.trim(maxPoolSize * 2);
+    this.gems.trim(maxPoolSize);
+    this.particles.trim(maxPoolSize * 3);
+    this.floatingTexts.trim(maxPoolSize);
   }
 }
