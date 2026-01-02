@@ -14,6 +14,7 @@ import {
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
 import { type WhaleTier, WHALE_TIER_CONFIGS } from '../types/indicators';
+import { marketStateService } from './MarketStateService';
 
 interface Activatable {
   active: boolean;
@@ -137,12 +138,29 @@ export class PoolManager {
     }
   }
 
-  getEnemy(x: number, y: number, difficulty: number, position: MarketPosition): GameEnemy {
+  getEnemy(
+    x: number,
+    y: number,
+    difficulty: number,
+    position: MarketPosition,
+    enemyType: string = 'bear'
+  ): GameEnemy {
+    // Get RSI-based aggro multiplier from server state
+    const aggroMultiplier = marketStateService.getState()?.enemyAggroMultiplier ?? 1.0;
+
     let obj = this.freeEnemies.pop();
     if (!obj) {
-      obj = enemyFactory.createRandomEnemy(x, y, difficulty, position);
+      // Use specific enemy type based on PnL + Position
+      obj = enemyFactory.createEnemy(enemyType, x, y, difficulty, position, aggroMultiplier);
     } else {
-      const newEnemy = enemyFactory.createRandomEnemy(x, y, difficulty, position);
+      const newEnemy = enemyFactory.createEnemy(
+        enemyType,
+        x,
+        y,
+        difficulty,
+        position,
+        aggroMultiplier
+      );
       Object.assign(obj, newEnemy);
     }
     obj.active = true;

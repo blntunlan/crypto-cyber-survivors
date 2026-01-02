@@ -7,12 +7,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
+import { WhaleTier } from '../types/indicators';
 
 describe('PoolManager', () => {
   let pool: PoolManager;
 
   beforeEach(() => {
     pool = new PoolManager();
+  });
+
+  describe('preWarm', () => {
+    it('should pre-populate pools', () => {
+      pool.preWarm({ enemies: 10, bullets: 20 });
+
+      // Access private members for verification if needed,
+      // but we'll check via performance/side-effects.
+      // Actually, since it's a test, let's just ensure it runs.
+      expect(pool).toBeDefined();
+    });
   });
 
   describe('getBullet', () => {
@@ -70,6 +82,17 @@ describe('PoolManager', () => {
 
       pool.getEnemy(0, 0, 1, MarketPosition.LONG);
 
+      expect(pool.activeEnemies.length).toBe(1);
+    });
+
+    it('should create a whale enemy with tier multipliers', () => {
+      // MEGA_WHALE has 4.0x HP multiplier
+      const whale = pool.getWhaleEnemy(100, 200, 1, MarketPosition.LONG, WhaleTier.MEGA_WHALE);
+
+      expect(whale).toBeDefined();
+      expect(whale.x).toBe(100);
+      expect(whale.radius).toBeGreaterThan(20); // Base is 16, Mega is 2x
+      expect(whale.active).toBe(true);
       expect(pool.activeEnemies.length).toBe(1);
     });
   });

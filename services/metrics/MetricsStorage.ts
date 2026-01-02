@@ -119,11 +119,20 @@ export class MetricsStorage {
           exit_price: session.bitcoin.priceAtEnd,
           pnl_percent: session.bitcoin.pnlAtDeath,
           device_fingerprint: session.performance?.deviceFingerprint,
+          session_id: session.sessionId,
         })
         .select('id')
         .single();
 
       if (sessionError) {
+        // PostgreSQL unique constraint violation code: 23505 (Replay Attack Protection)
+        if (sessionError.code === '23505') {
+          Logger.warn('[MetricsStorage] Duplicate session detected - replay attack blocked', {
+            sessionId: session.sessionId,
+            playerId,
+          });
+          return; // Silently ignore duplicate
+        }
         throw sessionError;
       }
 

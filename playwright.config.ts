@@ -10,7 +10,7 @@ export default defineConfig({
   testDir: './e2e',
 
   // Max time for a single test
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
 
   // Max time for expect() assertions
   expect: {

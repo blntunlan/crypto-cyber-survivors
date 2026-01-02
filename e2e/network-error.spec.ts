@@ -28,11 +28,12 @@ test.describe('Network Conditions', () => {
     await page.goto('/');
 
     // Check for loading indicators (spinners, skeleton, or loading text)
-    const _loadingIndicator = page
+    await page
       .locator('text=Loading')
       .or(page.locator('[class*="loading"]'))
       .or(page.locator('[class*="spinner"]'))
-      .or(page.locator('svg[class*="animate"]'));
+      .or(page.locator('svg[class*="animate"]'))
+      .isVisible();
 
     // Loading state might be too fast to catch
     await page.waitForTimeout(100);
@@ -85,19 +86,19 @@ test.describe('Local Storage', () => {
     }
 
     // Check localStorage
-    const sessionData = await page.evaluate(() => localStorage.getItem('crypto_survivors_session'));
+    const userData = await page.evaluate(() => localStorage.getItem('crypto_survivors_user'));
 
-    console.log('Session data:', sessionData);
+    console.log('User data:', userData);
 
     // Reload and verify persistence
     await page.reload();
     await page.waitForTimeout(2000);
 
-    const sessionAfterReload = await page.evaluate(() =>
-      localStorage.getItem('crypto_survivors_session')
+    const userAfterReload = await page.evaluate(() =>
+      localStorage.getItem('crypto_survivors_user')
     );
 
-    console.log('Session after reload:', sessionAfterReload);
+    console.log('User after reload:', userAfterReload);
 
     expect(true).toBe(true); // Session handling tested
   });
@@ -167,11 +168,12 @@ test.describe('Memory Management', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
           playerId: 'memory-test',
-          displayName: 'MemoryTest',
-          provider: 'nickname',
+          nickname: 'MemoryTest',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
     });

@@ -17,6 +17,7 @@ import { SOUND_DEFAULTS } from './constants';
  */
 export function playSlotTick(pitch: number = 1): void {
   if (synthEngine.isOnCooldown('slotTick')) return;
+  synthEngine.recordPlay('slotTick');
 
   const context = synthEngine.init();
   if (!context) return;

@@ -17,6 +17,16 @@ vi.mock('../services/AudioService', () => ({
   },
 }));
 
+// Mock BuffManager
+vi.mock('../services/patterns/decorators/BuffManager', () => ({
+  BuffManager: {
+    isInitialized: vi.fn(() => true),
+    getDecoratedStats: vi.fn(),
+  },
+}));
+
+import { BuffManager } from '../services/patterns/decorators/BuffManager';
+
 describe('CombatSystem', () => {
   let mockPool: any;
   let mockPlayer: Player;
@@ -24,6 +34,16 @@ describe('CombatSystem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock stats
+    vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+      getFireRate: () => mockPlayer.fireRate,
+      getDamage: () => mockPlayer.baseDamage,
+      getProjectiles: () => mockPlayer.projectiles,
+      getArea: () => mockPlayer.area,
+      getLuck: () => mockPlayer.luck,
+      getCritChance: () => mockPlayer.critChance,
+    } as any);
 
     // Mock PoolManager
     mockPool = {
@@ -104,6 +124,25 @@ describe('CombatSystem', () => {
       expect(mockPool.getBullet).toHaveBeenCalled();
     });
 
+    it('should use decorated fire rate if BuffManager is initialized', () => {
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockState.fireTimer = 0;
+
+      // Decorated fire rate is 100ms
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 100,
+        getProjectiles: () => 1,
+        getDamage: () => 10,
+        getArea: () => 1,
+        getLuck: () => 0,
+        getCritChance: () => 0.1,
+      } as any);
+
+      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 150);
+
+      expect(mockPool.getBullet).toHaveBeenCalled();
+    });
+
     it('should reset fireTimer when firing', () => {
       mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
       mockState.fireTimer = 0;
@@ -144,7 +183,7 @@ describe('CombatSystem', () => {
       // Direction should be roughly towards (450, 300) from (400, 300)
       // That's positive X direction, near-zero Y
       expect(vx).toBeGreaterThan(0);
-      expect(Math.abs(vy)).toBeLessThan(1); // Nearly horizontal
+      expect(Math.abs(vy)).toBeLessThan(5); // Increased tolerance for lead shooting
     });
 
     it('should not target off-screen enemies when screen dimensions provided', () => {
@@ -192,32 +231,46 @@ describe('CombatSystem', () => {
   });
 
   describe('damage calculation', () => {
-    it('should use base damage for normal shots', () => {
+    it('should use decorated damage for normal shots', () => {
       mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
-      mockPlayer.baseDamage = 20;
-      mockPlayer.critChance = 0; // No crits
-      mockState.lastFireTime = 0;
+
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 300,
+        getDamage: () => 50, // Decorated damage
+        getProjectiles: () => 1,
+        getArea: () => 1,
+        getLuck: () => 0,
+        getCritChance: () => 0,
+      } as any);
 
       CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const damage = bulletCallArgs[4];
 
-      expect(damage).toBe(20);
+      expect(damage).toBe(50);
     });
 
-    it('should apply player area to bullet radius', () => {
+    it('should apply decorated area to bullet radius', () => {
       mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
-      mockPlayer.area = 2; // Double area
-      mockPlayer.critChance = 0;
-      mockState.lastFireTime = 0;
+
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 300,
+        getDamage: () => 15,
+        getProjectiles: () => 1,
+        getArea: () => 2.0, // Decorated area
+        getLuck: () => 0,
+        getCritChance: () => 0,
+      } as any);
 
       CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const radius = bulletCallArgs[5];
 
-      // Default radius is 4 * area
+      // Default radius is 4. area=2.0 -> 8.
+      // Code: baseRadius * cappedArea * 1.0 (multiplier) * 1.0 (type)
+      // baseRadius for normal shot = 4
       expect(radius).toBe(8);
     });
   });
@@ -241,13 +294,20 @@ describe('CombatSystem', () => {
 
     it('should spread projectiles when firing multiple', () => {
       mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
-      mockPlayer.projectiles = 3;
-      mockState.lastFireTime = 0;
+
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 300,
+        getDamage: () => 15,
+        getProjectiles: () => 3, // Decorated projectiles
+        getArea: () => 1,
+        getLuck: () => 0,
+        getCritChance: () => 0,
+      } as any);
 
       CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       // Get all velocity vectors
-      const velocities = mockPool.getBullet.mock.calls.map((call: number[]) => ({
+      const velocities = mockPool.getBullet.mock.calls.map((call: any[]) => ({
         vx: call[2],
         vy: call[3],
       }));
@@ -264,8 +324,15 @@ describe('CombatSystem', () => {
   describe('crit behavior', () => {
     it('should pass crit flags to bullet', () => {
       mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
-      mockPlayer.critChance = 0; // No crits for predictable test
-      mockState.lastFireTime = 0;
+
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 300,
+        getDamage: () => 15,
+        getProjectiles: () => 1,
+        getArea: () => 1,
+        getLuck: () => 0,
+        getCritChance: () => 0, // No crits
+      } as any);
 
       CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 

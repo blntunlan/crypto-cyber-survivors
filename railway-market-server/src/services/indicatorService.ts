@@ -26,16 +26,17 @@ export class IndicatorService {
     this.supabase = SupabaseService.getInstance();
 
     // Initialize indicators for each pair
-    // Can be extended if we support more pairs dynamically
+    // Volume: 300 data points = 5 minutes of 1s candles
+    // Whale cooldown: 30 seconds (prevents spam during sustained high volume)
     ['BTC', 'ETH', 'SOL'].forEach(pair => {
       this.indicators.set(pair, {
         rsi: new RSICalculator(7),
         atr: new ATRCalculator(14),
-        volume: new VolumeAnalyzer(100, 5000), // 5s cooldown
+        volume: new VolumeAnalyzer(300, 30000), // 5 min history, 30s cooldown
       });
     });
 
-    Logger.info('✅ IndicatorService initialized');
+    Logger.info('✅ IndicatorService initialized (Volume: 5min window, 30s cooldown)');
   }
 
   static getInstance(): IndicatorService {
@@ -84,6 +85,9 @@ export class IndicatorService {
         spawn_rate_multiplier: spawnRateMultiplier,
         normalized_volume: volumeResult.normalized,
         volume_percentile: volumeResult.percentile,
+        volume_z_score: volumeResult.zScore,
+        volume_mean: volumeResult.mean,
+        volume_std_dev: volumeResult.stdDev,
         whale_tier: volumeResult.whaleTier,
         volume_history_min: volumeResult.min,
         volume_history_max: volumeResult.max,
@@ -95,10 +99,13 @@ export class IndicatorService {
       this.stats.updates++;
       this.stats.lastUpdate = new Date();
 
-      // Log whale spawn events specially
+      // Log whale spawn events with z-score for better debugging
       if (volumeResult.whaleTier > 0 && ind.volume.canSpawnWhale(Date.now())) {
+        const tierNames = ['', 'BABY_WHALE', 'WHALE', 'MEGA_WHALE'];
         Logger.info(
-          `🐳 WHALE SPAWN [${data.pair}] Tier ${volumeResult.whaleTier} (Vol: ${data.volume.toFixed(2)})`
+          `🐳 ${tierNames[volumeResult.whaleTier]} [${data.pair}] ` +
+            `z-score: ${volumeResult.zScore.toFixed(2)}σ | ` +
+            `Vol: ${data.volume.toFixed(0)} (mean: ${volumeResult.mean.toFixed(0)}, σ: ${volumeResult.stdDev.toFixed(0)})`
         );
         this.recordWhaleSpawn(data.pair);
       }

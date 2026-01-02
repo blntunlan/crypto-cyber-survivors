@@ -15,6 +15,7 @@ import { SOUND_DEFAULTS } from './constants';
  */
 export function playShoot(fireRate: number = 1, projectileCount: number = 1): void {
   if (synthEngine.isOnCooldown('shoot')) return;
+  synthEngine.recordPlay('shoot');
 
   const context = synthEngine.init();
   if (!context) return;
@@ -106,6 +107,7 @@ export function playCrit(): void {
  */
 export function playHit(): void {
   if (synthEngine.isOnCooldown('hit')) return;
+  synthEngine.recordPlay('hit');
 
   const context = synthEngine.init();
   if (!context) return;
@@ -140,6 +142,7 @@ export function playHit(): void {
  */
 export function playGem(): void {
   if (synthEngine.isOnCooldown('gem')) return;
+  synthEngine.recordPlay('gem');
 
   const context = synthEngine.init();
   if (!context) return;

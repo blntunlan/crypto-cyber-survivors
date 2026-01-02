@@ -1,26 +1,6 @@
-# Railway ignore file
-# Exclude directories that shouldn't be deployed
-
-# Supabase functions (deployed separately)
-supabase/
-
-# Development files
-.agent/
-.git/
-.github/
-tests/
-e2e/
-*.test.ts
-*.test.tsx
-*.spec.ts
-
-# Build artifacts
-dist/
-coverage/
-
-# IDE
-.vscode/
-.idea/
-
-# Railway market server (separate service)
-railway-market-server/
+node_modules
+.git
+.agent
+dist
+build
+railway-market-server

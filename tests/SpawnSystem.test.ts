@@ -1,8 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SpawnSystem } from '../services/SpawnSystem';
 import { type PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
+import { marketStateService } from '../services/MarketStateService';
+
+vi.mock('../services/MarketStateService', () => ({
+  marketStateService: {
+    getState: vi.fn(),
+  },
+}));
 
 describe('SpawnSystem', () => {
   let mockPool: any;
@@ -98,7 +105,6 @@ describe('SpawnSystem', () => {
     const threshold = GAME_ENGINE.SPAWN_TIMER_BASE;
     const width = 800;
     const height = 600;
-    // safeOffset now uses Math.max(SPAWN_OFFSET, 80) to cover large enemies
     const safeOffset = Math.max(GAME_ENGINE.SPAWN_OFFSET, 80);
 
     SpawnSystem.update(
@@ -114,12 +120,106 @@ describe('SpawnSystem', () => {
     expect(mockPool.getEnemy).toHaveBeenCalled();
     const [x, y] = mockPool.getEnemy.mock.calls[0];
 
-    // Check if it's on one of the 4 edges (using safeOffset)
     const onTop = y === -safeOffset && x >= 0 && x <= width;
     const onBottom = y === height + safeOffset && x >= 0 && x <= width;
     const onLeft = x === -safeOffset && y >= 0 && y <= height;
     const onRight = x === width + safeOffset && y >= 0 && y <= height;
 
     expect(onTop || onBottom || onLeft || onRight).toBe(true);
+  });
+
+  describe('Market and Whale Spawn Logic', () => {
+    beforeEach(() => {
+      vi.mocked(marketStateService.getState).mockReturnValue(null);
+      vi.spyOn(Math, 'random').mockReturnValue(0.5); // Default neutral random
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should scale spawn rate based on market multiplier', () => {
+      const baseInterval = GAME_ENGINE.SPAWN_TIMER_BASE;
+
+      // Market multiplier = 2.0 (Chaos)
+      vi.mocked(marketStateService.getState).mockReturnValue({
+        spawnRateMultiplier: 2.0,
+      } as any);
+
+      // scaledDifficulty = 1 + (1-1)*...*2.0 = 1. Wait, scaledDifficulty logic:
+      // 1 + (difficulty - 1) * ...
+      // If difficulty = 1, scaledDifficulty is always 1 unless logic changes.
+      // Let's use difficulty 2.
+      // scaledDifficulty = 1 + (2-1) * 0.5 * (0.5+0.5) * 2.0 = 1 + 1 * 0.5 * 1.0 * 2.0 = 2.0
+      const diff = 2;
+      const result = SpawnSystem.update(
+        baseInterval / 2 + 10,
+        0,
+        diff,
+        800,
+        600,
+        MarketPosition.LONG,
+        mockPool as PoolManager
+      );
+
+      expect(mockPool.getEnemy).toHaveBeenCalled();
+      expect(result).toBe(0);
+    });
+
+    it('should cap max enemies during high market chaos', () => {
+      vi.mocked(marketStateService.getState).mockReturnValue({
+        spawnRateMultiplier: 2.0, // High chaos
+      } as any);
+
+      const maxEnemies = 100;
+      // effectiveMaxEnemies = 100 * 0.8 = 80
+      mockPool.activeEnemies = new Array(85); // Over cap
+
+      SpawnSystem.update(
+        10000,
+        0,
+        1,
+        800,
+        600,
+        MarketPosition.LONG,
+        mockPool as PoolManager,
+        maxEnemies
+      );
+
+      expect(mockPool.getEnemy).not.toHaveBeenCalled();
+    });
+
+    it('should spawn whale when whaleTier > 0 and random hits', () => {
+      vi.mocked(marketStateService.getState).mockReturnValue({
+        whaleTier: 2, // WHALE
+      } as any);
+
+      // Mock random to be very low (hits the spawnChance)
+      vi.spyOn(Math, 'random').mockReturnValue(0.00001);
+      mockPool.getWhaleEnemy = vi.fn();
+
+      SpawnSystem.update(16, 0, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
+
+      expect(mockPool.getWhaleEnemy).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number),
+        1,
+        MarketPosition.LONG,
+        2
+      );
+    });
+
+    it('should not spawn whale when random misses', () => {
+      vi.mocked(marketStateService.getState).mockReturnValue({
+        whaleTier: 2,
+      } as any);
+
+      vi.spyOn(Math, 'random').mockReturnValue(0.99);
+      mockPool.getWhaleEnemy = vi.fn();
+
+      SpawnSystem.update(16, 0, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
+
+      expect(mockPool.getWhaleEnemy).not.toHaveBeenCalled();
+    });
   });
 });

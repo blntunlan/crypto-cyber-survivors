@@ -34,17 +34,20 @@ class MockAudioContext {
       setValueAtTime: vi.fn(),
       exponentialRampToValueAtTime: vi.fn(),
       linearRampToValueAtTime: vi.fn(),
-      connect: vi.fn(),
     },
     connect: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
+    onended: null,
   }));
   createGain = vi.fn().mockImplementation(() => ({
     gain: {
+      value: 1,
       setValueAtTime: vi.fn(),
       linearRampToValueAtTime: vi.fn(),
       exponentialRampToValueAtTime: vi.fn(),
+      setTargetAtTime: vi.fn(),
+      cancelScheduledValues: vi.fn(),
     },
     connect: vi.fn(),
   }));
@@ -57,6 +60,7 @@ class MockAudioContext {
     connect: vi.fn(),
   }));
   resume = vi.fn().mockImplementation(() => Promise.resolve());
+  close = vi.fn().mockImplementation(() => Promise.resolve());
 }
 
 vi.stubGlobal('AudioContext', MockAudioContext);

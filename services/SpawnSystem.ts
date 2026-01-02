@@ -1,4 +1,4 @@
-import { type MarketPosition } from '../types';
+import { MarketPosition } from '../types';
 import { type PoolManager } from './PoolManager';
 import { GAME_ENGINE } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
@@ -35,6 +35,7 @@ export class SpawnSystem {
     height: number,
     position: MarketPosition,
     pool: PoolManager,
+    pnl: number = 0,
     maxEnemiesOverride?: number
   ): number {
     // Get config from Admin Dashboard
@@ -93,12 +94,22 @@ export class SpawnSystem {
     }
 
     // Regular enemy spawn
+    // Determine enemy type based on PnL + Position
+    // LONG + negative PnL = Bear market = spawn Bear
+    // LONG + positive PnL = Bull market = spawn Bull
+    // SHORT + negative PnL = Bull market = spawn Bull
+    // SHORT + positive PnL = Bear market = spawn Bear
+    const isBearMarket =
+      (position === MarketPosition.LONG && pnl < 0) ||
+      (position === MarketPosition.SHORT && pnl > 0);
+    const enemyType = isBearMarket ? 'bear' : 'bull';
+
     if (
       pool.activeEnemies.length < effectiveMaxEnemies &&
       newTimer > baseInterval / scaledDifficulty
     ) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
-      pool.getEnemy(x, y, difficulty, position);
+      pool.getEnemy(x, y, difficulty, position, enemyType);
       newTimer = 0;
     } else if (newTimer > baseInterval / scaledDifficulty) {
       // Reset timer even if at limit, so spawning resumes immediately when enemies die

@@ -201,7 +201,7 @@ const App: React.FC = () => {
 
   const startGame = useCallback(
     (choice: MarketPosition, selectedLeverage: LeverageOption) => {
-      if (marketData.price === 0) return;
+      if (marketData.price === 0 || gameStatus !== GameStatus.MENU) return;
 
       resetPlayer();
       setLeverage(selectedLeverage);
@@ -345,6 +345,7 @@ const App: React.FC = () => {
         <GameEngine
           status={gameStatus}
           position={position}
+          pair={selectedPair}
           marketData={marketData}
           onGameOver={() => void handleGameOver()}
           onLevelUp={handleLevelUp}

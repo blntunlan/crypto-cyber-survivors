@@ -278,7 +278,7 @@ export interface EventDataMap {
   buffGemCollected: BuffGemCollectedEvent;
   marketDataTimeout: MarketDataTimeoutEvent;
   // Deprecated: marketStateChanged: MarketStateChangedEvent;
-  marketStateChanged: any; // Keeping for compatibility if needed, but should move to new ones
+  marketStateChanged: unknown; // Keeping for compatibility if needed, but should move to new ones
   whaleSpawned: WhaleSpawnedEvent;
   whaleTierChanged: WhaleTierChangedEvent;
   rsiStateChanged: RSIStateChangedEvent;

@@ -11,11 +11,12 @@ test.describe('Visual Elements', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
           playerId: 'visual-test-player',
-          displayName: 'VisualTestPlayer',
-          provider: 'nickname',
+          nickname: 'VisualTestPlayer',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
     });

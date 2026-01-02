@@ -2,9 +2,10 @@
  * Volume Analyzer Tests
  *
  * Tests the volume normalization and whale detection system.
+ * Now uses z-score based normalization with sigmoid mapping.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   createVolumeAnalyzer,
   type VolumeAnalyzer,
@@ -16,6 +17,10 @@ describe('VolumeAnalyzer', () => {
 
   beforeEach(() => {
     analyzer = createVolumeAnalyzer();
+  });
+
+  afterEach(() => {
+    analyzer.dispose();
   });
 
   describe('Initialization', () => {
@@ -38,113 +43,130 @@ describe('VolumeAnalyzer', () => {
       }
       expect(analyzer.isInitialized()).toBe(true);
     });
+
+    it('should track rolling statistics correctly', () => {
+      analyzer.update(100);
+      analyzer.update(200);
+      analyzer.update(300);
+
+      const stats = analyzer.getStats();
+      expect(stats.count).toBe(3);
+      expect(stats.mean).toBe(200);
+      expect(stats.stdDev).toBeGreaterThan(0);
+    });
   });
 
-  describe('Volume Normalization', () => {
+  describe('Volume Normalization (Z-Score)', () => {
     it('should return 0.5 when not enough data', () => {
       analyzer.update(1000);
       expect(analyzer.getNormalizedVolume()).toBe(0.5);
     });
 
-    it('should normalize volume to 0-1 range', () => {
+    it('should normalize volume to 0-1 range using sigmoid', () => {
       // Build up history with varied volumes
       const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
       volumes.forEach(v => analyzer.update(v));
 
-      // The last volume (1000) should be normalized to 1.0 (it's the max)
-      expect(analyzer.getNormalizedVolume()).toBe(1);
+      // Z-score normalization maps through sigmoid
+      // Max volume should be > 0.5 (above mean)
+      const result = analyzer.getNormalizedVolume();
+      expect(result).toBeGreaterThan(0.5);
+      expect(result).toBeLessThanOrEqual(1);
     });
 
-    it('should normalize minimum volume to 0', () => {
+    it('should normalize below-mean volume to < 0.5', () => {
       // Build history
       const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
       volumes.forEach(v => analyzer.update(v));
 
-      // Add min volume again
+      // Add low volume (below mean)
       analyzer.update(100);
-      expect(analyzer.getNormalizedVolume()).toBe(0);
+      expect(analyzer.getNormalizedVolume()).toBeLessThan(0.5);
     });
 
-    it('should normalize middle volume to ~0.5', () => {
-      // Build history with 100-1000 range
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
-
-      // Add middle volume
-      analyzer.update(550); // (550-100)/(1000-100) = 450/900 = 0.5
+    it('should normalize mean volume to ~0.5', () => {
+      // Build history with consistent mean
+      for (let i = 0; i < 20; i++) {
+        analyzer.update(500);
+      }
+      // Add the mean value
+      analyzer.update(500);
       expect(analyzer.getNormalizedVolume()).toBe(0.5);
     });
 
-    it('should return 0.5 when all volumes are the same', () => {
+    it('should return 0.5 when all volumes are the same (std = 0)', () => {
       // All same volumes
       for (let i = 0; i < 10; i++) {
         analyzer.update(1000);
       }
       expect(analyzer.getNormalizedVolume()).toBe(0.5);
     });
+
+    it('should handle extreme outliers with sigmoid clamping', () => {
+      // Normal volumes
+      for (let i = 0; i < 10; i++) {
+        analyzer.update(1000);
+      }
+
+      // Massive spike (10x normal)
+      analyzer.update(10000);
+
+      // Sigmoid should clamp to near 1 but not exceed
+      const result = analyzer.getNormalizedVolume();
+      expect(result).toBeGreaterThan(0.9);
+      expect(result).toBeLessThanOrEqual(1);
+    });
   });
 
   describe('Whale Tier Detection', () => {
-    it('should detect NONE tier for low normalized volume', () => {
-      // Build history where current is below 0.3 threshold
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
+    it('should detect NONE tier for below-mean volume', () => {
+      // Build baseline history
+      for (let i = 0; i < 20; i++) {
+        analyzer.update(1000);
+      }
 
-      // Add low volume (normalized < 0.3)
-      analyzer.update(200); // (200-100)/(1000-100) = 0.111
+      // Add slightly below-mean volume
+      analyzer.update(900);
       expect(analyzer.getWhaleTier()).toBe(WhaleTier.NONE);
     });
 
-    it('should detect BABY_WHALE tier for volume 0.3-0.6', () => {
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
+    it('should detect higher tier for significant volume spike', () => {
+      // Build baseline with consistent volume
+      for (let i = 0; i < 20; i++) {
+        analyzer.update(1000);
+      }
 
-      // Add volume that normalizes to ~0.4 (between 0.3 and 0.6)
-      analyzer.update(460); // (460-100)/(1000-100) = 0.4
-      expect(analyzer.getWhaleTier()).toBe(WhaleTier.BABY_WHALE);
-    });
-
-    it('should detect WHALE tier for volume 0.6-0.9', () => {
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
-
-      // Add volume that normalizes to ~0.75 (between 0.6 and 0.9)
-      analyzer.update(775); // (775-100)/(1000-100) = 0.75
-      expect(analyzer.getWhaleTier()).toBe(WhaleTier.WHALE);
-    });
-
-    it('should detect MEGA_WHALE tier for volume > 0.9', () => {
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
-
-      // Add max volume (normalized = 1.0 > 0.9)
-      analyzer.update(1000);
-      expect(analyzer.getWhaleTier()).toBe(WhaleTier.MEGA_WHALE);
+      // Big spike - should trigger whale tier
+      analyzer.update(3000); // 2 std devs above mean approx
+      expect(analyzer.getWhaleTier()).not.toBe(WhaleTier.NONE);
     });
 
     it('should update tier correctly as volume changes', () => {
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
+      // Build baseline
+      for (let i = 0; i < 20; i++) {
+        analyzer.update(1000);
+      }
 
       // Low volume → NONE
-      analyzer.update(150);
+      analyzer.update(500);
       expect(analyzer.getWhaleTier()).toBe(WhaleTier.NONE);
 
-      // Higher volume → tier changes
-      analyzer.update(1000);
-      expect(analyzer.getWhaleTier()).toBe(WhaleTier.MEGA_WHALE);
+      // Spike → higher tier
+      analyzer.update(5000);
+      expect(analyzer.getWhaleTier()).not.toBe(WhaleTier.NONE);
     });
   });
 
   describe('Whale Spawn Cooldown', () => {
     beforeEach(() => {
-      // Build up history to enable whale spawning
-      const volumes = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
-      volumes.forEach(v => analyzer.update(v));
+      // Build up history with variance to enable whale spawning
+      for (let i = 0; i < 10; i++) {
+        analyzer.update(1000 + (i % 3) * 100);
+      }
     });
 
     it('should not spawn whale when tier is NONE', () => {
-      analyzer.update(100); // Low volume → NONE tier
+      analyzer.update(500); // Low volume → NONE tier
       const result = analyzer.shouldSpawnWhale(Date.now());
       expect(result.shouldSpawn).toBe(false);
     });
@@ -154,11 +176,12 @@ describe('VolumeAnalyzer', () => {
       freshAnalyzer.update(1000); // Only 1 data point
       const result = freshAnalyzer.shouldSpawnWhale(Date.now());
       expect(result.shouldSpawn).toBe(false);
+      freshAnalyzer.dispose();
     });
 
     it('should respect cooldown between spawns', () => {
       // Set high volume for potential spawn
-      analyzer.update(1000);
+      analyzer.update(5000);
 
       const now = Date.now();
 
@@ -184,11 +207,11 @@ describe('VolumeAnalyzer', () => {
     });
 
     it('should not spawn during cooldown even with high volume', () => {
-      analyzer.update(1000); // MEGA_WHALE tier
+      analyzer.update(5000); // High volume tier
       const now = Date.now();
 
-      // First, ensure we're not on cooldown and mock random to always succeed
-      vi.spyOn(Math, 'random').mockReturnValue(0); // Always succeeds spawn check
+      // Mock random to always succeed
+      vi.spyOn(Math, 'random').mockReturnValue(0);
 
       // Record a spawn
       analyzer.recordWhaleSpawn(now);
@@ -196,24 +219,6 @@ describe('VolumeAnalyzer', () => {
       // Within cooldown - should not spawn
       const result = analyzer.shouldSpawnWhale(now + 1000);
       expect(result.shouldSpawn).toBe(false);
-
-      vi.restoreAllMocks();
-    });
-
-    it('should include tier config when spawn succeeds', () => {
-      analyzer.update(1000); // MEGA_WHALE tier
-
-      // Mock random to always succeed
-      vi.spyOn(Math, 'random').mockReturnValue(0);
-
-      const result = analyzer.shouldSpawnWhale(Date.now() + 10000);
-
-      if (result.shouldSpawn) {
-        expect(result.tier).toBe(WhaleTier.MEGA_WHALE);
-        expect(result.config).toBeDefined();
-        expect(result.config?.sizeMultiplier).toBe(2.0);
-        expect(result.config?.healthMultiplier).toBe(4.0);
-      }
 
       vi.restoreAllMocks();
     });
@@ -257,22 +262,24 @@ describe('VolumeAnalyzer', () => {
       expect(analyzer.getHistoryLength()).toBeLessThanOrEqual(DEFAULT_VOLUME_CONFIG.historySize);
     });
 
-    it('should handle volume spikes correctly', () => {
-      // Normal volumes
+    it('should maintain accurate rolling stats when removing old values', () => {
+      // Fill history to max
+      for (let i = 0; i < 100; i++) {
+        analyzer.update(1000);
+      }
+
+      // Add new values to trigger removal
       for (let i = 0; i < 10; i++) {
         analyzer.update(1000);
       }
 
-      // Massive spike
-      analyzer.update(100000);
-
-      // Should normalize to 1 (max)
-      expect(analyzer.getNormalizedVolume()).toBe(1);
-      expect(analyzer.getWhaleTier()).toBe(WhaleTier.MEGA_WHALE);
+      const stats = analyzer.getStats();
+      expect(stats.mean).toBeCloseTo(1000, 5);
+      expect(stats.count).toBe(100);
     });
   });
 
-  describe('Reset', () => {
+  describe('Reset and Dispose', () => {
     it('should reset all state', () => {
       // Build up state
       for (let i = 0; i < 10; i++) {
@@ -280,7 +287,6 @@ describe('VolumeAnalyzer', () => {
       }
       analyzer.recordWhaleSpawn(Date.now());
 
-      expect(analyzer.getWhaleTier()).not.toBe(WhaleTier.NONE);
       expect(analyzer.getHistoryLength()).toBe(10);
 
       // Reset
@@ -291,6 +297,23 @@ describe('VolumeAnalyzer', () => {
       expect(analyzer.getHistoryLength()).toBe(0);
       expect(analyzer.isInitialized()).toBe(false);
       expect(analyzer.isOnCooldown(Date.now())).toBe(false);
+      expect(analyzer.getStats().count).toBe(0);
+    });
+
+    it('should handle dispose correctly', () => {
+      const testAnalyzer = createVolumeAnalyzer();
+      testAnalyzer.update(1000);
+      testAnalyzer.dispose();
+
+      // After dispose, update should warn and return safely
+      const result = testAnalyzer.update(2000);
+      expect(result).toBe(0.5); // Returns default after dispose
+    });
+
+    it('should be safe to call dispose multiple times', () => {
+      const testAnalyzer = createVolumeAnalyzer();
+      testAnalyzer.dispose();
+      expect(() => testAnalyzer.dispose()).not.toThrow();
     });
   });
 
@@ -306,6 +329,7 @@ describe('VolumeAnalyzer', () => {
       }
 
       expect(customAnalyzer.getHistoryLength()).toBe(20);
+      customAnalyzer.dispose();
     });
 
     it('should use custom whale interval', () => {
@@ -327,6 +351,24 @@ describe('VolumeAnalyzer', () => {
 
       // 11 seconds later - should not be on cooldown
       expect(customAnalyzer.isOnCooldown(now + 11000)).toBe(false);
+
+      customAnalyzer.dispose();
+    });
+
+    it('should make defensive copy of config', () => {
+      const config = { ...DEFAULT_VOLUME_CONFIG };
+      const customAnalyzer = createVolumeAnalyzer(config);
+
+      // Mutating original config should not affect analyzer
+      config.historySize = 5;
+
+      for (let i = 0; i < 50; i++) {
+        customAnalyzer.update(1000 + i);
+      }
+
+      // Should use original historySize (100)
+      expect(customAnalyzer.getHistoryLength()).toBe(50);
+      customAnalyzer.dispose();
     });
   });
 });

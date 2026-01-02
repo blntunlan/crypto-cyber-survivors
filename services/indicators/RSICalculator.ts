@@ -31,6 +31,10 @@ export class RSICalculator {
   private previousState: RSIState = 'NEUTRAL';
   private config: RSIConfig;
 
+  // State for Wilder's Smoothing
+  private prevAvgGain: number | null = null;
+  private prevAvgLoss: number | null = null;
+
   constructor(config: RSIConfig = DEFAULT_RSI_CONFIG) {
     this.config = config;
 
@@ -118,6 +122,8 @@ export class RSICalculator {
     this.currentRSI = 50;
     this.currentState = 'NEUTRAL';
     this.previousState = 'NEUTRAL';
+    this.prevAvgGain = null;
+    this.prevAvgLoss = null;
   }
 
   /**
@@ -135,48 +141,72 @@ export class RSICalculator {
       return 50; // Neutral
     }
 
-    // Calculate price changes for the last 'period' intervals
-    const changes: number[] = [];
-    const startIndex = historyLength - period;
+    // Calculate change from last update
+    // Note: calculateRSI is called after pushing new price
+    const currentPrice = this.priceHistory[historyLength - 1];
+    const prevPrice = this.priceHistory[historyLength - 2];
 
-    for (let i = startIndex; i < historyLength; i++) {
-      const current = this.priceHistory[i];
-      const previous = this.priceHistory[i - 1];
-
-      if (current !== undefined && previous !== undefined) {
-        changes.push(current - previous);
-      }
-    }
-
-    if (changes.length === 0) {
+    if (currentPrice === undefined || prevPrice === undefined) {
       return 50;
     }
 
-    // Separate gains and losses
-    const gains = changes.map(c => (c > 0 ? c : 0));
-    const losses = changes.map(c => (c < 0 ? Math.abs(c) : 0));
+    const change = currentPrice - prevPrice;
 
-    // Calculate averages
-    const avgGain = gains.reduce((a, b) => a + b, 0) / period;
-    const avgLoss = losses.reduce((a, b) => a + b, 0) / period;
+    let currentGain = 0;
+    let currentLoss = 0;
 
-    // Edge case: flat prices (no change at all)
-    if (avgGain === 0 && avgLoss === 0) {
-      return 50; // Neutral - no movement
+    if (change > 0) {
+      currentGain = change;
+    } else {
+      currentLoss = Math.abs(change);
     }
 
-    // Edge case: all gains (no losses)
-    if (avgLoss === 0) {
-      return 100;
+    // Initialize with SMA if not set
+    if (this.prevAvgGain === null || this.prevAvgLoss === null) {
+      let sumGain = 0;
+      let sumLoss = 0;
+
+      // Calculate initial SMA from the first 'period' changes
+      // We look back 'period' steps
+      const startIndex = historyLength - period;
+
+      for (let i = startIndex; i < historyLength; i++) {
+        const pCurr = this.priceHistory[i];
+        const pPrev = this.priceHistory[i - 1];
+        if (pCurr !== undefined && pPrev !== undefined) {
+          const c = pCurr - pPrev;
+          if (c > 0) sumGain += c;
+          else sumLoss += Math.abs(c);
+        }
+      }
+
+      this.prevAvgGain = sumGain / period;
+      this.prevAvgLoss = sumLoss / period;
+    } else {
+      // Wilder's Smoothing: (Previous Avg * (n-1) + Current) / n
+      this.prevAvgGain = (this.prevAvgGain * (period - 1) + currentGain) / period;
+      this.prevAvgLoss = (this.prevAvgLoss * (period - 1) + currentLoss) / period;
     }
 
-    // Edge case: all losses (no gains)
-    if (avgGain === 0) {
-      return 0;
+    // Prevent extreme decay: if both averages are near-zero, reset to fresh SMA
+    // This prevents RSI from getting stuck at 0 or 100 due to floating-point decay
+    const MIN_AVG_THRESHOLD = 0.0001;
+    if (this.prevAvgGain !== null && this.prevAvgLoss !== null) {
+      if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+        // Both have decayed too much - reset to recalculate fresh SMA next update
+        this.prevAvgGain = null;
+        this.prevAvgLoss = null;
+        return 50;
+      }
     }
+
+    // Edge cases - use threshold instead of exact 0 check
+    if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) return 50;
+    if (this.prevAvgLoss < MIN_AVG_THRESHOLD) return 100;
+    if (this.prevAvgGain < MIN_AVG_THRESHOLD) return 0;
 
     // Calculate RS and RSI
-    const rs = avgGain / avgLoss;
+    const rs = this.prevAvgGain / this.prevAvgLoss;
     const rsi = 100 - 100 / (1 + rs);
 
     // Validate result

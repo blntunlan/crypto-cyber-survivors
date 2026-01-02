@@ -7,7 +7,11 @@
 
 import { type Enemy, MarketPosition } from '../types';
 import { COLORS } from '../constants';
-import { type MovementStrategy, createMovementStrategy } from '../strategies/EnemyBehaviors';
+import {
+  type MovementStrategy,
+  createMovementStrategy,
+  createMarketMovementStrategy,
+} from '../strategies/EnemyBehaviors';
 
 /**
  * Enemy configuration blueprint
@@ -105,13 +109,21 @@ export class EnemyFactory {
 
   /**
    * Create a specific enemy type
+   *
+   * @param type Enemy type (bear, bull, fud, etc.)
+   * @param x Spawn X position
+   * @param y Spawn Y position
+   * @param difficulty Current difficulty level
+   * @param position Player's market position (LONG/SHORT)
+   * @param aggroMultiplier RSI-based difficulty modifier (>1 = harder, <1 = easier)
    */
   createEnemy(
     type: string,
     x: number,
     y: number,
     difficulty: number,
-    position: MarketPosition
+    position: MarketPosition,
+    aggroMultiplier: number = 1.0
   ): GameEnemy {
     const config = ENEMY_CONFIGS[type] ?? ENEMY_CONFIGS['bear']!;
 
@@ -119,6 +131,23 @@ export class EnemyFactory {
     let color = config.color;
     if (type === 'bear' || type === 'bull') {
       color = position === MarketPosition.LONG ? COLORS.SHORT : COLORS.LONG;
+    }
+
+    // Apply aggro multiplier to speed
+    const baseSpeed = config.baseSpeed * difficulty;
+    const modifiedSpeed = baseSpeed * aggroMultiplier;
+
+    // Determine movement behavior based on aggro level
+    let behavior: MovementStrategy;
+    if (aggroMultiplier >= 1.3) {
+      // High aggro (OVERBOUGHT for LONG, OVERSOLD for SHORT) - aggressive zigzag
+      behavior = createMarketMovementStrategy('zigzag');
+    } else if (aggroMultiplier <= 0.8) {
+      // Low aggro (OVERSOLD for LONG, OVERBOUGHT for SHORT) - easy straight movement
+      behavior = createMarketMovementStrategy('straight');
+    } else {
+      // Neutral - use default type-based behavior
+      behavior = createMovementStrategy(type);
     }
 
     return {
@@ -129,28 +158,36 @@ export class EnemyFactory {
       radius: config.radius,
       health: config.baseHealth * (1 + (difficulty - 1) * 0.2),
       maxHealth: config.baseHealth * (1 + (difficulty - 1) * 0.2),
-      speed: config.baseSpeed * difficulty,
+      speed: modifiedSpeed,
       color,
-      behavior: createMovementStrategy(type),
+      behavior,
     };
   }
 
   /**
    * Create a random enemy based on spawn weights
+   *
+   * @param aggroMultiplier RSI-based difficulty modifier (>1 = harder, <1 = easier)
    */
-  createRandomEnemy(x: number, y: number, difficulty: number, position: MarketPosition): GameEnemy {
+  createRandomEnemy(
+    x: number,
+    y: number,
+    difficulty: number,
+    position: MarketPosition,
+    aggroMultiplier: number = 1.0
+  ): GameEnemy {
     const roll = Math.random() * this.totalWeight;
     let cumulative = 0;
 
     for (const [type, config] of Object.entries(ENEMY_CONFIGS)) {
       cumulative += config.spawnWeight;
       if (roll < cumulative) {
-        return this.createEnemy(type, x, y, difficulty, position);
+        return this.createEnemy(type, x, y, difficulty, position, aggroMultiplier);
       }
     }
 
     // Fallback to bear
-    return this.createEnemy('bear', x, y, difficulty, position);
+    return this.createEnemy('bear', x, y, difficulty, position, aggroMultiplier);
   }
 
   /**

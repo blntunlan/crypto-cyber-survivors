@@ -122,23 +122,50 @@ export class CombatSystem {
     _time: number,
     stats?: ReturnType<typeof BuffManager.getDecoratedStats> | null
   ): void {
-    // Use decorated stats if available, otherwise fallback to player base stats
+    // 1. Get effective stats
     const effectiveLuck = stats ? stats.getLuck() : player.luck;
     const effectiveCritChance = stats ? stats.getCritChance() : player.critChance;
     const effectiveDamage = stats ? stats.getDamage() : player.baseDamage;
     const effectiveProjectiles = stats ? stats.getProjectiles() : player.projectiles;
     const effectiveArea = stats ? stats.getArea() : player.area;
 
-    const luckBonus = effectiveLuck * 0.02;
+    // 2. Calculate Crit Status
+    const { isCrit, isSuperCrit } = this.calculateCritStatus(effectiveCritChance, effectiveLuck);
+
+    // 3. Calculate Damage
+    let damage = effectiveDamage;
+    if (isSuperCrit) damage *= 4;
+    else if (isCrit) damage *= 2;
+
+    // 4. Calculate Target Position (Lead)
+    const interceptPos = this.calculateInterceptPosition(player, target);
+    const baseAngle = Math.atan2(interceptPos.y - player.y, interceptPos.x - player.x);
+
+    // 5. Spawn Projectiles
+    this.spawnProjectiles(pool, player, baseAngle, damage, effectiveProjectiles, {
+      isCrit,
+      isSuperCrit,
+      effectiveArea,
+    });
+  }
+
+  private static calculateCritStatus(
+    critChance: number,
+    luck: number
+  ): { isCrit: boolean; isSuperCrit: boolean } {
+    const luckBonus = luck * 0.02;
     const isSuperCrit =
-      CheatManager.isForcedSuperCrit() || Math.random() < (effectiveCritChance + luckBonus) * 0.2;
+      CheatManager.isForcedSuperCrit() || Math.random() < (critChance + luckBonus) * 0.2;
     const isCrit =
-      !isSuperCrit &&
-      (CheatManager.isForcedCrit() || Math.random() < effectiveCritChance + luckBonus);
+      !isSuperCrit && (CheatManager.isForcedCrit() || Math.random() < critChance + luckBonus);
 
-    // IMPROVED LEAD SHOOTING LOGIC
-    // Uses quadratic intercept calculation for more accurate predictions
+    return { isCrit, isSuperCrit };
+  }
 
+  private static calculateInterceptPosition(
+    player: Player,
+    target: NearestEnemy
+  ): { x: number; y: number } {
     // 1. Calculate enemy velocity vector (most enemies move towards player)
     const distSafe = target.dist || 1;
     const enemyVx = ((player.x - target.x) / distSafe) * target.speed;
@@ -150,7 +177,6 @@ export class CombatSystem {
     const bulletSpeed = GAME_ENGINE.BULLET_SPEED;
 
     // 3. Solve quadratic equation for intercept time: |P + V*t| = bulletSpeed * t
-    // a*t^2 + b*t + c = 0
     const a = enemyVx * enemyVx + enemyVy * enemyVy - bulletSpeed * bulletSpeed;
     const b = 2 * (relX * enemyVx + relY * enemyVy);
     const c = relX * relX + relY * relY;
@@ -191,22 +217,25 @@ export class CombatSystem {
     interceptTime = Math.min(interceptTime, maxInterceptTime) * leadFactor;
 
     // 6. Calculate predicted target position
-    const predictedX = target.x + enemyVx * interceptTime;
-    const predictedY = target.y + enemyVy * interceptTime;
+    return {
+      x: target.x + enemyVx * interceptTime,
+      y: target.y + enemyVy * interceptTime,
+    };
+  }
 
-    const baseAngle = Math.atan2(predictedY - player.y, predictedX - player.x);
+  private static spawnProjectiles(
+    pool: PoolManager,
+    player: Player,
+    baseAngle: number,
+    damage: number,
+    count: number,
+    options: { isCrit: boolean; isSuperCrit: boolean; effectiveArea: number }
+  ): void {
+    const { isCrit, isSuperCrit, effectiveArea } = options;
 
-    let damage = effectiveDamage;
-    if (isSuperCrit) {
-      damage *= 4;
-    } else if (isCrit) {
-      damage *= 2;
-    }
-
-    // Fire all projectiles with spread
-    for (let i = 0; i < effectiveProjectiles; i++) {
+    for (let i = 0; i < count; i++) {
       const spread = GAME_ENGINE.PROJECTILE_SPREAD;
-      const angleOffset = (i - (effectiveProjectiles - 1) / 2) * spread;
+      const angleOffset = (i - (count - 1) / 2) * spread;
       const finalAngle = baseAngle + angleOffset;
 
       const baseRadius = isSuperCrit ? 9 : isCrit ? 6 : 4;

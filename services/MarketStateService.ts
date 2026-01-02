@@ -101,7 +101,7 @@ class MarketStateServiceImpl {
     Logger.info(`[MarketStateService] Subscribed to ${this.currentPair} updates`);
   }
 
-  private handleUpdate(data: Record<string, any>): void {
+  private handleUpdate(data: Record<string, unknown>): void {
     const prevState = this.state;
     this.state = this.transformState(data);
 
@@ -124,26 +124,26 @@ class MarketStateServiceImpl {
     EventBus.emit('marketStateUpdated', this.state);
   }
 
-  private transformState(data: Record<string, any>): MarketState {
+  private transformState(data: Record<string, unknown>): MarketState {
     const aggroMultiplier =
       this.currentPosition === 'LONG'
-        ? data.enemy_aggro_multiplier_long
-        : data.enemy_aggro_multiplier_short;
+        ? (data.enemy_aggro_multiplier_long as number)
+        : (data.enemy_aggro_multiplier_short as number);
 
     return {
-      pair: data.pair,
-      price: parseFloat(data.price),
-      volume: parseFloat(data.volume),
-      rsi: parseFloat(data.rsi),
-      rsiState: data.rsi_state,
-      atr: parseFloat(data.atr),
-      atrPercent: parseFloat(data.atr_percent),
-      spawnRateMultiplier: parseFloat(data.spawn_rate_multiplier),
-      normalizedVolume: parseFloat(data.normalized_volume),
-      volumePercentile: parseFloat(data.volume_percentile),
-      whaleTier: data.whale_tier,
+      pair: data.pair as string,
+      price: parseFloat(data.price as string),
+      volume: parseFloat(data.volume as string),
+      rsi: parseFloat(data.rsi as string),
+      rsiState: data.rsi_state as 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT',
+      atr: parseFloat(data.atr as string),
+      atrPercent: parseFloat(data.atr_percent as string),
+      spawnRateMultiplier: parseFloat(data.spawn_rate_multiplier as string),
+      normalizedVolume: parseFloat(data.normalized_volume as string),
+      volumePercentile: parseFloat(data.volume_percentile as string),
+      whaleTier: data.whale_tier as 0 | 1 | 2 | 3,
       enemyAggroMultiplier: aggroMultiplier,
-      updatedAt: new Date(data.updated_at),
+      updatedAt: new Date(data.updated_at as string),
     };
   }
 

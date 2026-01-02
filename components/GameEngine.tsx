@@ -7,6 +7,7 @@ import {
   type GameState,
   type Candle,
 } from '../types';
+import { type CryptoPair } from '../types/crypto';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { PoolManager } from '../services/PoolManager';
 import { GameRenderer } from '../services/GameRenderer';
@@ -40,6 +41,7 @@ import { useGameStatusEffects } from '../hooks/useGameStatusEffects';
 interface GameEngineProps {
   status: GameStatus;
   position: MarketPosition;
+  pair: CryptoPair;
   marketData: MarketData;
   onGameOver: () => void;
   onLevelUp: () => void;
@@ -53,6 +55,7 @@ interface GameEngineProps {
 export const GameEngine: React.FC<GameEngineProps> = ({
   status,
   position,
+  pair,
   marketData,
   onGameOver,
   onLevelUp,
@@ -121,9 +124,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Market State Initialization (Server-Side Indicators)
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
-      // TODO: Get active pair dynamically. Defaulting to BTC for now matching server init.
-      const pair = 'BTC';
-
       marketStateService
         .initialize(pair, position)
         .then(state => {
@@ -139,7 +139,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         void marketStateService.destroy();
       }
     };
-  }, [status, position]);
+  }, [status, position, pair]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -329,6 +329,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           height,
           position,
           p,
+          marketDataRef.current.pnl,
           maxEnemies
         );
 

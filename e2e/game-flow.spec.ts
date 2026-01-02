@@ -88,11 +88,12 @@ test.describe('Game Flow', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
           playerId: 'test-player-id',
-          displayName: 'TestPlayer',
-          provider: 'nickname',
+          nickname: 'TestPlayer',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
     });
@@ -132,11 +133,12 @@ test.describe('UI Elements', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
           playerId: 'test-player-id',
-          displayName: 'TestPlayer',
-          provider: 'nickname',
+          nickname: 'TestPlayer',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
     });

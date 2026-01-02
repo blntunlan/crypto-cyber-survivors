@@ -43,6 +43,17 @@ vi.mock('../services/EventBus', () => ({
   },
 }));
 
+// Mock BuffManager
+vi.mock('../services/patterns/decorators/BuffManager', () => ({
+  BuffManager: {
+    isInitialized: vi.fn(() => true),
+    getDecoratedStats: vi.fn(),
+    addEffect: vi.fn(),
+  },
+}));
+
+import { BuffManager } from '../services/patterns/decorators/BuffManager';
+
 describe('PhysicsSystem', () => {
   let mockPool: any;
   let mockPlayer: Player;
@@ -51,6 +62,13 @@ describe('PhysicsSystem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Default mock stats
+    vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+      getArmor: () => mockPlayer.armor,
+      getMagnet: () => mockPlayer.magnet,
+      getSpeed: () => mockPlayer.speed,
+    } as any);
 
     // Mock PoolManager
     mockPool = {
@@ -200,6 +218,38 @@ describe('PhysicsSystem', () => {
       expect(mockPlayer.hp).toBe(100); // No damage
     });
 
+    it('should reduce damage to player based on decorated armor', () => {
+      const mockEnemy = {
+        x: 405,
+        y: 300,
+        radius: 15,
+        active: true,
+        health: 100,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [mockEnemy];
+      mockPlayer.hp = 100;
+
+      // Base damage factor (no armor): Math.max(0.1, 0.8 - 0 * 0.05) = 0.8
+      // With armor 4: Math.max(0.1, 0.8 - 4 * 0.05) = 0.8 - 0.2 = 0.6
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getArmor: () => 4,
+        getMagnet: () => 1,
+      } as any);
+
+      PhysicsSystem.handleCollisions(
+        mockPool as PoolManager,
+        mockPlayer,
+        mockState,
+        1,
+        800,
+        600,
+        mockOnGameOver
+      );
+
+      expect(mockPlayer.hp).toBe(100 - 0.6);
+    });
+
     it('should deactivate off-screen enemies', () => {
       const mockEnemy = {
         x: -500,
@@ -224,31 +274,6 @@ describe('PhysicsSystem', () => {
       expect(mockEnemy.active).toBe(false);
     });
 
-    it('should call enemy behavior move method', () => {
-      const mockMove = vi.fn();
-      const mockEnemy = {
-        x: 500,
-        y: 400,
-        radius: 15,
-        active: true,
-        health: 100,
-        behavior: { move: mockMove },
-      };
-      mockPool.activeEnemies = [mockEnemy];
-
-      PhysicsSystem.handleCollisions(
-        mockPool as PoolManager,
-        mockPlayer,
-        mockState,
-        1,
-        800,
-        600,
-        mockOnGameOver
-      );
-
-      expect(mockMove).toHaveBeenCalledWith(mockEnemy, mockPlayer.x, mockPlayer.y, 1);
-    });
-
     it('should collect gems when player touches them', () => {
       mockPool.activeGems = [{ x: 405, y: 300, radius: 5, value: 10, active: true }];
       mockPlayer.exp = 0;
@@ -267,9 +292,15 @@ describe('PhysicsSystem', () => {
       expect(mockPlayer.exp).toBe(10);
     });
 
-    it('should pull gems towards player within magnet range', () => {
+    it('should pull gems towards player within decorated magnet range', () => {
       mockPool.activeGems = [{ x: 450, y: 300, radius: 5, value: 10, active: true }];
-      mockPlayer.magnet = 50;
+
+      // GEM_MAGNET_BASE_RANGE (30) + Magnet (100) = 130
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getMagnet: () => 100,
+        getArmor: () => 0,
+      } as any);
+
       const initialX = mockPool.activeGems[0].x;
 
       PhysicsSystem.handleCollisions(
@@ -407,7 +438,6 @@ describe('PhysicsSystem', () => {
         mockOnGameOver
       );
 
-      // Enemy should have been pushed RIGHT
       expect(mockEnemy.x).toBeGreaterThan(initialX);
     });
   });

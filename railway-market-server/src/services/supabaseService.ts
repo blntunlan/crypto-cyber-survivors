@@ -70,6 +70,9 @@ export class SupabaseService {
     spawn_rate_multiplier: number;
     normalized_volume: number;
     volume_percentile: number;
+    volume_z_score: number;
+    volume_mean: number;
+    volume_std_dev: number;
     whale_tier: number;
     volume_history_min: number;
     volume_history_max: number;
