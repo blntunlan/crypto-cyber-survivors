@@ -10,6 +10,7 @@
 import { EventBus } from './EventBus';
 import { TimeService } from './TimeService';
 import { COLORS } from '../constants';
+import { type ComboDebugState, getDebugTimestamp } from '../types/DebugState';
 
 export interface ComboState {
   killStreak: number;
@@ -268,6 +269,27 @@ class ComboSystemClass {
       return COMBO_MILESTONES[nextIndex] ?? null;
     }
     return null;
+  }
+
+  /**
+   * Get debug state for runtime inspection
+   */
+  getDebugState(): ComboDebugState {
+    const currentMilestone = this.getCurrentMilestone();
+    const nextMilestone = this.getNextMilestone();
+
+    return {
+      systemName: 'ComboSystem',
+      timestamp: getDebugTimestamp(),
+      killStreak: this.state.killStreak,
+      maxStreak: this.state.maxStreak,
+      comboMultiplier: this.state.comboMultiplier,
+      totalKills: this.state.totalKills,
+      totalBonusXp: this.state.totalBonusXp,
+      timeToExpire: this.getComboTimeRemaining(),
+      currentMilestone: currentMilestone?.name ?? null,
+      nextMilestone: nextMilestone?.name ?? null,
+    };
   }
 
   /**

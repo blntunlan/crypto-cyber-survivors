@@ -53,11 +53,13 @@ export interface Player extends Omit<Entity, 'active'>, PlayerStats {
 
 // Note: UpgradeOption removed - now using Card from CardSystem
 
+import { type EnemyId } from './config/EnemyRegistry';
+
 export interface Enemy extends Entity {
   speed: number;
   health: number;
   maxHealth: number;
-  type: 'bear' | 'bull' | 'fud' | 'whale' | 'liquidator' | 'pumpdump';
+  type: EnemyId;
   valueMultiplier?: number;
 }
 

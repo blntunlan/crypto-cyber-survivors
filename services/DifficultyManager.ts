@@ -11,6 +11,7 @@
 import { TimeService } from './TimeService';
 import { useAdminConfigStore } from '../stores/admin/configStore';
 import type { DifficultyConfig } from '../types/admin';
+import { type DifficultyDebugState, getDebugTimestamp } from '../types/DebugState';
 
 export interface DifficultyFactors {
   baseTime: number;
@@ -287,6 +288,23 @@ class DifficultyManagerClass {
    */
   getTotalElapsedSeconds(): number {
     return TimeService.getGameTimeSeconds();
+  }
+
+  /**
+   * Get debug state for runtime inspection
+   */
+  getDebugState(): DifficultyDebugState {
+    return {
+      systemName: 'DifficultyManager',
+      timestamp: getDebugTimestamp(),
+      wavePhase: this.currentWavePhase,
+      waveTimer: this.waveTimer,
+      killStreak: this.killStreak,
+      totalElapsedSeconds: TimeService.getGameTimeSeconds(),
+      pnlHistoryLength: this.lastPnlValues.length,
+      waveDurations: { ...this.WAVE_DURATIONS },
+      waveMultipliers: { ...this.WAVE_MULTIPLIERS },
+    };
   }
 
   private clamp(value: number, min: number, max: number): number {

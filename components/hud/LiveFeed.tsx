@@ -56,7 +56,7 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
           })}
         </div>
         <div className="text-sm font-black flex items-center gap-2 mt-1" style={{ color: pnlHex }}>
-          <span>{smoothValues.pnl.toFixed(2)}%</span>
+          <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
           <span className="text-[10px] opacity-70 tracking-widest uppercase">
             {marketData.effectivePnl >= 0 ? 'Profit' : 'Loss'}
           </span>
@@ -148,7 +148,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
           className="text-xs font-black flex items-center gap-1.5 mt-0.5"
           style={{ color: pnlHex }}
         >
-          <span className="text-base">{smoothValues.pnl.toFixed(2)}%</span>
+          <span className="text-base">{(smoothValues.pnl * 100).toFixed(2)}%</span>
           <span className="text-[9px] opacity-70 tracking-tighter">
             {marketData.effectivePnl >= 0 ? 'PROFIT' : 'LOSS'}
           </span>

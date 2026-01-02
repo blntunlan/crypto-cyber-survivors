@@ -2,18 +2,21 @@ import React, { memo, useEffect, useState } from 'react';
 import { type Player } from '../../types';
 import { COLORS } from '../../constants';
 import { screenService } from '../../services/ScreenService';
-import { STAT_DEFINITIONS } from '../../config/StatRegistry';
+import { STAT_DEFINITIONS, type StatKey } from '../../config/StatRegistry';
+import { StatService } from '../../services/StatService';
 
 interface KernelStatusProps {
   player: Player;
   smoothValues: {
     exp: number;
-    damage: number;
+    damage?: number; // legacy support if needed
+    baseDamage: number;
     speed: number;
     fireRate: number;
     luck: number;
     lifesteal: number;
-    crit: number;
+    crit?: number; // legacy support if needed
+    critChance: number;
     magnet: number;
     armor: number;
     area: number;
@@ -47,35 +50,8 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
         {Object.values(STAT_DEFINITIONS).map(stat => {
           if (!stat.showInKernel) return null;
 
-          let value = smoothValues[stat.id as keyof typeof smoothValues];
-
-          // Special handling for naming mismatch
-          if (stat.id === 'baseDamage') {
-            value = smoothValues.damage;
-          }
-          if (stat.id === 'critChance') {
-            value = smoothValues.crit;
-          }
-
-          // Format based on type
-          let displayValue: string | number = value;
-
-          if (stat.isPercentage) {
-            const safeValue = isNaN(value) ? 0 : value;
-            displayValue = `${(safeValue * 100).toFixed(0)}%`;
-          } else if (stat.id === 'fireRate') {
-            // Special case for Fire Rate (A/S) - show attacks per second
-            displayValue = (1000 / (value || 500)).toFixed(1);
-          } else if (stat.id === 'baseDamage' || stat.id === 'armor' || stat.id === 'magnet') {
-            displayValue = Math.round(value);
-            if (stat.id === 'magnet') displayValue = `+${displayValue}`;
-          } else if (stat.id === 'luck') {
-            displayValue = `+${Number(value).toFixed(1)}`;
-          } else {
-            // covers speed and area
-            displayValue = Number(value).toFixed(1);
-            if (stat.id === 'area') displayValue = `x${displayValue}`;
-          }
+          const value = smoothValues[stat.id as keyof typeof smoothValues] ?? 0;
+          const displayValue = StatService.format(value, stat.id as StatKey);
 
           return (
             <StatRow key={stat.id} label={stat.label} value={displayValue} color={stat.uiColor} />
@@ -110,33 +86,8 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
         {Object.values(STAT_DEFINITIONS).map(stat => {
           if (!stat.showInKernel) return null;
 
-          let value = smoothValues[stat.id as keyof typeof smoothValues];
-          // Special handling for naming mismatch in KernelStatus props vs Registry
-          if (stat.id === 'baseDamage') {
-            value = smoothValues.damage;
-          }
-          if (stat.id === 'critChance') {
-            value = smoothValues.crit;
-          }
-
-          let displayValue: string | number = value;
-
-          if (stat.isPercentage) {
-            const safeValue = isNaN(value) ? 0 : value;
-            displayValue = `${(safeValue * 100).toFixed(0)}%`;
-          } else if (stat.id === 'fireRate') {
-            displayValue = (1000 / (value || 500)).toFixed(1);
-          } else if (stat.id === 'baseDamage' || stat.id === 'armor' || stat.id === 'magnet') {
-            // Use baseDamage here
-            displayValue = Math.round(value);
-            if (stat.id === 'magnet') displayValue = `+${displayValue}`;
-          } else if (stat.id === 'luck') {
-            displayValue = `+${Number(value).toFixed(1)}`;
-          } else {
-            // covers speed and area
-            displayValue = Number(value).toFixed(1);
-            if (stat.id === 'area') displayValue = `x${displayValue}`;
-          }
+          const value = smoothValues[stat.id as keyof typeof smoothValues] ?? 0;
+          const displayValue = StatService.format(value, stat.id as StatKey);
 
           return (
             <div key={stat.id} className="flex justify-between items-center text-[9px] gap-2">

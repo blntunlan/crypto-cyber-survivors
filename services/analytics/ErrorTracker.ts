@@ -1,5 +1,10 @@
 /**
- * ErrorTracker - Enhanced Client-Side Error Tracking
+ * ErrorTracker - Enhanced Client-Side Error Tracking (Refactored)
+ *
+ * This is a thin orchestrator that delegates to focused modules:
+ * - ErrorTypes.ts - Type definitions and constants
+ * - ErrorQueue.ts - Offline queue management
+ * - ErrorSanitizer.ts - Privacy-safe sanitization
  *
  * Features:
  * - Global error handler (window.onerror + unhandledrejection)
@@ -12,95 +17,48 @@
  * - User action breadcrumbs (last N actions before error)
  * - Error grouping by fingerprint
  * - Game state context capture
- * - Console error interception
- * - Resource loading error tracking
+ *
+ * @refactored Split from 733-line monolith into focused modules
  */
 
 import { Logger } from '../Logger';
 import { supabase, isSupabaseConfigured } from '../Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
 
-// ============================================
-// Types
-// ============================================
+// Import from extracted modules
+import {
+  type ErrorReport,
+  type ErrorSeverity,
+  type ErrorCategory,
+  type Breadcrumb,
+  type GameContext,
+  ERROR_CONSTANTS,
+} from './ErrorTypes';
+import { ErrorQueue } from './ErrorQueue';
+import {
+  createFingerprint,
+  sanitizeMessage,
+  sanitizeStackTrace,
+  sanitizeUrl,
+  sanitizeContext,
+  getSessionId,
+  getDeviceFingerprint,
+} from './ErrorSanitizer';
 
-type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
-type ErrorCategory = 'runtime' | 'network' | 'performance' | 'resource' | 'console' | 'game' | 'ui';
+// Re-export types for consumers
+export type { ErrorReport, ErrorSeverity, ErrorCategory, Breadcrumb, GameContext };
 
-interface Breadcrumb {
-  timestamp: number;
-  category: string;
-  message: string;
-  data?: Record<string, unknown>;
-}
-
-interface GameContext {
-  gameStatus?: string;
-  playerLevel?: number;
-  playerHP?: number;
-  survivalTimeMs?: number;
-  cryptoPair?: string;
-  position?: string;
-  fps?: number;
-}
-
-interface ErrorReport {
-  // Core
-  errorType: string;
-  errorMessage: string;
-  stackTrace?: string;
-  category: ErrorCategory;
-  severity: ErrorSeverity;
-
-  // Fingerprint for grouping
-  fingerprint: string;
-
-  // Environment
-  userAgent: string;
-  url: string;
-  viewport: { width: number; height: number };
-
-  // User context
-  playerId?: string;
-  sessionId?: string;
-  deviceFingerprint?: string;
-  nickname?: string;
-
-  // Error context
-  context?: Record<string, unknown>;
-  breadcrumbs: Breadcrumb[];
-  gameContext?: GameContext;
-
-  // Timing
-  reportedAt: string;
-  sessionDurationMs?: number;
-
-  // Tags for filtering
-  tags: string[];
-}
-
-interface QueuedError {
-  report: ErrorReport;
-  retryCount: number;
-}
-
-// ============================================
-// Constants
-// ============================================
-
-const STORAGE_KEY = 'error_tracker_queue';
-const MAX_BREADCRUMBS = 25;
-const RATE_LIMIT_MS = 30000; // 30 seconds per unique error
-const MAX_QUEUE_SIZE = 100;
-const BATCH_SIZE = 10;
-
-// ============================================
-// ErrorTracker Class
-// ============================================
+// =============================================================================
+// ERROR TRACKER CLASS
+// =============================================================================
 
 export class ErrorTracker {
   private static instance: ErrorTracker | null = null;
-  private errorQueue: QueuedError[] = [];
+
+  // Extracted queue management
+  private queue: ErrorQueue;
+
+  // State
   private breadcrumbs: Breadcrumb[] = [];
   private recentErrors = new Map<string, number>();
   private isOnline = navigator.onLine;
@@ -109,7 +67,7 @@ export class ErrorTracker {
   private originalConsoleError: typeof console.error;
   private tags: string[] = [];
 
-  // FIXED: Store references for proper cleanup
+  // Handler references for cleanup
   private queueProcessorInterval: ReturnType<typeof setInterval> | null = null;
   private boundErrorHandler: ((event: ErrorEvent) => void) | null = null;
   private boundRejectionHandler: ((event: PromiseRejectionEvent) => void) | null = null;
@@ -117,9 +75,13 @@ export class ErrorTracker {
   private boundOfflineHandler: (() => void) | null = null;
   private boundResourceHandler: ((event: Event) => void) | null = null;
 
+  // ==========================================================================
+  // CONSTRUCTOR & SINGLETON
+  // ==========================================================================
+
   private constructor() {
     this.originalConsoleError = console.error.bind(console);
-    this.loadQueue();
+    this.queue = new ErrorQueue();
     this.setupGlobalHandlers();
     this.setupNetworkMonitoring();
     this.setupResourceMonitoring();
@@ -133,9 +95,9 @@ export class ErrorTracker {
     return ErrorTracker.instance;
   }
 
-  // ============================================
-  // Public API
-  // ============================================
+  // ==========================================================================
+  // PUBLIC API
+  // ==========================================================================
 
   /**
    * Capture an error manually
@@ -160,12 +122,12 @@ export class ErrorTracker {
     } = options;
 
     // Create fingerprint for grouping
-    const fingerprint = this.createFingerprint(errorType, errorMessage, stackTrace);
+    const fingerprint = createFingerprint(errorType, errorMessage, stackTrace);
 
     // Rate limiting
     const lastReport = this.recentErrors.get(fingerprint);
     const now = Date.now();
-    if (lastReport && now - lastReport < RATE_LIMIT_MS) {
+    if (lastReport && now - lastReport < ERROR_CONSTANTS.RATE_LIMIT_MS) {
       Logger.debug(`[ErrorTracker] Rate limited: ${errorType}`);
       return;
     }
@@ -174,8 +136,8 @@ export class ErrorTracker {
     // Build report
     const report: ErrorReport = {
       errorType,
-      errorMessage: this.sanitizeMessage(errorMessage),
-      stackTrace: this.sanitizeStackTrace(stackTrace),
+      errorMessage: sanitizeMessage(errorMessage),
+      stackTrace: sanitizeStackTrace(stackTrace),
       category,
       severity,
       fingerprint,
@@ -183,10 +145,10 @@ export class ErrorTracker {
       url: window.location.href,
       viewport: { width: window.innerWidth, height: window.innerHeight },
       playerId: UserSessionService.getPlayerId(),
-      sessionId: this.getSessionId(),
-      deviceFingerprint: this.getDeviceFingerprint(),
+      sessionId: getSessionId(),
+      deviceFingerprint: getDeviceFingerprint(),
       nickname: UserSessionService.getNickname() ?? undefined,
-      context: this.sanitizeContext(context),
+      context: sanitizeContext(context),
       breadcrumbs: [...this.breadcrumbs],
       gameContext: { ...this.gameContext },
       reportedAt: new Date().toISOString(),
@@ -205,7 +167,7 @@ export class ErrorTracker {
     if (this.isOnline && isSupabaseConfigured()) {
       void this.sendError(report);
     } else {
-      this.queueError(report);
+      this.queue.enqueue(report);
     }
   }
 
@@ -225,7 +187,7 @@ export class ErrorTracker {
       category: 'network',
       severity: status >= 500 ? 'high' : 'medium',
       context: {
-        url: this.sanitizeUrl(url),
+        url: sanitizeUrl(url),
         method,
         status,
         statusText,
@@ -286,7 +248,7 @@ export class ErrorTracker {
     });
 
     // Keep only last N
-    if (this.breadcrumbs.length > MAX_BREADCRUMBS) {
+    if (this.breadcrumbs.length > ERROR_CONSTANTS.MAX_BREADCRUMBS) {
       this.breadcrumbs.shift();
     }
   }
@@ -327,19 +289,18 @@ export class ErrorTracker {
     sessionDurationMs: number;
   } {
     return {
-      queueSize: this.errorQueue.length,
+      queueSize: this.queue.size,
       recentErrorsCount: this.recentErrors.size,
       breadcrumbsCount: this.breadcrumbs.length,
       sessionDurationMs: Date.now() - this.sessionStartTime,
     };
   }
 
-  // ============================================
-  // Setup Methods
-  // ============================================
+  // ==========================================================================
+  // SETUP METHODS
+  // ==========================================================================
 
   private setupGlobalHandlers(): void {
-    // FIXED: Store handler references for cleanup
     this.boundErrorHandler = (event: ErrorEvent) => {
       this.captureError({
         errorType: 'UnhandledError',
@@ -378,7 +339,6 @@ export class ErrorTracker {
   }
 
   private setupNetworkMonitoring(): void {
-    // FIXED: Store handler references for cleanup
     this.boundOnlineHandler = () => {
       this.isOnline = true;
       this.addBreadcrumb('network', 'Online');
@@ -428,7 +388,6 @@ export class ErrorTracker {
   }
 
   private setupResourceMonitoring(): void {
-    // FIXED: Store handler reference for cleanup
     this.boundResourceHandler = (event: Event) => {
       const target = event.target;
       if (target && target instanceof Element && 'src' in target) {
@@ -440,7 +399,7 @@ export class ErrorTracker {
           severity: 'low',
           context: {
             tagName: target.tagName,
-            src: this.sanitizeUrl(src),
+            src: sanitizeUrl(src),
           },
           tags: ['resource', target.tagName.toLowerCase()],
         });
@@ -451,7 +410,6 @@ export class ErrorTracker {
   }
 
   private setupConsoleInterception(): void {
-    // Intercept console.error
     console.error = (...args: unknown[]) => {
       // Call original
       this.originalConsoleError(...args);
@@ -475,21 +433,20 @@ export class ErrorTracker {
   }
 
   private startQueueProcessor(): void {
-    // FIXED: Store interval reference for cleanup
     this.queueProcessorInterval = setInterval(() => {
-      if (this.isOnline && this.errorQueue.length > 0) {
+      if (this.isOnline && !this.queue.isEmpty) {
         void this.processQueue();
       }
-    }, 15000); // Every 15 seconds
+    }, ERROR_CONSTANTS.QUEUE_PROCESS_INTERVAL_MS);
   }
 
-  // ============================================
-  // Queue Management
-  // ============================================
+  // ==========================================================================
+  // QUEUE & SEND
+  // ==========================================================================
 
   private async sendError(report: ErrorReport): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) {
-      this.queueError(report);
+      this.queue.enqueue(report);
       return;
     }
 
@@ -510,7 +467,7 @@ export class ErrorTracker {
           viewport: report.viewport,
           nickname: report.nickname,
           gameContext: report.gameContext,
-          breadcrumbs: report.breadcrumbs.slice(-10), // Last 10 only
+          breadcrumbs: report.breadcrumbs.slice(-10),
           tags: report.tags,
           sessionDurationMs: report.sessionDurationMs,
         },
@@ -522,190 +479,44 @@ export class ErrorTracker {
       Logger.debug('[ErrorTracker] Error sent to Supabase');
     } catch (err) {
       Logger.error('[ErrorTracker] Failed to send error', err);
-      this.queueError(report);
+      this.queue.enqueue(report);
     }
-  }
-
-  private queueError(report: ErrorReport): void {
-    if (this.errorQueue.length >= MAX_QUEUE_SIZE) {
-      this.errorQueue.shift();
-    }
-
-    this.errorQueue.push({ report, retryCount: 0 });
-    this.saveQueue();
-    Logger.debug(`[ErrorTracker] Queued error (${this.errorQueue.length} in queue)`);
   }
 
   private async processQueue(): Promise<void> {
-    if (!isSupabaseConfigured() || this.errorQueue.length === 0) return;
+    if (!isSupabaseConfigured() || this.queue.isEmpty) return;
 
-    const batch = this.errorQueue.splice(0, BATCH_SIZE);
+    const batch = this.queue.getBatch();
 
     for (const item of batch) {
       try {
         await this.sendError(item.report);
       } catch {
-        if (item.retryCount < 3) {
-          item.retryCount++;
-          this.errorQueue.push(item);
-        }
+        this.queue.requeue(item);
       }
     }
 
-    this.saveQueue();
+    this.queue.persist();
   }
 
-  private saveQueue(): void {
-    try {
-      const simplified = this.errorQueue.map(item => ({
-        r: {
-          t: item.report.errorType,
-          m: item.report.errorMessage.substring(0, 100),
-          s: item.report.severity,
-          c: item.report.category,
-          ts: item.report.reportedAt,
-        },
-        rc: item.retryCount,
-      }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(simplified));
-    } catch {
-      // Ignore storage errors
-    }
-  }
-
-  private loadQueue(): void {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const items = JSON.parse(stored) as Array<{
-          r: { t: string; m: string; s: ErrorSeverity; c: ErrorCategory; ts: string };
-          rc: number;
-        }>;
-        this.errorQueue = items.map(item => ({
-          report: {
-            errorType: item.r.t,
-            errorMessage: item.r.m,
-            category: item.r.c,
-            severity: item.r.s,
-            fingerprint: this.createFingerprint(item.r.t, item.r.m),
-            userAgent: navigator.userAgent,
-            url: window.location.href,
-            viewport: { width: window.innerWidth, height: window.innerHeight },
-            reportedAt: item.r.ts,
-            breadcrumbs: [],
-            tags: ['restored'],
-          },
-          retryCount: item.rc,
-        }));
-        localStorage.removeItem(STORAGE_KEY);
-        Logger.info(`[ErrorTracker] Restored ${this.errorQueue.length} queued errors`);
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  // ============================================
-  // Helper Methods
-  // ============================================
-
-  private createFingerprint(type: string, message: string, stack?: string): string {
-    // Extract first meaningful line from stack if available
-    const stackLine = stack?.split('\n')[1]?.trim().substring(0, 100) ?? '';
-    const input = `${type}|${message.substring(0, 100)}|${stackLine}`;
-    return this.simpleHash(input);
-  }
-
-  private sanitizeMessage(message: string): string {
-    if (!message) return '';
-    return message
-      .substring(0, 500)
-      .replace(/api[_-]?key[=:]\s*[\w-]+/gi, 'api_key=***')
-      .replace(/token[=:]\s*[\w-]+/gi, 'token=***')
-      .replace(/password[=:]\s*[\w-]+/gi, 'password=***')
-      .replace(/bearer\s+[\w.-]+/gi, 'bearer ***');
-  }
-
-  private sanitizeStackTrace(stack?: string): string | undefined {
-    if (!stack) return undefined;
-    return stack.substring(0, 2000);
-  }
-
-  private sanitizeContext(context?: Record<string, unknown>): Record<string, unknown> | undefined {
-    if (!context) return undefined;
-    const sanitized: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(context)) {
-      if (typeof value === 'string' && value.length > 200) {
-        sanitized[key] = value.substring(0, 200) + '...';
-      } else if (typeof value === 'object' && value !== null) {
-        try {
-          sanitized[key] = JSON.parse(JSON.stringify(value));
-        } catch {
-          sanitized[key] = '[Object]';
-        }
-      } else {
-        sanitized[key] = value;
-      }
-    }
-    return sanitized;
-  }
-
-  private sanitizeUrl(url: string): string {
-    try {
-      const parsed = new URL(url);
-      // Remove sensitive query params
-      ['token', 'key', 'password', 'secret', 'auth'].forEach(param => {
-        if (parsed.searchParams.has(param)) {
-          parsed.searchParams.set(param, '***');
-        }
-      });
-      return parsed.toString();
-    } catch {
-      return url.substring(0, 200);
-    }
-  }
-
-  private getSessionId(): string | undefined {
-    return sessionStorage.getItem('current_session_id') ?? undefined;
-  }
-
-  private getDeviceFingerprint(): string {
-    const components = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width,
-      screen.height,
-      screen.colorDepth,
-      new Date().getTimezoneOffset(),
-      navigator.hardwareConcurrency || 0,
-    ];
-    return this.simpleHash(components.join('|'));
-  }
-
-  private simpleHash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-  }
+  // ==========================================================================
+  // TESTING UTILITIES
+  // ==========================================================================
 
   /**
-   * Reset for testing purposes - now with proper cleanup!
+   * Reset for testing purposes - proper cleanup
    */
   static resetForTesting(): void {
     if (this.instance) {
       // Restore original console.error
       console.error = this.instance.originalConsoleError;
 
-      // FIXED: Clear interval
+      // Clear interval
       if (this.instance.queueProcessorInterval) {
         clearInterval(this.instance.queueProcessorInterval);
       }
 
-      // FIXED: Remove event listeners
+      // Remove event listeners
       if (this.instance.boundErrorHandler) {
         window.removeEventListener('error', this.instance.boundErrorHandler);
       }
@@ -721,6 +532,9 @@ export class ErrorTracker {
       if (this.instance.boundResourceHandler) {
         window.removeEventListener('error', this.instance.boundResourceHandler, true);
       }
+
+      // Clear queue
+      this.instance.queue.clear();
 
       this.instance = null;
     }

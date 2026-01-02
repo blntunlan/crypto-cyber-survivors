@@ -2,10 +2,14 @@
  * CardSystem Tests
  *
  * Tests for card generation, tier rolling, and level restrictions.
+ *
+ * @updated Tests now use applyCardEffect instead of card.effect() directly,
+ * and check for modifiers property (declarative) rather than effect function.
  */
 
 import { describe, it, expect } from 'vitest';
 import { CardSystem, type CardTier, ALL_CARDS_FLAT, type Card } from '../services/CardSystem';
+import { applyCardEffect } from '../services/cards/CardApplicator';
 
 describe('CardSystem', () => {
   describe('rollTier', () => {
@@ -120,6 +124,7 @@ describe('CardSystem', () => {
       speed: 4,
       fireRate: 500,
       critChance: 0.05,
+      critDamage: 2.0,
       luck: 0,
       lifesteal: 0,
       dodge: 0,
@@ -127,6 +132,7 @@ describe('CardSystem', () => {
       armor: 0,
       area: 1,
       projectiles: 1,
+      regen: 0,
       x: 0,
       y: 0,
       radius: 12,
@@ -142,9 +148,13 @@ describe('CardSystem', () => {
       weapon: 'pistol' as const,
     };
 
-    it('should execute every card effect without error', () => {
+    it('should apply every card effect without error', () => {
       ALL_CARDS_FLAT.forEach((card: Card) => {
-        const result = card.effect({ ...basePlayer });
+        // Cards use either modifiers (declarative) or effect (imperative)
+        expect(card.modifiers ?? card.effect).toBeDefined();
+
+        // Apply card using CardApplicator
+        const result = applyCardEffect({ ...basePlayer }, card);
 
         // Basic sanity checks
         expect(result).toBeDefined();
@@ -164,24 +174,34 @@ describe('CardSystem', () => {
       // Market Order (Common) -> +8 Damage
       const marketOrder = ALL_CARDS_FLAT.find((c: Card) => c.id === 'dmg_c1');
       if (marketOrder) {
-        const res = marketOrder.effect({ ...basePlayer });
+        const res = applyCardEffect({ ...basePlayer }, marketOrder);
         expect(res.baseDamage).toBe(basePlayer.baseDamage + 8);
       }
 
-      // Quick Trade (Common) -> +8% Attack Speed (fireRate * 0.92)
+      // Quick Trade (Common) -> -8% fireRate (means faster attack)
       const quickTrade = ALL_CARDS_FLAT.find((c: Card) => c.id === 'spd_c1');
       if (quickTrade) {
-        const res = quickTrade.effect({ ...basePlayer });
+        const res = applyCardEffect({ ...basePlayer }, quickTrade);
+        // -8% as percent modifier means fireRate * (1 - 0.08) = fireRate * 0.92
         expect(res.fireRate).toBe(basePlayer.fireRate * 0.92);
       }
 
-      // Full Ape Mode (Legendary) -> 2x Fire Rate, -20% HP
+      // Full Ape Mode (Legendary) -> 0.5x Fire Rate (multiply), -20% HP
       const apeMode = ALL_CARDS_FLAT.find((c: Card) => c.id === 'ape_l1');
       if (apeMode) {
-        const res = apeMode.effect({ ...basePlayer });
+        const res = applyCardEffect({ ...basePlayer }, apeMode);
         expect(res.fireRate).toBe(basePlayer.fireRate * 0.5);
         expect(res.maxHp).toBe(basePlayer.maxHp * 0.8);
       }
+    });
+
+    it('should have modifiers or effect for all cards', () => {
+      ALL_CARDS_FLAT.forEach((card: Card) => {
+        // Every card must have either modifiers (new declarative way) or effect (legacy)
+        const hasModifiers = card.modifiers && card.modifiers.length > 0;
+        const hasEffect = typeof card.effect === 'function';
+        expect(hasModifiers || hasEffect).toBe(true);
+      });
     });
   });
 

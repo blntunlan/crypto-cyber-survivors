@@ -91,6 +91,7 @@ export const STAT_DEFINITIONS = {
     label: 'HP',
     description: 'Current Health Points',
     defaultValue: 100,
+    minValue: 1, // Prevent death from stat changes
     isPercentage: false,
     showInKernel: false, // Handled by HP bar usually
     category: 'defense',
@@ -100,6 +101,7 @@ export const STAT_DEFINITIONS = {
     label: 'Max HP',
     description: 'Maximum Health Points',
     defaultValue: 100,
+    minValue: 10, // Minimum floor for max HP
     isPercentage: false,
     showInKernel: false,
     category: 'defense',

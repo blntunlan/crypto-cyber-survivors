@@ -5,6 +5,7 @@ import { useAdminConfigStore } from '../stores/admin/configStore';
 import { marketStateService, type MarketState } from './MarketStateService';
 import { WHALE_TIER_CONFIGS } from '../types/indicators';
 import { Logger } from './Logger';
+import { type SpawnDebugState, getDebugTimestamp } from '../types/DebugState';
 
 /**
  * SpawnSystem - Orchestrates entity spawning based on market conditions and difficulty.
@@ -124,7 +125,7 @@ export class SpawnSystem {
   }
 
   /**
-   * Spawns a regular enemy (Bear or Bull) based on market sentiment.
+   * Spawns a regular enemy based on market sentiment or random selection from registry.
    */
   private spawnRegularEnemy(
     pool: PoolManager,
@@ -136,15 +137,28 @@ export class SpawnSystem {
   ): void {
     const { x, y } = this.getRandomSpawnPosition(width, height);
 
-    // Position/PnL Logic:
-    // LONG + Loss = Bear | LONG + Profit = Bull
-    // SHORT + Loss = Bull | SHORT + Profit = Bear
-    const isBearMarket =
-      (position === MarketPosition.LONG && pnl < 0) ||
-      (position === MarketPosition.SHORT && pnl > 0);
-    const enemyType = isBearMarket ? 'bear' : 'bull';
-
-    pool.getEnemy(x, y, difficulty, position, enemyType);
+    // 70% chance to spawn based on market sentiment (Thematic)
+    // 30% chance to spawn a random variant from the registry
+    if (Math.random() < 0.7) {
+      // Position/PnL Logic:
+      // LONG + Loss = Bear | LONG + Profit = Bull
+      // SHORT + Loss = Bull | SHORT + Profit = Bear
+      const isBearMarket =
+        (position === MarketPosition.LONG && pnl < 0) ||
+        (position === MarketPosition.SHORT && pnl > 0);
+      const enemyType = isBearMarket ? 'bear' : 'bull';
+      pool.getEnemy(x, y, difficulty, position, enemyType);
+    } else {
+      // Spawn random from registry (fud, liquidator, pumpdump, etc.)
+      const roll = Math.random();
+      if (roll < 0.4) {
+        pool.getEnemy(x, y, difficulty, position, 'fud');
+      } else if (roll < 0.7) {
+        pool.getEnemy(x, y, difficulty, position, 'liquidator');
+      } else {
+        pool.getEnemy(x, y, difficulty, position, 'pumpdump');
+      }
+    }
   }
 
   /**
@@ -196,6 +210,25 @@ export class SpawnSystem {
    */
   public reset(): void {
     this.spawnTimer = 0;
+  }
+
+  /**
+   * Get debug state for runtime inspection
+   */
+  getDebugState(currentActiveEnemies: number = 0): SpawnDebugState {
+    const config = this.getSpawnConfig();
+
+    return {
+      systemName: 'SpawnSystem',
+      timestamp: getDebugTimestamp(),
+      spawnTimer: this.spawnTimer,
+      activeEnemies: currentActiveEnemies,
+      maxEnemies: config.maxEnemies,
+      spawnConfig: {
+        baseInterval: config.baseInterval,
+        waveIntensity: config.waveIntensity,
+      },
+    };
   }
 }
 

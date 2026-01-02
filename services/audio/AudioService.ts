@@ -119,6 +119,13 @@ export class AudioService {
   }
 
   /**
+   * Play whale arrival sound
+   */
+  playWhaleArrival(): void {
+    GameSounds.playWhaleArrival();
+  }
+
+  /**
    * Play button click sound
    */
   playButton(): void {

@@ -13,8 +13,9 @@ import {
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
-import { type WhaleTier, WHALE_TIER_CONFIGS } from '../types/indicators';
+import { WHALE_TIER_CONFIGS, type WhaleTier } from '../types/indicators';
 import { marketStateService } from './MarketStateService';
+import { audio } from './audio';
 
 interface Activatable {
   active: boolean;
@@ -242,6 +243,9 @@ export class PoolManager {
     tier: WhaleTier
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
+
+    // Play whale arrival sound
+    audio.playWhaleArrival();
 
     return this.enemies.get(
       () => {

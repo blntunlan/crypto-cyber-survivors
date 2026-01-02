@@ -5,11 +5,21 @@
  */
 
 import { type Player } from '../../types';
+import { type StatKey } from '../../config/StatRegistry';
 
 /**
  * Card rarity tiers
  */
 export type CardTier = 'common' | 'rare' | 'epic' | 'legendary';
+
+/**
+ * Stat modifier type for declarative card effects
+ */
+export interface StatModifier {
+  stat: StatKey;
+  value: number;
+  type: 'add' | 'multiply' | 'percent'; // add: +X, multiply: *X, percent: X=0.05 is +5%
+}
 
 /**
  * Card definition interface
@@ -20,7 +30,8 @@ export interface Card {
   description: string;
   icon: string;
   tier: CardTier;
-  effect: (player: Player) => Player;
+  modifiers?: StatModifier[];
+  effect?: (player: Player) => Player; // Keep for custom or highly complex logic
 }
 
 /**

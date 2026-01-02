@@ -277,8 +277,10 @@ describe('CardSystem', () => {
         expect(card).toHaveProperty('description');
         expect(card).toHaveProperty('icon');
         expect(card).toHaveProperty('tier');
-        expect(card).toHaveProperty('effect');
-        expect(typeof card.effect).toBe('function');
+        // Cards use declarative modifiers (new) or effect function (legacy)
+        const hasModifiers = card.modifiers && card.modifiers.length > 0;
+        const hasEffect = typeof card.effect === 'function';
+        expect(hasModifiers || hasEffect).toBe(true);
       });
 
       it('should return card with non-empty id', () => {
@@ -341,7 +343,10 @@ describe('CardSystem', () => {
           expect(card).toHaveProperty('id');
           expect(card).toHaveProperty('name');
           expect(card).toHaveProperty('tier');
-          expect(card).toHaveProperty('effect');
+          // Cards use declarative modifiers (new) or effect function (legacy)
+          const hasModifiers = card.modifiers && card.modifiers.length > 0;
+          const hasEffect = typeof card.effect === 'function';
+          expect(hasModifiers || hasEffect).toBe(true);
         });
       });
     });

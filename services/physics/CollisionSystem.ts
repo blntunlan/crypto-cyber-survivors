@@ -1,22 +1,46 @@
+/**
+ * CollisionSystem - Handles physical interactions between high-level entities.
+ * Includes Player-Enemy and Bullet-Enemy collision detection and resolution.
+ *
+ * @refactored Uses IPhysicsContext for dependency injection instead of direct imports.
+ * This reduces coupling from 13 imports to 6 imports.
+ */
+
 import { type PoolManager } from '../PoolManager';
 import { type Player, type GameState, type Enemy, type Bullet } from '../../types';
-import { CheatManager } from '../CheatManager';
-import { audio } from '../AudioService';
+import { type IPhysicsContext } from './PhysicsTypes';
+import { getPhysicsContext, physicsColors } from './PhysicsContext';
 import { EventBus } from '../EventBus';
-import { COLORS, GAME_ENGINE } from '../../constants';
-import { PLAYER_STATS } from '../../config/PlayerConfig';
-import { bulletGrid } from '../SpatialGrid';
-import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
-import { ParticleConfigService } from '../ParticleConfigService';
-import { BuffManager } from '../patterns/decorators/BuffManager';
 import { CombatResolutionService } from './CombatResolutionService';
-import { type PerformanceConfig } from '../../types/DeviceProfile';
+
+// Extended enemy type with behavior (added by EnemyFactory at runtime)
+interface EnemyWithBehavior extends Enemy {
+  behavior: {
+    move: (enemy: Enemy, targetX: number, targetY: number, dtFactor: number) => void;
+  };
+}
 
 /**
  * CollisionSystem - Handles physical interactions between high-level entities.
  * Includes Player-Enemy and Bullet-Enemy collision detection and resolution.
  */
 export class CollisionSystem {
+  private static ctx: IPhysicsContext = getPhysicsContext();
+
+  /**
+   * Set a custom context (for testing)
+   */
+  public static setContext(context: IPhysicsContext): void {
+    this.ctx = context;
+  }
+
+  /**
+   * Reset to default context
+   */
+  public static resetContext(): void {
+    this.ctx = getPhysicsContext();
+  }
+
   /**
    * Run all collision checks for regular enemies.
    */
@@ -29,9 +53,12 @@ export class CollisionSystem {
     height: number,
     onGameOver: () => void
   ): void {
-    const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+    const perfConfig = this.ctx.performance.getPerformanceConfig();
 
     pool.activeEnemies.forEach(enemy => {
+      // Cast to extended type with behavior
+      const enemyWithBehavior = enemy as unknown as EnemyWithBehavior;
+
       // 1. Off-screen culling
       if (this.isOffScreen(enemy, width, height)) {
         enemy.active = false;
@@ -39,18 +66,25 @@ export class CollisionSystem {
       }
 
       // 2. Behavioral Movement
-      enemy.behavior.move(enemy, player.x, player.y, dtFactor);
+      enemyWithBehavior.behavior.move(enemy, player.x, player.y, dtFactor);
 
       // 3. Player-Enemy collision
       this.checkPlayerEnemyCollision(pool, player, enemy, state, dtFactor, onGameOver);
 
       // 4. Bullet-Enemy collision (using spatial grid)
-      this.processBulletCollisions(pool, enemy, player, state, dtFactor, perfConfig);
+      this.processBulletCollisions(
+        pool,
+        enemy,
+        player,
+        state,
+        dtFactor,
+        perfConfig.particleMultiplier
+      );
     });
   }
 
   private static isOffScreen(enemy: Enemy, width: number, height: number): boolean {
-    const threshold = GAME_ENGINE.ENEMY_OFFSCREEN_THRESHOLD;
+    const threshold = this.ctx.constants.ENEMY_OFFSCREEN_THRESHOLD;
     return (
       enemy.x < -threshold ||
       enemy.x > width + threshold ||
@@ -73,26 +107,22 @@ export class CollisionSystem {
     const combinedRadius = player.radius + enemy.radius;
 
     if (distSq < combinedRadius * combinedRadius) {
-      if (!CheatManager.isGodMode() && !state.isDashing) {
+      if (!this.ctx.cheat.isGodMode() && !state.isDashing) {
         // Calculate dodge chance
-        const rawDodge = BuffManager.isInitialized()
-          ? BuffManager.getDecoratedStats().getDodge()
-          : player.dodge;
-        const dodgeChance = Math.min(rawDodge, PLAYER_STATS.MAX_DODGE);
+        const rawDodge = this.ctx.stats.getDodge(player);
+        const dodgeChance = Math.min(rawDodge, this.ctx.statCaps.MAX_DODGE);
 
         // Try to dodge
         if (Math.random() < dodgeChance) {
           // Successful dodge
-          pool.getFloatingText(player.x, player.y - 20, 'DODGE!', COLORS.BULLET, 16);
+          pool.getFloatingText(player.x, player.y - 20, 'DODGE!', physicsColors.BULLET, 16);
           // Optional: Add dodge sound
           return; // No damage taken
         }
 
         // Get armor with system-level cap
-        const rawArmor = BuffManager.isInitialized()
-          ? BuffManager.getDecoratedStats().getArmor()
-          : player.armor;
-        const effectiveArmor = Math.min(rawArmor, PLAYER_STATS.MAX_ARMOR);
+        const rawArmor = this.ctx.stats.getArmor(player);
+        const effectiveArmor = Math.min(rawArmor, this.ctx.statCaps.MAX_ARMOR);
 
         // Diminishing returns armor formula:
         // At 0 armor: 100% damage (0.8 base)
@@ -106,7 +136,7 @@ export class CollisionSystem {
         player.hp = Math.max(0, player.hp);
         state.shake = 10;
 
-        if (Math.random() > 0.9) audio.playHit();
+        if (Math.random() > 0.9) this.ctx.audio.playHit();
 
         if (player.hp <= 0 && !state.isGameOverTriggered) {
           state.isGameOverTriggered = true;
@@ -122,9 +152,9 @@ export class CollisionSystem {
     player: Player,
     state: GameState,
     dtFactor: number,
-    perfConfig: PerformanceConfig
+    particleMultiplier: number
   ): void {
-    const nearbyBullets = bulletGrid.getNearby(enemy.x, enemy.y);
+    const nearbyBullets = this.ctx.bulletGrid.getNearby(enemy.x, enemy.y);
 
     for (const bullet of nearbyBullets) {
       if (!enemy.active || !bullet.active) continue;
@@ -135,7 +165,7 @@ export class CollisionSystem {
       const combinedRadius = enemy.radius + bullet.radius;
 
       if (distSq < combinedRadius * combinedRadius) {
-        this.resolveBulletHit(pool, enemy, bullet, player, state, dtFactor, perfConfig);
+        this.resolveBulletHit(pool, enemy, bullet, player, state, dtFactor, particleMultiplier);
       }
     }
   }
@@ -147,13 +177,13 @@ export class CollisionSystem {
     player: Player,
     state: GameState,
     dtFactor: number,
-    perfConfig: PerformanceConfig
+    particleMultiplier: number
   ): void {
     enemy.health -= bullet.damage;
     bullet.active = false;
 
     // Effects
-    this.spawnImpactParticles(pool, bullet, perfConfig);
+    this.spawnImpactParticles(pool, bullet, particleMultiplier);
     this.applyKnockback(enemy, bullet, dtFactor);
     this.triggerCritEffects(bullet, enemy, state);
     this.spawnDamageText(pool, enemy, bullet);
@@ -165,15 +195,15 @@ export class CollisionSystem {
 
   private static applyKnockback(enemy: Enemy, bullet: Bullet, dtFactor: number): void {
     const strength = 4;
-    enemy.x += (bullet.vx / GAME_ENGINE.BULLET_SPEED) * strength * dtFactor;
-    enemy.y += (bullet.vy / GAME_ENGINE.BULLET_SPEED) * strength * dtFactor;
+    enemy.x += (bullet.vx / this.ctx.constants.BULLET_SPEED) * strength * dtFactor;
+    enemy.y += (bullet.vy / this.ctx.constants.BULLET_SPEED) * strength * dtFactor;
   }
 
   private static triggerCritEffects(bullet: Bullet, enemy: Enemy, state: GameState): void {
     if (bullet.isCrit || bullet.isSuperCrit) {
       state.critFlash = bullet.isSuperCrit ? 0.15 : 0.08;
-      state.critFlashColor = bullet.isSuperCrit ? COLORS.SUPER_CRIT : COLORS.CRIT;
-      audio.playCrit();
+      state.critFlashColor = bullet.isSuperCrit ? physicsColors.SUPER_CRIT : physicsColors.CRIT;
+      this.ctx.audio.playCrit();
 
       EventBus.emit('critHit', {
         damage: bullet.damage,
@@ -186,10 +216,10 @@ export class CollisionSystem {
 
   private static spawnDamageText(pool: PoolManager, enemy: Enemy, bullet: Bullet): void {
     const color = bullet.isSuperCrit
-      ? COLORS.CASINO_RED
+      ? physicsColors.CASINO_RED
       : bullet.isCrit
-        ? COLORS.CASINO_GOLD
-        : COLORS.SLOT_SILVER;
+        ? physicsColors.CASINO_GOLD
+        : physicsColors.SLOT_SILVER;
 
     const size = bullet.isSuperCrit ? 36 : bullet.isCrit ? 28 : 20;
 
@@ -205,10 +235,10 @@ export class CollisionSystem {
   private static spawnImpactParticles(
     pool: PoolManager,
     bullet: Bullet,
-    perfConfig: PerformanceConfig
+    particleMultiplier: number
   ): void {
-    const impactCfg = ParticleConfigService.impact;
-    const count = Math.round(impactCfg.count * perfConfig.particleMultiplier);
+    const impactCfg = this.ctx.particles.impact;
+    const count = Math.round(impactCfg.count * particleMultiplier);
 
     for (let i = 0; i < count; i++) {
       pool.getParticle(
@@ -216,7 +246,7 @@ export class CollisionSystem {
         bullet.y,
         (Math.random() - 0.5) * impactCfg.speed,
         (Math.random() - 0.5) * impactCfg.speed,
-        bullet.isSuperCrit ? COLORS.SUPER_CRIT : bullet.color
+        bullet.isSuperCrit ? physicsColors.SUPER_CRIT : bullet.color
       ).life = impactCfg.life;
     }
   }

@@ -2,6 +2,10 @@
  * Config Index - Re-export all configurations
  */
 
+// Colors (independent - no dependencies)
+export { COLORS } from './Colors';
+export type { ColorKey } from './Colors';
+
 // Player
 export {
   PLAYER_STATS,

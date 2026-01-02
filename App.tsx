@@ -17,7 +17,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
-import { CardSystem, type Card } from './services/CardSystem';
+import { type Card } from './services/cards/types';
+import { applyCardEffect } from './services/cards/CardApplicator';
+import { CardSystem } from './services/cards/CardSystem';
 import { audio } from './services/AudioService';
 import { EventBus } from './services/EventBus';
 import { GameEndReason } from './types/metrics';
@@ -233,7 +235,7 @@ const App: React.FC = () => {
   const selectUpgrade = useCallback(
     (card: Card) => {
       const p = playerRef.current;
-      const nextP = card.effect(p);
+      const nextP = applyCardEffect(p, card);
       nextP.level += 1;
       nextP.exp -= nextP.nextLevelExp;
       nextP.nextLevelExp = Math.floor(nextP.nextLevelExp * 1.5);
@@ -253,7 +255,7 @@ const App: React.FC = () => {
   );
 
   const handleGameOver = useCallback(async () => {
-    setFinalPnl(marketData.pnl);
+    setFinalPnl(marketData.effectivePnl);
     setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
     GameStateMachine.transition(GameStatus.GAMEOVER);
 

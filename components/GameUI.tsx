@@ -42,12 +42,12 @@ export const GameUI: React.FC<GameUIProps> = memo(
         try {
           const decorated = BuffManager.getDecoratedStats();
           return {
-            damage: decorated.getDamage(),
+            baseDamage: decorated.getDamage(),
             speed: decorated.getSpeed(),
             fireRate: decorated.getFireRate(),
             luck: decorated.getLuck(),
             lifesteal: decorated.getLifesteal(),
-            crit: decorated.getCritChance() * 100,
+            critChance: decorated.getCritChance(),
             magnet: decorated.getMagnet(),
             armor: decorated.getArmor(),
             area: decorated.getArea(),
@@ -60,12 +60,12 @@ export const GameUI: React.FC<GameUIProps> = memo(
         }
       }
       return {
-        damage: player.baseDamage,
+        baseDamage: player.baseDamage,
         speed: player.speed,
         fireRate: player.fireRate,
         luck: player.luck,
         lifesteal: player.lifesteal,
-        crit: player.critChance * 100,
+        critChance: player.critChance,
         magnet: player.magnet,
         armor: player.armor,
         area: player.area,
@@ -76,21 +76,21 @@ export const GameUI: React.FC<GameUIProps> = memo(
     const smoothValues = useLerpValues(
       {
         price: marketData.price,
-        pnl: marketData.effectivePnl * 100,
+        pnl: marketData.effectivePnl,
         difficulty: marketData.difficulty,
         hp: player.hp,
         exp: player.exp,
-        damage: effectiveStats.damage,
+        baseDamage: effectiveStats.baseDamage,
         speed: effectiveStats.speed,
         fireRate: effectiveStats.fireRate,
         luck: effectiveStats.luck,
         lifesteal: effectiveStats.lifesteal,
-        crit: effectiveStats.crit,
+        critChance: effectiveStats.critChance,
         magnet: effectiveStats.magnet,
         armor: effectiveStats.armor,
         area: effectiveStats.area,
       },
-      { speed: 0.15, decimals: 2 }
+      { speed: 0.15, decimals: 4 }
     );
 
     const hpPercent = (smoothValues.hp / player.maxHp) * 100;

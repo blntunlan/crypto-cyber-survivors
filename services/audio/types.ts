@@ -39,3 +39,36 @@ export interface SynthContext {
   ctx: AudioContext;
   masterGain: GainNode;
 }
+
+/**
+ * Sound Envelope - Volume or frequency changes over time
+ */
+export interface SoundEnvelope {
+  initial: number;
+  peak: number;
+  duration: number; // in seconds
+  ramp: 'linear' | 'exponential';
+}
+
+/**
+ * Synth Component - A single layer of a synthesized sound
+ */
+export interface SynthComponent {
+  type: OscillatorType | 'noise';
+  frequency: number;
+  frequencyEnd?: number; // for sweeps/pitch slides
+  envelope: SoundEnvelope;
+  filter?: {
+    type: BiquadFilterType;
+    frequency: number;
+    frequencyEnd?: number;
+  };
+}
+
+/**
+ * Audio Preset - Data-driven definition of a sound effect
+ */
+export interface AudioPreset {
+  components: SynthComponent[];
+  cooldown?: number; // optional override for COOLDOWN_MS
+}

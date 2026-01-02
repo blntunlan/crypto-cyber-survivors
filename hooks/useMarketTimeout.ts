@@ -76,7 +76,7 @@ export function useMarketTimeout({
       });
 
       // End the game with special reason
-      setFinalPnl(marketData.pnl);
+      setFinalPnl(marketData.effectivePnl);
       setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
       GameStateMachine.transition(GameStatus.GAMEOVER);
 

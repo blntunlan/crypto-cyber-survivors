@@ -5,7 +5,7 @@
  * for creating oscillators and gain nodes with smooth transitions.
  */
 
-import { type SoundType, type SynthContext } from './types';
+import { type SoundType, type SynthContext, type AudioPreset } from './types';
 import { COOLDOWN_MS } from './constants';
 import { Logger } from '../Logger';
 
@@ -208,6 +208,99 @@ export class SynthEngine {
       this.ctx = null;
       this.masterGain = null;
     }
+  }
+
+  /**
+   * Play a declarative audio preset.
+   * Constructed nodes are automatically tracked for cleanup.
+   *
+   * @param preset The AudioPreset definition to play
+   * @param overrides Optional dynamic overrides for frequency and duration
+   */
+  playPreset(
+    preset: AudioPreset,
+    overrides?: {
+      frequencyMultiplier?: number;
+      durationMultiplier?: number;
+      volumeMultiplier?: number;
+      delay?: number;
+    }
+  ): void {
+    if (this.isMuted) return;
+    const context = this.init();
+    if (!context) return;
+
+    const { ctx, masterGain } = context;
+    const now = ctx.currentTime + (overrides?.delay ?? 0);
+    const freqMult = overrides?.frequencyMultiplier ?? 1;
+    const durMult = overrides?.durationMultiplier ?? 1;
+    const volMult = overrides?.volumeMultiplier ?? 1;
+
+    preset.components.forEach(comp => {
+      // Noise component (simulated or ignored for now)
+      if (comp.type === 'noise') {
+        // Skipping noise implementation for now to keep it lean
+        return;
+      }
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const env = comp.envelope;
+      const duration = env.duration * durMult;
+
+      osc.type = comp.type as OscillatorType;
+
+      // Frequency setup (with sweeps)
+      const startFreq = comp.frequency * freqMult;
+      osc.frequency.setValueAtTime(startFreq, now);
+      if (comp.frequencyEnd !== undefined) {
+        const endFreq = comp.frequencyEnd * freqMult;
+        if (env.ramp === 'exponential') {
+          osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+        } else {
+          osc.frequency.linearRampToValueAtTime(endFreq, now + duration);
+        }
+      }
+
+      // Filter setup
+      let lastNode: AudioNode = osc;
+      if (comp.filter) {
+        const filter = ctx.createBiquadFilter();
+        filter.type = comp.filter.type;
+        filter.frequency.setValueAtTime(comp.filter.frequency, now);
+        if (comp.filter.frequencyEnd !== undefined) {
+          filter.frequency.exponentialRampToValueAtTime(comp.filter.frequencyEnd, now + duration);
+        }
+        lastNode.connect(filter);
+        lastNode = filter;
+      }
+
+      // Gain setup (Envelope)
+      const peakVol = env.peak * volMult;
+      gain.gain.setValueAtTime(env.initial * volMult, now);
+      if (env.ramp === 'exponential') {
+        // Gain cannot exponential ramp to 0, use tiny value
+        gain.gain.exponentialRampToValueAtTime(peakVol, now + duration * 0.2); // Attack
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration); // Decay
+      } else {
+        gain.gain.linearRampToValueAtTime(peakVol, now + duration * 0.1); // Quick attack
+        gain.gain.linearRampToValueAtTime(0, now + duration); // Decay
+      }
+
+      lastNode.connect(gain);
+      gain.connect(masterGain);
+
+      // Lifecycle management
+      osc.start(now);
+      osc.stop(now + duration + 0.1);
+
+      this.activeOscillators.add(osc);
+      osc.onended = () => {
+        this.activeOscillators.delete(osc);
+        osc.disconnect();
+        gain.disconnect();
+      };
+    });
   }
 }
 

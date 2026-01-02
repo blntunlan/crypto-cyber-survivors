@@ -2,11 +2,10 @@
  * Card Definitions
  *
  * All card definitions organized by tier.
- * Each card has an effect function that modifies player stats.
+ * Effects are now declarative 'modifiers' where possible.
  */
 
-import { type Card, type CardTier } from './types';
-import { STAT_DEFINITIONS } from '../../config/StatRegistry';
+import { type Card } from './types';
 
 // =============================================================================
 // COMMON CARDS
@@ -19,7 +18,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+8 Base Damage',
     icon: 'lucide:trending-up',
     tier: 'common',
-    effect: p => ({ ...p, baseDamage: p.baseDamage + 8 }),
+    modifiers: [{ stat: 'baseDamage', value: 8, type: 'add' }],
   },
   {
     id: 'spd_c1',
@@ -27,8 +26,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+8% Attack Speed',
     icon: 'lucide:zap',
     tier: 'common',
-    // No cap here - system caps fireRate in CombatSystem/PlayerConfig
-    effect: p => ({ ...p, fireRate: p.fireRate * 0.92 }),
+    modifiers: [{ stat: 'fireRate', value: -0.08, type: 'percent' }],
   },
   {
     id: 'hp_c1',
@@ -36,7 +34,10 @@ export const COMMON_CARDS: Card[] = [
     description: '+15 Max HP',
     icon: 'lucide:life-buoy',
     tier: 'common',
-    effect: p => ({ ...p, maxHp: p.maxHp + 15, hp: p.hp + 15 }),
+    modifiers: [
+      { stat: 'maxHp', value: 15, type: 'add' },
+      { stat: 'hp', value: 15, type: 'add' },
+    ],
   },
   {
     id: 'magnet_c1',
@@ -44,8 +45,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+30 Collection Range',
     icon: 'lucide:wheat',
     tier: 'common',
-    // system applies max magnet cap
-    effect: p => ({ ...p, magnet: Math.min(STAT_DEFINITIONS.magnet.cap, p.magnet + 30) }),
+    modifiers: [{ stat: 'magnet', value: 30, type: 'add' }],
   },
   {
     id: 'armor_c1',
@@ -53,7 +53,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+1 Armor',
     icon: 'lucide:octagon-x',
     tier: 'common',
-    effect: p => ({ ...p, armor: Math.min(STAT_DEFINITIONS.armor.cap, p.armor + 1) }),
+    modifiers: [{ stat: 'armor', value: 1, type: 'add' }],
   },
   {
     id: 'crit_c1',
@@ -61,10 +61,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+3% Crit Chance',
     icon: 'lucide:crosshair',
     tier: 'common',
-    effect: p => ({
-      ...p,
-      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.03),
-    }),
+    modifiers: [{ stat: 'critChance', value: 0.03, type: 'add' }],
   },
   {
     id: 'lifesteal_c1',
@@ -72,10 +69,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+5% Lifesteal Chance',
     icon: 'lucide:repeat',
     tier: 'common',
-    effect: p => ({
-      ...p,
-      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.05),
-    }),
+    modifiers: [{ stat: 'lifesteal', value: 0.05, type: 'add' }],
   },
   {
     id: 'balance_c1',
@@ -83,15 +77,14 @@ export const COMMON_CARDS: Card[] = [
     description: '+5% all main stats',
     icon: 'lucide:scale',
     tier: 'common',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage * 1.05,
-      speed: p.speed * 1.05,
-      maxHp: p.maxHp * 1.05,
-      hp: p.hp * 1.05,
-      fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.95), // 5% faster attack speed (lower ms)
-      magnet: p.magnet * 1.05,
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 0.05, type: 'percent' },
+      { stat: 'speed', value: 0.05, type: 'percent' },
+      { stat: 'maxHp', value: 0.05, type: 'percent' },
+      { stat: 'hp', value: 0.05, type: 'percent' },
+      { stat: 'fireRate', value: -0.05, type: 'percent' },
+      { stat: 'magnet', value: 0.05, type: 'percent' },
+    ],
   },
 ];
 
@@ -106,7 +99,7 @@ export const RARE_CARDS: Card[] = [
     description: '+15 Base Damage',
     icon: 'lucide:file-text',
     tier: 'rare',
-    effect: p => ({ ...p, baseDamage: p.baseDamage + 15 }),
+    modifiers: [{ stat: 'baseDamage', value: 15, type: 'add' }],
   },
   {
     id: 'spd_r1',
@@ -114,7 +107,7 @@ export const RARE_CARDS: Card[] = [
     description: '+18% Attack Speed',
     icon: 'lucide:activity',
     tier: 'rare',
-    effect: p => ({ ...p, fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.82) }),
+    modifiers: [{ stat: 'fireRate', value: -0.18, type: 'percent' }],
   },
   {
     id: 'crit_r1',
@@ -122,10 +115,7 @@ export const RARE_CARDS: Card[] = [
     description: '+5% Crit Chance',
     icon: 'lucide:eye',
     tier: 'rare',
-    effect: p => ({
-      ...p,
-      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.05),
-    }),
+    modifiers: [{ stat: 'critChance', value: 0.05, type: 'add' }],
   },
   {
     id: 'luck_r1',
@@ -133,7 +123,7 @@ export const RARE_CARDS: Card[] = [
     description: '+2 Luck (better gem drops)',
     icon: 'lucide:key',
     tier: 'rare',
-    effect: p => ({ ...p, luck: Math.min(STAT_DEFINITIONS.luck.cap, p.luck + 2) }),
+    modifiers: [{ stat: 'luck', value: 2, type: 'add' }],
   },
   {
     id: 'area_r1',
@@ -141,7 +131,7 @@ export const RARE_CARDS: Card[] = [
     description: '+50% Projectile Size',
     icon: 'lucide:circle-dollar-sign',
     tier: 'rare',
-    effect: p => ({ ...p, area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.5) }),
+    modifiers: [{ stat: 'area', value: 0.5, type: 'add' }],
   },
   {
     id: 'proj_r1',
@@ -149,10 +139,7 @@ export const RARE_CARDS: Card[] = [
     description: '+1 Projectile',
     icon: 'lucide:copy-plus',
     tier: 'rare',
-    effect: p => ({
-      ...p,
-      projectiles: Math.min(STAT_DEFINITIONS.projectiles.cap, p.projectiles + 1),
-    }),
+    modifiers: [{ stat: 'projectiles', value: 1, type: 'add' }],
   },
   {
     id: 'speed_r1',
@@ -160,7 +147,7 @@ export const RARE_CARDS: Card[] = [
     description: '+15% Speed',
     icon: 'lucide:arrow-up-right',
     tier: 'rare',
-    effect: p => ({ ...p, speed: Math.min(STAT_DEFINITIONS.speed.cap, p.speed * 1.15) }),
+    modifiers: [{ stat: 'speed', value: 0.15, type: 'percent' }],
   },
   {
     id: 'shield_r1',
@@ -168,12 +155,11 @@ export const RARE_CARDS: Card[] = [
     description: '+2 Armor, +10 HP',
     icon: 'lucide:shield',
     tier: 'rare',
-    effect: p => ({
-      ...p,
-      armor: Math.min(STAT_DEFINITIONS.armor.cap, p.armor + 2),
-      maxHp: p.maxHp + 10,
-      hp: p.hp + 10,
-    }),
+    modifiers: [
+      { stat: 'armor', value: 2, type: 'add' },
+      { stat: 'maxHp', value: 10, type: 'add' },
+      { stat: 'hp', value: 10, type: 'add' },
+    ],
   },
   {
     id: 'exec_r1',
@@ -181,11 +167,10 @@ export const RARE_CARDS: Card[] = [
     description: '+12 Damage, +3% Crit',
     icon: 'lucide:arrow-down-up',
     tier: 'rare',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 12,
-      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.03),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 12, type: 'add' },
+      { stat: 'critChance', value: 0.03, type: 'add' },
+    ],
   },
 ];
 
@@ -200,11 +185,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+25 Damage, +10% Crit',
     icon: 'lucide:scale-3d',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 25,
-      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.1),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 25, type: 'add' },
+      { stat: 'critChance', value: 0.1, type: 'add' },
+    ],
   },
   {
     id: 'vamp_e1',
@@ -212,10 +196,7 @@ export const EPIC_CARDS: Card[] = [
     description: '+12% Lifesteal Chance',
     icon: 'lucide:coins',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.12),
-    }),
+    modifiers: [{ stat: 'lifesteal', value: 0.12, type: 'add' }],
   },
   {
     id: 'speed_e1',
@@ -223,11 +204,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+30% Speed, +15% Attack Speed',
     icon: 'lucide:bolt',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      speed: Math.min(STAT_DEFINITIONS.speed.cap, p.speed * 1.3),
-      fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.85),
-    }),
+    modifiers: [
+      { stat: 'speed', value: 0.3, type: 'percent' },
+      { stat: 'fireRate', value: -0.15, type: 'percent' },
+    ],
   },
   {
     id: 'tank_e1',
@@ -235,12 +215,11 @@ export const EPIC_CARDS: Card[] = [
     description: '+40 Max HP, +3 Armor',
     icon: 'lucide:wallet',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      maxHp: p.maxHp + 40,
-      hp: p.hp + 40,
-      armor: Math.min(STAT_DEFINITIONS.armor.cap, p.armor + 3),
-    }),
+    modifiers: [
+      { stat: 'maxHp', value: 40, type: 'add' },
+      { stat: 'hp', value: 40, type: 'add' },
+      { stat: 'armor', value: 3, type: 'add' },
+    ],
   },
   {
     id: 'explode_e1',
@@ -248,11 +227,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+20 DMG, +60% Area',
     icon: 'lucide:flame',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 20,
-      area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.6),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 20, type: 'add' },
+      { stat: 'area', value: 0.6, type: 'add' },
+    ],
   },
   {
     id: 'chain_e1',
@@ -260,11 +238,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+15 DMG, +8% Crit',
     icon: 'lucide:zap',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 15,
-      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.08),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 15, type: 'add' },
+      { stat: 'critChance', value: 0.08, type: 'add' },
+    ],
   },
   {
     id: 'regen_e1',
@@ -272,12 +249,11 @@ export const EPIC_CARDS: Card[] = [
     description: '+30 Max HP, +8% Lifesteal',
     icon: 'lucide:file-code',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      maxHp: p.maxHp + 30,
-      hp: p.hp + 30,
-      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.08),
-    }),
+    modifiers: [
+      { stat: 'maxHp', value: 30, type: 'add' },
+      { stat: 'hp', value: 30, type: 'add' },
+      { stat: 'lifesteal', value: 0.08, type: 'add' },
+    ],
   },
   {
     id: 'random_e1',
@@ -285,7 +261,7 @@ export const EPIC_CARDS: Card[] = [
     description: '+35 DMG (high risk high reward)',
     icon: '🎲',
     tier: 'epic',
-    effect: p => ({ ...p, baseDamage: p.baseDamage + 35 }),
+    modifiers: [{ stat: 'baseDamage', value: 35, type: 'add' }],
   },
   {
     id: 'banano_e1',
@@ -293,11 +269,10 @@ export const EPIC_CARDS: Card[] = [
     description: '+20% Speed, +1 Luck',
     icon: 'icon-banano',
     tier: 'epic',
-    effect: p => ({
-      ...p,
-      speed: Math.min(STAT_DEFINITIONS.speed.cap, p.speed * 1.2),
-      luck: Math.min(STAT_DEFINITIONS.luck.cap, p.luck + 1),
-    }),
+    modifiers: [
+      { stat: 'speed', value: 0.2, type: 'percent' },
+      { stat: 'luck', value: 1, type: 'add' },
+    ],
   },
 ];
 
@@ -312,11 +287,10 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+40 DMG, +15% Crit',
     icon: 'lucide:gem',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 40,
-      critChance: Math.min(STAT_DEFINITIONS.critChance.cap, p.critChance + 0.15),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 40, type: 'add' },
+      { stat: 'critChance', value: 0.15, type: 'add' },
+    ],
   },
   {
     id: 'moon_l1',
@@ -324,11 +298,10 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+30 DMG, +3 Luck',
     icon: 'lucide:rocket',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 30,
-      luck: Math.min(STAT_DEFINITIONS.luck.cap, p.luck + 3),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 30, type: 'add' },
+      { stat: 'luck', value: 3, type: 'add' },
+    ],
   },
   {
     id: 'whale_l1',
@@ -336,11 +309,10 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+20 DMG, +0.5 Area',
     icon: 'icon-whale',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 20,
-      area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.5),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 20, type: 'add' },
+      { stat: 'area', value: 0.5, type: 'add' },
+    ],
   },
   {
     id: 'ape_l1',
@@ -348,12 +320,11 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '2x Fire Rate, -20% HP',
     icon: 'icon-ape',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      fireRate: Math.max(STAT_DEFINITIONS.fireRate.cap, p.fireRate * 0.5),
-      maxHp: Math.max(20, p.maxHp * 0.8),
-      hp: Math.min(p.hp, Math.max(20, p.maxHp * 0.8)),
-    }),
+    modifiers: [
+      { stat: 'fireRate', value: 0.5, type: 'multiply' },
+      { stat: 'maxHp', value: -0.2, type: 'percent' },
+      { stat: 'hp', value: -0.2, type: 'percent' },
+    ],
   },
   {
     id: 'satoshi_l1',
@@ -361,11 +332,10 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+50 DMG, -25% Fire Rate',
     icon: 'icon-genesis-emblem',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 50,
-      fireRate: p.fireRate * 1.25,
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 50, type: 'add' },
+      { stat: 'fireRate', value: 1.25, type: 'multiply' },
+    ],
   },
   {
     id: 'rug_l1',
@@ -373,12 +343,11 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+20% Lifesteal, -15% Max HP',
     icon: 'icon-skull',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      lifesteal: Math.min(STAT_DEFINITIONS.lifesteal.cap, p.lifesteal + 0.2),
-      maxHp: Math.max(30, p.maxHp * 0.85),
-      hp: Math.min(p.hp, Math.max(30, p.maxHp * 0.85)),
-    }),
+    modifiers: [
+      { stat: 'lifesteal', value: 0.2, type: 'add' },
+      { stat: 'maxHp', value: -0.15, type: 'percent' },
+      { stat: 'hp', value: -0.15, type: 'percent' },
+    ],
   },
   {
     id: 'nft_l1',
@@ -386,14 +355,13 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+5 random stat boosts',
     icon: '🌈',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 15,
-      critChance: p.critChance + 0.05,
-      luck: p.luck + 2,
-      speed: p.speed + 0.5,
-      armor: p.armor + 1,
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 15, type: 'add' },
+      { stat: 'critChance', value: 0.05, type: 'add' },
+      { stat: 'luck', value: 2, type: 'add' },
+      { stat: 'speed', value: 0.5, type: 'add' },
+      { stat: 'armor', value: 1, type: 'add' },
+    ],
   },
   {
     id: 'timelock_l1',
@@ -401,12 +369,11 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+35 DMG, +20 HP',
     icon: '⏰',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 35,
-      maxHp: p.maxHp + 20,
-      hp: p.hp + 20,
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 35, type: 'add' },
+      { stat: 'maxHp', value: 20, type: 'add' },
+      { stat: 'hp', value: 20, type: 'add' },
+    ],
   },
   {
     id: 'gas_l1',
@@ -414,17 +381,18 @@ export const LEGENDARY_CARDS: Card[] = [
     description: '+25 DMG, +0.4 Area',
     icon: '🔥',
     tier: 'legendary',
-    effect: p => ({
-      ...p,
-      baseDamage: p.baseDamage + 25,
-      area: Math.min(STAT_DEFINITIONS.area.cap, p.area + 0.4),
-    }),
+    modifiers: [
+      { stat: 'baseDamage', value: 25, type: 'add' },
+      { stat: 'area', value: 0.4, type: 'add' },
+    ],
   },
 ];
 
 // =============================================================================
 // AGGREGATED COLLECTIONS
 // =============================================================================
+
+export type CardTier = 'common' | 'rare' | 'epic' | 'legendary';
 
 /**
  * All cards organized by tier
