@@ -278,7 +278,7 @@ describe('CardSystem', () => {
         expect(card).toHaveProperty('icon');
         expect(card).toHaveProperty('tier');
         // Cards use declarative modifiers (new) or effect function (legacy)
-        const hasModifiers = card.modifiers && card.modifiers.length > 0;
+        const hasModifiers = !!(card.modifiers && card.modifiers.length > 0);
         const hasEffect = typeof card.effect === 'function';
         expect(hasModifiers || hasEffect).toBe(true);
       });
@@ -344,7 +344,7 @@ describe('CardSystem', () => {
           expect(card).toHaveProperty('name');
           expect(card).toHaveProperty('tier');
           // Cards use declarative modifiers (new) or effect function (legacy)
-          const hasModifiers = card.modifiers && card.modifiers.length > 0;
+          const hasModifiers = !!(card.modifiers && card.modifiers.length > 0);
           const hasEffect = typeof card.effect === 'function';
           expect(hasModifiers || hasEffect).toBe(true);
         });

@@ -5,6 +5,9 @@ export const useGameInput = () => {
   const touchVector = useRef({ dx: 0, dy: 0 });
   const touchDash = useRef(false);
 
+  // Track if space was released since last dash (for double dash detection)
+  const spaceConsumed = useRef(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keys.current[e.key] = true;
@@ -12,6 +15,10 @@ export const useGameInput = () => {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       keys.current[e.key] = false;
+      // Reset consumed state when space is released
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        spaceConsumed.current = false;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -53,11 +60,28 @@ export const useGameInput = () => {
   const isSpacePressed = () => keys.current[' '] ?? keys.current['Spacebar'] ?? touchDash.current;
 
   /**
+   * Check if space was freshly pressed (not held from previous dash)
+   * Used for double dash - requires user to release and press again
+   */
+  const isSpaceFreshPress = () => {
+    const pressed = keys.current[' '] ?? keys.current['Spacebar'] ?? touchDash.current;
+    return pressed && !spaceConsumed.current;
+  };
+
+  /**
    * Resets the dash state after it's processed by the engine
    */
   const consumeDash = () => {
     touchDash.current = false;
+    spaceConsumed.current = true; // Mark space as consumed until released
   };
 
-  return { getMovementVector, isSpacePressed, setTouchMovement, setTouchDash, consumeDash };
+  return {
+    getMovementVector,
+    isSpacePressed,
+    isSpaceFreshPress,
+    setTouchMovement,
+    setTouchDash,
+    consumeDash,
+  };
 };

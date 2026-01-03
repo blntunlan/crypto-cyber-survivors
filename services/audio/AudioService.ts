@@ -84,6 +84,13 @@ export class AudioService {
   }
 
   /**
+   * Play low HP heartbeat
+   */
+  playHeartbeat(): void {
+    GameSounds.playHeartbeat();
+  }
+
+  /**
    * Play gem collection sound
    */
   playGem(): void {
@@ -95,6 +102,13 @@ export class AudioService {
    */
   playLevelUp(): void {
     GameSounds.playLevelUp();
+  }
+
+  /**
+   * Play near miss whoosh sound
+   */
+  playWhoosh(): void {
+    GameSounds.playWhoosh();
   }
 
   /**
@@ -156,10 +170,8 @@ export class AudioService {
 
   /**
    * Play reel stop sound
-   * @deprecated Disabled - use audio files instead
    */
   playReelStop(reelNumber: number): void {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     SlotSounds.playReelStop(reelNumber);
   }
 
@@ -175,6 +187,38 @@ export class AudioService {
    */
   playAnticipation(intensity: number = 1): void {
     SlotSounds.playAnticipation(intensity);
+  }
+
+  /**
+   * Play coin shower - para yağmuru efekti
+   * TEST: Kazanma sonrası eklenebilir
+   */
+  playCoinShower(): void {
+    SlotSounds.playCoinShower();
+  }
+
+  /**
+   * Play near miss - neredeyse kazanma
+   * TEST: Şimdilik kullanılmıyor
+   */
+  playNearMiss(): void {
+    SlotSounds.playNearMiss();
+  }
+
+  /**
+   * Play multiplier chime - çarpan artışı
+   * TEST: Her makarada çalabilir
+   */
+  playMultiplierChime(level: number = 1): void {
+    SlotSounds.playMultiplierChime(level);
+  }
+
+  /**
+   * Play slowdown tension - yavaşlama gerilimi
+   * TEST: Makara yavaşlarken
+   */
+  playSlowdownTension(): void {
+    SlotSounds.playSlowdownTension();
   }
 
   // ========================================

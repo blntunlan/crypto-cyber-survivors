@@ -26,7 +26,10 @@ export class CombatResolutionService {
     player: Player,
     isSuperCrit: boolean = false
   ): void {
-    enemy.active = false;
+    // Start death animation instead of immediately deactivating
+    enemy.isDying = true;
+    enemy.deathProgress = 0;
+
     DifficultyManager.recordKill();
 
     EventBus.emit('enemyKilled', {

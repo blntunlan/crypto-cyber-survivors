@@ -63,7 +63,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         if (!isSlowing) {
           isSlowing = true;
           setPhase('slowing');
-          // Note: playAnticipation removed - caused overlapping hum sounds
+          // TEST: Yavaşlama gerilimi sesi (kaldırılabilir)
+          audio.playSlowdownTension();
         }
         const slowdownProgress = (elapsed - slowdownStartTime) / SLOT_CONFIG.SLOWDOWN_DURATION;
         currentInterval = SLOT_CONFIG.SPIN_INTERVAL + slowdownProgress * 200;
@@ -96,11 +97,13 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   useEffect(() => {
     if (isStopped && !hasCalledOnStopped.current) {
       hasCalledOnStopped.current = true;
-      // Note: playReelStop is deprecated, using playSlotTick as final stop sound
-      audio.playSlotTick(1);
+      // Trigger the specialized reel stop sound (rising pitch)
+      audio.playReelStop(reelIndex);
+      // TEST: Çarpan sesi (kaldırılabilir)
+      audio.playMultiplierChime(reelIndex);
       onStopped();
     }
-  }, [isStopped, onStopped]);
+  }, [isStopped, onStopped, reelIndex]);
 
   const displayCard = (phase === 'stopped' ? finalCard : spinCards[displayIndex]) ?? finalCard;
   const tierConfig = TIER_CONFIG[displayCard.tier];

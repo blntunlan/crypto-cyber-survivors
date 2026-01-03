@@ -12,6 +12,7 @@ import { type IPhysicsContext } from './PhysicsTypes';
 import { getPhysicsContext, physicsColors } from './PhysicsContext';
 import { EventBus } from '../EventBus';
 import { CombatResolutionService } from './CombatResolutionService';
+import { StatService } from '../StatService';
 
 // Extended enemy type with behavior (added by EnemyFactory at runtime)
 interface EnemyWithBehavior extends Enemy {
@@ -56,6 +57,11 @@ export class CollisionSystem {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
 
     pool.activeEnemies.forEach(enemy => {
+      // Skip dying enemies - they just animate and fade out
+      if (enemy.isDying) {
+        return;
+      }
+
       // Cast to extended type with behavior
       const enemyWithBehavior = enemy as unknown as EnemyWithBehavior;
 
@@ -63,6 +69,27 @@ export class CollisionSystem {
       if (this.isOffScreen(enemy, width, height)) {
         enemy.active = false;
         return;
+      }
+
+      // Check for screen entry to trigger spawn animation
+      if (!enemy.hasEnteredScreen) {
+        const margin = enemy.radius;
+        if (
+          enemy.x > -margin &&
+          enemy.x < width + margin &&
+          enemy.y > -margin &&
+          enemy.y < height + margin
+        ) {
+          enemy.hasEnteredScreen = true;
+          enemy.spawnTimer = 1; // Reset to full animation when entering screen
+        }
+      }
+
+      // Spawn Animation Timer - ONLY decrement after entering screen
+      // This ensures animation plays when enemy becomes visible, not while off-screen
+      if (enemy.hasEnteredScreen && enemy.spawnTimer !== undefined && enemy.spawnTimer > 0) {
+        enemy.spawnTimer -= 0.1 * dtFactor; // ~10 frames for snappy pop
+        if (enemy.spawnTimer < 0) enemy.spawnTimer = 0;
       }
 
       // 2. Behavioral Movement
@@ -136,6 +163,13 @@ export class CollisionSystem {
         player.hp = Math.max(0, player.hp);
         state.shake = 10;
 
+        // Damage Direction Indicator
+        state.damageIndicators.push({
+          sourceX: enemy.x,
+          sourceY: enemy.y,
+          timestamp: Date.now(),
+        });
+
         if (Math.random() > 0.9) this.ctx.audio.playHit();
 
         if (player.hp <= 0 && !state.isGameOverTriggered) {
@@ -143,6 +177,19 @@ export class CollisionSystem {
           onGameOver();
         }
       }
+    } else {
+      /*
+      // Near Miss Check
+      // DISABLED: User requested to turn off the tension effect as it interrupts flow
+      // Only check if no collision, player not invincible, and global cooldown ready
+      if (false && !enemy.hasTriggeredNearMiss && state.nearMissCooldown <= 0 && !this.ctx.cheat.isGodMode()) {
+        const nearMissDist = combinedRadius + this.ctx.constants.NEAR_MISS_THRESHOLD;
+        if (distSq < nearMissDist * nearMissDist) {
+          enemy.hasTriggeredNearMiss = true;
+          EventBus.emit('nearMiss', { enemyType: enemy.type });
+        }
+      }
+      */
     }
   }
 
@@ -188,6 +235,13 @@ export class CollisionSystem {
     this.triggerCritEffects(bullet, enemy, state);
     this.spawnDamageText(pool, enemy, bullet);
 
+    // Hit Stop - freeze frame for impact feel
+    const isCrit = bullet.isCrit || bullet.isSuperCrit;
+    EventBus.emit('hitStop', {
+      duration: isCrit ? this.ctx.constants.HIT_STOP_CRIT : this.ctx.constants.HIT_STOP_NORMAL,
+      isCrit: !!isCrit,
+    });
+
     if (enemy.health <= 0) {
       CombatResolutionService.handleEnemyDeath(pool, enemy, player, !!bullet.isSuperCrit);
     }
@@ -223,13 +277,10 @@ export class CollisionSystem {
 
     const size = bullet.isSuperCrit ? 36 : bullet.isCrit ? 28 : 20;
 
-    pool.getFloatingText(
-      enemy.x + (Math.random() - 0.5) * 10,
-      enemy.y - 20,
-      bullet.damage.toFixed(0),
-      color,
-      size
-    );
+    const text = StatService.formatCompact(bullet.damage);
+    if (!text) return;
+
+    pool.getFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 20, text, color, size);
   }
 
   private static spawnImpactParticles(

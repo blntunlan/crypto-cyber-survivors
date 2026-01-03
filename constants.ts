@@ -32,7 +32,19 @@ export const GAME_ENGINE = {
   GEM_MAGNET_BASE_RANGE: 150,
   DASH_SPEED_MULTIPLIER: 3,
   DASH_DURATION: 200, // ms
-  DASH_COOLDOWN: 1000, // ms
+  DASH_COOLDOWN: 1000, // ms (normal dash)
+  DOUBLE_DASH_COOLDOWN: 3000, // ms (after double dash)
+  DOUBLE_DASH_WINDOW: 200, // ms (window to press second dash)
+  // Hit Stop - brief freeze on impact for "weight" feeling
+  HIT_STOP_NORMAL: 16, // ms (~1 frame) - normal hit
+  HIT_STOP_CRIT: 50, // ms (~3 frames) - critical hit
+  // Enemy Death Pop - scale up + fade out animation
+  ENEMY_DEATH_POP_SPEED: 0.12, // Progress per frame (~8 frames = ~133ms)
+  // Near Miss Tension
+  NEAR_MISS_THRESHOLD: 40, // Distance buffer for near miss
+  NEAR_MISS_DURATION: 300, // ms duration of effect
+  NEAR_MISS_SLOWMO: 0.4, // Time scale during near miss
+  NEAR_MISS_COOLDOWN: 1000, // ms global cooldown
 };
 
 // =============================================================================

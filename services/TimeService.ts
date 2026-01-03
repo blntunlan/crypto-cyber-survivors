@@ -42,6 +42,7 @@ class TimeServiceClass {
 
   // Store unsubscribe functions for proper cleanup
   private unsubscribeFns: (() => void)[] = [];
+  private deltaHistory: number[] = [];
 
   // Configuration
   private static readonly MIN_TIME_SCALE = 0.1;
@@ -90,6 +91,7 @@ class TimeServiceClass {
     this.lastRealTime = 0;
     this.isPaused = true;
     this.timeScale = 1.0;
+    this.deltaHistory = [];
   }
 
   /**
@@ -135,6 +137,14 @@ class TimeServiceClass {
     // Save for next frame
     this.lastRealTime = currentTime;
 
+    // Update history for FPS smoothing
+    if (this.deltaTime > 0) {
+      this.deltaHistory.push(this.deltaTime);
+      if (this.deltaHistory.length > 20) {
+        this.deltaHistory.shift();
+      }
+    }
+
     return this.deltaTime;
   }
 
@@ -174,8 +184,13 @@ class TimeServiceClass {
    * Returns 0 if no valid delta
    */
   getFPS(): number {
-    if (this.deltaTime <= 0) return 0;
-    return Math.round(1000 / this.deltaTime);
+    if (this.deltaHistory.length === 0) return 0;
+
+    // Calculate simple moving average of deltas for stable FPS
+    const avgDelta = this.deltaHistory.reduce((a, b) => a + b, 0) / this.deltaHistory.length;
+    if (avgDelta <= 0) return 0;
+
+    return Math.round(1000 / avgDelta);
   }
 
   /**

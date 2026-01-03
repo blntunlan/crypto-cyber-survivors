@@ -40,10 +40,11 @@ describe('ATRCalculator', () => {
   });
 
   it('should calculate spawn rate multiplier correctly', () => {
-    expect(calculator.getSpawnRateMultiplier(0.5)).toBe(0.5);
-    expect(calculator.getSpawnRateMultiplier(1.5)).toBe(1.0);
-    expect(calculator.getSpawnRateMultiplier(3.0)).toBe(1.5);
-    expect(calculator.getSpawnRateMultiplier(5.0)).toBe(2.0);
+    // Thresholds: < 0.005 (Calm), < 0.015 (Normal), < 0.03 (Volatile), >= 0.03 (Chaos)
+    expect(calculator.getSpawnRateMultiplier(0.004)).toBe(0.5);
+    expect(calculator.getSpawnRateMultiplier(0.01)).toBe(1.0);
+    expect(calculator.getSpawnRateMultiplier(0.02)).toBe(1.5);
+    expect(calculator.getSpawnRateMultiplier(0.05)).toBe(2.0);
   });
 
   it('should calculate atrPercent correctly', () => {

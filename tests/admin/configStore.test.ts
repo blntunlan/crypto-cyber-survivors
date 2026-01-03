@@ -52,8 +52,56 @@ describe('AdminConfigStore', () => {
         },
       },
       isDirty: false,
-      history: [],
-      historyIndex: -1,
+      // Initialize with current config as first history entry
+      history: [
+        {
+          timestamp: Date.now(),
+          config: {
+            version: '1.0.0',
+            lastModified: Date.now(),
+            difficulty: {
+              base: 5,
+              volatilityMultiplier: 1.0,
+              timeMultiplier: 0.1,
+              maxDifficulty: 10,
+              curve: 'linear',
+            },
+            spawn: {
+              baseInterval: 1000,
+              minInterval: 200,
+              maxEnemies: 200,
+              waveIntensity: 0.5,
+              bossSpawnTime: 120000,
+              enemyDistribution: {
+                normal: 50,
+                fast: 25,
+                tank: 15,
+                ranged: 10,
+              },
+            },
+            items: {
+              gemDropRate: 0.8,
+              healthDropRate: 0.05,
+              powerUpDropRate: 0.02,
+              gemValues: { small: 5, medium: 15, large: 50 },
+              powerUpDurations: {
+                shield: 5000,
+                speedBoost: 3000,
+                damage: 10000,
+                magnet: 8000,
+              },
+            },
+            visuals: {
+              theme: 'btc',
+              particleDensity: 0.7,
+              screenShake: true,
+              glowEffects: true,
+            },
+          },
+          description: 'Initial state',
+        },
+      ],
+      historyIndex: 0,
       maxHistorySize: 50,
     });
   });
@@ -131,7 +179,7 @@ describe('AdminConfigStore', () => {
       updateDifficulty({ base: 6 });
 
       const { history } = useAdminConfigStore.getState();
-      expect(history.length).toBe(1);
+      expect(history.length).toBe(2);
     });
 
     it('should support undo', () => {
@@ -146,8 +194,8 @@ describe('AdminConfigStore', () => {
       expect(useAdminConfigStore.getState().config.difficulty.base).toBe(5);
     });
 
-    // TODO: Fix history/redo mechanism - complex state management
-    it.skip('should support redo', () => {
+    // Redo mechanism fixed
+    it('should support redo', () => {
       const { updateDifficulty } = useAdminConfigStore.getState();
 
       updateDifficulty({ base: 6 });

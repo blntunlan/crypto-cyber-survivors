@@ -122,23 +122,27 @@ export const useAdminConfigStore = create<AdminConfigState>()(
       // Initial state
       config: getDefaultConfig(),
       isDirty: false,
-      history: [],
-      historyIndex: -1,
+      history: [
+        { timestamp: Date.now(), config: getDefaultConfig(), description: 'Initial state' },
+      ],
+      historyIndex: 0,
       maxHistorySize: 50,
 
       // Set entire config
       setConfig: (config: GameConfig) => {
         const state = get();
+        // Create new entry
         const newEntry: ConfigHistoryEntry = {
           timestamp: Date.now(),
-          config: state.config,
+          config: config,
           description: 'Config update',
         };
 
-        // Trim history if needed
-        const newHistory = [...state.history.slice(0, state.historyIndex + 1), newEntry].slice(
-          -state.maxHistorySize
-        );
+        // If we are in the middle of history, discard the future
+        const pastHistory = state.history.slice(0, state.historyIndex + 1);
+
+        // Add new entry
+        const newHistory = [...pastHistory, newEntry].slice(-state.maxHistorySize);
 
         set({
           config: { ...config, lastModified: Date.now() },
@@ -200,13 +204,13 @@ export const useAdminConfigStore = create<AdminConfigState>()(
       // History navigation
       undo: () => {
         const state = get();
-        // Can undo if we have history entries
-        if (state.historyIndex >= 0 && state.history.length > 0) {
-          const prevEntry = state.history[state.historyIndex];
-          if (prevEntry) {
+        if (state.historyIndex > 0) {
+          const newIndex = state.historyIndex - 1;
+          const entry = state.history[newIndex];
+          if (entry) {
             set({
-              config: prevEntry.config,
-              historyIndex: state.historyIndex - 1,
+              config: entry.config,
+              historyIndex: newIndex,
               isDirty: true,
             });
           }
@@ -216,18 +220,19 @@ export const useAdminConfigStore = create<AdminConfigState>()(
       redo: () => {
         const state = get();
         if (state.historyIndex < state.history.length - 1) {
-          const nextEntry = state.history[state.historyIndex + 1];
-          if (nextEntry) {
+          const newIndex = state.historyIndex + 1;
+          const entry = state.history[newIndex];
+          if (entry) {
             set({
-              config: nextEntry.config,
-              historyIndex: state.historyIndex + 1,
+              config: entry.config,
+              historyIndex: newIndex,
               isDirty: true,
             });
           }
         }
       },
 
-      canUndo: () => get().historyIndex >= 0 && get().history.length > 0,
+      canUndo: () => get().historyIndex > 0,
       canRedo: () => get().historyIndex < get().history.length - 1,
 
       // Export/Import

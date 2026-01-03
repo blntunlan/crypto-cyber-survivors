@@ -64,9 +64,7 @@ export class IndicatorService {
 
       // Calculate derived metrics
       const spawnRateMultiplier = ind.atr.getSpawnRateMultiplier(atrResult.atrPercent);
-      const { long: aggroLong, short: aggroShort } = this.calculateAggroMultipliers(
-        rsiResult.state
-      );
+      const { long: aggroLong, short: aggroShort } = this.calculateAggroMultipliers(rsiResult.rsi);
 
       // Update Supabase
       // Note: This is an upsert, so it's efficient.
@@ -115,15 +113,28 @@ export class IndicatorService {
     }
   }
 
-  private calculateAggroMultipliers(rsiState: string): { long: number; short: number } {
-    switch (rsiState) {
-      case 'OVERSOLD':
-        return { long: 0.7, short: 1.5 }; // Favors LONG (market expected to bounce up)
-      case 'OVERBOUGHT':
-        return { long: 1.5, short: 0.7 }; // Favors SHORT (market expected to correct down)
-      default:
-        return { long: 1.0, short: 1.0 }; // Neutral
-    }
+  private calculateAggroMultipliers(rsi: number): { long: number; short: number } {
+    // Dynamic Difficulty Scaling based on RSI
+    // Center point is 50 (Neutral)
+    // Range is typically 30-70, but can go 0-100
+
+    // Normalized deviation from 50 (-1.0 to +1.0 for 0-100 range)
+    const deviation = (rsi - 50) / 50;
+
+    // Apply sensitivity factor (swings of +/- 50%)
+    // If RSI is 80 (Overbought/Bullish):
+    //   deviation = 0.6
+    //   aggroLong = 1.0 - 0.3 = 0.7 (Easier for bulls)
+    //   aggroShort = 1.0 + 0.3 = 1.3 (Harder for bears)
+    const sensitivity = 0.5;
+
+    // LONG: Easier when RSI is HIGH (Bullish momentum)
+    const aggroLong = Math.max(0.5, Math.min(2.0, 1.0 - deviation * sensitivity));
+
+    // SHORT: Easier when RSI is LOW (Bearish momentum)
+    const aggroShort = Math.max(0.5, Math.min(2.0, 1.0 + deviation * sensitivity));
+
+    return { long: Number(aggroLong.toFixed(2)), short: Number(aggroShort.toFixed(2)) };
   }
 
   recordWhaleSpawn(pair: string): void {

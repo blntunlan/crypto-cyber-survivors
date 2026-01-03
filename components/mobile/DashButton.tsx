@@ -50,7 +50,9 @@ export const DashButton: React.FC<DashButtonProps> = ({
       if (!isReady) return;
 
       setIsPressed(true);
-      setCooldownRemaining(cooldownMs);
+      // Only lock button briefly to allow double/triple dash if engine permits
+      // The visual cooldown is misleading for multi-charge dash systems, so we use a short debounce
+      setCooldownRemaining(100);
       onDash();
 
       // Haptic feedback (with safe check for unsupported browsers)
@@ -58,7 +60,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
         navigator.vibrate(20);
       }
     },
-    [isReady, cooldownMs, onDash, hapticFeedback]
+    [isReady, onDash, hapticFeedback]
   );
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {

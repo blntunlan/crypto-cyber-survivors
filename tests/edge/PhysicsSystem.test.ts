@@ -74,6 +74,7 @@ describe('PhysicsSystem Edge Cases', () => {
       activeFloatingTexts: [],
       activeEnemies: [],
       activeGems: [],
+      activeSpeedLines: [],
       getParticle: vi.fn(() => ({
         active: true,
         x: 0,
@@ -116,6 +117,8 @@ describe('PhysicsSystem Edge Cases', () => {
       shake: 0,
       critFlash: 0,
       levelUpFreeze: 0,
+      damageIndicators: [],
+      nearMissCooldown: 0,
     } as any;
 
     mockOnGameOver = vi.fn();
@@ -124,14 +127,14 @@ describe('PhysicsSystem Edge Cases', () => {
   describe('Extreme Delta Time (dtFactor)', () => {
     it('should handle dtFactor of 0 (paused/frozen)', () => {
       mockPool.activeBullets = [{ x: 100, y: 100, vx: 10, vy: 10, active: true }];
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 0, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 0, 800, 600, mockPlayer as Player);
       expect(mockPool.activeBullets[0].x).toBe(100);
     });
 
     it('should handle extremely large dtFactor (lag spike)', () => {
       mockPool.activeBullets = [{ x: 100, y: 100, vx: 1, vy: 0, active: true }];
       // Simulate 1 second lag spike (60 frames)
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 60, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 60, 800, 600, mockPlayer as Player);
       expect(mockPool.activeBullets[0].x).toBe(160);
     });
 

@@ -101,6 +101,14 @@ export class EnemyFactory {
       speed: modifiedSpeed,
       color,
       behavior,
+      // Spawn animation - starts at 0, set to 1 when entering screen
+      spawnTimer: 0,
+      hasEnteredScreen: false,
+      // Death animation
+      isDying: false,
+      deathProgress: 0,
+      // Near miss tracking
+      hasTriggeredNearMiss: false,
     };
   }
 

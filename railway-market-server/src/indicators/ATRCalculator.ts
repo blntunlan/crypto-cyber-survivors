@@ -36,9 +36,14 @@ export class ATRCalculator {
   }
 
   getSpawnRateMultiplier(atrPercent: number): number {
-    if (atrPercent < 1.0) return 0.5; // Calm
-    if (atrPercent < 2.0) return 1.0; // Normal
-    if (atrPercent < 4.0) return 1.5; // Volatile
+    // Thresholds adjusted for 1-second candles
+    // Typical 1s volatility is significantly lower than daily/minute volatility
+    // 0.005% -> Calm
+    // 0.01% -> Normal
+    // 0.02% -> Volatile
+    if (atrPercent < 0.005) return 0.5; // Calm
+    if (atrPercent < 0.015) return 1.0; // Normal
+    if (atrPercent < 0.03) return 1.5; // Volatile
     return 2.0; // Chaos (capped)
   }
 

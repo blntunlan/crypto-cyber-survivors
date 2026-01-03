@@ -54,6 +54,15 @@ export function playHit(): void {
 }
 
 /**
+ * Play low HP heartbeat
+ */
+export function playHeartbeat(): void {
+  if (AUDIO_PRESETS.heartbeat) {
+    synthEngine.playPreset(AUDIO_PRESETS.heartbeat);
+  }
+}
+
+/**
  * Play gem collection sound
  */
 export function playGem(): void {
@@ -86,6 +95,17 @@ export function playLevelUp(): void {
 export function playDash(): void {
   if (AUDIO_PRESETS.dash) {
     synthEngine.playPreset(AUDIO_PRESETS.dash);
+  }
+}
+
+/**
+ * Play near miss whoosh sound
+ */
+export function playWhoosh(): void {
+  if (synthEngine.isOnCooldown('nearMiss')) return;
+  synthEngine.recordPlay('nearMiss');
+  if (AUDIO_PRESETS.nearMiss) {
+    synthEngine.playPreset(AUDIO_PRESETS.nearMiss);
   }
 }
 

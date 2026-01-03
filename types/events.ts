@@ -41,6 +41,8 @@ export type GameEvent =
   | 'marketStateChanged'
   | 'whaleSpawned'
   | 'xpGained'
+  | 'hitStop'
+  | 'nearMiss'
   | 'verification:queued'
   | 'verification:processing'
   | 'verification:success'
@@ -254,6 +256,20 @@ export interface WhaleSpawnedEvent {
   sizeMultiplier: number;
 }
 
+/** Hit stop event data (freeze frame on impact) */
+export interface HitStopEvent {
+  /** Duration of freeze in ms */
+  duration: number;
+  /** Whether this was a critical hit */
+  isCrit: boolean;
+}
+
+/** Near miss event data (tension effect) */
+export interface NearMissEvent {
+  /** Source enemy type */
+  enemyType: string;
+}
+
 // =============================================================================
 // EVENT DATA MAP
 // =============================================================================
@@ -295,6 +311,8 @@ export interface EventDataMap {
   rsiStateChanged: RSIStateChangedEvent;
   marketStateUpdated: MarketStateUpdatedEvent;
   xpGained: { amount: number };
+  hitStop: HitStopEvent;
+  nearMiss: NearMissEvent;
   'verification:queued': Record<string, unknown>;
   'verification:processing': Record<string, unknown>;
   'verification:success': Record<string, unknown>;

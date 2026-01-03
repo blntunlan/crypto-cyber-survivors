@@ -31,6 +31,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
       // Wait for the last card to settle visually before playing the fanfare
       setTimeout(() => {
         audio.playSlotWin();
+        // TEST: Para yağmuru efekti (kaldırılabilir)
+        audio.playCoinShower();
       }, 500);
     }
   }, [allStopped]);

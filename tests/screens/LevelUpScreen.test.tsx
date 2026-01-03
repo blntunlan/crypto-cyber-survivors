@@ -39,13 +39,17 @@ vi.mock('framer-motion', () => {
   };
 });
 
-// Mock audio service
+// Mock audio service - include all methods used by LevelUpScreen and SlotReel
 vi.mock('../../services/AudioService', () => ({
   audio: {
     playSlotTick: vi.fn(),
     playReelStop: vi.fn(),
     playSlotWin: vi.fn(),
     playAnticipation: vi.fn(),
+    playSlowdownTension: vi.fn(),
+    playCoinShower: vi.fn(),
+    playMultiplierChime: vi.fn(),
+    playNearMiss: vi.fn(),
   },
 }));
 

@@ -18,6 +18,12 @@ export type LeverageOption = 1 | 2 | 5 | 10 | 25 | 50 | 100;
 
 export const LEVERAGE_OPTIONS: LeverageOption[] = [1, 2, 5, 10, 25, 50, 100];
 
+export interface DamageIndicator {
+  sourceX: number;
+  sourceY: number;
+  timestamp: number;
+}
+
 export interface MarketData {
   price: number;
   volume: number;
@@ -61,6 +67,12 @@ export interface Enemy extends Entity {
   maxHealth: number;
   type: EnemyId;
   valueMultiplier?: number;
+  // Death animation
+  isDying?: boolean;
+  deathProgress?: number;
+  hasTriggeredNearMiss?: boolean;
+  spawnTimer?: number;
+  hasEnteredScreen?: boolean;
 }
 
 export interface Bullet extends Entity {
@@ -71,9 +83,22 @@ export interface Bullet extends Entity {
   isSuperCrit?: boolean;
 }
 
+export interface SpeedLine extends Entity {
+  length: number;
+  width: number;
+  angle: number;
+  opacity: number;
+  decay: number;
+  vx: number;
+  vy: number;
+}
+
 export interface Gem extends Entity {
   value: number;
   isRare?: boolean;
+  magnetized?: boolean;
+  vx?: number;
+  vy?: number;
 }
 
 export interface Particle extends Entity {
@@ -106,6 +131,7 @@ export interface GameState {
   lastFireTime: number;
   fireTimer: number;
   spawnTimer: number;
+  damageIndicators: DamageIndicator[];
   shake: number;
   critFlash: number;
   critFlashColor: string;
@@ -119,4 +145,21 @@ export interface GameState {
   dashTrail: { x: number; y: number }[];
   dashTrailAccumulator: number;
   isGameOverTriggered: boolean; // Prevents multiple game over calls
+  lastHeartbeatTime: number;
+
+  // Double Dash system
+  doubleDashQueued: boolean; // Player pressed dash again during active dash
+  doubleDashUsed: boolean; // Track if double dash was used (for extended cooldown)
+  dashHaloOpacity: number; // Visual halo effect during dash window
+
+  // Hit Stop (freeze frame on impact)
+  hitStopTimer: number; // Remaining freeze time in ms
+
+  // Squash & Stretch (player animation)
+  playerScaleX: number; // Horizontal scale (1.0 = normal)
+  playerScaleY: number; // Vertical scale (1.0 = normal)
+
+  // Near Miss Tension
+  nearMissTimer: number; // Timer for slow-mo effect
+  nearMissCooldown: number; // Cooldown to prevent spam
 }

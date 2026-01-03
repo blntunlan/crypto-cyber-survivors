@@ -76,6 +76,7 @@ describe('PhysicsSystem', () => {
       activeBullets: [],
       activeParticles: [],
       activeFloatingTexts: [],
+      activeSpeedLines: [],
       activeEnemies: [],
       activeGems: [],
       getParticle: vi.fn(() => ({
@@ -88,7 +89,18 @@ describe('PhysicsSystem', () => {
         radius: 2,
         life: 1,
       })),
-      getGem: vi.fn(),
+      getGem: vi.fn(() => ({
+        active: true,
+        x: 0,
+        y: 0,
+        radius: 0,
+        color: '',
+        value: 0,
+        isRare: false,
+        vx: 0,
+        vy: 0,
+        magnetized: false,
+      })),
       getFloatingText: vi.fn(),
     };
 
@@ -107,6 +119,8 @@ describe('PhysicsSystem', () => {
       lifesteal: 0,
       dodge: 0,
       critChance: 0.1,
+      critDamage: 1.5,
+      regen: 0,
       projectiles: 1,
       area: 1,
       exp: 0,
@@ -118,6 +132,7 @@ describe('PhysicsSystem', () => {
 
     // Mock GameState
     mockState = {
+      damageIndicators: [],
       shake: 0,
       critFlash: 0,
       critFlashColor: '#fff',
@@ -134,6 +149,15 @@ describe('PhysicsSystem', () => {
       dashTimer: 0,
       dashCooldownTimer: 0,
       isGameOverTriggered: false,
+      lastHeartbeatTime: 0,
+      doubleDashQueued: false,
+      doubleDashUsed: false,
+      dashHaloOpacity: 0,
+      hitStopTimer: 0,
+      playerScaleX: 1,
+      playerScaleY: 1,
+      nearMissTimer: 0,
+      nearMissCooldown: 0,
     };
 
     mockOnGameOver = vi.fn();
@@ -143,7 +167,7 @@ describe('PhysicsSystem', () => {
     it('should update bullet positions based on velocity', () => {
       mockPool.activeBullets = [{ x: 100, y: 100, vx: 10, vy: 5, active: true }];
 
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600, mockPlayer as Player);
 
       expect(mockPool.activeBullets[0].x).toBe(110);
       expect(mockPool.activeBullets[0].y).toBe(105);
@@ -152,7 +176,7 @@ describe('PhysicsSystem', () => {
     it('should deactivate bullets that go off screen', () => {
       mockPool.activeBullets = [{ x: -150, y: 100, vx: -10, vy: 0, active: true }];
 
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600, mockPlayer as Player);
 
       expect(mockPool.activeBullets[0].active).toBe(false);
     });
@@ -160,7 +184,7 @@ describe('PhysicsSystem', () => {
     it('should update particle positions and life', () => {
       mockPool.activeParticles = [{ x: 100, y: 100, vx: 2, vy: -2, life: 1, active: true }];
 
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600, mockPlayer as Player);
 
       expect(mockPool.activeParticles[0].x).toBe(102);
       expect(mockPool.activeParticles[0].y).toBe(98);
@@ -170,7 +194,7 @@ describe('PhysicsSystem', () => {
     it('should deactivate particles when life reaches 0', () => {
       mockPool.activeParticles = [{ x: 100, y: 100, vx: 0, vy: 0, life: 0.01, active: true }];
 
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600, mockPlayer as Player);
 
       expect(mockPool.activeParticles[0].active).toBe(false);
     });
@@ -178,7 +202,7 @@ describe('PhysicsSystem', () => {
     it('should update floating text positions and fade', () => {
       mockPool.activeFloatingTexts = [{ x: 100, y: 200, life: 1, active: true }];
 
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 1, 800, 600, mockPlayer as Player);
 
       expect(mockPool.activeFloatingTexts[0].y).toBeLessThan(200);
       expect(mockPool.activeFloatingTexts[0].life).toBeLessThan(1);
@@ -188,7 +212,7 @@ describe('PhysicsSystem', () => {
       mockPool.activeBullets = [{ x: 100, y: 100, vx: 10, vy: 0, active: true }];
 
       // Half speed
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 0.5, 800, 600);
+      PhysicsSystem.updateEntities(mockPool as PoolManager, 0.5, 800, 600, mockPlayer as Player);
 
       expect(mockPool.activeBullets[0].x).toBe(105);
     });
@@ -347,8 +371,10 @@ describe('PhysicsSystem', () => {
       expect(mockPlayer.exp).toBe(10);
     });
 
-    it('should pull gems towards player within decorated magnet range', () => {
-      mockPool.activeGems = [{ x: 450, y: 300, radius: 5, value: 10, active: true }];
+    it('should activate magnet state on first frame and move gem on second', () => {
+      mockPool.activeGems = [
+        { x: 450, y: 300, radius: 5, value: 10, active: true, vx: 0, vy: 0, magnetized: false },
+      ];
 
       // GEM_MAGNET_BASE_RANGE (30) + Magnet (100) = 130
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
@@ -357,7 +383,23 @@ describe('PhysicsSystem', () => {
         getDodge: () => 0,
       } as any);
 
-      const initialX = mockPool.activeGems[0].x;
+      // Frame 1: Activation
+      PhysicsSystem.handleCollisions(
+        mockPool as PoolManager,
+        mockPlayer,
+        mockState,
+        1,
+        800,
+        600,
+        mockOnGameOver
+      );
+
+      expect(mockPool.activeGems[0].magnetized).toBe(true);
+
+      // Frame 2: Movement (Should steer towards player at 400)
+      // Player at 400, Gem at 450. dx = -50.
+      mockPool.activeGems[0].vx = 0; // Reset random pop velocity
+      mockPool.activeGems[0].vy = 0;
 
       PhysicsSystem.handleCollisions(
         mockPool as PoolManager,
@@ -369,7 +411,7 @@ describe('PhysicsSystem', () => {
         mockOnGameOver
       );
 
-      expect(mockPool.activeGems[0].x).toBeLessThan(initialX);
+      expect(mockPool.activeGems[0].x).toBeLessThan(450); // Moving left towards player
     });
   });
 

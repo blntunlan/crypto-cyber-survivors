@@ -21,9 +21,10 @@ export class PhysicsSystem {
     p: PoolManager,
     dtFactor: number,
     width: number,
-    height: number
+    height: number,
+    player: Player
   ): void {
-    MovementSystem.update(p, dtFactor, width, height);
+    MovementSystem.update(p, dtFactor, width, height, player);
   }
 
   /**

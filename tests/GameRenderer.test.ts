@@ -57,10 +57,12 @@ describe('GameRenderer', () => {
       activeGems: [],
       activeParticles: [],
       activeFloatingTexts: [],
+      activeSpeedLines: [],
     } as unknown as PoolManager;
 
     // Mock GameState
     mockState = {
+      damageIndicators: [],
       shake: 0,
       critFlash: 0,
       critFlashColor: '#fff',
@@ -80,6 +82,16 @@ describe('GameRenderer', () => {
       dashTimer: 0,
       dashCooldownTimer: 0,
       isGameOverTriggered: false,
+      lastHeartbeatTime: 0,
+      // New Properties
+      doubleDashQueued: false,
+      doubleDashUsed: false,
+      dashHaloOpacity: 0,
+      hitStopTimer: 0,
+      playerScaleX: 1,
+      playerScaleY: 1,
+      nearMissTimer: 0,
+      nearMissCooldown: 0,
     };
 
     // Mock Player
@@ -208,20 +220,23 @@ describe('GameRenderer', () => {
 
   describe('entity rendering', () => {
     it('should draw all active enemies', () => {
-      mockPool.activeEnemies = [
+      (mockPool as any).activeEnemies = [
         { x: 100, y: 100, radius: 15, color: '#ef4444', health: 50, maxHealth: 100 },
         { x: 200, y: 200, radius: 20, color: '#3b82f6', health: 100, maxHealth: 100 },
-      ] as PoolManager['activeEnemies'];
+      ];
 
       renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
 
-      // Should draw arcs for enemies + player
-      expect(mockCtx.arc).toHaveBeenCalledWith(100, 100, 15, 0, Math.PI * 2);
-      expect(mockCtx.arc).toHaveBeenCalledWith(200, 200, 20, 0, Math.PI * 2);
+      // Should translate to enemy position and draw arc at origin
+      expect(mockCtx.translate).toHaveBeenCalledWith(100, 100);
+      expect(mockCtx.arc).toHaveBeenCalledWith(0, 0, 15, 0, Math.PI * 2);
+
+      expect(mockCtx.translate).toHaveBeenCalledWith(200, 200);
+      expect(mockCtx.arc).toHaveBeenCalledWith(0, 0, 20, 0, Math.PI * 2);
     });
 
     it('should draw all active bullets', () => {
-      mockPool.activeBullets = [
+      (mockPool as any).activeBullets = [
         {
           x: 150,
           y: 150,
@@ -242,7 +257,7 @@ describe('GameRenderer', () => {
           isCrit: true,
           isSuperCrit: false,
         },
-      ] as PoolManager['activeBullets'];
+      ];
 
       renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
 
@@ -253,10 +268,10 @@ describe('GameRenderer', () => {
     });
 
     it('should draw all active gems', () => {
-      mockPool.activeGems = [
+      (mockPool as any).activeGems = [
         { x: 300, y: 300, radius: 6, color: '#22c55e', isRare: false },
         { x: 400, y: 400, radius: 8, color: '#a855f7', isRare: true },
-      ] as PoolManager['activeGems'];
+      ];
 
       renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
 
@@ -265,9 +280,10 @@ describe('GameRenderer', () => {
     });
 
     it('should draw floating texts', () => {
-      mockPool.activeFloatingTexts = [
+      (mockPool as any).activeFloatingTexts = [
         { x: 100, y: 100, text: '+50', color: '#22c55e', life: 1, size: 16 },
-      ] as PoolManager['activeFloatingTexts'];
+      ];
+      (mockPool as any).activeSpeedLines = [];
 
       renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
 

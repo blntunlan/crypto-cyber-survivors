@@ -198,7 +198,7 @@ describe('CardSystem', () => {
     it('should have modifiers or effect for all cards', () => {
       ALL_CARDS_FLAT.forEach((card: Card) => {
         // Every card must have either modifiers (new declarative way) or effect (legacy)
-        const hasModifiers = card.modifiers && card.modifiers.length > 0;
+        const hasModifiers = !!(card.modifiers && card.modifiers.length > 0);
         const hasEffect = typeof card.effect === 'function';
         expect(hasModifiers || hasEffect).toBe(true);
       });

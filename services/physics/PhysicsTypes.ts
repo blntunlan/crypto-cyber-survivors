@@ -140,6 +140,9 @@ export interface IPhysicsConstants {
   GEM_MAGNET_BASE_RANGE: number;
   ENEMY_OFFSCREEN_THRESHOLD: number;
   BULLET_SPEED: number;
+  HIT_STOP_NORMAL: number;
+  HIT_STOP_CRIT: number;
+  NEAR_MISS_THRESHOLD: number;
 }
 
 /**

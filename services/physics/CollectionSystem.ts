@@ -65,21 +65,52 @@ export class CollectionSystem {
       const dy = player.y - gem.y;
       const distSq = dx * dx + dy * dy;
 
-      const magnetRange = this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet;
-      const rangeSq = magnetRange * magnetRange;
-
-      // Magnet pull
-      if (distSq < rangeSq) {
-        const dist = Math.sqrt(distSq);
-        const pull = lerp(12, 2, dist / magnetRange) * dtFactor;
-        gem.x += (dx / dist) * pull;
-        gem.y += (dy / dist) * pull;
-      }
-
       // Pickup
       const pickupDist = player.radius + gem.radius;
       if (distSq < pickupDist * pickupDist) {
         this.collectGem(pool, player, gem, state);
+        return;
+      }
+
+      // Magnet Physics (Arc Movement)
+      if (gem.magnetized) {
+        // Initialize velocity if needed
+        gem.vx ??= 0;
+        gem.vy ??= 0;
+
+        const dist = Math.sqrt(distSq);
+
+        // Target velocity (towards player)
+        // High max speed ensures it catches up
+        const maxSpeed = 22;
+        const tx = (dx / dist) * maxSpeed;
+        const ty = (dy / dist) * maxSpeed;
+
+        // Steering behavior
+        // Lower steer factor = wider arcs
+        // Higher steer factor = tighter turns
+        const steerFactor = 0.12;
+
+        gem.vx = lerp(gem.vx, tx, steerFactor * dtFactor);
+        gem.vy = lerp(gem.vy, ty, steerFactor * dtFactor);
+
+        gem.x += gem.vx * dtFactor;
+        gem.y += gem.vy * dtFactor;
+      } else {
+        // Activation Check
+        const magnetRange = this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet;
+        const rangeSq = magnetRange * magnetRange;
+
+        if (distSq < rangeSq) {
+          gem.magnetized = true;
+
+          // Initial "Pop" Effect
+          // Give random velocity to create varied arcs
+          const popAngle = Math.random() * Math.PI * 2;
+          const popSpeed = 3 + Math.random() * 3;
+          gem.vx = Math.cos(popAngle) * popSpeed;
+          gem.vy = Math.sin(popAngle) * popSpeed;
+        }
       }
     });
   }

@@ -45,6 +45,18 @@ export const GAME_STATE_DEFAULTS = {
   dashTrailAccumulator: 0,
   currentBg: { r: 2, g: 6, b: 23 },
   isGameOverTriggered: false,
+  // Double Dash
+  doubleDashQueued: false,
+  doubleDashUsed: false,
+  dashHaloOpacity: 0,
+  // Hit Stop
+  hitStopTimer: 0,
+  // Squash & Stretch
+  playerScaleX: 1,
+  playerScaleY: 1,
+  // Near Miss Tension
+  nearMissTimer: 0,
+  nearMissCooldown: 0,
 } as const;
 
 export const RUN_STATS_DEFAULTS = {

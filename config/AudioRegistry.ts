@@ -6,6 +6,29 @@ import { type AudioPreset } from '../services/audio/types';
  * Separates data (frequencies, envelopes) from the playback logic.
  */
 export const AUDIO_PRESETS: Record<string, AudioPreset> = {
+  nearMiss: {
+    components: [
+      {
+        type: 'sawtooth',
+        frequency: 60,
+        frequencyEnd: 300,
+        envelope: { initial: 0.05, peak: 0.08, duration: 0.3, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 500, frequencyEnd: 2000 },
+      },
+    ],
+    cooldown: 800,
+  },
+  heartbeat: {
+    components: [
+      {
+        type: 'triangle',
+        frequency: 80,
+        frequencyEnd: 30,
+        envelope: { initial: 0.1, peak: 0.15, duration: 0.12, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 150 },
+      },
+    ],
+  },
   shoot: {
     components: [
       {

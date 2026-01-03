@@ -27,6 +27,10 @@ export class EffectRenderer implements IRenderer {
     if (graphics.showDamageNumbers) {
       this.drawFloatingTexts(ctx, pool, bounds);
     }
+
+    if (graphics.showParticles) {
+      this.drawSpeedLines(ctx, pool);
+    }
   }
 
   private drawCritFlash(
@@ -131,5 +135,57 @@ export class EffectRenderer implements IRenderer {
       ctx.restore();
     });
     ctx.globalAlpha = 1;
+  }
+
+  private drawSpeedLines(ctx: CanvasRenderingContext2D, pool: PoolManager) {
+    if (pool.activeSpeedLines.length === 0) return;
+
+    ctx.save();
+
+    pool.activeSpeedLines.forEach(line => {
+      const tailX = line.x - Math.cos(line.angle) * line.length;
+      const tailY = line.y - Math.sin(line.angle) * line.length;
+
+      // Create gradient from head (bright) to tail (fade)
+      const gradient = ctx.createLinearGradient(line.x, line.y, tailX, tailY);
+
+      // Dynamic color based on opacity for more visual interest
+      // Slightly cyan/blue tint for cyberpunk feel
+      const r = 200 + Math.floor(55 * line.opacity);
+      const g = 230 + Math.floor(25 * line.opacity);
+      const b = 255;
+
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${line.opacity * 0.9})`);
+      gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${line.opacity * 0.6})`);
+      gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+      // Main line with gradient
+      ctx.beginPath();
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = line.width;
+      ctx.lineCap = 'round';
+      ctx.moveTo(line.x, line.y);
+      ctx.lineTo(tailX, tailY);
+      ctx.stroke();
+
+      // Glow effect (thicker, more transparent line behind)
+      if (line.opacity > 0.3) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(150, 220, 255, ${line.opacity * 0.2})`;
+        ctx.lineWidth = line.width * 3;
+        ctx.lineCap = 'round';
+        ctx.moveTo(line.x, line.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+      }
+
+      // Bright head point (the leading edge)
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255, 255, 255, ${line.opacity})`;
+      ctx.arc(line.x, line.y, line.width * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.restore();
   }
 }

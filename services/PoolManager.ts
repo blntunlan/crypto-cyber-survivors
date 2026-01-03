@@ -10,6 +10,7 @@ import {
   type Particle,
   type FloatingText,
   type MarketPosition,
+  type SpeedLine,
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
@@ -95,21 +96,24 @@ export class PoolManager {
   private gems: ObjectPool<Gem>;
   private particles: ObjectPool<Particle>;
   private floatingTexts: ObjectPool<FloatingText>;
+  private speedLines: ObjectPool<SpeedLine>;
 
   private static readonly MAX_ACTIVE = {
     enemies: 150,
-    bullets: 500,
+    bullets: 200,
+    gems: 300,
     particles: 400,
-    gems: 100,
-    texts: 50,
+    floatingTexts: 50,
+    speedLines: 50,
   };
 
   constructor() {
-    this.enemies = new ObjectPool(PoolManager.MAX_ACTIVE.enemies);
-    this.bullets = new ObjectPool(PoolManager.MAX_ACTIVE.bullets);
-    this.gems = new ObjectPool(PoolManager.MAX_ACTIVE.gems);
-    this.particles = new ObjectPool(PoolManager.MAX_ACTIVE.particles);
-    this.floatingTexts = new ObjectPool(PoolManager.MAX_ACTIVE.texts);
+    this.enemies = new ObjectPool<GameEnemy>(PoolManager.MAX_ACTIVE.enemies);
+    this.bullets = new ObjectPool<Bullet>(PoolManager.MAX_ACTIVE.bullets);
+    this.gems = new ObjectPool<Gem>(PoolManager.MAX_ACTIVE.gems);
+    this.particles = new ObjectPool<Particle>(PoolManager.MAX_ACTIVE.particles);
+    this.floatingTexts = new ObjectPool<FloatingText>(PoolManager.MAX_ACTIVE.floatingTexts);
+    this.speedLines = new ObjectPool<SpeedLine>(PoolManager.MAX_ACTIVE.speedLines);
   }
 
   // Preserve public array access for external systems (e.g. PhysicsSystem)
@@ -125,8 +129,12 @@ export class PoolManager {
   get activeParticles() {
     return this.particles.active;
   }
-  get activeFloatingTexts() {
+  get activeFloatingTexts(): FloatingText[] {
     return this.floatingTexts.active;
+  }
+
+  get activeSpeedLines(): SpeedLine[] {
+    return this.speedLines.active;
   }
 
   /**
@@ -182,6 +190,9 @@ export class PoolManager {
         color: '',
         value: 0,
         isRare: false,
+        vx: 0,
+        vy: 0,
+        magnetized: false,
       });
     }
     for (let i = 0; i < counts.texts; i++) {
@@ -231,6 +242,17 @@ export class PoolManager {
         );
         Object.assign(obj, newEnemy);
         obj.active = true;
+
+        // CRITICAL: Reset spawn animation state for recycled enemies
+        obj.spawnTimer = 0; // Will be set to 1 when entering screen
+        obj.hasEnteredScreen = false; // Must detect screen entry again
+
+        // Reset death animation state
+        obj.isDying = false;
+        obj.deathProgress = 0;
+
+        // Reset near miss flag
+        obj.hasTriggeredNearMiss = false;
       }
     );
   }
@@ -268,6 +290,13 @@ export class PoolManager {
         }
         Object.assign(obj, e);
         obj.active = true;
+
+        // CRITICAL: Reset spawn animation state for recycled enemies
+        obj.spawnTimer = 0;
+        obj.hasEnteredScreen = false;
+        obj.isDying = false;
+        obj.deathProgress = 0;
+        obj.hasTriggeredNearMiss = false;
       }
     );
   }
@@ -303,8 +332,20 @@ export class PoolManager {
 
   getGem(x: number, y: number, value: number, radius: number, color: string, isRare: boolean): Gem {
     return this.gems.get(
-      () => ({ active: true, x, y, radius, color, value, isRare }),
-      obj => Object.assign(obj, { x, y, radius, color, value, isRare, active: true })
+      () => ({ active: true, x, y, radius, color, value, isRare, vx: 0, vy: 0, magnetized: false }),
+      obj =>
+        Object.assign(obj, {
+          x,
+          y,
+          radius,
+          color,
+          value,
+          isRare,
+          active: true,
+          vx: 0,
+          vy: 0,
+          magnetized: false,
+        })
     );
   }
 
@@ -322,12 +363,52 @@ export class PoolManager {
     );
   }
 
+  getSpeedLine(
+    x: number,
+    y: number,
+    length: number,
+    width: number,
+    angle: number,
+    opacity: number
+  ): SpeedLine {
+    return this.speedLines.get(
+      () => ({
+        active: true,
+        x,
+        y,
+        length,
+        width,
+        angle,
+        opacity,
+        decay: 0.05,
+        radius: 0,
+        color: '#fff',
+        vx: 0,
+        vy: 0,
+      }),
+      obj =>
+        Object.assign(obj, {
+          active: true,
+          x,
+          y,
+          length,
+          width,
+          angle,
+          opacity,
+          decay: 0.05,
+          radius: 0,
+          color: '#fff',
+        })
+    );
+  }
+
   cleanup(): void {
     this.enemies.cleanup();
     this.bullets.cleanup();
     this.gems.cleanup();
     this.particles.cleanup();
     this.floatingTexts.cleanup();
+    this.speedLines.cleanup();
   }
 
   clearAll(): void {
@@ -336,6 +417,7 @@ export class PoolManager {
     this.gems.clear();
     this.particles.clear();
     this.floatingTexts.clear();
+    this.speedLines.clear();
     this.trimFreeLists();
   }
 
@@ -345,5 +427,6 @@ export class PoolManager {
     this.gems.trim(maxPoolSize);
     this.particles.trim(maxPoolSize * 3);
     this.floatingTexts.trim(maxPoolSize);
+    this.speedLines.trim(maxPoolSize);
   }
 }

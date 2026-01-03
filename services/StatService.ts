@@ -66,4 +66,15 @@ export class StatService {
 
     return sanitized;
   }
+
+  /**
+   * Formats large numbers compactly (e.g. 1.2k, 1.5M)
+   * Essential for damage numbers and high-value stats.
+   */
+  static formatCompact(value: number): string {
+    if (!Number.isFinite(value)) return '';
+    if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M';
+    if (value >= 10_000) return (value / 1_000).toFixed(1) + 'k';
+    return Math.floor(value).toString();
+  }
 }

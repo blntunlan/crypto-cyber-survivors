@@ -17,7 +17,12 @@ export type SoundType =
   | 'combo'
   | 'death'
   | 'button'
-  | 'slotTick';
+  | 'slotTick'
+  | 'slowdownTension'
+  | 'reelStop'
+  | 'coinShower'
+  | 'multiplierChime'
+  | 'nearMiss';
 
 /**
  * Sound configuration for volume and playback rate

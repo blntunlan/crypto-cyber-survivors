@@ -29,10 +29,12 @@ import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
 import { FPSMonitor } from '../services/FPSMonitor';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
+import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
 import { marketStateService } from '../services/MarketStateService';
 import { Logger } from '../services/Logger';
+import { EventBus } from '../services/EventBus';
 
 // Custom hooks for GameEngine
 import { useGameSetup } from '../hooks/useGameSetup';
@@ -70,8 +72,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const requestRef = useRef<number | undefined>(undefined);
   const pool = useRef(new PoolManager());
   const renderer = useRef(new GameRenderer());
-  const { getMovementVector, isSpacePressed, setTouchMovement, setTouchDash, consumeDash } =
-    useGameInput();
+  const speedLineSpawner = useRef(new SpeedLineSpawner());
+  const {
+    getMovementVector,
+    isSpacePressed,
+    isSpaceFreshPress,
+    setTouchMovement,
+    setTouchDash,
+    consumeDash,
+  } = useGameInput();
   const device = useDevice();
   const mobileSettings = useGameStore(state => state.mobile);
   const graphicsSettings = useGameStore(selectGraphics);
@@ -81,6 +90,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     lastFireTime: 0,
     fireTimer: 0,
     spawnTimer: 0,
+    damageIndicators: [],
     shake: 0,
     critFlash: 0,
     critFlashColor: COLORS.CRIT,
@@ -94,6 +104,23 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     dashTrail: [],
     dashTrailAccumulator: 0,
     isGameOverTriggered: false,
+    lastHeartbeatTime: 0,
+
+    // Double Dash
+    doubleDashQueued: false,
+    doubleDashUsed: false,
+    dashHaloOpacity: 0,
+
+    // Hit Stop
+    hitStopTimer: 0,
+
+    // Squash & Stretch
+    playerScaleX: 1,
+    playerScaleY: 1,
+
+    // Near Miss Tension
+    nearMissTimer: 0,
+    nearMissCooldown: 0,
   });
 
   // Track last synced stats to prevent unnecessary re-renders in App.tsx
@@ -142,6 +169,28 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     };
   }, [status, position, pair]);
 
+  // Hit Stop Event Listener (freeze frame on impact)
+  useEffect(() => {
+    const unsubscribe = EventBus.on('hitStop', data => {
+      // Take the maximum duration to handle multiple simultaneous hits
+      state.current.hitStopTimer = Math.max(state.current.hitStopTimer, data.duration);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Near Miss Event Listener (Matrix slow-mo effect)
+  useEffect(() => {
+    const unsubscribe = EventBus.on('nearMiss', () => {
+      if (state.current.nearMissCooldown <= 0) {
+        state.current.nearMissTimer = GAME_ENGINE.NEAR_MISS_DURATION;
+        state.current.nearMissCooldown = GAME_ENGINE.NEAR_MISS_COOLDOWN;
+        audio.playWhoosh();
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -174,7 +223,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       const p = pool.current;
 
       const deltaTime = TimeService.update(time);
-      const dtFactor = deltaTime / 16.67;
+
+      // Update Near Miss Timers (Decremented by real time, but affects game time)
+      if (s.nearMissCooldown > 0) s.nearMissCooldown -= deltaTime;
+
+      let timeScale = 1.0;
+      if (s.nearMissTimer > 0) {
+        s.nearMissTimer -= deltaTime;
+        timeScale = GAME_ENGINE.NEAR_MISS_SLOWMO;
+      }
+
+      const dtFactor = (deltaTime / 16.67) * timeScale;
       s.lastTime = time;
       FPSMonitor.tick();
 
@@ -205,8 +264,23 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           return;
         }
 
+        // Handle Hit Stop (freeze frame on impact)
+        if (s.hitStopTimer > 0) {
+          s.hitStopTimer -= deltaTime;
+          // During hit stop: still draw, but skip physics updates
+          // This creates the "freeze frame" impact feel
+          draw();
+          requestRef.current = requestAnimationFrame(update);
+          return;
+        }
+
         if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
         if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+
+        // Recover player scale (Squash & Stretch)
+        // Lerp back to 1.0 with a springy speed (approx 0.15 per frame)
+        s.playerScaleX = lerp(s.playerScaleX, 1, 0.15 * dtFactor);
+        s.playerScaleY = lerp(s.playerScaleY, 1, 0.15 * dtFactor);
 
         // Update difficulty time-based factors
         DifficultyManager.update(deltaTime);
@@ -221,6 +295,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update buff gem spawner (spawns gems based on volatility)
         BuffGemSpawner.updateDimensions(width, height);
         BuffGemSpawner.update(marketDataRef.current.difficulty, deltaTime);
+
+        // Update Speed Lines
+        speedLineSpawner.current.update(p, s, player, width, height, time);
 
         // REMOVED: marketIndicatorService.update(...) - handled by realtime service now
         // Indicators flow directly to SpawnSystem via marketStateService
@@ -238,16 +315,71 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           enemyCount: p.activeEnemies.length,
         });
 
+        // Low HP Heartbeat Logic
+        if (hpPercent < 25) {
+          const urgency = 1 - hpPercent / 25;
+          // Pulse intervals: 1000ms (start) -> 400ms (near death)
+          const interval = 1000 - urgency * 600;
+
+          if (time - s.lastHeartbeatTime > interval) {
+            audio.playHeartbeat();
+            s.lastHeartbeatTime = time;
+          }
+        }
+
         // Dash Logic Timers
         if (s.dashTimer > 0) {
           s.dashTimer -= deltaTime;
-          if (s.dashTimer <= 0) s.isDashing = false;
+
+          // Update halo opacity - pulse during dash window
+          s.dashHaloOpacity = Math.sin(time / 50) * 0.3 + 0.7; // Pulsing 0.4-1.0
+
+          // Check for double dash input during active dash
+          // User must RELEASE and PRESS space again (not just hold)
+          if (isSpaceFreshPress() && !s.doubleDashQueued && !s.doubleDashUsed) {
+            s.doubleDashQueued = true;
+            consumeDash();
+            // Visual feedback for queued double dash
+            s.shake = 5;
+          }
+
+          // Dash ended
+          if (s.dashTimer <= 0) {
+            s.isDashing = false;
+            s.dashHaloOpacity = 0;
+
+            // Squash effect at end of dash (short and fat)
+            s.playerScaleX = 1.3;
+            s.playerScaleY = 0.7;
+
+            // Execute queued double dash
+            if (s.doubleDashQueued) {
+              const { dx: ddx, dy: ddy } = getMovementVector();
+              if (ddx !== 0 || ddy !== 0) {
+                // Start second dash immediately
+                s.isDashing = true;
+                s.dashTimer = GAME_ENGINE.DASH_DURATION;
+                s.doubleDashQueued = false;
+                s.doubleDashUsed = true;
+                s.dashCooldownTimer = GAME_ENGINE.DOUBLE_DASH_COOLDOWN; // 4 seconds
+                audio.playDash();
+                s.shake = 10; // Extra feedback for double dash
+
+                // Stretch for double dash
+                s.playerScaleX = 0.6;
+                s.playerScaleY = 1.4;
+              } else {
+                s.doubleDashQueued = false;
+              }
+            }
+          }
 
           // Add current position to trail
           s.dashTrail.push({ x: player.x, y: player.y });
           if (s.dashTrail.length > 8) s.dashTrail.shift();
         } else {
           // Fade out trail - frame-rate independent using accumulator
+          s.dashHaloOpacity = 0;
           if (s.dashTrail.length > 0) {
             s.dashTrailAccumulator += dtFactor;
             while (s.dashTrailAccumulator >= 1) {
@@ -262,17 +394,32 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
         if (s.dashCooldownTimer > 0) {
           s.dashCooldownTimer -= deltaTime;
+          if (s.dashCooldownTimer <= 0) {
+            // Reset double dash flag when cooldown ends
+            s.doubleDashUsed = false;
+          }
         }
 
         const { dx, dy } = getMovementVector();
 
-        // Handle Dash Trigger
-        if (isSpacePressed() && s.dashCooldownTimer <= 0 && (dx !== 0 || dy !== 0)) {
+        // Handle Dash Trigger (initial dash only)
+        if (
+          isSpacePressed() &&
+          s.dashCooldownTimer <= 0 &&
+          (dx !== 0 || dy !== 0) &&
+          !s.isDashing
+        ) {
           s.isDashing = true;
           s.dashTimer = GAME_ENGINE.DASH_DURATION;
           s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
+          s.doubleDashQueued = false;
+          s.doubleDashUsed = false;
           audio.playDash();
           consumeDash();
+
+          // Dash Stretch (long and thin)
+          s.playerScaleX = 0.6;
+          s.playerScaleY = 1.4;
         }
 
         if (dx !== 0 || dy !== 0) {
@@ -336,7 +483,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
 
         // Update Physics & Collisions
-        PhysicsSystem.updateEntities(p, dtFactor, width, height);
+        PhysicsSystem.updateEntities(p, dtFactor, width, height, player);
         PhysicsSystem.handleCollisions(p, player, s, dtFactor, width, height, onGameOver);
 
         // Only update React state if meaningful stats changed
@@ -369,6 +516,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       playerRef,
       getMovementVector,
       isSpacePressed,
+      isSpaceFreshPress,
       consumeDash,
       device.platform,
       position,
