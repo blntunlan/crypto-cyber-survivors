@@ -73,8 +73,11 @@ export class EnemyFactory {
       color = position === MarketPosition.LONG ? COLORS.SHORT : COLORS.LONG;
     }
 
-    // Apply aggro multiplier to speed
-    const baseSpeed = config.baseSpeed * difficulty;
+    // Apply difficulty to speed with softer scaling (25% effect instead of 100%)
+    // This reduces the extreme speed gap between easy (0.3 diff) and hard (8.0 diff)
+    // Old: 0.3x - 8.0x range | New: 0.825x - 2.75x range
+    const speedDifficultyMult = 1 + (difficulty - 1) * 0.25;
+    const baseSpeed = config.baseSpeed * speedDifficultyMult;
     const modifiedSpeed = baseSpeed * aggroMultiplier;
 
     // Determine movement behavior based on aggro level

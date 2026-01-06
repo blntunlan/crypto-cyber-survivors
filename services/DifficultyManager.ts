@@ -387,11 +387,13 @@ class DifficultyManagerClass {
     const total = this.clamp(technical * psychological * factors.momentumMod, 0.3, maxDifficulty);
 
     return {
-      spawnRate: this.clamp(total * 0.6, 0.3, 3.5),
+      // Increased spawn rate multiplier (0.6→0.8) to compensate for slower enemies
+      spawnRate: this.clamp(total * 0.8, 0.4, 4.0),
+      // Tightened enemy speed range (floor ↑, ceiling ↓) for more consistent gameplay
       enemySpeed: this.clamp(
         factors.pnlEffect * factors.volatility * factors.waveMultiplier,
-        0.4,
-        1.8
+        0.5,
+        1.5
       ),
       enemyHealth: this.clamp(factors.baseTime * factors.levelFactor, 0.8, 3.0),
       total,
