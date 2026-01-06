@@ -64,7 +64,7 @@ export class CombatResolutionService {
       // Heal amount: 2-5 HP based on enemy type
       const healAmount = enemy.type === 'whale' ? 8 : 3;
       const newHp = Math.min(player.hp + healAmount, player.maxHp);
-      const actualHeal = newHp - player.hp;
+      const actualHeal = Math.round(newHp - player.hp); // Round to avoid floating point display issues
       player.hp = newHp;
 
       if (actualHeal > 0) {

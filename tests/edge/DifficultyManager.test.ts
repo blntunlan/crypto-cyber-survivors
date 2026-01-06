@@ -57,22 +57,27 @@ describe('DifficultyManager Edge Cases', () => {
   });
 
   describe('Wave Transition Edge Cases', () => {
-    it('should handle large delta updates spanning multiple phases', () => {
+    it('should handle large time jumps spanning multiple phases', () => {
+      // Reset with time 0
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      DifficultyManager.startGame();
+
       // Current phase is building (12s)
       // Transition to intense (20s) and then peak (6s) in one giant jump
-      // Total jump: 12 + 20 + 6 + 1 = 39 seconds
-      DifficultyManager.update(39000);
-      // Should loop back to calm or skip to calm
-      // phases: calm -> building -> intense -> peak
-      // building (initial) -> intense -> peak -> calm
+      // Total jump: 12 + 20 + 6 + 1 = 39 seconds -> calm
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(39);
+      DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
       expect(DifficultyManager.getWavePhase()).toBe('calm');
     });
 
-    it('should handle very small updates without phase skip', () => {
-      // 1ms updates
-      for (let i = 0; i < 100; i++) {
-        DifficultyManager.update(1);
-      }
+    it('should handle very small time increments without phase skip', () => {
+      // Reset with time 0
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      DifficultyManager.startGame();
+
+      // Small time increments (0.1 seconds total)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0.1);
+      DifficultyManager.calculate(0, 0, 1, 100);
       expect(DifficultyManager.getWavePhase()).toBe('building');
     });
   });

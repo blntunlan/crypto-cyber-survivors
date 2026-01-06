@@ -26,7 +26,7 @@ interface KernelStatusProps {
 const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
   return (
-    <div className="bg-slate-950/40 backdrop-blur-sm border border-white/5 p-3 rounded-xl flex flex-col gap-2 min-w-[220px] text-right shadow-2xl">
+    <div className="bg-transparent p-3 flex flex-col gap-2 min-w-[220px] text-right">
       <div
         className="text-[9px] uppercase font-black tracking-[0.2em] mb-1"
         style={{ color: COLORS.ELECTRIC_BLUE }}
@@ -65,7 +65,7 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
 const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/5 p-2.5 rounded-lg flex flex-col gap-1.5 min-w-[120px] text-right shadow-xl">
+    <div className="bg-transparent p-2.5 flex flex-col gap-1.5 min-w-[120px] text-right">
       <div className="flex justify-between items-center gap-3">
         <div className="text-[9px] uppercase font-black tracking-widest text-blue-400 opacity-80">
           LEVEL

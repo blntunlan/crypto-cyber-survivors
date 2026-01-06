@@ -137,10 +137,19 @@ export class GameRenderer {
     state: GameState,
     pnl: number,
     difficulty: number,
+    fireRate: number,
     dtFactor: number,
     width: number,
     height: number
   ): void {
-    this.backgroundRenderer.updateCandles(state, pnl, difficulty, dtFactor, width, height);
+    this.backgroundRenderer.updateCandles(
+      state,
+      pnl,
+      difficulty,
+      fireRate,
+      dtFactor,
+      width,
+      height
+    );
   }
 }

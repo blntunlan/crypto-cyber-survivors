@@ -71,7 +71,7 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
       pool.current.getFloatingText(
         x,
         y - 20, // Offset slightly up
-        `+${amount}`,
+        `+${Math.round(amount)}`,
         COLORS.PUMP_GREEN,
         20
       );

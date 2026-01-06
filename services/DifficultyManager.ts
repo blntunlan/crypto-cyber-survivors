@@ -42,6 +42,7 @@ class DifficultyManagerClass {
   private waveTimer: number = 0;
   private killStreak: number = 0;
   private lastKillStreakTime: number = 0;
+  private lastWaveUpdateTime: number = 0; // Track last wave update for sync
 
   // Wave configuration (seconds)
   private readonly WAVE_DURATIONS: Record<WavePhase, number> = {
@@ -73,6 +74,7 @@ class DifficultyManagerClass {
     this.waveTimer = 0;
     this.killStreak = 0;
     this.lastKillStreakTime = 0;
+    this.lastWaveUpdateTime = TimeService.getGameTimeSeconds();
   }
 
   /**
@@ -188,22 +190,39 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Main game loop update for time-based difficulty factors
+   * Synchronize wave timer with current game time.
+   * Called automatically by calculate() to ensure wave state is current.
    */
-  update(deltaMs: number): void {
-    const dtSeconds = deltaMs / 1000;
-    this.waveTimer += dtSeconds;
+  private syncWaveTimer(): void {
+    const currentGameTime = TimeService.getGameTimeSeconds();
+    const elapsed = currentGameTime - this.lastWaveUpdateTime;
 
+    if (elapsed <= 0) return;
+
+    this.lastWaveUpdateTime = currentGameTime;
+    this.waveTimer += elapsed;
+
+    // Advance through wave phases
     while (this.waveTimer >= this.WAVE_DURATIONS[this.currentWavePhase]) {
       const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
-      // Carry over excess time to prevent phase drift over long sessions
       this.waveTimer -= currentDuration;
 
-      // Cycle through phases
       const phases: WavePhase[] = ['calm', 'building', 'intense', 'peak'];
       const currentIndex = phases.indexOf(this.currentWavePhase);
       this.currentWavePhase = phases[(currentIndex + 1) % phases.length]!;
     }
+  }
+
+  /**
+   * Main game loop update for time-based difficulty factors.
+   * @deprecated Use calculate() instead - it auto-syncs wave timer.
+   * Kept for backwards compatibility with existing game loop calls.
+   */
+  update(_deltaMs: number): void {
+    // Wave sync is now handled internally via syncWaveTimer()
+    // This method is kept for backwards compatibility but does nothing
+    // The sync happens automatically when calculate() is called
+    this.syncWaveTimer();
   }
 
   /**
@@ -221,10 +240,14 @@ class DifficultyManagerClass {
 
   /**
    * Main difficulty calculation
-   * Called when market data updates or periodically
-   * Now integrates with Admin Dashboard config
+   * Called when market data updates or periodically.
+   * Automatically syncs wave timer using TimeService for consistency.
+   * Integrates with Admin Dashboard config for runtime adjustments.
    */
   calculate(pnl: number, atrPercent: number, level: number, hpPercent: number): DifficultyOutput {
+    // Sync wave timer with current game time (ensures waves are always current)
+    this.syncWaveTimer();
+
     // Get admin config overrides
     const adminConfig = this.getAdminConfig();
     const baseMultiplier = adminConfig?.base ? adminConfig.base / 5 : 1.0; // base 5 = 1.0x

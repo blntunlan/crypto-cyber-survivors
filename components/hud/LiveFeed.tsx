@@ -116,7 +116,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
-    <div className="bg-white/5 backdrop-blur-md px-3 py-2 rounded-lg flex flex-col gap-0 min-w-[140px] border border-white/5 shadow-xl relative overflow-hidden">
+    <div className="bg-transparent px-3 py-2 flex flex-col gap-0 min-w-[140px] relative overflow-hidden">
       <div className="flex items-center justify-between mb-1">
         <div className="text-[9px] text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5">
           <span

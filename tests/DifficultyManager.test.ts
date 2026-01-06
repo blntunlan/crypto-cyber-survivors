@@ -64,27 +64,38 @@ describe('DifficultyManager', () => {
   });
 
   it('should cycle wave phases', () => {
+    // Reset with time 0
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+    DifficultyManager.startGame();
     expect(DifficultyManager.getWavePhase()).toBe('building');
 
-    // Building phase lasts 12s
-    DifficultyManager.update(12000);
+    // Building phase lasts 12s - advance to 12s
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(12);
+    DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
     expect(DifficultyManager.getWavePhase()).toBe('intense');
 
-    // Intense phase lasts 20s
-    DifficultyManager.update(20000);
+    // Intense phase lasts 20s - advance to 32s
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(32);
+    DifficultyManager.calculate(0, 0, 1, 100);
     expect(DifficultyManager.getWavePhase()).toBe('peak');
 
-    // Peak phase lasts 6s
-    DifficultyManager.update(6000);
+    // Peak phase lasts 6s - advance to 38s
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(38);
+    DifficultyManager.calculate(0, 0, 1, 100);
     expect(DifficultyManager.getWavePhase()).toBe('calm');
   });
 
   it('should handle large time jumps (skipping phases)', () => {
+    // Reset with time 0
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+    DifficultyManager.startGame();
+
     // Current: building (initial)
     // Jumps 60 seconds
     // building(12) -> intense(20) -> peak(6) -> calm(8) -> building(12) = 58s
     // After 60s, it should have completed one full cycle and be 2s into the next 'intense'
-    DifficultyManager.update(60000);
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
+    DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
     expect(DifficultyManager.getWavePhase()).toBe('intense');
   });
 

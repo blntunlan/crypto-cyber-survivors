@@ -9,20 +9,22 @@ import { type Candle } from '../types';
 import { COLORS } from '../constants';
 import { type PerformanceConfig } from '../types/DeviceProfile';
 
-// Casino color palette
-const CASINO_COLORS = [
-  COLORS.CASINO_GOLD,
-  COLORS.CASINO_RED,
-  COLORS.CASINO_GREEN,
-  COLORS.NEON_ORANGE,
-  COLORS.NEON_GREEN,
-  COLORS.ROYAL_PURPLE,
-  COLORS.BRILLIANT_ROSE,
-  COLORS.ELECTRIC_BLUE,
-  COLORS.PUMP_GREEN,
-  COLORS.DUMP_ORANGE,
-  COLORS.JACKPOT_YELLOW,
+// Casino candle colors - Green (bullish) and Red (bearish) only
+// Multiple shades for depth variation
+const CANDLE_GREENS = [
+  COLORS.PUMP_GREEN, // #00E676 - Bright pump green
+  COLORS.CASINO_GREEN, // #05732c - Deep roulette green
+  COLORS.NEON_GREEN, // #39FF14 - Electric neon green
 ];
+
+const CANDLE_REDS = [
+  COLORS.DUMP_ORANGE, // #FF3D00 - Dump orange-red
+  COLORS.CASINO_RED, // #B22222 - Classic casino red
+  COLORS.SHORT, // #ef4444 - Market short red
+];
+
+// Combined candle colors for random selection
+const CANDLE_COLORS = [...CANDLE_GREENS, ...CANDLE_REDS];
 
 /**
  * Generate background candles based on performance config
@@ -50,7 +52,7 @@ export function generateBackgroundCandles(
       y: Math.random() * height,
       w: 1 + Math.random() * 2,
       h: 15 + Math.random() * 30,
-      color: CASINO_COLORS[Math.floor(Math.random() * CASINO_COLORS.length)]!,
+      color: CANDLE_COLORS[Math.floor(Math.random() * CANDLE_COLORS.length)]!,
       speed: 0.1 + Math.random() * 0.5,
     });
   }
@@ -62,7 +64,7 @@ export function generateBackgroundCandles(
       y: Math.random() * height,
       w: 2 + Math.random() * 3,
       h: 25 + Math.random() * 50,
-      color: CASINO_COLORS[Math.floor(Math.random() * CASINO_COLORS.length)]!,
+      color: CANDLE_COLORS[Math.floor(Math.random() * CANDLE_COLORS.length)]!,
       speed: 0.3 + Math.random() * 1.0,
     });
   }
@@ -74,7 +76,7 @@ export function generateBackgroundCandles(
       y: Math.random() * height,
       w: 3 + Math.random() * 5,
       h: 40 + Math.random() * 80,
-      color: CASINO_COLORS[Math.floor(Math.random() * CASINO_COLORS.length)]!,
+      color: CANDLE_COLORS[Math.floor(Math.random() * CANDLE_COLORS.length)]!,
       speed: 0.5 + Math.random() * 1.5,
     });
   }

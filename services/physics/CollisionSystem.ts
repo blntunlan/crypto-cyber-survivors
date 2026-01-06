@@ -163,12 +163,14 @@ export class CollisionSystem {
         player.hp = Math.max(0, player.hp);
         state.shake = 10;
 
-        // Damage Direction Indicator
+        // Damage Direction Indicator - DISABLED
+        /*
         state.damageIndicators.push({
           sourceX: enemy.x,
           sourceY: enemy.y,
           timestamp: Date.now(),
         });
+        */
 
         if (Math.random() > 0.9) this.ctx.audio.playHit();
 
