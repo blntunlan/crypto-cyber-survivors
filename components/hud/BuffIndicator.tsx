@@ -82,11 +82,13 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
   return (
     <div
       className={`
-        flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg backdrop-blur-md
+        flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg
+        ${/* Mobile: fully transparent, Desktop: keep blur effect */ ''}
+        md:backdrop-blur-md
         ${
           isDebuff
-            ? 'bg-rose-950/30 border border-rose-500/30 shadow-[0_0_10px_rgba(225,29,72,0.1)]'
-            : 'bg-emerald-950/30 border border-emerald-400/30 shadow-[0_0_10px_rgba(52,211,153,0.1)]'
+            ? 'bg-transparent md:bg-rose-950/30 border-0 md:border md:border-rose-500/30 md:shadow-[0_0_10px_rgba(225,29,72,0.1)]'
+            : 'bg-transparent md:bg-emerald-950/30 border-0 md:border md:border-emerald-400/30 md:shadow-[0_0_10px_rgba(52,211,153,0.1)]'
         }
         animate-pulse-slow
       `}
