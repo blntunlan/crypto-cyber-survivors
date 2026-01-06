@@ -160,13 +160,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         .catch(err => {
           Logger.error('[GameEngine] Failed to initialize market state:', err);
         });
-    }
 
-    return () => {
-      if (status !== GameStatus.PLAYING) {
+      // Return cleanup only when we initialized
+      // This ensures destroy() is called when:
+      // 1. Status changes away from PLAYING
+      // 2. Position or pair changes while PLAYING
+      // 3. Component unmounts
+      return () => {
         void marketStateService.destroy();
-      }
-    };
+      };
+    }
+    // No cleanup needed if we didn't initialize
+    return undefined;
   }, [status, position, pair]);
 
   // Hit Stop Event Listener (freeze frame on impact)
@@ -238,10 +243,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       FPSMonitor.tick();
 
       if (status !== GameStatus.PAUSED) {
+        // Get effective fire rate from BuffManager or player directly
+        const effectiveFireRate = BuffManager.isInitialized()
+          ? BuffManager.getDecoratedStats().getFireRate()
+          : player.fireRate;
+
         renderer.current.updateBackgroundCandles(
           s,
           marketDataRef.current.pnl,
           marketDataRef.current.difficulty,
+          effectiveFireRate,
           dtFactor,
           width,
           height
@@ -282,8 +293,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         s.playerScaleX = lerp(s.playerScaleX, 1, 0.15 * dtFactor);
         s.playerScaleY = lerp(s.playerScaleY, 1, 0.15 * dtFactor);
 
-        // Update difficulty time-based factors
-        DifficultyManager.update(deltaTime);
+        // Note: DifficultyManager wave timer is auto-synced via calculate() when market data arrives
 
         // Update combo system
         ComboSystem.update();

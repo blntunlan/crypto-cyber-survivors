@@ -9,12 +9,17 @@ import { MetricsStorage } from '../services/metrics/MetricsStorage';
 import { type SessionMetrics, GameEndReason } from '../types/metrics';
 import { MarketPosition } from '../types';
 
-// Mock localStorage
+// Mock localStorage with quota simulation
+let quotaExceeded = false;
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: vi.fn((key: string) => store[key] ?? null),
     setItem: vi.fn((key: string, value: string) => {
+      if (quotaExceeded) {
+        const error = new DOMException('Quota exceeded', 'QuotaExceededError');
+        throw error;
+      }
       store[key] = value;
     }),
     removeItem: vi.fn((key: string) => {
@@ -27,13 +32,41 @@ const localStorageMock = (() => {
       return Object.keys(store).length;
     },
     key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
+    _setStore: (newStore: Record<string, string>) => {
+      store = newStore;
+    },
+    _getStore: () => store,
   };
 })();
 
 // Mock Supabase
-vi.mock('../services/supabase', () => ({
-  supabase: null,
-  isSupabaseConfigured: () => false,
+const mockSupabaseInsert = vi.fn();
+const mockSupabaseSelect = vi.fn();
+const mockSupabaseUpdate = vi.fn();
+let supabaseConfigured = false;
+
+vi.mock('../services/Supabase', () => ({
+  get supabase() {
+    if (!supabaseConfigured) return null;
+    return {
+      from: (table: string) => ({
+        insert: (data: unknown) => ({
+          select: (fields: string) => ({
+            single: () => mockSupabaseInsert(table, data, fields),
+          }),
+        }),
+        select: (fields: string) => ({
+          eq: (field: string, value: string) => ({
+            single: () => mockSupabaseSelect(table, fields, field, value),
+          }),
+        }),
+        update: (data: unknown) => ({
+          eq: (field: string, value: string) => mockSupabaseUpdate(table, data, field, value),
+        }),
+      }),
+    };
+  },
+  isSupabaseConfigured: () => supabaseConfigured,
 }));
 
 // Mock Logger
@@ -43,6 +76,13 @@ vi.mock('../services/Logger', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+  },
+}));
+
+// Mock UserSessionService
+vi.mock('../services/auth/UserSessionService', () => ({
+  UserSessionService: {
+    getPlayerId: vi.fn(() => 'test-player-id'),
   },
 }));
 
@@ -135,6 +175,18 @@ function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetr
       spawnsTotal: 100,
       enemyLifetimeSamples: [2000, 3000, 4000, 3500],
     },
+    performance: {
+      avgFps: 60,
+      minFps: 45,
+      maxFps: 60,
+      fpsSamples: 100,
+      frameDrops: 5,
+      memoryUsedMb: 150,
+      memoryPeakMb: 200,
+      enemyCountMax: 50,
+      optimizationProfile: 'high',
+      deviceFingerprint: 'test-device',
+    },
     ...overrides,
   };
 }
@@ -144,6 +196,8 @@ describe('MetricsStorage', () => {
     // Reset mocks
     vi.clearAllMocks();
     localStorageMock.clear();
+    quotaExceeded = false;
+    supabaseConfigured = false;
 
     // Replace global localStorage
     Object.defineProperty(global, 'localStorage', {
@@ -283,19 +337,53 @@ describe('MetricsStorage', () => {
 
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('crypto_survivors_metrics');
     });
+
+    it('should handle localStorage error gracefully during clear', () => {
+      const storage = new MetricsStorage();
+      storage.addSession(createMockSession());
+
+      // Make removeItem throw
+      localStorageMock.removeItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      // Should not throw
+      expect(() => storage.clear()).not.toThrow();
+      expect(storage.getCount()).toBe(0);
+    });
   });
 
   describe('Quota Exceeded Handling', () => {
-    it('should detect QuotaExceededError correctly', () => {
-      // Test that the error detection works (indirectly through behavior)
-      const storage = new MetricsStorage(10);
+    it('should detect QuotaExceededError and cleanup', () => {
+      const storage = new MetricsStorage(20);
 
-      // Add sessions - should work normally
-      for (let i = 0; i < 5; i++) {
+      // Add some sessions first (before quota is exceeded)
+      for (let i = 0; i < 15; i++) {
         storage.addSession(createMockSession({ sessionId: `session_${i}` }));
       }
 
-      expect(storage.getCount()).toBe(5);
+      expect(storage.getCount()).toBe(15);
+
+      // Now simulate quota exceeded on next save
+      quotaExceeded = true;
+
+      // This should trigger quota handling
+      storage.addSession(createMockSession({ sessionId: 'trigger_quota' }));
+
+      // Should have cleaned up and kept fewer sessions
+      expect(storage.getCount()).toBeLessThanOrEqual(16);
+    });
+
+    it('should keep minimum 10 sessions during first cleanup attempt', () => {
+      const storage = new MetricsStorage(50);
+
+      // Add 30 sessions
+      for (let i = 0; i < 30; i++) {
+        storage.addSession(createMockSession({ sessionId: `session_${i}` }));
+      }
+
+      // Verify we start with 30
+      expect(storage.getCount()).toBe(30);
     });
 
     it('should limit sessions to maxSessions even with quota issues', () => {
@@ -311,6 +399,22 @@ describe('MetricsStorage', () => {
       const sessions = storage.getSessions();
       expect(sessions[0]?.sessionId).toBe('session_5');
       expect(sessions[4]?.sessionId).toBe('session_9');
+    });
+
+    it('should handle non-quota errors during save', () => {
+      const storage = new MetricsStorage();
+
+      // Make setItem throw a non-quota error
+      const genericError = new Error('Generic error');
+      localStorageMock.setItem.mockImplementationOnce(() => {
+        throw genericError;
+      });
+
+      // Should not throw
+      expect(() => storage.addSession(createMockSession())).not.toThrow();
+
+      // Session should still be added to memory
+      expect(storage.getCount()).toBe(1);
     });
   });
 
@@ -339,10 +443,33 @@ describe('MetricsStorage', () => {
 
       expect(storage.getCount()).toBe(0);
     });
+
+    it('should handle null stored data', () => {
+      const storage = new MetricsStorage();
+
+      localStorageMock.getItem.mockReturnValue(null);
+
+      storage.load();
+
+      expect(storage.getCount()).toBe(0);
+    });
+
+    it('should handle localStorage.getItem throwing error', () => {
+      const storage = new MetricsStorage();
+
+      localStorageMock.getItem.mockImplementationOnce(() => {
+        throw new Error('Storage access denied');
+      });
+
+      // Should not throw, should initialize with empty array
+      expect(() => storage.load()).not.toThrow();
+      expect(storage.getCount()).toBe(0);
+    });
   });
 
   describe('Supabase Integration', () => {
     it('should skip Supabase sync when not configured', async () => {
+      supabaseConfigured = false;
       const storage = new MetricsStorage();
       const session = createMockSession();
 
@@ -350,6 +477,140 @@ describe('MetricsStorage', () => {
       storage.addSession(session);
 
       // Verify session was still added locally
+      expect(storage.getCount()).toBe(1);
+      // Verify Supabase was not called
+      expect(mockSupabaseInsert).not.toHaveBeenCalled();
+    });
+
+    it('should sync to Supabase when configured', async () => {
+      supabaseConfigured = true;
+      mockSupabaseInsert.mockResolvedValue({ data: { id: 'game-session-123' }, error: null });
+
+      const storage = new MetricsStorage();
+      const session = createMockSession();
+
+      storage.addSession(session);
+
+      // Wait for async sync
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(mockSupabaseInsert).toHaveBeenCalled();
+    });
+
+    it('should handle Supabase insert error gracefully', async () => {
+      supabaseConfigured = true;
+      mockSupabaseInsert.mockResolvedValue({
+        data: null,
+        error: { message: 'Insert failed', code: '500' },
+      });
+
+      const storage = new MetricsStorage();
+      const session = createMockSession();
+
+      // Should not throw
+      storage.addSession(session);
+
+      // Session should still be added locally
+      expect(storage.getCount()).toBe(1);
+    });
+
+    it('should handle duplicate session (replay attack) silently', async () => {
+      supabaseConfigured = true;
+      // PostgreSQL unique constraint violation
+      mockSupabaseInsert.mockResolvedValue({
+        data: null,
+        error: { message: 'Duplicate key', code: '23505' },
+      });
+
+      const storage = new MetricsStorage();
+      const session = createMockSession();
+
+      storage.addSession(session);
+
+      // Wait for async sync
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Should still add locally
+      expect(storage.getCount()).toBe(1);
+    });
+
+    it('should sync performance metrics when available', async () => {
+      supabaseConfigured = true;
+      mockSupabaseInsert.mockResolvedValue({ data: { id: 'game-session-123' }, error: null });
+
+      const storage = new MetricsStorage();
+      const session = createMockSession({
+        performance: {
+          avgFps: 60,
+          minFps: 55,
+          maxFps: 60,
+          fpsSamples: 100,
+          frameDrops: 2,
+          memoryUsedMb: 100,
+          memoryPeakMb: 120,
+          enemyCountMax: 30,
+          optimizationProfile: 'medium',
+          deviceFingerprint: 'test-device',
+        },
+      });
+
+      storage.addSession(session);
+
+      // Wait for async sync
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      // Main session insert should have been called
+      expect(mockSupabaseInsert).toHaveBeenCalled();
+    });
+
+    it('should update player stats for non-anonymous users', async () => {
+      supabaseConfigured = true;
+      mockSupabaseInsert.mockResolvedValue({ data: { id: 'game-session-123' }, error: null });
+      mockSupabaseSelect.mockResolvedValue({
+        data: {
+          high_score: 100000,
+          total_kills: 500,
+          total_playtime_ms: 3600000,
+          best_pnl_percent: 10,
+        },
+        error: null,
+      });
+      mockSupabaseUpdate.mockResolvedValue({ error: null });
+
+      const storage = new MetricsStorage();
+      const session = createMockSession({
+        player: {
+          ...createMockSession().player,
+          survivalTimeMs: 150000,
+          totalKills: 75,
+        },
+      });
+
+      storage.addSession(session);
+
+      // Wait for async sync
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Session should have been synced
+      expect(mockSupabaseInsert).toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Recovery', () => {
+    it('should handle complete localStorage failure', () => {
+      // Make all localStorage operations fail
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('Storage unavailable');
+      });
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('Storage unavailable');
+      });
+
+      // Should not throw during construction
+      const storage = new MetricsStorage();
+
+      // Should still work in memory
+      storage.addSession(createMockSession());
       expect(storage.getCount()).toBe(1);
     });
   });

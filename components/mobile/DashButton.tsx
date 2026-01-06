@@ -55,10 +55,9 @@ export const DashButton: React.FC<DashButtonProps> = ({
       setCooldownRemaining(100);
       onDash();
 
-      // Haptic feedback (with safe check for unsupported browsers)
-      if (hapticFeedback) {
-        navigator.vibrate(20);
-      }
+      // Haptic feedback (with safe check for unsupported browsers like Safari iOS)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
+      if (hapticFeedback) navigator.vibrate?.(20);
     },
     [isReady, onDash, hapticFeedback]
   );

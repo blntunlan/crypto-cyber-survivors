@@ -99,13 +99,15 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
           // Visual update
           setUiState({ ...state, speed: 0 });
 
-          if (hapticFeedback) navigator.vibrate(10);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
+          if (hapticFeedback) navigator.vibrate?.(10);
         } else if (secondTouchIdRef.current === null) {
           // Dash trigger
           secondTouchIdRef.current = touch.identifier;
           setSecondTouchActive(true);
           onDash();
-          if (hapticFeedback) navigator.vibrate(25);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
+          if (hapticFeedback) navigator.vibrate?.(25);
         }
       }
     },

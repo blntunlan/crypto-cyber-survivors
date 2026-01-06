@@ -124,10 +124,9 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
         currentY: touch.clientY,
       });
 
-      // Haptic feedback (with safe check for unsupported browsers)
-      if (hapticFeedback) {
-        navigator.vibrate(10);
-      }
+      // Haptic feedback (with safe check for unsupported browsers like Safari iOS)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
+      if (hapticFeedback) navigator.vibrate?.(10);
     },
     [disabled, state.active, hapticFeedback]
   );
