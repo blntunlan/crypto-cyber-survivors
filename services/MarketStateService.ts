@@ -124,27 +124,68 @@ class MarketStateServiceImpl {
     EventBus.emit('marketStateUpdated', this.state);
   }
 
+  /**
+   * Transform raw Supabase data to MarketState with validation and fallbacks
+   * Handles missing, invalid, or NaN values gracefully
+   */
   private transformState(data: Record<string, unknown>): MarketState {
+    // Helper to safely parse a number with fallback
+    const safeParseFloat = (value: unknown, fallback: number): number => {
+      if (value === null || value === undefined) return fallback;
+      const parsed = typeof value === 'number' ? value : parseFloat(String(value));
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
+    // Helper to validate RSI state
+    const validRsiStates = ['OVERSOLD', 'NEUTRAL', 'OVERBOUGHT'] as const;
+    const safeRsiState = (value: unknown): 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT' => {
+      if (
+        typeof value === 'string' &&
+        validRsiStates.includes(value as (typeof validRsiStates)[number])
+      ) {
+        return value as 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+      }
+      return 'NEUTRAL';
+    };
+
+    // Helper to validate whale tier
+    const safeWhaleTier = (value: unknown): 0 | 1 | 2 | 3 => {
+      const tier = typeof value === 'number' ? value : parseInt(String(value), 10);
+      if (tier >= 0 && tier <= 3 && Number.isFinite(tier)) {
+        return tier as 0 | 1 | 2 | 3;
+      }
+      return 0;
+    };
+
+    // Get aggro multiplier based on position
     const aggroMultiplier =
       this.currentPosition === 'LONG'
-        ? (data.enemy_aggro_multiplier_long as number)
-        : (data.enemy_aggro_multiplier_short as number);
+        ? safeParseFloat(data.enemy_aggro_multiplier_long, 1.0)
+        : safeParseFloat(data.enemy_aggro_multiplier_short, 1.0);
 
-    return {
-      pair: data.pair as string,
-      price: parseFloat(data.price as string),
-      volume: parseFloat(data.volume as string),
-      rsi: parseFloat(data.rsi as string),
-      rsiState: data.rsi_state as 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT',
-      atr: parseFloat(data.atr as string),
-      atrPercent: parseFloat(data.atr_percent as string),
-      spawnRateMultiplier: parseFloat(data.spawn_rate_multiplier as string),
-      normalizedVolume: parseFloat(data.normalized_volume as string),
-      volumePercentile: parseFloat(data.volume_percentile as string),
-      whaleTier: data.whale_tier as 0 | 1 | 2 | 3,
+    // Validate and transform with fallbacks
+    const state: MarketState = {
+      pair: typeof data.pair === 'string' ? data.pair : this.currentPair,
+      price: safeParseFloat(data.price, 0),
+      volume: safeParseFloat(data.volume, 0),
+      rsi: safeParseFloat(data.rsi, 50), // Neutral RSI fallback
+      rsiState: safeRsiState(data.rsi_state),
+      atr: safeParseFloat(data.atr, 0),
+      atrPercent: safeParseFloat(data.atr_percent, 1.0), // Normal volatility fallback
+      spawnRateMultiplier: safeParseFloat(data.spawn_rate_multiplier, 1.0),
+      normalizedVolume: safeParseFloat(data.normalized_volume, 0.5),
+      volumePercentile: safeParseFloat(data.volume_percentile, 50),
+      whaleTier: safeWhaleTier(data.whale_tier),
       enemyAggroMultiplier: aggroMultiplier,
-      updatedAt: new Date(data.updated_at as string),
+      updatedAt: data.updated_at ? new Date(data.updated_at as string) : new Date(),
     };
+
+    // Log warning if critical data is missing
+    if (state.price === 0) {
+      Logger.warn('[MarketStateService] Price is 0 or missing - using fallback');
+    }
+
+    return state;
   }
 
   getState(): MarketState | null {

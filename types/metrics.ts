@@ -22,11 +22,39 @@ export enum MetricCategory {
 
 export enum GameEndReason {
   DEATH = 'death',
+  LIQUIDATION = 'liquidation',
   QUIT = 'quit',
   DISCONNECT = 'disconnect',
 }
 
-export type WavePhase = 'calm' | 'building' | 'intense' | 'peak';
+/**
+ * Wave Phase Types for 5-minute game cycle
+ *
+ * Total cycle: 300 seconds (5 minutes)
+ * - warmup (0:00-0:45): Easy start, player gets comfortable
+ * - buildup (0:45-1:45): Gradual difficulty increase
+ * - firstPeak (1:45-2:15): First adrenaline spike
+ * - breather (2:15-3:00): Relief period, power collection
+ * - escalation (3:00-4:00): Building towards climax
+ * - climax (4:00-4:45): Maximum intensity
+ * - resolution (4:45-5:00): Decision time, coin display
+ */
+export type WavePhase =
+  | 'warmup'
+  | 'buildup'
+  | 'firstPeak'
+  | 'breather'
+  | 'escalation'
+  | 'climax'
+  | 'resolution';
+
+// Legacy phase mapping for backwards compatibility
+export const LEGACY_PHASE_MAP: Record<string, WavePhase> = {
+  calm: 'warmup',
+  building: 'buildup',
+  intense: 'climax',
+  peak: 'climax',
+};
 
 // ============= Bitcoin Metrics =============
 
@@ -48,11 +76,25 @@ export interface BitcoinMetrics {
 
 // ============= Difficulty Metrics =============
 
+/**
+ * Helper to create a default wave phase time record
+ * All phases initialized to 0
+ */
+export const createDefaultWavePhaseRecord = (): Record<WavePhase, number> => ({
+  warmup: 0,
+  buildup: 0,
+  firstPeak: 0,
+  breather: 0,
+  escalation: 0,
+  climax: 0,
+  resolution: 0,
+});
+
 export interface DifficultyMetrics {
   averageDifficulty: number;
   maxDifficulty: number;
   difficultyAtDeath: number;
-  timeInEachWavePhase: Record<WavePhase, number>; // ms
+  timeInEachWavePhase: Partial<Record<WavePhase, number>>; // ms - Partial for legacy compat
   timeInHighDifficulty: number; // ms (difficulty > 5)
   timeInLowDifficulty: number; // ms (difficulty < 2)
   nearDeathActivations: number;
@@ -181,7 +223,7 @@ export interface MetricsState {
   maxStreak: number;
 
   // Wave phase tracking
-  wavePhaseTime: Record<WavePhase, number>;
+  wavePhaseTime: Partial<Record<WavePhase, number>>;
 
   // Near-death tracking
   nearDeathActivations: number;
@@ -238,12 +280,14 @@ export interface DifficultyInsights {
     avgPerGame: number;
     survivalRateAfter: number;
   };
-  wavePhaseStats: Record<
-    WavePhase,
-    {
-      avgTime: number;
-      deathRate: number;
-    }
+  wavePhaseStats: Partial<
+    Record<
+      WavePhase,
+      {
+        avgTime: number;
+        deathRate: number;
+      }
+    >
   >;
   optimalDifficultyRange: {
     min: number;

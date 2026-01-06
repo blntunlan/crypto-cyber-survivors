@@ -14,7 +14,7 @@
  * - useMarketTimeout: Market data timeout handling
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
 import { type Card } from './services/cards/types';
@@ -254,43 +254,54 @@ const App: React.FC = () => {
     [playerRef, setUiStats, handleLevelUp]
   );
 
-  const handleGameOver = useCallback(async () => {
-    setFinalPnl(marketData.effectivePnl);
-    setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
-    GameStateMachine.transition(GameStatus.GAMEOVER);
+  const handleGameOver = useCallback(
+    async (reason: GameEndReason = GameEndReason.DEATH) => {
+      setFinalPnl(marketData.effectivePnl);
+      setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
+      GameStateMachine.transition(GameStatus.GAMEOVER);
 
-    // Stop performance tracking and get results
-    const { PerformanceTracker } = await import('./services/analytics/PerformanceTracker');
-    const { DeviceProfiler } = await import('./services/analytics/DeviceProfiler');
+      // Stop performance tracking and get results
+      const { PerformanceTracker } = await import('./services/analytics/PerformanceTracker');
+      const { DeviceProfiler } = await import('./services/analytics/DeviceProfiler');
 
-    const tracker = PerformanceTracker.getInstance();
-    tracker.stop();
-    const perfStats = tracker.getStats();
+      const tracker = PerformanceTracker.getInstance();
+      tracker.stop();
+      const perfStats = tracker.getStats();
 
-    MetricsService.endSession(GameEndReason.DEATH, {
-      price: marketData.price,
-      pnl: marketData.pnl,
-      level: playerRef.current.level,
-      hp: playerRef.current.hp,
-      difficulty: marketData.difficulty,
-      playerStats: {
-        damage: playerRef.current.baseDamage,
-        fireRate: playerRef.current.fireRate,
-        speed: playerRef.current.speed,
-        luck: playerRef.current.luck,
-        critChance: playerRef.current.critChance,
-        critDamage: playerRef.current.critChance * 2,
-      },
-      position,
-      entryPrice,
-      leverage,
-      totalKills: runStats.totalKills,
-      // Pass performance stats
-      avgFps: perfStats.avgFps,
-      minFps: perfStats.minFps,
-      deviceFingerprint: DeviceProfiler.getFingerprint(),
-    });
-  }, [marketData, playerRef, position, entryPrice, leverage, runStats.totalKills]);
+      MetricsService.endSession(reason, {
+        price: marketData.price,
+        pnl: marketData.pnl,
+        level: playerRef.current.level,
+        hp: playerRef.current.hp,
+        difficulty: marketData.difficulty,
+        playerStats: {
+          damage: playerRef.current.baseDamage,
+          fireRate: playerRef.current.fireRate,
+          speed: playerRef.current.speed,
+          luck: playerRef.current.luck,
+          critChance: playerRef.current.critChance,
+          critDamage: playerRef.current.critChance * 2,
+        },
+        position,
+        entryPrice,
+        leverage,
+        totalKills: runStats.totalKills,
+        // Pass performance stats
+        avgFps: perfStats.avgFps,
+        minFps: perfStats.minFps,
+        deviceFingerprint: DeviceProfiler.getFingerprint(),
+      });
+    },
+    [marketData, playerRef, position, entryPrice, leverage, runStats.totalKills]
+  );
+
+  // Handle liquidation (ends game if effective PnL hits -100%)
+  useEffect(() => {
+    if (gameStatus === GameStatus.PLAYING && marketData.effectivePnl <= -1) {
+      Logger.warn(`[Liquidation] Player liquidated at price ${marketData.price}`);
+      void handleGameOver(GameEndReason.LIQUIDATION);
+    }
+  }, [gameStatus, marketData.effectivePnl, handleGameOver, marketData.price]);
 
   // ========================================
   // Cheat Manager Integration

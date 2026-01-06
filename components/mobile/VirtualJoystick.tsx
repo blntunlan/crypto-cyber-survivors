@@ -28,6 +28,8 @@ interface VirtualJoystickProps {
   hapticFeedback?: boolean;
   /** Disabled state */
   disabled?: boolean;
+  /** UI Scale factor */
+  scale?: number;
 }
 
 export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
@@ -36,6 +38,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
   deadzone = 0.15,
   hapticFeedback = true,
   disabled = false,
+  scale = 1,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<JoystickState>({
@@ -47,7 +50,8 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
     currentY: 0,
   });
 
-  const joystickSize = JOYSTICK_SIZES[size];
+  const baseSize = JOYSTICK_SIZES[size];
+  const joystickSize = baseSize * scale;
   const thumbSize = joystickSize * 0.4;
   const maxDistance = (joystickSize - thumbSize) / 2;
 

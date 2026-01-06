@@ -11,6 +11,7 @@ import { DashButton } from './DashButton';
 import { DragToMoveController } from './DragToMoveController';
 import { type MobileControlSettings, DEFAULT_MOBILE_SETTINGS } from '../../types/MobileSettings';
 import { GameStatus } from '../../types';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 interface MobileControlsProps {
   /** Current game status */
@@ -32,6 +33,8 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   onDash,
   dashCooldownMs = 500,
 }) => {
+  const { scale, rs } = useResponsiveUI();
+
   // Merge user settings with defaults
   const settings: MobileControlSettings = {
     ...DEFAULT_MOBILE_SETTINGS,
@@ -72,6 +75,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
         hapticFeedback={settings.hapticFeedback}
         sensitivity={settings.sensitivity}
         disabled={!isActive}
+        scale={scale}
       />
     );
   }
@@ -86,8 +90,8 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: settings.joystickPosition === 'left' ? 'flex-start' : 'flex-end',
-          padding: 20,
-          paddingBottom: 40,
+          padding: rs(20),
+          paddingBottom: rs(40),
         }}
       >
         <VirtualJoystick
@@ -95,6 +99,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
           size={settings.joystickSize}
           hapticFeedback={settings.hapticFeedback}
           disabled={!isActive}
+          scale={scale}
         />
       </div>
 
@@ -105,8 +110,8 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: settings.joystickPosition === 'left' ? 'flex-end' : 'flex-start',
-          padding: 20,
-          paddingBottom: 40,
+          padding: rs(20),
+          paddingBottom: rs(40),
         }}
       >
         <DashButton
@@ -114,6 +119,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
           cooldownMs={dashCooldownMs}
           hapticFeedback={settings.hapticFeedback}
           disabled={!isActive}
+          size={rs(80)}
         />
       </div>
     </>

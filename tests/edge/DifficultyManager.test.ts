@@ -27,9 +27,8 @@ describe('DifficultyManager Edge Cases', () => {
     it('should handle extremely low P&L (-1000%)', () => {
       // -10.0 = -1000%
       const difficulty = DifficultyManager.calculate(-10.0, 0, 1, 100);
-      // Max total difficulty is 8.0
       expect(difficulty.total).toBeLessThanOrEqual(8.0);
-      expect(difficulty.total).toBeGreaterThan(2.0); // Should be very hard
+      expect(difficulty.total).toBeGreaterThanOrEqual(1.3); // Should be hard even in warmup phase
     });
 
     it('should handle NaN and Infinite P&L gracefully', () => {
@@ -62,12 +61,12 @@ describe('DifficultyManager Edge Cases', () => {
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
       DifficultyManager.startGame();
 
-      // Current phase is building (12s)
-      // Transition to intense (20s) and then peak (6s) in one giant jump
-      // Total jump: 12 + 20 + 6 + 1 = 39 seconds -> calm
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(39);
+      // New Cycle: warmup(45) -> buildup(60) -> firstPeak(30) -> breather(45) ->
+      //            escalation(60) -> climax(45) -> resolution(15) = 300s total
+      // Jump to 310s should be 10s into warmup of cycle 2
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
       DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
-      expect(DifficultyManager.getWavePhase()).toBe('calm');
+      expect(DifficultyManager.getWavePhase()).toBe('warmup');
     });
 
     it('should handle very small time increments without phase skip', () => {
@@ -75,10 +74,10 @@ describe('DifficultyManager Edge Cases', () => {
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
       DifficultyManager.startGame();
 
-      // Small time increments (0.1 seconds total)
+      // Small time increments (0.1 seconds total) - should still be warmup
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0.1);
       DifficultyManager.calculate(0, 0, 1, 100);
-      expect(DifficultyManager.getWavePhase()).toBe('building');
+      expect(DifficultyManager.getWavePhase()).toBe('warmup');
     });
   });
 

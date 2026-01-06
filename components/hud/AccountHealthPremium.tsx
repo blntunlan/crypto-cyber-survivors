@@ -1,10 +1,15 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { DifficultyManager } from '../../services/DifficultyManager';
 import { COLORS } from '../../constants';
+import { EventBus } from '../../services/EventBus';
+import { type WavePhase } from '../../types/metrics';
 
 interface AccountHealthProps {
   hpPercent: number;
+  hp: number;
+  maxHp: number;
 }
 
 /**
@@ -13,9 +18,22 @@ interface AccountHealthProps {
  */
 const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> = ({
   hpPercent,
+  hp,
+  maxHp,
   isMobile,
 }) => {
-  const wavePhase = DifficultyManager.getWavePhase();
+  const { rs, rfs } = useResponsiveUI();
+  const [wavePhase, setWavePhase] = useState(DifficultyManager.getWavePhase());
+
+  useEffect(() => {
+    // Sync on mount
+    setWavePhase(DifficultyManager.getWavePhase());
+
+    const unsubscribe = EventBus.on('wavePhaseChange', (data: { phase: WavePhase }) => {
+      setWavePhase(data.phase);
+    });
+    return unsubscribe;
+  }, []);
   const getStatusConfig = () => {
     if (hpPercent > 75) {
       return {
@@ -55,31 +73,48 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   return (
     <div
       className={`fixed left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center transition-all duration-500 ${
-        isMobile ? 'w-[92%] bottom-6' : 'w-[450px] bottom-10'
+        isMobile ? 'w-[92%]' : 'w-[450px] bottom-10'
       }`}
+      style={
+        isMobile
+          ? {
+              bottom: rs(24),
+            }
+          : undefined
+      }
     >
       {/* Top Info Bar */}
       <div
         className={`w-full flex justify-between items-end mb-2 px-1 font-stats tracking-tighter`}
       >
         <div className="flex flex-col">
-          <span className="text-[10px] text-slate-500 font-bold uppercase opacity-60">
+          <span
+            className="text-slate-500 font-bold uppercase opacity-60"
+            style={{ fontSize: isMobile ? rfs(10) : '10px' }}
+          >
             System Phase
           </span>
-          <span className={`text-base font-black uppercase italic ${getWaveColorText(wavePhase)}`}>
+          <span
+            className={`font-black uppercase italic ${getWaveColorText(wavePhase)}`}
+            style={{ fontSize: isMobile ? rfs(16) : '16px' }}
+          >
             {wavePhase}
           </span>
         </div>
 
         <div className="flex flex-col items-center">
           <div
-            className={`text-[10px] font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
+            className={`font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
+            style={{ fontSize: isMobile ? rfs(10) : '10px' }}
           >
             {status.text}
           </div>
-          <div className="text-3xl font-black text-white leading-none tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-            {Math.ceil(hpPercent)}
-            <span className="text-xs opacity-50 ml-0.5">%</span>
+          <div
+            className="font-black text-white leading-none tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+            style={{ fontSize: isMobile ? rfs(30) : '30px' }}
+          >
+            {Math.ceil(hp)}
+            <span className="text-xs opacity-50 ml-0.5">/{Math.ceil(maxHp)}</span>
           </div>
         </div>
 
@@ -88,7 +123,8 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
 
       {/* Main Health Bar Container - Optimized for Performance */}
       <div
-        className={`relative w-full h-4 bg-slate-950/60 border border-white/10 rounded-sm p-[3px] overflow-hidden group ${isMobile ? '' : 'backdrop-blur-xl shadow-2xl'}`}
+        className={`relative w-full bg-slate-950/60 border border-white/10 rounded-sm p-[3px] overflow-hidden group ${isMobile ? '' : 'backdrop-blur-xl shadow-2xl'}`}
+        style={{ height: isMobile ? rs(16) : '16px' }}
       >
         {/* Background Grid Pattern - Desktop only */}
         {!isMobile && (
@@ -136,7 +172,10 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           <div className="w-1 h-1 rounded-full bg-cyan-500/50"></div>
           <div className="w-1 h-1 rounded-full bg-cyan-500/20"></div>
         </div>
-        <div className="text-[7px] text-slate-400 font-bold tracking-[0.3em] uppercase">
+        <div
+          className="text-slate-400 font-bold tracking-[0.3em] uppercase"
+          style={{ fontSize: isMobile ? rfs(7) : '7px' }}
+        >
           Terminal_ID: CC-S_08.21 // Core_Integrity_Module
         </div>
         <div className="flex gap-1 items-center">
@@ -157,14 +196,31 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
 
 const getWaveColorText = (phase: string) => {
   switch (phase) {
+    case 'warmup':
+      return 'text-cyan-400';
+    case 'buildup':
+      return 'text-amber-300';
+    case 'firstPeak':
+      return 'text-orange-500';
+    case 'breather':
+      return 'text-green-400';
+    case 'escalation':
+      return 'text-yellow-500';
+    case 'climax':
+      return 'text-red-500';
+    case 'resolution':
+      return 'text-purple-400';
+    // Legacy phases (backwards compat)
     case 'calm':
       return 'text-cyan-400';
     case 'building':
       return 'text-amber-300';
     case 'intense':
       return 'text-orange-500';
-    default:
+    case 'peak':
       return 'text-red-500';
+    default:
+      return 'text-slate-400';
   }
 };
 

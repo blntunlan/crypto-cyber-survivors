@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 interface EnemyPointersProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -38,6 +39,7 @@ const MobilePointer: React.FC = () => (
 
 export const EnemyPointers: React.FC<EnemyPointersProps> = memo(({ containerRef }) => {
   const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const { rs } = useResponsiveUI();
 
   useEffect(() => {
     const unsubscribe = screenService.onChange(() => {
@@ -46,13 +48,20 @@ export const EnemyPointers: React.FC<EnemyPointersProps> = memo(({ containerRef 
     return unsubscribe;
   }, []);
 
+  const pointerSize = isMobile ? rs(20) : 20;
+
   return (
     <div ref={containerRef} className="absolute inset-0 z-[105]">
       {[...Array(10)].map((_, i) => (
         <div
           key={i}
-          className={`absolute top-0 left-0 w-5 h-5 flex items-center justify-center transition-opacity duration-200`}
-          style={{ opacity: 0, willChange: 'transform, opacity' }}
+          className={`absolute top-0 left-0 flex items-center justify-center transition-opacity duration-200`}
+          style={{
+            opacity: 0,
+            willChange: 'transform, opacity',
+            width: pointerSize,
+            height: pointerSize,
+          }}
         >
           {isMobile ? <MobilePointer /> : <DesktopPointer />}
         </div>

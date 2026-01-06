@@ -30,11 +30,17 @@ export interface MarketData {
   pnl: number; // Raw PnL (%)
   effectivePnl: number; // PnL * Leverage
   leverage: LeverageOption;
+  position?: MarketPosition;
+  liquidationPrice?: number;
   rsi: number;
   rsiState?: string;
   difficulty: number;
   pair?: CryptoPair;
   symbol?: string; // e.g. 'BTCUSDT'
+  // Server-synced indicators
+  atrPercent?: number; // ATR as percentage of price (from server)
+  whaleTier?: 0 | 1 | 2 | 3;
+  spawnRateMultiplier?: number;
 }
 
 export interface Entity {

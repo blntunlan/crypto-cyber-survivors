@@ -16,7 +16,7 @@ import { EventBus } from '../services/EventBus';
 import { ComboSystem } from '../services/ComboSystem';
 import { audio } from '../services/AudioService';
 import { COLORS } from '../constants';
-import { type Player } from '../types';
+import { type Player, GameStatus } from '../types';
 
 export interface ComboUIState {
   milestoneText: string;
@@ -42,7 +42,7 @@ export interface UseHUDEventsReturn {
 /**
  * Hook for managing HUD event subscriptions
  */
-export function useHUDEvents(player?: Player): UseHUDEventsReturn {
+export function useHUDEvents(player: Player | undefined, status: GameStatus): UseHUDEventsReturn {
   const [uiMeta, setUiMeta] = useState<ComboUIState>({
     milestoneText: '',
     milestoneColor: COLORS.NEON_ORANGE,
@@ -59,6 +59,47 @@ export function useHUDEvents(player?: Player): UseHUDEventsReturn {
   const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clutchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track critical state for "Clutch" (recovery) moment
+  const wasCriticalRef = useRef(false);
+  const clutchPendingRef = useRef(false);
+
+  const triggerClutch = () => {
+    setClutchActive(true);
+    if (clutchTimeoutRef.current) clearTimeout(clutchTimeoutRef.current);
+    clutchTimeoutRef.current = setTimeout(() => setClutchActive(false), 2000); // Display for 2s
+  };
+
+  useEffect(() => {
+    if (!player) return;
+
+    const hpPercent = player.hp / player.maxHp;
+
+    // 1. Mark as critical if HP drops below 20%
+    if (hpPercent < 0.2) {
+      wasCriticalRef.current = true;
+    }
+
+    // 2. Trigger CLUTCH if recovering from critical to > 50%
+    if (wasCriticalRef.current && hpPercent > 0.5) {
+      // If Level Up (which heals), defer the announcement until we return to gameplay
+      if (status === GameStatus.LEVEL_UP) {
+        clutchPendingRef.current = true;
+        wasCriticalRef.current = false;
+      } else {
+        triggerClutch();
+        wasCriticalRef.current = false;
+      }
+    }
+  }, [player, status]);
+
+  // Handle pending clutch when returning to PLAYING state
+  useEffect(() => {
+    if (status === GameStatus.PLAYING && clutchPendingRef.current) {
+      triggerClutch();
+      clutchPendingRef.current = false;
+    }
+  }, [status]);
 
   useEffect(() => {
     const unsubUpdate = EventBus.on('comboUpdate', (data: { totalBonusXp: number }) => {
@@ -99,12 +140,9 @@ export function useHUDEvents(player?: Player): UseHUDEventsReturn {
       flashTimeoutRef.current = setTimeout(() => setFlash(0), 500);
     });
 
+    // REMOVED: Enemy kill based clutch trigger
     const unsubEnemyKilled = EventBus.on('enemyKilled', () => {
-      if (player && player.hp < player.maxHp * 0.1) {
-        setClutchActive(true);
-        if (clutchTimeoutRef.current) clearTimeout(clutchTimeoutRef.current);
-        clutchTimeoutRef.current = setTimeout(() => setClutchActive(false), 1500);
-      }
+      // Logic moved to HP recovery check above
     });
 
     const unsubReset = EventBus.on('gameReset', () => {
@@ -118,6 +156,8 @@ export function useHUDEvents(player?: Player): UseHUDEventsReturn {
       setFlash(0);
       setClutchActive(false);
       setAchievement(null);
+      wasCriticalRef.current = false;
+      clutchPendingRef.current = false;
     });
 
     const unsubAchievement = EventBus.on(
@@ -142,7 +182,7 @@ export function useHUDEvents(player?: Player): UseHUDEventsReturn {
       if (clutchTimeoutRef.current) clearTimeout(clutchTimeoutRef.current);
       if (achievementTimeoutRef.current) clearTimeout(achievementTimeoutRef.current);
     };
-  }, [player]);
+  }, []); // Removed [player] dependency from this effect loop as it uses EventBus
 
   return {
     uiMeta,

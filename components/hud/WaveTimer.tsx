@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 /**
  * WaveTimer - Adaptive Survival Time Display
@@ -25,20 +26,30 @@ const DesktopWaveTimer: React.FC = () => (
   </div>
 );
 
-const MobileWaveTimer: React.FC = () => (
-  <div
-    className="absolute left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center"
-    style={{ top: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
-  >
-    <div className="text-[8px] text-slate-500/80 font-bold uppercase tracking-widest">SURVIVAL</div>
+const MobileWaveTimer: React.FC = () => {
+  const { rs, rfs } = useResponsiveUI();
+
+  return (
     <div
-      id="wave-timer-text"
-      className="text-2xl font-black italic tracking-tighter text-white drop-shadow-md tabular-nums"
+      className="absolute left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center"
+      style={{ top: `calc(${rs(16)}px + env(safe-area-inset-top, 0px))` }}
     >
-      0:00
+      <div
+        className="text-slate-500/80 font-bold uppercase tracking-widest"
+        style={{ fontSize: rfs(7) }}
+      >
+        SURVIVAL
+      </div>
+      <div
+        id="wave-timer-text"
+        className="font-black italic tracking-tighter text-white drop-shadow-md tabular-nums"
+        style={{ fontSize: rfs(20) }}
+      >
+        0:00
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const WaveTimer: React.FC = memo(() => {
   const [isMobile, setIsMobile] = useState(screenService.isMobile());

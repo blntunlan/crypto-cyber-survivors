@@ -4,26 +4,51 @@
  * Configuration for game flow, waves, and timing.
  */
 
+import { type WavePhase } from '../types/metrics';
+
 // =============================================================================
-// WAVE SYSTEM
+// WAVE SYSTEM (5-minute cycle = 300 seconds)
 // =============================================================================
 
-export type WavePhase = 'calm' | 'building' | 'intense' | 'peak';
+// Re-export WavePhase for backwards compatibility
+export type { WavePhase } from '../types/metrics';
 
 export const WAVE_CONFIG = {
+  // Duration of each phase in seconds (total: 300s = 5 minutes)
   DURATIONS: {
-    calm: 8, // seconds
-    building: 12,
-    intense: 20,
-    peak: 6,
+    warmup: 45, // 0:00-0:45 - Easy start
+    buildup: 60, // 0:45-1:45 - Gradual increase
+    firstPeak: 30, // 1:45-2:15 - First spike
+    breather: 45, // 2:15-3:00 - Relief
+    escalation: 60, // 3:00-4:00 - Building
+    climax: 45, // 4:00-4:45 - Maximum
+    resolution: 15, // 4:45-5:00 - Decision
   } as Record<WavePhase, number>,
 
+  // Difficulty multipliers for each phase (yo-yo pattern)
   MULTIPLIERS: {
-    calm: 0.4,
-    building: 0.8,
-    intense: 1.2,
-    peak: 1.5,
+    warmup: 0.5, // Very easy start
+    buildup: 0.8, // Ramping up
+    firstPeak: 1.3, // First adrenaline hit
+    breather: 0.6, // Relief - collect power
+    escalation: 1.1, // Building tension
+    climax: 1.5, // Maximum intensity
+    resolution: 0.4, // Cooldown for decision
   } as Record<WavePhase, number>,
+
+  // Phase order for cycling
+  PHASE_ORDER: [
+    'warmup',
+    'buildup',
+    'firstPeak',
+    'breather',
+    'escalation',
+    'climax',
+    'resolution',
+  ] as WavePhase[],
+
+  // Total cycle duration (calculated)
+  TOTAL_DURATION: 300, // 5 minutes in seconds
 };
 
 // =============================================================================

@@ -2,6 +2,7 @@ import React, { memo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '../../constants';
 import { screenService } from '../../services/ScreenService';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 interface MilestoneAnnouncerProps {
   show: boolean;
@@ -66,6 +67,8 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color
  * performance and responsive positioning.
  */
 const MobileAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color }) => {
+  const { rs, rfs } = useResponsiveUI();
+
   return (
     <AnimatePresence>
       {show && text && (
@@ -76,15 +79,16 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color 
           exit={{ opacity: 0, scale: 0.9, y: 10 }}
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           style={{
-            top: '45%',
+            top: '40%',
             width: '100vw',
           }}
         >
           <motion.div
-            className="text-4xl font-black italic uppercase tracking-tighter text-center"
+            className="font-black italic uppercase tracking-tighter text-center"
             style={{
               color: 'white',
               textShadow: `2px 2px 0 #000, 0 0 10px ${color}`,
+              fontSize: rfs(24),
             }}
           >
             {text}
@@ -97,12 +101,14 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps> = ({ show, text, color 
             transition={{ delay: 0.1 }}
           >
             <div
-              className="relative px-6 py-1.5 border-2 rounded-lg text-base font-black italic flex items-center justify-center backdrop-blur-sm"
+              className="relative border-2 rounded-lg font-black italic flex items-center justify-center backdrop-blur-sm"
               style={{
                 color: COLORS.JACKPOT_YELLOW,
                 borderColor: COLORS.CASINO_GOLD,
                 backgroundColor: `${COLORS.SLOT_BLACK}E6`,
                 boxShadow: `0 0 15px ${color}40`,
+                fontSize: rfs(12),
+                padding: `${rs(6)}px ${rs(20)}px`,
               }}
             >
               <span className="relative z-10 tracking-tight">XP MULTIPLIER UP!</span>

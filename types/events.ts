@@ -47,7 +47,9 @@ export type GameEvent =
   | 'verification:processing'
   | 'verification:success'
   | 'verification:failed'
-  | 'verification:retrying';
+  | 'verification:retrying'
+  | 'volatilityShock'
+  | 'wavePhaseChange';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -144,6 +146,7 @@ export interface MilestoneAchievedEvent {
 }
 
 import { type CryptoPair } from './crypto';
+import { type WavePhase } from './metrics';
 
 // ...
 
@@ -318,6 +321,8 @@ export interface EventDataMap {
   'verification:success': Record<string, unknown>;
   'verification:failed': Record<string, unknown>;
   'verification:retrying': Record<string, unknown>;
+  volatilityShock: { intensity: number; direction: 'up' | 'down' };
+  wavePhaseChange: { phase: WavePhase; oldPhase: WavePhase };
 }
 
 // =============================================================================

@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 interface AchievementPopupProps {
   achievement: { name: string; icon: string; color: string } | null;
@@ -39,29 +40,40 @@ const DesktopAchievement: React.FC<AchievementPopupProps> = ({ achievement }) =>
 };
 
 const MobileAchievement: React.FC<AchievementPopupProps> = ({ achievement }) => {
+  const { rs, rfs } = useResponsiveUI();
+
   if (!achievement) return null;
   return (
     <div
-      className="absolute top-44 right-4 z-[140] pointer-events-none w-[140px]"
+      className="absolute right-4 z-[140] pointer-events-none"
       style={{
         animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-        top: 'calc(11rem + env(safe-area-inset-top, 0px))',
+        top: `calc(${rs(176)}px + env(safe-area-inset-top, 0px))`,
+        width: rs(140),
       }}
     >
       <div
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border shadow-xl backdrop-blur-md"
+        className="flex items-center rounded-lg border shadow-xl backdrop-blur-md"
         style={{
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
           borderColor: achievement.color,
           boxShadow: `0 0 10px ${achievement.color}33`,
+          padding: `${rs(6)}px ${rs(10)}px`,
+          gap: rs(8),
         }}
       >
-        <div className="text-xl">{achievement.icon}</div>
+        <div style={{ fontSize: rfs(20) }}>{achievement.icon}</div>
         <div className="flex flex-col overflow-hidden">
-          <span className="text-[7px] font-black uppercase tracking-widest text-blue-400 opacity-80 whitespace-nowrap">
+          <span
+            className="font-black uppercase tracking-widest text-blue-400 opacity-80 whitespace-nowrap"
+            style={{ fontSize: rfs(7) }}
+          >
             ACHIEVEMENT!
           </span>
-          <span className="text-xs font-black italic tracking-tight text-white leading-none mt-0.5 truncate">
+          <span
+            className="font-black italic tracking-tight text-white leading-none mt-0.5 truncate"
+            style={{ fontSize: rfs(12) }}
+          >
             {achievement.name}
           </span>
         </div>

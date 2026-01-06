@@ -27,6 +27,10 @@ export interface DifficultyDebugState extends BaseDebugState {
   pnlHistoryLength: number;
   waveDurations: Record<string, number>;
   waveMultipliers: Record<string, number>;
+  cycleNumber: number;
+  cycleProgress: number;
+  timeRemainingInPhase: number;
+  timeRemainingInCycle: number;
 }
 
 // =============================================================================

@@ -55,6 +55,10 @@ describe('GameHUD', () => {
       armor: 0,
       area: 1,
       projectiles: 1,
+      critDamage: 2,
+      regen: 0,
+      dodge: 0,
+      lifesteal: 0,
     };
   });
 
@@ -111,18 +115,20 @@ describe('GameHUD', () => {
     expect(glow).toBeInTheDocument();
   });
 
-  it('should show CLUTCH! when killing enemy at low health', () => {
+  it('should show CLUTCH! when recovering from low health', () => {
     mockPlayer.hp = 5; // 5% health
-    render(<GameHUD status={GameStatus.PLAYING} player={mockPlayer} />);
+    const { rerender } = render(<GameHUD status={GameStatus.PLAYING} player={mockPlayer} />);
 
+    // Trigger recovery (from < 20% to > 50%)
     act(() => {
-      EventBus.emit('enemyKilled', { x: 0, y: 0 });
+      const recoveredPlayer = { ...mockPlayer, hp: 60 };
+      rerender(<GameHUD status={GameStatus.PLAYING} player={recoveredPlayer} />);
     });
 
     expect(screen.getByText('CLUTCH!')).toBeInTheDocument();
 
     act(() => {
-      vi.advanceTimersByTime(1600);
+      vi.advanceTimersByTime(2100);
     });
 
     expect(screen.queryByText('CLUTCH!')).not.toBeInTheDocument();

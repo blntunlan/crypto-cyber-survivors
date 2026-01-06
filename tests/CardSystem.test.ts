@@ -192,6 +192,32 @@ describe('CardSystem', () => {
         const res = applyCardEffect({ ...basePlayer }, apeMode);
         expect(res.fireRate).toBe(basePlayer.fireRate * 0.5);
         expect(res.maxHp).toBe(basePlayer.maxHp * 0.8);
+        // HP should be capped to new maxHp when maxHp decreases
+        expect(res.hp).toBe(res.maxHp);
+      }
+    });
+
+    it('should increase hp when maxHp increases via card', () => {
+      // shield_r1 (HODL Shield) has only maxHp modifier (+10)
+      // CardApplicator automatically syncs hp with maxHp delta
+      const shieldCard = ALL_CARDS_FLAT.find((c: Card) => c.id === 'shield_r1');
+      if (shieldCard) {
+        const playerWithDamage = { ...basePlayer, hp: 80, maxHp: 100 };
+        const res = applyCardEffect(playerWithDamage, shieldCard);
+
+        // maxHp should increase by 10
+        expect(res.maxHp).toBe(110);
+        // hp should also increase by 10 (auto-sync from maxHp delta)
+        expect(res.hp).toBe(90);
+      }
+
+      // Test with a player at full HP
+      const fullHpPlayer = { ...basePlayer, hp: 100, maxHp: 100 };
+      if (shieldCard) {
+        const res = applyCardEffect(fullHpPlayer, shieldCard);
+        expect(res.maxHp).toBe(110);
+        // HP should increase with maxHp (auto-sync), becoming 110
+        expect(res.hp).toBe(110);
       }
     });
 

@@ -53,42 +53,32 @@ export class SpawnSystem {
   ): number {
     const config = this.getSpawnConfig();
     const marketState = marketStateService.getState();
-    const marketSpawnMultiplier = marketState?.spawnRateMultiplier ?? 1.0;
+    // Note: marketSpawnMultiplier removed from spawn rate calculation
+    // because 'difficulty' already includes ATR-based volatility from DifficultyManager.
+    // Using both would double-count the ATR effect.
 
     this.spawnTimer += deltaTime;
 
     // Calculate spawning limits and rate
     const waveIntensity = config.waveIntensity;
     const intensityMultiplier = 0.5 + waveIntensity; // 0.5 to 1.5x
-    const scaledDifficulty =
-      1 +
-      (difficulty - 1) *
-        GAME_ENGINE.SPAWN_DIFFICULTY_SCALE *
-        intensityMultiplier *
-        marketSpawnMultiplier;
 
-    // Chaos mode: Reduces cap slightly to maintain performance during high frequency
+    // Simplified: difficulty already contains ATR volatility effect
+    const scaledDifficulty =
+      1 + (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE * intensityMultiplier;
+
+    // Max enemies cap (no more chaos mode reduction since we simplified)
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
-    const effectiveMaxEnemies =
-      marketSpawnMultiplier > 1.5 ? Math.floor(maxEnemies * 0.8) : maxEnemies;
 
     // 1. Whale Spawning (Server-triggered)
     if (marketState && marketState.whaleTier > 0) {
-      this.handleWhaleSpawning(
-        marketState,
-        pool,
-        difficulty,
-        position,
-        width,
-        height,
-        effectiveMaxEnemies
-      );
+      this.handleWhaleSpawning(marketState, pool, difficulty, position, width, height, maxEnemies);
     }
 
     // 2. Regular Spawning
     const spawnThreshold = config.baseInterval / scaledDifficulty;
     if (this.spawnTimer > spawnThreshold) {
-      if (pool.activeEnemies.length < effectiveMaxEnemies) {
+      if (pool.activeEnemies.length < maxEnemies) {
         this.spawnRegularEnemy(pool, difficulty, position, pnl, width, height);
       }
       this.spawnTimer = 0;

@@ -17,6 +17,7 @@ interface DragToMoveProps {
   showVisualFeedback?: boolean;
   hapticFeedback?: boolean;
   sensitivity?: number;
+  scale?: number;
 }
 
 export const DragToMoveController: React.FC<DragToMoveProps> = ({
@@ -26,6 +27,7 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
   showVisualFeedback = true,
   hapticFeedback = true,
   sensitivity = 1.0,
+  scale = 1.0,
 }) => {
   // 1. Logic State (Ref) - Zero Latency
   const dragRef = useRef<DragState>({
@@ -55,7 +57,10 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
       const deltaY = currentY - startY;
       const distance = Math.hypot(deltaX, deltaY) * sensitivity;
 
-      const { DEADZONE, WALK_START, RUN_START, MAX_DISTANCE } = DRAG_THRESHOLDS;
+      const DEADZONE = DRAG_THRESHOLDS.DEADZONE * scale;
+      const WALK_START = DRAG_THRESHOLDS.WALK_START * scale;
+      const RUN_START = DRAG_THRESHOLDS.RUN_START * scale;
+      const MAX_DISTANCE = DRAG_THRESHOLDS.MAX_DISTANCE * scale;
 
       if (distance < DEADZONE) return { dx: 0, dy: 0, speed: 0 };
 
@@ -72,7 +77,7 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
 
       return { dx: dirX * speedMultiplier, dy: dirY * speedMultiplier, speed: speedMultiplier };
     },
-    [sensitivity]
+    [sensitivity, scale]
   );
 
   const handleTouchStart = useCallback(

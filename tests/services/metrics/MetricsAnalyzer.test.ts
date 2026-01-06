@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { MetricsAnalyzer } from '../../../services/metrics/MetricsAnalyzer';
 import { MarketPosition } from '../../../types';
-import { type SessionMetrics, GameEndReason } from '../../../types/metrics';
+import {
+  type SessionMetrics,
+  GameEndReason,
+  createDefaultWavePhaseRecord,
+} from '../../../types/metrics';
 
 function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetrics {
   const base: SessionMetrics = {
@@ -28,7 +32,7 @@ function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetr
       averageDifficulty: 3,
       maxDifficulty: 5,
       difficultyAtDeath: 4,
-      timeInEachWavePhase: { calm: 10000, building: 20000, intense: 0, peak: 0 },
+      timeInEachWavePhase: { ...createDefaultWavePhaseRecord(), warmup: 10000, buildup: 20000 },
       timeInHighDifficulty: 0,
       timeInLowDifficulty: 10000,
       nearDeathActivations: 1,

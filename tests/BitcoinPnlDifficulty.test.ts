@@ -7,13 +7,21 @@
  * - Leverage amplifies the effect
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { MarketPosition } from '../types';
+import { TimeService } from '../services/TimeService';
+
+vi.mock('../services/TimeService', () => ({
+  TimeService: {
+    getGameTimeSeconds: vi.fn().mockReturnValue(0),
+  },
+}));
 
 describe('Bitcoin-PNL-Difficulty System', () => {
   beforeEach(() => {
     DifficultyManager.startGame();
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
   });
 
   // Helper function to calculate PNL based on position
@@ -177,6 +185,8 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       const leverage = 10;
       const effectivePnl = rawPnl * leverage; // -30%
 
+      // Advance time to avoid volatility damping
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(300);
       const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 80);
 
       // Should be quite hard
@@ -184,6 +194,9 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     });
 
     it('Scenario: Sideways market with high volatility', () => {
+      // Advance to buildup phase for realistic testing
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
+
       // No directional PNL but market is choppy
       const difficulty = DifficultyManager.calculate(0, 0.04, 5, 80);
 

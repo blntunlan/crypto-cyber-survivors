@@ -88,7 +88,7 @@ class GameStateManagerClass {
    * Reset all game systems to their initial state.
    * Called when returning to menu or restarting the game.
    */
-  resetAll(): void {
+  resetAll(leverage: number = 1): void {
     if (this.isResetting) {
       Logger.warn('[GameStateManager] Reset already in progress, skipping duplicate call');
       return;
@@ -101,7 +101,7 @@ class GameStateManagerClass {
       EventBus.emit('beforeReset', {});
 
       // Reset all game systems
-      DifficultyManager.startGame();
+      DifficultyManager.startGame(leverage);
       ComboSystem.startGame();
 
       // Emit after reset event for UI updates
@@ -125,7 +125,7 @@ class GameStateManagerClass {
     pair: CryptoPair
   ): void {
     // Ensure clean state before starting
-    this.resetAll();
+    this.resetAll(leverage);
 
     // Start metrics tracking for this session
     MetricsService.startSession(position, entryPrice, leverage, pair);

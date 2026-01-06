@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MetricsExporter } from '../../../services/metrics/MetricsExporter';
 import { MarketPosition } from '../../../types';
-import { type SessionMetrics, GameEndReason } from '../../../types/metrics';
+import {
+  type SessionMetrics,
+  GameEndReason,
+  createDefaultWavePhaseRecord,
+} from '../../../types/metrics';
 
 function createMockSession(): SessionMetrics {
   return {
@@ -28,7 +32,7 @@ function createMockSession(): SessionMetrics {
       averageDifficulty: 3,
       maxDifficulty: 5,
       difficultyAtDeath: 4,
-      timeInEachWavePhase: { calm: 0, building: 0, intense: 0, peak: 0 },
+      timeInEachWavePhase: createDefaultWavePhaseRecord(),
       timeInHighDifficulty: 0,
       timeInLowDifficulty: 0,
       nearDeathActivations: 0,

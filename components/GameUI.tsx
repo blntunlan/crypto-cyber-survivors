@@ -185,7 +185,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
         </div>
 
         {/* Account Health (Bottom) - Adaptive Component */}
-        <AccountHealthPremium hpPercent={hpPercent} />
+        <AccountHealthPremium hpPercent={hpPercent} hp={smoothValues.hp} maxHp={player.maxHp} />
       </div>
     );
   }

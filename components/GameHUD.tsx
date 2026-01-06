@@ -65,7 +65,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   const pointerContainerRef = useRef<HTMLDivElement>(null);
 
   // ---------- CUSTOM HOOKS ----------
-  const { uiMeta, flash, showMilestone, clutchActive, achievement } = useHUDEvents(player);
+  const { uiMeta, flash, showMilestone, clutchActive, achievement } = useHUDEvents(player, status);
 
   useHUDUpdateLoop({
     status,

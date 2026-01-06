@@ -32,6 +32,7 @@ declare global {
           collect: ParticleEffectConfig;
         };
       };
+      timeJump: (seconds: number) => void;
       help: () => void;
     };
   }
@@ -102,6 +103,12 @@ class DebugServiceClass {
 
         // Müdahale (CheatManager Köprüsü)
         // Bu özellikler sadece DEV modda CheatManager üzerinden tetiklenebilir
+        // Zaman Müdahalesi (E2E Testleri için)
+        timeJump: (seconds: number) => {
+          TimeService.setGameTime(seconds * 1000);
+          this.log(`Time jumped to ${seconds}s`);
+        },
+
         help: () => {
           /* eslint-disable no-console */
           console.log(

@@ -293,7 +293,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         s.playerScaleX = lerp(s.playerScaleX, 1, 0.15 * dtFactor);
         s.playerScaleY = lerp(s.playerScaleY, 1, 0.15 * dtFactor);
 
-        // Note: DifficultyManager wave timer is auto-synced via calculate() when market data arrives
+        // Update difficulty waves in real-time
+        DifficultyManager.updateWaveTimer(deltaTime);
 
         // Update combo system
         ComboSystem.update();

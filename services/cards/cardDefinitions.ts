@@ -34,10 +34,7 @@ export const COMMON_CARDS: Card[] = [
     description: '+15 Max HP',
     icon: 'lucide:life-buoy',
     tier: 'common',
-    modifiers: [
-      { stat: 'maxHp', value: 15, type: 'add' },
-      { stat: 'hp', value: 15, type: 'add' },
-    ],
+    modifiers: [{ stat: 'maxHp', value: 15, type: 'add' }],
   },
   {
     id: 'magnet_c1',
@@ -81,7 +78,6 @@ export const COMMON_CARDS: Card[] = [
       { stat: 'baseDamage', value: 0.05, type: 'percent' },
       { stat: 'speed', value: 0.05, type: 'percent' },
       { stat: 'maxHp', value: 0.05, type: 'percent' },
-      { stat: 'hp', value: 0.05, type: 'percent' },
       { stat: 'fireRate', value: -0.05, type: 'percent' },
       { stat: 'magnet', value: 0.05, type: 'percent' },
     ],
@@ -158,7 +154,6 @@ export const RARE_CARDS: Card[] = [
     modifiers: [
       { stat: 'armor', value: 2, type: 'add' },
       { stat: 'maxHp', value: 10, type: 'add' },
-      { stat: 'hp', value: 10, type: 'add' },
     ],
   },
   {
@@ -217,7 +212,6 @@ export const EPIC_CARDS: Card[] = [
     tier: 'epic',
     modifiers: [
       { stat: 'maxHp', value: 40, type: 'add' },
-      { stat: 'hp', value: 40, type: 'add' },
       { stat: 'armor', value: 3, type: 'add' },
     ],
   },
@@ -251,7 +245,6 @@ export const EPIC_CARDS: Card[] = [
     tier: 'epic',
     modifiers: [
       { stat: 'maxHp', value: 30, type: 'add' },
-      { stat: 'hp', value: 30, type: 'add' },
       { stat: 'lifesteal', value: 0.08, type: 'add' },
     ],
   },
@@ -323,7 +316,6 @@ export const LEGENDARY_CARDS: Card[] = [
     modifiers: [
       { stat: 'fireRate', value: 0.5, type: 'multiply' },
       { stat: 'maxHp', value: -0.2, type: 'percent' },
-      { stat: 'hp', value: -0.2, type: 'percent' },
     ],
   },
   {
@@ -346,7 +338,6 @@ export const LEGENDARY_CARDS: Card[] = [
     modifiers: [
       { stat: 'lifesteal', value: 0.2, type: 'add' },
       { stat: 'maxHp', value: -0.15, type: 'percent' },
-      { stat: 'hp', value: -0.15, type: 'percent' },
     ],
   },
   {
@@ -372,7 +363,6 @@ export const LEGENDARY_CARDS: Card[] = [
     modifiers: [
       { stat: 'baseDamage', value: 35, type: 'add' },
       { stat: 'maxHp', value: 20, type: 'add' },
-      { stat: 'hp', value: 20, type: 'add' },
     ],
   },
   {

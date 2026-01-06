@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MetricsStorage } from '../services/metrics/MetricsStorage';
-import { type SessionMetrics, GameEndReason } from '../types/metrics';
+import { type SessionMetrics, GameEndReason, createDefaultWavePhaseRecord } from '../types/metrics';
 import { MarketPosition } from '../types';
 
 // Mock localStorage with quota simulation
@@ -113,18 +113,19 @@ function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetr
       maxDifficulty: 3.5,
       difficultyAtDeath: 3.0,
       timeInEachWavePhase: {
-        calm: 10000,
-        building: 20000,
-        intense: 30000,
-        peak: 10000,
+        ...createDefaultWavePhaseRecord(),
+        warmup: 10000,
+        buildup: 20000,
+        climax: 30000,
+        resolution: 10000,
       },
       timeInHighDifficulty: 20000,
       timeInLowDifficulty: 30000,
       nearDeathActivations: 2,
       difficultySamples: [1.5, 2.0, 2.5, 3.0],
       wavePhaseTransitions: [
-        { phase: 'calm', timestamp: 0 },
-        { phase: 'building', timestamp: 10000 },
+        { phase: 'warmup', timestamp: 0 },
+        { phase: 'buildup', timestamp: 10000 },
       ],
     },
     player: {

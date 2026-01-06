@@ -78,4 +78,29 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
     });
     return () => unsub();
   }, [pool]);
+
+  // Listen for Volatility Shockwaves
+  useEffect(() => {
+    const unsub = EventBus.subscribe('volatilityShock', data => {
+      const { intensity } = data;
+
+      // 1. Affect the physics/entities
+      void import('../services/physics/CombatResolutionService').then(
+        ({ CombatResolutionService }) => {
+          CombatResolutionService.triggerShockwave(pool.current, intensity);
+        }
+      );
+
+      // 2. Visual feedback
+      state.current.shake = 15 * intensity;
+      audio.playHit(); // Use a generic hit sound or shockwave sound if available
+
+      EventBus.emit('milestoneAchieved', {
+        name: 'VOLATILITY SHOCK!',
+        icon: '⚡',
+        color: COLORS.NEON_BLUE,
+      });
+    });
+    return () => unsub();
+  }, [pool, state]);
 }

@@ -17,6 +17,7 @@ import {
   type DifficultyInsights,
   type PlayerExperienceInsights,
 } from '../../types/metrics';
+import { WAVE_CONFIG } from '../../config/GameConfig';
 
 export class MetricsAnalyzer {
   private sessions: SessionMetrics[];
@@ -175,15 +176,16 @@ export class MetricsAnalyzer {
 
     const totalActivations = sessions.reduce((a, b) => a + b.difficulty.nearDeathActivations, 0);
 
-    const wavePhaseStats: Record<WavePhase, { avgTime: number; deathRate: number }> = {
-      calm: { avgTime: 0, deathRate: 0 },
-      building: { avgTime: 0, deathRate: 0 },
-      intense: { avgTime: 0, deathRate: 0 },
-      peak: { avgTime: 0, deathRate: 0 },
-    };
+    // Use WAVE_CONFIG.PHASE_ORDER for dynamic phase stats
+    const wavePhaseStats = {} as Record<WavePhase, { avgTime: number; deathRate: number }>;
+    for (const phase of WAVE_CONFIG.PHASE_ORDER) {
+      wavePhaseStats[phase] = { avgTime: 0, deathRate: 0 };
+    }
 
-    for (const phase of ['calm', 'building', 'intense', 'peak'] as WavePhase[]) {
-      const times = sessions.map(s => s.difficulty.timeInEachWavePhase[phase]);
+    for (const phase of WAVE_CONFIG.PHASE_ORDER) {
+      const times = sessions
+        .map(s => s.difficulty.timeInEachWavePhase[phase])
+        .filter((t): t is number => t !== undefined);
       wavePhaseStats[phase].avgTime =
         times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length / 1000 : 0;
     }

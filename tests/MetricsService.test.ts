@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MetricsService } from '../services/MetricsService';
 import { MarketPosition } from '../types';
-import { GameEndReason } from '../types/metrics';
+import { GameEndReason, type WavePhase } from '../types/metrics';
 import { EventBus } from '../services/EventBus';
 
 describe('MetricsService', () => {
@@ -640,7 +640,7 @@ function createUpdateData(
     pnl: number;
     atr: number;
     difficulty: number;
-    wavePhase: 'calm' | 'building' | 'intense' | 'peak';
+    wavePhase: WavePhase;
     hpPercent: number;
     enemyCount: number;
   }> = {}
@@ -649,7 +649,7 @@ function createUpdateData(
     pnl: overrides.pnl ?? 0,
     atr: overrides.atr ?? 0.01,
     difficulty: overrides.difficulty ?? 1.0,
-    wavePhase: overrides.wavePhase ?? 'building',
+    wavePhase: overrides.wavePhase ?? 'buildup',
     hpPercent: overrides.hpPercent ?? 100,
     enemyCount: overrides.enemyCount ?? 5,
   };

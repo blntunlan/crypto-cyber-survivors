@@ -137,20 +137,12 @@ describe('SpawnSystem', () => {
       vi.restoreAllMocks();
     });
 
-    it('should scale spawn rate based on market multiplier', () => {
+    it('should scale spawn rate based on difficulty', () => {
       const baseInterval = GAME_ENGINE.SPAWN_TIMER_BASE;
 
-      // Market multiplier = 2.0 (Chaos)
-      vi.mocked(marketStateService.getState).mockReturnValue({
-        spawnRateMultiplier: 2.0,
-      } as any);
-
-      // scaledDifficulty = 1 + (1-1)*...*2.0 = 1. Wait, scaledDifficulty logic:
-      // 1 + (difficulty - 1) * ...
-      // If difficulty = 1, scaledDifficulty is always 1 unless logic changes.
-      // Let's use difficulty 2.
-      // scaledDifficulty = 1 + (2-1) * 0.5 * (0.5+0.5) * 2.0 = 1 + 1 * 0.5 * 1.0 * 2.0 = 2.0
-      const diff = 2;
+      // Difficulty = 3.0 (Hard)
+      // scaledDifficulty = 1 + (3 - 1) * 0.5 * 1.0 = 2.0
+      const diff = 3;
       const result = spawnSystem.update(
         baseInterval / 2 + 10,
         diff,
@@ -164,14 +156,9 @@ describe('SpawnSystem', () => {
       expect(result).toBe(0);
     });
 
-    it('should cap max enemies during high market chaos', () => {
-      vi.mocked(marketStateService.getState).mockReturnValue({
-        spawnRateMultiplier: 2.0, // High chaos
-      } as any);
-
+    it('should respect max enemies limit', () => {
       const maxEnemies = 100;
-      // effectiveMaxEnemies = 100 * 0.8 = 80
-      mockPool.activeEnemies = new Array(85); // Over cap
+      mockPool.activeEnemies = new Array(100); // At cap
 
       spawnSystem.update(
         10000,

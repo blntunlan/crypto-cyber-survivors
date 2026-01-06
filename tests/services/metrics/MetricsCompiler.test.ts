@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MetricsCompiler } from '../../../services/metrics/MetricsCompiler';
 import { MarketPosition } from '../../../types';
-import { type MetricsState } from '../../../types/metrics';
+import { type MetricsState, createDefaultWavePhaseRecord } from '../../../types/metrics';
 
 describe('MetricsCompiler', () => {
   const mockState: Partial<MetricsState> = {
@@ -20,7 +20,13 @@ describe('MetricsCompiler', () => {
       { time: 200, value: 2.0 },
     ],
     maxDifficulty: 3.0,
-    wavePhaseTime: { calm: 1000, building: 2000, intense: 3000, peak: 500 },
+    wavePhaseTime: {
+      ...createDefaultWavePhaseRecord(),
+      warmup: 1000,
+      buildup: 2000,
+      climax: 3000,
+      firstPeak: 500,
+    },
     highDifficultyTime: 1000,
     lowDifficultyTime: 5000,
     totalDamageDealt: 10000,
@@ -84,7 +90,7 @@ describe('MetricsCompiler', () => {
     const result = MetricsCompiler.compileDifficultyMetrics(mockState as MetricsState, 3.5);
     expect(result.averageDifficulty).toBe(1.5);
     expect(result.difficultyAtDeath).toBe(3.5);
-    expect(result.timeInEachWavePhase.intense).toBe(3000);
+    expect(result.timeInEachWavePhase.climax).toBe(3000);
   });
 
   it('should compile player metrics', () => {
@@ -114,7 +120,6 @@ describe('MetricsCompiler', () => {
 
   it('should compile enemy metrics', () => {
     const result = MetricsCompiler.compileEnemyMetrics(mockState as MetricsState);
-    expect(result.skillsByType).toBeUndefined(); // typo in type? actually killsByType
     expect(result.killsByType.bear).toBe(10);
     expect(result.averageEnemyLifetime).toBe(3000);
   });

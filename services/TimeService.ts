@@ -163,6 +163,14 @@ class TimeServiceClass {
   }
 
   /**
+   * Manually set the game time (USE WITH CAUTION - mainly for testing/debug)
+   */
+  setGameTime(ms: number): void {
+    if (!Number.isFinite(ms) || ms < 0) return;
+    this.gameTime = ms;
+  }
+
+  /**
    * Get formatted time as MM:SS string
    */
   getFormattedTime(): string {

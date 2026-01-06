@@ -4,6 +4,7 @@ import { COLORS } from '../../constants';
 import { screenService } from '../../services/ScreenService';
 import { STAT_DEFINITIONS, type StatKey } from '../../config/StatRegistry';
 import { StatService } from '../../services/StatService';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 interface KernelStatusProps {
   player: Player;
@@ -63,14 +64,28 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
 };
 
 const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
+  const { rs, rfs } = useResponsiveUI();
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
   return (
-    <div className="bg-transparent p-2.5 flex flex-col gap-1.5 min-w-[120px] text-right">
-      <div className="flex justify-between items-center gap-3">
-        <div className="text-[9px] uppercase font-black tracking-widest text-blue-400 opacity-80">
+    <div
+      className="bg-transparent flex flex-col text-right"
+      style={{
+        padding: rs(10),
+        gap: rs(6),
+        minWidth: rs(120),
+      }}
+    >
+      <div className="flex justify-between items-center" style={{ gap: rs(12) }}>
+        <div
+          className="uppercase font-black tracking-widest text-blue-400 opacity-80"
+          style={{ fontSize: rfs(9) }}
+        >
           LEVEL
         </div>
-        <div className="text-3xl font-black italic text-white leading-none tracking-tighter">
+        <div
+          className="font-black italic text-white leading-none tracking-tighter"
+          style={{ fontSize: rfs(30) }}
+        >
           {player.level}
         </div>
       </div>
@@ -82,7 +97,10 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-0.5 pt-1 border-t border-white/5">
+      <div
+        className="grid grid-cols-2 border-t border-white/5"
+        style={{ gap: rs(2), paddingTop: rs(4) }}
+      >
         {Object.values(STAT_DEFINITIONS).map(stat => {
           if (!stat.showInKernel) return null;
 
@@ -90,9 +108,13 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
           const displayValue = StatService.format(value, stat.id as StatKey);
 
           return (
-            <div key={stat.id} className="flex justify-between items-center text-[9px] gap-2">
-              <span className="text-slate-500 font-bold uppercase">{stat.label}</span>
-              <span className={`${stat.uiColor} font-black text-[10px]`}>{displayValue}</span>
+            <div key={stat.id} className="flex justify-between items-center gap-2">
+              <span className="text-slate-500 font-bold uppercase" style={{ fontSize: rfs(9) }}>
+                {stat.label}
+              </span>
+              <span className={`${stat.uiColor} font-black`} style={{ fontSize: rfs(10) }}>
+                {displayValue}
+              </span>
             </div>
           );
         })}
