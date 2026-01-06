@@ -48,7 +48,7 @@ export const PLAYER_STATS = {
   INITIAL_LEVEL: 1,
   INITIAL_EXP: 0,
   INITIAL_NEXT_LEVEL_EXP: 100,
-  LEVEL_EXP_MULTIPLIER: 1.5, // exp needed increases by 50% each level
+  LEVEL_EXP_MULTIPLIER: 1.35, // exp needed increases by 35% each level (was 50%)
 
   // =========================
   // STAT CAPS (prevents game breaking)

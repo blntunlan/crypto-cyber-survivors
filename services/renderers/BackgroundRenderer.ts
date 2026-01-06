@@ -113,29 +113,28 @@ export class BackgroundRenderer implements IRenderer {
    * Update background candle positions based on market trend.
    * Speed is influenced by:
    * - Base candle speed
-   * - Difficulty level (increases with progression)
-   * - Player fire rate (higher fire rate = faster candles for dynamic feel)
+   * - Wave multiplier (syncs with game intensity phases)
+   * - PnL determines direction (profit = up, loss = down)
    */
   public updateCandles(
     state: GameState,
     pnl: number,
-    difficulty: number,
-    fireRate: number,
+    waveMultiplier: number,
+    _unused: number, // kept for API compatibility
     dtFactor: number,
     width: number,
     height: number
   ): void {
+    // Direction based on PnL: profit = candles rise, loss = candles fall
     const trendMultiplier = pnl >= 0 ? -1 : 1;
 
-    // Fire rate multiplier: normalize fire rate to a 0.5-2.0 range
-    // Base fire rate is ~200ms, so 200/fireRate gives inverse relationship
-    // Faster fire rate = larger multiplier = faster candles
-    const baseFireRate = 200; // Reference fire rate in ms
-    const fireRateMultiplier = Math.max(0.5, Math.min(2.0, baseFireRate / Math.max(50, fireRate)));
+    // Wave multiplier directly controls speed (0.4 resolution → 1.5 climax)
+    // Normalize to 0.6-1.8 range for visual effect
+    const waveSpeedMult = 0.6 + waveMultiplier * 0.8;
 
     state.bgCandles.forEach(c => {
-      // Combined speed: base speed * difficulty boost * fire rate boost
-      const volatilitySpeed = c.speed * (1 + difficulty / 1.5) * fireRateMultiplier;
+      // Combined speed: base speed * wave intensity
+      const volatilitySpeed = c.speed * waveSpeedMult;
       c.y += volatilitySpeed * trendMultiplier * dtFactor;
 
       // Wrap around screen edges

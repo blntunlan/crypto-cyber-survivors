@@ -446,6 +446,14 @@ class DifficultyManagerClass {
   }
 
   /**
+   * Get current wave multiplier (0.4 resolution → 1.5 climax)
+   * Used for background animations and visual intensity
+   */
+  getWaveMultiplier(): number {
+    return this.WAVE_MULTIPLIERS[this.currentWavePhase];
+  }
+
+  /**
    * Get time remaining in current cycle (seconds)
    */
   getTimeRemainingInCycle(): number {

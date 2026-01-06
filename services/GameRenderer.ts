@@ -130,14 +130,13 @@ export class GameRenderer {
   }
 
   /**
-   * Update background candle positions based on market trend.
+   * Update background candle positions based on market trend and wave intensity.
    * Delegates logic to BackgroundRenderer.
    */
   public updateBackgroundCandles(
     state: GameState,
     pnl: number,
-    difficulty: number,
-    fireRate: number,
+    waveMultiplier: number,
     dtFactor: number,
     width: number,
     height: number
@@ -145,8 +144,8 @@ export class GameRenderer {
     this.backgroundRenderer.updateCandles(
       state,
       pnl,
-      difficulty,
-      fireRate,
+      waveMultiplier,
+      0, // unused parameter for API compatibility
       dtFactor,
       width,
       height

@@ -242,17 +242,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       s.lastTime = time;
       FPSMonitor.tick();
 
-      if (status !== GameStatus.PAUSED) {
-        // Get effective fire rate from BuffManager or player directly
-        const effectiveFireRate = BuffManager.isInitialized()
-          ? BuffManager.getDecoratedStats().getFireRate()
-          : player.fireRate;
-
+      // Update background candles (even when paused for visual continuity, but skip if menu)
+      if (status !== GameStatus.MENU) {
+        const waveMultiplier = DifficultyManager.getWaveMultiplier();
         renderer.current.updateBackgroundCandles(
           s,
           marketDataRef.current.pnl,
-          marketDataRef.current.difficulty,
-          effectiveFireRate,
+          waveMultiplier,
           dtFactor,
           width,
           height
