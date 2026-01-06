@@ -4,22 +4,18 @@ import { useMarketData } from '../../hooks/useMarketData';
 import { GameStatus, MarketPosition, type Player } from '../../types';
 
 // Use vi.hoisted to share state between mock factory and tests
-const { callbackRef, pairRef } = vi.hoisted(() => ({
+const { callbackRef } = vi.hoisted(() => ({
   callbackRef: { current: null as any },
-  pairRef: { current: 'BTC' as string },
 }));
 
 vi.mock('../../services/marketService', () => {
   return {
     MarketService: class MockMarketService {
-      private pair: string;
       constructor(config: any) {
         callbackRef.current = (data: any) => {
           // Ensure pair is always included in the callback data
           config.onData({ ...data, pair: config.pair });
         };
-        this.pair = config.pair;
-        pairRef.current = config.pair;
       }
       connect() {
         // connect simulation
@@ -138,5 +134,21 @@ describe('useMarketData', () => {
 
     expect(result.current.priceHistory).toContain(100);
     expect(result.current.priceHistory).toContain(200);
+  });
+
+  it('should calculate liquidation price', () => {
+    const { result } = renderHook(() =>
+      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 10, mockPlayerRef, 'BTC')
+    );
+
+    act(() => {
+      if (callbackRef.current) {
+        callbackRef.current({ price: 40000, source: 'binance' });
+      }
+    });
+
+    // For LONG 10x leverage, liquidation is at -10% price drop.
+    // 40000 * (1 - 1/10) = 40000 * 0.9 = 36000
+    expect(result.current.marketData.liquidationPrice).toBe(36000);
   });
 });

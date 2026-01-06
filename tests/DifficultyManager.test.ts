@@ -67,22 +67,22 @@ describe('DifficultyManager', () => {
     // Reset with time 0
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
     DifficultyManager.startGame();
-    expect(DifficultyManager.getWavePhase()).toBe('building');
+    expect(DifficultyManager.getWavePhase()).toBe('warmup'); // Now starts with warmup
 
-    // Building phase lasts 12s - advance to 12s
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(12);
+    // Warmup phase lasts 45s - advance to 45s
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(45);
     DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
-    expect(DifficultyManager.getWavePhase()).toBe('intense');
+    expect(DifficultyManager.getWavePhase()).toBe('buildup');
 
-    // Intense phase lasts 20s - advance to 32s
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(32);
+    // Buildup phase lasts 60s - advance to 105s (45+60)
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(105);
     DifficultyManager.calculate(0, 0, 1, 100);
-    expect(DifficultyManager.getWavePhase()).toBe('peak');
+    expect(DifficultyManager.getWavePhase()).toBe('firstPeak');
 
-    // Peak phase lasts 6s - advance to 38s
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(38);
+    // FirstPeak phase lasts 30s - advance to 135s (105+30)
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(135);
     DifficultyManager.calculate(0, 0, 1, 100);
-    expect(DifficultyManager.getWavePhase()).toBe('calm');
+    expect(DifficultyManager.getWavePhase()).toBe('breather');
   });
 
   it('should handle large time jumps (skipping phases)', () => {
@@ -90,13 +90,13 @@ describe('DifficultyManager', () => {
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
     DifficultyManager.startGame();
 
-    // Current: building (initial)
-    // Jumps 60 seconds
-    // building(12) -> intense(20) -> peak(6) -> calm(8) -> building(12) = 58s
-    // After 60s, it should have completed one full cycle and be 2s into the next 'intense'
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
+    // Current: warmup (initial)
+    // New Cycle: warmup(45) -> buildup(60) -> firstPeak(30) -> breather(45) ->
+    //            escalation(60) -> climax(45) -> resolution(15) = 300s total
+    // After 310s, it should be 10s into the next 'warmup' phase
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
     DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
-    expect(DifficultyManager.getWavePhase()).toBe('intense');
+    expect(DifficultyManager.getWavePhase()).toBe('warmup');
   });
 
   describe('Kill Streak Logic', () => {
@@ -147,18 +147,23 @@ describe('DifficultyManager', () => {
 
     it('should decrease difficulty when player performance is worsening (mercy)', () => {
       DifficultyManager.startGame();
+
+      // Advance to 'climax' phase (higher wave multiplier) so we're not hitting minimum
+      // warmup(45) + buildup(60) + firstPeak(30) + breather(45) + escalation(60) = 240s -> climax phase starts
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(245);
+
       // 1. Fill history with "good" performance
       for (let i = 0; i < 20; i++) {
-        DifficultyManager.calculate(0.1, 0, 1, 100);
+        DifficultyManager.calculate(0.1, 0.01, 5, 100); // Add some volatility and level
       }
-      const baselineEasy = DifficultyManager.calculate(0.1, 0, 1, 100).total;
+      const baselineEasy = DifficultyManager.calculate(0.1, 0.01, 5, 100).total;
 
       // 2. Simulate worsening trend (PnL going down)
       for (let i = 0; i < 10; i++) {
-        DifficultyManager.calculate(0.01, 0, 1, 100);
+        DifficultyManager.calculate(0.01, 0.01, 5, 100);
       }
 
-      const mercyTotal = DifficultyManager.calculate(0.1, 0, 1, 100).total;
+      const mercyTotal = DifficultyManager.calculate(0.1, 0.01, 5, 100).total;
       expect(mercyTotal).toBeLessThan(baselineEasy);
     });
   });

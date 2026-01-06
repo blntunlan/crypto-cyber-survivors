@@ -12,6 +12,10 @@ import { TimeService } from './TimeService';
 import { useAdminConfigStore } from '../stores/admin/configStore';
 import type { DifficultyConfig } from '../types/admin';
 import { type DifficultyDebugState, getDebugTimestamp } from '../types/DebugState';
+import { type WavePhase } from '../types/metrics';
+import { WAVE_CONFIG } from '../config/GameConfig';
+import { EventBus } from './EventBus';
+import { Logger } from './Logger';
 
 export interface DifficultyFactors {
   baseTime: number;
@@ -31,33 +35,25 @@ export interface DifficultyOutput {
   total: number; // Combined difficulty
 }
 
-type WavePhase = 'calm' | 'building' | 'intense' | 'peak';
-
 class DifficultyManagerClass {
   private static instance: DifficultyManagerClass | null = null;
 
   // State
   private lastPnlValues: number[] = [];
-  private currentWavePhase: WavePhase = 'building';
+  private currentWavePhase: WavePhase = 'warmup';
+  private currentLeverage: number = 1; // Track leverage for XP scaling
   private waveTimer: number = 0;
   private killStreak: number = 0;
   private lastKillStreakTime: number = 0;
   private lastWaveUpdateTime: number = 0; // Track last wave update for sync
+  private currentCycle: number = 1; // Track which 5-minute cycle we're on
+  private lastPnlForShock: number = 0; // Track last PnL to detect sudden jumps
+  private lastShockTime: number = 0; // Cooldown for shockwaves
 
-  // Wave configuration (seconds)
-  private readonly WAVE_DURATIONS: Record<WavePhase, number> = {
-    calm: 8,
-    building: 12,
-    intense: 20,
-    peak: 6,
-  };
-
-  private readonly WAVE_MULTIPLIERS: Record<WavePhase, number> = {
-    calm: 0.4,
-    building: 0.8,
-    intense: 1.2,
-    peak: 1.5,
-  };
+  // Use centralized wave config from GameConfig
+  private readonly WAVE_DURATIONS = WAVE_CONFIG.DURATIONS;
+  private readonly WAVE_MULTIPLIERS = WAVE_CONFIG.MULTIPLIERS;
+  private readonly PHASE_ORDER = WAVE_CONFIG.PHASE_ORDER;
 
   private constructor() {}
 
@@ -68,13 +64,17 @@ class DifficultyManagerClass {
   /**
    * Start tracking difficulty for a new game
    */
-  startGame(): void {
+  startGame(leverage: number = 1): void {
     this.lastPnlValues = [];
-    this.currentWavePhase = 'building';
+    this.currentLeverage = leverage;
+    this.currentWavePhase = 'warmup';
     this.waveTimer = 0;
     this.killStreak = 0;
     this.lastKillStreakTime = 0;
     this.lastWaveUpdateTime = TimeService.getGameTimeSeconds();
+    this.currentCycle = 1;
+    this.lastPnlForShock = 0;
+    this.lastShockTime = -10; // Allow immediate shock if jump is huge
   }
 
   /**
@@ -131,9 +131,17 @@ class DifficultyManagerClass {
    * Calculate volatility factor from ATR
    */
   private getVolatilityFactor(atrPercent: number): number {
-    // ATR as percentage of price, normalized
-    // High volatility = harder
-    return Math.min(1.8, Math.max(0.9, 1 + atrPercent * 50));
+    // 1. Calculate base volatility factor
+    const baseVolatility = Math.min(1.8, Math.max(0.9, 1 + atrPercent * 50));
+
+    // 2. Apply Volatility Damping based on game time (Mathematical Core Loop)
+    // Early game: Damping is high (0.2). Late game (5m+): Damping is neutral (1.0).
+    const elapsed = TimeService.getGameTimeSeconds();
+    const damping = Math.min(1.0, 0.2 + (elapsed / 300) * 0.8);
+
+    // Apply damping to the deviation from neutral (1.0)
+    const deviation = baseVolatility - 1.0;
+    return 1.0 + deviation * damping;
   }
 
   /**
@@ -190,6 +198,39 @@ class DifficultyManagerClass {
   }
 
   /**
+   * Calculate XP multiplier based on leverage (Leverage Risk Reward)
+   */
+  public getXpMultiplier(): number {
+    const leverage = this.currentLeverage;
+    // 1x = 1.0x XP
+    // 10x = 1.2x XP
+    // 100x = 2.0x XP
+    // Formula: 1 + log10(leverage) * 0.5
+    if (leverage <= 1) return 1.0;
+    return 1 + Math.log10(leverage) * 0.5;
+  }
+
+  /**
+   * Detect sudden market shocks for "Volatility Shockwaves"
+   */
+  private detectShock(pnl: number): void {
+    const shockThreshold = 0.005; // 0.5% price jump in a single tick
+    const diff = Math.abs(pnl - this.lastPnlForShock);
+    const now = TimeService.getGameTimeSeconds();
+
+    if (diff > shockThreshold && now - this.lastShockTime > 10) {
+      this.lastShockTime = now;
+      Logger.info(`[Shockwave] Sudden price movement detected! Diff: ${(diff * 100).toFixed(2)}%`);
+      EventBus.emit('volatilityShock', {
+        intensity: Math.min(2.0, diff / shockThreshold),
+        direction: pnl > this.lastPnlForShock ? 'up' : 'down',
+      });
+    }
+
+    this.lastPnlForShock = pnl;
+  }
+
+  /**
    * Synchronize wave timer with current game time.
    * Called automatically by calculate() to ensure wave state is current.
    */
@@ -197,7 +238,16 @@ class DifficultyManagerClass {
     const currentGameTime = TimeService.getGameTimeSeconds();
     const elapsed = currentGameTime - this.lastWaveUpdateTime;
 
-    if (elapsed <= 0) return;
+    // Handle backward time jumps or exact zero (e.g. debugging/testing)
+    if (elapsed < 0) {
+      Logger.warn(
+        `[WaveSync] Backward time jump detected (${this.lastWaveUpdateTime.toFixed(2)} -> ${currentGameTime.toFixed(2)}). Resetting wave state.`
+      );
+      this.resetWaveToTime(currentGameTime);
+      return;
+    }
+
+    if (elapsed === 0) return;
 
     this.lastWaveUpdateTime = currentGameTime;
     this.waveTimer += elapsed;
@@ -207,21 +257,63 @@ class DifficultyManagerClass {
       const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
       this.waveTimer -= currentDuration;
 
-      const phases: WavePhase[] = ['calm', 'building', 'intense', 'peak'];
-      const currentIndex = phases.indexOf(this.currentWavePhase);
-      this.currentWavePhase = phases[(currentIndex + 1) % phases.length]!;
+      const currentIndex = this.PHASE_ORDER.indexOf(this.currentWavePhase);
+      const nextIndex = (currentIndex + 1) % this.PHASE_ORDER.length;
+      const oldPhase = this.currentWavePhase;
+      this.currentWavePhase = this.PHASE_ORDER[nextIndex]!;
+
+      Logger.info(
+        `[WaveSync] Phase transition: ${oldPhase} -> ${this.currentWavePhase} (Timer: ${this.waveTimer.toFixed(2)})`
+      );
+
+      // Emit event for UI to update
+      EventBus.emit('wavePhaseChange', { phase: this.currentWavePhase, oldPhase });
+
+      // If we completed a full cycle (back to warmup), increment cycle counter
+      if (nextIndex === 0) {
+        this.currentCycle++;
+      }
     }
   }
 
   /**
-   * Main game loop update for time-based difficulty factors.
-   * @deprecated Use calculate() instead - it auto-syncs wave timer.
-   * Kept for backwards compatibility with existing game loop calls.
+   * Hard reset wave state to a specific absolute time.
+   * Useful for handling significant time jumps.
    */
-  update(_deltaMs: number): void {
-    // Wave sync is now handled internally via syncWaveTimer()
-    // This method is kept for backwards compatibility but does nothing
-    // The sync happens automatically when calculate() is called
+  private resetWaveToTime(totalSeconds: number): void {
+    this.currentCycle = Math.floor(totalSeconds / WAVE_CONFIG.TOTAL_DURATION) + 1;
+    let remaining = totalSeconds % WAVE_CONFIG.TOTAL_DURATION;
+
+    // Find phase for the remaining time
+    let phaseIndex = 0;
+    while (phaseIndex < this.PHASE_ORDER.length) {
+      const phase = this.PHASE_ORDER[phaseIndex]!;
+      const duration = this.WAVE_DURATIONS[phase];
+      if (remaining < duration) {
+        const oldPhase = this.currentWavePhase;
+        this.currentWavePhase = phase;
+        this.waveTimer = remaining;
+
+        if (oldPhase !== this.currentWavePhase) {
+          EventBus.emit('wavePhaseChange', { phase: this.currentWavePhase, oldPhase });
+        }
+        break;
+      }
+      remaining -= duration;
+      phaseIndex++;
+    }
+
+    this.lastWaveUpdateTime = totalSeconds;
+    Logger.info(
+      `[WaveSync] Reset to Cycle ${this.currentCycle}, Phase ${this.currentWavePhase}, Timer ${this.waveTimer.toFixed(2)}`
+    );
+  }
+
+  /**
+   * Main game loop update for time-based difficulty factors.
+   * Advances the wave system independently of market data updates.
+   */
+  updateWaveTimer(_deltaMs: number): void {
     this.syncWaveTimer();
   }
 
@@ -242,14 +334,28 @@ class DifficultyManagerClass {
    * Main difficulty calculation
    * Called when market data updates or periodically.
    * Automatically syncs wave timer using TimeService for consistency.
-   * Integrates with Admin Dashboard config for runtime adjustments.
+   *
+   * @param pnl - Current PnL (with difficulty-capped leverage)
+   * @param atrPercent - ATR as percentage of price
+   * @param level - Player's current level
+   * @param hpPercent - Player's current HP percentage
+   * @param configOverride - Optional config for testing (defaults to admin store)
    */
-  calculate(pnl: number, atrPercent: number, level: number, hpPercent: number): DifficultyOutput {
+  calculate(
+    pnl: number,
+    atrPercent: number,
+    level: number,
+    hpPercent: number,
+    configOverride?: Partial<DifficultyConfig>
+  ): DifficultyOutput {
+    // Detect sudden market shocks
+    this.detectShock(pnl);
+
     // Sync wave timer with current game time (ensures waves are always current)
     this.syncWaveTimer();
 
-    // Get admin config overrides
-    const adminConfig = this.getAdminConfig();
+    // Get admin config overrides (explicit injection takes precedence)
+    const adminConfig = configOverride ?? this.getAdminConfig();
     const baseMultiplier = adminConfig?.base ? adminConfig.base / 5 : 1.0; // base 5 = 1.0x
     const volatilityMultiplier = adminConfig?.volatilityMultiplier ?? 1.0;
     const maxDifficulty = adminConfig?.maxDifficulty ?? 8.0;
@@ -314,6 +420,49 @@ class DifficultyManagerClass {
   }
 
   /**
+   * Get current cycle number (1-indexed)
+   */
+  getCycleNumber(): number {
+    return this.currentCycle;
+  }
+
+  /**
+   * Get progress through current 5-minute cycle (0-1)
+   */
+  getCycleProgress(): number {
+    const totalElapsed = TimeService.getGameTimeSeconds();
+    const cycleElapsed = totalElapsed % WAVE_CONFIG.TOTAL_DURATION;
+    return cycleElapsed / WAVE_CONFIG.TOTAL_DURATION;
+  }
+
+  /**
+   * Get time remaining in current phase (seconds)
+   */
+  getTimeRemainingInPhase(): number {
+    const phaseDuration = this.WAVE_DURATIONS[this.currentWavePhase];
+    return Math.max(0, phaseDuration - this.waveTimer);
+  }
+
+  /**
+   * Get time remaining in current cycle (seconds)
+   */
+  getTimeRemainingInCycle(): number {
+    const totalElapsed = TimeService.getGameTimeSeconds();
+    const cycleElapsed = totalElapsed % WAVE_CONFIG.TOTAL_DURATION;
+    return WAVE_CONFIG.TOTAL_DURATION - cycleElapsed;
+  }
+
+  /**
+   * Check if cycle just completed (useful for triggering decision screen)
+   */
+  isCycleComplete(): boolean {
+    return (
+      this.currentWavePhase === 'resolution' &&
+      this.waveTimer >= this.WAVE_DURATIONS.resolution - 0.1
+    );
+  }
+
+  /**
    * Get debug state for runtime inspection
    */
   getDebugState(): DifficultyDebugState {
@@ -327,6 +476,11 @@ class DifficultyManagerClass {
       pnlHistoryLength: this.lastPnlValues.length,
       waveDurations: { ...this.WAVE_DURATIONS },
       waveMultipliers: { ...this.WAVE_MULTIPLIERS },
+      // New cycle-related fields
+      cycleNumber: this.currentCycle,
+      cycleProgress: this.getCycleProgress(),
+      timeRemainingInPhase: this.getTimeRemainingInPhase(),
+      timeRemainingInCycle: this.getTimeRemainingInCycle(),
     };
   }
 

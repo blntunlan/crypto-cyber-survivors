@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  MarketPosition,
+  type MarketPosition,
   type MarketData,
   GameStatus,
   type Player,
   type LeverageOption,
 } from '../types';
 import { MarketService, type MarketUpdate } from '../services/MarketService';
+import { MarketCalculator, type ATRContext } from '../services/MarketCalculator';
 import { DifficultyManager } from '../services/DifficultyManager';
 import { MAX_CHART_POINTS } from '../constants';
 import { type CryptoPair } from '../types/crypto';
@@ -15,7 +16,7 @@ import { Logger } from '../services/Logger';
 import { priceAnalyzer } from '../services/admin/PriceAnalyzerService';
 import { type MarketStateData } from '../types/events';
 
-const ATR_PERIOD = 14;
+// ATR_PERIOD is now managed by MarketCalculator
 
 // Market data timeout configuration
 const MARKET_DATA_TIMEOUT_MS = 30000; // 30 seconds without data = timeout
@@ -42,8 +43,8 @@ export const useMarketData = (
   });
 
   const [_priceHistory, setPriceHistory] = useState<number[]>([]);
-  const trHistoryRef = useRef<number[]>([]);
-  const prevCloseRef = useRef<number | null>(null);
+  // ATR calculation context (managed by MarketCalculator)
+  const atrContextRef = useRef<ATRContext>({ trHistory: [], prevClose: null });
 
   // Timeout tracking
   const lastPriceTimeRef = useRef<number>(Date.now());
@@ -95,7 +96,7 @@ export const useMarketData = (
     return () => clearInterval(intervalId);
   }, []);
 
-  // Sync with MarketStateService for indicators (RSI, Volume, etc.)
+  // Sync with MarketStateService for indicators (RSI, Volume, ATR, etc.)
   useEffect(() => {
     const handleMarketStateUpdate = (state: MarketStateData) => {
       if (state.pair === pairRef.current) {
@@ -105,6 +106,7 @@ export const useMarketData = (
           rsiState: state.rsiState,
           whaleTier: state.whaleTier,
           spawnRateMultiplier: state.spawnRateMultiplier,
+          atrPercent: state.atrPercent, // Server ATR for difficulty calculation
         }));
       }
     };
@@ -118,8 +120,7 @@ export const useMarketData = (
   // Session Reset & Cleanup (CRITICAL for pair switching)
   useEffect(() => {
     setPriceHistory([]);
-    trHistoryRef.current = [];
-    prevCloseRef.current = null;
+    atrContextRef.current = { trHistory: [], prevClose: null };
     lastPriceTimeRef.current = Date.now(); // Reset timeout on pair switch
     timeoutTriggeredRef.current = false;
 
@@ -176,22 +177,16 @@ export const useMarketData = (
           return newHistory;
         });
 
-        // Calculate ATR
-        let currentTR = 0;
-        if (update.high !== undefined && update.low !== undefined) {
-          const h_l = update.high - update.low;
-          const h_pc = prevCloseRef.current ? Math.abs(update.high - prevCloseRef.current) : 0;
-          const l_pc = prevCloseRef.current ? Math.abs(update.low - prevCloseRef.current) : 0;
-          currentTR = Math.max(h_l, h_pc, l_pc);
-          trHistoryRef.current.push(currentTR);
-          if (trHistoryRef.current.length > ATR_PERIOD) trHistoryRef.current.shift();
-        }
-        prevCloseRef.current = price;
-
-        const atr =
-          trHistoryRef.current.length > 0
-            ? trHistoryRef.current.reduce((a, b) => a + b) / trHistoryRef.current.length
-            : 0;
+        // Calculate ATR using MarketCalculator (pure function)
+        const atrResult = MarketCalculator.calculateATR(
+          { high: update.high, low: update.low, close: price },
+          atrContextRef.current
+        );
+        // Update ATR context for next calculation
+        atrContextRef.current = {
+          trHistory: atrResult.newTrHistory,
+          prevClose: atrResult.newPrevClose,
+        };
 
         const currentStatus = gameStatusRef.current;
         const currentEntryPrice = entryPriceRef.current;
@@ -217,39 +212,52 @@ export const useMarketData = (
           return;
         }
 
-        // Calculate Raw PnL
-        let pnl = 0;
-        if (currentEntryPrice > 0) {
-          pnl = (price - currentEntryPrice) / currentEntryPrice;
-          if (currentPosition === MarketPosition.SHORT) pnl = -pnl;
-        }
+        // Calculate PnL using MarketCalculator (pure function)
+        const pnlResult = MarketCalculator.calculatePnL({
+          currentPrice: price,
+          entryPrice: currentEntryPrice,
+          position: currentPosition,
+          leverage: currentLeverage,
+        });
 
-        // Calculate Effective PnL (with leverage)
-        const effectivePnl = pnl * currentLeverage;
+        // Calculate Liquidation Price using MarketCalculator (pure function)
+        const liquidationPrice = MarketCalculator.calculateLiquidationPrice({
+          entryPrice: currentEntryPrice,
+          leverage: currentLeverage,
+          position: currentPosition,
+        });
 
-        const atrPercent = price > 0 ? atr / price : 0;
+        // Prefer server ATR (more reliable), fallback to client-calculated
         const hpPercent = (playerRef.current.hp / playerRef.current.maxHp) * 100;
         const playerLevel = playerRef.current.level;
 
-        // Calculate Difficulty using EFFECTIVE PnL
-        const difficultyOutput = DifficultyManager.calculate(
-          effectivePnl, // Use amplified PnL for difficulty
-          atrPercent,
-          playerLevel,
-          hpPercent
-        );
+        // Get current marketData to check for server ATR
+        setMarketData(prevMarketData => {
+          // Use server ATR if available, otherwise use client-calculated
+          const effectiveAtrPercent = prevMarketData.atrPercent ?? atrResult.atrPercent;
 
-        setMarketData(prev => ({
-          ...prev,
-          price,
-          volume: update.volume ?? 0,
-          pnl,
-          effectivePnl,
-          leverage: currentLeverage,
-          difficulty: difficultyOutput.total,
-          pair: expectedPair, // Use captured pair, not ref
-          symbol: expectedPair + 'USDT',
-        }));
+          // Calculate Difficulty using CAPPED PnL (not full leverage)
+          const difficultyOutput = DifficultyManager.calculate(
+            pnlResult.difficultyPnl, // Use capped PnL for difficulty (max 2x leverage effect)
+            effectiveAtrPercent, // Prefer server ATR
+            playerLevel,
+            hpPercent
+          );
+
+          return {
+            ...prevMarketData,
+            price,
+            volume: update.volume ?? 0,
+            pnl: pnlResult.rawPnl,
+            effectivePnl: pnlResult.effectivePnl,
+            leverage: currentLeverage,
+            position: currentPosition,
+            liquidationPrice,
+            difficulty: difficultyOutput.total,
+            pair: expectedPair,
+            symbol: expectedPair + 'USDT',
+          };
+        });
       },
     });
 
