@@ -44,6 +44,7 @@ import { useAppInitialization } from './hooks/useAppInitialization';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
 import { useDevShortcuts } from './hooks/useDevShortcuts';
 import { useMarketTimeout } from './hooks/useMarketTimeout';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Lazy load heavy components for performance optimization
 const NicknameEntryScreen = React.lazy(() =>
@@ -332,140 +333,142 @@ const App: React.FC = () => {
   // Render
   // ========================================
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-mono">
-      {/* Game UI Overlay */}
-      {gameStatus !== GameStatus.MENU && (
-        <React.Suspense fallback={<UIFallback />}>
-          <GameUI
-            position={position}
-            entryPrice={entryPrice}
-            marketData={marketData}
-            player={uiStats}
-            onTogglePause={handlePauseToggle}
+    <ThemeProvider>
+      <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-mono">
+        {/* Game UI Overlay */}
+        {gameStatus !== GameStatus.MENU && (
+          <React.Suspense fallback={<UIFallback />}>
+            <GameUI
+              position={position}
+              entryPrice={entryPrice}
+              marketData={marketData}
+              player={uiStats}
+              onTogglePause={handlePauseToggle}
+              status={gameStatus}
+            />
+          </React.Suspense>
+        )}
+
+        {/* Nickname Entry - Initial Login */}
+        {needsNickname && (
+          <React.Suspense fallback={<FallbackLoader />}>
+            <NicknameEntryScreen onComplete={handleNicknameComplete} />
+          </React.Suspense>
+        )}
+
+        {/* Game Engine */}
+        <React.Suspense fallback={<FallbackLoader />}>
+          <GameEngine
             status={gameStatus}
-          />
-        </React.Suspense>
-      )}
-
-      {/* Nickname Entry - Initial Login */}
-      {needsNickname && (
-        <React.Suspense fallback={<FallbackLoader />}>
-          <NicknameEntryScreen onComplete={handleNicknameComplete} />
-        </React.Suspense>
-      )}
-
-      {/* Game Engine */}
-      <React.Suspense fallback={<FallbackLoader />}>
-        <GameEngine
-          status={gameStatus}
-          position={position}
-          pair={selectedPair}
-          marketData={marketData}
-          onGameOver={() => void handleGameOver()}
-          onLevelUp={handleLevelUp}
-          updatePlayerStats={setUiStats}
-          playerRef={playerRef}
-          sessionStartTime={sessionStartTime}
-          width={dimensions.width}
-          height={dimensions.height}
-        />
-      </React.Suspense>
-
-      {/* Screen Overlays */}
-      {gameStatus === GameStatus.MENU && (
-        <React.Suspense fallback={<UIFallback />}>
-          <MainMenu
-            price={marketData.price}
-            onStart={startGame}
-            onOpenSettings={() => setShowSettings(true)}
-            selectedPair={selectedPair}
-            onPairChange={setSelectedPair}
-          />
-        </React.Suspense>
-      )}
-
-      {/* Leaderboard Panel - Desktop only, visible in MENU */}
-      {gameStatus === GameStatus.MENU && (
-        <React.Suspense fallback={null}>
-          <LeaderboardPanel />
-        </React.Suspense>
-      )}
-
-      {showSettings && (
-        <React.Suspense fallback={<UIFallback />}>
-          <SettingsPanel onClose={() => setShowSettings(false)} />
-        </React.Suspense>
-      )}
-
-      {gameStatus === GameStatus.LEVEL_UP && (
-        <React.Suspense fallback={<UIFallback />}>
-          <LevelUpScreen upgradeChoices={upgradeChoices} onSelect={selectUpgrade} />
-        </React.Suspense>
-      )}
-
-      {gameStatus === GameStatus.PAUSED && (
-        <React.Suspense fallback={<UIFallback />}>
-          <PauseMenu
+            position={position}
+            pair={selectedPair}
+            marketData={marketData}
+            onGameOver={() => void handleGameOver()}
+            onLevelUp={handleLevelUp}
+            updatePlayerStats={setUiStats}
+            playerRef={playerRef}
             sessionStartTime={sessionStartTime}
-            runStats={runStats}
-            onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
-            onRestart={resetGame}
-            onMainMenu={resetGame}
-            onOpenSettings={() => setShowSettings(true)}
-            isMuted={isMuted}
-            onToggleMute={() => setIsMuted(audio.toggleMute())}
+            width={dimensions.width}
+            height={dimensions.height}
           />
         </React.Suspense>
-      )}
 
-      {gameStatus === GameStatus.GAMEOVER && (
-        <React.Suspense fallback={<UIFallback />}>
-          <GameOverScreen
-            level={uiStats.level}
-            finalPnl={finalPnl}
-            survivalTime={finalSurvivalTime}
-            kills={runStats.totalKills}
-            onRestart={resetGame}
-          />
-        </React.Suspense>
-      )}
+        {/* Screen Overlays */}
+        {gameStatus === GameStatus.MENU && (
+          <React.Suspense fallback={<UIFallback />}>
+            <MainMenu
+              price={marketData.price}
+              onStart={startGame}
+              onOpenSettings={() => setShowSettings(true)}
+              selectedPair={selectedPair}
+              onPairChange={setSelectedPair}
+            />
+          </React.Suspense>
+        )}
 
-      {/* Debug Panels - Desktop only */}
-      {!device.isMobile && (
-        <React.Suspense fallback={<UIFallback />}>
-          <MetricsDebugPanel />
-          <ComboDebugPanel />
-          <ParticleDebugPanel />
-        </React.Suspense>
-      )}
+        {/* Leaderboard Panel - Desktop only, visible in MENU */}
+        {gameStatus === GameStatus.MENU && (
+          <React.Suspense fallback={null}>
+            <LeaderboardPanel />
+          </React.Suspense>
+        )}
 
-      {/* Analytics Dashboard - DEV ONLY (Ctrl+Shift+A) */}
-      {import.meta.env.DEV && showAnalytics && (
-        <React.Suspense fallback={<FallbackLoader />}>
-          <AnalyticsDashboard />
-          <button
-            onClick={closeAnalytics}
-            className="fixed top-4 right-4 z-[110] px-3 py-1 bg-red-600/80 hover:bg-red-500 rounded text-white text-sm"
-          >
-            ✕ Close (Ctrl+Shift+A)
-          </button>
-        </React.Suspense>
-      )}
+        {showSettings && (
+          <React.Suspense fallback={<UIFallback />}>
+            <SettingsPanel onClose={() => setShowSettings(false)} />
+          </React.Suspense>
+        )}
 
-      {/* Admin Dashboard - DEV ONLY (Ctrl+Shift+D) */}
-      {import.meta.env.DEV && showAdminDashboard && (
-        <React.Suspense fallback={<FallbackLoader />}>
-          <AdminDashboard onClose={closeAdminDashboard} />
-        </React.Suspense>
-      )}
+        {gameStatus === GameStatus.LEVEL_UP && (
+          <React.Suspense fallback={<UIFallback />}>
+            <LevelUpScreen upgradeChoices={upgradeChoices} onSelect={selectUpgrade} />
+          </React.Suspense>
+        )}
 
-      {/* Debug Panel - DEV ONLY (Desktop only) */}
-      {import.meta.env.DEV && !device.isMobile && (
-        <React.Suspense fallback={null}>
-          <DebugPanel />
-        </React.Suspense>
-      )}
-    </div>
+        {gameStatus === GameStatus.PAUSED && (
+          <React.Suspense fallback={<UIFallback />}>
+            <PauseMenu
+              sessionStartTime={sessionStartTime}
+              runStats={runStats}
+              onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
+              onRestart={resetGame}
+              onMainMenu={resetGame}
+              onOpenSettings={() => setShowSettings(true)}
+              isMuted={isMuted}
+              onToggleMute={() => setIsMuted(audio.toggleMute())}
+            />
+          </React.Suspense>
+        )}
+
+        {gameStatus === GameStatus.GAMEOVER && (
+          <React.Suspense fallback={<UIFallback />}>
+            <GameOverScreen
+              level={uiStats.level}
+              finalPnl={finalPnl}
+              survivalTime={finalSurvivalTime}
+              kills={runStats.totalKills}
+              onRestart={resetGame}
+            />
+          </React.Suspense>
+        )}
+
+        {/* Debug Panels - Desktop only */}
+        {!device.isMobile && (
+          <React.Suspense fallback={<UIFallback />}>
+            <MetricsDebugPanel />
+            <ComboDebugPanel />
+            <ParticleDebugPanel />
+          </React.Suspense>
+        )}
+
+        {/* Analytics Dashboard - DEV ONLY (Ctrl+Shift+A) */}
+        {import.meta.env.DEV && showAnalytics && (
+          <React.Suspense fallback={<FallbackLoader />}>
+            <AnalyticsDashboard />
+            <button
+              onClick={closeAnalytics}
+              className="fixed top-4 right-4 z-[110] px-3 py-1 bg-red-600/80 hover:bg-red-500 rounded text-white text-sm"
+            >
+              ✕ Close (Ctrl+Shift+A)
+            </button>
+          </React.Suspense>
+        )}
+
+        {/* Admin Dashboard - DEV ONLY (Ctrl+Shift+D) */}
+        {import.meta.env.DEV && showAdminDashboard && (
+          <React.Suspense fallback={<FallbackLoader />}>
+            <AdminDashboard onClose={closeAdminDashboard} />
+          </React.Suspense>
+        )}
+
+        {/* Debug Panel - DEV ONLY (Desktop only) */}
+        {import.meta.env.DEV && !device.isMobile && (
+          <React.Suspense fallback={null}>
+            <DebugPanel />
+          </React.Suspense>
+        )}
+      </div>
+    </ThemeProvider>
   );
 };
 

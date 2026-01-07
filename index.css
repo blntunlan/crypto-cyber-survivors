@@ -3,7 +3,34 @@
 @tailwind utilities;
 
 :root {
-  /* Casino Theme Colors */
+  /* ========================================
+     THEME SYSTEM - CSS Variables
+     These are set dynamically by ThemeContext
+     ======================================== */
+
+  /* Theme Colors (defaults to Cyberpunk) */
+  --color-primary: #00ffff;
+  --color-secondary: #ff00ff;
+  --color-accent: #ffff00;
+  --color-background: #0a0a0f;
+  --color-surface: rgba(20, 20, 40, 0.85);
+  --color-text: #ffffff;
+  --color-textMuted: #8888aa;
+  --color-success: #00ff88;
+  --color-danger: #ff4444;
+  --color-warning: #ffaa00;
+  --color-health: #ff4444;
+  --color-xp: #00ffff;
+  --color-combo: #ffff00;
+
+  /* Theme Fonts (defaults to Cyberpunk) */
+  --font-display: 'Orbitron', sans-serif;
+  --font-primary: 'Oxanium', sans-serif;
+  --font-secondary: 'Exo 2', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-numbers: 'Orbitron', sans-serif;
+
+  /* Casino Theme Colors (legacy) */
   --casino-gold: #d6b85c;
   --casino-red: #b22222;
   --casino-hot-red: #d20202;
@@ -23,6 +50,112 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+}
+
+/* ========================================
+   THEME EFFECT CLASSES
+   Applied to <html> by ThemeContext
+   ======================================== */
+
+/* Scanlines effect (16-bit retro) */
+.theme-scanlines::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.12) 0px,
+    rgba(0, 0, 0, 0.12) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 99998;
+}
+
+/* Pixelated rendering (16-bit retro) */
+.theme-pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.theme-pixelated * {
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
+/* Smooth transitions (Cyberpunk) */
+.theme-smooth * {
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* ========================================
+   RETRO THEME SPECIFIC OVERRIDES
+   ======================================== */
+
+/* Remove blur/glassmorphism in retro mode */
+[data-theme='retro-16bit'] .backdrop-blur,
+[data-theme='retro-16bit'] .backdrop-blur-sm,
+[data-theme='retro-16bit'] .backdrop-blur-md,
+[data-theme='retro-16bit'] .backdrop-blur-lg {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Remove glow/shadow effects in retro mode */
+[data-theme='retro-16bit'] .shadow,
+[data-theme='retro-16bit'] .shadow-lg,
+[data-theme='retro-16bit'] .shadow-xl,
+[data-theme='retro-16bit'] .drop-shadow {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Chunky pixel borders in retro mode */
+[data-theme='retro-16bit'] button,
+[data-theme='retro-16bit'] .card,
+[data-theme='retro-16bit'] .panel {
+  border-radius: 0 !important;
+  border: 2px solid var(--color-primary) !important;
+}
+
+/* No rounded corners in retro mode */
+[data-theme='retro-16bit'] .rounded,
+[data-theme='retro-16bit'] .rounded-lg,
+[data-theme='retro-16bit'] .rounded-xl,
+[data-theme='retro-16bit'] .rounded-full {
+  border-radius: 0 !important;
+}
+
+/* Retro mode uses fonts from CSS variables set by ThemeContext */
+[data-theme='retro-16bit'] {
+  font-family: var(--font-primary);
+  font-size: 10px;
+  /* Pixel fonts are naturally larger */
+}
+
+/* Utility classes for specific font usage */
+[data-theme='retro-16bit'] .font-display {
+  font-family: var(--font-display) !important;
+}
+
+[data-theme='retro-16bit'] .font-secondary {
+  font-family: var(--font-secondary) !important;
+  font-size: 14px;
+  /* DotGothic16 is smaller, needs boost */
+}
+
+[data-theme='retro-16bit'] .font-mono {
+  font-family: var(--font-mono) !important;
+  font-size: 16px;
+  /* VT323 is smaller, needs boost */
+}
+
+[data-theme='retro-16bit'] .font-numbers {
+  font-family: var(--font-numbers) !important;
 }
 
 * {

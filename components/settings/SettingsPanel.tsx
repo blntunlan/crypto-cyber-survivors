@@ -19,6 +19,7 @@ import { QualitySection } from './QualitySection';
 import { GraphicsSection } from './GraphicsSection';
 import { MobileSection } from './MobileSection';
 import { ControlsSection } from './ControlsSection';
+import { ThemeSection } from './ThemeSection';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -149,6 +150,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
         {/* Settings Sections */}
         <div className="space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+          <ThemeSection />
           <QualitySection isFocused={focusedIndex === 0} />
           <AudioSection
             focusedItem={focusedIndex === 1 ? 'volume' : focusedIndex === 2 ? 'mute' : null}
