@@ -214,11 +214,24 @@ export class AudioService {
   }
 
   /**
-   * Play slowdown tension - yavaşlama gerilimi
-   * TEST: Makara yavaşlarken
+   * Play slowdown tension - suspenseful rumble as reel slows
    */
   playSlowdownTension(): void {
     SlotSounds.playSlowdownTension();
+  }
+
+  /**
+   * Play jackpot mega win - extended celebration
+   */
+  playJackpot(): void {
+    SlotSounds.playJackpot();
+  }
+
+  /**
+   * Play spin start - subtle whoosh
+   */
+  playSpinStart(): void {
+    SlotSounds.playSpinStart();
   }
 
   // ========================================

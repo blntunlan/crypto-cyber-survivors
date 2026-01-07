@@ -183,6 +183,164 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
     ],
     cooldown: 40,
   },
+
+  // ============================================================
+  // SLOT MACHINE SOUNDS - C Major Based Professional Design
+  // ============================================================
+
+  // Reel Stop - Mechanical "clunk" with harmonic richness
+  reelStopClick: {
+    components: [
+      // Main click - square wave for mechanical feel
+      {
+        type: 'square',
+        frequency: 523.25, // C5
+        frequencyEnd: 261.63, // C4
+        envelope: { initial: 0.08, peak: 0.1, duration: 0.04, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 2000 },
+      },
+      // Harmonic layer - sine for warmth
+      {
+        type: 'sine',
+        frequency: 659.25, // E5
+        frequencyEnd: 329.63, // E4
+        envelope: { initial: 0.05, peak: 0.06, duration: 0.05, ramp: 'exponential' },
+      },
+    ],
+  },
+
+  // Win Fanfare Note - Rich, powerful single note for arpeggio
+  slotWinNote: {
+    components: [
+      // Main tone - warm triangle for body
+      {
+        type: 'triangle',
+        frequency: 523.25, // C5 base
+        envelope: { initial: 0.12, peak: 0.15, duration: 0.4, ramp: 'exponential' },
+      },
+      // Brightness layer - sine for clarity
+      {
+        type: 'sine',
+        frequency: 1046.5, // C6 (octave up)
+        envelope: { initial: 0.06, peak: 0.08, duration: 0.35, ramp: 'exponential' },
+      },
+      // Sub bass for power
+      {
+        type: 'sine',
+        frequency: 261.63, // C4 (octave down)
+        envelope: { initial: 0.08, peak: 0.1, duration: 0.3, ramp: 'exponential' },
+      },
+    ],
+  },
+
+  // Coin Ding - Metallic coin sound
+  coinDing: {
+    components: [
+      // High metallic ping
+      {
+        type: 'sine',
+        frequency: 2093, // C7 - high metallic
+        frequencyEnd: 1568, // G6
+        envelope: { initial: 0.06, peak: 0.08, duration: 0.08, ramp: 'exponential' },
+      },
+      // Lower body
+      {
+        type: 'triangle',
+        frequency: 1318.5, // E6
+        frequencyEnd: 1046.5, // C6
+        envelope: { initial: 0.04, peak: 0.05, duration: 0.1, ramp: 'exponential' },
+      },
+    ],
+  },
+
+  // Anticipation Tremolo - Building tension
+  slotAnticipationTremolo: {
+    components: [
+      {
+        type: 'sine',
+        frequency: 261.63, // C4
+        frequencyEnd: 523.25, // C5 - rising
+        envelope: { initial: 0.02, peak: 0.04, duration: 0.4, ramp: 'linear' },
+      },
+    ],
+  },
+
+  // Near Miss - Descending minor feel
+  slotNearMissNote: {
+    components: [
+      // Main descending tone
+      {
+        type: 'sawtooth',
+        frequency: 392, // G4
+        frequencyEnd: 196, // G3
+        envelope: { initial: 0.06, peak: 0.08, duration: 0.25, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 1000, frequencyEnd: 400 },
+      },
+      // Dissonant layer
+      {
+        type: 'sine',
+        frequency: 369.99, // F#4 - slight dissonance
+        frequencyEnd: 184.99, // F#3
+        envelope: { initial: 0.03, peak: 0.04, duration: 0.2, ramp: 'exponential' },
+      },
+    ],
+  },
+
+  // Multiplier Chime - Bell/Glockenspiel tone
+  slotMultiplierBell: {
+    components: [
+      // Bell fundamental
+      {
+        type: 'sine',
+        frequency: 1046.5, // C6
+        envelope: { initial: 0.06, peak: 0.08, duration: 0.25, ramp: 'exponential' },
+      },
+      // Bell overtone
+      {
+        type: 'sine',
+        frequency: 2093, // C7 (2x fundamental)
+        envelope: { initial: 0.03, peak: 0.04, duration: 0.15, ramp: 'exponential' },
+      },
+      // Third harmonic for richness
+      {
+        type: 'sine',
+        frequency: 3136, // G7 (3x-ish for bell character)
+        envelope: { initial: 0.015, peak: 0.02, duration: 0.1, ramp: 'exponential' },
+      },
+    ],
+  },
+
+  // Slowdown Tension - Suspenseful tremolo
+  slotSlowdownTension: {
+    components: [
+      // Deep rumble
+      {
+        type: 'sine',
+        frequency: 82.41, // E2 - low tension
+        frequencyEnd: 65.41, // C2
+        envelope: { initial: 0.06, peak: 0.1, duration: 0.6, ramp: 'linear' },
+      },
+      // Mid layer for body
+      {
+        type: 'triangle',
+        frequency: 130.81, // C3
+        frequencyEnd: 98, // G2
+        envelope: { initial: 0.04, peak: 0.06, duration: 0.5, ramp: 'linear' },
+      },
+    ],
+  },
+
+  // Sparkle Effect - High shimmering sound
+  slotSparkle: {
+    components: [
+      {
+        type: 'sine',
+        frequency: 2637, // E7
+        frequencyEnd: 3136, // G7
+        envelope: { initial: 0.03, peak: 0.04, duration: 0.15, ramp: 'exponential' },
+      },
+    ],
+  },
 } as const;
 
 export type AudioPresetId = keyof typeof AUDIO_PRESETS;
