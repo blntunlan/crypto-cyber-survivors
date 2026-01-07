@@ -5,6 +5,7 @@ import { DeviceProfile } from '../../types/DeviceProfile';
 import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 import { audio } from '../../services/AudioService';
+import { useThemeSize } from '../../hooks/useThemeSize';
 
 interface MainMenuProps {
   price: number;
@@ -21,6 +22,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   selectedPair,
   onPairChange,
 }) => {
+  const sizes = useThemeSize();
   const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
 
   // Navigation State
@@ -136,23 +138,27 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto landscape:py-2">
       <div className="max-w-xl w-full text-center space-y-3 sm:space-y-6 landscape:space-y-2 py-2 sm:py-0">
         <header className="space-y-2 sm:space-y-4">
-          <h1 className="font-display text-2xl sm:text-4xl md:text-5xl tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 leading-relaxed">
+          <h1
+            className={`font-display ${sizes.title} tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 leading-relaxed`}
+          >
             CRYPTO
             <br />
             <span style={{ color: pairConfig.color }}>SURVIVORS</span>
           </h1>
           <div className="flex flex-col items-center gap-2">
-            <p className="font-heading text-slate-500 font-medium uppercase tracking-[0.2em] text-[10px] sm:text-xs">
+            <p
+              className={`font-heading text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
+            >
               Market Sentiment Engine
             </p>
-            <OptimizationBadge />
+            <OptimizationBadge sizes={sizes} />
           </div>
         </header>
 
         <div className="bg-slate-900/40 border border-white/5 p-3 sm:p-6 landscape:p-3 rounded-2xl space-y-3 sm:space-y-5 landscape:space-y-2">
           {/* Pair Selector */}
           <div className="space-y-3">
-            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+            <span className={`${sizes.tiny} text-slate-500 uppercase font-bold tracking-widest`}>
               Select Asset
             </span>
             <CryptoSelector
@@ -163,7 +169,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <div
-            className="font-heading text-3xl sm:text-5xl font-bold tracking-tight transition-colors duration-500"
+            className={`font-heading ${sizes.price} font-bold tracking-tight transition-colors duration-500`}
             style={{ color: pairConfig.color, textShadow: `0 0 30px ${pairConfig.color}40` }}
           >
             {price > 0
@@ -174,7 +180,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           {/* Leverage Selection */}
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
+              <span className={`${sizes.tiny} text-slate-500 uppercase font-bold tracking-widest`}>
                 Leverage
               </span>
               <span
@@ -279,7 +285,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           >
             Settings
           </button>
-          <div className="pt-1 sm:pt-2 text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]">
+          <div
+            className={`pt-1 sm:pt-2 ${sizes.tiny} text-slate-500 font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]`}
+          >
             WASD / Arrows to Move • SPACE to Dash
           </div>
         </div>
@@ -287,7 +295,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     </div>
   );
 };
-const OptimizationBadge = () => {
+interface OptimizationBadgeProps {
+  sizes: ReturnType<typeof useThemeSize>;
+}
+
+const OptimizationBadge: React.FC<OptimizationBadgeProps> = ({ sizes }) => {
   const config = DeviceBenchmarkService.getPerformanceConfig();
   const profile = config.profile;
 
@@ -308,7 +320,7 @@ const OptimizationBadge = () => {
 
   return (
     <div
-      className={`px-3 py-1 rounded-full border text-[9px] font-bold uppercase tracking-wider ${getColor(profile)}`}
+      className={`px-3 py-1 rounded-full border ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)}`}
     >
       Optimized: {profile}
     </div>

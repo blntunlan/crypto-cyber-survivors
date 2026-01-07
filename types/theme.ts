@@ -60,3 +60,53 @@ export interface ThemeEffects {
 export interface ThemeAudio {
   preset: 'modern' | 'chiptune';
 }
+
+/**
+ * Theme Size Configuration
+ *
+ * Defines Tailwind classes for theme-aware sizing.
+ * Pixel fonts (16-bit) require smaller sizes due to their larger visual appearance.
+ */
+export interface ThemeSizeConfig {
+  // Text sizes
+  /** GAME OVER, PAUSED, LEVEL UP */
+  title: string;
+  /** Section headings */
+  heading: string;
+  /** Sub-section headings */
+  subheading: string;
+  /** Normal body text */
+  body: string;
+  /** Small labels */
+  small: string;
+  /** Tiny labels, hints */
+  tiny: string;
+
+  // Number sizes
+  /** Price display */
+  price: string;
+  /** HP, DPS, stat values */
+  stat: string;
+  /** Combo multiplier x10, x50 */
+  combo: string;
+  /** Damage popup numbers */
+  damage: string;
+  /** Timer display MM:SS */
+  timer: string;
+
+  // Button sizes (includes padding + text)
+  /** Primary CTA buttons */
+  buttonLg: string;
+  /** Standard buttons */
+  buttonMd: string;
+  /** Small/secondary buttons */
+  buttonSm: string;
+
+  // Spacing
+  /** Standard gap between items */
+  gap: string;
+  /** Panel/container padding */
+  padding: string;
+  /** Card internal padding */
+  cardPadding: string;
+}

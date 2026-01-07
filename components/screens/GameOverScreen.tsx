@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { COLORS } from '../../constants';
 import { useGameStore } from '../../stores/gameStore';
+import { useThemeSize } from '../../hooks/useThemeSize';
 
 interface GameOverScreenProps {
   level: number;
@@ -18,6 +19,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   kills,
   onRestart,
 }) => {
+  const sizes = useThemeSize();
   const { progress, recordGameEnd } = useGameStore();
 
   // Record this game to progress on mount
@@ -43,7 +45,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     >
       {/* Glitch Title */}
       <motion.h2
-        className="text-6xl md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative"
+        className={`${sizes.title} md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative`}
         initial={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
         animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{
@@ -69,7 +71,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
       {/* Stats Card */}
       <motion.div
-        className="bg-slate-900/50 border border-red-500/30 p-6 md:p-10 rounded-2xl space-y-6 max-w-md w-full mb-auto"
+        className={`bg-slate-900/50 border border-red-500/30 ${sizes.padding} md:p-10 rounded-2xl space-y-6 max-w-md w-full mb-auto`}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 100, damping: 15, delay: 0.4 }}
@@ -82,23 +84,24 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
           >
-            <span className="text-yellow-500 font-black text-sm uppercase tracking-widest">
+            <span className={`text-yellow-500 font-black ${sizes.small} uppercase tracking-widest`}>
               🏆 New High Score!
             </span>
           </motion.div>
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-6 text-left">
-          <StatItem label="Level" value={`L${level}`} delay={0.5} />
+        <div className={`grid grid-cols-2 ${sizes.gap} text-left`}>
+          <StatItem label="Level" value={`L${level}`} delay={0.5} sizes={sizes} />
           <StatItem
             label="P&L"
             value={`${(finalPnl * 100).toFixed(1)}%`}
             color={finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE}
             delay={0.6}
+            sizes={sizes}
           />
-          <StatItem label="Time" value={formatTime(survivalTime)} delay={0.7} />
-          <StatItem label="Kills" value={kills.toString()} delay={0.8} />
+          <StatItem label="Time" value={formatTime(survivalTime)} delay={0.7} sizes={sizes} />
+          <StatItem label="Kills" value={kills.toString()} delay={0.8} sizes={sizes} />
         </div>
 
         {/* Career Stats */}
@@ -108,21 +111,21 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">
+          <p className={`${sizes.tiny} font-black text-slate-500 uppercase tracking-widest mb-3`}>
             Career Stats
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className={`grid grid-cols-3 ${sizes.gap} text-center`}>
             <div>
-              <p className="text-xl font-black text-white">{progress.totalGamesPlayed}</p>
-              <p className="text-[8px] text-slate-500 uppercase">Games</p>
+              <p className={`${sizes.stat} font-black text-white`}>{progress.totalGamesPlayed}</p>
+              <p className={`${sizes.tiny} text-slate-500 uppercase`}>Games</p>
             </div>
             <div>
-              <p className="text-xl font-black text-white">{progress.totalKills}</p>
-              <p className="text-[8px] text-slate-500 uppercase">Total Kills</p>
+              <p className={`${sizes.stat} font-black text-white`}>{progress.totalKills}</p>
+              <p className={`${sizes.tiny} text-slate-500 uppercase`}>Total Kills</p>
             </div>
             <div>
-              <p className="text-xl font-black text-white">L{progress.highestLevel}</p>
-              <p className="text-[8px] text-slate-500 uppercase">Best Level</p>
+              <p className={`${sizes.stat} font-black text-white`}>L{progress.highestLevel}</p>
+              <p className={`${sizes.tiny} text-slate-500 uppercase`}>Best Level</p>
             </div>
           </div>
         </motion.div>
@@ -130,7 +133,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         {/* Restart Button */}
         <motion.button
           onClick={onRestart}
-          className="w-full py-4 bg-white text-black font-black uppercase tracking-[0.2em] rounded-lg hover:bg-yellow-500 transition-all"
+          className={`w-full ${sizes.buttonLg} bg-white text-black font-black uppercase tracking-[0.2em] rounded-lg hover:bg-yellow-500 transition-all`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
@@ -150,16 +153,17 @@ interface StatItemProps {
   value: string;
   color?: string;
   delay: number;
+  sizes: ReturnType<typeof useThemeSize>;
 }
 
-const StatItem: React.FC<StatItemProps> = ({ label, value, color = '#ffffff', delay }) => (
+const StatItem: React.FC<StatItemProps> = ({ label, value, color = '#ffffff', delay, sizes }) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ delay }}
   >
-    <p className="text-slate-500 text-[10px] font-black uppercase">{label}</p>
-    <p className="text-4xl font-black" style={{ color }}>
+    <p className={`text-slate-500 ${sizes.tiny} font-black uppercase`}>{label}</p>
+    <p className={`${sizes.heading} font-black`} style={{ color }}>
       {value}
     </p>
   </motion.div>
