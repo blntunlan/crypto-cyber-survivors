@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '../test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { MainMenu } from '../../components/screens/MainMenu';
 import { MarketPosition } from '../../types';

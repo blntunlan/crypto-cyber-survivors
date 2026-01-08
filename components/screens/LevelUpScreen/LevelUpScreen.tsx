@@ -7,7 +7,11 @@ import { containerVariants, titleVariants } from './constants';
 import { LevelUpErrorBoundary } from './LevelUpErrorBoundary';
 import { SlotReel } from './SlotReel';
 
+import { useThemeSize } from '../../../hooks/useThemeSize';
+import { useIsRetro } from '../../../contexts/useTheme';
+
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, onSelect }) => {
+  const sizes = useThemeSize();
   // Track how many reels have stopped
   const [stoppedCount, setStoppedCount] = useState(0);
   const allStopped = stoppedCount >= upgradeChoices.length;
@@ -103,11 +107,13 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     2
   );
 
+  const isRetro = useIsRetro();
+
   return (
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+          className={`fixed inset-0 z-[2000] flex items-center justify-center p-4 overflow-y-auto ${isRetro ? 'bg-black/90' : 'bg-black/80 backdrop-blur-md'}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -122,19 +128,31 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
             {/* Title */}
             <motion.div className="text-center mb-4 md:mb-10" variants={titleVariants}>
               <motion.h3
-                className="text-2xl md:text-5xl font-black italic text-white tracking-tighter"
+                className={`font-display ${sizes.title} font-black italic text-white tracking-tighter`}
                 animate={{
                   textShadow: allStopped
-                    ? [
-                        '0 0 30px rgba(74, 222, 128, 0.5)',
-                        '0 0 60px rgba(74, 222, 128, 0.8)',
-                        '0 0 30px rgba(74, 222, 128, 0.5)',
-                      ]
-                    : [
-                        '0 0 20px rgba(255,255,255,0.3)',
-                        '0 0 40px rgba(255,255,255,0.5)',
-                        '0 0 20px rgba(255,255,255,0.3)',
-                      ],
+                    ? isRetro
+                      ? [
+                          `2px 2px 0px ${COLORS.NEON_GREEN}`,
+                          `4px 4px 0px ${COLORS.NEON_GREEN}`,
+                          `2px 2px 0px ${COLORS.NEON_GREEN}`,
+                        ]
+                      : [
+                          '0 0 30px rgba(74, 222, 128, 0.5)',
+                          '0 0 60px rgba(74, 222, 128, 0.8)',
+                          '0 0 30px rgba(74, 222, 128, 0.5)',
+                        ]
+                    : isRetro
+                      ? [
+                          '2px 2px 0px rgba(255,255,255,0.5)',
+                          '4px 4px 0px rgba(255,255,255,0.5)',
+                          '2px 2px 0px rgba(255,255,255,0.5)',
+                        ]
+                      : [
+                          '0 0 20px rgba(255,255,255,0.3)',
+                          '0 0 40px rgba(255,255,255,0.5)',
+                          '0 0 20px rgba(255,255,255,0.3)',
+                        ],
                   scale: allStopped ? [1, 1.05, 1] : 1,
                 }}
                 transition={{ duration: allStopped ? 0.5 : 2, repeat: Infinity }}
@@ -142,8 +160,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                 LEVEL UP
               </motion.h3>
               <motion.p
-                className="font-bold uppercase text-[10px] md:text-xs mt-1 md:mt-2"
-                style={{ color: allStopped ? '#4ade80' : COLORS.ELECTRIC_BLUE }}
+                className={`font-bold uppercase ${sizes.tiny} mt-1 md:mt-2`}
+                style={{ color: allStopped ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE }}
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
               >

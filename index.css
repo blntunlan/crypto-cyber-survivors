@@ -107,22 +107,44 @@
 
 /* Remove glow/shadow effects in retro mode */
 [data-theme='retro-16bit'] .shadow,
+[data-theme='retro-16bit'] .shadow-sm,
+[data-theme='retro-16bit'] .shadow-md,
 [data-theme='retro-16bit'] .shadow-lg,
 [data-theme='retro-16bit'] .shadow-xl,
-[data-theme='retro-16bit'] .drop-shadow {
+[data-theme='retro-16bit'] .shadow-2xl,
+[data-theme='retro-16bit'] .drop-shadow,
+[data-theme='retro-16bit'] .drop-shadow-sm,
+[data-theme='retro-16bit'] .drop-shadow-md,
+[data-theme='retro-16bit'] .drop-shadow-lg,
+[data-theme='retro-16bit'] .drop-shadow-xl,
+[data-theme='retro-16bit'] .drop-shadow-2xl,
+[data-theme='retro-16bit'] [class*='drop-shadow-['] {
   box-shadow: none !important;
   filter: none !important;
 }
 
-/* Chunky pixel borders in retro mode */
+/* Chunky pixel borders and bevel in retro mode */
 [data-theme='retro-16bit'] button,
 [data-theme='retro-16bit'] .card,
 [data-theme='retro-16bit'] .panel {
   border-radius: 0 !important;
-  border: 2px solid var(--color-primary) !important;
+  border: 4px solid var(--color-primary) !important;
+  box-shadow:
+    inset -2px -2px 0px rgba(0, 0, 0, 0.4),
+    inset 2px 2px 0px rgba(255, 255, 255, 0.2) !important;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+[data-theme='retro-16bit'] button:active {
+  box-shadow:
+    inset 2px 2px 0px rgba(0, 0, 0, 0.4),
+    inset -2px -2px 0px rgba(255, 255, 255, 0.2) !important;
+  transform: translate(1px, 1px);
 }
 
 /* No rounded corners in retro mode */
+[data-theme='retro-16bit'] *,
 [data-theme='retro-16bit'] .rounded,
 [data-theme='retro-16bit'] .rounded-lg,
 [data-theme='retro-16bit'] .rounded-xl,
@@ -133,29 +155,96 @@
 /* Retro mode uses fonts from CSS variables set by ThemeContext */
 [data-theme='retro-16bit'] {
   font-family: var(--font-primary);
-  font-size: 10px;
-  /* Pixel fonts are naturally larger */
+}
+
+/* ========================================
+   RETRO UI LEGIBILITY BOOST & ESTHETICS
+   ======================================== */
+
+/* Restore Hard Shadows for Depth (only for light text) */
+[data-theme='retro-16bit'] .text-shadow-retro,
+[data-theme='retro-16bit'] button:not(.text-black):not(.text-slate-900),
+[data-theme='retro-16bit'] h1,
+[data-theme='retro-16bit'] h2,
+[data-theme='retro-16bit'] h3 {
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Ensure dark text doesn't have black shadows */
+[data-theme='retro-16bit'] .text-black,
+[data-theme='retro-16bit'] .text-slate-900,
+[data-theme='retro-16bit'] .text-slate-800,
+[data-theme='retro-16bit'] .text-gray-900,
+[data-theme='retro-16bit'] .text-gray-800 {
+  text-shadow: none !important;
+}
+
+/* Hard outline for special retro labels */
+[data-theme='retro-16bit'] .text-outline-retro {
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    2px 2px 0 rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Minimum size boost for tiny pixel text (global) */
+[data-theme='retro-16bit'] .text-\[10px\],
+[data-theme='retro-16bit'] .text-\[9px\],
+[data-theme='retro-16bit'] .text-\[8px\],
+[data-theme='retro-16bit'] .text-\[7px\] {
+  font-size: 0.75rem !important;
+  /* Minimum 12px for pixel fonts */
+  letter-spacing: 0.02em !important;
+}
+
+[data-theme='retro-16bit'] .text-xs {
+  font-size: 0.85rem !important;
+  /* ~13.6px */
+}
+
+/* Mobile-specific Heading Boost for Retro */
+@media (max-width: 640px) {
+  [data-theme='retro-16bit'] .text-2xl {
+    font-size: 1.5rem !important;
+  }
+
+  [data-theme='retro-16bit'] .text-3xl {
+    font-size: 1.75rem !important;
+  }
+
+  [data-theme='retro-16bit'] .text-4xl {
+    font-size: 2.25rem !important;
+  }
+
+  [data-theme='retro-16bit'] .text-5xl {
+    font-size: 2.75rem !important;
+  }
 }
 
 /* Utility classes for specific font usage */
 [data-theme='retro-16bit'] .font-display {
   font-family: var(--font-display) !important;
+  letter-spacing: -0.02em;
 }
 
 [data-theme='retro-16bit'] .font-secondary {
   font-family: var(--font-secondary) !important;
-  font-size: 14px;
-  /* DotGothic16 is smaller, needs boost */
 }
 
 [data-theme='retro-16bit'] .font-mono {
   font-family: var(--font-mono) !important;
-  font-size: 16px;
-  /* VT323 is smaller, needs boost */
 }
 
 [data-theme='retro-16bit'] .font-numbers {
   font-family: var(--font-numbers) !important;
+}
+
+/* Keep touch targets reasonable */
+[data-theme='retro-16bit'] button {
+  min-height: 44px;
+  /* Better for mobile touch */
 }
 
 * {

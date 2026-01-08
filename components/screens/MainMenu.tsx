@@ -138,9 +138,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto landscape:py-2">
       <div className="max-w-xl w-full text-center space-y-3 sm:space-y-6 landscape:space-y-2 py-2 sm:py-0">
         <header className="space-y-2 sm:space-y-4">
-          <h1
-            className={`font-display ${sizes.title} tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 leading-relaxed`}
-          >
+          <h1 className={`font-display ${sizes.title} tracking-tight text-white leading-relaxed`}>
             CRYPTO
             <br />
             <span style={{ color: pairConfig.color }}>SURVIVORS</span>

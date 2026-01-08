@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act } from './test-utils';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GameHUD } from '../components/GameHUD';
 import { GameStatus, type Player } from '../types';

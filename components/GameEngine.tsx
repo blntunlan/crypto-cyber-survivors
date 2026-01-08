@@ -458,10 +458,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
         player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
 
+        // Calculate target background based on PnL
+        // On mobile, we increase the floor values to prevent the screen from being too dark at low brightness
+        const minVal = device.isMobile ? 12 : 2;
         const targetBg =
           marketDataRef.current.pnl >= 0
-            ? { r: 2, g: lerp(6, 40, Math.min(1, marketDataRef.current.pnl * 20)), b: 10 }
-            : { r: lerp(2, 40, Math.min(1, Math.abs(marketDataRef.current.pnl) * 20)), g: 2, b: 2 };
+            ? {
+                r: minVal,
+                g: lerp(minVal + 4, 45, Math.min(1, marketDataRef.current.pnl * 20)),
+                b: minVal + 8,
+              }
+            : {
+                r: lerp(minVal, 45, Math.min(1, Math.abs(marketDataRef.current.pnl) * 20)),
+                g: minVal,
+                b: minVal,
+              };
 
         const bgLerpFactor = 1 - Math.pow(0.95, dtFactor);
         s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
@@ -526,6 +537,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       isSpaceFreshPress,
       consumeDash,
       device.platform,
+      device.isMobile,
       position,
       updatePlayerStats,
     ]

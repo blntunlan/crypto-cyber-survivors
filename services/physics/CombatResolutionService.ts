@@ -8,6 +8,7 @@ import { PLAYER_STATS } from '../../config/PlayerConfig';
 import { COMBAT_CONFIG } from '../../config/CombatConfig';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { Logger } from '../Logger';
+import { ThemeService } from '../ThemeService';
 
 /**
  * CombatResolutionService - Pure logic for resolving combat events.
@@ -109,6 +110,8 @@ export class CombatResolutionService {
 
   private static spawnDeathParticles(pool: PoolManager, enemy: Enemy, isSuperCrit: boolean): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+    const isRetro = ThemeService.isRetro();
+
     const baseCount = isSuperCrit
       ? COMBAT_CONFIG.PARTICLES.SUPER_CRIT_COUNT
       : COMBAT_CONFIG.PARTICLES.NORMAL_COUNT;
@@ -116,13 +119,15 @@ export class CombatResolutionService {
     const velocityRange = COMBAT_CONFIG.PARTICLES.VELOCITY_RANGE;
 
     for (let k = 0; k < count; k++) {
-      pool.getParticle(
-        enemy.x,
-        enemy.y,
-        (Math.random() - 0.5) * velocityRange,
-        (Math.random() - 0.5) * velocityRange,
-        enemy.color
-      );
+      // For retro mode, we make the velocities slightly more "blocky" or varied
+      const vx = isRetro
+        ? (Math.random() - 0.5) * velocityRange * 1.2
+        : (Math.random() - 0.5) * velocityRange;
+      const vy = isRetro
+        ? (Math.random() - 0.5) * velocityRange * 1.2
+        : (Math.random() - 0.5) * velocityRange;
+
+      pool.getParticle(enemy.x, enemy.y, vx, vy, enemy.color, isRetro);
     }
   }
 

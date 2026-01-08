@@ -1,10 +1,3 @@
-/**
- * SettingsPanel - Main Settings Container
- *
- * Container component that composes all settings sections.
- * Individual sections are imported from separate files.
- */
-
 import React from 'react';
 import { audio } from '../../services/AudioService';
 import { useGameStore, selectAudio } from '../../stores/gameStore';
@@ -12,6 +5,8 @@ import { useDevice } from '../../hooks/useDevice';
 import { screenService } from '../../services/ScreenService';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
+import { useIsRetro } from '../../contexts/useTheme';
+import { COLORS } from '../../constants';
 
 // Section components
 import { AudioSection } from './AudioSection';
@@ -23,13 +18,16 @@ import { ThemeSection } from './ThemeSection';
 
 interface SettingsPanelProps {
   onClose: () => void;
+  /** If true, hides theme section (theme can only be changed from main menu) */
+  isInGame?: boolean;
 }
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame = false }) => {
   const resetSettings = useGameStore(state => state.resetSettings);
   const audioSettings = useGameStore(selectAudio);
   const device = useDevice();
   const isMobile = screenService.isMobile();
+  const isRetro = useIsRetro();
 
   // Sync audio service with store
   React.useEffect(() => {
@@ -44,20 +42,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   // Keyboard Navigation
   const [focusedIndex, setFocusedIndex] = React.useState<number>(0);
 
-  // Define item indices for Desktop (simplifying by skipping mobile section content for nav for now)
-  // 0: Quality
-  // 1: Volume
-  // 2: Mute
-  // 3: Particles
-  // 4: Shake
-  // 5: Damage
-  // 6: Reset
-  // 7: Close
   const MAX_INDEX = 7;
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault(); // Capture all keys when settings is open
+      e.preventDefault();
 
       switch (e.key) {
         case 'ArrowUp':
@@ -75,7 +64,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         case 'a':
         case 'A':
           if (focusedIndex === 0) {
-            // Cycle Profile: Auto -> Ultra -> High ...
             const profiles = Object.values(DeviceProfile);
             const current = DeviceBenchmarkService.getPerformanceConfig().profile;
             const idx = profiles.indexOf(current);
@@ -84,7 +72,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               DeviceBenchmarkService.setManualProfile(profiles[prev]!);
             }
           } else if (focusedIndex === 1) {
-            // Volume Down
             const newVol = Math.max(0, audioSettings.masterVolume - 0.05);
             useGameStore.getState().setMasterVolume(newVol);
           }
@@ -94,7 +81,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         case 'd':
         case 'D':
           if (focusedIndex === 0) {
-            // Cycle Profile
             const profiles = Object.values(DeviceProfile);
             const current = DeviceBenchmarkService.getPerformanceConfig().profile;
             const idx = profiles.indexOf(current);
@@ -103,7 +89,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               DeviceBenchmarkService.setManualProfile(profiles[next]!);
             }
           } else if (focusedIndex === 1) {
-            // Volume Up
             const newVol = Math.min(1, audioSettings.masterVolume + 0.05);
             useGameStore.getState().setMasterVolume(newVol);
           }
@@ -131,26 +116,36 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[2500] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-6"
+      className={`fixed inset-0 z-[2500] flex items-center justify-center p-4 md:p-6 ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
       style={{
         paddingTop: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
         paddingBottom: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-bottom, 0px))`,
       }}
     >
       <div
-        className={`max-w-md w-full bg-slate-900/50 border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-8 flex flex-col max-h-full shadow-[0_0_50px_rgba(0,0,0,0.5)]`}
+        className={`max-w-md w-full p-4 md:p-8 flex flex-col max-h-full transition-all ${
+          isRetro
+            ? 'bg-zinc-900 border-4 border-white rounded-none'
+            : 'bg-slate-900/50 border border-white/10 rounded-2xl md:rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+        }`}
       >
         {/* Header */}
         <header className="text-center mb-4 md:mb-8 shrink-0">
-          <h2 className="text-2xl md:text-4xl font-black text-white italic tracking-tighter uppercase">
+          <h2
+            className="text-2xl md:text-4xl font-black text-white italic tracking-tighter uppercase"
+            style={{ textShadow: isRetro ? '4px 4px 0px #000000' : 'none' }}
+          >
             Settings
           </h2>
-          <div className="h-1 w-12 bg-yellow-500 mx-auto mt-2 rounded-full" />
+          <div
+            className={`h-1 mx-auto mt-2 ${isRetro ? 'w-24' : 'w-12 bg-yellow-500 rounded-full'}`}
+            style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
+          />
         </header>
 
         {/* Settings Sections */}
         <div className="space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar">
-          <ThemeSection />
+          {!isInGame && <ThemeSection />}
           <QualitySection isFocused={focusedIndex === 0} />
           <AudioSection
             focusedItem={focusedIndex === 1 ? 'volume' : focusedIndex === 2 ? 'mute' : null}
@@ -175,25 +170,30 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         <div className="flex gap-3 pt-4 md:pt-6 shrink-0 mt-auto">
           <button
             onClick={resetSettings}
-            className={`flex-1 py-3 bg-slate-800 text-slate-400 font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-slate-700 hover:text-white transition-all border border-slate-700 ${
-              focusedIndex === 6 ? 'ring-2 ring-white scale-105 bg-slate-700 text-white' : ''
-            }`}
+            className={`flex-1 py-3 font-black uppercase text-[10px] tracking-widest transition-all border ${
+              isRetro
+                ? 'bg-zinc-700 text-white border-zinc-900 rounded-none border-b-2 active:translate-y-0.5'
+                : 'bg-slate-800 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white border-slate-700 shadow-sm'
+            } ${focusedIndex === 6 ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'ring-2 ring-white scale-105 bg-slate-700 text-white') : ''}`}
           >
             Reset
           </button>
           <button
             onClick={onClose}
-            className={`flex-[2] py-3 bg-white text-black font-black uppercase tracking-[0.2em] text-xs rounded-xl hover:bg-yellow-500 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] ${
-              focusedIndex === 7
-                ? 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]'
-                : ''
-            }`}
+            className={`flex-[2] py-3 font-black uppercase tracking-[0.2em] text-sm transition-all ${
+              isRetro
+                ? 'text-black rounded-none border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0'
+                : 'bg-white text-black rounded-xl hover:bg-yellow-500 shadow-lg shadow-white/5'
+            } ${focusedIndex === 7 ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
+            style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           >
             Close
           </button>
         </div>
 
-        <p className="text-center text-[8px] text-slate-600 font-bold uppercase tracking-[0.5em] mt-3 shrink-0">
+        <p
+          className={`text-center text-[8px] font-bold uppercase tracking-[0.5em] mt-3 shrink-0 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
+        >
           Settings are saved automatically
         </p>
       </div>

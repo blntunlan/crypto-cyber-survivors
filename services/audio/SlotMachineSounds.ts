@@ -15,7 +15,7 @@
  */
 
 import { synthEngine } from './SynthEngine';
-import { AUDIO_PRESETS } from '../../config/AudioRegistry';
+import { getPreset } from '../../config/AudioRegistry';
 
 // C Major scale frequencies for easy reference
 const C_MAJOR = {
@@ -39,8 +39,9 @@ export function playSlotTick(pitch: number = 1): void {
   if (synthEngine.isOnCooldown('slotTick')) return;
   synthEngine.recordPlay('slotTick');
 
-  if (AUDIO_PRESETS.slotTick) {
-    synthEngine.playPreset(AUDIO_PRESETS.slotTick, {
+  const tickPreset = getPreset('slotTick');
+  if (tickPreset) {
+    synthEngine.playPreset(tickPreset, {
       frequencyMultiplier: pitch,
     });
   }
@@ -56,17 +57,20 @@ export function playReelStop(reelNumber: number): void {
   const pitchMultiplier = 1 + reelNumber * 0.15; // 1.0, 1.15, 1.30
   const volume = 0.8 + reelNumber * 0.1; // 0.8, 0.9, 1.0
 
+  const stopPreset = getPreset('reelStopClick');
+  const sparklePreset = getPreset('slotSparkle');
+
   // Use the new professional preset
-  if (AUDIO_PRESETS.reelStopClick) {
-    synthEngine.playPreset(AUDIO_PRESETS.reelStopClick, {
+  if (stopPreset) {
+    synthEngine.playPreset(stopPreset, {
       frequencyMultiplier: pitchMultiplier,
       volumeMultiplier: volume,
     });
   }
 
   // Add subtle sparkle on final reel
-  if (reelNumber === 2 && AUDIO_PRESETS.slotSparkle) {
-    synthEngine.playPreset(AUDIO_PRESETS.slotSparkle, {
+  if (reelNumber === 2 && sparklePreset) {
+    synthEngine.playPreset(sparklePreset, {
       volumeMultiplier: 0.5,
       delay: 0.02,
     });
@@ -90,52 +94,54 @@ export function playSlotWin(): void {
           type: 'sine',
           frequency: 80,
           frequencyEnd: 40,
-          envelope: { initial: 0.15, peak: 0.2, duration: 0.1, ramp: 'exponential' },
+          envelope: { initial: 0.1, peak: 0.12, duration: 0.1, ramp: 'exponential' },
         },
         // Click for attack
         {
           type: 'square',
           frequency: 200,
           frequencyEnd: 100,
-          envelope: { initial: 0.1, peak: 0.1, duration: 0.03, ramp: 'exponential' },
+          envelope: { initial: 0.05, peak: 0.05, duration: 0.03, ramp: 'exponential' },
           filter: { type: 'lowpass', frequency: 800 },
         },
       ],
     },
-    { volumeMultiplier: 1.0 }
+    { volumeMultiplier: 0.7 }
   );
 
   // === C Major Chord Arpeggio ===
   // Slower timing (150ms between notes) for more impact
   const fanfareNotes = [C_MAJOR.C5, C_MAJOR.E5, C_MAJOR.G5, C_MAJOR.C6];
+  const winPreset = getPreset('slotWinNote');
+  const dingPreset = getPreset('coinDing');
 
   fanfareNotes.forEach((freq, i) => {
-    if (AUDIO_PRESETS.slotWinNote) {
-      // Main note - louder
-      synthEngine.playPreset(AUDIO_PRESETS.slotWinNote, {
+    if (winPreset) {
+      // Main note - balanced volume
+      synthEngine.playPreset(winPreset, {
         frequencyMultiplier: freq / C_MAJOR.C5,
-        volumeMultiplier: 1.2 + i * 0.15, // Rising volume: 1.2, 1.35, 1.5, 1.65
-        delay: 0.05 + i * 0.15, // Slower: 50ms, 200ms, 350ms, 500ms
+        volumeMultiplier: 0.9 + i * 0.1, // Softer rising: 0.9, 1.0, 1.1, 1.2
+        delay: 0.05 + i * 0.15,
       });
     }
   });
 
   // === Final Chord (all notes together) ===
   [C_MAJOR.C5, C_MAJOR.E5, C_MAJOR.G5].forEach(freq => {
-    if (AUDIO_PRESETS.slotWinNote) {
-      synthEngine.playPreset(AUDIO_PRESETS.slotWinNote, {
+    if (winPreset) {
+      synthEngine.playPreset(winPreset, {
         frequencyMultiplier: freq / C_MAJOR.C5,
-        volumeMultiplier: 0.8,
-        delay: 0.7, // After arpeggio finishes
+        volumeMultiplier: 0.6,
+        delay: 0.7,
       });
     }
   });
 
   // === Coin accent at end ===
-  if (AUDIO_PRESETS.coinDing) {
-    synthEngine.playPreset(AUDIO_PRESETS.coinDing, {
+  if (dingPreset) {
+    synthEngine.playPreset(dingPreset, {
       frequencyMultiplier: 1.0,
-      volumeMultiplier: 0.6,
+      volumeMultiplier: 0.4,
       delay: 0.75,
     });
   }
@@ -148,9 +154,11 @@ export function playSlotWin(): void {
 export function playAnticipation(intensity: number = 1): void {
   if (synthEngine.getMuted()) return;
 
+  const anticipationPreset = getPreset('slotAnticipationTremolo');
+
   // Use the anticipation tremolo preset
-  if (AUDIO_PRESETS.slotAnticipationTremolo) {
-    synthEngine.playPreset(AUDIO_PRESETS.slotAnticipationTremolo, {
+  if (anticipationPreset) {
+    synthEngine.playPreset(anticipationPreset, {
       frequencyMultiplier: intensity,
       volumeMultiplier: 0.6 * intensity,
     });
@@ -183,14 +191,15 @@ export function playCoinShower(): void {
 
   const coinCount = 12;
   const baseDelay = 0.04; // 16th note feel at ~150 BPM
+  const dingPreset = getPreset('coinDing');
 
   for (let i = 0; i < coinCount; i++) {
     // Slight randomization for natural feel
     const delay = i * baseDelay + Math.random() * 0.015;
     const pitchVariation = 0.9 + Math.random() * 0.2; // ±10% pitch variation
 
-    if (AUDIO_PRESETS.coinDing) {
-      synthEngine.playPreset(AUDIO_PRESETS.coinDing, {
+    if (dingPreset) {
+      synthEngine.playPreset(dingPreset, {
         frequencyMultiplier: pitchVariation,
         volumeMultiplier: 0.4 + Math.random() * 0.2,
         delay,
@@ -199,8 +208,8 @@ export function playCoinShower(): void {
   }
 
   // Add final "big coin" for closure
-  if (AUDIO_PRESETS.coinDing) {
-    synthEngine.playPreset(AUDIO_PRESETS.coinDing, {
+  if (dingPreset) {
+    synthEngine.playPreset(dingPreset, {
       frequencyMultiplier: 0.7, // Lower pitch for "bigger" coin
       volumeMultiplier: 0.8,
       delay: coinCount * baseDelay + 0.1,
@@ -215,14 +224,16 @@ export function playCoinShower(): void {
 export function playNearMiss(): void {
   if (synthEngine.getMuted()) return;
 
-  if (AUDIO_PRESETS.slotNearMissNote) {
+  const nearMissPreset = getPreset('slotNearMissNote');
+
+  if (nearMissPreset) {
     // Main descending tone
-    synthEngine.playPreset(AUDIO_PRESETS.slotNearMissNote, {
+    synthEngine.playPreset(nearMissPreset, {
       volumeMultiplier: 0.7,
     });
 
     // Echo for "wah-wah" effect
-    synthEngine.playPreset(AUDIO_PRESETS.slotNearMissNote, {
+    synthEngine.playPreset(nearMissPreset, {
       frequencyMultiplier: 0.95, // Slight pitch down
       volumeMultiplier: 0.4,
       delay: 0.15,
@@ -241,17 +252,18 @@ export function playMultiplierChime(level: number = 1): void {
 
   // Each level raises pitch by a semitone (about 6% per semitone)
   const pitchMultiplier = Math.pow(2, level / 12);
+  const bellPreset = getPreset('slotMultiplierBell');
 
-  if (AUDIO_PRESETS.slotMultiplierBell) {
+  if (bellPreset) {
     // Main bell
-    synthEngine.playPreset(AUDIO_PRESETS.slotMultiplierBell, {
+    synthEngine.playPreset(bellPreset, {
       frequencyMultiplier: pitchMultiplier,
       volumeMultiplier: 0.6,
     });
 
     // Quick arpeggio for excitement (C-E-G)
     [0, 4, 7].forEach((semitone, i) => {
-      synthEngine.playPreset(AUDIO_PRESETS.slotMultiplierBell, {
+      synthEngine.playPreset(bellPreset, {
         frequencyMultiplier: pitchMultiplier * Math.pow(2, semitone / 12),
         volumeMultiplier: 0.3,
         delay: 0.05 + i * 0.06,
@@ -269,8 +281,10 @@ export function playSlowdownTension(): void {
   if (synthEngine.isOnCooldown('slowdownTension')) return;
   synthEngine.recordPlay('slowdownTension');
 
-  if (AUDIO_PRESETS.slotSlowdownTension) {
-    synthEngine.playPreset(AUDIO_PRESETS.slotSlowdownTension, {
+  const tensionPreset = getPreset('slotSlowdownTension');
+
+  if (tensionPreset) {
+    synthEngine.playPreset(tensionPreset, {
       volumeMultiplier: 0.5,
     });
   }
@@ -304,10 +318,12 @@ export function playJackpot(): void {
   setTimeout(() => {
     // Second arpeggio (higher octave)
     const jackpotNotes = [C_MAJOR.C6, C_MAJOR.E6, C_MAJOR.G6, C_MAJOR.C7];
+    const winPreset = getPreset('slotWinNote');
+    const sparklePreset = getPreset('slotSparkle');
 
     jackpotNotes.forEach((freq, i) => {
-      if (AUDIO_PRESETS.slotWinNote) {
-        synthEngine.playPreset(AUDIO_PRESETS.slotWinNote, {
+      if (winPreset) {
+        synthEngine.playPreset(winPreset, {
           frequencyMultiplier: freq / C_MAJOR.C5,
           volumeMultiplier: 0.8,
           delay: i * 0.12,
@@ -320,8 +336,8 @@ export function playJackpot(): void {
 
     // Extra sparkle cascade
     for (let i = 0; i < 8; i++) {
-      if (AUDIO_PRESETS.slotSparkle) {
-        synthEngine.playPreset(AUDIO_PRESETS.slotSparkle, {
+      if (sparklePreset) {
+        synthEngine.playPreset(sparklePreset, {
           frequencyMultiplier: 1 + Math.random() * 0.3,
           volumeMultiplier: 0.3 + Math.random() * 0.2,
           delay: 0.6 + i * 0.1 + Math.random() * 0.05,

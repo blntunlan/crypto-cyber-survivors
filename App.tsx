@@ -395,7 +395,10 @@ const App: React.FC = () => {
 
         {showSettings && (
           <React.Suspense fallback={<UIFallback />}>
-            <SettingsPanel onClose={() => setShowSettings(false)} />
+            <SettingsPanel
+              onClose={() => setShowSettings(false)}
+              isInGame={gameStatus !== GameStatus.MENU}
+            />
           </React.Suspense>
         )}
 

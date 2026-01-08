@@ -33,7 +33,7 @@ export const retro16bitTheme: ThemeConfig = {
 
   fonts: {
     display: '"Press Start 2P", monospace',
-    primary: '"Press Start 2P", monospace',
+    primary: '"VT323", monospace',
     secondary: '"DotGothic16", sans-serif',
     mono: '"VT323", monospace',
     numbers: '"Press Start 2P", monospace',

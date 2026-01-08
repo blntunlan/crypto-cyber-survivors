@@ -60,7 +60,7 @@ export const useGameState = () => {
 
 interface PlayerContextType {
   player: Player;
-  playerRef: React.RefObject<Player>;
+  playerRef: React.RefObject<Player | null>;
   updatePlayer: (updates: Partial<Player>) => void;
 }
 
@@ -98,7 +98,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [entryPrice, setEntryPrice] = useState<number>(0);
 
   // Player State
-  const playerRef = useRef<Player>({
+  const playerRef = useRef<Player | null>({
     x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
     y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
     radius: 12,
@@ -119,11 +119,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     projectiles: 1,
   });
 
-  const [player, setPlayer] = useState<Player>(playerRef.current);
+  const [player, setPlayer] = useState<Player>(playerRef.current!);
 
   const updatePlayer = useCallback((updates: Partial<Player>) => {
-    playerRef.current = { ...playerRef.current, ...updates };
-    setPlayer({ ...playerRef.current });
+    if (playerRef.current) {
+      playerRef.current = { ...playerRef.current, ...updates };
+      setPlayer({ ...playerRef.current });
+    }
   }, []);
 
   return (

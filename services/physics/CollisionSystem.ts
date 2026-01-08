@@ -13,6 +13,7 @@ import { getPhysicsContext, physicsColors } from './PhysicsContext';
 import { EventBus } from '../EventBus';
 import { CombatResolutionService } from './CombatResolutionService';
 import { StatService } from '../StatService';
+import { ThemeService } from '../ThemeService';
 
 // Extended enemy type with behavior (added by EnemyFactory at runtime)
 interface EnemyWithBehavior extends Enemy {
@@ -90,6 +91,14 @@ export class CollisionSystem {
       if (enemy.hasEnteredScreen && enemy.spawnTimer !== undefined && enemy.spawnTimer > 0) {
         enemy.spawnTimer -= 0.1 * dtFactor; // ~10 frames for snappy pop
         if (enemy.spawnTimer < 0) enemy.spawnTimer = 0;
+      }
+
+      // 1.5 Damage Buffer Timer - for stacked damage numbers
+      if (enemy.damageBufferTimer !== undefined && enemy.damageBufferTimer > 0) {
+        enemy.damageBufferTimer -= dtFactor;
+        if (enemy.damageBufferTimer <= 0) {
+          this.flushDamageBuffer(pool, enemy);
+        }
       }
 
       // 2. Behavioral Movement
@@ -235,7 +244,9 @@ export class CollisionSystem {
     this.spawnImpactParticles(pool, bullet, particleMultiplier);
     this.applyKnockback(enemy, bullet, dtFactor);
     this.triggerCritEffects(bullet, enemy, state);
-    this.spawnDamageText(pool, enemy, bullet);
+
+    // Buffer damage instead of spawning text immediately
+    this.bufferDamage(enemy, bullet);
 
     // Hit Stop - freeze frame for impact feel
     const isCrit = bullet.isCrit || bullet.isSuperCrit;
@@ -245,6 +256,8 @@ export class CollisionSystem {
     });
 
     if (enemy.health <= 0) {
+      // Flush any pending damage text immediately on death
+      this.flushDamageBuffer(pool, enemy);
       CombatResolutionService.handleEnemyDeath(pool, enemy, player, !!bullet.isSuperCrit);
     }
   }
@@ -270,19 +283,43 @@ export class CollisionSystem {
     }
   }
 
-  private static spawnDamageText(pool: PoolManager, enemy: Enemy, bullet: Bullet): void {
-    const color = bullet.isSuperCrit
+  private static bufferDamage(enemy: Enemy, bullet: Bullet): void {
+    enemy.damageBuffer = (enemy.damageBuffer ?? 0) + bullet.damage;
+    enemy.damageBufferTimer = 6; // ~100ms buffer window at 60fps
+
+    // Upgrade styling if current hit is stronger than previous in buffer
+    if (bullet.isSuperCrit) {
+      enemy.damageBufferIsSuperCrit = true;
+    } else if (bullet.isCrit && !enemy.damageBufferIsSuperCrit) {
+      enemy.damageBufferIsCrit = true;
+    }
+  }
+
+  private static flushDamageBuffer(pool: PoolManager, enemy: Enemy): void {
+    if (!enemy.damageBuffer || enemy.damageBuffer <= 0) return;
+
+    const isSuperCrit = !!enemy.damageBufferIsSuperCrit;
+    const isCrit = !!enemy.damageBufferIsCrit;
+
+    const color = isSuperCrit
       ? physicsColors.CASINO_RED
-      : bullet.isCrit
+      : isCrit
         ? physicsColors.CASINO_GOLD
         : physicsColors.SLOT_SILVER;
 
-    const size = bullet.isSuperCrit ? 36 : bullet.isCrit ? 28 : 20;
+    const size = isSuperCrit ? 36 : isCrit ? 28 : 20;
 
-    const text = StatService.formatCompact(bullet.damage);
-    if (!text) return;
+    const text = StatService.formatCompact(enemy.damageBuffer);
 
-    pool.getFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 20, text, color, size);
+    if (text) {
+      pool.getFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 20, text, color, size);
+    }
+
+    // Reset buffer
+    enemy.damageBuffer = 0;
+    enemy.damageBufferTimer = 0;
+    enemy.damageBufferIsCrit = false;
+    enemy.damageBufferIsSuperCrit = false;
   }
 
   private static spawnImpactParticles(
@@ -292,6 +329,7 @@ export class CollisionSystem {
   ): void {
     const impactCfg = this.ctx.particles.impact;
     const count = Math.round(impactCfg.count * particleMultiplier);
+    const isRetro = ThemeService.isRetro();
 
     for (let i = 0; i < count; i++) {
       pool.getParticle(
@@ -299,7 +337,8 @@ export class CollisionSystem {
         bullet.y,
         (Math.random() - 0.5) * impactCfg.speed,
         (Math.random() - 0.5) * impactCfg.speed,
-        bullet.isSuperCrit ? physicsColors.SUPER_CRIT : bullet.color
+        bullet.isSuperCrit ? physicsColors.SUPER_CRIT : bullet.color,
+        isRetro
       ).life = impactCfg.life;
     }
   }

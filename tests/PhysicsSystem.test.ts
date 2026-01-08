@@ -27,6 +27,7 @@ vi.mock('../services/CheatManager', () => ({
 vi.mock('../services/DifficultyManager', () => ({
   DifficultyManager: {
     recordKill: vi.fn(),
+    getXpMultiplier: vi.fn(() => 1),
   },
 }));
 
@@ -65,9 +66,17 @@ describe('PhysicsSystem', () => {
 
     // Default mock stats
     vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+      getDamage: () => mockPlayer.baseDamage,
+      getSpeed: () => mockPlayer.speed,
+      getFireRate: () => mockPlayer.fireRate,
+      getCritChance: () => mockPlayer.critChance,
+      getCritDamage: () => mockPlayer.critDamage,
       getArmor: () => mockPlayer.armor,
       getMagnet: () => mockPlayer.magnet,
-      getSpeed: () => mockPlayer.speed,
+      getProjectiles: () => mockPlayer.projectiles,
+      getArea: () => mockPlayer.area,
+      getLuck: () => mockPlayer.luck,
+      getLifesteal: () => mockPlayer.lifesteal,
       getDodge: () => mockPlayer.dodge,
     } as any);
 
@@ -456,7 +465,7 @@ describe('PhysicsSystem', () => {
       };
       mockPool.activeEnemies = [mockEnemy];
       mockPool.activeBullets = [
-        { x: 500, y: 300, radius: 5, damage: 25, active: true, isCrit: false, isSuperCrit: false },
+        { x: 500, y: 300, radius: 5, damage: 100, active: true, isCrit: false, isSuperCrit: false },
       ];
 
       PhysicsSystem.handleCollisions(

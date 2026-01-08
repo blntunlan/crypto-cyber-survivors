@@ -11,6 +11,7 @@
 
 import { synthEngine } from './SynthEngine';
 import { type ComboMilestoneSound } from './types';
+import { ThemeService } from '../ThemeService';
 
 /**
  * Play combo milestone sound based on level
@@ -43,11 +44,12 @@ function playCombo1(): void {
   if (!context) return;
 
   const { ctx, masterGain } = context;
+  const isRetro = ThemeService.isRetro();
 
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
 
-  osc.type = 'triangle';
+  osc.type = isRetro ? 'square' : 'triangle';
   osc.frequency.setValueAtTime(500, ctx.currentTime);
   osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
 
@@ -69,12 +71,13 @@ function playCombo2(): void {
   if (!context) return;
 
   const { ctx, masterGain } = context;
+  const isRetro = ThemeService.isRetro();
 
   [0, 0.1].forEach((delay, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'triangle';
+    osc.type = isRetro ? 'square' : 'triangle';
     const freq = 600 + i * 200;
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
     osc.frequency.exponentialRampToValueAtTime(freq * 1.5, ctx.currentTime + delay + 0.15);
@@ -98,6 +101,7 @@ function playCombo3(): void {
   if (!context) return;
 
   const { ctx, masterGain } = context;
+  const isRetro = ThemeService.isRetro();
 
   const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
 
@@ -106,7 +110,7 @@ function playCombo3(): void {
     const gain = ctx.createGain();
     const delay = i * 0.08;
 
-    osc.type = 'sine';
+    osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
 
     gain.gain.setValueAtTime(0.06, ctx.currentTime + delay);
@@ -128,6 +132,7 @@ function playCombo4(): void {
   if (!context) return;
 
   const { ctx, masterGain } = context;
+  const isRetro = ThemeService.isRetro();
 
   const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
 
@@ -137,10 +142,10 @@ function playCombo4(): void {
     const gain = ctx.createGain();
     const delay = i * 0.1;
 
-    osc.type = 'sine';
+    osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
 
-    osc2.type = 'triangle';
+    osc2.type = isRetro ? 'square' : 'triangle';
     osc2.frequency.setValueAtTime(freq * 2, ctx.currentTime + delay);
 
     gain.gain.setValueAtTime(0.05, ctx.currentTime + delay);
@@ -165,6 +170,7 @@ function playCombo5(): void {
   if (!context) return;
 
   const { ctx, masterGain } = context;
+  const isRetro = ThemeService.isRetro();
 
   // Ascending jackpot fanfare
   const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98]; // C5 to G6
@@ -175,7 +181,7 @@ function playCombo5(): void {
     const gain = ctx.createGain();
     const delay = i * 0.08;
 
-    osc.type = 'sine';
+    osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
 
     // Shimmer LFO
@@ -186,7 +192,7 @@ function playCombo5(): void {
     lfo.connect(lfoGain);
     lfoGain.connect(osc.frequency);
 
-    osc2.type = 'triangle';
+    osc2.type = isRetro ? 'square' : 'triangle';
     osc2.frequency.setValueAtTime(freq * 1.5, ctx.currentTime + delay);
 
     gain.gain.setValueAtTime(0.05, ctx.currentTime + delay);
@@ -209,7 +215,7 @@ function playCombo5(): void {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    osc.type = 'sine';
+    osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(2500, ctx.currentTime + delay);
 
     gain.gain.setValueAtTime(0.04, ctx.currentTime + delay);

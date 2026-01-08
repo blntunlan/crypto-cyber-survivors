@@ -1,46 +1,81 @@
 import React, { memo } from 'react';
 import { screenService } from '../../services/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
+import { useIsRetro } from '../../contexts/useTheme';
+import { COLORS } from '../../constants';
 
 interface ClutchAnnouncementProps {
   active: boolean;
 }
 
-const DesktopClutch: React.FC = () => (
+const DesktopClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => (
   <div className="absolute top-[20%] left-1/2 -translate-x-1/2 z-[130] pointer-events-none">
     <div className="animate-bounce-short">
-      <div className="relative bg-gradient-to-r from-red-600 to-orange-600 text-white font-black italic text-6xl skew-x-[-15deg] shadow-[0_0_20px_rgba(255,0,0,0.6)] border-4 border-yellow-400 tracking-tighter px-10 py-4 outline outline-4 outline-black/30">
-        <span className="drop-shadow-[4px_4px_0_#000]">CLUTCH!</span>
+      <div
+        className={`relative text-white font-black italic text-6xl skew-x-[-15deg] tracking-tighter px-10 py-4 ${
+          isRetro
+            ? 'border-4 rounded-none shadow-[8px_8px_0_#000]'
+            : 'bg-gradient-to-r from-red-600 to-orange-600 shadow-[0_0_20px_rgba(255,0,0,0.6)] border-4 border-yellow-400 rounded-xl'
+        }`}
+        style={{
+          backgroundColor: isRetro ? COLORS.CASINO_RED : undefined,
+          borderColor: isRetro ? 'white' : undefined,
+        }}
+      >
+        <span
+          style={{ textShadow: isRetro ? '4px 4px 0 #000' : 'none' }}
+          className={!isRetro ? 'drop-shadow-[4px_4px_0_#000]' : ''}
+        >
+          CLUTCH!
+        </span>
+
         {/* Decorative elements */}
-        <div className="absolute -top-2 -left-2 w-4 h-4 bg-yellow-400 border-2 border-black" />
-        <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 border-2 border-black" />
+        {isRetro ? (
+          <>
+            <div className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-black" />
+            <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-black" />
+          </>
+        ) : (
+          <>
+            <div className="absolute -top-2 -left-2 w-4 h-4 bg-yellow-400 border-2 border-black rounded-full" />
+            <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 border-2 border-black rounded-full" />
+          </>
+        )}
       </div>
     </div>
   </div>
 );
 
-const MobileClutch: React.FC = () => {
+const MobileClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
   const { rs, rfs } = useResponsiveUI();
 
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-[130] pointer-events-none flex flex-col items-center gap-1"
-      style={{ top: '25%' }} // Positioned slightly lower than top HUD elements
+      style={{ top: '25%' }}
     >
       <div
-        className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 text-white font-black italic skew-x-[-12deg] shadow-[0_0_15px_rgba(255,100,0,0.5)] border-yellow-300 tracking-tight animate-pulse"
+        className={`text-white font-black italic skew-x-[-12deg] tracking-tight animate-pulse transition-all ${
+          isRetro
+            ? 'border-white rounded-none'
+            : 'bg-gradient-to-r from-red-600 via-orange-500 to-red-600 shadow-[0_0_15px_rgba(255,100,0,0.5)] border-yellow-300 rounded-lg'
+        }`}
         style={{
-          fontSize: rfs(32), // Larger, more impactful text
+          backgroundColor: isRetro ? COLORS.CASINO_RED : undefined,
+          fontSize: rfs(32),
           padding: `${rs(8)}px ${rs(24)}px`,
-          borderWidth: rs(3),
-          boxShadow: `${rs(4)}px ${rs(4)}px 0 #000`,
+          borderWidth: rs(4),
+          boxShadow: isRetro ? `${rs(6)}px ${rs(6)}px 0 #000` : `${rs(4)}px ${rs(4)}px 0 #000`,
         }}
       >
-        CLUTCH!
+        <span style={{ textShadow: isRetro ? '2px 2px 0 #000' : 'none' }}>CLUTCH!</span>
       </div>
       <div
-        className="bg-black/80 text-yellow-300 font-bold uppercase tracking-widest skew-x-[-12deg] px-2"
-        style={{ fontSize: rfs(10) }}
+        className={`${isRetro ? 'bg-black text-white' : 'bg-black/80 text-yellow-300'} font-bold uppercase tracking-widest skew-x-[-12deg] px-2 shadow-[2px_2px_0_#000]`}
+        style={{
+          fontSize: rfs(10),
+          color: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
+        }}
       >
         RECOVERED
       </div>
@@ -49,13 +84,10 @@ const MobileClutch: React.FC = () => {
 };
 
 export const ClutchAnnouncement: React.FC<ClutchAnnouncementProps> = memo(({ active }) => {
-  // Use standard screenService pattern for consistency with simple UI overlays
   const isMobile = screenService.isMobile();
-
-  // Force re-check on mount/resize via hook in other components usually, but here we can just use the prop or check.
-  // Let's stick to the simplest valid implementation that matches the file structure.
+  const isRetro = useIsRetro();
 
   if (!active) return null;
 
-  return isMobile ? <MobileClutch /> : <DesktopClutch />;
+  return isMobile ? <MobileClutch isRetro={isRetro} /> : <DesktopClutch isRetro={isRetro} />;
 });

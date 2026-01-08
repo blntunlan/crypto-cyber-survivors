@@ -179,6 +179,7 @@ export class PoolManager {
         color: '',
         radius: 2,
         life: 0,
+        isPixel: false,
       });
     }
     for (let i = 0; i < counts.gems; i++) {
@@ -253,6 +254,12 @@ export class PoolManager {
 
         // Reset near miss flag
         obj.hasTriggeredNearMiss = false;
+
+        // Reset damage buffer
+        obj.damageBuffer = 0;
+        obj.damageBufferTimer = 0;
+        obj.damageBufferIsCrit = false;
+        obj.damageBufferIsSuperCrit = false;
       }
     );
   }
@@ -297,6 +304,12 @@ export class PoolManager {
         obj.isDying = false;
         obj.deathProgress = 0;
         obj.hasTriggeredNearMiss = false;
+
+        // Reset damage buffer
+        obj.damageBuffer = 0;
+        obj.damageBufferTimer = 0;
+        obj.damageBufferIsCrit = false;
+        obj.damageBufferIsSuperCrit = false;
       }
     );
   }
@@ -349,10 +362,17 @@ export class PoolManager {
     );
   }
 
-  getParticle(x: number, y: number, vx: number, vy: number, color: string): Particle {
+  getParticle(
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
+    color: string,
+    isPixel: boolean = false
+  ): Particle {
     return this.particles.get(
-      () => ({ active: true, x, y, vx, vy, color, radius: 2, life: 1 }),
-      obj => Object.assign(obj, { x, y, vx, vy, color, radius: 2, life: 1, active: true })
+      () => ({ active: true, x, y, vx, vy, color, radius: 2, life: 1, isPixel }),
+      obj => Object.assign(obj, { x, y, vx, vy, color, radius: 2, life: 1, active: true, isPixel })
     );
   }
 

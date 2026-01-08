@@ -15,6 +15,7 @@ import {
   type ComboMetrics,
   type CardMetrics,
   type EnemyMetrics,
+  createDefaultWavePhaseRecord,
 } from '../../types/metrics';
 
 export interface PlayerFinalData {
@@ -96,12 +97,7 @@ export class MetricsCompiler {
       averageDifficulty: avgDifficulty,
       maxDifficulty: state?.maxDifficulty ?? 0,
       difficultyAtDeath: finalDifficulty,
-      timeInEachWavePhase: state?.wavePhaseTime ?? {
-        calm: 0,
-        building: 0,
-        intense: 0,
-        peak: 0,
-      },
+      timeInEachWavePhase: state?.wavePhaseTime ?? createDefaultWavePhaseRecord(),
       timeInHighDifficulty: state?.highDifficultyTime ?? 0,
       timeInLowDifficulty: state?.lowDifficultyTime ?? 0,
       nearDeathActivations: state?.nearDeathActivations ?? 0,

@@ -96,9 +96,12 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
       audio.playHit(); // Use a generic hit sound or shockwave sound if available
 
       EventBus.emit('milestoneAchieved', {
+        id: 'volatility_shock',
         name: 'VOLATILITY SHOCK!',
         icon: '⚡',
-        color: COLORS.NEON_BLUE,
+        color: COLORS.ELECTRIC_BLUE,
+        type: 'market',
+        threshold: intensity,
       });
     });
     return () => unsub();

@@ -24,6 +24,7 @@ export const SOUND_DEFAULTS: Record<SoundType, SoundConfig> = {
   reelStop: { volume: 0.12 },
   coinShower: { volume: 0.08 },
   multiplierChime: { volume: 0.05 },
+  nearMiss: { volume: 0.06 },
 };
 
 /**

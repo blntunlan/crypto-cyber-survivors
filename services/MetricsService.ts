@@ -22,6 +22,7 @@ import {
   type BitcoinInsights,
   type DifficultyInsights,
   type PlayerExperienceInsights,
+  createDefaultWavePhaseRecord,
 } from '../types/metrics';
 
 // Import modular components for external use
@@ -89,7 +90,7 @@ export class MetricsServiceClass {
       pnlHistory: [],
       difficultyHistory: [],
       atrHistory: [],
-      currentWavePhase: 'building',
+      currentWavePhase: 'warmup',
       wavePhaseStartTime: now,
 
       // Counters
@@ -111,12 +112,7 @@ export class MetricsServiceClass {
       maxStreak: 0,
 
       // Wave phase tracking
-      wavePhaseTime: {
-        calm: 0,
-        building: 0,
-        intense: 0,
-        peak: 0,
-      },
+      wavePhaseTime: createDefaultWavePhaseRecord(),
 
       // Near-death tracking
       nearDeathActivations: 0,
@@ -431,7 +427,8 @@ export class MetricsServiceClass {
   private trackWavePhaseTime(phase: WavePhase, deltaMs: number): void {
     if (!this.state) return;
 
-    this.state.wavePhaseTime[phase] += deltaMs;
+    const currentTime = this.state.wavePhaseTime[phase] ?? 0;
+    this.state.wavePhaseTime[phase] = currentTime + deltaMs;
 
     if (phase !== this.state.currentWavePhase) {
       this.state.currentWavePhase = phase;

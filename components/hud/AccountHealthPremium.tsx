@@ -5,6 +5,7 @@ import { DifficultyManager } from '../../services/DifficultyManager';
 import { COLORS } from '../../constants';
 import { EventBus } from '../../services/EventBus';
 import { type WavePhase } from '../../types/metrics';
+import { useIsRetro } from '../../contexts/useTheme';
 
 interface AccountHealthProps {
   hpPercent: number;
@@ -23,6 +24,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   isMobile,
 }) => {
   const { rs, rfs } = useResponsiveUI();
+  const isRetro = useIsRetro();
   const [wavePhase, setWavePhase] = useState(DifficultyManager.getWavePhase());
 
   useEffect(() => {
@@ -110,7 +112,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
             {status.text}
           </div>
           <div
-            className="font-black text-white leading-none tabular-nums drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+            className={`font-black text-white leading-none tabular-nums ${isRetro ? 'text-shadow-retro' : 'drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]'}`}
             style={{ fontSize: isMobile ? rfs(30) : '30px' }}
           >
             {Math.ceil(hp)}
@@ -137,10 +139,12 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           />
         )}
 
-        {/* Shimmer/Scanline Effect - Optimized frequency for mobile */}
-        <div
-          className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full pointer-events-none ${isMobile ? 'animate-[shimmer_5s_infinite]' : 'animate-[shimmer_3s_infinite]'}`}
-        />
+        {/* Shimmer/Scanline Effect - Optimized frequency for mobile - Hidden in retro */}
+        {!isRetro && (
+          <div
+            className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full pointer-events-none ${isMobile ? 'animate-[shimmer_5s_infinite]' : 'animate-[shimmer_3s_infinite]'}`}
+          />
+        )}
 
         {/* The Actual Health Bar */}
         <div
@@ -150,7 +154,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           style={{
             width: `${hpPercent}%`,
             background: status.bg,
-            boxShadow: `0 0 20px ${status.glow}66`,
+            boxShadow: isRetro ? 'none' : `0 0 20px ${status.glow}66`,
           }}
         >
           {/* Inner Texture */}

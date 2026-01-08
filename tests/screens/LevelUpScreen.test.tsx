@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 

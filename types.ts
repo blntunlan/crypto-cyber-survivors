@@ -79,6 +79,11 @@ export interface Enemy extends Entity {
   hasTriggeredNearMiss?: boolean;
   spawnTimer?: number;
   hasEnteredScreen?: boolean;
+  // Damage buffering for stacked numbers
+  damageBuffer?: number;
+  damageBufferTimer?: number;
+  damageBufferIsCrit?: boolean;
+  damageBufferIsSuperCrit?: boolean;
 }
 
 export interface Bullet extends Entity {
@@ -111,6 +116,7 @@ export interface Particle extends Entity {
   vx: number;
   vy: number;
   life: number;
+  isPixel?: boolean;
 }
 
 export interface FloatingText {

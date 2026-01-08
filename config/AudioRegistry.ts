@@ -1,4 +1,5 @@
 import { type AudioPreset } from '../services/audio/types';
+import { ThemeService } from '../services/ThemeService';
 
 /**
  * AUDIO_PRESETS - Central registry for synthesized sound configurations.
@@ -33,9 +34,9 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
     components: [
       {
         type: 'sine',
-        frequency: 400, // Base - dynamic override usually applied
+        frequency: 400,
         frequencyEnd: 160,
-        envelope: { initial: 0.04, peak: 0.04, duration: 0.07, ramp: 'linear' },
+        envelope: { initial: 0.02, peak: 0.025, duration: 0.06, ramp: 'linear' },
       },
     ],
     cooldown: 50,
@@ -216,19 +217,19 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
       {
         type: 'triangle',
         frequency: 523.25, // C5 base
-        envelope: { initial: 0.12, peak: 0.15, duration: 0.4, ramp: 'exponential' },
+        envelope: { initial: 0.08, peak: 0.1, duration: 0.4, ramp: 'exponential' },
       },
       // Brightness layer - sine for clarity
       {
         type: 'sine',
         frequency: 1046.5, // C6 (octave up)
-        envelope: { initial: 0.06, peak: 0.08, duration: 0.35, ramp: 'exponential' },
+        envelope: { initial: 0.04, peak: 0.05, duration: 0.35, ramp: 'exponential' },
       },
       // Sub bass for power
       {
         type: 'sine',
         frequency: 261.63, // C4 (octave down)
-        envelope: { initial: 0.08, peak: 0.1, duration: 0.3, ramp: 'exponential' },
+        envelope: { initial: 0.05, peak: 0.06, duration: 0.3, ramp: 'exponential' },
       },
     ],
   },
@@ -241,14 +242,14 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
         type: 'sine',
         frequency: 2093, // C7 - high metallic
         frequencyEnd: 1568, // G6
-        envelope: { initial: 0.06, peak: 0.08, duration: 0.08, ramp: 'exponential' },
+        envelope: { initial: 0.04, peak: 0.05, duration: 0.08, ramp: 'exponential' },
       },
       // Lower body
       {
         type: 'triangle',
         frequency: 1318.5, // E6
         frequencyEnd: 1046.5, // C6
-        envelope: { initial: 0.04, peak: 0.05, duration: 0.1, ramp: 'exponential' },
+        envelope: { initial: 0.03, peak: 0.04, duration: 0.1, ramp: 'exponential' },
       },
     ],
   },
@@ -341,6 +342,134 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
       },
     ],
   },
+
+  // ============================================================
+  // RETRO 16-BIT PRESETS - Square Wave Aesthetics
+  // ============================================================
+
+  retro_shoot: {
+    components: [
+      {
+        type: 'square',
+        frequency: 300,
+        frequencyEnd: 100,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.08, ramp: 'linear' },
+      },
+    ],
+    cooldown: 50,
+  },
+  retro_hit: {
+    components: [
+      {
+        type: 'square',
+        frequency: 100,
+        frequencyEnd: 40,
+        envelope: { initial: 0.08, peak: 0.08, duration: 0.12, ramp: 'linear' },
+      },
+    ],
+    cooldown: 80,
+  },
+  retro_gem: {
+    components: [
+      {
+        type: 'square',
+        frequency: 1200,
+        frequencyEnd: 1800,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.08, ramp: 'linear' },
+      },
+    ],
+    cooldown: 30,
+  },
+  retro_dash: {
+    components: [
+      {
+        type: 'square',
+        frequency: 150,
+        frequencyEnd: 1000,
+        envelope: { initial: 0.06, peak: 0.06, duration: 0.15, ramp: 'exponential' },
+      },
+    ],
+  },
+  retro_levelUpNote: {
+    components: [
+      {
+        type: 'square',
+        frequency: 440,
+        envelope: { initial: 0.04, peak: 0.04, duration: 0.2, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_crit: {
+    components: [
+      {
+        type: 'square',
+        frequency: 600,
+        frequencyEnd: 2400,
+        envelope: { initial: 0.06, peak: 0.06, duration: 0.2, ramp: 'exponential' },
+      },
+    ],
+  },
+  retro_slotTick: {
+    components: [
+      {
+        type: 'square',
+        frequency: 1000,
+        frequencyEnd: 100,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.02, ramp: 'linear' },
+      },
+    ],
+    cooldown: 30,
+  },
+  retro_reelStopClick: {
+    components: [
+      {
+        type: 'square',
+        frequency: 150,
+        frequencyEnd: 70,
+        envelope: { initial: 0.12, peak: 0.12, duration: 0.1, ramp: 'linear' },
+        filter: { type: 'lowpass', frequency: 1000 },
+      },
+      {
+        type: 'square',
+        frequency: 300,
+        frequencyEnd: 300,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.05, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_slotWinNote: {
+    components: [
+      {
+        type: 'square',
+        frequency: 523.25,
+        envelope: { initial: 0.07, peak: 0.07, duration: 0.3, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_coinDing: {
+    components: [
+      {
+        type: 'square',
+        frequency: 2400,
+        frequencyEnd: 1800,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.1, ramp: 'linear' },
+      },
+    ],
+  },
 } as const;
 
 export type AudioPresetId = keyof typeof AUDIO_PRESETS;
+
+/**
+ * Helper to get theme-appropriate preset
+ */
+export function getPreset(id: string): AudioPreset | undefined {
+  const isRetro = ThemeService.isRetro();
+  if (isRetro) {
+    const retroId = `retro_${id}`;
+    if (retroId in AUDIO_PRESETS) {
+      return (AUDIO_PRESETS as Record<string, AudioPreset>)[retroId];
+    }
+  }
+  return (AUDIO_PRESETS as Record<string, AudioPreset>)[id];
+}

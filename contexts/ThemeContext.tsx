@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { type ThemeName, type ThemeConfig } from '../types/theme';
 import { cyberpunkTheme, retro16bitTheme } from '../config/themes';
 import { ThemeContext, type ThemeContextType } from './themeContextDef';
+import { ThemeService } from '../services/ThemeService';
 
 const STORAGE_KEY = 'crypto-survivor-theme';
 
@@ -70,10 +71,11 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
   const theme = themes[themeName];
   const isRetro = themeName === 'retro-16bit';
 
-  // Apply theme to DOM whenever it changes
+  // Apply theme to DOM and sync with ThemeService whenever it changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, themeName);
     applyThemeToDOM(theme);
+    ThemeService.setTheme(themeName); // Sync for non-React code (renderers)
   }, [themeName, theme]);
 
   const setTheme = useCallback((name: ThemeName) => {

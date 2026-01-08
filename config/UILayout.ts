@@ -50,7 +50,7 @@ export const DESKTOP_LAYOUT: HUDLayout = {
     clutchAnnouncement: { visible: true, scale: 1.0, opacity: 1.0 },
   },
   positioning: 'default',
-  maxEnemies: 300,
+  maxEnemies: 150,
 };
 
 /**
@@ -68,7 +68,7 @@ export const MOBILE_LAYOUT: HUDLayout = {
     clutchAnnouncement: { visible: true, scale: 1.0, opacity: 1.0 },
   },
   positioning: 'compact',
-  maxEnemies: 100,
+  maxEnemies: 150,
 };
 
 /**

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '../test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { PauseMenu } from '../../components/screens/PauseMenu';
 
@@ -42,7 +42,7 @@ describe('PauseMenu', () => {
         onToggleMute={() => {}}
       />
     );
-    fireEvent.click(screen.getByText(/Resume Session/i));
+    fireEvent.click(screen.getByText(/Resume/i));
     expect(onResume).toHaveBeenCalled();
   });
 

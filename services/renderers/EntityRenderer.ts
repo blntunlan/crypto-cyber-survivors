@@ -5,6 +5,7 @@ import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
+import { ThemeService } from '../ThemeService';
 
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
@@ -245,10 +246,24 @@ export class EntityRenderer implements IRenderer {
         if (t < 0.1) ctx.globalAlpha = t * 10;
       }
 
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
+      // Draw enemy - pixel mode or normal
+      if (ThemeService.isRetro()) {
+        // 16-bit pixel style - draw as rounded square
+        const size = e.radius * 1.8;
+        const halfSize = size / 2;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(-halfSize, -halfSize, size, size);
+
+        // Add pixel-style inner details
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(-halfSize + 2, -halfSize + 2, 4, 4); // Eye highlight
+      } else {
+        // Cyberpunk style - smooth circle
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       ctx.restore();
 
@@ -336,26 +351,43 @@ export class EntityRenderer implements IRenderer {
     const scaleX = state.playerScaleX;
     const scaleY = state.playerScaleY;
 
-    ctx.fillStyle = player.color;
-    ctx.beginPath();
+    // Draw Player - pixel mode or normal
+    if (ThemeService.isRetro()) {
+      // 16-bit pixel style - draw as square with details
+      const size = player.radius * 2;
+      const halfSize = size / 2;
+      ctx.fillStyle = player.color;
+      ctx.fillRect(Math.round(player.x) - halfSize, Math.round(player.y) - halfSize, size, size);
 
-    if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
-      // Use ellipse for squash & stretch
-      ctx.ellipse(
-        Math.round(player.x),
-        Math.round(player.y),
-        player.radius * scaleX,
-        player.radius * scaleY,
-        0,
-        0,
-        Math.PI * 2
-      );
+      // Add pixel-style inner details (eyes/face)
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      const eyeSize = 4;
+      const eyeY = Math.round(player.y) - 2;
+      ctx.fillRect(Math.round(player.x) - 6, eyeY, eyeSize, eyeSize);
+      ctx.fillRect(Math.round(player.x) + 2, eyeY, eyeSize, eyeSize);
     } else {
-      // Standard circle optimization
-      ctx.arc(Math.round(player.x), Math.round(player.y), player.radius, 0, Math.PI * 2);
-    }
+      // Cyberpunk style - smooth ellipse with squash & stretch
+      ctx.fillStyle = player.color;
+      ctx.beginPath();
 
-    ctx.fill();
+      if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+        // Use ellipse for squash & stretch
+        ctx.ellipse(
+          Math.round(player.x),
+          Math.round(player.y),
+          player.radius * scaleX,
+          player.radius * scaleY,
+          0,
+          0,
+          Math.PI * 2
+        );
+      } else {
+        // Standard circle optimization
+        ctx.arc(Math.round(player.x), Math.round(player.y), player.radius, 0, Math.PI * 2);
+      }
+
+      ctx.fill();
+    }
     if (shadowsEnabled) ctx.shadowBlur = 0;
   }
 }

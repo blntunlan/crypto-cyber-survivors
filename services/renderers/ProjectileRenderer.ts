@@ -3,6 +3,7 @@ import { type PoolManager } from '../PoolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { createViewportBounds, isCircleVisible } from './CullingUtils';
+import { ThemeService } from '../ThemeService';
 
 export class ProjectileRenderer implements IRenderer {
   private isMobileDevice: boolean;
@@ -50,40 +51,52 @@ export class ProjectileRenderer implements IRenderer {
         ctx.shadowBlur = 0;
       }
 
-      // 3. Draw Laser Bolt (Line instead of Circle)
-      const angle = Math.atan2(b.vy, b.vx);
-      const length = b.radius * (isSuperCrit ? 4.0 : 3.0);
-      const width = b.radius * (isSuperCrit ? 0.8 : 0.6);
+      // Pixel mode draws simple squares, normal mode draws laser bolts
+      if (ThemeService.isRetro()) {
+        // 16-bit pixel style - simple square bullets
+        ctx.save();
+        ctx.translate(b.x, b.y);
 
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      ctx.rotate(angle);
+        const size = b.radius * 2;
+        ctx.fillStyle = isSuperCrit ? '#ff4500' : isCrit ? '#ffd700' : b.color;
+        ctx.fillRect(-size / 2, -size / 2, size, size);
 
-      // Draw Glowy Trail/Beam Body
-      // We draw a line from slightly behind center to front
-      ctx.beginPath();
-      ctx.moveTo(-length / 2, 0);
-      ctx.lineTo(length / 2, 0);
+        // White center pixel
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-1, -1, 2, 2);
 
-      ctx.lineCap = 'round';
-      ctx.lineWidth = width * 2; // Outer glow width
-      ctx.strokeStyle = isSuperCrit ? glowColor : b.color;
-      ctx.stroke();
+        ctx.restore();
+      } else {
+        // Cyberpunk style - laser bolt
+        const angle = Math.atan2(b.vy, b.vx);
+        const length = b.radius * (isSuperCrit ? 4.0 : 3.0);
+        const width = b.radius * (isSuperCrit ? 0.8 : 0.6);
 
-      // 4. Draw Inner Bright Core (White Hot Center)
-      ctx.beginPath();
-      ctx.moveTo(-length / 2 + 2, 0);
-      ctx.lineTo(length / 2 - 1, 0);
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(angle);
 
-      ctx.lineWidth = width; // Inner core width
-      ctx.strokeStyle = coreColor;
-      ctx.stroke();
+        // Draw Glowy Trail/Beam Body
+        ctx.beginPath();
+        ctx.moveTo(-length / 2, 0);
+        ctx.lineTo(length / 2, 0);
 
-      ctx.restore();
+        ctx.lineCap = 'round';
+        ctx.lineWidth = width * 2;
+        ctx.strokeStyle = isSuperCrit ? glowColor : b.color;
+        ctx.stroke();
 
-      // 5. (Removed separate trail code because the laser itself IS the trail basically)
-      // But we can add a faint extra trail for super speed effect if needed,
-      // but usually elongated laser is enough.
+        // Draw Inner Bright Core
+        ctx.beginPath();
+        ctx.moveTo(-length / 2 + 2, 0);
+        ctx.lineTo(length / 2 - 1, 0);
+
+        ctx.lineWidth = width;
+        ctx.strokeStyle = coreColor;
+        ctx.stroke();
+
+        ctx.restore();
+      }
 
       // Clean up shadow for next draw calls
       if (!this.isMobileDevice) {

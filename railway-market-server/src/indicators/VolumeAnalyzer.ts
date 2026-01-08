@@ -171,7 +171,7 @@ export class VolumeAnalyzer {
         max: 0,
       };
     }
-    const last = this.volumes[this.volumes.length - 1];
+    const last = this.volumes[this.volumes.length - 1]!;
     return this.calculateMetrics(last);
   }
 

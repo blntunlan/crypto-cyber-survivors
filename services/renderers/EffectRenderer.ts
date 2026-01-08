@@ -74,9 +74,10 @@ export class EffectRenderer implements IRenderer {
       // Off-screen culling
       if (!isCircleVisible(part.x, part.y, part.radius || 2, bounds)) return;
 
-      // Round life to nearest 0.1 for batching (10 alpha levels instead of 100)
+      // Round life to nearest 0.1 for batching
       const alphaKey = Math.round(part.life * 10);
-      const key = `${part.color}-${alphaKey}`;
+      const pixelKey = part.isPixel ? 'px' : 'std';
+      const key = `${part.color}-${alphaKey}-${pixelKey}`;
 
       if (!groups.has(key)) {
         groups.set(key, []);
@@ -84,25 +85,33 @@ export class EffectRenderer implements IRenderer {
       groups.get(key)!.push(part);
     });
 
-    // Draw each group in a single path
+    // Draw each group
     groups.forEach(particles => {
       if (particles.length === 0) return;
 
       const firstParticle = particles[0]!;
       ctx.globalAlpha = firstParticle.life;
       ctx.fillStyle = firstParticle.color;
-      ctx.beginPath();
 
-      particles.forEach(part => {
-        const x = Math.round(part.x);
-        const y = Math.round(part.y);
-        const radius = part.radius || 2;
-        // Move to edge then draw arc (avoids connecting lines between circles)
-        ctx.moveTo(x + radius, y);
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-      });
-
-      ctx.fill();
+      if (firstParticle.isPixel) {
+        // Pixelated particles: squares
+        particles.forEach(part => {
+          const radius = part.radius || 2;
+          const size = radius * 2;
+          ctx.fillRect(Math.round(part.x - radius), Math.round(part.y - radius), size, size);
+        });
+      } else {
+        // Standard particles: circles
+        ctx.beginPath();
+        particles.forEach(part => {
+          const x = Math.round(part.x);
+          const y = Math.round(part.y);
+          const radius = part.radius || 2;
+          ctx.moveTo(x + radius, y);
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+        });
+        ctx.fill();
+      }
     });
 
     ctx.globalAlpha = 1;

@@ -50,7 +50,7 @@ export class RSICalculator {
       const startIndex = this.prices.length - this.period;
 
       for (let i = startIndex; i < this.prices.length; i++) {
-        const change = this.prices[i] - this.prices[i - 1];
+        const change = this.prices[i]! - this.prices[i - 1]!;
         if (change > 0) gains += change;
         else losses -= change; // change is negative, so subtract it to add positive loss
       }
@@ -60,8 +60,8 @@ export class RSICalculator {
     } else {
       // Wilder's Smoothing
       // Get latest change
-      const currentPrice = this.prices[this.prices.length - 1];
-      const previousPrice = this.prices[this.prices.length - 2];
+      const currentPrice = this.prices[this.prices.length - 1]!;
+      const previousPrice = this.prices[this.prices.length - 2]!;
       const change = currentPrice - previousPrice;
 
       const currentGain = change > 0 ? change : 0;
