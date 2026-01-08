@@ -43,10 +43,11 @@ describe('UI Consistency Sync', () => {
         />
       );
 
+      // ThemedPanel modern: bg-slate-900/40 border-white/10 rounded-xl
       const panel = container.querySelector('.bg-slate-900\\/40');
       expect(panel).toBeDefined();
-      expect(panel?.className).toContain('border-white/5');
-      expect(panel?.className).toContain('rounded-[1.5rem]');
+      expect(panel?.className).toContain('border-white/10');
+      expect(panel?.className).toContain('rounded-xl');
     });
 
     it('PauseMenu should have the same frame styling as MainMenu', () => {
@@ -91,10 +92,11 @@ describe('UI Consistency Sync', () => {
         />
       );
 
+      // ThemedPanel retro: bg-zinc-900 border-2 border-zinc-700 rounded-none
       const panel = container.querySelector('.bg-zinc-900');
       expect(panel).toBeDefined();
-      expect(panel?.className).toContain('border');
-      expect(panel?.className).toContain('border-zinc-600');
+      expect(panel?.className).toContain('border-2');
+      expect(panel?.className).toContain('border-zinc-700');
       expect(panel?.className).toContain('rounded-none');
     });
 
