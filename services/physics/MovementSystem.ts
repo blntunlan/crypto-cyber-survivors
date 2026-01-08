@@ -1,20 +1,20 @@
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type Player } from '../../types';
 import { ParticleConfigService } from '../ParticleConfigService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { type PerformanceConfig } from '../../types/DeviceProfile';
 import { GAME_ENGINE } from '../../constants';
+import { type IMovementSystem } from '../interfaces/IPhysicsSubsystems';
 
 /**
  * MovementSystem - Handles positional updates for all physics-enabled entities.
- * Includes trail effects for bullets and lifetime management for temporary entities.
  */
-export class MovementSystem {
+export class MovementSystem implements IMovementSystem {
   /**
    * Update all entities that only require simple velocity-based movement.
    */
-  public static update(
-    pool: PoolManager,
+  public update(
+    pool: IPoolManager,
     dtFactor: number,
     width: number,
     height: number,
@@ -30,36 +30,41 @@ export class MovementSystem {
     this.updateDyingEnemies(pool, dtFactor);
   }
 
-  private static updateEnemies(
-    pool: PoolManager,
+  private updateEnemies(
+    pool: IPoolManager,
     dtFactor: number,
     player: Player,
     width: number,
     height: number
   ): void {
-    const entryMargin = -20; // Trigger animation when INSIDE screen (negative margin)
+    const entryMargin = -20;
 
     pool.activeEnemies.forEach(e => {
-      // Movement Strategy (Allows them to approach from off-screen)
+      if (e.isDying) return;
+
+      // Update spawn animation timer
+      if (e.hasEnteredScreen && e.spawnTimer !== undefined && e.spawnTimer > 0) {
+        e.spawnTimer -= 0.1 * dtFactor;
+        if (e.spawnTimer < 0) e.spawnTimer = 0;
+      }
+
       e.behavior.move(e, player.x, player.y, dtFactor);
 
-      // Check if enemy has entered the viewport
       if (!e.hasEnteredScreen) {
+        // Mark as entered screen when any part of the enemy is visible
+        const margin = e.radius;
         const isVisible =
-          e.x >= -entryMargin &&
-          e.x <= width + entryMargin &&
-          e.y >= -entryMargin &&
-          e.y <= height + entryMargin;
+          e.x > -margin && e.x < width + margin && e.y > -margin && e.y < height + margin;
 
         if (isVisible) {
           e.hasEnteredScreen = true;
+          e.spawnTimer = 1.0;
         }
       }
-      // Note: spawnTimer decrement is handled in CollisionSystem
     });
   }
 
-  private static updateSpeedLines(pool: PoolManager, dtFactor: number): void {
+  private updateSpeedLines(pool: IPoolManager, dtFactor: number): void {
     pool.activeSpeedLines.forEach(line => {
       line.x += line.vx * dtFactor;
       line.y += line.vy * dtFactor;
@@ -71,8 +76,8 @@ export class MovementSystem {
     });
   }
 
-  private static updateBullets(
-    pool: PoolManager,
+  private updateBullets(
+    pool: IPoolManager,
     dtFactor: number,
     width: number,
     height: number,
@@ -85,7 +90,6 @@ export class MovementSystem {
       bullet.x += bullet.vx * dtFactor;
       bullet.y += bullet.vy * dtFactor;
 
-      // TRAIL EFFECT: Spawn small particles behind bullets periodically
       if (Math.random() < trailCfg.spawnChance * particleMultiplier) {
         const offX = (Math.random() - 0.5) * 4;
         const offY = (Math.random() - 0.5) * 4;
@@ -100,14 +104,13 @@ export class MovementSystem {
         trailPart.radius = bullet.radius * trailCfg.radiusMultiplier;
       }
 
-      // Check bounds (with buffer)
       if (bullet.x < -100 || bullet.x > width + 100 || bullet.y < -100 || bullet.y > height + 100) {
         bullet.active = false;
       }
     });
   }
 
-  private static updateParticles(pool: PoolManager, dtFactor: number): void {
+  private updateParticles(pool: IPoolManager, dtFactor: number): void {
     pool.activeParticles.forEach(part => {
       part.x += part.vx * dtFactor;
       part.y += part.vy * dtFactor;
@@ -116,7 +119,7 @@ export class MovementSystem {
     });
   }
 
-  private static updateFloatingTexts(pool: PoolManager, dtFactor: number): void {
+  private updateFloatingTexts(pool: IPoolManager, dtFactor: number): void {
     pool.activeFloatingTexts.forEach(text => {
       text.y -= 1.5 * dtFactor;
       text.life -= 0.025 * dtFactor;
@@ -124,17 +127,12 @@ export class MovementSystem {
     });
   }
 
-  /**
-   * Update dying enemies - animate death pop (scale up + fade out)
-   */
-  private static updateDyingEnemies(pool: PoolManager, dtFactor: number): void {
+  private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
     pool.activeEnemies.forEach(enemy => {
       if (enemy.isDying) {
-        // Progress the death animation
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
 
-        // Animation complete - deactivate
         if (enemy.deathProgress >= 1) {
           enemy.active = false;
           enemy.isDying = false;

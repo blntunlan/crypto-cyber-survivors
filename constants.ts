@@ -34,10 +34,10 @@ export const GAME_ENGINE = {
   DASH_DURATION: 200, // ms
   DASH_COOLDOWN: 1000, // ms (normal dash)
   DOUBLE_DASH_COOLDOWN: 3000, // ms (after double dash)
-  DOUBLE_DASH_WINDOW: 200, // ms (window to press second dash)
+  DOUBLE_DASH_WINDOW: 400, // ms (window to press second dash)
   // Hit Stop - brief freeze on impact for "weight" feeling
-  HIT_STOP_NORMAL: 16, // ms (~1 frame) - normal hit
-  HIT_STOP_CRIT: 50, // ms (~3 frames) - critical hit
+  HIT_STOP_NORMAL: 0, // Set to 0 to prevent stuttering during high fire rate
+  HIT_STOP_CRIT: 32, // Reduced from 50ms (~2 frames) for snappier feel
   // Enemy Death Pop - scale up + fade out animation
   ENEMY_DEATH_POP_SPEED: 0.12, // Progress per frame (~8 frames = ~133ms)
   // Near Miss Tension

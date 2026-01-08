@@ -12,17 +12,18 @@
 import { type Howl } from 'howler';
 import { synthEngine } from './SynthEngine';
 import { howlerManager } from './HowlerManager';
-import { type ComboMilestoneSound } from './types';
+import { type ComboMilestoneSound, type SoundCategory, type CategoryVolumes } from './types';
 
 // Import sound modules
 import * as GameSounds from './GameSounds';
 import * as ComboSounds from './ComboSounds';
 import * as SlotSounds from './SlotMachineSounds';
+import { type IAudioService } from '../interfaces/IAudioService';
 
 /**
  * Main AudioService class - Facade for all audio operations
  */
-export class AudioService {
+export class AudioService implements IAudioService {
   // ========================================
   // Volume & Mute Control
   // ========================================
@@ -56,6 +57,31 @@ export class AudioService {
    */
   getMuted(): boolean {
     return synthEngine.getMuted();
+  }
+
+  // ========================================
+  // Category Volume Control
+  // ========================================
+
+  /**
+   * Set volume for a specific sound category (0-1)
+   */
+  setCategoryVolume(category: SoundCategory, value: number): void {
+    synthEngine.setCategoryVolume(category, value);
+  }
+
+  /**
+   * Get volume for a specific category
+   */
+  getCategoryVolume(category: SoundCategory): number {
+    return synthEngine.getCategoryVolume(category);
+  }
+
+  /**
+   * Get all category volumes
+   */
+  getCategoryVolumes(): CategoryVolumes {
+    return synthEngine.getCategoryVolumes();
   }
 
   // ========================================

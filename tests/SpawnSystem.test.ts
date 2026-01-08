@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { spawnSystem } from '../services/SpawnSystem';
+import { SpawnSystem } from '../services/SpawnSystem';
 import { type PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
@@ -13,12 +13,14 @@ vi.mock('../services/MarketStateService', () => ({
 
 describe('SpawnSystem', () => {
   let mockPool: any;
+  let spawnSystem: SpawnSystem;
 
   beforeEach(() => {
     mockPool = {
       getEnemy: vi.fn(),
       activeEnemies: [], // Mock active enemies array for limit check
     };
+    spawnSystem = new SpawnSystem();
     spawnSystem.reset();
   });
 

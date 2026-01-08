@@ -7,7 +7,7 @@ import {
   createDefaultWavePhaseRecord,
 } from '../../../types/metrics';
 
-function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetrics {
+function createMockSession(overrides: any = {}): SessionMetrics {
   const base: SessionMetrics = {
     sessionId: 'test',
     sessionTimestamp: Date.now(),

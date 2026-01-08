@@ -143,9 +143,11 @@ function createMockFloatingText(overrides: Partial<FloatingText> = {}): Floating
 
 describe('MovementSystem', () => {
   let pool: PoolManager;
+  let movementSystem: MovementSystem;
 
   beforeEach(() => {
     pool = new PoolManager();
+    movementSystem = new MovementSystem();
     // Seed random for deterministic tests where needed
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
   });
@@ -162,7 +164,7 @@ describe('MovementSystem', () => {
       pool.activeEnemies.push(enemy);
       const initialX = enemy.x;
 
-      MovementSystem.update(pool, 1.0, 800, 600, player);
+      movementSystem.update(pool, 1.0, 800, 600, player);
 
       // Enemy should move towards player (to the right)
       expect(enemy.x).toBeGreaterThan(initialX);
@@ -174,7 +176,7 @@ describe('MovementSystem', () => {
 
       pool.activeEnemies.push(enemy);
 
-      MovementSystem.update(pool, 1.0, 800, 600, player);
+      movementSystem.update(pool, 1.0, 800, 600, player);
 
       expect(enemy.hasEnteredScreen).toBe(true);
     });
@@ -185,9 +187,51 @@ describe('MovementSystem', () => {
 
       pool.activeEnemies.push(enemy);
 
-      MovementSystem.update(pool, 1.0, 800, 600, player);
+      movementSystem.update(pool, 1.0, 800, 600, player);
 
       expect(enemy.hasEnteredScreen).toBe(false);
+    });
+
+    it('should set spawnTimer and mark as entered when first appearing on screen', () => {
+      const enemy = createMockEnemy({
+        x: 50,
+        y: 50,
+        hasEnteredScreen: false,
+        spawnTimer: 0,
+      });
+      pool.activeEnemies.push(enemy);
+
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+
+      expect(enemy.hasEnteredScreen).toBe(true);
+      expect(enemy.spawnTimer).toBe(1.0);
+    });
+
+    it('should decrement spawnTimer for enemies already on screen', () => {
+      const enemy = createMockEnemy({
+        hasEnteredScreen: true,
+        spawnTimer: 1.0,
+      });
+      pool.activeEnemies.push(enemy);
+
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+
+      expect(enemy.spawnTimer).toBeCloseTo(0.9);
+    });
+
+    it('should not move dying enemies', () => {
+      const enemy = createMockEnemy({
+        x: 100,
+        y: 100,
+        isDying: true,
+      });
+      const player = createMockPlayer({ x: 200, y: 100 });
+
+      pool.activeEnemies.push(enemy);
+
+      movementSystem.update(pool, 1.0, 800, 600, player);
+
+      expect(enemy.x).toBe(100); // Should not have moved
     });
   });
 
@@ -196,7 +240,7 @@ describe('MovementSystem', () => {
       const bullet = createMockBullet({ x: 100, y: 100, vx: 10, vy: 5 });
       pool.activeBullets.push(bullet);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(bullet.x).toBe(110); // 100 + 10 * 1.0
       expect(bullet.y).toBe(105); // 100 + 5 * 1.0
@@ -206,7 +250,7 @@ describe('MovementSystem', () => {
       const bullet = createMockBullet({ x: 850, y: 300, vx: 100, vy: 0 });
       pool.activeBullets.push(bullet);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       // After moving: x = 850 + 100 = 950, which is > 800 + 100 = 900
       expect(bullet.active).toBe(false);
@@ -216,7 +260,7 @@ describe('MovementSystem', () => {
       const bullet = createMockBullet({ x: 400, y: 300, vx: 5, vy: 0 });
       pool.activeBullets.push(bullet);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(bullet.active).toBe(true);
     });
@@ -227,7 +271,7 @@ describe('MovementSystem', () => {
       const particle = createMockParticle({ x: 100, y: 100, vx: 5, vy: -5, life: 1.0 });
       pool.activeParticles.push(particle);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(particle.x).toBe(105); // 100 + 5 * 1.0
       expect(particle.y).toBe(95); // 100 + (-5) * 1.0
@@ -238,7 +282,7 @@ describe('MovementSystem', () => {
       const particle = createMockParticle({ life: 0.01 });
       pool.activeParticles.push(particle);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(particle.active).toBe(false);
     });
@@ -249,7 +293,7 @@ describe('MovementSystem', () => {
       const text = createMockFloatingText({ y: 300, life: 1.0 });
       pool.activeFloatingTexts.push(text);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(text.y).toBeLessThan(300); // Moves up
       expect(text.life).toBeLessThan(1.0);
@@ -259,7 +303,7 @@ describe('MovementSystem', () => {
       const text = createMockFloatingText({ life: 0.01 });
       pool.activeFloatingTexts.push(text);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(text.active).toBe(false);
     });
@@ -270,7 +314,7 @@ describe('MovementSystem', () => {
       const enemy = createMockEnemy({ isDying: true, deathProgress: 0 });
       pool.activeEnemies.push(enemy);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(enemy.deathProgress).toBeGreaterThan(0);
     });
@@ -279,7 +323,7 @@ describe('MovementSystem', () => {
       const enemy = createMockEnemy({ isDying: true, deathProgress: 0.99 });
       pool.activeEnemies.push(enemy);
 
-      MovementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
 
       expect(enemy.active).toBe(false);
       expect(enemy.isDying).toBe(false);
@@ -293,7 +337,7 @@ describe('MovementSystem', () => {
       pool.activeBullets.push(bullet);
 
       // Half speed (30 FPS equivalent)
-      MovementSystem.update(pool, 0.5, 800, 600, createMockPlayer());
+      movementSystem.update(pool, 0.5, 800, 600, createMockPlayer());
 
       expect(bullet.x).toBe(105); // 100 + 10 * 0.5
     });

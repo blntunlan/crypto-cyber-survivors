@@ -59,6 +59,7 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [themeName, setThemeName] = useState<ThemeName>(() => {
     if (typeof window === 'undefined') return 'cyberpunk';
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -74,8 +75,21 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
   // Apply theme to DOM and sync with ThemeService whenever it changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, themeName);
+
+    // Trigger transition effect
+    const root = document.documentElement;
+    root.setAttribute('data-theme-switching', 'true');
+    setIsTransitioning(true);
+
     applyThemeToDOM(theme);
     ThemeService.setTheme(themeName); // Sync for non-React code (renderers)
+
+    const timer = setTimeout(() => {
+      root.removeAttribute('data-theme-switching');
+      setIsTransitioning(false);
+    }, 400); // Match glitch animation duration
+
+    return () => clearTimeout(timer);
   }, [themeName, theme]);
 
   const setTheme = useCallback((name: ThemeName) => {
@@ -92,6 +106,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     setTheme,
     toggleTheme,
     isRetro,
+    isTransitioning,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -7,12 +7,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameRenderer } from '../services/GameRenderer';
 import { GameStatus, type GameState } from '../types';
-import { type PoolManager } from '../services/PoolManager';
+import { type IPoolManager } from '../services/interfaces/IPoolManager';
 
 describe('GameRenderer', () => {
   let renderer: GameRenderer;
   let mockCtx: CanvasRenderingContext2D;
-  let mockPool: PoolManager;
+  let mockPool: IPoolManager;
   let mockState: GameState;
 
   let mockPlayer: any;
@@ -58,7 +58,7 @@ describe('GameRenderer', () => {
       activeParticles: [],
       activeFloatingTexts: [],
       activeSpeedLines: [],
-    } as unknown as PoolManager;
+    } as unknown as IPoolManager;
 
     // Mock GameState
     mockState = {

@@ -234,14 +234,12 @@ export class MetricsServiceClass {
    */
   update(
     deltaMs: number,
-    currentData: {
-      pnl: number;
-      atr: number;
-      difficulty: number;
-      wavePhase: WavePhase;
-      hpPercent: number;
-      enemyCount: number;
-    }
+    pnl: number,
+    difficulty: number,
+    hpPercent: number,
+    enemyCount: number,
+    wavePhase: WavePhase,
+    atr: number
   ): void {
     // Skip if metrics disabled - zero performance impact
     if (!this.config.enabled) return;
@@ -250,38 +248,38 @@ export class MetricsServiceClass {
     const now = Date.now();
 
     // Track wave phase time
-    this.trackWavePhaseTime(currentData.wavePhase, deltaMs);
+    this.trackWavePhaseTime(wavePhase, deltaMs);
 
     // Track difficulty ranges
-    this.trackDifficultyRanges(currentData.difficulty, deltaMs);
+    this.trackDifficultyRanges(difficulty, deltaMs);
 
     // Track near-death activations
-    if (currentData.hpPercent < 20 && currentData.hpPercent > 0) {
+    if (hpPercent < 20 && hpPercent > 0) {
       // Near-death activated (one-time per low HP event)
       // We'll track this separately via events
     }
 
     // Track max enemies on screen
-    if (currentData.enemyCount > this.state.maxEnemiesOnScreen) {
-      this.state.maxEnemiesOnScreen = currentData.enemyCount;
+    if (enemyCount > this.state.maxEnemiesOnScreen) {
+      this.state.maxEnemiesOnScreen = enemyCount;
     }
 
     // Track max/min PnL and difficulty
-    if (currentData.pnl > this.state.maxPnL) {
-      this.state.maxPnL = currentData.pnl;
+    if (pnl > this.state.maxPnL) {
+      this.state.maxPnL = pnl;
     }
-    if (currentData.pnl < this.state.minPnL) {
-      this.state.minPnL = currentData.pnl;
+    if (pnl < this.state.minPnL) {
+      this.state.minPnL = pnl;
     }
-    if (currentData.difficulty > this.state.maxDifficulty) {
-      this.state.maxDifficulty = currentData.difficulty;
+    if (difficulty > this.state.maxDifficulty) {
+      this.state.maxDifficulty = difficulty;
     }
 
     // Sample PnL and difficulty periodically
     if (now - this.lastSampleTime >= this.config.sampling.intervalMs) {
-      this.state.pnlHistory.push({ time: now, value: currentData.pnl });
-      this.state.difficultyHistory.push({ time: now, value: currentData.difficulty });
-      this.state.atrHistory.push({ time: now, value: currentData.atr });
+      this.state.pnlHistory.push({ time: now, value: pnl });
+      this.state.difficultyHistory.push({ time: now, value: difficulty });
+      this.state.atrHistory.push({ time: now, value: atr });
       this.lastSampleTime = now;
     }
 

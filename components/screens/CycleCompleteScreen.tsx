@@ -17,8 +17,8 @@ import { type CycleCompleteData } from '../../types/gameMode';
 
 interface CycleCompleteScreenProps {
   data: CycleCompleteData;
-  onCashOut: () => void;
-  onContinue: () => void;
+  onCashOut: () => void | Promise<void>;
+  onContinue: () => void | Promise<void>;
 }
 
 export function CycleCompleteScreen({
@@ -61,22 +61,23 @@ export function CycleCompleteScreen({
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
     >
       <div
-        className={`relative w-full max-w-md mx-4 p-6 ${isRetro ? 'border-4' : 'rounded-2xl border'}`}
-        style={{
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.primary,
-          boxShadow: isRetro ? 'none' : `0 0 40px ${theme.colors.primary}40`,
-        }}
+        className={`relative w-full max-w-md mx-4 p-6 md:p-8 transition-all ${
+          isRetro
+            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
+            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+        }`}
       >
         {/* Header */}
         <div className="text-center mb-6">
           <div
-            className={`${sizes.heading} font-black mb-1`}
-            style={{ color: theme.colors.primary }}
+            className={`font-display ${sizes.heading} font-black mb-1`}
+            style={{ color: COLORS.JACKPOT_YELLOW }}
           >
             CYCLE {data.cycleNumber} COMPLETE
           </div>
-          <div className="text-slate-400 text-sm">5 minutes survived</div>
+          <div className="text-slate-400 text-[8px] font-display uppercase tracking-widest">
+            5 minutes survived
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -144,7 +145,7 @@ export function CycleCompleteScreen({
           <button
             onClick={() => {
               audio.playButton();
-              onCashOut();
+              void onCashOut();
             }}
             className={`flex-1 py-4 font-black uppercase tracking-wider transition-all ${
               isRetro
@@ -162,7 +163,7 @@ export function CycleCompleteScreen({
           <button
             onClick={() => {
               audio.playButton();
-              onContinue();
+              void onContinue();
             }}
             className={`flex-1 py-4 font-black uppercase tracking-wider transition-all ${
               isRetro

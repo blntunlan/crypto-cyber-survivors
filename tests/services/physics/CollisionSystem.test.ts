@@ -32,6 +32,7 @@ describe('CollisionSystem', () => {
   let mockPlayer: Player;
   let mockState: GameState;
   let onGameOver: any;
+  let collisionSystem: CollisionSystem;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,7 +95,7 @@ describe('CollisionSystem', () => {
     };
 
     // Inject the mock context
-    CollisionSystem.setContext(mockContext);
+    collisionSystem = new CollisionSystem(mockContext);
 
     // 2. Setup Mock Data
     mockPool = {
@@ -126,7 +127,7 @@ describe('CollisionSystem', () => {
 
   afterEach(() => {
     // Reset context to default to avoid polluting other tests if they run in parallel in completely same process (usually Jest/Vitest isolate, but good practice)
-    CollisionSystem.resetContext();
+    collisionSystem.resetContext();
   });
 
   describe('update (General)', () => {
@@ -141,7 +142,7 @@ describe('CollisionSystem', () => {
       };
       mockPool.activeEnemies = [offScreenEnemy];
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(offScreenEnemy.active).toBe(false);
     });
@@ -159,7 +160,7 @@ describe('CollisionSystem', () => {
       };
       mockPool.activeEnemies = [enteringEnemy];
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(enteringEnemy.hasEnteredScreen).toBe(true);
       expect(enteringEnemy.spawnTimer).toBeCloseTo(0.9);
@@ -179,7 +180,7 @@ describe('CollisionSystem', () => {
       };
       mockPool.activeEnemies = [enemy];
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       // Should call getFloatingText
       expect(mockPool.getFloatingText).toHaveBeenCalledWith(
@@ -210,7 +211,7 @@ describe('CollisionSystem', () => {
       // Force hit sound (random > 0.9)
       vi.spyOn(Math, 'random').mockReturnValue(0.99);
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(mockPlayer.hp).toBeLessThan(100);
       expect(mockContext.audio.playHit).toHaveBeenCalled();
@@ -230,7 +231,7 @@ describe('CollisionSystem', () => {
       };
       mockPool.activeEnemies = [enemy];
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(mockPlayer.hp).toBe(0);
       expect(onGameOver).toHaveBeenCalled();
@@ -250,7 +251,7 @@ describe('CollisionSystem', () => {
       };
       mockPool.activeEnemies = [enemy];
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(mockPlayer.hp).toBe(100);
     });
@@ -273,7 +274,7 @@ describe('CollisionSystem', () => {
       // Expected multiplier = 0.8 * 0.5 = 0.4
       // HP loss = 0.4 * dtFactor(1) = 0.4
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(mockPlayer.hp).toBeCloseTo(99.6, 5);
     });
@@ -292,7 +293,7 @@ describe('CollisionSystem', () => {
       };
       mockPool.activeEnemies = [enemy];
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(mockPlayer.hp).toBe(100);
       expect(mockPool.getFloatingText).toHaveBeenCalledWith(
@@ -331,7 +332,7 @@ describe('CollisionSystem', () => {
       // Mock spatial grid returning this bullet
       vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(enemy.health).toBe(90);
       expect(bullet.active).toBe(false);
@@ -359,7 +360,7 @@ describe('CollisionSystem', () => {
       } as Bullet;
       vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       // Should NOT spawn text immediately
       expect(mockPool.getFloatingText).not.toHaveBeenCalled();
@@ -388,7 +389,7 @@ describe('CollisionSystem', () => {
       } as Bullet;
       vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(EventBus.emit).toHaveBeenCalledWith(
         'hitStop',
@@ -420,7 +421,7 @@ describe('CollisionSystem', () => {
       } as Bullet;
       vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(enemy.health).toBeLessThanOrEqual(0);
       expect(CombatResolutionService.handleEnemyDeath).toHaveBeenCalledWith(
@@ -457,7 +458,7 @@ describe('CollisionSystem', () => {
       } as Bullet;
       vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
 
-      CollisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(mockContext.audio.playCrit).toHaveBeenCalled();
       expect(mockState.critFlash).toBe(0.08); // Normal crit flash

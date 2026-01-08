@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '../test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { MainMenu } from '../../components/screens/MainMenu';
 import { MarketPosition } from '../../types';
+import { GameMode } from '../../types/gameMode';
 
 describe('MainMenu', () => {
   it('should render the price correctly', () => {
@@ -12,6 +13,8 @@ describe('MainMenu', () => {
         onOpenSettings={() => {}}
         selectedPair="BTC"
         onPairChange={() => {}}
+        selectedMode={GameMode.COMPETITIVE}
+        onModeChange={() => {}}
       />
     );
     expect(screen.getByText(/\$50,000/)).toBeDefined();
@@ -25,6 +28,8 @@ describe('MainMenu', () => {
         onOpenSettings={() => {}}
         selectedPair="BTC"
         onPairChange={() => {}}
+        selectedMode={GameMode.COMPETITIVE}
+        onModeChange={() => {}}
       />
     );
     expect(screen.getByText(/CONNECTING/i)).toBeDefined();
@@ -39,6 +44,8 @@ describe('MainMenu', () => {
         onOpenSettings={() => {}}
         selectedPair="BTC"
         onPairChange={() => {}}
+        selectedMode={GameMode.COMPETITIVE}
+        onModeChange={() => {}}
       />
     );
 
@@ -55,6 +62,8 @@ describe('MainMenu', () => {
         onOpenSettings={() => {}}
         selectedPair="BTC"
         onPairChange={() => {}}
+        selectedMode={GameMode.COMPETITIVE}
+        onModeChange={() => {}}
       />
     );
 
@@ -71,6 +80,8 @@ describe('MainMenu', () => {
         onOpenSettings={onOpenSettings}
         selectedPair="BTC"
         onPairChange={() => {}}
+        selectedMode={GameMode.COMPETITIVE}
+        onModeChange={() => {}}
       />
     );
 
@@ -87,6 +98,8 @@ describe('MainMenu', () => {
         onOpenSettings={() => {}}
         selectedPair="BTC"
         onPairChange={onPairChange}
+        selectedMode={GameMode.COMPETITIVE}
+        onModeChange={() => {}}
       />
     );
 

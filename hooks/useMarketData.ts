@@ -165,7 +165,11 @@ export const useMarketData = (
 
         // Update last price time for timeout tracking
         lastPriceTimeRef.current = Date.now();
-        timeoutTriggeredRef.current = false; // Reset timeout flag on successful data
+        if (timeoutTriggeredRef.current) {
+          timeoutTriggeredRef.current = false;
+          EventBus.emit('marketDataRecovered' as any, { pair: pairRef.current });
+          Logger.info(`[Market] Data recovered for ${update.pair}`);
+        }
 
         // Feed price data to Admin Dashboard's PriceAnalyzerService
         priceAnalyzer.addPrice(update.pair, price, update.source);
@@ -202,13 +206,14 @@ export const useMarketData = (
           return;
         }
 
-        // Guard: If price is invalid, only update price but keep difficulty stable
+        // Guard: If price is invalid, trigger timeout/pause
         if (!price || price <= 0) {
-          setMarketData(prev => ({
-            ...prev,
-            price: prev.price, // Keep last known price
-            pair: expectedPair, // Use captured pair
-          }));
+          Logger.error(`[Market] Invalid price received: ${price}. Triggering pause.`);
+          EventBus.emit('marketDataTimeout', {
+            lastPriceTime: lastPriceTimeRef.current,
+            disconnectedDuration: 0,
+            pair: expectedPair,
+          });
           return;
         }
 
@@ -244,7 +249,7 @@ export const useMarketData = (
             hpPercent
           );
 
-          return {
+          const nextData = {
             ...prevMarketData,
             price,
             volume: update.volume ?? 0,
@@ -257,6 +262,11 @@ export const useMarketData = (
             pair: expectedPair,
             symbol: expectedPair + 'USDT',
           };
+
+          // Emit for GameEngine (Ref tracking) to avoid React re-render overhead
+          EventBus.emit('gameMarketUpdate' as any, nextData);
+
+          return nextData;
         });
       },
     });

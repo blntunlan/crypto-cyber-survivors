@@ -272,6 +272,12 @@ class DifficultyManagerClass {
       // If we completed a full cycle (back to warmup), increment cycle counter
       if (nextIndex === 0) {
         this.currentCycle++;
+
+        // Emit cycle complete event for the UI to show decision screen
+        EventBus.emit('cycleComplete', {
+          cycleNumber: this.currentCycle - 1,
+          totalElapsedSeconds: currentGameTime,
+        });
       }
     }
   }

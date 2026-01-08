@@ -1,12 +1,12 @@
 import { type IRenderer, type RenderOptions } from './types';
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
 
 export class EffectRenderer implements IRenderer {
   render(
     ctx: CanvasRenderingContext2D,
-    pool: PoolManager,
+    pool: IPoolManager,
     state: GameState,
     _player: Player,
     opts: RenderOptions
@@ -63,7 +63,7 @@ export class EffectRenderer implements IRenderer {
    * Groups particles by color and draws them in single path operations.
    * Includes off-screen culling for additional performance gains.
    */
-  private drawParticles(ctx: CanvasRenderingContext2D, pool: PoolManager, bounds: ViewportBounds) {
+  private drawParticles(ctx: CanvasRenderingContext2D, pool: IPoolManager, bounds: ViewportBounds) {
     if (pool.activeParticles.length === 0) return;
 
     // Group particles by color and approximate life (for alpha batching)
@@ -119,7 +119,7 @@ export class EffectRenderer implements IRenderer {
 
   private drawFloatingTexts(
     ctx: CanvasRenderingContext2D,
-    pool: PoolManager,
+    pool: IPoolManager,
     bounds: ViewportBounds
   ) {
     pool.activeFloatingTexts.forEach(t => {
@@ -146,7 +146,7 @@ export class EffectRenderer implements IRenderer {
     ctx.globalAlpha = 1;
   }
 
-  private drawSpeedLines(ctx: CanvasRenderingContext2D, pool: PoolManager) {
+  private drawSpeedLines(ctx: CanvasRenderingContext2D, pool: IPoolManager) {
     if (pool.activeSpeedLines.length === 0) return;
 
     ctx.save();

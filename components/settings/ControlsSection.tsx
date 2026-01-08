@@ -5,12 +5,14 @@
  */
 
 import React from 'react';
+import { IconZap } from '../icons/CardIcons';
 
 export const ControlsSection: React.FC = () => {
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
-        Controls
+      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <IconZap className="w-3.5 h-3.5" color="#64748b" />
+        <span>Controls</span>
       </h3>
       <div className="grid grid-cols-2 gap-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
         <div className="flex flex-col">

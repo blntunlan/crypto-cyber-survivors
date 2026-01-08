@@ -8,6 +8,7 @@ import { memo, useState, useEffect } from 'react';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { Logger } from '../../services/Logger';
+import { IconCpu } from '../icons/CardIcons';
 
 export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean }) => {
   const [currentProfile, setCurrentProfile] = useState(
@@ -60,8 +61,9 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
   return (
     <section className="space-y-3 md:space-y-4">
       <div className="flex justify-between items-end">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
-          Performance
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+          <IconCpu className="w-3.5 h-3.5" color="#64748b" />
+          <span>Performance</span>
         </h3>
         {isAuto && (
           <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">

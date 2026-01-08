@@ -1,37 +1,52 @@
 import { type Player, type GameState } from '../types';
-import { type PoolManager } from './PoolManager';
+import { type IPoolManager } from './interfaces/IPoolManager';
 import { bulletGrid, enemyGrid } from './SpatialGrid';
 import { MovementSystem } from './physics/MovementSystem';
 import { CollisionSystem } from './physics/CollisionSystem';
 import { CollectionSystem } from './physics/CollectionSystem';
+import { type IPhysicsSystem } from './interfaces/IPhysicsSystem';
+import {
+  type IMovementSystem,
+  type ICollisionSystem,
+  type ICollectionSystem,
+} from './interfaces/IPhysicsSubsystems';
 
 /**
  * PhysicsSystem - Orchestrates all physical simulations and interactions.
- *
- * This is a high-level coordinator that delegates specific tasks to specialized systems:
- * - MovementSystem: Positional updates and trails
- * - CollisionSystem: Entity-to-entity physical interactions
- * - CollectionSystem: Player-item interactions (gems, buffs)
  */
-export class PhysicsSystem {
+export class PhysicsSystem implements IPhysicsSystem {
+  private movementSystem: IMovementSystem;
+  private collisionSystem: ICollisionSystem;
+  private collectionSystem: ICollectionSystem;
+
+  constructor(
+    movement: IMovementSystem = new MovementSystem(),
+    collision: ICollisionSystem = new CollisionSystem(),
+    collection: ICollectionSystem = new CollectionSystem()
+  ) {
+    this.movementSystem = movement;
+    this.collisionSystem = collision;
+    this.collectionSystem = collection;
+  }
+
   /**
    * Update positions and lifetimes for all moving entities.
    */
-  public static updateEntities(
-    p: PoolManager,
+  public updateEntities(
+    p: IPoolManager,
     dtFactor: number,
     width: number,
     height: number,
     player: Player
   ): void {
-    MovementSystem.update(p, dtFactor, width, height, player);
+    this.movementSystem.update(p, dtFactor, width, height, player);
   }
 
   /**
    * Main collision and interaction handler.
    */
-  public static handleCollisions(
-    p: PoolManager,
+  public handleCollisions(
+    p: IPoolManager,
     player: Player,
     s: GameState,
     dtFactor: number,
@@ -43,16 +58,16 @@ export class PhysicsSystem {
     this.refreshSpatialGrids(p);
 
     // 2. Resolve Collisions (Player vs Enemy, Bullet vs Enemy)
-    CollisionSystem.update(p, player, s, dtFactor, width, height, onGameOver);
+    this.collisionSystem.update(p, player, s, dtFactor, width, height, onGameOver);
 
     // 3. Resolve Collections (Player vs Gems/Buffs)
-    CollectionSystem.update(p, player, s, dtFactor);
+    this.collectionSystem.update(p, player, s, dtFactor);
   }
 
   /**
    * Rebuild spatial hash grids with current active entities.
    */
-  private static refreshSpatialGrids(p: PoolManager): void {
+  private refreshSpatialGrids(p: IPoolManager): void {
     bulletGrid.clear();
     enemyGrid.clear();
 

@@ -34,6 +34,7 @@ const createMockPlayer = (): Player => ({
   fireRate: 200,
   critChance: 0.1,
   baseDamage: 10,
+  critDamage: 2.0,
   luck: 1,
   lifesteal: 0,
   dodge: 0,
@@ -41,6 +42,7 @@ const createMockPlayer = (): Player => ({
   armor: 5,
   area: 1,
   projectiles: 1,
+  regen: 0,
 });
 
 describe('BuffManager', () => {

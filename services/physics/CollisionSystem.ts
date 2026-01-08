@@ -1,12 +1,4 @@
-/**
- * CollisionSystem - Handles physical interactions between high-level entities.
- * Includes Player-Enemy and Bullet-Enemy collision detection and resolution.
- *
- * @refactored Uses IPhysicsContext for dependency injection instead of direct imports.
- * This reduces coupling from 13 imports to 6 imports.
- */
-
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type Player, type GameState, type Enemy, type Bullet } from '../../types';
 import { type IPhysicsContext } from './PhysicsTypes';
 import { getPhysicsContext, physicsColors } from './PhysicsContext';
@@ -14,40 +6,37 @@ import { EventBus } from '../EventBus';
 import { CombatResolutionService } from './CombatResolutionService';
 import { StatService } from '../StatService';
 import { ThemeService } from '../ThemeService';
-
-// Extended enemy type with behavior (added by EnemyFactory at runtime)
-interface EnemyWithBehavior extends Enemy {
-  behavior: {
-    move: (enemy: Enemy, targetX: number, targetY: number, dtFactor: number) => void;
-  };
-}
+import { type ICollisionSystem } from '../interfaces/IPhysicsSubsystems';
 
 /**
  * CollisionSystem - Handles physical interactions between high-level entities.
- * Includes Player-Enemy and Bullet-Enemy collision detection and resolution.
  */
-export class CollisionSystem {
-  private static ctx: IPhysicsContext = getPhysicsContext();
+export class CollisionSystem implements ICollisionSystem {
+  private ctx: IPhysicsContext;
+
+  constructor(context: IPhysicsContext = getPhysicsContext()) {
+    this.ctx = context;
+  }
 
   /**
    * Set a custom context (for testing)
    */
-  public static setContext(context: IPhysicsContext): void {
+  public setContext(context: IPhysicsContext): void {
     this.ctx = context;
   }
 
   /**
    * Reset to default context
    */
-  public static resetContext(): void {
+  public resetContext(): void {
     this.ctx = getPhysicsContext();
   }
 
   /**
    * Run all collision checks for regular enemies.
    */
-  public static update(
-    pool: PoolManager,
+  public update(
+    pool: IPoolManager,
     player: Player,
     state: GameState,
     dtFactor: number,
@@ -58,42 +47,33 @@ export class CollisionSystem {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
 
     pool.activeEnemies.forEach(enemy => {
-      // Skip dying enemies - they just animate and fade out
-      if (enemy.isDying) {
-        return;
-      }
+      if (enemy.isDying) return;
 
-      // Cast to extended type with behavior
       const enemyWithBehavior = enemy as unknown as EnemyWithBehavior;
 
-      // 1. Off-screen culling
       if (this.isOffScreen(enemy, width, height)) {
         enemy.active = false;
         return;
       }
 
-      // Check for screen entry to trigger spawn animation
+      // Track screen entry for spawn animations/logic
       if (!enemy.hasEnteredScreen) {
-        const margin = enemy.radius;
-        if (
-          enemy.x > -margin &&
-          enemy.x < width + margin &&
-          enemy.y > -margin &&
-          enemy.y < height + margin
-        ) {
+        const onScreen =
+          enemy.x > -enemy.radius &&
+          enemy.x < width + enemy.radius &&
+          enemy.y > -enemy.radius &&
+          enemy.y < height + enemy.radius;
+
+        if (onScreen) {
           enemy.hasEnteredScreen = true;
-          enemy.spawnTimer = 1; // Reset to full animation when entering screen
+          enemy.spawnTimer = 1.0;
         }
       }
 
-      // Spawn Animation Timer - ONLY decrement after entering screen
-      // This ensures animation plays when enemy becomes visible, not while off-screen
-      if (enemy.hasEnteredScreen && enemy.spawnTimer !== undefined && enemy.spawnTimer > 0) {
-        enemy.spawnTimer -= 0.1 * dtFactor; // ~10 frames for snappy pop
-        if (enemy.spawnTimer < 0) enemy.spawnTimer = 0;
+      if (enemy.hasEnteredScreen && enemy.spawnTimer > 0) {
+        enemy.spawnTimer -= 0.1 * dtFactor;
       }
 
-      // 1.5 Damage Buffer Timer - for stacked damage numbers
       if (enemy.damageBufferTimer !== undefined && enemy.damageBufferTimer > 0) {
         enemy.damageBufferTimer -= dtFactor;
         if (enemy.damageBufferTimer <= 0) {
@@ -101,13 +81,8 @@ export class CollisionSystem {
         }
       }
 
-      // 2. Behavioral Movement
-      enemyWithBehavior.behavior.move(enemy, player.x, player.y, dtFactor);
-
-      // 3. Player-Enemy collision
+      // Enemy movement is handled by MovementSystem, do not move here
       this.checkPlayerEnemyCollision(pool, player, enemy, state, dtFactor, onGameOver);
-
-      // 4. Bullet-Enemy collision (using spatial grid)
       this.processBulletCollisions(
         pool,
         enemy,
@@ -119,7 +94,7 @@ export class CollisionSystem {
     });
   }
 
-  private static isOffScreen(enemy: Enemy, width: number, height: number): boolean {
+  private isOffScreen(enemy: Enemy, width: number, height: number): boolean {
     const threshold = this.ctx.constants.ENEMY_OFFSCREEN_THRESHOLD;
     return (
       enemy.x < -threshold ||
@@ -129,8 +104,8 @@ export class CollisionSystem {
     );
   }
 
-  private static checkPlayerEnemyCollision(
-    pool: PoolManager,
+  private checkPlayerEnemyCollision(
+    pool: IPoolManager,
     player: Player,
     enemy: Enemy,
     state: GameState,
@@ -144,42 +119,22 @@ export class CollisionSystem {
 
     if (distSq < combinedRadius * combinedRadius) {
       if (!this.ctx.cheat.isGodMode() && !state.isDashing) {
-        // Calculate dodge chance
         const rawDodge = this.ctx.stats.getDodge(player);
         const dodgeChance = Math.min(rawDodge, this.ctx.statCaps.MAX_DODGE);
 
-        // Try to dodge
         if (Math.random() < dodgeChance) {
-          // Successful dodge
           pool.getFloatingText(player.x, player.y - 20, 'DODGE!', physicsColors.BULLET, 16);
-          // Optional: Add dodge sound
-          return; // No damage taken
+          return;
         }
 
-        // Get armor with system-level cap
         const rawArmor = this.ctx.stats.getArmor(player);
         const effectiveArmor = Math.min(rawArmor, this.ctx.statCaps.MAX_ARMOR);
-
-        // Diminishing returns armor formula:
-        // At 0 armor: 100% damage (0.8 base)
-        // At 5 armor: ~62% damage
-        // At 10 armor: ~44% damage
-        // At 15 armor: ~35% damage (min 0.1 = 10%)
         const armorReduction = effectiveArmor / (effectiveArmor + 10);
         const damageMultiplier = Math.max(0.1, 0.8 * (1 - armorReduction));
 
         player.hp -= damageMultiplier * dtFactor;
         player.hp = Math.max(0, player.hp);
         state.shake = 10;
-
-        // Damage Direction Indicator - DISABLED
-        /*
-        state.damageIndicators.push({
-          sourceX: enemy.x,
-          sourceY: enemy.y,
-          timestamp: Date.now(),
-        });
-        */
 
         if (Math.random() > 0.9) this.ctx.audio.playHit();
 
@@ -188,24 +143,11 @@ export class CollisionSystem {
           onGameOver();
         }
       }
-    } else {
-      /*
-      // Near Miss Check
-      // DISABLED: User requested to turn off the tension effect as it interrupts flow
-      // Only check if no collision, player not invincible, and global cooldown ready
-      if (false && !enemy.hasTriggeredNearMiss && state.nearMissCooldown <= 0 && !this.ctx.cheat.isGodMode()) {
-        const nearMissDist = combinedRadius + this.ctx.constants.NEAR_MISS_THRESHOLD;
-        if (distSq < nearMissDist * nearMissDist) {
-          enemy.hasTriggeredNearMiss = true;
-          EventBus.emit('nearMiss', { enemyType: enemy.type });
-        }
-      }
-      */
     }
   }
 
-  private static processBulletCollisions(
-    pool: PoolManager,
+  private processBulletCollisions(
+    pool: IPoolManager,
     enemy: Enemy,
     player: Player,
     state: GameState,
@@ -228,8 +170,8 @@ export class CollisionSystem {
     }
   }
 
-  private static resolveBulletHit(
-    pool: PoolManager,
+  private resolveBulletHit(
+    pool: IPoolManager,
     enemy: Enemy,
     bullet: Bullet,
     player: Player,
@@ -240,15 +182,11 @@ export class CollisionSystem {
     enemy.health -= bullet.damage;
     bullet.active = false;
 
-    // Effects
     this.spawnImpactParticles(pool, bullet, particleMultiplier);
     this.applyKnockback(enemy, bullet, dtFactor);
     this.triggerCritEffects(bullet, enemy, state);
-
-    // Buffer damage instead of spawning text immediately
     this.bufferDamage(enemy, bullet);
 
-    // Hit Stop - freeze frame for impact feel
     const isCrit = bullet.isCrit || bullet.isSuperCrit;
     EventBus.emit('hitStop', {
       duration: isCrit ? this.ctx.constants.HIT_STOP_CRIT : this.ctx.constants.HIT_STOP_NORMAL,
@@ -256,19 +194,18 @@ export class CollisionSystem {
     });
 
     if (enemy.health <= 0) {
-      // Flush any pending damage text immediately on death
       this.flushDamageBuffer(pool, enemy);
       CombatResolutionService.handleEnemyDeath(pool, enemy, player, !!bullet.isSuperCrit);
     }
   }
 
-  private static applyKnockback(enemy: Enemy, bullet: Bullet, dtFactor: number): void {
+  private applyKnockback(enemy: Enemy, bullet: Bullet, dtFactor: number): void {
     const strength = 4;
     enemy.x += (bullet.vx / this.ctx.constants.BULLET_SPEED) * strength * dtFactor;
     enemy.y += (bullet.vy / this.ctx.constants.BULLET_SPEED) * strength * dtFactor;
   }
 
-  private static triggerCritEffects(bullet: Bullet, enemy: Enemy, state: GameState): void {
+  private triggerCritEffects(bullet: Bullet, enemy: Enemy, state: GameState): void {
     if (bullet.isCrit || bullet.isSuperCrit) {
       state.critFlash = bullet.isSuperCrit ? 0.15 : 0.08;
       state.critFlashColor = bullet.isSuperCrit ? physicsColors.SUPER_CRIT : physicsColors.CRIT;
@@ -283,11 +220,10 @@ export class CollisionSystem {
     }
   }
 
-  private static bufferDamage(enemy: Enemy, bullet: Bullet): void {
+  private bufferDamage(enemy: Enemy, bullet: Bullet): void {
     enemy.damageBuffer = (enemy.damageBuffer ?? 0) + bullet.damage;
-    enemy.damageBufferTimer = 6; // ~100ms buffer window at 60fps
+    enemy.damageBufferTimer = 6;
 
-    // Upgrade styling if current hit is stronger than previous in buffer
     if (bullet.isSuperCrit) {
       enemy.damageBufferIsSuperCrit = true;
     } else if (bullet.isCrit && !enemy.damageBufferIsSuperCrit) {
@@ -295,7 +231,7 @@ export class CollisionSystem {
     }
   }
 
-  private static flushDamageBuffer(pool: PoolManager, enemy: Enemy): void {
+  private flushDamageBuffer(pool: IPoolManager, enemy: Enemy): void {
     if (!enemy.damageBuffer || enemy.damageBuffer <= 0) return;
 
     const isSuperCrit = !!enemy.damageBufferIsSuperCrit;
@@ -308,22 +244,20 @@ export class CollisionSystem {
         : physicsColors.SLOT_SILVER;
 
     const size = isSuperCrit ? 36 : isCrit ? 28 : 20;
-
     const text = StatService.formatCompact(enemy.damageBuffer);
 
     if (text) {
       pool.getFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 20, text, color, size);
     }
 
-    // Reset buffer
     enemy.damageBuffer = 0;
     enemy.damageBufferTimer = 0;
     enemy.damageBufferIsCrit = false;
     enemy.damageBufferIsSuperCrit = false;
   }
 
-  private static spawnImpactParticles(
-    pool: PoolManager,
+  private spawnImpactParticles(
+    pool: IPoolManager,
     bullet: Bullet,
     particleMultiplier: number
   ): void {

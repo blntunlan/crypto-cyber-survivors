@@ -1,5 +1,5 @@
 import { GameStatus, type Player, type GameState } from '../types';
-import { type PoolManager } from './PoolManager';
+import { type IPoolManager } from './interfaces/IPoolManager';
 import {
   BackgroundRenderer,
   EntityRenderer,
@@ -7,18 +7,24 @@ import {
   EffectRenderer,
 } from './renderers';
 import { type GraphicsConfig } from './renderers/types';
+import { type IGameRenderer } from './interfaces/IGameRenderer';
 
-export class GameRenderer {
+export class GameRenderer implements IGameRenderer {
   private backgroundRenderer: BackgroundRenderer;
   private entityRenderer: EntityRenderer;
   private projectileRenderer: ProjectileRenderer;
   private effectRenderer: EffectRenderer;
 
-  constructor() {
-    this.backgroundRenderer = new BackgroundRenderer();
-    this.entityRenderer = new EntityRenderer();
-    this.projectileRenderer = new ProjectileRenderer();
-    this.effectRenderer = new EffectRenderer();
+  constructor(
+    background: BackgroundRenderer = new BackgroundRenderer(),
+    entity: EntityRenderer = new EntityRenderer(),
+    projectile: ProjectileRenderer = new ProjectileRenderer(),
+    effect: EffectRenderer = new EffectRenderer()
+  ) {
+    this.backgroundRenderer = background;
+    this.entityRenderer = entity;
+    this.projectileRenderer = projectile;
+    this.effectRenderer = effect;
   }
 
   public render(
@@ -27,7 +33,7 @@ export class GameRenderer {
     height: number,
     state: GameState,
     player: Player,
-    pool: PoolManager,
+    pool: IPoolManager,
     status: GameStatus,
     graphics: GraphicsConfig = {
       showParticles: true,

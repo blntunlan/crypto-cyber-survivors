@@ -19,7 +19,7 @@ import { type ThemeSizeConfig } from '../types/theme';
  */
 const CYBERPUNK_SIZES: ThemeSizeConfig = {
   // Text sizes
-  title: 'text-5xl sm:text-6xl',
+  title: 'text-4xl sm:text-5xl',
   heading: 'text-2xl sm:text-3xl',
   subheading: 'text-lg sm:text-xl',
   body: 'text-sm',
@@ -27,7 +27,7 @@ const CYBERPUNK_SIZES: ThemeSizeConfig = {
   tiny: 'text-[10px]',
 
   // Number sizes
-  price: 'text-4xl sm:text-5xl',
+  price: 'text-3xl sm:text-4xl',
   stat: 'text-base sm:text-lg',
   combo: 'text-3xl sm:text-4xl',
   damage: 'text-xl sm:text-2xl',
@@ -50,7 +50,7 @@ const CYBERPUNK_SIZES: ThemeSizeConfig = {
  */
 const RETRO_SIZES: ThemeSizeConfig = {
   // Text sizes
-  title: 'text-5xl sm:text-6xl',
+  title: 'text-4xl sm:text-5xl',
   heading: 'text-2xl sm:text-3xl',
   subheading: 'text-lg sm:text-xl',
   body: 'text-sm',
@@ -58,7 +58,7 @@ const RETRO_SIZES: ThemeSizeConfig = {
   tiny: 'text-[10px]',
 
   // Number sizes
-  price: 'text-4xl sm:text-5xl',
+  price: 'text-3xl sm:text-4xl',
   stat: 'text-base sm:text-lg',
   combo: 'text-3xl sm:text-4xl',
   damage: 'text-xl sm:text-2xl',

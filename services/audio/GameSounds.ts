@@ -2,10 +2,20 @@
  * GameSounds - Core Game Sound Effects
  *
  * Now refactored to use the data-driven AudioRegistry.
+ * Each sound uses its category volume for proper mixing.
  */
 
 import { synthEngine } from './SynthEngine';
 import { getPreset } from '../../config/AudioRegistry';
+import { SOUND_CATEGORY_MAP } from './constants';
+
+/**
+ * Helper to get category volume multiplier for a sound
+ */
+function getCategoryVolumeMultiplier(soundName: string): number {
+  const category = SOUND_CATEGORY_MAP[soundName];
+  return category ? synthEngine.getEffectiveVolume(category) / synthEngine.getVolume() : 1;
+}
 
 /**
  * Play shoot sound - quick laser pew
@@ -13,6 +23,8 @@ import { getPreset } from '../../config/AudioRegistry';
 export function playShoot(fireRate: number = 1, projectileCount: number = 1): void {
   if (synthEngine.isOnCooldown('shoot')) return;
   synthEngine.recordPlay('shoot');
+
+  const catVol = getCategoryVolumeMultiplier('shoot');
 
   // Dynamic pitch based on fire rate
   const pitchVariation = 0.85 + Math.random() * 0.3;
@@ -22,14 +34,17 @@ export function playShoot(fireRate: number = 1, projectileCount: number = 1): vo
 
   // Play main shot
   if (shootPreset) {
-    synthEngine.playPreset(shootPreset, { frequencyMultiplier: freqMultiplier });
+    synthEngine.playPreset(shootPreset, {
+      frequencyMultiplier: freqMultiplier,
+      volumeMultiplier: catVol,
+    });
   }
 
   // Extra harmonics for multi-projectile shots
   if (projectileCount > 1 && shootPreset) {
     synthEngine.playPreset(shootPreset, {
       frequencyMultiplier: freqMultiplier * 1.5,
-      volumeMultiplier: (0.3 * Math.min(projectileCount, 5)) / 5,
+      volumeMultiplier: (catVol * (0.3 * Math.min(projectileCount, 5))) / 5,
       durationMultiplier: 0.7,
     });
   }
@@ -39,9 +54,10 @@ export function playShoot(fireRate: number = 1, projectileCount: number = 1): vo
  * Play critical hit sound
  */
 export function playCrit(): void {
+  const catVol = getCategoryVolumeMultiplier('crit');
   const critPreset = getPreset('crit');
   if (critPreset) {
-    synthEngine.playPreset(critPreset);
+    synthEngine.playPreset(critPreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -51,9 +67,10 @@ export function playCrit(): void {
 export function playHit(): void {
   if (synthEngine.isOnCooldown('hit')) return;
   synthEngine.recordPlay('hit');
+  const catVol = getCategoryVolumeMultiplier('hit');
   const hitPreset = getPreset('hit');
   if (hitPreset) {
-    synthEngine.playPreset(hitPreset);
+    synthEngine.playPreset(hitPreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -61,9 +78,10 @@ export function playHit(): void {
  * Play low HP heartbeat
  */
 export function playHeartbeat(): void {
+  const catVol = getCategoryVolumeMultiplier('heartbeat');
   const heartbeatPreset = getPreset('heartbeat');
   if (heartbeatPreset) {
-    synthEngine.playPreset(heartbeatPreset);
+    synthEngine.playPreset(heartbeatPreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -73,9 +91,10 @@ export function playHeartbeat(): void {
 export function playGem(): void {
   if (synthEngine.isOnCooldown('gem')) return;
   synthEngine.recordPlay('gem');
+  const catVol = getCategoryVolumeMultiplier('gem');
   const gemPreset = getPreset('gem');
   if (gemPreset) {
-    synthEngine.playPreset(gemPreset);
+    synthEngine.playPreset(gemPreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -83,6 +102,7 @@ export function playGem(): void {
  * Play level up sound - ascending arpeggio
  */
 export function playLevelUp(): void {
+  const catVol = getCategoryVolumeMultiplier('levelUpNote');
   const freqs = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
   const levelUpPreset = getPreset('levelUpNote');
 
@@ -91,6 +111,7 @@ export function playLevelUp(): void {
       synthEngine.playPreset(levelUpPreset, {
         frequencyMultiplier: freq / 440,
         delay: i * 0.08,
+        volumeMultiplier: catVol,
       });
     }
   });
@@ -100,9 +121,10 @@ export function playLevelUp(): void {
  * Play dash sound
  */
 export function playDash(): void {
+  const catVol = getCategoryVolumeMultiplier('dash');
   const dashPreset = getPreset('dash');
   if (dashPreset) {
-    synthEngine.playPreset(dashPreset);
+    synthEngine.playPreset(dashPreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -112,9 +134,10 @@ export function playDash(): void {
 export function playWhoosh(): void {
   if (synthEngine.isOnCooldown('nearMiss')) return;
   synthEngine.recordPlay('nearMiss');
+  const catVol = getCategoryVolumeMultiplier('nearMiss');
   const nearMissPreset = getPreset('nearMiss');
   if (nearMissPreset) {
-    synthEngine.playPreset(nearMissPreset);
+    synthEngine.playPreset(nearMissPreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -122,10 +145,12 @@ export function playWhoosh(): void {
  * Play combo sound
  */
 export function playCombo(multiplier: number = 1): void {
+  const catVol = getCategoryVolumeMultiplier('combo');
   const comboPreset = getPreset('combo');
   if (comboPreset) {
     synthEngine.playPreset(comboPreset, {
       frequencyMultiplier: (600 + multiplier * 50) / 650,
+      volumeMultiplier: catVol,
     });
   }
 }
@@ -134,6 +159,7 @@ export function playCombo(multiplier: number = 1): void {
  * Play death sound - descending doom
  */
 export function playDeath(): void {
+  const catVol = getCategoryVolumeMultiplier('deathNote');
   const deathPreset = getPreset('deathNote');
   [0, 0.1, 0.2].forEach((delay, i) => {
     const startFreq = 300 - i * 50;
@@ -141,6 +167,7 @@ export function playDeath(): void {
       synthEngine.playPreset(deathPreset, {
         frequencyMultiplier: startFreq / 300,
         delay,
+        volumeMultiplier: catVol,
       });
     }
   });
@@ -150,9 +177,10 @@ export function playDeath(): void {
  * Play whale arrival sound - deep sonar pulse
  */
 export function playWhaleArrival(): void {
+  const catVol = getCategoryVolumeMultiplier('whaleArrival');
   const whalePreset = getPreset('whaleArrival');
   if (whalePreset) {
-    synthEngine.playPreset(whalePreset);
+    synthEngine.playPreset(whalePreset, { volumeMultiplier: catVol });
   }
 }
 
@@ -160,8 +188,9 @@ export function playWhaleArrival(): void {
  * Play button click sound
  */
 export function playButton(): void {
+  const catVol = getCategoryVolumeMultiplier('button');
   const buttonPreset = getPreset('button');
   if (buttonPreset) {
-    synthEngine.playPreset(buttonPreset);
+    synthEngine.playPreset(buttonPreset, { volumeMultiplier: catVol });
   }
 }

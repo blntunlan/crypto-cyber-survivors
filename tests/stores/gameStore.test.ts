@@ -16,6 +16,14 @@ describe('GameStore', () => {
         sfxVolume: 0.8,
         musicVolume: 0.5,
         isMuted: false,
+        categoryVolumes: {
+          combat: 1.0,
+          feedback: 1.0,
+          movement: 1.0,
+          ui: 1.0,
+          alerts: 1.0,
+          slots: 1.0,
+        },
       },
       graphics: {
         showParticles: true,

@@ -28,7 +28,7 @@ describe('Hit Stop Feature', () => {
 
     it('should set hitStopTimer on hit event', () => {
       const state = { hitStopTimer: 0 };
-      const duration = GAME_ENGINE.HIT_STOP_NORMAL;
+      const duration = GAME_ENGINE.HIT_STOP_CRIT;
 
       // Simulate hit
       state.hitStopTimer = Math.max(state.hitStopTimer, duration);

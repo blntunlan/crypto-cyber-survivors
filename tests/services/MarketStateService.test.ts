@@ -37,7 +37,7 @@ describe('MarketStateService', () => {
     await marketStateService.destroy();
 
     // Setup mock response for single()
-    vi.mocked(supabase!.from('').select('').eq('', '').single).mockResolvedValue({
+    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue({
       data: {
         pair: 'BTC',
         price: '50000',
@@ -71,7 +71,7 @@ describe('MarketStateService', () => {
     await marketStateService.initialize('BTC', 'LONG');
 
     expect(supabase!.channel).toHaveBeenCalledWith('market_state_changes');
-    const mockChannel = vi.mocked(supabase!.channel).mock.results[0].value;
+    const mockChannel = vi.mocked((supabase as any).channel).mock.results[0].value;
     expect(mockChannel.on).toHaveBeenCalledWith(
       'postgres_changes',
       expect.objectContaining({
@@ -86,7 +86,7 @@ describe('MarketStateService', () => {
   it('should handle realtime updates correctly', async () => {
     await marketStateService.initialize('BTC', 'LONG');
 
-    const mockChannel = vi.mocked(supabase!.channel).mock.results[0].value;
+    const mockChannel = vi.mocked((supabase as any).channel).mock.results[0].value;
     const updateCallback = mockChannel.on.mock.calls[0][2];
 
     const newData = {
@@ -131,7 +131,7 @@ describe('MarketStateService', () => {
   });
 
   it('should handle initialization errors gracefully', async () => {
-    vi.mocked(supabase!.from('').select('').eq('', '').single).mockResolvedValue({
+    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue({
       data: null,
       error: { message: 'Network error' } as any,
     } as any);

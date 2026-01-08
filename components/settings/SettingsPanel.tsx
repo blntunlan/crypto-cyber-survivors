@@ -10,6 +10,7 @@ import { COLORS } from '../../constants';
 
 // Section components
 import { AudioSection } from './AudioSection';
+import { SoundMixerSection } from './SoundMixerSection';
 import { QualitySection } from './QualitySection';
 import { GraphicsSection } from './GraphicsSection';
 import { MobileSection } from './MobileSection';
@@ -42,11 +43,28 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
   // Keyboard Navigation
   const [focusedIndex, setFocusedIndex] = React.useState<number>(0);
 
-  const MAX_INDEX = 7;
+  const MAX_INDEX = 13;
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
+      // Don't prevent default for everything, only navigation keys
+      if (
+        [
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+          'w',
+          'a',
+          's',
+          'd',
+          ' ',
+          'Enter',
+          'Escape',
+        ].includes(e.key)
+      ) {
+        e.preventDefault();
+      }
 
       switch (e.key) {
         case 'ArrowUp':
@@ -74,6 +92,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
           } else if (focusedIndex === 1) {
             const newVol = Math.max(0, audioSettings.masterVolume - 0.05);
             useGameStore.getState().setMasterVolume(newVol);
+          } else if (focusedIndex >= 3 && focusedIndex <= 8) {
+            // Sound Mixer
+            const categories: (keyof typeof audioSettings.categoryVolumes)[] = [
+              'combat',
+              'feedback',
+              'movement',
+              'ui',
+              'alerts',
+              'slots',
+            ];
+            const category = categories[focusedIndex - 3]!;
+            const currentVol = audioSettings.categoryVolumes[category];
+            useGameStore.getState().setCategoryVolume(category, Math.max(0, currentVol - 0.05));
           }
           break;
 
@@ -91,17 +122,30 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
           } else if (focusedIndex === 1) {
             const newVol = Math.min(1, audioSettings.masterVolume + 0.05);
             useGameStore.getState().setMasterVolume(newVol);
+          } else if (focusedIndex >= 3 && focusedIndex <= 8) {
+            // Sound Mixer
+            const categories: (keyof typeof audioSettings.categoryVolumes)[] = [
+              'combat',
+              'feedback',
+              'movement',
+              'ui',
+              'alerts',
+              'slots',
+            ];
+            const category = categories[focusedIndex - 3]!;
+            const currentVol = audioSettings.categoryVolumes[category];
+            useGameStore.getState().setCategoryVolume(category, Math.min(1, currentVol + 0.05));
           }
           break;
 
         case 'Enter':
         case ' ':
           if (focusedIndex === 2) useGameStore.getState().toggleMute();
-          else if (focusedIndex === 3) useGameStore.getState().toggleParticles();
-          else if (focusedIndex === 4) useGameStore.getState().toggleScreenShake();
-          else if (focusedIndex === 5) useGameStore.getState().toggleDamageNumbers();
-          else if (focusedIndex === 6) resetSettings();
-          else if (focusedIndex === 7) onClose();
+          else if (focusedIndex === 9) useGameStore.getState().toggleParticles();
+          else if (focusedIndex === 10) useGameStore.getState().toggleScreenShake();
+          else if (focusedIndex === 11) useGameStore.getState().toggleDamageNumbers();
+          else if (focusedIndex === 12) resetSettings();
+          else if (focusedIndex === 13) onClose();
           break;
 
         case 'Escape':
@@ -112,7 +156,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [focusedIndex, audioSettings.masterVolume, onClose, resetSettings]);
+  }, [
+    focusedIndex,
+    audioSettings.masterVolume,
+    audioSettings.categoryVolumes,
+    onClose,
+    resetSettings,
+  ]);
 
   return (
     <div
@@ -125,20 +175,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
       <div
         className={`max-w-md w-full p-4 md:p-8 flex flex-col max-h-full transition-all ${
           isRetro
-            ? 'bg-zinc-900 border-4 border-white rounded-none'
-            : 'bg-slate-900/50 border border-white/10 rounded-2xl md:rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
+            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
       >
         {/* Header */}
         <header className="text-center mb-4 md:mb-8 shrink-0">
           <h2
-            className="text-2xl md:text-4xl font-black text-white italic tracking-tighter uppercase"
-            style={{ textShadow: isRetro ? '4px 4px 0px #000000' : 'none' }}
+            className="font-display text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase"
+            style={{ textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : 'none' }}
           >
             Settings
           </h2>
           <div
-            className={`h-1 mx-auto mt-2 ${isRetro ? 'w-24' : 'w-12 bg-yellow-500 rounded-full'}`}
+            className={`h-1 mx-auto mt-2 ${isRetro ? 'w-24' : 'w-12 bg-[var(--color-primary)] rounded-full opacity-50'}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           />
         </header>
@@ -150,15 +200,32 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
           <AudioSection
             focusedItem={focusedIndex === 1 ? 'volume' : focusedIndex === 2 ? 'mute' : null}
           />
+          <SoundMixerSection
+            focusedCategory={
+              focusedIndex === 3
+                ? 'combat'
+                : focusedIndex === 4
+                  ? 'feedback'
+                  : focusedIndex === 5
+                    ? 'movement'
+                    : focusedIndex === 6
+                      ? 'ui'
+                      : focusedIndex === 7
+                        ? 'alerts'
+                        : focusedIndex === 8
+                          ? 'slots'
+                          : null
+            }
+          />
           {showMobileSection && <MobileSection />}
           <GraphicsSection
             isMobile={showMobileSection}
             focusedToggle={
-              focusedIndex === 3
+              focusedIndex === 9
                 ? 'particles'
-                : focusedIndex === 4
+                : focusedIndex === 10
                   ? 'shake'
-                  : focusedIndex === 5
+                  : focusedIndex === 11
                     ? 'damage'
                     : null
             }
@@ -174,7 +241,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
               isRetro
                 ? 'bg-zinc-700 text-white border-zinc-900 rounded-none border-b-2 active:translate-y-0.5'
                 : 'bg-slate-800 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white border-slate-700 shadow-sm'
-            } ${focusedIndex === 6 ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'ring-2 ring-white scale-105 bg-slate-700 text-white') : ''}`}
+            } ${focusedIndex === 12 ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'ring-2 ring-white scale-105 bg-slate-700 text-white') : ''}`}
           >
             Reset
           </button>
@@ -184,7 +251,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
               isRetro
                 ? 'text-black rounded-none border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0'
                 : 'bg-white text-black rounded-xl hover:bg-yellow-500 shadow-lg shadow-white/5'
-            } ${focusedIndex === 7 ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
+            } ${focusedIndex === 13 ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           >
             Close

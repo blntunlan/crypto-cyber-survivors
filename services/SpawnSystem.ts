@@ -1,32 +1,20 @@
 import { MarketPosition } from '../types';
-import { type PoolManager } from './PoolManager';
+import { type IPoolManager } from './interfaces/IPoolManager';
 import { GAME_ENGINE } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
 import { marketStateService, type MarketState } from './MarketStateService';
 import { WHALE_TIER_CONFIGS } from '../types/indicators';
 import { Logger } from './Logger';
 import { type SpawnDebugState, getDebugTimestamp } from '../types/DebugState';
+import { type ISpawnSystem } from './interfaces/ISpawnSystem';
 
 /**
  * SpawnSystem - Orchestrates entity spawning based on market conditions and difficulty.
- *
- * This system determines when and where to spawn enemies (Bears/Bulls) and Whales
- * by analyzing market indicators (ATR, Volume, PnL).
- *
- * Implements Singleton pattern for consistent state management.
  */
-export class SpawnSystem {
-  private static instance: SpawnSystem | null = null;
+export class SpawnSystem implements ISpawnSystem {
   private spawnTimer: number = 0;
 
-  private constructor() {}
-
-  /**
-   * Get singleton instance
-   */
-  public static getInstance(): SpawnSystem {
-    return (this.instance ??= new SpawnSystem());
-  }
+  constructor() {}
 
   /**
    * Update the spawn system state and trigger spawns if necessary.
@@ -47,7 +35,7 @@ export class SpawnSystem {
     width: number,
     height: number,
     position: MarketPosition,
-    pool: PoolManager,
+    pool: IPoolManager,
     pnl: number = 0,
     maxEnemiesOverride?: number
   ): number {
@@ -92,7 +80,7 @@ export class SpawnSystem {
    */
   private handleWhaleSpawning(
     marketState: MarketState,
-    pool: PoolManager,
+    pool: IPoolManager,
     difficulty: number,
     position: MarketPosition,
     width: number,
@@ -118,7 +106,7 @@ export class SpawnSystem {
    * Spawns a regular enemy based on market sentiment or random selection from registry.
    */
   private spawnRegularEnemy(
-    pool: PoolManager,
+    pool: IPoolManager,
     difficulty: number,
     position: MarketPosition,
     pnl: number,
@@ -222,5 +210,5 @@ export class SpawnSystem {
   }
 }
 
-// Export singleton instance
-export const spawnSystem = SpawnSystem.getInstance();
+// Export singleton factory - remains backward compatible for simple usage
+export const spawnSystem = new SpawnSystem();

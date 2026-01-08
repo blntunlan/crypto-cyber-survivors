@@ -67,9 +67,32 @@ export class EnemyFactory {
   ): GameEnemy {
     const config = (ENEMY_DEFINITIONS[type as EnemyId] ?? ENEMY_DEFINITIONS['bear']) as EnemyConfig;
 
-    // Determine color based on position (enemies are opposite color)
+    // Determine color based on position (enemies serve as market opposition)
+    // Rule: If Player is LONG (Green), Enemies should be RED tones.
+    //       If Player is SHORT (Red), Enemies should be GREEN tones.
     let color = config.color;
-    if (config.isOppositeColor) {
+
+    // FUD and Whale keep their identity colors
+    const preserveIdentity = type === 'fud' || type === 'whale';
+
+    if (!preserveIdentity) {
+      if (position === MarketPosition.LONG) {
+        // Player is Green -> Enemies must be Red/Orange
+        if (type === 'liquidator' || type === 'pumpdump') {
+          color = COLORS.DUMP_ORANGE; // Distinct Red-ish tone for specials
+        } else {
+          color = COLORS.SHORT; // Standard Red
+        }
+      } else {
+        // Player is Red -> Enemies must be Green/Lime
+        if (type === 'liquidator' || type === 'pumpdump') {
+          color = COLORS.PUMP_GREEN; // Distinct Green-ish tone for specials
+        } else {
+          color = COLORS.LONG; // Standard Green
+        }
+      }
+    } else if (config.isOppositeColor) {
+      // Fallback for strict opposites defined in registry
       color = position === MarketPosition.LONG ? COLORS.SHORT : COLORS.LONG;
     }
 

@@ -16,6 +16,7 @@ export enum GameStatus {
   LEVEL_UP = 'LEVEL_UP',
   GAMEOVER = 'GAMEOVER',
   CYCLE_COMPLETE = 'CYCLE_COMPLETE',
+  DATA_DISCONNECTED = 'DATA_DISCONNECTED',
 }
 
 // Available leverage options

@@ -298,6 +298,8 @@ class BuffGemSpawnerClass {
       getProjectiles: () => 1,
       getArea: () => 1,
       getLuck: () => 0,
+      getLifesteal: () => 0,
+      getDodge: () => 0,
     });
 
     if (decoratorInstance.getDuration() === -1) {

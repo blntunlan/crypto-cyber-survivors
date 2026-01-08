@@ -7,6 +7,8 @@
 import React from 'react';
 import { useTheme } from '../../contexts/useTheme';
 
+import { IconCyberpunk, IconRetro } from '../icons/CardIcons';
+
 export const ThemeSection: React.FC = () => {
   const { themeName, toggleTheme, theme } = useTheme();
 
@@ -15,7 +17,7 @@ export const ThemeSection: React.FC = () => {
   return (
     <section className="p-4 md:p-5 bg-slate-800/30 border border-slate-700/50 rounded-2xl">
       <div className="flex justify-between items-center mb-3">
-        <h4 className="text-[11px] md:text-xs font-black text-slate-400 uppercase tracking-[0.15em]">
+        <h4 className="text-[11px] md:text-xs font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
           Visual Style
         </h4>
         <span
@@ -49,7 +51,10 @@ export const ThemeSection: React.FC = () => {
             <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           )}
 
-          <span className="text-2xl">🌃</span>
+          <IconCyberpunk
+            className="w-8 h-8 md:w-10 md:h-10"
+            color={isCyberpunk ? '#06b6d4' : '#64748b'}
+          />
           <span className="text-[10px] font-bold uppercase tracking-wider text-white">
             Cyberpunk
           </span>
@@ -74,7 +79,10 @@ export const ThemeSection: React.FC = () => {
             <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
           )}
 
-          <span className="text-2xl">🎮</span>
+          <IconRetro
+            className="w-8 h-8 md:w-10 md:h-10"
+            color={!isCyberpunk ? '#f97316' : '#64748b'}
+          />
           <span className="text-[10px] font-bold uppercase tracking-wider text-white">16-Bit</span>
           <span className="text-[8px] text-slate-400">Pixel • Retro • Classic</span>
         </button>

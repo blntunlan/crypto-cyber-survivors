@@ -25,6 +25,16 @@ export type SoundType =
   | 'nearMiss';
 
 /**
+ * Sound categories for volume grouping
+ */
+export type SoundCategory = 'combat' | 'feedback' | 'movement' | 'ui' | 'alerts' | 'slots';
+
+/**
+ * Category volumes record type
+ */
+export type CategoryVolumes = Record<SoundCategory, number>;
+
+/**
  * Sound configuration for volume and playback rate
  */
 export interface SoundConfig {

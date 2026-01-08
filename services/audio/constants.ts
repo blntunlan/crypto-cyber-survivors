@@ -4,7 +4,12 @@
  * Default volumes and cooldown configurations.
  */
 
-import { type SoundType, type SoundConfig } from './types';
+import {
+  type SoundType,
+  type SoundConfig,
+  type SoundCategory,
+  type CategoryVolumes,
+} from './types';
 
 /**
  * Default volume levels for each sound type
@@ -38,4 +43,58 @@ export const COOLDOWN_MS: Partial<Record<SoundType, number>> = {
   slowdownTension: 1000, // Only play once per second (prevents 3x overlap)
   coinShower: 500, // Prevent double trigger
   multiplierChime: 100, // Allow quick succession for rising effect
+};
+
+/**
+ * Map each sound to its category
+ */
+export const SOUND_CATEGORY_MAP: Record<string, SoundCategory> = {
+  // Combat
+  shoot: 'combat',
+  crit: 'combat',
+  hit: 'combat',
+  // Feedback
+  gem: 'feedback',
+  levelUp: 'feedback',
+  levelUpNote: 'feedback',
+  combo: 'feedback',
+  comboMilestone: 'feedback',
+  combo1: 'feedback',
+  combo2: 'feedback',
+  combo3: 'feedback',
+  combo4: 'feedback',
+  combo5: 'feedback',
+  // Movement
+  dash: 'movement',
+  nearMiss: 'movement',
+  whoosh: 'movement',
+  // UI
+  button: 'ui',
+  // Alerts
+  heartbeat: 'alerts',
+  death: 'alerts',
+  deathNote: 'alerts',
+  whaleArrival: 'alerts',
+  // Slots
+  slotTick: 'slots',
+  reelStop: 'slots',
+  slotWin: 'slots',
+  anticipation: 'slots',
+  jackpot: 'slots',
+  coinShower: 'slots',
+  multiplierChime: 'slots',
+  slowdownTension: 'slots',
+  spinStart: 'slots',
+};
+
+/**
+ * Default volume for each category (0-1)
+ */
+export const DEFAULT_CATEGORY_VOLUMES: CategoryVolumes = {
+  combat: 1.0,
+  feedback: 1.0,
+  movement: 1.0,
+  ui: 1.0,
+  alerts: 1.0,
+  slots: 1.0,
 };

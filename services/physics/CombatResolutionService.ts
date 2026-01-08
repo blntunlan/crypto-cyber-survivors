@@ -1,4 +1,4 @@
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type Player, type Enemy } from '../../types';
 import { DifficultyManager } from '../DifficultyManager';
 import { EventBus } from '../EventBus';
@@ -23,7 +23,7 @@ export class CombatResolutionService {
    * Handle enemy death: cleanup, record kill, spawn rewards and effects.
    */
   public static handleEnemyDeath(
-    pool: PoolManager,
+    pool: IPoolManager,
     enemy: Enemy,
     player: Player,
     isSuperCrit: boolean = false
@@ -49,7 +49,7 @@ export class CombatResolutionService {
   /**
    * Apply a massive knockback to all enemies (Volatility Shockwave)
    */
-  public static triggerShockwave(pool: PoolManager, intensity: number): void {
+  public static triggerShockwave(pool: IPoolManager, intensity: number): void {
     const force = COMBAT_CONFIG.SHOCKWAVE.BASE_FORCE * intensity;
 
     pool.activeEnemies.forEach(enemy => {
@@ -108,7 +108,7 @@ export class CombatResolutionService {
     }
   }
 
-  private static spawnDeathParticles(pool: PoolManager, enemy: Enemy, isSuperCrit: boolean): void {
+  private static spawnDeathParticles(pool: IPoolManager, enemy: Enemy, isSuperCrit: boolean): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
     const isRetro = ThemeService.isRetro();
 
@@ -138,7 +138,7 @@ export class CombatResolutionService {
    * - Base 5% rare gem chance + 3% per luck point
    * - 10% per luck point chance for bonus gem
    */
-  private static spawnGemForEnemy(pool: PoolManager, enemy: Enemy, player: Player): void {
+  private static spawnGemForEnemy(pool: IPoolManager, enemy: Enemy, player: Player): void {
     const { GEMS, LUCK } = COMBAT_CONFIG;
 
     // Get effective luck from BuffManager if available, with system-level cap

@@ -99,6 +99,62 @@
 /* Remove blur/glassmorphism in retro mode */
 [data-theme='retro-16bit'] .backdrop-blur,
 [data-theme='retro-16bit'] .backdrop-blur-sm,
+[data-theme='retro-16bit'] .backdrop-blur-md {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ========================================
+   THEME SWITCHING TRANSITION (GLITCH)
+   ======================================== */
+
+html[data-theme-switching='true'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: white;
+  animation: theme-glitch 0.4s steps(2, end) forwards;
+  pointer-events: none;
+}
+
+@keyframes theme-glitch {
+  0% {
+    opacity: 0;
+    transform: scale(1.1) skew(5deg);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  20% {
+    opacity: 0.5;
+    transform: scale(1) skew(-10deg);
+    background: rgba(0, 255, 255, 0.3);
+  }
+
+  40% {
+    opacity: 0.8;
+    transform: scale(1.2) translateX(20px);
+    background: rgba(255, 0, 255, 0.3);
+  }
+
+  60% {
+    opacity: 0.4;
+    transform: scale(0.9) translateX(-10px);
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  80% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+[data-theme='retro-16bit'] .backdrop-blur-sm,
 [data-theme='retro-16bit'] .backdrop-blur-md,
 [data-theme='retro-16bit'] .backdrop-blur-lg {
   backdrop-filter: none !important;
@@ -229,16 +285,20 @@
   letter-spacing: -0.02em;
 }
 
-[data-theme='retro-16bit'] .font-secondary {
+[data-theme='retro-16bit'] .font-secondary,
+[data-theme='retro-16bit'] .font-stats {
   font-family: var(--font-secondary) !important;
 }
 
-[data-theme='retro-16bit'] .font-mono {
+[data-theme='retro-16bit'] .font-mono,
+[data-theme='retro-16bit'] .font-tech {
   font-family: var(--font-mono) !important;
 }
 
-[data-theme='retro-16bit'] .font-numbers {
-  font-family: var(--font-numbers) !important;
+[data-theme='retro-16bit'] .font-numbers,
+[data-theme='retro-16bit'] .font-heading {
+  font-family: var(--font-display) !important;
+  letter-spacing: -0.02em;
 }
 
 /* Keep touch targets reasonable */

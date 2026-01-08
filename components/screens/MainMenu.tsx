@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
@@ -6,6 +7,10 @@ import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 import { audio } from '../../services/AudioService';
 import { useThemeSize } from '../../hooks/useThemeSize';
+import { GameMode, GAME_MODE_CONFIGS } from '../../types/gameMode';
+import { useTheme } from '../../contexts/useTheme';
+import { IconTrendUp, IconTrendDown } from '../icons/CardIcons';
+import { COLORS } from '../../config/Colors';
 
 interface MainMenuProps {
   price: number;
@@ -13,6 +18,8 @@ interface MainMenuProps {
   onOpenSettings: () => void;
   selectedPair: CryptoPair;
   onPairChange: (pair: CryptoPair) => void;
+  selectedMode: GameMode;
+  onModeChange: (mode: GameMode) => void;
 }
 
 export const MainMenu: React.FC<MainMenuProps> = ({
@@ -21,13 +28,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onOpenSettings,
   selectedPair,
   onPairChange,
+  selectedMode,
+  onModeChange,
 }) => {
+  const { isRetro } = useTheme();
   const sizes = useThemeSize();
   const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
 
   // Navigation State
   const [activeRow, setActiveRow] = useState<number>(0);
-  // 0: Assets, 1: Leverage, 2: Actions (Long/Short), 3: Settings
+  // 0: Game Mode, 1: Assets, 2: Leverage, 3: Actions (Long/Short), 4: Settings
   const [actionCol, setActionCol] = useState<number>(0);
   // 0: Long, 1: Short
 
@@ -53,7 +63,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         case 's':
         case 'S':
           e.preventDefault();
-          setActiveRow(prev => Math.min(3, prev + 1));
+          setActiveRow(prev => Math.min(4, prev + 1));
           // audio.playHover();
           break;
         case 'ArrowLeft':
@@ -61,16 +71,19 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         case 'A':
           e.preventDefault();
           if (activeRow === 0) {
+            // Cycle Game Modes
+            onModeChange(selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL);
+          } else if (activeRow === 1) {
             // Cycle Assets
             const currIdx = pairsList.findIndex(p => p.id === selectedPair);
             const nextIdx = (currIdx - 1 + pairsList.length) % pairsList.length;
             onPairChange(pairsList[nextIdx]!.id);
-          } else if (activeRow === 1) {
+          } else if (activeRow === 2) {
             // Cycle Leverage
             const currIdx = leverageList.indexOf(selectedLeverage);
             const nextIdx = (currIdx - 1 + leverageList.length) % leverageList.length;
             setSelectedLeverage(leverageList[nextIdx]!);
-          } else if (activeRow === 2) {
+          } else if (activeRow === 3) {
             setActionCol(0); // Focus Long
           }
           break;
@@ -79,14 +92,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         case 'D':
           e.preventDefault();
           if (activeRow === 0) {
+            // Cycle Game Modes
+            onModeChange(selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL);
+          } else if (activeRow === 1) {
             const currIdx = pairsList.findIndex(p => p.id === selectedPair);
             const nextIdx = (currIdx + 1) % pairsList.length;
             onPairChange(pairsList[nextIdx]!.id);
-          } else if (activeRow === 1) {
+          } else if (activeRow === 2) {
             const currIdx = leverageList.indexOf(selectedLeverage);
             const nextIdx = (currIdx + 1) % leverageList.length;
             setSelectedLeverage(leverageList[nextIdx]!);
-          } else if (activeRow === 2) {
+          } else if (activeRow === 3) {
             setActionCol(1); // Focus Short
           }
           break;
@@ -94,11 +110,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         case ' ':
           e.preventDefault();
           audio.playButton();
-          if (activeRow === 2) {
+          if (activeRow === 3) {
             // Start Game
             if (actionCol === 0) onStart(MarketPosition.LONG, selectedLeverage);
             else onStart(MarketPosition.SHORT, selectedLeverage);
-          } else if (activeRow === 3) {
+          } else if (activeRow === 4) {
             onOpenSettings();
           }
           break;
@@ -119,11 +135,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     onOpenSettings,
   ]);
 
-  const getLeverageColor = (lev: LeverageOption) => {
-    if (lev <= 2) return 'text-green-400 border-green-500/30 bg-green-500/10';
-    if (lev <= 10) return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
-    if (lev <= 25) return 'text-orange-400 border-orange-500/30 bg-orange-500/10';
-    return 'text-red-400 border-red-500/30 bg-red-500/10';
+  const getLeverageColorHex = (lev: LeverageOption) => {
+    if (lev <= 2) return COLORS.PUMP_GREEN;
+    if (lev <= 10) return COLORS.JACKPOT_YELLOW;
+    if (lev <= 25) return COLORS.NEON_ORANGE;
+    return COLORS.CASINO_RED;
   };
 
   const getLeverageLabel = (lev: LeverageOption) => {
@@ -136,8 +152,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
   return (
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto landscape:py-2">
-      <div className="max-w-xl w-full text-center space-y-3 sm:space-y-6 landscape:space-y-2 py-2 sm:py-0">
-        <header className="space-y-2 sm:space-y-4">
+      <div className="max-w-xl w-full text-center space-y-4 sm:space-y-8 landscape:space-y-2 py-2 sm:py-0">
+        <header className="space-y-3 sm:space-y-5">
           <h1 className={`font-display ${sizes.title} tracking-tight text-white leading-relaxed`}>
             CRYPTO
             <br />
@@ -145,7 +161,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </h1>
           <div className="flex flex-col items-center gap-2">
             <p
-              className={`font-heading text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
+              className={`font-heading text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny} ${isRetro ? 'font-primary' : ''}`}
             >
               Market Sentiment Engine
             </p>
@@ -153,92 +169,219 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
         </header>
 
-        <div className="bg-slate-900/40 border border-white/5 p-3 sm:p-6 landscape:p-3 rounded-2xl space-y-3 sm:space-y-5 landscape:space-y-2">
-          {/* Pair Selector */}
-          <div className="space-y-3">
-            <span className={`${sizes.tiny} text-slate-500 uppercase font-bold tracking-widest`}>
-              Select Asset
-            </span>
+        <div
+          className={`relative p-3 sm:p-5 transition-all duration-700 ${
+            isRetro
+              ? 'bg-zinc-900 border border-zinc-600 rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              : 'bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] shadow-2xl overflow-hidden'
+          }`}
+        >
+          {/* Top Dynamic Border Accent */}
+          {!isRetro && (
+            <motion.div
+              className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{ backgroundColor: pairConfig.color }}
+              style={{ boxShadow: `0 0 20px ${pairConfig.color}40` }}
+            />
+          )}
+          <div className="space-y-2 mb-2 sm:mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+              />
+              <span
+                className={`text-[7px] uppercase font-display tracking-[0.2em] font-bold`}
+                style={{ color: COLORS.WHALE }}
+              >
+                Game Mode
+              </span>
+              <div
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+              />
+            </div>
+            <div className="flex gap-2">
+              {Object.values(GameMode).map(mode => {
+                const config = GAME_MODE_CONFIGS[mode];
+                const isActive = selectedMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => onModeChange(mode)}
+                    className={`flex-1 p-2.5 transition-all duration-300 text-left relative group 
+                      ${
+                        isRetro
+                          ? 'rounded-none border-2 border-zinc-700 hover:border-zinc-500 bg-zinc-900 font-primary'
+                          : 'rounded-xl'
+                      } 
+                      ${isActive ? 'scale-[1.02]' : 'bg-white/5 opacity-40 hover:opacity-100'}`}
+                    style={{
+                      boxShadow: isActive
+                        ? isRetro
+                          ? '4px 4px 0px rgba(0,0,0,0.3)'
+                          : `0 4px 15px -2px ${COLORS.WHALE}30`
+                        : 'none',
+                      backgroundColor: isActive
+                        ? isRetro
+                          ? '#27272a'
+                          : `${COLORS.WHALE}10`
+                        : undefined,
+                      border: isActive
+                        ? `${isRetro ? '2px' : '1px'} solid ${COLORS.WHALE}`
+                        : isRetro
+                          ? undefined
+                          : '1px solid transparent',
+                    }}
+                  >
+                    <div
+                      className={`text-[7px] font-display uppercase tracking-wider mb-0.5 ${isActive ? 'font-black' : ''}`}
+                      style={{ color: isActive ? COLORS.WHALE : '#475569' }}
+                    >
+                      {config.displayName}
+                    </div>
+                    <div
+                      className={`text-[9px] leading-tight font-medium ${isActive ? 'text-white' : 'text-slate-600'} ${isRetro ? 'font-primary' : ''}`}
+                    >
+                      {config.description}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-2 sm:mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <div
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+              />
+              <span
+                className={`text-[7px] uppercase font-display tracking-[0.2em] font-bold`}
+                style={{ color: COLORS.CASINO_GOLD }}
+              >
+                Select Asset
+              </span>
+              <div
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+              />
+            </div>
             <CryptoSelector
               selected={selectedPair}
               onSelect={onPairChange}
-              isFocused={activeRow === 0}
+              isFocused={activeRow === 1}
             />
           </div>
 
           <div
-            className={`font-heading ${sizes.price} font-bold tracking-tight transition-colors duration-500`}
-            style={{ color: pairConfig.color, textShadow: `0 0 30px ${pairConfig.color}40` }}
+            className={`font-numbers ${sizes.price} font-bold tracking-tight transition-colors duration-500 py-2 sm:py-4`}
+            style={{
+              color: pairConfig.color,
+              textShadow: isRetro
+                ? `4px 4px 0px rgba(0,0,0,0.5)`
+                : `0 0 30px ${pairConfig.color}40`,
+            }}
           >
             {price > 0
               ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
               : 'CONNECTING...'}
           </div>
 
-          {/* Leverage Selection */}
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-center justify-between">
-              <span className={`${sizes.tiny} text-slate-500 uppercase font-bold tracking-widest`}>
+          <div className="space-y-2 mb-2 sm:mb-4">
+            <div className="flex items-center justify-between px-1 mb-1">
+              <span
+                className={`text-[7px] uppercase font-display tracking-[0.2em] font-bold text-slate-500`}
+              >
                 Leverage
               </span>
-              <span
-                className={`text-xs font-black uppercase px-2 py-0.5 rounded ${getLeverageColor(selectedLeverage)}`}
-              >
-                {getLeverageLabel(selectedLeverage)}
-              </span>
-            </div>
-            <div className="flex gap-1.5 sm:gap-2 justify-center flex-wrap">
-              {LEVERAGE_OPTIONS.map(lev => (
-                <button
-                  key={lev}
-                  onClick={() => setSelectedLeverage(lev)}
-                  className={`min-w-[44px] min-h-[44px] px-2.5 sm:px-3 py-2 rounded-lg border font-black text-sm transition-all touch-manipulation ${
-                    selectedLeverage === lev
-                      ? getLeverageColor(lev) +
-                        ' ring-2 ring-white/20 scale-105' +
-                        (activeRow === 1
-                          ? ' ring-white shadow-[0_0_15px_rgba(255,255,255,0.5)]'
-                          : '')
-                      : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700 active:scale-95'
-                  }`}
+              <div className="flex items-center gap-1.5">
+                <div
+                  className={`w-1 h-1 rounded-full ${isRetro ? '' : 'animate-pulse'}`}
+                  style={{ backgroundColor: getLeverageColorHex(selectedLeverage) }}
+                />
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${isRetro ? 'font-display' : ''}`}
+                  style={{ color: getLeverageColorHex(selectedLeverage) }}
                 >
-                  {lev === 1 ? '1x' : `${lev}x`}
-                </button>
-              ))}
+                  {getLeverageLabel(selectedLeverage)}
+                </span>
+              </div>
             </div>
-            <p className="text-[10px] sm:text-xs text-slate-600 mt-1">
-              Higher leverage = More volatile difficulty & bigger swings
-            </p>
+
+            <div
+              className={`flex gap-1.5 justify-center flex-wrap py-2 px-2 transition-all duration-500 ${isRetro ? 'rounded-none border-2 border-zinc-700 bg-zinc-900' : 'rounded-xl'}`}
+              style={{
+                backgroundColor: !isRetro
+                  ? `${getLeverageColorHex(selectedLeverage)}05`
+                  : undefined,
+                border: !isRetro
+                  ? `1px solid ${getLeverageColorHex(selectedLeverage)}15`
+                  : undefined,
+              }}
+            >
+              {LEVERAGE_OPTIONS.map(lev => {
+                const isSelected = selectedLeverage === lev;
+                const levColor =
+                  lev <= 2
+                    ? COLORS.PUMP_GREEN
+                    : lev <= 10
+                      ? COLORS.JACKPOT_YELLOW
+                      : lev <= 25
+                        ? COLORS.NEON_ORANGE
+                        : COLORS.CASINO_RED;
+
+                return (
+                  <button
+                    key={lev}
+                    onClick={() => setSelectedLeverage(lev)}
+                    className={`min-w-[36px] min-h-[32px] px-2 py-1 transition-all duration-300 font-display text-[8px] relative group 
+                      ${isRetro ? 'rounded-none' : 'rounded-lg'}
+                      ${isSelected ? 'scale-105 z-10' : 'bg-white/5 opacity-40 hover:opacity-80'}`}
+                    style={{
+                      boxShadow:
+                        isSelected && !isRetro
+                          ? `0 8px 20px -5px ${levColor}40`
+                          : isSelected && isRetro
+                            ? '2px 2px 0px rgba(0,0,0,0.5)'
+                            : 'none',
+                      backgroundColor: isSelected
+                        ? isRetro
+                          ? '#18181b'
+                          : `${levColor}20`
+                        : undefined,
+                      border: isSelected
+                        ? `${isRetro ? '2px' : '1px'} solid ${levColor}`
+                        : isRetro
+                          ? undefined
+                          : '1px solid transparent',
+                      color: isSelected ? levColor : '#64748b',
+                    }}
+                  >
+                    {lev === 1 ? 'SPOT' : `${lev}x`}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Position Selection */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 landscape:gap-2">
+          <div className={`grid grid-cols-2 gap-2 sm:gap-4 landscape:gap-2`}>
             <button
               onClick={() => onStart(MarketPosition.LONG, selectedLeverage)}
               disabled={price === 0}
-              className={`flex flex-col items-center p-3 sm:p-5 landscape:p-2 bg-green-500/10 border border-green-500/20 rounded-xl transition-all group touch-manipulation active:scale-95 ${
-                price === 0
-                  ? 'opacity-50 cursor-not-allowed grayscale'
-                  : 'hover:border-green-500 hover:bg-green-500/20'
-              } ${activeRow === 2 && actionCol === 0 ? 'ring-2 ring-white scale-105 shadow-[0_0_20px_rgba(34,197,94,0.4)] bg-green-500/20' : ''}`}
+              className={`flex flex-col items-center p-3 sm:p-5 landscape:p-2 bg-green-500/10 transition-all group touch-manipulation active:scale-95 
+                ${isRetro ? 'rounded-none border-2 border-zinc-700 hover:border-green-500 font-display' : 'rounded-xl hover:bg-green-500/20'}
+                ${
+                  price === 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                } ${activeRow === 3 && actionCol === 0 ? `scale-105 bg-green-500/20 ${isRetro ? 'ring-0 border-white border-2' : 'ring-1 ring-white shadow-[0_0_20px_rgba(34,197,94,0.4)]'}` : ''}`}
             >
               <div className="mb-1 sm:mb-2 group-hover:scale-110 transition-transform">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
+                <IconTrendUp
                   className="text-green-400 sm:w-10 sm:h-10 landscape:w-8 landscape:h-8"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                  <polyline points="16 7 22 7 22 13" />
-                </svg>
+                  color={isRetro ? '#ffd600' : '#4ade80'}
+                />
               </div>
-              <span className="font-black text-green-500 text-base sm:text-lg uppercase">Long</span>
+              <span className="font-display text-green-500 text-[10px] sm:text-xs uppercase tracking-tighter">
+                Long
+              </span>
               <span className="text-[10px] sm:text-xs text-green-500/60 mt-0.5">
                 {selectedLeverage}x
               </span>
@@ -246,29 +389,21 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <button
               onClick={() => onStart(MarketPosition.SHORT, selectedLeverage)}
               disabled={price === 0}
-              className={`flex flex-col items-center p-3 sm:p-5 landscape:p-2 bg-red-500/10 border border-red-500/20 rounded-xl transition-all group touch-manipulation active:scale-95 ${
-                price === 0
-                  ? 'opacity-50 cursor-not-allowed grayscale'
-                  : 'hover:border-red-500 hover:bg-red-500/20'
-              } ${activeRow === 2 && actionCol === 1 ? 'ring-2 ring-white scale-105 shadow-[0_0_20px_rgba(239,68,68,0.4)] bg-red-500/20' : ''}`}
+              className={`flex flex-col items-center p-3 sm:p-5 landscape:p-2 bg-red-500/10 transition-all group touch-manipulation active:scale-95 
+                ${isRetro ? 'rounded-none border-2 border-zinc-700 hover:border-red-500 font-display' : 'rounded-xl hover:bg-red-500/20'}
+                ${
+                  price === 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                } ${activeRow === 3 && actionCol === 1 ? `scale-105 bg-red-500/20 ${isRetro ? 'ring-0 border-white border-2' : 'ring-1 ring-white shadow-[0_0_20px_rgba(239,68,68,0.4)]'}` : ''}`}
             >
               <div className="mb-1 sm:mb-2 group-hover:scale-110 transition-transform">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
+                <IconTrendDown
                   className="text-red-400 sm:w-10 sm:h-10 landscape:w-8 landscape:h-8"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
-                  <polyline points="16 17 22 17 22 11" />
-                </svg>
+                  color={isRetro ? '#ffd600' : '#f87171'}
+                />
               </div>
-              <span className="font-black text-red-500 text-base sm:text-lg uppercase">Short</span>
+              <span className="font-display text-red-500 text-[10px] sm:text-xs uppercase tracking-tighter">
+                Short
+              </span>
               <span className="text-[10px] sm:text-xs text-red-500/60 mt-0.5">
                 {selectedLeverage}x
               </span>
@@ -277,14 +412,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           <button
             onClick={onOpenSettings}
-            className={`w-full min-h-[44px] py-2.5 sm:py-3 bg-slate-800 text-white font-black uppercase text-xs sm:text-sm tracking-widest rounded-xl border border-white/10 hover:bg-slate-700 active:scale-[0.98] transition-all touch-manipulation ${
-              activeRow === 3 ? 'ring-2 ring-white scale-[1.02] bg-slate-700' : ''
-            }`}
+            className={`w-full min-h-[44px] py-2.5 sm:py-3 bg-slate-800/50 text-slate-400 font-black uppercase text-xs sm:text-sm tracking-widest hover:bg-slate-700/80 active:scale-[0.98] transition-all touch-manipulation mt-3
+              ${isRetro ? 'rounded-none border-2 border-zinc-700 font-display' : 'rounded-xl'}
+              ${
+                activeRow === 4
+                  ? `scale-[1.02] bg-slate-700 text-white ${isRetro ? 'border-white' : 'ring-1 ring-white'}`
+                  : ''
+              }`}
           >
             Settings
           </button>
           <div
-            className={`pt-1 sm:pt-2 ${sizes.tiny} text-slate-500 font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]`}
+            className={`pt-1 sm:pt-2 text-[7px] sm:text-[8px] font-display text-slate-500 uppercase tracking-widest ${isRetro ? 'font-primary brightness-150' : ''}`}
           >
             WASD / Arrows to Move • SPACE to Dash
           </div>
@@ -299,26 +438,28 @@ interface OptimizationBadgeProps {
 
 const OptimizationBadge: React.FC<OptimizationBadgeProps> = ({ sizes }) => {
   const config = DeviceBenchmarkService.getPerformanceConfig();
+  const { isRetro } = useTheme();
   const profile = config.profile;
 
   const getColor = (p: DeviceProfile) => {
     switch (p) {
       case DeviceProfile.ULTRA:
-        return 'text-purple-400 bg-purple-500/10 border-purple-500/20';
+        return `text-purple-400 bg-purple-500/10 ${isRetro ? '' : 'border-purple-500/20'}`;
       case DeviceProfile.HIGH:
-        return 'text-green-400 bg-green-500/10 border-green-500/20';
+        return `text-green-400 bg-green-500/10 ${isRetro ? '' : 'border-green-500/20'}`;
       case DeviceProfile.MEDIUM:
-        return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+        return `text-yellow-400 bg-yellow-500/10 ${isRetro ? '' : 'border-yellow-500/20'}`;
       case DeviceProfile.LOW:
-        return 'text-red-400 bg-red-500/10 border-red-500/20';
+        return `text-red-400 bg-red-500/10 ${isRetro ? '' : 'border-red-500/20'}`;
       default:
-        return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+        return `text-slate-400 bg-slate-500/10 ${isRetro ? '' : 'border-slate-500/20'}`;
     }
   };
 
   return (
     <div
-      className={`px-3 py-1 rounded-full border ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)}`}
+      className={`px-3 py-1 border ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)} 
+        ${isRetro ? 'rounded-none border-2 border-zinc-700 font-primary' : 'rounded-full'}`}
     >
       Optimized: {profile}
     </div>

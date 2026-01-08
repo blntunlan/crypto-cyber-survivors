@@ -13,6 +13,7 @@ export interface ThemeContextType {
   setTheme: (name: ThemeName) => void;
   toggleTheme: () => void;
   isRetro: boolean;
+  isTransitioning: boolean;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

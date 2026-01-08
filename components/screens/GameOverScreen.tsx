@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { COLORS } from '../../constants';
 import { useGameStore } from '../../stores/gameStore';
 import { useThemeSize } from '../../hooks/useThemeSize';
+import { useIsRetro } from '../../contexts/useTheme';
+import { IconTrophy } from '../icons/CardIcons';
 
 interface GameOverScreenProps {
   level: number;
@@ -20,6 +22,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   onRestart,
 }) => {
   const sizes = useThemeSize();
+  const isRetro = useIsRetro();
   const { progress, recordGameEnd } = useGameStore();
 
   // Record this game to progress on mount
@@ -45,7 +48,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     >
       {/* Glitch Title */}
       <motion.h2
-        className={`${sizes.title} md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative`}
+        className={`font-display ${sizes.title} md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative`}
         initial={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
         animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{
@@ -58,9 +61,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         <motion.span
           animate={{
             textShadow: [
-              '2px 0 #ef4444, -2px 0 #3b82f6',
-              '-2px 0 #ef4444, 2px 0 #3b82f6',
-              '2px 0 #ef4444, -2px 0 #3b82f6',
+              `2px 0 ${COLORS.CASINO_RED}, -2px 0 ${COLORS.ELECTRIC_BLUE}`,
+              `-2px 0 ${COLORS.CASINO_RED}, 2px 0 ${COLORS.ELECTRIC_BLUE}`,
+              `2px 0 ${COLORS.CASINO_RED}, -2px 0 ${COLORS.ELECTRIC_BLUE}`,
             ],
           }}
           transition={{ duration: 0.1, repeat: 3 }}
@@ -71,7 +74,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
       {/* Stats Card */}
       <motion.div
-        className={`bg-slate-900/50 border border-red-500/30 ${sizes.padding} md:p-10 rounded-2xl space-y-6 max-w-md w-full mb-auto`}
+        className={`transition-all max-w-md w-full mb-auto p-6 md:p-10 space-y-6 ${
+          isRetro
+            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
+            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+        }`}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 100, damping: 15, delay: 0.4 }}
@@ -79,13 +86,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         {/* New High Score Badge */}
         {isNewHighScore && (
           <motion.div
-            className="text-center py-2 px-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg"
+            className="text-center py-2 px-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg flex items-center justify-center gap-2"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
           >
+            <IconTrophy className="w-4 h-4" color={isRetro ? '#ffd600' : '#eab308'} />
             <span className={`text-yellow-500 font-black ${sizes.small} uppercase tracking-widest`}>
-              🏆 New High Score!
+              New High Score!
             </span>
           </motion.div>
         )}

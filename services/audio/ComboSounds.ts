@@ -7,11 +7,22 @@
  * - combo3 (25 kills): Triple arpeggio
  * - combo4 (50 kills): Epic fanfare
  * - combo5 (100 kills): Ultimate casino explosion
+ *
+ * Each sound uses the 'feedback' category volume.
  */
 
 import { synthEngine } from './SynthEngine';
 import { type ComboMilestoneSound } from './types';
 import { ThemeService } from '../ThemeService';
+import { SOUND_CATEGORY_MAP } from './constants';
+
+/**
+ * Get category volume multiplier for combo sounds
+ */
+function getCategoryVolume(): number {
+  const category = SOUND_CATEGORY_MAP['comboMilestone'] ?? 'feedback';
+  return synthEngine.getEffectiveVolume(category) / synthEngine.getVolume();
+}
 
 /**
  * Play combo milestone sound based on level
@@ -45,6 +56,7 @@ function playCombo1(): void {
 
   const { ctx, masterGain } = context;
   const isRetro = ThemeService.isRetro();
+  const catVol = getCategoryVolume();
 
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -53,7 +65,7 @@ function playCombo1(): void {
   osc.frequency.setValueAtTime(500, ctx.currentTime);
   osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
 
-  gain.gain.setValueAtTime(0.06, ctx.currentTime);
+  gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
 
   osc.connect(gain);
@@ -72,6 +84,7 @@ function playCombo2(): void {
 
   const { ctx, masterGain } = context;
   const isRetro = ThemeService.isRetro();
+  const catVol = getCategoryVolume();
 
   [0, 0.1].forEach((delay, i) => {
     const osc = ctx.createOscillator();
@@ -82,7 +95,7 @@ function playCombo2(): void {
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
     osc.frequency.exponentialRampToValueAtTime(freq * 1.5, ctx.currentTime + delay + 0.15);
 
-    gain.gain.setValueAtTime(0.06, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime + delay);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
 
     osc.connect(gain);
@@ -102,6 +115,7 @@ function playCombo3(): void {
 
   const { ctx, masterGain } = context;
   const isRetro = ThemeService.isRetro();
+  const catVol = getCategoryVolume();
 
   const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
 
@@ -113,7 +127,7 @@ function playCombo3(): void {
     osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.06, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime + delay);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
 
     osc.connect(gain);
@@ -133,6 +147,7 @@ function playCombo4(): void {
 
   const { ctx, masterGain } = context;
   const isRetro = ThemeService.isRetro();
+  const catVol = getCategoryVolume();
 
   const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
 
@@ -148,7 +163,7 @@ function playCombo4(): void {
     osc2.type = isRetro ? 'square' : 'triangle';
     osc2.frequency.setValueAtTime(freq * 2, ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.05, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0.05 * catVol, ctx.currentTime + delay);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.4);
 
     osc.connect(gain);
@@ -171,6 +186,7 @@ function playCombo5(): void {
 
   const { ctx, masterGain } = context;
   const isRetro = ThemeService.isRetro();
+  const catVol = getCategoryVolume();
 
   // Ascending jackpot fanfare
   const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98]; // C5 to G6
@@ -195,7 +211,7 @@ function playCombo5(): void {
     osc2.type = isRetro ? 'square' : 'triangle';
     osc2.frequency.setValueAtTime(freq * 1.5, ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.05, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0.05 * catVol, ctx.currentTime + delay);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.5);
 
     osc.connect(gain);
@@ -218,7 +234,7 @@ function playCombo5(): void {
     osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(2500, ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.04, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0.04 * catVol, ctx.currentTime + delay);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.1);
 
     osc.connect(gain);

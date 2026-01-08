@@ -14,16 +14,19 @@
  * - useMarketTimeout: Market data timeout handling
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
 import { type Card } from './services/cards/types';
+import { PLAYER_STATS } from './config/PlayerConfig';
 import { applyCardEffect } from './services/cards/CardApplicator';
 import { CardSystem } from './services/cards/CardSystem';
 import { audio } from './services/AudioService';
 import { EventBus } from './services/EventBus';
 import { GameEndReason } from './types/metrics';
 import { MetricsService } from './services/MetricsService';
+import { GameMode, type CycleCompleteData } from './types/gameMode';
+import { CoinService } from './services/CoinService';
 import { GameStateManager } from './services/GameStateManager';
 import { MilestoneService } from './services/MilestoneService';
 import { DifficultyManager } from './services/DifficultyManager';
@@ -71,6 +74,11 @@ const PauseMenu = React.lazy(() =>
 const GameOverScreen = React.lazy(() =>
   import('./components/screens/GameOverScreen').then(m => ({ default: m.GameOverScreen }))
 );
+const CycleCompleteScreen = React.lazy(() =>
+  import('./components/screens/CycleCompleteScreen').then(m => ({
+    default: m.CycleCompleteScreen,
+  }))
+);
 const MetricsDebugPanel = React.lazy(() =>
   import('./components/MetricsDebugPanel').then(m => ({ default: m.MetricsDebugPanel }))
 );
@@ -91,6 +99,11 @@ const LeaderboardPanel = React.lazy(() =>
 );
 const DebugPanel = React.lazy(() =>
   import('./components/DebugPanel').then(m => ({ default: m.DebugPanel }))
+);
+const MarketDisconnectedScreen = React.lazy(() =>
+  import('./components/screens/MarketDisconnectedScreen').then(m => ({
+    default: m.MarketDisconnectedScreen,
+  }))
 );
 
 // Fallback components
@@ -128,6 +141,8 @@ const App: React.FC = () => {
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
+  const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
+  const [cycleData, setCycleData] = useState<CycleCompleteData | null>(null);
 
   // ========================================
   // Initialization & Utility Hooks (refactored from inline useEffects)
@@ -154,16 +169,9 @@ const App: React.FC = () => {
     selectedPair
   );
 
-  // Handle market data timeout (ends game if feed disconnects)
+  // Handle market data timeout (pauses game if feed disconnects)
   useMarketTimeout({
-    marketData,
     playerRef,
-    position,
-    entryPrice,
-    leverage,
-    totalKills: runStats.totalKills,
-    setFinalPnl,
-    setFinalSurvivalTime,
   });
 
   // ========================================
@@ -208,6 +216,7 @@ const App: React.FC = () => {
 
       resetPlayer();
       setLeverage(selectedLeverage);
+      CoinService.resetSession();
       GameStateManager.initializeNewGame(choice, marketData.price, selectedLeverage, selectedPair);
       setPosition(choice);
       setEntryPrice(marketData.price);
@@ -239,7 +248,7 @@ const App: React.FC = () => {
       const nextP = applyCardEffect(p, card);
       nextP.level += 1;
       nextP.exp -= nextP.nextLevelExp;
-      nextP.nextLevelExp = Math.floor(nextP.nextLevelExp * 1.5);
+      nextP.nextLevelExp = Math.floor(nextP.nextLevelExp * PLAYER_STATS.LEVEL_EXP_MULTIPLIER);
 
       MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
       playerRef.current = nextP;
@@ -303,6 +312,47 @@ const App: React.FC = () => {
       void handleGameOver(GameEndReason.LIQUIDATION);
     }
   }, [gameStatus, marketData.effectivePnl, handleGameOver, marketData.price]);
+
+  // Handle cycle completion
+  useEffect(() => {
+    const handleCycleComplete = (data: { cycleNumber: number; totalElapsedSeconds: number }) => {
+      if (gameMode === GameMode.COMPETITIVE) {
+        setCycleData({
+          cycleNumber: data.cycleNumber,
+          survivalTimeSeconds: data.totalElapsedSeconds,
+          totalKills: runStats.totalKills,
+          level: playerRef.current.level,
+          pnl: marketData.pnl,
+          effectivePnl: marketData.effectivePnl,
+          coinsEarned: 0, // Calculated in UI
+          continueMultiplier: 1 + data.cycleNumber * 0.5,
+        });
+        GameStateMachine.transition(GameStatus.CYCLE_COMPLETE);
+      }
+    };
+
+    const unsubscribe = EventBus.on('cycleComplete', handleCycleComplete);
+    return () => unsubscribe();
+  }, [gameMode, runStats.totalKills, playerRef, marketData]);
+
+  const handleCashOut = useCallback(async () => {
+    if (cycleData) {
+      const calc = CoinService.calculateCycleReward({
+        survivalTimeSeconds: cycleData.survivalTimeSeconds,
+        kills: cycleData.totalKills,
+        level: cycleData.level,
+        pnl: cycleData.effectivePnl,
+        maxStreak: 0,
+      });
+      await CoinService.creditCoins(calc.total, 'cycle_complete');
+      void handleGameOver(GameEndReason.DEATH); // Reusing death as generic session end
+    }
+  }, [cycleData, handleGameOver]);
+
+  const handleContinue = useCallback(() => {
+    setCycleData(null);
+    GameStateMachine.transition(GameStatus.PLAYING);
+  }, []);
 
   // ========================================
   // Cheat Manager Integration
@@ -382,7 +432,25 @@ const App: React.FC = () => {
               onOpenSettings={() => setShowSettings(true)}
               selectedPair={selectedPair}
               onPairChange={setSelectedPair}
+              selectedMode={gameMode}
+              onModeChange={setGameMode}
             />
+          </React.Suspense>
+        )}
+
+        {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
+          <React.Suspense fallback={<UIFallback />}>
+            <CycleCompleteScreen
+              data={cycleData}
+              onCashOut={handleCashOut}
+              onContinue={handleContinue}
+            />
+          </React.Suspense>
+        )}
+
+        {gameStatus === GameStatus.DATA_DISCONNECTED && (
+          <React.Suspense fallback={<UIFallback />}>
+            <MarketDisconnectedScreen onBackToMenu={resetGame} />
           </React.Suspense>
         )}
 

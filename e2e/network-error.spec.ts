@@ -25,20 +25,11 @@ test.describe('Network Conditions', () => {
   });
 
   test('should show loading state initially', async ({ page }) => {
-    await page.goto('/');
+    // Go to page but don't wait for full load to catch the loading state
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Check for loading indicators (spinners, skeleton, or loading text)
-    await page
-      .locator('text=Loading')
-      .or(page.locator('[class*="loading"]'))
-      .or(page.locator('[class*="spinner"]'))
-      .or(page.locator('svg[class*="animate"]'))
-      .isVisible();
-
-    // Loading state might be too fast to catch
-    await page.waitForTimeout(100);
-
-    // Eventually content should appear
+    // The loading indicator might be gone very quickly on fast machines
+    // We don't fail if it's already gone, but we check body is eventually visible
     await expect(page.locator('body')).toBeVisible();
   });
 

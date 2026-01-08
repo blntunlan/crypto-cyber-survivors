@@ -31,9 +31,11 @@ describe('CombatSystem', () => {
   let mockPool: any;
   let mockPlayer: Player;
   let mockState: GameState;
+  let combatSystem: CombatSystem;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    combatSystem = new CombatSystem();
 
     // Default mock stats
     vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
@@ -64,6 +66,7 @@ describe('CombatSystem', () => {
       speed: 4,
       luck: 0,
       critChance: 0.1,
+      critDamage: 2.0,
       projectiles: 1,
       area: 1,
       exp: 0,
@@ -71,6 +74,9 @@ describe('CombatSystem', () => {
       level: 1,
       armor: 0,
       magnet: 1,
+      lifesteal: 0,
+      dodge: 0,
+      regen: 0,
     };
 
     // Mock GameState
@@ -91,6 +97,16 @@ describe('CombatSystem', () => {
       dashCooldownTimer: 0,
       dashTrailAccumulator: 0,
       isGameOverTriggered: false,
+      damageIndicators: [],
+      lastHeartbeatTime: 0,
+      doubleDashQueued: false,
+      doubleDashUsed: false,
+      dashHaloOpacity: 0,
+      hitStopTimer: 0,
+      playerScaleX: 1,
+      playerScaleY: 1,
+      nearMissTimer: 0,
+      nearMissCooldown: 0,
     };
   });
 
@@ -98,7 +114,7 @@ describe('CombatSystem', () => {
     it('should not fire when no enemies exist', () => {
       mockPool.activeEnemies = [];
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       expect(mockPool.getBullet).not.toHaveBeenCalled();
     });
@@ -108,7 +124,7 @@ describe('CombatSystem', () => {
       mockState.fireTimer = 100; // Accumulated 100ms
       mockPlayer.fireRate = 300;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 100); // +100 = 200 total
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 100); // +100 = 200 total
 
       expect(mockPool.getBullet).not.toHaveBeenCalled();
       expect(mockState.fireTimer).toBe(200);
@@ -119,7 +135,7 @@ describe('CombatSystem', () => {
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 400);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 400);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
     });
@@ -138,7 +154,7 @@ describe('CombatSystem', () => {
         getCritChance: () => 0.1,
       } as any);
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 150);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 150);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
     });
@@ -148,7 +164,7 @@ describe('CombatSystem', () => {
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       expect(mockState.fireTimer).toBe(0);
     });
@@ -158,7 +174,7 @@ describe('CombatSystem', () => {
       mockPlayer.projectiles = 3;
       mockState.lastFireTime = 0;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       expect(mockPool.getBullet).toHaveBeenCalledTimes(3);
     });
@@ -173,7 +189,7 @@ describe('CombatSystem', () => {
       ];
       mockState.lastFireTime = 0;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       // Bullet should be fired towards the closer enemy (450, 300)
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
@@ -193,7 +209,7 @@ describe('CombatSystem', () => {
       mockPlayer.fireRate = 300;
 
       // Provide screen dimensions - enemy is off-screen
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
 
       expect(mockPool.getBullet).not.toHaveBeenCalled();
     });
@@ -205,7 +221,7 @@ describe('CombatSystem', () => {
       mockPlayer.fireRate = 300;
 
       // Provide screen dimensions - enemy is on-screen
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
     });
@@ -219,7 +235,7 @@ describe('CombatSystem', () => {
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000, 800, 600);
 
       // Bullet should target the on-screen enemy (600, 300)
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
@@ -243,7 +259,7 @@ describe('CombatSystem', () => {
         getCritChance: () => 0,
       } as any);
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const damage = bulletCallArgs[4];
@@ -263,7 +279,7 @@ describe('CombatSystem', () => {
         getCritChance: () => 0,
       } as any);
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const radius = bulletCallArgs[5];
@@ -282,7 +298,7 @@ describe('CombatSystem', () => {
       mockPlayer.y = 200;
       mockState.lastFireTime = 0;
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const bulletX = bulletCallArgs[0];
@@ -304,7 +320,7 @@ describe('CombatSystem', () => {
         getCritChance: () => 0,
       } as any);
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       // Get all velocity vectors
       const velocities = mockPool.getBullet.mock.calls.map((call: any[]) => ({
@@ -334,7 +350,7 @@ describe('CombatSystem', () => {
         getCritChance: () => 0, // No crits
       } as any);
 
-      CombatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
+      combatSystem.processAutoFire(mockPool as PoolManager, mockPlayer, mockState, 1000);
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const isCrit = bulletCallArgs[7];

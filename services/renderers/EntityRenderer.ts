@@ -1,11 +1,12 @@
 import { type IRenderer, type RenderOptions } from './types';
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
+import { COLORS } from '../../config/Colors';
 
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
@@ -16,7 +17,7 @@ export class EntityRenderer implements IRenderer {
 
   render(
     ctx: CanvasRenderingContext2D,
-    pool: PoolManager,
+    pool: IPoolManager,
     state: GameState,
     player: Player,
     opts: RenderOptions
@@ -35,7 +36,7 @@ export class EntityRenderer implements IRenderer {
 
   private drawGems(
     ctx: CanvasRenderingContext2D,
-    pool: PoolManager,
+    pool: IPoolManager,
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ) {
@@ -111,7 +112,7 @@ export class EntityRenderer implements IRenderer {
       if (shadowsEnabled) ctx.shadowBlur = 0;
 
       // Draw icon (emoji)
-      ctx.font = `${Math.round(radius * 1.2)}px Arial`;
+      ctx.font = `${Math.round(radius * 1.2)}px ${ThemeService.isRetro() ? 'VT323' : 'Arial'}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.globalAlpha = flashAlpha;
@@ -138,7 +139,7 @@ export class EntityRenderer implements IRenderer {
     });
   }
 
-  private drawEnemies(ctx: CanvasRenderingContext2D, pool: PoolManager, bounds: ViewportBounds) {
+  private drawEnemies(ctx: CanvasRenderingContext2D, pool: IPoolManager, bounds: ViewportBounds) {
     pool.activeEnemies.forEach(e => {
       // Off-screen culling (larger radius for spawn animation glow effect)
       const spawnGlowExtra = e.spawnTimer !== undefined && e.spawnTimer > 0.6 ? 30 : 0;
@@ -272,7 +273,7 @@ export class EntityRenderer implements IRenderer {
       if (showHealthBar) {
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillRect(ex - e.radius, ey - e.radius - 8, e.radius * 2, 4);
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = ThemeService.isRetro() ? COLORS.CASINO_RED : COLORS.SHORT;
         ctx.fillRect(
           ex - e.radius,
           ey - e.radius - 8,
@@ -306,15 +307,15 @@ export class EntityRenderer implements IRenderer {
       // Outer pulsing ring - indicates double dash window (JACKPOT_YELLOW)
       const haloRadius = player.radius * 2.5;
       ctx.globalAlpha = state.dashHaloOpacity * 0.6;
-      ctx.strokeStyle = '#FFD600'; // JACKPOT_YELLOW
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = COLORS.JACKPOT_YELLOW;
+      ctx.lineWidth = ThemeService.isRetro() ? 4 : 3;
       ctx.beginPath();
       ctx.arc(Math.round(player.x), Math.round(player.y), haloRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       // Inner glow ring (CASINO_GOLD)
       ctx.globalAlpha = state.dashHaloOpacity * 0.4;
-      ctx.strokeStyle = '#D6B85C'; // CASINO_GOLD
+      ctx.strokeStyle = COLORS.CASINO_GOLD;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(Math.round(player.x), Math.round(player.y), haloRadius - 5, 0, Math.PI * 2);
@@ -356,6 +357,12 @@ export class EntityRenderer implements IRenderer {
       // 16-bit pixel style - draw as square with details
       const size = player.radius * 2;
       const halfSize = size / 2;
+
+      // High-visibility outline for Retro mode
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.strokeRect(Math.round(player.x) - halfSize, Math.round(player.y) - halfSize, size, size);
+
       ctx.fillStyle = player.color;
       ctx.fillRect(Math.round(player.x) - halfSize, Math.round(player.y) - halfSize, size, size);
 
@@ -367,6 +374,13 @@ export class EntityRenderer implements IRenderer {
       ctx.fillRect(Math.round(player.x) + 2, eyeY, eyeSize, eyeSize);
     } else {
       // Cyberpunk style - smooth ellipse with squash & stretch
+
+      // Under-glow for better visibility in chaos
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; // Subtle spotlight
+      ctx.arc(Math.round(player.x), Math.round(player.y), player.radius * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.fillStyle = player.color;
       ctx.beginPath();
 

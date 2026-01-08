@@ -1,5 +1,5 @@
 import { type IRenderer, type RenderOptions } from './types';
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { createViewportBounds, isCircleVisible } from './CullingUtils';
@@ -14,7 +14,7 @@ export class ProjectileRenderer implements IRenderer {
 
   render(
     ctx: CanvasRenderingContext2D,
-    pool: PoolManager,
+    pool: IPoolManager,
     _state: GameState,
     _player: Player,
     opts: RenderOptions
@@ -52,18 +52,20 @@ export class ProjectileRenderer implements IRenderer {
       }
 
       // Pixel mode draws simple squares, normal mode draws laser bolts
+      // Pixel mode draws simple squares, normal mode draws laser bolts
       if (ThemeService.isRetro()) {
-        // 16-bit pixel style - simple square bullets
+        // 16-bit pixel style - simple small square bullets (optimized for high count)
+        ctx.shadowBlur = 0; // No glow in retro for clarity
+
         ctx.save();
         ctx.translate(b.x, b.y);
 
-        const size = b.radius * 2;
+        // Reduced size for retro look & less clutter
+        const size = b.radius;
         ctx.fillStyle = isSuperCrit ? '#ff4500' : isCrit ? '#ffd700' : b.color;
-        ctx.fillRect(-size / 2, -size / 2, size, size);
 
-        // White center pixel
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(-1, -1, 2, 2);
+        // Draw centered square
+        ctx.fillRect(-size / 2, -size / 2, size, size);
 
         ctx.restore();
       } else {

@@ -7,6 +7,7 @@
 import { memo } from 'react';
 import { useGameStore, selectGraphics } from '../../stores/gameStore';
 import { ToggleButton } from './ToggleButton';
+import { IconMonitor } from '../icons/CardIcons';
 
 interface GraphicsSectionProps {
   isMobile: boolean;
@@ -20,8 +21,9 @@ export const GraphicsSection = memo(({ isMobile, focusedToggle }: GraphicsSectio
 
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
-        Graphics
+      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <IconMonitor className="w-3.5 h-3.5" color="#64748b" />
+        <span>Graphics</span>
       </h3>
       <div className="space-y-1 md:space-y-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
         <ToggleButton

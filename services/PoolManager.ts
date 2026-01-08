@@ -15,6 +15,7 @@ import {
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
 import { WHALE_TIER_CONFIGS, type WhaleTier } from '../types/indicators';
+import { type IPoolManager } from './interfaces/IPoolManager';
 import { marketStateService } from './MarketStateService';
 import { audio } from './audio';
 
@@ -90,7 +91,7 @@ class ObjectPool<T extends { active: boolean }> {
   }
 }
 
-export class PoolManager {
+export class PoolManager implements IPoolManager {
   private enemies: ObjectPool<GameEnemy>;
   private bullets: ObjectPool<Bullet>;
   private gems: ObjectPool<Gem>;

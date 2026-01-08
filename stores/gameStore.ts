@@ -12,6 +12,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { nanoid } from 'nanoid';
 import { type MobileControlSettings, DEFAULT_MOBILE_SETTINGS } from '../types/MobileSettings';
+import { type SoundCategory, type CategoryVolumes } from '../services/audio/types';
+import { DEFAULT_CATEGORY_VOLUMES } from '../services/audio/constants';
 
 // ============================================
 // Types
@@ -22,6 +24,7 @@ export interface AudioSettings {
   sfxVolume: number;
   musicVolume: number;
   isMuted: boolean;
+  categoryVolumes: CategoryVolumes;
 }
 
 export interface GraphicsSettings {
@@ -82,6 +85,7 @@ export interface GameStoreActions {
   setSfxVolume: (volume: number) => void;
   setMusicVolume: (volume: number) => void;
   toggleMute: () => void;
+  setCategoryVolume: (category: SoundCategory, volume: number) => void;
 
   // Graphics
   toggleParticles: () => void;
@@ -123,6 +127,7 @@ const DEFAULT_AUDIO: AudioSettings = {
   sfxVolume: 0.8,
   musicVolume: 0.5,
   isMuted: false,
+  categoryVolumes: { ...DEFAULT_CATEGORY_VOLUMES },
 };
 
 const DEFAULT_GRAPHICS: GraphicsSettings = {
@@ -195,6 +200,17 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
       toggleMute: () =>
         set(state => ({
           audio: { ...state.audio, isMuted: !state.audio.isMuted },
+        })),
+
+      setCategoryVolume: (category, volume) =>
+        set(state => ({
+          audio: {
+            ...state.audio,
+            categoryVolumes: {
+              ...state.audio.categoryVolumes,
+              [category]: Math.max(0, Math.min(1, volume)),
+            },
+          },
         })),
 
       // Graphics Actions
@@ -322,6 +338,27 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
         hasSeenTutorial: state.hasSeenTutorial,
         lastPlayedVersion: state.lastPlayedVersion,
       }),
+      // Merge strategy to handle missing fields from old storage
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<GameStoreState> | undefined;
+        if (!persisted) return currentState;
+
+        // Ensure categoryVolumes exists (migration for old saves)
+        const audioWithCategoryVolumes = {
+          ...DEFAULT_AUDIO,
+          ...persisted.audio,
+          categoryVolumes: {
+            ...DEFAULT_CATEGORY_VOLUMES,
+            ...(persisted.audio?.categoryVolumes ?? {}),
+          },
+        };
+
+        return {
+          ...currentState,
+          ...persisted,
+          audio: audioWithCategoryVolumes,
+        };
+      },
     }
   )
 );

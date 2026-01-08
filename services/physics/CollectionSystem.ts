@@ -1,12 +1,4 @@
-/**
- * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
- * Includes magnet logic and collection effects.
- *
- * @refactored Uses IPhysicsContext for dependency injection instead of direct imports.
- * This reduces coupling from 14 imports to 7 imports.
- */
-
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type Player, type GameState, type Gem } from '../../types';
 import { type BuffGem } from '../../types/BuffGem';
 import { type IPhysicsContext } from './PhysicsTypes';
@@ -14,38 +6,36 @@ import { getPhysicsContext } from './PhysicsContext';
 import { EventBus } from '../EventBus';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { lerp } from '../../utils/math';
+import { type ICollectionSystem } from '../interfaces/IPhysicsSubsystems';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
- * Includes magnet logic and collection effects.
  */
-export class CollectionSystem {
-  private static ctx: IPhysicsContext = getPhysicsContext();
+export class CollectionSystem implements ICollectionSystem {
+  private ctx: IPhysicsContext;
+
+  constructor(context: IPhysicsContext = getPhysicsContext()) {
+    this.ctx = context;
+  }
 
   /**
    * Set a custom context (for testing)
    */
-  public static setContext(context: IPhysicsContext): void {
+  public setContext(context: IPhysicsContext): void {
     this.ctx = context;
   }
 
   /**
    * Reset to default context
    */
-  public static resetContext(): void {
+  public resetContext(): void {
     this.ctx = getPhysicsContext();
   }
 
   /**
    * Update collection logic for gems and buff gems
    */
-  public static update(
-    pool: PoolManager,
-    player: Player,
-    state: GameState,
-    dtFactor: number
-  ): void {
-    // Get effective magnet with system-level cap
+  public update(pool: IPoolManager, player: Player, state: GameState, dtFactor: number): void {
     const rawMagnet = this.ctx.stats.getMagnet(player);
     const effectiveMagnet = Math.min(rawMagnet, this.ctx.statCaps.MAX_MAGNET);
 
@@ -53,8 +43,8 @@ export class CollectionSystem {
     this.handleBuffGemCollections(pool, player, state, dtFactor, effectiveMagnet);
   }
 
-  private static handleGemCollections(
-    pool: PoolManager,
+  private handleGemCollections(
+    pool: IPoolManager,
     player: Player,
     state: GameState,
     dtFactor: number,
@@ -65,30 +55,20 @@ export class CollectionSystem {
       const dy = player.y - gem.y;
       const distSq = dx * dx + dy * dy;
 
-      // Pickup
       const pickupDist = player.radius + gem.radius;
       if (distSq < pickupDist * pickupDist) {
         this.collectGem(pool, player, gem, state);
         return;
       }
 
-      // Magnet Physics (Arc Movement)
       if (gem.magnetized) {
-        // Initialize velocity if needed
         gem.vx ??= 0;
         gem.vy ??= 0;
 
         const dist = Math.sqrt(distSq);
-
-        // Target velocity (towards player)
-        // High max speed ensures it catches up
         const maxSpeed = 22;
         const tx = (dx / dist) * maxSpeed;
         const ty = (dy / dist) * maxSpeed;
-
-        // Steering behavior
-        // Lower steer factor = wider arcs
-        // Higher steer factor = tighter turns
         const steerFactor = 0.12;
 
         gem.vx = lerp(gem.vx, tx, steerFactor * dtFactor);
@@ -97,15 +77,11 @@ export class CollectionSystem {
         gem.x += gem.vx * dtFactor;
         gem.y += gem.vy * dtFactor;
       } else {
-        // Activation Check
         const magnetRange = this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet;
         const rangeSq = magnetRange * magnetRange;
 
         if (distSq < rangeSq) {
           gem.magnetized = true;
-
-          // Initial "Pop" Effect
-          // Give random velocity to create varied arcs
           const popAngle = Math.random() * Math.PI * 2;
           const popSpeed = 3 + Math.random() * 3;
           gem.vx = Math.cos(popAngle) * popSpeed;
@@ -115,7 +91,7 @@ export class CollectionSystem {
     });
   }
 
-  private static collectGem(pool: PoolManager, player: Player, gem: Gem, state: GameState): void {
+  private collectGem(pool: IPoolManager, player: Player, gem: Gem, state: GameState): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
     const xpGain = Math.floor(gem.value * this.ctx.combo.getXpMultiplier());
 
@@ -130,10 +106,8 @@ export class CollectionSystem {
       isRare: gem.isRare ?? false,
     });
 
-    // Notify about xp gain for UI or other systems
     EventBus.emit('xpGained', { amount: xpGain });
 
-    // Level up check
     if (player.exp >= player.nextLevelExp && state.levelUpFreeze <= 0) {
       state.levelUpFreeze = 500;
       state.shake = 10;
@@ -141,8 +115,8 @@ export class CollectionSystem {
     }
   }
 
-  private static handleBuffGemCollections(
-    pool: PoolManager,
+  private handleBuffGemCollections(
+    pool: IPoolManager,
     player: Player,
     state: GameState,
     dtFactor: number,
@@ -157,7 +131,6 @@ export class CollectionSystem {
       const dy = player.y - gem.y;
       const distSq = dx * dx + dy * dy;
 
-      // Weaker magnet for buff gems
       const magnetRange = (this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet) * 0.6;
       if (distSq < magnetRange * magnetRange) {
         const dist = Math.sqrt(distSq);
@@ -166,7 +139,6 @@ export class CollectionSystem {
         gem.y += (dy / dist) * pull;
       }
 
-      // Pickup
       const pickupDist = player.radius + gem.radius;
       if (distSq < pickupDist * pickupDist) {
         this.collectBuffGem(pool, gem, state);
@@ -174,7 +146,7 @@ export class CollectionSystem {
     }
   }
 
-  private static collectBuffGem(pool: PoolManager, gem: BuffGem, state: GameState): void {
+  private collectBuffGem(pool: IPoolManager, gem: BuffGem, state: GameState): void {
     BuffManager.addEffect(gem.decoratorClass);
     this.ctx.audio.playGem();
     state.shake = 5;
@@ -185,11 +157,7 @@ export class CollectionSystem {
     this.ctx.buffGems.collectGem(gem);
   }
 
-  private static spawnCollectionParticles(
-    pool: PoolManager,
-    gem: Gem,
-    particleMultiplier: number
-  ): void {
+  private spawnCollectionParticles(pool: IPoolManager, gem: Gem, particleMultiplier: number): void {
     const collectCfg = this.ctx.particles.collect;
     const count = Math.round(collectCfg.count * particleMultiplier);
 
@@ -208,7 +176,7 @@ export class CollectionSystem {
     }
   }
 
-  private static spawnBuffParticles(pool: PoolManager, gem: BuffGem): void {
+  private spawnBuffParticles(pool: IPoolManager, gem: BuffGem): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
     const count = Math.round(16 * perfConfig.particleMultiplier);
 

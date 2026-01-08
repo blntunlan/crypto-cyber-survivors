@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsRetro } from '../../contexts/useTheme';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
 import { audio } from '../../services/AudioService';
@@ -10,6 +11,7 @@ interface NicknameEntryScreenProps {
 }
 
 export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComplete }) => {
+  const isRetro = useIsRetro();
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,27 +63,31 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
       {/* Background Effects - Cyan/Neon Theme */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Radial gradient glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(34,211,238,0.15),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(168,85,247,0.1),transparent_50%)]" />
+        {!isRetro && (
+          <>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(34,211,238,0.15),transparent_60%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(168,85,247,0.1),transparent_50%)]" />
+          </>
+        )}
 
         {/* Grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className={`absolute inset-0 ${isRetro ? 'opacity-[0.05]' : 'opacity-[0.03]'}`}
           style={{
             backgroundImage: `linear-gradient(rgba(34,211,238,0.5) 1px, transparent 1px),
                              linear-gradient(90deg, rgba(34,211,238,0.5) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
+            backgroundSize: isRetro ? '25px 25px' : '50px 50px',
           }}
         />
 
         {/* Animated scanline */}
         <motion.div
-          className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent"
+          className={`absolute left-0 right-0 h-[2px] ${isRetro ? 'bg-white/10' : 'bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent'}`}
           animate={{
             top: ['0%', '100%'],
           }}
           transition={{
-            duration: 8,
+            duration: isRetro ? 4 : 8,
             repeat: Infinity,
             ease: 'linear',
           }}
@@ -95,41 +101,61 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
         className="w-full max-w-md relative"
       >
         {/* Decorative corner elements - Cyan theme */}
-        <div className="absolute -top-3 -left-3 w-10 h-10 border-t-2 border-l-2 border-cyan-500/60 rounded-tl-lg" />
-        <div className="absolute -top-3 -right-3 w-10 h-10 border-t-2 border-r-2 border-cyan-500/60 rounded-tr-lg" />
-        <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-2 border-l-2 border-cyan-500/60 rounded-bl-lg" />
-        <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-2 border-r-2 border-cyan-500/60 rounded-br-lg" />
+        {!isRetro && (
+          <>
+            <div className="absolute -top-3 -left-3 w-10 h-10 border-t-2 border-l-2 border-cyan-500/60 rounded-tl-lg" />
+            <div className="absolute -top-3 -right-3 w-10 h-10 border-t-2 border-r-2 border-cyan-500/60 rounded-tr-lg" />
+            <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-2 border-l-2 border-cyan-500/60 rounded-bl-lg" />
+            <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-2 border-r-2 border-cyan-500/60 rounded-br-lg" />
+          </>
+        )}
 
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-cyan-500/20 p-8 rounded-xl shadow-2xl shadow-cyan-500/5 relative overflow-hidden">
+        <div
+          className={`p-8 relative overflow-hidden transition-all ${
+            isRetro
+              ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
+              : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+          }`}
+        >
           {/* Animated top border */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+          {!isRetro && (
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+          )}
 
           {/* Glow effect behind */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 rounded-xl blur-xl opacity-50" />
+          {!isRetro && (
+            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 rounded-xl blur-xl opacity-50" />
+          )}
 
           <header className="text-center space-y-3 mb-8 relative">
             {/* Icon with glow */}
             <motion.div
-              className="inline-flex p-4 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/10 border border-cyan-500/30 mb-4 relative"
+              className={`inline-flex p-4 ${isRetro ? 'border-2 border-cyan-500 bg-zinc-800 rounded-none' : 'rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/10 border border-cyan-500/30 relative'}`}
               animate={{
-                boxShadow: [
-                  '0 0 20px rgba(34,211,238,0.2)',
-                  '0 0 40px rgba(34,211,238,0.3)',
-                  '0 0 20px rgba(34,211,238,0.2)',
-                ],
+                boxShadow: isRetro
+                  ? 'none'
+                  : [
+                      '0 0 20px rgba(34,211,238,0.2)',
+                      '0 0 40px rgba(34,211,238,0.3)',
+                      '0 0 20px rgba(34,211,238,0.2)',
+                    ],
               }}
               transition={{ duration: 2, repeat: Infinity }}
             >
               <User className="w-7 h-7 text-cyan-400" />
             </motion.div>
 
-            <h1 className="text-3xl font-black tracking-tight text-white">
+            <h1
+              className={`font-display text-2xl font-black tracking-tight text-white uppercase ${isRetro ? '' : 'italic'}`}
+            >
               Identify{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-300">
+              <span
+                className={`text-transparent bg-clip-text ${isRetro ? 'bg-cyan-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-white'}`}
+              >
                 Survivor
               </span>
             </h1>
-            <p className="text-slate-500 text-[10px] font-bold tracking-[0.3em] uppercase">
+            <p className="text-slate-500 text-[8px] font-display tracking-[0.3em] uppercase">
               Beta Access Protocol v1.0
             </p>
           </header>
@@ -167,8 +193,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
                   className={`w-full bg-slate-950/80 border-2 ${
                     error
                       ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                      : 'border-slate-700/50 text-white focus:border-cyan-500/50 group-hover:border-slate-600'
-                  } px-5 py-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 transition-all font-semibold tracking-wide placeholder:text-slate-600 placeholder:font-normal`}
+                      : `border-slate-700/50 text-white focus:border-cyan-500/50 group-hover:border-slate-600`
+                  } px-5 py-4 ${isRetro ? 'rounded-none font-primary' : 'rounded-lg font-semibold'} focus:outline-none focus:ring-2 focus:ring-cyan-500/30 transition-all tracking-wide placeholder:text-slate-600 placeholder:font-normal`}
                   maxLength={16}
                   disabled={isSubmitting}
                   autoComplete="off"
@@ -206,9 +232,11 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
             <motion.button
               type="submit"
               disabled={isSubmitting || nickname.length < 3}
-              className={`w-full relative py-4 flex items-center justify-center gap-2 rounded-lg font-bold text-sm tracking-wide transition-all group overflow-hidden ${
+              className={`w-full relative py-4 flex items-center justify-center gap-2 font-bold text-sm tracking-wide transition-all group overflow-hidden ${isRetro ? 'rounded-none' : 'rounded-lg'} ${
                 nickname.length >= 3
-                  ? 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white hover:from-cyan-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25'
+                  ? isRetro
+                    ? 'bg-cyan-600 text-white hover:bg-cyan-500'
+                    : 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white hover:from-cyan-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25'
                   : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-700/50'
               }`}
               whileHover={nickname.length >= 3 ? { scale: 1.02 } : {}}
@@ -227,7 +255,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
               )}
 
               {/* Shine effect */}
-              {nickname.length >= 3 && (
+              {nickname.length >= 3 && !isRetro && (
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                   initial={{ x: '-100%' }}
@@ -243,10 +271,12 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
             </motion.button>
           </form>
 
-          <footer className="mt-8 pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium">
+          <footer
+            className={`mt-8 pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium ${isRetro ? 'font-primary' : ''}`}
+          >
             <div className="flex items-center gap-2">
               <motion.div
-                className="w-2 h-2 bg-green-500 rounded-full"
+                className={`w-2 h-2 bg-green-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
@@ -258,13 +288,29 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
 
         {/* Info hints */}
         <div className="mt-6 flex gap-3 justify-center">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 rounded-full backdrop-blur-sm">
-            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
-            <span className="text-[9px] text-slate-400 font-medium">3-16 Characters</span>
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 ${isRetro ? 'rounded-none' : 'rounded-full backdrop-blur-sm'}`}
+          >
+            <div
+              className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+            />
+            <span
+              className={`text-[9px] text-slate-400 font-medium ${isRetro ? 'font-primary' : ''}`}
+            >
+              3-16 Characters
+            </span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 rounded-full backdrop-blur-sm">
-            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
-            <span className="text-[9px] text-slate-400 font-medium">Letters & Numbers</span>
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 ${isRetro ? 'rounded-none' : 'rounded-full backdrop-blur-sm'}`}
+          >
+            <div
+              className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+            />
+            <span
+              className={`text-[9px] text-slate-400 font-medium ${isRetro ? 'font-primary' : ''}`}
+            >
+              Letters & Numbers
+            </span>
           </div>
         </div>
       </motion.div>

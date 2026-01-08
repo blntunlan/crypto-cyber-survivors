@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTheme } from '../contexts/useTheme';
 import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
 
 interface DebugInfo {
@@ -24,6 +25,7 @@ interface DebugInfo {
 export const DebugPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState<DebugInfo>({});
+  const { isRetro } = useTheme();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,7 +61,7 @@ export const DebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-[9999] bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg"
+        className={`fixed bottom-4 right-4 z-[9999] bg-red-600 text-white px-3 py-2 text-xs font-bold shadow-lg ${isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'}`}
         style={{ touchAction: 'manipulation' }}
       >
         🐛 DEBUG
@@ -69,7 +71,9 @@ export const DebugPanel: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/90 p-4 overflow-auto">
-      <div className="bg-slate-900 border border-green-500 rounded-lg p-4 text-white font-mono text-xs">
+      <div
+        className={`bg-slate-900 border-2 border-green-500 p-4 text-white font-mono text-xs ${isRetro ? 'rounded-none' : 'rounded-lg'}`}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold text-green-400">🐛 Debug Panel</h2>
           <button

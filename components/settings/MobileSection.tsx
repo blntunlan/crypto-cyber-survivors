@@ -12,6 +12,7 @@ import {
   type JoystickSize,
 } from '../../types/MobileSettings';
 import { ToggleButton } from './ToggleButton';
+import { IconSmartphone } from '../icons/CardIcons';
 
 export const MobileSection = memo(() => {
   const mobile = useGameStore(state => state.mobile);
@@ -19,8 +20,9 @@ export const MobileSection = memo(() => {
 
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
-        Mobile Controls
+      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+        <IconSmartphone className="w-3.5 h-3.5" color="#64748b" />
+        <span>Mobile Controls</span>
       </h3>
       <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
         {/* Control Type Selection */}

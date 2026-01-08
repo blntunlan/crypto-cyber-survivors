@@ -16,6 +16,18 @@
 
 import { synthEngine } from './SynthEngine';
 import { getPreset } from '../../config/AudioRegistry';
+import { SOUND_CATEGORY_MAP } from './constants';
+
+/**
+ * Get category volume multiplier for slot sounds
+ */
+function getCategoryVolume(): number {
+  const category = SOUND_CATEGORY_MAP['slotTick'] ?? 'slots';
+  // Since master gain is already applied, we only need the category multiplier
+  const masterVol = synthEngine.getVolume();
+  if (masterVol === 0) return 0;
+  return synthEngine.getEffectiveVolume(category) / masterVol;
+}
 
 // C Major scale frequencies for easy reference
 const C_MAJOR = {
@@ -39,10 +51,12 @@ export function playSlotTick(pitch: number = 1): void {
   if (synthEngine.isOnCooldown('slotTick')) return;
   synthEngine.recordPlay('slotTick');
 
+  const catVol = getCategoryVolume();
   const tickPreset = getPreset('slotTick');
   if (tickPreset) {
     synthEngine.playPreset(tickPreset, {
       frequencyMultiplier: pitch,
+      volumeMultiplier: catVol,
     });
   }
 }
@@ -53,9 +67,10 @@ export function playSlotTick(pitch: number = 1): void {
  * Uses square wave for mechanical feel + sine for warmth
  */
 export function playReelStop(reelNumber: number): void {
+  const catVol = getCategoryVolume();
   // Rising pitch per reel (0, 1, 2) for building excitement
   const pitchMultiplier = 1 + reelNumber * 0.15; // 1.0, 1.15, 1.30
-  const volume = 0.8 + reelNumber * 0.1; // 0.8, 0.9, 1.0
+  const volume = (0.8 + reelNumber * 0.1) * catVol; // 0.8, 0.9, 1.0
 
   const stopPreset = getPreset('reelStopClick');
   const sparklePreset = getPreset('slotSparkle');
@@ -71,7 +86,7 @@ export function playReelStop(reelNumber: number): void {
   // Add subtle sparkle on final reel
   if (reelNumber === 2 && sparklePreset) {
     synthEngine.playPreset(sparklePreset, {
-      volumeMultiplier: 0.5,
+      volumeMultiplier: 0.5 * catVol,
       delay: 0.02,
     });
   }

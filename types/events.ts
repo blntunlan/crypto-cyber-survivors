@@ -49,7 +49,8 @@ export type GameEvent =
   | 'verification:failed'
   | 'verification:retrying'
   | 'volatilityShock'
-  | 'wavePhaseChange';
+  | 'wavePhaseChange'
+  | 'cycleComplete';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -323,6 +324,7 @@ export interface EventDataMap {
   'verification:retrying': Record<string, unknown>;
   volatilityShock: { intensity: number; direction: 'up' | 'down' };
   wavePhaseChange: { phase: WavePhase; oldPhase: WavePhase };
+  cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
 }
 
 // =============================================================================

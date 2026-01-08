@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../../contexts/useTheme';
 import {
   Trophy,
   Crown,
@@ -40,6 +41,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
   const [loading, setLoading] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { isRetro, theme } = useTheme();
   const currentNickname = UserSessionService.getNickname();
 
   const fetchLeaderboard = useCallback(async () => {
@@ -217,8 +219,12 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
         );
       default:
         return (
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 border border-slate-700">
-            <span className="text-xs font-bold text-slate-400">{rank}</span>
+          <div
+            className={`flex items-center justify-center w-6 h-6 ${isRetro ? 'border-2' : 'rounded-full bg-slate-800 border'} border-slate-700`}
+          >
+            <span className={`text-xs font-bold text-slate-400 ${isRetro ? 'font-primary' : ''}`}>
+              {rank}
+            </span>
           </div>
         );
     }
@@ -228,19 +234,28 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
 
   return (
     <motion.div
-      className="fixed right-4 top-20 z-[100] w-72 font-feed hidden lg:block"
+      className={`fixed right-4 top-20 z-[100] w-72 hidden lg:block ${isRetro ? 'font-primary' : 'font-feed'}`}
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: 0.5 }}
     >
       {/* Header - Glassmorphism */}
       <div
-        className="flex items-center justify-between px-4 py-3 bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-t-xl cursor-pointer hover:border-cyan-500/30 hover:bg-slate-900/50 transition-all"
+        className={`flex items-center justify-between px-4 py-3 border transition-all cursor-pointer 
+          ${
+            isRetro
+              ? 'bg-zinc-900 border-zinc-700 rounded-none'
+              : 'bg-slate-900/40 backdrop-blur-md border-white/10 rounded-t-xl hover:border-cyan-500/30 hover:bg-slate-900/50'
+          }`}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
           <Trophy className="w-4 h-4 text-yellow-400" />
-          <span className="text-sm font-bold text-white uppercase tracking-wider">Leaderboard</span>
+          <span
+            className={`text-sm font-bold text-white uppercase tracking-wider ${isRetro ? 'font-display text-xs' : ''}`}
+          >
+            Leaderboard
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -269,7 +284,11 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-slate-900/40 backdrop-blur-md border border-t-0 border-white/10 rounded-b-xl overflow-hidden"
+            className={`${
+              isRetro
+                ? 'bg-zinc-900 border-2 border-t-0 border-zinc-700 rounded-none'
+                : 'bg-slate-900/40 backdrop-blur-md border border-t-0 border-white/10 rounded-b-xl'
+            } overflow-hidden shadow-2xl`}
           >
             {loading && entries.length === 0 ? (
               <div className="flex items-center justify-center py-8">
@@ -294,7 +313,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                       transition={{ delay: index * 0.05 }}
                       className={`flex items-center gap-3 px-4 py-3 transition-colors ${
                         isCurrentPlayer
-                          ? 'bg-cyan-500/10 border-l-2 border-cyan-400'
+                          ? isRetro
+                            ? 'bg-zinc-800 border-l-4 border-yellow-500'
+                            : 'bg-cyan-500/10 border-l-2 border-cyan-400'
                           : 'hover:bg-slate-800/50'
                       }`}
                     >
@@ -305,14 +326,20 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span
-                            className={`text-sm font-semibold truncate ${
-                              isCurrentPlayer ? 'text-cyan-300' : 'text-white'
+                            className={`${isRetro ? 'text-xs' : 'text-sm'} font-semibold truncate ${
+                              isCurrentPlayer
+                                ? isRetro
+                                  ? 'text-yellow-400'
+                                  : 'text-cyan-300'
+                                : 'text-white'
                             }`}
                           >
                             {entry.player_name}
                           </span>
                           {isCurrentPlayer && (
-                            <span className="text-[9px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded uppercase font-bold">
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 ${isRetro ? 'bg-yellow-500/20 text-yellow-500 font-display' : 'bg-cyan-500/20 text-cyan-400 rounded uppercase font-bold'}`}
+                            >
                               You
                             </span>
                           )}
@@ -320,10 +347,11 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                         <div className="flex items-center gap-2 mt-0.5">
                           {entry.crypto_pair && (
                             <span
-                              className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase"
+                              className={`text-[9px] px-1.5 py-0.5 font-bold uppercase ${isRetro ? 'border border-current' : 'rounded'}`}
                               style={{
-                                backgroundColor:
-                                  entry.crypto_pair === 'BTC'
+                                backgroundColor: isRetro
+                                  ? 'transparent'
+                                  : entry.crypto_pair === 'BTC'
                                     ? '#F7931A20'
                                     : entry.crypto_pair === 'ETH'
                                       ? '#627EEA20'
@@ -353,19 +381,25 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                       {/* Score */}
                       <div className="text-right">
                         <div
-                          className={`text-sm font-bold ${
+                          className={`${isRetro ? 'text-xs font-display' : 'text-sm font-bold'} ${
                             entry.rank === 1
                               ? 'text-yellow-400'
                               : entry.rank === 2
                                 ? 'text-slate-300'
                                 : entry.rank === 3
                                   ? 'text-amber-500'
-                                  : 'text-cyan-400'
+                                  : isRetro
+                                    ? 'text-white'
+                                    : 'text-cyan-400'
                           }`}
                         >
                           {entry.score.toLocaleString()}
                         </div>
-                        <div className="text-[10px] text-slate-600 uppercase">pts</div>
+                        <div
+                          className={`text-[10px] text-slate-600 uppercase ${isRetro ? 'font-primary' : ''}`}
+                        >
+                          pts
+                        </div>
                       </div>
                     </motion.div>
                   );

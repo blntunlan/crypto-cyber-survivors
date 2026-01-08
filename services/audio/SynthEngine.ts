@@ -5,8 +5,14 @@
  * for creating oscillators and gain nodes with smooth transitions.
  */
 
-import { type SoundType, type SynthContext, type AudioPreset } from './types';
-import { COOLDOWN_MS } from './constants';
+import {
+  type SoundType,
+  type SynthContext,
+  type AudioPreset,
+  type SoundCategory,
+  type CategoryVolumes,
+} from './types';
+import { COOLDOWN_MS, DEFAULT_CATEGORY_VOLUMES } from './constants';
 import { Logger } from '../Logger';
 
 declare global {
@@ -26,6 +32,7 @@ export class SynthEngine {
   private volume: number = 1.0;
   private lastPlayTime: Map<SoundType, number> = new Map();
   private activeOscillators: Set<OscillatorNode> = new Set();
+  private categoryVolumes: CategoryVolumes = { ...DEFAULT_CATEGORY_VOLUMES };
 
   /**
    * Initialize or resume the AudioContext.
@@ -125,6 +132,40 @@ export class SynthEngine {
    */
   getVolume(): number {
     return this.volume;
+  }
+
+  // ========================================
+  // Category Volume Controls
+  // ========================================
+
+  /**
+   * Set volume for a specific category (0-1).
+   */
+  setCategoryVolume(category: SoundCategory, value: number): void {
+    this.categoryVolumes[category] = Math.max(0, Math.min(1, value));
+  }
+
+  /**
+   * Get volume for a specific category.
+   */
+  getCategoryVolume(category: SoundCategory): number {
+    return this.categoryVolumes[category];
+  }
+
+  /**
+   * Get all category volumes.
+   */
+  getCategoryVolumes(): CategoryVolumes {
+    return { ...this.categoryVolumes };
+  }
+
+  /**
+   * Get effective volume for a category (master * category).
+   * Returns 0 if muted.
+   */
+  getEffectiveVolume(category: SoundCategory): number {
+    if (this.isMuted) return 0;
+    return this.volume * this.categoryVolumes[category];
   }
 
   /**

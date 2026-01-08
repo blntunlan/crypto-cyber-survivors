@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '../../../constants';
 import { audio } from '../../../services/AudioService';
@@ -9,6 +9,7 @@ import { SlotReel } from './SlotReel';
 
 import { useThemeSize } from '../../../hooks/useThemeSize';
 import { useIsRetro } from '../../../contexts/useTheme';
+import { IconSparkles, IconSlot, IconTarget, IconBolt } from '../../../components/icons/CardIcons';
 
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, onSelect }) => {
   const sizes = useThemeSize();
@@ -18,6 +19,13 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
 
   // Keyboard navigation state
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedIndexRef = useRef(0);
+  const hasSelectedRef = useRef(false);
+
+  // Sync ref with state for use in stable event listener
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
 
   // Generate random stop order (e.g., [2, 0, 1] means middle stops first, then right, then left)
   const stopOrder = useMemo(() => {
@@ -46,6 +54,9 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     if (!allStopped) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent multiple selections
+      if (hasSelectedRef.current) return;
+
       switch (e.key) {
         case 'w':
         case 'W':
@@ -70,8 +81,11 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
         case ' ':
         case 'Enter': {
           e.preventDefault();
-          const selected = upgradeChoices[selectedIndex];
+          const currentIdx = selectedIndexRef.current;
+          const selected = upgradeChoices[currentIdx];
           if (selected) {
+            hasSelectedRef.current = true;
+            audio.playButton();
             onSelect(selected);
           }
           break;
@@ -81,14 +95,40 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [allStopped, selectedIndex, upgradeChoices, onSelect]);
+  }, [allStopped, upgradeChoices, onSelect]);
 
   // Get status text
-  const getStatusText = () => {
-    if (allStopped) return '✨ Choose your upgrade! (W/S + Space)';
-    if (stoppedCount === 0) return '🎰 Spinning...';
-    if (stoppedCount === 1) return '🎯 Almost there...';
-    return '⚡ Last one!';
+  const renderStatusText = () => {
+    if (allStopped) {
+      return (
+        <span className="flex items-center justify-center gap-2">
+          <IconSparkles className="w-3.5 h-3.5" color={COLORS.NEON_GREEN} />
+          Choose your upgrade! (W/S + Space)
+        </span>
+      );
+    }
+    if (stoppedCount === 0) {
+      return (
+        <span className="flex items-center justify-center gap-2">
+          <IconSlot className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
+          Spinning...
+        </span>
+      );
+    }
+    if (stoppedCount === 1) {
+      return (
+        <span className="flex items-center justify-center gap-2">
+          <IconTarget className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
+          Almost there...
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center justify-center gap-2">
+        <IconBolt className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
+        Last one!
+      </span>
+    );
   };
 
   // Debug info for error boundary
@@ -165,23 +205,31 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
               >
-                {getStatusText()}
+                {renderStatusText()}
               </motion.p>
             </motion.div>
 
             {/* Slot Reels - Vertical Layout for Web */}
-            <div className="flex flex-col gap-3 md:gap-4 max-w-2xl mx-auto">
-              {upgradeChoices.map((card, index) => (
-                <SlotReel
-                  key={card.id}
-                  finalCard={card}
-                  reelIndex={index}
-                  stopOrder={stopOrder[index] ?? index}
-                  onSelect={onSelect}
-                  onStopped={handleReelStopped}
-                  isSelected={allStopped && selectedIndex === index}
-                />
-              ))}
+            <div
+              className={`max-w-2xl mx-auto p-4 md:p-8 transition-all ${
+                isRetro
+                  ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
+                  : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.3)]'
+              }`}
+            >
+              <div className="flex flex-col gap-3 md:gap-4">
+                {upgradeChoices.map((card, index) => (
+                  <SlotReel
+                    key={card.id}
+                    finalCard={card}
+                    reelIndex={index}
+                    stopOrder={stopOrder[index] ?? index}
+                    onSelect={onSelect}
+                    onStopped={handleReelStopped}
+                    isSelected={allStopped && selectedIndex === index}
+                  />
+                ))}
+              </div>
             </div>
           </motion.div>
         </motion.div>

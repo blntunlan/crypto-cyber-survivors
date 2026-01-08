@@ -64,6 +64,7 @@ describe('PhysicsSystem Edge Cases', () => {
   let mockPlayer: Player;
   let mockState: GameState;
   let mockOnGameOver: () => void;
+  let physicsSystem: PhysicsSystem;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -122,19 +123,20 @@ describe('PhysicsSystem Edge Cases', () => {
     } as any;
 
     mockOnGameOver = vi.fn();
+    physicsSystem = new PhysicsSystem();
   });
 
   describe('Extreme Delta Time (dtFactor)', () => {
     it('should handle dtFactor of 0 (paused/frozen)', () => {
       mockPool.activeBullets = [{ x: 100, y: 100, vx: 10, vy: 10, active: true }];
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 0, 800, 600, mockPlayer as Player);
+      physicsSystem.updateEntities(mockPool as PoolManager, 0, 800, 600, mockPlayer as Player);
       expect(mockPool.activeBullets[0].x).toBe(100);
     });
 
     it('should handle extremely large dtFactor (lag spike)', () => {
       mockPool.activeBullets = [{ x: 100, y: 100, vx: 1, vy: 0, active: true }];
       // Simulate 1 second lag spike (60 frames)
-      PhysicsSystem.updateEntities(mockPool as PoolManager, 60, 800, 600, mockPlayer as Player);
+      physicsSystem.updateEntities(mockPool as PoolManager, 60, 800, 600, mockPlayer as Player);
       expect(mockPool.activeBullets[0].x).toBe(160);
     });
 
@@ -157,15 +159,12 @@ describe('PhysicsSystem Edge Cases', () => {
       mockPool.activeEnemies = [mockEnemy];
 
       // Jump 1000 units in one frame (10 * 100)
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 10, 800, 600, mockOnGameOver);
+      physicsSystem.updateEntities(mockPool as PoolManager, 10, 800, 600, mockPlayer as Player);
+      physicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 10, 800, 600, mockOnGameOver);
 
-      // Since culling happens BEFORE movement in PhysicsSystem,
-      // it should still be active this frame but off-screen.
+      // Now that movement happens BEFORE culling in the engine update loop,
+      // the enemy should be culled in the same frame if its new position is off-screen.
       expect(mockEnemy.x).toBe(1350);
-      expect(mockEnemy.active).toBe(true);
-
-      // In NEXT frame, it should be culled
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
       expect(mockEnemy.active).toBe(false);
       expect(mockOnGameOver).not.toHaveBeenCalled();
     });
@@ -183,7 +182,7 @@ describe('PhysicsSystem Edge Cases', () => {
       };
       mockPool.activeEnemies = [mockEnemy];
 
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
+      physicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
       expect(mockEnemy.active).toBe(false);
     });
 
@@ -197,7 +196,7 @@ describe('PhysicsSystem Edge Cases', () => {
       };
       mockPool.activeEnemies = [mockEnemy];
 
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
+      physicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
       expect(mockEnemy.active).toBe(true);
     });
   });
@@ -215,13 +214,13 @@ describe('PhysicsSystem Edge Cases', () => {
       mockPlayer.hp = 0.5;
 
       // Damage is ~0.8 per frame if no armor
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
+      physicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
 
       expect(mockPlayer.hp).toBe(0);
       expect(mockOnGameOver).toHaveBeenCalledTimes(1);
 
       // Second call in next frame
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
+      physicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
       expect(mockOnGameOver).toHaveBeenCalledTimes(1); // Still 1 due to isGameOverTriggered
     });
   });
@@ -232,7 +231,7 @@ describe('PhysicsSystem Edge Cases', () => {
       mockPlayer.exp = 0;
       mockPlayer.nextLevelExp = 100;
 
-      PhysicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
+      physicsSystem.handleCollisions(mockPool, mockPlayer, mockState, 1, 800, 600, mockOnGameOver);
 
       expect(mockPlayer.exp).toBe(1000);
       expect(mockState.levelUpFreeze).toBeGreaterThan(0);

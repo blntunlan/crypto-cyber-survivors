@@ -1,4 +1,4 @@
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type GameStatus } from '../../types';
 
 export interface GraphicsConfig {
@@ -17,7 +17,7 @@ export interface RenderOptions {
 export interface IRenderer {
   render(
     ctx: CanvasRenderingContext2D,
-    pool: PoolManager,
+    pool: IPoolManager,
     state: GameState,
     player: Player,
     opts: RenderOptions

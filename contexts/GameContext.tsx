@@ -14,7 +14,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import { type Player, type MarketData, GameStatus, MarketPosition } from '../types';
-import { PLAYER_INITIAL_HP, INITIAL_FIRE_RATE } from '../constants';
+import { PLAYER_INITIAL_HP } from '../constants';
 
 // =============================================================================
 // MARKET CONTEXT - Updates frequently (every price tick)
@@ -108,15 +108,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     level: 1,
     exp: 0,
     nextLevelExp: 100,
-    speed: 4,
-    fireRate: INITIAL_FIRE_RATE,
+    speed: 5,
+    fireRate: 400,
     critChance: 0.05,
+    critDamage: 2.0,
     baseDamage: 25,
     luck: 0,
-    magnet: 0,
-    armor: 0,
-    area: 1,
+    area: 1.0,
     projectiles: 1,
+    armor: 0,
+    regen: 0,
+    dodge: 0,
+    lifesteal: 0,
+    magnet: 0,
   });
 
   const [player, setPlayer] = useState<Player>(playerRef.current!);

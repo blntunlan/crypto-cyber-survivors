@@ -1,5 +1,5 @@
 import { type IRenderer, type RenderOptions } from './types';
-import { type PoolManager } from '../PoolManager';
+import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
@@ -20,7 +20,7 @@ export class BackgroundRenderer implements IRenderer {
 
   render(
     ctx: CanvasRenderingContext2D,
-    _pool: PoolManager,
+    _pool: IPoolManager,
     state: GameState,
     _player: Player,
     opts: RenderOptions
@@ -75,9 +75,9 @@ export class BackgroundRenderer implements IRenderer {
         // Chunky pixel candle body
         ctx.fillRect(rx, ry, rw, rh);
 
-        // Simple wick (single pixel line)
+        // Simple wick (2px wide, centered)
         ctx.globalAlpha = baseOpacity * 0.5;
-        const wickX = rx + Math.floor(rw / 2);
+        const wickX = rx + rw / 2 - 1;
         ctx.fillRect(wickX, ry - 4, 2, 4);
         ctx.fillRect(wickX, ry + rh, 2, 4);
       });
@@ -140,12 +140,9 @@ export class BackgroundRenderer implements IRenderer {
         if (shadowsEnabled) ctx.shadowBlur = 0;
 
         ctx.globalAlpha = baseOpacity * 0.6;
-        ctx.strokeStyle = c.color;
-        ctx.lineWidth = Math.max(1, c.w * 0.3);
-        ctx.beginPath();
-        ctx.moveTo(rx + rw / 2, ry - 3);
-        ctx.lineTo(rx + rw / 2, ry + rh + 3);
-        ctx.stroke();
+        const wickWidth = Math.max(1, Math.round(rw * 0.2));
+        const wickX = rx + (rw - wickWidth) / 2;
+        ctx.fillRect(wickX, ry - 3, wickWidth, rh + 6);
       });
     }
 
