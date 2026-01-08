@@ -8,6 +8,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
+import { ThemedPanel } from '../themed/ThemedPanel';
+import { ThemedText } from '../themed/ThemedText';
 import {
   Trophy,
   Crown,
@@ -41,7 +43,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
   const [loading, setLoading] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const { isRetro, theme } = useTheme();
+  const { isRetro } = useTheme();
   const currentNickname = UserSessionService.getNickname();
 
   const fetchLeaderboard = useCallback(async () => {
@@ -222,9 +224,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
           <div
             className={`flex items-center justify-center w-6 h-6 ${isRetro ? 'border-2' : 'rounded-full bg-slate-800 border'} border-slate-700`}
           >
-            <span className={`text-xs font-bold text-slate-400 ${isRetro ? 'font-primary' : ''}`}>
+            <ThemedText variant="mono" className="text-xs font-bold text-slate-400">
               {rank}
-            </span>
+            </ThemedText>
           </div>
         );
     }
@@ -234,28 +236,21 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
 
   return (
     <motion.div
-      className={`fixed right-4 top-20 z-[100] w-72 hidden lg:block ${isRetro ? 'font-primary' : 'font-feed'}`}
+      className={`fixed right-4 top-20 z-[100] w-72 hidden lg:block`}
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: 0.5 }}
     >
       {/* Header - Glassmorphism */}
-      <div
-        className={`flex items-center justify-between px-4 py-3 border transition-all cursor-pointer 
-          ${
-            isRetro
-              ? 'bg-zinc-900 border-zinc-700 rounded-none'
-              : 'bg-slate-900/40 backdrop-blur-md border-white/10 rounded-t-xl hover:border-cyan-500/30 hover:bg-slate-900/50'
-          }`}
+      <ThemedPanel
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-b-none border-b-0 hover:bg-slate-900/50 transition-all"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">
           <Trophy className="w-4 h-4 text-yellow-400" />
-          <span
-            className={`text-sm font-bold text-white uppercase tracking-wider ${isRetro ? 'font-display text-xs' : ''}`}
-          >
+          <ThemedText variant="h2" className="text-sm text-white uppercase tracking-wider">
             Leaderboard
-          </span>
+          </ThemedText>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -274,7 +269,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
             <ChevronUp className="w-4 h-4 text-slate-400" />
           )}
         </div>
-      </div>
+      </ThemedPanel>
 
       {/* Content */}
       <AnimatePresence>
@@ -284,135 +279,138 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className={`${
-              isRetro
-                ? 'bg-zinc-900 border-2 border-t-0 border-zinc-700 rounded-none'
-                : 'bg-slate-900/40 backdrop-blur-md border border-t-0 border-white/10 rounded-b-xl'
-            } overflow-hidden shadow-2xl`}
           >
-            {loading && entries.length === 0 ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-              </div>
-            ) : entries.length === 0 ? (
-              <div className="text-center py-8 px-4">
-                <TrendingUp className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">No scores yet</p>
-                <p className="text-xs text-slate-600 mt-1">Be the first to claim the top!</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-800/50">
-                {entries.map((entry, index) => {
-                  const isCurrentPlayer = entry.player_name === currentNickname;
+            {/* ThemedPanel wrapper for correct styling of the list container */}
+            <ThemedPanel className="rounded-t-none border-t-0 overflow-hidden !shadow-2xl">
+              {loading && entries.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                </div>
+              ) : entries.length === 0 ? (
+                <div className="text-center py-8 px-4">
+                  <TrendingUp className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                  <ThemedText className="text-sm text-slate-500">No scores yet</ThemedText>
+                  <ThemedText className="text-xs text-slate-600 mt-1">
+                    Be the first to claim the top!
+                  </ThemedText>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/50">
+                  {entries.map((entry, index) => {
+                    const isCurrentPlayer = entry.player_name === currentNickname;
 
-                  return (
-                    <motion.div
-                      key={entry.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${
-                        isCurrentPlayer
-                          ? isRetro
-                            ? 'bg-zinc-800 border-l-4 border-yellow-500'
-                            : 'bg-cyan-500/10 border-l-2 border-cyan-400'
-                          : 'hover:bg-slate-800/50'
-                      }`}
-                    >
-                      {/* Rank */}
-                      {getRankDisplay(entry.rank!)}
+                    return (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                          isCurrentPlayer
+                            ? isRetro
+                              ? 'bg-zinc-800 border-l-4 border-yellow-500'
+                              : 'bg-cyan-500/10 border-l-2 border-cyan-400'
+                            : 'hover:bg-slate-800/50'
+                        }`}
+                      >
+                        {/* Rank */}
+                        {getRankDisplay(entry.rank!)}
 
-                      {/* Player Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`${isRetro ? 'text-xs' : 'text-sm'} font-semibold truncate ${
-                              isCurrentPlayer
-                                ? isRetro
-                                  ? 'text-yellow-400'
-                                  : 'text-cyan-300'
-                                : 'text-white'
+                        {/* Player Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <ThemedText
+                              variant={isRetro ? 'body' : 'h2'}
+                              className={`text-sm font-semibold truncate ${
+                                isCurrentPlayer
+                                  ? isRetro
+                                    ? 'text-yellow-400'
+                                    : 'text-cyan-300'
+                                  : 'text-white'
+                              }`}
+                            >
+                              {entry.player_name}
+                            </ThemedText>
+                            {isCurrentPlayer && (
+                              <span
+                                className={`text-[9px] px-1.5 py-0.5 ${isRetro ? 'bg-yellow-500/20 text-yellow-500 font-display' : 'bg-cyan-500/20 text-cyan-400 rounded uppercase font-bold'}`}
+                              >
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {entry.crypto_pair && (
+                              <span
+                                className={`text-[9px] px-1.5 py-0.5 font-bold uppercase ${isRetro ? 'border border-current' : 'rounded'}`}
+                                style={{
+                                  backgroundColor: isRetro
+                                    ? 'transparent'
+                                    : entry.crypto_pair === 'BTC'
+                                      ? '#F7931A20'
+                                      : entry.crypto_pair === 'ETH'
+                                        ? '#627EEA20'
+                                        : entry.crypto_pair === 'SOL'
+                                          ? '#9945FF20'
+                                          : '#64748b20',
+                                  color:
+                                    entry.crypto_pair === 'BTC'
+                                      ? '#F7931A'
+                                      : entry.crypto_pair === 'ETH'
+                                        ? '#627EEA'
+                                        : entry.crypto_pair === 'SOL'
+                                          ? '#9945FF'
+                                          : '#64748b',
+                                }}
+                              >
+                                {entry.crypto_pair}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatTime(entry.survival_time_ms)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Score */}
+                        <div className="text-right">
+                          <ThemedText
+                            variant={isRetro ? 'h1' : 'h2'}
+                            className={`text-sm ${
+                              entry.rank === 1
+                                ? 'text-yellow-400'
+                                : entry.rank === 2
+                                  ? 'text-slate-300'
+                                  : entry.rank === 3
+                                    ? 'text-amber-500'
+                                    : isRetro
+                                      ? 'text-white'
+                                      : 'text-cyan-400'
                             }`}
                           >
-                            {entry.player_name}
-                          </span>
-                          {isCurrentPlayer && (
-                            <span
-                              className={`text-[9px] px-1.5 py-0.5 ${isRetro ? 'bg-yellow-500/20 text-yellow-500 font-display' : 'bg-cyan-500/20 text-cyan-400 rounded uppercase font-bold'}`}
-                            >
-                              You
-                            </span>
-                          )}
+                            {entry.score.toLocaleString()}
+                          </ThemedText>
+                          <ThemedText
+                            variant="mono"
+                            className="text-[10px] text-slate-600 uppercase"
+                          >
+                            pts
+                          </ThemedText>
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {entry.crypto_pair && (
-                            <span
-                              className={`text-[9px] px-1.5 py-0.5 font-bold uppercase ${isRetro ? 'border border-current' : 'rounded'}`}
-                              style={{
-                                backgroundColor: isRetro
-                                  ? 'transparent'
-                                  : entry.crypto_pair === 'BTC'
-                                    ? '#F7931A20'
-                                    : entry.crypto_pair === 'ETH'
-                                      ? '#627EEA20'
-                                      : entry.crypto_pair === 'SOL'
-                                        ? '#9945FF20'
-                                        : '#64748b20',
-                                color:
-                                  entry.crypto_pair === 'BTC'
-                                    ? '#F7931A'
-                                    : entry.crypto_pair === 'ETH'
-                                      ? '#627EEA'
-                                      : entry.crypto_pair === 'SOL'
-                                        ? '#9945FF'
-                                        : '#64748b',
-                              }}
-                            >
-                              {entry.crypto_pair}
-                            </span>
-                          )}
-                          <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatTime(entry.survival_time_ms)}
-                          </span>
-                        </div>
-                      </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
 
-                      {/* Score */}
-                      <div className="text-right">
-                        <div
-                          className={`${isRetro ? 'text-xs font-display' : 'text-sm font-bold'} ${
-                            entry.rank === 1
-                              ? 'text-yellow-400'
-                              : entry.rank === 2
-                                ? 'text-slate-300'
-                                : entry.rank === 3
-                                  ? 'text-amber-500'
-                                  : isRetro
-                                    ? 'text-white'
-                                    : 'text-cyan-400'
-                          }`}
-                        >
-                          {entry.score.toLocaleString()}
-                        </div>
-                        <div
-                          className={`text-[10px] text-slate-600 uppercase ${isRetro ? 'font-primary' : ''}`}
-                        >
-                          pts
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Footer */}
-            {lastUpdated && (
-              <div className="px-4 py-2 border-t border-slate-800/50 text-[9px] text-slate-600 text-center">
-                Updated {lastUpdated.toLocaleTimeString()}
-              </div>
-            )}
+              {/* Footer */}
+              {lastUpdated && (
+                <div className="px-4 py-2 border-t border-slate-800/50 text-[9px] text-slate-600 text-center">
+                  Updated {lastUpdated.toLocaleTimeString()}
+                </div>
+              )}
+            </ThemedPanel>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useIsRetro } from '../../contexts/useTheme';
+import { useTheme } from '../../contexts/useTheme';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
 import { audio } from '../../services/AudioService';
 import { User, Shield, Zap, ChevronRight, AlertCircle } from 'lucide-react';
+import { ThemedPanel } from '../themed/ThemedPanel';
+import { ThemedInput } from '../themed/ThemedInput';
+import { ThemedButton } from '../themed/ThemedButton';
+import { ThemedText } from '../themed/ThemedText';
 
 interface NicknameEntryScreenProps {
   onComplete: (nickname: string) => void;
 }
 
 export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComplete }) => {
-  const isRetro = useIsRetro();
+  const { isRetro } = useTheme();
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,13 +114,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
           </>
         )}
 
-        <div
-          className={`p-8 relative overflow-hidden transition-all ${
-            isRetro
-              ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-              : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
-          }`}
-        >
+        <ThemedPanel className="p-8 relative overflow-hidden transition-all">
           {/* Animated top border */}
           {!isRetro && (
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
@@ -145,8 +143,9 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
               <User className="w-7 h-7 text-cyan-400" />
             </motion.div>
 
-            <h1
-              className={`font-display text-2xl font-black tracking-tight text-white uppercase ${isRetro ? '' : 'italic'}`}
+            <ThemedText
+              variant="h1"
+              className={`text-2xl font-black tracking-tight text-white uppercase ${isRetro ? '' : 'italic'}`}
             >
               Identify{' '}
               <span
@@ -154,10 +153,13 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
               >
                 Survivor
               </span>
-            </h1>
-            <p className="text-slate-500 text-[8px] font-display tracking-[0.3em] uppercase">
+            </ThemedText>
+            <ThemedText
+              variant="mono"
+              className="text-slate-500 text-[8px] tracking-[0.3em] uppercase"
+            >
               Beta Access Protocol v1.0
-            </p>
+            </ThemedText>
           </header>
 
           <form
@@ -181,7 +183,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
               </div>
 
               <div className="relative group">
-                <input
+                <ThemedInput
                   autoFocus
                   type="text"
                   value={nickname}
@@ -190,11 +192,11 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
                     if (error) setError(null);
                   }}
                   placeholder="Enter your nickname..."
-                  className={`w-full bg-slate-950/80 border-2 ${
+                  className={`w-full px-5 py-4 transition-all tracking-wide placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-cyan-500/30 ${
                     error
                       ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                      : `border-slate-700/50 text-white focus:border-cyan-500/50 group-hover:border-slate-600`
-                  } px-5 py-4 ${isRetro ? 'rounded-none font-primary' : 'rounded-lg font-semibold'} focus:outline-none focus:ring-2 focus:ring-cyan-500/30 transition-all tracking-wide placeholder:text-slate-600 placeholder:font-normal`}
+                      : `text-white focus:border-cyan-500/50 group-hover:border-slate-600`
+                  } ${!isRetro ? 'font-semibold' : ''}`}
                   maxLength={16}
                   disabled={isSubmitting}
                   autoComplete="off"
@@ -229,18 +231,15 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
               </AnimatePresence>
             </div>
 
-            <motion.button
+            <ThemedButton
               type="submit"
+              intent="primary"
               disabled={isSubmitting || nickname.length < 3}
-              className={`w-full relative py-4 flex items-center justify-center gap-2 font-bold text-sm tracking-wide transition-all group overflow-hidden ${isRetro ? 'rounded-none' : 'rounded-lg'} ${
-                nickname.length >= 3
-                  ? isRetro
-                    ? 'bg-cyan-600 text-white hover:bg-cyan-500'
-                    : 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white hover:from-cyan-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25'
-                  : 'bg-slate-800/50 text-slate-500 cursor-not-allowed border border-slate-700/50'
+              className={`w-full relative py-4 flex items-center justify-center gap-2 font-bold text-sm tracking-wide overflow-hidden ${
+                nickname.length < 3
+                  ? 'bg-slate-800/50 !text-slate-500 cursor-not-allowed border-slate-700/50'
+                  : ''
               }`}
-              whileHover={nickname.length >= 3 ? { scale: 1.02 } : {}}
-              whileTap={nickname.length >= 3 ? { scale: 0.98 } : {}}
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
@@ -268,37 +267,38 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
                   }}
                 />
               )}
-            </motion.button>
+            </ThemedButton>
           </form>
 
-          <footer
-            className={`mt-8 pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium ${isRetro ? 'font-primary' : ''}`}
-          >
+          <footer className="mt-8 pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium">
             <div className="flex items-center gap-2">
               <motion.div
                 className={`w-2 h-2 bg-green-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
-              <span>Systems Online</span>
+              <ThemedText variant="body" className="text-[9px]">
+                Systems Online
+              </ThemedText>
             </div>
-            <div className="text-slate-600">Crypto Cyber Survivors</div>
+            <ThemedText variant="body" className="text-slate-600 text-[9px]">
+              Crypto Cyber Survivors
+            </ThemedText>
           </footer>
-        </div>
+        </ThemedPanel>
 
         {/* Info hints */}
         <div className="mt-6 flex gap-3 justify-center">
+          {/* These small pills can be ThemedPanels or just separate styled divs, let's keep them somewhat consistent but they are tiny */}
           <div
             className={`flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 ${isRetro ? 'rounded-none' : 'rounded-full backdrop-blur-sm'}`}
           >
             <div
               className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
             />
-            <span
-              className={`text-[9px] text-slate-400 font-medium ${isRetro ? 'font-primary' : ''}`}
-            >
+            <ThemedText variant="body" className="text-[9px] text-slate-400 font-medium">
               3-16 Characters
-            </span>
+            </ThemedText>
           </div>
           <div
             className={`flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 ${isRetro ? 'rounded-none' : 'rounded-full backdrop-blur-sm'}`}
@@ -306,11 +306,9 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
             <div
               className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
             />
-            <span
-              className={`text-[9px] text-slate-400 font-medium ${isRetro ? 'font-primary' : ''}`}
-            >
+            <ThemedText variant="body" className="text-[9px] text-slate-400 font-medium">
               Letters & Numbers
-            </span>
+            </ThemedText>
           </div>
         </div>
       </motion.div>

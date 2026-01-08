@@ -94,3 +94,14 @@ Handles font families automatically (`font-display` vs `font-sans`).
 -   **"Design Once, Update Everywhere":** Tweak the Retro look in *one* file.
 -   **Cleaner Component Code:** Logic focuses on behavior, not styling conditionals.
 -   **Scalable:** Adding a 3rd theme (e.g., "Minimalist") becomes trivial involved adding a key to the variant map.
+
+## 5. Status Update (2026-01-09)
+- [x] Phase 1: Setup Completed.
+  - `config/themeVariants.ts` created.
+  - `components/themed/` created with `ThemedPanel`, `ThemedButton`, `ThemedText`, `ThemedInput`.
+- [x] Phase 2: Refactor HUD Completed.
+  - `LeaderboardPanel` refactored.
+  - `NicknameEntryScreen` refactored.
+- [x] Phase 3: Core UI Refactor Completed.
+  - `MainMenu` refactored with `ThemedPanel` (main container) and `ThemedButton` (Settings button).
+  - All lint and type checks passing.

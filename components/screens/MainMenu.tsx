@@ -11,6 +11,8 @@ import { GameMode, GAME_MODE_CONFIGS } from '../../types/gameMode';
 import { useTheme } from '../../contexts/useTheme';
 import { IconTrendUp, IconTrendDown } from '../icons/CardIcons';
 import { COLORS } from '../../config/Colors';
+import { ThemedButton } from '../themed/ThemedButton';
+import { ThemedPanel } from '../themed/ThemedPanel';
 
 interface MainMenuProps {
   price: number;
@@ -133,6 +135,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     onStart,
     onPairChange,
     onOpenSettings,
+    onModeChange,
+    selectedMode,
   ]);
 
   const getLeverageColorHex = (lev: LeverageOption) => {
@@ -169,12 +173,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
         </header>
 
-        <div
-          className={`relative p-3 sm:p-5 transition-all duration-700 ${
-            isRetro
-              ? 'bg-zinc-900 border border-zinc-600 rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
-              : 'bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] shadow-2xl overflow-hidden'
-          }`}
+        <ThemedPanel
+          className={`relative p-3 sm:p-5 transition-all duration-700 ${!isRetro ? 'backdrop-blur-xl !rounded-[1.5rem] overflow-hidden' : ''}`}
         >
           {/* Top Dynamic Border Accent */}
           {!isRetro && (
@@ -410,24 +410,24 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </button>
           </div>
 
-          <button
+          <ThemedButton
+            intent="secondary"
             onClick={onOpenSettings}
-            className={`w-full min-h-[44px] py-2.5 sm:py-3 bg-slate-800/50 text-slate-400 font-black uppercase text-xs sm:text-sm tracking-widest hover:bg-slate-700/80 active:scale-[0.98] transition-all touch-manipulation mt-3
-              ${isRetro ? 'rounded-none border-2 border-zinc-700 font-display' : 'rounded-xl'}
+            className={`w-full min-h-[44px] py-2.5 sm:py-3 font-black uppercase text-xs sm:text-sm tracking-widest active:scale-[0.98] transition-all touch-manipulation mt-3
               ${
                 activeRow === 4
-                  ? `scale-[1.02] bg-slate-700 text-white ${isRetro ? 'border-white' : 'ring-1 ring-white'}`
+                  ? `scale-[1.02] !bg-slate-700 !text-white ${isRetro ? '!border-white' : 'ring-1 ring-white'}`
                   : ''
               }`}
           >
             Settings
-          </button>
+          </ThemedButton>
           <div
             className={`pt-1 sm:pt-2 text-[7px] sm:text-[8px] font-display text-slate-500 uppercase tracking-widest ${isRetro ? 'font-primary brightness-150' : ''}`}
           >
             WASD / Arrows to Move • SPACE to Dash
           </div>
-        </div>
+        </ThemedPanel>
       </div>
     </div>
   );
