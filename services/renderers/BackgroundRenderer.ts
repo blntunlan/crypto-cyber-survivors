@@ -140,12 +140,15 @@ export class BackgroundRenderer implements IRenderer {
         if (shadowsEnabled) ctx.shadowBlur = 0;
 
         ctx.globalAlpha = baseOpacity * 0.6;
-        ctx.strokeStyle = c.color;
-        ctx.lineWidth = Math.max(1, c.w * 0.3);
-        ctx.beginPath();
-        ctx.moveTo(rx + rw / 2, ry - 3);
-        ctx.lineTo(rx + rw / 2, ry + rh + 3);
-        ctx.stroke();
+
+        // Optimization: Use fillRect instead of stroke for wick
+        // This avoids expensive path operations (beginPath, moveTo, lineTo, stroke)
+        // and context state changes (strokeStyle, lineWidth)
+        // Explicitly set fillStyle for safety, though it reuses body color
+        ctx.fillStyle = c.color;
+        const wickWidth = Math.max(1, c.w * 0.3);
+        const wickX = rx + (rw - wickWidth) / 2;
+        ctx.fillRect(wickX, ry - 3, wickWidth, rh + 6);
       });
     }
 
