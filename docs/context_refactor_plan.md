@@ -139,14 +139,14 @@ interface SettingsContextType {
 - [x] Testlerin geçtiğini doğrula (7 test passed)
 
 ### Faz 1.5: Entegrasyon
-- [ ] `App.tsx`'e `UserProvider` ekle
-- [ ] `NicknameEntryScreen` → `useUser` migrasyon
-- [ ] `MainMenu` → `useUser` migrasyon
-- [ ] Tüm testleri çalıştır
+- [x] `App.tsx`'e `UserProvider` ekle
+- [x] `NicknameEntryScreen` → `useUser` migrasyon
+- [ ] `MainMenu` → `useUser` migrasyon (user verisi kullanılmıyor, gerek yok)
+- [x] Tüm testleri çalıştır (1235 test passed)
 
 ### Faz 1.6: Doğrula
-- [ ] `npm run lint:fix`
-- [ ] `npm run test`
+- [x] `npm run lint:fix` (1 warning - fast refresh, kabul edilebilir)
+- [x] `npm run test` (1235 test passed)
 - [ ] Manuel test (login/logout flow)
 - [ ] Commit: `refactor(auth): implement UserContext`
 
@@ -217,7 +217,7 @@ interface SettingsContextType {
 
 | Phase | Durum | Başlangıç | Bitiş | Notes |
 |-------|-------|-----------|-------|-------|
-| Phase 1: UserContext | 🟡 Devam Ediyor | 2026-01-09 | - | Context + tests oluşturuldu, entegrasyon bekliyor |
+| Phase 1: UserContext | ✅ Neredeyse Tamamlandı | 2026-01-09 | - | Context, tests, entegrasyon tamamlandı. Manuel test bekliyor. |
 | Phase 2: AudioContext | ⏳ Beklemede | - | - | - |
 | Phase 3: GameContext | ⏳ Beklemede | - | - | - |
 | Phase 4: Cleanup | ⏳ Beklemede | - | - | - |

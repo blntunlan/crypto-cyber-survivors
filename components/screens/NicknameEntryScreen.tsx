@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
-import { UserSessionService } from '../../services/auth/UserSessionService';
+import { useUser } from '../../contexts/useUser';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
 import { audio } from '../../services/AudioService';
 import { User, Shield, Zap, ChevronRight, AlertCircle } from 'lucide-react';
@@ -16,6 +16,7 @@ interface NicknameEntryScreenProps {
 
 export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComplete }) => {
   const { isRetro } = useTheme();
+  const { login } = useUser();
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +44,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
     audio.playLevelUp();
 
     try {
-      const result = await UserSessionService.registerNickname(nickname);
+      const result = await login(nickname);
 
       if (result.success) {
         audio.playLevelUp();
