@@ -147,8 +147,8 @@ interface SettingsContextType {
 ### Faz 1.6: Doğrula
 - [x] `npm run lint:fix` (1 warning - fast refresh, kabul edilebilir)
 - [x] `npm run test` (1235 test passed)
-- [ ] Manuel test (login/logout flow)
-- [ ] Commit: `refactor(auth): implement UserContext`
+- [x] Manuel test (login/logout flow) - ✅ Çalışıyor, WASD input fix eklendi
+- [x] Commit: `feat(auth): integrate UserContext` + `fix(ui): WASD input`
 
 ---
 
@@ -217,7 +217,7 @@ interface SettingsContextType {
 
 | Phase | Durum | Başlangıç | Bitiş | Notes |
 |-------|-------|-----------|-------|-------|
-| Phase 1: UserContext | ✅ Neredeyse Tamamlandı | 2026-01-09 | - | Context, tests, entegrasyon tamamlandı. Manuel test bekliyor. |
+| Phase 1: UserContext | ✅ Tamamlandı | 2026-01-09 | 2026-01-09 | Context, tests, entegrasyon, manuel test tamamlandı |
 | Phase 2: AudioContext | ⏳ Beklemede | - | - | - |
 | Phase 3: GameContext | ⏳ Beklemede | - | - | - |
 | Phase 4: Cleanup | ⏳ Beklemede | - | - | - |
