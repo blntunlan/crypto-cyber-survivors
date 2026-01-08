@@ -1,5 +1,9 @@
 import { type CryptoPair } from './types/crypto';
 
+// Re-export GameMode types
+export { GameMode, type GameModeConfig, type CycleCompleteData } from './types/gameMode';
+export { GAME_MODE_CONFIGS } from './types/gameMode';
+
 export enum MarketPosition {
   LONG = 'LONG',
   SHORT = 'SHORT',
@@ -11,6 +15,7 @@ export enum GameStatus {
   PAUSED = 'PAUSED',
   LEVEL_UP = 'LEVEL_UP',
   GAMEOVER = 'GAMEOVER',
+  CYCLE_COMPLETE = 'CYCLE_COMPLETE',
 }
 
 // Available leverage options
