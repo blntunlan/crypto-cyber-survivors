@@ -25,6 +25,15 @@ export const useMenuNav = ({
     (e: KeyboardEvent) => {
       if (!enabled) return;
 
+      // Skip keyboard navigation if user is typing in an input or textarea
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
       const nextKey = direction === 'vertical' ? 'ArrowDown' : 'ArrowRight';
       const prevKey = direction === 'vertical' ? 'ArrowUp' : 'ArrowLeft';
       // WS keys for vertical, AD for horizontal

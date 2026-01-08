@@ -50,8 +50,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   // Keyboard Handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if settings is likely open (managed by parent, but simple check helps)
-      // For now, we assume MainMenu is only mounted when visible/active
+      // Skip keyboard navigation if user is typing in an input or textarea
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
 
       switch (e.key) {
         case 'ArrowUp':
