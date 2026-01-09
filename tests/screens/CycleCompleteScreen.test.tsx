@@ -120,7 +120,12 @@ describe('CycleCompleteScreen', () => {
   });
 
   // TODO: Fix mock setup for icons. These fail because CardIcons mock isn't rendering as expected in test env.
-  it.skip('displays correct icon for positive PnL', () => {
+  it('displays correct icon for positive PnL', () => {
+    (useTheme as any).mockReturnValue({
+      theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
+      isRetro: false,
+    });
+
     render(
       <CycleCompleteScreen
         data={{ ...mockData, effectivePnl: 0.1 }}
@@ -128,10 +133,19 @@ describe('CycleCompleteScreen', () => {
         onContinue={mockOnContinue}
       />
     );
-    expect(screen.getByTestId('icon-trend-up')).toBeInTheDocument();
+    // StatBox renders icon twice (once as watermark, once as visible content)
+    // So we expect at least one, or verify both present
+    const icons = screen.getAllByTestId('icon-trend-up');
+    expect(icons.length).toBeGreaterThan(0);
+    expect(icons[0]).toBeInTheDocument();
   });
 
-  it.skip('displays correct icon for negative PnL', () => {
+  it('displays correct icon for negative PnL', () => {
+    (useTheme as any).mockReturnValue({
+      theme: { colors: { primary: '#0f0', surface: '#000', text: '#fff' } },
+      isRetro: false,
+    });
+
     render(
       <CycleCompleteScreen
         data={{ ...mockData, effectivePnl: -0.1 }}
@@ -139,6 +153,8 @@ describe('CycleCompleteScreen', () => {
         onContinue={mockOnContinue}
       />
     );
-    expect(screen.getByTestId('icon-trend-down')).toBeInTheDocument();
+    const icons = screen.getAllByTestId('icon-trend-down');
+    expect(icons.length).toBeGreaterThan(0);
+    expect(icons[0]).toBeInTheDocument();
   });
 });
