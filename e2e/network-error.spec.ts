@@ -8,17 +8,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Network Conditions', () => {
   // This test is skipped by default as it can be flaky due to network simulation
-  test.skip('should handle slow network gracefully', async ({ page, context }) => {
-    // Simulate slow 3G
+  test('should handle slow network gracefully', async ({ page, context }) => {
+    // Increase timeout for slow network simulation
+    test.slow();
+
+    // Simulate 3G (1Mbps)
     const client = await context.newCDPSession(page);
     await client.send('Network.emulateNetworkConditions', {
       offline: false,
-      downloadThroughput: (500 * 1024) / 8, // 500 kbps
+      downloadThroughput: (1000 * 1024) / 8, // 1 Mbps
       uploadThroughput: (500 * 1024) / 8,
-      latency: 400,
+      latency: 200, // 200ms latency
     });
 
-    await page.goto('/', { timeout: 60000 });
+    await page.goto('/', { timeout: 120000 });
 
     // Should still load (slowly)
     await expect(page.locator('body')).toBeVisible({ timeout: 60000 });

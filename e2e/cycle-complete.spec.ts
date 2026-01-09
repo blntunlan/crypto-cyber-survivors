@@ -93,6 +93,6 @@ test.describe('Cycle Complete Flow', () => {
     await expect(page.locator('text=CYCLE 1 COMPLETE')).toBeHidden({ timeout: 2000 });
 
     // HUD should be visible again
-    await expect(page.locator('text=Lv.')).toBeVisible();
+    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible();
   });
 });

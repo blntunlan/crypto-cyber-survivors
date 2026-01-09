@@ -43,9 +43,9 @@ test.describe('Level Up Flow', () => {
     // We can wait for the 'Choose your upgrade' instruction or 'Select' buttons
     await expect(page.getByText(/Choose your upgrade/i)).toBeVisible({ timeout: 10000 });
 
-    // Should show 3 'Select' buttons when stopped
-    const selectButtons = page.getByText(/Select/i);
-    await expect(selectButtons).toHaveCount(3);
+    // Should show 3 cards (buttons) when stopped
+    const cards = page.locator('button.group');
+    await expect(cards).toHaveCount(3);
   });
 
   test('should allow selecting a card and resume game', async ({ page }) => {
@@ -59,15 +59,14 @@ test.describe('Level Up Flow', () => {
     // Wait for level up screen and reels to stop
     await expect(page.getByText(/Choose your upgrade/i)).toBeVisible({ timeout: 10000 });
 
-    // Click the first 'Select' button
-    const firstSelect = page.getByText(/Select/i).first();
-    await firstSelect.click();
+    // Click the first card
+    const firstCard = page.locator('button.group').first();
+    await firstCard.click();
 
     // Level up screen should disappear
     await expect(page.getByText(/LEVEL UP/i)).not.toBeVisible();
 
     // HUD should still be visible (game resumed)
-    const phaseText = page.locator('span.font-black.uppercase.italic').first();
-    await expect(phaseText).toBeVisible();
+    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible();
   });
 });

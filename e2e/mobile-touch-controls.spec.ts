@@ -652,18 +652,19 @@ test.describe('Edge Cases - Network Conditions', () => {
 
   // CDP-based network throttling may not work on all browser configurations
   // Skip this test as it can cause timeout issues
-  test.skip('should handle slow network', async ({ page }) => {
-    // Simulate slow 3G
+  test('should handle slow network', async ({ page }) => {
+    test.slow();
+    // Simulate 3G
     const client = await page.context().newCDPSession(page);
     await client.send('Network.emulateNetworkConditions', {
       offline: false,
-      downloadThroughput: (500 * 1024) / 8, // 500 kbps
+      downloadThroughput: (1000 * 1024) / 8, // 1 Mbps
       uploadThroughput: (500 * 1024) / 8,
-      latency: 400, // 400ms latency
+      latency: 200, // 200ms latency
     });
 
     await setupMobileSession(page, MOBILE_DEVICES.iPhoneSE);
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
 
     // Touch should still work despite slow network
     await page.touchscreen.tap(187, 333);

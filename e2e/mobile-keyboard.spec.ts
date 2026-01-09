@@ -28,26 +28,27 @@ test.describe('Mobile Touch Interactions', () => {
   });
 
   // Touch simulation can be flaky in Playwright, skip by default
-  test.skip('should handle touch tap on buttons', async ({ page }) => {
-    // Wait for menu to load
-    await page.waitForTimeout(5000);
+  test('should handle touch tap on buttons', async ({ page }) => {
+    // Wait for the app to be loaded
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(2000);
 
-    // Find any button and tap it
-    const buttons = page.locator('button');
-    const buttonCount = await buttons.count();
-
-    console.log(`Found ${buttonCount} buttons for touch`);
-
-    if (buttonCount > 0) {
-      const firstButton = buttons.first();
-      if (await firstButton.isVisible()) {
-        await firstButton.tap().catch(() => console.log('Tap failed'));
-        await page.waitForTimeout(1000);
-      }
+    // If nickname screen is visible, fill it to enable the button
+    const input = page.locator('input').first();
+    if (await input.isVisible()) {
+      await input.fill('TouchTester');
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(1000);
     }
 
-    // Should either start game or show some response
-    await expect(page.locator('body')).toBeVisible();
+    // Now find any enabled button
+    const button = page.locator('button:not([disabled])').first();
+    await expect(button).toBeVisible({ timeout: 10000 });
+
+    // Tap the button
+    await button.tap();
+
+    await page.waitForTimeout(500);
   });
 
   test('should support swipe gestures', async ({ page }) => {
