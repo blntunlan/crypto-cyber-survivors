@@ -146,6 +146,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     marketDataRef.current = marketData;
   }, [marketData]);
 
+  // DEBUG: Key '6' triggers force cycle complete
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '6') {
+        Logger.info('[GameEngine Debug] Force triggering cycle complete via key 6');
+        EventBus.emit('cycleComplete', {
+          cycleNumber: 1,
+          totalElapsedSeconds: 300,
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Register services with EngineRegistry for Dependency Injection
   useEffect(() => {
     EngineRegistry.setPoolManager(pool.current);
@@ -153,7 +168,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     EngineRegistry.setPhysicsSystem(physicsSystem.current);
     EngineRegistry.setSpawnSystem(spawnSystemRef.current);
     EngineRegistry.setAudioService(audio);
-  }, []);
+  }, [combatSystem, physicsSystem, pool, spawnSystemRef]);
 
   // ========================================
   // Custom Hooks for Setup, Events & Status
@@ -207,7 +222,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // When returning to PLAYING state (e.g. after a level up selection),
   // check if we have enough XP for ANOTHER level.
   useEffect(() => {
-    if (status === GameStatus.PLAYING && playerRef.current) {
+    if (status === GameStatus.PLAYING) {
       const p = playerRef.current;
       // If we still have enough XP for next level, trigger another level up sequence
       if (p.exp >= p.nextLevelExp) {
@@ -218,11 +233,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         EventBus.emit('levelUpStart', {});
       }
     }
-  }, [status]);
+  }, [status, playerRef]);
 
   // Listen for high-frequency market updates directly to avoid React re-render overhead
   useEffect(() => {
-    const unsub = EventBus.on('gameMarketUpdate' as any, (data: MarketData) => {
+    const unsub = EventBus.on('gameMarketUpdate', (data: MarketData) => {
       marketDataRef.current = data;
     });
     return unsub;
@@ -263,7 +278,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       status,
       graphics
     );
-  }, [width, height, status, graphicsSettings, playerRef]);
+  }, [width, height, status, graphicsSettings, playerRef, pool, renderer]);
 
   const update = useCallback(
     (time: number) => {
@@ -609,6 +624,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       device.isMobile,
       position,
       updatePlayerStats,
+      combatSystem,
+      physicsSystem,
+      pool,
+      renderer,
+      spawnSystemRef,
+      speedLineSpawner,
     ]
   );
 

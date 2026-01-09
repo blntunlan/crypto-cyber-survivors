@@ -7,6 +7,7 @@ import { screenService } from '../../services/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { EventBus } from '../../services/EventBus';
 import { type MarketStateData } from '../../types/events';
+import { useIsRetro } from '../../contexts/useTheme';
 
 interface LiveFeedProps {
   marketData: MarketData;
@@ -26,15 +27,18 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
   priceColor,
   serverState,
 }) => {
+  const isRetro = useIsRetro();
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
     <div className="bg-transparent p-2 flex flex-col gap-0 min-w-[220px]">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] flex items-center gap-2">
+        <div
+          className={`text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+        >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
+            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'animate-pulse'}`}
           ></span>
           Live Feed
         </div>
@@ -48,7 +52,7 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
 
       <div className="flex flex-col">
         <div
-          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} text-3xl leading-none`}
+          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} text-3xl leading-none ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
@@ -56,7 +60,10 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
             maximumFractionDigits: pairConfig.decimals,
           })}
         </div>
-        <div className="text-sm font-black flex items-center gap-2 mt-1" style={{ color: pnlHex }}>
+        <div
+          className="text-sm font-black flex items-center gap-2 mt-1 font-cyber"
+          style={{ color: pnlHex }}
+        >
           <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
           <span className="text-[10px] opacity-70 tracking-widest uppercase">
             {marketData.effectivePnl >= 0 ? 'Profit' : 'Loss'}
@@ -133,6 +140,7 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
   priceColor,
   serverState,
 }) => {
+  const isRetro = useIsRetro();
   const { rs, rfs } = useResponsiveUI();
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
@@ -151,10 +159,10 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
       <div className="flex items-center justify-between mb-1">
         <div
           className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5"
-          style={{ fontSize: rfs(9) }}
+          style={{ fontSize: isRetro ? rfs(8) : rfs(9) }}
         >
           <span
-            className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} opacity-75`}
+            className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'opacity-75'}`}
           ></span>
           LIVE
         </div>
@@ -170,8 +178,8 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
 
       <div className="flex flex-col">
         <div
-          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} leading-none`}
-          style={{ fontSize: rfs(24) }}
+          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} leading-none ${isRetro ? 'font-retro-pixel' : ''}`}
+          style={{ fontSize: isRetro ? rfs(16) : rfs(24) }}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {

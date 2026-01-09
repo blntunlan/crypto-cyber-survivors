@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
+import { useIsRetro } from '../../contexts/useTheme';
 
 /**
  * WaveTimer - Adaptive Survival Time Display
@@ -27,6 +28,7 @@ const DesktopWaveTimer: React.FC = () => (
 );
 
 const MobileWaveTimer: React.FC = () => {
+  const isRetro = useIsRetro();
   const { rs, rfs } = useResponsiveUI();
 
   return (
@@ -35,15 +37,15 @@ const MobileWaveTimer: React.FC = () => {
       style={{ top: `calc(${rs(16)}px + env(safe-area-inset-top, 0px))` }}
     >
       <div
-        className="text-slate-500/80 font-bold uppercase tracking-widest"
-        style={{ fontSize: rfs(7) }}
+        className={`text-slate-500/80 font-bold uppercase tracking-widest ${isRetro ? 'font-retro-text' : ''}`}
+        style={{ fontSize: isRetro ? rfs(6) : rfs(7) }}
       >
         SURVIVAL
       </div>
       <div
         id="wave-timer-text"
-        className="font-black italic tracking-tighter text-white drop-shadow-md tabular-nums"
-        style={{ fontSize: rfs(20) }}
+        className={`font-black italic tracking-tighter text-white drop-shadow-md tabular-nums ${isRetro ? 'font-retro-pixel' : ''}`}
+        style={{ fontSize: isRetro ? rfs(16) : rfs(20) }}
       >
         0:00
       </div>

@@ -156,13 +156,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    focusedIndex,
-    audioSettings.masterVolume,
-    audioSettings.categoryVolumes,
-    onClose,
-    resetSettings,
-  ]);
+  }, [focusedIndex, audioSettings, onClose, resetSettings]);
 
   return (
     <div
@@ -176,13 +170,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isInGame 
         className={`max-w-md w-full p-4 md:p-8 flex flex-col max-h-full transition-all ${
           isRetro
             ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
       >
         {/* Header */}
         <header className="text-center mb-4 md:mb-8 shrink-0">
           <h2
-            className="font-display text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase"
+            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase`}
             style={{ textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : 'none' }}
           >
             Settings

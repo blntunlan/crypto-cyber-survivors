@@ -12,8 +12,19 @@ import { useTheme } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { CoinService, type CoinCalculation } from '../../services/CoinService';
 import { COLORS } from '../../constants';
+import { Z_LAYERS } from '../../constants/ZIndex';
 import { audio } from '../../services/AudioService';
+import {
+  IconSkull,
+  IconTrendUp,
+  IconTrendDown,
+  IconTrophy,
+  IconZap,
+  IconBitcoin,
+  IconMonitor,
+} from '../icons/CardIcons';
 import { type CycleCompleteData } from '../../types/gameMode';
+import { Logger } from '../../services/Logger';
 
 interface CycleCompleteScreenProps {
   data: CycleCompleteData;
@@ -30,6 +41,10 @@ export function CycleCompleteScreen({
   const sizes = useThemeSize();
   const [coinCalculation, setCoinCalculation] = useState<CoinCalculation | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
+
+  useEffect(() => {
+    Logger.info('[CycleCompleteScreen] Mounted');
+  }, []);
 
   useEffect(() => {
     // Calculate coins
@@ -57,39 +72,88 @@ export function CycleCompleteScreen({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        zIndex: Z_LAYERS.CYCLE_COMPLETE,
+      }}
     >
       <div
         className={`relative w-full max-w-md mx-4 p-6 md:p-8 transition-all ${
           isRetro
             ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
       >
         {/* Header */}
         <div className="text-center mb-6">
           <div
-            className={`font-display ${sizes.heading} font-black mb-1`}
+            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.heading} font-black mb-1 text-shadow-none`}
             style={{ color: COLORS.JACKPOT_YELLOW }}
           >
             CYCLE {data.cycleNumber} COMPLETE
           </div>
-          <div className="text-slate-400 text-[8px] font-display uppercase tracking-widest">
+          <div
+            className={`text-slate-400 text-[8px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-widest`}
+          >
             5 minutes survived
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <StatBox label="Time" value={formatTime(data.survivalTimeSeconds)} theme={theme} />
-          <StatBox label="Level" value={data.level.toString()} theme={theme} />
-          <StatBox label="Kills" value={data.totalKills.toString()} theme={theme} />
           <StatBox
-            label="P&L"
+            label="Time Survived"
+            value={formatTime(data.survivalTimeSeconds)}
+            theme={theme}
+            isRetro={isRetro}
+            icon={
+              <IconMonitor
+                className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                color={COLORS.ELECTRIC_BLUE}
+              />
+            }
+          />
+          <StatBox
+            label="Level Reached"
+            value={data.level.toString()}
+            theme={theme}
+            isRetro={isRetro}
+            icon={
+              <IconTrophy
+                className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                color={COLORS.JACKPOT_YELLOW}
+              />
+            }
+          />
+          <StatBox
+            label="Total Kills"
+            value={data.totalKills.toString()}
+            theme={theme}
+            isRetro={isRetro}
+            icon={
+              <IconSkull className={isRetro ? 'w-5 h-5' : 'w-6 h-6'} color={COLORS.CASINO_RED} />
+            }
+          />
+          <StatBox
+            label="P&L Performance"
             value={`${data.effectivePnl >= 0 ? '+' : ''}${(data.effectivePnl * 100).toFixed(1)}%`}
             theme={theme}
+            isRetro={isRetro}
             valueColor={pnlColor}
+            icon={
+              data.effectivePnl >= 0 ? (
+                <IconTrendUp
+                  className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                  color={COLORS.PUMP_GREEN}
+                />
+              ) : (
+                <IconTrendDown
+                  className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                  color={COLORS.DUMP_ORANGE}
+                />
+              )
+            }
           />
         </div>
 
@@ -147,7 +211,7 @@ export function CycleCompleteScreen({
               audio.playButton();
               void onCashOut();
             }}
-            className={`flex-1 py-4 font-black uppercase tracking-wider transition-all ${
+            className={`flex-1 py-4 font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               isRetro
                 ? 'border-4 active:translate-y-1'
                 : 'rounded-xl border-2 hover:scale-105 active:scale-95'
@@ -158,25 +222,27 @@ export function CycleCompleteScreen({
               color: '#000',
             }}
           >
-            💰 Cash Out
+            <IconBitcoin className="w-5 h-5" color="black" />
+            Cash Out
           </button>
           <button
             onClick={() => {
               audio.playButton();
               void onContinue();
             }}
-            className={`flex-1 py-4 font-black uppercase tracking-wider transition-all ${
+            className={`flex-1 py-4 font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               isRetro
                 ? 'border-4 active:translate-y-1'
                 : 'rounded-xl border-2 hover:scale-105 active:scale-95'
             }`}
             style={{
-              backgroundColor: 'transparent',
+              backgroundColor: isRetro ? 'transparent' : `${theme.colors.primary}20`,
               borderColor: theme.colors.primary,
               color: theme.colors.primary,
             }}
           >
-            🎮 Continue
+            <IconZap className="w-5 h-5" color={theme.colors.primary} />
+            Continue
           </button>
         </div>
 
@@ -195,20 +261,38 @@ function StatBox({
   label,
   value,
   theme,
+  isRetro,
   valueColor,
+  icon,
 }: {
   label: string;
   value: string;
   theme: { colors: { surface: string; text: string } };
+  isRetro?: boolean;
   valueColor?: string;
+  icon?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <div
-      className="p-3 rounded-lg text-center"
-      style={{ backgroundColor: `${theme.colors.surface}80` }}
+      className={`p-3 relative overflow-hidden ${isRetro ? 'rounded-none border-2 border-slate-700 bg-zinc-900' : 'rounded-lg bg-white/5 backdrop-blur-sm border border-white/10'}`}
     >
-      <div className="text-xs text-slate-400 uppercase mb-1">{label}</div>
-      <div className="text-xl font-black" style={{ color: valueColor ?? theme.colors.text }}>
+      {/* Background Icon Watermark */}
+      <div className="absolute -right-2 -bottom-2 opacity-10 pointer-events-none scale-150">
+        {icon}
+      </div>
+
+      <div className="flex items-center gap-2 mb-1 relative z-10">
+        <div className="opacity-80 scale-75 origin-left">{icon}</div>
+        <div
+          className={`text-xs text-slate-400 uppercase ${isRetro ? 'font-retro-text tracking-widest' : 'font-bold tracking-wider'}`}
+        >
+          {label}
+        </div>
+      </div>
+      <div
+        className={`text-xl font-black relative z-10 ${isRetro ? 'font-retro-pixel' : 'font-cyber tracking-tight'}`}
+        style={{ color: valueColor ?? theme.colors.text }}
+      >
         {value}
       </div>
     </div>

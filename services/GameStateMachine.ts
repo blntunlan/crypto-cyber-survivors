@@ -27,11 +27,22 @@ class GameStateMachineClass {
 
   // Define valid transitions
   private readonly VALID_TRANSITIONS: Map<GameStatus, GameStatus[]> = new Map([
-    [GameStatus.MENU, [GameStatus.PLAYING]],
-    [GameStatus.PLAYING, [GameStatus.PAUSED, GameStatus.LEVEL_UP, GameStatus.GAMEOVER]],
+    [GameStatus.MENU, [GameStatus.PLAYING, GameStatus.CYCLE_COMPLETE]],
+    [
+      GameStatus.PLAYING,
+      [
+        GameStatus.PAUSED,
+        GameStatus.LEVEL_UP,
+        GameStatus.GAMEOVER,
+        GameStatus.CYCLE_COMPLETE,
+        GameStatus.DATA_DISCONNECTED,
+      ],
+    ],
     [GameStatus.PAUSED, [GameStatus.PLAYING, GameStatus.MENU]],
     [GameStatus.LEVEL_UP, [GameStatus.PLAYING, GameStatus.GAMEOVER]],
     [GameStatus.GAMEOVER, [GameStatus.MENU]],
+    [GameStatus.CYCLE_COMPLETE, [GameStatus.PLAYING, GameStatus.GAMEOVER]],
+    [GameStatus.DATA_DISCONNECTED, [GameStatus.MENU]],
   ]);
 
   private constructor() {
@@ -99,6 +110,8 @@ class GameStateMachineClass {
       case GameStatus.PAUSED:
       case GameStatus.LEVEL_UP:
       case GameStatus.GAMEOVER:
+      case GameStatus.CYCLE_COMPLETE:
+      case GameStatus.DATA_DISCONNECTED:
         TimeService.pause();
         break;
       case GameStatus.MENU:

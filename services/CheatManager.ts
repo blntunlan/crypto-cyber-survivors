@@ -165,6 +165,15 @@ class CheatManagerClass {
           }
         }
         break;
+      case 'Y':
+        if (!e.ctrlKey && !e.altKey) {
+          EventBus.emit('cycleComplete', {
+            cycleNumber: 1,
+            totalElapsedSeconds: 300,
+          });
+          this.showCheatMessage('🏆 CYCLE COMPLETE');
+        }
+        break;
     }
 
     // Buffer-based cheat codes (only for printable characters)

@@ -37,7 +37,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
 
   const containerClasses = isRetro
     ? 'fixed inset-0 z-[2100] bg-black/90 flex items-center justify-center p-4 overflow-y-auto'
-    : 'fixed inset-0 z-[2100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto';
+    : 'fixed inset-0 z-[2100] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto';
 
   return (
     <div className={containerClasses}>
@@ -45,11 +45,11 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
         className={`text-center space-y-4 max-w-sm w-full p-6 md:p-8 my-auto transition-all ${sizes.gap} ${
           isRetro
             ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.3)]'
+            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
       >
         <h2
-          className={`font-display ${sizes.heading} font-black text-white italic tracking-tighter mb-6 ${isRetro ? '' : 'bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500'}`}
+          className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.heading} font-black text-white italic tracking-tighter mb-6 ${isRetro ? '' : 'bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500'}`}
           style={{
             textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : 'none',
           }}

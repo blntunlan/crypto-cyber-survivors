@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { COLORS } from '../../constants';
+import { Z_LAYERS } from '../../constants/ZIndex';
 import { useGameStore } from '../../stores/gameStore';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
@@ -41,14 +42,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[2300] bg-slate-950 flex flex-col items-center justify-center text-center p-4 overflow-y-auto"
+      className={`fixed inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-4 overflow-y-auto z-[${Z_LAYERS.GAME_OVER}]`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
       {/* Glitch Title */}
       <motion.h2
-        className={`font-display ${sizes.title} md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative`}
+        className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative`}
         initial={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
         animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{
@@ -77,7 +78,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         className={`transition-all max-w-md w-full mb-auto p-6 md:p-10 space-y-6 ${
           isRetro
             ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

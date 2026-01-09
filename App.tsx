@@ -178,6 +178,12 @@ const App: React.FC = () => {
   // ========================================
   // Callbacks
   // ========================================
+
+  // Expose EventBus for E2E testing
+  useEffect(() => {
+    window.EventBus = EventBus;
+  }, []);
+
   const handleNicknameComplete = useCallback(
     (nickname: string) => {
       setNeedsNickname(false);
@@ -213,7 +219,11 @@ const App: React.FC = () => {
 
   const startGame = useCallback(
     (choice: MarketPosition, selectedLeverage: LeverageOption) => {
-      if (marketData.price === 0 || gameStatus !== GameStatus.MENU) return;
+      console.error(`[App] startGame called. Price: ${marketData.price}, Status: ${gameStatus}`);
+      if (marketData.price === 0 || gameStatus !== GameStatus.MENU) {
+        console.error('[App] startGame aborted: condition check failed');
+        return;
+      }
 
       resetPlayer();
       setLeverage(selectedLeverage);
@@ -317,6 +327,7 @@ const App: React.FC = () => {
   // Handle cycle completion
   useEffect(() => {
     const handleCycleComplete = (data: { cycleNumber: number; totalElapsedSeconds: number }) => {
+      console.error(`[App] handleCycleComplete triggered. Mode=${gameMode}, Data=`, data);
       if (gameMode === GameMode.COMPETITIVE) {
         setCycleData({
           cycleNumber: data.cycleNumber,

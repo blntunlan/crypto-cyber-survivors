@@ -49,8 +49,6 @@ export class CollisionSystem implements ICollisionSystem {
     pool.activeEnemies.forEach(enemy => {
       if (enemy.isDying) return;
 
-      const enemyWithBehavior = enemy as unknown as EnemyWithBehavior;
-
       if (this.isOffScreen(enemy, width, height)) {
         enemy.active = false;
         return;
@@ -70,7 +68,7 @@ export class CollisionSystem implements ICollisionSystem {
         }
       }
 
-      if (enemy.hasEnteredScreen && enemy.spawnTimer > 0) {
+      if (enemy.hasEnteredScreen && enemy.spawnTimer !== undefined && enemy.spawnTimer > 0) {
         enemy.spawnTimer -= 0.1 * dtFactor;
       }
 

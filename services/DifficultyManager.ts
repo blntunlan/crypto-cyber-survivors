@@ -26,6 +26,7 @@ export interface DifficultyFactors {
   nearDeathMod: number;
   streakBonus: number;
   momentumMod: number;
+  cycleFactor: number;
 }
 
 export interface DifficultyOutput {
@@ -376,6 +377,8 @@ class DifficultyManagerClass {
       nearDeathMod: this.getNearDeathMod(hpPercent),
       streakBonus: this.getStreakBonus(),
       momentumMod: this.getMomentumMod(),
+      // +20% difficulty per cycle (New Game+ behavior)
+      cycleFactor: 1 + (this.currentCycle - 1) * 0.2,
     };
 
     // Combine technical factors with base multiplier from admin config
@@ -384,6 +387,7 @@ class DifficultyManagerClass {
       factors.pnlEffect *
       factors.volatility *
       factors.levelFactor *
+      factors.cycleFactor *
       baseMultiplier;
 
     // Combine psychological factors

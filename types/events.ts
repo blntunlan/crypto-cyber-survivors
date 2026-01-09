@@ -50,7 +50,9 @@ export type GameEvent =
   | 'verification:retrying'
   | 'volatilityShock'
   | 'wavePhaseChange'
-  | 'cycleComplete';
+  | 'cycleComplete'
+  | 'gameMarketUpdate'
+  | 'marketDataRecovered';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -148,6 +150,7 @@ export interface MilestoneAchievedEvent {
 
 import { type CryptoPair } from './crypto';
 import { type WavePhase } from './metrics';
+import { type MarketData } from '../types';
 
 // ...
 
@@ -325,6 +328,8 @@ export interface EventDataMap {
   volatilityShock: { intensity: number; direction: 'up' | 'down' };
   wavePhaseChange: { phase: WavePhase; oldPhase: WavePhase };
   cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
+  gameMarketUpdate: MarketData;
+  marketDataRecovered: { pair: CryptoPair };
 }
 
 // =============================================================================

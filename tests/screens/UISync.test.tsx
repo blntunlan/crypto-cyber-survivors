@@ -43,10 +43,9 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      // ThemedPanel modern: bg-slate-900/40 border-white/10 rounded-xl
-      const panel = container.querySelector('.bg-slate-900\\/40');
+      // ThemedPanel modern: uses cyber-glass class with rounded-xl
+      const panel = container.querySelector('.cyber-glass');
       expect(panel).toBeDefined();
-      expect(panel?.className).toContain('border-white/10');
       expect(panel?.className).toContain('rounded-xl');
     });
 
@@ -64,13 +63,14 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      const frame = container.querySelector('.bg-slate-900\\/40');
+      // PauseMenu uses cyber-glass class with rounded-2xl in cyberpunk mode
+      const frame = container.querySelector('.cyber-glass');
       expect(frame).toBeDefined();
-      expect(frame?.className).toContain('border-[var(--color-primary)]/20');
       expect(frame?.className).toContain('rounded-2xl');
 
       const title = screen.getByText('PAUSED');
-      expect(title.className).toContain('font-display');
+      // PauseMenu uses font-cyber for cyberpunk mode
+      expect(title.className).toContain('font-cyber');
     });
   });
 
@@ -112,8 +112,8 @@ describe('UI Consistency Sync', () => {
       );
 
       const title = screen.getByText('LIQUIDATED');
-      // Check animate property or some marker of the casino color
-      expect(title.parentElement?.className).toContain('font-display');
+      // In retro mode, GameOverScreen uses font-retro-pixel class
+      expect(title.parentElement?.className).toContain('font-retro-pixel');
     });
 
     it('PauseMenu should use Slot Black for its inner card backgrounds', () => {

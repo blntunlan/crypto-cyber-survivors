@@ -1,6 +1,5 @@
 export const PANEL_VARIANTS = {
-  modern:
-    'bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]',
+  modern: 'cyber-glass rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)]',
   retro: 'bg-zinc-900 border-2 border-zinc-700 rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]',
 };
 
@@ -36,19 +35,19 @@ export const INPUT_VARIANTS = {
 
 export const TEXT_VARIANTS = {
   h1: {
-    modern: 'font-display font-bold tracking-tight',
-    retro: 'font-primary font-bold tracking-normal uppercase', // Retro headers usually uppercase/pixel
+    modern: 'font-cyber font-bold tracking-tighter uppercase cyber-glitch-text',
+    retro: 'font-retro-pixel font-bold tracking-normal uppercase',
   },
   h2: {
-    modern: 'font-display font-semibold tracking-tight',
-    retro: 'font-primary font-bold tracking-normal',
+    modern: 'font-cyber font-semibold tracking-tight',
+    retro: 'font-retro-pixel font-bold tracking-normal',
   },
   body: {
-    modern: 'font-sans',
-    retro: 'font-secondary',
+    modern: 'font-feed',
+    retro: 'font-retro-text',
   },
   mono: {
     modern: 'font-mono',
-    retro: 'font-mono',
+    retro: 'font-mono text-shadow-none',
   },
 };

@@ -5,7 +5,9 @@ import { screenService } from '../services/ScreenService';
 import { useGameStore } from '../stores/gameStore';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { EventBus } from '../services/EventBus';
+
 import { Logger } from '../services/Logger';
+import { Z_LAYERS } from '../constants/ZIndex';
 
 import { KernelStatus, LiveFeed, AccountHealthPremium, BuffIndicator } from './hud';
 
@@ -126,7 +128,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
     return (
       <div
-        className="fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 z-[1000] font-mono"
+        className={`fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 font-mono z-[${Z_LAYERS.HUD}]`}
         style={{
           paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`,
           paddingLeft: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-left, 0px))`,

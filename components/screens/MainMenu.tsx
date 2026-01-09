@@ -9,7 +9,7 @@ import { audio } from '../../services/AudioService';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { GameMode, GAME_MODE_CONFIGS } from '../../types/gameMode';
 import { useTheme } from '../../contexts/useTheme';
-import { IconTrendUp, IconTrendDown } from '../icons/CardIcons';
+import { IconTrendUp, IconTrendDown, IconZap, IconTrophy } from '../icons/CardIcons';
 import { COLORS } from '../../config/Colors';
 import { ThemedButton } from '../themed/ThemedButton';
 import { ThemedPanel } from '../themed/ThemedPanel';
@@ -164,14 +164,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto landscape:py-2">
       <div className="max-w-xl w-full text-center space-y-4 sm:space-y-8 landscape:space-y-2 py-2 sm:py-0">
         <header className="space-y-3 sm:space-y-5">
-          <h1 className={`font-display ${sizes.title} tracking-tight text-white leading-relaxed`}>
+          <h1
+            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
+          >
             CRYPTO
             <br />
             <span style={{ color: pairConfig.color }}>SURVIVORS</span>
           </h1>
           <div className="flex flex-col items-center gap-2">
             <p
-              className={`font-heading text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny} ${isRetro ? 'font-primary' : ''}`}
+              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
             >
               Market Sentiment Engine
             </p>
@@ -196,7 +198,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-r from-transparent to-white/10'}`}
               />
               <span
-                className={`text-[7px] uppercase font-display tracking-[0.2em] font-bold`}
+                className={`text-[7px] uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-[0.2em] font-bold`}
                 style={{ color: COLORS.WHALE }}
               >
                 Game Mode
@@ -209,46 +211,74 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               {Object.values(GameMode).map(mode => {
                 const config = GAME_MODE_CONFIGS[mode];
                 const isActive = selectedMode === mode;
+                const ModeIcon = mode === GameMode.CASUAL ? IconZap : IconTrophy;
+                const modeColor = mode === GameMode.CASUAL ? COLORS.WHALE : COLORS.CASINO_RED;
+
                 return (
                   <button
                     key={mode}
-                    onClick={() => onModeChange(mode)}
-                    className={`flex-1 p-2.5 transition-all duration-300 text-left relative group 
+                    onClick={() => {
+                      audio.playButton();
+                      onModeChange(mode);
+                    }}
+                    className={`flex-1 p-2.5 transition-all duration-300 text-left relative group overflow-hidden 
                       ${
                         isRetro
                           ? 'rounded-none border-2 border-zinc-700 hover:border-zinc-500 bg-zinc-900 font-primary'
-                          : 'rounded-xl'
+                          : 'rounded-xl overflow-hidden'
                       } 
-                      ${isActive ? 'scale-[1.02]' : 'bg-white/5 opacity-40 hover:opacity-100'}`}
+                      ${isActive ? 'scale-[1.02] z-10' : 'bg-white/5 opacity-40 hover:opacity-100'}`}
                     style={{
                       boxShadow: isActive
                         ? isRetro
-                          ? '4px 4px 0px rgba(0,0,0,0.3)'
-                          : `0 4px 15px -2px ${COLORS.WHALE}30`
+                          ? `4px 4px 0px rgba(0,0,0,0.5)`
+                          : `0 0 20px -2px ${modeColor}50, inset 0 0 10px ${modeColor}20`
                         : 'none',
                       backgroundColor: isActive
                         ? isRetro
-                          ? '#27272a'
-                          : `${COLORS.WHALE}10`
+                          ? modeColor
+                          : `${modeColor}15`
                         : undefined,
                       border: isActive
-                        ? `${isRetro ? '2px' : '1px'} solid ${COLORS.WHALE}`
+                        ? `${isRetro ? '4px' : '1.5px'} solid ${isRetro ? '#ffffff' : modeColor}`
                         : isRetro
                           ? undefined
-                          : '1px solid transparent',
+                          : '1px solid rgba(255,255,255,0.05)',
                     }}
                   >
-                    <div
-                      className={`text-[7px] font-display uppercase tracking-wider mb-0.5 ${isActive ? 'font-black' : ''}`}
-                      style={{ color: isActive ? COLORS.WHALE : '#475569' }}
-                    >
-                      {config.displayName}
+                    {!isRetro && isActive && (
+                      <div
+                        className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-br from-white/10 to-transparent rotate-45 translate-x-6 -translate-y-6"
+                        style={{ backgroundColor: `${modeColor}20` }}
+                      />
+                    )}
+
+                    <div className="flex items-center gap-2 mb-1">
+                      <ModeIcon
+                        className={`w-3 h-3 ${isActive ? 'animate-pulse' : ''}`}
+                        color={isActive ? (isRetro ? '#ffffff' : modeColor) : '#475569'}
+                      />
+                      <div
+                        className={`text-[8px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-wider ${isActive ? 'font-black' : ''}`}
+                        style={{ color: isActive ? (isRetro ? '#ffffff' : modeColor) : '#475569' }}
+                      >
+                        {config.displayName}
+                      </div>
                     </div>
                     <div
-                      className={`text-[9px] leading-tight font-medium ${isActive ? 'text-white' : 'text-slate-600'} ${isRetro ? 'font-primary' : ''}`}
+                      className={`text-[10px] leading-tight font-medium ${isActive ? 'text-white' : 'text-slate-500'} ${isRetro ? 'font-primary' : ''}`}
                     >
                       {config.description}
                     </div>
+
+                    {/* Active Indicator Line */}
+                    {!isRetro && isActive && (
+                      <motion.div
+                        layoutId="mode-active-bar"
+                        className="absolute bottom-0 left-0 right-0 h-[2px]"
+                        style={{ backgroundColor: modeColor }}
+                      />
+                    )}
                   </button>
                 );
               })}
@@ -261,7 +291,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-r from-transparent to-white/10'}`}
               />
               <span
-                className={`text-[7px] uppercase font-display tracking-[0.2em] font-bold`}
+                className={`text-[7px] uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-[0.2em] font-bold`}
                 style={{ color: COLORS.CASINO_GOLD }}
               >
                 Select Asset

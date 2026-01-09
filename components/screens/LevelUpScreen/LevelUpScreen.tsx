@@ -153,7 +153,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className={`fixed inset-0 z-[2000] flex items-center justify-center p-4 overflow-y-auto ${isRetro ? 'bg-black/90' : 'bg-black/80 backdrop-blur-md'}`}
+          className={`fixed inset-0 z-[2000] flex items-center justify-center p-4 overflow-y-auto ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -168,7 +168,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
             {/* Title */}
             <motion.div className="text-center mb-4 md:mb-10" variants={titleVariants}>
               <motion.h3
-                className={`font-display ${sizes.title} font-black italic text-white tracking-tighter`}
+                className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} font-black italic text-white tracking-tighter`}
                 animate={{
                   textShadow: allStopped
                     ? isRetro
@@ -214,7 +214,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, on
               className={`max-w-2xl mx-auto p-4 md:p-8 transition-all ${
                 isRetro
                   ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-                  : 'bg-slate-900/40 border border-[var(--color-primary)]/20 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.3)]'
+                  : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
               }`}
             >
               <div className="flex flex-col gap-3 md:gap-4">

@@ -96,12 +96,41 @@
    RETRO THEME SPECIFIC OVERRIDES
    ======================================== */
 
-/* Remove blur/glassmorphism in retro mode */
+/* Remove modern effects in retro mode */
 [data-theme='retro-16bit'] .backdrop-blur,
 [data-theme='retro-16bit'] .backdrop-blur-sm,
-[data-theme='retro-16bit'] .backdrop-blur-md {
+[data-theme='retro-16bit'] .backdrop-blur-md,
+[data-theme='retro-16bit'] .backdrop-blur-lg,
+[data-theme='retro-16bit'] .theme-glow,
+[data-theme='retro-16bit'] .theme-blur,
+[data-theme='retro-16bit'] .cyber-glass,
+[data-theme='retro-16bit'] .cyber-glitch-text,
+[data-theme='retro-16bit'] [class*='bg-gradient-'],
+[data-theme='retro-16bit'] [class*='text-transparent'] {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  background-image: none !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  text-fill-color: initial !important;
+  -webkit-text-fill-color: initial !important;
+  text-shadow: none !important;
+}
+
+/* Retro Typography Force-Reset */
+[data-theme='retro-16bit'] .font-black,
+[data-theme='retro-16bit'] .font-extrabold {
+  font-weight: 700 !important;
+}
+
+[data-theme='retro-16bit'] .tracking-tighter,
+[data-theme='retro-16bit'] .tracking-tight {
+  letter-spacing: 0 !important;
+}
+
+[data-theme='retro-16bit'] .italic {
+  font-style: normal !important;
 }
 
 /* ========================================
@@ -154,12 +183,86 @@ html[data-theme-switching='true'] body::before {
   }
 }
 
-[data-theme='retro-16bit'] .backdrop-blur-sm,
-[data-theme='retro-16bit'] .backdrop-blur-md,
-[data-theme='retro-16bit'] .backdrop-blur-lg {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+/* ========================================
+   CYBERPUNK THEME PREMIUM EFFECTS
+   ======================================== */
+
+[data-theme='cyberpunk'] .cyber-glitch-text {
+  position: relative;
+  text-shadow:
+    0.05em 0 0 rgba(255, 0, 80, 0.75),
+    -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
+    0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+  animation: cyber-glitch 500ms infinite;
 }
+
+[data-theme='cyberpunk'] .cyber-glass {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='cyberpunk'] .neon-glow-cyan {
+  box-shadow:
+    0 0 15px rgba(0, 255, 255, 0.3),
+    inset 0 0 10px rgba(0, 255, 255, 0.1);
+}
+
+@keyframes cyber-glitch {
+  0% {
+    text-shadow:
+      0.05em 0 0 rgba(255, 0, 80, 0.75),
+      -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
+      0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+
+  14% {
+    text-shadow:
+      0.05em 0 0 rgba(255, 0, 80, 0.75),
+      -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
+      0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+
+  15% {
+    text-shadow:
+      -0.05em -0.025em 0 rgba(255, 0, 80, 0.75),
+      0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
+      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+
+  49% {
+    text-shadow:
+      -0.05em -0.025em 0 rgba(255, 0, 80, 0.75),
+      0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
+      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+
+  50% {
+    text-shadow:
+      0.025em 0.05em 0 rgba(255, 0, 80, 0.75),
+      0.05em 0 0 rgba(0, 255, 0, 0.75),
+      0 -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+
+  99% {
+    text-shadow:
+      0.025em 0.05em 0 rgba(255, 0, 80, 0.75),
+      0.05em 0 0 rgba(0, 255, 0, 0.75),
+      0 -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+
+  100% {
+    text-shadow:
+      -0.025em 0 0 rgba(255, 0, 80, 0.75),
+      -0.025em -0.025em 0 rgba(0, 255, 0, 0.75),
+      -0.025em -0.05em 0 rgba(0, 0, 255, 0.75);
+  }
+}
+
+/* Redundant block removed */
 
 /* Remove glow/shadow effects in retro mode */
 [data-theme='retro-16bit'] .shadow,
@@ -184,12 +287,19 @@ html[data-theme-switching='true'] body::before {
 [data-theme='retro-16bit'] .card,
 [data-theme='retro-16bit'] .panel {
   border-radius: 0 !important;
-  border: 4px solid var(--color-primary) !important;
+  border-width: 4px !important;
+  border-style: solid !important;
   box-shadow:
     inset -2px -2px 0px rgba(0, 0, 0, 0.4),
     inset 2px 2px 0px rgba(255, 255, 255, 0.2) !important;
   padding-left: 0.75rem !important;
   padding-right: 0.75rem !important;
+}
+
+[data-theme='retro-16bit'] .retro-player-highlight {
+  border-color: #ffd600 !important;
+  /* Jackpot Yellow for player in retro */
+  background-color: rgba(255, 214, 0, 0.1) !important;
 }
 
 [data-theme='retro-16bit'] button:active {

@@ -56,9 +56,7 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
   useEffect(() => {
     CATEGORIES.forEach(category => {
       const volume = categoryVolumes[category];
-      if (volume !== undefined) {
-        audio.setCategoryVolume(category, volume);
-      }
+      audio.setCategoryVolume(category, volume);
     });
   }, [categoryVolumes]);
 
@@ -82,7 +80,7 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
       >
         {CATEGORIES.map(category => {
           const config = CATEGORY_CONFIG[category];
-          const volume = categoryVolumes[category] ?? 1;
+          const volume = categoryVolumes[category];
           const isFocused = focusedCategory === category;
 
           return (

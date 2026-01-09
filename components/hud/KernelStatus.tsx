@@ -5,6 +5,7 @@ import { screenService } from '../../services/ScreenService';
 import { STAT_DEFINITIONS, type StatKey } from '../../config/StatRegistry';
 import { StatService } from '../../services/StatService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
+import { useIsRetro } from '../../contexts/useTheme';
 
 interface KernelStatusProps {
   player: Player;
@@ -25,23 +26,28 @@ interface KernelStatusProps {
 }
 
 const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
+  const isRetro = useIsRetro();
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
   return (
     <div className="bg-transparent p-3 flex flex-col gap-2 min-w-[220px] text-right">
       <div
-        className="text-[9px] uppercase font-black tracking-[0.2em] mb-1"
+        className={`text-[9px] uppercase font-black tracking-[0.2em] mb-1 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
         style={{ color: COLORS.ELECTRIC_BLUE }}
       >
         Kernel Status
       </div>
 
       <div className="flex flex-col gap-0.5">
-        <div className="text-3xl font-black italic text-white leading-none tracking-tighter">
+        <div
+          className={`text-3xl font-black italic text-white leading-none tracking-tighter ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+        >
           LVL {player.level}
         </div>
-        <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mt-1">
+        <div
+          className={`w-full h-2 bg-slate-800 overflow-hidden mt-1 ${isRetro ? 'rounded-none border-2 border-slate-700' : 'rounded-full'}`}
+        >
           <div
-            className="h-full bg-blue-500 shadow-[0_0_8px_#3b82f6] transition-all duration-100"
+            className={`h-full bg-blue-500 transition-all duration-100 ${isRetro ? '' : 'shadow-[0_0_8px_#3b82f6]'}`}
             style={{ width: `${Math.min(100, expPercent)}%` }}
           />
         </div>
@@ -64,6 +70,7 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
 };
 
 const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
+  const isRetro = useIsRetro();
   const { rs, rfs } = useResponsiveUI();
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
   return (
@@ -83,16 +90,18 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
           LEVEL
         </div>
         <div
-          className="font-black italic text-white leading-none tracking-tighter"
+          className={`font-black italic text-white leading-none tracking-tighter ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
           style={{ fontSize: rfs(30) }}
         >
           {player.level}
         </div>
       </div>
 
-      <div className="w-full h-1 bg-slate-800/50 rounded-full overflow-hidden">
+      <div
+        className={`w-full h-1 bg-slate-800/50 overflow-hidden ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
+      >
         <div
-          className="h-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.5)]"
+          className={`h-full bg-blue-400 ${isRetro ? '' : 'shadow-[0_0_6px_rgba(96,165,250,0.5)]'}`}
           style={{ width: `${Math.min(100, expPercent)}%` }}
         />
       </div>
@@ -112,7 +121,10 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
               <span className="text-slate-500 font-bold uppercase" style={{ fontSize: rfs(9) }}>
                 {stat.label}
               </span>
-              <span className={`${stat.uiColor} font-black`} style={{ fontSize: rfs(10) }}>
+              <span
+                className={`${stat.uiColor} font-black ${isRetro ? 'font-retro-text' : ''}`}
+                style={{ fontSize: rfs(10) }}
+              >
                 {displayValue}
               </span>
             </div>

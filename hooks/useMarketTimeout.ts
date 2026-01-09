@@ -47,7 +47,7 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
       });
     });
 
-    const subRecovered = EventBus.on('marketDataRecovered' as any, () => {
+    const subRecovered = EventBus.on('marketDataRecovered', () => {
       if (GameStateMachine.getState() === GameStatus.DATA_DISCONNECTED) {
         Logger.info(`[App] Market data recovered - resuming game`);
         GameStateMachine.transition(GameStatus.PLAYING);

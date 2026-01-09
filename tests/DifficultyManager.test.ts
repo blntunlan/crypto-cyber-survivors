@@ -180,4 +180,26 @@ describe('DifficultyManager', () => {
       expect(difficulty.total).toBeGreaterThanOrEqual(0.3);
     });
   });
+  describe('Cycle Scaling', () => {
+    it('should increase difficulty in subsequent cycles', () => {
+      // Scale is +20% per cycle
+      // Cycle 1 (0-300s): Factor 1.0
+      // Cycle 2 (300-600s): Factor 1.2
+
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(10); // Early in Cycle 1
+      DifficultyManager.startGame();
+      const cycle1 = DifficultyManager.calculate(0, 0, 1, 100).total;
+
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310); // Early in Cycle 2
+      // Note: We need to trigger sync to update cycle count
+      DifficultyManager.calculate(0, 0, 1, 100);
+
+      const cycle2 = DifficultyManager.calculate(0, 0, 1, 100).total;
+
+      // Even though baseTime increases slightly (1.0 vs 1.0+),
+      // the cycle factor (1.2x) should make a distinct difference.
+
+      expect(cycle2).toBeGreaterThan(cycle1 * 1.1);
+    });
+  });
 });

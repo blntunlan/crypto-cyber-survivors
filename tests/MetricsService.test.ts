@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MetricsService } from '../services/MetricsService';
 import { MarketPosition } from '../types';
-import { GameEndReason, type WavePhase } from '../types/metrics';
+import { GameEndReason } from '../types/metrics';
 import { EventBus } from '../services/EventBus';
 
 describe('MetricsService', () => {

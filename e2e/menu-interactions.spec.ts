@@ -115,7 +115,6 @@ test.describe('Menu Interactions and Theme Switching', () => {
     await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
 
     // Check if the timer starts ticking (optional but good for robustness)
-    const initialTime = await page.locator('#wave-timer-text').textContent();
     await page.waitForTimeout(2000);
     const updatedTime = await page.locator('#wave-timer-text').textContent();
 

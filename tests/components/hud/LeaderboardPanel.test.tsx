@@ -82,8 +82,8 @@ describe('LeaderboardPanel', () => {
   it('should render leaderboard entries after fetching', async () => {
     render(<LeaderboardPanel isVisible={true} />);
 
-    // Header should be visible
-    expect(screen.getByText('Leaderboard')).toBeInTheDocument();
+    // Header should be visible - text is "Data Leaderboard" in the component
+    expect(screen.getByText('Data Leaderboard')).toBeInTheDocument();
 
     // Entries should appear
     await waitFor(() => {
@@ -106,8 +106,8 @@ describe('LeaderboardPanel', () => {
       expect(screen.getByText('Player1')).toBeInTheDocument();
     });
 
-    // Click header to collapse
-    const header = screen.getByText('Leaderboard').parentElement?.parentElement;
+    // Click header to collapse - text is "Data Leaderboard" in the component
+    const header = screen.getByText('Data Leaderboard').parentElement?.parentElement;
     if (!header) throw new Error('Header not found');
 
     fireEvent.click(header);
@@ -127,7 +127,7 @@ describe('LeaderboardPanel', () => {
       expect(mockSupabase.limit).toHaveBeenCalled();
     });
 
-    const refreshButton = screen.getByTitle('Refresh');
+    const refreshButton = screen.getByTitle('Refresh Pool');
     fireEvent.click(refreshButton);
 
     expect(mockSupabase.limit).toHaveBeenCalledTimes(2);

@@ -23,6 +23,7 @@ import {
 import { supabase, isSupabaseConfigured } from '../../services/Supabase';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/Logger';
+import { COLORS } from '../../config/Colors';
 
 interface LeaderboardEntry {
   id: string;
@@ -200,31 +201,70 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
 
   // Get rank icon/style
   const getRankDisplay = (rank: number) => {
+    if (isRetro) {
+      const getRetroRankStyle = () => {
+        switch (rank) {
+          case 1:
+            return { color: COLORS.JACKPOT_YELLOW, borderColor: COLORS.JACKPOT_YELLOW };
+          case 2:
+            return { color: COLORS.SLOT_SILVER, borderColor: COLORS.SLOT_SILVER };
+          case 3:
+            return { color: COLORS.NEON_ORANGE, borderColor: COLORS.NEON_ORANGE };
+          default:
+            return { color: '#94a3b8', borderColor: '#334155' };
+        }
+      };
+      const style = getRetroRankStyle();
+      return (
+        <div
+          className="flex items-center justify-center w-6 h-6 border-2"
+          style={{ borderColor: style.borderColor }}
+        >
+          <ThemedText
+            variant="mono"
+            className="text-[10px] font-bold"
+            style={{ color: style.color }}
+          >
+            {rank}
+          </ThemedText>
+        </div>
+      );
+    }
+
     switch (rank) {
       case 1:
         return (
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 shadow-lg shadow-yellow-500/30">
-            <Crown className="w-3.5 h-3.5 text-yellow-900" />
+          <div className="relative group">
+            <div className="absolute inset-0 bg-yellow-400 blur-[4px] opacity-30 animate-pulse rounded-full" />
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-600 shadow-[0_0_10px_rgba(250,204,21,0.5)] border border-yellow-200/50 relative z-10`}
+            >
+              <Crown className="w-4 h-4 text-yellow-900 drop-shadow-sm" />
+            </div>
           </div>
         );
       case 2:
         return (
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 shadow-lg shadow-slate-400/30">
-            <Medal className="w-3.5 h-3.5 text-slate-700" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-slate-300 blur-[3px] opacity-20 rounded-full" />
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-slate-200 to-slate-400 shadow-[0_0_8px_rgba(203,213,225,0.3)] border border-slate-100/30 relative z-10">
+              <Medal className="w-4 h-4 text-slate-700" />
+            </div>
           </div>
         );
       case 3:
         return (
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-amber-600 to-amber-700 shadow-lg shadow-amber-600/30">
-            <Medal className="w-3.5 h-3.5 text-amber-200" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-amber-600 blur-[3px] opacity-20 rounded-full" />
+            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 shadow-[0_0_8px_rgba(180,83,9,0.3)] border border-amber-400/30 relative z-10">
+              <Medal className="w-4 h-4 text-amber-100" />
+            </div>
           </div>
         );
       default:
         return (
-          <div
-            className={`flex items-center justify-center w-6 h-6 ${isRetro ? 'border-2' : 'rounded-full bg-slate-800 border'} border-slate-700`}
-          >
-            <ThemedText variant="mono" className="text-xs font-bold text-slate-400">
+          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white/5 border border-white/10 group-hover:border-cyan-500/30 transition-colors">
+            <ThemedText variant="mono" className="text-[10px] font-bold text-slate-400">
               {rank}
             </ThemedText>
           </div>
@@ -243,25 +283,35 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
     >
       {/* Header - Glassmorphism */}
       <ThemedPanel
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-b-none border-b-0 hover:bg-slate-900/50 transition-all"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-b-none border-b-0 hover:bg-slate-900/50 transition-all relative overflow-hidden group"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-yellow-400" />
-          <ThemedText variant="h2" className="text-sm text-white uppercase tracking-wider">
-            Leaderboard
+        {!isRetro && (
+          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-yellow-400 to-transparent opacity-50" />
+        )}
+        <div className="flex items-center gap-2 relative z-10">
+          <Trophy
+            className={`w-4 h-4 ${isRetro ? 'text-yellow-400' : 'text-yellow-400 animate-pulse'}`}
+          />
+          <ThemedText
+            variant="h2"
+            className="text-[11px] font-black text-white uppercase tracking-[0.2em]"
+          >
+            Data Leaderboard
           </ThemedText>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative z-10">
           <button
             onClick={e => {
               e.stopPropagation();
               void fetchLeaderboard();
             }}
-            className="p-1 hover:bg-slate-800 rounded transition-colors"
-            title="Refresh"
+            className="p-1 hover:bg-white/10 rounded transition-colors group/refresh"
+            title="Refresh Pool"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 text-slate-400 group-hover/refresh:text-cyan-400 transition-colors ${loading ? 'animate-spin' : ''}`}
+            />
           </button>
           {isCollapsed ? (
             <ChevronDown className="w-4 h-4 text-slate-400" />
@@ -281,7 +331,16 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
             transition={{ duration: 0.2 }}
           >
             {/* ThemedPanel wrapper for correct styling of the list container */}
-            <ThemedPanel className="rounded-t-none border-t-0 overflow-hidden !shadow-2xl">
+            <ThemedPanel className="rounded-t-none border-t-0 overflow-hidden !shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
+              {!isRetro && (
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-[0.03]"
+                  style={{
+                    backgroundImage: `repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 2px)`,
+                    backgroundSize: '100% 2px',
+                  }}
+                />
+              )}
               {loading && entries.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
@@ -305,14 +364,17 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                        className={`flex items-center gap-3 px-4 py-3 transition-all relative group/item ${
                           isCurrentPlayer
                             ? isRetro
-                              ? 'bg-zinc-800 border-l-4 border-yellow-500'
-                              : 'bg-cyan-500/10 border-l-2 border-cyan-400'
-                            : 'hover:bg-slate-800/50'
+                              ? 'retro-player-highlight border-l-4'
+                              : 'bg-cyan-500/10 border-l-2 border-cyan-400 shadow-[inset_10px_0_20px_rgba(34,211,238,0.05)]'
+                            : 'hover:bg-white/[0.03]'
                         }`}
                       >
+                        {!isRetro && isCurrentPlayer && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent pointer-events-none" />
+                        )}
                         {/* Rank */}
                         {getRankDisplay(entry.rank!)}
 
@@ -342,17 +404,17 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                           <div className="flex items-center gap-2 mt-0.5">
                             {entry.crypto_pair && (
                               <span
-                                className={`text-[9px] px-1.5 py-0.5 font-bold uppercase ${isRetro ? 'border border-current' : 'rounded'}`}
+                                className={`text-[9px] px-1.5 py-0.5 font-black uppercase ${isRetro ? 'border border-current' : 'rounded-sm tracking-wider'}`}
                                 style={{
                                   backgroundColor: isRetro
                                     ? 'transparent'
                                     : entry.crypto_pair === 'BTC'
-                                      ? '#F7931A20'
+                                      ? '#F7931A30'
                                       : entry.crypto_pair === 'ETH'
-                                        ? '#627EEA20'
+                                        ? '#627EEA30'
                                         : entry.crypto_pair === 'SOL'
-                                          ? '#9945FF20'
-                                          : '#64748b20',
+                                          ? '#9945FF30'
+                                          : '#64748b30',
                                   color:
                                     entry.crypto_pair === 'BTC'
                                       ? '#F7931A'
@@ -360,7 +422,8 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                                         ? '#627EEA'
                                         : entry.crypto_pair === 'SOL'
                                           ? '#9945FF'
-                                          : '#64748b',
+                                          : '#94a3b8',
+                                  border: isRetro ? undefined : `1px solid currentColor`,
                                 }}
                               >
                                 {entry.crypto_pair}
@@ -377,7 +440,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                         <div className="text-right">
                           <ThemedText
                             variant={isRetro ? 'h1' : 'h2'}
-                            className={`text-sm ${
+                            className={`text-sm font-black tracking-tight ${
                               entry.rank === 1
                                 ? 'text-yellow-400'
                                 : entry.rank === 2
@@ -393,9 +456,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                           </ThemedText>
                           <ThemedText
                             variant="mono"
-                            className="text-[10px] text-slate-600 uppercase"
+                            className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter"
                           >
-                            pts
+                            points
                           </ThemedText>
                         </div>
                       </motion.div>
@@ -406,8 +469,8 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
 
               {/* Footer */}
               {lastUpdated && (
-                <div className="px-4 py-2 border-t border-slate-800/50 text-[9px] text-slate-600 text-center">
-                  Updated {lastUpdated.toLocaleTimeString()}
+                <div className="px-4 py-2 border-t border-slate-800/50 text-[8px] text-slate-600 text-center uppercase tracking-widest font-mono">
+                  &lt; SYNC_COMPLETE: {lastUpdated.toLocaleTimeString()} &gt;
                 </div>
               )}
             </ThemedPanel>

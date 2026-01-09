@@ -37,8 +37,6 @@ export class MovementSystem implements IMovementSystem {
     width: number,
     height: number
   ): void {
-    const entryMargin = -20;
-
     pool.activeEnemies.forEach(e => {
       if (e.isDying) return;
 

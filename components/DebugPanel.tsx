@@ -5,7 +5,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/useTheme';
+import { Z_LAYERS } from '../constants/ZIndex';
 import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
+import { EventBus } from '../services/EventBus';
 
 interface DebugInfo {
   manualProfile?: string | null;
@@ -61,8 +63,8 @@ export const DebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-4 right-4 z-[9999] bg-red-600 text-white px-3 py-2 text-xs font-bold shadow-lg ${isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'}`}
-        style={{ touchAction: 'manipulation' }}
+        className={`fixed bottom-4 right-4 bg-red-600 text-white px-3 py-2 text-xs font-bold shadow-lg ${isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'}`}
+        style={{ touchAction: 'manipulation', zIndex: Z_LAYERS.DEBUG_PANEL }}
       >
         🐛 DEBUG
       </button>
@@ -70,7 +72,10 @@ export const DebugPanel: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/90 p-4 overflow-auto">
+    <div
+      className="fixed inset-0 bg-black/90 p-4 overflow-auto"
+      style={{ zIndex: Z_LAYERS.DEBUG_PANEL }}
+    >
       <div
         className={`bg-slate-900 border-2 border-green-500 p-4 text-white font-mono text-xs ${isRetro ? 'rounded-none' : 'rounded-lg'}`}
       >
@@ -166,6 +171,20 @@ export const DebugPanel: React.FC = () => {
               className="w-full bg-blue-600 px-3 py-2 rounded text-white font-bold"
             >
               Force Benchmark
+            </button>
+
+            <button
+              onClick={() => {
+                console.error('[DebugPanel] Force Cycle Complete Clicked');
+                EventBus.emit('cycleComplete', {
+                  cycleNumber: 1,
+                  totalElapsedSeconds: 300,
+                });
+                setIsOpen(false);
+              }}
+              className="w-full bg-green-600 px-3 py-2 rounded text-white font-bold"
+            >
+              Force Cycle Complete
             </button>
           </div>
         </div>

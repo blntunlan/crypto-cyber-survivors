@@ -35,7 +35,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
   selected,
   onSelect,
   disabled,
-  isFocused = false,
+  isFocused: _isFocused = false,
 }) => {
   const { isRetro } = useTheme();
   const pairs = Object.values(CRYPTO_PAIRS);
@@ -98,7 +98,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
             {getCryptoIcon(pair.id, 28)}
           </motion.div>
           <span
-            className="text-[7px] font-display tracking-widest uppercase"
+            className={`text-[7px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-widest uppercase`}
             style={{ color: pair.color }}
           >
             {pair.id}
@@ -110,7 +110,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
 };
 
 // Export position button icons for MainMenu
-export const LongIcon = ({ size = 40 }: { size?: number }) => (
+export const LongIcon = ({ size: _size = 40 }: { size?: number }) => (
   <div className="relative">
     <motion.div
       className="p-3 rounded-xl bg-green-500/20 border border-green-500/30"
@@ -128,7 +128,7 @@ export const LongIcon = ({ size = 40 }: { size?: number }) => (
   </div>
 );
 
-export const ShortIcon = ({ size = 40 }: { size?: number }) => (
+export const ShortIcon = ({ size: _size = 40 }: { size?: number }) => (
   <div className="relative">
     <motion.div
       className="p-3 rounded-xl bg-red-500/20 border border-red-500/30"

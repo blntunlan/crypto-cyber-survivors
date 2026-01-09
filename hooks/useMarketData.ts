@@ -167,7 +167,7 @@ export const useMarketData = (
         lastPriceTimeRef.current = Date.now();
         if (timeoutTriggeredRef.current) {
           timeoutTriggeredRef.current = false;
-          EventBus.emit('marketDataRecovered' as any, { pair: pairRef.current });
+          EventBus.emit('marketDataRecovered', { pair: pairRef.current });
           Logger.info(`[Market] Data recovered for ${update.pair}`);
         }
 
@@ -264,7 +264,7 @@ export const useMarketData = (
           };
 
           // Emit for GameEngine (Ref tracking) to avoid React re-render overhead
-          EventBus.emit('gameMarketUpdate' as any, nextData);
+          EventBus.emit('gameMarketUpdate', nextData);
 
           return nextData;
         });
