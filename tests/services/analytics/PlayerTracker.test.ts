@@ -26,7 +26,7 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/supabase', () => ({
+vi.mock('../../../services/Supabase', () => ({
   supabase: mockSupabase,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
@@ -45,6 +45,9 @@ describe('PlayerTracker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     PlayerTracker.resetForTesting();
+
+    // Reset isSupabaseConfigured to default true
+    (isSupabaseConfigured as any).mockReturnValue(true);
 
     // Default setup for successful fetch
     mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
@@ -122,7 +125,7 @@ describe('PlayerTracker', () => {
 
     it('should skip initialization if Supabase is not configured', async () => {
       // Arrange
-      (isSupabaseConfigured as any).mockReturnValueOnce(false);
+      (isSupabaseConfigured as any).mockReturnValue(false);
 
       // Act
       const tracker = PlayerTracker.getInstance();
@@ -164,14 +167,9 @@ describe('PlayerTracker', () => {
       PlayerTracker.getInstance();
 
       // Advance timers to allow the async init (the void initializePlayer()) to proceed
-      // Since it's async but no timers are explicitly used inside initializePlayer
-      // except the one we just mocked with setInterval later.
-      // We need to run pending promises.
       vi.runAllTicks();
 
       // Wait for the async work
-      // In fake timer mode, we can't easily "wait" for microtasks with real setTimeout
-      // but vi.advanceTimersByTime(0) or runAllTicks usually works.
       await vi.advanceTimersByTimeAsync(0);
 
       // Advance time by 5 minutes
@@ -248,7 +246,9 @@ describe('PlayerTracker', () => {
       expect(tracker.getHighScore()).toBe(100);
 
       // Setup mock for updateHighScore call
-      mockSupabase.eq.mockResolvedValueOnce({ error: null });
+      // The implementation uses .eq('id', ...), we need to ensure chain works
+      mockSupabase.update.mockReturnThis();
+      mockSupabase.eq.mockResolvedValue({ error: null });
 
       // Act
       const result = await tracker.updateHighScore(200);
@@ -271,10 +271,16 @@ describe('PlayerTracker', () => {
         total_sessions: 1,
         high_score: 500,
       };
+      // We need to return this data when PlayerTracker calls .maybeSingle()
       mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+      // Also ensure single() returns something if it falls back there (though maybeSingle should catch it)
+      mockSupabase.single.mockResolvedValue({ data: existingPlayer, error: null });
 
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);
+
+      // Wait a bit more to ensure the async processing in initializePlayer finishes setting state
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Verify initial high score loaded
       expect(tracker.getHighScore()).toBe(500);

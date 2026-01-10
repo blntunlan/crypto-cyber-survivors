@@ -140,6 +140,8 @@ export class EntityRenderer implements IRenderer {
   }
 
   private drawEnemies(ctx: CanvasRenderingContext2D, pool: IPoolManager, bounds: ViewportBounds) {
+    const isRetro = ThemeService.isRetro();
+
     pool.activeEnemies.forEach(e => {
       // Off-screen culling (larger radius for spawn animation glow effect)
       const spawnGlowExtra = e.spawnTimer !== undefined && e.spawnTimer > 0.6 ? 30 : 0;
@@ -148,125 +150,149 @@ export class EntityRenderer implements IRenderer {
       const ex = Math.round(e.x);
       const ey = Math.round(e.y);
 
-      // Death Pop Animation
-      if (e.isDying && e.deathProgress !== undefined) {
-        ctx.save();
+      // FAST PATH: Active, fully spawned enemies (no save/restore/translate overhead)
+      if (!e.isDying && (!e.spawnTimer || e.spawnTimer <= 0)) {
+        if (isRetro) {
+          // 16-bit pixel style - draw as rounded square
+          const size = e.radius * 1.8;
+          const halfSize = size / 2;
+          ctx.fillStyle = e.color;
+          // Draw directly at absolute coordinates
+          ctx.fillRect(ex - halfSize, ey - halfSize, size, size);
 
-        // Scale up (1.0 → 1.4) and fade out
-        const scale = 1 + e.deathProgress * 0.4;
-        const alpha = 1 - e.deathProgress;
-
-        ctx.globalAlpha = alpha;
-
-        // Draw scaled enemy
-        ctx.fillStyle = e.color;
-        ctx.beginPath();
-        ctx.arc(ex, ey, e.radius * scale, 0, Math.PI * 2);
-        ctx.fill();
-
-        // White flash overlay (strongest at start)
-        const flashAlpha = (1 - e.deathProgress) * 0.6;
-        if (flashAlpha > 0.05) {
-          ctx.globalAlpha = flashAlpha;
-          ctx.fillStyle = '#FFFFFF';
+          // Add pixel-style inner details
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillRect(ex - halfSize + 2, ey - halfSize + 2, 4, 4); // Eye highlight
+        } else {
+          // Cyberpunk style - smooth circle
+          ctx.fillStyle = e.color;
           ctx.beginPath();
-          ctx.arc(ex, ey, e.radius * scale * 0.8, 0, Math.PI * 2);
+          // Draw directly at absolute coordinates
+          ctx.arc(ex, ey, e.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        // SLOW PATH: Dying or Spawning enemies (requires state manipulation)
+
+        // Death Pop Animation
+        if (e.isDying && e.deathProgress !== undefined) {
+          ctx.save();
+
+          // Scale up (1.0 → 1.4) and fade out
+          const scale = 1 + e.deathProgress * 0.4;
+          const alpha = 1 - e.deathProgress;
+
+          ctx.globalAlpha = alpha;
+
+          // Draw scaled enemy
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          ctx.arc(ex, ey, e.radius * scale, 0, Math.PI * 2);
+          ctx.fill();
+
+          // White flash overlay (strongest at start)
+          const flashAlpha = (1 - e.deathProgress) * 0.6;
+          if (flashAlpha > 0.05) {
+            ctx.globalAlpha = flashAlpha;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(ex, ey, e.radius * scale * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.restore();
+          return; // Skip normal rendering and health bar for dying enemies
+        }
+
+        ctx.save();
+        ctx.translate(ex, ey);
+
+        // Spawn Animation - Ball Squeeze Pop Effect
+        if (e.spawnTimer !== undefined && e.spawnTimer > 0) {
+          const t = 1 - e.spawnTimer; // 0 to 1 (progress)
+          let sx = 1;
+          let sy = 1;
+          let extraScale = 1;
+
+          // Phase 1: Compressed ball rapidly expanding (0 -> 0.25)
+          if (t < 0.25) {
+            const p = t / 0.25;
+            // Elastic ease out for "pop" feeling
+            const elastic = 1 - Math.pow(1 - p, 3) * Math.cos(p * Math.PI * 0.5);
+
+            // Start as tiny compressed ball, expand to overshoot
+            extraScale = 0.2 + elastic * 1.0; // 0.2 -> 1.2
+            sx = 0.3 + elastic * 0.9; // Slightly wider as it pops
+            sy = 0.3 + elastic * 0.9;
+          }
+          // Phase 2: Overshoot bounce (0.25 -> 0.5)
+          else if (t < 0.5) {
+            const p = (t - 0.25) / 0.25;
+            extraScale = 1.2 - p * 0.25; // 1.2 -> 0.95
+
+            // Squash horizontally, stretch vertically (jelly effect)
+            sx = 1.15 - p * 0.25; // 1.15 -> 0.9
+            sy = 0.85 + p * 0.25; // 0.85 -> 1.1
+          }
+          // Phase 3: Settle with wobble (0.5 -> 1.0)
+          else {
+            const p = (t - 0.5) / 0.5;
+            extraScale = 0.95 + p * 0.05; // 0.95 -> 1.0
+
+            // Damped oscillation
+            const damp = Math.pow(1 - p, 1.5);
+            const wobble = Math.sin(p * Math.PI * 3) * 0.1 * damp;
+            sx = 1 + wobble;
+            sy = 1 - wobble;
+          }
+
+          ctx.scale(sx * extraScale, sy * extraScale);
+
+          // Spawn burst effect - expanding ring
+          if (t < 0.35) {
+            const burstProgress = t / 0.35;
+            const burstAlpha = 1 - burstProgress;
+            const burstRadius = e.radius * (0.5 + burstProgress * 2.5);
+
+            // White flash ring
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, 255, 255, ${burstAlpha * 0.8})`;
+            ctx.lineWidth = 4 * (1 - burstProgress);
+            ctx.arc(0, 0, burstRadius / extraScale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inner glow
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(255, 200, 150, ${burstAlpha * 0.5})`;
+            ctx.arc(0, 0, (e.radius * 0.8) / extraScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Instant appear (no slow fade)
+          if (t < 0.1) ctx.globalAlpha = t * 10;
+        }
+
+        // Draw enemy - pixel mode or normal (SLOW PATH with transform)
+        if (isRetro) {
+          // 16-bit pixel style - draw as rounded square
+          const size = e.radius * 1.8;
+          const halfSize = size / 2;
+          ctx.fillStyle = e.color;
+          ctx.fillRect(-halfSize, -halfSize, size, size);
+
+          // Add pixel-style inner details
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillRect(-halfSize + 2, -halfSize + 2, 4, 4); // Eye highlight
+        } else {
+          // Cyberpunk style - smooth circle
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
           ctx.fill();
         }
 
         ctx.restore();
-        return; // Skip normal rendering
       }
-
-      ctx.save();
-      ctx.translate(ex, ey);
-
-      // Spawn Animation - Ball Squeeze Pop Effect
-      // Enemy looks like it's compressed into a ball and pops out
-      if (e.spawnTimer !== undefined && e.spawnTimer > 0) {
-        const t = 1 - e.spawnTimer; // 0 to 1 (progress)
-        let sx = 1;
-        let sy = 1;
-        let extraScale = 1;
-
-        // Phase 1: Compressed ball rapidly expanding (0 -> 0.25)
-        if (t < 0.25) {
-          const p = t / 0.25;
-          // Elastic ease out for "pop" feeling
-          const elastic = 1 - Math.pow(1 - p, 3) * Math.cos(p * Math.PI * 0.5);
-
-          // Start as tiny compressed ball, expand to overshoot
-          extraScale = 0.2 + elastic * 1.0; // 0.2 -> 1.2
-          sx = 0.3 + elastic * 0.9; // Slightly wider as it pops
-          sy = 0.3 + elastic * 0.9;
-        }
-        // Phase 2: Overshoot bounce (0.25 -> 0.5)
-        else if (t < 0.5) {
-          const p = (t - 0.25) / 0.25;
-          extraScale = 1.2 - p * 0.25; // 1.2 -> 0.95
-
-          // Squash horizontally, stretch vertically (jelly effect)
-          sx = 1.15 - p * 0.25; // 1.15 -> 0.9
-          sy = 0.85 + p * 0.25; // 0.85 -> 1.1
-        }
-        // Phase 3: Settle with wobble (0.5 -> 1.0)
-        else {
-          const p = (t - 0.5) / 0.5;
-          extraScale = 0.95 + p * 0.05; // 0.95 -> 1.0
-
-          // Damped oscillation
-          const damp = Math.pow(1 - p, 1.5);
-          const wobble = Math.sin(p * Math.PI * 3) * 0.1 * damp;
-          sx = 1 + wobble;
-          sy = 1 - wobble;
-        }
-
-        ctx.scale(sx * extraScale, sy * extraScale);
-
-        // Spawn burst effect - expanding ring
-        if (t < 0.35) {
-          const burstProgress = t / 0.35;
-          const burstAlpha = 1 - burstProgress;
-          const burstRadius = e.radius * (0.5 + burstProgress * 2.5);
-
-          // White flash ring
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(255, 255, 255, ${burstAlpha * 0.8})`;
-          ctx.lineWidth = 4 * (1 - burstProgress);
-          ctx.arc(0, 0, burstRadius / extraScale, 0, Math.PI * 2);
-          ctx.stroke();
-
-          // Inner glow
-          ctx.beginPath();
-          ctx.fillStyle = `rgba(255, 200, 150, ${burstAlpha * 0.5})`;
-          ctx.arc(0, 0, (e.radius * 0.8) / extraScale, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Instant appear (no slow fade)
-        if (t < 0.1) ctx.globalAlpha = t * 10;
-      }
-
-      // Draw enemy - pixel mode or normal
-      if (ThemeService.isRetro()) {
-        // 16-bit pixel style - draw as rounded square
-        const size = e.radius * 1.8;
-        const halfSize = size / 2;
-        ctx.fillStyle = e.color;
-        ctx.fillRect(-halfSize, -halfSize, size, size);
-
-        // Add pixel-style inner details
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(-halfSize + 2, -halfSize + 2, 4, 4); // Eye highlight
-      } else {
-        // Cyberpunk style - smooth circle
-        ctx.fillStyle = e.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore();
 
       // Health Bar (only for alive enemies, hide during early spawn)
       const showHealthBar = e.spawnTimer === undefined || e.spawnTimer < 0.7;
