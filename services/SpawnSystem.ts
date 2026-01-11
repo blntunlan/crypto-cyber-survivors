@@ -60,7 +60,15 @@ export class SpawnSystem implements ISpawnSystem {
 
     // 1. Whale Spawning (Server-triggered)
     if (marketState && marketState.whaleTier > 0) {
-      this.handleWhaleSpawning(marketState, pool, difficulty, position, width, height, maxEnemies);
+      this.handleWhaleSpawning(
+        marketState,
+        pool,
+        difficulty,
+        position,
+        width,
+        height,
+        maxEnemies
+      );
     }
 
     // 2. Regular Spawning
@@ -142,7 +150,10 @@ export class SpawnSystem implements ISpawnSystem {
   /**
    * Returns a random position outside the visible screen area.
    */
-  private getRandomSpawnPosition(width: number, height: number): { x: number; y: number } {
+  private getRandomSpawnPosition(
+    width: number,
+    height: number
+  ): { x: number; y: number } {
     const edge = Math.floor(Math.random() * 4);
     const safeOffset = Math.max(GAME_ENGINE.SPAWN_OFFSET, 80);
 

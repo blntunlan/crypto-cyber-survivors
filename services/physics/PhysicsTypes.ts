@@ -8,7 +8,13 @@
  * @note This improves testability and reduces import count in physics modules.
  */
 
-import { type Particle, type Gem, type Enemy, type Bullet, type Player } from '../../types';
+import {
+  type Particle,
+  type Gem,
+  type Enemy,
+  type Bullet,
+  type Player,
+} from '../../types';
 import { type BuffGem } from '../../types/BuffGem';
 import { type PerformanceConfig } from '../../types/DeviceProfile';
 
@@ -26,7 +32,13 @@ export interface IPoolProvider {
   activeBullets: Bullet[];
 
   getParticle(x: number, y: number, vx: number, vy: number, color: string): Particle;
-  getFloatingText(x: number, y: number, text: string, color: string, size: number): void;
+  getFloatingText(
+    x: number,
+    y: number,
+    text: string,
+    color: string,
+    size: number
+  ): void;
 }
 
 // =============================================================================

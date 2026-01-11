@@ -108,7 +108,11 @@ export class CombatResolutionService {
     }
   }
 
-  private static spawnDeathParticles(pool: IPoolManager, enemy: Enemy, isSuperCrit: boolean): void {
+  private static spawnDeathParticles(
+    pool: IPoolManager,
+    enemy: Enemy,
+    isSuperCrit: boolean
+  ): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
     const isRetro = ThemeService.isRetro();
 
@@ -138,7 +142,11 @@ export class CombatResolutionService {
    * - Base 5% rare gem chance + 3% per luck point
    * - 10% per luck point chance for bonus gem
    */
-  private static spawnGemForEnemy(pool: IPoolManager, enemy: Enemy, player: Player): void {
+  private static spawnGemForEnemy(
+    pool: IPoolManager,
+    enemy: Enemy,
+    player: Player
+  ): void {
     const { GEMS, LUCK } = COMBAT_CONFIG;
 
     // Get effective luck from BuffManager if available, with system-level cap
@@ -154,12 +162,15 @@ export class CombatResolutionService {
     );
     const isRare = Math.random() < rareChance;
 
-    const baseValue = enemy.type === 'whale' ? GEMS.BASE_VALUE_WHALE : GEMS.BASE_VALUE_NORMAL;
+    const baseValue =
+      enemy.type === 'whale' ? GEMS.BASE_VALUE_WHALE : GEMS.BASE_VALUE_NORMAL;
     // Rare gems worth more, plus luck bonus
     const luckValueBonus = 1 + luck * LUCK.VALUE_BONUS_PER_LUCK;
     const rareMultiplier = isRare ? GEMS.RARE_MULTIPLIER : 1;
     const leverageMultiplier = DifficultyManager.getXpMultiplier();
-    const value = Math.floor(baseValue * rareMultiplier * luckValueBonus * leverageMultiplier);
+    const value = Math.floor(
+      baseValue * rareMultiplier * luckValueBonus * leverageMultiplier
+    );
 
     pool.getGem(
       enemy.x,
@@ -177,7 +188,9 @@ export class CombatResolutionService {
     );
     if (Math.random() < bonusGemChance) {
       // Spawn smaller bonus gem slightly offset
-      const bonusValue = Math.floor(baseValue * LUCK.BONUS_VALUE_MULTIPLIER * luckValueBonus);
+      const bonusValue = Math.floor(
+        baseValue * LUCK.BONUS_VALUE_MULTIPLIER * luckValueBonus
+      );
       pool.getGem(
         enemy.x + (Math.random() - 0.5) * GEMS.BONUS_OFFSET,
         enemy.y + (Math.random() - 0.5) * GEMS.BONUS_OFFSET,

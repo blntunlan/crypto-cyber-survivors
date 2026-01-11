@@ -113,7 +113,9 @@ export class PoolManager implements IPoolManager {
     this.bullets = new ObjectPool<Bullet>(PoolManager.MAX_ACTIVE.bullets);
     this.gems = new ObjectPool<Gem>(PoolManager.MAX_ACTIVE.gems);
     this.particles = new ObjectPool<Particle>(PoolManager.MAX_ACTIVE.particles);
-    this.floatingTexts = new ObjectPool<FloatingText>(PoolManager.MAX_ACTIVE.floatingTexts);
+    this.floatingTexts = new ObjectPool<FloatingText>(
+      PoolManager.MAX_ACTIVE.floatingTexts
+    );
     this.speedLines = new ObjectPool<SpeedLine>(PoolManager.MAX_ACTIVE.speedLines);
   }
 
@@ -232,7 +234,15 @@ export class PoolManager implements IPoolManager {
     const aggroMultiplier = marketStateService.getState()?.enemyAggroMultiplier ?? 1.0;
 
     return this.enemies.get(
-      () => enemyFactory.createEnemy(enemyType, x, y, difficulty, position, aggroMultiplier),
+      () =>
+        enemyFactory.createEnemy(
+          enemyType,
+          x,
+          y,
+          difficulty,
+          position,
+          aggroMultiplier
+        ),
       obj => {
         const newEnemy = enemyFactory.createEnemy(
           enemyType,
@@ -327,7 +337,18 @@ export class PoolManager implements IPoolManager {
     isSuperCrit: boolean
   ): Bullet {
     return this.bullets.get(
-      () => ({ active: true, x, y, vx, vy, damage, radius, color, isCrit, isSuperCrit }),
+      () => ({
+        active: true,
+        x,
+        y,
+        vx,
+        vy,
+        damage,
+        radius,
+        color,
+        isCrit,
+        isSuperCrit,
+      }),
       obj =>
         Object.assign(obj, {
           x,
@@ -344,9 +365,27 @@ export class PoolManager implements IPoolManager {
     );
   }
 
-  getGem(x: number, y: number, value: number, radius: number, color: string, isRare: boolean): Gem {
+  getGem(
+    x: number,
+    y: number,
+    value: number,
+    radius: number,
+    color: string,
+    isRare: boolean
+  ): Gem {
     return this.gems.get(
-      () => ({ active: true, x, y, radius, color, value, isRare, vx: 0, vy: 0, magnetized: false }),
+      () => ({
+        active: true,
+        x,
+        y,
+        radius,
+        color,
+        value,
+        isRare,
+        vx: 0,
+        vy: 0,
+        magnetized: false,
+      }),
       obj =>
         Object.assign(obj, {
           x,
@@ -373,11 +412,28 @@ export class PoolManager implements IPoolManager {
   ): Particle {
     return this.particles.get(
       () => ({ active: true, x, y, vx, vy, color, radius: 2, life: 1, isPixel }),
-      obj => Object.assign(obj, { x, y, vx, vy, color, radius: 2, life: 1, active: true, isPixel })
+      obj =>
+        Object.assign(obj, {
+          x,
+          y,
+          vx,
+          vy,
+          color,
+          radius: 2,
+          life: 1,
+          active: true,
+          isPixel,
+        })
     );
   }
 
-  getFloatingText(x: number, y: number, text: string, color: string, size: number): FloatingText {
+  getFloatingText(
+    x: number,
+    y: number,
+    text: string,
+    color: string,
+    size: number
+  ): FloatingText {
     return this.floatingTexts.get(
       () => ({ active: true, x, y, text, color, size, life: 1 }),
       obj => Object.assign(obj, { x, y, text, color, size, life: 1, active: true })

@@ -58,11 +58,17 @@ const audioAdapter: IAudioProvider = {
 const statsAdapter: IStatsProvider = {
   isInitialized: () => BuffManager.isInitialized(),
   getMagnet: (player: Player) =>
-    BuffManager.isInitialized() ? BuffManager.getDecoratedStats().getMagnet() : player.magnet,
+    BuffManager.isInitialized()
+      ? BuffManager.getDecoratedStats().getMagnet()
+      : player.magnet,
   getDodge: (player: Player) =>
-    BuffManager.isInitialized() ? BuffManager.getDecoratedStats().getDodge() : player.dodge,
+    BuffManager.isInitialized()
+      ? BuffManager.getDecoratedStats().getDodge()
+      : player.dodge,
   getArmor: (player: Player) =>
-    BuffManager.isInitialized() ? BuffManager.getDecoratedStats().getArmor() : player.armor,
+    BuffManager.isInitialized()
+      ? BuffManager.getDecoratedStats().getArmor()
+      : player.armor,
 };
 
 /**
@@ -169,7 +175,9 @@ export const defaultPhysicsContext: IPhysicsContext = {
 /**
  * Create a physics context with optional overrides for testing
  */
-export function createPhysicsContext(overrides: Partial<IPhysicsContext> = {}): IPhysicsContext {
+export function createPhysicsContext(
+  overrides: Partial<IPhysicsContext> = {}
+): IPhysicsContext {
   return {
     ...defaultPhysicsContext,
     ...overrides,

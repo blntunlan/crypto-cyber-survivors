@@ -99,7 +99,8 @@ export class CombatSystem implements ICombatSystem {
         : null;
 
     // Track best candidate using squared distance to avoid sqrt in hot loop
-    let bestEnemy: { x: number; y: number; distSq: number; speed: number } | null = null;
+    let bestEnemy: { x: number; y: number; distSq: number; speed: number } | null =
+      null;
 
     for (const enemy of pool.activeEnemies) {
       // Skip off-screen enemies to prevent shooting at invisible targets
@@ -161,7 +162,10 @@ export class CombatSystem implements ICombatSystem {
     const effectiveArea = Math.min(rawArea, PLAYER_STATS.MAX_AREA);
 
     // 2. Calculate Crit Status
-    const { isCrit, isSuperCrit } = this.calculateCritStatus(effectiveCritChance, effectiveLuck);
+    const { isCrit, isSuperCrit } = this.calculateCritStatus(
+      effectiveCritChance,
+      effectiveLuck
+    );
 
     // 3. Calculate Damage
     let damage = effectiveDamage;
@@ -186,8 +190,10 @@ export class CombatSystem implements ICombatSystem {
   ): { isCrit: boolean; isSuperCrit: boolean } {
     // Crit is purely based on critChance stat
     // Super crit has 20% chance of the crit chance
-    const isSuperCrit = CheatManager.isForcedSuperCrit() || Math.random() < critChance * 0.2;
-    const isCrit = !isSuperCrit && (CheatManager.isForcedCrit() || Math.random() < critChance);
+    const isSuperCrit =
+      CheatManager.isForcedSuperCrit() || Math.random() < critChance * 0.2;
+    const isCrit =
+      !isSuperCrit && (CheatManager.isForcedCrit() || Math.random() < critChance);
 
     return { isCrit, isSuperCrit };
   }
@@ -281,7 +287,11 @@ export class CombatSystem implements ICombatSystem {
         effectiveArea *
         ParticleConfigService.bullets.baseSizeMultiplier *
         typeMultiplier;
-      const bulletColor = isSuperCrit ? COLORS.SUPER_CRIT : isCrit ? COLORS.CRIT : COLORS.BULLET;
+      const bulletColor = isSuperCrit
+        ? COLORS.SUPER_CRIT
+        : isCrit
+          ? COLORS.CRIT
+          : COLORS.BULLET;
 
       pool.getBullet(
         player.x,

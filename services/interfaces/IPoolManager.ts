@@ -57,7 +57,14 @@ export interface IPoolManager {
     isSuperCrit: boolean
   ): Bullet;
 
-  getGem(x: number, y: number, value: number, radius: number, color: string, isRare: boolean): Gem;
+  getGem(
+    x: number,
+    y: number,
+    value: number,
+    radius: number,
+    color: string,
+    isRare: boolean
+  ): Gem;
 
   getParticle(
     x: number,
@@ -68,7 +75,13 @@ export interface IPoolManager {
     isPixel?: boolean
   ): Particle;
 
-  getFloatingText(x: number, y: number, text: string, color: string, size: number): FloatingText;
+  getFloatingText(
+    x: number,
+    y: number,
+    text: string,
+    color: string,
+    size: number
+  ): FloatingText;
 
   getSpeedLine(
     x: number,

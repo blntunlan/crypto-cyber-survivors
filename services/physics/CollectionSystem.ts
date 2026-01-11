@@ -35,7 +35,12 @@ export class CollectionSystem implements ICollectionSystem {
   /**
    * Update collection logic for gems and buff gems
    */
-  public update(pool: IPoolManager, player: Player, state: GameState, dtFactor: number): void {
+  public update(
+    pool: IPoolManager,
+    player: Player,
+    state: GameState,
+    dtFactor: number
+  ): void {
     const rawMagnet = this.ctx.stats.getMagnet(player);
     const effectiveMagnet = Math.min(rawMagnet, this.ctx.statCaps.MAX_MAGNET);
 
@@ -91,7 +96,12 @@ export class CollectionSystem implements ICollectionSystem {
     });
   }
 
-  private collectGem(pool: IPoolManager, player: Player, gem: Gem, state: GameState): void {
+  private collectGem(
+    pool: IPoolManager,
+    player: Player,
+    gem: Gem,
+    state: GameState
+  ): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
     const xpGain = Math.floor(gem.value * this.ctx.combo.getXpMultiplier());
 
@@ -131,7 +141,8 @@ export class CollectionSystem implements ICollectionSystem {
       const dy = player.y - gem.y;
       const distSq = dx * dx + dy * dy;
 
-      const magnetRange = (this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet) * 0.6;
+      const magnetRange =
+        (this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet) * 0.6;
       if (distSq < magnetRange * magnetRange) {
         const dist = Math.sqrt(distSq);
         const pull = lerp(8, 2, dist / magnetRange) * dtFactor;
@@ -157,7 +168,11 @@ export class CollectionSystem implements ICollectionSystem {
     this.ctx.buffGems.collectGem(gem);
   }
 
-  private spawnCollectionParticles(pool: IPoolManager, gem: Gem, particleMultiplier: number): void {
+  private spawnCollectionParticles(
+    pool: IPoolManager,
+    gem: Gem,
+    particleMultiplier: number
+  ): void {
     const collectCfg = this.ctx.particles.collect;
     const count = Math.round(collectCfg.count * particleMultiplier);
 

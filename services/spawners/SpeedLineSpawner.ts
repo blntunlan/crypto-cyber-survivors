@@ -46,7 +46,9 @@ export class SpeedLineSpawner {
       const angle = Math.random() * Math.PI * 2;
 
       // Spawn closer on mobile to ensure visibility before decay kicks in
-      const distMultiplier = this.isMobile ? 0.9 + Math.random() * 0.2 : 1.2 + Math.random() * 0.5;
+      const distMultiplier = this.isMobile
+        ? 0.9 + Math.random() * 0.2
+        : 1.2 + Math.random() * 0.5;
       const spawnDist = centerDist * distMultiplier;
       const startX = player.x + Math.cos(angle) * spawnDist;
       const startY = player.y + Math.sin(angle) * spawnDist;

@@ -68,7 +68,11 @@ export class CollisionSystem implements ICollisionSystem {
         }
       }
 
-      if (enemy.hasEnteredScreen && enemy.spawnTimer !== undefined && enemy.spawnTimer > 0) {
+      if (
+        enemy.hasEnteredScreen &&
+        enemy.spawnTimer !== undefined &&
+        enemy.spawnTimer > 0
+      ) {
         enemy.spawnTimer -= 0.1 * dtFactor;
       }
 
@@ -121,7 +125,13 @@ export class CollisionSystem implements ICollisionSystem {
         const dodgeChance = Math.min(rawDodge, this.ctx.statCaps.MAX_DODGE);
 
         if (Math.random() < dodgeChance) {
-          pool.getFloatingText(player.x, player.y - 20, 'DODGE!', physicsColors.BULLET, 16);
+          pool.getFloatingText(
+            player.x,
+            player.y - 20,
+            'DODGE!',
+            physicsColors.BULLET,
+            16
+          );
           return;
         }
 
@@ -163,7 +173,15 @@ export class CollisionSystem implements ICollisionSystem {
       const combinedRadius = enemy.radius + bullet.radius;
 
       if (distSq < combinedRadius * combinedRadius) {
-        this.resolveBulletHit(pool, enemy, bullet, player, state, dtFactor, particleMultiplier);
+        this.resolveBulletHit(
+          pool,
+          enemy,
+          bullet,
+          player,
+          state,
+          dtFactor,
+          particleMultiplier
+        );
       }
     }
   }
@@ -187,13 +205,20 @@ export class CollisionSystem implements ICollisionSystem {
 
     const isCrit = bullet.isCrit || bullet.isSuperCrit;
     EventBus.emit('hitStop', {
-      duration: isCrit ? this.ctx.constants.HIT_STOP_CRIT : this.ctx.constants.HIT_STOP_NORMAL,
+      duration: isCrit
+        ? this.ctx.constants.HIT_STOP_CRIT
+        : this.ctx.constants.HIT_STOP_NORMAL,
       isCrit: !!isCrit,
     });
 
     if (enemy.health <= 0) {
       this.flushDamageBuffer(pool, enemy);
-      CombatResolutionService.handleEnemyDeath(pool, enemy, player, !!bullet.isSuperCrit);
+      CombatResolutionService.handleEnemyDeath(
+        pool,
+        enemy,
+        player,
+        !!bullet.isSuperCrit
+      );
     }
   }
 
@@ -206,7 +231,9 @@ export class CollisionSystem implements ICollisionSystem {
   private triggerCritEffects(bullet: Bullet, enemy: Enemy, state: GameState): void {
     if (bullet.isCrit || bullet.isSuperCrit) {
       state.critFlash = bullet.isSuperCrit ? 0.15 : 0.08;
-      state.critFlashColor = bullet.isSuperCrit ? physicsColors.SUPER_CRIT : physicsColors.CRIT;
+      state.critFlashColor = bullet.isSuperCrit
+        ? physicsColors.SUPER_CRIT
+        : physicsColors.CRIT;
       this.ctx.audio.playCrit();
 
       EventBus.emit('critHit', {
@@ -245,7 +272,13 @@ export class CollisionSystem implements ICollisionSystem {
     const text = StatService.formatCompact(enemy.damageBuffer);
 
     if (text) {
-      pool.getFloatingText(enemy.x + (Math.random() - 0.5) * 10, enemy.y - 20, text, color, size);
+      pool.getFloatingText(
+        enemy.x + (Math.random() - 0.5) * 10,
+        enemy.y - 20,
+        text,
+        color,
+        size
+      );
     }
 
     enemy.damageBuffer = 0;

@@ -52,7 +52,10 @@ export class MovementSystem implements IMovementSystem {
         // Mark as entered screen when any part of the enemy is visible
         const margin = e.radius;
         const isVisible =
-          e.x > -margin && e.x < width + margin && e.y > -margin && e.y < height + margin;
+          e.x > -margin &&
+          e.x < width + margin &&
+          e.y > -margin &&
+          e.y < height + margin;
 
         if (isVisible) {
           e.hasEnteredScreen = true;
@@ -102,7 +105,12 @@ export class MovementSystem implements IMovementSystem {
         trailPart.radius = bullet.radius * trailCfg.radiusMultiplier;
       }
 
-      if (bullet.x < -100 || bullet.x > width + 100 || bullet.y < -100 || bullet.y > height + 100) {
+      if (
+        bullet.x < -100 ||
+        bullet.x > width + 100 ||
+        bullet.y < -100 ||
+        bullet.y > height + 100
+      ) {
         bullet.active = false;
       }
     });

@@ -200,7 +200,10 @@ class BuffGemSpawnerClass {
       return null;
     }
 
-    const totalWeight = availableTypes.reduce((sum, t) => sum + BUFF_GEM_CONFIGS[t].rarity, 0);
+    const totalWeight = availableTypes.reduce(
+      (sum, t) => sum + BUFF_GEM_CONFIGS[t].rarity,
+      0
+    );
     let random = Math.random() * totalWeight;
 
     for (const type of availableTypes) {
@@ -262,7 +265,9 @@ class BuffGemSpawnerClass {
       isDebuff: config.isDebuff,
     });
 
-    Logger.debug(`[BuffGemSpawner] Spawned ${buffType} gem at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+    Logger.debug(
+      `[BuffGemSpawner] Spawned ${buffType} gem at (${x.toFixed(0)}, ${y.toFixed(0)})`
+    );
 
     return gem;
   }
@@ -304,7 +309,9 @@ class BuffGemSpawnerClass {
 
     if (decoratorInstance.getDuration() === -1) {
       this.collectedPermanentBuffs.add(gem.buffType);
-      Logger.info(`[BuffGemSpawner] Permanent buff collected: ${gem.buffType} - won't spawn again`);
+      Logger.info(
+        `[BuffGemSpawner] Permanent buff collected: ${gem.buffType} - won't spawn again`
+      );
     }
 
     EventBus.emit('buffGemCollected', {
@@ -327,7 +334,8 @@ class BuffGemSpawnerClass {
    */
   forceSpawn(buffType?: BuffGemType): BuffGem | null {
     const type =
-      buffType ?? POSITIVE_BUFF_TYPES[Math.floor(Math.random() * POSITIVE_BUFF_TYPES.length)]!;
+      buffType ??
+      POSITIVE_BUFF_TYPES[Math.floor(Math.random() * POSITIVE_BUFF_TYPES.length)]!;
     const x = this.screenWidth / 2 + (Math.random() - 0.5) * 200;
     const y = this.screenHeight / 2 + (Math.random() - 0.5) * 200;
     return this.spawnGem(type, x, y);
