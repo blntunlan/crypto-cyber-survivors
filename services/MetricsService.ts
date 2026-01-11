@@ -196,7 +196,10 @@ export class MetricsServiceClass {
       pair: this.state.pair,
 
       bitcoin: MetricsCompiler.compileBitcoinMetrics(this.state, finalData),
-      difficulty: MetricsCompiler.compileDifficultyMetrics(this.state, finalData.difficulty),
+      difficulty: MetricsCompiler.compileDifficultyMetrics(
+        this.state,
+        finalData.difficulty
+      ),
       player: MetricsCompiler.compilePlayerMetrics(this.state, finalData, survivalTime),
       combo: MetricsCompiler.compileComboMetrics(this.state),
       card: MetricsCompiler.compileCardMetrics(this.state),
