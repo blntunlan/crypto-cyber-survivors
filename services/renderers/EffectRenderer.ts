@@ -1,7 +1,11 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
-import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
+import {
+  createViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from './CullingUtils';
 
 export class EffectRenderer implements IRenderer {
   render(
@@ -63,7 +67,11 @@ export class EffectRenderer implements IRenderer {
    * Groups particles by color and draws them in single path operations.
    * Includes off-screen culling for additional performance gains.
    */
-  private drawParticles(ctx: CanvasRenderingContext2D, pool: IPoolManager, bounds: ViewportBounds) {
+  private drawParticles(
+    ctx: CanvasRenderingContext2D,
+    pool: IPoolManager,
+    bounds: ViewportBounds
+  ) {
     if (pool.activeParticles.length === 0) return;
 
     // Group particles by color and approximate life (for alpha batching)
@@ -98,7 +106,12 @@ export class EffectRenderer implements IRenderer {
         particles.forEach(part => {
           const radius = part.radius || 2;
           const size = radius * 2;
-          ctx.fillRect(Math.round(part.x - radius), Math.round(part.y - radius), size, size);
+          ctx.fillRect(
+            Math.round(part.x - radius),
+            Math.round(part.y - radius),
+            size,
+            size
+          );
         });
       } else {
         // Standard particles: circles

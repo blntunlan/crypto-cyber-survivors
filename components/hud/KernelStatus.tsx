@@ -61,7 +61,12 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
           const displayValue = StatService.format(value, stat.id as StatKey);
 
           return (
-            <StatRow key={stat.id} label={stat.label} value={displayValue} color={stat.uiColor} />
+            <StatRow
+              key={stat.id}
+              label={stat.label}
+              value={displayValue}
+              color={stat.uiColor}
+            />
           );
         })}
       </div>
@@ -118,7 +123,10 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
 
           return (
             <div key={stat.id} className="flex justify-between items-center gap-2">
-              <span className="text-slate-500 font-bold uppercase" style={{ fontSize: rfs(9) }}>
+              <span
+                className="text-slate-500 font-bold uppercase"
+                style={{ fontSize: rfs(9) }}
+              >
                 {stat.label}
               </span>
               <span

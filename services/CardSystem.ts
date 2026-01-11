@@ -15,6 +15,12 @@
  */
 
 // Re-export everything from the new modular system
-export { CardSystem, TIER_CONFIG, ALL_CARDS_FLAT, getTierConfig, getAllTiers } from './cards';
+export {
+  CardSystem,
+  TIER_CONFIG,
+  ALL_CARDS_FLAT,
+  getTierConfig,
+  getAllTiers,
+} from './cards';
 
 export type { Card, CardTier, TierConfig } from './cards';

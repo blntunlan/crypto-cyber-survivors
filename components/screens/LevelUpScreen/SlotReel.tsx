@@ -70,7 +70,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
           setPhase('slowing');
           audio.playSlowdownTension();
         }
-        const slowdownProgress = (elapsed - slowdownStartTime) / SLOT_CONFIG.SLOWDOWN_DURATION;
+        const slowdownProgress =
+          (elapsed - slowdownStartTime) / SLOT_CONFIG.SLOWDOWN_DURATION;
         currentInterval = SLOT_CONFIG.SPIN_INTERVAL + slowdownProgress * 200;
       }
 
@@ -101,7 +102,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     }
   }, [isStopped, onStopped, reelIndex]);
 
-  const displayCard = (phase === 'stopped' ? finalCard : spinCards[displayIndex]) ?? finalCard;
+  const displayCard =
+    (phase === 'stopped' ? finalCard : spinCards[displayIndex]) ?? finalCard;
   const tierConfig = TIER_CONFIG[displayCard.tier];
   const isSpinning = phase !== 'stopped';
   const isSlowingDown = phase === 'slowing';
@@ -137,7 +139,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         ${isSelected && isStopped ? 'z-10' : 'z-0'}
       `}
       style={{
-        backgroundColor: isSelected && isStopped ? `${tierConfig.bgColor}ee` : tierConfig.bgColor,
+        backgroundColor:
+          isSelected && isStopped ? `${tierConfig.bgColor}ee` : tierConfig.bgColor,
         borderWidth: isRetro ? '4px' : '2px',
         borderStyle: 'solid',
         borderColor: isSelected && isStopped ? '#ffffff' : tierConfig.borderColor,
@@ -164,7 +167,9 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         },
       }}
       whileHover={
-        isStopped && !isSelected ? { backgroundColor: `${tierConfig.bgColor}ee`, x: 4 } : {}
+        isStopped && !isSelected
+          ? { backgroundColor: `${tierConfig.bgColor}ee`, x: 4 }
+          : {}
       }
       whileTap={isStopped ? { scale: 0.98 } : {}}
     >
@@ -248,7 +253,11 @@ export const SlotReel: React.FC<SlotReelProps> = ({
             }}
             transition={
               isSpinning
-                ? { duration: isSlowingDown ? 0.15 : 0.1, repeat: Infinity, ease: 'linear' }
+                ? {
+                    duration: isSlowingDown ? 0.15 : 0.1,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }
                 : isStopped
                   ? {
                       duration: isSelected ? 2 : 0.4,

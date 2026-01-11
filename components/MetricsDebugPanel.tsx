@@ -208,7 +208,9 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                           <span className="text-slate-400">PnL at Death:</span>
                           <span
                             className={
-                              last.bitcoin.pnlAtDeath >= 0 ? 'text-green-400' : 'text-red-400'
+                              last.bitcoin.pnlAtDeath >= 0
+                                ? 'text-green-400'
+                                : 'text-red-400'
                             }
                           >
                             {(last.bitcoin.pnlAtDeath * 100).toFixed(2)}%

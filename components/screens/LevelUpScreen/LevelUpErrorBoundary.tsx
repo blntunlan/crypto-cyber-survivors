@@ -6,7 +6,10 @@ interface ErrorBoundaryProps {
   debugInfo: string;
 }
 
-export class LevelUpErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class LevelUpErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -26,7 +29,9 @@ export class LevelUpErrorBoundary extends Component<ErrorBoundaryProps, ErrorBou
       return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-red-900/90 p-4">
           <div className="max-w-2xl w-full bg-black/80 border-2 border-red-500 rounded-xl p-6 text-white font-debug text-sm overflow-auto max-h-[80vh]">
-            <h2 className="text-2xl font-bold text-red-500 mb-4">⚠️ LevelUpScreen Error</h2>
+            <h2 className="text-2xl font-bold text-red-500 mb-4">
+              ⚠️ LevelUpScreen Error
+            </h2>
             <div className="mb-4">
               <p className="text-yellow-400 font-bold">Error:</p>
               <pre className="bg-gray-900 p-2 rounded mt-1 overflow-x-auto">

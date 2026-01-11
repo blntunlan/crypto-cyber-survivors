@@ -34,14 +34,29 @@ interface CategoryConfig {
 
 const CATEGORY_CONFIG: Record<SoundCategory, CategoryConfig> = {
   combat: { label: 'Combat', Icon: IconMarketChart, description: 'Shoot, crit, hit' },
-  feedback: { label: 'Feedback', Icon: IconDiamond, description: 'Gems, level up, combos' },
+  feedback: {
+    label: 'Feedback',
+    Icon: IconDiamond,
+    description: 'Gems, level up, combos',
+  },
   movement: { label: 'Movement', Icon: IconBolt, description: 'Dash, whoosh' },
   ui: { label: 'UI', Icon: IconFlashPulse, description: 'Buttons, menus' },
   alerts: { label: 'Alerts', Icon: IconSkull, description: 'Low HP, death' },
-  slots: { label: 'Slots', Icon: IconGenesisEmblem, description: 'Level up slot machine' },
+  slots: {
+    label: 'Slots',
+    Icon: IconGenesisEmblem,
+    description: 'Level up slot machine',
+  },
 };
 
-const CATEGORIES: SoundCategory[] = ['combat', 'feedback', 'movement', 'ui', 'alerts', 'slots'];
+const CATEGORIES: SoundCategory[] = [
+  'combat',
+  'feedback',
+  'movement',
+  'ui',
+  'alerts',
+  'slots',
+];
 
 interface SoundMixerSectionProps {
   focusedCategory?: SoundCategory | null;
@@ -126,7 +141,9 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
                   accentColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
                 }}
               />
-              <p className={`text-[8px] mt-0.5 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}>
+              <p
+                className={`text-[8px] mt-0.5 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
+              >
                 {config.description}
               </p>
             </div>

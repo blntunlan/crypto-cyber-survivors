@@ -27,7 +27,9 @@ export const MobileSection = memo(() => {
       <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
         {/* Control Type Selection */}
         <div className="space-y-1">
-          <span className="text-[10px] text-slate-500 font-bold uppercase">Control Type</span>
+          <span className="text-[10px] text-slate-500 font-bold uppercase">
+            Control Type
+          </span>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setMobileSetting('controlType', 'drag' as ControlType)}
@@ -56,7 +58,9 @@ export const MobileSection = memo(() => {
         {mobile.controlType === 'joystick' && (
           <>
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Joystick Size</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">
+                Joystick Size
+              </span>
               <div className="grid grid-cols-3 gap-2">
                 {(['small', 'medium', 'large'] as JoystickSize[]).map(size => (
                   <button
@@ -74,7 +78,9 @@ export const MobileSection = memo(() => {
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Joystick Side</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">
+                Joystick Side
+              </span>
               <div className="grid grid-cols-2 gap-2">
                 {(['left', 'right'] as JoystickPosition[]).map(pos => (
                   <button
@@ -103,7 +109,9 @@ export const MobileSection = memo(() => {
         <ToggleButton
           label="Visual Feedback"
           enabled={mobile.showDragFeedback}
-          onToggle={() => setMobileSetting('showDragFeedback', !mobile.showDragFeedback)}
+          onToggle={() =>
+            setMobileSetting('showDragFeedback', !mobile.showDragFeedback)
+          }
         />
       </div>
     </section>

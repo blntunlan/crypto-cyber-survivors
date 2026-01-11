@@ -103,7 +103,12 @@ export const ComboDebugPanel: React.FC = () => {
           onClick={() => setIsVisible(false)}
           className="text-slate-500 hover:text-white transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -118,13 +123,21 @@ export const ComboDebugPanel: React.FC = () => {
         {/* Stats Card */}
         <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800/50 shadow-inner">
           <div className="flex justify-between items-end mb-1">
-            <span className="text-slate-500 text-[9px] uppercase font-bold">Current Streak</span>
-            <span className="text-white font-black text-xl leading-none">{state.killStreak}</span>
+            <span className="text-slate-500 text-[9px] uppercase font-bold">
+              Current Streak
+            </span>
+            <span className="text-white font-black text-xl leading-none">
+              {state.killStreak}
+            </span>
           </div>
 
           <div className="flex justify-between items-center mb-3">
-            <span className="text-slate-500 text-[9px] uppercase font-bold">Multiplier</span>
-            <span className="text-amber-400 font-bold">{state.comboMultiplier.toFixed(1)}x</span>
+            <span className="text-slate-500 text-[9px] uppercase font-bold">
+              Multiplier
+            </span>
+            <span className="text-amber-400 font-bold">
+              {state.comboMultiplier.toFixed(1)}x
+            </span>
           </div>
 
           {/* Timer Bar */}

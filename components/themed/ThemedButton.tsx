@@ -14,7 +14,9 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
   ...props
 }) => {
   const { isRetro } = useTheme();
-  const variantClass = isRetro ? BUTTON_VARIANTS[intent].retro : BUTTON_VARIANTS[intent].modern;
+  const variantClass = isRetro
+    ? BUTTON_VARIANTS[intent].retro
+    : BUTTON_VARIANTS[intent].modern;
 
   return (
     <button className={`${variantClass} ${className}`} {...props}>

@@ -65,7 +65,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   const pointerContainerRef = useRef<HTMLDivElement>(null);
 
   // ---------- CUSTOM HOOKS ----------
-  const { uiMeta, flash, showMilestone, clutchActive, achievement } = useHUDEvents(player, status);
+  const { uiMeta, flash, showMilestone, clutchActive, achievement } = useHUDEvents(
+    player,
+    status
+  );
 
   useHUDUpdateLoop({
     status,
@@ -88,9 +91,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
   return (
     <div
-      className="absolute inset-0 pointer-events-none overflow-hidden select-none z-[100]"
+      className="absolute inset-0 pointer-events-none overflow-hidden select-none"
       style={
         {
+          zIndex: 100, // Z_LAYERS.HUD
           '--hud-scale': globalScale.toString(),
           transform: `scale(${globalScale})`,
           transformOrigin: 'top left',
@@ -102,9 +106,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       <NearDeathGlow />
       {layout.elements.waveTimer.visible && <WaveTimer />}
       {/* FPS Counter - Desktop only (mobile version is in GameUI below LiveFeed) */}
-      {device.platform === 'desktop' && (layout.elements.fpsCounter.visible || showFPSSource) && (
-        <FPSCounter />
-      )}
+      {device.platform === 'desktop' &&
+        (layout.elements.fpsCounter.visible || showFPSSource) && <FPSCounter />}
       <EnemyPointers containerRef={pointerContainerRef} />
       <LevelUpFlash intensity={flash} />
       <ClutchAnnouncement active={clutchActive} />
@@ -122,7 +125,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           color={uiMeta.milestoneColor}
         />
       )}
-      {layout.elements.achievementPopup.visible && <AchievementPopup achievement={achievement} />}
+      {layout.elements.achievementPopup.visible && (
+        <AchievementPopup achievement={achievement} />
+      )}
     </div>
   );
 };

@@ -1,7 +1,11 @@
 import { type CryptoPair } from './types/crypto';
 
 // Re-export GameMode types
-export { GameMode, type GameModeConfig, type CycleCompleteData } from './types/gameMode';
+export {
+  GameMode,
+  type GameModeConfig,
+  type CycleCompleteData,
+} from './types/gameMode';
 export { GAME_MODE_CONFIGS } from './types/gameMode';
 
 export enum MarketPosition {

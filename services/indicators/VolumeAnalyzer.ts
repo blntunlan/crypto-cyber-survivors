@@ -267,7 +267,8 @@ export class VolumeAnalyzer {
     }
 
     const delta = value - this.stats.mean;
-    this.stats.mean = (this.stats.mean * this.stats.count - value) / (this.stats.count - 1);
+    this.stats.mean =
+      (this.stats.mean * this.stats.count - value) / (this.stats.count - 1);
     const delta2 = value - this.stats.mean;
     this.stats.m2 -= delta * delta2;
     this.stats.count--;

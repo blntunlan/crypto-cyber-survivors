@@ -52,7 +52,17 @@ export type GameEvent =
   | 'wavePhaseChange'
   | 'cycleComplete'
   | 'gameMarketUpdate'
-  | 'marketDataRecovered';
+  | 'marketDataRecovered'
+  // Lootbox events
+  | 'lootboxEarned'
+  | 'lootboxOpening'
+  | 'lootboxOpened'
+  // Inventory events
+  | 'inventoryItemAdded'
+  | 'inventoryUpdated'
+  | 'consumableUsed'
+  | 'skinUnlocked'
+  | 'skinEquipped';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -278,6 +288,78 @@ export interface NearMissEvent {
 }
 
 // =============================================================================
+// LOOTBOX EVENTS
+// =============================================================================
+
+import {
+  type LootboxType,
+  type LootboxRarity,
+  type LootboxSource,
+  type LootboxDrop,
+  type CharacterSkinId,
+  type ConsumableEffectType,
+} from './lootbox';
+import { type InventoryItemType } from './inventory';
+
+/** Lootbox earned event data */
+export interface LootboxEarnedEvent {
+  playerId: string;
+  boxType: LootboxType;
+  rarity: LootboxRarity;
+  source: LootboxSource;
+}
+
+/** Lootbox opening event data (animation start) */
+export interface LootboxOpeningEvent {
+  lootboxId: string;
+  boxType: LootboxType;
+}
+
+/** Lootbox opened event data (result) */
+export interface LootboxOpenedEvent {
+  lootboxId: string;
+  drop: LootboxDrop;
+  isJackpot: boolean;
+}
+
+// =============================================================================
+// INVENTORY EVENTS
+// =============================================================================
+
+/** Item added to inventory */
+export interface InventoryItemAddedEvent {
+  itemType: InventoryItemType;
+  itemId: string;
+  quantity: number;
+}
+
+/** Inventory updated */
+export interface InventoryUpdatedEvent {
+  itemType: InventoryItemType;
+  itemId: string;
+  action: 'add' | 'remove' | 'use' | 'unlock';
+}
+
+/** Consumable used */
+export interface ConsumableUsedEvent {
+  itemId: string;
+  effectType: ConsumableEffectType;
+  effectValue: number;
+  duration?: number;
+}
+
+/** Skin unlocked */
+export interface SkinUnlockedEvent {
+  skinId: CharacterSkinId;
+}
+
+/** Skin equipped */
+export interface SkinEquippedEvent {
+  skinId: CharacterSkinId;
+  previousSkinId: CharacterSkinId;
+}
+
+// =============================================================================
 // EVENT DATA MAP
 // =============================================================================
 
@@ -330,6 +412,16 @@ export interface EventDataMap {
   cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
   gameMarketUpdate: MarketData;
   marketDataRecovered: { pair: CryptoPair };
+  // Lootbox events
+  lootboxEarned: LootboxEarnedEvent;
+  lootboxOpening: LootboxOpeningEvent;
+  lootboxOpened: LootboxOpenedEvent;
+  // Inventory events
+  inventoryItemAdded: InventoryItemAddedEvent;
+  inventoryUpdated: InventoryUpdatedEvent;
+  consumableUsed: ConsumableUsedEvent;
+  skinUnlocked: SkinUnlockedEvent;
+  skinEquipped: SkinEquippedEvent;
 }
 
 // =============================================================================

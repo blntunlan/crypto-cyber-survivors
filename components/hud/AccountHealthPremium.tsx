@@ -120,7 +120,9 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           </div>
         </div>
 
-        <div className="flex flex-col items-end min-w-[80px]">{/* Empty space for balance */}</div>
+        <div className="flex flex-col items-end min-w-[80px]">
+          {/* Empty space for balance */}
+        </div>
       </div>
 
       {/* Main Health Bar Container - Optimized for Performance */}
@@ -183,7 +185,9 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           Terminal_ID: CC-S_08.21 // Core_Integrity_Module
         </div>
         <div className="flex gap-1 items-center">
-          <div className={`w-8 h-[2px] ${isCritical ? 'bg-red-500' : 'bg-slate-700'}`}></div>
+          <div
+            className={`w-8 h-[2px] ${isCritical ? 'bg-red-500' : 'bg-slate-700'}`}
+          ></div>
           <div className="w-1.5 h-1.5 border border-slate-700 rotate-45"></div>
         </div>
       </div>

@@ -70,7 +70,9 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
           <span
             id="combo-streak-count"
             className={`text-2xl font-black italic tracking-tighter text-white tabular-nums ${isRetro ? 'font-display not-italic' : 'drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]'}`}
-            style={{ textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : undefined }}
+            style={{
+              textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : undefined,
+            }}
           >
             0
           </span>
@@ -96,7 +98,11 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
   );
 };
 
-const MobileComboPanel: React.FC<ComboPanelProps> = ({ containerRef, maxStreak, totalBonusXp }) => {
+const MobileComboPanel: React.FC<ComboPanelProps> = ({
+  containerRef,
+  maxStreak,
+  totalBonusXp,
+}) => {
   const { rs, rfs } = useResponsiveUI();
   const isRetro = useIsRetro();
 
@@ -118,7 +124,9 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({ containerRef, maxStreak, 
         className={`flex mb-1 font-black uppercase tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ${isRetro ? 'font-display' : ''}`}
         style={{ gap: rs(5), fontSize: rfs(6) }}
       >
-        <span style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : '#fbbf24' }}>BEST {maxStreak}</span>
+        <span style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : '#fbbf24' }}>
+          BEST {maxStreak}
+        </span>
         <span style={{ color: isRetro ? COLORS.NEON_GREEN : '#22d3ee' }}>
           +{Math.round(totalBonusXp)} XP
         </span>
@@ -132,7 +140,10 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({ containerRef, maxStreak, 
           <div
             id="combo-timer-bar"
             className={`h-full ${isRetro ? '' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'}`}
-            style={{ width: '100%', backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
+            style={{
+              width: '100%',
+              backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
+            }}
           />
         </div>
 
@@ -163,7 +174,10 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({ containerRef, maxStreak, 
         <div
           id="combo-multiplier-badge"
           className={`mt-1 font-black italic text-center ${isRetro ? 'font-display not-italic' : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'}`}
-          style={{ fontSize: rfs(8), color: isRetro ? COLORS.JACKPOT_YELLOW : '#22d3ee' }}
+          style={{
+            fontSize: rfs(8),
+            color: isRetro ? COLORS.JACKPOT_YELLOW : '#22d3ee',
+          }}
         >
           1.0x XP
         </div>

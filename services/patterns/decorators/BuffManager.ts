@@ -107,7 +107,9 @@ class BuffManagerClass {
     const now = Date.now();
 
     // Check if same effect already exists
-    const existingEffect = this.state.activeEffects.find(e => e.decorator.getName() === effectName);
+    const existingEffect = this.state.activeEffects.find(
+      e => e.decorator.getName() === effectName
+    );
 
     if (existingEffect) {
       // Permanent effects: do nothing if already active
@@ -200,7 +202,9 @@ class BuffManagerClass {
    * Remove all effects with a specific name.
    */
   removeEffectByName(name: string): number {
-    const toRemove = this.state.activeEffects.filter(e => e.decorator.getName() === name);
+    const toRemove = this.state.activeEffects.filter(
+      e => e.decorator.getName() === name
+    );
 
     for (const effect of toRemove) {
       this.removeEffectById(effect.id);
@@ -225,7 +229,9 @@ class BuffManagerClass {
     if (!this.state.isInitialized || this.state.isPaused) return;
 
     const now = Date.now();
-    const expired = this.state.activeEffects.filter(e => e.expiresAt !== -1 && e.expiresAt <= now);
+    const expired = this.state.activeEffects.filter(
+      e => e.expiresAt !== -1 && e.expiresAt <= now
+    );
 
     for (const effect of expired) {
       EventBus.emit('buffExpired', { name: effect.decorator.getName() });

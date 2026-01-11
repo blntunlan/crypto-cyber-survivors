@@ -10,8 +10,10 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { nanoid } from 'nanoid';
-import { type MobileControlSettings, DEFAULT_MOBILE_SETTINGS } from '../types/MobileSettings';
+import {
+  type MobileControlSettings,
+  DEFAULT_MOBILE_SETTINGS,
+} from '../types/MobileSettings';
 import { type SoundCategory, type CategoryVolumes } from '../services/audio/types';
 import { DEFAULT_CATEGORY_VOLUMES } from '../services/audio/constants';
 
@@ -96,7 +98,12 @@ export interface GameStoreActions {
   toggleFPS: () => void;
 
   // Progress
-  recordGameEnd: (score: number, level: number, survivalTime: number, kills: number) => void;
+  recordGameEnd: (
+    score: number,
+    level: number,
+    survivalTime: number,
+    kills: number
+  ) => void;
   addCardCollected: (cardId: string) => void;
   unlockAchievement: (achievementId: string) => void;
   resetProgress: () => void;
@@ -159,7 +166,7 @@ const DEFAULT_PROGRESS: PlayerProgress = {
 };
 
 const createNewSession = (): SessionInfo => ({
-  sessionId: nanoid(12),
+  sessionId: crypto.randomUUID(),
   startTime: Date.now(),
   gamesThisSession: 0,
 });
@@ -221,12 +228,18 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
 
       toggleScreenShake: () =>
         set(state => ({
-          graphics: { ...state.graphics, showScreenShake: !state.graphics.showScreenShake },
+          graphics: {
+            ...state.graphics,
+            showScreenShake: !state.graphics.showScreenShake,
+          },
         })),
 
       toggleDamageNumbers: () =>
         set(state => ({
-          graphics: { ...state.graphics, showDamageNumbers: !state.graphics.showDamageNumbers },
+          graphics: {
+            ...state.graphics,
+            showDamageNumbers: !state.graphics.showDamageNumbers,
+          },
         })),
 
       toggleReducedMotion: () =>
@@ -236,7 +249,10 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
 
       setHudScale: scale =>
         set(state => ({
-          graphics: { ...state.graphics, hudScale: Math.max(0.5, Math.min(2.0, scale)) },
+          graphics: {
+            ...state.graphics,
+            hudScale: Math.max(0.5, Math.min(2.0, scale)),
+          },
         })),
 
       toggleFPS: () =>
@@ -280,7 +296,10 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
           return {
             progress: {
               ...state.progress,
-              achievementsUnlocked: [...state.progress.achievementsUnlocked, achievementId],
+              achievementsUnlocked: [
+                ...state.progress.achievementsUnlocked,
+                achievementId,
+              ],
             },
           };
         }),

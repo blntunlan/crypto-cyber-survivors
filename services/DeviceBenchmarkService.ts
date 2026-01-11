@@ -132,7 +132,9 @@ export class DeviceBenchmarkServiceClass {
             profile: cached.profile,
           });
         } else {
-          Logger.info('[Benchmark] Cached benchmark loaded, but manual profile is active');
+          Logger.info(
+            '[Benchmark] Cached benchmark loaded, but manual profile is active'
+          );
         }
 
         // Always notify listeners so UI can update
@@ -162,11 +164,14 @@ export class DeviceBenchmarkServiceClass {
           cpuScore: result.cpuScore,
         });
       } else {
-        Logger.info('[Benchmark] Completed - saved for reference but manual profile is active', {
-          benchmarkProfile: result.profile,
-          gpuScore: result.gpuScore,
-          cpuScore: result.cpuScore,
-        });
+        Logger.info(
+          '[Benchmark] Completed - saved for reference but manual profile is active',
+          {
+            benchmarkProfile: result.profile,
+            gpuScore: result.gpuScore,
+            cpuScore: result.cpuScore,
+          }
+        );
       }
 
       this.saveToCache(result);
@@ -216,13 +221,18 @@ export class DeviceBenchmarkServiceClass {
       // Verify it was actually saved (important for mobile browsers)
       const readBack = localStorage.getItem(MANUAL_PROFILE_KEY);
       if (readBack === profile) {
-        Logger.info('[Benchmark] Manual profile saved and verified in localStorage', { profile });
-      } else {
-        Logger.warn('[Benchmark] localStorage save verification FAILED - using memory only', {
+        Logger.info('[Benchmark] Manual profile saved and verified in localStorage', {
           profile,
-          readBack,
-          message: 'Value was not persisted correctly',
         });
+      } else {
+        Logger.warn(
+          '[Benchmark] localStorage save verification FAILED - using memory only',
+          {
+            profile,
+            readBack,
+            message: 'Value was not persisted correctly',
+          }
+        );
       }
     } catch (err) {
       Logger.warn('[Benchmark] localStorage not available - using memory only', err);
@@ -254,9 +264,12 @@ export class DeviceBenchmarkServiceClass {
     // Use cached benchmark result if available
     if (this.state.result) {
       this.cachedConfig = getPerformanceConfig(this.state.result.profile);
-      Logger.info('[Benchmark] Reset to auto (isManualMode=false) - using benchmark result', {
-        profile: this.state.result.profile,
-      });
+      Logger.info(
+        '[Benchmark] Reset to auto (isManualMode=false) - using benchmark result',
+        {
+          profile: this.state.result.profile,
+        }
+      );
       this.notifyListeners();
     } else {
       // No benchmark result yet, run it now
@@ -406,10 +419,14 @@ export class DeviceBenchmarkServiceClass {
       const gl = canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl');
       if (!gl) return null;
 
-      const debugInfo = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
+      const debugInfo = (gl as WebGLRenderingContext).getExtension(
+        'WEBGL_debug_renderer_info'
+      );
       if (!debugInfo) return null;
 
-      return (gl as WebGLRenderingContext).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      return (gl as WebGLRenderingContext).getParameter(
+        debugInfo.UNMASKED_RENDERER_WEBGL
+      );
     } catch {
       return null;
     }

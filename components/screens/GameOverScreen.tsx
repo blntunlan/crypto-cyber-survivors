@@ -28,7 +28,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
   // Record this game to progress on mount
   React.useEffect(() => {
-    const score = Math.floor(kills * 10 + survivalTime + (finalPnl > 0 ? finalPnl * 1000 : 0));
+    const score = Math.floor(
+      kills * 10 + survivalTime + (finalPnl > 0 ? finalPnl * 1000 : 0)
+    );
     recordGameEnd(score, level, survivalTime, kills);
   }, [kills, level, survivalTime, finalPnl, recordGameEnd]);
 
@@ -93,7 +95,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
           >
             <IconTrophy className="w-4 h-4" color={isRetro ? '#ffd600' : '#eab308'} />
-            <span className={`text-yellow-500 font-black ${sizes.small} uppercase tracking-widest`}>
+            <span
+              className={`text-yellow-500 font-black ${sizes.small} uppercase tracking-widest`}
+            >
               New High Score!
             </span>
           </motion.div>
@@ -109,7 +113,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             delay={0.6}
             sizes={sizes}
           />
-          <StatItem label="Time" value={formatTime(survivalTime)} delay={0.7} sizes={sizes} />
+          <StatItem
+            label="Time"
+            value={formatTime(survivalTime)}
+            delay={0.7}
+            sizes={sizes}
+          />
           <StatItem label="Kills" value={kills.toString()} delay={0.8} sizes={sizes} />
         </div>
 
@@ -120,20 +129,28 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          <p className={`${sizes.tiny} font-black text-slate-500 uppercase tracking-widest mb-3`}>
+          <p
+            className={`${sizes.tiny} font-black text-slate-500 uppercase tracking-widest mb-3`}
+          >
             Career Stats
           </p>
           <div className={`grid grid-cols-3 ${sizes.gap} text-center`}>
             <div>
-              <p className={`${sizes.stat} font-black text-white`}>{progress.totalGamesPlayed}</p>
+              <p className={`${sizes.stat} font-black text-white`}>
+                {progress.totalGamesPlayed}
+              </p>
               <p className={`${sizes.tiny} text-slate-500 uppercase`}>Games</p>
             </div>
             <div>
-              <p className={`${sizes.stat} font-black text-white`}>{progress.totalKills}</p>
+              <p className={`${sizes.stat} font-black text-white`}>
+                {progress.totalKills}
+              </p>
               <p className={`${sizes.tiny} text-slate-500 uppercase`}>Total Kills</p>
             </div>
             <div>
-              <p className={`${sizes.stat} font-black text-white`}>L{progress.highestLevel}</p>
+              <p className={`${sizes.stat} font-black text-white`}>
+                L{progress.highestLevel}
+              </p>
               <p className={`${sizes.tiny} text-slate-500 uppercase`}>Best Level</p>
             </div>
           </div>
@@ -165,7 +182,13 @@ interface StatItemProps {
   sizes: ReturnType<typeof useThemeSize>;
 }
 
-const StatItem: React.FC<StatItemProps> = ({ label, value, color = '#ffffff', delay, sizes }) => (
+const StatItem: React.FC<StatItemProps> = ({
+  label,
+  value,
+  color = '#ffffff',
+  delay,
+  sizes,
+}) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}

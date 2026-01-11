@@ -92,9 +92,12 @@ class VerificationQueueService {
       return result;
     } catch (error) {
       // Queue for retry if immediate fails
-      Logger.warn('[VerificationQueue] Immediate verification failed, queuing for retry', {
-        error,
-      });
+      Logger.warn(
+        '[VerificationQueue] Immediate verification failed, queuing for retry',
+        {
+          error,
+        }
+      );
       this.queue.push(request);
       this.saveToStorage();
       this.emit('verification:queued', { request });

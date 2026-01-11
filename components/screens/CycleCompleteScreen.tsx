@@ -132,7 +132,10 @@ export function CycleCompleteScreen({
             theme={theme}
             isRetro={isRetro}
             icon={
-              <IconSkull className={isRetro ? 'w-5 h-5' : 'w-6 h-6'} color={COLORS.CASINO_RED} />
+              <IconSkull
+                className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                color={COLORS.CASINO_RED}
+              />
             }
           />
           <StatBox
@@ -175,7 +178,10 @@ export function CycleCompleteScreen({
                 {showBreakdown ? 'Hide' : 'Details'}
               </button>
             </div>
-            <div className={`${sizes.heading} font-black`} style={{ color: COLORS.JACKPOT_YELLOW }}>
+            <div
+              className={`${sizes.heading} font-black`}
+              style={{ color: COLORS.JACKPOT_YELLOW }}
+            >
               🪙 {coinCalculation.total.toLocaleString()}
             </div>
 
@@ -248,8 +254,8 @@ export function CycleCompleteScreen({
 
         {/* Continue Multiplier Hint */}
         <div className="text-center mt-3 text-xs text-slate-500">
-          Continue to earn {Math.round((1 + data.cycleNumber * 0.5) * 100)}% coin multiplier next
-          cycle
+          Continue to earn {Math.round((1 + data.cycleNumber * 0.5) * 100)}% coin
+          multiplier next cycle
         </div>
       </div>
     </div>

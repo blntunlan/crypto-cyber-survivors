@@ -16,7 +16,9 @@ export const ThemedText: React.FC<ThemedTextProps> = ({
   ...props
 }) => {
   const { isRetro } = useTheme();
-  const variantClass = isRetro ? TEXT_VARIANTS[variant].retro : TEXT_VARIANTS[variant].modern;
+  const variantClass = isRetro
+    ? TEXT_VARIANTS[variant].retro
+    : TEXT_VARIANTS[variant].modern;
 
   return (
     <Component className={`${variantClass} ${className}`} {...props}>

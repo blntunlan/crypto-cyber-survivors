@@ -15,7 +15,9 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
   return (
     <div
       className="absolute top-80 right-4 z-[140] pointer-events-none"
-      style={{ animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
+      style={{
+        animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+      }}
     >
       <div
         className={`flex items-center gap-3 px-5 py-3 ${isRetro ? 'border-4 rounded-none' : 'border-2 rounded-xl shadow-lg'}`}
@@ -66,7 +68,9 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
         style={{
           backgroundColor: isRetro ? 'black' : 'rgba(15, 23, 42, 0.95)',
           borderColor: achievement.color,
-          boxShadow: isRetro ? `${rs(4)}px ${rs(4)}px 0 #000` : `0 0 10px ${achievement.color}33`,
+          boxShadow: isRetro
+            ? `${rs(4)}px ${rs(4)}px 0 #000`
+            : `0 0 10px ${achievement.color}33`,
           padding: `${rs(6)}px ${rs(10)}px`,
           gap: rs(8),
         }}

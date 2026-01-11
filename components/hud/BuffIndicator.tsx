@@ -74,10 +74,14 @@ interface BuffItemProps {
 }
 
 const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
-  const remainingSeconds = effect.isPermanent ? null : Math.ceil(effect.remainingMs / 1000);
+  const remainingSeconds = effect.isPermanent
+    ? null
+    : Math.ceil(effect.remainingMs / 1000);
 
   // Determine if buff or debuff based on common indicators
-  const isDebuff = ['Slowed', 'Vulnerable', 'Liquidated', 'Weakened'].includes(effect.name);
+  const isDebuff = ['Slowed', 'Vulnerable', 'Liquidated', 'Weakened'].includes(
+    effect.name
+  );
 
   return (
     <div
@@ -123,7 +127,9 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       )}
 
       {/* Permanent indicator */}
-      {effect.isPermanent && <span className="text-[10px] md:text-xs text-yellow-400">∞</span>}
+      {effect.isPermanent && (
+        <span className="text-[10px] md:text-xs text-yellow-400">∞</span>
+      )}
     </div>
   );
 };

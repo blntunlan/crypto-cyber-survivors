@@ -68,7 +68,9 @@ class GameStateMachineClass {
     const validTargets = this.VALID_TRANSITIONS.get(this.currentState);
 
     if (!validTargets?.includes(newState)) {
-      console.warn(`[GameStateMachine] Invalid transition: ${this.currentState} -> ${newState}`);
+      console.warn(
+        `[GameStateMachine] Invalid transition: ${this.currentState} -> ${newState}`
+      );
       return false;
     }
 

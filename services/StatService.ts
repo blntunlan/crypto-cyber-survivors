@@ -1,4 +1,8 @@
-import { STAT_DEFINITIONS, type StatKey, type StatDefinition } from '../config/StatRegistry';
+import {
+  STAT_DEFINITIONS,
+  type StatKey,
+  type StatDefinition,
+} from '../config/StatRegistry';
 
 /**
  * StatService - Centralized utility for player statistics
@@ -39,7 +43,8 @@ export class StatService {
 
     // 4. Prefix Formatting (e.g. Luck +2.0)
     if (statKey === 'luck' || statKey === 'magnet') {
-      const formatted = statKey === 'luck' ? safeValue.toFixed(1) : Math.round(safeValue);
+      const formatted =
+        statKey === 'luck' ? safeValue.toFixed(1) : Math.round(safeValue);
       return safeValue >= 0 ? `+${formatted}` : formatted.toString();
     }
 
@@ -57,7 +62,9 @@ export class StatService {
     let sanitized = value;
 
     if (def.cap !== undefined) {
-      sanitized = def.isInverse ? Math.max(def.cap, sanitized) : Math.min(def.cap, sanitized);
+      sanitized = def.isInverse
+        ? Math.max(def.cap, sanitized)
+        : Math.min(def.cap, sanitized);
     }
 
     if (def.minValue !== undefined) {

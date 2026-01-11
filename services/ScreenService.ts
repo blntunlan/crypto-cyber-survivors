@@ -11,7 +11,13 @@
  */
 
 export type Platform = 'desktop' | 'mobile' | 'tablet';
-export type OperatingSystem = 'ios' | 'android' | 'windows' | 'macos' | 'linux' | 'unknown';
+export type OperatingSystem =
+  | 'ios'
+  | 'android'
+  | 'windows'
+  | 'macos'
+  | 'linux'
+  | 'unknown';
 
 export interface SafeAreaInsets {
   top: number;
@@ -79,9 +85,10 @@ class ScreenServiceClass {
    */
   isMobile(): boolean {
     // Method 1: User Agent (classic, catches most cases)
-    const userAgentMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
+    const userAgentMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
 
     // Method 2: Touch capability
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -135,7 +142,8 @@ class ScreenServiceClass {
     // Use userAgentData if available, fallback to userAgent check
     const isMacPlatform =
       // @ts-expect-error - userAgentData is not yet in all TypeScript DOM types
-      navigator.userAgentData?.platform === 'macOS' || /Macintosh/i.test(navigator.userAgent);
+      navigator.userAgentData?.platform === 'macOS' ||
+      /Macintosh/i.test(navigator.userAgent);
     const ipadOS = isMacPlatform && navigator.maxTouchPoints > 1;
 
     return standardIOS || ipadOS;

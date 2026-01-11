@@ -9,9 +9,17 @@ import { SlotReel } from './SlotReel';
 
 import { useThemeSize } from '../../../hooks/useThemeSize';
 import { useIsRetro } from '../../../contexts/useTheme';
-import { IconSparkles, IconSlot, IconTarget, IconBolt } from '../../../components/icons/CardIcons';
+import {
+  IconSparkles,
+  IconSlot,
+  IconTarget,
+  IconBolt,
+} from '../../../components/icons/CardIcons';
 
-export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({ upgradeChoices, onSelect }) => {
+export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
+  upgradeChoices,
+  onSelect,
+}) => {
   const sizes = useThemeSize();
   // Track how many reels have stopped
   const [stoppedCount, setStoppedCount] = useState(0);

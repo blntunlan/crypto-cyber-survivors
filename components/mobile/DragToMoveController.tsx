@@ -72,10 +72,15 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
       else if (distance < RUN_START) {
         speedMultiplier = ((distance - WALK_START) / (RUN_START - WALK_START)) * 0.5;
       } else if (distance < MAX_DISTANCE) {
-        speedMultiplier = 0.5 + ((distance - RUN_START) / (MAX_DISTANCE - RUN_START)) * 0.5;
+        speedMultiplier =
+          0.5 + ((distance - RUN_START) / (MAX_DISTANCE - RUN_START)) * 0.5;
       } else speedMultiplier = 1.0;
 
-      return { dx: dirX * speedMultiplier, dy: dirY * speedMultiplier, speed: speedMultiplier };
+      return {
+        dx: dirX * speedMultiplier,
+        dy: dirY * speedMultiplier,
+        speed: speedMultiplier,
+      };
     },
     [sensitivity, scale]
   );

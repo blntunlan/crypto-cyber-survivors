@@ -4,7 +4,11 @@ import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
-import { createViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
+import {
+  createViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from './CullingUtils';
 import { ThemeService } from '../ThemeService';
 import { COLORS } from '../../config/Colors';
 
@@ -139,7 +143,11 @@ export class EntityRenderer implements IRenderer {
     });
   }
 
-  private drawEnemies(ctx: CanvasRenderingContext2D, pool: IPoolManager, bounds: ViewportBounds) {
+  private drawEnemies(
+    ctx: CanvasRenderingContext2D,
+    pool: IPoolManager,
+    bounds: ViewportBounds
+  ) {
     pool.activeEnemies.forEach(e => {
       // Off-screen culling (larger radius for spawn animation glow effect)
       const spawnGlowExtra = e.spawnTimer !== undefined && e.spawnTimer > 0.6 ? 30 : 0;
@@ -318,7 +326,13 @@ export class EntityRenderer implements IRenderer {
       ctx.strokeStyle = COLORS.CASINO_GOLD;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(Math.round(player.x), Math.round(player.y), haloRadius - 5, 0, Math.PI * 2);
+      ctx.arc(
+        Math.round(player.x),
+        Math.round(player.y),
+        haloRadius - 5,
+        0,
+        Math.PI * 2
+      );
       ctx.stroke();
 
       // Radial glow effect (JACKPOT_YELLOW gradient)
@@ -361,10 +375,20 @@ export class EntityRenderer implements IRenderer {
       // High-visibility outline for Retro mode
       ctx.lineWidth = 3;
       ctx.strokeStyle = '#FFFFFF';
-      ctx.strokeRect(Math.round(player.x) - halfSize, Math.round(player.y) - halfSize, size, size);
+      ctx.strokeRect(
+        Math.round(player.x) - halfSize,
+        Math.round(player.y) - halfSize,
+        size,
+        size
+      );
 
       ctx.fillStyle = player.color;
-      ctx.fillRect(Math.round(player.x) - halfSize, Math.round(player.y) - halfSize, size, size);
+      ctx.fillRect(
+        Math.round(player.x) - halfSize,
+        Math.round(player.y) - halfSize,
+        size,
+        size
+      );
 
       // Add pixel-style inner details (eyes/face)
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -378,7 +402,13 @@ export class EntityRenderer implements IRenderer {
       // Under-glow for better visibility in chaos
       ctx.beginPath();
       ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; // Subtle spotlight
-      ctx.arc(Math.round(player.x), Math.round(player.y), player.radius * 1.3, 0, Math.PI * 2);
+      ctx.arc(
+        Math.round(player.x),
+        Math.round(player.y),
+        player.radius * 1.3,
+        0,
+        Math.PI * 2
+      );
       ctx.fill();
 
       ctx.fillStyle = player.color;
@@ -397,7 +427,13 @@ export class EntityRenderer implements IRenderer {
         );
       } else {
         // Standard circle optimization
-        ctx.arc(Math.round(player.x), Math.round(player.y), player.radius, 0, Math.PI * 2);
+        ctx.arc(
+          Math.round(player.x),
+          Math.round(player.y),
+          player.radius,
+          0,
+          Math.PI * 2
+        );
       }
 
       ctx.fill();

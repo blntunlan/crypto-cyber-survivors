@@ -52,7 +52,11 @@ export interface ICoinProvider {
   getBalance(): Promise<number>;
 
   /** Credit coins to user */
-  credit(amount: number, source: CoinSource, metadata?: Record<string, unknown>): Promise<boolean>;
+  credit(
+    amount: number,
+    source: CoinSource,
+    metadata?: Record<string, unknown>
+  ): Promise<boolean>;
 
   /** Verify transaction (for blockchain providers) */
   verifyTransaction?(txId: string): Promise<boolean>;
@@ -242,7 +246,9 @@ class CoinServiceClass {
    * Call this early with the appropriate provider for your environment
    */
   setProvider(provider: ICoinProvider): void {
-    Logger.info(`[CoinService] Provider set: ${provider.id} (real: ${provider.isRealCurrency})`);
+    Logger.info(
+      `[CoinService] Provider set: ${provider.id} (real: ${provider.isRealCurrency})`
+    );
     this.provider = provider;
   }
 
@@ -285,7 +291,9 @@ class CoinServiceClass {
       // Emit event for UI updates
       EventBus.emit('xpGained', { amount }); // Reusing xpGained for coin animation
 
-      Logger.debug(`[CoinService] Credited ${amount} coins. Session total: ${this.sessionCoins}`);
+      Logger.debug(
+        `[CoinService] Credited ${amount} coins. Session total: ${this.sessionCoins}`
+      );
     }
 
     return success;

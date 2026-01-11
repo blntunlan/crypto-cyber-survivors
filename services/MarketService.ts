@@ -35,7 +35,11 @@ export interface MarketServiceConfig {
   wsFactory?: WebSocketFactory;
 }
 
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
+export type ConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting';
 
 export interface ConnectionStatus {
   binance: ConnectionState;
@@ -236,7 +240,10 @@ export class MarketService {
           const messageSymbol = rawData.s ?? rawData.k?.s;
           const expectedSymbol = this.config.symbol; // e.g., 'BTCUSDT'
 
-          if (messageSymbol && messageSymbol.toUpperCase() !== expectedSymbol.toUpperCase()) {
+          if (
+            messageSymbol &&
+            messageSymbol.toUpperCase() !== expectedSymbol.toUpperCase()
+          ) {
             Logger.debug(
               `[Market] Ignoring Binance message for wrong pair: ${messageSymbol} (expected: ${expectedSymbol})`
             );
@@ -325,7 +332,10 @@ export class MarketService {
 
           // CRITICAL: Validate that the message is for the correct pair
           // This prevents data corruption when multiple pairs might be subscribed
-          if (rawData.product_id && rawData.product_id !== this.config.coinbaseProductId) {
+          if (
+            rawData.product_id &&
+            rawData.product_id !== this.config.coinbaseProductId
+          ) {
             Logger.debug(
               `[Market] Ignoring Coinbase message for wrong pair: ${rawData.product_id} (expected: ${this.config.coinbaseProductId})`
             );
@@ -371,7 +381,8 @@ export class MarketService {
   private scheduleReconnect(source: 'binance' | 'coinbase'): void {
     if (this.wasClosedIntentionally) return;
 
-    const delay = source === 'binance' ? this.binanceReconnectDelay : this.coinbaseReconnectDelay;
+    const delay =
+      source === 'binance' ? this.binanceReconnectDelay : this.coinbaseReconnectDelay;
 
     Logger.info(`[Market] Scheduling ${source} reconnect in ${delay}ms`);
 

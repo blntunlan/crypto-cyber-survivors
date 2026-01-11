@@ -8,7 +8,13 @@
 
 import { type DecoratorConstructor } from '../services/patterns/decorators/BaseDecorator';
 
-export type BuffGemType = 'rage' | 'diamond' | 'berserk' | 'lucky' | 'slow' | 'vulnerable';
+export type BuffGemType =
+  | 'rage'
+  | 'diamond'
+  | 'berserk'
+  | 'lucky'
+  | 'slow'
+  | 'vulnerable';
 
 export interface BuffGem {
   active: boolean;

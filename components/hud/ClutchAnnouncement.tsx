@@ -65,7 +65,9 @@ const MobileClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
           fontSize: rfs(32),
           padding: `${rs(8)}px ${rs(24)}px`,
           borderWidth: rs(4),
-          boxShadow: isRetro ? `${rs(6)}px ${rs(6)}px 0 #000` : `${rs(4)}px ${rs(4)}px 0 #000`,
+          boxShadow: isRetro
+            ? `${rs(6)}px ${rs(6)}px 0 #000`
+            : `${rs(4)}px ${rs(4)}px 0 #000`,
         }}
       >
         <span style={{ textShadow: isRetro ? '2px 2px 0 #000' : 'none' }}>CLUTCH!</span>
@@ -83,11 +85,17 @@ const MobileClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
   );
 };
 
-export const ClutchAnnouncement: React.FC<ClutchAnnouncementProps> = memo(({ active }) => {
-  const isMobile = screenService.isMobile();
-  const isRetro = useIsRetro();
+export const ClutchAnnouncement: React.FC<ClutchAnnouncementProps> = memo(
+  ({ active }) => {
+    const isMobile = screenService.isMobile();
+    const isRetro = useIsRetro();
 
-  if (!active) return null;
+    if (!active) return null;
 
-  return isMobile ? <MobileClutch isRetro={isRetro} /> : <DesktopClutch isRetro={isRetro} />;
-});
+    return isMobile ? (
+      <MobileClutch isRetro={isRetro} />
+    ) : (
+      <DesktopClutch isRetro={isRetro} />
+    );
+  }
+);

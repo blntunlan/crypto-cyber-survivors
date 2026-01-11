@@ -9,8 +9,16 @@ interface IconProps {
  * Common Tier: Market Chart
  * Minimalist chart representation with precision lines.
  */
-export const IconMarketChart: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconMarketChart: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M4 17L8 12L12 15L20 8"
       stroke={color}
@@ -27,9 +35,24 @@ export const IconMarketChart: React.FC<IconProps> = ({ className, color = 'curre
 /**
  * Rare Tier: Alpha Eye
  */
-export const IconAlphaEye: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5" strokeDasharray="2 3" />
+export const IconAlphaEye: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeDasharray="2 3"
+    />
     <path
       d="M2 12C2 12 5 5 12 5C19 5 22 12 22 12C22 12 19 19 12 19C5 19 2 12 2 12Z"
       stroke={color}
@@ -44,8 +67,16 @@ export const IconAlphaEye: React.FC<IconProps> = ({ className, color = 'currentC
 /**
  * Epic Tier: Flash Pulse
  */
-export const IconFlashPulse: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconFlashPulse: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <defs>
       <filter id="glow-epic" x="-20%" y="-20%" width="140%" height="140%">
         <feGaussianBlur stdDeviation="1.5" result="blur" />
@@ -73,8 +104,16 @@ export const IconFlashPulse: React.FC<IconProps> = ({ className, color = 'curren
 /**
  * Legendary Tier: Genesis Emblem
  */
-export const IconGenesisEmblem: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconGenesisEmblem: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <defs>
       <linearGradient id="leg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor={color} />
@@ -97,7 +136,12 @@ export const IconGenesisEmblem: React.FC<IconProps> = ({ className, color = 'cur
       filter="url(#glow-leg)"
     />
     <circle cx="16" cy="16" r="6" stroke="url(#leg-grad)" strokeWidth="2.5" />
-    <path d="M16 12V20M12 16H20" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M16 12V20M12 16H20"
+      stroke="#fff"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
     <path d="M6 16H10M22 16H26" stroke={color} strokeWidth="1.5" />
   </svg>
 );
@@ -105,8 +149,16 @@ export const IconGenesisEmblem: React.FC<IconProps> = ({ className, color = 'cur
 /**
  * Defense Tier: Neon Shield
  */
-export const IconShield: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconShield: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"
       fill={color}
@@ -132,8 +184,16 @@ export const IconShield: React.FC<IconProps> = ({ className, color = 'currentCol
 /**
  * Utility: Magnet Pulse
  */
-export const IconMagnet: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconMagnet: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M6 9V5C6 3.89543 6.89543 3 8 3H16C17.1046 3 18 3.89543 18 5V9"
       stroke={color}
@@ -158,8 +218,16 @@ export const IconMagnet: React.FC<IconProps> = ({ className, color = 'currentCol
 /**
  * Legendary: Diamond Hands
  */
-export const IconDiamond: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconDiamond: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path d="M6 4L2 10L12 22L22 10L18 4H6Z" fill={color} fillOpacity="0.15" />
     <path
       d="M6 4L2 10L12 22L22 10L18 4H6Z"
@@ -175,8 +243,16 @@ export const IconDiamond: React.FC<IconProps> = ({ className, color = 'currentCo
 /**
  * Legendary: Moon Rocket
  */
-export const IconRocket: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconRocket: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M12 3C12 3 13.5 6 13.5 9C13.5 12 12 15 12 15C12 15 9 13.5 6 13.5C3 13.5 0 12 0 12C0 12 9 0 12 3Z"
       fill={color}
@@ -203,7 +279,12 @@ export const IconRocket: React.FC<IconProps> = ({ className, color = 'currentCol
  * Iconic: Full Ape
  */
 export const IconApe: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M12 4C9 4 7 6 7 9C7 11 8 12 8 14C8 16 7 17 6 18C5 19 4 21 4 21H20C20 21 19 19 18 18C17 17 16 16 16 14C16 12 17 11 17 9C17 6 15 4 12 4Z"
       fill={color}
@@ -221,8 +302,16 @@ export const IconApe: React.FC<IconProps> = ({ className, color = 'currentColor'
 /**
  * Danger: Rug Pull
  */
-export const IconSkull: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconSkull: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M12 4C8 4 5 7 5 11C5 14 6 15 6 17H18C18 15 19 14 19 11C19 7 16 4 12 4Z"
       fill={color}
@@ -248,8 +337,16 @@ export const IconSkull: React.FC<IconProps> = ({ className, color = 'currentColo
 /**
  * Elite: Whale
  */
-export const IconWhale: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconWhale: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M2 13C2 13 4 11 8 11C12 11 15 13 18 12C21 11 22 8 22 8C22 8 21 15 18 17C15 19 10 19 6 17C2 15 2 13 2 13Z"
       fill={color}
@@ -261,15 +358,28 @@ export const IconWhale: React.FC<IconProps> = ({ className, color = 'currentColo
       strokeWidth="2.5"
       strokeLinejoin="round"
     />
-    <path d="M12 8V5M10 6L12 4L14 6" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <path
+      d="M12 8V5M10 6L12 4L14 6"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 /**
  * Speed: Data Bolt
  */
-export const IconBolt: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconBolt: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path d="M13 2L4 14H11V22L20 10H13V2Z" fill={color} fillOpacity="0.3" />
     <path
       d="M13 2L4 14H11V22L20 10H13V2Z"
@@ -286,13 +396,24 @@ export const IconBolt: React.FC<IconProps> = ({ className, color = 'currentColor
  * The standard for instant & feeless. A cybernetic 'N' node structure.
  */
 export const IconNano: React.FC<IconProps> = ({ className, color = '#4A90E2' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path d="M6 5V19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     <path d="M18 5V19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     <path d="M6 5L18 19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     <circle cx="6" cy="5" r="2" fill={color} />
     <circle cx="18" cy="19" r="2" fill={color} />
-    <path d="M6 12L18 12" stroke={color} strokeWidth="1" strokeDasharray="2 2" opacity="0.5" />
+    <path
+      d="M6 12L18 12"
+      stroke={color}
+      strokeWidth="1"
+      strokeDasharray="2 2"
+      opacity="0.5"
+    />
   </svg>
 );
 
@@ -301,7 +422,12 @@ export const IconNano: React.FC<IconProps> = ({ className, color = '#4A90E2' }) 
  * Potassium-rich meme currency. Sleek cyber-banana curve.
  */
 export const IconBanano: React.FC<IconProps> = ({ className, color = '#FBDD11' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M5 20C5 20 5.5 11 12 7C16.5 4.2 20 2 22 2C22 2 21 8.5 18 12.5C14 18 9.5 21.5 5 20Z"
       fill={color}
@@ -322,8 +448,16 @@ export const IconBanano: React.FC<IconProps> = ({ className, color = '#FBDD11' }
 /**
  * UI: Volume Control
  */
-export const IconVolume: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconVolume: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M11 5L6 9H2V15H6L11 19V5Z"
       stroke={color}
@@ -351,8 +485,16 @@ export const IconVolume: React.FC<IconProps> = ({ className, color = 'currentCol
 /**
  * UI: Volume Muted
  */
-export const IconVolumeMuted: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconVolumeMuted: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M11 5L6 9H2V15H6L11 19V5Z"
       stroke={color}
@@ -360,15 +502,28 @@ export const IconVolumeMuted: React.FC<IconProps> = ({ className, color = 'curre
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <path d="M23 9L17 15M17 9L23 15" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M23 9L17 15M17 9L23 15"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 /**
  * UI: Settings / Mixer
  */
-export const IconSettings: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconSettings: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <circle cx="12" cy="12" r="3" stroke={color} strokeWidth="2.5" />
     <path
       d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"
@@ -383,8 +538,16 @@ export const IconSettings: React.FC<IconProps> = ({ className, color = 'currentC
 /**
  * UI: Trend Up (Long)
  */
-export const IconTrendUp: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconTrendUp: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M23 6L13.5 15.5L8.5 10.5L1 18"
       stroke={color}
@@ -405,8 +568,16 @@ export const IconTrendUp: React.FC<IconProps> = ({ className, color = 'currentCo
 /**
  * UI: Trend Down (Short)
  */
-export const IconTrendDown: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconTrendDown: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M23 18L13.5 8.5L8.5 13.5L1 6"
       stroke={color}
@@ -427,8 +598,16 @@ export const IconTrendDown: React.FC<IconProps> = ({ className, color = 'current
 /**
  * UI: Cyberpunk Theme
  */
-export const IconCyberpunk: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconCyberpunk: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M12 2L2 7V17L12 22L22 17V7L12 2Z"
       stroke={color}
@@ -436,7 +615,12 @@ export const IconCyberpunk: React.FC<IconProps> = ({ className, color = 'current
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <path d="M12 22V12L22 7M12 12L2 7" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M12 22V12L22 7M12 12L2 7"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
     <circle cx="12" cy="12" r="3" fill={color} fillOpacity="0.2" />
   </svg>
 );
@@ -444,8 +628,16 @@ export const IconCyberpunk: React.FC<IconProps> = ({ className, color = 'current
 /**
  * UI: Retro Theme
  */
-export const IconRetro: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconRetro: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <rect
       x="2"
       y="6"
@@ -467,7 +659,12 @@ export const IconRetro: React.FC<IconProps> = ({ className, color = 'currentColo
  * UI: Quality / Performance
  */
 export const IconCpu: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <rect x="4" y="4" width="16" height="16" rx="2" stroke={color} strokeWidth="2.5" />
     <path d="M9 9H15V15H9V9Z" stroke={color} strokeWidth="2.5" />
     <path
@@ -482,18 +679,39 @@ export const IconCpu: React.FC<IconProps> = ({ className, color = 'currentColor'
 /**
  * UI: Graphics
  */
-export const IconMonitor: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconMonitor: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <rect x="2" y="3" width="20" height="14" rx="2" stroke={color} strokeWidth="2.5" />
-    <path d="M8 21H16M12 17V21" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M8 21H16M12 17V21"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 /**
  * UI: Mobile
  */
-export const IconSmartphone: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconSmartphone: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <rect x="5" y="2" width="14" height="20" rx="2" stroke={color} strokeWidth="2.5" />
     <path d="M12 18H12.01" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
   </svg>
@@ -503,7 +721,12 @@ export const IconSmartphone: React.FC<IconProps> = ({ className, color = 'curren
  * UI: Controls
  */
 export const IconZap: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
       stroke={color}
@@ -578,8 +801,16 @@ export const IconSolana: React.FC<IconProps & { size?: number }> = ({
 /**
  * UI: Trophy (High Score)
  */
-export const IconTrophy: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconTrophy: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M6 9H4.5C3.11929 9 2 7.88071 2 6.5C2 5.11929 3.11929 4 4.5 4H6"
       stroke={color}
@@ -614,8 +845,16 @@ export const IconTrophy: React.FC<IconProps> = ({ className, color = 'currentCol
 /**
  * UI: Sparkles
  */
-export const IconSparkles: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconSparkles: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <path
       d="M9 3L12 9L18 12L12 15L9 21L6 15L0 12L6 9L9 3Z"
       stroke={color}
@@ -630,8 +869,16 @@ export const IconSparkles: React.FC<IconProps> = ({ className, color = 'currentC
 /**
  * UI: Slot Machine
  */
-export const IconSlot: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconSlot: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <rect x="5" y="2" width="14" height="20" rx="2" stroke={color} strokeWidth="2.5" />
     <path d="M5 8H19M5 16H19M9 8V16M15 8V16" stroke={color} strokeWidth="2.5" />
     <circle cx="21" cy="6" r="1.5" fill={color} />
@@ -642,8 +889,16 @@ export const IconSlot: React.FC<IconProps> = ({ className, color = 'currentColor
 /**
  * UI: Target
  */
-export const IconTarget: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export const IconTarget: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
     <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2.5" />
     <circle cx="12" cy="12" r="6" stroke={color} strokeWidth="2.5" />
     <circle cx="12" cy="12" r="2" stroke={color} strokeWidth="2.5" />

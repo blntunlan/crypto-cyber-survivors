@@ -82,7 +82,10 @@ class CheatManagerClass {
     if (!this.enabled || !this.callbacks) return;
 
     // Ignore if typing in input
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
       return;
     }
 
@@ -119,7 +122,9 @@ class CheatManagerClass {
         if (!e.ctrlKey && !e.altKey) {
           this.forcedCrit = !this.forcedCrit;
           if (this.forcedCrit) this.forcedSuperCrit = false;
-          this.showCheatMessage(this.forcedCrit ? '🎯 FORCED CRIT: ON' : '🎯 FORCED CRIT: OFF');
+          this.showCheatMessage(
+            this.forcedCrit ? '🎯 FORCED CRIT: ON' : '🎯 FORCED CRIT: OFF'
+          );
         }
         break;
       case '2':
@@ -127,7 +132,9 @@ class CheatManagerClass {
           this.forcedSuperCrit = !this.forcedSuperCrit;
           if (this.forcedSuperCrit) this.forcedCrit = false;
           this.showCheatMessage(
-            this.forcedSuperCrit ? '🔥 FORCED SUPER CRIT: ON' : '🔥 FORCED SUPER CRIT: OFF'
+            this.forcedSuperCrit
+              ? '🔥 FORCED SUPER CRIT: ON'
+              : '🔥 FORCED SUPER CRIT: OFF'
           );
         }
         break;

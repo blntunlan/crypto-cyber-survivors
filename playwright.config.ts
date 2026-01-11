@@ -59,15 +59,14 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
 
-    // Uncomment for Firefox/Safari testing
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
 
   // Run local dev server before starting tests

@@ -74,7 +74,12 @@ class ParticleConfigServiceClass {
    * Reset to defaults
    */
   reset(): void {
-    this.trail = { life: 0.25, radiusMultiplier: 0.61, spawnChance: 0.1, speedMultiplier: 0.7 };
+    this.trail = {
+      life: 0.25,
+      radiusMultiplier: 0.61,
+      spawnChance: 0.1,
+      speedMultiplier: 0.7,
+    };
     this.impact = { count: 5, life: 0.4, speed: 4 };
     this.collect = { count: 12, life: 1.1, speed: 3, radius: 1 };
     this.bullets = {

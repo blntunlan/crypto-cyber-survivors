@@ -83,7 +83,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             >
               Kills
             </p>
-            <p className={`${sizes.stat} font-bold text-white font-stats`}>{runStats.totalKills}</p>
+            <p className={`${sizes.stat} font-bold text-white font-stats`}>
+              {runStats.totalKills}
+            </p>
           </div>
           <div className="text-left">
             <p
@@ -92,7 +94,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             >
               Combo
             </p>
-            <p className={`${sizes.stat} font-bold text-white font-stats`}>{runStats.maxStreak}</p>
+            <p className={`${sizes.stat} font-bold text-white font-stats`}>
+              {runStats.maxStreak}
+            </p>
           </div>
           <div className="text-left">
             <p
@@ -153,7 +157,10 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                   : 'bg-slate-800/50 text-slate-400 rounded-lg border border-white/5 hover:bg-slate-700 hover:text-white'
               }`}
             >
-              <IconSettings className="w-4 h-4" color={isRetro ? '#ffd600' : 'currentColor'} />
+              <IconSettings
+                className="w-4 h-4"
+                color={isRetro ? '#ffd600' : 'currentColor'}
+              />
               <span>Settings</span>
             </button>
 
@@ -175,7 +182,10 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                 </>
               ) : (
                 <>
-                  <IconVolume className="w-4 h-4" color={isRetro ? '#ffd600' : 'currentColor'} />
+                  <IconVolume
+                    className="w-4 h-4"
+                    color={isRetro ? '#ffd600' : 'currentColor'}
+                  />
                   <span>Audio</span>
                 </>
               )}

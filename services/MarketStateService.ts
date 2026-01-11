@@ -36,12 +36,17 @@ class MarketStateServiceImpl {
     return (this.instance ??= new MarketStateServiceImpl());
   }
 
-  async initialize(pair: string, position: 'LONG' | 'SHORT'): Promise<MarketState | null> {
+  async initialize(
+    pair: string,
+    position: 'LONG' | 'SHORT'
+  ): Promise<MarketState | null> {
     this.currentPair = pair;
     this.currentPosition = position;
 
     if (!supabase) {
-      Logger.warn('[MarketStateService] Supabase not configured. Market state will not update.');
+      Logger.warn(
+        '[MarketStateService] Supabase not configured. Market state will not update.'
+      );
       return null;
     }
 

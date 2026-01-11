@@ -14,7 +14,9 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
   const [currentProfile, setCurrentProfile] = useState(
     DeviceBenchmarkService.getPerformanceConfig().profile
   );
-  const [isAuto, setIsAuto] = useState<boolean>(!DeviceBenchmarkService.isInManualMode());
+  const [isAuto, setIsAuto] = useState<boolean>(
+    !DeviceBenchmarkService.isInManualMode()
+  );
 
   useEffect(() => {
     const updateState = () => {
@@ -74,7 +76,9 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
 
       <div
         className={`bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-3 transition-all ${
-          isFocused ? 'ring-2 ring-white shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/10' : ''
+          isFocused
+            ? 'ring-2 ring-white shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/10'
+            : ''
         }`}
       >
         <div className="flex gap-2">
@@ -94,7 +98,8 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
               onClick={() => handleProfileChange(profile)}
               className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all border ${
                 !isAuto && currentProfile === profile
-                  ? getProfileColor(profile) + ' shadow-[0_0_10px_rgba(255,255,255,0.1)]'
+                  ? getProfileColor(profile) +
+                    ' shadow-[0_0_10px_rgba(255,255,255,0.1)]'
                   : 'bg-white/5 text-slate-500 border-transparent hover:bg-white/10'
               }`}
             >
@@ -107,7 +112,8 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
           {currentProfile === DeviceProfile.ULTRA &&
             'Cinematic lighting, max effects (High-end only)'}
           {currentProfile === DeviceProfile.HIGH && 'Full effects, shadows enabled'}
-          {currentProfile === DeviceProfile.MEDIUM && 'Balanced performance and visuals'}
+          {currentProfile === DeviceProfile.MEDIUM &&
+            'Balanced performance and visuals'}
           {currentProfile === DeviceProfile.LOW && 'Max FPS, simplified graphics'}
         </div>
       </div>

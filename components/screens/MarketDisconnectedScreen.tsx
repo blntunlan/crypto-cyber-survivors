@@ -41,7 +41,10 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
             className="w-20 h-20 border-4 rounded-full flex items-center justify-center mx-auto"
             style={{ borderColor: COLORS.JACKPOT_YELLOW }}
           >
-            <span className="text-4xl font-display" style={{ color: COLORS.JACKPOT_YELLOW }}>
+            <span
+              className="text-4xl font-display"
+              style={{ color: COLORS.JACKPOT_YELLOW }}
+            >
               !
             </span>
           </div>
@@ -63,9 +66,11 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <p className={`${sizes.body} text-slate-400 font-mono tracking-wider text-xs`}>
-            The game has been paused to ensure market fairness. World state is frozen until data
-            resumes.
+          <p
+            className={`${sizes.body} text-slate-400 font-mono tracking-wider text-xs`}
+          >
+            The game has been paused to ensure market fairness. World state is frozen
+            until data resumes.
           </p>
 
           <div className="flex flex-col items-center space-y-4">
@@ -92,7 +97,9 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
           <motion.button
             onClick={onBackToMenu}
             className={`mt-8 px-8 py-3 bg-slate-900 border border-white/10 text-white/50 font-display ${sizes.tiny} font-black uppercase tracking-[0.2em] rounded-lg hover:bg-slate-800 hover:text-white transition-all`}
-            style={{ borderColor: isRetro ? COLORS.SLOT_BLACK : 'rgba(255,255,255,0.1)' }}
+            style={{
+              borderColor: isRetro ? COLORS.SLOT_BLACK : 'rgba(255,255,255,0.1)',
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

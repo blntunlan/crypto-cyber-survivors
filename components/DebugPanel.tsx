@@ -91,12 +91,16 @@ export const DebugPanel: React.FC = () => {
 
         <div className="space-y-3">
           <div className="border border-green-500/30 rounded p-2">
-            <div className="text-green-400 font-bold mb-1">Manual Profile (localStorage)</div>
+            <div className="text-green-400 font-bold mb-1">
+              Manual Profile (localStorage)
+            </div>
             <div className="text-white">{debugInfo.manualProfile ?? '❌ NULL'}</div>
           </div>
 
           <div className="border border-cyan-500/30 rounded p-2">
-            <div className="text-cyan-400 font-bold mb-1">🎯 Manual Mode Flag (Memory)</div>
+            <div className="text-cyan-400 font-bold mb-1">
+              🎯 Manual Mode Flag (Memory)
+            </div>
             <div
               className={`text-lg font-black ${debugInfo.isManualMode ? 'text-orange-400' : 'text-green-400'}`}
             >
@@ -131,7 +135,9 @@ export const DebugPanel: React.FC = () => {
           !debugInfo.manualProfile.startsWith('LOW') ? null : debugInfo.manualProfile &&
             debugInfo.config?.profile !== debugInfo.manualProfile ? (
             <div className="border border-red-500 rounded p-2 bg-red-900/20">
-              <div className="text-red-400 font-bold mb-1">⚠️ localStorage MISMATCH!</div>
+              <div className="text-red-400 font-bold mb-1">
+                ⚠️ localStorage MISMATCH!
+              </div>
               <div className="text-red-300 text-[10px]">
                 Stored: {debugInfo.manualProfile}
                 <br />
@@ -140,7 +146,9 @@ export const DebugPanel: React.FC = () => {
             </div>
           ) : null}
 
-          <div className="text-slate-500 text-[10px]">Updated: {debugInfo.timestamp}</div>
+          <div className="text-slate-500 text-[10px]">
+            Updated: {debugInfo.timestamp}
+          </div>
 
           <div className="border-t border-slate-700 pt-3 mt-3 space-y-2">
             <button

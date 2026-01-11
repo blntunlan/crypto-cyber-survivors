@@ -1,5 +1,10 @@
 import React, { useEffect, useState, memo, useMemo, useRef } from 'react';
-import { type MarketPosition, type MarketData, type Player, GameStatus } from '../types';
+import {
+  type MarketPosition,
+  type MarketData,
+  type Player,
+  GameStatus,
+} from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
 import { screenService } from '../services/ScreenService';
 import { useGameStore } from '../stores/gameStore';
@@ -108,10 +113,16 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
       if (marketData.price > lastPrice) {
         setPriceColor('text-green-400 animate-pulse');
-        priceColorTimeoutRef.current = setTimeout(() => setPriceColor('text-green-400'), 300);
+        priceColorTimeoutRef.current = setTimeout(
+          () => setPriceColor('text-green-400'),
+          300
+        );
       } else if (marketData.price < lastPrice) {
         setPriceColor('text-red-400 animate-pulse');
-        priceColorTimeoutRef.current = setTimeout(() => setPriceColor('text-red-400'), 300);
+        priceColorTimeoutRef.current = setTimeout(
+          () => setPriceColor('text-red-400'),
+          300
+        );
       }
       setLastPrice(marketData.price);
 
@@ -128,8 +139,10 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
     return (
       <div
-        className={`fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 font-mono z-[${Z_LAYERS.HUD}]`}
+        id="game-ui-overlay"
+        className="fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 font-mono"
         style={{
+          zIndex: Z_LAYERS.HUD,
           paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`,
           paddingLeft: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-left, 0px))`,
           paddingRight: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-right, 0px))`,
@@ -187,7 +200,11 @@ export const GameUI: React.FC<GameUIProps> = memo(
         </div>
 
         {/* Account Health (Bottom) - Adaptive Component */}
-        <AccountHealthPremium hpPercent={hpPercent} hp={smoothValues.hp} maxHp={player.maxHp} />
+        <AccountHealthPremium
+          hpPercent={hpPercent}
+          hp={smoothValues.hp}
+          maxHp={player.maxHp}
+        />
       </div>
     );
   }

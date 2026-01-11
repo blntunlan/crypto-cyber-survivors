@@ -123,7 +123,11 @@ export const useAdminConfigStore = create<AdminConfigState>()(
       config: getDefaultConfig(),
       isDirty: false,
       history: [
-        { timestamp: Date.now(), config: getDefaultConfig(), description: 'Initial state' },
+        {
+          timestamp: Date.now(),
+          config: getDefaultConfig(),
+          description: 'Initial state',
+        },
       ],
       historyIndex: 0,
       maxHistorySize: 50,

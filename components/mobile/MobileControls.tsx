@@ -9,7 +9,10 @@ import React, { useCallback, useRef } from 'react';
 import { VirtualJoystick } from './VirtualJoystick';
 import { DashButton } from './DashButton';
 import { DragToMoveController } from './DragToMoveController';
-import { type MobileControlSettings, DEFAULT_MOBILE_SETTINGS } from '../../types/MobileSettings';
+import {
+  type MobileControlSettings,
+  DEFAULT_MOBILE_SETTINGS,
+} from '../../types/MobileSettings';
 import { GameStatus } from '../../types';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
@@ -89,7 +92,8 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
         style={{
           display: 'flex',
           alignItems: 'flex-end',
-          justifyContent: settings.joystickPosition === 'left' ? 'flex-start' : 'flex-end',
+          justifyContent:
+            settings.joystickPosition === 'left' ? 'flex-start' : 'flex-end',
           padding: rs(20),
           paddingBottom: rs(40),
         }}
@@ -109,7 +113,8 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
         style={{
           display: 'flex',
           alignItems: 'flex-end',
-          justifyContent: settings.joystickPosition === 'left' ? 'flex-end' : 'flex-start',
+          justifyContent:
+            settings.joystickPosition === 'left' ? 'flex-end' : 'flex-start',
           padding: rs(20),
           paddingBottom: rs(40),
         }}

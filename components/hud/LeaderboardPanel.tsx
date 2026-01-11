@@ -39,7 +39,9 @@ interface LeaderboardPanelProps {
   isVisible?: boolean;
 }
 
-export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = true }) => {
+export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
+  isVisible = true,
+}) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -348,7 +350,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
               ) : entries.length === 0 ? (
                 <div className="text-center py-8 px-4">
                   <TrendingUp className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                  <ThemedText className="text-sm text-slate-500">No scores yet</ThemedText>
+                  <ThemedText className="text-sm text-slate-500">
+                    No scores yet
+                  </ThemedText>
                   <ThemedText className="text-xs text-slate-600 mt-1">
                     Be the first to claim the top!
                   </ThemedText>
@@ -423,7 +427,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({ isVisible = 
                                         : entry.crypto_pair === 'SOL'
                                           ? '#9945FF'
                                           : '#94a3b8',
-                                  border: isRetro ? undefined : `1px solid currentColor`,
+                                  border: isRetro
+                                    ? undefined
+                                    : `1px solid currentColor`,
                                 }}
                               >
                                 {entry.crypto_pair}

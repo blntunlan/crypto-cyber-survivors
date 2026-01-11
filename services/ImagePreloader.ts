@@ -77,15 +77,17 @@ class ImagePreloaderClass {
     const paths = this.getCardImagePaths();
     Logger.info(`[ImagePreloader] Starting preload of ${paths.length} card images...`);
 
-    this.loadingPromise = Promise.allSettled(paths.map(path => this.preloadImage(path))).then(
-      results => {
-        const succeeded = results.filter(r => r.status === 'fulfilled').length;
-        const failed = results.filter(r => r.status === 'rejected').length;
+    this.loadingPromise = Promise.allSettled(
+      paths.map(path => this.preloadImage(path))
+    ).then(results => {
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
 
-        Logger.info(`[ImagePreloader] Preload complete: ${succeeded} loaded, ${failed} failed`);
-        this.isLoaded = true;
-      }
-    );
+      Logger.info(
+        `[ImagePreloader] Preload complete: ${succeeded} loaded, ${failed} failed`
+      );
+      this.isLoaded = true;
+    });
 
     return this.loadingPromise;
   }

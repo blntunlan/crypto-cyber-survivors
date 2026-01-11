@@ -6,7 +6,11 @@
 
 // Calculators
 export { RSICalculator, getRSICalculator, createRSICalculator } from './RSICalculator';
-export { VolumeAnalyzer, getVolumeAnalyzer, createVolumeAnalyzer } from './VolumeAnalyzer';
+export {
+  VolumeAnalyzer,
+  getVolumeAnalyzer,
+  createVolumeAnalyzer,
+} from './VolumeAnalyzer';
 
 // Orchestrator
 export {

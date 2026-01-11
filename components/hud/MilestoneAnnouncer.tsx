@@ -62,7 +62,9 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
             </>
           )}
 
-          <span className={`relative z-10 tracking-widest text-xl ${isRetro ? '' : ''}`}>
+          <span
+            className={`relative z-10 tracking-widest text-xl ${isRetro ? '' : ''}`}
+          >
             XP MULTIPLIER UP!
           </span>
 
@@ -115,7 +117,9 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
             className="font-black italic uppercase tracking-tighter text-center"
             style={{
               color: 'white',
-              textShadow: isRetro ? '2px 2px 0 #000' : `2px 2px 0 #000, 0 0 10px ${color}`,
+              textShadow: isRetro
+                ? '2px 2px 0 #000'
+                : `2px 2px 0 #000, 0 0 10px ${color}`,
               fontSize: rfs(24),
             }}
           >
@@ -146,7 +150,9 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
               <span className="relative z-10 tracking-tight">XP MULTIPLIER UP!</span>
 
               {/* Decorative elements for retro */}
-              {isRetro && <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-400" />}
+              {isRetro && (
+                <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-400" />
+              )}
 
               {/* Simplified glow for mobile perf - hidden in retro */}
               {!isRetro && (

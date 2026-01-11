@@ -54,7 +54,8 @@ export class PriceAnalyzerService {
   private analyses: Map<CryptoPair, PriceAnalysis> = new Map();
 
   // Subscribers
-  private subscribers: Set<(pair: CryptoPair, analysis: PriceAnalysis) => void> = new Set();
+  private subscribers: Set<(pair: CryptoPair, analysis: PriceAnalysis) => void> =
+    new Set();
 
   // Loading state
   private isLoadingHistory: boolean = false;
@@ -105,7 +106,10 @@ export class PriceAnalyzerService {
         .order('timestamp', { ascending: true });
 
       if (error) {
-        Logger.warn('[PriceAnalyzer] Failed to load history from Supabase:', error.message);
+        Logger.warn(
+          '[PriceAnalyzer] Failed to load history from Supabase:',
+          error.message
+        );
         return;
       }
 
@@ -336,7 +340,8 @@ export class PriceAnalyzerService {
 
     // Calculate standard deviation
     const squaredDiffs = prices.map(p => Math.pow(p - mean, 2));
-    const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / squaredDiffs.length;
+    const avgSquaredDiff =
+      squaredDiffs.reduce((a, b) => a + b, 0) / squaredDiffs.length;
     const stdDev = Math.sqrt(avgSquaredDiff);
 
     // Normalize to percentage of mean
@@ -375,7 +380,10 @@ export class PriceAnalyzerService {
   /**
    * Detect trend direction and strength
    */
-  private detectTrend(history: PriceSnapshot[]): { trend: TrendDirection; trendStrength: number } {
+  private detectTrend(history: PriceSnapshot[]): {
+    trend: TrendDirection;
+    trendStrength: number;
+  } {
     if (history.length < 20) {
       return { trend: 'sideways', trendStrength: 0 };
     }

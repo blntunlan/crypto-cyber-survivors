@@ -119,7 +119,14 @@ export type EntityCategory =
   | 'hazard'
   | 'collectible';
 
-export type FieldType = 'number' | 'string' | 'boolean' | 'color' | 'select' | 'array' | 'icon';
+export type FieldType =
+  | 'number'
+  | 'string'
+  | 'boolean'
+  | 'color'
+  | 'select'
+  | 'array'
+  | 'icon';
 
 export interface FieldSchema {
   type: FieldType;

@@ -44,7 +44,9 @@ export function ThemeToggle({
 
       {/* Theme Label */}
       {showLabel && (
-        <span className="font-medium">{isCyberpunk ? '16-Bit Mode' : 'Cyber Mode'}</span>
+        <span className="font-medium">
+          {isCyberpunk ? '16-Bit Mode' : 'Cyber Mode'}
+        </span>
       )}
     </button>
   );

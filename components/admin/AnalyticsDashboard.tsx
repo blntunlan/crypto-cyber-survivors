@@ -66,7 +66,8 @@ export const AnalyticsDashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { supabase, isSupabaseConfigured } = await import('../../services/Supabase');
+      const { supabase, isSupabaseConfigured } =
+        await import('../../services/Supabase');
 
       if (!isSupabaseConfigured() || !supabase) {
         Logger.warn('[AnalyticsDashboard] Supabase not configured');
@@ -81,13 +82,19 @@ export const AnalyticsDashboard: React.FC = () => {
       }
 
       // Fetch session stats
-      const { data: sessionData } = await supabase.from('analytics_sessions').select('*').limit(7);
+      const { data: sessionData } = await supabase
+        .from('analytics_sessions')
+        .select('*')
+        .limit(7);
       if (sessionData) {
         setSessions(sessionData as SessionStats[]);
       }
 
       // Fetch top errors
-      const { data: errorData } = await supabase.from('analytics_top_errors').select('*').limit(10);
+      const { data: errorData } = await supabase
+        .from('analytics_top_errors')
+        .select('*')
+        .limit(10);
       if (errorData) {
         setErrors(errorData as TopError[]);
       }
@@ -226,8 +233,12 @@ export const AnalyticsDashboard: React.FC = () => {
                 <span className="text-slate-400">{day.date}</span>
                 <div className="flex items-center gap-4">
                   <span className="text-green-400">{day.total_sessions} sessions</span>
-                  <span className="text-cyan-400">{formatTime(day.avg_survival_seconds)}</span>
-                  <span className="text-yellow-400">Lvl {Math.round(day.avg_max_level)}</span>
+                  <span className="text-cyan-400">
+                    {formatTime(day.avg_survival_seconds)}
+                  </span>
+                  <span className="text-yellow-400">
+                    Lvl {Math.round(day.avg_max_level)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -252,8 +263,12 @@ export const AnalyticsDashboard: React.FC = () => {
                   ) : (
                     <Monitor className="w-4 h-4 text-slate-500" />
                   )}
-                  <span className="text-slate-400 capitalize">{device.device_type}</span>
-                  <span className="text-xs text-slate-600">{device.optimization_profile}</span>
+                  <span className="text-slate-400 capitalize">
+                    {device.device_type}
+                  </span>
+                  <span className="text-xs text-slate-600">
+                    {device.optimization_profile}
+                  </span>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-green-400">{device.session_count}</span>
@@ -293,7 +308,10 @@ export const AnalyticsDashboard: React.FC = () => {
               {errors.map((error, i) => (
                 <tr key={i} className="border-b border-slate-800">
                   <td className="py-2 text-yellow-400">{error.error_type}</td>
-                  <td className="py-2 text-slate-300 max-w-xs truncate" title={error.error_message}>
+                  <td
+                    className="py-2 text-slate-300 max-w-xs truncate"
+                    title={error.error_message}
+                  >
                     {error.error_message.substring(0, 50)}...
                   </td>
                   <td className="py-2 text-red-400">{error.occurrence_count}</td>

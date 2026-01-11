@@ -29,7 +29,11 @@ import {
   WHALE_TIER_CONFIGS,
 } from '../../types/indicators';
 import { createRSICalculator, type RSICalculator } from './RSICalculator';
-import { createVolumeAnalyzer, type VolumeAnalyzer, type WhaleSpawnResult } from './VolumeAnalyzer';
+import {
+  createVolumeAnalyzer,
+  type VolumeAnalyzer,
+  type WhaleSpawnResult,
+} from './VolumeAnalyzer';
 import { priceAnalyzer } from '../admin/PriceAnalyzerService';
 import { EventBus } from '../EventBus';
 import { Logger } from '../Logger';
@@ -137,7 +141,8 @@ export class MarketIndicatorService {
       enemyModifier,
 
       // Meta
-      isInitialized: this.rsiCalculator.isInitialized() || this.volumeAnalyzer.isInitialized(),
+      isInitialized:
+        this.rsiCalculator.isInitialized() || this.volumeAnalyzer.isInitialized(),
       lastUpdateTime: now,
       currentPosition: position,
     };

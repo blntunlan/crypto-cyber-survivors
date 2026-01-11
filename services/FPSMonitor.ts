@@ -111,7 +111,9 @@ class FPSMonitorClass {
     const downgradeThreshold = targetFps === 60 ? CONFIG.DOWNGRADE_THRESHOLD_FPS : 24;
 
     if (avgFps < downgradeThreshold) {
-      Logger.warn(`[FPSMonitor] Low FPS detected: ${avgFps.toFixed(1)} (Target: ${targetFps})`);
+      Logger.warn(
+        `[FPSMonitor] Low FPS detected: ${avgFps.toFixed(1)} (Target: ${targetFps})`
+      );
       this.attemptDowngrade(currentConfig.profile);
     }
   }
@@ -123,7 +125,9 @@ class FPSMonitorClass {
     if (currentIndex > 0) {
       const nextProfile = this.profiles[currentIndex - 1];
       if (nextProfile) {
-        Logger.info(`[FPSMonitor] Downgrading profile: ${currentProfile} -> ${nextProfile}`);
+        Logger.info(
+          `[FPSMonitor] Downgrading profile: ${currentProfile} -> ${nextProfile}`
+        );
         // Update config
         DeviceBenchmarkService.setManualProfile(nextProfile);
       }

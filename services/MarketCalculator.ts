@@ -142,7 +142,9 @@ export class MarketCalculator {
 
     // Calculate ATR as simple moving average of TR
     const atr =
-      newTrHistory.length > 0 ? newTrHistory.reduce((a, b) => a + b, 0) / newTrHistory.length : 0;
+      newTrHistory.length > 0
+        ? newTrHistory.reduce((a, b) => a + b, 0) / newTrHistory.length
+        : 0;
 
     // Calculate ATR as percentage of price
     const atrPercent = close > 0 ? atr / close : 0;

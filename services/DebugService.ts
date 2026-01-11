@@ -10,7 +10,10 @@ import { TimeService } from './TimeService';
 import { ComboSystem } from './ComboSystem';
 import { DifficultyManager } from './DifficultyManager';
 import { useGameStore } from '../stores/gameStore';
-import { ParticleConfigService, type ParticleEffectConfig } from './ParticleConfigService';
+import {
+  ParticleConfigService,
+  type ParticleEffectConfig,
+} from './ParticleConfigService';
 import { Logger } from './Logger';
 
 declare global {
@@ -91,8 +94,10 @@ class DebugServiceClass {
 
         // Canlı Partikül Ayarları
         particles: {
-          update: (group: 'trail' | 'impact' | 'collect', params: Partial<ParticleEffectConfig>) =>
-            ParticleConfigService.update(group, params),
+          update: (
+            group: 'trail' | 'impact' | 'collect',
+            params: Partial<ParticleEffectConfig>
+          ) => ParticleConfigService.update(group, params),
           reset: () => ParticleConfigService.reset(),
           current: () => ({
             trail: ParticleConfigService.trail,

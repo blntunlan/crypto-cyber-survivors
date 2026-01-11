@@ -45,7 +45,10 @@ export class GameRenderer implements IGameRenderer {
 
     // 1. Screen Shake (only if enabled)
     if (graphics.showScreenShake && state.shake > 0) {
-      ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
+      ctx.translate(
+        (Math.random() - 0.5) * state.shake,
+        (Math.random() - 0.5) * state.shake
+      );
     }
 
     // 2. Render Layers
@@ -93,7 +96,11 @@ export class GameRenderer implements IGameRenderer {
     ctx.restore();
   }
 
-  private drawDamageIndicators(ctx: CanvasRenderingContext2D, state: GameState, player: Player) {
+  private drawDamageIndicators(
+    ctx: CanvasRenderingContext2D,
+    state: GameState,
+    player: Player
+  ) {
     const now = Date.now();
     const duration = 1000;
 
@@ -108,7 +115,10 @@ export class GameRenderer implements IGameRenderer {
       }
 
       const alpha = 1 - elapsed / duration;
-      const angle = Math.atan2(indicator.sourceY - player.y, indicator.sourceX - player.x);
+      const angle = Math.atan2(
+        indicator.sourceY - player.y,
+        indicator.sourceX - player.x
+      );
 
       ctx.save();
       ctx.translate(player.x, player.y);

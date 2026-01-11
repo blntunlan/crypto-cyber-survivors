@@ -221,7 +221,9 @@ class DifficultyManagerClass {
 
     if (diff > shockThreshold && now - this.lastShockTime > 10) {
       this.lastShockTime = now;
-      Logger.info(`[Shockwave] Sudden price movement detected! Diff: ${(diff * 100).toFixed(2)}%`);
+      Logger.info(
+        `[Shockwave] Sudden price movement detected! Diff: ${(diff * 100).toFixed(2)}%`
+      );
       EventBus.emit('volatilityShock', {
         intensity: Math.min(2.0, diff / shockThreshold),
         direction: pnl > this.lastPnlForShock ? 'up' : 'down',
@@ -391,10 +393,15 @@ class DifficultyManagerClass {
       baseMultiplier;
 
     // Combine psychological factors
-    const psychological = factors.waveMultiplier * factors.nearDeathMod * (1 + factors.streakBonus);
+    const psychological =
+      factors.waveMultiplier * factors.nearDeathMod * (1 + factors.streakBonus);
 
     // Final difficulty with momentum adjustment, capped by admin config
-    const total = this.clamp(technical * psychological * factors.momentumMod, 0.3, maxDifficulty);
+    const total = this.clamp(
+      technical * psychological * factors.momentumMod,
+      0.3,
+      maxDifficulty
+    );
 
     return {
       // Increased spawn rate multiplier (0.6→0.8) to compensate for slower enemies

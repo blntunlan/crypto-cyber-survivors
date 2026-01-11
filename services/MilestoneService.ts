@@ -26,7 +26,14 @@ const MILESTONES: MilestoneConfig[] = [
     icon: '⚔️',
     color: '#c0c0c0',
   },
-  { id: 'kills_250', name: 'SLAYER', type: 'kills', threshold: 250, icon: '🗡️', color: '#ffd700' },
+  {
+    id: 'kills_250',
+    name: 'SLAYER',
+    type: 'kills',
+    threshold: 250,
+    icon: '🗡️',
+    color: '#ffd700',
+  },
   {
     id: 'kills_500',
     name: 'DESTROYER',
@@ -53,7 +60,14 @@ const MILESTONES: MilestoneConfig[] = [
   },
 
   // Time Milestones (seconds)
-  { id: 'time_60', name: '1 MINUTE!', type: 'time', threshold: 60, icon: '⏱️', color: '#22c55e' },
+  {
+    id: 'time_60',
+    name: '1 MINUTE!',
+    type: 'time',
+    threshold: 60,
+    icon: '⏱️',
+    color: '#22c55e',
+  },
   {
     id: 'time_180',
     name: '3 MINUTES!',
@@ -80,10 +94,38 @@ const MILESTONES: MilestoneConfig[] = [
   },
 
   // Level Milestones
-  { id: 'level_5', name: 'LEVEL 5', type: 'level', threshold: 5, icon: '⬆️', color: '#22c55e' },
-  { id: 'level_10', name: 'LEVEL 10', type: 'level', threshold: 10, icon: '⬆️', color: '#3b82f6' },
-  { id: 'level_15', name: 'LEVEL 15', type: 'level', threshold: 15, icon: '⬆️', color: '#f59e0b' },
-  { id: 'level_20', name: 'LEVEL 20', type: 'level', threshold: 20, icon: '🌟', color: '#ef4444' },
+  {
+    id: 'level_5',
+    name: 'LEVEL 5',
+    type: 'level',
+    threshold: 5,
+    icon: '⬆️',
+    color: '#22c55e',
+  },
+  {
+    id: 'level_10',
+    name: 'LEVEL 10',
+    type: 'level',
+    threshold: 10,
+    icon: '⬆️',
+    color: '#3b82f6',
+  },
+  {
+    id: 'level_15',
+    name: 'LEVEL 15',
+    type: 'level',
+    threshold: 15,
+    icon: '⬆️',
+    color: '#f59e0b',
+  },
+  {
+    id: 'level_20',
+    name: 'LEVEL 20',
+    type: 'level',
+    threshold: 20,
+    icon: '🌟',
+    color: '#ef4444',
+  },
 ];
 
 class MilestoneServiceClass {

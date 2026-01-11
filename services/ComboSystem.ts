@@ -30,8 +30,20 @@ export interface ComboMilestone {
 }
 
 const COMBO_MILESTONES: ComboMilestone[] = [
-  { kills: 5, name: 'COMBO!', multiplier: 1.2, color: COLORS.ELECTRIC_BLUE, sound: 'combo1' },
-  { kills: 10, name: 'SUPER COMBO!', multiplier: 1.5, color: COLORS.NEON_ORANGE, sound: 'combo2' },
+  {
+    kills: 5,
+    name: 'COMBO!',
+    multiplier: 1.2,
+    color: COLORS.ELECTRIC_BLUE,
+    sound: 'combo1',
+  },
+  {
+    kills: 10,
+    name: 'SUPER COMBO!',
+    multiplier: 1.5,
+    color: COLORS.NEON_ORANGE,
+    sound: 'combo2',
+  },
   {
     kills: 25,
     name: 'MEGA COMBO!',
@@ -39,8 +51,20 @@ const COMBO_MILESTONES: ComboMilestone[] = [
     color: COLORS.BRILLIANT_ROSE,
     sound: 'combo3',
   },
-  { kills: 50, name: 'ULTRA COMBO!', multiplier: 2.5, color: COLORS.ROYAL_PURPLE, sound: 'combo4' },
-  { kills: 100, name: 'JACKPOT!', multiplier: 3.0, color: COLORS.JACKPOT_YELLOW, sound: 'combo5' },
+  {
+    kills: 50,
+    name: 'ULTRA COMBO!',
+    multiplier: 2.5,
+    color: COLORS.ROYAL_PURPLE,
+    sound: 'combo4',
+  },
+  {
+    kills: 100,
+    name: 'JACKPOT!',
+    multiplier: 3.0,
+    color: COLORS.JACKPOT_YELLOW,
+    sound: 'combo5',
+  },
 ];
 
 const COMBO_TIMEOUT_MS = 3000; // 3 seconds without kill = combo reset
@@ -80,7 +104,8 @@ class ComboSystemClass {
       }),
       EventBus.on('gemCollected', data => {
         if (this.state.killStreak > 0) {
-          const bonus = Math.floor(data.value * this.state.comboMultiplier) - data.value;
+          const bonus =
+            Math.floor(data.value * this.state.comboMultiplier) - data.value;
           if (bonus > 0) {
             this.state.totalBonusXp += bonus;
             EventBus.emit('comboUpdate', {
@@ -156,7 +181,8 @@ class ComboSystemClass {
 
         // Check sound cooldown to prevent audio spam from multi-kills
         const canPlaySound =
-          currentTime - this.lastMilestoneSoundTime >= ComboSystemClass.MILESTONE_SOUND_COOLDOWN;
+          currentTime - this.lastMilestoneSoundTime >=
+          ComboSystemClass.MILESTONE_SOUND_COOLDOWN;
 
         EventBus.emit('comboMilestone', {
           name: milestone.name,

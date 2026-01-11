@@ -20,13 +20,9 @@ interface LiveFeedProps {
   priceColor: string;
 }
 
-const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | null }> = ({
-  marketData,
-  entryPrice,
-  smoothValues,
-  priceColor,
-  serverState,
-}) => {
+const DesktopLiveFeed: React.FC<
+  LiveFeedProps & { serverState: MarketStateData | null }
+> = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
   const isRetro = useIsRetro();
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
@@ -75,7 +71,10 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
         <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase tracking-widest">
           <span>Entry</span>
           <span className="text-slate-200">
-            ${entryPrice.toLocaleString(undefined, { maximumFractionDigits: pairConfig.decimals })}
+            $
+            {entryPrice.toLocaleString(undefined, {
+              maximumFractionDigits: pairConfig.decimals,
+            })}
           </span>
         </div>
         <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase tracking-widest">
@@ -83,25 +82,26 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
           <span className="text-slate-200">x{smoothValues.difficulty.toFixed(2)}</span>
         </div>
 
-        {marketData.liquidationPrice !== undefined && marketData.liquidationPrice > 0 && (
-          <div className="flex justify-between items-center text-[9px] uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50">
-            <span className="text-slate-400">Liquidation</span>
-            <span
-              className={
-                marketData.effectivePnl <= -0.7
-                  ? 'text-red-500 font-bold animate-pulse'
-                  : marketData.effectivePnl <= -0.4
-                    ? 'text-orange-400'
-                    : 'text-slate-200'
-              }
-            >
-              $
-              {marketData.liquidationPrice.toLocaleString(undefined, {
-                maximumFractionDigits: pairConfig.decimals,
-              })}
-            </span>
-          </div>
-        )}
+        {marketData.liquidationPrice !== undefined &&
+          marketData.liquidationPrice > 0 && (
+            <div className="flex justify-between items-center text-[9px] uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50">
+              <span className="text-slate-400">Liquidation</span>
+              <span
+                className={
+                  marketData.effectivePnl <= -0.7
+                    ? 'text-red-500 font-bold animate-pulse'
+                    : marketData.effectivePnl <= -0.4
+                      ? 'text-orange-400'
+                      : 'text-slate-200'
+                }
+              >
+                $
+                {marketData.liquidationPrice.toLocaleString(undefined, {
+                  maximumFractionDigits: pairConfig.decimals,
+                })}
+              </span>
+            </div>
+          )}
 
         {serverState && (
           <>
@@ -133,13 +133,9 @@ const DesktopLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData |
   );
 };
 
-const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | null }> = ({
-  marketData,
-  entryPrice,
-  smoothValues,
-  priceColor,
-  serverState,
-}) => {
+const MobileLiveFeed: React.FC<
+  LiveFeedProps & { serverState: MarketStateData | null }
+> = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
   const isRetro = useIsRetro();
   const { rs, rfs } = useResponsiveUI();
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
@@ -167,10 +163,16 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
           LIVE
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-bold" style={{ color: pairConfig.color, fontSize: rfs(10) }}>
+          <span
+            className="font-bold"
+            style={{ color: pairConfig.color, fontSize: rfs(10) }}
+          >
             {pairConfig.id}
           </span>
-          <div className="text-slate-400 font-feed opacity-60" style={{ fontSize: rfs(9) }}>
+          <div
+            className="text-slate-400 font-feed opacity-60"
+            style={{ fontSize: rfs(9) }}
+          >
             {marketData.leverage}X
           </div>
         </div>
@@ -199,7 +201,10 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
       </div>
 
       <div className="mt-1.5 grid grid-cols-2 gap-y-1 opacity-50 border-t border-white/5 pt-1">
-        <div className="text-slate-300 uppercase leading-none" style={{ fontSize: rfs(8) }}>
+        <div
+          className="text-slate-300 uppercase leading-none"
+          style={{ fontSize: rfs(8) }}
+        >
           Entry ${Math.floor(entryPrice)}
         </div>
         <div
@@ -208,15 +213,18 @@ const MobileLiveFeed: React.FC<LiveFeedProps & { serverState: MarketStateData | 
         >
           Vol x{smoothValues.difficulty.toFixed(1)}
         </div>
-        {marketData.liquidationPrice !== undefined && marketData.liquidationPrice > 0 && (
-          <div
-            className={`col-span-2 uppercase leading-none text-center pt-1 mt-1 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-400'}`}
-            style={{ fontSize: rfs(8) }}
-          >
-            LIQ: $
-            {marketData.liquidationPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-          </div>
-        )}
+        {marketData.liquidationPrice !== undefined &&
+          marketData.liquidationPrice > 0 && (
+            <div
+              className={`col-span-2 uppercase leading-none text-center pt-1 mt-1 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-400'}`}
+              style={{ fontSize: rfs(8) }}
+            >
+              LIQ: $
+              {marketData.liquidationPrice.toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })}
+            </div>
+          )}
         {serverState && (
           <div
             className={`col-span-2 uppercase leading-none font-bold text-center border-t border-white/5 pt-0.5 mt-0.5 ${

@@ -14,7 +14,10 @@ export class SlowDecorator extends StatDecorator {
 
   private slowPercent: number;
 
-  constructor(wrapped: IPlayerStats, slowPercent: number = SlowDecorator.DEFAULT_SLOW_PERCENT) {
+  constructor(
+    wrapped: IPlayerStats,
+    slowPercent: number = SlowDecorator.DEFAULT_SLOW_PERCENT
+  ) {
     super(wrapped);
     this.slowPercent = slowPercent;
   }

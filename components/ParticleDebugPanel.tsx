@@ -97,7 +97,12 @@ export const ParticleDebugPanel: React.FC = () => {
           onClick={() => setIsVisible(false)}
           className="text-slate-500 hover:text-white transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -237,7 +242,9 @@ export const ParticleDebugPanel: React.FC = () => {
             max={5}
             step={0.1}
             value={config.bullets.superCritSizeMultiplier}
-            onChange={(v: number) => handleUpdate('bullets', 'superCritSizeMultiplier', v)}
+            onChange={(v: number) =>
+              handleUpdate('bullets', 'superCritSizeMultiplier', v)
+            }
           />
         </section>
 

@@ -90,7 +90,9 @@ class GameStateManagerClass {
    */
   resetAll(leverage: number = 1): void {
     if (this.isResetting) {
-      Logger.warn('[GameStateManager] Reset already in progress, skipping duplicate call');
+      Logger.warn(
+        '[GameStateManager] Reset already in progress, skipping duplicate call'
+      );
       return;
     }
 

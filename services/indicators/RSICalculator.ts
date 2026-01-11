@@ -199,7 +199,9 @@ export class RSICalculator {
     }
 
     // Edge cases - use threshold instead of exact 0 check
-    if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) return 50;
+    if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+      return 50;
+    }
     if (this.prevAvgLoss < MIN_AVG_THRESHOLD) return 100;
     if (this.prevAvgGain < MIN_AVG_THRESHOLD) return 0;
 
@@ -221,7 +223,11 @@ export class RSICalculator {
    */
   private updateState(): void {
     this.previousState = this.currentState;
-    this.currentState = getRSIStateWithHysteresis(this.currentRSI, this.previousState, this.config);
+    this.currentState = getRSIStateWithHysteresis(
+      this.currentRSI,
+      this.previousState,
+      this.config
+    );
   }
 }
 

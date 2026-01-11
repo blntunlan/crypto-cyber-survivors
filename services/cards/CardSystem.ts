@@ -31,9 +31,12 @@ class CardSystemClass {
 
     // Calculate chances with luck bonus
     let legendaryChance =
-      TIER_CONFIG.legendary.baseChance + playerLuck * TIER_CONFIG.legendary.luckMultiplier;
-    let epicChance = TIER_CONFIG.epic.baseChance + playerLuck * TIER_CONFIG.epic.luckMultiplier;
-    let rareChance = TIER_CONFIG.rare.baseChance + playerLuck * TIER_CONFIG.rare.luckMultiplier;
+      TIER_CONFIG.legendary.baseChance +
+      playerLuck * TIER_CONFIG.legendary.luckMultiplier;
+    let epicChance =
+      TIER_CONFIG.epic.baseChance + playerLuck * TIER_CONFIG.epic.luckMultiplier;
+    let rareChance =
+      TIER_CONFIG.rare.baseChance + playerLuck * TIER_CONFIG.rare.luckMultiplier;
 
     // Level-based restrictions (adjusted for better progression)
     if (playerLevel < 10) legendaryChance = 0; // Was 12

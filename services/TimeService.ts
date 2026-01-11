@@ -195,7 +195,8 @@ class TimeServiceClass {
     if (this.deltaHistory.length === 0) return 0;
 
     // Calculate simple moving average of deltas for stable FPS
-    const avgDelta = this.deltaHistory.reduce((a, b) => a + b, 0) / this.deltaHistory.length;
+    const avgDelta =
+      this.deltaHistory.reduce((a, b) => a + b, 0) / this.deltaHistory.length;
     if (avgDelta <= 0) return 0;
 
     return Math.round(1000 / avgDelta);

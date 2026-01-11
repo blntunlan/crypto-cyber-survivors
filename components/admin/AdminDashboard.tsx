@@ -281,14 +281,18 @@ const PricePanel: React.FC = () => {
     if (price >= 10000) {
       return price.toLocaleString('en-US', { maximumFractionDigits: 0 });
     }
-    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return price.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   const formatChange = (change: number): { text: string; color: string } => {
     const sign = change >= 0 ? '+' : '';
     return {
       text: `${sign}${change.toFixed(2)}%`,
-      color: change > 0 ? 'text-green-400' : change < 0 ? 'text-red-400' : 'text-slate-400',
+      color:
+        change > 0 ? 'text-green-400' : change < 0 ? 'text-red-400' : 'text-slate-400',
     };
   };
 
@@ -394,7 +398,9 @@ const PricePanel: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-slate-500 animate-pulse">Connecting...</div>
+                <div className="text-sm text-slate-500 animate-pulse">
+                  Connecting...
+                </div>
               )}
             </div>
           );
@@ -419,7 +425,10 @@ const PricePanel: React.FC = () => {
             {(['BTC', 'ETH', 'SOL'] as CryptoPair[]).map(pair => {
               const a = analyses[pair];
               return (
-                <tr key={pair} className="border-t border-slate-700/50 hover:bg-slate-700/20">
+                <tr
+                  key={pair}
+                  className="border-t border-slate-700/50 hover:bg-slate-700/20"
+                >
                   <td className="px-4 py-3 font-medium text-white">{pair}</td>
                   <td
                     className={`px-4 py-3 text-right ${a ? formatChange(a.change5m).color : 'text-slate-500'}`}
@@ -474,8 +483,8 @@ const PricePanel: React.FC = () => {
         <div className="text-sm text-blue-300">
           <p className="font-medium mb-1">Price data integration</p>
           <p className="text-blue-400/80">
-            Connect the game's MarketService to PriceAnalyzerService for live updates. Currently
-            showing cached/simulated data if available.
+            Connect the game's MarketService to PriceAnalyzerService for live updates.
+            Currently showing cached/simulated data if available.
           </p>
         </div>
       </div>
@@ -494,7 +503,9 @@ const DifficultyPanel: React.FC = () => {
       <div className="grid grid-cols-2 gap-6">
         {/* Base Difficulty */}
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Base Difficulty</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Base Difficulty
+          </label>
           <input
             type="range"
             min="1"
@@ -521,7 +532,9 @@ const DifficultyPanel: React.FC = () => {
             max="2"
             step="0.1"
             value={difficulty.volatilityMultiplier}
-            onChange={e => updateDifficulty({ volatilityMultiplier: parseFloat(e.target.value) })}
+            onChange={e =>
+              updateDifficulty({ volatilityMultiplier: parseFloat(e.target.value) })
+            }
             className="w-full"
           />
           <div className="flex justify-between text-sm text-slate-500 mt-2">
@@ -543,14 +556,18 @@ const DifficultyPanel: React.FC = () => {
             min="5"
             max="20"
             value={difficulty.maxDifficulty}
-            onChange={e => updateDifficulty({ maxDifficulty: parseInt(e.target.value) })}
+            onChange={e =>
+              updateDifficulty({ maxDifficulty: parseInt(e.target.value) })
+            }
             className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
           />
         </div>
 
         {/* Curve */}
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Difficulty Curve</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Difficulty Curve
+          </label>
           <select
             value={difficulty.curve}
             onChange={e =>
@@ -595,7 +612,9 @@ const SpawnPanel: React.FC = () => {
         </div>
 
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Max Enemies</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Max Enemies
+          </label>
           <input
             type="number"
             min="10"
@@ -607,7 +626,9 @@ const SpawnPanel: React.FC = () => {
         </div>
 
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Wave Intensity</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Wave Intensity
+          </label>
           <input
             type="range"
             min="0"
@@ -631,7 +652,9 @@ const SpawnPanel: React.FC = () => {
             min="30"
             max="300"
             value={spawn.bossSpawnTime / 1000}
-            onChange={e => updateSpawn({ bossSpawnTime: parseInt(e.target.value) * 1000 })}
+            onChange={e =>
+              updateSpawn({ bossSpawnTime: parseInt(e.target.value) * 1000 })
+            }
             className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
           />
         </div>
@@ -650,7 +673,9 @@ const ItemsPanel: React.FC = () => {
 
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Gem Drop Rate</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Gem Drop Rate
+          </label>
           <input
             type="range"
             min="0"
@@ -666,7 +691,9 @@ const ItemsPanel: React.FC = () => {
         </div>
 
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Health Drop Rate</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Health Drop Rate
+          </label>
           <input
             type="range"
             min="0"
@@ -731,14 +758,18 @@ const VisualsPanel: React.FC = () => {
         </div>
 
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Particle Density</label>
+          <label className="block text-sm font-medium text-slate-300 mb-3">
+            Particle Density
+          </label>
           <input
             type="range"
             min="0"
             max="1"
             step="0.1"
             value={visuals.particleDensity}
-            onChange={e => updateVisuals({ particleDensity: parseFloat(e.target.value) })}
+            onChange={e =>
+              updateVisuals({ particleDensity: parseFloat(e.target.value) })
+            }
             className="w-full"
           />
           <div className="text-center text-sm text-cyan-400 mt-2">
