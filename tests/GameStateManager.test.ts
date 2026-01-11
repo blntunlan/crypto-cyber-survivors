@@ -177,7 +177,9 @@ describe('GameStateManager', () => {
     it('should emit events in correct order: beforeReset -> afterReset', () => {
       const callOrder: string[] = [];
 
-      const unsubBefore = EventBus.on('beforeReset', () => callOrder.push('beforeReset'));
+      const unsubBefore = EventBus.on('beforeReset', () =>
+        callOrder.push('beforeReset')
+      );
       const unsubAfter = EventBus.on('afterReset', () => callOrder.push('afterReset'));
 
       GameStateManager.resetAll();
@@ -294,7 +296,9 @@ describe('GameStateManager', () => {
 
       const unsubBefore = EventBus.on('beforeReset', () => events.push('beforeReset'));
       const unsubAfter = EventBus.on('afterReset', () => events.push('afterReset'));
-      const unsubInit = EventBus.on('gameInitialized', () => events.push('gameInitialized'));
+      const unsubInit = EventBus.on('gameInitialized', () =>
+        events.push('gameInitialized')
+      );
 
       GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10, 'BTC');
 

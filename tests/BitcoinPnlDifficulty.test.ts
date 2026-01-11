@@ -85,8 +85,12 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       const profitDifficulty = DifficultyManager.calculate(0.05, 0, 1, 100); // +5% profit
 
       expect(profitDifficulty.total).toBeLessThan(neutralDifficulty.total);
-      expect(profitDifficulty.spawnRate).toBeLessThanOrEqual(neutralDifficulty.spawnRate);
-      expect(profitDifficulty.enemySpeed).toBeLessThanOrEqual(neutralDifficulty.enemySpeed);
+      expect(profitDifficulty.spawnRate).toBeLessThanOrEqual(
+        neutralDifficulty.spawnRate
+      );
+      expect(profitDifficulty.enemySpeed).toBeLessThanOrEqual(
+        neutralDifficulty.enemySpeed
+      );
     });
 
     it('should make game HARDER when player is losing', () => {
@@ -96,8 +100,12 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       const lossDifficulty = DifficultyManager.calculate(-0.05, 0, 1, 100); // -5% loss
 
       expect(lossDifficulty.total).toBeGreaterThan(neutralDifficulty.total);
-      expect(lossDifficulty.spawnRate).toBeGreaterThanOrEqual(neutralDifficulty.spawnRate);
-      expect(lossDifficulty.enemySpeed).toBeGreaterThanOrEqual(neutralDifficulty.enemySpeed);
+      expect(lossDifficulty.spawnRate).toBeGreaterThanOrEqual(
+        neutralDifficulty.spawnRate
+      );
+      expect(lossDifficulty.enemySpeed).toBeGreaterThanOrEqual(
+        neutralDifficulty.enemySpeed
+      );
     });
 
     it('should scale difficulty with loss magnitude', () => {

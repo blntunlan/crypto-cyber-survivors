@@ -90,7 +90,8 @@ describe('CombatResolutionService', () => {
 
       // Super crit death
       CombatResolutionService.handleEnemyDeath(mockPool, mockEnemy, mockPlayer, true);
-      const superCritCallCount = mockPool.getParticle.mock.calls.length - normalCallCount;
+      const superCritCallCount =
+        mockPool.getParticle.mock.calls.length - normalCallCount;
 
       expect(superCritCallCount).toBeGreaterThan(normalCallCount);
     });

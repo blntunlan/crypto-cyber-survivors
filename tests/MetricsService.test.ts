@@ -36,7 +36,12 @@ describe('MetricsService', () => {
 
   describe('Session Management', () => {
     it('should start a new session', () => {
-      const sessionId = MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
+      const sessionId = MetricsService.startSession(
+        MarketPosition.LONG,
+        50000,
+        10,
+        'BTC'
+      );
 
       expect(sessionId).toBeTruthy();
       expect(sessionId).toContain('session_');
@@ -44,11 +49,21 @@ describe('MetricsService', () => {
     });
 
     it('should generate unique session IDs', () => {
-      const sessionId1 = MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
+      const sessionId1 = MetricsService.startSession(
+        MarketPosition.LONG,
+        50000,
+        10,
+        'BTC'
+      );
       MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
       vi.advanceTimersByTime(100);
-      const sessionId2 = MetricsService.startSession(MarketPosition.SHORT, 51000, 10, 'ETH');
+      const sessionId2 = MetricsService.startSession(
+        MarketPosition.SHORT,
+        51000,
+        10,
+        'ETH'
+      );
 
       expect(sessionId1).not.toBe(sessionId2);
     });
@@ -210,7 +225,10 @@ describe('MetricsService', () => {
       vi.advanceTimersByTime(20000);
       MetricsService.trackLevelUp(4, 'Whale Alert', 'legendary');
 
-      const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData({ level: 4 }));
+      const session = MetricsService.endSession(
+        GameEndReason.DEATH,
+        createFinalData({ level: 4 })
+      );
 
       expect(session?.card.levelUpCount).toBe(3);
       expect(session?.card.cardsChosen).toHaveLength(3);
@@ -535,12 +553,12 @@ describe('MetricsService', () => {
       const bitcoin = insights.bitcoin;
 
       // We have LONG and SHORT sessions
-      expect(bitcoin.positionSuccessRate[MarketPosition.LONG].gamesPlayed).toBeGreaterThanOrEqual(
-        2
-      );
-      expect(bitcoin.positionSuccessRate[MarketPosition.SHORT].gamesPlayed).toBeGreaterThanOrEqual(
-        1
-      );
+      expect(
+        bitcoin.positionSuccessRate[MarketPosition.LONG].gamesPlayed
+      ).toBeGreaterThanOrEqual(2);
+      expect(
+        bitcoin.positionSuccessRate[MarketPosition.SHORT].gamesPlayed
+      ).toBeGreaterThanOrEqual(1);
 
       // Survival by PnL should have entries
       const pnlRanges = bitcoin.survivalByPnL;

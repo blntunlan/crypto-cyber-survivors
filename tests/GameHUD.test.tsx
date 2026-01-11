@@ -109,7 +109,9 @@ describe('GameHUD', () => {
 
   it('should show Near-Death Glow when HP is low', () => {
     mockPlayer.hp = 10; // 10% health
-    const { container } = render(<GameHUD status={GameStatus.PLAYING} player={mockPlayer} />);
+    const { container } = render(
+      <GameHUD status={GameStatus.PLAYING} player={mockPlayer} />
+    );
 
     const glow = container.querySelector('#near-death-glow') as HTMLElement;
     expect(glow).toBeInTheDocument();
@@ -117,7 +119,9 @@ describe('GameHUD', () => {
 
   it('should show CLUTCH! when recovering from low health', () => {
     mockPlayer.hp = 5; // 5% health
-    const { rerender } = render(<GameHUD status={GameStatus.PLAYING} player={mockPlayer} />);
+    const { rerender } = render(
+      <GameHUD status={GameStatus.PLAYING} player={mockPlayer} />
+    );
 
     // Trigger recovery (from < 20% to > 50%)
     act(() => {
@@ -148,7 +152,12 @@ describe('GameHUD', () => {
     ];
 
     render(
-      <GameHUD status={GameStatus.PLAYING} enemies={enemies as any} width={800} height={600} />
+      <GameHUD
+        status={GameStatus.PLAYING}
+        enemies={enemies as any}
+        width={800}
+        height={600}
+      />
     );
 
     // Check if pointer container has the correct ID

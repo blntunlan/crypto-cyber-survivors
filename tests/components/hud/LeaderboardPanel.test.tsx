@@ -19,7 +19,9 @@ vi.mock('lucide-react', () => ({
   TrendingUp: () => <div data-testid="icon-trending" />,
   ChevronUp: () => <div data-testid="icon-up" />,
   ChevronDown: () => <div data-testid="icon-down" />,
-  RefreshCw: ({ className }: any) => <div data-testid="icon-refresh" className={className} />,
+  RefreshCw: ({ className }: any) => (
+    <div data-testid="icon-refresh" className={className} />
+  ),
 }));
 
 // Mock Supabase

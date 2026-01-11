@@ -350,7 +350,10 @@ describe('MarketService Integration', () => {
       const updates: MarketUpdate[] = [];
 
       // Generate 50 mock prices
-      const mockPrices = Array.from({ length: 50 }, () => 50000 + (Math.random() - 0.5) * 1000);
+      const mockPrices = Array.from(
+        { length: 50 },
+        () => 50000 + (Math.random() - 0.5) * 1000
+      );
 
       const wsFactory = createMockWsFactory({
         source: 'binance',

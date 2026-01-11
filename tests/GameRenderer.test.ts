@@ -107,7 +107,15 @@ describe('GameRenderer', () => {
 
   describe('render', () => {
     it('should save and restore canvas context', () => {
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       expect(mockCtx.save).toHaveBeenCalled();
       expect(mockCtx.restore).toHaveBeenCalled();
@@ -116,7 +124,15 @@ describe('GameRenderer', () => {
     it('should apply screen shake when shake > 0', () => {
       mockState.shake = 10;
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       expect(mockCtx.translate).toHaveBeenCalled();
     });
@@ -124,20 +140,44 @@ describe('GameRenderer', () => {
     it('should not apply screen shake when shake is 0', () => {
       mockState.shake = 0;
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       expect(mockCtx.translate).not.toHaveBeenCalled();
     });
 
     it('should draw background', () => {
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       // Background fill is called
       expect(mockCtx.fillRect).toHaveBeenCalled();
     });
 
     it('should skip game entities in MENU status', () => {
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.MENU);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.MENU
+      );
 
       // Player arc should not be drawn in menu
       // Since we're checking arc calls, and menu skips entities
@@ -147,7 +187,15 @@ describe('GameRenderer', () => {
     });
 
     it('should draw player in PLAYING status', () => {
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       // Player should be drawn (arc call with player position)
       expect(mockCtx.arc).toHaveBeenCalledWith(400, 300, 12, 0, Math.PI * 2);
@@ -225,7 +273,15 @@ describe('GameRenderer', () => {
         { x: 200, y: 200, radius: 20, color: '#3b82f6', health: 100, maxHealth: 100 },
       ];
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       // Should translate to enemy position and draw arc at origin
       expect(mockCtx.translate).toHaveBeenCalledWith(100, 100);
@@ -259,7 +315,15 @@ describe('GameRenderer', () => {
         },
       ];
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       // With new laser style, it uses rotate/translate + moveTo/lineTo instead of arc
       expect(mockCtx.rotate).toHaveBeenCalled();
@@ -273,7 +337,15 @@ describe('GameRenderer', () => {
         { x: 400, y: 400, radius: 8, color: '#a855f7', isRare: true },
       ];
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       expect(mockCtx.arc).toHaveBeenCalledWith(300, 300, 6, 0, Math.PI * 2);
       expect(mockCtx.arc).toHaveBeenCalledWith(400, 400, 8, 0, Math.PI * 2);
@@ -285,7 +357,15 @@ describe('GameRenderer', () => {
       ];
       (mockPool as any).activeSpeedLines = [];
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       expect(mockCtx.fillText).toHaveBeenCalledWith('+50', 100, 100);
     });
@@ -294,7 +374,15 @@ describe('GameRenderer', () => {
       mockState.critFlash = 0.5;
       mockState.critFlashColor = '#ffd700';
 
-      renderer.render(mockCtx, 800, 600, mockState, mockPlayer, mockPool, GameStatus.PLAYING);
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
 
       expect(mockCtx.createRadialGradient).toHaveBeenCalled();
     });

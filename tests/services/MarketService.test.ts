@@ -263,7 +263,9 @@ describe('MarketService', () => {
         },
       };
 
-      mockSockets[mockSockets.length - 1]!.onmessage?.({ data: JSON.stringify(btcMessage) });
+      mockSockets[mockSockets.length - 1]!.onmessage?.({
+        data: JSON.stringify(btcMessage),
+      });
 
       // Should NOT call onData because pair doesn't match
       expect(onData).not.toHaveBeenCalled();
@@ -307,7 +309,9 @@ describe('MarketService', () => {
         },
       };
 
-      mockSockets[mockSockets.length - 1]!.onmessage?.({ data: JSON.stringify(solMessage) });
+      mockSockets[mockSockets.length - 1]!.onmessage?.({
+        data: JSON.stringify(solMessage),
+      });
 
       // Should call onData with correct pair
       expect(onData).toHaveBeenCalledWith(

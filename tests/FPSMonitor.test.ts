@@ -76,7 +76,9 @@ describe('FPSMonitor', () => {
     (performance.now as any).mockReturnValue(3500);
     FPSMonitor.tick();
 
-    expect(DeviceBenchmarkService.setManualProfile).toHaveBeenCalledWith(DeviceProfile.MEDIUM);
+    expect(DeviceBenchmarkService.setManualProfile).toHaveBeenCalledWith(
+      DeviceProfile.MEDIUM
+    );
   });
 
   it('should respect target FPS when determining thresholds', () => {
@@ -114,7 +116,9 @@ describe('FPSMonitor', () => {
     (performance.now as any).mockReturnValue(baseTime + 4000);
     FPSMonitor.tick();
 
-    expect(DeviceBenchmarkService.setManualProfile).toHaveBeenCalledWith(DeviceProfile.LOW);
+    expect(DeviceBenchmarkService.setManualProfile).toHaveBeenCalledWith(
+      DeviceProfile.LOW
+    );
   });
 
   it('should reset state on gameReset event', () => {

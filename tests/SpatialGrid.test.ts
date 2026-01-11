@@ -23,7 +23,12 @@ interface TestEntity {
 }
 
 // Factory function for creating test entities
-function createTestEntity(id: string, x: number, y: number, active: boolean = true): TestEntity {
+function createTestEntity(
+  id: string,
+  x: number,
+  y: number,
+  active: boolean = true
+): TestEntity {
   return { id, x, y, active };
 }
 
@@ -473,7 +478,9 @@ describe('SpatialGrid', () => {
 
       // Insert 1000 entities
       for (let i = 0; i < 1000; i++) {
-        entities.push(createTestEntity(`e${i}`, Math.random() * 5000, Math.random() * 5000));
+        entities.push(
+          createTestEntity(`e${i}`, Math.random() * 5000, Math.random() * 5000)
+        );
       }
 
       const start = performance.now();

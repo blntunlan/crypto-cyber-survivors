@@ -52,7 +52,14 @@ function createMockSession(): SessionMetrics {
       superCriticalHits: 0,
       bulletsFired: 0,
       hpAtDeath: 0,
-      finalStats: { damage: 0, fireRate: 0, speed: 0, luck: 0, critChance: 0, critDamage: 0 },
+      finalStats: {
+        damage: 0,
+        fireRate: 0,
+        speed: 0,
+        luck: 0,
+        critChance: 0,
+        critDamage: 0,
+      },
     },
     combo: {
       maxStreak: 0,

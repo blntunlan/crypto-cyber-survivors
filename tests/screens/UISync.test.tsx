@@ -132,7 +132,8 @@ describe('UI Consistency Sync', () => {
 
       // Check for bg-#1A1A1A or similar
       const statsGrid =
-        container.querySelector(`.bg-\\[\\#1A1A1A\\]`) ?? container.querySelector(`.bg-black`);
+        container.querySelector(`.bg-\\[\\#1A1A1A\\]`) ??
+        container.querySelector(`.bg-black`);
       // Our code used: className={`${isRetro ? `bg-${COLORS.SLOT_BLACK}` : ...}`}
       // where COLORS.SLOT_BLACK is #1A1A1A. Tailwind might not generate the class correctly if not in safelist,
       // but we check the logic applied.

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getHUDLayout, DESKTOP_LAYOUT, MOBILE_LAYOUT, TABLET_LAYOUT } from '../config/UILayout';
+import {
+  getHUDLayout,
+  DESKTOP_LAYOUT,
+  MOBILE_LAYOUT,
+  TABLET_LAYOUT,
+} from '../config/UILayout';
 
 describe('UILayout', () => {
   it('should return DESKTOP_LAYOUT for desktop platform', () => {

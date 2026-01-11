@@ -6,7 +6,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MetricsStorage } from '../services/metrics/MetricsStorage';
-import { type SessionMetrics, GameEndReason, createDefaultWavePhaseRecord } from '../types/metrics';
+import {
+  type SessionMetrics,
+  GameEndReason,
+  createDefaultWavePhaseRecord,
+} from '../types/metrics';
 import { MarketPosition } from '../types';
 
 // Mock localStorage with quota simulation
@@ -61,7 +65,8 @@ vi.mock('../services/Supabase', () => ({
           }),
         }),
         update: (data: unknown) => ({
-          eq: (field: string, value: string) => mockSupabaseUpdate(table, data, field, value),
+          eq: (field: string, value: string) =>
+            mockSupabaseUpdate(table, data, field, value),
         }),
       }),
     };
@@ -267,8 +272,9 @@ describe('MetricsStorage', () => {
 
       expect(localStorageMock.setItem).toHaveBeenCalled();
       const savedData = JSON.parse(
-        localStorageMock.setItem.mock.calls[localStorageMock.setItem.mock.calls.length - 1]?.[1] ??
-          '{}'
+        localStorageMock.setItem.mock.calls[
+          localStorageMock.setItem.mock.calls.length - 1
+        ]?.[1] ?? '{}'
       );
       expect(savedData.sessions).toHaveLength(1);
     });
@@ -336,7 +342,9 @@ describe('MetricsStorage', () => {
 
       storage.clear();
 
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('crypto_survivors_metrics');
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
+        'crypto_survivors_metrics'
+      );
     });
 
     it('should handle localStorage error gracefully during clear', () => {
@@ -485,7 +493,10 @@ describe('MetricsStorage', () => {
 
     it('should sync to Supabase when configured', async () => {
       supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({ data: { id: 'game-session-123' }, error: null });
+      mockSupabaseInsert.mockResolvedValue({
+        data: { id: 'game-session-123' },
+        error: null,
+      });
 
       const storage = new MetricsStorage();
       const session = createMockSession();
@@ -537,7 +548,10 @@ describe('MetricsStorage', () => {
 
     it('should sync performance metrics when available', async () => {
       supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({ data: { id: 'game-session-123' }, error: null });
+      mockSupabaseInsert.mockResolvedValue({
+        data: { id: 'game-session-123' },
+        error: null,
+      });
 
       const storage = new MetricsStorage();
       const session = createMockSession({
@@ -566,7 +580,10 @@ describe('MetricsStorage', () => {
 
     it('should update player stats for non-anonymous users', async () => {
       supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({ data: { id: 'game-session-123' }, error: null });
+      mockSupabaseInsert.mockResolvedValue({
+        data: { id: 'game-session-123' },
+        error: null,
+      });
       mockSupabaseSelect.mockResolvedValue({
         data: {
           high_score: 100000,

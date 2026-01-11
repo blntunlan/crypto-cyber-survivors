@@ -239,12 +239,16 @@ describe('AudioService', () => {
 
         // Immediate call should be blocked
         audioService.playSlotTick(1.0);
-        expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalledTimes(initialCalls);
+        expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalledTimes(
+          initialCalls
+        );
 
         // Advance time
         vi.advanceTimersByTime(100);
         audioService.playSlotTick(1.0);
-        expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalledTimes(initialCalls + 1);
+        expect((synthEngine as any).ctx.createOscillator).toHaveBeenCalledTimes(
+          initialCalls + 1
+        );
 
         vi.useRealTimers();
       });

@@ -41,12 +41,16 @@ describe('Logger', () => {
   describe('Development Mode', () => {
     it('should log debug messages to console', () => {
       Logger.debug('Debug Message');
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Debug Message'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Debug Message')
+      );
     });
 
     it('should log info messages to console', () => {
       Logger.info('Info Message');
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Info Message'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Info Message')
+      );
     });
 
     it('should handle optional data', () => {
@@ -105,7 +109,9 @@ describe('Logger', () => {
   describe('Performance Logging', () => {
     it('should warn on frame drops', () => {
       Logger.perf('SlowOp', 50);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('(frame drop)'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('(frame drop)')
+      );
     });
 
     it('should debug log fast ops in dev', () => {
@@ -126,9 +132,12 @@ describe('Logger', () => {
   describe('Game Events', () => {
     it('should log game events as debug', () => {
       Logger.gameEvent('LevelUp', { level: 2 });
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('[GAME] LevelUp'), {
-        level: 2,
-      });
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[GAME] LevelUp'),
+        {
+          level: 2,
+        }
+      );
     });
   });
 });

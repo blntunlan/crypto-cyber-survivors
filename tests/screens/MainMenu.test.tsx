@@ -110,4 +110,28 @@ describe('MainMenu', () => {
     fireEvent.click(ethButton);
     expect(onPairChange).toHaveBeenCalledWith('ETH');
   });
+
+  it('should call onModeChange when a new game mode is selected', () => {
+    const onModeChange = vi.fn();
+    render(
+      <MainMenu
+        price={50000}
+        onStart={() => {}}
+        onOpenSettings={() => {}}
+        selectedPair="BTC"
+        onPairChange={() => {}}
+        selectedMode={GameMode.CASUAL}
+        onModeChange={onModeChange}
+      />
+    );
+
+    // Find the Competitive mode button
+    const competitiveBtn = screen.getByText(/Competitive/i).closest('button');
+    if (competitiveBtn) {
+      fireEvent.click(competitiveBtn);
+      expect(onModeChange).toHaveBeenCalledWith(GameMode.COMPETITIVE);
+    } else {
+      throw new Error('Competitive button not found');
+    }
+  });
 });

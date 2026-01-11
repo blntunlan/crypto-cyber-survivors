@@ -70,7 +70,14 @@ describe('useMarketData', () => {
 
   it('should calculate PNL when in PLAYING status', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 1, mockPlayerRef, 'BTC')
+      useMarketData(
+        GameStatus.PLAYING,
+        MarketPosition.LONG,
+        40000,
+        1,
+        mockPlayerRef,
+        'BTC'
+      )
     );
 
     act(() => {
@@ -86,7 +93,14 @@ describe('useMarketData', () => {
 
   it('should calculate inverse PNL for SHORT position', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.SHORT, 40000, 1, mockPlayerRef, 'BTC')
+      useMarketData(
+        GameStatus.PLAYING,
+        MarketPosition.SHORT,
+        40000,
+        1,
+        mockPlayerRef,
+        'BTC'
+      )
     );
 
     act(() => {
@@ -101,7 +115,14 @@ describe('useMarketData', () => {
 
   it('should calculate effective PNL with leverage', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 10, mockPlayerRef, 'BTC')
+      useMarketData(
+        GameStatus.PLAYING,
+        MarketPosition.LONG,
+        40000,
+        10,
+        mockPlayerRef,
+        'BTC'
+      )
     );
 
     act(() => {
@@ -138,7 +159,14 @@ describe('useMarketData', () => {
 
   it('should calculate liquidation price', () => {
     const { result } = renderHook(() =>
-      useMarketData(GameStatus.PLAYING, MarketPosition.LONG, 40000, 10, mockPlayerRef, 'BTC')
+      useMarketData(
+        GameStatus.PLAYING,
+        MarketPosition.LONG,
+        40000,
+        10,
+        mockPlayerRef,
+        'BTC'
+      )
     );
 
     act(() => {

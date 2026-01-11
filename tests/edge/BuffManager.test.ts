@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
 import { type Player } from '../../types';
-import { RageModeDecorator, DiamondHandsDecorator } from '../../services/patterns/decorators';
+import {
+  RageModeDecorator,
+  DiamondHandsDecorator,
+} from '../../services/patterns/decorators';
 
 describe('BuffManager Edge Cases', () => {
   let mockPlayer: Player;

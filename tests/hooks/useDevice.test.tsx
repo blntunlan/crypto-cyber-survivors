@@ -5,8 +5,7 @@ import { screenService } from '../../services/ScreenService';
 
 // Mock ScreenService
 vi.mock('../../services/ScreenService', async importOriginal => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actual = (await importOriginal()) as typeof import('../../services/ScreenService');
+  const actual = await importOriginal<Record<string, any>>();
   return {
     ...actual,
     screenService: {

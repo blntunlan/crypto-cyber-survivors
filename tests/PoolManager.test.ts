@@ -87,7 +87,13 @@ describe('PoolManager', () => {
 
     it('should create a whale enemy with tier multipliers', () => {
       // MEGA_WHALE has 4.0x HP multiplier
-      const whale = pool.getWhaleEnemy(100, 200, 1, MarketPosition.LONG, WhaleTier.MEGA_WHALE);
+      const whale = pool.getWhaleEnemy(
+        100,
+        200,
+        1,
+        MarketPosition.LONG,
+        WhaleTier.MEGA_WHALE
+      );
 
       expect(whale).toBeDefined();
       expect(whale.x).toBe(100);

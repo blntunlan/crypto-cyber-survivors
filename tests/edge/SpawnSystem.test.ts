@@ -45,7 +45,14 @@ describe('SpawnSystem Edge Cases', () => {
     // Difficulty 100
     // scaledDifficulty = 1 + (99) * 0.5 = 50.5
     // threshold = 2000 / 50.5 ~= 39ms
-    const result = spawnSystem.update(100, 100, 800, 600, MarketPosition.LONG, mockPool);
+    const result = spawnSystem.update(
+      100,
+      100,
+      800,
+      600,
+      MarketPosition.LONG,
+      mockPool
+    );
     expect(mockPool.getEnemy).toHaveBeenCalled();
     expect(result).toBe(0);
   });

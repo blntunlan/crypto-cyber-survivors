@@ -73,7 +73,8 @@ async function getQueue() {
   vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
   vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
 
-  const { VerificationQueue } = await import('../../services/verification/VerificationQueue');
+  const { VerificationQueue } =
+    await import('../../services/verification/VerificationQueue');
   return VerificationQueue;
 }
 

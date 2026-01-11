@@ -23,7 +23,9 @@ describe('NicknameValidator', () => {
     expect(NicknameValidator.isValid('user!')).toBe(false);
     expect(NicknameValidator.isValid('user space')).toBe(false);
     expect(NicknameValidator.isValid('user-name')).toBe(false);
-    expect(NicknameValidator.validate('user!')).toContain('Only letters, numbers, and underscores');
+    expect(NicknameValidator.validate('user!')).toContain(
+      'Only letters, numbers, and underscores'
+    );
   });
 
   it('should handle empty input', () => {

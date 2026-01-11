@@ -127,7 +127,9 @@ describe('DeviceBenchmarkService', () => {
   describe('Manual Overrides', () => {
     it('should respect manual profile setting', () => {
       DeviceBenchmarkService.setManualProfile(DeviceProfile.LOW);
-      expect(DeviceBenchmarkService.getPerformanceConfig().particleMultiplier).toBeDefined();
+      expect(
+        DeviceBenchmarkService.getPerformanceConfig().particleMultiplier
+      ).toBeDefined();
       expect(localStorage.getItem('ccs_manual_perf_profile')).toBe(DeviceProfile.LOW);
     });
 

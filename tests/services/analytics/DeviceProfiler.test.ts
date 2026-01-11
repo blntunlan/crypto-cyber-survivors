@@ -29,9 +29,18 @@ describe('DeviceProfiler', () => {
     Object.defineProperty(window.screen, 'height', { value: 1080, configurable: true });
     Object.defineProperty(window, 'devicePixelRatio', { value: 2, configurable: true });
     Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true });
-    Object.defineProperty(navigator, 'userAgent', { value: 'TestBrowser', configurable: true });
-    Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true });
-    Object.defineProperty(navigator, 'hardwareConcurrency', { value: 8, configurable: true });
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'TestBrowser',
+      configurable: true,
+    });
+    Object.defineProperty(navigator, 'language', {
+      value: 'en-US',
+      configurable: true,
+    });
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      value: 8,
+      configurable: true,
+    });
 
     // Mock location.hostname
     Object.defineProperty(window, 'location', {

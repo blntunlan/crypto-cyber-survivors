@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createRSICalculator, type RSICalculator } from '../../services/indicators/RSICalculator';
+import {
+  createRSICalculator,
+  type RSICalculator,
+} from '../../services/indicators/RSICalculator';
 import { DEFAULT_RSI_CONFIG } from '../../types/indicators';
 
 describe('RSICalculator', () => {
@@ -130,7 +133,9 @@ describe('RSICalculator', () => {
   describe('Hysteresis (Flickering Prevention)', () => {
     it('should stay OVERSOLD when RSI rises to 31 (below exit threshold of 35)', () => {
       // First, get into OVERSOLD state (need 15+ data points)
-      const downPrices = [100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55];
+      const downPrices = [
+        100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55,
+      ];
       downPrices.forEach(p => calculator.update(p));
       expect(calculator.getState()).toBe('OVERSOLD');
 
@@ -144,7 +149,9 @@ describe('RSICalculator', () => {
 
     it('should exit OVERSOLD when RSI rises above 35 (exit threshold)', () => {
       // First, get into OVERSOLD state with strong downtrend (need 15+ data points)
-      const downPrices = [100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55];
+      const downPrices = [
+        100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55,
+      ];
       downPrices.forEach(p => calculator.update(p));
       expect(calculator.getState()).toBe('OVERSOLD');
 

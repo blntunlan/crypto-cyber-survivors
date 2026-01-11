@@ -75,7 +75,11 @@ describe('CycleCompleteScreen', () => {
     });
 
     render(
-      <CycleCompleteScreen data={mockData} onCashOut={mockOnCashOut} onContinue={mockOnContinue} />
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
     );
 
     expect(screen.getByText(/CYCLE 1 COMPLETE/i)).toBeInTheDocument();
@@ -92,7 +96,11 @@ describe('CycleCompleteScreen', () => {
     });
 
     render(
-      <CycleCompleteScreen data={mockData} onCashOut={mockOnCashOut} onContinue={mockOnContinue} />
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
     );
 
     expect(screen.getByText(/CYCLE 1 COMPLETE/i)).toBeInTheDocument();
@@ -101,7 +109,11 @@ describe('CycleCompleteScreen', () => {
 
   it('handles "Cash Out" click', () => {
     render(
-      <CycleCompleteScreen data={mockData} onCashOut={mockOnCashOut} onContinue={mockOnContinue} />
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
     );
 
     const cashOutBtn = screen.getByText('Cash Out');
@@ -111,7 +123,11 @@ describe('CycleCompleteScreen', () => {
 
   it('handles "Continue" click', () => {
     render(
-      <CycleCompleteScreen data={mockData} onCashOut={mockOnCashOut} onContinue={mockOnContinue} />
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
     );
 
     const continueBtn = screen.getByText('Continue');

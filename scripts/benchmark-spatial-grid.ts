@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Benchmark: String Keys vs Number Keys in SpatialGrid
  *
@@ -132,7 +133,9 @@ console.log(`String Keys: ${stringTime.toFixed(2)}ms`);
 console.log(`Number Keys: ${numericTime.toFixed(2)}ms`);
 console.log('');
 console.log(`⚡ Speedup: ${(stringTime / numericTime).toFixed(2)}x faster`);
-console.log(`💾 Reduction: ${((1 - numericTime / stringTime) * 100).toFixed(1)}% less time`);
+console.log(
+  `💾 Reduction: ${((1 - numericTime / stringTime) * 100).toFixed(1)}% less time`
+);
 console.log('');
 console.log('Note: Number keys also eliminate string GC pressure,');
 console.log('which is not fully captured in this micro-benchmark.');

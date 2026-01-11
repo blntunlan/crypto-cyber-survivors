@@ -431,7 +431,11 @@ describe('Damage Direction Indicator Feature', () => {
 
     it('should add damage indicator on player hit', () => {
       const state = {
-        damageIndicators: [] as Array<{ sourceX: number; sourceY: number; timestamp: number }>,
+        damageIndicators: [] as Array<{
+          sourceX: number;
+          sourceY: number;
+          timestamp: number;
+        }>,
       };
       const enemy = { x: 150, y: 100 };
 
@@ -449,7 +453,10 @@ describe('Damage Direction Indicator Feature', () => {
       const player = { x: 100, y: 100 };
       const indicator = { sourceX: 200, sourceY: 100 };
 
-      const angle = Math.atan2(indicator.sourceY - player.y, indicator.sourceX - player.x);
+      const angle = Math.atan2(
+        indicator.sourceY - player.y,
+        indicator.sourceX - player.x
+      );
 
       expect(angle).toBeCloseTo(0, 2); // Right direction = 0 radians
     });

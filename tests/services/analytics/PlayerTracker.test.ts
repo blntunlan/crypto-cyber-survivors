@@ -101,7 +101,10 @@ describe('PlayerTracker', () => {
         last_seen_at: '2023-01-01',
         total_sessions: 5,
       };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
       mockSupabase.update.mockReturnThis();
       mockSupabase.eq.mockReturnThis();
       // fallback for update error or next single()
@@ -158,7 +161,10 @@ describe('PlayerTracker', () => {
         display_name: 'test',
         total_sessions: 1,
       };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
 
       // Act
       PlayerTracker.getInstance();
@@ -188,7 +194,10 @@ describe('PlayerTracker', () => {
         display_name: 'test',
         total_sessions: 1,
       };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
       const tracker = PlayerTracker.getInstance();
       await vi.advanceTimersByTimeAsync(100);
 
@@ -239,7 +248,10 @@ describe('PlayerTracker', () => {
         total_sessions: 1,
         high_score: 100,
       };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
 
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);
@@ -271,7 +283,10 @@ describe('PlayerTracker', () => {
         total_sessions: 1,
         high_score: 500,
       };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
 
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);

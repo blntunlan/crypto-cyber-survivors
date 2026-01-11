@@ -140,7 +140,9 @@ describe('GameStore', () => {
       useGameStore.getState().addCardCollected('diamond-hands');
       useGameStore.getState().addCardCollected('hodl');
 
-      expect(useGameStore.getState().progress.cardsCollected).toContain('diamond-hands');
+      expect(useGameStore.getState().progress.cardsCollected).toContain(
+        'diamond-hands'
+      );
       expect(useGameStore.getState().progress.cardsCollected).toContain('hodl');
     });
 

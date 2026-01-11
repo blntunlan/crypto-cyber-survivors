@@ -77,12 +77,18 @@ describe('ComboSystem Edge Cases', () => {
       EventBus.on('comboMilestone', milestoneSpy);
 
       // Kill 5 (COMBO!) at 1000ms
-      for (let i = 0; i < 5; i++) EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0 });
-      expect(milestoneSpy).toHaveBeenLastCalledWith(expect.objectContaining({ sound: 'combo1' }));
+      for (let i = 0; i < 5; i++) {
+        EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0 });
+      }
+      expect(milestoneSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sound: 'combo1' })
+      );
 
       // Kill 10 (SUPER COMBO!) at 1100ms (within 300ms cooldown)
       vi.mocked(TimeService.getGameTime).mockReturnValue(1100);
-      for (let i = 0; i < 5; i++) EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0 });
+      for (let i = 0; i < 5; i++) {
+        EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0 });
+      }
 
       expect(milestoneSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -96,7 +102,9 @@ describe('ComboSystem Edge Cases', () => {
   describe('Stat Consistency', () => {
     it('should correctly calculate XP multiplier', () => {
       vi.mocked(TimeService.getGameTime).mockReturnValue(1000);
-      for (let i = 0; i < 25; i++) EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0 });
+      for (let i = 0; i < 25; i++) {
+        EventBus.emit('enemyKilled', { type: 'bear', x: 0, y: 0 });
+      }
 
       expect(ComboSystem.getXpMultiplier()).toBe(2.0); // MEGA COMBO
 

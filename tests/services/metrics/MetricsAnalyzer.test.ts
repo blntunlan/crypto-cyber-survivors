@@ -32,7 +32,11 @@ function createMockSession(overrides: any = {}): SessionMetrics {
       averageDifficulty: 3,
       maxDifficulty: 5,
       difficultyAtDeath: 4,
-      timeInEachWavePhase: { ...createDefaultWavePhaseRecord(), warmup: 10000, buildup: 20000 },
+      timeInEachWavePhase: {
+        ...createDefaultWavePhaseRecord(),
+        warmup: 10000,
+        buildup: 20000,
+      },
       timeInHighDifficulty: 0,
       timeInLowDifficulty: 10000,
       nearDeathActivations: 1,
@@ -52,7 +56,14 @@ function createMockSession(overrides: any = {}): SessionMetrics {
       superCriticalHits: 2,
       bulletsFired: 400,
       hpAtDeath: 0,
-      finalStats: { damage: 10, fireRate: 1, speed: 5, luck: 0, critChance: 0.1, critDamage: 2 },
+      finalStats: {
+        damage: 10,
+        fireRate: 1,
+        speed: 5,
+        luck: 0,
+        critChance: 0.1,
+        critDamage: 2,
+      },
     },
     combo: {
       maxStreak: 20,
@@ -159,6 +170,8 @@ describe('MetricsAnalyzer', () => {
     const analyzer = new MetricsAnalyzer(sessions);
     const recs = analyzer.generateRecommendations();
 
-    expect(recs.some(r => r.includes('LONG pozisyon önemli ölçüde daha kolay'))).toBe(true);
+    expect(recs.some(r => r.includes('LONG pozisyon önemli ölçüde daha kolay'))).toBe(
+      true
+    );
   });
 });

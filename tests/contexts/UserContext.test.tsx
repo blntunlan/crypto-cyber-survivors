@@ -36,9 +36,9 @@ vi.mock('nanoid', () => ({
 }));
 
 // Test component to access context
-const TestConsumer: React.FC<{ onRender?: (ctx: ReturnType<typeof useUser>) => void }> = ({
-  onRender,
-}) => {
+const TestConsumer: React.FC<{
+  onRender?: (ctx: ReturnType<typeof useUser>) => void;
+}> = ({ onRender }) => {
   const ctx = useUser();
   onRender?.(ctx);
   return (

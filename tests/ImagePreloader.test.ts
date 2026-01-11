@@ -58,7 +58,9 @@ describe('ImagePreloader', () => {
   });
 
   it('should handle load errors gracefully', async () => {
-    vi.spyOn(ImagePreloader as any, 'getCardImagePaths').mockReturnValue(['/assets/error.png']);
+    vi.spyOn(ImagePreloader as any, 'getCardImagePaths').mockReturnValue([
+      '/assets/error.png',
+    ]);
 
     await ImagePreloader.preloadAll();
 

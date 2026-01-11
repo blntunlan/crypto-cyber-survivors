@@ -37,25 +37,27 @@ describe('MarketStateService', () => {
     await marketStateService.destroy();
 
     // Setup mock response for single()
-    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue({
-      data: {
-        pair: 'BTC',
-        price: '50000',
-        volume: '1000',
-        rsi: '45',
-        rsi_state: 'NEUTRAL',
-        atr: '500',
-        atr_percent: '1',
-        spawn_rate_multiplier: '1',
-        normalized_volume: '0.5',
-        volume_percentile: '0.5',
-        whale_tier: 0,
-        enemy_aggro_multiplier_long: 1,
-        enemy_aggro_multiplier_short: 1,
-        updated_at: new Date().toISOString(),
-      },
-      error: null,
-    } as any);
+    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue(
+      {
+        data: {
+          pair: 'BTC',
+          price: '50000',
+          volume: '1000',
+          rsi: '45',
+          rsi_state: 'NEUTRAL',
+          atr: '500',
+          atr_percent: '1',
+          spawn_rate_multiplier: '1',
+          normalized_volume: '0.5',
+          volume_percentile: '0.5',
+          whale_tier: 0,
+          enemy_aggro_multiplier_long: 1,
+          enemy_aggro_multiplier_short: 1,
+          updated_at: new Date().toISOString(),
+        },
+        error: null,
+      } as any
+    );
   });
 
   it('should initialize and fetch initial state', async () => {
@@ -131,10 +133,12 @@ describe('MarketStateService', () => {
   });
 
   it('should handle initialization errors gracefully', async () => {
-    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue({
-      data: null,
-      error: { message: 'Network error' } as any,
-    } as any);
+    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue(
+      {
+        data: null,
+        error: { message: 'Network error' } as any,
+      } as any
+    );
 
     const state = await marketStateService.initialize('BTC', 'LONG');
     expect(state).toBeNull();

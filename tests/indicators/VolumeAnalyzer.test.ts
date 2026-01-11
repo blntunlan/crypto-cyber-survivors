@@ -259,7 +259,9 @@ describe('VolumeAnalyzer', () => {
         analyzer.update(1000 + i);
       }
 
-      expect(analyzer.getHistoryLength()).toBeLessThanOrEqual(DEFAULT_VOLUME_CONFIG.historySize);
+      expect(analyzer.getHistoryLength()).toBeLessThanOrEqual(
+        DEFAULT_VOLUME_CONFIG.historySize
+      );
     });
 
     it('should maintain accurate rolling stats when removing old values', () => {

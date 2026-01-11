@@ -367,13 +367,17 @@ describe('BuffManager', () => {
       BuffManager.pause();
 
       const effectsBeforeWait = BuffManager.getActiveEffects();
-      const remainingBefore = effectsBeforeWait.find(e => e.name === 'Rage Mode')?.remainingMs;
+      const remainingBefore = effectsBeforeWait.find(
+        e => e.name === 'Rage Mode'
+      )?.remainingMs;
 
       // Advance time while paused
       vi.advanceTimersByTime(5000);
 
       const effectsAfterWait = BuffManager.getActiveEffects();
-      const remainingAfter = effectsAfterWait.find(e => e.name === 'Rage Mode')?.remainingMs;
+      const remainingAfter = effectsAfterWait.find(
+        e => e.name === 'Rage Mode'
+      )?.remainingMs;
 
       // Remaining time should be the same since we're paused
       expect(remainingAfter).toBe(remainingBefore);

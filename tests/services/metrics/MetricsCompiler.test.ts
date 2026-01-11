@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { MetricsCompiler } from '../../../services/metrics/MetricsCompiler';
 import { MarketPosition } from '../../../types';
-import { type MetricsState, createDefaultWavePhaseRecord } from '../../../types/metrics';
+import {
+  type MetricsState,
+  createDefaultWavePhaseRecord,
+} from '../../../types/metrics';
 
 describe('MetricsCompiler', () => {
   const mockState: Partial<MetricsState> = {
@@ -87,7 +90,10 @@ describe('MetricsCompiler', () => {
   });
 
   it('should compile difficulty metrics', () => {
-    const result = MetricsCompiler.compileDifficultyMetrics(mockState as MetricsState, 3.5);
+    const result = MetricsCompiler.compileDifficultyMetrics(
+      mockState as MetricsState,
+      3.5
+    );
     expect(result.averageDifficulty).toBe(1.5);
     expect(result.difficultyAtDeath).toBe(3.5);
     expect(result.timeInEachWavePhase.climax).toBe(3000);

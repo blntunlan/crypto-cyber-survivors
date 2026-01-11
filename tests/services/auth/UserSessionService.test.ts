@@ -143,7 +143,10 @@ describe('UserSessionService', () => {
 
     it('should handle conflict (23505 error code)', async () => {
       mockSupabase.single.mockResolvedValueOnce({ data: null, error: null }); // check exists
-      mockSupabase.single.mockResolvedValueOnce({ data: null, error: { code: '23505' } }); // insert fail
+      mockSupabase.single.mockResolvedValueOnce({
+        data: null,
+        error: { code: '23505' },
+      }); // insert fail
 
       const result = await UserSessionService.registerNickname('Taken');
       expect(result.success).toBe(false);

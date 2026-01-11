@@ -8,7 +8,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { CardSystem, type CardTier, ALL_CARDS_FLAT, type Card } from '../services/CardSystem';
+import {
+  CardSystem,
+  type CardTier,
+  ALL_CARDS_FLAT,
+  type Card,
+} from '../services/CardSystem';
 import { applyCardEffect } from '../services/cards/CardApplicator';
 
 describe('CardSystem', () => {
