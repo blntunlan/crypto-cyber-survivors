@@ -47,6 +47,7 @@ const STORAGE_KEY = 'crypto_survivors_user';
 // Context
 // ============================================================================
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // ============================================================================
@@ -107,7 +108,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         window.location.hostname === '127.0.0.1'
       ) {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
-        const mockPlayerId = nanoid();
+        const mockPlayerId = '00000000-0000-4000-a000-000000000000';
         const now = Date.now();
         const newUser: StoredUser = {
           playerId: mockPlayerId,
@@ -141,7 +142,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUser(newUser);
 
           // Update session count
-          await supabase.rpc('increment_player_sessions', { player_uuid: existingPlayer.id });
+          await supabase.rpc('increment_player_sessions', {
+            player_uuid: existingPlayer.id,
+          });
 
           return { success: true };
         }
@@ -158,7 +161,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           .single();
 
         if (error) {
-          if (error.code === '23505') return { success: false, error: 'Nickname already taken' };
+          if (error.code === '23505') {
+            return { success: false, error: 'Nickname already taken' };
+          }
           throw error;
         }
 

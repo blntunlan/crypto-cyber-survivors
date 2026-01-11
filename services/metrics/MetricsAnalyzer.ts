@@ -78,7 +78,9 @@ export class MetricsAnalyzer {
         pnlRange: range.label,
         avgSurvival:
           matching.length > 0
-            ? matching.reduce((a, b) => a + b.player.survivalTimeMs, 0) / matching.length / 1000
+            ? matching.reduce((a, b) => a + b.player.survivalTimeMs, 0) /
+              matching.length /
+              1000
             : 0,
         avgLevel:
           matching.length > 0
@@ -100,7 +102,10 @@ export class MetricsAnalyzer {
         arr.length > 0
           ? arr.reduce((a, b) => a + b.player.survivalTimeMs, 0) / arr.length / 1000
           : 0,
-      avgLevel: arr.length > 0 ? arr.reduce((a, b) => a + b.player.maxLevel, 0) / arr.length : 0,
+      avgLevel:
+        arr.length > 0
+          ? arr.reduce((a, b) => a + b.player.maxLevel, 0) / arr.length
+          : 0,
       count: arr.length,
     });
 
@@ -170,14 +175,21 @@ export class MetricsAnalyzer {
     for (const range of diffRanges) {
       deathsByDifficultyRange[range.label] = sessions.filter(
         s =>
-          s.difficulty.difficultyAtDeath >= range.min && s.difficulty.difficultyAtDeath < range.max
+          s.difficulty.difficultyAtDeath >= range.min &&
+          s.difficulty.difficultyAtDeath < range.max
       ).length;
     }
 
-    const totalActivations = sessions.reduce((a, b) => a + b.difficulty.nearDeathActivations, 0);
+    const totalActivations = sessions.reduce(
+      (a, b) => a + b.difficulty.nearDeathActivations,
+      0
+    );
 
     // Use WAVE_CONFIG.PHASE_ORDER for dynamic phase stats
-    const wavePhaseStats = {} as Record<WavePhase, { avgTime: number; deathRate: number }>;
+    const wavePhaseStats = {} as Record<
+      WavePhase,
+      { avgTime: number; deathRate: number }
+    >;
     for (const phase of WAVE_CONFIG.PHASE_ORDER) {
       wavePhaseStats[phase] = { avgTime: 0, deathRate: 0 };
     }
@@ -194,11 +206,14 @@ export class MetricsAnalyzer {
     for (const range of diffRanges) {
       const matching = sessions.filter(
         s =>
-          s.difficulty.averageDifficulty >= range.min && s.difficulty.averageDifficulty < range.max
+          s.difficulty.averageDifficulty >= range.min &&
+          s.difficulty.averageDifficulty < range.max
       );
       if (matching.length > 0) {
         const avgSurvival =
-          matching.reduce((a, b) => a + b.player.survivalTimeMs, 0) / matching.length / 1000;
+          matching.reduce((a, b) => a + b.player.survivalTimeMs, 0) /
+          matching.length /
+          1000;
         if (avgSurvival > optimalRange.avgSurvival) {
           optimalRange = { min: range.min, max: range.max, avgSurvival };
         }
@@ -225,7 +240,9 @@ export class MetricsAnalyzer {
 
     const durations = sessions.map(s => s.player.survivalTimeMs / 1000);
     const avgDuration =
-      durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      durations.length > 0
+        ? durations.reduce((a, b) => a + b, 0) / durations.length
+        : 0;
     const sortedDurations = [...durations].sort((a, b) => a - b);
     const medianDuration =
       sortedDurations.length > 0
@@ -260,7 +277,8 @@ export class MetricsAnalyzer {
         : 0;
     const avgMilestones =
       sessions.length > 0
-        ? sessions.reduce((a, b) => a + b.combo.milestonesReached.length, 0) / sessions.length
+        ? sessions.reduce((a, b) => a + b.combo.milestonesReached.length, 0) /
+          sessions.length
         : 0;
     const avgBonusXp =
       sessions.length > 0
@@ -269,7 +287,9 @@ export class MetricsAnalyzer {
 
     const avgLevelsPerMinute =
       avgDuration > 0
-        ? sessions.reduce((a, b) => a + b.player.maxLevel, 0) / sessions.length / (avgDuration / 60)
+        ? sessions.reduce((a, b) => a + b.player.maxLevel, 0) /
+          sessions.length /
+          (avgDuration / 60)
         : 0;
     const avgKillsPerLevel =
       sessions.reduce((a, b) => a + b.player.maxLevel, 0) > 0
@@ -320,26 +340,35 @@ export class MetricsAnalyzer {
       shortSuccess.gamesPlayed > 3 &&
       Math.abs(longSuccess.avgSurvival - shortSuccess.avgSurvival) > 30
     ) {
-      const better = longSuccess.avgSurvival > shortSuccess.avgSurvival ? 'LONG' : 'SHORT';
-      recommendations.push(`${better} pozisyon önemli ölçüde daha kolay. Dengeyi kontrol et.`);
+      const better =
+        longSuccess.avgSurvival > shortSuccess.avgSurvival ? 'LONG' : 'SHORT';
+      recommendations.push(
+        `${better} pozisyon önemli ölçüde daha kolay. Dengeyi kontrol et.`
+      );
     }
 
     // Difficulty balance
-    const deathsInExtreme = insights.difficulty.deathsByDifficultyRange['6-8 (Extreme)'] ?? 0;
-    const totalDeaths = Object.values(insights.difficulty.deathsByDifficultyRange).reduce(
-      (a, b) => a + b,
-      0
-    );
+    const deathsInExtreme =
+      insights.difficulty.deathsByDifficultyRange['6-8 (Extreme)'] ?? 0;
+    const totalDeaths = Object.values(
+      insights.difficulty.deathsByDifficultyRange
+    ).reduce((a, b) => a + b, 0);
     if (totalDeaths > 0 && deathsInExtreme / totalDeaths > 0.5) {
-      recommendations.push('Çoğu ölüm aşırı zorlukta gerçekleşiyor. Max zorluğu azaltmayı düşün.');
+      recommendations.push(
+        'Çoğu ölüm aşırı zorlukta gerçekleşiyor. Max zorluğu azaltmayı düşün.'
+      );
     }
 
     // Game duration
     if (insights.player.averageGameDuration < 60) {
-      recommendations.push('Ortalama oyun süresi çok kısa (< 1 dk). Erken oyun zorluğunu azalt.');
+      recommendations.push(
+        'Ortalama oyun süresi çok kısa (< 1 dk). Erken oyun zorluğunu azalt.'
+      );
     }
     if (insights.player.averageGameDuration > 600) {
-      recommendations.push('Ortalama oyun süresi çok uzun (> 10 dk). Geç oyun zorluğunu artır.');
+      recommendations.push(
+        'Ortalama oyun süresi çok uzun (> 10 dk). Geç oyun zorluğunu artır.'
+      );
     }
 
     // Near-death usage
@@ -351,7 +380,9 @@ export class MetricsAnalyzer {
 
     // Combo engagement
     if (insights.player.comboEngagement.averageMaxStreak < 5) {
-      recommendations.push('Combo sistemi yeterince kullanılmıyor. Ödülleri artırmayı düşün.');
+      recommendations.push(
+        'Combo sistemi yeterince kullanılmıyor. Ödülleri artırmayı düşün.'
+      );
     }
 
     // PnL-Difficulty correlation
@@ -378,7 +409,9 @@ export class MetricsAnalyzer {
     const sumY2 = y.reduce((total, yi) => total + yi * yi, 0);
 
     const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    const denominator = Math.sqrt(
+      (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY)
+    );
 
     return denominator !== 0 ? numerator / denominator : 0;
   }

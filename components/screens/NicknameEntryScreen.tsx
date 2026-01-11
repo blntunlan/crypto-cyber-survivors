@@ -14,7 +14,9 @@ interface NicknameEntryScreenProps {
   onComplete: (nickname: string) => void;
 }
 
-export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComplete }) => {
+export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
+  onComplete,
+}) => {
   const { isRetro } = useTheme();
   const { login } = useUser();
   const [nickname, setNickname] = useState('');
@@ -164,14 +166,17 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
           </header>
 
           <form
-            onSubmit={e => {
-              void handleSubmit(e);
+            onSubmit={event => {
+              void handleSubmit(event);
             }}
             className="space-y-6 relative"
           >
             <div className="space-y-3">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] text-cyan-400/80 font-bold uppercase tracking-widest flex items-center gap-1.5">
+                <label
+                  htmlFor="nickname-input"
+                  className="text-[10px] text-cyan-400/80 font-bold uppercase tracking-widest flex items-center gap-1.5"
+                >
                   <Shield className="w-3 h-3" /> Callsign
                 </label>
                 <span
@@ -185,6 +190,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
 
               <div className="relative group">
                 <ThemedInput
+                  id="nickname-input"
+                  aria-label="Enter your nickname"
                   autoFocus
                   type="text"
                   value={nickname}
@@ -297,7 +304,10 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
             <div
               className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
             />
-            <ThemedText variant="body" className="text-[9px] text-slate-400 font-medium">
+            <ThemedText
+              variant="body"
+              className="text-[9px] text-slate-400 font-medium"
+            >
               3-16 Characters
             </ThemedText>
           </div>
@@ -307,7 +317,10 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({ onComp
             <div
               className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
             />
-            <ThemedText variant="body" className="text-[9px] text-slate-400 font-medium">
+            <ThemedText
+              variant="body"
+              className="text-[9px] text-slate-400 font-medium"
+            >
               Letters & Numbers
             </ThemedText>
           </div>

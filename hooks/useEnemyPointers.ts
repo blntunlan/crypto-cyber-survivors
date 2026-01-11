@@ -33,7 +33,12 @@ export function useEnemyPointers({
 
   useEffect(() => {
     const updatePointers = (currentTime: number) => {
-      if (pointerContainerRef.current && status === GameStatus.PLAYING && width > 0 && height > 0) {
+      if (
+        pointerContainerRef.current &&
+        status === GameStatus.PLAYING &&
+        width > 0 &&
+        height > 0
+      ) {
         const logicalWidth = width / globalScale;
         const logicalHeight = height / globalScale;
 
@@ -71,7 +76,9 @@ export function useEnemyPointers({
               px = logicalWidth / 2 + (padding - logicalHeight / 2) / slope;
             } else if (py > logicalHeight - padding) {
               py = logicalHeight - padding;
-              px = logicalWidth / 2 + (logicalHeight - padding - logicalHeight / 2) / slope;
+              px =
+                logicalWidth / 2 +
+                (logicalHeight - padding - logicalHeight / 2) / slope;
             }
 
             px = Math.max(padding, Math.min(logicalWidth - padding, px));

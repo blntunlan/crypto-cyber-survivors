@@ -89,7 +89,10 @@ export function useThemeSize(): ThemeSizeConfig {
 /**
  * Convenience function to merge size class with additional classes
  */
-export function useSizeClass(sizeKey: keyof ThemeSizeConfig, additionalClasses?: string): string {
+export function useSizeClass(
+  sizeKey: keyof ThemeSizeConfig,
+  additionalClasses?: string
+): string {
   const sizes = useThemeSize();
   const sizeClass = sizes[sizeKey];
 

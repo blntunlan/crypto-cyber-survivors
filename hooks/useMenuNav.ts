@@ -40,7 +40,11 @@ export const useMenuNav = ({
       const nextKeyAlt = direction === 'vertical' ? 's' : 'd';
       const prevKeyAlt = direction === 'vertical' ? 'w' : 'a';
 
-      if (e.key === nextKey || e.key === nextKeyAlt || e.key === nextKeyAlt.toUpperCase()) {
+      if (
+        e.key === nextKey ||
+        e.key === nextKeyAlt ||
+        e.key === nextKeyAlt.toUpperCase()
+      ) {
         e.preventDefault();
         setSelectedIndex(prev => {
           const next = prev + 1;
@@ -51,7 +55,11 @@ export const useMenuNav = ({
           // For now, no sound on traverse to avoid spam, or finding a suitable one later.
           return next;
         });
-      } else if (e.key === prevKey || e.key === prevKeyAlt || e.key === prevKeyAlt.toUpperCase()) {
+      } else if (
+        e.key === prevKey ||
+        e.key === prevKeyAlt ||
+        e.key === prevKeyAlt.toUpperCase()
+      ) {
         e.preventDefault();
         setSelectedIndex(prev => {
           const next = prev - 1;

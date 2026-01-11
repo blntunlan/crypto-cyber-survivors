@@ -64,7 +64,10 @@ export class MetricsExporter {
   /**
    * Download JSON file in browser
    */
-  static downloadJSON(sessions: SessionMetrics[], filename: string = 'game_metrics.json'): void {
+  static downloadJSON(
+    sessions: SessionMetrics[],
+    filename: string = 'game_metrics.json'
+  ): void {
     const json = this.toJSON(sessions);
     this.downloadFile(json, filename, 'application/json');
   }
@@ -72,7 +75,10 @@ export class MetricsExporter {
   /**
    * Download CSV file in browser
    */
-  static downloadCSV(sessions: SessionMetrics[], filename: string = 'game_metrics.csv'): void {
+  static downloadCSV(
+    sessions: SessionMetrics[],
+    filename: string = 'game_metrics.csv'
+  ): void {
     const csv = this.toCSV(sessions);
     this.downloadFile(csv, filename, 'text/csv');
   }
@@ -80,7 +86,11 @@ export class MetricsExporter {
   /**
    * Helper to trigger file download
    */
-  private static downloadFile(content: string, filename: string, mimeType: string): void {
+  private static downloadFile(
+    content: string,
+    filename: string,
+    mimeType: string
+  ): void {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

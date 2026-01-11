@@ -84,7 +84,9 @@ export class UserSessionService {
   /**
    * Register a new nickname in Supabase and save to local storage.
    */
-  static async registerNickname(nickname: string): Promise<{ success: boolean; error?: string }> {
+  static async registerNickname(
+    nickname: string
+  ): Promise<{ success: boolean; error?: string }> {
     const { supabase, isSupabaseConfigured } = await import('../Supabase');
 
     if (
@@ -95,7 +97,8 @@ export class UserSessionService {
     ) {
       // Fallback for local-only development if Supabase isn't ready or on localhost
       Logger.warn('[UserSession] Local environment detected, using local-only mode');
-      const mockPlayerId = nanoid();
+      // Use a consistent mock UUID to avoid 'invalid input syntax for type uuid'
+      const mockPlayerId = '00000000-0000-4000-a000-000000000000';
       this.saveUser(mockPlayerId, nickname);
       return { success: true };
     }
@@ -114,7 +117,9 @@ export class UserSessionService {
         this.saveUser(existingPlayer.id, nickname);
 
         // Update session count and last seen
-        await supabase.rpc('increment_player_sessions', { player_uuid: existingPlayer.id });
+        await supabase.rpc('increment_player_sessions', {
+          player_uuid: existingPlayer.id,
+        });
 
         return { success: true };
       }
@@ -131,7 +136,9 @@ export class UserSessionService {
         .single();
 
       if (error) {
-        if (error.code === '23505') return { success: false, error: 'Nickname already taken' };
+        if (error.code === '23505') {
+          return { success: false, error: 'Nickname already taken' };
+        }
         throw error;
       }
 

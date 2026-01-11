@@ -9,6 +9,10 @@
  */
 
 export { MetricsStorage } from './MetricsStorage';
-export { MetricsCompiler, type PlayerFinalData, type BitcoinFinalData } from './MetricsCompiler';
+export {
+  MetricsCompiler,
+  type PlayerFinalData,
+  type BitcoinFinalData,
+} from './MetricsCompiler';
 export { MetricsExporter } from './MetricsExporter';
 export { MetricsAnalyzer } from './MetricsAnalyzer';

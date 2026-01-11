@@ -23,7 +23,10 @@ const createInitialPlayer = (centerX: number, centerY: number): Player =>
 
 export const usePlayerState = (width: number, height: number) => {
   // Memoize initial player to prevent unnecessary recalculations
-  const initialPlayer = useMemo(() => createInitialPlayer(width / 2, height / 2), [width, height]);
+  const initialPlayer = useMemo(
+    () => createInitialPlayer(width / 2, height / 2),
+    [width, height]
+  );
 
   const playerRef = useRef<Player>(initialPlayer);
   const [uiStats, setUiStats] = useState<Player>(initialPlayer);

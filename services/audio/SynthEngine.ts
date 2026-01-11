@@ -310,7 +310,10 @@ export class SynthEngine {
         filter.type = comp.filter.type;
         filter.frequency.setValueAtTime(comp.filter.frequency, now);
         if (comp.filter.frequencyEnd !== undefined) {
-          filter.frequency.exponentialRampToValueAtTime(comp.filter.frequencyEnd, now + duration);
+          filter.frequency.exponentialRampToValueAtTime(
+            comp.filter.frequencyEnd,
+            now + duration
+          );
         }
         lastNode.connect(filter);
         lastNode = filter;

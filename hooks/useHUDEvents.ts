@@ -42,7 +42,10 @@ export interface UseHUDEventsReturn {
 /**
  * Hook for managing HUD event subscriptions
  */
-export function useHUDEvents(player: Player | undefined, status: GameStatus): UseHUDEventsReturn {
+export function useHUDEvents(
+  player: Player | undefined,
+  status: GameStatus
+): UseHUDEventsReturn {
   const [uiMeta, setUiMeta] = useState<ComboUIState>({
     milestoneText: '',
     milestoneColor: COLORS.NEON_ORANGE,

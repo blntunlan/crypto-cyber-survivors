@@ -8,6 +8,7 @@ import { useRef, type RefObject } from 'react';
 export function useLazyRef<T>(factory: () => T): RefObject<T> {
   const ref = useRef<T>(null!);
   if (ref.current === null) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (ref as any).current = factory();
   }
   return ref;

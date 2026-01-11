@@ -15,7 +15,12 @@ export {
 } from './PlayerConfig';
 
 // Enemy
-export { ENEMY_TYPES, ENEMY_SPAWN, ENEMY_SCALING, ENEMY_BASE_SPEED } from './EnemyConfig';
+export {
+  ENEMY_TYPES,
+  ENEMY_SPAWN,
+  ENEMY_SCALING,
+  ENEMY_BASE_SPEED,
+} from './EnemyConfig';
 export type { EnemyType, EnemyTypeConfig } from './EnemyConfig';
 
 // Game

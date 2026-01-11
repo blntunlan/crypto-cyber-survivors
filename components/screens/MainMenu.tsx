@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // 📦 [Import Cost]: 32.4KB (gzipped: 10.8KB)
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
@@ -80,7 +80,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           e.preventDefault();
           if (activeRow === 0) {
             // Cycle Game Modes
-            onModeChange(selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL);
+            onModeChange(
+              selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL
+            );
           } else if (activeRow === 1) {
             // Cycle Assets
             const currIdx = pairsList.findIndex(p => p.id === selectedPair);
@@ -101,7 +103,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           e.preventDefault();
           if (activeRow === 0) {
             // Cycle Game Modes
-            onModeChange(selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL);
+            onModeChange(
+              selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL
+            );
           } else if (activeRow === 1) {
             const currIdx = pairsList.findIndex(p => p.id === selectedPair);
             const nextIdx = (currIdx + 1) % pairsList.length;
@@ -161,8 +165,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto landscape:py-2">
-      <div className="max-w-xl w-full text-center space-y-4 sm:space-y-8 landscape:space-y-2 py-2 sm:py-0">
+    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-slate-950/60 p-3 backdrop-blur-sm landscape:py-2 sm:justify-center sm:p-6">
+      <div className="max-w-xl w-full text-center space-y-4 py-2 sm:space-y-8 sm:py-0 landscape:space-y-2">
         <header className="space-y-3 sm:space-y-5">
           <h1
             className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
@@ -212,7 +216,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 const config = GAME_MODE_CONFIGS[mode];
                 const isActive = selectedMode === mode;
                 const ModeIcon = mode === GameMode.CASUAL ? IconZap : IconTrophy;
-                const modeColor = mode === GameMode.CASUAL ? COLORS.WHALE : COLORS.CASINO_RED;
+                const modeColor =
+                  mode === GameMode.CASUAL ? COLORS.WHALE : COLORS.CASINO_RED;
 
                 return (
                   <button
@@ -260,7 +265,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       />
                       <div
                         className={`text-[8px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-wider ${isActive ? 'font-black' : ''}`}
-                        style={{ color: isActive ? (isRetro ? '#ffffff' : modeColor) : '#475569' }}
+                        style={{
+                          color: isActive
+                            ? isRetro
+                              ? '#ffffff'
+                              : modeColor
+                            : '#475569',
+                        }}
                       >
                         {config.displayName}
                       </div>

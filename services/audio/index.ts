@@ -13,7 +13,12 @@
 export { audio, AudioService } from './AudioService';
 
 // Types
-export type { SoundType, SoundConfig, ComboMilestoneSound, SynthContext } from './types';
+export type {
+  SoundType,
+  SoundConfig,
+  ComboMilestoneSound,
+  SynthContext,
+} from './types';
 
 // Constants (for advanced usage)
 export { SOUND_DEFAULTS, COOLDOWN_MS } from './constants';

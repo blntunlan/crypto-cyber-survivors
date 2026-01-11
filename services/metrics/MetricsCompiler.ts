@@ -52,10 +52,14 @@ export class MetricsCompiler {
     const atrValues = state?.atrHistory.map(h => h.value) ?? [];
 
     const avgPnL =
-      pnlValues.length > 0 ? pnlValues.reduce((a, b) => a + b, 0) / pnlValues.length : 0;
+      pnlValues.length > 0
+        ? pnlValues.reduce((a, b) => a + b, 0) / pnlValues.length
+        : 0;
 
     const avgAtr =
-      atrValues.length > 0 ? atrValues.reduce((a, b) => a + b, 0) / atrValues.length : 0;
+      atrValues.length > 0
+        ? atrValues.reduce((a, b) => a + b, 0) / atrValues.length
+        : 0;
 
     const priceChange =
       finalData.entryPrice > 0
@@ -136,7 +140,8 @@ export class MetricsCompiler {
    */
   static compileComboMetrics(state: MetricsState | null): ComboMetrics {
     const streaks = state?.streakHistory ?? [];
-    const avgStreak = streaks.length > 0 ? streaks.reduce((a, b) => a + b, 0) / streaks.length : 0;
+    const avgStreak =
+      streaks.length > 0 ? streaks.reduce((a, b) => a + b, 0) / streaks.length : 0;
 
     return {
       maxStreak: state?.maxStreak ?? 0,
@@ -155,7 +160,9 @@ export class MetricsCompiler {
   static compileCardMetrics(state: MetricsState | null): CardMetrics {
     const levelUpTimes = state?.levelUpTimes ?? [];
     const avgTimeToLevelUp =
-      levelUpTimes.length > 0 ? levelUpTimes.reduce((a, b) => a + b, 0) / levelUpTimes.length : 0;
+      levelUpTimes.length > 0
+        ? levelUpTimes.reduce((a, b) => a + b, 0) / levelUpTimes.length
+        : 0;
 
     const cardsByTier: Record<string, number> = {};
     for (const card of state?.cardsChosen ?? []) {
@@ -177,7 +184,9 @@ export class MetricsCompiler {
   static compileEnemyMetrics(state: MetricsState | null): EnemyMetrics {
     const lifetimes = state?.enemyLifetimes ?? [];
     const avgLifetime =
-      lifetimes.length > 0 ? lifetimes.reduce((a, b) => a + b, 0) / lifetimes.length : 0;
+      lifetimes.length > 0
+        ? lifetimes.reduce((a, b) => a + b, 0) / lifetimes.length
+        : 0;
 
     return {
       killsByType: state?.killsByType ?? {},

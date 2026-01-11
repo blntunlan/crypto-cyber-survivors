@@ -127,10 +127,13 @@ export class MetricsStorage {
       if (sessionError) {
         // PostgreSQL unique constraint violation code: 23505 (Replay Attack Protection)
         if (sessionError.code === '23505') {
-          Logger.warn('[MetricsStorage] Duplicate session detected - replay attack blocked', {
-            sessionId: session.sessionId,
-            playerId,
-          });
+          Logger.warn(
+            '[MetricsStorage] Duplicate session detected - replay attack blocked',
+            {
+              sessionId: session.sessionId,
+              playerId,
+            }
+          );
           return; // Silently ignore duplicate
         }
         throw sessionError;
@@ -174,7 +177,10 @@ export class MetricsStorage {
   /**
    * Update player aggregate stats after game session
    */
-  private async updatePlayerStats(playerId: string, session: SessionMetrics): Promise<void> {
+  private async updatePlayerStats(
+    playerId: string,
+    session: SessionMetrics
+  ): Promise<void> {
     if (!supabase) return;
 
     try {
@@ -208,7 +214,9 @@ export class MetricsStorage {
       if (updateError) {
         Logger.warn('[MetricsStorage] Player stats update failed', updateError);
       } else if (newHighScore > player.high_score) {
-        Logger.info(`[MetricsStorage] New high score! ${player.high_score} → ${newHighScore}`);
+        Logger.info(
+          `[MetricsStorage] New high score! ${player.high_score} → ${newHighScore}`
+        );
       }
     } catch (err) {
       Logger.warn('[MetricsStorage] Player stats update error', err);
@@ -247,7 +255,10 @@ export class MetricsStorage {
    */
   private isQuotaExceededError(error: unknown): boolean {
     if (error instanceof DOMException) {
-      return error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+      return (
+        error.name === 'QuotaExceededError' ||
+        error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      );
     }
     return false;
   }

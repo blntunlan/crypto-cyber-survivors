@@ -225,7 +225,11 @@ export class ErrorTracker {
   /**
    * Capture game-specific error
    */
-  captureGameError(errorType: string, message: string, gameData?: Record<string, unknown>): void {
+  captureGameError(
+    errorType: string,
+    message: string,
+    gameData?: Record<string, unknown>
+  ): void {
     this.captureError({
       errorType,
       errorMessage: message,
@@ -239,7 +243,11 @@ export class ErrorTracker {
   /**
    * Add breadcrumb (user action tracking)
    */
-  addBreadcrumb(category: string, message: string, data?: Record<string, unknown>): void {
+  addBreadcrumb(
+    category: string,
+    message: string,
+    data?: Record<string, unknown>
+  ): void {
     this.breadcrumbs.push({
       timestamp: Date.now(),
       category,
@@ -359,7 +367,12 @@ export class ErrorTracker {
     const originalFetch = window.fetch;
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
       const method = init?.method ?? 'GET';
 
       try {
@@ -368,12 +381,21 @@ export class ErrorTracker {
 
         // Track slow requests
         if (duration > 5000) {
-          this.addBreadcrumb('network', `Slow request: ${method} ${url} (${duration}ms)`);
+          this.addBreadcrumb(
+            'network',
+            `Slow request: ${method} ${url} (${duration}ms)`
+          );
         }
 
         // Track failed requests (but not Supabase errors to prevent loops)
         if (!response.ok && !url.includes('supabase')) {
-          this.captureNetworkError(url, method, response.status, response.statusText, duration);
+          this.captureNetworkError(
+            url,
+            method,
+            response.status,
+            response.statusText,
+            duration
+          );
         }
 
         return response;
@@ -416,7 +438,9 @@ export class ErrorTracker {
 
       // Capture as error
       const message = args
-        .map(arg => (typeof arg === 'object' ? JSON.stringify(arg).substring(0, 200) : String(arg)))
+        .map(arg =>
+          typeof arg === 'object' ? JSON.stringify(arg).substring(0, 200) : String(arg)
+        )
         .join(' ');
 
       // Don't capture our own logs
@@ -521,7 +545,10 @@ export class ErrorTracker {
         window.removeEventListener('error', this.instance.boundErrorHandler);
       }
       if (this.instance.boundRejectionHandler) {
-        window.removeEventListener('unhandledrejection', this.instance.boundRejectionHandler);
+        window.removeEventListener(
+          'unhandledrejection',
+          this.instance.boundRejectionHandler
+        );
       }
       if (this.instance.boundOnlineHandler) {
         window.removeEventListener('online', this.instance.boundOnlineHandler);

@@ -22,7 +22,10 @@ interface UseLerpValueOptions {
 /**
  * Smoothly interpolate a numeric value over time
  */
-export const useLerpValue = (targetValue: number, options: UseLerpValueOptions = {}): number => {
+export const useLerpValue = (
+  targetValue: number,
+  options: UseLerpValueOptions = {}
+): number => {
   const { speed = 0.1, threshold = 0.001, decimals = 2, useRAF = true } = options;
 
   const [displayValue, setDisplayValue] = useState(targetValue);
@@ -138,7 +141,10 @@ export const useLerpValues = <T extends Record<string, number>>(
         const diff = Math.abs(target - current);
 
         if (diff > threshold) {
-          newValues[key] = lerp(current, target, adjustedSpeed) as T[Extract<keyof T, string>];
+          newValues[key] = lerp(current, target, adjustedSpeed) as T[Extract<
+            keyof T,
+            string
+          >];
           hasChanges = true;
         } else if (diff > 0) {
           newValues[key] = target;
@@ -153,7 +159,10 @@ export const useLerpValues = <T extends Record<string, number>>(
         for (const key in newValues) {
           const val = newValues[key];
           if (val !== undefined) {
-            roundedValues[key] = Number(val.toFixed(decimals)) as T[Extract<keyof T, string>];
+            roundedValues[key] = Number(val.toFixed(decimals)) as T[Extract<
+              keyof T,
+              string
+            >];
           }
         }
         setDisplayValues(roundedValues);

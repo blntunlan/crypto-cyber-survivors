@@ -14,6 +14,7 @@ export interface ErrorReport {
   stack?: string;
   type: string;
   severity: ErrorSeverity;
+  category: string;
   context?: Record<string, unknown>;
   timestamp: number;
   playerId: string;
@@ -50,10 +51,12 @@ export class ErrorReporter {
       stack,
       type,
       severity: this.inferSeverity(type, message),
+      category: type, // Using type as category for now
       context: {
         ...context,
         url: window.location.href,
-        gameState: (window as unknown as { GAME_STATE?: string }).GAME_STATE ?? 'UNKNOWN',
+        gameState:
+          (window as unknown as { GAME_STATE?: string }).GAME_STATE ?? 'UNKNOWN',
         browser: profile.userAgent,
         screen: `${profile.screenWidth}x${profile.screenHeight}`,
         gpu: profile.gpu,
@@ -70,15 +73,18 @@ export class ErrorReporter {
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('error_reports').insert({
-          player_id: playerId,
+          player_id: playerId.startsWith('anon-') ? null : playerId,
           error_type: type,
           error_message: message,
-          error_stack: stack,
+          stack_trace: stack,
+          user_agent: profile.userAgent,
+          url: window.location.href,
           device_fingerprint: fingerprint,
-          game_state: report.context?.gameState,
-          browser: profile.userAgent.substring(0, 64),
-          screen_resolution: report.context?.screen,
+          severity: report.severity,
+          category: report.category,
+          fingerprint: report.fingerprint,
           context: report.context,
+          status: 'new',
         });
       } catch (err) {
         // Fail silently to avoid infinite error loops

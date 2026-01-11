@@ -65,7 +65,8 @@ export class EnemyFactory {
     position: MarketPosition,
     aggroMultiplier: number = 1.0
   ): GameEnemy {
-    const config = (ENEMY_DEFINITIONS[type as EnemyId] ?? ENEMY_DEFINITIONS['bear']) as EnemyConfig;
+    const config = (ENEMY_DEFINITIONS[type as EnemyId] ??
+      ENEMY_DEFINITIONS['bear']) as EnemyConfig;
 
     // Determine color based on position (enemies serve as market opposition)
     // Rule: If Player is LONG (Green), Enemies should be RED tones.

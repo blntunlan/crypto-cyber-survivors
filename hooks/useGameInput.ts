@@ -57,7 +57,8 @@ export const useGameInput = () => {
     return { dx: kdx, dy: kdy };
   };
 
-  const isSpacePressed = () => keys.current[' '] ?? keys.current['Spacebar'] ?? touchDash.current;
+  const isSpacePressed = () =>
+    keys.current[' '] ?? keys.current['Spacebar'] ?? touchDash.current;
 
   /**
    * Check if space was freshly pressed (not held from previous dash)

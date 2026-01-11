@@ -14,7 +14,9 @@ import { SOUND_CATEGORY_MAP } from './constants';
  */
 function getCategoryVolumeMultiplier(soundName: string): number {
   const category = SOUND_CATEGORY_MAP[soundName];
-  return category ? synthEngine.getEffectiveVolume(category) / synthEngine.getVolume() : 1;
+  return category
+    ? synthEngine.getEffectiveVolume(category) / synthEngine.getVolume()
+    : 1;
 }
 
 /**

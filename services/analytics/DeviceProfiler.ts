@@ -56,10 +56,14 @@ export class DeviceProfiler {
       const gl = canvas.getContext('webgl') ?? canvas.getContext('experimental-webgl');
       if (!gl) return undefined;
 
-      const debugInfo = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
+      const debugInfo = (gl as WebGLRenderingContext).getExtension(
+        'WEBGL_debug_renderer_info'
+      );
       if (!debugInfo) return undefined;
 
-      return (gl as WebGLRenderingContext).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      return (gl as WebGLRenderingContext).getParameter(
+        debugInfo.UNMASKED_RENDERER_WEBGL
+      );
     } catch (_e) {
       return undefined;
     }
@@ -73,7 +77,10 @@ export class DeviceProfiler {
     if (!isSupabaseConfigured() || !supabase) return;
 
     // Skip sync on localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    ) {
       return;
     }
 

@@ -12,7 +12,11 @@
 import { type Howl } from 'howler';
 import { synthEngine } from './SynthEngine';
 import { howlerManager } from './HowlerManager';
-import { type ComboMilestoneSound, type SoundCategory, type CategoryVolumes } from './types';
+import {
+  type ComboMilestoneSound,
+  type SoundCategory,
+  type CategoryVolumes,
+} from './types';
 
 // Import sound modules
 import * as GameSounds from './GameSounds';

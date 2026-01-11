@@ -23,7 +23,9 @@ import {
  * Updates on resize and orientation change
  */
 export function useDevice(): DeviceInfo {
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(() => screenService.getDeviceInfo());
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(() =>
+    screenService.getDeviceInfo()
+  );
 
   useEffect(() => {
     // Update device info on changes

@@ -35,7 +35,11 @@ export function simpleHash(str: string): string {
 /**
  * Create a unique fingerprint for error grouping
  */
-export function createFingerprint(type: string, message: string, stack?: string): string {
+export function createFingerprint(
+  type: string,
+  message: string,
+  stack?: string
+): string {
   // Extract first meaningful line from stack if available
   const stackLine = stack?.split('\n')[1]?.trim().substring(0, 100) ?? '';
   const input = `${type}|${message.substring(0, 100)}|${stackLine}`;

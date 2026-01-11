@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 :root {
   /* ========================================
@@ -113,8 +113,7 @@
   background-image: none !important;
   background-clip: border-box !important;
   -webkit-background-clip: border-box !important;
-  text-fill-color: initial !important;
-  -webkit-text-fill-color: initial !important;
+  color: var(--color-text, #ffffff) !important;
   text-shadow: none !important;
 }
 
@@ -428,8 +427,8 @@ body {
   background-color: #020617;
   color: white;
   font-family:
-    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
+    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
   width: 100vw;
   height: 100vh;
 
@@ -550,4 +549,94 @@ canvas {
   width: 50%;
   height: 40%;
   padding: 0 var(--sar) var(--sab) 0;
+}
+
+/* ========================================
+   RETRO 8-BIT ICON ANIMATIONS
+   Used by HubIcons for pixel-art style effects
+   ======================================== */
+
+/* Blink effect - 2-frame on/off */
+@keyframes retro-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Flicker effect - 3-frame flicker */
+@keyframes retro-flicker {
+  0% {
+    opacity: 1;
+  }
+
+  33% {
+    opacity: 0.4;
+  }
+
+  66% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Bounce effect - 4-frame bounce */
+@keyframes retro-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Step rotation - 8-frame rotation */
+@keyframes retro-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Color cycling effect - slot machine symbols */
+@keyframes retro-color-cycle {
+  0% {
+    fill: #ff0000;
+  }
+
+  33% {
+    fill: #00ff00;
+  }
+
+  66% {
+    fill: #ffd600;
+  }
+
+  100% {
+    fill: #ff0000;
+  }
+}
+
+/* Smooth spin animation for Cyberpunk gear icons */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -333,7 +333,11 @@ export type ComboUpdatePayload = z.infer<typeof ComboUpdatePayloadSchema>;
 /**
  * Validate and parse unknown data with error logging
  */
-export function safeValidate<T>(schema: z.ZodType<T>, data: unknown, context?: string): T | null {
+export function safeValidate<T>(
+  schema: z.ZodType<T>,
+  data: unknown,
+  context?: string
+): T | null {
   const result = schema.safeParse(data);
   if (result.success) {
     return result.data;

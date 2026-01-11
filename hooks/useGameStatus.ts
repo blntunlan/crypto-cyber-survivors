@@ -56,7 +56,8 @@ export function useGameStatus(): UseGameStatusReturn {
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [gameStatus]);
 
   return {

@@ -93,7 +93,10 @@ function playCombo2(): void {
     osc.type = isRetro ? 'square' : 'triangle';
     const freq = 600 + i * 200;
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, ctx.currentTime + delay + 0.15);
+    osc.frequency.exponentialRampToValueAtTime(
+      freq * 1.5,
+      ctx.currentTime + delay + 0.15
+    );
 
     gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime + delay);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);

@@ -226,7 +226,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       const p = playerRef.current;
       // If we still have enough XP for next level, trigger another level up sequence
       if (p.exp >= p.nextLevelExp) {
-        Logger.info('[GameEngine] Pending level up detected (Stacking), queuing next level up...');
+        Logger.info(
+          '[GameEngine] Pending level up detected (Stacking), queuing next level up...'
+        );
         // Set a small freeze timer to allow one frame of update/draw before locking again
         // This ensures the game loop catches the state change cleanly
         state.current.levelUpFreeze = 200;
@@ -295,6 +297,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       if (s.nearMissTimer > 0) {
         s.nearMissTimer -= deltaTime;
         timeScale = GAME_ENGINE.NEAR_MISS_SLOWMO;
+        // 🚀 [Turbo Console Log]: timeScale (Slow-mo Active)
+        // console.log('GameEngine.tsx:298 ~ timeScale:', timeScale);
       }
 
       const dtFactor = (deltaTime / 16.67) * timeScale;
@@ -341,7 +345,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
 
         if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
-        if (s.critFlash > 0) s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+        if (s.critFlash > 0) {
+          s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
+        }
 
         // Recover player scale (Squash & Stretch)
         // Lerp back to 1.0 with a springy speed (approx 0.15 per frame)
@@ -549,7 +555,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 b: minVal + 8,
               }
             : {
-                r: lerp(minVal, 45, Math.min(1, Math.abs(marketDataRef.current.pnl) * 20)),
+                r: lerp(
+                  minVal,
+                  45,
+                  Math.min(1, Math.abs(marketDataRef.current.pnl) * 20)
+                ),
                 g: minVal,
                 b: minVal,
               };
@@ -582,7 +592,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Update Physics & Collisions
         physicsSystem.current.updateEntities(p, dtFactor, width, height, player);
-        physicsSystem.current.handleCollisions(p, player, s, dtFactor, width, height, onGameOver);
+        physicsSystem.current.handleCollisions(
+          p,
+          player,
+          s,
+          dtFactor,
+          width,
+          height,
+          onGameOver
+        );
 
         // Only update React state if meaningful stats changed AND enough time passed (Throttle 100ms)
         // Exception: Always update immediately on Level Up

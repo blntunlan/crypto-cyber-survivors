@@ -58,7 +58,8 @@ export function useHUDUpdateLoop({
         if (fpsFramesRef.current.length > 30) fpsFramesRef.current.shift();
         if (fpsFramesRef.current.length % 15 === 0) {
           const avgFps =
-            fpsFramesRef.current.reduce((a, b) => a + b, 0) / fpsFramesRef.current.length;
+            fpsFramesRef.current.reduce((a, b) => a + b, 0) /
+            fpsFramesRef.current.length;
           const fpsText = `${Math.round(avgFps)} FPS`;
           // Update desktop FPS element
           const fpsElement = document.getElementById('fps-counter');

@@ -27,7 +27,13 @@ export type SoundType =
 /**
  * Sound categories for volume grouping
  */
-export type SoundCategory = 'combat' | 'feedback' | 'movement' | 'ui' | 'alerts' | 'slots';
+export type SoundCategory =
+  | 'combat'
+  | 'feedback'
+  | 'movement'
+  | 'ui'
+  | 'alerts'
+  | 'slots';
 
 /**
  * Category volumes record type

@@ -81,7 +81,9 @@ export const useMarketData = (
       if (timeSinceLastPrice > MARKET_DATA_TIMEOUT_MS && !timeoutTriggeredRef.current) {
         timeoutTriggeredRef.current = true;
 
-        Logger.error(`[Market] Data timeout - no price updates for ${timeSinceLastPrice}ms`);
+        Logger.error(
+          `[Market] Data timeout - no price updates for ${timeSinceLastPrice}ms`
+        );
 
         // Emit timeout event for game to handle
         EventBus.emit('marketDataTimeout', {
@@ -148,7 +150,9 @@ export const useMarketData = (
       onData: (update: MarketUpdate) => {
         // CRITICAL: Ignore callbacks if this effect has been cleaned up
         if (isCancelled) {
-          Logger.debug(`[useMarketData] Ignoring stale callback after cleanup for ${update.pair}`);
+          Logger.debug(
+            `[useMarketData] Ignoring stale callback after cleanup for ${update.pair}`
+          );
           return;
         }
 
