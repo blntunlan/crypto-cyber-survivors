@@ -57,17 +57,13 @@ export class ProjectileRenderer implements IRenderer {
         // 16-bit pixel style - simple small square bullets (optimized for high count)
         ctx.shadowBlur = 0; // No glow in retro for clarity
 
-        ctx.save();
-        ctx.translate(b.x, b.y);
-
+        // Optimization: Avoid ctx.save()/restore() for simple square bullets
         // Reduced size for retro look & less clutter
         const size = b.radius;
         ctx.fillStyle = isSuperCrit ? '#ff4500' : isCrit ? '#ffd700' : b.color;
 
-        // Draw centered square
-        ctx.fillRect(-size / 2, -size / 2, size, size);
-
-        ctx.restore();
+        // Draw centered square using absolute coordinates
+        ctx.fillRect(b.x - size / 2, b.y - size / 2, size, size);
       } else {
         // Cyberpunk style - laser bolt
         const angle = Math.atan2(b.vy, b.vx);

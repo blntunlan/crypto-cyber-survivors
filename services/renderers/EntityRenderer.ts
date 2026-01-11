@@ -178,13 +178,16 @@ export class EntityRenderer implements IRenderer {
         return; // Skip normal rendering
       }
 
-      ctx.save();
-      ctx.translate(ex, ey);
+      // Optimization: Avoid ctx.save()/restore() for fully spawned enemies
+      const isSpawning = e.spawnTimer !== undefined && e.spawnTimer > 0;
 
-      // Spawn Animation - Ball Squeeze Pop Effect
-      // Enemy looks like it's compressed into a ball and pops out
-      if (e.spawnTimer !== undefined && e.spawnTimer > 0) {
-        const t = 1 - e.spawnTimer; // 0 to 1 (progress)
+      if (isSpawning) {
+        ctx.save();
+        ctx.translate(ex, ey);
+
+        // Spawn Animation - Ball Squeeze Pop Effect
+        // Enemy looks like it's compressed into a ball and pops out
+        const t = 1 - e.spawnTimer!; // 0 to 1 (progress)
         let sx = 1;
         let sy = 1;
         let extraScale = 1;
@@ -245,28 +248,50 @@ export class EntityRenderer implements IRenderer {
 
         // Instant appear (no slow fade)
         if (t < 0.1) ctx.globalAlpha = t * 10;
-      }
 
-      // Draw enemy - pixel mode or normal
-      if (ThemeService.isRetro()) {
-        // 16-bit pixel style - draw as rounded square
-        const size = e.radius * 1.8;
-        const halfSize = size / 2;
-        ctx.fillStyle = e.color;
-        ctx.fillRect(-halfSize, -halfSize, size, size);
+        // Draw enemy (Relative to 0,0 because of translate)
+        if (ThemeService.isRetro()) {
+          // 16-bit pixel style - draw as rounded square
+          const size = e.radius * 1.8;
+          const halfSize = size / 2;
+          ctx.fillStyle = e.color;
+          ctx.fillRect(-halfSize, -halfSize, size, size);
 
-        // Add pixel-style inner details
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(-halfSize + 2, -halfSize + 2, 4, 4); // Eye highlight
+          // Add pixel-style inner details
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillRect(-halfSize + 2, -halfSize + 2, 4, 4); // Eye highlight
+        } else {
+          // Cyberpunk style - smooth circle
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
       } else {
-        // Cyberpunk style - smooth circle
-        ctx.fillStyle = e.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
+        // FAST PATH: Direct drawing for fully spawned enemies (no save/restore)
 
-      ctx.restore();
+        if (ThemeService.isRetro()) {
+          // 16-bit pixel style - draw as rounded square
+          const size = e.radius * 1.8;
+          const halfSize = size / 2;
+          ctx.fillStyle = e.color;
+          // Use absolute coordinates
+          ctx.fillRect(ex - halfSize, ey - halfSize, size, size);
+
+          // Add pixel-style inner details
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillRect(ex - halfSize + 2, ey - halfSize + 2, 4, 4); // Eye highlight
+        } else {
+          // Cyberpunk style - smooth circle
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          // Use absolute coordinates
+          ctx.arc(ex, ey, e.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
 
       // Health Bar (only for alive enemies, hide during early spawn)
       const showHealthBar = e.spawnTimer === undefined || e.spawnTimer < 0.7;
