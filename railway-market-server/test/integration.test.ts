@@ -47,12 +47,16 @@ class IntegrationTester {
       return;
     }
 
-    this.client = createClient(TEST_CONFIG.SUPABASE_URL, TEST_CONFIG.SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    });
+    this.client = createClient(
+      TEST_CONFIG.SUPABASE_URL,
+      TEST_CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
   }
 
   private async runTest(name: string, testFn: () => Promise<void>): Promise<void> {
@@ -77,7 +81,10 @@ class IntegrationTester {
   // ============================================
   async testConnection(): Promise<void> {
     await this.runTest('Connection to Supabase', async () => {
-      const { data, error } = await this.client.from('price_logs').select('id').limit(1);
+      const { data, error } = await this.client
+        .from('price_logs')
+        .select('id')
+        .limit(1);
 
       if (error) throw new Error(`Connection failed: ${error.message}`);
       log.info(`Connected successfully. Sample data: ${data.length} rows`);
@@ -146,7 +153,10 @@ class IntegrationTester {
         return;
       }
 
-      const { error } = await this.client.from('price_logs').delete().in('id', this.testIds);
+      const { error } = await this.client
+        .from('price_logs')
+        .delete()
+        .in('id', this.testIds);
 
       if (error) throw new Error(`Delete failed: ${error.message}`);
       log.info(`Deleted ${this.testIds.length} test records`);
@@ -203,7 +213,10 @@ class IntegrationTester {
       }));
 
       const start = Date.now();
-      const { data, error } = await this.client.from('price_logs').insert(testData).select('id');
+      const { data, error } = await this.client
+        .from('price_logs')
+        .insert(testData)
+        .select('id');
 
       const duration = Date.now() - start;
 
@@ -234,11 +247,13 @@ class IntegrationTester {
         },
         {
           name: 'By pair',
-          fn: () => this.client.from('price_logs').select('*').eq('pair', 'BTCUSDT').limit(50),
+          fn: () =>
+            this.client.from('price_logs').select('*').eq('pair', 'BTCUSDT').limit(50),
         },
         {
           name: 'Count',
-          fn: () => this.client.from('price_logs').select('*', { count: 'exact', head: true }),
+          fn: () =>
+            this.client.from('price_logs').select('*', { count: 'exact', head: true }),
         },
       ];
 
@@ -285,7 +300,9 @@ class IntegrationTester {
   async runAll(): Promise<void> {
     if (!TEST_CONFIG.SUPABASE_URL || !TEST_CONFIG.SUPABASE_SERVICE_ROLE_KEY) {
       console.log('\n⚠️ SKIPPING INTEGRATION TESTS: Missing Supabase credentials');
-      console.log('Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to run these tests.\n');
+      console.log(
+        'Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to run these tests.\n'
+      );
       return;
     }
 
@@ -319,7 +336,9 @@ class IntegrationTester {
 
     this.results.forEach(r => {
       const icon = r.passed ? '✅' : '❌';
-      console.log(`${icon} ${r.name}: ${r.duration}ms ${r.error ? `(${r.error})` : ''}`);
+      console.log(
+        `${icon} ${r.name}: ${r.duration}ms ${r.error ? `(${r.error})` : ''}`
+      );
     });
 
     console.log('='.repeat(60));

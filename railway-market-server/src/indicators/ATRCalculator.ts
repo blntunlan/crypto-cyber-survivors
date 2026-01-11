@@ -12,13 +12,21 @@ export class ATRCalculator {
     this.period = period;
   }
 
-  update(high: number, low: number, close: number): { atr: number; atrPercent: number } {
+  update(
+    high: number,
+    low: number,
+    close: number
+  ): { atr: number; atrPercent: number } {
     // Calculate True Range
     let tr: number;
     if (this.prevClose === null) {
       tr = high - low;
     } else {
-      tr = Math.max(high - low, Math.abs(high - this.prevClose), Math.abs(low - this.prevClose));
+      tr = Math.max(
+        high - low,
+        Math.abs(high - this.prevClose),
+        Math.abs(low - this.prevClose)
+      );
     }
 
     this.prevClose = close;

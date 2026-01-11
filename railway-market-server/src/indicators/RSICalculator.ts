@@ -67,8 +67,10 @@ export class RSICalculator {
       const currentGain = change > 0 ? change : 0;
       const currentLoss = change < 0 ? -change : 0;
 
-      this.prevAvgGain = (this.prevAvgGain * (this.period - 1) + currentGain) / this.period;
-      this.prevAvgLoss = (this.prevAvgLoss * (this.period - 1) + currentLoss) / this.period;
+      this.prevAvgGain =
+        (this.prevAvgGain * (this.period - 1) + currentGain) / this.period;
+      this.prevAvgLoss =
+        (this.prevAvgLoss * (this.period - 1) + currentLoss) / this.period;
     }
 
     // Prevent extreme decay: if both averages are near-zero, reset to fresh SMA

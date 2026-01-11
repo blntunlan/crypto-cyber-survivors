@@ -64,7 +64,9 @@ export class IndicatorService {
 
       // Calculate derived metrics
       const spawnRateMultiplier = ind.atr.getSpawnRateMultiplier(atrResult.atrPercent);
-      const { long: aggroLong, short: aggroShort } = this.calculateAggroMultipliers(rsiResult.rsi);
+      const { long: aggroLong, short: aggroShort } = this.calculateAggroMultipliers(
+        rsiResult.rsi
+      );
 
       // Update Supabase
       // Note: This is an upsert, so it's efficient.

@@ -105,7 +105,10 @@ export class CleanupCron {
         const ids = toDelete.map(row => row.id);
 
         // Delete batch
-        const { error: deleteError } = await supabase.from('price_logs').delete().in('id', ids);
+        const { error: deleteError } = await supabase
+          .from('price_logs')
+          .delete()
+          .in('id', ids);
 
         if (deleteError) {
           throw deleteError;
@@ -127,7 +130,9 @@ export class CleanupCron {
       this.lastCleanup = new Date();
       this.totalDeleted += totalDeleted;
 
-      Logger.info(`[Cleanup] Completed: ${totalDeleted} records deleted in ${duration}ms`);
+      Logger.info(
+        `[Cleanup] Completed: ${totalDeleted} records deleted in ${duration}ms`
+      );
 
       return { deleted: totalDeleted };
     } catch (error) {

@@ -10,7 +10,9 @@ export class SupabaseService {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase credentials: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+      throw new Error(
+        'Missing Supabase credentials: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+      );
     }
 
     this.client = createClient(supabaseUrl, supabaseKey, {

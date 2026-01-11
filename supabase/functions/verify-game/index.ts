@@ -47,10 +47,13 @@ serve(async (req: Request) => {
     const sessionDuration = (endTime - startTime) / 1000; // seconds
 
     if (sessionDuration < 5) {
-      return new Response(JSON.stringify({ error: 'Session too short', verified: false }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({ error: 'Session too short', verified: false }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
     // Maximum PnL check (prevent obviously fake sessions)
@@ -106,8 +109,10 @@ serve(async (req: Request) => {
       verifiedPnL = priceChange * leverage * 100; // Percentage
 
       // Calculate diffs for analytics
-      priceDiffEntry = Math.abs(claimedEntryPrice - verifiedEntryPrice) / verifiedEntryPrice;
-      priceDiffExit = Math.abs(claimedExitPrice - verifiedExitPrice) / verifiedExitPrice;
+      priceDiffEntry =
+        Math.abs(claimedEntryPrice - verifiedEntryPrice) / verifiedEntryPrice;
+      priceDiffExit =
+        Math.abs(claimedExitPrice - verifiedExitPrice) / verifiedExitPrice;
       pnlDiffValue = Math.abs(claimedPnL - verifiedPnL);
       timeDiffMs = Math.abs(new Date(entryPrices[0].timestamp).getTime() - startTime);
 

@@ -6,7 +6,10 @@ interface RetryOptions {
   backoff?: boolean;
 }
 
-export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions): Promise<T> {
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions
+): Promise<T> {
   let lastError: Error | null = null;
   let delay = options.delayMs;
 

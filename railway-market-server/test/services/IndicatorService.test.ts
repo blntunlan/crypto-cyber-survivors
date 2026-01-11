@@ -106,11 +106,23 @@ describe('IndicatorService', () => {
 
       // Feed 30 baseline points to satisfy n >= 10 and build baseline
       for (let i = 0; i < 30; i++) {
-        await service.update({ pair: 'BTC', price: 100, high: 101, low: 99, volume: 100 });
+        await service.update({
+          pair: 'BTC',
+          price: 100,
+          high: 101,
+          low: 99,
+          volume: 100,
+        });
       }
 
       // Spike volume
-      await service.update({ pair: 'BTC', price: 100, high: 101, low: 99, volume: 10000 });
+      await service.update({
+        pair: 'BTC',
+        price: 100,
+        high: 101,
+        low: 99,
+        volume: 10000,
+      });
 
       expect(Logger.info).toHaveBeenCalledWith(expect.stringContaining('🐳'));
     });
