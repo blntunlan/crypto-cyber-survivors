@@ -1,0 +1,11 @@
+# Force Node.js provider and explicit Setup/Build/Start phases
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-9_x"]
+
+[phases.build]
+cmds = ["npm ci", "npm run build"]
+
+[start]
+cmd = "npm run start"
