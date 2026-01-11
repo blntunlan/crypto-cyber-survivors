@@ -10,7 +10,7 @@ test.describe('Level Up Flow', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'e2e-tester',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'LevelTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -21,6 +21,11 @@ test.describe('Level Up Flow', () => {
   });
 
   test('should show level up screen when XP is gained', async ({ page }) => {
+    // Handle Hub Menu (Click PLAY)
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
+
     const playButton = page.getByRole('button', { name: /LONG/i });
     await expect(playButton).toBeVisible();
 
@@ -28,20 +33,32 @@ test.describe('Level Up Flow', () => {
     await page.waitForTimeout(2000);
     await playButton.click();
 
-    // Verify HUD elements appear
-    const phaseText = page.locator('span.font-black.uppercase.italic').first();
+    // Verify HUD elements appear to confirm we are in-game
+    // Use a more generic selector that matches the wave phase text (WARMUP, etc)
+    const phaseText = page.locator('text=/WARMUP|BUILDUP/i').first();
     await expect(phaseText).toBeVisible({ timeout: 10000 });
 
-    // Force level up via 'L' key
-    console.log('Pressing L to level up...');
-    await page.keyboard.press('l');
+    // Trigger Level Up directly via exposed helper
+
+    console.log('Triggering Level Up via GameHelpers...');
+    await page.evaluate(() => {
+      if ((window as any).GameHelpers) {
+        (window as any).GameHelpers.triggerLevelUp();
+      } else {
+        throw new Error('GameHelpers not found!');
+      }
+    });
+
+    // Verify state transition via debug overlay
 
     // Level up screen should appear
     await expect(page.getByText(/LEVEL UP/i)).toBeVisible({ timeout: 10000 });
 
     // Wait for slot reels to stop (~4 seconds)
     // We can wait for the 'Choose your upgrade' instruction or 'Select' buttons
-    await expect(page.getByText(/Choose your upgrade/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Choose your upgrade/i)).toBeVisible({
+      timeout: 10000,
+    });
 
     // Should show 3 cards (buttons) when stopped
     const cards = page.locator('button.group');
@@ -49,15 +66,33 @@ test.describe('Level Up Flow', () => {
   });
 
   test('should allow selecting a card and resume game', async ({ page }) => {
+    // Handle Hub Menu (Click PLAY)
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
+
     const playButton = page.getByRole('button', { name: /LONG/i });
     await expect(playButton).toBeVisible();
     await page.waitForTimeout(2000);
     await playButton.click();
 
-    await page.keyboard.press('l');
+    // Verify game started
+    const phaseText = page.locator('text=/WARMUP|BUILDUP/i').first();
+    await expect(phaseText).toBeVisible({ timeout: 10000 });
+
+    // Trigger Level Up
+    await page.evaluate(() => {
+      if ((window as any).GameHelpers) {
+        (window as any).GameHelpers.triggerLevelUp();
+      } else {
+        throw new Error('GameHelpers not found!');
+      }
+    });
 
     // Wait for level up screen and reels to stop
-    await expect(page.getByText(/Choose your upgrade/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Choose your upgrade/i)).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click the first card
     const firstCard = page.locator('button.group').first();

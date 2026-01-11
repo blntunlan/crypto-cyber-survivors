@@ -80,7 +80,9 @@ test.describe('Local Storage', () => {
     }
 
     // Check localStorage
-    const userData = await page.evaluate(() => localStorage.getItem('crypto_survivors_user'));
+    const userData = await page.evaluate(() =>
+      localStorage.getItem('crypto_survivors_user')
+    );
 
     console.log('User data:', userData);
 
@@ -164,7 +166,7 @@ test.describe('Memory Management', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'memory-test',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'MemoryTest',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),

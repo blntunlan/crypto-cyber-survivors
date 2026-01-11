@@ -13,7 +13,7 @@ test.describe('Difficulty & Wave Phases', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'e2e-tester',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'WaveTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -21,6 +21,11 @@ test.describe('Difficulty & Wave Phases', () => {
       );
     });
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY)
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
   });
 
   test('should transition through wave phases', async ({ page }) => {
@@ -46,7 +51,9 @@ test.describe('Difficulty & Wave Phases', () => {
     // Jump to climax (240s+)
     console.log('Jumping to 250s (climax)...');
     await page.evaluate(() => window.gameDebug.timeJump(250));
+    await page.waitForTimeout(500); // Allow one frame for state sync
     await expect(phaseValue).toHaveText(/climax/i);
+    await expect(page.locator('.text-red-500').first()).toBeVisible();
 
     // Jump to resolution (285s+)
     console.log('Jumping to 290s (resolution)...');
@@ -62,13 +69,14 @@ test.describe('Difficulty & Wave Phases', () => {
   test('should show correct color for different phases', async ({ page }) => {
     await page.getByRole('button', { name: /LONG/i }).click();
 
-    const phaseValue = page.locator('span.font-black.uppercase.italic');
+    const phaseValue = page.locator('span.font-black.uppercase.italic').first();
 
     // Warmup should be cyan (text-cyan-400)
     await expect(phaseValue).toHaveClass(/text-cyan-400/);
 
     // Climax should be red (text-red-500)
-    await page.evaluate(() => window.gameDebug.timeJump(241));
+    await page.evaluate(() => window.gameDebug.timeJump(250));
+    await page.waitForTimeout(500);
     await expect(phaseValue).toHaveClass(/text-red-500/);
   });
 });

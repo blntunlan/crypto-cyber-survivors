@@ -20,7 +20,7 @@ test.describe('Menu Interactions and Theme Switching', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'e2e-tester-' + Math.random().toString(36).substring(7),
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'MenuTester',
           createdAt: Date.now(),
         })
@@ -29,9 +29,16 @@ test.describe('Menu Interactions and Theme Switching', () => {
     // Reload to apply the session
     await page.reload();
 
+    // Verify Hub Menu is shown and click PLAY
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
+
     // Wait for the main menu content to be fully loaded
     // "Market Sentiment Engine" is a static text in the MainMenu
-    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('should switch between crypto pairs', async ({ page }) => {
@@ -63,7 +70,9 @@ test.describe('Menu Interactions and Theme Switching', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('should toggle theme in settings and persist across reloads', async ({ page }) => {
+  test('should toggle theme in settings and persist across reloads', async ({
+    page,
+  }) => {
     // Open settings menu
     const settingsButton = page.getByRole('button', { name: /settings/i });
     await expect(settingsButton).toBeVisible();
@@ -78,12 +87,22 @@ test.describe('Menu Interactions and Theme Switching', () => {
     await retroButton.click();
 
     // Verify localStorage was updated
-    let storedTheme = await page.evaluate(() => localStorage.getItem('crypto-survivor-theme'));
+    let storedTheme = await page.evaluate(() =>
+      localStorage.getItem('crypto-survivor-theme')
+    );
     expect(storedTheme).toBe('retro-16bit');
 
     // Reload page and check if it still has the retro theme
     await page.reload();
-    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({ timeout: 15000 });
+
+    // Handle Hub Menu
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
+
+    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
+      timeout: 15000,
+    });
 
     // Check data-theme attribute on <html> element
     const themeAttr = await page.locator('html').getAttribute('data-theme');
@@ -93,11 +112,15 @@ test.describe('Menu Interactions and Theme Switching', () => {
     await page.getByRole('button', { name: /settings/i }).click();
     await page.getByRole('button', { name: /Cyberpunk/i }).click();
 
-    storedTheme = await page.evaluate(() => localStorage.getItem('crypto-survivor-theme'));
+    storedTheme = await page.evaluate(() =>
+      localStorage.getItem('crypto-survivor-theme')
+    );
     expect(storedTheme).toBe('cyberpunk');
   });
 
-  test('should start game when LONG is clicked and show gameplay HUD', async ({ page }) => {
+  test('should start game when LONG is clicked and show gameplay HUD', async ({
+    page,
+  }) => {
     // Ensure we are in menu (HUD timer should NOT be visible)
     await expect(page.locator('#wave-timer-text')).not.toBeVisible();
 

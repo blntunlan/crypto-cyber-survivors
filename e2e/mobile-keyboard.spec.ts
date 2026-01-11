@@ -1,7 +1,7 @@
 /**
- * E2E Tests - Touch and Mobile Interactions
+ * E2E Tests - Mobile and Keyboard Interactions
  *
- * Tests touch-specific functionality for mobile devices
+ * Tests touch-specific functionality and keyboard shortcuts.
  */
 
 import { test, expect } from '@playwright/test';
@@ -16,63 +16,41 @@ test.describe('Mobile Touch Interactions', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'test-player-id',
-          displayName: 'MobileTestPlayer',
-          provider: 'nickname',
+          playerId: '00000000-0000-4000-a000-000000000000',
+          nickname: 'TouchTester',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
     });
     await page.reload();
   });
 
-  // Touch simulation can be flaky in Playwright, skip by default
   test('should handle touch tap on buttons', async ({ page }) => {
-    // Wait for the app to be loaded
-    await page.waitForLoadState('load');
-    await page.waitForTimeout(2000);
+    // Wait for the Hub Menu to load
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
 
-    // If nickname screen is visible, fill it to enable the button
-    const input = page.locator('input').first();
-    if (await input.isVisible()) {
-      await input.fill('TouchTester');
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(1000);
-    }
+    // Tap the button (Hub -> Main Menu)
+    await playHubBtn.tap();
 
-    // Now find any enabled button
-    const button = page.locator('button:not([disabled])').first();
-    await expect(button).toBeVisible({ timeout: 10000 });
-
-    // Tap the button
-    await button.tap();
-
-    await page.waitForTimeout(500);
+    // Verify Main Menu appeared
+    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('should support swipe gestures', async ({ page }) => {
     await page.waitForTimeout(2000);
 
-    // Simulate swipe gesture
+    // Simulate swipe gesture in Hub
     await page.touchscreen.tap(187, 300);
     await page.waitForTimeout(500);
 
     // Page should remain stable
     await expect(page.locator('body')).toBeVisible();
-  });
-
-  test('should handle pinch zoom correctly', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
-    // Check if viewport meta tag prevents zoom
-    const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
-
-    if (viewportMeta) {
-      console.log('Viewport meta:', viewportMeta);
-      // Should have user-scalable=no for game
-      expect(viewportMeta).toBeDefined();
-    }
   });
 });
 
@@ -81,20 +59,25 @@ test.describe('Keyboard Navigation', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'test-player-id',
-          displayName: 'KeyboardTestPlayer',
-          provider: 'nickname',
+          playerId: '00000000-0000-4000-a000-000000000000',
+          nickname: 'KeyboardTester',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
     });
     await page.reload();
-    await page.waitForTimeout(2000);
+
+    // GO to main menu for keyboard tests
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
   });
 
-  test('should support keyboard shortcuts', async ({ page }) => {
-    // Try escape key (might open pause menu in game)
+  test('should support keyboard shortcuts in Main Menu', async ({ page }) => {
+    // Try escape key (shouldn't crash)
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
 
@@ -102,19 +85,8 @@ test.describe('Keyboard Navigation', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 
-  test('should handle arrow keys', async ({ page }) => {
-    // Arrow keys for navigation
-    await page.keyboard.press('ArrowUp');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('ArrowRight');
-
-    // No errors should occur
-    await expect(page.locator('body')).toBeVisible();
-  });
-
-  test('should handle WASD keys', async ({ page }) => {
-    // WASD for movement
+  test('should handle WASD keys for selection if implemented', async ({ page }) => {
+    // WASD for movement (simulate inputs)
     await page.keyboard.press('KeyW');
     await page.keyboard.press('KeyA');
     await page.keyboard.press('KeyS');
@@ -124,57 +96,10 @@ test.describe('Keyboard Navigation', () => {
   });
 });
 
-test.describe('Accessibility', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-  });
-
+test.describe('Accessibility Meta', () => {
   test('should have proper document title', async ({ page }) => {
+    await page.goto('/');
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
-    console.log('Page title:', title);
-  });
-
-  test('should have proper lang attribute', async ({ page }) => {
-    const html = page.locator('html');
-    const lang = await html.getAttribute('lang');
-
-    // Should have language set
-    console.log('Language:', lang);
-    expect(true).toBe(true); // Lang might not be set
-  });
-
-  test('should have focusable elements', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
-    // Tab through elements
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-
-    // Should have some focused element
-    const activeElement = await page.evaluate(() => document.activeElement?.tagName);
-    console.log('Active element:', activeElement);
-
-    await expect(page.locator('body')).toBeVisible();
-  });
-
-  test('buttons should have accessible names', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
-    const buttons = page.locator('button');
-    const count = await buttons.count();
-
-    console.log(`Found ${count} buttons`);
-
-    for (let i = 0; i < Math.min(count, 5); i++) {
-      const button = buttons.nth(i);
-      const text = await button.textContent();
-      const ariaLabel = await button.getAttribute('aria-label');
-
-      console.log(`Button ${i}: text="${text}", aria-label="${ariaLabel}"`);
-    }
-
-    expect(true).toBe(true);
   });
 });

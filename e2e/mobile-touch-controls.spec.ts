@@ -21,21 +21,31 @@ const MOBILE_DEVICES = {
 };
 
 // Helper to set up authenticated mobile session
-async function setupMobileSession(page: Page, viewport: { width: number; height: number }) {
+async function setupMobileSession(
+  page: Page,
+  viewport: { width: number; height: number }
+) {
   await page.setViewportSize(viewport);
   await page.goto('/');
   await page.evaluate(() => {
     localStorage.setItem(
-      'crypto_survivors_session',
+      'crypto_survivors_user',
       JSON.stringify({
-        playerId: 'test-mobile-player',
-        displayName: 'MobileTester',
-        provider: 'nickname',
+        playerId: '00000000-0000-4000-a000-000000000000',
+        nickname: 'MobileTester',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
       })
     );
   });
   await page.reload();
-  await page.waitForTimeout(2000);
+
+  // Handle Hub Menu (Click PLAY)
+  const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+  await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+  await playHubBtn.click();
+
+  await page.waitForTimeout(1000);
 }
 
 // Helper to start a game
@@ -51,7 +61,10 @@ async function startGame(page: Page) {
     const button = startButtons.nth(i);
     const text = await button.textContent();
 
-    if (text && (text.includes('LONG') || text.includes('SHORT') || text.includes('START'))) {
+    if (
+      text &&
+      (text.includes('LONG') || text.includes('SHORT') || text.includes('START'))
+    ) {
       if (await button.isVisible()) {
         await button.tap().catch(() => button.click());
         await page.waitForTimeout(2000);
@@ -95,7 +108,11 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
         .isVisible()
         .catch(() => false);
 
-      console.log('Touch controls detected:', { hasJoystick, hasDragArea, hasMobileControls });
+      console.log('Touch controls detected:', {
+        hasJoystick,
+        hasDragArea,
+        hasMobileControls,
+      });
 
       // At least one control type should be available on mobile
       expect(hasJoystick || hasDragArea || hasMobileControls || true).toBe(true);
@@ -217,7 +234,9 @@ test.describe('Touch Gesture Handling', () => {
     await page.waitForTimeout(2000);
 
     // Get initial viewport meta
-    const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
+    const viewportMeta = await page
+      .locator('meta[name="viewport"]')
+      .getAttribute('content');
 
     if (viewportMeta) {
       // Should have maximum-scale=1 or user-scalable=no to prevent zoom
@@ -349,11 +368,12 @@ test.describe('Mobile Settings', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'test-mobile-player',
-          displayName: 'MobileTester',
-          provider: 'nickname',
+          playerId: '00000000-0000-4000-a000-000000000000',
+          nickname: 'MobileTester',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
         })
       );
       // Set mobile-specific settings
@@ -371,6 +391,13 @@ test.describe('Mobile Settings', () => {
       );
     });
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
+
     await page.waitForTimeout(2000);
 
     // Verify settings were loaded
@@ -399,7 +426,9 @@ test.describe('Orientation Handling', () => {
     await expect(page.locator('body')).toBeVisible();
 
     // Portrait should work properly
-    const isPortrait = await page.evaluate(() => window.innerHeight > window.innerWidth);
+    const isPortrait = await page.evaluate(
+      () => window.innerHeight > window.innerWidth
+    );
     expect(isPortrait).toBe(true);
   });
 
@@ -411,7 +440,9 @@ test.describe('Orientation Handling', () => {
     await expect(page.locator('body')).toBeVisible();
 
     // Landscape should work properly
-    const isLandscape = await page.evaluate(() => window.innerWidth > window.innerHeight);
+    const isLandscape = await page.evaluate(
+      () => window.innerWidth > window.innerHeight
+    );
     expect(isLandscape).toBe(true);
   });
 });
@@ -567,17 +598,24 @@ test.describe('Edge Cases - Session State', () => {
     // Set an expired/invalid session
     await page.evaluate(() => {
       localStorage.setItem(
-        'crypto_survivors_session',
+        'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'expired-player',
-          displayName: 'ExpiredUser',
-          provider: 'nickname',
-          expiresAt: Date.now() - 1000, // Expired 1 second ago
+          playerId: '00000000-0000-4000-a000-000000000000',
+          nickname: 'ExpiredUser',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now() - 1000,
         })
       );
     });
 
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
+
     await page.waitForTimeout(2000);
 
     // App should handle this gracefully (either show login or auto-refresh)
@@ -594,6 +632,13 @@ test.describe('Edge Cases - Session State', () => {
     });
 
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
+
     await page.waitForTimeout(2000);
 
     // Should show nickname entry screen
@@ -605,11 +650,18 @@ test.describe('Edge Cases - Session State', () => {
 
     // Set corrupted data
     await page.evaluate(() => {
-      localStorage.setItem('crypto_survivors_session', 'not-valid-json{{{');
+      localStorage.setItem('crypto_survivors_user', 'not-valid-json{{{');
       localStorage.setItem('crypto_survivors_config', '{"broken":');
     });
 
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
+
     await page.waitForTimeout(2000);
 
     // App should recover gracefully
@@ -717,6 +769,13 @@ test.describe('Edge Cases - Viewport Changes', () => {
     // Very large "mobile" viewport
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
+
     await page.waitForTimeout(2000);
     await expect(page.locator('body')).toBeVisible();
   });

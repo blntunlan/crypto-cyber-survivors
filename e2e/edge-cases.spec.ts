@@ -26,12 +26,18 @@ test.describe('Edge Cases', () => {
 
     await page.reload();
 
-    // App should not crash and should show nickname entry as fallback
-    await expect(page.locator('input').first()).toBeVisible({ timeout: 15000 });
+    // Nickname entry should appear as fallback for corrupted data
+    const input = page.locator('input').first();
+    await expect(input).toBeVisible({ timeout: 15000 });
 
     // Should be able to proceed after corruption
-    await page.locator('input').first().fill('SurvivorFixed');
+    await input.fill('SurvivorFixed');
     await page.keyboard.press('Enter');
+
+    // Hub Menu should appear after entering nickname
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 15000 });
+    await playHubBtn.click();
 
     // Main menu should appear (look for LONG button)
     await expect(page.getByRole('button', { name: /long/i }).first()).toBeVisible({
@@ -46,7 +52,7 @@ test.describe('Edge Cases', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'edge-tester',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'EdgeTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -54,6 +60,11 @@ test.describe('Edge Cases', () => {
       );
     });
     await page.reload();
+
+    // Hub Menu
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
 
     // Start game
     const longBtn = page.getByRole('button', { name: /long/i }).first();
@@ -84,7 +95,7 @@ test.describe('Edge Cases', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'edge-tester',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'EdgeTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -92,6 +103,11 @@ test.describe('Edge Cases', () => {
       );
     });
     await page.reload();
+
+    // Hub Menu
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
 
     // Start game
     const longBtn = page.getByRole('button', { name: /long/i }).first();
@@ -125,7 +141,7 @@ test.describe('Edge Cases', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'edge-tester',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'EdgeTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -133,6 +149,12 @@ test.describe('Edge Cases', () => {
       );
     });
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
 
     // Should see connecting
     await expect(page.locator('text=CONNECTING...')).toBeVisible({ timeout: 15000 });
@@ -174,6 +196,13 @@ test.describe('Edge Cases', () => {
     });
 
     await page.reload();
+
+    // Handle Hub Menu (Click PLAY if present)
+    const playHubButton = page.getByRole('button', { name: 'PLAY' });
+    if (await playHubButton.isVisible({ timeout: 5000 })) {
+      await playHubButton.click();
+    }
+
     await page.waitForTimeout(5000);
 
     // App should still show UI, even if in error state
@@ -187,7 +216,7 @@ test.describe('Edge Cases', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'edge-tester',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'EdgeTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -211,13 +240,20 @@ test.describe('Edge Cases', () => {
   });
 
   // 9. Long Nickname Resilience
-  test('should handle extremely long nicknames without breaking UI', async ({ page }) => {
+  test('should handle extremely long nicknames without breaking UI', async ({
+    page,
+  }) => {
     await page.goto('/');
     const longName = 'Survivor' + 'A'.repeat(50);
 
     const input = page.locator('input').first();
     await input.fill(longName);
     await page.keyboard.press('Enter');
+
+    // Hub Menu should appear after nickname entry
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 15000 });
+    await playHubBtn.click();
 
     // Main menu should appear
     await expect(page.getByRole('button', { name: /long/i }).first()).toBeVisible({

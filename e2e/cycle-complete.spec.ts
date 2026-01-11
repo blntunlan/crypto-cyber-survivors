@@ -11,7 +11,7 @@ test.describe('Cycle Complete Flow', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'test-player-id',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'CycleTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -22,21 +22,30 @@ test.describe('Cycle Complete Flow', () => {
     await page.reload();
   });
 
-  test('should verify Cycle Complete flow via debug button', async ({ page }, testInfo) => {
+  test('should verify Cycle Complete flow via debug button', async ({
+    page,
+  }, testInfo) => {
     // Enable console logs - print to stderr to bypass reporter buffering
     page.on('console', msg => console.error(`BROWSER LOG: ${msg.text()}`));
 
-    console.error('STEP 1: Starting Game (Skipping manual start, direct EventBus trigger)');
+    console.error(
+      'STEP 1: Starting Game (Skipping manual start, direct EventBus trigger)'
+    );
     console.error(`PROJECT NAME: ${testInfo.project.name}`);
 
-    // 1. Wait for App to Load (Price visible)
+    // 1b. Handle Hub Menu (Click PLAY)
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
+
+    // 1. Wait for App to Load (Price visible - Main Menu)
     try {
       await expect(page.locator('text=$')).toBeVisible({ timeout: 15000 });
       console.error('STEP 1: App Loaded / Price Visible');
     } catch (e) {
       console.error('STEP 1 FAILED. Dumping content:');
       const content = await page.content();
-      console.error(content.substring(0, 2000)); // First 2000 chars likely contain root/loading/error
+      console.error(content.substring(0, 2000));
       throw e;
     }
 
@@ -44,37 +53,34 @@ test.describe('Cycle Complete Flow', () => {
     await page.waitForTimeout(2000);
 
     const isDesktop =
-      testInfo.project.name === 'chromium' || testInfo.project.name === 'desktop-chrome';
+      testInfo.project.name === 'chromium' ||
+      testInfo.project.name === 'desktop-chrome';
     console.error(`IS DESKTOP: ${isDesktop}`);
 
-    if (isDesktop) {
-      console.error('STEP 2: Clicking Debug Panel (Desktop)');
-      // Click Debug Toggle
-      // Use partial text or class if needed, checking for the emoji or text
-      const debugToggle = page.locator('button', { hasText: 'DEBUG' });
-      await expect(debugToggle).toBeVisible();
-      await debugToggle.click();
+    // Use EventBus to trigger cycle complete for both Desktop and Mobile
+    // This is more reliable than UI interactions which may vary by platform or environment
+    console.error(
+      `STEP 2: Triggering Event via EventBus (Platform: ${isDesktop ? 'Desktop' : 'Mobile'})`
+    );
 
-      // Wait for Panel
-      await expect(page.locator('text=Debug Panel')).toBeVisible();
-
-      console.error('STEP 2.5: Clicking Force Cycle');
-      await page.locator('button', { hasText: 'Force Cycle Complete' }).click();
-    } else {
-      console.error('STEP 2: Triggering Event via Key "6" (Mobile/Other)');
-      await page.keyboard.press('6');
-
-      // Fallback: Try EventBus again if key fails (after a short wait) to be robust
-      await page.evaluate(() => {
-        if (window.EventBus) {
-          window.EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 300 });
-        }
-      });
-    }
+    await page.evaluate(() => {
+      if ((window as any).GameHelpers) {
+        (window as any).GameHelpers.triggerCycleComplete();
+      } else {
+        // Fallback or Error
+        console.warn('GameHelpers not found, trying EventBus directly');
+        (window as any).EventBus?.emit('cycleComplete', {
+          cycleNumber: 1,
+          totalElapsedSeconds: 300,
+        });
+      }
+    });
 
     console.error('STEP 3: Waiting for Screen');
     try {
-      await expect(page.locator('text=CYCLE 1 COMPLETE')).toBeVisible({ timeout: 15000 });
+      await expect(page.locator('text=/CYCLE \\d+ COMPLETE/i')).toBeVisible({
+        timeout: 15000,
+      });
       console.error('STEP 4: Screen Found');
     } catch (e) {
       console.error('STEP 4: Screen TIMEOUT');

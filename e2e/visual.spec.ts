@@ -13,7 +13,7 @@ test.describe('Visual Elements', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'visual-test-player',
+          playerId: '00000000-0000-4000-a000-000000000000',
           nickname: 'VisualTestPlayer',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -21,6 +21,12 @@ test.describe('Visual Elements', () => {
       );
     });
     await page.reload();
+
+    // Navigate from Hub to Main Menu (since visual tests expect BTC/badges on Main Menu)
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    await playHubBtn.click();
+
     await page.waitForTimeout(2000);
   });
 
@@ -40,7 +46,9 @@ test.describe('Visual Elements', () => {
   test('should have proper gradient backgrounds', async ({ page }) => {
     // Check if gradients are applied
     const body = page.locator('body');
-    const bgImage = await body.evaluate(el => window.getComputedStyle(el).backgroundImage);
+    const bgImage = await body.evaluate(
+      el => window.getComputedStyle(el).backgroundImage
+    );
 
     console.log('Background image:', bgImage.substring(0, 100));
 
