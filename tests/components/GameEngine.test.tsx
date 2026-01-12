@@ -123,9 +123,9 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 vi.mock('../../services/MarketStateService', () => ({
-  marketStateService: {
-    initialize: vi.fn().mockResolvedValue({}),
-    destroy: vi.fn(),
+  MarketStateService: {
+    init: vi.fn().mockResolvedValue({}),
+    cleanup: vi.fn(),
   },
 }));
 vi.mock('../../services/EngineRegistry', () => ({

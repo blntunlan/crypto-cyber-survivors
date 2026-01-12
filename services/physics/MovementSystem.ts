@@ -154,9 +154,16 @@ export class MovementSystem implements IMovementSystem {
    * Update particle positions and fade-out life.
    */
   private updateParticles(pool: IPoolManager, dtFactor: number): void {
+    const damping = Math.pow(GAME_ENGINE.PARTICLE_DAMPING, dtFactor);
+
     pool.activeParticles.forEach(part => {
       part.x += part.vx * dtFactor;
       part.y += part.vy * dtFactor;
+
+      // Apply friction for more organic feel (prevents infinite floating)
+      part.vx *= damping;
+      part.vy *= damping;
+
       part.life -= GAME_ENGINE.PARTICLE_LIFE_DECAY * dtFactor;
       if (part.life <= 0) {
         part.active = false;

@@ -32,6 +32,7 @@ import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
+import { haptic } from '../services/HapticService';
 import { MarketStateService } from '../services/MarketStateService';
 import { Logger } from '../services/Logger';
 import { EventBus } from '../services/EventBus';
@@ -254,6 +255,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // This ensures the game loop catches the state change cleanly
         state.current.levelUpFreeze = GAME_ENGINE.PENDING_LEVEL_UP_FREEZE_MS;
         EventBus.emit('levelUpStart', {});
+        haptic.vibrate('success');
       }
     }
   }, [status, playerRef]);
