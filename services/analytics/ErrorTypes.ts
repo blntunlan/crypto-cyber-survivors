@@ -37,6 +37,7 @@ export interface GameContext {
   cryptoPair?: string;
   position?: string;
   fps?: number;
+  sessionId?: string;
 }
 
 export interface ErrorReport {

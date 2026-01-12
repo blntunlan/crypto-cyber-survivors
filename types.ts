@@ -184,4 +184,28 @@ export interface GameState {
   // Near Miss Tension
   nearMissTimer: number; // Timer for slow-mo effect
   nearMissCooldown: number; // Cooldown to prevent spam
+
+  // Market Visuals
+  rsiVisualState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  whaleEventTimer: number; // For whale spawn splash/shake effect
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  category: 'combat' | 'survival' | 'trading' | 'misc';
+  iconKey?: string;
+  conditionType: 'total_kills' | 'survival_seconds' | 'max_level' | 'pnl_percent';
+  conditionValue: number;
+  rewardGold: number;
+  isActive: boolean;
+}
+
+export interface PlayerAchievement {
+  id: string; // UUID of the record
+  playerId: string;
+  achievementId: string;
+  unlockedAt: string; // ISO Date
+  formattedDate?: string; // Helper for UI
 }

@@ -107,6 +107,22 @@ class LoggerClass {
     } else {
       console.error(`❌ ${this.formatMessage(entry)}`);
     }
+
+    // Report to central ErrorTracker (dynamic import to avoid circular dep)
+    import('./analytics/ErrorTracker')
+      .then(tracker => {
+        tracker.default.captureError({
+          errorType: 'LoggerError',
+          errorMessage: message,
+          category: 'runtime',
+          severity: 'medium',
+          context:
+            error instanceof Error ? { stack: error.stack } : { rawError: error },
+        });
+      })
+      .catch(() => {
+        // Ignore errors in error reporting
+      });
   }
 
   /**

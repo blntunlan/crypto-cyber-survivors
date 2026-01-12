@@ -65,8 +65,8 @@ function playCombo1(): void {
   osc.frequency.setValueAtTime(500, ctx.currentTime);
   osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
 
-  gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+  gain.gain.setValueAtTime(Math.max(0.0001, 0.06 * catVol), ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
 
   osc.connect(gain);
   gain.connect(masterGain);
@@ -94,12 +94,12 @@ function playCombo2(): void {
     const freq = 600 + i * 200;
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
     osc.frequency.exponentialRampToValueAtTime(
-      freq * 1.5,
+      Math.max(1, freq * 1.5),
       ctx.currentTime + delay + 0.15
     );
 
-    gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+    gain.gain.setValueAtTime(Math.max(0.0001, 0.06 * catVol), ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.2);
 
     osc.connect(gain);
     gain.connect(masterGain);
@@ -128,10 +128,10 @@ function playCombo3(): void {
     const delay = i * 0.08;
 
     osc.type = isRetro ? 'square' : 'sine';
-    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    osc.frequency.setValueAtTime(Math.max(1, freq), ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.06 * catVol, ctx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+    gain.gain.setValueAtTime(Math.max(0.0001, 0.06 * catVol), ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.3);
 
     osc.connect(gain);
     gain.connect(masterGain);
@@ -164,10 +164,10 @@ function playCombo4(): void {
     osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
 
     osc2.type = isRetro ? 'square' : 'triangle';
-    osc2.frequency.setValueAtTime(freq * 2, ctx.currentTime + delay);
+    osc2.frequency.setValueAtTime(Math.max(1, freq * 2), ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.05 * catVol, ctx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.4);
+    gain.gain.setValueAtTime(Math.max(0.0001, 0.05 * catVol), ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.4);
 
     osc.connect(gain);
     osc2.connect(gain);
@@ -212,10 +212,10 @@ function playCombo5(): void {
     lfoGain.connect(osc.frequency);
 
     osc2.type = isRetro ? 'square' : 'triangle';
-    osc2.frequency.setValueAtTime(freq * 1.5, ctx.currentTime + delay);
+    osc2.frequency.setValueAtTime(Math.max(1, freq * 1.5), ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.05 * catVol, ctx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.5);
+    gain.gain.setValueAtTime(Math.max(0.0001, 0.05 * catVol), ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.5);
 
     osc.connect(gain);
     osc2.connect(gain);
@@ -237,8 +237,8 @@ function playCombo5(): void {
     osc.type = isRetro ? 'square' : 'sine';
     osc.frequency.setValueAtTime(2500, ctx.currentTime + delay);
 
-    gain.gain.setValueAtTime(0.04 * catVol, ctx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.1);
+    gain.gain.setValueAtTime(Math.max(0.0001, 0.04 * catVol), ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.1);
 
     osc.connect(gain);
     gain.connect(masterGain);

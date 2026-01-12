@@ -324,7 +324,21 @@ const App: React.FC = () => {
         // Pass performance stats
         avgFps: perfStats.avgFps,
         minFps: perfStats.minFps,
+        maxFps: perfStats.maxFps,
+        fps_1_percentile: perfStats.onePercentLow,
+        avg_frame_time_ms: perfStats.avgFrameTime,
+        max_frame_time_ms: perfStats.maxFrameTime,
+        fpsSamples: perfStats.sampleCount,
         deviceFingerprint: DeviceProfiler.getFingerprint(),
+        browser: DeviceProfiler.getProfile().userAgent.substring(0, 64),
+        os: navigator.userAgent.includes('Win')
+          ? 'Windows'
+          : navigator.userAgent.includes('Mac')
+            ? 'macOS'
+            : navigator.userAgent.includes('Linux')
+              ? 'Linux'
+              : 'Unknown',
+        pixelRatio: window.devicePixelRatio,
       });
     },
     [marketData, playerRef, position, entryPrice, leverage, runStats.totalKills]

@@ -317,13 +317,15 @@ export class MarketService {
 
       this.coinbaseSocket.onopen = () => {
         Logger.info('[Market] Coinbase connected');
-        this.coinbaseSocket?.send(
-          JSON.stringify({
-            type: 'subscribe',
-            product_ids: [this.config.coinbaseProductId],
-            channels: ['ticker'],
-          })
-        );
+        if (this.coinbaseSocket?.readyState === WebSocket.OPEN) {
+          this.coinbaseSocket.send(
+            JSON.stringify({
+              type: 'subscribe',
+              product_ids: [this.config.coinbaseProductId],
+              channels: ['ticker'],
+            })
+          );
+        }
         this.updateState('coinbase', 'connected');
         this.coinbaseReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
       };

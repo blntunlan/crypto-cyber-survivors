@@ -66,18 +66,22 @@ export class MetricsCompiler {
         ? ((finalData.price - finalData.entryPrice) / finalData.entryPrice) * 100
         : 0;
 
+    // Calculate PnL values as percentages (0.01 -> 1.0%)
+    const pnlAtDeathPercent = finalData.pnl * 100;
+    const effectivePnLAtDeathPercent = finalData.pnl * finalData.leverage * 100;
+
     return {
       priceAtStart: finalData.entryPrice,
       priceAtEnd: finalData.price,
       priceChange,
-      maxPnL: state?.maxPnL ?? 0,
-      minPnL: state?.minPnL ?? 0,
+      maxPnL: (state?.maxPnL ?? 0) * 100,
+      minPnL: (state?.minPnL ?? 0) * 100,
       averagePnL: avgPnL,
       volatilityScore: avgAtr,
       positionChosen: finalData.position,
       leverage: finalData.leverage,
-      pnlAtDeath: finalData.pnl,
-      effectivePnLAtDeath: finalData.pnl * finalData.leverage,
+      pnlAtDeath: pnlAtDeathPercent,
+      effectivePnLAtDeath: effectivePnLAtDeathPercent,
       pnlSamples: pnlValues,
       atrSamples: atrValues,
     };
@@ -203,12 +207,48 @@ export class MetricsCompiler {
   static compilePerformanceMetrics(perfData: {
     avgFps: number;
     minFps: number;
+    maxFps?: number;
+    fps_1_percentile?: number;
+    fpsSamples?: number;
+    avg_frame_time_ms?: number;
+    max_frame_time_ms?: number;
+    frameDrops?: number;
+    memoryUsedMb?: number;
+    memoryPeakMb?: number;
+    enemyCountMax?: number;
+    enemy_count_avg?: number;
+    bullet_count_avg?: number;
+    particle_count_avg?: number;
+    optimizationProfile?: string;
     deviceFingerprint: string;
+    browser?: string;
+    browserVersion?: string;
+    os?: string;
+    pixelRatio?: number;
+    gpuRenderer?: string;
   }): SessionMetrics['performance'] {
     return {
       avgFps: perfData.avgFps,
       minFps: perfData.minFps,
+      maxFps: perfData.maxFps,
+      fps_1_percentile: perfData.fps_1_percentile,
+      fpsSamples: perfData.fpsSamples,
+      avg_frame_time_ms: perfData.avg_frame_time_ms,
+      max_frame_time_ms: perfData.max_frame_time_ms,
+      frameDrops: perfData.frameDrops,
+      memoryUsedMb: perfData.memoryUsedMb,
+      memoryPeakMb: perfData.memoryPeakMb,
+      enemyCountMax: perfData.enemyCountMax,
+      enemy_count_avg: perfData.enemy_count_avg,
+      bullet_count_avg: perfData.bullet_count_avg,
+      particle_count_avg: perfData.particle_count_avg,
+      optimizationProfile: perfData.optimizationProfile,
       deviceFingerprint: perfData.deviceFingerprint,
+      browser: perfData.browser,
+      browserVersion: perfData.browserVersion,
+      os: perfData.os,
+      pixelRatio: perfData.pixelRatio,
+      gpuRenderer: perfData.gpuRenderer,
     };
   }
 }

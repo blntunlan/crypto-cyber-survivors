@@ -35,6 +35,8 @@ export interface VerificationData {
   kills: number;
   level: number;
   goldCollected: number;
+  survivalTimeMs: number;
+  optimisticReward: number;
   sessionId?: string;
 }
 

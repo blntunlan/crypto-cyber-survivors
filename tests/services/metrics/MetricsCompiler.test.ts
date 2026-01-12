@@ -86,7 +86,10 @@ describe('MetricsCompiler', () => {
     expect(result.averagePnL).toBe(0.02);
     expect(result.volatilityScore).toBe(0.006);
     expect(result.priceChange).toBe(2);
-    expect(result.effectivePnLAtDeath).toBe(0.4);
+    expect(result.pnlAtDeath).toBe(4);
+    expect(result.effectivePnLAtDeath).toBe(40);
+    expect(result.maxPnL).toBe(5);
+    expect(result.minPnL).toBe(-2);
   });
 
   it('should compile difficulty metrics', () => {

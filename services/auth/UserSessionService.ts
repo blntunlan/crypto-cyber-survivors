@@ -108,7 +108,7 @@ export class UserSessionService {
       const { data: existingPlayer } = await supabase
         .from('players')
         .select('id')
-        .eq('nickname', nickname.toLowerCase())
+        .ilike('display_name', nickname) // Case insensitive check
         .single();
 
       if (existingPlayer) {
@@ -116,9 +116,9 @@ export class UserSessionService {
         // In a real app we'd need auth, but for beta this is simplified
         this.saveUser(existingPlayer.id, nickname);
 
-        // Update session count and last seen
-        await supabase.rpc('increment_player_sessions', {
-          player_uuid: existingPlayer.id,
+        // Update last seen
+        await supabase.rpc('update_player_last_seen', {
+          p_player_id: existingPlayer.id,
         });
 
         return { success: true };
@@ -128,7 +128,6 @@ export class UserSessionService {
       const { data: newPlayer, error } = await supabase
         .from('players')
         .insert({
-          nickname: nickname.toLowerCase(),
           display_name: nickname,
           total_sessions: 1,
         })
@@ -175,10 +174,9 @@ export class UserSessionService {
           window.location.hostname !== 'localhost' &&
           window.location.hostname !== '127.0.0.1'
         ) {
-          void supabase
-            .from('players')
-            .update({ last_seen_at: new Date(now).toISOString() })
-            .eq('id', user.playerId);
+          void supabase.rpc('update_player_last_seen', {
+            p_player_id: user.playerId,
+          });
         }
       } catch (error) {
         Logger.error('[UserSession] Failed to update lastSeenAt', error);

@@ -156,19 +156,36 @@ export class ErrorTracker {
       tags: [...this.tags, ...tags],
     };
 
-    Logger.warn(`[ErrorTracker] Captured ${severity} ${category} error: ${errorType}`, {
-      message: errorMessage.substring(0, 100),
-    });
+    // Try to enrich with GameStore state (lazy avoid circular deps)
+    void import('../../stores/gameStore')
+      .then(module => {
+        const state = module.useGameStore.getState();
+        report.gameContext = {
+          ...report.gameContext,
+          gameStatus: (window as { GAME_STATE?: string }).GAME_STATE ?? 'UNKNOWN',
+          playerLevel: state.progress.highestLevel,
+          survivalTimeMs: state.progress.bestSurvivalTime,
+          // session info
+          sessionId: state.session.sessionId,
+        };
 
-    // Add to breadcrumbs
-    this.addBreadcrumb('error', `${errorType}: ${errorMessage.substring(0, 50)}`);
-
-    // Queue or send
-    if (this.isOnline && isSupabaseConfigured()) {
-      void this.sendError(report);
-    } else {
-      this.queue.enqueue(report);
-    }
+        // Also add some graphics info to context
+        report.context ??= {};
+        report.context.graphics = {
+          fps: (window as { FPS_VALUE?: number }).FPS_VALUE ?? 0,
+          particles: state.graphics.showParticles,
+          mobile: state.mobile.controlType === 'joystick',
+        };
+      })
+      .catch(() => {})
+      .finally(() => {
+        // Queue or send after trying to get context
+        if (this.isOnline && isSupabaseConfigured()) {
+          void this.sendError(report);
+        } else {
+          this.queue.enqueue(report);
+        }
+      });
   }
 
   /**
@@ -443,8 +460,12 @@ export class ErrorTracker {
         )
         .join(' ');
 
-      // Don't capture our own logs
-      if (!message.includes('[ErrorTracker]')) {
+      // Don't capture our own logs or filtered info/debug logs
+      if (
+        !message.includes('[ErrorTracker]') &&
+        !message.includes('ℹ️') &&
+        !message.includes('🔍')
+      ) {
         this.captureError({
           errorType: 'ConsoleError',
           errorMessage: message,

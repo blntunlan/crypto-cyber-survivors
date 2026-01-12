@@ -14,7 +14,13 @@ import { EventBus } from '../services/EventBus';
 import { Logger } from '../services/Logger';
 import { Z_LAYERS } from '../constants/ZIndex';
 
-import { KernelStatus, LiveFeed, AccountHealthPremium, BuffIndicator } from './hud';
+import {
+  KernelStatus,
+  LiveFeed,
+  AccountHealthPremium,
+  BuffIndicator,
+  MarketAnnouncer,
+} from './hud';
 
 interface GameUIProps {
   position: MarketPosition;
@@ -198,6 +204,9 @@ export const GameUI: React.FC<GameUIProps> = memo(
             <KernelStatus player={player} smoothValues={smoothValues} />
           </div>
         </div>
+
+        {/* Market Events Announcer */}
+        <MarketAnnouncer />
 
         {/* Account Health (Bottom) - Adaptive Component */}
         <AccountHealthPremium

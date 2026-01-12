@@ -27,6 +27,9 @@ export interface PerformanceStats {
   avgFps: number;
   minFps: number;
   maxFps: number;
+  onePercentLow: number;
+  avgFrameTime: number;
+  maxFrameTime: number;
   sampleCount: number;
 }
 
@@ -214,12 +217,16 @@ export class PerformanceTracker {
    */
   getStats(): PerformanceStats {
     const history = this.fpsHistory.getAll();
+    const frameTimes = this.frameTimes.getAll();
 
     if (history.length === 0) {
       return {
         avgFps: 60,
         minFps: 60,
         maxFps: 60,
+        onePercentLow: 60,
+        avgFrameTime: 16.67,
+        maxFrameTime: 16.67,
         sampleCount: 0,
       };
     }
@@ -229,10 +236,20 @@ export class PerformanceTracker {
     const minFps = Math.min(...history);
     const maxFps = Math.max(...history);
 
+    const avgFrameTime =
+      frameTimes.length > 0
+        ? frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length
+        : 16.67;
+
+    const maxFrameTime = frameTimes.length > 0 ? Math.max(...frameTimes) : 16.67;
+
     return {
       avgFps,
       minFps,
       maxFps,
+      onePercentLow: this.getOnePercentLow(),
+      avgFrameTime,
+      maxFrameTime,
       sampleCount: history.length,
     };
   }

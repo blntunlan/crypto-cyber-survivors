@@ -57,10 +57,13 @@ export function sanitizeMessage(message: string): string {
   if (!message) return '';
   return message
     .substring(0, 500)
-    .replace(/api[_-]?key[=:]\s*[\w-]+/gi, 'api_key=***')
-    .replace(/token[=:]\s*[\w-]+/gi, 'token=***')
-    .replace(/password[=:]\s*[\w-]+/gi, 'password=***')
-    .replace(/bearer\s+[\w.-]+/gi, 'bearer ***');
+    .replace(/api[_-]?key[=:]\s*["']?[\w-]{20,}["']?/gi, 'api_key=***')
+    .replace(/token[=:]\s*["']?[\w.-]{30,}["']?/gi, 'token=***')
+    .replace(/password[=:]\s*["']?[\w%@#$!^&*()]+["']?/gi, 'password=***')
+    .replace(/secret[=:]\s*["']?[\w-]{20,}["']?/gi, 'secret=***')
+    .replace(/bearer\s+[\w.-]+/gi, 'bearer ***')
+    .replace(/x-api-key\s*[=:]\s*["']?[\w-]+["']?/gi, 'x-api-key=***')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[email_redacted]');
 }
 
 /**
@@ -104,22 +107,31 @@ export function sanitizeContext(
   context?: Record<string, unknown>
 ): Record<string, unknown> | undefined {
   if (!context) return undefined;
-  const sanitized: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(context)) {
-    if (typeof value === 'string' && value.length > 200) {
-      sanitized[key] = value.substring(0, 200) + '...';
-    } else if (typeof value === 'object' && value !== null) {
-      try {
-        sanitized[key] = JSON.parse(JSON.stringify(value));
-      } catch {
-        sanitized[key] = '[Object]';
-      }
-    } else {
-      sanitized[key] = value;
+  const seen = new WeakSet();
+  const walk = (obj: unknown): unknown => {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (seen.has(obj as object)) return '[Circular]';
+    seen.add(obj as object);
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => walk(item));
     }
-  }
-  return sanitized;
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (typeof value === 'string' && value.length > 200) {
+        result[key] = value.substring(0, 200) + '...';
+      } else if (typeof value === 'object' && value !== null) {
+        result[key] = walk(value);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  };
+
+  return walk(context) as Record<string, unknown>;
 }
 
 // =============================================================================

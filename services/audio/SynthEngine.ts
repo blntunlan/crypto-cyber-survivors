@@ -41,21 +41,37 @@ export class SynthEngine {
    */
   init(): SynthContext | null {
     try {
-      if (!this.ctx) {
-        const AudioCtx = window.AudioContext;
-        this.ctx = new AudioCtx();
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.connect(this.ctx.destination);
+      let ctx = this.ctx;
+      let masterGain = this.masterGain;
+
+      if (!ctx || !masterGain) {
+        const win = window as unknown as {
+          AudioContext?: typeof AudioContext;
+          webkitAudioContext?: typeof AudioContext;
+        };
+
+        const AudioCtxClass = win.AudioContext ?? win.webkitAudioContext;
+
+        if (!AudioCtxClass) {
+          throw new Error('AudioContext not supported in this browser');
+        }
+
+        ctx = new AudioCtxClass();
+        masterGain = ctx.createGain();
+        masterGain.connect(ctx.destination);
+
+        this.ctx = ctx;
+        this.masterGain = masterGain;
         this.updateGain(true); // Initial gain setup
       }
 
-      if (this.ctx.state === 'suspended') {
-        void this.ctx.resume().catch(e => {
+      if (ctx.state === 'suspended') {
+        void ctx.resume().catch(e => {
           Logger.warn('[SynthEngine] Failed to resume context:', e);
         });
       }
 
-      return this.masterGain ? { ctx: this.ctx, masterGain: this.masterGain } : null;
+      return { ctx, masterGain };
     } catch (error) {
       Logger.error('[SynthEngine] Initialization error:', error);
       return null;
@@ -297,7 +313,10 @@ export class SynthEngine {
       if (comp.frequencyEnd !== undefined) {
         const endFreq = comp.frequencyEnd * freqMult;
         if (env.ramp === 'exponential') {
-          osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+          osc.frequency.exponentialRampToValueAtTime(
+            Math.max(1, endFreq),
+            now + duration
+          );
         } else {
           osc.frequency.linearRampToValueAtTime(endFreq, now + duration);
         }
@@ -311,7 +330,7 @@ export class SynthEngine {
         filter.frequency.setValueAtTime(comp.filter.frequency, now);
         if (comp.filter.frequencyEnd !== undefined) {
           filter.frequency.exponentialRampToValueAtTime(
-            comp.filter.frequencyEnd,
+            Math.max(1, comp.filter.frequencyEnd),
             now + duration
           );
         }
@@ -324,8 +343,11 @@ export class SynthEngine {
       gain.gain.setValueAtTime(env.initial * volMult, now);
       if (env.ramp === 'exponential') {
         // Gain cannot exponential ramp to 0, use tiny value
-        gain.gain.exponentialRampToValueAtTime(peakVol, now + duration * 0.2); // Attack
-        gain.gain.exponentialRampToValueAtTime(0.001, now + duration); // Decay
+        gain.gain.exponentialRampToValueAtTime(
+          Math.max(0.0001, peakVol),
+          now + duration * 0.2
+        ); // Attack
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration); // Decay
       } else {
         gain.gain.linearRampToValueAtTime(peakVol, now + duration * 0.1); // Quick attack
         gain.gain.linearRampToValueAtTime(0, now + duration); // Decay

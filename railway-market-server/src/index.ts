@@ -5,6 +5,7 @@ import { SupabaseService } from './services/supabaseService';
 import { PriceLogger } from './services/priceLogger';
 import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
+import { ErrorReporter } from './utils/errorReporter';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -52,6 +53,9 @@ app.post('/cleanup', (_req, res) => {
 });
 
 async function startServer(): Promise<void> {
+  // Initialize global error handlers first
+  ErrorReporter.initGlobalHandlers();
+
   try {
     Logger.info('🚀 Starting Railway Market Server...');
 
@@ -86,6 +90,12 @@ async function startServer(): Promise<void> {
     });
   } catch (error) {
     Logger.error('Failed to start server:', error);
+    await ErrorReporter.report({
+      type: 'StartupError',
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      severity: 'critical',
+    });
     process.exit(1);
   }
 }

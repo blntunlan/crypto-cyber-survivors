@@ -12,6 +12,7 @@ import { Logger } from '../Logger';
 import { type SessionMetrics } from '../../types/metrics';
 import { supabase, isSupabaseConfigured } from '../Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
+import { VerificationQueue } from '../verification/VerificationQueue';
 
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
@@ -118,7 +119,12 @@ export class MetricsStorage {
           entry_price: session.bitcoin.priceAtStart,
           exit_price: session.bitcoin.priceAtEnd,
           pnl_percent: session.bitcoin.pnlAtDeath,
+          claimed_entry_price: session.bitcoin.priceAtStart,
+          claimed_exit_price: session.bitcoin.priceAtEnd,
+          claimed_pnl: session.bitcoin.pnlAtDeath,
           device_fingerprint: session.performance?.deviceFingerprint,
+          is_suspicious: session.verification?.isSuspicious ?? false,
+          suspicion_reason: session.verification?.suspicionReason,
           session_id: session.sessionId,
         })
         .select('id')
@@ -139,6 +145,28 @@ export class MetricsStorage {
         throw sessionError;
       }
 
+      // 1b. Enqueue for server-side verification (rewards & anti-cheat)
+      const nickname = UserSessionService.getNickname();
+      if (nickname) {
+        void VerificationQueue.enqueue({
+          userId: nickname, // Edge function uses display_name (nickname) for lookup
+          startTime: session.sessionTimestamp,
+          endTime: session.sessionTimestamp + session.player.survivalTimeMs,
+          pair: session.pair,
+          position: session.bitcoin.positionChosen,
+          leverage: session.bitcoin.leverage,
+          claimedEntryPrice: session.bitcoin.priceAtStart,
+          claimedExitPrice: session.bitcoin.priceAtEnd,
+          claimedPnL: session.bitcoin.pnlAtDeath, // Percentage
+          kills: session.player.totalKills,
+          level: session.player.maxLevel,
+          goldCollected: 0, // Not tracked yet
+          survivalTimeMs: session.player.survivalTimeMs,
+          optimisticReward: 0, // No client-side optimistic reward yet
+          sessionId: session.serverSessionId ?? session.sessionId,
+        });
+      }
+
       Logger.info('[MetricsStorage] Game session synced');
 
       // 2. Insert performance metrics (if available)
@@ -153,6 +181,12 @@ export class MetricsStorage {
           memory_used_mb: session.performance.memoryUsedMb,
           memory_peak_mb: session.performance.memoryPeakMb,
           enemy_count_max: session.performance.enemyCountMax,
+          fps_1_percentile: session.performance.fps_1_percentile,
+          avg_frame_time_ms: session.performance.avg_frame_time_ms,
+          max_frame_time_ms: session.performance.max_frame_time_ms,
+          enemy_count_avg: session.performance.enemy_count_avg,
+          bullet_count_avg: session.performance.bullet_count_avg,
+          particle_count_avg: session.performance.particle_count_avg,
           optimization_profile: session.performance.optimizationProfile,
           device_fingerprint: session.performance.deviceFingerprint,
         });
@@ -164,62 +198,67 @@ export class MetricsStorage {
         }
       }
 
-      // 3. Update player stats (if not anonymous)
-      if (!isAnonymous) {
-        await this.updatePlayerStats(playerId, session);
+      // 3. Upsert device profile
+      if (session.performance?.deviceFingerprint) {
+        const { error: deviceError } = await supabase.from('device_profiles').upsert(
+          {
+            fingerprint: session.performance.deviceFingerprint,
+            browser: session.performance.browser,
+            browser_version: session.performance.browserVersion,
+            os: session.performance.os,
+            pixel_ratio: session.performance.pixelRatio,
+            gpu_renderer: session.performance.gpuRenderer,
+            last_seen_at: new Date().toISOString(),
+          },
+          { onConflict: 'fingerprint' }
+        );
+
+        if (deviceError) {
+          Logger.warn('[MetricsStorage] Device profile sync failed', deviceError);
+        }
       }
+
+      // 3. Upsert device profile (Already implemented)
+      // ... (device profile code)
+
+      // 4. Upload Replay Logs (if significant session)
+      if (
+        session.inputLogs &&
+        session.inputLogs.length > 0 &&
+        session.player.survivalTimeMs > 60000 // Only upload logs for runs > 1 minute
+      ) {
+        // Upload asynchronously to avoid blocking
+        void (async () => {
+          try {
+            const blob = new Blob([JSON.stringify(session.inputLogs)], {
+              type: 'application/json',
+            });
+            const { error: uploadError } = await supabase.storage
+              .from('session-replays')
+              .upload(`${session.sessionId}.json`, blob, {
+                upsert: true,
+              });
+
+            if (uploadError) {
+              // Bucket might not exist, strictly optional feature for now
+              Logger.debug(
+                '[MetricsStorage] Log upload failed (Bucket missing?)',
+                uploadError
+              );
+            } else {
+              Logger.info('[MetricsStorage] Replay logs uploaded');
+            }
+          } catch (err) {
+            Logger.warn('[MetricsStorage] Log upload exception', err);
+          }
+        })();
+      }
+
+      // 5. Player stats are updated automatically via database trigger
+      // on the server when a record is inserted into 'game_sessions'.
     } catch (err) {
       // Silent fail is okay for metrics, but log warning
       Logger.warn('[MetricsStorage] Supabase sync failed', err);
-    }
-  }
-
-  /**
-   * Update player aggregate stats after game session
-   */
-  private async updatePlayerStats(
-    playerId: string,
-    session: SessionMetrics
-  ): Promise<void> {
-    if (!supabase) return;
-
-    try {
-      // Get current player stats
-      const { data: player, error: fetchError } = await supabase
-        .from('players')
-        .select('high_score, total_kills, total_playtime_ms, best_pnl_percent')
-        .eq('id', playerId)
-        .single();
-
-      if (fetchError) return;
-
-      // Calculate updates
-      const newHighScore = Math.max(player.high_score, session.player.survivalTimeMs);
-      const newTotalKills = player.total_kills + session.player.totalKills;
-      const newTotalPlaytime = player.total_playtime_ms + session.player.survivalTimeMs;
-      const pnl = session.bitcoin.pnlAtDeath;
-      const newBestPnl = pnl > player.best_pnl_percent ? pnl : player.best_pnl_percent;
-
-      // Update player
-      const { error: updateError } = await supabase
-        .from('players')
-        .update({
-          high_score: newHighScore,
-          total_kills: newTotalKills,
-          total_playtime_ms: newTotalPlaytime,
-          best_pnl_percent: newBestPnl,
-        })
-        .eq('id', playerId);
-
-      if (updateError) {
-        Logger.warn('[MetricsStorage] Player stats update failed', updateError);
-      } else if (newHighScore > player.high_score) {
-        Logger.info(
-          `[MetricsStorage] New high score! ${player.high_score} → ${newHighScore}`
-        );
-      }
-    } catch (err) {
-      Logger.warn('[MetricsStorage] Player stats update error', err);
     }
   }
 

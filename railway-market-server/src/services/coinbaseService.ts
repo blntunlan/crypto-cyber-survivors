@@ -2,64 +2,50 @@ import WebSocket from 'ws';
 import { Logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { ErrorReporter } from '../utils/errorReporter';
+import { type KlineData } from './binanceService';
 
-export interface KlineData {
-  pair: string;
-  timestamp: Date;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
+interface CoinbaseTicker {
+  type: string;
+  product_id: string;
+  price: string;
+  volume_24h: string;
+  time: string;
 }
 
-interface KlinePayload {
-  e: string;
-  s: string;
-  k: {
-    t: number;
-    o: string;
-    h: string;
-    l: string;
-    c: string;
-    v: string;
-    s: string;
-  };
-}
-
-export class BinanceService extends EventEmitter {
-  private static instance: BinanceService | null = null;
+export class CoinbaseService extends EventEmitter {
+  private static instance: CoinbaseService | null = null;
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectDelay = 1000;
   private maxReconnectDelay = 30000;
   private isIntentionallyClosed = false;
 
-  private readonly WS_URL = 'wss://stream.binance.com:9443/stream';
-  private readonly PAIRS = ['btcusdt', 'ethusdt', 'solusdt'];
+  private readonly WS_URL = 'wss://ws-feed.exchange.coinbase.com';
+  // Coinbase uses BTC-USD format
+  private readonly PAIRS = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
 
   private constructor() {
     super();
   }
 
-  static getInstance(): BinanceService {
-    return (BinanceService.instance ??= new BinanceService());
+  static getInstance(): CoinbaseService {
+    return (CoinbaseService.instance ??= new CoinbaseService());
   }
 
   async connect(): Promise<void> {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      Logger.warn('Already connected to Binance');
+      Logger.warn('Already connected to Coinbase');
       return;
     }
 
     return new Promise((resolve, reject) => {
-      Logger.info('🔄 Connecting to Binance streams...');
+      Logger.info('🔄 Connecting to Coinbase (Fallback)...');
       this.isIntentionallyClosed = false;
 
       this.ws = new WebSocket(this.WS_URL);
 
       this.ws.on('open', () => {
-        Logger.info('✅ Connected to Binance WebSocket');
+        Logger.info('✅ Connected to Coinbase WebSocket');
         this.reconnectDelay = 1000;
         this.subscribe();
         resolve();
@@ -69,70 +55,65 @@ export class BinanceService extends EventEmitter {
         try {
           const parsed = JSON.parse(data.toString());
 
-          if (parsed.data?.e === 'kline') {
-            const kline = this.parseKlineData(parsed.data as KlinePayload);
+          if (parsed.type === 'ticker') {
+            const kline = this.parseTickerData(parsed as CoinbaseTicker);
             this.emit('kline', kline);
           }
         } catch (error) {
-          Logger.error('Failed to parse Binance message:', error);
-          void ErrorReporter.report({
-            type: 'BinanceParseError',
-            message: (error as Error).message,
-            severity: 'low',
-            context: { data: String(data).substring(0, 500) },
-          });
+          Logger.error('Failed to parse Coinbase message:', error);
         }
       });
 
       this.ws.on('error', error => {
-        Logger.error('Binance WebSocket error:', error);
+        Logger.error('Coinbase WebSocket error:', error);
         void ErrorReporter.report({
-          type: 'BinanceWebSocketError',
+          type: 'CoinbaseWebSocketError',
           message: error.message,
-          severity: 'high',
+          severity: 'medium',
         });
         reject(error);
       });
 
       this.ws.on('close', () => {
-        Logger.warn('Binance WebSocket closed');
+        Logger.warn('Coinbase WebSocket closed');
         this.ws = null;
 
         if (!this.isIntentionallyClosed) {
           this.scheduleReconnect();
         }
       });
-
-      this.ws.on('ping', () => {
-        this.ws?.pong();
-      });
     });
   }
 
   private subscribe(): void {
-    const streams = this.PAIRS.map(pair => `${pair}@kline_1s`);
-
     const subscribeMessage = {
-      method: 'SUBSCRIBE',
-      params: streams,
-      id: Date.now(),
+      type: 'subscribe',
+      product_ids: this.PAIRS,
+      channels: ['ticker'],
     };
 
     this.ws?.send(JSON.stringify(subscribeMessage));
-    Logger.info(`Tracking pairs: ${this.PAIRS.join(', ')}`);
+    Logger.info(`Tracking Coinbase pairs: ${this.PAIRS.join(', ')}`);
   }
 
-  private parseKlineData(data: KlinePayload): KlineData {
-    const k = data.k;
+  private parseTickerData(data: CoinbaseTicker): KlineData {
+    // Coinbase gives us current price (Ticker)
+    // We approximate a 1s Kline:
+    // Open = Close = Price
+    // High = Low = Price
+    // Volume = 0 (We don't get 1s volume from ticker, only 24h)
+
+    const pair = data.product_id.replace('-USD', 'USDT').replace('-', ''); // BTC-USD -> BTCUSDT
+    const price = parseFloat(data.price);
 
     return {
-      pair: k.s.replace('USDT', '').toUpperCase(),
-      timestamp: new Date(k.t),
-      open: parseFloat(k.o),
-      high: parseFloat(k.h),
-      low: parseFloat(k.l),
-      close: parseFloat(k.c),
-      volume: parseFloat(k.v),
+      pair, // Keep consistent with Binance format (BTCUSDT)
+      timestamp: new Date(data.time),
+      open: price,
+      high: price,
+      low: price,
+      close: price,
+      volume: 0, // Fallback mode has no volume analysis
     };
   }
 
@@ -141,12 +122,11 @@ export class BinanceService extends EventEmitter {
       clearTimeout(this.reconnectTimer);
     }
 
-    Logger.info(`Reconnecting in ${this.reconnectDelay}ms...`);
+    Logger.info(`Reconnecting Coinbase in ${this.reconnectDelay}ms...`);
 
     this.reconnectTimer = setTimeout(() => {
       this.connect().catch(error => {
-        Logger.error('Reconnect failed:', error);
-
+        Logger.error('Coinbase Reconnect failed:', error);
         this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
       });
     }, this.reconnectDelay);
@@ -165,7 +145,7 @@ export class BinanceService extends EventEmitter {
       this.ws = null;
     }
 
-    Logger.info('Disconnected from Binance');
+    Logger.info('Disconnected from Coinbase');
   }
 
   isConnected(): boolean {

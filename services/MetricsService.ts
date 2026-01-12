@@ -12,6 +12,9 @@ import { EventBus } from './EventBus';
 import { Logger } from './Logger';
 import { type MarketPosition } from '../types';
 import { type CryptoPair } from '../types/crypto';
+import { supabase, isSupabaseConfigured } from './Supabase';
+import { UserSessionService } from './auth/UserSessionService';
+import { InputLogger } from './InputLogger';
 import { getMetricsConfig, type MetricsConfig } from '../config/MetricsConfig';
 import {
   type MetricsState,
@@ -144,16 +147,51 @@ export class MetricsServiceClass {
       currentComboStartTime: 0,
       longestComboTime: 0,
       totalBonusXp: 0,
+      enemyCountSamples: [],
+      bulletCountSamples: [],
+      particleCountSamples: [],
     };
 
     // Initial price snapshot
     this.state.pnlHistory.push({ time: now, value: 0 });
+
+    // Start Input Logger
+    InputLogger.getInstance().start();
 
     Logger.info(`[Metrics] Session started: ${sessionId}`, {
       position,
       entryPrice,
       leverage,
     });
+
+    // START SERVER-SIDE SESSION (Async)
+    if (isSupabaseConfigured() && supabase) {
+      void (async () => {
+        try {
+          const nickname = UserSessionService.getNickname();
+          if (!nickname) return;
+
+          const { data, error } = await supabase.functions.invoke('start-session', {
+            body: {
+              userId: nickname,
+              pair,
+              position,
+              leverage,
+            },
+          });
+
+          if (error) {
+            Logger.warn('[Metrics] Failed to start server session', error);
+          } else if (data && this.state?.sessionId === sessionId) {
+            // Only update if state hasn't changed (race condition check)
+            this.state.serverSessionId = data.sessionId;
+            Logger.info(`[Metrics] Server session established: ${data.sessionId}`);
+          }
+        } catch (err) {
+          Logger.warn('[Metrics] Error starting server session', err);
+        }
+      })();
+    }
 
     return sessionId;
   }
@@ -183,7 +221,24 @@ export class MetricsServiceClass {
       totalKills: number;
       avgFps?: number;
       minFps?: number;
+      maxFps?: number;
+      fps_1_percentile?: number;
+      fpsSamples?: number;
+      avg_frame_time_ms?: number;
+      max_frame_time_ms?: number;
+      frameDrops?: number;
+      memoryUsedMb?: number;
+      memoryPeakMb?: number;
+      enemyCountMax?: number;
+      enemy_count_avg?: number;
+      bullet_count_avg?: number;
+      particle_count_avg?: number;
+      optimizationProfile?: string;
       deviceFingerprint?: string;
+      browser?: string;
+      os?: string;
+      pixelRatio?: number;
+      gpuRenderer?: string;
     }
   ): SessionMetrics | null {
     if (!this.config.enabled) {
@@ -201,6 +256,7 @@ export class MetricsServiceClass {
     // Use MetricsCompiler for standardized report generation
     const session: SessionMetrics = {
       sessionId: this.state.sessionId,
+      serverSessionId: this.state.serverSessionId,
       sessionTimestamp: this.state.sessionStartTime,
       gameEndReason: reason,
       pair: this.state.pair,
@@ -214,12 +270,45 @@ export class MetricsServiceClass {
       combo: MetricsCompiler.compileComboMetrics(this.state),
       card: MetricsCompiler.compileCardMetrics(this.state),
       enemy: MetricsCompiler.compileEnemyMetrics(this.state),
+      inputLogs: InputLogger.getInstance().stop(),
       performance:
         finalData.avgFps !== undefined
           ? MetricsCompiler.compilePerformanceMetrics({
               avgFps: finalData.avgFps,
               minFps: finalData.minFps ?? 0,
+              maxFps: finalData.maxFps,
+              fps_1_percentile: finalData.fps_1_percentile,
+              fpsSamples: finalData.fpsSamples,
+              avg_frame_time_ms: finalData.avg_frame_time_ms,
+              max_frame_time_ms: finalData.max_frame_time_ms,
+              frameDrops: finalData.frameDrops,
+              memoryUsedMb: finalData.memoryUsedMb,
+              memoryPeakMb: finalData.memoryPeakMb,
+              enemyCountMax: finalData.enemyCountMax ?? this.state.maxEnemiesOnScreen,
+              enemy_count_avg:
+                finalData.enemy_count_avg ??
+                (this.state.enemyCountSamples.length > 0
+                  ? this.state.enemyCountSamples.reduce((a, b) => a + b, 0) /
+                    this.state.enemyCountSamples.length
+                  : 0),
+              bullet_count_avg:
+                finalData.bullet_count_avg ??
+                (this.state.bulletCountSamples.length > 0
+                  ? this.state.bulletCountSamples.reduce((a, b) => a + b, 0) /
+                    this.state.bulletCountSamples.length
+                  : 0),
+              particle_count_avg:
+                finalData.particle_count_avg ??
+                (this.state.particleCountSamples.length > 0
+                  ? this.state.particleCountSamples.reduce((a, b) => a + b, 0) /
+                    this.state.particleCountSamples.length
+                  : 0),
+              optimizationProfile: finalData.optimizationProfile,
               deviceFingerprint: finalData.deviceFingerprint ?? '',
+              browser: finalData.browser,
+              os: finalData.os,
+              pixelRatio: finalData.pixelRatio,
+              gpuRenderer: finalData.gpuRenderer,
             })
           : undefined,
     };
@@ -248,6 +337,8 @@ export class MetricsServiceClass {
     difficulty: number,
     hpPercent: number,
     enemyCount: number,
+    bulletCount: number,
+    particleCount: number,
     wavePhase: WavePhase,
     atr: number
   ): void {
@@ -286,6 +377,9 @@ export class MetricsServiceClass {
       this.state.pnlHistory.push({ time: now, value: pnl });
       this.state.difficultyHistory.push({ time: now, value: difficulty });
       this.state.atrHistory.push({ time: now, value: atr });
+      this.state.enemyCountSamples.push(enemyCount);
+      this.state.bulletCountSamples.push(bulletCount);
+      this.state.particleCountSamples.push(particleCount);
       this.lastSampleTime = now;
     }
 
@@ -317,6 +411,7 @@ export class MetricsServiceClass {
       return;
     }
     this.state.totalDamageTaken += amount;
+    InputLogger.getInstance().log('DAMAGE_TAKEN', { amount });
   }
 
   /**
@@ -390,6 +485,11 @@ export class MetricsServiceClass {
       tier: cardTier,
       level,
     });
+    InputLogger.getInstance().log('LEVEL_UP', {
+      level,
+      card: cardChosen,
+      tier: cardTier,
+    });
   }
 
   /**
@@ -448,6 +548,7 @@ export class MetricsServiceClass {
       return;
     }
     this.state.nearDeathActivations++;
+    InputLogger.getInstance().log('NEAR_DEATH', {});
   }
 
   // ============= Private Helpers =============
@@ -645,12 +746,17 @@ export class MetricsServiceClass {
     this.eventUnsubscribers.push(
       EventBus.on('comboMilestone', data => {
         this.trackComboMilestone(data.name);
+        InputLogger.getInstance().log('COMBO_MILESTONE', { name: data.name });
       })
     );
 
     this.eventUnsubscribers.push(
       EventBus.on('comboEnd', data => {
         this.trackComboEnd(data.finalStreak, data.bonusXp);
+        InputLogger.getInstance().log('COMBO_END', {
+          streak: data.finalStreak,
+          xp: data.bonusXp,
+        });
       })
     );
   }

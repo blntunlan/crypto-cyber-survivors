@@ -14,22 +14,29 @@ import {
   Sliders,
   Package,
   Palette,
-  X,
-  Save,
-  RotateCcw,
   Download,
+  RotateCcw,
+  Save,
+  ShieldAlert,
+  Terminal,
   Upload,
+  X,
 } from 'lucide-react';
 import { useAdminConfigStore } from '../../stores/admin/configStore';
 import { priceAnalyzer } from '../../services/admin/PriceAnalyzerService';
 import { adminPriceFeed } from '../../services/admin/AdminPriceFeedService';
+import {
+  adminAnalytics,
+  type MarketHealth,
+  type ErrorOccurence,
+} from '../../services/admin/AdminAnalyticsService';
 import type { CryptoPair, PriceAnalysis, TrendDirection } from '../../types/admin';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-type TabId = 'price' | 'difficulty' | 'spawn' | 'items' | 'visuals';
+type TabId = 'price' | 'difficulty' | 'spawn' | 'items' | 'visuals' | 'analytics';
 
 interface Tab {
   id: TabId;
@@ -51,6 +58,7 @@ const TABS: Tab[] = [
   { id: 'spawn', label: 'Spawn Config', icon: <Settings size={18} /> },
   { id: 'items', label: 'Items & Drops', icon: <Package size={18} /> },
   { id: 'visuals', label: 'Visuals', icon: <Palette size={18} /> },
+  { id: 'analytics', label: 'Analytics', icon: <Activity size={18} /> },
 ];
 
 // =============================================================================
@@ -234,6 +242,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               {activeTab === 'spawn' && <SpawnPanel />}
               {activeTab === 'items' && <ItemsPanel />}
               {activeTab === 'visuals' && <VisualsPanel />}
+              {activeTab === 'analytics' && <AnalyticsPanel />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -799,6 +808,227 @@ const VisualsPanel: React.FC = () => {
             />
             <span className="text-sm font-medium text-slate-300">Glow Effects</span>
           </label>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// ANALYTICS PANEL - Market Health & Error Reports
+// =============================================================================
+
+const AnalyticsPanel: React.FC = () => {
+  const [health, setHealth] = useState<MarketHealth | null>(null);
+  const [errors, setErrors] = useState<ErrorOccurence[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [h, e] = await Promise.all([
+        adminAnalytics.getMarketHealth(),
+        adminAnalytics.getErrorSummary(),
+      ]);
+      setHealth(h);
+      setErrors(e as ErrorOccurence[]);
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchData();
+    const interval = setInterval(() => {
+      void fetchData();
+    }, 30000); // Auto refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleResolve = (type: string) => {
+    void adminAnalytics.resolveError(type).then(success => {
+      if (success) {
+        setErrors(prev => prev.filter(e => e.error_type !== type));
+      }
+    });
+  };
+
+  if (isLoading && !health) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-cyan-400 animate-pulse font-mono">
+          LOADING ANALYTICS...
+        </div>
+      </div>
+    );
+  }
+
+  const currentHealth = health ?? {
+    status: 'no_data',
+    last_ping: null,
+    delay_seconds: null,
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Market Health Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Activity size={20} className="text-cyan-400" />
+            Market System Health
+          </h2>
+          <button
+            onClick={() => {
+              void fetchData();
+            }}
+            className="text-xs text-slate-500 hover:text-white transition-colors"
+          >
+            Refresh Now
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+            <div className="text-sm text-slate-500 mb-1">Status</div>
+            <div
+              className={`text-xl font-bold flex items-center gap-2 ${
+                currentHealth.status === 'healthy'
+                  ? 'text-green-400'
+                  : currentHealth.status === 'stale'
+                    ? 'text-amber-400'
+                    : 'text-red-400'
+              }`}
+            >
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  currentHealth.status === 'healthy'
+                    ? 'bg-green-500'
+                    : currentHealth.status === 'stale'
+                      ? 'bg-amber-500'
+                      : 'bg-red-500'
+                }`}
+              />
+              {currentHealth.status.toUpperCase() || 'OFFLINE'}
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+            <div className="text-sm text-slate-500 mb-1">Last Data Ping</div>
+            <div className="text-xl font-bold text-white">
+              {currentHealth.last_ping
+                ? new Date(currentHealth.last_ping).toLocaleTimeString()
+                : 'N/A'}
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+            <div className="text-sm text-slate-500 mb-1">Latency</div>
+            <div className="text-xl font-bold text-white">
+              {currentHealth.delay_seconds !== null
+                ? `${currentHealth.delay_seconds}s`
+                : '--'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Error Reports Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <ShieldAlert size={20} className="text-red-400" />
+            Top Active Errors
+          </h2>
+        </div>
+
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-900/50 text-slate-400">
+              <tr>
+                <th className="px-4 py-3">Error Type / Category</th>
+                <th className="px-4 py-3 text-center">Severity</th>
+                <th className="px-4 py-3 text-center">Count</th>
+                <th className="px-4 py-3 text-right">Last Seen</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700/50">
+              {errors.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-8 text-center text-slate-500 italic"
+                  >
+                    No active errors reported. Everything is running smoothly!
+                  </td>
+                </tr>
+              ) : (
+                errors.map(err => (
+                  <tr
+                    key={err.error_type}
+                    className="hover:bg-slate-700/20 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-white">{err.error_type}</div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">
+                        {err.category}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          err.severity === 'critical'
+                            ? 'bg-red-500 text-white'
+                            : err.severity === 'high'
+                              ? 'bg-orange-500/20 text-orange-400'
+                              : err.severity === 'medium'
+                                ? 'bg-yellow-500/20 text-yellow-500'
+                                : 'bg-blue-500/20 text-blue-400'
+                        }`}
+                      >
+                        {err.severity}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-mono text-cyan-400">
+                      {err.occurrences}
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-400">
+                      {new Date(err.last_seen).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => {
+                          handleResolve(err.error_type);
+                        }}
+                        className="px-3 py-1 bg-green-500/10 hover:bg-green-500 text-green-400 hover:text-white border border-green-500/20 rounded-lg text-xs transition-all"
+                      >
+                        Resolve All
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Monitoring Info */}
+      <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl flex gap-3">
+        <Terminal size={20} className="text-slate-500 mt-1" />
+        <div className="text-xs text-slate-500 space-y-1">
+          <p className="text-slate-400 font-medium">Monitoring System Status</p>
+          <p>
+            Railway Market Server is pushing data to Supabase. Edge Functions are
+            verifying gameplay.
+          </p>
+          <p>
+            Global error tracking is active. Offline reports will be queued until the
+            next session.
+          </p>
         </div>
       </div>
     </div>

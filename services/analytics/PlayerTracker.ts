@@ -24,7 +24,6 @@ interface PlayerData {
 export class PlayerTracker {
   private static instance: PlayerTracker | null = null;
   private currentPlayer: PlayerData | null = null;
-  private updateInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
     // Initialize player on construction
@@ -72,23 +71,12 @@ export class PlayerTracker {
       }
 
       if (existing) {
-        // Update existing player
-        const { error: updateError } = await supabase
-          .from('players')
-          .update({
-            last_seen_at: new Date().toISOString(),
-            total_sessions: existing.total_sessions + 1,
-          })
-          .eq('id', playerId);
-
-        if (updateError) throw updateError;
-
         this.currentPlayer = {
           id: existing.id,
           displayName: existing.display_name,
           createdAt: existing.created_at,
-          lastSeenAt: new Date().toISOString(),
-          totalSessions: existing.total_sessions + 1,
+          lastSeenAt: existing.last_seen_at,
+          totalSessions: existing.total_sessions,
           highScore: existing.high_score ?? 0,
         };
 
@@ -102,7 +90,7 @@ export class PlayerTracker {
             display_name: nickname,
             created_at: new Date().toISOString(),
             last_seen_at: new Date().toISOString(),
-            total_sessions: 1,
+            total_sessions: 0, // Will be incremented by first session trigger
           })
           .select()
           .single();
@@ -114,98 +102,14 @@ export class PlayerTracker {
           displayName: newPlayer.display_name,
           createdAt: newPlayer.created_at,
           lastSeenAt: newPlayer.last_seen_at,
-          totalSessions: 1,
+          totalSessions: 0,
           highScore: 0,
         };
 
         Logger.info(`[PlayerTracker] New player registered: ${nickname}`);
       }
-
-      // Start periodic heartbeat
-      this.startHeartbeat();
     } catch (err) {
       Logger.error('[PlayerTracker] Failed to initialize player', err);
-    }
-  }
-
-  /**
-   * Start periodic "last seen" updates
-   */
-  private startHeartbeat(): void {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-    }
-
-    // Update every 5 minutes
-    this.updateInterval = setInterval(
-      () => {
-        void this.updateLastSeen();
-      },
-      5 * 60 * 1000
-    );
-
-    Logger.debug('[PlayerTracker] Heartbeat started');
-  }
-
-  /**
-   * Update last seen timestamp
-   */
-  private async updateLastSeen(): Promise<void> {
-    if (!this.currentPlayer || !isSupabaseConfigured() || !supabase) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('players')
-        .update({
-          last_seen_at: new Date().toISOString(),
-        })
-        .eq('id', this.currentPlayer.id);
-
-      if (error) throw error;
-
-      this.currentPlayer.lastSeenAt = new Date().toISOString();
-      Logger.debug('[PlayerTracker] Last seen updated');
-    } catch (err) {
-      Logger.warn('[PlayerTracker] Failed to update last seen', err);
-    }
-  }
-
-  /**
-   * Update high score if new score is higher
-   * @returns true if high score was updated, false otherwise
-   */
-  async updateHighScore(newScore: number): Promise<boolean> {
-    if (!this.currentPlayer || !isSupabaseConfigured() || !supabase) {
-      return false;
-    }
-
-    // Only update if new score is higher
-    if (newScore <= this.currentPlayer.highScore) {
-      Logger.debug(
-        `[PlayerTracker] Score ${newScore} not higher than high score ${this.currentPlayer.highScore}`
-      );
-      return false;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('players')
-        .update({
-          high_score: newScore,
-        })
-        .eq('id', this.currentPlayer.id);
-
-      if (error) throw error;
-
-      const oldScore = this.currentPlayer.highScore;
-      this.currentPlayer.highScore = newScore;
-      Logger.info(`[PlayerTracker] New high score! ${oldScore} → ${newScore}`);
-      return true;
-    } catch (err) {
-      Logger.warn('[PlayerTracker] Failed to update high score', err);
-      return false;
     }
   }
 
@@ -283,10 +187,6 @@ export class PlayerTracker {
    * Stop heartbeat on logout
    */
   stop(): void {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
     this.currentPlayer = null;
     Logger.info('[PlayerTracker] Stopped');
   }

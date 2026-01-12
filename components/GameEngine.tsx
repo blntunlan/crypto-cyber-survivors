@@ -32,7 +32,7 @@ import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
-import { marketStateService } from '../services/MarketStateService';
+import { MarketStateService } from '../services/MarketStateService';
 import { Logger } from '../services/Logger';
 import { EventBus } from '../services/EventBus';
 import { EngineRegistry } from '../services/EngineRegistry';
@@ -130,6 +130,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Near Miss Tension
     nearMissTimer: 0,
     nearMissCooldown: 0,
+
+    // Market Visuals
+    rsiVisualState: 'NEUTRAL',
+    whaleEventTimer: 0,
   });
 
   // Track last synced stats to prevent unnecessary re-renders in App.tsx
@@ -186,29 +190,44 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   useGameStatusEffects({ status, pool, state, playerRef, width, height });
 
   // Market State Initialization (Server-Side Indicators)
+  // Market State Initialization (Server-Side Indicators)
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
-      marketStateService
-        .initialize(pair, position)
-        .then(state => {
-          Logger.info('[GameEngine] Market state initialized:', state);
+      MarketStateService.init()
+        .then(() => {
+          Logger.info('[GameEngine] Market state initialized');
         })
         .catch(err => {
           Logger.error('[GameEngine] Failed to initialize market state:', err);
         });
 
-      // Return cleanup only when we initialized
-      // This ensures destroy() is called when:
-      // 1. Status changes away from PLAYING
-      // 2. Position or pair changes while PLAYING
-      // 3. Component unmounts
+      // Market Events for Visual Effects
+      const handleRSIChange = (data: {
+        state: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+      }) => {
+        state.current.rsiVisualState = data.state;
+        Logger.info(`[GameEngine] RSI Visual State: ${data.state}`);
+      };
+
+      const handleWhaleChange = (data: { tier: number }) => {
+        if (data.tier > 0) {
+          state.current.whaleEventTimer = 2000; // 2 seconds of effect
+          state.current.shake = 15 + data.tier * 5; // Big shake
+        }
+      };
+
+      const unsubRSI = EventBus.on('rsiStateChanged', handleRSIChange);
+      const unsubWhale = EventBus.on('whaleTierChanged', handleWhaleChange);
+
       return () => {
-        void marketStateService.destroy();
+        MarketStateService.cleanup();
+        unsubRSI();
+        unsubWhale();
       };
     }
     // No cleanup needed if we didn't initialize
     return undefined;
-  }, [status, position, pair]);
+  }, [status, pair, position, state]);
 
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
@@ -353,6 +372,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
         }
 
+        if (s.whaleEventTimer > 0) {
+          s.whaleEventTimer -= deltaTime;
+        }
+
         // Recover player scale (Squash & Stretch)
         // Lerp back to 1.0 with a springy speed
         s.playerScaleX = lerp(
@@ -398,8 +421,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           marketDataRef.current.difficulty,
           hpPercent,
           p.activeEnemies.length,
+          p.activeBullets.length,
+          p.activeParticles.length,
           wavePhase,
-          0.01 // ATR
+          marketDataRef.current.atrPercent ?? 0.01
         );
 
         // Low HP Heartbeat Logic

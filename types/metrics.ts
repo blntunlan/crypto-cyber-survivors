@@ -163,7 +163,9 @@ export interface EnemyMetrics {
 
 export interface SessionMetrics {
   sessionId: string;
+  serverSessionId?: string; // UUID from server
   sessionTimestamp: number;
+  serverStartTime?: number; // Timestamp from server
   gameEndReason: GameEndReason;
   pair: CryptoPair;
   bitcoin: BitcoinMetrics;
@@ -178,20 +180,51 @@ export interface SessionMetrics {
     avgFps: number;
     minFps: number;
     maxFps?: number;
+    fps_1_percentile?: number;
     fpsSamples?: number;
+    avg_frame_time_ms?: number;
+    max_frame_time_ms?: number;
     frameDrops?: number;
     memoryUsedMb?: number;
     memoryPeakMb?: number;
     enemyCountMax?: number;
+    enemy_count_avg?: number;
+    bullet_count_avg?: number;
+    particle_count_avg?: number;
     optimizationProfile?: string;
     deviceFingerprint: string;
+    // Expanded device details
+    browser?: string;
+    browserVersion?: string;
+    os?: string;
+    pixelRatio?: number;
+    gpuRenderer?: string;
   };
+
+  // Verification
+  verification?: {
+    status: 'pending' | 'verified' | 'rejected';
+    isSuspicious: boolean;
+    suspicionReason?: string;
+  };
+
+  // Error reports (optional collection per session)
+  errors?: Array<{
+    code: string;
+    message: string;
+    component: string;
+    timestamp: number;
+  }>;
+
+  // Replay Data
+  inputLogs?: Array<{ t: number; a: string; d?: unknown }>;
 }
 
 // ============= Real-time Tracking State =============
 
 export interface MetricsState {
   sessionId: string;
+  serverSessionId?: string;
   sessionStartTime: number;
   isActive: boolean;
   pair: CryptoPair;
@@ -246,6 +279,11 @@ export interface MetricsState {
   currentComboStartTime: number;
   longestComboTime: number;
   totalBonusXp: number;
+
+  // Real-time averages
+  enemyCountSamples: number[];
+  bulletCountSamples: number[];
+  particleCountSamples: number[];
 }
 
 // ============= Analysis & Insights =============

@@ -54,7 +54,48 @@ export class MarketIndicatorService {
     // Subscribe to game reset
     EventBus.on('gameReset', () => this.reset());
 
-    Logger.debug('[MarketIndicatorService] Initialized');
+    // Sync with Server-Side Market State
+    EventBus.on('marketStateUpdated', serverState => {
+      // If we are getting server-side updates, use them to sync our indicators
+      // This ensures client and server are always in agreement (Anti-Cheat)
+      const previousRsiState = this.state.rsiState;
+      const previousWhaleTier = this.state.whaleTier;
+
+      this.state = {
+        ...this.state,
+        rsi: serverState.rsi,
+        rsiState: serverState.rsiState,
+        whaleTier: serverState.whaleTier,
+        atr: serverState.atr,
+        atrPercent: serverState.atrPercent,
+        spawnRateMultiplier: serverState.spawnRateMultiplier,
+        normalizedVolume: serverState.normalizedVolume,
+        lastUpdateTime: Date.now(),
+        isInitialized: true,
+      };
+
+      // Emit granular events if states changed
+      if (serverState.rsiState !== previousRsiState) {
+        EventBus.emit('rsiStateChanged', {
+          state: serverState.rsiState,
+          rsi: serverState.rsi,
+        });
+      }
+
+      if (serverState.whaleTier !== previousWhaleTier) {
+        EventBus.emit('whaleTierChanged', {
+          tier: serverState.whaleTier as 0 | 1 | 2 | 3,
+          percentile: serverState.volumePercentile,
+        });
+      }
+
+      // Re-calculate derived favorable state
+      this.emitStateChangedEvent(this.state.currentPosition);
+    });
+
+    Logger.debug(
+      '[MarketIndicatorService] Initialized and synced with MarketStateService'
+    );
   }
 
   /**

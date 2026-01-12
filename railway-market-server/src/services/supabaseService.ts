@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Logger } from '../utils/logger';
+import { ErrorReporter } from '../utils/errorReporter';
 
 export class SupabaseService {
   private static instance: SupabaseService | null = null;
@@ -54,6 +55,12 @@ export class SupabaseService {
     if (error) {
       // Duplicate entry is ok (timestamp collision)
       if (error.code !== '23505') {
+        void ErrorReporter.report({
+          type: 'SupabaseInsertError',
+          message: error.message,
+          severity: 'high',
+          context: { table: 'price_logs', data },
+        });
         throw error;
       }
     }
@@ -91,6 +98,12 @@ export class SupabaseService {
     );
 
     if (error) {
+      void ErrorReporter.report({
+        type: 'SupabaseUpdateError',
+        message: error.message,
+        severity: 'high',
+        context: { table: 'market_state', pair: state.pair },
+      });
       throw new Error(`Failed to update market_state: ${error.message}`);
     }
   }

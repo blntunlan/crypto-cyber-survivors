@@ -47,6 +47,7 @@ interface HubButtonConfig {
   getBadge: () => number;
   accentColor: string;
   screen: HubScreen;
+  disabled?: boolean;
 }
 
 export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate }) => {
@@ -103,6 +104,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
         getBadge: () => 0,
         accentColor: COLORS.WHALE,
         screen: 'stash',
+        disabled: true,
       },
       {
         id: 'loot',
@@ -119,6 +121,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
         getBadge: () => lootboxCount,
         accentColor: COLORS.CASINO_GOLD,
         screen: 'loot',
+        disabled: true,
       },
       {
         id: 'skins',
@@ -135,6 +138,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
         getBadge: () => 0,
         accentColor: '#9945FF',
         screen: 'skins',
+        disabled: true,
       },
       {
         id: 'ranks',
@@ -151,6 +155,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
         getBadge: () => 0,
         accentColor: COLORS.NEON_ORANGE,
         screen: 'ranks',
+        disabled: true,
       },
       {
         id: 'gear',
@@ -223,9 +228,9 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
         case 'Enter':
         case ' ': {
           event.preventDefault();
-          audio.playButton();
           const btn = buttons[selectedIndex];
-          if (btn) {
+          if (btn && !btn.disabled) {
+            audio.playButton();
             onNavigate(btn.screen);
           }
           break;
@@ -316,7 +321,9 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
                 badgeColor={btn.accentColor}
                 accentColor={btn.accentColor}
                 isSelected={selectedIndex === index}
+                disabled={btn.disabled}
                 onClick={() => {
+                  if (btn.disabled) return;
                   audio.playButton();
                   onNavigate(btn.screen);
                 }}

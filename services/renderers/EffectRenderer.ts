@@ -51,8 +51,57 @@ export class EffectRenderer implements IRenderer {
     }
 
     // 4. Momentum Feedback (Top layer)
+    // 4. Momentum Feedback (Top layer)
     if (graphics.showParticles) {
       this.drawSpeedLines(ctx, pool);
+    }
+
+    // 5. Market Ambiance Overlays (RSI/Whale)
+    this.drawMarketAmbiance(ctx, width, height, state);
+  }
+
+  /**
+   * Renders visual effects for market events (RSI, Whale).
+   */
+  private drawMarketAmbiance(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    state: GameState
+  ): void {
+    // RSI Tints
+    if (state.rsiVisualState !== 'NEUTRAL') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = 0.15; // Subtle tint
+      ctx.fillStyle = state.rsiVisualState === 'OVERSOLD' ? '#22c55e' : '#ef4444';
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
+
+    // Whale Splash Effect
+    if (state.whaleEventTimer > 0) {
+      const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
+      ctx.save();
+      ctx.globalCompositeOperation = 'color-dodge';
+      ctx.globalAlpha = intensity * 0.2;
+
+      // Blue Ripple
+      const gradient = ctx.createRadialGradient(
+        width / 2,
+        height / 2,
+        0,
+        width / 2,
+        height / 2,
+        Math.max(width, height)
+      );
+      gradient.addColorStop(0, 'rgba(56, 189, 248, 0)');
+      gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.5)'); // Cyan-400
+      gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
     }
   }
 

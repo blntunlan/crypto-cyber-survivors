@@ -55,6 +55,11 @@ export function useAppInitialization(): UseAppInitializationResult {
     // Run device benchmark
     void DeviceBenchmarkService.runBenchmark();
 
+    // Initialize market state realtime feed
+    void import('../services/MarketStateService').then(({ MarketStateService }) => {
+      void MarketStateService.init();
+    });
+
     // Mark initialization complete
     setIsInitialized(true);
   }, []);

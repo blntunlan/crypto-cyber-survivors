@@ -8,9 +8,9 @@
 import { SupabaseService } from '../services/supabaseService';
 import { Logger } from '../utils/logger';
 
-const RETENTION_DAYS = 30;
-const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 saat
-const BATCH_SIZE = 10000; // Bir seferde silinecek maksimum kayıt
+const RETENTION_HOURS = 24;
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours (more frequent for smaller buffer)
+const BATCH_SIZE = 5000; // Slightly smaller batches for performance
 
 export class CleanupCron {
   private static instance: CleanupCron | null = null;
@@ -34,7 +34,9 @@ export class CleanupCron {
       return;
     }
 
-    Logger.info(`[Cleanup] Starting cleanup cron (retention: ${RETENTION_DAYS} days)`);
+    Logger.info(
+      `[Cleanup] Starting cleanup cron (retention: ${RETENTION_HOURS} hours)`
+    );
 
     // İlk çalıştırma - 1 dakika sonra (startup için bekle)
     setTimeout(() => {
@@ -76,7 +78,7 @@ export class CleanupCron {
     try {
       const supabase = SupabaseService.getInstance().getClient();
       const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
+      cutoffDate.setHours(cutoffDate.getHours() - RETENTION_HOURS);
       const cutoffISO = cutoffDate.toISOString();
 
       Logger.info(`[Cleanup] Starting cleanup for records older than ${cutoffISO}`);
@@ -152,7 +154,7 @@ export class CleanupCron {
       isRunning: this.isRunning,
       lastCleanup: this.lastCleanup?.toISOString() ?? null,
       totalDeleted: this.totalDeleted,
-      retentionDays: RETENTION_DAYS,
+      retentionHours: RETENTION_HOURS,
       intervalHours: CLEANUP_INTERVAL_MS / (60 * 60 * 1000),
     };
   }
@@ -162,6 +164,6 @@ export interface CleanupStats {
   isRunning: boolean;
   lastCleanup: string | null;
   totalDeleted: number;
-  retentionDays: number;
+  retentionHours: number;
   intervalHours: number;
 }
