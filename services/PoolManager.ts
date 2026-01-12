@@ -387,19 +387,18 @@ export class PoolManager implements IPoolManager {
         isCrit,
         isSuperCrit,
       }),
-      obj =>
-        Object.assign(obj, {
-          x,
-          y,
-          vx,
-          vy,
-          damage,
-          radius,
-          color,
-          isCrit,
-          isSuperCrit,
-          active: true,
-        })
+      obj => {
+        obj.active = true;
+        obj.x = x;
+        obj.y = y;
+        obj.vx = vx;
+        obj.vy = vy;
+        obj.damage = damage;
+        obj.radius = radius;
+        obj.color = color;
+        obj.isCrit = isCrit;
+        obj.isSuperCrit = isSuperCrit;
+      }
     );
   }
 
@@ -427,19 +426,18 @@ export class PoolManager implements IPoolManager {
         vy: 0,
         magnetized: false,
       }),
-      obj =>
-        Object.assign(obj, {
-          x,
-          y,
-          radius,
-          color,
-          value,
-          isRare,
-          active: true,
-          vx: 0,
-          vy: 0,
-          magnetized: false,
-        })
+      obj => {
+        obj.active = true;
+        obj.x = x;
+        obj.y = y;
+        obj.radius = radius;
+        obj.color = color;
+        obj.value = value;
+        obj.isRare = isRare;
+        obj.vx = 0;
+        obj.vy = 0;
+        obj.magnetized = false;
+      }
     );
   }
 
@@ -456,18 +454,17 @@ export class PoolManager implements IPoolManager {
   ): Particle {
     return this.particles.get(
       () => ({ active: true, x, y, vx, vy, color, radius: 2, life: 1, isPixel }),
-      obj =>
-        Object.assign(obj, {
-          x,
-          y,
-          vx,
-          vy,
-          color,
-          radius: 2,
-          life: 1,
-          active: true,
-          isPixel,
-        })
+      obj => {
+        obj.active = true;
+        obj.x = x;
+        obj.y = y;
+        obj.vx = vx;
+        obj.vy = vy;
+        obj.color = color;
+        obj.radius = 2; // Reset to default radius
+        obj.life = 1; // Explicitly reset life to 1.0
+        obj.isPixel = !!isPixel;
+      }
     );
   }
 
@@ -483,7 +480,15 @@ export class PoolManager implements IPoolManager {
   ): FloatingText {
     return this.floatingTexts.get(
       () => ({ active: true, x, y, text, color, size, life: 1 }),
-      obj => Object.assign(obj, { x, y, text, color, size, life: 1, active: true })
+      obj => {
+        obj.active = true;
+        obj.x = x;
+        obj.y = y;
+        obj.text = text;
+        obj.color = color;
+        obj.size = size;
+        obj.life = 1;
+      }
     );
   }
 
