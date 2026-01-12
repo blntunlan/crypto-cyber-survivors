@@ -45,15 +45,18 @@ export const useGameInput = () => {
     // Keyboard input
     let kdx = 0;
     let kdy = 0;
-    if (keys.current['ArrowUp'] || keys.current['w']) kdy -= 1;
-    if (keys.current['ArrowDown'] || keys.current['s']) kdy += 1;
-    if (keys.current['ArrowLeft'] || keys.current['a']) kdx -= 1;
-    if (keys.current['ArrowRight'] || keys.current['d']) kdx += 1;
+    if (keys.current['ArrowUp'] || keys.current['w'] || keys.current['W']) kdy -= 1;
+    if (keys.current['ArrowDown'] || keys.current['s'] || keys.current['S']) kdy += 1;
+    if (keys.current['ArrowLeft'] || keys.current['a'] || keys.current['A']) kdx -= 1;
+    if (keys.current['ArrowRight'] || keys.current['d'] || keys.current['D']) kdx += 1;
 
     // Combine inputs (Keyboard + Touch)
-    // If touch is active (non-zero), it takes priority or can be additive.
-    // Usually, games prioritize the active input method.
-    if (touchVector.current.dx !== 0 || touchVector.current.dy !== 0) {
+    // Add epsilon check to prevent noisy touch drivers from blocking keyboard
+    const TOUCH_EPSILON = 0.01;
+    if (
+      Math.abs(touchVector.current.dx) > TOUCH_EPSILON ||
+      Math.abs(touchVector.current.dy) > TOUCH_EPSILON
+    ) {
       return { dx: touchVector.current.dx, dy: touchVector.current.dy };
     }
 

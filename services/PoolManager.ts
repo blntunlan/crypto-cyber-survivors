@@ -88,17 +88,16 @@ class ObjectPool<T extends { active: boolean }> {
    * Uses Swap-and-Pop optimization for O(N) total complexity instead of O(N^2).
    */
   cleanup(): void {
-    let i = this.active.length - 1;
+    const active = this.active;
+    let i = active.length - 1;
     while (i >= 0) {
-      const item = this.active[i];
-      if (item && !item.active) {
-        this.free.push(item);
+      if (!active[i]!.active) {
+        this.free.push(active[i]!);
 
-        const last = this.active.pop();
-        if (last && i < this.active.length) {
-          this.active[i] = last;
-          // Note: We don't need to re-check the swapped element because
-          // we are iterating backwards (it was already checked).
+        // Fast swap-and-pop
+        const last = active.pop();
+        if (last && i < active.length) {
+          active[i] = last;
         }
       }
       i--;
