@@ -112,9 +112,10 @@ export class EffectRenderer implements IRenderer {
       return;
     }
 
-    // Sort in-place to group by render state: Pixel -> Color -> AlphaBucket
-    // This is safe because PoolManager doesn't rely on specific index order
-    particles.sort((a, b) => {
+    // Sort a shallow copy to prevent mutating PoolManager's active list
+    // This ensures PoolManager limits (FIFO) still target the oldest particles,
+    // not just the ones that sorted to index 0.
+    const sortedParticles = particles.slice().sort((a, b) => {
       // 1. Pixel vs Standard (boolean)
       if (a.isPixel !== b.isPixel) {
         return a.isPixel ? 1 : -1;
@@ -130,9 +131,9 @@ export class EffectRenderer implements IRenderer {
     });
 
     // Initialize State from first particle
-    let configIsPixel = particles[0]!.isPixel;
-    let configColor = particles[0]!.color;
-    let configAlphaBucket = (particles[0]!.life * 10) | 0;
+    let configIsPixel = sortedParticles[0]!.isPixel;
+    let configColor = sortedParticles[0]!.color;
+    let configAlphaBucket = (sortedParticles[0]!.life * 10) | 0;
 
     // Apply initial context state
     ctx.globalAlpha = Math.max(0, configAlphaBucket / 10);
@@ -145,7 +146,7 @@ export class EffectRenderer implements IRenderer {
     const defaultRadius = GAME_ENGINE.PARTICLE_DEFAULT_RADIUS;
 
     for (let i = 0; i < count; i++) {
-      const p = particles[i]!;
+      const p = sortedParticles[i]!;
       const radius = p.radius || defaultRadius;
 
       // Culling
