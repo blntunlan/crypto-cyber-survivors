@@ -2,7 +2,10 @@ import { MarketPosition } from '../types';
 import { type IPoolManager } from './interfaces/IPoolManager';
 import { GAME_ENGINE, SPAWN } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
-import { marketStateService, type MarketState } from './MarketStateService';
+import {
+  MarketStateService as marketStateService,
+  type MarketState,
+} from './MarketStateService';
 import { WHALE_TIER_CONFIGS } from '../types/indicators';
 import { Logger } from './Logger';
 import { type SpawnDebugState, getDebugTimestamp } from '../types/DebugState';
