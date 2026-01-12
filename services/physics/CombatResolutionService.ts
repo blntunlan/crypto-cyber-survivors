@@ -139,13 +139,33 @@ export class CombatResolutionService {
     const count = Math.round(baseCount * perfConfig.particleMultiplier);
     const velocityRange = COMBAT_CONFIG.PARTICLES.VELOCITY_RANGE;
 
-    for (let k = 0; k < count; k++) {
-      // Directional Chaos: Retro mode gets wider spread for "debris" feel
-      const retroMult = isRetro ? 1.2 : 1.0;
-      const vx = (Math.random() - 0.5) * velocityRange * retroMult;
-      const vy = (Math.random() - 0.5) * velocityRange * retroMult;
+    // Retro Theme: Distinctive 8-way burst + Center filler (Cardinals & Diagonals)
+    if (isRetro) {
+      const directions = 8;
+      // Fixed speed for uniform "pixel art explosion" look
+      const speed = velocityRange * 0.7;
 
-      pool.getParticle(enemy.x, enemy.y, vx, vy, enemy.color, isRetro);
+      for (let k = 0; k < directions; k++) {
+        const angle = (k / directions) * Math.PI * 2;
+        const vx = Math.cos(angle) * speed;
+        const vy = Math.sin(angle) * speed;
+        pool.getParticle(enemy.x, enemy.y, vx, vy, enemy.color, true);
+      }
+
+      // Add a few bright center pixels for impact
+      for (let k = 0; k < 4; k++) {
+        const vx = (Math.random() - 0.5) * speed * 0.5;
+        const vy = (Math.random() - 0.5) * speed * 0.5;
+        pool.getParticle(enemy.x, enemy.y, vx, vy, '#FFFFFF', true);
+      }
+    } else {
+      // Modern Theme: Organic/Chaotic particle spread
+      for (let k = 0; k < count; k++) {
+        const vx = (Math.random() - 0.5) * velocityRange;
+        const vy = (Math.random() - 0.5) * velocityRange;
+
+        pool.getParticle(enemy.x, enemy.y, vx, vy, enemy.color, false);
+      }
     }
   }
 

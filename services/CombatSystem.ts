@@ -300,7 +300,8 @@ export class CombatSystem implements ICombatSystem {
           : COMBAT.PROJECTILE_RADIUS_BASE;
 
       // Increase projectile size on mobile for better visibility/gameplay
-      const mobileMultiplier = screenService.isMobile() ? 1.5 : 1.0;
+      // On Desktop, we also boost it slightly for better impact visibility (1.0 -> 1.25)
+      const mobileMultiplier = screenService.isMobile() ? 1.5 : 1.25;
 
       const typeMultiplier = isSuperCrit
         ? ParticleConfigService.bullets.superCritSizeMultiplier
