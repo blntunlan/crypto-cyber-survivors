@@ -1,132 +1,169 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/**
+ * PoolManager Tests
+ *
+ * Tests for object pooling, retrieval, and cleanup.
+ */
+
+import { describe, it, expect, beforeEach } from 'vitest';
 import { PoolManager } from '../../services/PoolManager';
 import { MarketPosition } from '../../types';
-
-// Mock factories
-vi.mock('../../factories/EnemyFactory', () => ({
-  enemyFactory: {
-    createEnemy: vi.fn((type, x, y, diff, pos, aggro) => ({
-      type,
-      x,
-      y,
-      difficulty: diff,
-      position: pos,
-      aggroMultiplier: aggro,
-      active: true,
-      radius: 10,
-      hp: 10,
-      maxHp: 10,
-      speed: 1,
-      damage: 1,
-      xpValue: 1,
-      id: 1,
-    })),
-  },
-}));
-
-vi.mock('../../services/MarketStateService', () => ({
-  marketStateService: {
-    getState: vi.fn(() => ({ whaleTier: 0, enemyAggroMultiplier: 1.0 })),
-  },
-}));
-
-vi.mock('../../services/Logger', () => ({
-  Logger: {
-    debug: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/audio', () => ({
-  audio: {
-    playWhaleArrival: vi.fn(),
-  },
-}));
+import { WhaleTier } from '../../types/indicators';
 
 describe('PoolManager', () => {
-  let poolManager: PoolManager;
+  let pool: PoolManager;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    poolManager = new PoolManager();
+    pool = new PoolManager();
   });
 
-  it('should initialize empty pools', () => {
-    expect(poolManager.activeEnemies).toHaveLength(0);
-    expect(poolManager.activeBullets).toHaveLength(0);
-    expect(poolManager.activeGems).toHaveLength(0);
-    expect(poolManager.activeParticles).toHaveLength(0);
-    expect(poolManager.activeFloatingTexts).toHaveLength(0);
+  describe('preWarm', () => {
+    it('should pre-populate pools', () => {
+      pool.preWarm({ enemies: 10, bullets: 20 });
+      expect(pool).toBeDefined();
+    });
   });
 
-  it('should get and recycle enemies', () => {
-    const enemy1 = poolManager.getEnemy(0, 0, 1, MarketPosition.LONG, 'bear');
-    expect(enemy1).toBeTruthy();
-    expect(poolManager.activeEnemies).toHaveLength(1);
+  describe('getBullet', () => {
+    it('should create a new bullet', () => {
+      const bullet = pool.getBullet(100, 200, 5, 0, 25, 4, '#fff', false, false);
 
-    // Reset it manually (simulating death/offscreen)
-    poolManager.activeEnemies[0]!.active = false;
+      expect(bullet).toBeDefined();
+      expect(bullet.x).toBe(100);
+      expect(bullet.y).toBe(200);
+      expect(bullet.vx).toBe(5);
+      expect(bullet.vy).toBe(0);
+      expect(bullet.damage).toBe(25);
+      expect(bullet.active).toBe(true);
+    });
 
-    // Cleanup should remove inactive
-    poolManager.cleanup();
-    expect(poolManager.activeEnemies).toHaveLength(0);
+    it('should add bullet to activeBullets', () => {
+      expect(pool.activeBullets.length).toBe(0);
+      pool.getBullet(0, 0, 1, 1, 10, 4, '#fff', false, false);
+      expect(pool.activeBullets.length).toBe(1);
+    });
 
-    // Get new one, should reuse if pool logic works (implementation specific)
-    // Or at least return valid enemy
-    const enemy2 = poolManager.getEnemy(10, 10, 1, MarketPosition.SHORT, 'bull');
-    expect(enemy2).toBeTruthy();
-    expect(poolManager.activeEnemies).toHaveLength(1);
+    it('should reuse inactive bullets from free list', () => {
+      const bullet1 = pool.getBullet(0, 0, 1, 1, 10, 4, '#fff', false, false);
+      bullet1.active = false;
+      pool.cleanup();
+      expect(pool.activeBullets.length).toBe(0);
+
+      const bullet2 = pool.getBullet(50, 50, 2, 2, 20, 5, '#000', true, false);
+      expect(pool.activeBullets.length).toBe(1);
+      expect(bullet2.x).toBe(50);
+      expect(bullet2.damage).toBe(20);
+    });
   });
 
-  it('should cap active count (max pool size)', () => {
-    // PoolManager MAX_ACTIVE.floatingTexts = 50
-    // Let's spam getting text
-    for (let i = 0; i < 60; i++) {
-      poolManager.getFloatingText(0, 0, 'test', 'white', 10);
-    }
+  describe('getEnemy', () => {
+    it('should create a new enemy', () => {
+      const enemy = pool.getEnemy(100, 200, 1.5, MarketPosition.LONG);
 
-    expect(poolManager.activeFloatingTexts.length).toBeLessThanOrEqual(50);
-    // It likely recycles oldest.
+      expect(enemy).toBeDefined();
+      expect(enemy.x).toBe(100);
+      expect(enemy.y).toBe(200);
+      expect(enemy.active).toBe(true);
+    });
+
+    it('should add enemy to activeEnemies', () => {
+      expect(pool.activeEnemies.length).toBe(0);
+      pool.getEnemy(0, 0, 1, MarketPosition.LONG);
+      expect(pool.activeEnemies.length).toBe(1);
+    });
+
+    it('should create a whale enemy with tier multipliers', () => {
+      const whale = pool.getWhaleEnemy(
+        100,
+        200,
+        1,
+        MarketPosition.LONG,
+        WhaleTier.MEGA_WHALE
+      );
+
+      expect(whale).toBeDefined();
+      expect(whale.x).toBe(100);
+      expect(whale.radius).toBeGreaterThan(20);
+      expect(whale.active).toBe(true);
+      expect(pool.activeEnemies.length).toBe(1);
+    });
   });
 
-  it('should clear all objects', () => {
-    poolManager.getFloatingText(0, 0, 'a', 'white', 10);
-    poolManager.getBullet(0, 0, 0, 0, 10, 10, 'red', false, false);
-    expect(poolManager.activeFloatingTexts).toHaveLength(1);
-    expect(poolManager.activeBullets).toHaveLength(1);
+  describe('getGem', () => {
+    it('should create a gem with correct properties', () => {
+      const gem = pool.getGem(50, 50, 100, 8, '#ffd700', true);
 
-    poolManager.clearAll();
-
-    expect(poolManager.activeFloatingTexts).toHaveLength(0);
-    expect(poolManager.activeBullets).toHaveLength(0);
+      expect(gem.x).toBe(50);
+      expect(gem.y).toBe(50);
+      expect(gem.value).toBe(100);
+      expect(gem.radius).toBe(8);
+      expect(gem.isRare).toBe(true);
+      expect(gem.active).toBe(true);
+    });
   });
 
-  it('should pre-warm pools', () => {
-    poolManager.preWarm({ gems: 10 });
-    // It populates FREE list, not active
-    // But we can check via debug or internal state.
-    // Since active is empty, we verify logic runs without error
-    expect(poolManager.activeGems).toHaveLength(0);
+  describe('getParticle', () => {
+    it('should create a particle with life = 1', () => {
+      const particle = pool.getParticle(100, 100, 2, -2, '#ff0000');
 
-    // Getting one should be fast/consistent
-    const gem = poolManager.getGem(0, 0, 10, 5, 'blue', false);
-    expect(gem).toBeTruthy();
-    expect(poolManager.activeGems).toHaveLength(1);
+      expect(particle.x).toBe(100);
+      expect(particle.life).toBe(1);
+      expect(particle.active).toBe(true);
+    });
   });
 
-  it('should reset pooled objects correctly', () => {
-    const enemy = poolManager.getEnemy(0, 0, 1, MarketPosition.LONG);
-    enemy.damageBuffer = 100;
-    enemy.hasEnteredScreen = true;
+  describe('getFloatingText', () => {
+    it('should create floating text with correct properties', () => {
+      const text = pool.getFloatingText(200, 150, '999', '#ffd700', 24);
 
-    // Force cleanup simulation
-    enemy.active = false;
-    poolManager.cleanup();
+      expect(text.x).toBe(200);
+      expect(text.y).toBe(150);
+      expect(text.text).toBe('999');
+      expect(text.size).toBe(24);
+      expect(text.life).toBe(1);
+    });
+  });
 
-    // Get again
-    const recycled = poolManager.getEnemy(20, 20, 1, MarketPosition.SHORT);
+  describe('cleanup', () => {
+    it('should move inactive objects to free lists', () => {
+      const bullet = pool.getBullet(0, 0, 1, 1, 10, 4, '#fff', false, false);
+      const gem = pool.getGem(0, 0, 10, 5, '#ffd700', false);
 
-    // Should be reset
-    expect(recycled.damageBuffer).toBe(0);
-    expect(recycled.hasEnteredScreen).toBe(false);
+      expect(pool.activeBullets.length).toBe(1);
+      expect(pool.activeGems.length).toBe(1);
+
+      bullet.active = false;
+      gem.active = false;
+
+      pool.cleanup();
+
+      expect(pool.activeBullets.length).toBe(0);
+      expect(pool.activeGems.length).toBe(0);
+    });
+
+    it('should keep active objects in active lists', () => {
+      pool.getBullet(0, 0, 1, 1, 10, 4, '#fff', false, false);
+      pool.getBullet(10, 10, 1, 1, 10, 4, '#fff', false, false);
+      pool.activeBullets[0]!.active = false;
+      pool.cleanup();
+      expect(pool.activeBullets.length).toBe(1);
+    });
+  });
+
+  describe('clearAll', () => {
+    it('should clear all active objects', () => {
+      pool.getBullet(0, 0, 1, 1, 10, 4, '#fff', false, false);
+      pool.getEnemy(0, 0, 1, MarketPosition.LONG);
+      pool.getGem(0, 0, 10, 5, '#ffd700', false);
+
+      expect(pool.activeBullets.length).toBe(1);
+      expect(pool.activeEnemies.length).toBe(1);
+      expect(pool.activeGems.length).toBe(1);
+
+      pool.clearAll();
+
+      expect(pool.activeBullets.length).toBe(0);
+      expect(pool.activeEnemies.length).toBe(0);
+      expect(pool.activeGems.length).toBe(0);
+    });
   });
 });

@@ -18,7 +18,7 @@ import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
 import { WHALE_TIER_CONFIGS, type WhaleTier } from '../types/indicators';
 import { type IPoolManager } from './interfaces/IPoolManager';
-import { marketStateService } from './MarketStateService';
+import { MarketStateService as marketStateService } from './MarketStateService';
 import { audio } from './audio';
 import { type EnemyId } from '../config/EnemyRegistry';
 import { POOL } from '../constants';
