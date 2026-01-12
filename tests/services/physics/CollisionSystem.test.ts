@@ -368,7 +368,7 @@ describe('CollisionSystem', () => {
       expect(enemy.damageBuffer).toBe(10);
     });
 
-    it('should emit hitStop event on collision', () => {
+    it('should emit hitStop event on critical collision', () => {
       const enemy = {
         x: 100,
         y: 100,
@@ -386,6 +386,7 @@ describe('CollisionSystem', () => {
         damage: 10,
         vx: 0,
         vy: 0,
+        isCrit: true,
       } as Bullet;
       vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
 
@@ -395,7 +396,7 @@ describe('CollisionSystem', () => {
         'hitStop',
         expect.objectContaining({
           duration: 5, // HIT_STOP_NORMAL
-          isCrit: false,
+          isCrit: true,
         })
       );
     });

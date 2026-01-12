@@ -6,7 +6,7 @@
  *
  * Features:
  * - Add/remove buffs and debuffs
- * - Automatic expiration of timed effects
+ * - Automatic expiration of timed effects using TimeService
  * - Stack tracking and UI integration
  * - EventBus integration for visual feedback
  *
@@ -22,13 +22,19 @@ import { PlayerStatsAdapter } from './PlayerStatsAdapter';
 import { type StatDecorator, type DecoratorConstructor } from './BaseDecorator';
 import { EventBus } from '../../EventBus';
 import { Logger } from '../../Logger';
+import { TimeService } from '../../TimeService';
+
+/** Constant for permanent effects */
+const PERMANENT_DURATION = -1;
 
 interface ActiveEffect {
   id: string;
   decorator: StatDecorator;
-  expiresAt: number; // timestamp, -1 = permanent
+  /** Expiration timestamp in Game Time (ms). -1 for permanent. */
+  expiresAt: number;
   appliedAt: number;
-  remainingWhenPaused: number; // ms remaining when paused, -1 if not paused or permanent
+  /** Remaining time in ms when paused. Used to recalculate expiresAt on resume. */
+  remainingWhenPaused: number;
 }
 
 interface BuffManagerState {
@@ -36,7 +42,6 @@ interface BuffManagerState {
   baseStats: IPlayerStats | null;
   isInitialized: boolean;
   isPaused: boolean;
-  pausedAt: number; // timestamp when paused
 }
 
 class BuffManagerClass {
@@ -47,7 +52,6 @@ class BuffManagerClass {
     baseStats: null,
     isInitialized: false,
     isPaused: false,
-    pausedAt: 0,
   };
 
   private effectIdCounter: number = 0;
@@ -59,6 +63,9 @@ class BuffManagerClass {
     });
   }
 
+  /**
+   * Returns the singleton instance of BuffManager.
+   */
   static getInstance(): BuffManagerClass {
     return (BuffManagerClass.instance ??= new BuffManagerClass());
   }
@@ -72,14 +79,13 @@ class BuffManagerClass {
     this.state.activeEffects = [];
     this.state.isInitialized = true;
     this.state.isPaused = false;
-    this.state.pausedAt = 0;
     this.effectIdCounter = 0;
 
     Logger.debug('[BuffManager] Initialized');
   }
 
   /**
-   * Update the base player stats (call when player stats change).
+   * Update the base player stats (called when player baseline stats change, e.g. leveling up).
    */
   updateBaseStats(player: Player): void {
     if (!this.state.isInitialized) {
@@ -92,7 +98,9 @@ class BuffManagerClass {
   /**
    * Add a buff/debuff to the player.
    * If the same effect already exists, extends its duration instead of stacking.
-   * Returns the effect ID for later removal.
+   *
+   * @param DecoratorClass - The class constructor for the decorator
+   * @returns The unique ID of the applied effect
    */
   addEffect(DecoratorClass: DecoratorConstructor): string {
     if (!this.state.isInitialized || !this.state.baseStats) {
@@ -104,7 +112,7 @@ class BuffManagerClass {
     const tempDecorator = new DecoratorClass(this.state.baseStats);
     const effectName = tempDecorator.getName();
     const duration = tempDecorator.getDuration();
-    const now = Date.now();
+    const now = TimeService.getGameTime();
 
     // Check if same effect already exists
     const existingEffect = this.state.activeEffects.find(
@@ -113,13 +121,13 @@ class BuffManagerClass {
 
     if (existingEffect) {
       // Permanent effects: do nothing if already active
-      if (existingEffect.expiresAt === -1) {
+      if (existingEffect.expiresAt === PERMANENT_DURATION) {
         Logger.debug(`[BuffManager] ${effectName} is permanent, already active`);
         return existingEffect.id;
       }
 
       // Temporary effects: extend duration
-      if (duration !== -1) {
+      if (duration !== PERMANENT_DURATION) {
         const currentRemaining = this.state.isPaused
           ? existingEffect.remainingWhenPaused
           : Math.max(0, existingEffect.expiresAt - now);
@@ -148,10 +156,15 @@ class BuffManagerClass {
     const effect: ActiveEffect = {
       id: `effect_${++this.effectIdCounter}`,
       decorator: tempDecorator,
-      expiresAt: duration === -1 ? -1 : now + duration,
+      expiresAt: duration === PERMANENT_DURATION ? PERMANENT_DURATION : now + duration,
       appliedAt: now,
-      remainingWhenPaused: -1,
+      remainingWhenPaused: PERMANENT_DURATION,
     };
+
+    // If paused, immediately calculate remaining time
+    if (this.state.isPaused && duration !== PERMANENT_DURATION) {
+      effect.remainingWhenPaused = duration;
+    }
 
     this.state.activeEffects.push(effect);
 
@@ -182,11 +195,13 @@ class BuffManagerClass {
   }
 
   /**
-   * Remove an effect by its ID.
+   * Remove an effect by its unique ID.
    */
   removeEffectById(effectId: string): boolean {
     const index = this.state.activeEffects.findIndex(e => e.id === effectId);
-    if (index === -1) return false;
+    if (index === -1) {
+      return false;
+    }
 
     const effect = this.state.activeEffects[index];
     if (effect) {
@@ -221,16 +236,19 @@ class BuffManagerClass {
   }
 
   /**
-   * Update effect timers - call each frame.
-   * Removes expired effects automatically.
-   * Does nothing if paused.
+   * Update effect timers - call each frame in the game loop.
+   * Automatically handles pausing as it relies on TimeService.gameTime.
    */
   update(): void {
-    if (!this.state.isInitialized || this.state.isPaused) return;
+    if (!this.state.isInitialized || this.state.isPaused) {
+      return;
+    }
 
-    const now = Date.now();
+    const now = TimeService.getGameTime();
+
+    // Find expired effects
     const expired = this.state.activeEffects.filter(
-      e => e.expiresAt !== -1 && e.expiresAt <= now
+      e => e.expiresAt !== PERMANENT_DURATION && e.expiresAt <= now
     );
 
     for (const effect of expired) {
@@ -238,25 +256,25 @@ class BuffManagerClass {
       Logger.debug(`[BuffManager] Effect expired: ${effect.decorator.getName()}`);
     }
 
+    // Filter out expired effects
     this.state.activeEffects = this.state.activeEffects.filter(
-      e => e.expiresAt === -1 || e.expiresAt > now
+      e => e.expiresAt === PERMANENT_DURATION || e.expiresAt > now
     );
   }
 
   /**
-   * Pause all effect timers (for LevelUp screen, Pause menu).
-   * Stores remaining time for each effect.
+   * Pause effect processing. Stores remaining time for temporary effects.
    */
   pause(): void {
-    if (!this.state.isInitialized || this.state.isPaused) return;
+    if (!this.state.isInitialized || this.state.isPaused) {
+      return;
+    }
 
-    const now = Date.now();
+    const now = TimeService.getGameTime();
     this.state.isPaused = true;
-    this.state.pausedAt = now;
 
-    // Store remaining time for each temporary effect
     for (const effect of this.state.activeEffects) {
-      if (effect.expiresAt !== -1) {
+      if (effect.expiresAt !== PERMANENT_DURATION) {
         effect.remainingWhenPaused = Math.max(0, effect.expiresAt - now);
       }
     }
@@ -265,20 +283,20 @@ class BuffManagerClass {
   }
 
   /**
-   * Resume effect timers after pause.
-   * Recalculates expiration times based on stored remaining time.
+   * Resume effect processing. Recalculates expiration timestamps.
    */
   resume(): void {
-    if (!this.state.isInitialized || !this.state.isPaused) return;
+    if (!this.state.isInitialized || !this.state.isPaused) {
+      return;
+    }
 
-    const now = Date.now();
+    const now = TimeService.getGameTime();
     this.state.isPaused = false;
 
-    // Recalculate expiration times based on remaining time
     for (const effect of this.state.activeEffects) {
-      if (effect.remainingWhenPaused > 0) {
+      if (effect.remainingWhenPaused !== PERMANENT_DURATION) {
         effect.expiresAt = now + effect.remainingWhenPaused;
-        effect.remainingWhenPaused = -1;
+        effect.remainingWhenPaused = PERMANENT_DURATION;
       }
     }
 
@@ -286,7 +304,7 @@ class BuffManagerClass {
   }
 
   /**
-   * Check if buff manager is currently paused.
+   * Get current pause state.
    */
   isPaused(): boolean {
     return this.state.isPaused;
@@ -294,7 +312,7 @@ class BuffManagerClass {
 
   /**
    * Get the decorated stats with all active effects applied.
-   * This is the main method to use for stat calculations.
+   * This is the primary method to use for stat calculations.
    */
   getDecoratedStats(): IPlayerStats {
     if (!this.state.isInitialized || !this.state.baseStats) {
@@ -324,40 +342,36 @@ class BuffManagerClass {
     remainingMs: number;
     isPermanent: boolean;
   }[] {
-    // When paused, use stored remaining time instead of calculating from now
-    if (this.state.isPaused) {
-      return this.state.activeEffects.map(effect => ({
+    const now = TimeService.getGameTime();
+
+    return this.state.activeEffects.map(effect => {
+      let remainingMs = PERMANENT_DURATION;
+      if (effect.expiresAt !== PERMANENT_DURATION) {
+        remainingMs = this.state.isPaused
+          ? effect.remainingWhenPaused
+          : Math.max(0, effect.expiresAt - now);
+      }
+
+      return {
         id: effect.id,
         name: effect.decorator.getName(),
         icon: effect.decorator.getIcon(),
         description: effect.decorator.getDescription(),
-        remainingMs: effect.expiresAt === -1 ? -1 : effect.remainingWhenPaused,
-        isPermanent: effect.expiresAt === -1,
-      }));
-    }
-
-    const now = Date.now();
-    return this.state.activeEffects.map(effect => ({
-      id: effect.id,
-      name: effect.decorator.getName(),
-      icon: effect.decorator.getIcon(),
-      description: effect.decorator.getDescription(),
-      remainingMs: effect.expiresAt === -1 ? -1 : Math.max(0, effect.expiresAt - now),
-      isPermanent: effect.expiresAt === -1,
-    }));
+        remainingMs,
+        isPermanent: effect.expiresAt === PERMANENT_DURATION,
+      };
+    });
   }
 
   /**
-   * Get count of active buffs (positive effects).
+   * Get total count of active effects.
    */
   getBuffCount(): number {
-    // For simplicity, we consider effects with positive names as buffs
-    // In a real implementation, you might add an 'isDebuff' method to decorators
     return this.state.activeEffects.length;
   }
 
   /**
-   * Clear all effects.
+   * Clear all active effects immediately.
    */
   clearAll(): void {
     for (const effect of this.state.activeEffects) {
@@ -369,22 +383,26 @@ class BuffManagerClass {
   }
 
   /**
-   * Clear only temporary effects (keep permanent ones).
+   * Clear only temporary effects, retaining permanent ones (e.g. passive skills).
    */
   clearTemporary(): void {
-    const temporary = this.state.activeEffects.filter(e => e.expiresAt !== -1);
+    const temporary = this.state.activeEffects.filter(
+      e => e.expiresAt !== PERMANENT_DURATION
+    );
 
     for (const effect of temporary) {
       EventBus.emit('buffExpired', { name: effect.decorator.getName() });
     }
 
-    this.state.activeEffects = this.state.activeEffects.filter(e => e.expiresAt === -1);
+    this.state.activeEffects = this.state.activeEffects.filter(
+      e => e.expiresAt === PERMANENT_DURATION
+    );
 
     Logger.debug(`[BuffManager] Cleared ${temporary.length} temporary effects`);
   }
 
   /**
-   * Reset the buff manager (for game restart).
+   * Reset the manager state for a new game session.
    */
   reset(): void {
     this.state = {
@@ -392,7 +410,6 @@ class BuffManagerClass {
       baseStats: null,
       isInitialized: false,
       isPaused: false,
-      pausedAt: 0,
     };
     this.effectIdCounter = 0;
 
@@ -400,7 +417,7 @@ class BuffManagerClass {
   }
 
   /**
-   * Check if the manager is initialized.
+   * Check if the manager is currently initialized.
    */
   isInitialized(): boolean {
     return this.state.isInitialized;
@@ -409,3 +426,4 @@ class BuffManagerClass {
 
 // Export singleton instance
 export const BuffManager = BuffManagerClass.getInstance();
+export { PERMANENT_DURATION };

@@ -25,6 +25,8 @@ interface MobileControlsProps {
   onMove: (dx: number, dy: number) => void;
   /** Called when dash is triggered */
   onDash: () => void;
+  /** Called when dash is released */
+  onDashRelease?: () => void;
   /** Dash cooldown in ms (passed to button) */
   dashCooldownMs?: number;
 }
@@ -34,6 +36,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   settings: userSettings,
   onMove,
   onDash,
+  onDashRelease,
   dashCooldownMs = 500,
 }) => {
   const { scale, rs } = useResponsiveUI();
@@ -63,6 +66,10 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   const handleDash = useCallback(() => {
     onDash();
   }, [onDash]);
+
+  const handleDashRelease = useCallback(() => {
+    onDashRelease?.();
+  }, [onDashRelease]);
 
   if (!isActive) {
     return null;
@@ -121,6 +128,7 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
       >
         <DashButton
           onDash={handleDash}
+          onDashRelease={handleDashRelease}
           cooldownMs={dashCooldownMs}
           hapticFeedback={settings.hapticFeedback}
           disabled={!isActive}

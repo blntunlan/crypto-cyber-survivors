@@ -38,14 +38,14 @@ const MobileWaveTimer: React.FC = () => {
     >
       <div
         className={`text-slate-500/80 font-bold uppercase tracking-widest ${isRetro ? 'font-retro-text' : ''}`}
-        style={{ fontSize: isRetro ? rfs(6) : rfs(7) }}
+        style={{ fontSize: isRetro ? rfs(6) : rfs(6) }}
       >
         SURVIVAL
       </div>
       <div
         id="wave-timer-text"
         className={`font-black italic tracking-tighter text-white drop-shadow-md tabular-nums ${isRetro ? 'font-retro-pixel' : ''}`}
-        style={{ fontSize: isRetro ? rfs(16) : rfs(20) }}
+        style={{ fontSize: isRetro ? rfs(16) : rfs(16) }}
       >
         0:00
       </div>

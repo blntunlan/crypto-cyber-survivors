@@ -207,7 +207,7 @@ describe('GameRenderer', () => {
       const initialY1 = mockState.bgCandles[0]!.y;
       const initialY2 = mockState.bgCandles[1]!.y;
 
-      renderer.updateBackgroundCandles(mockState, 0.05, 1.0, 1, 800, 600);
+      renderer.updateBackgroundCandles(mockState, 0.05, 1.0, 1, 1, 800, 600);
 
       // Candles should move up (negative direction)
       expect(mockState.bgCandles[0]!.y).toBeLessThan(initialY1);
@@ -218,7 +218,7 @@ describe('GameRenderer', () => {
       const initialY1 = mockState.bgCandles[0]!.y;
       const initialY2 = mockState.bgCandles[1]!.y;
 
-      renderer.updateBackgroundCandles(mockState, -0.05, 1.0, 1, 800, 600);
+      renderer.updateBackgroundCandles(mockState, -0.05, 1.0, 1, 1, 800, 600);
 
       // Candles should move down (positive direction)
       expect(mockState.bgCandles[0]!.y).toBeGreaterThan(initialY1);
@@ -229,7 +229,7 @@ describe('GameRenderer', () => {
       // Set candle just past the wrap threshold
       mockState.bgCandles[0]!.y = 705; // height (600) + 100 + small movement = triggers wrap
 
-      renderer.updateBackgroundCandles(mockState, -0.05, 1.0, 1, 800, 600);
+      renderer.updateBackgroundCandles(mockState, -0.05, 1.0, 1, 1, 800, 600);
 
       // Should wrap to top (y = -100)
       expect(mockState.bgCandles[0]!.y).toBe(-100);
@@ -239,7 +239,7 @@ describe('GameRenderer', () => {
       // Set candle just past the wrap threshold
       mockState.bgCandles[0]!.y = -105; // Below -100, triggers wrap
 
-      renderer.updateBackgroundCandles(mockState, 0.05, 1.0, 1, 800, 600);
+      renderer.updateBackgroundCandles(mockState, 0.05, 1.0, 1, 1, 800, 600);
 
       // Should wrap to bottom (y = height + 100 = 700)
       expect(mockState.bgCandles[0]!.y).toBe(700);
@@ -255,10 +255,10 @@ describe('GameRenderer', () => {
         bgCandles: [{ x: 100, y: 200, w: 20, h: 50, color: '#22c55e', speed: 1 }],
       };
 
-      renderer.updateBackgroundCandles(lowDiffState, 0.05, 0.5, 1, 800, 600); // Low wave mult
+      renderer.updateBackgroundCandles(lowDiffState, 0.05, 0.5, 1, 1, 800, 600); // Low wave mult
       const lowDiffMovement = 200 - lowDiffState.bgCandles[0]!.y;
 
-      renderer.updateBackgroundCandles(highDiffState, 0.05, 1.5, 1, 800, 600); // High wave mult (climax)
+      renderer.updateBackgroundCandles(highDiffState, 0.05, 1.5, 1, 1, 800, 600); // High wave mult (climax)
       const highDiffMovement = 200 - highDiffState.bgCandles[0]!.y;
 
       // Higher wave multiplier = faster movement

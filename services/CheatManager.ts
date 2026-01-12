@@ -7,7 +7,11 @@
  */
 
 import { EventBus } from './EventBus';
+import { CHEATS } from '../constants';
 
+/**
+ * Callbacks required for cheat effects
+ */
 export interface CheatCallbacks {
   onLevelUp: () => void;
   onHeal: () => void;
@@ -19,8 +23,12 @@ export interface CheatCallbacks {
   onAddComboKill?: (count: number) => void;
 }
 
+/**
+ * CheatManagerClass - Internal implementation for development shortcuts
+ */
 class CheatManagerClass {
   private static instance: CheatManagerClass | null = null;
+
   // Vite Dev Mode check
   private enabled: boolean = import.meta.env.DEV;
   private godMode: boolean = false;
@@ -33,10 +41,13 @@ class CheatManagerClass {
   private boundHandleKeyDown: ((e: KeyboardEvent) => void) | null = null;
 
   private constructor() {
-    // FIXED: Listen to gameReset to clear cheat states between games
+    // Listen to gameReset to clear cheat states between games
     EventBus.on('gameReset', () => this.reset());
   }
 
+  /**
+   * Singleton accessor
+   */
   static getInstance(): CheatManagerClass {
     return (CheatManagerClass.instance ??= new CheatManagerClass());
   }
@@ -44,7 +55,7 @@ class CheatManagerClass {
   /**
    * Reset cheat states for new game session
    */
-  reset(): void {
+  public reset(): void {
     this.godMode = false;
     this.forcedCrit = false;
     this.forcedSuperCrit = false;
@@ -57,11 +68,15 @@ class CheatManagerClass {
 
   /**
    * Initialize cheat system with callbacks
+   *
+   * @param callbacks Functions to bridge between cheats and game logic
    */
-  init(callbacks: CheatCallbacks): void {
+  public init(callbacks: CheatCallbacks): void {
     this.callbacks = callbacks;
 
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      return;
+    }
 
     if (!this.initialized) {
       this.boundHandleKeyDown = this.handleKeyDown.bind(this);
@@ -77,9 +92,13 @@ class CheatManagerClass {
 
   /**
    * Handle keyboard input
+   *
+   * @param e Keyboard event
    */
   private handleKeyDown(e: KeyboardEvent): void {
-    if (!this.enabled || !this.callbacks) return;
+    if (!this.enabled || !this.callbacks) {
+      return;
+    }
 
     // Ignore if typing in input
     if (
@@ -121,7 +140,9 @@ class CheatManagerClass {
       case '1':
         if (!e.ctrlKey && !e.altKey) {
           this.forcedCrit = !this.forcedCrit;
-          if (this.forcedCrit) this.forcedSuperCrit = false;
+          if (this.forcedCrit) {
+            this.forcedSuperCrit = false;
+          }
           this.showCheatMessage(
             this.forcedCrit ? '🎯 FORCED CRIT: ON' : '🎯 FORCED CRIT: OFF'
           );
@@ -130,7 +151,9 @@ class CheatManagerClass {
       case '2':
         if (!e.ctrlKey && !e.altKey) {
           this.forcedSuperCrit = !this.forcedSuperCrit;
-          if (this.forcedSuperCrit) this.forcedCrit = false;
+          if (this.forcedSuperCrit) {
+            this.forcedCrit = false;
+          }
           this.showCheatMessage(
             this.forcedSuperCrit
               ? '🔥 FORCED SUPER CRIT: ON'
@@ -154,8 +177,8 @@ class CheatManagerClass {
         break;
       }
       case 'X':
-        this.callbacks.onAddExp(500);
-        this.showCheatMessage('✨ +500 EXP');
+        this.callbacks.onAddExp(CHEATS.EXP_BOOST);
+        this.showCheatMessage(`✨ +${CHEATS.EXP_BOOST} EXP`);
         break;
       case 'R':
         if (!e.ctrlKey && !e.altKey && this.callbacks.onRestart) {
@@ -176,7 +199,7 @@ class CheatManagerClass {
         if (!e.ctrlKey && !e.altKey) {
           EventBus.emit('cycleComplete', {
             cycleNumber: 1,
-            totalElapsedSeconds: 300,
+            totalElapsedSeconds: CHEATS.CYCLE_TIME,
           });
           this.showCheatMessage('🏆 CYCLE COMPLETE');
         }
@@ -192,7 +215,7 @@ class CheatManagerClass {
       }
       this.cheatTimeout = window.setTimeout(() => {
         this.cheatBuffer = '';
-      }, 2000);
+      }, CHEATS.BUFFER_CLEAR_DELAY_MS);
 
       this.checkWordCheats();
     }
@@ -202,7 +225,9 @@ class CheatManagerClass {
    * Check for keyword-based cheats using the buffer
    */
   private checkWordCheats(): void {
-    if (!this.callbacks) return;
+    if (!this.callbacks) {
+      return;
+    }
 
     const wordCheats: Record<string, () => void> = {
       moon: () => {
@@ -215,8 +240,8 @@ class CheatManagerClass {
         this.showCheatMessage('🦍 APE MODE');
       },
       rekt: () => {
-        this.callbacks!.onAddExp(-500);
-        this.showCheatMessage('📉 REKT: -500 EXP');
+        this.callbacks!.onAddExp(-CHEATS.EXP_BOOST);
+        this.showCheatMessage(`📉 REKT: -${CHEATS.EXP_BOOST} EXP`);
       },
     };
 
@@ -231,6 +256,8 @@ class CheatManagerClass {
 
   /**
    * Show cheat activation message on screen
+   *
+   * @param message Text to display in the notification
    */
   private showCheatMessage(message: string): void {
     console.log(`%c${message}`, 'color: #fbbf24; font-weight: bold;');
@@ -272,41 +299,43 @@ class CheatManagerClass {
         `;
 
     document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 2000);
+    setTimeout(() => notification.remove(), CHEATS.NOTIFICATION_DURATION_MS);
   }
 
   /**
-   * Check if god mode is active
+   * Returns true if God Mode cheat is active.
    */
-  isGodMode(): boolean {
+  public isGodMode(): boolean {
     return this.godMode;
   }
 
   /**
-   * Check if forced crit is active
+   * Returns true if Forced Crit cheat is active.
    */
-  isForcedCrit(): boolean {
+  public isForcedCrit(): boolean {
     return this.forcedCrit;
   }
 
   /**
-   * Check if forced super crit is active
+   * Returns true if Forced Super Crit cheat is active.
    */
-  isForcedSuperCrit(): boolean {
+  public isForcedSuperCrit(): boolean {
     return this.forcedSuperCrit;
   }
 
   /**
-   * Explicitly enable/disable (useful for specific overrides)
+   * Explicitly enable/disable the cheat manager.
+   *
+   * @param enabled Set to false to disable all cheat shortcuts
    */
-  setEnabled(enabled: boolean): void {
+  public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
   }
 
   /**
-   * Cleanup resources
+   * Cleanup resources and remove event listeners.
    */
-  destroy(): void {
+  public destroy(): void {
     if (this.boundHandleKeyDown) {
       window.removeEventListener('keydown', this.boundHandleKeyDown);
       this.initialized = false;

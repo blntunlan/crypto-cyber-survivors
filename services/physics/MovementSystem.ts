@@ -8,10 +8,24 @@ import { type IMovementSystem } from '../interfaces/IPhysicsSubsystems';
 
 /**
  * MovementSystem - Handles positional updates for all physics-enabled entities.
+ *
+ * This system is responsible for:
+ * - Enemy movement toward player via behaviors
+ * - Bullet trajectory updates with trail effects
+ * - Particle lifetime and motion
+ * - Floating text ascent and fade-out
+ * - Speed lines (visual flair during high speed)
+ * - Enemy death animations (scaling progress)
  */
 export class MovementSystem implements IMovementSystem {
   /**
-   * Update all entities that only require simple velocity-based movement.
+   * Main update entry point for all moving entities.
+   *
+   * @param pool - The object pool manager containing active entities
+   * @param dtFactor - Delta time factor (scaled to 60fps)
+   * @param width - Canvas width for screen boundary checks
+   * @param height - Canvas height for screen boundary checks
+   * @param player - Current player state for AI targeting
    */
   public update(
     pool: IPoolManager,
@@ -30,6 +44,9 @@ export class MovementSystem implements IMovementSystem {
     this.updateDyingEnemies(pool, dtFactor);
   }
 
+  /**
+   * Update enemy positions and entry/spawn progress.
+   */
   private updateEnemies(
     pool: IPoolManager,
     dtFactor: number,
@@ -38,14 +55,19 @@ export class MovementSystem implements IMovementSystem {
     height: number
   ): void {
     pool.activeEnemies.forEach(e => {
-      if (e.isDying) return;
-
-      // Update spawn animation timer
-      if (e.hasEnteredScreen && e.spawnTimer !== undefined && e.spawnTimer > 0) {
-        e.spawnTimer -= 0.1 * dtFactor;
-        if (e.spawnTimer < 0) e.spawnTimer = 0;
+      if (e.isDying) {
+        return;
       }
 
+      // Update spawn animation progress
+      if (e.hasEnteredScreen && e.spawnTimer !== undefined && e.spawnTimer > 0) {
+        e.spawnTimer -= GAME_ENGINE.SPAWN_ANIMATION_DECAY * dtFactor;
+        if (e.spawnTimer < 0) {
+          e.spawnTimer = 0;
+        }
+      }
+
+      // Execute AI behavior move logic
       e.behavior.move(e, player.x, player.y, dtFactor);
 
       if (!e.hasEnteredScreen) {
@@ -59,12 +81,15 @@ export class MovementSystem implements IMovementSystem {
 
         if (isVisible) {
           e.hasEnteredScreen = true;
-          e.spawnTimer = 1.0;
+          e.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
       }
     });
   }
 
+  /**
+   * Update speed line transparency and position.
+   */
   private updateSpeedLines(pool: IPoolManager, dtFactor: number): void {
     pool.activeSpeedLines.forEach(line => {
       line.x += line.vx * dtFactor;
@@ -77,6 +102,9 @@ export class MovementSystem implements IMovementSystem {
     });
   }
 
+  /**
+   * Update bullet positions and spawn trail particles.
+   */
   private updateBullets(
     pool: IPoolManager,
     dtFactor: number,
@@ -91,9 +119,14 @@ export class MovementSystem implements IMovementSystem {
       bullet.x += bullet.vx * dtFactor;
       bullet.y += bullet.vy * dtFactor;
 
+      // Spawn trail particles based on performance settings
       if (Math.random() < trailCfg.spawnChance * particleMultiplier) {
-        const offX = (Math.random() - 0.5) * 4;
-        const offY = (Math.random() - 0.5) * 4;
+        const offX =
+          (Math.random() - GAME_ENGINE.TRAIL_SPAWN_OFFSET_FACTOR) *
+          GAME_ENGINE.TRAIL_SPAWN_OFFSET_MAX;
+        const offY =
+          (Math.random() - GAME_ENGINE.TRAIL_SPAWN_OFFSET_FACTOR) *
+          GAME_ENGINE.TRAIL_SPAWN_OFFSET_MAX;
         const trailPart = pool.getParticle(
           bullet.x + offX,
           bullet.y + offY,
@@ -105,34 +138,48 @@ export class MovementSystem implements IMovementSystem {
         trailPart.radius = bullet.radius * trailCfg.radiusMultiplier;
       }
 
+      // Cleanup bullets that go far off-screen
       if (
-        bullet.x < -100 ||
-        bullet.x > width + 100 ||
-        bullet.y < -100 ||
-        bullet.y > height + 100
+        bullet.x < -GAME_ENGINE.BULLET_OFFSCREEN_THRESHOLD ||
+        bullet.x > width + GAME_ENGINE.BULLET_OFFSCREEN_THRESHOLD ||
+        bullet.y < -GAME_ENGINE.BULLET_OFFSCREEN_THRESHOLD ||
+        bullet.y > height + GAME_ENGINE.BULLET_OFFSCREEN_THRESHOLD
       ) {
         bullet.active = false;
       }
     });
   }
 
+  /**
+   * Update particle positions and fade-out life.
+   */
   private updateParticles(pool: IPoolManager, dtFactor: number): void {
     pool.activeParticles.forEach(part => {
       part.x += part.vx * dtFactor;
       part.y += part.vy * dtFactor;
-      part.life -= 0.02 * dtFactor;
-      if (part.life <= 0) part.active = false;
+      part.life -= GAME_ENGINE.PARTICLE_LIFE_DECAY * dtFactor;
+      if (part.life <= 0) {
+        part.active = false;
+      }
     });
   }
 
+  /**
+   * Update floating text ascent and fading progress.
+   */
   private updateFloatingTexts(pool: IPoolManager, dtFactor: number): void {
     pool.activeFloatingTexts.forEach(text => {
-      text.y -= 1.5 * dtFactor;
-      text.life -= 0.025 * dtFactor;
-      if (text.life <= 0) text.active = false;
+      text.y -= GAME_ENGINE.FLOATING_TEXT_SPEED * dtFactor;
+      text.life -= GAME_ENGINE.FLOATING_TEXT_LIFE_DECAY * dtFactor;
+      if (text.life <= 0) {
+        text.active = false;
+      }
     });
   }
 
+  /**
+   * Update progress for enemies in the 'dying' state (death animation).
+   */
   private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
     pool.activeEnemies.forEach(enemy => {
       if (enemy.isDying) {

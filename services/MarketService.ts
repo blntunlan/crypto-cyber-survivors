@@ -3,14 +3,14 @@
  *
  * Connects to Binance and Coinbase WebSocket feeds for live BTC/USD prices.
  * Features:
- * - Dual-source price feeds for redundancy
- * - Exponential backoff reconnection
- * - Connection state tracking
- * - Automatic failover
- * - Zod validation for type safety
+ * - Dual-source price feeds for redundancy (Binance primary, Coinbase fallback)
+ * - Exponential backoff reconnection for network resilience
+ * - Connection state tracking for UI feedback
+ * - Automatic failover and session recovery
+ * - Tab visibility management to reduce bandwidth when idle
  */
 
-import { COINBASE_WS_URL, getBinanceWsUrl } from '../constants';
+import { COINBASE_WS_URL, getBinanceWsUrl, MARKET } from '../constants';
 import { Logger } from './Logger';
 import { CRYPTO_PAIRS, type CryptoPair, type CryptoConfig } from '../types/crypto';
 import {
@@ -47,13 +47,15 @@ export interface ConnectionStatus {
   lastPriceTime: number | null;
 }
 
-// Exponential backoff config
-const INITIAL_RECONNECT_DELAY = 1000; // 1 second
-const MAX_RECONNECT_DELAY = 30000; // 30 seconds
-const RECONNECT_MULTIPLIER = 2;
-
 export type WebSocketFactory = (url: string) => WebSocket;
 
+/**
+ * MarketService Class
+ *
+ * Manages WebSocket connections to major cryptocurrency exchanges.
+ * Uses a primary/secondary failover strategy to ensure continuous market data
+ * availability for game difficulty calculations.
+ */
 export class MarketService {
   private binanceSocket: WebSocket | null = null;
   private coinbaseSocket: WebSocket | null = null;
@@ -66,29 +68,22 @@ export class MarketService {
   private coinbaseState: ConnectionState = 'disconnected';
   private lastPriceTime: number | null = null;
 
-  // Reconnection tracking
-  private binanceReconnectDelay: number = INITIAL_RECONNECT_DELAY;
-  private coinbaseReconnectDelay: number = INITIAL_RECONNECT_DELAY;
+  // Reconnection backoff tracking (O(log N) delay growth)
+  private binanceReconnectDelay: number = MARKET.RECONNECT.INITIAL_DELAY;
+  private coinbaseReconnectDelay: number = MARKET.RECONNECT.INITIAL_DELAY;
   private binanceReconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private coinbaseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Last known price cache
+  // Last known price cache for persistence across reconnects
   private lastKnownPrice: number | null = null;
 
-  // Status change callback
+  // Status change notification hook
   private onStatusChange?: (status: ConnectionStatus) => void;
 
   private pair: CryptoPair;
   private config: CryptoConfig;
 
-  // Fallback prices when offline (approximate market prices)
-  private static readonly FALLBACK_PRICES: Record<CryptoPair, number> = {
-    BTC: 43000,
-    ETH: 2300,
-    SOL: 100,
-  };
-
-  // Visibility change handler reference (for cleanup)
+  // Visibility change handler reference (stored for proper event cleanup)
   private visibilityHandler: (() => void) | null = null;
 
   constructor(config: MarketServiceConfig) {
@@ -100,31 +95,31 @@ export class MarketService {
   }
 
   /**
-   * Connect to price feeds
-   * Primary: Binance Futures
-   * Fallback: Coinbase (only if Binance fails)
+   * Initialize connections to market feeds.
+   * Starts with Binance as the primary high-frequency source.
    */
-  connect(): void {
+  public connect(): void {
     this.wasClosedIntentionally = false;
     this.setupVisibilityHandler();
-    // Start with Binance as primary source
     this.connectBinance();
-    // Coinbase will be started as fallback if Binance fails
   }
 
   /**
-   * Setup tab visibility handler to pause/resume connections
+   * Setup tab visibility handler to pause/resume connections.
+   * Prevents background tabs from consuming unnecessary resources/bandwidth.
+   *
+   * @private
    */
   private setupVisibilityHandler(): void {
-    if (this.visibilityHandler) return; // Already setup
+    if (this.visibilityHandler) {
+      return;
+    }
 
     this.visibilityHandler = () => {
       if (document.hidden) {
-        // Tab hidden - disconnect to save resources
         Logger.info('[Market] Tab hidden, pausing connections');
         this.pauseConnections();
       } else {
-        // Tab visible - reconnect
         Logger.info('[Market] Tab visible, resuming connections');
         this.resumeConnections();
       }
@@ -134,10 +129,12 @@ export class MarketService {
   }
 
   /**
-   * Pause connections without full disconnect (keeps state)
+   * Temporarily suspend connections (e.g. when tab is hidden).
+   * Unlike disconnect(), this does not clear the 'wasClosedIntentionally' flag.
+   *
+   * @private
    */
   private pauseConnections(): void {
-    // Close sockets but don't mark as intentionally closed
     if (this.binanceSocket) {
       this.binanceSocket.close();
       this.binanceSocket = null;
@@ -151,7 +148,9 @@ export class MarketService {
   }
 
   /**
-   * Resume connections after pause
+   * Resumes previously paused connections.
+   *
+   * @private
    */
   private resumeConnections(): void {
     if (!this.wasClosedIntentionally) {
@@ -161,9 +160,9 @@ export class MarketService {
   }
 
   /**
-   * Get current connection status
+   * Retrieves the current aggregate connection status of all feeds.
    */
-  getStatus(): ConnectionStatus {
+  public getStatus(): ConnectionStatus {
     return {
       binance: this.binanceState,
       coinbase: this.coinbaseState,
@@ -172,34 +171,38 @@ export class MarketService {
   }
 
   /**
-   * Get last known price (for offline fallback)
+   * Retrieves the most recent successfully received price point.
    */
-  getLastKnownPrice(): number | null {
+  public getLastKnownPrice(): number | null {
     return this.lastKnownPrice;
   }
 
   /**
-   * Get current price with fallback support
-   * Returns last known price, or fallback price if never connected
+   * Returns current price with reliable fallback to static baseline if no data received.
    */
-  getPrice(): number {
-    return this.lastKnownPrice ?? MarketService.FALLBACK_PRICES[this.pair];
+  public getPrice(): number {
+    return this.lastKnownPrice ?? MARKET.FALLBACK_PRICES[this.pair];
   }
 
   /**
-   * Check if running in offline mode (using fallback prices)
+   * Returns true if no successful connection has ever established a price.
    */
-  isOfflineMode(): boolean {
+  public isOfflineMode(): boolean {
     return !this.isConnected() && this.lastKnownPrice === null;
   }
 
   /**
-   * Check if any price feed is connected
+   * Returns true if at least one market source is currently connected.
    */
-  isConnected(): boolean {
+  public isConnected(): boolean {
     return this.binanceState === 'connected' || this.coinbaseState === 'connected';
   }
 
+  /**
+   * Updates internal state and notifies subscribers of connectivity changes.
+   *
+   * @private
+   */
   private updateState(source: 'binance' | 'coinbase', state: ConnectionState): void {
     if (source === 'binance') {
       this.binanceState = state;
@@ -207,7 +210,6 @@ export class MarketService {
       this.coinbaseState = state;
     }
 
-    // Notify status change
     this.onStatusChange?.({
       binance: this.binanceState,
       coinbase: this.coinbaseState,
@@ -215,43 +217,44 @@ export class MarketService {
     });
   }
 
+  /**
+   * Establishes connection to the primary Binance WebSocket feed.
+   *
+   * @private
+   */
   private connectBinance(): void {
-    if (this.wasClosedIntentionally) return;
+    if (this.wasClosedIntentionally) {
+      return;
+    }
 
     try {
       this.updateState('binance', 'connecting');
-      Logger.debug(`[Market] Connecting to Binance (${this.pair})...`);
-
       const wsUrl = getBinanceWsUrl(this.pair);
       this.binanceSocket = this.wsFactory(wsUrl);
 
       this.binanceSocket.onopen = () => {
         Logger.info('[Market] Binance connected');
         this.updateState('binance', 'connected');
-        this.binanceReconnectDelay = INITIAL_RECONNECT_DELAY; // Reset backoff
+        this.binanceReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
       };
 
       this.binanceSocket.onmessage = event => {
         try {
           const rawData = JSON.parse(event.data);
 
-          // CRITICAL: Validate that the message is for the correct pair
-          // Binance kline messages have 's' (symbol) field, kline data has 'k.s'
+          // Symbol Validation: Detect and ignore messages for misaligned pairs
           const messageSymbol = rawData.s ?? rawData.k?.s;
-          const expectedSymbol = this.config.symbol; // e.g., 'BTCUSDT'
+          const expectedSymbol = this.config.symbol;
 
           if (
             messageSymbol &&
             messageSymbol.toUpperCase() !== expectedSymbol.toUpperCase()
           ) {
-            Logger.debug(
-              `[Market] Ignoring Binance message for wrong pair: ${messageSymbol} (expected: ${expectedSymbol})`
-            );
+            Logger.debug(`Ignoring Binance message for wrong pair: ${messageSymbol}`);
             return;
           }
 
           const update = parseBinanceData(rawData);
-
           if (update) {
             this.lastKnownPrice = update.price;
             this.lastPriceTime = Date.now();
@@ -268,7 +271,6 @@ export class MarketService {
         if (!this.wasClosedIntentionally) {
           this.updateState('binance', 'reconnecting');
           this.scheduleReconnect('binance');
-          // Activate Coinbase as fallback if not already connected
           this.activateFallback();
         } else {
           this.updateState('binance', 'disconnected');
@@ -277,20 +279,20 @@ export class MarketService {
 
       this.binanceSocket.onerror = error => {
         Logger.warn('[Market] Binance WebSocket error', error);
-        // Activate Coinbase as fallback
         this.activateFallback();
       };
     } catch (e) {
       Logger.error('[Market] Binance connection failed', e);
       this.updateState('binance', 'disconnected');
       this.scheduleReconnect('binance');
-      // Activate Coinbase as fallback
       this.activateFallback();
     }
   }
 
   /**
-   * Activate Coinbase as fallback when Binance is unavailable
+   * Activates secondary Coinbase feed if primary source enters a failure state.
+   *
+   * @private
    */
   private activateFallback(): void {
     if (this.coinbaseState === 'disconnected' && !this.wasClosedIntentionally) {
@@ -299,13 +301,18 @@ export class MarketService {
     }
   }
 
+  /**
+   * Establishes connection to the secondary Coinbase feed.
+   *
+   * @private
+   */
   private connectCoinbase(): void {
-    if (this.wasClosedIntentionally) return;
+    if (this.wasClosedIntentionally) {
+      return;
+    }
 
     try {
       this.updateState('coinbase', 'connecting');
-      Logger.debug('[Market] Connecting to Coinbase...');
-
       this.coinbaseSocket = this.wsFactory(COINBASE_WS_URL);
 
       this.coinbaseSocket.onopen = () => {
@@ -318,32 +325,27 @@ export class MarketService {
           })
         );
         this.updateState('coinbase', 'connected');
-        this.coinbaseReconnectDelay = INITIAL_RECONNECT_DELAY; // Reset backoff
+        this.coinbaseReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
       };
 
       this.coinbaseSocket.onmessage = event => {
         try {
           const rawData = JSON.parse(event.data);
-
-          // Skip subscription confirmation messages
           if (isCoinbaseSubscription(rawData)) {
             return;
           }
 
-          // CRITICAL: Validate that the message is for the correct pair
-          // This prevents data corruption when multiple pairs might be subscribed
           if (
             rawData.product_id &&
             rawData.product_id !== this.config.coinbaseProductId
           ) {
             Logger.debug(
-              `[Market] Ignoring Coinbase message for wrong pair: ${rawData.product_id} (expected: ${this.config.coinbaseProductId})`
+              `Ignoring Coinbase message for wrong pair: ${rawData.product_id}`
             );
             return;
           }
 
           const update = parseCoinbaseData(rawData);
-
           if (update) {
             this.lastKnownPrice = update.price;
             this.lastPriceTime = Date.now();
@@ -376,27 +378,30 @@ export class MarketService {
   }
 
   /**
-   * Schedule reconnection with exponential backoff
+   * Implements exponential backoff strategy for socket reconnection.
+   *
+   * @private
    */
   private scheduleReconnect(source: 'binance' | 'coinbase'): void {
-    if (this.wasClosedIntentionally) return;
+    if (this.wasClosedIntentionally) {
+      return;
+    }
 
     const delay =
       source === 'binance' ? this.binanceReconnectDelay : this.coinbaseReconnectDelay;
-
     Logger.info(`[Market] Scheduling ${source} reconnect in ${delay}ms`);
 
     const timer = setTimeout(() => {
       if (source === 'binance') {
         this.binanceReconnectDelay = Math.min(
-          this.binanceReconnectDelay * RECONNECT_MULTIPLIER,
-          MAX_RECONNECT_DELAY
+          this.binanceReconnectDelay * MARKET.RECONNECT.MULTIPLIER,
+          MARKET.RECONNECT.MAX_DELAY
         );
         this.connectBinance();
       } else {
         this.coinbaseReconnectDelay = Math.min(
-          this.coinbaseReconnectDelay * RECONNECT_MULTIPLIER,
-          MAX_RECONNECT_DELAY
+          this.coinbaseReconnectDelay * MARKET.RECONNECT.MULTIPLIER,
+          MARKET.RECONNECT.MAX_DELAY
         );
         this.connectCoinbase();
       }
@@ -410,12 +415,11 @@ export class MarketService {
   }
 
   /**
-   * Disconnect from all price feeds
+   * Explicitly closes all open WebSocket connections and cancels pending retries.
    */
-  disconnect(): void {
+  public disconnect(): void {
     this.wasClosedIntentionally = true;
 
-    // Clear pending reconnect timers
     if (this.binanceReconnectTimer) {
       clearTimeout(this.binanceReconnectTimer);
       this.binanceReconnectTimer = null;
@@ -425,7 +429,6 @@ export class MarketService {
       this.coinbaseReconnectTimer = null;
     }
 
-    // Close sockets
     if (this.binanceSocket) {
       this.binanceSocket.close();
       this.binanceSocket = null;
@@ -442,29 +445,26 @@ export class MarketService {
   }
 
   /**
-   * Force reconnect to all feeds
+   * High-level force reset of all market connections.
    */
-  reconnect(): void {
+  public reconnect(): void {
     Logger.info('[Market] Force reconnecting...');
     this.disconnect();
 
-    // Reset backoff delays
-    this.binanceReconnectDelay = INITIAL_RECONNECT_DELAY;
-    this.coinbaseReconnectDelay = INITIAL_RECONNECT_DELAY;
+    this.binanceReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
+    this.coinbaseReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
 
-    // Short delay before reconnecting
     setTimeout(() => {
       this.connect();
-    }, 500);
+    }, MARKET.RECONNECT.FORCE_RECONNECT_DELAY);
   }
 
   /**
-   * Cleanup all resources (call on unmount)
+   * Fully releases external event listeners and disconnects feeds.
    */
-  destroy(): void {
+  public destroy(): void {
     this.disconnect();
 
-    // Remove visibility handler
     if (this.visibilityHandler) {
       document.removeEventListener('visibilitychange', this.visibilityHandler);
       this.visibilityHandler = null;

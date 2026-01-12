@@ -146,8 +146,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     marketDataRef.current = marketData;
   }, [marketData]);
 
-  // DEBUG: Key '6' triggers force cycle complete
+  // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '6') {
         Logger.info('[GameEngine Debug] Force triggering cycle complete via key 6');
@@ -231,7 +233,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
         // Set a small freeze timer to allow one frame of update/draw before locking again
         // This ensures the game loop catches the state change cleanly
-        state.current.levelUpFreeze = 200;
+        state.current.levelUpFreeze = GAME_ENGINE.PENDING_LEVEL_UP_FREEZE_MS;
         EventBus.emit('levelUpStart', {});
       }
     }
@@ -297,21 +299,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       if (s.nearMissTimer > 0) {
         s.nearMissTimer -= deltaTime;
         timeScale = GAME_ENGINE.NEAR_MISS_SLOWMO;
-        // 🚀 [Turbo Console Log]: timeScale (Slow-mo Active)
-        // console.log('GameEngine.tsx:298 ~ timeScale:', timeScale);
       }
 
-      const dtFactor = (deltaTime / 16.67) * timeScale;
+      const dtFactor = (deltaTime / GAME_ENGINE.TARGET_FRAME_TIME) * timeScale;
       s.lastTime = time;
       FPSMonitor.tick();
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
       if (status !== GameStatus.MENU) {
         const waveMultiplier = DifficultyManager.getWaveMultiplier();
+        const momentum = DifficultyManager.getMomentum();
         renderer.current.updateBackgroundCandles(
           s,
           marketDataRef.current.pnl,
           waveMultiplier,
+          momentum,
           dtFactor,
           width,
           height
@@ -344,15 +346,25 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           return;
         }
 
-        if (s.shake > 0) s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
+        if (s.shake > 0) {
+          s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
+        }
         if (s.critFlash > 0) {
           s.critFlash *= Math.pow(GAME_ENGINE.CRIT_FLASH_DECAY, dtFactor);
         }
 
         // Recover player scale (Squash & Stretch)
-        // Lerp back to 1.0 with a springy speed (approx 0.15 per frame)
-        s.playerScaleX = lerp(s.playerScaleX, 1, 0.15 * dtFactor);
-        s.playerScaleY = lerp(s.playerScaleY, 1, 0.15 * dtFactor);
+        // Lerp back to 1.0 with a springy speed
+        s.playerScaleX = lerp(
+          s.playerScaleX,
+          1,
+          GAME_ENGINE.PLAYER_SCALE_RECOVERY_SPEED * dtFactor
+        );
+        s.playerScaleY = lerp(
+          s.playerScaleY,
+          1,
+          GAME_ENGINE.PLAYER_SCALE_RECOVERY_SPEED * dtFactor
+        );
 
         // Update difficulty waves in real-time
         DifficultyManager.updateWaveTimer(deltaTime);
@@ -391,10 +403,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
 
         // Low HP Heartbeat Logic
-        if (hpPercent < 25) {
-          const urgency = 1 - hpPercent / 25;
+        if (hpPercent < GAME_ENGINE.LOW_HP_THRESHOLD_PERCENT) {
+          const urgency = 1 - hpPercent / GAME_ENGINE.LOW_HP_THRESHOLD_PERCENT;
           // Pulse intervals: 1000ms (start) -> 400ms (near death)
-          const interval = 1000 - urgency * 600;
+          const interval =
+            GAME_ENGINE.HEARTBEAT_INTERVAL_BASE -
+            urgency * GAME_ENGINE.HEARTBEAT_INTERVAL_SHIFT;
 
           if (time - s.lastHeartbeatTime > interval) {
             audio.playHeartbeat();
@@ -425,7 +439,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           s.dashTimer -= deltaTime;
 
           // Update halo opacity - pulse during dash window
-          s.dashHaloOpacity = Math.sin(time / 50) * 0.3 + 0.7; // Pulsing 0.4-1.0
+          s.dashHaloOpacity =
+            Math.sin(time / GAME_ENGINE.DASH_HALO_PULSE_SPEED) *
+              GAME_ENGINE.DASH_HALO_OPACITY_BASE +
+            GAME_ENGINE.DASH_HALO_OPACITY_AMP; // Pulsing 0.4-1.0
 
           // Check for double dash input during active dash
           // User must RELEASE and PRESS space again (not just hold)
@@ -469,7 +486,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
           // Add current position to trail
           s.dashTrail.push({ x: player.x, y: player.y });
-          if (s.dashTrail.length > 8) s.dashTrail.shift();
+          if (s.dashTrail.length > GAME_ENGINE.DASH_TRAIL_MAX_LENGTH) {
+            s.dashTrail.shift();
+          }
         } else {
           // Fade out trail - frame-rate independent using accumulator
           s.dashHaloOpacity = 0;
@@ -558,13 +577,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 r: lerp(
                   minVal,
                   45,
-                  Math.min(1, Math.abs(marketDataRef.current.pnl) * 20)
+                  Math.min(
+                    1,
+                    Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
+                  )
                 ),
                 g: minVal,
                 b: minVal,
               };
 
-        const bgLerpFactor = 1 - Math.pow(0.95, dtFactor);
+        const bgLerpFactor = 1 - Math.pow(GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
         s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
         s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
         s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
@@ -606,7 +628,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Exception: Always update immediately on Level Up
         const shouldSync =
           player.level !== lastSyncedStats.current.level ||
-          (time - lastSyncedStats.current.lastTime > 100 &&
+          (time - lastSyncedStats.current.lastTime >
+            GAME_ENGINE.STATS_SYNC_THROTTLE_MS &&
             (player.hp !== lastSyncedStats.current.hp ||
               player.exp !== lastSyncedStats.current.exp));
 
@@ -683,6 +706,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           settings={mobileSettings}
           onMove={setTouchMovement}
           onDash={() => setTouchDash(true)}
+          onDashRelease={() => setTouchDash(false)}
           dashCooldownMs={GAME_ENGINE.DASH_COOLDOWN}
         />
       )}

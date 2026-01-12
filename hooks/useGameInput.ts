@@ -36,6 +36,9 @@ export const useGameInput = () => {
 
   const setTouchDash = (active: boolean) => {
     touchDash.current = active;
+    if (!active) {
+      spaceConsumed.current = false;
+    }
   };
 
   const getMovementVector = () => {

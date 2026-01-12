@@ -1,8 +1,8 @@
 /**
  * MarketStateService - Subscribes to Supabase market_state
  *
- * Server'dan gelen indikatör verilerini client'a sağlar.
- * Local calculation yerine server'ı source of truth olarak kullanır.
+ * Provides indicator data from the server to the client.
+ * Uses the server as the source of truth instead of local calculations.
  */
 import { supabase } from './Supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -31,6 +31,7 @@ class MarketStateServiceImpl {
   private currentPair: string = 'BTC';
   private currentPosition: 'LONG' | 'SHORT' = 'LONG';
   private state: MarketState | null = null;
+  private rawState: Record<string, unknown> | null = null;
 
   static getInstance(): MarketStateServiceImpl {
     return (this.instance ??= new MarketStateServiceImpl());
@@ -65,7 +66,8 @@ class MarketStateServiceImpl {
       }
 
       if (data) {
-        this.state = this.transformState(data);
+        this.rawState = data as Record<string, unknown>;
+        this.state = this.transformState(this.rawState);
         // Emit initial update
         EventBus.emit('marketStateUpdated', this.state);
       }
@@ -108,6 +110,7 @@ class MarketStateServiceImpl {
 
   private handleUpdate(data: Record<string, unknown>): void {
     const prevState = this.state;
+    this.rawState = data;
     this.state = this.transformState(data);
 
     // Emit events for significant changes
@@ -130,57 +133,29 @@ class MarketStateServiceImpl {
   }
 
   /**
-   * Transform raw Supabase data to MarketState with validation and fallbacks
-   * Handles missing, invalid, or NaN values gracefully
+   * Transform raw Supabase data to MarketState with validation and fallbacks.
+   * Handles missing, invalid, or NaN values gracefully.
    */
   private transformState(data: Record<string, unknown>): MarketState {
-    // Helper to safely parse a number with fallback
-    const safeParseFloat = (value: unknown, fallback: number): number => {
-      if (value === null || value === undefined) return fallback;
-      const parsed = typeof value === 'number' ? value : parseFloat(String(value));
-      return Number.isFinite(parsed) ? parsed : fallback;
-    };
-
-    // Helper to validate RSI state
-    const validRsiStates = ['OVERSOLD', 'NEUTRAL', 'OVERBOUGHT'] as const;
-    const safeRsiState = (value: unknown): 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT' => {
-      if (
-        typeof value === 'string' &&
-        validRsiStates.includes(value as (typeof validRsiStates)[number])
-      ) {
-        return value as 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
-      }
-      return 'NEUTRAL';
-    };
-
-    // Helper to validate whale tier
-    const safeWhaleTier = (value: unknown): 0 | 1 | 2 | 3 => {
-      const tier = typeof value === 'number' ? value : parseInt(String(value), 10);
-      if (tier >= 0 && tier <= 3 && Number.isFinite(tier)) {
-        return tier as 0 | 1 | 2 | 3;
-      }
-      return 0;
-    };
-
     // Get aggro multiplier based on position
     const aggroMultiplier =
       this.currentPosition === 'LONG'
-        ? safeParseFloat(data.enemy_aggro_multiplier_long, 1.0)
-        : safeParseFloat(data.enemy_aggro_multiplier_short, 1.0);
+        ? this.safeParseFloat(data.enemy_aggro_multiplier_long, 1.0)
+        : this.safeParseFloat(data.enemy_aggro_multiplier_short, 1.0);
 
     // Validate and transform with fallbacks
     const state: MarketState = {
       pair: typeof data.pair === 'string' ? data.pair : this.currentPair,
-      price: safeParseFloat(data.price, 0),
-      volume: safeParseFloat(data.volume, 0),
-      rsi: safeParseFloat(data.rsi, 50), // Neutral RSI fallback
-      rsiState: safeRsiState(data.rsi_state),
-      atr: safeParseFloat(data.atr, 0),
-      atrPercent: safeParseFloat(data.atr_percent, 1.0), // Normal volatility fallback
-      spawnRateMultiplier: safeParseFloat(data.spawn_rate_multiplier, 1.0),
-      normalizedVolume: safeParseFloat(data.normalized_volume, 0.5),
-      volumePercentile: safeParseFloat(data.volume_percentile, 50),
-      whaleTier: safeWhaleTier(data.whale_tier),
+      price: this.safeParseFloat(data.price, 0),
+      volume: this.safeParseFloat(data.volume, 0),
+      rsi: this.safeParseFloat(data.rsi, 50), // Neutral RSI fallback
+      rsiState: this.safeRsiState(data.rsi_state),
+      atr: this.safeParseFloat(data.atr, 0),
+      atrPercent: this.safeParseFloat(data.atr_percent, 1.0), // Normal volatility fallback
+      spawnRateMultiplier: this.safeParseFloat(data.spawn_rate_multiplier, 1.0),
+      normalizedVolume: this.safeParseFloat(data.normalized_volume, 0.5),
+      volumePercentile: this.safeParseFloat(data.volume_percentile, 50),
+      whaleTier: this.safeWhaleTier(data.whale_tier),
       enemyAggroMultiplier: aggroMultiplier,
       updatedAt: data.updated_at ? new Date(data.updated_at as string) : new Date(),
     };
@@ -193,35 +168,55 @@ class MarketStateServiceImpl {
     return state;
   }
 
+  /**
+   * Safely parses a number with a fallback.
+   */
+  private safeParseFloat(value: unknown, fallback: number): number {
+    if (value === null || value === undefined) return fallback;
+    const parsed = typeof value === 'number' ? value : parseFloat(String(value));
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  /**
+   * Validates RSI state.
+   */
+  private safeRsiState(value: unknown): 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT' {
+    const validStates = ['OVERSOLD', 'NEUTRAL', 'OVERBOUGHT'] as const;
+    if (
+      typeof value === 'string' &&
+      (validStates as readonly string[]).includes(value)
+    ) {
+      return value as 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+    }
+    return 'NEUTRAL';
+  }
+
+  /**
+   * Validates whale tier.
+   */
+  private safeWhaleTier(value: unknown): 0 | 1 | 2 | 3 {
+    const tier = typeof value === 'number' ? value : parseInt(String(value), 10);
+    return tier >= 0 && tier <= 3 && Number.isFinite(tier)
+      ? (tier as 0 | 1 | 2 | 3)
+      : 0;
+  }
+
   getState(): MarketState | null {
     return this.state;
   }
 
+  /**
+   * Updates current position and recalculates aggro multipliers if state is available.
+   *
+   * @param position 'LONG' | 'SHORT'
+   */
   setPosition(position: 'LONG' | 'SHORT'): void {
     this.currentPosition = position;
-    if (this.state) {
-      // Recalculate aggro multiplier locally (for immediate feedback)
-      // The server also sends pre-calculated values, but we can override locally if needed
-      // Actually, let's just wait for the next update or rely on the stored server values which are separate columns
-      // But wait, transformState uses currentPosition!
-      // So we should re-transform the state with the new position.
-      // We can't easily re-transform without the raw data unless we store it.
-      // But we can just emit an update with the *logic* applied.
-      // However, simplified approach: Just set the property directly on the state object.
-      // Since transformState is only called on update.
-      // Let's refactor transformState to not depend on this.currentPosition if possible OR
-      // trigger a refresh. But we don't have the raw data.
-      // Better approach:
-      // Just fetch the latest state again? No, expensive.
-      // Just simulate the switch since we know the logic:
-      // If we switched position, we likely switched the multiplier intended for us.
-      // But the server sends *both* multipliers in separate columns.
-      // Wait, the interface has only ONE enemyAggroMultiplier.
-      // We need to keep the raw data or fetch it again.
-      // Solution: We don't store raw data. We'll just have to wait for the next update
-      // OR we can make a quick fetch.
-      // BUT, actually, this method is rarely called mid-game (only on game start usually).
-      // So it's probably fine.
+    if (this.rawState) {
+      // Re-transform state with the new position logic applied
+      this.state = this.transformState(this.rawState);
+      EventBus.emit('marketStateUpdated', this.state);
+      Logger.debug(`[MarketStateService] Updated for position: ${position}`);
     }
   }
 

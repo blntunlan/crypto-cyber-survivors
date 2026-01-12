@@ -11,16 +11,23 @@ import { Logger } from '../Logger';
 import { ThemeService } from '../ThemeService';
 
 /**
- * CombatResolutionService - Pure logic for resolving combat events.
- * Handles entity death rewards, lifesteal, and gem drops.
+ * CombatResolutionService - Logic engine for processing combat outcomes.
  *
- * Stat Effects:
- * - Luck: Increases rare gem chance and can spawn bonus gems
- * - Lifesteal: % chance to heal player on enemy kill
+ * Responsibilities:
+ * 1. Enemy Lifecycle: Handling death triggers, animation starts, and deactivation.
+ * 2. Rewards System: Calculating Luck-based gem drops (base vs rare vs bonus).
+ * 3. Player Mechanics: Lifesteal probability and health restoration logic.
+ * 4. Physics Effects: Area-of-effect shockwaves and momentum-based pushbacks.
+ * 5. Event Dispatch: Notifying the system of kills, heals, and level-ups.
  */
 export class CombatResolutionService {
   /**
-   * Handle enemy death: cleanup, record kill, spawn rewards and effects.
+   * Finalizes an enemy's active state and initiates reward processing.
+   *
+   * @param pool - Access to entity pools for gem/particle spawning
+   * @param enemy - The enemy instance being defeated
+   * @param player - Current player state for stats-based reward scaling
+   * @param isSuperCrit - Whether the final blow was a super-critical hit
    */
   public static handleEnemyDeath(
     pool: IPoolManager,
@@ -28,12 +35,14 @@ export class CombatResolutionService {
     player: Player,
     isSuperCrit: boolean = false
   ): void {
-    // Start death animation instead of immediately deactivating
+    // 1. Animation State: Instead of immediate removal, start the "death pop" visual
     enemy.isDying = true;
     enemy.deathProgress = 0;
 
+    // 2. Metrics Tracking
     DifficultyManager.recordKill();
 
+    // 3. System Notification
     EventBus.emit('enemyKilled', {
       x: enemy.x,
       y: enemy.y,
@@ -41,25 +50,29 @@ export class CombatResolutionService {
       isCrit: isSuperCrit,
     });
 
+    // 4. Reward Generation
     this.spawnDeathParticles(pool, enemy, isSuperCrit);
     this.spawnGemForEnemy(pool, enemy, player);
     this.processLifesteal(player, enemy);
   }
 
   /**
-   * Apply a massive knockback to all enemies (Volatility Shockwave)
+   * Applies a directional shockwave that displaces all enemies.
+   * Typically triggered by high-volatility market events.
+   *
+   * @param pool - Pool manager to access all active enemies
+   * @param intensity - Strength multiplier for the push force
    */
   public static triggerShockwave(pool: IPoolManager, intensity: number): void {
     const force = COMBAT_CONFIG.SHOCKWAVE.BASE_FORCE * intensity;
 
     pool.activeEnemies.forEach(enemy => {
-      // Direct push away from center of screen (usually where player is)
-      // For now, just pushed away from player current position
+      // Calculate repulsion vector (randomized for "chaos" feel, usually relative to screen center)
       const angle = Math.random() * Math.PI * 2;
       enemy.x += Math.cos(angle) * force;
       enemy.y += Math.sin(angle) * force;
 
-      // Visual feedback on enemy
+      // Apply stagger visual (re-uses spawn animation timer)
       enemy.spawnTimer = COMBAT_CONFIG.SHOCKWAVE.STAGGER_DURATION;
     });
 
@@ -67,47 +80,49 @@ export class CombatResolutionService {
   }
 
   /**
-   * Process lifesteal mechanic - % chance to heal on kill.
+   * Calculates and applies health restoration on successful kill.
    */
   private static processLifesteal(player: Player, enemy: Enemy): void {
-    // Get effective lifesteal from BuffManager if available
+    // Dynamic Stat Resolution: Use BuffManager if available, fallback to raw player stats
     const lifesteal = BuffManager.isInitialized()
       ? BuffManager.getDecoratedStats().getLifesteal()
       : player.lifesteal;
 
-    // Skip if no lifesteal
-    if (lifesteal <= 0) return;
+    if (lifesteal <= 0) {
+      return;
+    }
 
-    // Roll for lifesteal proc
     const roll = Math.random();
     const cappedLifesteal = Math.min(lifesteal, PLAYER_STATS.MAX_LIFESTEAL);
 
     if (roll < cappedLifesteal) {
-      // Heal amount based on enemy type
-      const healAmount =
+      // Scale heal amount based on enemy difficulty (Whales provide more "liquidity")
+      const healBase =
         enemy.type === 'whale'
           ? COMBAT_CONFIG.LIFESTEAL.HEAL_AMOUNT_WHALE
           : COMBAT_CONFIG.LIFESTEAL.HEAL_AMOUNT_NORMAL;
-      const newHp = Math.min(player.hp + healAmount, player.maxHp);
-      const actualHeal = Math.round(newHp - player.hp); // Round to avoid floating point display issues
+
+      const newHp = Math.min(player.hp + healBase, player.maxHp);
+      const actualHeal = Math.round(newHp - player.hp);
+
       player.hp = newHp;
 
       if (actualHeal > 0) {
-        // Emit event for visual feedback
         EventBus.emit('playerHealed', {
           amount: actualHeal,
           x: player.x,
-          y: player.y - 20,
+          y: player.y - 20, // Offset for UI clarity
           source: 'lifesteal',
         });
 
-        Logger.debug(
-          `[Lifesteal] Healed ${actualHeal} HP (${(cappedLifesteal * 100).toFixed(0)}% chance)`
-        );
+        Logger.debug(`[Lifesteal] Proc! Healed ${actualHeal} HP`);
       }
     }
   }
 
+  /**
+   * Spawns cosmetic fragments at the site of enemy destruction.
+   */
   private static spawnDeathParticles(
     pool: IPoolManager,
     enemy: Enemy,
@@ -116,31 +131,31 @@ export class CombatResolutionService {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
     const isRetro = ThemeService.isRetro();
 
+    // Particle count scales with hit quality and hardware performance
     const baseCount = isSuperCrit
       ? COMBAT_CONFIG.PARTICLES.SUPER_CRIT_COUNT
       : COMBAT_CONFIG.PARTICLES.NORMAL_COUNT;
+
     const count = Math.round(baseCount * perfConfig.particleMultiplier);
     const velocityRange = COMBAT_CONFIG.PARTICLES.VELOCITY_RANGE;
 
     for (let k = 0; k < count; k++) {
-      // For retro mode, we make the velocities slightly more "blocky" or varied
-      const vx = isRetro
-        ? (Math.random() - 0.5) * velocityRange * 1.2
-        : (Math.random() - 0.5) * velocityRange;
-      const vy = isRetro
-        ? (Math.random() - 0.5) * velocityRange * 1.2
-        : (Math.random() - 0.5) * velocityRange;
+      // Directional Chaos: Retro mode gets wider spread for "debris" feel
+      const retroMult = isRetro ? 1.2 : 1.0;
+      const vx = (Math.random() - 0.5) * velocityRange * retroMult;
+      const vy = (Math.random() - 0.5) * velocityRange * retroMult;
 
       pool.getParticle(enemy.x, enemy.y, vx, vy, enemy.color, isRetro);
     }
   }
 
   /**
-   * Spawn gems with luck-based bonuses.
+   * Rewards player with experience gems. Implements complex Luck-based logic.
    *
-   * Luck Effects:
-   * - Base 5% rare gem chance + 3% per luck point
-   * - 10% per luck point chance for bonus gem
+   * Features:
+   * - Rare Gem scaling: Increased base value + Luck multiplier.
+   * - Leverage bonus: Difficulty-based multiplier (PnL momentum).
+   * - Bonus Gem spawns: Extra gem drops for high-luck builds.
    */
   private static spawnGemForEnemy(
     pool: IPoolManager,
@@ -149,48 +164,53 @@ export class CombatResolutionService {
   ): void {
     const { GEMS, LUCK } = COMBAT_CONFIG;
 
-    // Get effective luck from BuffManager if available, with system-level cap
+    // Stat Resolution with systemic caps
     const rawLuck = BuffManager.isInitialized()
       ? BuffManager.getDecoratedStats().getLuck()
       : player.luck;
     const luck = Math.min(rawLuck, PLAYER_STATS.MAX_LUCK);
 
-    // Rare gem chance: base + per-luck bonus (capped)
+    // 1. Rare Gem Determination
     const rareChance = Math.min(
       LUCK.MAX_RARE_CHANCE,
       LUCK.BASE_RARE_CHANCE + luck * LUCK.RARE_CHANCE_PER_LUCK
     );
     const isRare = Math.random() < rareChance;
 
-    const baseValue =
+    // 2. Value Calculation
+    const baseVal =
       enemy.type === 'whale' ? GEMS.BASE_VALUE_WHALE : GEMS.BASE_VALUE_NORMAL;
-    // Rare gems worth more, plus luck bonus
     const luckValueBonus = 1 + luck * LUCK.VALUE_BONUS_PER_LUCK;
     const rareMultiplier = isRare ? GEMS.RARE_MULTIPLIER : 1;
     const leverageMultiplier = DifficultyManager.getXpMultiplier();
-    const value = Math.floor(
-      baseValue * rareMultiplier * luckValueBonus * leverageMultiplier
+
+    // Final integer XP value
+    const finalValue = Math.floor(
+      baseVal * rareMultiplier * luckValueBonus * leverageMultiplier
     );
 
+    // Primary Gem Spawn
     pool.getGem(
       enemy.x,
       enemy.y,
-      value,
+      finalValue,
       isRare ? GEMS.RARE_SIZE : GEMS.NORMAL_SIZE,
       isRare ? COLORS.RARE_GEM : COLORS.GEM,
       isRare
     );
 
-    // Bonus gem chance: per-luck chance (capped)
+    // 3. Bonus Gem Logic (Luck Proc)
     const bonusGemChance = Math.min(
       LUCK.MAX_BONUS_GEM_CHANCE,
       luck * LUCK.BONUS_GEM_CHANCE_PER_LUCK
     );
+
     if (Math.random() < bonusGemChance) {
-      // Spawn smaller bonus gem slightly offset
       const bonusValue = Math.floor(
-        baseValue * LUCK.BONUS_VALUE_MULTIPLIER * luckValueBonus
+        baseVal * LUCK.BONUS_VALUE_MULTIPLIER * luckValueBonus
       );
+
+      // Spawn smaller bonus gem with slight spatial jitter
       pool.getGem(
         enemy.x + (Math.random() - 0.5) * GEMS.BONUS_OFFSET,
         enemy.y + (Math.random() - 0.5) * GEMS.BONUS_OFFSET,

@@ -1,15 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
 import { type Player } from '../../types';
 import {
   RageModeDecorator,
   DiamondHandsDecorator,
 } from '../../services/patterns/decorators';
+import { TimeService } from '../../services/TimeService';
+
+/**
+ * Helper to advance both Vitest timers and TimeService simultaneously.
+ */
+const advanceTime = (ms: number): void => {
+  vi.advanceTimersByTime(ms);
+  const current = TimeService.getGameTime();
+  TimeService.setGameTime(current + ms);
+};
 
 describe('BuffManager Edge Cases', () => {
   let mockPlayer: Player;
 
   beforeEach(() => {
+    TimeService.reset();
     BuffManager.reset();
     mockPlayer = {
       x: 0,
@@ -47,7 +58,7 @@ describe('BuffManager Edge Cases', () => {
       const initialDuration = effects1[0]!.remainingMs;
 
       // Advance half time
-      vi.advanceTimersByTime(initialDuration / 2);
+      advanceTime(initialDuration / 2);
 
       // Add again
       BuffManager.addEffect(RageModeDecorator);
@@ -77,13 +88,14 @@ describe('BuffManager Edge Cases', () => {
       const initialRemaining = BuffManager.getActiveEffects()[0]!.remainingMs;
 
       BuffManager.pause();
-      vi.advanceTimersByTime(5000); // 5 seconds pass in real time
+      advanceTime(5000); // 5 seconds pass in real time
 
       BuffManager.resume();
       const afterRemaining = BuffManager.getActiveEffects()[0]!.remainingMs;
 
-      // Remaining time should be roughly the same as before pause
-      expect(afterRemaining).toBeCloseTo(initialRemaining, -1);
+      // Remaining time should be roughly the same as before pause (within tolerance)
+      expect(afterRemaining).toBeGreaterThan(initialRemaining - 10);
+      expect(afterRemaining).toBeLessThan(initialRemaining + 10);
     });
 
     it('should expire buffs immediately after pause if time ran out', () => {
@@ -91,13 +103,13 @@ describe('BuffManager Edge Cases', () => {
       const initialRemaining = BuffManager.getActiveEffects()[0]!.remainingMs;
 
       // Advance almost to expiration
-      vi.advanceTimersByTime(initialRemaining - 100);
+      advanceTime(initialRemaining - 100);
 
       BuffManager.update();
       expect(BuffManager.getActiveEffects()).toHaveLength(1);
 
       // Let those 100ms pass
-      vi.advanceTimersByTime(200);
+      advanceTime(200);
       BuffManager.update();
 
       expect(BuffManager.getActiveEffects()).toHaveLength(0);

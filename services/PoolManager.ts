@@ -2,6 +2,8 @@
  * PoolManager - High-Performance Object Pool Pattern
  *
  * Optimized for O(1) retrieval and minimal iteration overhead.
+ * Handles recycling of game entities like enemies, bullets, gems, and particles
+ * to prevent GC pressure and memory leaks in intensive combat sessions.
  */
 
 import {
@@ -18,13 +20,12 @@ import { WHALE_TIER_CONFIGS, type WhaleTier } from '../types/indicators';
 import { type IPoolManager } from './interfaces/IPoolManager';
 import { marketStateService } from './MarketStateService';
 import { audio } from './audio';
-
-interface Activatable {
-  active: boolean;
-}
+import { type EnemyId } from '../config/EnemyRegistry';
+import { POOL } from '../constants';
 
 /**
  * ObjectPool - A generic, high-performance object pooling container.
+ * Manages 'active' and 'free' lists for efficient object recycling.
  */
 class ObjectPool<T extends { active: boolean }> {
   public active: T[] = [];
@@ -35,8 +36,15 @@ class ObjectPool<T extends { active: boolean }> {
     this.maxActive = maxActive;
   }
 
+  /**
+   * Retrieves an object from the pool, initializing it as necessary.
+   * If the pool has reached capacity, it recycles the oldest active object.
+   *
+   * @param factory - Creator function for new objects.
+   * @param initializer - Function to reset the state of a recycled object.
+   */
   get(factory: () => T, initializer?: (obj: T) => void): T {
-    // If at capacity, recycle oldest
+    // Capacity Check: If at limit, recycle the oldest active object (O(1) shift)
     if (this.active.length >= this.maxActive) {
       const oldest = this.active.shift();
       if (oldest) {
@@ -45,35 +53,61 @@ class ObjectPool<T extends { active: boolean }> {
       }
     }
 
+    // Attempt to pull from free list first, otherwise instantiate
     let obj = this.free.pop();
     obj ??= factory();
 
     obj.active = true;
-    if (initializer) initializer(obj);
+    if (initializer) {
+      initializer(obj);
+    }
 
     this.active.push(obj);
     return obj;
   }
 
+  /**
+   * Explicitly releases an object back into the free pool.
+   * Uses Swap-and-Pop (O(1)) instead of Splice (O(N)) to prevent frame drops.
+   */
   release(obj: T): void {
-    obj.active = false;
     const index = this.active.indexOf(obj);
     if (index > -1) {
-      this.active.splice(index, 1);
+      obj.active = false;
       this.free.push(obj);
-    }
-  }
 
-  cleanup(): void {
-    for (let i = this.active.length - 1; i >= 0; i--) {
-      const item = this.active[i];
-      if (item && !item.active) {
-        const removed = this.active.splice(i, 1)[0];
-        if (removed) this.free.push(removed);
+      const last = this.active.pop();
+      if (last && index < this.active.length) {
+        this.active[index] = last;
       }
     }
   }
 
+  /**
+   * Scans the active pool and moves any deactivated objects to the free pool.
+   * Uses Swap-and-Pop optimization for O(N) total complexity instead of O(N^2).
+   */
+  cleanup(): void {
+    let i = this.active.length - 1;
+    while (i >= 0) {
+      const item = this.active[i];
+      if (item && !item.active) {
+        this.free.push(item);
+
+        const last = this.active.pop();
+        if (last && i < this.active.length) {
+          this.active[i] = last;
+          // Note: We don't need to re-check the swapped element because
+          // we are iterating backwards (it was already checked).
+        }
+      }
+      i--;
+    }
+  }
+
+  /**
+   * Deactivates and moves all objects to the free pool.
+   */
   clear(): void {
     while (this.active.length) {
       const item = this.active.pop();
@@ -84,6 +118,9 @@ class ObjectPool<T extends { active: boolean }> {
     }
   }
 
+  /**
+   * Controls the size of the free list to free up memory during idle periods.
+   */
   trim(maxFree: number): void {
     if (this.free.length > maxFree) {
       this.free.length = maxFree;
@@ -91,6 +128,12 @@ class ObjectPool<T extends { active: boolean }> {
   }
 }
 
+/**
+ * PoolManager Class
+ *
+ * Central registry for all object pools used in the game.
+ * Implements IPoolManager to provide a type-safe interface for game systems.
+ */
 export class PoolManager implements IPoolManager {
   private enemies: ObjectPool<GameEnemy>;
   private bullets: ObjectPool<Bullet>;
@@ -99,27 +142,16 @@ export class PoolManager implements IPoolManager {
   private floatingTexts: ObjectPool<FloatingText>;
   private speedLines: ObjectPool<SpeedLine>;
 
-  private static readonly MAX_ACTIVE = {
-    enemies: 150,
-    bullets: 200,
-    gems: 300,
-    particles: 400,
-    floatingTexts: 50,
-    speedLines: 50,
-  };
-
   constructor() {
-    this.enemies = new ObjectPool<GameEnemy>(PoolManager.MAX_ACTIVE.enemies);
-    this.bullets = new ObjectPool<Bullet>(PoolManager.MAX_ACTIVE.bullets);
-    this.gems = new ObjectPool<Gem>(PoolManager.MAX_ACTIVE.gems);
-    this.particles = new ObjectPool<Particle>(PoolManager.MAX_ACTIVE.particles);
-    this.floatingTexts = new ObjectPool<FloatingText>(
-      PoolManager.MAX_ACTIVE.floatingTexts
-    );
-    this.speedLines = new ObjectPool<SpeedLine>(PoolManager.MAX_ACTIVE.speedLines);
+    this.enemies = new ObjectPool<GameEnemy>(POOL.MAX_ACTIVE.ENEMIES);
+    this.bullets = new ObjectPool<Bullet>(POOL.MAX_ACTIVE.BULLETS);
+    this.gems = new ObjectPool<Gem>(POOL.MAX_ACTIVE.GEMS);
+    this.particles = new ObjectPool<Particle>(POOL.MAX_ACTIVE.PARTICLES);
+    this.floatingTexts = new ObjectPool<FloatingText>(POOL.MAX_ACTIVE.FLOATING_TEXTS);
+    this.speedLines = new ObjectPool<SpeedLine>(POOL.MAX_ACTIVE.SPEED_LINES);
   }
 
-  // Preserve public array access for external systems (e.g. PhysicsSystem)
+  // Active list accessors for high-performance iterations in physics and rendering systems
   get activeEnemies() {
     return this.enemies.active;
   }
@@ -135,13 +167,12 @@ export class PoolManager implements IPoolManager {
   get activeFloatingTexts(): FloatingText[] {
     return this.floatingTexts.active;
   }
-
   get activeSpeedLines(): SpeedLine[] {
     return this.speedLines.active;
   }
 
   /**
-   * Pre-warm pools.
+   * Pre-instantiates a specific number of objects to reduce runtime allocation latency.
    */
   preWarm(config?: {
     enemies?: number;
@@ -151,13 +182,14 @@ export class PoolManager implements IPoolManager {
     texts?: number;
   }): void {
     const counts = {
-      enemies: config?.enemies ?? 30,
-      bullets: config?.bullets ?? 80,
-      particles: config?.particles ?? 150,
-      gems: config?.gems ?? 20,
-      texts: config?.texts ?? 30,
+      enemies: config?.enemies ?? POOL.PRE_WARM.ENEMIES,
+      bullets: config?.bullets ?? POOL.PRE_WARM.BULLETS,
+      particles: config?.particles ?? POOL.PRE_WARM.PARTICLES,
+      gems: config?.gems ?? POOL.PRE_WARM.GEMS,
+      texts: config?.texts ?? POOL.PRE_WARM.TEXTS,
     };
 
+    // Pre-allocate bullets
     for (let i = 0; i < counts.bullets; i++) {
       this.bullets.free.push({
         active: false,
@@ -172,6 +204,8 @@ export class PoolManager implements IPoolManager {
         isSuperCrit: false,
       });
     }
+
+    // Pre-allocate particles
     for (let i = 0; i < counts.particles; i++) {
       this.particles.free.push({
         active: false,
@@ -185,6 +219,8 @@ export class PoolManager implements IPoolManager {
         isPixel: false,
       });
     }
+
+    // Pre-allocate gems
     for (let i = 0; i < counts.gems; i++) {
       this.gems.free.push({
         active: false,
@@ -199,6 +235,8 @@ export class PoolManager implements IPoolManager {
         magnetized: false,
       });
     }
+
+    // Pre-allocate texts
     for (let i = 0; i < counts.texts; i++) {
       this.floatingTexts.free.push({
         active: false,
@@ -211,11 +249,13 @@ export class PoolManager implements IPoolManager {
       });
     }
 
-    Logger.debug(`[PoolManager] Pre-warmed pools`);
+    Logger.debug(`[PoolManager] Pre-warmed pools with counts:`, counts);
   }
 
-  release<T extends Activatable>(obj: T, activeList: T[], freeList: T[]) {
-    // Legacy support or generic release
+  /**
+   * Generic release method for backward compatibility.
+   */
+  release<T extends { active: boolean }>(obj: T, activeList: T[], freeList: T[]) {
     obj.active = false;
     const index = activeList.indexOf(obj);
     if (index > -1) {
@@ -224,12 +264,15 @@ export class PoolManager implements IPoolManager {
     }
   }
 
+  /**
+   * Retrieves a regular enemy from the pool, applying market aggro multipliers.
+   */
   getEnemy(
     x: number,
     y: number,
     difficulty: number,
     position: MarketPosition,
-    enemyType: string = 'bear'
+    enemyType: EnemyId = 'bear'
   ): GameEnemy {
     const aggroMultiplier = marketStateService.getState()?.enemyAggroMultiplier ?? 1.0;
 
@@ -253,20 +296,14 @@ export class PoolManager implements IPoolManager {
           aggroMultiplier
         );
         Object.assign(obj, newEnemy);
+
+        // Ensure state is fully reset for the recycled object
         obj.active = true;
-
-        // CRITICAL: Reset spawn animation state for recycled enemies
-        obj.spawnTimer = 0; // Will be set to 1 when entering screen
-        obj.hasEnteredScreen = false; // Must detect screen entry again
-
-        // Reset death animation state
+        obj.spawnTimer = 0;
+        obj.hasEnteredScreen = false;
         obj.isDying = false;
         obj.deathProgress = 0;
-
-        // Reset near miss flag
         obj.hasTriggeredNearMiss = false;
-
-        // Reset damage buffer
         obj.damageBuffer = 0;
         obj.damageBufferTimer = 0;
         obj.damageBufferIsCrit = false;
@@ -275,6 +312,9 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  /**
+   * Retrieves a special Whale enemy using high-tier indicator data.
+   */
   getWhaleEnemy(
     x: number,
     y: number,
@@ -283,8 +323,6 @@ export class PoolManager implements IPoolManager {
     tier: WhaleTier
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
-
-    // Play whale arrival sound
     audio.playWhaleArrival();
 
     return this.enemies.get(
@@ -307,16 +345,14 @@ export class PoolManager implements IPoolManager {
           e.valueMultiplier = tierConfig.valueMultiplier;
         }
         Object.assign(obj, e);
-        obj.active = true;
 
-        // CRITICAL: Reset spawn animation state for recycled enemies
+        // Reset state
+        obj.active = true;
         obj.spawnTimer = 0;
         obj.hasEnteredScreen = false;
         obj.isDying = false;
         obj.deathProgress = 0;
         obj.hasTriggeredNearMiss = false;
-
-        // Reset damage buffer
         obj.damageBuffer = 0;
         obj.damageBufferTimer = 0;
         obj.damageBufferIsCrit = false;
@@ -325,6 +361,9 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  /**
+   * Retrieves a bullet/projectile from the pool.
+   */
   getBullet(
     x: number,
     y: number,
@@ -365,6 +404,9 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  /**
+   * Retrieves an experience gem/orb from the pool.
+   */
   getGem(
     x: number,
     y: number,
@@ -402,6 +444,9 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  /**
+   * Retrieves a visual particle for combat effects.
+   */
   getParticle(
     x: number,
     y: number,
@@ -427,6 +472,9 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  /**
+   * Retrieves a floating UI text object (e.g. Damage numbers).
+   */
   getFloatingText(
     x: number,
     y: number,
@@ -440,6 +488,9 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  /**
+   * Retrieves a speed line visual for dash effects or market volatility.
+   */
   getSpeedLine(
     x: number,
     y: number,
@@ -475,10 +526,15 @@ export class PoolManager implements IPoolManager {
           decay: 0.05,
           radius: 0,
           color: '#fff',
+          vx: 0,
+          vy: 0,
         })
     );
   }
 
+  /**
+   * Performs a focused cleanup of the active pools.
+   */
   cleanup(): void {
     this.enemies.cleanup();
     this.bullets.cleanup();
@@ -488,6 +544,9 @@ export class PoolManager implements IPoolManager {
     this.speedLines.cleanup();
   }
 
+  /**
+   * Full reset of the entire pooling system.
+   */
   clearAll(): void {
     this.enemies.clear();
     this.bullets.clear();
@@ -495,10 +554,13 @@ export class PoolManager implements IPoolManager {
     this.particles.clear();
     this.floatingTexts.clear();
     this.speedLines.clear();
-    this.trimFreeLists();
+    this.trimFreeLists(POOL.TRIM_SIZE);
   }
 
-  trimFreeLists(maxPoolSize: number = 50): void {
+  /**
+   * Trims the free lists to reclaim memory.
+   */
+  trimFreeLists(maxPoolSize: number = POOL.TRIM_SIZE): void {
     this.enemies.trim(maxPoolSize);
     this.bullets.trim(maxPoolSize * 2);
     this.gems.trim(maxPoolSize);

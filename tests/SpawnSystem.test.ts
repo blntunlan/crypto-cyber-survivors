@@ -11,6 +11,20 @@ vi.mock('../services/MarketStateService', () => ({
   },
 }));
 
+vi.mock('../stores/admin/configStore', () => ({
+  useAdminConfigStore: {
+    getState: vi.fn(() => ({
+      config: {
+        spawn: {
+          baseInterval: 800,
+          maxEnemies: 150,
+          waveIntensity: 0.5,
+        },
+      },
+    })),
+  },
+}));
+
 describe('SpawnSystem', () => {
   let mockPool: any;
   let spawnSystem: SpawnSystem;

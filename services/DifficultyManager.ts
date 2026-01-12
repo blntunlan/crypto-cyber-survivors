@@ -16,7 +16,11 @@ import { type WavePhase } from '../types/metrics';
 import { WAVE_CONFIG } from '../config/GameConfig';
 import { EventBus } from './EventBus';
 import { Logger } from './Logger';
+import { DIFFICULTY } from '../constants';
 
+/**
+ * Interface representing the various factors contributing to the final difficulty.
+ */
 export interface DifficultyFactors {
   baseTime: number;
   pnlEffect: number;
@@ -29,27 +33,40 @@ export interface DifficultyFactors {
   cycleFactor: number;
 }
 
+/**
+ * Result of difficulty calculation for the engine to use.
+ */
 export interface DifficultyOutput {
-  spawnRate: number; // Enemy spawn rate multiplier
-  enemySpeed: number; // Enemy speed multiplier
-  enemyHealth: number; // Enemy health multiplier
-  total: number; // Combined difficulty
+  /** Enemy spawn rate multiplier */
+  spawnRate: number;
+  /** Enemy speed multiplier */
+  enemySpeed: number;
+  /** Enemy health multiplier */
+  enemyHealth: number;
+  /** Combined raw difficulty value */
+  total: number;
 }
 
+/**
+ * DifficultyManagerClass - Singleton service for managing game progression.
+ *
+ * Orchestrates dynamic difficulty adjustments based on market data (PnL, Volatility)
+ * and player performance metrics (Kills, Level, Health).
+ */
 class DifficultyManagerClass {
   private static instance: DifficultyManagerClass | null = null;
 
   // State
   private lastPnlValues: number[] = [];
   private currentWavePhase: WavePhase = 'warmup';
-  private currentLeverage: number = 1; // Track leverage for XP scaling
+  private currentLeverage: number = 1;
   private waveTimer: number = 0;
   private killStreak: number = 0;
   private lastKillStreakTime: number = 0;
-  private lastWaveUpdateTime: number = 0; // Track last wave update for sync
-  private currentCycle: number = 1; // Track which 5-minute cycle we're on
-  private lastPnlForShock: number = 0; // Track last PnL to detect sudden jumps
-  private lastShockTime: number = 0; // Cooldown for shockwaves
+  private lastWaveUpdateTime: number = 0;
+  private currentCycle: number = 1;
+  private lastPnlForShock: number = 0;
+  private lastShockTime: number = 0;
 
   // Use centralized wave config from GameConfig
   private readonly WAVE_DURATIONS = WAVE_CONFIG.DURATIONS;
@@ -58,12 +75,17 @@ class DifficultyManagerClass {
 
   private constructor() {}
 
+  /**
+   * Returns the singleton instance of DifficultyManager.
+   */
   static getInstance(): DifficultyManagerClass {
     return (DifficultyManagerClass.instance ??= new DifficultyManagerClass());
   }
 
   /**
-   * Start tracking difficulty for a new game
+   * Start tracking difficulty for a new game session.
+   *
+   * @param leverage - The leverage selected by the player for the session.
    */
   startGame(leverage: number = 1): void {
     this.lastPnlValues = [];
@@ -75,15 +97,16 @@ class DifficultyManagerClass {
     this.lastWaveUpdateTime = TimeService.getGameTimeSeconds();
     this.currentCycle = 1;
     this.lastPnlForShock = 0;
-    this.lastShockTime = -10; // Allow immediate shock if jump is huge
+    this.lastShockTime = -DIFFICULTY.SHOCK_COOLDOWN_SEC;
   }
 
   /**
-   * Record a kill for streak tracking
+   * Record a kill for streak tracking.
+   * Streaks reset if the time between kills exceeds the timeout.
    */
   recordKill(): void {
     const gameTimeSec = TimeService.getGameTimeSeconds();
-    if (gameTimeSec - this.lastKillStreakTime < 3.0) {
+    if (gameTimeSec - this.lastKillStreakTime < DIFFICULTY.KILL_STREAK_TIMEOUT_SEC) {
       this.killStreak += 1;
     } else {
       this.killStreak = 1;
@@ -92,96 +115,138 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Calculate base time factor (always increasing)
+   * Calculate base time factor which increases as the game progresses.
+   *
+   * @private
    */
   private getBaseTimeFactor(): number {
-    // Increases by 15% per minute, caps at 2.5x
     const totalElapsedSeconds = TimeService.getGameTimeSeconds();
-    return Math.min(2.5, 1 + (totalElapsedSeconds / 60) * 0.15);
+    return Math.min(
+      DIFFICULTY.TIME_FACTOR_MAX,
+      1 + (totalElapsedSeconds / 60) * DIFFICULTY.TIME_FACTOR_INCREASE_PER_MINUTE
+    );
   }
 
   /**
-   * Calculate P&L effect with smoothing
+   * Calculate P&L effect based on player gains or losses.
+   * Winning makes the game slightly easier, while losing makes it harder.
+   *
+   * @param pnl - Current session PnL.
+   * @private
    */
   private getPnlFactor(pnl: number): number {
-    // Guard against invalid pnl values
     if (!Number.isFinite(pnl)) {
-      return 1.0; // Neutral factor
+      return 1.0;
     }
 
-    // Track recent P&L for momentum
+    // Track history for momentum calculation
     this.lastPnlValues.push(pnl);
     if (this.lastPnlValues.length > 30) {
       this.lastPnlValues.shift();
     }
 
-    const leverageEffect = pnl * 100;
+    const leverageEffect = pnl * DIFFICULTY.PNL_LEVERAGE_MULTIPLIER;
 
     if (leverageEffect < 0) {
-      // Losing: harder, but with diminishing returns
+      // Losing: increase difficulty with diminishing returns
       const lossFactor = Math.abs(leverageEffect);
-      return Math.min(3.0, 1 + Math.log1p(lossFactor) * 0.5);
+      return Math.min(DIFFICULTY.PNL_LOSS_CAP, 1 + Math.log1p(lossFactor) * 0.5);
     } else {
-      // Winning: easier, but not too easy
+      // Winning: decrease difficulty slightly
       const winFactor = leverageEffect;
-      return Math.max(0.7, 1 - Math.log1p(winFactor) * 0.15);
+      return Math.max(
+        DIFFICULTY.PNL_WIN_FLOOR,
+        1 - Math.log1p(winFactor) * DIFFICULTY.PNL_WIN_LOG_SCALE
+      );
     }
   }
 
   /**
-   * Calculate volatility factor from ATR
+   * Calculate volatility factor based on market ATR.
+   * Higher volatility increases difficulty, especially as the game progresses into late-stage.
+   *
+   * @param atrPercent - Market Average True Range as a percentage.
+   * @private
    */
   private getVolatilityFactor(atrPercent: number): number {
-    // 1. Calculate base volatility factor
-    const baseVolatility = Math.min(1.8, Math.max(0.9, 1 + atrPercent * 50));
+    const baseVolatility = Math.min(
+      DIFFICULTY.VOLATILITY_MAX,
+      Math.max(
+        DIFFICULTY.VOLATILITY_MIN,
+        1 + atrPercent * DIFFICULTY.VOLATILITY_ATR_SCALE
+      )
+    );
 
-    // 2. Apply Volatility Damping based on game time (Mathematical Core Loop)
-    // Early game: Damping is high (0.2). Late game (5m+): Damping is neutral (1.0).
+    // Apply volatility damping based on game time
     const elapsed = TimeService.getGameTimeSeconds();
-    const damping = Math.min(1.0, 0.2 + (elapsed / 300) * 0.8);
+    const damping = Math.min(
+      1.0,
+      DIFFICULTY.VOLATILITY_DAMPING_INITIAL +
+        (elapsed / DIFFICULTY.VOLATILITY_DAMPING_FULL_TIME) * 0.8
+    );
 
-    // Apply damping to the deviation from neutral (1.0)
     const deviation = baseVolatility - 1.0;
     return 1.0 + deviation * damping;
   }
 
   /**
-   * Calculate level factor
+   * Calculate level factor based on player's current level.
+   *
+   * @param level - Player's current level.
+   * @private
    */
   private getLevelFactor(level: number): number {
-    // +5% per level, caps at 1.5x
-    return Math.min(1.5, 1 + (level - 1) * 0.05);
+    return Math.min(
+      DIFFICULTY.LEVEL_FACTOR_MAX,
+      1 + (level - 1) * DIFFICULTY.LEVEL_FACTOR_INCREASE
+    );
   }
 
   /**
-   * Calculate near-death modifier
+   * Calculate near-death modifier to provide a "mercy" window for player recovery.
+   *
+   * @param hpPercent - Player's current health percentage.
+   * @private
    */
   private getNearDeathMod(hpPercent: number): number {
-    if (hpPercent < 20) {
-      // Give player a chance to recover
-      return 0.7;
+    if (hpPercent < DIFFICULTY.NEAR_DEATH_HP_THRESHOLD) {
+      return DIFFICULTY.NEAR_DEATH_DIFFICULTY_MODIFIER;
     }
     return 1.0;
   }
 
   /**
-   * Calculate streak bonus
+   * Calculate streak bonus from recent kills.
+   *
+   * @private
    */
   private getStreakBonus(): number {
-    // +5% per 5 kills, caps at +30%
-    return Math.min(0.3, Math.floor(this.killStreak / 5) * 0.05);
+    return Math.min(
+      DIFFICULTY.STREAK_CAP,
+      Math.floor(this.killStreak / DIFFICULTY.STREAK_INCREMENT_THRESHOLD) *
+        DIFFICULTY.STREAK_INCREMENT_BONUS
+    );
   }
 
   /**
-   * Calculate momentum modifier (trend-based)
+   * Calculate momentum modifier based on the trend of the player's PnL.
+   *
+   * @private
    */
   private getMomentumMod(): number {
-    if (this.lastPnlValues.length < 10) return 1.0;
+    if (this.lastPnlValues.length < DIFFICULTY.MOMENTUM_WINDOW_SMALL) {
+      return 1.0;
+    }
 
-    const recent = this.lastPnlValues.slice(-10);
-    const older = this.lastPnlValues.slice(-20, -10);
+    const recent = this.lastPnlValues.slice(-DIFFICULTY.MOMENTUM_WINDOW_SMALL);
+    const older = this.lastPnlValues.slice(
+      -DIFFICULTY.MOMENTUM_WINDOW_LARGE,
+      -DIFFICULTY.MOMENTUM_WINDOW_SMALL
+    );
 
-    if (older.length === 0) return 1.0;
+    if (older.length === 0) {
+      return 1.0;
+    }
 
     const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
     const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
@@ -189,43 +254,45 @@ class DifficultyManagerClass {
     const trend = recentAvg - olderAvg;
 
     if (trend > 0) {
-      // Improving: difficulty increases faster
-      return 1.1;
+      return DIFFICULTY.MOMENTUM_BUFF;
     } else if (trend < 0) {
-      // Worsening: difficulty increases slower (mercy)
-      return 0.9;
+      return DIFFICULTY.MOMENTUM_DEBUFF;
     }
     return 1.0;
   }
 
   /**
-   * Calculate XP multiplier based on leverage (Leverage Risk Reward)
+   * Returns the current XP multiplier based on selected leverage.
+   * High leverage carries high risk but yields higher XP rewards.
    */
   public getXpMultiplier(): number {
     const leverage = this.currentLeverage;
-    // 1x = 1.0x XP
-    // 10x = 1.2x XP
-    // 100x = 2.0x XP
-    // Formula: 1 + log10(leverage) * 0.5
-    if (leverage <= 1) return 1.0;
+    if (leverage <= 1) {
+      return 1.0;
+    }
     return 1 + Math.log10(leverage) * 0.5;
   }
 
   /**
-   * Detect sudden market shocks for "Volatility Shockwaves"
+   * Detect sudden market shocks to trigger volatility shockwave events.
+   *
+   * @param pnl - Current session PnL.
+   * @private
    */
   private detectShock(pnl: number): void {
-    const shockThreshold = 0.005; // 0.5% price jump in a single tick
     const diff = Math.abs(pnl - this.lastPnlForShock);
     const now = TimeService.getGameTimeSeconds();
 
-    if (diff > shockThreshold && now - this.lastShockTime > 10) {
+    if (
+      diff > DIFFICULTY.SHOCK_THRESHOLD &&
+      now - this.lastShockTime > DIFFICULTY.SHOCK_COOLDOWN_SEC
+    ) {
       this.lastShockTime = now;
       Logger.info(
         `[Shockwave] Sudden price movement detected! Diff: ${(diff * 100).toFixed(2)}%`
       );
       EventBus.emit('volatilityShock', {
-        intensity: Math.min(2.0, diff / shockThreshold),
+        intensity: Math.min(2.0, diff / DIFFICULTY.SHOCK_THRESHOLD),
         direction: pnl > this.lastPnlForShock ? 'up' : 'down',
       });
     }
@@ -234,14 +301,15 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Synchronize wave timer with current game time.
-   * Called automatically by calculate() to ensure wave state is current.
+   * Synchronize the progression wave timer with actual game time.
+   * Advances the game state through wave phases (Warmup, Resolution, etc.).
+   *
+   * @private
    */
   private syncWaveTimer(): void {
     const currentGameTime = TimeService.getGameTimeSeconds();
     const elapsed = currentGameTime - this.lastWaveUpdateTime;
 
-    // Handle backward time jumps or exact zero (e.g. debugging/testing)
     if (elapsed < 0) {
       Logger.warn(
         `[WaveSync] Backward time jump detected (${this.lastWaveUpdateTime.toFixed(2)} -> ${currentGameTime.toFixed(2)}). Resetting wave state.`
@@ -250,12 +318,14 @@ class DifficultyManagerClass {
       return;
     }
 
-    if (elapsed === 0) return;
+    if (elapsed === 0) {
+      return;
+    }
 
     this.lastWaveUpdateTime = currentGameTime;
     this.waveTimer += elapsed;
 
-    // Advance through wave phases
+    // Advance through wave phases based on durations defined in GameConfig
     while (this.waveTimer >= this.WAVE_DURATIONS[this.currentWavePhase]) {
       const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
       this.waveTimer -= currentDuration;
@@ -269,14 +339,11 @@ class DifficultyManagerClass {
         `[WaveSync] Phase transition: ${oldPhase} -> ${this.currentWavePhase} (Timer: ${this.waveTimer.toFixed(2)})`
       );
 
-      // Emit event for UI to update
       EventBus.emit('wavePhaseChange', { phase: this.currentWavePhase, oldPhase });
 
-      // If we completed a full cycle (back to warmup), increment cycle counter
+      // Handle cycle completion (Game Loop Decision point)
       if (nextIndex === 0) {
         this.currentCycle++;
-
-        // Emit cycle complete event for the UI to show decision screen
         EventBus.emit('cycleComplete', {
           cycleNumber: this.currentCycle - 1,
           totalElapsedSeconds: currentGameTime,
@@ -286,14 +353,15 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Hard reset wave state to a specific absolute time.
-   * Useful for handling significant time jumps.
+   * Hard reset wave state to a specific absolute time point.
+   *
+   * @param totalSeconds - Absolute game time seconds to reset to.
+   * @private
    */
   private resetWaveToTime(totalSeconds: number): void {
     this.currentCycle = Math.floor(totalSeconds / WAVE_CONFIG.TOTAL_DURATION) + 1;
     let remaining = totalSeconds % WAVE_CONFIG.TOTAL_DURATION;
 
-    // Find phase for the remaining time
     let phaseIndex = 0;
     while (phaseIndex < this.PHASE_ORDER.length) {
       const phase = this.PHASE_ORDER[phaseIndex]!;
@@ -319,36 +387,35 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Main game loop update for time-based difficulty factors.
-   * Advances the wave system independently of market data updates.
+   * Updates the wave timer logic in synchronization with the game clock.
    */
   updateWaveTimer(_deltaMs: number): void {
     this.syncWaveTimer();
   }
 
   /**
-   * Get Admin Dashboard difficulty config (if available)
+   * Fetches the current difficulty configuration from the admin dashboard store.
+   *
+   * @private
    */
   private getAdminConfig(): DifficultyConfig | null {
     try {
       const store = useAdminConfigStore.getState();
       return store.config.difficulty;
     } catch {
-      // Admin store may not be available in all contexts
       return null;
     }
   }
 
   /**
-   * Main difficulty calculation
-   * Called when market data updates or periodically.
-   * Automatically syncs wave timer using TimeService for consistency.
+   * Main difficulty calculation logic.
+   * Combines all technical and psychological factors into a single output.
    *
-   * @param pnl - Current PnL (with difficulty-capped leverage)
-   * @param atrPercent - ATR as percentage of price
-   * @param level - Player's current level
-   * @param hpPercent - Player's current HP percentage
-   * @param configOverride - Optional config for testing (defaults to admin store)
+   * @param pnl - Current player PnL.
+   * @param atrPercent - Market volatility factor (ATR %).
+   * @param level - Player's current level.
+   * @param hpPercent - Player's current health percentage.
+   * @param configOverride - Optional configuration for testing.
    */
   calculate(
     pnl: number,
@@ -357,19 +424,16 @@ class DifficultyManagerClass {
     hpPercent: number,
     configOverride?: Partial<DifficultyConfig>
   ): DifficultyOutput {
-    // Detect sudden market shocks
     this.detectShock(pnl);
-
-    // Sync wave timer with current game time (ensures waves are always current)
     this.syncWaveTimer();
 
-    // Get admin config overrides (explicit injection takes precedence)
     const adminConfig = configOverride ?? this.getAdminConfig();
-    const baseMultiplier = adminConfig?.base ? adminConfig.base / 5 : 1.0; // base 5 = 1.0x
+    const baseMultiplier = adminConfig?.base
+      ? adminConfig.base / DIFFICULTY.BASE_ADMIN_DIVISOR
+      : 1.0;
     const volatilityMultiplier = adminConfig?.volatilityMultiplier ?? 1.0;
     const maxDifficulty = adminConfig?.maxDifficulty ?? 8.0;
 
-    // Calculate all factors
     const factors: DifficultyFactors = {
       baseTime: this.getBaseTimeFactor(),
       pnlEffect: this.getPnlFactor(pnl),
@@ -379,11 +443,9 @@ class DifficultyManagerClass {
       nearDeathMod: this.getNearDeathMod(hpPercent),
       streakBonus: this.getStreakBonus(),
       momentumMod: this.getMomentumMod(),
-      // +20% difficulty per cycle (New Game+ behavior)
-      cycleFactor: 1 + (this.currentCycle - 1) * 0.2,
+      cycleFactor: 1 + (this.currentCycle - 1) * DIFFICULTY.CYCLE_DIFFICULTY_INCREMENT,
     };
 
-    // Combine technical factors with base multiplier from admin config
     const technical =
       factors.baseTime *
       factors.pnlEffect *
@@ -392,11 +454,9 @@ class DifficultyManagerClass {
       factors.cycleFactor *
       baseMultiplier;
 
-    // Combine psychological factors
     const psychological =
       factors.waveMultiplier * factors.nearDeathMod * (1 + factors.streakBonus);
 
-    // Final difficulty with momentum adjustment, capped by admin config
     const total = this.clamp(
       technical * psychological * factors.momentumMod,
       0.3,
@@ -404,49 +464,55 @@ class DifficultyManagerClass {
     );
 
     return {
-      // Increased spawn rate multiplier (0.6→0.8) to compensate for slower enemies
-      spawnRate: this.clamp(total * 0.8, 0.4, 4.0),
-      // Tightened enemy speed range (floor ↑, ceiling ↓) for more consistent gameplay
+      spawnRate: this.clamp(
+        total * DIFFICULTY.SPAWN_RATE_TOTAL_MULTIPLIER,
+        DIFFICULTY.SPAWN_RATE_MIN,
+        DIFFICULTY.SPAWN_RATE_MAX
+      ),
       enemySpeed: this.clamp(
         factors.pnlEffect * factors.volatility * factors.waveMultiplier,
-        0.5,
-        1.5
+        DIFFICULTY.ENEMY_SPEED_MIN,
+        DIFFICULTY.ENEMY_SPEED_MAX
       ),
-      enemyHealth: this.clamp(factors.baseTime * factors.levelFactor, 0.8, 3.0),
+      enemyHealth: this.clamp(
+        factors.baseTime * factors.levelFactor,
+        DIFFICULTY.ENEMY_HEALTH_MIN,
+        DIFFICULTY.ENEMY_HEALTH_MAX
+      ),
       total,
     };
   }
 
   /**
-   * Get current wave phase for UI
+   * Returns current wave phase.
    */
   getWavePhase(): WavePhase {
     return this.currentWavePhase;
   }
 
   /**
-   * Get current kill streak
+   * Returns current kill streak.
    */
   getKillStreak(): number {
     return this.killStreak;
   }
 
   /**
-   * Get total active game time in seconds
+   * Returns total game time seconds.
    */
   getTotalElapsedSeconds(): number {
     return TimeService.getGameTimeSeconds();
   }
 
   /**
-   * Get current cycle number (1-indexed)
+   * Returns current cycle number.
    */
   getCycleNumber(): number {
     return this.currentCycle;
   }
 
   /**
-   * Get progress through current 5-minute cycle (0-1)
+   * Returns normalized cycle progress (0.0 to 1.0).
    */
   getCycleProgress(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
@@ -455,7 +521,7 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Get time remaining in current phase (seconds)
+   * Returns time remaining in the current wave phase (seconds).
    */
   getTimeRemainingInPhase(): number {
     const phaseDuration = this.WAVE_DURATIONS[this.currentWavePhase];
@@ -463,15 +529,14 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Get current wave multiplier (0.4 resolution → 1.5 climax)
-   * Used for background animations and visual intensity
+   * Returns current wave multiplier.
    */
   getWaveMultiplier(): number {
     return this.WAVE_MULTIPLIERS[this.currentWavePhase];
   }
 
   /**
-   * Get time remaining in current cycle (seconds)
+   * Returns time remaining in current 5-minute cycle (seconds).
    */
   getTimeRemainingInCycle(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
@@ -480,7 +545,7 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Check if cycle just completed (useful for triggering decision screen)
+   * Returns whether the current cycle is coming to an end.
    */
   isCycleComplete(): boolean {
     return (
@@ -490,7 +555,14 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Get debug state for runtime inspection
+   * Returns current calculated momentum multiplier.
+   */
+  public getMomentum(): number {
+    return this.getMomentumMod();
+  }
+
+  /**
+   * Generates a snapshot of the current difficulty system state for debugging.
    */
   getDebugState(): DifficultyDebugState {
     return {
@@ -503,7 +575,6 @@ class DifficultyManagerClass {
       pnlHistoryLength: this.lastPnlValues.length,
       waveDurations: { ...this.WAVE_DURATIONS },
       waveMultipliers: { ...this.WAVE_MULTIPLIERS },
-      // New cycle-related fields
       cycleNumber: this.currentCycle,
       cycleProgress: this.getCycleProgress(),
       timeRemainingInPhase: this.getTimeRemainingInPhase(),
@@ -511,6 +582,7 @@ class DifficultyManagerClass {
     };
   }
 
+  /** Helper to clamp numeric values within a range */
   private clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
   }

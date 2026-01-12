@@ -1,10 +1,20 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player } from '../../types';
+import { type GameState, type Player, type Bullet } from '../../types';
 import { screenService } from '../ScreenService';
 import { createViewportBounds, isCircleVisible } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
+import { GAME_ENGINE } from '../../constants';
 
+/**
+ * ProjectileRenderer - Visualizes player bullets and projectiles.
+ *
+ * Features:
+ * 1. Efficient culling for high-count projectile scenarios.
+ * 2. Theme-switching: Cyberpunk laser bolts vs Retro pixel squares.
+ * 3. Tiered visual feedback for critical and super-critical hits.
+ * 4. Device-aware performance scaling (toggles shadows on mobile).
+ */
 export class ProjectileRenderer implements IRenderer {
   private isMobileDevice: boolean;
 
@@ -12,6 +22,15 @@ export class ProjectileRenderer implements IRenderer {
     this.isMobileDevice = screenService.isMobile();
   }
 
+  /**
+   * Primary render loop for projectiles.
+   *
+   * @param ctx - Canvas rendering context
+   * @param pool - Pool manager containing active bullets
+   * @param _state - Global game engine state
+   * @param _player - Player reference
+   * @param opts - Global rendering options
+   */
   render(
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
@@ -19,91 +38,125 @@ export class ProjectileRenderer implements IRenderer {
     _player: Player,
     opts: RenderOptions
   ): void {
-    // Create viewport bounds for culling (larger padding for fast-moving bullets)
-    const bounds = createViewportBounds(opts.width, opts.height, 100);
+    // Optimization: Create viewport bounds once per frame
+    // Large padding used because bullets travel fast and we want to avoid popping at edges.
+    const bounds = createViewportBounds(
+      opts.width,
+      opts.height,
+      GAME_ENGINE.BULLET_CULLING_PADDING
+    );
 
     pool.activeBullets.forEach(b => {
-      // Off-screen culling
-      if (!isCircleVisible(b.x, b.y, b.radius * 4, bounds)) return;
-
-      const isSuperCrit = b.isSuperCrit;
-      const isCrit = b.isCrit;
-
-      // 1. Determine Style based on Crit Type
-      let glowColor = b.color; // Default color
-      let coreColor = '#ffffff';
-      let glowSize = 10;
-
-      if (isSuperCrit) {
-        glowColor = '#ff4500'; // Red/Orange for Super Crit
-        coreColor = '#ffecec';
-        glowSize = 20;
-      } else if (isCrit) {
-        glowColor = '#ffd700'; // Gold for Crit
-        glowSize = 15;
+      // 1. Frustum Culling
+      if (
+        !isCircleVisible(
+          b.x,
+          b.y,
+          b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
+          bounds
+        )
+      ) {
+        return;
       }
 
-      // 2. Setup Glow
-      if (!this.isMobileDevice) {
-        ctx.shadowBlur = glowSize;
-        ctx.shadowColor = glowColor;
-      } else {
-        ctx.shadowBlur = 0;
-      }
-
-      // Pixel mode draws simple squares, normal mode draws laser bolts
-      // Pixel mode draws simple squares, normal mode draws laser bolts
+      // 2. Select Rendering Strategy
       if (ThemeService.isRetro()) {
-        // 16-bit pixel style - simple small square bullets (optimized for high count)
-        ctx.shadowBlur = 0; // No glow in retro for clarity
-
-        ctx.save();
-        ctx.translate(b.x, b.y);
-
-        // Reduced size for retro look & less clutter
-        const size = b.radius;
-        ctx.fillStyle = isSuperCrit ? '#ff4500' : isCrit ? '#ffd700' : b.color;
-
-        // Draw centered square
-        ctx.fillRect(-size / 2, -size / 2, size, size);
-
-        ctx.restore();
+        this.renderRetroProjectile(ctx, b);
       } else {
-        // Cyberpunk style - laser bolt
-        const angle = Math.atan2(b.vy, b.vx);
-        const length = b.radius * (isSuperCrit ? 4.0 : 3.0);
-        const width = b.radius * (isSuperCrit ? 0.8 : 0.6);
-
-        ctx.save();
-        ctx.translate(b.x, b.y);
-        ctx.rotate(angle);
-
-        // Draw Glowy Trail/Beam Body
-        ctx.beginPath();
-        ctx.moveTo(-length / 2, 0);
-        ctx.lineTo(length / 2, 0);
-
-        ctx.lineCap = 'round';
-        ctx.lineWidth = width * 2;
-        ctx.strokeStyle = isSuperCrit ? glowColor : b.color;
-        ctx.stroke();
-
-        // Draw Inner Bright Core
-        ctx.beginPath();
-        ctx.moveTo(-length / 2 + 2, 0);
-        ctx.lineTo(length / 2 - 1, 0);
-
-        ctx.lineWidth = width;
-        ctx.strokeStyle = coreColor;
-        ctx.stroke();
-
-        ctx.restore();
-      }
-
-      // Clean up shadow for next draw calls
-      if (!this.isMobileDevice) {
-        ctx.shadowBlur = 0;
+        this.renderCyberpunkProjectile(ctx, b);
       }
     });
+
+    // Final shadow cleanup
+    ctx.shadowBlur = 0;
+  }
+
+  /**
+   * Renders 16-bit style pixel projectiles.
+   * Focuses on performance and visual clarity in high-bullet scenarios.
+   */
+  private renderRetroProjectile(ctx: CanvasRenderingContext2D, b: Bullet): void {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+
+    // No glow in retro for clarity and "sharp" pixel look
+    ctx.shadowBlur = 0;
+
+    const size = b.radius;
+
+    // Tiered coloring for retro squares
+    if (b.isSuperCrit) {
+      ctx.fillStyle = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT;
+    } else if (b.isCrit) {
+      ctx.fillStyle = GAME_ENGINE.BULLET_COLOR_CRIT;
+    } else {
+      ctx.fillStyle = b.color;
+    }
+
+    // Draw centered pixel square
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+
+    ctx.restore();
+  }
+
+  /**
+   * Renders high-fidelity "laser bolt" style projectiles with neon glows.
+   */
+  private renderCyberpunkProjectile(ctx: CanvasRenderingContext2D, b: Bullet): void {
+    // 1. Determine Visual Tier Properties
+    let glowColor = b.color;
+    let coreColor = GAME_ENGINE.BULLET_COLOR_CORE;
+    let glowSize = GAME_ENGINE.BULLET_GLOW_SIZE_NORMAL;
+    let lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_NORMAL;
+    let widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_NORMAL;
+
+    if (b.isSuperCrit) {
+      glowColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT;
+      coreColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT_CORE;
+      glowSize = GAME_ENGINE.BULLET_GLOW_SIZE_SUPER_CRIT;
+      lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_SUPER_CRIT;
+      widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_SUPER_CRIT;
+    } else if (b.isCrit) {
+      glowColor = GAME_ENGINE.BULLET_COLOR_CRIT;
+      glowSize = GAME_ENGINE.BULLET_GLOW_SIZE_CRIT;
+    }
+
+    // 2. Setup Neon Glow (Desktop Only)
+    if (!this.isMobileDevice) {
+      ctx.shadowBlur = glowSize;
+      ctx.shadowColor = glowColor;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    // 3. Draw Laser Bolt
+    const angle = Math.atan2(b.vy, b.vx);
+    const length = b.radius * lengthMult;
+    const width = b.radius * widthMult;
+
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(angle);
+
+    // A. Glowy Trail/Outer Beam Body
+    ctx.beginPath();
+    ctx.moveTo(-length / 2, 0);
+    ctx.lineTo(length / 2, 0);
+
+    ctx.lineCap = 'round';
+    ctx.lineWidth = width * 2;
+    ctx.strokeStyle = b.isSuperCrit || b.isCrit ? glowColor : b.color;
+    ctx.stroke();
+
+    // B. Inner Bright Core (The "hot" part of the laser)
+    ctx.beginPath();
+    ctx.moveTo(-length / 2 + GAME_ENGINE.BULLET_LASER_CORE_OFFSET_START, 0);
+    ctx.lineTo(length / 2 - GAME_ENGINE.BULLET_LASER_CORE_OFFSET_END, 0);
+
+    ctx.lineWidth = width;
+    ctx.strokeStyle = coreColor;
+    ctx.stroke();
+
+    ctx.restore();
   }
 }

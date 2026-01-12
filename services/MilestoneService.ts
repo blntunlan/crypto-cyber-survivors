@@ -128,7 +128,8 @@ const MILESTONES: MilestoneConfig[] = [
   },
 ];
 
-class MilestoneServiceClass {
+// Exported for testing
+export class MilestoneServiceClass {
   private static instance: MilestoneServiceClass | null = null;
   private achievedMilestones: Set<string> = new Set();
   private totalKills: number = 0;
@@ -136,7 +137,7 @@ class MilestoneServiceClass {
   // FIXED: Store unsubscribe functions for proper cleanup
   private unsubscribeFns: (() => void)[] = [];
 
-  private constructor() {
+  public constructor() {
     this.setupListeners();
   }
 

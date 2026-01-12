@@ -16,6 +16,7 @@ import {
 } from '../types/MobileSettings';
 import { type SoundCategory, type CategoryVolumes } from '../services/audio/types';
 import { DEFAULT_CATEGORY_VOLUMES } from '../services/audio/constants';
+import { Logger } from '../services/Logger';
 
 // ============================================
 // Types
@@ -83,46 +84,78 @@ export interface GameStoreState {
 
 export interface GameStoreActions {
   // Audio
+  /** Sets the master volume (0.0 to 1.0) */
   setMasterVolume: (volume: number) => void;
+  /** Sets the sound effects volume (0.0 to 1.0) */
   setSfxVolume: (volume: number) => void;
+  /** Sets the music volume (0.0 to 1.0) */
   setMusicVolume: (volume: number) => void;
+  /** Toggles the global mute state */
   toggleMute: () => void;
+  /** Sets volume for a specific category (e.g. 'combat', 'ui') */
   setCategoryVolume: (category: SoundCategory, volume: number) => void;
 
   // Graphics
+  /** Toggles particle effects visibility */
   toggleParticles: () => void;
+  /** Toggles screen shake effects */
   toggleScreenShake: () => void;
+  /** Toggles damage number popups */
   toggleDamageNumbers: () => void;
+  /** Toggles reduced motion accessibility mode */
   toggleReducedMotion: () => void;
+  /** Sets the scale of the HUD elements */
   setHudScale: (scale: number) => void;
+  /** Toggles the FPS counter display */
   toggleFPS: () => void;
+  /** Sets a specific graphics setting */
+  setGraphicsSetting: <K extends keyof GraphicsSettings>(
+    key: K,
+    value: GraphicsSettings[K]
+  ) => void;
 
   // Progress
+  /**
+   * Records the statistics at the end of a game session.
+   * Updates total stats and high scores if applicable.
+   */
   recordGameEnd: (
     score: number,
     level: number,
     survivalTime: number,
     kills: number
   ) => void;
+  /** Unlocks a collectible card if not already collected */
   addCardCollected: (cardId: string) => void;
+  /** Unlocks an achievement if not already unlocked */
   unlockAchievement: (achievementId: string) => void;
+  /** Resets all player progress (high scores, stats, etc) */
   resetProgress: () => void;
 
   // Session
+  /** Starts a new tracking session with a fresh ID */
   startNewSession: () => void;
+  /** Increments the count of games played in the current session */
   incrementGamesPlayed: () => void;
 
   // Tutorial
+  /** Marks the initial tutorial as seen */
   markTutorialSeen: () => void;
 
   // Mobile
+  /** Sets a specific mobile control setting */
   setMobileSetting: <K extends keyof MobileControlSettings>(
     key: K,
     value: MobileControlSettings[K]
   ) => void;
 
-  // Utility
+  /** Resets all configuration settings (audio, graphics) to defaults */
   resetSettings: () => void;
+  /** Sets a specific gameplay setting */
+  setGameplaySetting: <K extends keyof GameplaySettings>(
+    key: K,
+    value: GameplaySettings[K]
+  ) => void;
 }
 
 // ============================================
@@ -262,6 +295,11 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
           graphics: { ...state.graphics, showFPS: !state.graphics.showFPS },
         })),
 
+      setGraphicsSetting: (key, value) =>
+        set(state => ({
+          graphics: { ...state.graphics, [key]: value },
+        })),
+
       // Progress Actions
       recordGameEnd: (score, level, survivalTime, kills) =>
         set(state => ({
@@ -345,10 +383,32 @@ export const useGameStore = create<GameStoreState & GameStoreActions>()(
           gameplay: DEFAULT_GAMEPLAY,
           mobile: DEFAULT_MOBILE_SETTINGS,
         }),
+
+      setGameplaySetting: (key, value) =>
+        set(state => ({
+          gameplay: { ...state.gameplay, [key]: value },
+        })),
     }),
     {
       name: 'crypto-survivors-store',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => {
+        try {
+          return localStorage;
+        } catch (e) {
+          Logger.warn('LocalStorage access failed, falling back to memory storage', e);
+          // Minimal fallback mock
+          const memoryStorage: Record<string, string> = {};
+          return {
+            getItem: (name: string) => memoryStorage[name] ?? null,
+            setItem: (name: string, value: string) => {
+              memoryStorage[name] = value;
+            },
+            removeItem: (name: string) => {
+              delete memoryStorage[name];
+            },
+          };
+        }
+      }),
       // Only persist certain fields
       partialize: state => ({
         audio: state.audio,

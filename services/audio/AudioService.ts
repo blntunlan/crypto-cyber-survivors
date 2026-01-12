@@ -220,24 +220,21 @@ export class AudioService implements IAudioService {
   }
 
   /**
-   * Play coin shower - para yağmuru efekti
-   * TEST: Kazanma sonrası eklenebilir
+   * Play coin shower - coin rain effect
    */
   playCoinShower(): void {
     SlotSounds.playCoinShower();
   }
 
   /**
-   * Play near miss - neredeyse kazanma
-   * TEST: Şimdilik kullanılmıyor
+   * Play near miss - close win effect
    */
   playNearMiss(): void {
     SlotSounds.playNearMiss();
   }
 
   /**
-   * Play multiplier chime - çarpan artışı
-   * TEST: Her makarada çalabilir
+   * Play multiplier chime - multiplier increase effect
    */
   playMultiplierChime(level: number = 1): void {
     SlotSounds.playMultiplierChime(level);

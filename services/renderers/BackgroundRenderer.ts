@@ -4,11 +4,21 @@ import { type GameState, type Player } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { ThemeService } from '../ThemeService';
+import { GAME_ENGINE } from '../../constants';
 
+/**
+ * BackgroundRenderer - Orchestrates the dynamic background visuals.
+ *
+ * Responsibilities:
+ * 1. Rendering background gradients (Cyberpunk) or flat colors (Retro).
+ * 2. Drawing semi-transparent background "candles" that represent market movements.
+ * 3. Handling theme-specific grid patterns and pixel-perfect rounding.
+ * 4. Managing background animation based on PnL and wave intensity.
+ */
 export class BackgroundRenderer implements IRenderer {
   private isMobileDevice: boolean;
 
-  // Cached gradient to avoid creating new gradient every frame
+  // Cached gradient to avoid creating new gradient objects every frame
   private cachedGradient: CanvasGradient | null = null;
   private cachedWidth: number = 0;
   private cachedHeight: number = 0;
@@ -18,6 +28,15 @@ export class BackgroundRenderer implements IRenderer {
     this.isMobileDevice = screenService.isMobile();
   }
 
+  /**
+   * Primary render loop for background elements.
+   *
+   * @param ctx - Canvas rendering context
+   * @param _pool - Entity pool manager (unused here)
+   * @param state - Current game engine state
+   * @param _player - Player reference (unused here)
+   * @param opts - Global rendering options (width, height, graphics settings)
+   */
   render(
     ctx: CanvasRenderingContext2D,
     _pool: IPoolManager,
@@ -34,157 +53,247 @@ export class BackgroundRenderer implements IRenderer {
     const { r, g, b } = state.currentBg;
     const bgColorKey = `${r}-${g}-${b}`;
 
-    // Different rendering based on theme
+    // Theme-based strategy selection
     if (ThemeService.isRetro()) {
-      // 16-BIT RETRO STYLE
-      // Simple flat color background
-      const minBrightness = this.isMobileDevice ? 15 : 0;
-      ctx.fillStyle = `rgb(${Math.max(r, minBrightness)}, ${Math.max(g, minBrightness)}, ${Math.max(b + 10, minBrightness + 20)})`;
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw pixel grid pattern (subtle)
-      ctx.strokeStyle = `rgba(${r + 20}, ${g + 20}, ${b + 30}, 0.1)`;
-      ctx.lineWidth = 1;
-      const gridSize = 32;
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-
-      // Draw retro-style candles (larger, chunkier pixels)
-      state.bgCandles.forEach(c => {
-        const sizeRatio = c.w / 8;
-        const baseOpacity = (this.isMobileDevice ? 0.15 : 0.08) + sizeRatio * 0.15;
-        ctx.globalAlpha = baseOpacity;
-        ctx.fillStyle = c.color;
-
-        // Round to grid for pixel-perfect look
-        const rx = Math.round(c.x / 4) * 4;
-        const ry = Math.round(c.y / 4) * 4;
-        const rw = Math.max(4, Math.round(c.w / 4) * 4);
-        const rh = Math.max(8, Math.round(c.h / 4) * 4);
-
-        // Chunky pixel candle body
-        ctx.fillRect(rx, ry, rw, rh);
-
-        // Simple wick (2px wide, centered)
-        ctx.globalAlpha = baseOpacity * 0.5;
-        const wickX = rx + rw / 2 - 1;
-        ctx.fillRect(wickX, ry - 4, 2, 4);
-        ctx.fillRect(wickX, ry + rh, 2, 4);
-      });
+      this.renderRetroBackground(ctx, width, height, r, g, b, state);
     } else {
-      // CYBERPUNK STYLE (original code)
-      if (perfConfig.gradientBackground) {
-        const needsNewGradient =
-          !this.cachedGradient ||
-          width !== this.cachedWidth ||
-          height !== this.cachedHeight ||
-          bgColorKey !== this.cachedBgColor;
-
-        if (needsNewGradient) {
-          this.cachedGradient = ctx.createRadialGradient(
-            width / 2,
-            height / 2,
-            0,
-            width / 2,
-            height / 2,
-            Math.max(width, height) * 0.8
-          );
-          const boost = this.isMobileDevice ? 15 : 8;
-          this.cachedGradient.addColorStop(
-            0,
-            `rgb(${Math.min(r + boost, 45)}, ${Math.min(g + boost, 45)}, ${Math.min(b + boost, 55)})`
-          );
-          this.cachedGradient.addColorStop(1, `rgb(${r}, ${g}, ${b})`);
-          this.cachedWidth = width;
-          this.cachedHeight = height;
-          this.cachedBgColor = bgColorKey;
-        }
-
-        ctx.fillStyle = this.cachedGradient!;
-      } else {
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-      }
-
-      ctx.fillRect(0, 0, width, height);
-
-      // Draw background candles with depth-based opacity
-      state.bgCandles.forEach(c => {
-        const sizeRatio = c.w / 8;
-        const baseOpacity = (this.isMobileDevice ? 0.1 : 0.03) + sizeRatio * 0.12;
-
-        ctx.globalAlpha = baseOpacity;
-        ctx.fillStyle = c.color;
-
-        const rx = Math.round(c.x);
-        const ry = Math.round(c.y);
-        const rw = Math.round(c.w);
-        const rh = Math.round(c.h);
-
-        if (c.w > 4 && shadowsEnabled) {
-          ctx.shadowColor = c.color;
-          ctx.shadowBlur = 8;
-        }
-
-        ctx.fillRect(rx, ry, rw, rh);
-
-        if (shadowsEnabled) ctx.shadowBlur = 0;
-
-        ctx.globalAlpha = baseOpacity * 0.6;
-        const wickWidth = Math.max(1, Math.round(rw * 0.2));
-        const wickX = rx + (rw - wickWidth) / 2;
-        ctx.fillRect(wickX, ry - 3, wickWidth, rh + 6);
-      });
+      this.renderCyberpunkBackground(
+        ctx,
+        width,
+        height,
+        r,
+        g,
+        b,
+        bgColorKey,
+        perfConfig.gradientBackground,
+        state,
+        shadowsEnabled
+      );
     }
 
+    // Reset alpha and shadows for subsequent renderers
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
   }
 
   /**
-   * Update background candle positions based on market trend.
-   * Speed is influenced by:
-   * - Base candle speed
-   * - Wave multiplier (syncs with game intensity phases)
-   * - PnL determines direction (profit = up, loss = down)
+   * Renders the 16-bit arcade style background.
+   */
+  private renderRetroBackground(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    r: number,
+    g: number,
+    b: number,
+    state: GameState
+  ): void {
+    // 1. Base Flat Color
+    const minBrightness = this.isMobileDevice
+      ? GAME_ENGINE.BG_RETRO_MIN_BRIGHTNESS_MOBILE
+      : GAME_ENGINE.BG_RETRO_MIN_BRIGHTNESS_DESKTOP;
+
+    ctx.fillStyle = `rgb(
+      ${Math.max(r, minBrightness)}, 
+      ${Math.max(g, minBrightness)}, 
+      ${Math.max(b + GAME_ENGINE.BG_RETRO_BLUE_BOOST, minBrightness + GAME_ENGINE.BG_RETRO_BLUE_BOOST_MIN)}
+    )`;
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Pixel Grid Pattern (Subtle)
+    ctx.strokeStyle = `rgba(${r + 20}, ${g + 20}, ${b + 30}, 0.1)`;
+    ctx.lineWidth = 1;
+    const gridSize = GAME_ENGINE.BG_RETRO_GRID_SIZE;
+
+    // Vertical grid lines
+    for (let x = 0; x < width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+
+    // Horizontal grid lines
+    for (let y = 0; y < height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+
+    // 3. Retro-style candles (Chunky pixels)
+    state.bgCandles.forEach(c => {
+      const sizeRatio = c.w / 8;
+      const baseOpacity =
+        (this.isMobileDevice
+          ? GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_MOBILE
+          : GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_DESKTOP) +
+        sizeRatio * GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_STEP;
+
+      ctx.globalAlpha = baseOpacity;
+      ctx.fillStyle = c.color;
+
+      // Round to grid for pixel-perfect look
+      const rounding = GAME_ENGINE.BG_RETRO_CANDLE_ROUNDING;
+      const rx = Math.round(c.x / rounding) * rounding;
+      const ry = Math.round(c.y / rounding) * rounding;
+      const rw = Math.max(rounding, Math.round(c.w / rounding) * rounding);
+      const rh = Math.max(rounding * 2, Math.round(c.h / rounding) * rounding);
+
+      // Chunky candle body
+      ctx.fillRect(rx, ry, rw, rh);
+
+      // Minimalist wick
+      ctx.globalAlpha = baseOpacity * 0.5;
+      const wickX = rx + rw / 2 - 1;
+      ctx.fillRect(wickX, ry - 4, 2, 4);
+      ctx.fillRect(wickX, ry + rh, 2, 4);
+    });
+  }
+
+  /**
+   * Renders the neon cyberpunk style background with gradients and glows.
+   */
+  private renderCyberpunkBackground(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    r: number,
+    g: number,
+    b: number,
+    bgColorKey: string,
+    useGradient: boolean,
+    state: GameState,
+    shadowsEnabled: boolean
+  ): void {
+    if (useGradient) {
+      const needsNewGradient =
+        !this.cachedGradient ||
+        width !== this.cachedWidth ||
+        height !== this.cachedHeight ||
+        bgColorKey !== this.cachedBgColor;
+
+      if (needsNewGradient) {
+        this.cachedGradient = ctx.createRadialGradient(
+          width / 2,
+          height / 2,
+          0,
+          width / 2,
+          height / 2,
+          Math.max(width, height) * GAME_ENGINE.BG_GRADIENT_RADIUS_FACTOR
+        );
+
+        const boost = this.isMobileDevice
+          ? GAME_ENGINE.BG_BRIGHTNESS_BOOST_MOBILE
+          : GAME_ENGINE.BG_BRIGHTNESS_BOOST_DESKTOP;
+
+        this.cachedGradient.addColorStop(
+          0,
+          `rgb(
+            ${Math.min(r + boost, GAME_ENGINE.BG_GRADIENT_MAX_R)}, 
+            ${Math.min(g + boost, GAME_ENGINE.BG_GRADIENT_MAX_G)}, 
+            ${Math.min(b + boost, GAME_ENGINE.BG_GRADIENT_MAX_B)}
+          )`
+        );
+        this.cachedGradient.addColorStop(1, `rgb(${r}, ${g}, ${b})`);
+        this.cachedWidth = width;
+        this.cachedHeight = height;
+        this.cachedBgColor = bgColorKey;
+      }
+
+      ctx.fillStyle = this.cachedGradient!;
+    } else {
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    ctx.fillRect(0, 0, width, height);
+
+    // Render smooth neon candles
+    state.bgCandles.forEach(c => {
+      const sizeRatio = c.w / 8;
+      const baseOpacity =
+        (this.isMobileDevice
+          ? GAME_ENGINE.BG_CANDLE_OPACITY_BASE_MOBILE
+          : GAME_ENGINE.BG_CANDLE_OPACITY_BASE_DESKTOP) +
+        sizeRatio * GAME_ENGINE.BG_CANDLE_OPACITY_STEP;
+
+      ctx.globalAlpha = baseOpacity;
+      ctx.fillStyle = c.color;
+
+      const rx = Math.round(c.x);
+      const ry = Math.round(c.y);
+      const rw = Math.round(c.w);
+      const rh = Math.round(c.h);
+
+      // Apply neon glow if width allows and performance profile permits
+      if (c.w > 4 && shadowsEnabled) {
+        ctx.shadowColor = c.color;
+        ctx.shadowBlur = GAME_ENGINE.BG_CANDLE_SHADOW_BLUR;
+      }
+
+      ctx.fillRect(rx, ry, rw, rh);
+
+      if (shadowsEnabled) {
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw stylized candle wick
+      ctx.globalAlpha = baseOpacity * 0.6;
+      const wickWidth = Math.max(
+        1,
+        Math.round(rw * GAME_ENGINE.BG_CANDLE_WICK_WIDTH_FACTOR)
+      );
+      const wickX = rx + (rw - wickWidth) / 2;
+      ctx.fillRect(
+        wickX,
+        ry - GAME_ENGINE.BG_CANDLE_WICK_Y_OFFSET,
+        wickWidth,
+        rh + GAME_ENGINE.BG_CANDLE_WICK_H_EXTRA
+      );
+    });
+  }
+
+  /**
+   * Moves background candles based on market trend and game intensity.
+   *
+   * @param state - Game state containing candle definitions
+   * @param pnl - Current profit/loss percentage (determines direction)
+   * @param waveMultiplier - Intensity multiplier from DifficultyManager
+   * @param _unused - Reserved for API compatibility
+   * @param dtFactor - Frame time scaling factor
+   * @param width - Canvas width for wrapping
+   * @param height - Canvas height for wrapping
    */
   public updateCandles(
     state: GameState,
     pnl: number,
     waveMultiplier: number,
-    _unused: number, // kept for API compatibility
+    _unused: number,
     dtFactor: number,
     width: number,
     height: number
   ): void {
-    // Direction based on PnL: profit = candles rise, loss = candles fall
+    // Direction: Positive PnL -> Candles rise (negative Y), Negative PnL -> Candles fall (positive Y)
     const trendMultiplier = pnl >= 0 ? -1 : 1;
 
-    // Wave multiplier directly controls speed (0.4 resolution → 1.5 climax)
-    // Normalize to 0.6-1.8 range for visual effect
-    const waveSpeedMult = 0.6 + waveMultiplier * 0.8;
+    // Intensity: Sync speed with current wave phase
+    const waveSpeedMult =
+      GAME_ENGINE.BG_WAVE_SPEED_BASE +
+      waveMultiplier * GAME_ENGINE.BG_WAVE_SPEED_FACTOR;
+
+    const threshold = GAME_ENGINE.BG_CANDLE_WRAP_THRESHOLD;
 
     state.bgCandles.forEach(c => {
-      // Combined speed: base speed * wave intensity
+      // Final velocity calculation
       const volatilitySpeed = c.speed * waveSpeedMult;
       c.y += volatilitySpeed * trendMultiplier * dtFactor;
 
-      // Wrap around screen edges
-      if (c.y > height + 100) {
-        c.y = -100;
+      // Coordinate Wrapping
+      if (c.y > height + threshold) {
+        c.y = -threshold;
         c.x = Math.random() * width;
-      }
-      if (c.y < -100) {
-        c.y = height + 100;
+      } else if (c.y < -threshold) {
+        c.y = height + threshold;
         c.x = Math.random() * width;
       }
     });

@@ -19,13 +19,13 @@ import {
   calculateCombinedScore,
   getPerformanceConfig,
 } from '../config/PerformancePresets';
-
-// =============================================================================
-// DEVICE BENCHMARK SERVICE
-// =============================================================================
+import { BENCHMARK } from '../constants';
 
 const MANUAL_PROFILE_KEY = 'ccs_manual_perf_profile';
 
+/**
+ * DeviceBenchmarkServiceClass - Orchestrates hardware performance evaluation
+ */
 export class DeviceBenchmarkServiceClass {
   private state: BenchmarkState = {
     status: BenchmarkStatus.IDLE,
@@ -38,7 +38,7 @@ export class DeviceBenchmarkServiceClass {
   private listeners: Set<(state: BenchmarkState) => void> = new Set();
   private cachedConfig: PerformanceConfig | null = null;
 
-  // Track if user has manually set a profile (persists in memory, survives component unmount)
+  // Track if user has manually set a profile (persists in memory)
   private isManualMode: boolean = false;
 
   constructor() {
@@ -52,7 +52,7 @@ export class DeviceBenchmarkServiceClass {
   /**
    * Reset state for testing
    */
-  resetStateForTesting(): void {
+  public resetStateForTesting(): void {
     this.state = {
       status: BenchmarkStatus.IDLE,
       progress: 0,
@@ -65,14 +65,14 @@ export class DeviceBenchmarkServiceClass {
     this.loadManualProfile();
   }
 
-  // ===========================================================================
-  // PUBLIC API
-  // ===========================================================================
-
+  /**
+   * Internal loader for manually selected profile.
+   *
+   * @private
+   */
   private loadManualProfile(): boolean {
     try {
       const stored = localStorage.getItem(MANUAL_PROFILE_KEY);
-      Logger.info('[Benchmark] loadManualProfile called', { stored });
       if (stored && Object.values(DeviceProfile).includes(stored as DeviceProfile)) {
         const profile = stored as DeviceProfile;
         this.cachedConfig = getPerformanceConfig(profile);
@@ -82,40 +82,40 @@ export class DeviceBenchmarkServiceClass {
     } catch (err) {
       Logger.error('[Benchmark] Failed to load manual profile', err);
     }
-    Logger.info('[Benchmark] No manual profile found');
     return false;
   }
 
   /**
-   * Get current benchmark state
+   * Returns current snapshot of the benchmark status.
    */
-  getState(): BenchmarkState {
+  public getState(): BenchmarkState {
     return { ...this.state };
   }
 
   /**
-   * Subscribe to state changes
+   * Registers a listener for benchmark state transitions.
+   *
+   * @param listener Callback received when state changes
+   * @returns Unsubscribe function
    */
-  subscribe(listener: (state: BenchmarkState) => void): () => void {
+  public subscribe(listener: (state: BenchmarkState) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
   /**
-   * Check if user is in manual mode (has manually selected a profile)
+   * Returns true if user has locked a specific performance profile.
    */
-  isInManualMode(): boolean {
+  public isInManualMode(): boolean {
     return this.isManualMode;
   }
 
   /**
-   * Run benchmark or return cached result
+   * Executes the device benchmark suite.
    *
-   * Benchmark always runs to establish baseline device capabilities.
-   * However, if user has chosen a manual profile, that takes precedence
-   * for the active config (but benchmark result is still stored).
+   * @param forceRun If true, ignores cached results and runs full test
    */
-  async runBenchmark(forceRun = false): Promise<BenchmarkResult> {
+  public async runBenchmark(forceRun = false): Promise<BenchmarkResult> {
     const hasManualProfile = localStorage.getItem(MANUAL_PROFILE_KEY) !== null;
 
     // Check cache first (unless forced)
@@ -131,13 +131,7 @@ export class DeviceBenchmarkServiceClass {
           Logger.info('[Benchmark] Using cached benchmark result for config', {
             profile: cached.profile,
           });
-        } else {
-          Logger.info(
-            '[Benchmark] Cached benchmark loaded, but manual profile is active'
-          );
         }
-
-        // Always notify listeners so UI can update
         this.notifyListeners();
         return cached;
       }
@@ -158,20 +152,6 @@ export class DeviceBenchmarkServiceClass {
       // If NO manual profile exists, use benchmark result for active config
       if (!hasManualProfile) {
         this.cachedConfig = getPerformanceConfig(result.profile);
-        Logger.info('[Benchmark] Completed - using result for config', {
-          profile: result.profile,
-          gpuScore: result.gpuScore,
-          cpuScore: result.cpuScore,
-        });
-      } else {
-        Logger.info(
-          '[Benchmark] Completed - saved for reference but manual profile is active',
-          {
-            benchmarkProfile: result.profile,
-            gpuScore: result.gpuScore,
-            cpuScore: result.cpuScore,
-          }
-        );
       }
 
       this.saveToCache(result);
@@ -184,105 +164,68 @@ export class DeviceBenchmarkServiceClass {
       this.notifyListeners();
       Logger.error('[Benchmark] Failed', error);
 
-      // Return fallback MEDIUM profile on error
       return this.getFallbackResult();
     }
   }
 
   /**
-   * Get current performance config (after benchmark)
+   * Returns the appropriate performance configuration for the current device.
    */
-  getPerformanceConfig(): PerformanceConfig {
+  public getPerformanceConfig(): PerformanceConfig {
     if (this.cachedConfig) {
       return this.cachedConfig;
     }
-    // Try to load manual profile one more time if config is null
     if (this.loadManualProfile()) {
       return this.cachedConfig!;
     }
 
-    // Default to MEDIUM if benchmark hasn't run and no manual profile
+    // Default fallback
     return getPerformanceConfig(DeviceProfile.MEDIUM);
   }
 
   /**
-   * Force a specific profile (for settings override)
+   * Manually overrides the performance profile.
+   *
+   * @param profile The target profile (LOW, MEDIUM, HIGH, etc.)
    */
-  setManualProfile(profile: DeviceProfile): void {
+  public setManualProfile(profile: DeviceProfile): void {
     this.cachedConfig = getPerformanceConfig(profile);
-
-    // Set manual mode flag FIRST (persistent in memory)
     this.isManualMode = true;
 
-    // Try to save to localStorage (best effort)
     try {
       localStorage.setItem(MANUAL_PROFILE_KEY, profile);
-
-      // Verify it was actually saved (important for mobile browsers)
-      const readBack = localStorage.getItem(MANUAL_PROFILE_KEY);
-      if (readBack === profile) {
-        Logger.info('[Benchmark] Manual profile saved and verified in localStorage', {
-          profile,
-        });
-      } else {
-        Logger.warn(
-          '[Benchmark] localStorage save verification FAILED - using memory only',
-          {
-            profile,
-            readBack,
-            message: 'Value was not persisted correctly',
-          }
-        );
-      }
     } catch (err) {
-      Logger.warn('[Benchmark] localStorage not available - using memory only', err);
+      Logger.warn('[Benchmark] localStorage not available', err);
     }
 
-    // Always notify listeners (config is in memory even if localStorage fails)
-    Logger.info('[Benchmark] Manual profile set (isManualMode=true)', { profile });
     this.notifyListeners();
   }
 
   /**
-   * Reset to automatic profile (from benchmark result)
-   *
-   * Removes manual profile override and switches back to using
-   * the benchmark result for performance optimization.
+   * Removes manual override and reverts to benchmark-based profile.
    */
-  resetToAuto(): void {
-    // Clear manual mode flag FIRST
+  public resetToAuto(): void {
     this.isManualMode = false;
 
-    // Remove manual profile from localStorage (best effort)
     try {
       localStorage.removeItem(MANUAL_PROFILE_KEY);
-      Logger.info('[Benchmark] Manual profile removed from localStorage');
     } catch (err) {
-      Logger.warn('[Benchmark] Failed to remove manual profile from localStorage', err);
+      Logger.warn('[Benchmark] Failed to remove manual profile', err);
     }
 
-    // Use cached benchmark result if available
     if (this.state.result) {
       this.cachedConfig = getPerformanceConfig(this.state.result.profile);
-      Logger.info(
-        '[Benchmark] Reset to auto (isManualMode=false) - using benchmark result',
-        {
-          profile: this.state.result.profile,
-        }
-      );
       this.notifyListeners();
     } else {
-      // No benchmark result yet, run it now
-      Logger.info('[Benchmark] Reset to auto - no cached result, running benchmark');
       this.cachedConfig = null;
       void this.runBenchmark(false);
     }
   }
 
   /**
-   * Clear cached benchmark result
+   * Purges all cached performance data.
    */
-  clearCache(): void {
+  public clearCache(): void {
     try {
       localStorage.removeItem(BENCHMARK_CONFIG.CACHE_KEY);
       localStorage.removeItem(MANUAL_PROFILE_KEY);
@@ -290,37 +233,33 @@ export class DeviceBenchmarkServiceClass {
       this.state.status = BenchmarkStatus.IDLE;
       this.cachedConfig = null;
       this.notifyListeners();
-      Logger.info('[Benchmark] Cache cleared');
     } catch {
-      // localStorage might not be available
+      // ignore
     }
   }
 
-  // ===========================================================================
-  // BENCHMARK EXECUTION
-  // ===========================================================================
-
+  /**
+   * High-level benchmark orchestrator.
+   *
+   * @private
+   */
   private async executeBenchmark(): Promise<BenchmarkResult> {
-    // Device info
-    this.updateProgress(5, 'Detecting device info...');
+    this.updateProgress(BENCHMARK.PROGRESS_INFO, 'Detecting device info...');
     const deviceMemory = this.getDeviceMemory();
     const hardwareConcurrency = navigator.hardwareConcurrency;
     const gpuRenderer = this.getGPURenderer();
 
-    // GPU Test
-    this.updateProgress(20, 'Running GPU benchmark...');
+    this.updateProgress(BENCHMARK.PROGRESS_GPU, 'Running GPU benchmark...');
     const gpuScore = await this.runGPUBenchmark();
 
-    // CPU Test
-    this.updateProgress(60, 'Running CPU benchmark...');
+    this.updateProgress(BENCHMARK.PROGRESS_CPU, 'Running CPU benchmark...');
     const cpuScore = await this.runCPUBenchmark();
 
-    // Calculate profile
-    this.updateProgress(90, 'Calculating profile...');
+    this.updateProgress(BENCHMARK.PROGRESS_CALC, 'Calculating profile...');
     const combinedScore = calculateCombinedScore(gpuScore, cpuScore);
     const profile = getProfileFromScore(combinedScore);
 
-    const result: BenchmarkResult = {
+    return {
       gpuScore,
       cpuScore,
       combinedScore,
@@ -331,16 +270,15 @@ export class DeviceBenchmarkServiceClass {
       timestamp: Date.now(),
       version: BENCHMARK_CONFIG.VERSION,
     };
-
-    return result;
   }
 
   /**
-   * GPU Benchmark: Canvas rendering with shadows
+   * GPU Stress Test using canvas effects.
+   *
+   * @private
    */
   private async runGPUBenchmark(): Promise<number> {
     return new Promise(resolve => {
-      // Use requestAnimationFrame to avoid blocking
       requestAnimationFrame(() => {
         const canvas = document.createElement('canvas');
         canvas.width = 200;
@@ -348,15 +286,14 @@ export class DeviceBenchmarkServiceClass {
         const ctx = canvas.getContext('2d');
 
         if (!ctx) {
-          resolve(100); // Fallback score
+          resolve(BENCHMARK.FALLBACK_SCORE / 3);
           return;
         }
 
-        const iterations = BENCHMARK_CONFIG.GPU_TEST_ITERATIONS;
+        const iterations = BENCHMARK.GPU_ITERATIONS;
         const start = performance.now();
 
         for (let i = 0; i < iterations; i++) {
-          // Shadow rendering (GPU intensive)
           ctx.shadowBlur = 10;
           ctx.shadowColor = `hsl(${(i * 7) % 360}, 80%, 50%)`;
           ctx.fillStyle = `hsl(${(i * 13) % 360}, 70%, 60%)`;
@@ -364,49 +301,42 @@ export class DeviceBenchmarkServiceClass {
           ctx.arc(100, 100, 30 + (i % 20), 0, Math.PI * 2);
           ctx.fill();
 
-          // Clear for next iteration
           if (i % 50 === 0) {
             ctx.clearRect(0, 0, 200, 200);
           }
         }
 
         const elapsed = performance.now() - start;
-        // Score: iterations per millisecond * 100
         const score = Math.round((iterations / elapsed) * 100);
-        resolve(Math.min(1000, score)); // Cap at 1000
+        resolve(Math.min(BENCHMARK.MAX_SCORE, score));
       });
     });
   }
 
   /**
-   * CPU Benchmark: Math-heavy operations
+   * CPU Logic Test using trigonometric iterations.
+   *
+   * @private
    */
   private async runCPUBenchmark(): Promise<number> {
     return new Promise(resolve => {
-      // Use setTimeout to avoid blocking
       setTimeout(() => {
-        const iterations = BENCHMARK_CONFIG.CPU_TEST_ITERATIONS;
+        const iterations = BENCHMARK.CPU_ITERATIONS;
         const start = performance.now();
 
         let sum = 0;
         for (let i = 0; i < iterations; i++) {
-          // Heavy math operations
           sum += Math.sin(i) * Math.cos(i);
           sum += Math.sqrt(Math.abs(sum));
-          sum = sum % 1000000; // Prevent overflow
+          sum = sum % 1000000;
         }
 
         const elapsed = performance.now() - start;
-        // Score: iterations per millisecond
         const score = Math.round(iterations / elapsed);
-        resolve(Math.min(1000, score)); // Cap at 1000
+        resolve(Math.min(BENCHMARK.MAX_SCORE, score));
       }, 0);
     });
   }
-
-  // ===========================================================================
-  // DEVICE INFO
-  // ===========================================================================
 
   private getDeviceMemory(): number | null {
     // @ts-expect-error - deviceMemory is not in all browsers
@@ -432,10 +362,6 @@ export class DeviceBenchmarkServiceClass {
     }
   }
 
-  // ===========================================================================
-  // CACHE MANAGEMENT
-  // ===========================================================================
-
   private loadFromCache(): BenchmarkResult | null {
     try {
       const cached = localStorage.getItem(BENCHMARK_CONFIG.CACHE_KEY);
@@ -443,16 +369,12 @@ export class DeviceBenchmarkServiceClass {
 
       const result: BenchmarkResult = JSON.parse(cached);
 
-      // Check version
       if (result.version !== BENCHMARK_CONFIG.VERSION) {
-        Logger.info('[Benchmark] Cache invalidated: version mismatch');
         return null;
       }
 
-      // Check expiry
       const age = Date.now() - result.timestamp;
       if (age > BENCHMARK_CONFIG.CACHE_DURATION_MS) {
-        Logger.info('[Benchmark] Cache invalidated: expired');
         return null;
       }
 
@@ -466,13 +388,9 @@ export class DeviceBenchmarkServiceClass {
     try {
       localStorage.setItem(BENCHMARK_CONFIG.CACHE_KEY, JSON.stringify(result));
     } catch {
-      // localStorage might be full or unavailable
+      // ignore
     }
   }
-
-  // ===========================================================================
-  // HELPERS
-  // ===========================================================================
 
   private updateProgress(progress: number, currentTest: string): void {
     this.state.progress = progress;
@@ -487,9 +405,9 @@ export class DeviceBenchmarkServiceClass {
 
   private getFallbackResult(): BenchmarkResult {
     return {
-      gpuScore: 300,
-      cpuScore: 300,
-      combinedScore: 300,
+      gpuScore: BENCHMARK.FALLBACK_SCORE,
+      cpuScore: BENCHMARK.FALLBACK_SCORE,
+      combinedScore: BENCHMARK.FALLBACK_SCORE,
       profile: DeviceProfile.MEDIUM,
       deviceMemory: null,
       hardwareConcurrency: navigator.hardwareConcurrency,
@@ -499,9 +417,5 @@ export class DeviceBenchmarkServiceClass {
     };
   }
 }
-
-// =============================================================================
-// SINGLETON EXPORT
-// =============================================================================
 
 export const DeviceBenchmarkService = new DeviceBenchmarkServiceClass();

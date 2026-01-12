@@ -8,6 +8,7 @@ import {
 } from '../../types';
 import { type GameEnemy } from '../../factories/EnemyFactory';
 import { type WhaleTier } from '../../types/indicators';
+import { type EnemyId } from '../../config/EnemyRegistry';
 
 /**
  * Interface for the Pool Manager.
@@ -34,7 +35,7 @@ export interface IPoolManager {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    enemyType?: string
+    enemyType?: EnemyId
   ): GameEnemy;
 
   getWhaleEnemy(

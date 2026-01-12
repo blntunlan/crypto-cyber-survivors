@@ -1,15 +1,14 @@
 /**
- * ComboSystem - Kill Streak & Combo Multiplier
+ * ComboSystem - Kill Streak & XP Multiplier Orchestrator
  *
- * Tracks consecutive kills and provides XP bonuses.
- * Resets after a timeout (no kills for 3 seconds).
- *
- * Now uses TimeService for frame-rate and pause-independent timing.
+ * Tracks consecutive kills and provides dynamic XP bonuses.
+ * Resets after a predetermined timeout of inactivity.
+ * Integrates with TimeService to ensure pause-independent mechanics.
  */
 
 import { EventBus } from './EventBus';
 import { TimeService } from './TimeService';
-import { COLORS } from '../constants';
+import { COLORS, COMBO } from '../constants';
 import { type ComboDebugState, getDebugTimestamp } from '../types/DebugState';
 
 export interface ComboState {
@@ -29,7 +28,11 @@ export interface ComboMilestone {
   sound: 'combo1' | 'combo2' | 'combo3' | 'combo4' | 'combo5';
 }
 
-const COMBO_MILESTONES: ComboMilestone[] = [
+/**
+ * Predefined milestones for kill streaks.
+ * As the streak increases, the name becomes more intense and rewards higher multipliers.
+ */
+export const COMBO_MILESTONES: ComboMilestone[] = [
   {
     kills: 5,
     name: 'COMBO!',
@@ -67,8 +70,9 @@ const COMBO_MILESTONES: ComboMilestone[] = [
   },
 ];
 
-const COMBO_TIMEOUT_MS = 3000; // 3 seconds without kill = combo reset
-
+/**
+ * ComboSystemClass - Management class for kill streak state.
+ */
 class ComboSystemClass {
   private static instance: ComboSystemClass | null = null;
 
@@ -82,37 +86,37 @@ class ComboSystemClass {
   };
 
   private lastMilestoneIndex = -1;
-  private lastMilestoneSoundTime = 0; // For sound cooldown
-  private static readonly MILESTONE_SOUND_COOLDOWN = 300; // ms
-
-  // FIXED: Store unsubscribe functions for proper cleanup
+  private lastMilestoneSoundTime = 0; // Throttling for audio feedback
   private unsubscribeFns: (() => void)[] = [];
 
   private constructor() {
     this.setupListeners();
   }
 
-  static getInstance(): ComboSystemClass {
+  /**
+   * Singleton accessor.
+   */
+  public static getInstance(): ComboSystemClass {
     return (ComboSystemClass.instance ??= new ComboSystemClass());
   }
 
+  /**
+   * Subscribes to game events to drive combo state.
+   */
   private setupListeners(): void {
-    // FIXED: Store unsubscribe functions
     this.unsubscribeFns.push(
       EventBus.on('enemyKilled', () => {
         this.recordKill();
       }),
       EventBus.on('gemCollected', data => {
         if (this.state.killStreak > 0) {
+          // Calculate bonus XP based on active multiplier
           const bonus =
             Math.floor(data.value * this.state.comboMultiplier) - data.value;
+
           if (bonus > 0) {
             this.state.totalBonusXp += bonus;
-            EventBus.emit('comboUpdate', {
-              killStreak: this.state.killStreak,
-              multiplier: this.state.comboMultiplier,
-              totalBonusXp: this.state.totalBonusXp,
-            });
+            this.emitUpdate();
           }
         }
       })
@@ -120,9 +124,9 @@ class ComboSystemClass {
   }
 
   /**
-   * Start a new game session
+   * Initializes state for a new session.
    */
-  startGame(): void {
+  public startGame(): void {
     this.state = {
       killStreak: 0,
       maxStreak: 0,
@@ -136,60 +140,59 @@ class ComboSystemClass {
   }
 
   /**
-   * Record a kill and update combo state
+   * Updates state on every enemy elimination.
+   * Handles timeout checks and milestone threshold crossings.
    */
-  recordKill(): void {
+  public recordKill(): void {
     const now = TimeService.getGameTime();
 
-    // Check if combo should have reset (if it wasn't already reset by update())
+    // 1. Validation: If a manual update() hasn't run, check timeout here
     const elapsed = now - this.state.lastKillTime;
-    if (this.state.lastKillTime > 0 && elapsed > COMBO_TIMEOUT_MS) {
+    if (this.state.lastKillTime > 0 && elapsed > COMBO.TIMEOUT_MS) {
       this.resetCombo();
     }
 
+    // 2. State Increment
     this.state.killStreak++;
     this.state.totalKills++;
     this.state.lastKillTime = now;
 
-    // Update max streak
+    // 3. Peak Performance tracking
     if (this.state.killStreak > this.state.maxStreak) {
       this.state.maxStreak = this.state.killStreak;
     }
 
-    // Check for milestone
+    // 4. Milestone Check
     this.checkMilestone();
 
-    // Emit combo update
-    EventBus.emit('comboUpdate', {
-      killStreak: this.state.killStreak,
-      multiplier: this.state.comboMultiplier,
-      totalBonusXp: this.state.totalBonusXp,
-    });
+    // 5. Broadcast change
+    this.emitUpdate();
   }
 
   /**
-   * Check and trigger milestones
+   * Iterates through milestones to find the highest reached by current streak.
    */
   private checkMilestone(): void {
     const currentTime = TimeService.getGameTime();
 
     for (let i = COMBO_MILESTONES.length - 1; i >= 0; i--) {
       const milestone = COMBO_MILESTONES[i]!;
+
+      // Found the highest milestone reached since the last check
       if (this.state.killStreak >= milestone.kills && i > this.lastMilestoneIndex) {
         this.lastMilestoneIndex = i;
         this.state.comboMultiplier = milestone.multiplier;
 
-        // Check sound cooldown to prevent audio spam from multi-kills
+        // Sound Throttling: Prevents audio phasing during high-density multi-kills
         const canPlaySound =
-          currentTime - this.lastMilestoneSoundTime >=
-          ComboSystemClass.MILESTONE_SOUND_COOLDOWN;
+          currentTime - this.lastMilestoneSoundTime >= COMBO.MILESTONE_SOUND_COOLDOWN;
 
         EventBus.emit('comboMilestone', {
           name: milestone.name,
           kills: milestone.kills,
           multiplier: milestone.multiplier,
           color: milestone.color,
-          sound: canPlaySound ? milestone.sound : undefined, // Only include sound if cooldown passed
+          sound: canPlaySound ? milestone.sound : undefined,
         });
 
         if (canPlaySound) {
@@ -202,84 +205,89 @@ class ComboSystemClass {
   }
 
   /**
-   * Reset combo (on timeout or death)
+   * Finalizes combo metrics and resets to base state.
    */
-  resetCombo(): void {
+  public resetCombo(): void {
     if (this.state.killStreak > 0) {
       EventBus.emit('comboEnd', {
         finalStreak: this.state.killStreak,
         bonusXp: this.state.totalBonusXp,
       });
     }
+
     this.state.killStreak = 0;
     this.state.comboMultiplier = 1.0;
     this.lastMilestoneIndex = -1;
+
+    this.emitUpdate();
   }
 
   /**
-   * Check if combo should timeout (call this in game loop)
-   * Automatically ignores pause time because it uses TimeService.gameTime
+   * Periodic maintenance (should be called in Game Loop).
+   * Ensures combo expires even if no entities are being interacted with.
    */
-  update(): void {
+  public update(): void {
     if (this.state.killStreak > 0 && this.state.lastKillTime > 0) {
       const now = TimeService.getGameTime();
       const elapsed = now - this.state.lastKillTime;
-      if (elapsed > COMBO_TIMEOUT_MS) {
+
+      if (elapsed > COMBO.TIMEOUT_MS) {
         this.resetCombo();
       }
     }
   }
 
   /**
-   * Get XP multiplier for current combo
+   * Current XP leverage factor.
    */
-  getXpMultiplier(): number {
+  public getXpMultiplier(): number {
     return this.state.comboMultiplier;
   }
 
   /**
-   * Get current kill streak
+   * Current active kill streak.
    */
-  getKillStreak(): number {
+  public getKillStreak(): number {
     return this.state.killStreak;
   }
 
   /**
-   * Get total kills this session
+   * Total enemies dispatched this session.
    */
-  getTotalKills(): number {
+  public getTotalKills(): number {
     return this.state.totalKills;
   }
 
   /**
-   * Get max streak this session
+   * Highest streak achieved this session.
    */
-  getMaxStreak(): number {
+  public getMaxStreak(): number {
     return this.state.maxStreak;
   }
 
   /**
-   * Get time remaining before combo expires (0-1)
-   * Automatically freezes while game is paused
+   * Normalised percentage (0.0 to 1.0) of time remaining before combo drops.
    */
-  getComboTimeRemaining(): number {
-    if (this.state.killStreak === 0 || this.state.lastKillTime === 0) return 0;
+  public getComboTimeRemaining(): number {
+    if (this.state.killStreak === 0 || this.state.lastKillTime === 0) {
+      return 0;
+    }
     const now = TimeService.getGameTime();
     const elapsed = now - this.state.lastKillTime;
-    return Math.max(0, 1 - elapsed / COMBO_TIMEOUT_MS);
+    return Math.max(0, 1 - elapsed / COMBO.TIMEOUT_MS);
   }
 
   /**
-   * Get current combo state for UI
+   * Direct snapshot of internal state.
    */
-  getState(): ComboState {
+  public getState(): ComboState {
     return { ...this.state };
   }
 
   /**
-   * Get current milestone info
+   * Current active tier information.
    */
-  getCurrentMilestone(): ComboMilestone | null {
+  public getCurrentMilestone(): ComboMilestone | null {
     if (this.lastMilestoneIndex >= 0) {
       return COMBO_MILESTONES[this.lastMilestoneIndex] ?? null;
     }
@@ -287,9 +295,9 @@ class ComboSystemClass {
   }
 
   /**
-   * Get next milestone info
+   * Next target tier information.
    */
-  getNextMilestone(): ComboMilestone | null {
+  public getNextMilestone(): ComboMilestone | null {
     const nextIndex = this.lastMilestoneIndex + 1;
     if (nextIndex < COMBO_MILESTONES.length) {
       return COMBO_MILESTONES[nextIndex] ?? null;
@@ -298,9 +306,20 @@ class ComboSystemClass {
   }
 
   /**
-   * Get debug state for runtime inspection
+   * Broadcaster for the comboUpdate event.
    */
-  getDebugState(): ComboDebugState {
+  private emitUpdate(): void {
+    EventBus.emit('comboUpdate', {
+      killStreak: this.state.killStreak,
+      multiplier: this.state.comboMultiplier,
+      totalBonusXp: this.state.totalBonusXp,
+    });
+  }
+
+  /**
+   * Debugging utility for runtime inspection panels.
+   */
+  public getDebugState(): ComboDebugState {
     const currentMilestone = this.getCurrentMilestone();
     const nextMilestone = this.getNextMilestone();
 
@@ -319,9 +338,9 @@ class ComboSystemClass {
   }
 
   /**
-   * Reset for testing - cleanup EventBus listeners
+   * Cleanly terminates the singleton instance for testing environments.
    */
-  static resetForTesting(): void {
+  public static resetForTesting(): void {
     if (this.instance) {
       this.instance.unsubscribeFns.forEach(unsub => unsub());
       this.instance.unsubscribeFns = [];
@@ -333,5 +352,4 @@ class ComboSystemClass {
 // Export singleton
 export const ComboSystem = ComboSystemClass.getInstance();
 
-// Export milestones for UI
-export { COMBO_MILESTONES, COMBO_TIMEOUT_MS };
+export const COMBO_TIMEOUT_MS = COMBO.TIMEOUT_MS;

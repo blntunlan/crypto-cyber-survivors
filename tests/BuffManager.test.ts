@@ -4,7 +4,7 @@
  * Tests for the Decorator Pattern buff/debuff system.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { type IPlayerStats } from '../services/patterns/decorators/IPlayerStats';
 import {
@@ -18,6 +18,16 @@ import {
   WeakenedDecorator,
 } from '../services/patterns/decorators';
 import { type Player } from '../types';
+import { TimeService } from '../services/TimeService';
+
+/**
+ * Helper to advance time in tests by accumulating it in TimeService.
+ * This simulates the game loop's progression.
+ */
+const advanceTime = (ms: number): void => {
+  const current = TimeService.getGameTime();
+  TimeService.setGameTime(current + ms);
+};
 
 // Mock player for testing
 const createMockPlayer = (): Player => ({
@@ -47,6 +57,7 @@ const createMockPlayer = (): Player => ({
 
 describe('BuffManager', () => {
   beforeEach(() => {
+    TimeService.reset();
     BuffManager.reset();
   });
 
@@ -227,10 +238,9 @@ describe('BuffManager', () => {
     });
 
     it('should extend duration when adding same temporary buff', () => {
-      vi.useFakeTimers();
       BuffManager.addBuff(RageModeDecorator); // 10 second duration
 
-      vi.advanceTimersByTime(5000); // 5 seconds passed, 5s remaining
+      advanceTime(5000); // 5 seconds passed, 5s remaining
 
       // Add same buff again
       BuffManager.addBuff(RageModeDecorator);
@@ -242,8 +252,6 @@ describe('BuffManager', () => {
       const effects = BuffManager.getActiveEffects();
       expect(effects[0]?.remainingMs).toBeGreaterThan(14500);
       expect(effects[0]?.remainingMs).toBeLessThanOrEqual(15000);
-
-      vi.useRealTimers();
     });
 
     it('should not stack permanent effects', () => {
@@ -296,12 +304,8 @@ describe('BuffManager', () => {
 
   describe('effect expiration', () => {
     beforeEach(() => {
+      TimeService.reset();
       BuffManager.initialize(createMockPlayer());
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
     });
 
     it('should expire temporary effects after duration', () => {
@@ -310,7 +314,7 @@ describe('BuffManager', () => {
       expect(BuffManager.hasEffect('Rage Mode')).toBe(true);
 
       // Advance time by 11 seconds
-      vi.advanceTimersByTime(11000);
+      advanceTime(11000);
       BuffManager.update();
 
       expect(BuffManager.hasEffect('Rage Mode')).toBe(false);
@@ -320,7 +324,7 @@ describe('BuffManager', () => {
       BuffManager.addBuff(DiamondHandsDecorator); // Permanent (-1)
 
       // Advance time by 1 hour
-      vi.advanceTimersByTime(3600000);
+      advanceTime(3600000);
       BuffManager.update();
 
       expect(BuffManager.hasEffect('Diamond Hands')).toBe(true);
@@ -329,7 +333,7 @@ describe('BuffManager', () => {
     it('should track remaining time for effects', () => {
       BuffManager.addBuff(RageModeDecorator); // 10 second duration
 
-      vi.advanceTimersByTime(5000); // 5 seconds passed
+      advanceTime(5000); // 5 seconds passed
 
       const effects = BuffManager.getActiveEffects();
       const rageEffect = effects.find(e => e.name === 'Rage Mode');
@@ -342,12 +346,8 @@ describe('BuffManager', () => {
 
   describe('pause and resume', () => {
     beforeEach(() => {
+      TimeService.reset();
       BuffManager.initialize(createMockPlayer());
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
     });
 
     it('should pause effect timers', () => {
@@ -363,7 +363,7 @@ describe('BuffManager', () => {
     it('should freeze remaining time when paused', () => {
       BuffManager.addBuff(RageModeDecorator); // 10 second duration
 
-      vi.advanceTimersByTime(3000); // 3 seconds passed
+      advanceTime(3000); // 3 seconds passed
       BuffManager.pause();
 
       const effectsBeforeWait = BuffManager.getActiveEffects();
@@ -372,7 +372,7 @@ describe('BuffManager', () => {
       )?.remainingMs;
 
       // Advance time while paused
-      vi.advanceTimersByTime(5000);
+      advanceTime(5000);
 
       const effectsAfterWait = BuffManager.getActiveEffects();
       const remainingAfter = effectsAfterWait.find(
@@ -386,11 +386,11 @@ describe('BuffManager', () => {
     it('should not expire effects while paused', () => {
       BuffManager.addBuff(RageModeDecorator); // 10 second duration
 
-      vi.advanceTimersByTime(5000); // 5 seconds passed
+      advanceTime(5000); // 5 seconds passed
       BuffManager.pause();
 
       // Advance time well past expiration
-      vi.advanceTimersByTime(20000);
+      advanceTime(20000);
       BuffManager.update(); // Should do nothing while paused
 
       expect(BuffManager.hasEffect('Rage Mode')).toBe(true);
@@ -399,10 +399,10 @@ describe('BuffManager', () => {
     it('should resume and continue countdown', () => {
       BuffManager.addBuff(RageModeDecorator); // 10 second duration
 
-      vi.advanceTimersByTime(5000); // 5 seconds passed (5s remaining)
+      advanceTime(5000); // 5 seconds passed (5s remaining)
       BuffManager.pause();
 
-      vi.advanceTimersByTime(10000); // 10 seconds while paused (ignored)
+      advanceTime(10000); // 10 seconds while paused (ignored)
       BuffManager.resume();
 
       // Should still have ~5 seconds remaining after resume
@@ -412,14 +412,14 @@ describe('BuffManager', () => {
       expect(rageEffect?.remainingMs).toBeGreaterThan(4500);
 
       // Now advance 3 more seconds
-      vi.advanceTimersByTime(3000);
+      advanceTime(3000);
       BuffManager.update();
 
       // Should still exist (2s remaining)
       expect(BuffManager.hasEffect('Rage Mode')).toBe(true);
 
       // Advance 3 more seconds
-      vi.advanceTimersByTime(3000);
+      advanceTime(3000);
       BuffManager.update();
 
       // Should be expired now
@@ -430,7 +430,7 @@ describe('BuffManager', () => {
       BuffManager.addBuff(DiamondHandsDecorator); // Permanent
 
       BuffManager.pause();
-      vi.advanceTimersByTime(100000);
+      advanceTime(100000);
       BuffManager.resume();
 
       expect(BuffManager.hasEffect('Diamond Hands')).toBe(true);

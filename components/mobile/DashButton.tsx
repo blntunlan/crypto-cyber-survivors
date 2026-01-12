@@ -8,8 +8,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 
 interface DashButtonProps {
-  /** Called when dash is triggered */
+  /** Called when dash is triggered (press start) */
   onDash: () => void;
+  /** Called when dash button is released */
+  onDashRelease?: () => void;
   /** Cooldown duration in milliseconds */
   cooldownMs?: number;
   /** Button size in pixels */
@@ -22,6 +24,7 @@ interface DashButtonProps {
 
 export const DashButton: React.FC<DashButtonProps> = ({
   onDash,
+  onDashRelease,
   cooldownMs = 500,
   size = 80,
   hapticFeedback = true,
@@ -47,7 +50,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
     (e: React.TouchEvent) => {
       e.preventDefault();
 
-      if (!isReady) return;
+      if (disabled) return;
 
       setIsPressed(true);
       // Only lock button briefly to allow double/triple dash if engine permits
@@ -59,13 +62,17 @@ export const DashButton: React.FC<DashButtonProps> = ({
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
       if (hapticFeedback) navigator.vibrate?.(20);
     },
-    [isReady, onDash, hapticFeedback]
+    [onDash, hapticFeedback, disabled]
   );
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    setIsPressed(false);
-  }, []);
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      e.preventDefault();
+      setIsPressed(false);
+      onDashRelease?.();
+    },
+    [onDashRelease]
+  );
 
   // Calculate cooldown percentage for visual
   const cooldownPercent = cooldownRemaining / cooldownMs;

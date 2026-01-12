@@ -67,24 +67,24 @@ const DesktopLiveFeed: React.FC<
         </div>
       </div>
 
-      <div className="mt-3 flex flex-col gap-1 pt-2">
-        <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase tracking-widest">
+      <div className="mt-3 flex flex-col gap-1.5 pt-2">
+        <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-widest font-bold">
           <span>Entry</span>
-          <span className="text-slate-200">
+          <span className="text-slate-100">
             $
             {entryPrice.toLocaleString(undefined, {
               maximumFractionDigits: pairConfig.decimals,
             })}
           </span>
         </div>
-        <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase tracking-widest">
+        <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-widest font-bold">
           <span>Volatility</span>
-          <span className="text-slate-200">x{smoothValues.difficulty.toFixed(2)}</span>
+          <span className="text-slate-100">x{smoothValues.difficulty.toFixed(2)}</span>
         </div>
 
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
-            <div className="flex justify-between items-center text-[9px] uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50">
+            <div className="flex justify-between items-center text-[11px] uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50 font-bold">
               <span className="text-slate-400">Liquidation</span>
               <span
                 className={
@@ -147,9 +147,9 @@ const MobileLiveFeed: React.FC<
       style={{
         paddingTop: rs(8),
         paddingBottom: rs(8),
-        paddingLeft: rs(12),
-        paddingRight: rs(12),
-        minWidth: rs(140),
+        paddingLeft: rs(8),
+        paddingRight: rs(8),
+        // Removed minWidth to prevent overlap with center timer on narrow screens
       }}
     >
       <div className="flex items-center justify-between mb-1">
@@ -165,13 +165,13 @@ const MobileLiveFeed: React.FC<
         <div className="flex items-center gap-1.5">
           <span
             className="font-bold"
-            style={{ color: pairConfig.color, fontSize: rfs(10) }}
+            style={{ color: pairConfig.color, fontSize: rfs(9) }}
           >
             {pairConfig.id}
           </span>
           <div
             className="text-slate-400 font-feed opacity-60"
-            style={{ fontSize: rfs(9) }}
+            style={{ fontSize: rfs(8) }}
           >
             {marketData.leverage}X
           </div>
@@ -200,24 +200,24 @@ const MobileLiveFeed: React.FC<
         </div>
       </div>
 
-      <div className="mt-1.5 grid grid-cols-2 gap-y-1 opacity-50 border-t border-white/5 pt-1">
+      <div className="mt-2 grid grid-cols-2 gap-y-1.5 opacity-80 border-t border-white/5 pt-1.5">
         <div
-          className="text-slate-300 uppercase leading-none"
-          style={{ fontSize: rfs(8) }}
+          className="text-slate-200 uppercase leading-none font-bold"
+          style={{ fontSize: rfs(10) }}
         >
           Entry ${Math.floor(entryPrice)}
         </div>
         <div
-          className="text-slate-300 uppercase leading-none text-right"
-          style={{ fontSize: rfs(8) }}
+          className="text-slate-200 uppercase leading-none text-right font-bold"
+          style={{ fontSize: rfs(10) }}
         >
           Vol x{smoothValues.difficulty.toFixed(1)}
         </div>
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
             <div
-              className={`col-span-2 uppercase leading-none text-center pt-1 mt-1 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-400'}`}
-              style={{ fontSize: rfs(8) }}
+              className={`col-span-2 uppercase leading-none text-center pt-1.5 mt-0.5 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-300 font-bold'}`}
+              style={{ fontSize: rfs(10) }}
             >
               LIQ: $
               {marketData.liquidationPrice.toLocaleString(undefined, {
@@ -227,14 +227,14 @@ const MobileLiveFeed: React.FC<
           )}
         {serverState && (
           <div
-            className={`col-span-2 uppercase leading-none font-bold text-center border-t border-white/5 pt-0.5 mt-0.5 ${
+            className={`col-span-2 uppercase leading-none font-bold text-center border-t border-white/5 pt-1 mt-0.5 ${
               serverState.rsi >= 70
                 ? 'text-red-400'
                 : serverState.rsi <= 30
                   ? 'text-green-400'
-                  : 'text-slate-400'
+                  : 'text-slate-300'
             }`}
-            style={{ fontSize: rfs(8) }}
+            style={{ fontSize: rfs(10) }}
           >
             RSI {Math.round(serverState.rsi)} • {serverState.rsiState}
           </div>

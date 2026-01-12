@@ -26,7 +26,6 @@ import {
 } from '../types/metrics';
 
 // Import modular components for external use
-// These provide cleaner APIs for specific use cases
 export { MetricsStorage } from './metrics/MetricsStorage';
 export { MetricsCompiler } from './metrics/MetricsCompiler';
 export { MetricsExporter } from './metrics/MetricsExporter';
@@ -37,7 +36,11 @@ import { MetricsStorage } from './metrics/MetricsStorage';
 import { MetricsCompiler } from './metrics/MetricsCompiler';
 import { MetricsAnalyzer } from './metrics/MetricsAnalyzer';
 import { MetricsExporter } from './metrics/MetricsExporter';
+import { METRICS } from '../constants';
 
+/**
+ * MetricsServiceClass - Orchestrates data collection and analysis.
+ */
 export class MetricsServiceClass {
   private static instance: MetricsServiceClass | null = null;
   private state: MetricsState | null = null;
@@ -58,6 +61,9 @@ export class MetricsServiceClass {
     }
   }
 
+  /**
+   * Singleton accessor.
+   */
   static getInstance(): MetricsServiceClass {
     return (MetricsServiceClass.instance ??= new MetricsServiceClass());
   }
@@ -65,16 +71,23 @@ export class MetricsServiceClass {
   // ============= Session Management =============
 
   /**
-   * Start a new metrics session
+   * Initializes a new tracking session with baseline metadata.
+   *
+   * @param position - Player's market stance (Long/Short)
+   * @param entryPrice - BTC price at start
+   * @param leverage - Current game multiplier
+   * @param pair - Active crypto asset
+   * @returns Generated session ID
    */
-  startSession(
+  public startSession(
     position: MarketPosition,
     entryPrice: number,
     leverage: number,
     pair: CryptoPair
   ): string {
-    // Skip if metrics disabled
-    if (!this.config.enabled) return '';
+    if (!this.config.enabled) {
+      return '';
+    }
 
     const sessionId = this.generateSessionId();
     const now = Date.now();
@@ -86,14 +99,14 @@ export class MetricsServiceClass {
       lastUpdateTime: now,
       pair,
 
-      // History
+      // History Tracking
       pnlHistory: [],
       difficultyHistory: [],
       atrHistory: [],
       currentWavePhase: 'warmup',
       wavePhaseStartTime: now,
 
-      // Counters
+      // Cumulative Counters
       totalDamageDealt: 0,
       totalDamageTaken: 0,
       totalHealing: 0,
@@ -104,31 +117,27 @@ export class MetricsServiceClass {
       totalBullets: 0,
       totalSpawns: 0,
 
-      // High-water marks
+      // Performance High-water Marks
       maxEnemiesOnScreen: 0,
       maxPnL: 0,
       minPnL: 0,
       maxDifficulty: 0,
       maxStreak: 0,
 
-      // Wave phase tracking
+      // Categorical Breakdown
       wavePhaseTime: createDefaultWavePhaseRecord(),
-
-      // Near-death tracking
-      nearDeathActivations: 0,
-      highDifficultyTime: 0,
-      lowDifficultyTime: 0,
-
-      // Kill tracking
       killsByType: {},
       enemyLifetimes: [],
-
-      // Card tracking
       cardsChosen: [],
       levelUpTimes: [],
       lastLevelUpTime: now,
 
-      // Combo tracking
+      // Health Metrics
+      nearDeathActivations: 0,
+      highDifficultyTime: 0,
+      lowDifficultyTime: 0,
+
+      // Engagement Timing
       streakHistory: [],
       comboTimeouts: 0,
       mileStonesReached: [],
@@ -137,7 +146,7 @@ export class MetricsServiceClass {
       totalBonusXp: 0,
     };
 
-    // Store initial Bitcoin price
+    // Initial price snapshot
     this.state.pnlHistory.push({ time: now, value: 0 });
 
     Logger.info(`[Metrics] Session started: ${sessionId}`, {
@@ -150,9 +159,9 @@ export class MetricsServiceClass {
   }
 
   /**
-   * End the current session and compile metrics
+   * Finalizes session data and compiles standard metrics report.
    */
-  endSession(
+  public endSession(
     reason: GameEndReason,
     finalData: {
       price: number;
@@ -177,8 +186,9 @@ export class MetricsServiceClass {
       deviceFingerprint?: string;
     }
   ): SessionMetrics | null {
-    // Skip if metrics disabled
-    if (!this.config.enabled) return null;
+    if (!this.config.enabled) {
+      return null;
+    }
 
     if (!this.state?.isActive) {
       Logger.warn('[Metrics] No active session to end');
@@ -188,7 +198,7 @@ export class MetricsServiceClass {
     const now = Date.now();
     const survivalTime = now - this.state.sessionStartTime;
 
-    // Compile final metrics using MetricsCompiler
+    // Use MetricsCompiler for standardized report generation
     const session: SessionMetrics = {
       sessionId: this.state.sessionId,
       sessionTimestamp: this.state.sessionStartTime,
@@ -214,17 +224,14 @@ export class MetricsServiceClass {
           : undefined,
     };
 
-    // Store session
-    this.storeSession(session);
-
-    // Mark session as inactive
+    // Commit to persistent local storage
+    this.storage.addSession(session);
     this.state.isActive = false;
 
     Logger.info(`[Metrics] Session ended: ${session.sessionId}`, {
       reason,
-      survivalTime: Math.round(survivalTime / 1000) + 's',
+      duration: `${Math.round(survivalTime / 1000)}s`,
       level: finalData.level,
-      kills: finalData.totalKills,
     });
 
     return session;
@@ -233,9 +240,9 @@ export class MetricsServiceClass {
   // ============= Real-time Tracking =============
 
   /**
-   * Update metrics during game loop (call every frame)
+   * Periodic update (every frame) to track dynamic states.
    */
-  update(
+  public update(
     deltaMs: number,
     pnl: number,
     difficulty: number,
@@ -244,30 +251,26 @@ export class MetricsServiceClass {
     wavePhase: WavePhase,
     atr: number
   ): void {
-    // Skip if metrics disabled - zero performance impact
-    if (!this.config.enabled) return;
-    if (!this.state?.isActive) return;
+    if (!this.config.enabled || !this.state?.isActive) {
+      return;
+    }
 
     const now = Date.now();
 
-    // Track wave phase time
+    // 1. Contextual Time Tracking
     this.trackWavePhaseTime(wavePhase, deltaMs);
-
-    // Track difficulty ranges
     this.trackDifficultyRanges(difficulty, deltaMs);
 
-    // Track near-death activations
-    if (hpPercent < 20 && hpPercent > 0) {
-      // Near-death activated (one-time per low HP event)
-      // We'll track this separately via events
+    // Track near-death activations (if not already triggered in current low-HP state)
+    if (hpPercent < METRICS.NEAR_DEATH_HP_THRESHOLD && hpPercent > 0) {
+      // NOTE: Actual counting is handled by trackNearDeathActivation() event
     }
 
-    // Track max enemies on screen
+    // 2. High-Water Mark Resolution
     if (enemyCount > this.state.maxEnemiesOnScreen) {
       this.state.maxEnemiesOnScreen = enemyCount;
     }
 
-    // Track max/min PnL and difficulty
     if (pnl > this.state.maxPnL) {
       this.state.maxPnL = pnl;
     }
@@ -278,7 +281,7 @@ export class MetricsServiceClass {
       this.state.maxDifficulty = difficulty;
     }
 
-    // Sample PnL and difficulty periodically
+    // 3. Periodic Sampling (Prevents data bloat)
     if (now - this.lastSampleTime >= this.config.sampling.intervalMs) {
       this.state.pnlHistory.push({ time: now, value: pnl });
       this.state.difficultyHistory.push({ time: now, value: difficulty });
@@ -290,72 +293,92 @@ export class MetricsServiceClass {
   }
 
   /**
-   * Track damage dealt
+   * Increments damage metrics.
    */
-  trackDamageDealt(amount: number, isCrit: boolean, isSuperCrit: boolean): void {
-    if (!this.state?.isActive) return;
+  public trackDamageDealt(amount: number, isCrit: boolean, isSuperCrit: boolean): void {
+    if (!this.state?.isActive) {
+      return;
+    }
 
     this.state.totalDamageDealt += amount;
-    if (isCrit) this.state.totalCrits++;
-    if (isSuperCrit) this.state.totalSuperCrits++;
+    if (isCrit) {
+      this.state.totalCrits++;
+    }
+    if (isSuperCrit) {
+      this.state.totalSuperCrits++;
+    }
   }
 
   /**
-   * Track damage taken
+   * Track damage taken from all sources.
    */
-  trackDamageTaken(amount: number): void {
-    if (!this.state?.isActive) return;
+  public trackDamageTaken(amount: number): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.totalDamageTaken += amount;
   }
 
   /**
-   * Track enemy kill
+   * Track specific enemy elimination metrics.
    */
-  trackKill(enemyType: string, lifetime: number): void {
-    if (!this.state?.isActive) return;
+  public trackKill(enemyType: string, lifetime: number): void {
+    if (!this.state?.isActive) {
+      return;
+    }
 
     this.state.killsByType[enemyType] = (this.state.killsByType[enemyType] ?? 0) + 1;
     this.state.enemyLifetimes.push(lifetime);
   }
 
   /**
-   * Track enemy spawn
+   * Increments spawn counters.
    */
-  trackSpawn(): void {
-    if (!this.state?.isActive) return;
+  public trackSpawn(): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.totalSpawns++;
   }
 
   /**
-   * Track gem collected
+   * Tracks progression resource collection.
    */
-  trackGemCollected(value: number): void {
-    if (!this.state?.isActive) return;
+  public trackGemCollected(value: number): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.totalGems++;
     this.state.totalExp += value;
   }
 
   /**
-   * Track healing
+   * Tracks health recovery.
    */
-  trackHealing(amount: number): void {
-    if (!this.state?.isActive) return;
+  public trackHealing(amount: number): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.totalHealing += amount;
   }
 
   /**
-   * Track bullet fired
+   * Performance monitoring for bullet load.
    */
-  trackBulletFired(): void {
-    if (!this.state?.isActive) return;
+  public trackBulletFired(): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.totalBullets++;
   }
 
   /**
-   * Track level up
+   * Tracks player progression speed.
    */
-  trackLevelUp(level: number, cardChosen: string, cardTier: string): void {
-    if (!this.state?.isActive) return;
+  public trackLevelUp(level: number, cardChosen: string, cardTier: string): void {
+    if (!this.state?.isActive) {
+      return;
+    }
 
     const now = Date.now();
     const timeSinceLastLevelUp = now - this.state.lastLevelUpTime;
@@ -370,63 +393,69 @@ export class MetricsServiceClass {
   }
 
   /**
-   * Track combo update
+   * Tracks combo build momentum.
    */
-  trackComboUpdate(streak: number, _multiplier: number): void {
-    if (!this.state?.isActive) return;
+  public trackComboUpdate(streak: number, _multiplier: number): void {
+    if (!this.state?.isActive) {
+      return;
+    }
 
     if (streak > this.state.maxStreak) {
       this.state.maxStreak = streak;
     }
 
-    // Track combo duration
     if (streak === 1) {
       this.state.currentComboStartTime = Date.now();
     }
   }
 
   /**
-   * Track combo milestone
+   * Records achievement milestones.
    */
-  trackComboMilestone(milestoneName: string): void {
-    if (!this.state?.isActive) return;
+  public trackComboMilestone(milestoneName: string): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.mileStonesReached.push(milestoneName);
   }
 
   /**
-   * Track combo end
+   * Finalizes combo metrics on break.
    */
-  trackComboEnd(finalStreak: number, bonusXp: number): void {
-    if (!this.state?.isActive) return;
+  public trackComboEnd(finalStreak: number, bonusXp: number): void {
+    if (!this.state?.isActive) {
+      return;
+    }
 
     if (finalStreak > 0) {
       this.state.streakHistory.push(finalStreak);
       this.state.totalBonusXp += bonusXp;
 
-      // Track combo duration
       const comboDuration = Date.now() - this.state.currentComboStartTime;
       if (comboDuration > this.state.longestComboTime) {
         this.state.longestComboTime = comboDuration;
       }
 
-      // Check if this was a timeout
-      // (combo ends are either timeouts or deaths)
       this.state.comboTimeouts++;
     }
   }
 
   /**
-   * Track near-death activation
+   * Tracks emergency survival mechanics.
    */
-  trackNearDeathActivation(): void {
-    if (!this.state?.isActive) return;
+  public trackNearDeathActivation(): void {
+    if (!this.state?.isActive) {
+      return;
+    }
     this.state.nearDeathActivations++;
   }
 
   // ============= Private Helpers =============
 
   private trackWavePhaseTime(phase: WavePhase, deltaMs: number): void {
-    if (!this.state) return;
+    if (!this.state) {
+      return;
+    }
 
     const currentTime = this.state.wavePhaseTime[phase] ?? 0;
     this.state.wavePhaseTime[phase] = currentTime + deltaMs;
@@ -438,27 +467,144 @@ export class MetricsServiceClass {
   }
 
   private trackDifficultyRanges(difficulty: number, deltaMs: number): void {
-    if (!this.state) return;
+    if (!this.state) {
+      return;
+    }
 
-    if (difficulty > 5) {
+    if (difficulty > METRICS.HIGH_DIFFICULTY_THRESHOLD) {
       this.state.highDifficultyTime += deltaMs;
-    } else if (difficulty < 2) {
+    } else if (difficulty < METRICS.LOW_DIFFICULTY_THRESHOLD) {
       this.state.lowDifficultyTime += deltaMs;
     }
   }
 
-  // ============= Storage =============
+  // ============= Export Functions =============
 
-  private storeSession(session: SessionMetrics): void {
-    this.storage.addSession(session);
+  /**
+   * Export all sessions as JSON.
+   */
+  public exportAsJSON(): string {
+    return MetricsExporter.toJSON(this.storage.getSessions());
   }
 
-  // ============= Event Listeners =============
+  /**
+   * Export summary statistics as CSV.
+   */
+  public exportAsCSV(): string {
+    return MetricsExporter.toCSV(this.storage.getSessions());
+  }
+
+  /**
+   * Retrieves all historically stored sessions.
+   */
+  public getSessions(): SessionMetrics[] {
+    return this.storage.getSessions();
+  }
+
+  /**
+   * Total persistent session count.
+   */
+  public getSessionCount(): number {
+    return this.storage.getCount();
+  }
+
+  /**
+   * Purges local metrics history.
+   */
+  public clearSessions(): void {
+    this.storage.clear();
+  }
+
+  // ============= Insights & Analysis =============
+
+  /**
+   * Generates comprehensive game-wide insights.
+   */
+  public getInsights(): GameInsights {
+    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
+    return analyzer.getInsights();
+  }
+
+  /**
+   * Correlation between BTC action and player performance.
+   */
+  public getBitcoinInsights(): BitcoinInsights {
+    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
+    return analyzer.getBitcoinInsights();
+  }
+
+  /**
+   * Balance analytics for game difficulty.
+   */
+  public getDifficultyInsights(): DifficultyInsights {
+    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
+    return analyzer.getDifficultyInsights();
+  }
+
+  /**
+   * Qualitative analysis of the player journey.
+   */
+  public getPlayerExperienceInsights(): PlayerExperienceInsights {
+    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
+    return analyzer.getPlayerExperienceInsights();
+  }
+
+  /**
+   * Procedural recommendations based on metric trends.
+   */
+  public generateRecommendations(): string[] {
+    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
+    return analyzer.generateRecommendations();
+  }
+
+  // ============= Utility Functions =============
+
+  private generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+
+  /**
+   * Retrieves current session raw state.
+   */
+  public getCurrentState(): MetricsState | null {
+    return this.state;
+  }
+
+  /**
+   * State check for active collection.
+   */
+  public isSessionActive(): boolean {
+    return this.state?.isActive ?? false;
+  }
+
+  /**
+   * Master configuration switch check.
+   */
+  public isEnabled(): boolean {
+    return this.config.enabled;
+  }
+
+  /**
+   * Retrieves active configuration.
+   */
+  public getConfig(): MetricsConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Destructive reset for testing.
+   */
+  public resetStateForTesting(): void {
+    this.eventUnsubscribers.forEach(unsub => unsub());
+    this.eventUnsubscribers = [];
+    this.state = null;
+    this.storage.clear();
+    this.setupEventListeners();
+  }
 
   private setupEventListeners(): void {
     this.eventUnsubscribers.push(
       EventBus.on('enemyKilled', data => {
-        // We'll get lifetime from the combat system if available
         this.trackKill(data.type ?? 'unknown', 0);
         if (data.isCrit) {
           this.trackDamageDealt(0, true, false);
@@ -507,135 +653,6 @@ export class MetricsServiceClass {
         this.trackComboEnd(data.finalStreak, data.bonusXp);
       })
     );
-  }
-
-  // ============= Export Functions =============
-  // Delegated to MetricsExporter for cleaner separation of concerns
-
-  /**
-   * Export all sessions as JSON
-   */
-  exportAsJSON(): string {
-    return MetricsExporter.toJSON(this.storage.getSessions());
-  }
-
-  /**
-   * Export all sessions as CSV (summary format)
-   */
-  exportAsCSV(): string {
-    return MetricsExporter.toCSV(this.storage.getSessions());
-  }
-
-  /**
-   * Get stored sessions
-   */
-  getSessions(): SessionMetrics[] {
-    return this.storage.getSessions();
-  }
-
-  /**
-   * Get session count
-   */
-  getSessionCount(): number {
-    return this.storage.getCount();
-  }
-
-  /**
-   * Clear all stored sessions
-   */
-  clearSessions(): void {
-    this.storage.clear();
-  }
-
-  // ============= Insights & Analysis =============
-  // Delegated to MetricsAnalyzer for cleaner separation of concerns
-
-  /**
-   * Get comprehensive game insights
-   */
-  getInsights(): GameInsights {
-    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
-    return analyzer.getInsights();
-  }
-
-  /**
-   * Get Bitcoin-specific insights
-   */
-  getBitcoinInsights(): BitcoinInsights {
-    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
-    return analyzer.getBitcoinInsights();
-  }
-
-  /**
-   * Get difficulty-specific insights
-   */
-  getDifficultyInsights(): DifficultyInsights {
-    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
-    return analyzer.getDifficultyInsights();
-  }
-
-  /**
-   * Get player experience insights
-   */
-  getPlayerExperienceInsights(): PlayerExperienceInsights {
-    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
-    return analyzer.getPlayerExperienceInsights();
-  }
-
-  /**
-   * Generate improvement recommendations
-   * Delegated to MetricsAnalyzer
-   */
-  generateRecommendations(): string[] {
-    const analyzer = new MetricsAnalyzer(this.storage.getSessions());
-    return analyzer.generateRecommendations();
-  }
-
-  // ============= Utility Functions =============
-
-  private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  }
-
-  // calculateCorrelation is now delegated to MetricsAnalyzer
-
-  /**
-   * Get current session state (for debugging)
-   */
-  getCurrentState(): MetricsState | null {
-    return this.state;
-  }
-
-  /**
-   * Check if a session is active
-   */
-  isSessionActive(): boolean {
-    return this.state?.isActive ?? false;
-  }
-
-  /**
-   * Check if metrics collection is enabled
-   */
-  isEnabled(): boolean {
-    return this.config.enabled;
-  }
-
-  /**
-   * Get current config (for debugging)
-   */
-  getConfig(): MetricsConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Reset for testing purposes
-   */
-  resetStateForTesting(): void {
-    this.eventUnsubscribers.forEach(unsub => unsub());
-    this.eventUnsubscribers = [];
-    this.state = null;
-    this.storage.clear();
-    this.setupEventListeners();
   }
 }
 

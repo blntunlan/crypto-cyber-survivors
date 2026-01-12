@@ -1,90 +1,513 @@
-/**
- * Constants - Global Values Only
- *
- * Game-specific config moved to /config folder.
- * This file now only contains truly global constants.
- */
-
 import { CRYPTO_PAIRS, type CryptoPair } from './types/crypto';
 
-// =============================================================================
-// SCREEN
-// =============================================================================
-
-// Note: GAME_WIDTH and GAME_HEIGHT are now managed dynamically in App.tsx
-// These are fallback/initial values
-export const INITIAL_GAME_WIDTH = window.innerWidth;
-export const INITIAL_GAME_HEIGHT = window.innerHeight;
-
-// =============================================================================
-// GAME ENGINE
-// =============================================================================
-
+/**
+ * Game Engine Tuning Constants
+ */
 export const GAME_ENGINE = {
-  BULLET_SPEED: 8,
-  PROJECTILE_SPREAD: 0.15, // radians (~8.5 degrees)
-  SHAKE_DECAY: 0.9,
+  FPS: 60,
+  MS_PER_FRAME: 1000 / 60,
+
+  // Player Settings
+  PLAYER_SPEED_BASE: 5.0,
+  PLAYER_HP_RECOVERY_RATE: 0.5,
+  PLAYER_DASH_SPEED_MULT: 2.5,
+  PLAYER_DASH_DURATION: 200,
+  PLAYER_HIT_BOX_RADIUS: 12,
+  PLAYER_RECOVERY_LERP: 0.05,
+  PLAYER_PULSE_SPEED: 0.05,
+  PLAYER_PULSE_MIN: 0.8,
+  PLAYER_SQUASH_FORCE: 0.15,
+
+  // Camera & Culling
+  VIEWPORT_PADDING: 100,
+  EFFECT_CULLING_PADDING: 50,
+  BULLET_CULLING_PADDING: 200,
+  BULLET_CULLING_RADIUS_MULT: 1.5,
+  ENTITY_CULLING_PADDING: 100,
+
+  // Scaling Factors for Game Logic
+  PNL_VISUAL_SCALE: 2.0,
+  VOLATILITY_SHOCK_INTENSITY: 1.5,
+
+  // Movement Physics
+  FRICTION_AIR: 0.98,
+  FRICTION_GROUND: 0.95,
+  BOUNCE_FACTOR: 0.5,
+  ENEMY_KNOCKBACK_DAMPING: 0.9,
+  ENEMY_MAX_BOUNCE_SPEED: 10,
+  ENTITY_ROUNDING_THRESHOLD: 0.01,
+  KNOCKBACK_STRENGHT: 2.5,
+  SPAWN_ANIMATION_DECAY: 0.1,
+
+  // Projectile Physics
+  BULLET_SPEED: 7.5,
+  PROJECTILE_SPREAD: 0.1,
+  PROJECTILE_LIFETIME: 3000,
+  BULLET_COLOR_SUPER_CRIT: '#ff0055',
+  BULLET_COLOR_CRIT: '#ffff00',
+  BULLET_COLOR_CORE: '#ffffff',
+  BULLET_PIXEL_ROUNDING: 0.5,
+  BULLET_OFFSCREEN_THRESHOLD: 100,
+  BULLET_GLOW_SIZE_NORMAL: 8,
+  BULLET_LASER_LENGTH_MULT_NORMAL: 2.5,
+  BULLET_LASER_WIDTH_MULT_NORMAL: 0.6,
+  BULLET_COLOR_SUPER_CRIT_CORE: '#ff88aa',
+  BULLET_GLOW_SIZE_SUPER_CRIT: 15,
+  BULLET_LASER_LENGTH_MULT_SUPER_CRIT: 4.0,
+  BULLET_LASER_WIDTH_MULT_SUPER_CRIT: 1.2,
+  BULLET_GLOW_SIZE_CRIT: 12,
+  BULLET_LASER_CORE_OFFSET_START: 2,
+  BULLET_LASER_CORE_OFFSET_END: 5,
+
+  // Collision & Damage
+  SPAWN_ANIMATION_INITIAL: 1.0,
+  COLLISION_SPAWN_TIMER_DEC: 0.1,
+  DAMAGE_BUFFER_DEC: 0.5,
+  DAMAGE_BUFFER_EXPIRE: 0.1,
+  DAMAGE_BUFFER_TIMER_DEFAULT: 0.3,
+  PLAYER_CONTACT_DAMAGE_INTERVAL: 500,
+  ARMOR_REDUCTION_SCALE: 0.1,
+  DAMAGE_REDUCTION_BASE: 0.8,
+  PLAYER_HIT_SHAKE: 10,
+  HIT_SOUND_PROBABILITY: 0.3,
+  MIN_DAMAGE_NUMBER_THRESHOLD: 1,
+  MAX_DAMAGE_NUMBER_POOL: 50,
+  COLLISION_TEXT_OFFSET_Y: 20,
+  DODGE_INDICATOR_SIZE: 1.2,
+  ARMOR_RESISTANCE_FACTOR: 10,
+  DAMAGE_MINIMUM_MULTIPLIER: 0.1,
+  DAMAGE_TEXT_SIZE_SUPER_CRIT: 1.8,
+  DAMAGE_TEXT_SIZE_CRIT: 1.4,
+  DAMAGE_TEXT_SIZE_NORMAL: 1.0,
+  DAMAGE_STACK_THRESHOLD_RANDOM: 15,
+
+  // Collection
+  MAGNET_REACH_MULT: 1.5,
+  COLLECTION_ALPHA_CULL: 0.1,
+  COLLECTION_RADIUS_BASE: 30,
+  XP_COLLECTION_DISTANCE: 15,
+  GEM_PULL_SPEED_BASE: 2,
+  GEM_PULL_ACCEL: 0.2,
+  COLLECTION_TEXT_SCALE_MIN: 0.8,
+  COLLECTION_TEXT_SCALE_MAX: 1.2,
+  GEM_MAX_PULL_SPEED: 8,
+  GEM_STEER_FACTOR: 0.1,
+  GEM_POP_SPEED_MIN: 2,
+  GEM_POP_SPEED_MAX: 5,
+  GEM_POP_SPEED_VAR: 3,
+  PENDING_LEVEL_UP_FREEZE_MS: 300,
+  COLLECTION_SHAKE_LEVELUP: 10,
+  COLLECTION_SHAKE_NORMAL: 2,
+  GEM_PARTICLE_MIN_SPEED_FACTOR: 0.5,
+  GEM_PARTICLE_VAR_SPEED_FACTOR: 2.0,
+  GEM_PARTICLE_RADIUS: 2,
+
+  // Render Settings
+  PARTICLE_BATCH_ALPHA_PRECISION: 0.1,
+  CRIT_FLASH_RADIUS_FACTOR: 1.2,
+  PARTICLE_DEFAULT_RADIUS: 2,
+  PARTICLE_LIFETIME_BASE: 800,
+  PARTICLE_SPEED_RANDOM: 6,
+  VFX_LIFETIME_MULT: 1.0,
+  PARTICLE_DAMPING: 0.9,
+  EFFECT_TRIM_THRESHOLD: 0.05,
+  SHAKE_CENTER_OFFSET: 0.5,
+  PARTICLE_LIFE_DECAY: 0.04,
+
+  // Near Miss Visuals
+  NEAR_MISS_MAX_INTENSITY: 0.4,
+  NEAR_MISS_VIGNETTE_TIMER_DEC: 5,
+  NEAR_MISS_GRADIENT_RADIUS_START: 0.2,
+  NEAR_MISS_GRADIENT_RADIUS_END: 0.8,
+  NEAR_MISS_THRESHOLD: 50,
+  NEAR_MISS_VIGNETTE_SHAKE_FACTOR: 2,
+  NEAR_MISS_VIGNETTE_SIZE_OFFSET: 100,
+  NEAR_MISS_DURATION: 500,
+  NEAR_MISS_COOLDOWN: 2000,
+  NEAR_MISS_SLOWMO: 0.3,
+
+  // Entity Animation & Visuals
+  ENTITY_ANIM_SPEED: 0.1,
+  ENTITY_GLOW_BLUR: 15,
+  ENTITY_SHADOW_OFFSET: 4,
+  ENTITY_GLOW_MAX_ALPHA: 0.6,
+  ENTITY_OUTLINE_WIDTH: 2,
+  GEM_RARE_GLOW_BLUR: 20,
+  BUFF_GEM_LIFETIME_RING_WIDTH: 3,
+  DASH_TRAIL_LIFETIME: 500,
+  ENEMY_DEATH_ANIM_DURATION: 400,
+  ENEMY_SPAWN_GLOW_THRESHOLD: 0.7,
+  ENEMY_SPAWN_GLOW_PADDING: 20,
+  ENEMY_DEATH_SCALE_MAX: 2.0,
+  ENEMY_DEATH_FLASH_RADIUS_MULT: 0.5,
+  ENEMY_RETRO_SIZE_MULT: 1.0,
+  ENEMY_SPAWN_POP_ELASTIC: 0.3,
+  ENEMY_SPAWN_BOUNCE_END: 0.6,
+  ENEMY_SPAWN_WOBBLE_FREQ: 5,
+  ENEMY_SPAWN_BURST_DURATION: 0.2,
+  ENEMY_SPAWN_BURST_RADIUS_MIN: 0.5,
+  ENEMY_SPAWN_BURST_RADIUS_MAX: 1.5,
+  BUFF_GEM_PULSE_AMP: 0.1,
+  BUFF_GEM_FLASH_SPEED: 0.01,
+  BUFF_GEM_GLOW_BLUR: 15,
+  BUFF_GEM_OUTER_RING_OFFSET: 10,
+  BUFF_GEM_ICON_RADIUS_MULT: 0.7,
+  BUFF_GEM_LIFETIME_RING_OFFSET: 6,
+  BUFF_GEM_MAGNET_FACTOR: 1.5,
+  BUFF_GEM_PULL_MAX: 10,
+  BUFF_GEM_PULL_MIN: 2,
+  ENEMY_DEATH_POP_SPEED: 0.06,
+  BUFF_PARTICLE_COUNT: 12,
+  BUFF_PARTICLE_SPEED_MIN: 1,
+  BUFF_PARTICLE_SPEED_VAR: 3,
+  BUFF_PARTICLE_LIFE: 800,
+  BUFF_PARTICLE_RADIUS: 3,
+
+  // Floating Text (HUD)
+  FLOATING_TEXT_FLOAT_DISTANCE: 40,
+  FLOATING_TEXT_OUTLINE_WIDTH: 3,
+  FLOATING_TEXT_LARGE_THRESHOLD: 50,
+  FLOATING_TEXT_LARGE_SCALE: 1.3,
+  DAMAGE_NUMBER_FLOAT_SPEED: 1.5,
+  DAMAGE_NUMBER_FADE_SPEED: 0.02,
+  FLOATING_TEXT_SPEED: 1.5,
+  FLOATING_TEXT_LIFE_DECAY: 0.02,
+  DAMAGE_INDICATOR_DURATION: 1000,
+  DAMAGE_INDICATOR_RADIUS: 60,
+  DAMAGE_INDICATOR_ARC_SWEEP: 0.5,
+  DAMAGE_INDICATOR_LINE_WIDTH: 4,
+  DAMAGE_INDICATOR_ARROW_TIP: 70,
+  DAMAGE_INDICATOR_ARROW_BASE: 60,
+  DAMAGE_INDICATOR_ARROW_WIDTH: 10,
+  BUFF_TEXT_OFFSET_Y: 30,
+  BUFF_TEXT_SIZE: 1.2,
+
+  // Trail Visuals
+  TRAIL_SPAWN_OFFSET_FACTOR: 0.5,
+  TRAIL_SPAWN_OFFSET_MAX: 10,
+
+  // Background Rendering - Shared
+  CANDLE_WIDTH_MULT: 0.6,
+  GLOW_RADIUS_MULT: 4,
+  BACKGROUND_LATER_OPACITY: 0.1,
+  BG_WAVE_SPEED_BASE: 0.5,
+  BG_WAVE_SPEED_FACTOR: 0.5,
+  BG_CANDLE_WRAP_THRESHOLD: 100,
+  CANDLE_SMOOTHING: 0.1,
+  GRID_OPACITY: 0.15,
+  GRID_LINE_WIDTH: 1,
+
+  // Background Rendering - Cyberpunk
+  GRID_SIZE_CYBER: 100,
+  BG_GRADIENT_RADIUS_FACTOR: 0.8,
+  BG_BRIGHTNESS_BOOST_MOBILE: 0.1,
+  BG_BRIGHTNESS_BOOST_DESKTOP: 0.05,
+  BG_GRADIENT_MAX_R: 30,
+  BG_GRADIENT_MAX_G: 30,
+  BG_GRADIENT_MAX_B: 60,
+  BG_CANDLE_OPACITY_BASE_MOBILE: 0.15,
+  BG_CANDLE_OPACITY_BASE_DESKTOP: 0.1,
+  BG_CANDLE_OPACITY_STEP: 0.02,
+  BG_CANDLE_SHADOW_BLUR: 10,
+  BG_CANDLE_WICK_WIDTH_FACTOR: 0.5,
+  BG_CANDLE_WICK_Y_OFFSET: 5,
+  BG_CANDLE_WICK_H_EXTRA: 10,
+
+  // Background Rendering - Retro
+  GRID_SIZE_RETRO: 80,
+  BG_RETRO_MIN_BRIGHTNESS_MOBILE: 20,
+  BG_RETRO_MIN_BRIGHTNESS_DESKTOP: 10,
+  BG_RETRO_BLUE_BOOST: 10,
+  BG_RETRO_BLUE_BOOST_MIN: 20,
+  BG_RETRO_GRID_SIZE: 80,
+  BG_RETRO_CANDLE_OPACITY_BASE_MOBILE: 0.4,
+  BG_RETRO_CANDLE_OPACITY_BASE_DESKTOP: 0.2,
+  BG_RETRO_CANDLE_OPACITY_STEP: 0.05,
+  BG_RETRO_CANDLE_ROUNDING: 0.5,
+
+  // Dash Visuals
+  DASH_HALO_RADIUS: 40,
+  DASH_HALO_OPACITY: 0.4,
+  DASH_TRAIL_ALPHA: 0.3,
+
+  // Spawning
+  SPAWN_OFFSET: 100,
+  SPAWN_TIMER_BASE: 800,
+  SPAWN_DIFFICULTY_SCALE: 0.5,
+
+  // Timing
+  THROTTLED_UPDATE_MS: 33, // ~30 FPS sync
+  SYNC_THROTTLE_MS: 100,
+
+  // Speed Lines
+  SPEED_LINE_COUNT_MAX: 50,
+  SPEED_LINE_OPACITY_MIN: 0.2,
+  SPEED_LINE_OPACITY_MAX: 0.6,
+  SPEED_LINE_LENGTH_MULT: 50,
+  SPEED_LINE_WIDTH_MULT: 2,
+  SPEED_LINE_GLOW_WIDTH_MULT: 3,
+  SPEED_LINE_R_BASE: 0,
+  SPEED_LINE_G_BASE: 150,
+  SPEED_LINE_B_BASE: 255,
+  SPEED_LINE_GLOW_THRESHOLD: 0.4,
+
+  // Physics Odds & Ends
+  GEM_MAGNET_BASE_RANGE: 100,
+  ENEMY_OFFSCREEN_THRESHOLD: 150,
+  HIT_STOP_NORMAL: 15, // Reduced for smoother flow (Standard Crit)
+  HIT_STOP_CRIT: 60, // Reduced for smoother flow (Super Crit)
+  PLAYER_HALO_RADIUS_MULT: 1.5,
+  PLAYER_HALO_GLOW_OFFSET: 5,
+  PLAYER_SPOTLIGHT_RADIUS_MULT: 1.2,
+
+  // Additional Engine Tuning
+  TARGET_FRAME_TIME: 1000 / 60,
+  SHAKE_DECAY: 0.85,
   CRIT_FLASH_DECAY: 0.85,
-  SPAWN_TIMER_BASE: 1000, // Reduced from 2000 for faster initial action
-  SPAWN_DIFFICULTY_SCALE: 0.8, // Increases difficulty impact on spawn rate
-  SPAWN_OFFSET: 50, // Offset for spawning enemies off-screen
-  ENEMY_OFFSCREEN_THRESHOLD: 200,
-  GEM_MAGNET_BASE_RANGE: 150,
-  DASH_SPEED_MULTIPLIER: 3,
-  DASH_DURATION: 200, // ms
-  DASH_COOLDOWN: 1000, // ms (normal dash)
-  DOUBLE_DASH_COOLDOWN: 3000, // ms (after double dash)
-  DOUBLE_DASH_WINDOW: 400, // ms (window to press second dash)
-  // Hit Stop - brief freeze on impact for "weight" feeling
-  HIT_STOP_NORMAL: 0, // Set to 0 to prevent stuttering during high fire rate
-  HIT_STOP_CRIT: 32, // Reduced from 50ms (~2 frames) for snappier feel
-  // Enemy Death Pop - scale up + fade out animation
-  ENEMY_DEATH_POP_SPEED: 0.12, // Progress per frame (~8 frames = ~133ms)
-  // Near Miss Tension
-  NEAR_MISS_THRESHOLD: 40, // Distance buffer for near miss
-  NEAR_MISS_DURATION: 300, // ms duration of effect
-  NEAR_MISS_SLOWMO: 0.4, // Time scale during near miss
-  NEAR_MISS_COOLDOWN: 1000, // ms global cooldown
+  PLAYER_SCALE_RECOVERY_SPEED: 0.1,
+  LOW_HP_THRESHOLD_PERCENT: 25,
+  HEARTBEAT_INTERVAL_BASE: 1000,
+  HEARTBEAT_INTERVAL_SHIFT: 600,
+  DASH_HALO_PULSE_SPEED: 200,
+  DASH_HALO_OPACITY_BASE: 0.3,
+  DASH_HALO_OPACITY_AMP: 0.7,
+  DASH_DURATION: 200,
+  DASH_COOLDOWN: 1000,
+  DOUBLE_DASH_COOLDOWN: 4000,
+  DASH_TRAIL_MAX_LENGTH: 10,
+  DASH_SPEED_MULTIPLIER: 2.5,
+  BG_LERP_FACTOR: 0.05,
+  STATS_SYNC_THROTTLE_MS: 100,
 };
 
-// =============================================================================
-// EXTERNAL APIs
-// =============================================================================
-
-// Dynamic WS URL generation - BINANCE SPOT with kline data
-// Note: Using spot stream (stream.binance.com) instead of futures (fstream)
-// Spot API has better global availability and works in regions where futures is blocked
-export const getBinanceWsUrl = (pair: CryptoPair): string => {
-  const config = CRYPTO_PAIRS[pair];
-  // Using Spot stream with 1-second kline for real-time updates
-  return `wss://stream.binance.com:9443/ws/${config.binanceSymbol}@kline_1s`;
+/**
+ * Player Stats and Caps
+ */
+export const PLAYER_STATS = {
+  MAX_SPEED: 20,
 };
 
-// Note: @kline_1s provides 1-second candle updates from Spot market
-// Legacy export for backward compatibility
-export const BINANCE_WS_URL = getBinanceWsUrl('BTC');
-export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';
-
-// =============================================================================
-// COLORS - Re-exported from config/Colors.ts to break circular dependency
-// =============================================================================
-
-export { COLORS } from './config/Colors';
-
-// =============================================================================
-// RE-EXPORTS FROM CONFIG (backwards compatibility)
-// =============================================================================
-
-export {
-  PLAYER_STATS,
-  PLAYER_INITIAL_HP,
-  INITIAL_FIRE_RATE,
-  createInitialPlayer,
-} from './config/PlayerConfig';
-
-export { ENEMY_BASE_SPEED } from './config/EnemyConfig';
-
-export { UI_CONFIG } from './config/GameConfig';
-
-// Legacy export for chart
+/**
+ * UI Specific Constants
+ */
 export const MAX_CHART_POINTS = 60;
+
+/**
+ * Global Initializers
+ */
+export const PLAYER_INITIAL_HP = 100;
+
+/**
+ * Market Service Constants
+ */
+export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';
+export const getBinanceWsUrl = (pair: CryptoPair) =>
+  `wss://stream.binance.com:9443/ws/${CRYPTO_PAIRS[pair].binanceSymbol}@kline_1m`;
+
+/**
+ * Difficulty System Constants
+ */
+export const DIFFICULTY = {
+  KILL_STREAK_TIMEOUT_SEC: 3.0,
+  TIME_FACTOR_INCREASE_PER_MINUTE: 0.15,
+  TIME_FACTOR_MAX: 2.5,
+  PNL_LEVERAGE_MULTIPLIER: 100,
+  PNL_LOSS_CAP: 3.0,
+  PNL_WIN_FLOOR: 0.7,
+  PNL_WIN_LOG_SCALE: 0.15,
+  VOLATILITY_MAX: 1.8,
+  VOLATILITY_MIN: 0.9,
+  VOLATILITY_ATR_SCALE: 50,
+  VOLATILITY_DAMPING_INITIAL: 0.2,
+  VOLATILITY_DAMPING_FULL_TIME: 300,
+  LEVEL_FACTOR_INCREASE: 0.05,
+  LEVEL_FACTOR_MAX: 1.5,
+  NEAR_DEATH_HP_THRESHOLD: 20,
+  NEAR_DEATH_DIFFICULTY_MODIFIER: 0.7,
+  STREAK_INCREMENT_THRESHOLD: 5,
+  STREAK_INCREMENT_BONUS: 0.05,
+  STREAK_CAP: 0.3,
+  MOMENTUM_WINDOW_SMALL: 10,
+  MOMENTUM_WINDOW_LARGE: 20,
+  MOMENTUM_BUFF: 1.1,
+  MOMENTUM_DEBUFF: 0.9,
+  SHOCK_THRESHOLD: 0.005,
+  SHOCK_COOLDOWN_SEC: 10,
+  CYCLE_DIFFICULTY_INCREMENT: 0.2,
+  SPAWN_RATE_TOTAL_MULTIPLIER: 0.8,
+  SPAWN_RATE_MIN: 0.4,
+  SPAWN_RATE_MAX: 4.0,
+  ENEMY_SPEED_MIN: 0.5,
+  ENEMY_SPEED_MAX: 1.5,
+  ENEMY_HEALTH_MIN: 0.8,
+  ENEMY_HEALTH_MAX: 3.0,
+  BASE_ADMIN_DIVISOR: 5,
+} as const;
+
+/**
+ * Combat & Projectile Constants
+ */
+export const COMBAT = {
+  FIRE_RATE_AUDIO_THRESHOLD: 200,
+  DEFAULT_ENEMY_RADIUS_FALLBACK: 20,
+  CRIT_DAMAGE_MULTIPLIER: 2,
+  SUPER_CRIT_DAMAGE_MULTIPLIER: 4,
+  INTERCEPT_EPSILON: 0.0001,
+  MIN_LEAD_DISTANCE: 100,
+  MAX_LEAD_DISTANCE: 400,
+  MAX_INTERCEPT_TIME_FRAMES: 60,
+  PROJECTILE_RADIUS_BASE: 4,
+  PROJECTILE_RADIUS_CRIT: 6,
+  PROJECTILE_RADIUS_SUPER_CRIT: 9,
+} as const;
+
+/**
+ * Spawn System Constants
+ */
+export const SPAWN = {
+  THEMATIC_SPAWN_CHANCE: 0.7,
+  WHALE_PROBABILITY_MODIFIER: 0.01,
+  RANDOM_FUD_THRESHOLD: 0.4,
+  RANDOM_LIQUIDATOR_THRESHOLD: 0.7,
+  MIN_SAFE_SPAWN_OFFSET: 80,
+  WAVE_INTENSITY_OFFSET: 0.5,
+  MAX_DEFAULT_ENEMIES: 150,
+} as const;
+
+/**
+ * Experience Gem Constants
+ */
+export const GEMS = {
+  BASE_VALUE_NORMAL: 10,
+  BASE_VALUE_WHALE: 100,
+  RARE_MULTIPLIER: 5,
+  NORMAL_SIZE: 4,
+  RARE_SIZE: 8,
+} as const;
+
+/**
+ * Luck & Chance Logic Constants
+ */
+export const LUCK = {
+  VALUE_BONUS_PER_LUCK: 0.05,
+  MAX_BONUS_GEM_CHANCE: 0.5,
+  BONUS_GEM_CHANCE_PER_LUCK: 0.02,
+} as const;
+
+/**
+ * Object Pool Constants
+ */
+export const POOL = {
+  MAX_ACTIVE: {
+    ENEMIES: 150,
+    BULLETS: 200,
+    GEMS: 300,
+    PARTICLES: 400,
+    FLOATING_TEXTS: 50,
+    SPEED_LINES: 50,
+  },
+  PRE_WARM: {
+    ENEMIES: 30,
+    BULLETS: 80,
+    PARTICLES: 150,
+    GEMS: 20,
+    TEXTS: 30,
+  },
+  TRIM_SIZE: 50,
+} as const;
+
+/**
+ * Market Service Constants
+ */
+export const MARKET = {
+  RECONNECT: {
+    INITIAL_DELAY: 1000,
+    MAX_DELAY: 30000,
+    MULTIPLIER: 2,
+    FORCE_RECONNECT_DELAY: 500,
+  },
+  FALLBACK_PRICES: {
+    BTC: 43000,
+    ETH: 2300,
+    SOL: 100,
+  },
+} as const;
+
+/**
+ * Metrics Service Constants
+ */
+export const METRICS = {
+  HIGH_DIFFICULTY_THRESHOLD: 3.0,
+  LOW_DIFFICULTY_THRESHOLD: 0.8,
+  NEAR_DEATH_HP_THRESHOLD: 20,
+} as const;
+
+/**
+ * Combo System Constants
+ */
+export const COMBO = {
+  TIMEOUT_MS: 3000,
+  MILESTONE_SOUND_COOLDOWN: 1000,
+} as const;
+
+/**
+ * Color Palette and Theme Tokens
+ */
+export const COLORS = {
+  PRIMARY_CYBER: '#c800ff',
+  SECONDARY_CYBER: '#00ccff',
+  ACCENT_CYBER: '#ffff00',
+
+  TEXT_PRIMARY: '#ffffff',
+  TEXT_SECONDARY: '#a0a0a0',
+
+  BULLET: '#00f2ff',
+  CRIT: '#ffff00',
+  SUPER_CRIT: '#ff0055',
+
+  BG_CYBER: '#050505',
+  BG_RETRO: '#000033',
+
+  LONG: '#22c55e',
+  SHORT: '#ef4444',
+  CASINO_GOLD: '#D6B85C',
+  CASINO_RED: '#B22222',
+  CASINO_GREEN: '#05732c',
+  SLOT_SILVER: '#DCDCDC',
+  JACKPOT_YELLOW: '#FFD600',
+  ELECTRIC_BLUE: '#00BFFF',
+  NEON_ORANGE: '#FF6600',
+  NEON_GREEN: '#39FF14',
+  BRILLIANT_ROSE: '#F4599D',
+  PUMP_GREEN: '#00E676',
+  DUMP_ORANGE: '#FF3D00',
+  ROYAL_PURPLE: '#7558A4',
+  GEM: '#FFD700',
+  RARE_GEM: '#FF10F0',
+  SLOT_BLACK: '#1A1A1A',
+};
+
+/**
+ * Cheat Manager Constants
+ */
+export const CHEATS = {
+  TIMEOUT_MS: 2000,
+  EXP_BOOST: 500,
+  CYCLE_TIME: 300,
+  NOTIFICATION_DURATION_MS: 2000,
+  BUFFER_CLEAR_DELAY_MS: 2000,
+} as const;
+
+/**
+ * Performance Benchmark Constants
+ */
+export const BENCHMARK = {
+  FALLBACK_SCORE: 300,
+  MAX_SCORE: 1000,
+  GPU_ITERATIONS: 500,
+  CPU_ITERATIONS: 50000,
+  PROGRESS_INFO: 5,
+  PROGRESS_GPU: 20,
+  PROGRESS_CPU: 60,
+  PROGRESS_CALC: 90,
+} as const;

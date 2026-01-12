@@ -7,9 +7,16 @@ import { EventBus } from '../EventBus';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { lerp } from '../../utils/math';
 import { type ICollectionSystem } from '../interfaces/IPhysicsSubsystems';
+import { GAME_ENGINE } from '../../constants';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
+ *
+ * Responsibilities:
+ * - Detecting collision between player and collectibles
+ * - Implementing "Magnet" logic (pulling gems toward the player)
+ * - Handling XP gain and level-up triggering
+ * - Triggering visual and audio feedback (particles, sounds, floating text)
  */
 export class CollectionSystem implements ICollectionSystem {
   private ctx: IPhysicsContext;
@@ -19,21 +26,21 @@ export class CollectionSystem implements ICollectionSystem {
   }
 
   /**
-   * Set a custom context (for testing)
+   * Set a custom context (primarily for unit testing or theme-specific physics)
    */
   public setContext(context: IPhysicsContext): void {
     this.ctx = context;
   }
 
   /**
-   * Reset to default context
+   * Reset to default production context
    */
   public resetContext(): void {
     this.ctx = getPhysicsContext();
   }
 
   /**
-   * Update collection logic for gems and buff gems
+   * Main update entry point for the collection system.
    */
   public update(
     pool: IPoolManager,
@@ -48,6 +55,9 @@ export class CollectionSystem implements ICollectionSystem {
     this.handleBuffGemCollections(pool, player, state, dtFactor, effectiveMagnet);
   }
 
+  /**
+   * Processes all active standard XP gems.
+   */
   private handleGemCollections(
     pool: IPoolManager,
     player: Player,
@@ -71,13 +81,11 @@ export class CollectionSystem implements ICollectionSystem {
         gem.vy ??= 0;
 
         const dist = Math.sqrt(distSq);
-        const maxSpeed = 22;
-        const tx = (dx / dist) * maxSpeed;
-        const ty = (dy / dist) * maxSpeed;
-        const steerFactor = 0.12;
+        const tx = (dx / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
+        const ty = (dy / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
 
-        gem.vx = lerp(gem.vx, tx, steerFactor * dtFactor);
-        gem.vy = lerp(gem.vy, ty, steerFactor * dtFactor);
+        gem.vx = lerp(gem.vx, tx, GAME_ENGINE.GEM_STEER_FACTOR * dtFactor);
+        gem.vy = lerp(gem.vy, ty, GAME_ENGINE.GEM_STEER_FACTOR * dtFactor);
 
         gem.x += gem.vx * dtFactor;
         gem.y += gem.vy * dtFactor;
@@ -88,7 +96,9 @@ export class CollectionSystem implements ICollectionSystem {
         if (distSq < rangeSq) {
           gem.magnetized = true;
           const popAngle = Math.random() * Math.PI * 2;
-          const popSpeed = 3 + Math.random() * 3;
+          const popSpeed =
+            GAME_ENGINE.GEM_POP_SPEED_MIN +
+            Math.random() * GAME_ENGINE.GEM_POP_SPEED_VAR;
           gem.vx = Math.cos(popAngle) * popSpeed;
           gem.vy = Math.sin(popAngle) * popSpeed;
         }
@@ -96,6 +106,9 @@ export class CollectionSystem implements ICollectionSystem {
     });
   }
 
+  /**
+   * Performs the logic for actually collecting an XP gem.
+   */
   private collectGem(
     pool: IPoolManager,
     player: Player,
@@ -118,13 +131,17 @@ export class CollectionSystem implements ICollectionSystem {
 
     EventBus.emit('xpGained', { amount: xpGain });
 
+    // Level up check
     if (player.exp >= player.nextLevelExp && state.levelUpFreeze <= 0) {
-      state.levelUpFreeze = 500;
-      state.shake = 10;
+      state.levelUpFreeze = GAME_ENGINE.PENDING_LEVEL_UP_FREEZE_MS;
+      state.shake = GAME_ENGINE.COLLECTION_SHAKE_LEVELUP;
       EventBus.emit('levelUpStart', {});
     }
   }
 
+  /**
+   * Processes all active volatility/buff gems.
+   */
   private handleBuffGemCollections(
     pool: IPoolManager,
     player: Player,
@@ -135,17 +152,25 @@ export class CollectionSystem implements ICollectionSystem {
     const buffGems = this.ctx.buffGems.getActiveGems();
 
     for (const gem of buffGems) {
-      if (!gem.active) continue;
+      if (!gem.active) {
+        continue;
+      }
 
       const dx = player.x - gem.x;
       const dy = player.y - gem.y;
       const distSq = dx * dx + dy * dy;
 
       const magnetRange =
-        (this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet) * 0.6;
+        (this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet) *
+        GAME_ENGINE.BUFF_GEM_MAGNET_FACTOR;
       if (distSq < magnetRange * magnetRange) {
         const dist = Math.sqrt(distSq);
-        const pull = lerp(8, 2, dist / magnetRange) * dtFactor;
+        const pull =
+          lerp(
+            GAME_ENGINE.BUFF_GEM_PULL_MAX,
+            GAME_ENGINE.BUFF_GEM_PULL_MIN,
+            dist / magnetRange
+          ) * dtFactor;
         gem.x += (dx / dist) * pull;
         gem.y += (dy / dist) * pull;
       }
@@ -157,17 +182,29 @@ export class CollectionSystem implements ICollectionSystem {
     }
   }
 
+  /**
+   * Performs the logic for collecting a BuffGem.
+   */
   private collectBuffGem(pool: IPoolManager, gem: BuffGem, state: GameState): void {
     BuffManager.addEffect(gem.decoratorClass);
     this.ctx.audio.playGem();
-    state.shake = 5;
+    state.shake = GAME_ENGINE.COLLECTION_SHAKE_NORMAL;
 
     this.spawnBuffParticles(pool, gem);
 
-    pool.getFloatingText(gem.x, gem.y - 20, gem.icon, gem.color, 32);
+    pool.getFloatingText(
+      gem.x,
+      gem.y - GAME_ENGINE.BUFF_TEXT_OFFSET_Y,
+      gem.icon,
+      gem.color,
+      GAME_ENGINE.BUFF_TEXT_SIZE
+    );
     this.ctx.buffGems.collectGem(gem);
   }
 
+  /**
+   * Spawns feedback particles for standard gem collection.
+   */
   private spawnCollectionParticles(
     pool: IPoolManager,
     gem: Gem,
@@ -178,7 +215,10 @@ export class CollectionSystem implements ICollectionSystem {
 
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const speed = collectCfg.speed * (0.6 + Math.random() * 0.4);
+      const speed =
+        collectCfg.speed *
+        (GAME_ENGINE.GEM_PARTICLE_MIN_SPEED_FACTOR +
+          Math.random() * GAME_ENGINE.GEM_PARTICLE_VAR_SPEED_FACTOR);
       const part = pool.getParticle(
         gem.x,
         gem.y,
@@ -187,17 +227,24 @@ export class CollectionSystem implements ICollectionSystem {
         gem.color
       );
       part.life = collectCfg.life;
-      part.radius = collectCfg.radius ?? 2;
+      part.radius = collectCfg.radius ?? GAME_ENGINE.GEM_PARTICLE_RADIUS;
     }
   }
 
+  /**
+   * Spawns enhanced feedback particles for BuffGem collection.
+   */
   private spawnBuffParticles(pool: IPoolManager, gem: BuffGem): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
-    const count = Math.round(16 * perfConfig.particleMultiplier);
+    const count = Math.round(
+      GAME_ENGINE.BUFF_PARTICLE_COUNT * perfConfig.particleMultiplier
+    );
 
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const speed = 4 + Math.random() * 2;
+      const speed =
+        GAME_ENGINE.BUFF_PARTICLE_SPEED_MIN +
+        Math.random() * GAME_ENGINE.BUFF_PARTICLE_SPEED_VAR;
       const part = pool.getParticle(
         gem.x,
         gem.y,
@@ -205,8 +252,8 @@ export class CollectionSystem implements ICollectionSystem {
         Math.sin(angle) * speed,
         gem.color
       );
-      part.life = 0.8;
-      part.radius = 4;
+      part.life = GAME_ENGINE.BUFF_PARTICLE_LIFE;
+      part.radius = GAME_ENGINE.BUFF_PARTICLE_RADIUS;
     }
   }
 }

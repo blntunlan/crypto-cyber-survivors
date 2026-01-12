@@ -22,6 +22,7 @@ export interface IGameRenderer {
     state: GameState,
     pnl: number,
     waveMultiplier: number,
+    momentum: number,
     dtFactor: number,
     width: number,
     height: number

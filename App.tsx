@@ -180,6 +180,9 @@ const App: React.FC = () => {
   // ========================================
   // Game Actions
   // ========================================
+  /**
+   * Handles the level up sequence, including healing and state transition.
+   */
   const handleLevelUp = useCallback(() => {
     healFull();
     GameStateMachine.transition(GameStatus.LEVEL_UP);
@@ -191,6 +194,9 @@ const App: React.FC = () => {
     audio.playLevelUp();
   }, [healFull, playerRef]);
 
+  /**
+   * Resets the game state to the initial menu.
+   */
   const resetGame = useCallback(() => {
     GameStateManager.resetAll();
     GameStateMachine.forceState(GameStatus.MENU);
@@ -200,13 +206,18 @@ const App: React.FC = () => {
     resetPlayer();
   }, [resetPlayer, resetRunStats]);
 
+  /**
+   * Starts a new game session with the selected market position and leverage.
+   * @param choice - Long or Short position.
+   * @param selectedLeverage - The selected leverage multiplier.
+   */
   const startGame = useCallback(
     (choice: MarketPosition, selectedLeverage: LeverageOption) => {
-      console.error(
-        `[App] startGame called. Price: ${marketData.price}, Status: ${gameStatus}`
-      );
+      // Replaced console.error with Logger.error
       if (marketData.price === 0 || gameStatus !== GameStatus.MENU) {
-        console.error('[App] startGame aborted: condition check failed');
+        Logger.error(
+          `[App] startGame aborted: condition check failed. Price: ${marketData.price}, Status: ${gameStatus}`
+        );
         return;
       }
 
@@ -245,6 +256,10 @@ const App: React.FC = () => {
     ]
   );
 
+  /**
+   * Applies a selected upgrade card to the player.
+   * @param card - The chosen upgrade card.
+   */
   const selectUpgrade = useCallback(
     (card: Card) => {
       const p = playerRef.current;
@@ -269,6 +284,10 @@ const App: React.FC = () => {
     [playerRef, setUiStats, handleLevelUp]
   );
 
+  /**
+   * Ends the game session and transitions to Game Over screen.
+   * @param reason - The reason for game over (Death, Liquidation, etc.).
+   */
   const handleGameOver = useCallback(
     async (reason: GameEndReason = GameEndReason.DEATH) => {
       setFinalPnl(marketData.effectivePnl);
@@ -325,8 +344,9 @@ const App: React.FC = () => {
       cycleNumber: number;
       totalElapsedSeconds: number;
     }) => {
-      console.error(
-        `[App] handleCycleComplete triggered. Mode=${gameMode}, Data=`,
+      Logger.debug(
+        // Replaced console.error with Logger.debug (or info/error as appropriate, usually debug for tracing)
+        `[App] handleCycleComplete triggered. Mode=${gameMode}`,
         data
       );
       if (gameMode === GameMode.COMPETITIVE) {
