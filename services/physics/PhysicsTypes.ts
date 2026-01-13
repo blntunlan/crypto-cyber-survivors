@@ -137,7 +137,7 @@ export interface ICheatProvider {
  * Interface for spatial queries
  */
 export interface ISpatialGrid<T> {
-  getNearby(x: number, y: number): T[];
+  getNearby(x: number, y: number, out?: T[]): T[];
 }
 
 // =============================================================================

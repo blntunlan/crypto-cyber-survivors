@@ -21,6 +21,7 @@ import { GAME_ENGINE } from '../../constants';
  */
 export class CollisionSystem implements ICollisionSystem {
   private ctx: IPhysicsContext;
+  private nearbyBulletsBuffer: Bullet[] = [];
 
   constructor(context: IPhysicsContext = getPhysicsContext()) {
     this.ctx = context;
@@ -213,7 +214,8 @@ export class CollisionSystem implements ICollisionSystem {
     particleMultiplier: number
   ): void {
     // Optimization: Only check bullets in the same spatial cell
-    const nearbyBullets = this.ctx.bulletGrid.getNearby(enemy.x, enemy.y);
+    // Use shared buffer to avoid array allocation
+    const nearbyBullets = this.ctx.bulletGrid.getNearby(enemy.x, enemy.y, this.nearbyBulletsBuffer);
 
     for (const bullet of nearbyBullets) {
       if (!enemy.active || !bullet.active) {

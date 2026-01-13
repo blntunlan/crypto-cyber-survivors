@@ -72,11 +72,16 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
 
   /**
    * Get all entities in the same cell and neighboring cells
+   * @param x X coordinate to query
+   * @param y Y coordinate to query
+   * @param result Optional array to store results in (for memory optimization)
    */
-  public getNearby(x: number, y: number): T[] {
+  public getNearby(x: number, y: number, result: T[] = []): T[] {
     const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
     const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
-    const nearby: T[] = [];
+
+    // Reset result array length effectively clearing it without reallocation
+    result.length = 0;
 
     // Check 3x3 grid of cells (current + 8 neighbors)
     for (let dx = -1; dx <= 1; dx++) {
@@ -84,12 +89,15 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
         const key = ((cellX + dx) << 16) | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
-          nearby.push(...cell);
+          // Optimized loop instead of spread operator for better performance
+          for (let i = 0; i < cell.length; i++) {
+            result.push(cell[i]);
+          }
         }
       }
     }
 
-    return nearby;
+    return result;
   }
 }
 
