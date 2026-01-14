@@ -84,7 +84,10 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
         const key = ((cellX + dx) << 16) | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
-          nearby.push(...cell);
+          // Optimization: Use loop instead of spread to avoid stack overhead and iterator creation
+          for (let i = 0; i < cell.length; i++) {
+            nearby.push(cell[i]);
+          }
         }
       }
     }
