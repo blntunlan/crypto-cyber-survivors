@@ -3,13 +3,16 @@ import { SpawnSystem } from '../services/SpawnSystem';
 import { type PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
-import { marketStateService } from '../services/MarketStateService';
 
+// Mock MarketStateService
 vi.mock('../services/MarketStateService', () => ({
-  marketStateService: {
+  MarketStateService: {
     getState: vi.fn(),
   },
 }));
+
+// Import after mock
+import { MarketStateService as marketStateService } from '../services/MarketStateService';
 
 vi.mock('../stores/admin/configStore', () => ({
   useAdminConfigStore: {

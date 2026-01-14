@@ -15,6 +15,7 @@ const { mockSupabase } = vi.hoisted(() => ({
     from: vi.fn(),
     select: vi.fn(),
     eq: vi.fn(),
+    ilike: vi.fn(),
     single: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
@@ -24,7 +25,7 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/supabase', () => ({
+vi.mock('../../../services/Supabase', () => ({
   supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
@@ -48,6 +49,7 @@ describe('UserSessionService', () => {
     mockSupabase.from.mockReturnThis();
     mockSupabase.select.mockReturnThis();
     mockSupabase.eq.mockReturnThis();
+    mockSupabase.ilike.mockReturnThis();
     mockSupabase.insert.mockReturnThis();
     mockSupabase.update.mockReturnThis();
     mockSupabase.order.mockReturnThis();
@@ -134,8 +136,8 @@ describe('UserSessionService', () => {
 
       const result = await UserSessionService.registerNickname('Oldie');
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('increment_player_sessions', {
-        player_uuid: 'existing-id',
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_player_last_seen', {
+        p_player_id: 'existing-id',
       });
       expect(result.success).toBe(true);
       expect(UserSessionService.getPlayerId()).toBe('existing-id');
@@ -157,6 +159,7 @@ describe('UserSessionService', () => {
   describe('updateLastSeen', () => {
     it('should update timestamp in localStorage and Supabase', async () => {
       UserSessionService.saveUser('sync-id', 'Syncer');
+      mockSupabase.rpc.mockResolvedValue({ error: null });
       const oldTime = UserSessionService.getStoredUser()?.lastSeenAt ?? 0;
 
       await new Promise(r => setTimeout(r, 10));
@@ -164,7 +167,9 @@ describe('UserSessionService', () => {
 
       const newUser = UserSessionService.getStoredUser();
       expect(newUser?.lastSeenAt).toBeGreaterThan(oldTime);
-      expect(mockSupabase.update).toHaveBeenCalled();
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_player_last_seen', {
+        p_player_id: 'sync-id',
+      });
     });
   });
 

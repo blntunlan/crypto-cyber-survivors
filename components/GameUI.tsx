@@ -180,13 +180,9 @@ export const GameUI: React.FC<GameUIProps> = memo(
                 {' '}
                 {/* Larger invisible hit area */}
                 <button
-                  onPointerDown={e => {
-                    e.stopPropagation();
-                    onTogglePause();
-                  }}
                   onClick={e => {
                     e.stopPropagation();
-                    // Fallback for browsers that might not support onPointerDown correctly or click events
+                    onTogglePause();
                   }}
                   className="bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
                   title="Pause (Esc)"

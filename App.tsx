@@ -457,18 +457,7 @@ const App: React.FC = () => {
           <ErrorBoundary>
             <React.Suspense fallback={<FallbackLoader />}>
               {/* Game UI Overlay */}
-              {gameStatus !== GameStatus.MENU && (
-                <React.Suspense fallback={<UIFallback />}>
-                  <GameUI
-                    position={position}
-                    entryPrice={entryPrice}
-                    marketData={marketData}
-                    player={uiStats}
-                    onTogglePause={handlePauseToggle}
-                    status={gameStatus}
-                  />
-                </React.Suspense>
-              )}
+
               {/* Nickname Entry - Initial Login */}
               {needsNickname && (
                 <React.Suspense fallback={<FallbackLoader />}>
@@ -491,6 +480,19 @@ const App: React.FC = () => {
                   height={dimensions.height}
                 />
               </React.Suspense>
+              {/* Game UI Overlay - Rendered AFTER Engine to ensure it is on top */}
+              {gameStatus !== GameStatus.MENU && (
+                <React.Suspense fallback={<UIFallback />}>
+                  <GameUI
+                    position={position}
+                    entryPrice={entryPrice}
+                    marketData={marketData}
+                    player={uiStats}
+                    onTogglePause={handlePauseToggle}
+                    status={gameStatus}
+                  />
+                </React.Suspense>
+              )}
               {/* Hub Menu or Game Setup Menu */}
               {gameStatus === GameStatus.MENU &&
                 !needsNickname &&

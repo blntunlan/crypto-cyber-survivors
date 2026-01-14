@@ -3,10 +3,24 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS - restrict in production
+const ALLOWED_ORIGINS = [
+  'https://crypto-survivors.up.railway.app',
+  'https://crypto-cyber-survivors-production.up.railway.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin =
+    origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
 
 // SOFT VERIFICATION - MVP tolerances (will tighten later)
 const TOLERANCE = {
@@ -47,6 +61,9 @@ interface GameSessionData {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -106,7 +123,13 @@ serve(async (req: Request) => {
     const sessionDuration = (endTime - verifiedStartTime) / 1000; // seconds
 
     if (sessionDuration < TOLERANCE.MIN_SURVIVAL) {
-      return await rejectSession(supabaseClient, data, 'rejected', 'Session too short');
+      return await rejectSession(
+        supabaseClient,
+        data,
+        'rejected',
+        'Session too short',
+        corsHeaders
+      );
     }
 
     // Lookup player ID from nickname (userId)
@@ -134,7 +157,8 @@ serve(async (req: Request) => {
         supabaseClient,
         data,
         'rejected',
-        'PnL exceeds maximum threshold'
+        'PnL exceeds maximum threshold',
+        corsHeaders
       );
     }
 
@@ -146,7 +170,8 @@ serve(async (req: Request) => {
           supabaseClient,
           data,
           'rejected',
-          `PnL velocity too high (${pnlVelocity.toFixed(2)}%/s)`
+          `PnL velocity too high (${pnlVelocity.toFixed(2)}%/s)`,
+          corsHeaders
         );
       }
     }
@@ -320,14 +345,12 @@ async function creditReward(
       price_diff_entry: verification.priceDiffEntry,
       price_diff_exit: verification.priceDiffExit,
       pnl_diff: verification.pnlDiff,
-      verification_method: verification.verificationMethod,
+      // Note: verification_method already set on line 314
       verified_at: new Date().toISOString(),
       reward_credited_at: new Date().toISOString(),
     },
     { onConflict: 'session_id' }
   );
-
-  if (sessionError) throw sessionError;
 
   if (sessionError) throw sessionError;
 
@@ -393,7 +416,8 @@ async function rejectSession(
   supabase: any,
   data: GameSessionData,
   status: string,
-  errorMessage: string
+  errorMessage: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   console.warn(`Session rejected: ${errorMessage}`);
 

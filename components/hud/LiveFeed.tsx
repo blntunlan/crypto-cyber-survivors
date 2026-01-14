@@ -155,7 +155,7 @@ const MobileLiveFeed: React.FC<
       <div className="flex items-center justify-between mb-1">
         <div
           className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5"
-          style={{ fontSize: isRetro ? rfs(8) : rfs(9) }}
+          style={{ fontSize: isRetro ? rfs(9) : rfs(10) }}
         >
           <span
             className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'opacity-75'}`}
@@ -165,13 +165,13 @@ const MobileLiveFeed: React.FC<
         <div className="flex items-center gap-1.5">
           <span
             className="font-bold"
-            style={{ color: pairConfig.color, fontSize: rfs(9) }}
+            style={{ color: pairConfig.color, fontSize: rfs(10) }}
           >
             {pairConfig.id}
           </span>
           <div
             className="text-slate-400 font-feed opacity-60"
-            style={{ fontSize: rfs(8) }}
+            style={{ fontSize: rfs(9) }}
           >
             {marketData.leverage}X
           </div>
@@ -191,10 +191,10 @@ const MobileLiveFeed: React.FC<
         </div>
         <div
           className="font-black flex items-center gap-1.5 mt-0.5"
-          style={{ color: pnlHex, fontSize: rfs(12) }}
+          style={{ color: pnlHex, fontSize: rfs(13) }}
         >
           <span className="text-base">{(smoothValues.pnl * 100).toFixed(2)}%</span>
-          <span className="opacity-70 tracking-tighter" style={{ fontSize: rfs(9) }}>
+          <span className="opacity-70 tracking-tighter" style={{ fontSize: rfs(10) }}>
             {marketData.effectivePnl >= 0 ? 'PROFIT' : 'LOSS'}
           </span>
         </div>
@@ -203,42 +203,41 @@ const MobileLiveFeed: React.FC<
       <div className="mt-2 grid grid-cols-2 gap-y-1.5 opacity-80 border-t border-white/5 pt-1.5">
         <div
           className="text-slate-200 uppercase leading-none font-bold"
-          style={{ fontSize: rfs(10) }}
+          style={{ fontSize: rfs(11) }}
         >
           Entry ${Math.floor(entryPrice)}
         </div>
         <div
           className="text-slate-200 uppercase leading-none text-right font-bold"
-          style={{ fontSize: rfs(10) }}
+          style={{ fontSize: rfs(11) }}
         >
           Vol x{smoothValues.difficulty.toFixed(1)}
         </div>
-        {marketData.liquidationPrice !== undefined &&
-          marketData.liquidationPrice > 0 && (
-            <div
-              className={`col-span-2 uppercase leading-none text-center pt-1.5 mt-0.5 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-300 font-bold'}`}
-              style={{ fontSize: rfs(10) }}
-            >
-              LIQ: $
-              {marketData.liquidationPrice.toLocaleString(undefined, {
-                maximumFractionDigits: 0,
-              })}
-            </div>
-          )}
-        {serverState && (
-          <div
-            className={`col-span-2 uppercase leading-none font-bold text-center border-t border-white/5 pt-1 mt-0.5 ${
-              serverState.rsi >= 70
+
+        {/* Combined Row: Liquidation & RSI */}
+        <div
+          className={`uppercase leading-none pt-1.5 mt-0.5 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-300 font-bold'}`}
+          style={{ fontSize: rfs(11) }}
+        >
+          {marketData.liquidationPrice !== undefined && marketData.liquidationPrice > 0
+            ? `LIQ: $${marketData.liquidationPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+            : ''}
+        </div>
+
+        <div
+          className={`uppercase leading-none text-right pt-1.5 mt-0.5 border-t border-white/5 font-bold ${
+            serverState
+              ? serverState.rsi >= 70
                 ? 'text-red-400'
                 : serverState.rsi <= 30
                   ? 'text-green-400'
                   : 'text-slate-300'
-            }`}
-            style={{ fontSize: rfs(10) }}
-          >
-            RSI {Math.round(serverState.rsi)} • {serverState.rsiState}
-          </div>
-        )}
+              : 'text-slate-500'
+          }`}
+          style={{ fontSize: rfs(11) }}
+        >
+          {serverState ? `RSI ${Math.round(serverState.rsi)}` : ''}
+        </div>
       </div>
 
       {serverState && serverState.whaleTier > 0 && (

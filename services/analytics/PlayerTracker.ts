@@ -121,6 +121,42 @@ export class PlayerTracker {
   }
 
   /**
+   * Update player's high score if new score is higher.
+   * Returns true if score was updated, false if not.
+   */
+  async updateHighScore(newScore: number): Promise<boolean> {
+    if (!this.currentPlayer) return false;
+
+    // Only update if new score is higher
+    if (newScore <= this.currentPlayer.highScore) {
+      return false;
+    }
+
+    if (!isSupabaseConfigured() || !supabase) {
+      // Still update local cache even without Supabase
+      this.currentPlayer.highScore = newScore;
+      return true;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('players')
+        .update({ high_score: newScore })
+        .eq('id', this.currentPlayer.id);
+
+      if (error) throw error;
+
+      // Update local cache
+      this.currentPlayer.highScore = newScore;
+      Logger.debug(`[PlayerTracker] High score updated to ${newScore}`);
+      return true;
+    } catch (err) {
+      Logger.error('[PlayerTracker] Failed to update high score', err);
+      return false;
+    }
+  }
+
+  /**
    * Track device profile
    */
   async trackDeviceProfile(

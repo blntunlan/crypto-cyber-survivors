@@ -2,12 +2,17 @@ import { supabase, isSupabaseConfigured } from './Supabase';
 import { Logger } from './Logger';
 import { UserSessionService } from './auth/UserSessionService';
 
+/**
+ * DB types matching coin_transactions table schema
+ */
 interface DBTransaction {
   id: string;
   amount: number;
   balance_after: number;
-  transaction_type: string;
-  reference_id: string;
+  type: string; // Column is 'type' in coin_transactions, not 'transaction_type'
+  reference_id: string | null;
+  reference_type: string | null;
+  description: string | null;
   created_at: string;
 }
 
@@ -17,6 +22,8 @@ export interface WalletTransaction {
   balanceAfter: number;
   type: string;
   referenceId?: string;
+  referenceType?: string;
+  description?: string;
   createdAt: string;
 }
 
@@ -31,16 +38,14 @@ export class WalletService {
   }
 
   /**
-   * Get current confirmed gold balance
+   * Get current confirmed gold balance.
+   * Uses players.gold_balance as the source of truth (set by migration 013).
    */
   async getBalance(): Promise<number> {
     const playerId = UserSessionService.getPlayerId();
     if (playerId.startsWith('anon-')) return 0;
 
     if (!isSupabaseConfigured() || supabase === null) return 0;
-
-    // Check local balance first if user is anon (though logic says anon = 0)
-    // Actually anon- users don't have DB wallets usually.
 
     const { data, error } = await supabase
       .from('players')
@@ -49,16 +54,16 @@ export class WalletService {
       .single();
 
     if (error) {
-      // Could be network error or player not found
       Logger.warn('[WalletService] Failed to fetch balance', error);
       return 0;
     }
 
-    return data.gold_balance;
+    return data.gold_balance ?? 0;
   }
 
   /**
-   * Fetch transaction history for audit/UI
+   * Fetch transaction history for audit/UI.
+   * Queries coin_transactions table (audit trail).
    */
   async getHistory(limit = 20): Promise<WalletTransaction[]> {
     const playerId = UserSessionService.getPlayerId();
@@ -66,9 +71,12 @@ export class WalletService {
 
     if (!isSupabaseConfigured() || supabase === null) return [];
 
+    // Query coin_transactions table for transaction history
     const { data, error } = await supabase
-      .from('player_wallets')
-      .select('*')
+      .from('coin_transactions')
+      .select(
+        'id, amount, balance_after, type, reference_id, reference_type, description, created_at'
+      )
       .eq('player_id', playerId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -78,12 +86,14 @@ export class WalletService {
       return [];
     }
 
-    return (data as unknown as DBTransaction[]).map(tx => ({
+    return (data as DBTransaction[]).map(tx => ({
       id: tx.id,
       amount: tx.amount,
       balanceAfter: tx.balance_after,
-      type: tx.transaction_type,
-      referenceId: tx.reference_id,
+      type: tx.type,
+      referenceId: tx.reference_id ?? undefined,
+      referenceType: tx.reference_type ?? undefined,
+      description: tx.description ?? undefined,
       createdAt: tx.created_at,
     }));
   }

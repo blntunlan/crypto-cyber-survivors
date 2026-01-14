@@ -93,6 +93,8 @@ function createTestData(overrides = {}) {
     kills: 25,
     level: 5,
     goldCollected: 150,
+    survivalTimeMs: 60000,
+    optimisticReward: 100,
     ...overrides,
   };
 }

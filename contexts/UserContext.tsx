@@ -122,11 +122,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       try {
-        // Check if nickname exists
+        // Check if nickname exists (case-insensitive)
         const { data: existingPlayer } = await supabase
           .from('players')
           .select('id')
-          .eq('nickname', nickname.toLowerCase())
+          .ilike('display_name', nickname)
           .single();
 
         if (existingPlayer) {
@@ -141,9 +141,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           saveUserToStorage(newUser);
           setUser(newUser);
 
-          // Update session count
-          await supabase.rpc('increment_player_sessions', {
-            player_uuid: existingPlayer.id,
+          // Update last seen timestamp
+          await supabase.rpc('update_player_last_seen', {
+            p_player_id: existingPlayer.id,
           });
 
           return { success: true };
@@ -153,7 +153,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const { data: newPlayer, error } = await supabase
           .from('players')
           .insert({
-            nickname: nickname.toLowerCase(),
             display_name: nickname,
             total_sessions: 1,
           })

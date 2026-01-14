@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SpawnSystem } from '../../services/SpawnSystem';
 import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { MarketPosition } from '../../types';
-import { marketStateService } from '../../services/MarketStateService';
 
-// Mock dependencies
+// Mock MarketStateService
 vi.mock('../../services/MarketStateService', () => ({
-  marketStateService: {
+  MarketStateService: {
     getState: vi.fn(),
   },
 }));
+
+// Import after mock
+import { MarketStateService as marketStateService } from '../../services/MarketStateService';
 
 vi.mock('../../services/Logger', () => ({
   Logger: {
