@@ -105,21 +105,19 @@ export class BackgroundRenderer implements IRenderer {
     ctx.lineWidth = 1;
     const gridSize = GAME_ENGINE.BG_RETRO_GRID_SIZE;
 
+    ctx.beginPath();
     // Vertical grid lines
     for (let x = 0; x < width; x += gridSize) {
-      ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
-      ctx.stroke();
     }
 
     // Horizontal grid lines
     for (let y = 0; y < height; y += gridSize) {
-      ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
-      ctx.stroke();
     }
+    ctx.stroke();
 
     // 3. Retro-style candles (Chunky pixels)
     state.bgCandles.forEach(c => {
