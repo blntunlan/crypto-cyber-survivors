@@ -82,17 +82,19 @@ describe('HubMenu', () => {
       <HubMenu nickname={mockNickname} coins={mockCoins} onNavigate={mockOnNavigate} />
     );
 
-    // Default selected index is 0 (PLAY)
-    // Press ArrowRight to move to STASH (index 1)
-    fireEvent.keyDown(window, { key: 'ArrowRight' });
-    fireEvent.keyDown(window, { key: 'Enter' });
-    expect(mockOnNavigate).toHaveBeenCalledWith('stash');
+    // Grid layout is 2 columns:
+    // [0: PLAY]    [1: STASH*]
+    // [2: LOOT*]   [3: SKINS*]
+    // [4: RANKS*]  [5: GEAR]
+    // * = disabled buttons that won't trigger onNavigate
 
-    // Press ArrowDown to move to RANKS (index 3? No, 2-column grid. PLAY is 0, STASH is 1, LOOT is 2, SKINS is 3, RANKS is 4, GEAR is 5)
-    // From STASH (1), ArrowDown moves to SKINS (3)
-    vi.clearAllMocks();
+    // Navigate to GEAR (index 5) which is enabled:
+    // From PLAY (0): ArrowRight -> STASH (1), ArrowDown -> SKINS (3),
+    // ArrowDown -> GEAR (5)
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
     fireEvent.keyDown(window, { key: 'ArrowDown' });
     fireEvent.keyDown(window, { key: 'Enter' });
-    expect(mockOnNavigate).toHaveBeenCalledWith('skins');
+    expect(mockOnNavigate).toHaveBeenCalledWith('gear');
   });
 });

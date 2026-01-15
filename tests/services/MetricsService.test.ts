@@ -72,7 +72,9 @@ describe('MetricsService', () => {
       2, // difficulty
       80, // hpPercent
       10, // enemyCount
-      'climax', // wavePhase
+      0, // bulletCount
+      0, // particleCount
+      'climax' as any, // wavePhase
       0.5 // atr
     );
 

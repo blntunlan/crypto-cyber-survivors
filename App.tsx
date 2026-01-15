@@ -48,6 +48,7 @@ import { useAppInitialization } from './hooks/useAppInitialization';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
 import { useDevShortcuts } from './hooks/useDevShortcuts';
 import { useMarketTimeout } from './hooks/useMarketTimeout';
+import { usePauseBudget } from './hooks/usePauseBudget';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
 
@@ -110,6 +111,15 @@ const App: React.FC = () => {
   const { runStats, resetRunStats } = useRunStats();
   const { sessionStartTime } = useSessionTiming(gameStatus);
 
+  // Local state for gameMode - needed before usePauseBudget
+  const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
+
+  // Pause budget for competitive mode (auto-resume callback)
+  const handleAutoResume = useCallback(() => {
+    GameStateMachine.transition(GameStatus.PLAYING);
+  }, []);
+  const pauseBudget = usePauseBudget(gameMode, gameStatus, handleAutoResume);
+
   // ========================================
   // Local State
   // ========================================
@@ -122,7 +132,6 @@ const App: React.FC = () => {
   const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
-  const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
   const [cycleData, setCycleData] = useState<CycleCompleteData | null>(null);
   const [hubScreen, setHubScreen] = useState<
     'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear'
@@ -583,6 +592,8 @@ const App: React.FC = () => {
                     onOpenSettings={() => setShowSettings(true)}
                     isMuted={isMuted}
                     onToggleMute={() => setIsMuted(audio.toggleMute())}
+                    pauseSecondsRemaining={pauseBudget.remainingSeconds}
+                    pauseSecondsMax={pauseBudget.maxSeconds}
                   />
                 </React.Suspense>
               )}

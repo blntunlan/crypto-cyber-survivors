@@ -20,7 +20,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-40 left-1/2 z-[115] bg-transparent p-3 min-w-[150px] transition-all duration-300 ease-out flex flex-col items-center pointer-events-none"
+      className="absolute bottom-44 left-1/2 z-[115] bg-transparent p-3 min-w-[150px] transition-all duration-300 ease-out flex flex-col items-center pointer-events-none"
       style={{
         opacity: 0,
         transform: 'translateX(-50%) translateY(20px)',
@@ -111,7 +111,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
       ref={containerRef}
       className="absolute left-1/2 z-[115] bg-transparent transition-all duration-300 ease-out flex flex-col items-center pointer-events-none"
       style={{
-        bottom: rs(110),
+        bottom: rs(140),
         padding: rs(6),
         minWidth: rs(80),
         opacity: 0,

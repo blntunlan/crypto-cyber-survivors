@@ -78,66 +78,42 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
   const isRetro = useIsRetro();
   const { rs, rfs } = useResponsiveUI();
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
+
+  // Minimal mobile UI: Only Level + XP bar, no stat grid
   return (
     <div
       className="bg-transparent flex flex-col text-right"
       style={{
-        padding: rs(10),
-        gap: rs(6),
-        minWidth: rs(120),
+        padding: rs(6),
+        gap: rs(4),
+        minWidth: rs(70),
       }}
     >
-      <div className="flex justify-between items-center" style={{ gap: rs(12) }}>
+      {/* Compact Level Display */}
+      <div className="flex items-center justify-end" style={{ gap: rs(4) }}>
         <div
-          className="uppercase font-black tracking-widest text-blue-400 opacity-80"
-          style={{ fontSize: rfs(9) }}
+          className="uppercase font-black tracking-wider text-blue-400/70"
+          style={{ fontSize: rfs(8) }}
         >
-          LEVEL
+          LV
         </div>
         <div
-          className={`font-black italic text-white leading-none tracking-tighter ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-          style={{ fontSize: rfs(30) }}
+          className={`font-black text-white leading-none tracking-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+          style={{ fontSize: rfs(24) }}
         >
           {player.level}
         </div>
       </div>
 
+      {/* Thin XP Bar */}
       <div
-        className={`w-full h-1 bg-slate-800/50 overflow-hidden ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
+        className={`w-full bg-slate-800/40 overflow-hidden ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
+        style={{ height: rs(3) }}
       >
         <div
-          className={`h-full bg-blue-400 ${isRetro ? '' : 'shadow-[0_0_6px_rgba(96,165,250,0.5)]'}`}
+          className={`h-full bg-blue-400 ${isRetro ? '' : 'shadow-[0_0_4px_rgba(96,165,250,0.4)]'}`}
           style={{ width: `${Math.min(100, expPercent)}%` }}
         />
-      </div>
-
-      <div
-        className="grid grid-cols-2 border-t border-white/5"
-        style={{ gap: rs(2), paddingTop: rs(4) }}
-      >
-        {Object.values(STAT_DEFINITIONS).map(stat => {
-          if (!stat.showInKernel) return null;
-
-          const value = smoothValues[stat.id as keyof typeof smoothValues] ?? 0;
-          const displayValue = StatService.format(value, stat.id as StatKey);
-
-          return (
-            <div key={stat.id} className="flex justify-between items-center gap-2">
-              <span
-                className="text-slate-500 font-bold uppercase"
-                style={{ fontSize: rfs(9) }}
-              >
-                {stat.label}
-              </span>
-              <span
-                className={`${stat.uiColor} font-black ${isRetro ? 'font-retro-text' : ''}`}
-                style={{ fontSize: rfs(10) }}
-              >
-                {displayValue}
-              </span>
-            </div>
-          );
-        })}
       </div>
     </div>
   );

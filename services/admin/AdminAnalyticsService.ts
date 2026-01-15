@@ -17,13 +17,10 @@ export interface ErrorOccurence {
 }
 
 class AdminAnalyticsService {
-  private static instance: AdminAnalyticsService;
+  private static instance?: AdminAnalyticsService;
 
   static getInstance(): AdminAnalyticsService {
-    if (!AdminAnalyticsService.instance) {
-      AdminAnalyticsService.instance = new AdminAnalyticsService();
-    }
-    return AdminAnalyticsService.instance;
+    return (this.instance ??= new AdminAnalyticsService());
   }
 
   async getMarketHealth(): Promise<MarketHealth | null> {
@@ -47,7 +44,7 @@ class AdminAnalyticsService {
       const { data, error } = await supabase.from('error_summary').select('*');
 
       if (error) throw error;
-      return (data as ErrorOccurence[]) ?? [];
+      return (data as ErrorOccurence[] | null) ?? [];
     } catch (error) {
       Logger.error('[Analytics] Failed to fetch error summary:', error);
       return [];

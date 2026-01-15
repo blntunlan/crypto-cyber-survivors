@@ -72,63 +72,83 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   const status = getStatusConfig();
   const isCritical = hpPercent <= 25;
 
+  // Mobile: Ultra-minimal HP bar only
+  // Desktop: Full info bar with wave phase, status, etc.
   return (
     <div
       className={`fixed left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center transition-all duration-500 ${
-        isMobile ? 'w-[92%]' : 'w-[450px] bottom-10'
+        isMobile ? 'w-[88%]' : 'w-[450px] bottom-10'
       }`}
       style={
         isMobile
           ? {
-              bottom: rs(24),
+              bottom: rs(16),
             }
           : undefined
       }
     >
-      {/* Top Info Bar */}
-      <div
-        className={`w-full flex justify-between items-end mb-2 px-1 font-stats tracking-tighter`}
-      >
-        <div className="flex flex-col">
-          <span
-            className="text-slate-500 font-bold uppercase opacity-60"
-            style={{ fontSize: isMobile ? rfs(10) : '10px' }}
-          >
-            System Phase
-          </span>
-          <span
-            className={`font-black uppercase italic ${getWaveColorText(wavePhase)}`}
-            style={{ fontSize: isMobile ? rfs(16) : '16px' }}
-          >
-            {wavePhase}
-          </span>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <div
-            className={`font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
-            style={{ fontSize: isMobile ? rfs(10) : '10px' }}
-          >
-            {status.text}
+      {/* Top Info Bar - Desktop Only */}
+      {!isMobile && (
+        <div className="w-full flex justify-between items-end mb-2 px-1 font-stats tracking-tighter">
+          <div className="flex flex-col">
+            <span
+              className="text-slate-500 font-bold uppercase opacity-60"
+              style={{ fontSize: '10px' }}
+            >
+              System Phase
+            </span>
+            <span
+              className={`font-black uppercase italic ${getWaveColorText(wavePhase)}`}
+              style={{ fontSize: '16px' }}
+            >
+              {wavePhase}
+            </span>
           </div>
-          <div
-            className={`font-black text-white leading-none tabular-nums ${isRetro ? 'text-shadow-retro' : 'drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]'}`}
-            style={{ fontSize: isMobile ? rfs(30) : '30px' }}
+
+          <div className="flex flex-col items-center">
+            <div
+              className={`font-black px-2 py-0.5 rounded-t bg-slate-900 border-x border-t border-white/10 ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
+              style={{ fontSize: '10px' }}
+            >
+              {status.text}
+            </div>
+            <div
+              className={`font-black text-white leading-none tabular-nums ${isRetro ? 'text-shadow-retro' : 'drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]'}`}
+              style={{ fontSize: '30px' }}
+            >
+              {Math.ceil(hp)}
+              <span className="text-xs opacity-50 ml-0.5">/{Math.ceil(maxHp)}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end min-w-[80px]">
+            {/* Empty space for balance */}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile: Compact HP indicator above bar */}
+      {isMobile && (
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <span
+            className={`font-black tabular-nums ${status.color} ${isCritical ? 'animate-pulse' : ''}`}
+            style={{ fontSize: rfs(14) }}
           >
             {Math.ceil(hp)}
-            <span className="text-xs opacity-50 ml-0.5">/{Math.ceil(maxHp)}</span>
-          </div>
+          </span>
+          <span className="text-slate-500" style={{ fontSize: rfs(10) }}>
+            /
+          </span>
+          <span className="text-slate-400" style={{ fontSize: rfs(12) }}>
+            {Math.ceil(maxHp)}
+          </span>
         </div>
+      )}
 
-        <div className="flex flex-col items-end min-w-[80px]">
-          {/* Empty space for balance */}
-        </div>
-      </div>
-
-      {/* Main Health Bar Container - Optimized for Performance */}
+      {/* Main Health Bar Container - Thinner on mobile */}
       <div
-        className={`relative w-full bg-slate-950/60 border border-white/10 rounded-sm p-[3px] overflow-hidden group ${isMobile ? '' : 'backdrop-blur-xl shadow-2xl'}`}
-        style={{ height: isMobile ? rs(16) : '16px' }}
+        className={`relative w-full bg-slate-950/60 border border-white/10 rounded-sm overflow-hidden group ${isMobile ? 'p-[2px]' : 'p-[3px] backdrop-blur-xl shadow-2xl'}`}
+        style={{ height: isMobile ? rs(8) : '16px' }}
       >
         {/* Background Grid Pattern - Desktop only */}
         {!isMobile && (
@@ -171,26 +191,28 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
         </div>
       </div>
 
-      {/* Bottom Tech Decals */}
-      <div className="w-full flex justify-between mt-1 px-1 opacity-40">
-        <div className="flex gap-1">
-          <div className="w-1 h-1 rounded-full bg-cyan-500"></div>
-          <div className="w-1 h-1 rounded-full bg-cyan-500/50"></div>
-          <div className="w-1 h-1 rounded-full bg-cyan-500/20"></div>
-        </div>
-        <div
-          className="text-slate-400 font-bold tracking-[0.3em] uppercase"
-          style={{ fontSize: isMobile ? rfs(7) : '7px' }}
-        >
-          Terminal_ID: CC-S_08.21 // Core_Integrity_Module
-        </div>
-        <div className="flex gap-1 items-center">
+      {/* Bottom Tech Decals - Desktop Only */}
+      {!isMobile && (
+        <div className="w-full flex justify-between mt-1 px-1 opacity-40">
+          <div className="flex gap-1">
+            <div className="w-1 h-1 rounded-full bg-cyan-500"></div>
+            <div className="w-1 h-1 rounded-full bg-cyan-500/50"></div>
+            <div className="w-1 h-1 rounded-full bg-cyan-500/20"></div>
+          </div>
           <div
-            className={`w-8 h-[2px] ${isCritical ? 'bg-red-500' : 'bg-slate-700'}`}
-          ></div>
-          <div className="w-1.5 h-1.5 border border-slate-700 rotate-45"></div>
+            className="text-slate-400 font-bold tracking-[0.3em] uppercase"
+            style={{ fontSize: '7px' }}
+          >
+            Terminal_ID: CC-S_08.21 // Core_Integrity_Module
+          </div>
+          <div className="flex gap-1 items-center">
+            <div
+              className={`w-8 h-[2px] ${isCritical ? 'bg-red-500' : 'bg-slate-700'}`}
+            ></div>
+            <div className="w-1.5 h-1.5 border border-slate-700 rotate-45"></div>
+          </div>
         </div>
-      </div>
+      )}
 
       <style>{`
                 @keyframes shimmer {

@@ -66,7 +66,10 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   if (!isMounted) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950 px-6 font-mono overflow-hidden">
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-slate-950 px-6 font-mono overflow-hidden"
+      style={{ zIndex: 3300 }}
+    >
       {/* Background Effects - Cyan/Neon Theme */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Radial gradient glow */}

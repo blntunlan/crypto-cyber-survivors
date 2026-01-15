@@ -17,6 +17,10 @@ interface PauseMenuProps {
   onOpenSettings: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
+  /** Remaining pause seconds (null = unlimited) */
+  pauseSecondsRemaining?: number | null;
+  /** Maximum pause seconds */
+  pauseSecondsMax?: number;
 }
 
 export const PauseMenu: React.FC<PauseMenuProps> = ({
@@ -28,12 +32,23 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
   onOpenSettings,
   isMuted,
   onToggleMute,
+  pauseSecondsRemaining,
+  pauseSecondsMax = 10,
 }) => {
   const sizes = useThemeSize();
   const isRetro = useIsRetro();
   const duration = Date.now() - sessionStartTime;
   const minutes = Math.floor(duration / 60000);
   const seconds = Math.floor((duration % 60000) / 1000);
+
+  // Calculate pause budget percentage
+  const pausePercentage =
+    pauseSecondsRemaining !== null && pauseSecondsRemaining !== undefined
+      ? (pauseSecondsRemaining / pauseSecondsMax) * 100
+      : 100;
+  const isLimited =
+    pauseSecondsRemaining !== null && pauseSecondsRemaining !== undefined;
+  const isLowBudget = isLimited && pauseSecondsRemaining <= 3;
 
   const containerClasses = isRetro
     ? 'fixed inset-0 z-[2100] bg-black/90 flex items-center justify-center p-4 overflow-y-auto'
@@ -56,6 +71,55 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
         >
           PAUSED
         </h2>
+
+        {/* Pause Budget Timer - Competitive Mode Only */}
+        {isLimited && (
+          <div
+            className={`p-4 mb-4 rounded-xl transition-all ${
+              isLowBudget
+                ? 'bg-red-500/20 border-2 border-red-500/50 animate-pulse'
+                : 'bg-yellow-500/10 border border-yellow-500/30'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span
+                className={`${sizes.tiny} font-black uppercase tracking-widest`}
+                style={{
+                  color: isLowBudget ? COLORS.CASINO_RED : COLORS.JACKPOT_YELLOW,
+                }}
+              >
+                ⏱ Auto-Resume In
+              </span>
+              <span
+                className={`${sizes.heading} font-black font-stats tabular-nums`}
+                style={{
+                  color: isLowBudget ? COLORS.CASINO_RED : COLORS.JACKPOT_YELLOW,
+                }}
+              >
+                {Math.ceil(pauseSecondsRemaining)}s
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div
+              className={`h-2 w-full rounded-full overflow-hidden ${
+                isRetro ? 'bg-zinc-800' : 'bg-slate-800/50'
+              }`}
+            >
+              <div
+                className={`h-full transition-all duration-100 ${
+                  isLowBudget ? 'bg-red-500' : 'bg-yellow-500'
+                }`}
+                style={{ width: `${pausePercentage}%` }}
+              />
+            </div>
+            <p
+              className={`${sizes.tiny} mt-2 opacity-60`}
+              style={{ color: isLowBudget ? COLORS.CASINO_RED : COLORS.JACKPOT_YELLOW }}
+            >
+              COMPETITIVE MODE - Limited Pause
+            </p>
+          </div>
+        )}
 
         {/* Run Stats */}
         <div

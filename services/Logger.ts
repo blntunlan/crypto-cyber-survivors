@@ -109,9 +109,9 @@ class LoggerClass {
     }
 
     // Report to central ErrorTracker (dynamic import to avoid circular dep)
-    import('./analytics/ErrorTracker')
+    void import('./analytics/ErrorTracker')
       .then(tracker => {
-        tracker.default.captureError({
+        void tracker.default.captureError({
           errorType: 'LoggerError',
           errorMessage: message,
           category: 'runtime',

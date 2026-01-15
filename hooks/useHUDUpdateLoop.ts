@@ -123,14 +123,40 @@ export function useHUDUpdateLoop({
       }
 
       // Combo Panel Visibility
+      // On mobile: Reduce opacity based on enemy count for better visibility
       if (containerRef.current) {
         const isVisible = streakTarget >= 5;
-        const targetOpacity = isVisible ? '1' : '0';
+
+        // Calculate opacity - on mobile, reduce based on screen clutter
+        let baseOpacity = 1;
+        const isMobileDevice = window.innerWidth < 768;
+
+        if (isMobileDevice && isVisible) {
+          // Get enemy count from DOM (updated by GameHUD's enemy pointers)
+          // Using a simple heuristic: check active enemies via data attribute if available
+          const enemyPointerContainer = document.getElementById(
+            'enemy-pointer-container'
+          );
+          const enemyCount = enemyPointerContainer?.children.length ?? 0;
+
+          // Progressive opacity reduction based on enemy density
+          if (enemyCount >= 15) {
+            baseOpacity = 0.25; // Very crowded - almost invisible
+          } else if (enemyCount >= 10) {
+            baseOpacity = 0.4; // Crowded - quite transparent
+          } else if (enemyCount >= 5) {
+            baseOpacity = 0.6; // Moderate - slightly transparent
+          }
+        }
+
+        const targetOpacity = isVisible ? baseOpacity.toString() : '0';
         const targetTransform = isVisible
           ? `translateX(calc(-50% + ${comboPanelOffset.x}px)) translateY(${comboPanelOffset.y}px) scale(1)`
           : `translateX(calc(-50% + ${comboPanelOffset.x}px)) translateY(${comboPanelOffset.y + 20}px) scale(0.95)`;
 
-        if (containerRef.current.style.opacity !== targetOpacity) {
+        // Only update if changed (prevents layout thrashing)
+        const currentOpacity = containerRef.current.style.opacity;
+        if (currentOpacity !== targetOpacity || !isVisible) {
           containerRef.current.style.opacity = targetOpacity;
           containerRef.current.style.transform = targetTransform;
           containerRef.current.style.pointerEvents = 'none';

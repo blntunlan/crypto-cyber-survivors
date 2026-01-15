@@ -8,6 +8,7 @@ const ALLOWED_ORIGINS = [
   'https://crypto-cyber-survivors-production.up.railway.app',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'https://crypto-cyber-survivors.vercel.app', // Added common vercel deploy
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
@@ -17,7 +18,8 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers':
       'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Max-Age': '86400',
   };
 }
 

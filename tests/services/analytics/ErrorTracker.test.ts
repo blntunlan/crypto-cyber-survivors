@@ -39,6 +39,7 @@ describe('ErrorTracker', () => {
     localStorage.clear();
     ErrorTracker.resetForTesting();
     tracker = ErrorTracker.getInstance();
+    (tracker as any).isOnline = true;
     vi.useFakeTimers();
   });
 
@@ -48,7 +49,7 @@ describe('ErrorTracker', () => {
 
   describe('captureError', () => {
     it('should send error to Supabase when online', async () => {
-      tracker.captureError({
+      await tracker.captureError({
         errorType: 'TestError',
         errorMessage: 'Something went wrong',
       });
@@ -66,7 +67,7 @@ describe('ErrorTracker', () => {
       // Force offline
       (tracker as any).isOnline = false;
 
-      tracker.captureError({
+      await tracker.captureError({
         errorType: 'OfflineError',
         errorMessage: 'Waiting for internet',
       });
@@ -78,9 +79,9 @@ describe('ErrorTracker', () => {
     it('should rate limit unique errors', async () => {
       const err = { errorType: 'LimitMe', errorMessage: 'Message' };
 
-      tracker.captureError(err);
-      tracker.captureError(err);
-      tracker.captureError(err);
+      await tracker.captureError(err);
+      await tracker.captureError(err);
+      await tracker.captureError(err);
 
       expect(mockSupabase.insert).toHaveBeenCalledTimes(1);
     });
@@ -108,22 +109,28 @@ describe('ErrorTracker', () => {
 
   describe('network interception', () => {
     it('should capture failed fetch requests', async () => {
-      // Mock fetch BEFORE getting instance or manually trigger the setup
+      // Store original fetch
+      const originalFetch = window.fetch;
+
+      // Mock fetch that returns a failed response
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
         url: 'https://api.example.com',
       });
-
-      const originalFetch = window.fetch;
       window.fetch = mockFetch;
 
-      // Re-initialize to wrap our mock
+      // Re-initialize tracker so it wraps our mock fetch
       ErrorTracker.resetForTesting();
-      ErrorTracker.getInstance();
+      const newTracker = ErrorTracker.getInstance();
+      (newTracker as any).isOnline = true;
 
+      // The wrapped fetch should intercept this call
       await window.fetch('https://api.example.com');
+
+      // Wait for pending async operations
+      await newTracker.flush();
 
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -131,13 +138,15 @@ describe('ErrorTracker', () => {
         })
       );
 
+      // Restore original fetch
       window.fetch = originalFetch;
     });
   });
 
   describe('console interception', () => {
-    it('should capture console.error', () => {
+    it('should capture console.error', async () => {
       console.error('Console Failure');
+      await tracker.flush();
 
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -151,7 +160,7 @@ describe('ErrorTracker', () => {
   describe('queue processing', () => {
     it('should process queue when back online', async () => {
       (tracker as any).isOnline = false;
-      tracker.captureError({ errorType: 'Queued', errorMessage: 'Later' });
+      await tracker.captureError({ errorType: 'Queued', errorMessage: 'Later' });
 
       expect(mockSupabase.insert).not.toHaveBeenCalled();
 

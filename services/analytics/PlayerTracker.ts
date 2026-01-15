@@ -71,12 +71,25 @@ export class PlayerTracker {
       }
 
       if (existing) {
+        // Increment session count on returning player
+        const newTotalSessions = (existing.total_sessions ?? 0) + 1;
+
+        const { error: updateError } = await supabase
+          .from('players')
+          .update({
+            total_sessions: newTotalSessions,
+            last_seen_at: new Date().toISOString(),
+          })
+          .eq('id', playerId);
+
+        if (updateError) throw updateError;
+
         this.currentPlayer = {
           id: existing.id,
           displayName: existing.display_name,
           createdAt: existing.created_at,
           lastSeenAt: existing.last_seen_at,
-          totalSessions: existing.total_sessions,
+          totalSessions: newTotalSessions,
           highScore: existing.high_score ?? 0,
         };
 
@@ -90,7 +103,7 @@ export class PlayerTracker {
             display_name: nickname,
             created_at: new Date().toISOString(),
             last_seen_at: new Date().toISOString(),
-            total_sessions: 0, // Will be incremented by first session trigger
+            total_sessions: 1, // First session
           })
           .select()
           .single();
@@ -102,14 +115,51 @@ export class PlayerTracker {
           displayName: newPlayer.display_name,
           createdAt: newPlayer.created_at,
           lastSeenAt: newPlayer.last_seen_at,
-          totalSessions: 0,
+          totalSessions: 1,
           highScore: 0,
         };
 
         Logger.info(`[PlayerTracker] New player registered: ${nickname}`);
       }
+
+      // Start heartbeat for active players
+      this.startHeartbeat();
     } catch (err) {
       Logger.error('[PlayerTracker] Failed to initialize player', err);
+    }
+  }
+
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly HEARTBEAT_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Periodically update last_seen_at in Supabase
+   */
+  private startHeartbeat(): void {
+    if (this.heartbeatTimer) return;
+
+    this.heartbeatTimer = setInterval(() => {
+      void (async () => {
+        if (!this.currentPlayer || !isSupabaseConfigured() || !supabase) return;
+
+        try {
+          await supabase
+            .from('players')
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq('id', this.currentPlayer.id);
+
+          Logger.debug('[PlayerTracker] Heartbeat sent');
+        } catch (err) {
+          Logger.warn('[PlayerTracker] Heartbeat failed', err);
+        }
+      })();
+    }, this.HEARTBEAT_INTERVAL);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
   }
 
@@ -223,6 +273,7 @@ export class PlayerTracker {
    * Stop heartbeat on logout
    */
   stop(): void {
+    this.stopHeartbeat();
     this.currentPlayer = null;
     Logger.info('[PlayerTracker] Stopped');
   }

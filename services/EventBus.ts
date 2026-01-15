@@ -200,7 +200,7 @@ class EventBusClass {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in event handler for ${event}:`, error);
+          Logger.error(`Error in event handler for ${event}:`, error);
         }
       });
     }

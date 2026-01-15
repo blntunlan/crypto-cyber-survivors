@@ -66,6 +66,7 @@ export class ErrorTracker {
   private gameContext: GameContext = {};
   private originalConsoleError: typeof console.error;
   private tags: string[] = [];
+  private pendingPromises: Set<Promise<unknown>> = new Set();
 
   // Handler references for cleanup
   private queueProcessorInterval: ReturnType<typeof setInterval> | null = null;
@@ -99,9 +100,6 @@ export class ErrorTracker {
   // PUBLIC API
   // ==========================================================================
 
-  /**
-   * Capture an error manually
-   */
   captureError(options: {
     errorType: string;
     errorMessage: string;
@@ -110,7 +108,7 @@ export class ErrorTracker {
     severity?: ErrorSeverity;
     context?: Record<string, unknown>;
     tags?: string[];
-  }): void {
+  }): void | Promise<void> {
     const {
       errorType,
       errorMessage,
@@ -129,9 +127,10 @@ export class ErrorTracker {
     const now = Date.now();
     if (lastReport && now - lastReport < ERROR_CONSTANTS.RATE_LIMIT_MS) {
       Logger.debug(`[ErrorTracker] Rate limited: ${errorType}`);
-      return;
+      return Promise.resolve();
     }
     this.recentErrors.set(fingerprint, now);
+    console.log(`[DEBUG] captureError: ${errorType}`);
 
     // Build report
     const report: ErrorReport = {
@@ -157,7 +156,7 @@ export class ErrorTracker {
     };
 
     // Try to enrich with GameStore state (lazy avoid circular deps)
-    void import('../../stores/gameStore')
+    const promise = import('../../stores/gameStore')
       .then(module => {
         const state = module.useGameStore.getState();
         report.gameContext = {
@@ -180,12 +179,30 @@ export class ErrorTracker {
       .catch(() => {})
       .finally(() => {
         // Queue or send after trying to get context
+        console.log(
+          `[DEBUG] captureError finally: online=${this.isOnline}, supabaseConfigured=${isSupabaseConfigured()}`
+        );
         if (this.isOnline && isSupabaseConfigured()) {
-          void this.sendError(report);
+          return this.sendError(report);
         } else {
+          console.log(
+            `[DEBUG] captureError: queueing because ${!this.isOnline ? 'offline' : 'no supabase'}`
+          );
           this.queue.enqueue(report);
+          return Promise.resolve();
         }
       });
+
+    this.pendingPromises.add(promise);
+    void promise.finally(() => this.pendingPromises.delete(promise));
+    return promise;
+  }
+
+  /**
+   * Wait for all pending async operations to complete
+   */
+  async flush(): Promise<void> {
+    await Promise.all(this.pendingPromises);
   }
 
   /**
@@ -198,7 +215,7 @@ export class ErrorTracker {
     statusText: string,
     duration?: number
   ): void {
-    this.captureError({
+    void this.captureError({
       errorType: 'NetworkError',
       errorMessage: `${method} ${url} failed: ${status} ${statusText}`,
       category: 'network',
@@ -223,7 +240,7 @@ export class ErrorTracker {
     threshold: number,
     unit: string = ''
   ): void {
-    this.captureError({
+    void this.captureError({
       errorType: 'PerformanceIssue',
       errorMessage: `${metric} (${value}${unit}) exceeded threshold (${threshold}${unit})`,
       category: 'performance',
@@ -247,7 +264,7 @@ export class ErrorTracker {
     message: string,
     gameData?: Record<string, unknown>
   ): void {
-    this.captureError({
+    void this.captureError({
       errorType,
       errorMessage: message,
       category: 'game',
@@ -327,7 +344,7 @@ export class ErrorTracker {
 
   private setupGlobalHandlers(): void {
     this.boundErrorHandler = (event: ErrorEvent) => {
-      this.captureError({
+      void this.captureError({
         errorType: 'UnhandledError',
         errorMessage: event.message || 'Unknown error',
         stackTrace: event.error?.stack,
@@ -344,7 +361,7 @@ export class ErrorTracker {
 
     this.boundRejectionHandler = (event: PromiseRejectionEvent) => {
       const message = event.reason?.message ?? String(event.reason);
-      this.captureError({
+      void this.captureError({
         errorType: 'UnhandledPromiseRejection',
         errorMessage: message,
         stackTrace: event.reason?.stack,
@@ -406,6 +423,9 @@ export class ErrorTracker {
 
         // Track failed requests (but not Supabase errors to prevent loops)
         if (!response.ok && !url.includes('supabase')) {
+          console.log(
+            `[DEBUG] fetch failed detected: ${url} status: ${response.status}`
+          );
           this.captureNetworkError(
             url,
             method,
@@ -431,7 +451,7 @@ export class ErrorTracker {
       const target = event.target;
       if (target && target instanceof Element && 'src' in target) {
         const src = (target as HTMLImageElement | HTMLScriptElement).src;
-        this.captureError({
+        void this.captureError({
           errorType: 'ResourceLoadError',
           errorMessage: `Failed to load resource: ${src}`,
           category: 'resource',
@@ -466,7 +486,7 @@ export class ErrorTracker {
         !message.includes('ℹ️') &&
         !message.includes('🔍')
       ) {
-        this.captureError({
+        void this.captureError({
           errorType: 'ConsoleError',
           errorMessage: message,
           category: 'console',
@@ -519,6 +539,7 @@ export class ErrorTracker {
         reported_at: report.reportedAt,
         status: 'new',
       });
+      console.log(`[DEBUG] sendError result: ${error ? 'error' : 'success'}`);
 
       if (error) throw error;
       Logger.debug('[ErrorTracker] Error sent to Supabase');

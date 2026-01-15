@@ -148,7 +148,7 @@ describe('SpawnSystem', () => {
 
   describe('Market and Whale Spawn Logic', () => {
     beforeEach(() => {
-      vi.mocked(marketStateService.getState).mockReturnValue(null);
+      vi.mocked(marketStateService.getState).mockReturnValue(undefined);
       vi.spyOn(Math, 'random').mockReturnValue(0.5); // Default neutral random
     });
 

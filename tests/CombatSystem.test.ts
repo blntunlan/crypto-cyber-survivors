@@ -107,6 +107,8 @@ describe('CombatSystem', () => {
       playerScaleY: 1,
       nearMissTimer: 0,
       nearMissCooldown: 0,
+      rsiVisualState: 'NEUTRAL',
+      whaleEventTimer: 0,
     };
   });
 
@@ -335,10 +337,8 @@ describe('CombatSystem', () => {
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
       const radius = bulletCallArgs[5];
 
-      // Default radius is 4. area=2.0 -> 8.
-      // Code: baseRadius * cappedArea * 1.0 (multiplier) * 1.0 (type)
-      // baseRadius for normal shot = 4
-      expect(radius).toBe(8);
+      // Default radius is 4. area=2.0 -> 8. BUT with mobileMultiplier (default 1.25 on desktop) -> 10.
+      expect(radius).toBe(10);
     });
   });
 

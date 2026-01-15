@@ -51,7 +51,11 @@ export const EnemyPointers: React.FC<EnemyPointersProps> = memo(({ containerRef 
   const pointerSize = isMobile ? rs(20) : 20;
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-[105]">
+    <div
+      ref={containerRef}
+      id="enemy-pointer-container"
+      className="absolute inset-0 z-[105]"
+    >
       {[...Array(10)].map((_, i) => (
         <div
           key={i}

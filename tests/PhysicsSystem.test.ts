@@ -169,6 +169,8 @@ describe('PhysicsSystem', () => {
       playerScaleY: 1,
       nearMissTimer: 0,
       nearMissCooldown: 0,
+      rsiVisualState: 'NEUTRAL',
+      whaleEventTimer: 0,
     };
 
     mockOnGameOver = vi.fn();

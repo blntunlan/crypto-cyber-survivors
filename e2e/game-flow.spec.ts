@@ -64,7 +64,7 @@ test.describe('Game Flow', () => {
     await longBtn.click();
 
     // 4. Confirm in-game
-    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=/LV|LVL|LEVEL/i')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('canvas')).toBeVisible();
   });
 
