@@ -176,12 +176,20 @@ export const GameUI: React.FC<GameUIProps> = memo(
           <div className="flex flex-col items-end gap-3">
             {/* Pause Button - Visible during active play */}
             {status === GameStatus.PLAYING && onTogglePause && (
-              <div className="pointer-events-auto p-2 -m-2 z-[1005] relative">
+              <div
+                className="pointer-events-auto p-2 -m-2 z-[1005] relative"
+                style={{ touchAction: 'auto' }}
+              >
                 {/* z-[1005] ensures pause button is above DragToMoveController (z-998) and its feedback (z-1003) */}
+                {/* touch-action: auto overrides parent's touch-none for Safari compatibility */}
                 <button
                   onClick={e => {
                     e.stopPropagation();
                     onTogglePause();
+                  }}
+                  onTouchStart={e => {
+                    // Safari needs touchStart to register the element as interactive
+                    e.stopPropagation();
                   }}
                   onTouchEnd={e => {
                     e.stopPropagation();
@@ -189,6 +197,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
                     onTogglePause();
                   }}
                   className="bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
+                  style={{ touchAction: 'manipulation', cursor: 'pointer' }}
                   title="Pause (Esc)"
                   aria-label="Pause Game"
                 >
