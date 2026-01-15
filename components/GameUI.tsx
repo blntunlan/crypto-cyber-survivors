@@ -176,12 +176,16 @@ export const GameUI: React.FC<GameUIProps> = memo(
           <div className="flex flex-col items-end gap-3">
             {/* Pause Button - Visible during active play */}
             {status === GameStatus.PLAYING && onTogglePause && (
-              <div className="pointer-events-auto p-2 -m-2">
-                {' '}
-                {/* Larger invisible hit area */}
+              <div className="pointer-events-auto p-2 -m-2 z-[1005] relative">
+                {/* z-[1005] ensures pause button is above DragToMoveController (z-998) and its feedback (z-1003) */}
                 <button
                   onClick={e => {
                     e.stopPropagation();
+                    onTogglePause();
+                  }}
+                  onTouchEnd={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
                     onTogglePause();
                   }}
                   className="bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
