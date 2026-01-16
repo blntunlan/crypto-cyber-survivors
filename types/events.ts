@@ -62,7 +62,14 @@ export type GameEvent =
   | 'inventoryUpdated'
   | 'consumableUsed'
   | 'skinUnlocked'
-  | 'skinEquipped';
+  | 'skinEquipped'
+  // Anti-cheat events
+  | 'cheatDetected'
+  | 'cheatWarning'
+  | 'integrityCheckFailed'
+  // Player events
+  | 'playerDash'
+  | 'gameNotification';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -360,6 +367,57 @@ export interface SkinEquippedEvent {
 }
 
 // =============================================================================
+// ANTI-CHEAT EVENTS
+// =============================================================================
+
+/** Type of cheat detected */
+export type CheatType =
+  | 'DEVTOOLS_OPEN'
+  | 'DEBUGGER_DETECTED'
+  | 'MEMORY_TAMPER'
+  | 'SPEED_HACK'
+  | 'CONSOLE_MANIPULATION'
+  | 'CODE_INJECTION'
+  | 'NETWORK_MANIPULATION'
+  | 'UNKNOWN';
+
+/** Cheat detected event data */
+export interface CheatDetectedEvent {
+  /** Type of cheat detected */
+  type: CheatType;
+  /** When the cheat was detected */
+  timestamp: number;
+  /** Additional details about the detection */
+  details?: string;
+  /** Device fingerprint for tracking */
+  fingerprint?: string;
+  /** Severity level (1-10) */
+  severity: number;
+}
+
+/** Cheat warning event data (soft detection) */
+export interface CheatWarningEvent {
+  /** Type of suspicious activity */
+  type: CheatType;
+  /** Warning message */
+  message: string;
+  /** How many warnings for this type */
+  warningCount: number;
+}
+
+/** Integrity check failed event data */
+export interface IntegrityCheckFailedEvent {
+  /** Which value/system failed the check */
+  target: string;
+  /** Expected checksum/value */
+  expected: string;
+  /** Actual checksum/value */
+  actual: string;
+  /** When the check failed */
+  timestamp: number;
+}
+
+// =============================================================================
 // EVENT DATA MAP
 // =============================================================================
 
@@ -422,6 +480,19 @@ export interface EventDataMap {
   consumableUsed: ConsumableUsedEvent;
   skinUnlocked: SkinUnlockedEvent;
   skinEquipped: SkinEquippedEvent;
+  // Anti-cheat events
+  cheatDetected: CheatDetectedEvent;
+  cheatWarning: CheatWarningEvent;
+  integrityCheckFailed: IntegrityCheckFailedEvent;
+  playerDash: { duration: number; cooldown: number; isDoubleDash: boolean };
+  gameNotification: NotificationEvent;
+}
+
+export interface NotificationEvent {
+  title: string;
+  message: string;
+  type?: 'info' | 'success' | 'warning' | 'error';
+  duration?: number;
 }
 
 // =============================================================================

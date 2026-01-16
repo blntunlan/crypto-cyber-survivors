@@ -9,8 +9,11 @@ export interface ResponsiveUI {
   scale: number;
   // Device categories
   isSmallDevice: boolean;
+  isVeryNarrow: boolean; // <320px - ultra compact mode required
   isTablet: boolean;
   isLandscape: boolean;
+  // Bottom safe zone in pixels (for mobile controls area)
+  bottomSafeZone: number;
   // Helper to scale pixel values
   rs: (pixels: number) => number;
   // Helper for responsive font size
@@ -33,11 +36,16 @@ export function useResponsiveUI(): ResponsiveUI {
 
     // Determine device category
     const isSmallDevice = shortEdge < 360;
+    const isVeryNarrow = shortEdge < 320; // Ultra-compact mode
     const isTablet = shortEdge >= 600;
+
+    // Bottom safe zone: Mobile controls area reservation
+    // Landscape mode on small devices needs more space for touch controls
+    const bottomSafeZone = isLandscape && shortEdge < 500 ? 90 : 60;
 
     // Calculate scale factor using short edge comparison
     // We clamp the scale to avoid elements becoming too tiny or too massive
-    // Range: 0.8x to 1.5x roughly
+    // Range: 0.65x to 1.5x
     let rawScale = shortEdge / BASE_WIDTH;
 
     // Adjust scale curve
@@ -47,8 +55,8 @@ export function useResponsiveUI(): ResponsiveUI {
       rawScale = 1 + (rawScale - 1) * 0.5;
     }
 
-    // Clamp scale
-    const scale = Math.min(Math.max(rawScale, 0.7), 1.5);
+    // Clamp scale - lowered minimum to 0.65 for very small screens
+    const scale = Math.min(Math.max(rawScale, 0.65), 1.5);
 
     // Responsive sizer helper
     const rs = (pixels: number) => Math.round(pixels * scale);
@@ -59,8 +67,10 @@ export function useResponsiveUI(): ResponsiveUI {
     return {
       scale,
       isSmallDevice,
+      isVeryNarrow,
       isTablet,
       isLandscape,
+      bottomSafeZone,
       rs,
       rfs,
     };

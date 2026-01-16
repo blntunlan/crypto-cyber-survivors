@@ -103,8 +103,13 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
   maxStreak,
   totalBonusXp,
 }) => {
-  const { rs, rfs } = useResponsiveUI();
+  const { rs, rfs, isSmallDevice } = useResponsiveUI();
   const isRetro = useIsRetro();
+
+  // Hide on small devices to reduce clutter near health bar
+  if (isSmallDevice) {
+    return null;
+  }
 
   return (
     <div

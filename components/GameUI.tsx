@@ -155,8 +155,11 @@ export const GameUI: React.FC<GameUIProps> = memo(
         }}
       >
         <div className="flex justify-between items-start w-full">
-          {/* Left Panel: Transparent & Numerical Only */}
-          <div className="flex flex-col gap-2">
+          {/* Left Panel: Transparent & Numerical Only - Constrained for mobile */}
+          <div
+            className="flex flex-col gap-2 hud-element-left"
+            style={{ maxWidth: isMobile ? '48%' : undefined }}
+          >
             <LiveFeed
               marketData={marketData}
               entryPrice={entryPrice}
@@ -173,7 +176,11 @@ export const GameUI: React.FC<GameUIProps> = memo(
             )}
           </div>
 
-          <div className="flex flex-col items-end gap-3">
+          {/* Right Panel: Enhanced Stats - Constrained for mobile */}
+          <div
+            className="flex flex-col items-end gap-3 hud-element-right"
+            style={{ maxWidth: isMobile ? '48%' : undefined }}
+          >
             {/* Pause Button - Visible during active play */}
             {status === GameStatus.PLAYING && onTogglePause && (
               <div

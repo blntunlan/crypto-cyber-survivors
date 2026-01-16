@@ -6,6 +6,7 @@ import {
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
+import { ThemeService } from '../ThemeService';
 import { GAME_ENGINE } from '../../constants';
 
 /**
@@ -25,7 +26,7 @@ export class EffectRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
     state: GameState,
-    _player: Player,
+    player: Player,
     opts: RenderOptions
   ): void {
     const { width, height, graphics } = opts;
@@ -51,9 +52,8 @@ export class EffectRenderer implements IRenderer {
     }
 
     // 4. Momentum Feedback (Top layer)
-    // 4. Momentum Feedback (Top layer)
     if (graphics.showParticles) {
-      this.drawSpeedLines(ctx, pool);
+      this.drawSpeedLines(ctx, pool, player);
     }
 
     // 5. Market Ambiance Overlays (RSI/Whale)
@@ -306,10 +306,17 @@ export class EffectRenderer implements IRenderer {
   /**
    * Renders motion vectors to indicate high-speed movement.
    */
-  private drawSpeedLines(ctx: CanvasRenderingContext2D, pool: IPoolManager): void {
+  private drawSpeedLines(
+    ctx: CanvasRenderingContext2D,
+    pool: IPoolManager,
+    player: Player
+  ): void {
     if (pool.activeSpeedLines.length === 0) {
       return;
     }
+
+    const isRetro = ThemeService.isRetro();
+    const color = player.color; // Use sentiment-aware color
 
     ctx.save();
 
@@ -320,28 +327,30 @@ export class EffectRenderer implements IRenderer {
       // Vertical/Horizontal Gradients for "tail" fade
       const gradient = ctx.createLinearGradient(line.x, line.y, tailX, tailY);
 
-      // Cyberpunk Color Palette logic: Subtle blue/cyan shifts
-      const r = GAME_ENGINE.SPEED_LINE_R_BASE + Math.floor(55 * line.opacity);
-      const g = GAME_ENGINE.SPEED_LINE_G_BASE + Math.floor(25 * line.opacity);
-      const b = GAME_ENGINE.SPEED_LINE_B_BASE;
-
-      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${line.opacity * 0.9})`);
-      gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${line.opacity * 0.6})`);
-      gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+      if (isRetro) {
+        // Retro: Solid pixelated lines
+        gradient.addColorStop(0, `${color}CC`); // 80% opacity
+        gradient.addColorStop(1, `${color}00`); // 0% opacity
+      } else {
+        // Cyberpunk: Multi-stop neon gradient
+        gradient.addColorStop(0, `${color}F2`); // 95% opacity
+        gradient.addColorStop(0.3, `${color}99`); // 60% opacity
+        gradient.addColorStop(1, `${color}00`); // 0% opacity
+      }
 
       // 1. Primary Vector Line
       ctx.beginPath();
       ctx.strokeStyle = gradient;
       ctx.lineWidth = line.width;
-      ctx.lineCap = 'round';
+      ctx.lineCap = isRetro ? 'butt' : 'round';
       ctx.moveTo(line.x, line.y);
       ctx.lineTo(tailX, tailY);
       ctx.stroke();
 
-      // 2. Halo Glow (Only for high-opacity lines)
-      if (line.opacity > GAME_ENGINE.SPEED_LINE_GLOW_THRESHOLD) {
+      // 2. Halo Glow (Cyberpunk only)
+      if (!isRetro && line.opacity > GAME_ENGINE.SPEED_LINE_GLOW_THRESHOLD) {
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(150, 220, 255, ${line.opacity * 0.2})`;
+        ctx.strokeStyle = `${color}4D`; // 30% alpha theme color
         ctx.lineWidth = line.width * GAME_ENGINE.SPEED_LINE_GLOW_WIDTH_MULT;
         ctx.lineCap = 'round';
         ctx.moveTo(line.x, line.y);
@@ -349,11 +358,18 @@ export class EffectRenderer implements IRenderer {
         ctx.stroke();
       }
 
-      // 3. Vector Tip (The "point" of the speed line)
-      ctx.beginPath();
-      ctx.fillStyle = `rgba(255, 255, 255, ${line.opacity})`;
-      ctx.arc(line.x, line.y, line.width * 0.8, 0, Math.PI * 2);
-      ctx.fill();
+      // 3. Vector Tip (High energy point)
+      if (!isRetro) {
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${line.opacity})`;
+        ctx.arc(line.x, line.y, line.width * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Retro Tip: Square pixel
+        ctx.fillStyle = '#FFFFFF';
+        const tipSize = line.width;
+        ctx.fillRect(line.x - tipSize / 2, line.y - tipSize / 2, tipSize, tipSize);
+      }
     });
 
     ctx.restore();

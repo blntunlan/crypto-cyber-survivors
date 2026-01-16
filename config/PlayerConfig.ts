@@ -1,3 +1,4 @@
+import { EXPERIENCE_CONFIG } from './ExperienceConfig';
 import { type Player } from '../types';
 import { STAT_DEFINITIONS } from './StatRegistry';
 
@@ -47,8 +48,7 @@ export const PLAYER_STATS = {
   // =========================
   INITIAL_LEVEL: 1,
   INITIAL_EXP: 0,
-  INITIAL_NEXT_LEVEL_EXP: 100,
-  LEVEL_EXP_MULTIPLIER: 1.35, // exp needed increases by 35% each level (was 50%)
+  INITIAL_NEXT_LEVEL_EXP: EXPERIENCE_CONFIG.BASE_EXP,
 
   // =========================
   // STAT CAPS (prevents game breaking)

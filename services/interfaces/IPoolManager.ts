@@ -5,6 +5,7 @@ import {
   type FloatingText,
   type MarketPosition,
   type SpeedLine,
+  type Interactable,
 } from '../../types';
 import { type GameEnemy } from '../../factories/EnemyFactory';
 import { type WhaleTier } from '../../types/indicators';
@@ -21,6 +22,7 @@ export interface IPoolManager {
   readonly activeParticles: Particle[];
   readonly activeFloatingTexts: FloatingText[];
   readonly activeSpeedLines: SpeedLine[];
+  readonly activeInteractables: Interactable[];
 
   preWarm(config?: {
     enemies?: number;
@@ -92,6 +94,13 @@ export interface IPoolManager {
     angle: number,
     opacity: number
   ): SpeedLine;
+
+  getInteractable(
+    type: 'MINING_RIG' | 'LOOT_CRATE' | 'GAS_STATION',
+    x: number,
+    y: number,
+    health: number
+  ): Interactable;
 
   cleanup(): void;
   clearAll(): void;

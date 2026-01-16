@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#020617" />
+    <title>Offline - Crypto Survivors</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e293b 100%);
+        color: #f1f5f9;
+        font-family:
+          'Exo 2',
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        text-align: center;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 500px;
+      }
+
+      .icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(0.95);
+        }
+      }
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #f59e0b, #ef4444);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      p {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+
+      .retry-btn {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        border: none;
+        padding: 1rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+      }
+
+      .retry-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .retry-btn:active {
+        transform: translateY(0);
+      }
+
+      .status {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 0.75rem;
+        color: #fca5a5;
+        font-size: 0.9rem;
+      }
+
+      .tips {
+        margin-top: 2rem;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.5rem;
+        border-radius: 1rem;
+      }
+
+      .tips h3 {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .tips ul {
+        list-style: none;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+      }
+
+      .tips li {
+        padding: 0.5rem 0;
+        padding-left: 1.5rem;
+        position: relative;
+      }
+
+      .tips li::before {
+        content: '→';
+        position: absolute;
+        left: 0;
+        color: #3b82f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">📡</div>
+      <h1>Connection Lost</h1>
+      <p>
+        Looks like you've gone offline. Don't worry, your progress is saved locally and
+        will sync when you're back online.
+      </p>
+
+      <button class="retry-btn" onclick="window.location.reload()">🔄 Try Again</button>
+
+      <div class="status"><strong>Status:</strong> No internet connection detected</div>
+
+      <div class="tips">
+        <h3>While you wait</h3>
+        <ul>
+          <li>Check your WiFi or mobile data connection</li>
+          <li>Try moving to an area with better signal</li>
+          <li>The game will auto-reconnect when online</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Auto-reload when back online
+      window.addEventListener('online', () => {
+        window.location.reload();
+      });
+
+      // Update status
+      if (navigator.onLine) {
+        document.querySelector('.status').innerHTML =
+          '<strong>Status:</strong> Connection available, reloading...';
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    </script>
+  </body>
+</html>

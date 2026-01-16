@@ -4,6 +4,7 @@ export const useGameInput = () => {
   const keys = useRef<Record<string, boolean>>({});
   const touchVector = useRef({ dx: 0, dy: 0 });
   const touchDash = useRef(false);
+  const touchDashIntents = useRef(0); // Counter for dash intents to avoid losing fast taps
 
   // Track if space was released since last dash (for double dash detection)
   const spaceConsumed = useRef(false);
@@ -36,8 +37,12 @@ export const useGameInput = () => {
 
   const setTouchDash = (active: boolean) => {
     touchDash.current = active;
-    if (!active) {
+    if (active) {
+      touchDashIntents.current += 1;
+    } else {
       spaceConsumed.current = false;
+      // Also clear buffered intents on release to prevent sticky dashes
+      touchDashIntents.current = 0;
     }
   };
 
@@ -63,15 +68,18 @@ export const useGameInput = () => {
     return { dx: kdx, dy: kdy };
   };
 
-  const isSpacePressed = () =>
-    keys.current[' '] ?? keys.current['Spacebar'] ?? touchDash.current;
+  const isSpacePressed = () => {
+    const kSpace = keys.current[' '] ?? keys.current['Spacebar'] ?? false;
+    return kSpace || touchDash.current || touchDashIntents.current > 0;
+  };
 
   /**
    * Check if space was freshly pressed (not held from previous dash)
    * Used for double dash - requires user to release and press again
    */
   const isSpaceFreshPress = () => {
-    const pressed = keys.current[' '] ?? keys.current['Spacebar'] ?? touchDash.current;
+    const kSpace = keys.current[' '] ?? keys.current['Spacebar'] ?? false;
+    const pressed = kSpace || touchDash.current || touchDashIntents.current > 0;
     return pressed && !spaceConsumed.current;
   };
 
@@ -80,6 +88,9 @@ export const useGameInput = () => {
    */
   const consumeDash = () => {
     touchDash.current = false;
+    if (touchDashIntents.current > 0) {
+      touchDashIntents.current -= 1;
+    }
     spaceConsumed.current = true; // Mark space as consumed until released
   };
 

@@ -55,20 +55,40 @@ export const DESKTOP_LAYOUT: HUDLayout = {
 
 /**
  * MOBILE PHONE LAYOUT (Landscape)
+ * For screens 360-480px width
  */
 export const MOBILE_LAYOUT: HUDLayout = {
   globalScale: 0.85, // Slightly smaller to save screen real estate
   elements: {
-    waveTimer: { visible: true, scale: 1.2, opacity: 0.9, offset: { x: 0, y: 10 } },
+    waveTimer: { visible: true, scale: 1.0, opacity: 0.9, offset: { x: 0, y: 5 } }, // Reduced from 1.2
     fpsCounter: { visible: false, scale: 0.8, opacity: 0.5 }, // Hide FPS on mobile by default
-    comboPanel: { visible: true, scale: 1.1, opacity: 1.0, offset: { x: 0, y: 0 } },
-    milestoneAnnouncer: { visible: true, scale: 0.8, opacity: 1.0 },
-    achievementPopup: { visible: true, scale: 0.9, opacity: 1.0 },
-    enemyPointers: { visible: true, scale: 1.0, opacity: 0.8 },
-    clutchAnnouncement: { visible: true, scale: 1.0, opacity: 1.0 },
+    comboPanel: { visible: true, scale: 0.9, opacity: 1.0, offset: { x: 0, y: -20 } }, // Reduced, shifted up from controls
+    milestoneAnnouncer: { visible: true, scale: 0.7, opacity: 1.0 }, // Reduced from 0.8
+    achievementPopup: { visible: true, scale: 0.8, opacity: 1.0 }, // Reduced from 0.9
+    enemyPointers: { visible: true, scale: 0.9, opacity: 0.7 }, // Reduced opacity
+    clutchAnnouncement: { visible: true, scale: 0.9, opacity: 1.0 },
   },
   positioning: 'compact',
-  maxEnemies: 150,
+  maxEnemies: 100, // Reduced from 150 for performance
+};
+
+/**
+ * SMALL MOBILE PHONE LAYOUT
+ * For screens <360px (iPhone SE, Galaxy A01, etc.)
+ */
+export const SMALL_MOBILE_LAYOUT: HUDLayout = {
+  globalScale: 0.75, // More aggressive scaling for tiny screens
+  elements: {
+    waveTimer: { visible: true, scale: 0.9, opacity: 0.8, offset: { x: 0, y: 0 } },
+    fpsCounter: { visible: false, scale: 0.6, opacity: 0.3 }, // Always hidden
+    comboPanel: { visible: false, scale: 0.8, opacity: 0.9 }, // Hidden on very small screens
+    milestoneAnnouncer: { visible: true, scale: 0.6, opacity: 1.0 },
+    achievementPopup: { visible: true, scale: 0.7, opacity: 1.0 },
+    enemyPointers: { visible: true, scale: 0.8, opacity: 0.6 },
+    clutchAnnouncement: { visible: true, scale: 0.8, opacity: 1.0 },
+  },
+  positioning: 'minimal',
+  maxEnemies: 80, // Further reduced for performance on low-end devices
 };
 
 /**
@@ -89,16 +109,23 @@ export const TABLET_LAYOUT: HUDLayout = {
   maxEnemies: 150,
 };
 
+export type Platform = 'desktop' | 'mobile' | 'tablet';
+
 /**
  * Helper to get layout based on platform/device
+ * @param platform - Target platform
+ * @param screenWidth - Optional screen width for finer mobile breakpoints
  */
-export const getHUDLayout = (platform: 'desktop' | 'mobile' | 'tablet'): HUDLayout => {
-  switch (platform) {
-    case 'mobile':
-      return MOBILE_LAYOUT;
-    case 'tablet':
-      return TABLET_LAYOUT;
-    default:
-      return DESKTOP_LAYOUT;
+export const getHUDLayout = (platform: Platform, screenWidth?: number): HUDLayout => {
+  if (platform === 'mobile') {
+    // Use SMALL_MOBILE_LAYOUT for very narrow screens
+    if (screenWidth !== undefined && screenWidth < 360) {
+      return SMALL_MOBILE_LAYOUT;
+    }
+    return MOBILE_LAYOUT;
   }
+  if (platform === 'tablet') {
+    return TABLET_LAYOUT;
+  }
+  return DESKTOP_LAYOUT;
 };

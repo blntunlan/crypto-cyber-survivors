@@ -70,6 +70,24 @@ describe('CollectionSystem', () => {
 
       expect(gem.magnetized).toBe(true);
     });
+
+    it('should despawn gems after lifetime expires', () => {
+      const gem: Gem = {
+        x: 200,
+        y: 200,
+        radius: 5,
+        value: 10,
+        active: true,
+        elapsedLifetime: 4999,
+      } as any;
+      (mockPool as any).activeGems = [gem];
+
+      // Update with dtFactor 1 (approx 16.6ms)
+      system.update(mockPool, player, state, 1);
+
+      expect(gem.active).toBe(false);
+      expect(player.exp).toBe(0); // Not collected
+    });
   });
 
   describe('Buff Gems', () => {

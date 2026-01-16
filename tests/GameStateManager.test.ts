@@ -62,7 +62,7 @@ describe('GameStateManager', () => {
     it('should have correct initial level values', () => {
       expect(PLAYER_DEFAULTS.level).toBe(1);
       expect(PLAYER_DEFAULTS.exp).toBe(0);
-      expect(PLAYER_DEFAULTS.nextLevelExp).toBe(100);
+      expect(PLAYER_DEFAULTS.nextLevelExp).toBe(200);
     });
 
     it('should have correct initial combat stats', () => {

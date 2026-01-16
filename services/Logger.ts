@@ -4,6 +4,8 @@
  *
  * Provides structured logging with different levels.
  * Debug logs only show in development mode.
+ *
+ * Implements observer pattern for error reporting to avoid circular dependencies.
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -15,11 +17,18 @@ interface LogEntry {
   data?: unknown;
 }
 
+export type ErrorListener = (
+  message: string,
+  error?: unknown,
+  data?: Record<string, unknown>
+) => void;
+
 class LoggerClass {
   private static instance: LoggerClass | null = null;
   private isDev: boolean;
   private logs: LogEntry[] = [];
   private maxLogs = 100;
+  private errorListeners: Set<ErrorListener> = new Set();
 
   private constructor() {
     this.isDev = import.meta.env.DEV;
@@ -27,6 +36,15 @@ class LoggerClass {
 
   static getInstance(): LoggerClass {
     return (LoggerClass.instance ??= new LoggerClass());
+  }
+
+  /**
+   * Register a listener for error events.
+   * Usage: ErrorTracker subscribes here to capture logs without Logger importing it.
+   */
+  onError(listener: ErrorListener): () => void {
+    this.errorListeners.add(listener);
+    return () => this.errorListeners.delete(listener);
   }
 
   private createEntry(level: LogLevel, message: string, data?: unknown): LogEntry {
@@ -98,7 +116,7 @@ class LoggerClass {
   /**
    * Error - Error messages
    */
-  error(message: string, error?: unknown): void {
+  error(message: string, error?: unknown, data?: Record<string, unknown>): void {
     const entry = this.createEntry('error', message, error);
     this.store(entry);
 
@@ -108,21 +126,15 @@ class LoggerClass {
       console.error(`❌ ${this.formatMessage(entry)}`);
     }
 
-    // Report to central ErrorTracker (dynamic import to avoid circular dep)
-    void import('./analytics/ErrorTracker')
-      .then(tracker => {
-        void tracker.default.captureError({
-          errorType: 'LoggerError',
-          errorMessage: message,
-          category: 'runtime',
-          severity: 'medium',
-          context:
-            error instanceof Error ? { stack: error.stack } : { rawError: error },
-        });
-      })
-      .catch(() => {
-        // Ignore errors in error reporting
-      });
+    // Notify listeners (e.g. ErrorTracker)
+    // Wrap in try-catch to prevent listener errors from breaking logging
+    this.errorListeners.forEach(listener => {
+      try {
+        listener(message, error, data);
+      } catch (err) {
+        console.error('Failed to notify error listener:', err);
+      }
+    });
   }
 
   /**

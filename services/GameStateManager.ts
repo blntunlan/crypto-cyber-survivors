@@ -54,6 +54,7 @@ export const GAME_STATE_DEFAULTS = {
   // Squash & Stretch
   playerScaleX: 1,
   playerScaleY: 1,
+  playerRotation: 0,
   // Near Miss Tension
   nearMissTimer: 0,
   nearMissCooldown: 0,

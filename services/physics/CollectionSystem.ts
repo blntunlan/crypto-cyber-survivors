@@ -7,7 +7,7 @@ import { EventBus } from '../EventBus';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { lerp } from '../../utils/math';
 import { type ICollectionSystem } from '../interfaces/IPhysicsSubsystems';
-import { GAME_ENGINE } from '../../constants';
+import { GAME_ENGINE, GEMS } from '../../constants';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
@@ -66,6 +66,15 @@ export class CollectionSystem implements ICollectionSystem {
     effectiveMagnet: number
   ): void {
     pool.activeGems.forEach(gem => {
+      // 1. Lifetime check - gems despawn if not collected
+      gem.elapsedLifetime ??= 0;
+      gem.elapsedLifetime += dtFactor * GAME_ENGINE.MS_PER_FRAME;
+
+      if (gem.elapsedLifetime >= GEMS.LIFETIME) {
+        gem.active = false;
+        return;
+      }
+
       const dx = player.x - gem.x;
       const dy = player.y - gem.y;
       const distSq = dx * dx + dy * dy;

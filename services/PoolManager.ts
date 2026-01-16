@@ -1,11 +1,3 @@
-/**
- * PoolManager - High-Performance Object Pool Pattern
- *
- * Optimized for O(1) retrieval and minimal iteration overhead.
- * Handles recycling of game entities like enemies, bullets, gems, and particles
- * to prevent GC pressure and memory leaks in intensive combat sessions.
- */
-
 import {
   type Bullet,
   type Gem,
@@ -13,6 +5,7 @@ import {
   type FloatingText,
   type MarketPosition,
   type SpeedLine,
+  type Interactable,
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
@@ -89,19 +82,17 @@ class ObjectPool<T extends { active: boolean }> {
    */
   cleanup(): void {
     const active = this.active;
-    let i = active.length - 1;
-    while (i >= 0) {
-      if (!active[i]!.active) {
-        this.free.push(active[i]!);
-
-        // Fast swap-and-pop
-        const last = active.pop();
-        if (last && i < active.length) {
-          active[i] = last;
-        }
+    let writeIndex = 0;
+    for (let readIndex = 0; readIndex < active.length; readIndex++) {
+      const obj = active[readIndex]!;
+      if (obj.active) {
+        active[writeIndex] = obj;
+        writeIndex++;
+      } else {
+        this.free.push(obj);
       }
-      i--;
     }
+    active.length = writeIndex;
   }
 
   /**
@@ -140,6 +131,7 @@ export class PoolManager implements IPoolManager {
   private particles: ObjectPool<Particle>;
   private floatingTexts: ObjectPool<FloatingText>;
   private speedLines: ObjectPool<SpeedLine>;
+  private interactables: ObjectPool<Interactable>;
 
   constructor() {
     this.enemies = new ObjectPool<GameEnemy>(POOL.MAX_ACTIVE.ENEMIES);
@@ -148,6 +140,8 @@ export class PoolManager implements IPoolManager {
     this.particles = new ObjectPool<Particle>(POOL.MAX_ACTIVE.PARTICLES);
     this.floatingTexts = new ObjectPool<FloatingText>(POOL.MAX_ACTIVE.FLOATING_TEXTS);
     this.speedLines = new ObjectPool<SpeedLine>(POOL.MAX_ACTIVE.SPEED_LINES);
+    // Use a conservative limit for interactables as they are sparse
+    this.interactables = new ObjectPool<Interactable>(50);
   }
 
   // Active list accessors for high-performance iterations in physics and rendering systems
@@ -168,6 +162,9 @@ export class PoolManager implements IPoolManager {
   }
   get activeSpeedLines(): SpeedLine[] {
     return this.speedLines.active;
+  }
+  get activeInteractables(): Interactable[] {
+    return this.interactables.active;
   }
 
   /**
@@ -232,6 +229,7 @@ export class PoolManager implements IPoolManager {
         vx: 0,
         vy: 0,
         magnetized: false,
+        elapsedLifetime: 0,
       });
     }
 
@@ -437,6 +435,7 @@ export class PoolManager implements IPoolManager {
         obj.vx = 0;
         obj.vy = 0;
         obj.magnetized = false;
+        obj.elapsedLifetime = 0;
       }
     );
   }
@@ -537,6 +536,52 @@ export class PoolManager implements IPoolManager {
   }
 
   /**
+   * Retrieves an interactable environment object (e.g. Mining Rig).
+   */
+  getInteractable(
+    type: 'MINING_RIG' | 'LOOT_CRATE' | 'GAS_STATION',
+    x: number,
+    y: number,
+    health: number
+  ): Interactable {
+    const sizeMap = {
+      MINING_RIG: 25,
+      LOOT_CRATE: 20,
+      GAS_STATION: 30,
+    };
+    const colorMap = {
+      MINING_RIG: '#F7931A', // BTC Orange
+      LOOT_CRATE: '#A855F7', // Purple
+      GAS_STATION: '#3B82F6', // Blue
+    };
+
+    return this.interactables.get(
+      () => ({
+        active: true,
+        type,
+        x,
+        y,
+        health,
+        maxHealth: health,
+        radius: sizeMap[type],
+        color: colorMap[type],
+      }),
+      obj => {
+        obj.active = true;
+        obj.type = type;
+        obj.x = x;
+        obj.y = y;
+        obj.health = health;
+        obj.maxHealth = health;
+        obj.radius = sizeMap[type];
+        obj.color = colorMap[type];
+        obj.isHit = false;
+        obj.hitTimer = 0;
+      }
+    );
+  }
+
+  /**
    * Performs a focused cleanup of the active pools.
    */
   cleanup(): void {
@@ -546,6 +591,7 @@ export class PoolManager implements IPoolManager {
     this.particles.cleanup();
     this.floatingTexts.cleanup();
     this.speedLines.cleanup();
+    this.interactables.cleanup();
   }
 
   /**
@@ -558,6 +604,7 @@ export class PoolManager implements IPoolManager {
     this.particles.clear();
     this.floatingTexts.clear();
     this.speedLines.clear();
+    this.interactables.clear();
     this.trimFreeLists(POOL.TRIM_SIZE);
   }
 
@@ -571,5 +618,6 @@ export class PoolManager implements IPoolManager {
     this.particles.trim(maxPoolSize * 3);
     this.floatingTexts.trim(maxPoolSize);
     this.speedLines.trim(maxPoolSize);
+    this.interactables.trim(maxPoolSize);
   }
 }

@@ -29,23 +29,28 @@ const DesktopWaveTimer: React.FC = () => (
 
 const MobileWaveTimer: React.FC = () => {
   const isRetro = useIsRetro();
-  const { rs, rfs } = useResponsiveUI();
+  const { rs, rfs, isSmallDevice, isVeryNarrow } = useResponsiveUI();
 
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center"
-      style={{ top: `calc(${rs(16)}px + env(safe-area-inset-top, 0px))` }}
+      style={{
+        top: `calc(${isSmallDevice ? rs(8) : rs(16)}px + env(safe-area-inset-top, 0px))`,
+      }}
     >
-      <div
-        className={`text-slate-500/80 font-bold uppercase tracking-widest ${isRetro ? 'font-retro-text' : ''}`}
-        style={{ fontSize: isRetro ? rfs(6) : rfs(6) }}
-      >
-        SURVIVAL
-      </div>
+      {/* Hide label on very narrow screens to save space */}
+      {!isVeryNarrow && (
+        <div
+          className={`text-slate-500/80 font-bold uppercase tracking-widest ${isRetro ? 'font-retro-text' : ''}`}
+          style={{ fontSize: isRetro ? rfs(6) : rfs(isSmallDevice ? 5 : 6) }}
+        >
+          {isSmallDevice ? 'TIME' : 'SURVIVAL'}
+        </div>
+      )}
       <div
         id="wave-timer-text"
         className={`font-black italic tracking-tighter text-white drop-shadow-md tabular-nums ${isRetro ? 'font-retro-pixel' : ''}`}
-        style={{ fontSize: isRetro ? rfs(16) : rfs(16) }}
+        style={{ fontSize: isRetro ? rfs(16) : rfs(isSmallDevice ? 14 : 16) }}
       >
         0:00
       </div>

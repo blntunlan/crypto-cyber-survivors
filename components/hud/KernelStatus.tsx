@@ -76,7 +76,7 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
 
 const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
   const isRetro = useIsRetro();
-  const { rs, rfs } = useResponsiveUI();
+  const { rs, rfs, isSmallDevice } = useResponsiveUI();
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
 
   // Minimal mobile UI: Only Level + XP bar, no stat grid
@@ -84,22 +84,25 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
     <div
       className="bg-transparent flex flex-col text-right"
       style={{
-        padding: rs(6),
-        gap: rs(4),
-        minWidth: rs(70),
+        padding: isSmallDevice ? rs(4) : rs(6),
+        gap: isSmallDevice ? rs(2) : rs(4),
+        minWidth: isSmallDevice ? rs(50) : rs(70),
       }}
     >
       {/* Compact Level Display */}
-      <div className="flex items-center justify-end" style={{ gap: rs(4) }}>
+      <div
+        className="flex items-center justify-end"
+        style={{ gap: isSmallDevice ? rs(2) : rs(4) }}
+      >
         <div
           className="uppercase font-black tracking-wider text-blue-400/70"
-          style={{ fontSize: rfs(8) }}
+          style={{ fontSize: rfs(isSmallDevice ? 7 : 8) }}
         >
           LV
         </div>
         <div
           className={`font-black text-white leading-none tracking-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-          style={{ fontSize: rfs(24) }}
+          style={{ fontSize: rfs(isSmallDevice ? 18 : 24) }}
         >
           {player.level}
         </div>
@@ -108,7 +111,7 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
       {/* Thin XP Bar */}
       <div
         className={`w-full bg-slate-800/40 overflow-hidden ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
-        style={{ height: rs(3) }}
+        style={{ height: isSmallDevice ? rs(2) : rs(3) }}
       >
         <div
           className={`h-full bg-blue-400 ${isRetro ? '' : 'shadow-[0_0_4px_rgba(96,165,250,0.4)]'}`}

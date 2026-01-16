@@ -48,18 +48,6 @@ export function useGameStatus(): UseGameStatusReturn {
     return () => window.removeEventListener('keydown', handleGlobalKeys);
   }, [handlePauseToggle]);
 
-  // Auto-pause when tab loses focus (prevents rAF throttling issues)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && gameStatus === GameStatus.PLAYING) {
-        GameStateMachine.transition(GameStatus.PAUSED);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () =>
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [gameStatus]);
-
   return {
     gameStatus,
     handlePauseToggle,

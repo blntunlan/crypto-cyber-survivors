@@ -1,7 +1,7 @@
 # 🗺️ Crypto Cyber Survivors - Master Roadmap
 
 > Bu döküman projenin stratejik yol haritasını, önceliklerini ve zaman çizelgesini içerir.
-> Son Güncelleme: 2025-12-30
+> Son Güncelleme: 2026-01-17
 
 ---
 
@@ -9,12 +9,13 @@
 
 | Metrik | Değer |
 |--------|-------|
-| **Versiyon** | 0.0.0 (Alpha) |
-| **Test Coverage** | 767+ test ✅ |
+| **Versiyon** | 0.1.0 (Beta) |
+| **Test Coverage** | 979+ unit tests, 72 E2E tests ✅ |
 | **Lint Status** | 0 error, 0 warning ✅ |
 | **Core Features** | ✅ Tamamlandı |
+| **Mobile Support** | ✅ Tamamlandı |
 | **Code Review Tasks** | ✅ 13/13 Tamamlandı |
-| **Production Ready** | 🔶 Kısmen (Backend Integration Ongoing) |
+| **Production Ready** | 🔶 Kısmen (Anti-Cheat & Launch Prep Ongoing) |
 
 ---
 
@@ -24,9 +25,9 @@
 
 ```
 Faz 1: Solid Foundation     ████████████████████ 100% ✅
- Faz 2: Polish & Quality     ██████████████░░░░░░  70% 🔶
- Faz 3: Backend & Web3       ████████░░░░░░░░░░░░  40% 🔶
-Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░░░░   0% ⬜
+Faz 2: Polish & Quality     ██████████████████░░  90% ✅
+Faz 3: Backend & Web3       ████████████░░░░░░░░  60% 🔶
+Faz 4: Launch & Growth      ████░░░░░░░░░░░░░░░░  20% 🔶
 ```
 
 ---
@@ -37,21 +38,22 @@ Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░�
 
 | Özellik | Durum |
 |---------|-------|
-| Canvas Game Engine | ✅ |
+| Canvas Game Engine (60 FPS) | ✅ |
 | Player Movement & Dash | ✅ |
 | Enemy System (6 tip) | ✅ |
 | Combat System | ✅ |
-| Object Pooling | ✅ |
-| Card System (30+ kart) | ✅ |
+| Object Pooling (O(1)) | ✅ |
+| Spatial Grid Collision | ✅ |
+| Card System (40+ kart) | ✅ |
 | Real-time BTC WebSocket | ✅ |
-| Dynamic Difficulty | ✅ |
+| Dynamic Difficulty (Market-based) | ✅ |
 | Combo System | ✅ |
-| Audio Service | ✅ |
+| Audio Service (SynthEngine) | ✅ |
 | Metrics Collection | ✅ |
 
 ---
 
-## ⭐ Faz 2: Polish & Quality (Devam Ediyor)
+## ⭐ Faz 2: Polish & Quality ✅ (90% Tamamlandı)
 
 ### 2.1 ✅ Kod Kalitesi (Tamamlandı)
 
@@ -59,95 +61,109 @@ Faz 4: Launch & Growth      ░░░░░░░░░░░░░░░░░�
 |------|-------|
 | Lint errors fix | ✅ |
 | TypeScript strict mode | ✅ |
-| Test coverage (+51 test) | ✅ |
+| Test coverage (979 unit + 72 E2E) | ✅ |
 | WebSocket error handling | ✅ |
 | localStorage quota handling | ✅ |
 | **Modular Renderer Refactor** | ✅ |
 | **3-Tier Projectile Visuals** | ✅ |
+| **EventBus Tracing Mode** | ✅ |
+| **Debug State Methods** | ✅ |
 
-### 2.2 🔶 Kütüphane Entegrasyonları
+### 2.2 ✅ Kütüphane Entegrasyonları (Tamamlandı)
 
 | Kütüphane | Öncelik | Amaç | Durum |
 |-----------|---------|------|-------|
-| **nanoid** | ⭐⭐⭐⭐⭐ | Collision-free ID generation | ⬜ |
+| **nanoid** | ⭐⭐⭐⭐⭐ | Collision-free ID generation | ✅ |
 | **Zustand** | ⭐⭐⭐⭐⭐ | State management, settings persist | ✅ gameStore |
 | **Zod** | ⭐⭐⭐⭐ | WebSocket data validation | ✅ marketSchemas |
-| **Howler.js** | ⭐⭐⭐ | Profesyonel ses sistemi | ⬜ |
-| **Framer Motion** | ⭐⭐⭐ | UI animasyonları | ⬜ |
+| **Framer Motion** | ⭐⭐⭐ | UI animasyonları | ✅ |
 
-### 2.3 🔶 UI/UX İyileştirmeleri
+### 2.3 ✅ UI/UX İyileştirmeleri
 
-| Task | Öncelik | Süre |
-|------|---------|------|
-| Settings menu (ses, grafik) | ⭐⭐⭐⭐ | 3 saat |
-| Game over screen redesign | ⭐⭐⭐ | 2 saat |
-| Card selection animations | ⭐⭐⭐ | 2 saat |
-| Loading screen | ⭐⭐ | 1 saat |
-| Tutorial/Onboarding | ⭐⭐ | 4 saat |
+| Task | Öncelik | Durum |
+|------|---------|-------|
+| Settings menu (ses, grafik) | ⭐⭐⭐⭐ | ✅ |
+| Game over screen redesign | ⭐⭐⭐ | ✅ |
+| Card selection animations | ⭐⭐⭐ | ✅ |
+| Loading screen | ⭐⭐ | ✅ |
+| Tutorial/Onboarding | ⭐⭐ | 🔶 Planlandı |
 
-### 2.4 ⬜ Mobil Uyumluluk
+### 2.4 ✅ Mobil Uyumluluk (Tamamlandı)
 
-> 📱 **Detaylı Roadmap:** [MOBILE_INTEGRATION_ROADMAP.md](./MOBILE_INTEGRATION_ROADMAP.md)
+> 📱 **Detaylı Roadmap:** [completed/MOBILE_INTEGRATION_ROADMAP.md](./completed/MOBILE_INTEGRATION_ROADMAP.md)
 
-| Task | Öncelik | Süre | Durum |
-|------|---------|------|-------|
-| Touch controls (virtual joystick) | ⭐⭐⭐⭐⭐ | 1-2 gün | ⬜ |
-| Responsive canvas + safe area | ⭐⭐⭐⭐⭐ | 4 saat | ⬜ |
-| Mobile HUD optimization | ⭐⭐⭐⭐ | 2 saat | ⬜ |
-| PWA manifest + icons | ⭐⭐⭐⭐ | 3 saat | ⬜ |
-| Service worker (offline) | ⭐⭐⭐ | 3 saat | ⬜ |
-| Haptic feedback system | ⭐⭐⭐ | 2 saat | ⬜ |
-| Performance optimization | ⭐⭐⭐ | 1 gün | ⬜ |
+| Task | Öncelik | Durum |
+|------|---------|-------|
+| Touch controls (virtual joystick) | ⭐⭐⭐⭐⭐ | ✅ |
+| Drag-to-Move alternative | ⭐⭐⭐⭐⭐ | ✅ |
+| Responsive canvas + safe area | ⭐⭐⭐⭐⭐ | ✅ |
+| Mobile HUD optimization | ⭐⭐⭐⭐ | ✅ |
+| Haptic feedback system | ⭐⭐⭐ | ✅ |
+| Performance optimization | ⭐⭐⭐ | ✅ |
+| Device benchmark profiling | ⭐⭐⭐ | ✅ |
 
-**Mobil Strateji:** PWA (Progressive Web App) - Tek codebase ile web + mobil
+### 2.5 🔶 PWA & Offline (Devam Ediyor)
 
-### 2.5 ⬜ Native App Store Çıkışı (Gelecek)
+| Task | Öncelik | Durum |
+|------|---------|-------|
+| PWA manifest + icons | ⭐⭐⭐⭐ | 🔶 Planlandı |
+| Service worker (offline) | ⭐⭐⭐ | ⬜ |
+| Install prompt | ⭐⭐⭐ | ⬜ |
+
+### 2.6 ⬜ Native App Store Çıkışı (Gelecek)
 
 > 📲 **Detaylı Roadmap:** [NATIVE_APP_ROADMAP.md](./NATIVE_APP_ROADMAP.md)
 
-| Task | Öncelik | Süre | Durum |
-|------|---------|------|-------|
-| Pre-native hazırlık (Faz 0) | ⭐⭐⭐⭐ | Paralel | ⬜ |
-| Capacitor entegrasyonu | ⭐⭐⭐⭐ | 2-3 gün | ⬜ |
-| iOS App Store submission | ⭐⭐⭐ | 1 hafta | ⬜ |
-| Google Play submission | ⭐⭐⭐ | 1 hafta | ⬜ |
-| Beta testing (TestFlight/Internal) | ⭐⭐⭐ | 1 hafta | ⬜ |
-
-**Native Strateji:** Capacitor.js - React codebase korunur, native wrapper ile App Store dağıtımı
+| Task | Öncelik | Durum |
+|------|---------|-------|
+| Capacitor entegrasyonu | ⭐⭐⭐⭐ | ⬜ |
+| iOS App Store submission | ⭐⭐⭐ | ⬜ |
+| Google Play submission | ⭐⭐⭐ | ⬜ |
 
 ---
 
-## 🔗 Faz 3: Backend & Web3 (Gelecek)
+## 🔗 Faz 3: Backend & Web3 (60% Tamamlandı)
 
-### 3.1 Backend Infrastructure
+### 3.1 ✅ Backend Infrastructure (Tamamlandı)
 
-```
-Timeline: 2-3 Hafta
-Teknoloji: Supabase (veya Node.js + PostgreSQL)
-```
+| Milestone | Bileşenler | Durum |
+|-----------|------------|-------|
+| **M1: Supabase Setup** | Tables, RLS policies, Edge functions | ✅ |
+| **M2: Auth System** | Device Fingerprint + Nickname Login | ✅ |
+| **M3: Score System** | Submit, validate, store scores | ✅ |
+| **M4: Leaderboard** | Real-time rankings view | ✅ |
+| **M5: Railway Price Logger** | BTC/USD price history (5s tick) | ✅ |
+| **M6: Error Tracking** | Client-side error reporting | ✅ |
 
-| Milestone | Bileşenler | Süre |
-|-----------|------------|------|
-| **M1: API Scaffold** | Supabase setup, tables, Edge functions | ✅ Tamamlandı |
-| **M2: Auth System** | Device Fingerprint + Nickname Login | ✅ Tamamlandı |
-| **M3: Score System** | Submit, validate, store scores | 🚧 Devam Ediyor |
-| **M4: Leaderboard** | Daily/Season/All-time rankings | ⬜ Beklemede |
-| **M5: Anti-Cheat** | Replay hash, time validation, rate limit | 🚧 Devam Ediyor |
-
-### 3.2 Database Schema
+### 3.2 ✅ Database Schema (Tamamlandı)
 
 ```sql
--- Core Tables
-players (wallet_address, nickname, created_at, ban_status)
-game_sessions (id, player_id, score, pnl, duration, replay_hash)
-leaderboard (season_id, player_id, best_score, rank)
-seasons (id, start_date, end_date, prize_pool)
+-- Core Tables (Implemented)
+players (id, nickname, device_fingerprint, created_at, ban_status)
+game_sessions (id, player_id, score, pnl, duration, validated)
+player_wallets (player_id, confirmed_balance, pending_balance)
+coin_transactions (id, player_id, amount, tx_type, created_at)
+price_logs (id, pair, price, source, fetched_at)
+error_reports (id, player_id, error_type, severity, context)
 
--- Analytics
-metrics_sessions (id, session_id, metrics_json, created_at)
+-- Views
+leaderboard (SECURITY INVOKER - player rankings)
 ```
 
-### 3.3 Web3 Integration
+### 3.3 🔶 Anti-Cheat System (Planlandı)
+
+> 🛡️ **Detaylı Roadmap:** [ANTI_CHEAT_ROADMAP.md](./ANTI_CHEAT_ROADMAP.md)
+
+| Task | Öncelik | Durum |
+|------|---------|-------|
+| Session signing | ⭐⭐⭐⭐⭐ | 🔶 Devam Ediyor |
+| Server-side score validation | ⭐⭐⭐⭐⭐ | ✅ verify-game |
+| Replay hash verification | ⭐⭐⭐⭐ | ⬜ |
+| Client-side obfuscation | ⭐⭐⭐ | ⬜ |
+| DevTools detection | ⭐⭐⭐ | ⬜ |
+| Anomaly detection | ⭐⭐⭐ | ⬜ |
+
+### 3.4 ⬜ Web3 Integration (Gelecek)
 
 ```
 Blockchain: Solana (düşük tx fee, hızlı)
@@ -155,31 +171,31 @@ Wallet: Phantom / Solflare
 NFT Standard: Metaplex
 ```
 
-| Milestone | Bileşenler | Süre |
-|-----------|------------|------|
-| **W1: Wallet Connect** | Connect button, signature request | 1 gün |
-| **W2: Session Signing** | Game start/end signature | 1 gün |
-| **W3: NFT Contract** | Achievement NFT contract (Metaplex) | 2 gün |
-| **W4: Minting** | Season winner NFT minting | 2 gün |
+| Milestone | Bileşenler | Durum |
+|-----------|------------|-------|
+| **W1: Wallet Connect** | Connect button, signature request | ⬜ |
+| **W2: Session Signing** | Game start/end signature | ⬜ |
+| **W3: NFT Contract** | Achievement NFT (Metaplex) | ⬜ |
+| **W4: Token Rewards** | Season prize distribution | ⬜ |
 
 ---
 
-## 🚀 Faz 4: Launch & Growth
+## 🚀 Faz 4: Launch & Growth (20% Başladı)
 
-### 4.1 Pre-Launch Checklist
+### 4.1 🔶 Pre-Launch Checklist
 
-| Task | Kategori |
-|------|----------|
-| ⬜ Performance profiling (Lighthouse 90+) | Tech |
-| ⬜ Error tracking (Sentry) | Tech |
-| ⬜ Analytics (PostHog) | Tech |
-| ⬜ Landing page | Marketing |
-| ⬜ Social media assets | Marketing |
-| ⬜ Press kit | Marketing |
-| ⬜ Beta testers program | Community |
-| ⬜ Discord server setup | Community |
+| Task | Kategori | Durum |
+|------|----------|-------|
+| Performance profiling (Lighthouse 90+) | Tech | 🔶 |
+| Error tracking (Supabase) | Tech | ✅ |
+| Analytics (MetricsService) | Tech | ✅ |
+| Landing page | Marketing | ⬜ |
+| Social media assets | Marketing | ⬜ |
+| Press kit | Marketing | ⬜ |
+| Beta testers program | Community | 🔶 |
+| Discord server setup | Community | ⬜ |
 
-### 4.2 Launch Strategy
+### 4.2 ⬜ Launch Strategy
 
 ```
 Week 1: Soft Launch
@@ -198,138 +214,52 @@ Week 3+: Growth
 - Partnerships
 ```
 
-### 4.3 Post-Launch Roadmap
+### 4.3 ⬜ Post-Launch Roadmap
 
 | Feature | Priority | Timeline |
 |---------|----------|----------|
+| Boss battles | ⭐⭐⭐⭐⭐ | v0.2 |
 | New enemy types | ⭐⭐⭐⭐ | v0.2 |
-| Boss battles | ⭐⭐⭐⭐ | v0.3 |
-| Multiple characters | ⭐⭐⭐ | v0.4 |
+| Multiple characters | ⭐⭐⭐ | v0.3 |
+| Daily challenges | ⭐⭐⭐ | v0.3 |
+| Seasonal leaderboards | ⭐⭐⭐ | v0.4 |
 | Co-op multiplayer | ⭐⭐ | v1.0 |
 | Token integration | ⭐⭐ | v1.0 |
 
 ---
 
-## 📅 Detaylı Zaman Çizelgesi
-
-### Hafta 1 (Bu Hafta) - Polish
-
-```
-Pazartesi   : nanoid + Zustand entegrasyonu
-Salı        : Settings menu implementasyonu
-Çarşamba    : Zod validation + WebSocket refactor
-Perşembe    : Howler.js audio refactor
-Cuma        : Framer Motion UI animations
-Hafta Sonu  : Testing + Bug fixes
-```
-
-### Hafta 2 - Mobile & PWA
-
-```
-Pazartesi   : Touch controls design
-Salı        : Virtual joystick implementation
-Çarşamba    : Responsive canvas
-Perşembe    : PWA manifest + icons
-Cuma        : Service worker
-Hafta Sonu  : Mobile testing
-```
-
-### Hafta 3-4 - Backend
-
-```
-Week 3:
-- Supabase project setup
-- Database schema
-- Auth flow (wallet)
-- Basic API endpoints
-
-Week 4:
-- Score submission
-- Leaderboard queries
-- Anti-cheat basics
-- Frontend integration
-```
-
-### Hafta 5-6 - Web3
-
-```
-Week 5:
-- Solana wallet integration
-- Session signing
-- NFT contract development
-
-Week 6:
-- NFT minting flow
-- Season management
-- Testing & audit
-```
-
----
-
 ## 🛠️ Teknik Kararlar
 
-### State Management
-
+### State Management ✅
 ```
-Şu an: Custom hooks + useRef
-Hedef: Zustand
-
-Neden:
-- Minimal boilerplate
-- Built-in persist middleware
+Mevcut: Zustand 5 (gameStore.ts)
+- Settings persistence
 - React dışından erişim (game loop)
 - DevTools desteği
 ```
 
-### Audio
-
+### Audio ✅
 ```
-Şu an: Raw Web Audio API
-Hedef: Howler.js
-
-Neden:
-- Cross-browser uyumluluk
-- Audio sprites (tek dosya)
+Mevcut: SynthEngine (Web Audio API)
+- Procedural sound generation
+- Category-based volume control
 - Mobile audio unlock
-- Volume fade/pan
 ```
 
-### Validation
-
+### Backend ✅
 ```
-Şu an: Manuel type guards
-Hedef: Zod
-
-Neden:
-- Runtime validation
-- TypeScript inference
-- WebSocket data güvenliği
-- Config validation
-```
-
-### Backend
-
-```
-Tercih: Supabase
-
-Neden:
-- PostgreSQL (güçlü queries)
+Mevcut: Supabase
+- PostgreSQL with RLS
+- Edge Functions
 - Realtime subscriptions
-- Edge Functions (low latency)
-- Auth built-in
-- Generous free tier
+- Device fingerprint auth
 ```
 
-### Animation
-
+### Deployment ✅
 ```
-Tercih: Framer Motion
-
-Neden:
-- React-native syntax
-- AnimatePresence (exit animations)
-- Gesture support
-- Performance optimized
+Mevcut: Railway
+- Frontend: Static site
+- Backend: railway-market-server (price logger)
 ```
 
 ---
@@ -338,13 +268,13 @@ Neden:
 
 ### Tech KPIs
 
-| Metrik | Şu An | Hedef |
-|--------|-------|-------|
-| Lighthouse Performance | ? | 90+ |
-| Test Coverage | 150 | 200+ |
-| Build Size | ? | < 500KB |
-| First Contentful Paint | ? | < 1.5s |
-| Time to Interactive | ? | < 3s |
+| Metrik | Mevcut | Hedef |
+|--------|--------|-------|
+| Unit Tests | 979 | 1000+ |
+| E2E Tests | 72 | 100+ |
+| Lighthouse Performance | ~85 | 90+ |
+| Build Size | ~400KB | < 500KB |
+| FPS (Mobile) | 60 | 60 stable |
 
 ### Game KPIs (Post-Launch)
 
@@ -354,7 +284,7 @@ Neden:
 | D7 Retention | > 15% |
 | Avg Session Duration | > 5 min |
 | Daily Active Users | 1000+ |
-| Conversion (wallet connect) | > 20% |
+| Leaderboard Participation | > 50% |
 
 ---
 
@@ -362,11 +292,11 @@ Neden:
 
 | Risk | Olasılık | Etki | Mitigasyon |
 |------|----------|------|------------|
-| WebSocket kesintisi | Orta | Yüksek | Exponential backoff ✅ |
-| Cheating | Yüksek | Yüksek | Server-side validation |
-| Solana network congestion | Orta | Orta | Transaction retry logic |
-| localStorage quota | Düşük | Orta | Graceful degradation ✅ |
-| Mobile performance | Orta | Orta | Canvas optimization |
+| WebSocket kesintisi | Orta | Yüksek | ✅ Exponential backoff + Coinbase fallback |
+| Cheating | Yüksek | Yüksek | 🔶 Server-side validation (ongoing) |
+| Mobile performance | Orta | Orta | ✅ Device benchmark + performance presets |
+| localStorage quota | Düşük | Orta | ✅ Graceful degradation |
+| Supabase downtime | Düşük | Yüksek | Offline queue + retry logic |
 
 ---
 
@@ -374,20 +304,18 @@ Neden:
 
 ### Dokümantasyon
 
-- [IMPROVEMENT_TASKS.md](./IMPROVEMENT_TASKS.md) - Sprint görevleri
-- [MOBILE_INTEGRATION_ROADMAP.md](./MOBILE_INTEGRATION_ROADMAP.md) - Mobil PWA entegrasyonu
-- [NATIVE_APP_ROADMAP.md](./NATIVE_APP_ROADMAP.md) - iOS/Android App Store çıkışı
-- [LEADERBOARD_ARCHITECTURE.md](./LEADERBOARD_ARCHITECTURE.md) - Backend planı
+- [ANTI_CHEAT_ROADMAP.md](./ANTI_CHEAT_ROADMAP.md) - Güvenlik sistemi
+- [NATIVE_APP_ROADMAP.md](./NATIVE_APP_ROADMAP.md) - iOS/Android çıkışı
+- [completed/LEADERBOARD_ARCHITECTURE.md](./completed/LEADERBOARD_ARCHITECTURE.md) - Backend planı
 - [CARD_SYSTEM_REFERENCE.md](./CARD_SYSTEM_REFERENCE.md) - Kart sistemi
 - [ENEMY_SYSTEM.md](./ENEMY_SYSTEM.md) - Düşman tipleri
 
-### External
+### Tamamlanan Roadmap'ler
 
-- [Supabase Docs](https://supabase.com/docs)
-- [Solana Cookbook](https://solanacookbook.com)
-- [Metaplex Docs](https://docs.metaplex.com)
-- [Zustand](https://github.com/pmndrs/zustand)
-- [Howler.js](https://howlerjs.com)
+- [completed/MOBILE_INTEGRATION_ROADMAP.md](./completed/MOBILE_INTEGRATION_ROADMAP.md)
+- [completed/BETA_USER_SYSTEM_ROADMAP.md](./completed/BETA_USER_SYSTEM_ROADMAP.md)
+- [completed/COMPLETED_METRICS_ROADMAP.md](./completed/COMPLETED_METRICS_ROADMAP.md)
+- [completed/DEVICE_BENCHMARK_ROADMAP.md](./completed/DEVICE_BENCHMARK_ROADMAP.md)
 
 ---
 
@@ -395,15 +323,14 @@ Neden:
 
 ### Bu Hafta
 
-1. **Pazartesi**: `nanoid` + `zustand` kurulumu
-2. **Salı**: Settings persistence ile Zustand store
-3. **Çarşamba**: `zod` ile WebSocket validation
-4. **Perşembe**: Game over / level up animations (Framer Motion)
-5. **Cuma**: Lighthouse audit + optimizations
+1. ~~**Lint warnings fix**~~ ✅ Tamamlandı
+2. ~~**ROADMAP güncelleme**~~ ✅ Tamamlandı
+3. **Anti-cheat temel implementasyonu** 🔶
+4. **PWA manifest + service worker** 🔶
+5. **TODO dokümanı oluşturma** 🔶
 
 ### Karar Noktaları
 
-- [ ] Backend: Supabase vs Custom Node.js?
 - [ ] NFT: Solana vs Polygon?
 - [ ] Token: Mevcut token vs yeni token?
 - [ ] Monetization: Free-to-play vs NFT-gated?

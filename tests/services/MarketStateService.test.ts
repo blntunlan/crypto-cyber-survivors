@@ -1,22 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MarketStateService } from '../../services/MarketStateService';
-const marketStateService = MarketStateService as any; // Cast to any for outdated test methods
 import { EventBus } from '../../services/EventBus';
 import { supabase } from '../../services/Supabase';
 
 // Mock Supabase
+const mockChannel = {
+  on: vi.fn().mockReturnThis(),
+  subscribe: vi.fn().mockReturnThis(),
+  unsubscribe: vi.fn().mockResolvedValue(undefined),
+};
+
 vi.mock('../../services/Supabase', () => {
-  const mockOn = vi.fn().mockReturnThis();
-  const mockChannel = {
-    on: mockOn,
-    subscribe: vi.fn().mockReturnThis(),
-  };
   return {
     supabase: {
-      from: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn(),
+      from: vi.fn(), // Will be mocked per test
       channel: vi.fn(() => mockChannel),
       removeChannel: vi.fn(),
     },
@@ -32,65 +29,86 @@ vi.mock('../../services/EventBus', () => ({
   },
 }));
 
-describe.skip('MarketStateService (outdated API - tests need rewrite)', () => {
-  beforeEach(async () => {
-    vi.clearAllMocks();
-    await marketStateService.destroy();
+// Helper to mock fetchAll response
+const mockSupabaseResponse = (data: any, error: any = null) => {
+  const selectMock = vi.fn().mockResolvedValue({ data, error });
+  (supabase as any).from.mockReturnValue({
+    select: selectMock,
+  });
+  return selectMock;
+};
 
-    // Setup mock response for single()
-    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue(
-      {
-        data: {
-          pair: 'BTC',
-          price: '50000',
-          volume: '1000',
-          rsi: '45',
-          rsi_state: 'NEUTRAL',
-          atr: '500',
-          atr_percent: '1',
-          spawn_rate_multiplier: '1',
-          normalized_volume: '0.5',
-          volume_percentile: '0.5',
-          whale_tier: 0,
-          enemy_aggro_multiplier_long: 1,
-          enemy_aggro_multiplier_short: 1,
-          updated_at: new Date().toISOString(),
-        },
-        error: null,
-      } as any
-    );
+describe('MarketStateService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset private fields if possible?
+    // Since it's a singleton, we might need to be careful.
+    // The service has a 'states' map. We can't easily clear it without a reset method or access to private.
+    // However, init() calls fetchAll() which overwrites keys.
+    MarketStateService.cleanup();
+  });
+
+  afterEach(() => {
+    MarketStateService.cleanup();
   });
 
   it('should initialize and fetch initial state', async () => {
-    const state = await marketStateService.initialize('BTC', 'LONG');
+    const mockData = [
+      {
+        pair: 'BTC',
+        price: '50000',
+        volume: '1000',
+        rsi: '45',
+        rsi_state: 'NEUTRAL',
+        atr: '500',
+        atr_percent: '1',
+        spawn_rate_multiplier: '1',
+        normalized_volume: '0.5',
+        volume_percentile: '0.5',
+        whale_tier: 0,
+        enemy_aggro_multiplier_long: 1,
+        enemy_aggro_multiplier_short: 1,
+        updated_at: new Date().toISOString(),
+      },
+    ];
 
-    expect(supabase!.from).toHaveBeenCalledWith('market_state');
+    mockSupabaseResponse(mockData);
+
+    await MarketStateService.init();
+
+    expect(supabase.from).toHaveBeenCalledWith('market_state');
+
+    // Check if state is set
+    const state = MarketStateService.getState('BTC');
     expect(state).toBeDefined();
     expect(state?.price).toBe(50000);
-    expect(EventBus.emit).toHaveBeenCalledWith('marketStateUpdated', state);
+    expect(state?.rsiState).toBe('NEUTRAL');
   });
 
   it('should subscribe to realtime updates after initialization', async () => {
-    await marketStateService.initialize('BTC', 'LONG');
+    mockSupabaseResponse([]);
 
-    expect(supabase!.channel).toHaveBeenCalledWith('market_state_changes');
-    const mockChannel = vi.mocked((supabase as any).channel).mock.results[0].value;
+    await MarketStateService.init();
+
+    expect(supabase.channel).toHaveBeenCalledWith('market_state_changes');
     expect(mockChannel.on).toHaveBeenCalledWith(
       'postgres_changes',
-      expect.objectContaining({
-        event: 'UPDATE',
-        table: 'market_state',
-        filter: 'pair=eq.BTC',
-      }),
+      { event: '*', schema: 'public', table: 'market_state' },
       expect.any(Function)
     );
+    expect(mockChannel.subscribe).toHaveBeenCalled();
   });
 
   it('should handle realtime updates correctly', async () => {
-    await marketStateService.initialize('BTC', 'LONG');
+    mockSupabaseResponse([]);
+    await MarketStateService.init();
 
-    const mockChannel = vi.mocked((supabase as any).channel).mock.results[0].value;
-    const updateCallback = mockChannel.on.mock.calls[0][2];
+    // Get the callback passed to .on()
+    const onCall = mockChannel.on.mock.calls.find(
+      call => call[0] === 'postgres_changes'
+    );
+    expect(onCall).toBeDefined();
+    const updateCallback = onCall[2];
 
     const newData = {
       pair: 'BTC',
@@ -109,39 +127,38 @@ describe.skip('MarketStateService (outdated API - tests need rewrite)', () => {
       updated_at: new Date().toISOString(),
     };
 
+    // Simulate update
     updateCallback({ new: newData });
 
-    const state = marketStateService.getState();
+    const state = MarketStateService.getState('BTC');
     expect(state?.price).toBe(51000);
     expect(state?.whaleTier).toBe(1);
+    expect(state?.rsiState).toBe('OVERBOUGHT');
 
-    expect(EventBus.emit).toHaveBeenCalledWith('whaleTierChanged', {
-      tier: 1,
-      percentile: 0.8,
-    });
-    expect(EventBus.emit).toHaveBeenCalledWith('rsiStateChanged', {
-      state: 'OVERBOUGHT',
-      rsi: 75,
-    });
+    expect(EventBus.emit).toHaveBeenCalledWith(
+      'marketStateUpdated',
+      expect.objectContaining({
+        pair: 'BTC',
+        price: 51000,
+        rsiState: 'OVERBOUGHT',
+      })
+    );
   });
 
   it('should cleanup on destroy', async () => {
-    await marketStateService.initialize('BTC', 'LONG');
-    await marketStateService.destroy();
+    mockSupabaseResponse([]);
+    await MarketStateService.init();
 
-    expect(supabase!.removeChannel).toHaveBeenCalled();
-    expect(marketStateService.getState()).toBeNull();
+    MarketStateService.cleanup();
+    expect(mockChannel.unsubscribe).toHaveBeenCalled();
   });
 
-  it('should handle initialization errors gracefully', async () => {
-    vi.mocked(((supabase as any).from().select().eq() as any).single).mockResolvedValue(
-      {
-        data: null,
-        error: { message: 'Network error' } as any,
-      } as any
-    );
+  it('should handle fetch errors gracefully', async () => {
+    mockSupabaseResponse(null, { message: 'Network error' });
 
-    const state = await marketStateService.initialize('BTC', 'LONG');
-    expect(state).toBeNull();
+    // Should not throw
+    await MarketStateService.init();
+
+    // Should verify it logged error but didn't crash
   });
 });

@@ -87,8 +87,8 @@ export function usePauseBudget(
       onAutoResume();
     }
 
-    // Reset trigger flag when resuming play
-    if (gameStatus === GameStatus.PLAYING) {
+    // Reset trigger flag when resuming play with budget available
+    if (gameStatus === GameStatus.PLAYING && remainingSeconds > 0) {
       autoResumeTriggeredRef.current = false;
     }
   }, [isLimited, gameStatus, remainingSeconds, onAutoResume]);

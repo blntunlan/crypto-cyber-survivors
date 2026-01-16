@@ -18,7 +18,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
 import { type Card } from './services/cards/types';
-import { PLAYER_STATS } from './config/PlayerConfig';
 import { applyCardEffect } from './services/cards/CardApplicator';
 import { CardSystem } from './services/cards/CardSystem';
 import { audio } from './services/AudioService';
@@ -34,6 +33,7 @@ import { GameStateMachine } from './services/GameStateMachine';
 import { ImagePreloader } from './services/ImagePreloader';
 import { Logger } from './services/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
+import { ExperienceService } from './services/ExperienceService';
 
 // Custom hooks
 import { useDevice } from './hooks/useDevice';
@@ -119,6 +119,26 @@ const App: React.FC = () => {
     GameStateMachine.transition(GameStatus.PLAYING);
   }, []);
   const pauseBudget = usePauseBudget(gameMode, gameStatus, handleAutoResume);
+
+  // Auto-pause when tab loses focus (with competitive mode budget check)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && gameStatus === GameStatus.PLAYING) {
+        // Only auto-pause if not in competitive mode OR if we have remaining budget
+        const isLimited = gameMode === GameMode.COMPETITIVE;
+        const hasBudget = (pauseBudget.remainingSeconds ?? 0) > 0;
+
+        if (!isLimited || hasBudget) {
+          GameStateMachine.transition(GameStatus.PAUSED);
+        } else {
+          Logger.info('[App] Budget depleted - blocking auto-pause while hidden');
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [gameStatus, gameMode, pauseBudget.remainingSeconds]);
 
   // ========================================
   // Local State
@@ -275,9 +295,8 @@ const App: React.FC = () => {
       const nextP = applyCardEffect(p, card);
       nextP.level += 1;
       nextP.exp -= nextP.nextLevelExp;
-      nextP.nextLevelExp = Math.floor(
-        nextP.nextLevelExp * PLAYER_STATS.LEVEL_EXP_MULTIPLIER
-      );
+      // Calculate next level requirements using centralized ExperienceService
+      nextP.nextLevelExp = ExperienceService.getRequiredExp(nextP.level);
 
       MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
       playerRef.current = nextP;

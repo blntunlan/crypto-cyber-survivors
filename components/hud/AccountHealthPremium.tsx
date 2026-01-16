@@ -23,7 +23,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   maxHp,
   isMobile,
 }) => {
-  const { rs, rfs } = useResponsiveUI();
+  const { rs, rfs, isSmallDevice, bottomSafeZone } = useResponsiveUI();
   const isRetro = useIsRetro();
   const [wavePhase, setWavePhase] = useState(DifficultyManager.getWavePhase());
 
@@ -76,13 +76,16 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   // Desktop: Full info bar with wave phase, status, etc.
   return (
     <div
-      className={`fixed left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center transition-all duration-500 ${
-        isMobile ? 'w-[88%]' : 'w-[450px] bottom-10'
+      className={`fixed left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center transition-all duration-500 hud-bottom-safe ${
+        isMobile ? (isSmallDevice ? 'w-[92%]' : 'w-[88%]') : 'w-[450px] bottom-10'
       }`}
       style={
         isMobile
           ? {
-              bottom: rs(16),
+              // Use bottomSafeZone for mobile controls spacing
+              bottom: rs(16) + bottomSafeZone,
+              // iOS safe area fallback
+              marginBottom: 'env(safe-area-inset-bottom, 0px)',
             }
           : undefined
       }

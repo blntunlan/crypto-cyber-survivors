@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { EventBus } from '../../services/EventBus';
 
 interface DashButtonProps {
   /** Called when dash is triggered (press start) */
@@ -32,6 +33,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
 }) => {
   const [isPressed, setIsPressed] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [totalCooldownDuration, setTotalCooldownDuration] = useState(cooldownMs);
 
   const isReady = cooldownRemaining <= 0 && !disabled;
 
@@ -46,6 +48,15 @@ export const DashButton: React.FC<DashButtonProps> = ({
     return () => clearInterval(interval);
   }, [cooldownRemaining]);
 
+  // Listen for global engine dash events to sync cooldown visuals
+  useEffect(() => {
+    const unsub = EventBus.on('playerDash', data => {
+      setCooldownRemaining(data.cooldown);
+      setTotalCooldownDuration(data.cooldown);
+    });
+    return unsub;
+  }, []);
+
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       e.preventDefault();
@@ -53,16 +64,16 @@ export const DashButton: React.FC<DashButtonProps> = ({
       if (disabled) return;
 
       setIsPressed(true);
-      // Only lock button briefly to allow double/triple dash if engine permits
-      // The visual cooldown is misleading for multi-charge dash systems, so we use a short debounce
-      setCooldownRemaining(100);
+      // Fallback visual cooldown if engine event is delayed
+      setCooldownRemaining(cooldownMs);
+      setTotalCooldownDuration(cooldownMs);
       onDash();
 
       // Haptic feedback (with safe check for unsupported browsers like Safari iOS)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
       if (hapticFeedback) navigator.vibrate?.(20);
     },
-    [onDash, hapticFeedback, disabled]
+    [onDash, hapticFeedback, disabled, cooldownMs]
   );
 
   const handleTouchEnd = useCallback(
@@ -75,7 +86,8 @@ export const DashButton: React.FC<DashButtonProps> = ({
   );
 
   // Calculate cooldown percentage for visual
-  const cooldownPercent = cooldownRemaining / cooldownMs;
+  const cooldownPercent =
+    totalCooldownDuration > 0 ? cooldownRemaining / totalCooldownDuration : 0;
 
   // Styles
   const buttonStyle: React.CSSProperties = {

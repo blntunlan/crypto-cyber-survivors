@@ -90,6 +90,7 @@ describe('GameRenderer', () => {
       hitStopTimer: 0,
       playerScaleX: 1,
       playerScaleY: 1,
+      playerRotation: 0,
       nearMissTimer: 0,
       nearMissCooldown: 0,
       rsiVisualState: 'NEUTRAL',
@@ -335,8 +336,22 @@ describe('GameRenderer', () => {
 
     it('should draw all active gems', () => {
       (mockPool as any).activeGems = [
-        { x: 300, y: 300, radius: 6, color: '#22c55e', isRare: false },
-        { x: 400, y: 400, radius: 8, color: '#a855f7', isRare: true },
+        {
+          x: 300,
+          y: 300,
+          radius: 6,
+          color: '#22c55e',
+          isRare: false,
+          active: true,
+        },
+        {
+          x: 400,
+          y: 400,
+          radius: 8,
+          color: '#a855f7',
+          isRare: true,
+          active: true,
+        },
       ];
 
       renderer.render(

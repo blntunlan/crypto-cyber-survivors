@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
 import { EventBus } from '../../services/EventBus';
 import { GameStatus } from '../../types';
+import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 
 interface ActiveEffect {
   id: string;
@@ -25,6 +26,7 @@ interface BuffIndicatorProps {
 
 export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
   const [effects, setEffects] = useState<ActiveEffect[]>([]);
+  const { isVeryNarrow, isSmallDevice } = useResponsiveUI();
 
   // Update effects list
   const updateEffects = useCallback(() => {
@@ -55,15 +57,18 @@ export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
     };
   }, [updateEffects]);
 
-  // Don't show when not playing
-  if (status !== GameStatus.PLAYING || effects.length === 0) {
+  // Don't show when not playing, no effects, or on very narrow screens
+  if (status !== GameStatus.PLAYING || effects.length === 0 || isVeryNarrow) {
     return null;
   }
 
+  // On small devices, only show first 2 effects to save space
+  const displayEffects = isSmallDevice ? effects.slice(0, 2) : effects;
+
   return (
     <div className="flex flex-col gap-1 mt-2 pointer-events-none">
-      {effects.map(effect => (
-        <BuffItem key={effect.id} effect={effect} />
+      {displayEffects.map(effect => (
+        <BuffItem key={effect.id} effect={effect} isSmallDevice={isSmallDevice} />
       ))}
     </div>
   );
@@ -71,9 +76,10 @@ export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
 
 interface BuffItemProps {
   effect: ActiveEffect;
+  isSmallDevice?: boolean;
 }
 
-const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
+const BuffItem: React.FC<BuffItemProps> = ({ effect, isSmallDevice = false }) => {
   const remainingSeconds = effect.isPermanent
     ? null
     : Math.ceil(effect.remainingMs / 1000);
@@ -86,7 +92,8 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
   return (
     <div
       className={`
-        flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 rounded-lg
+        flex items-center rounded-lg
+        ${isSmallDevice ? 'gap-0.5 px-1.5 py-0.5' : 'gap-1 md:gap-2 px-2 py-1 md:px-3 md:py-1.5'}
         ${/* Mobile: fully transparent, Desktop: keep blur effect */ ''}
         md:backdrop-blur-md
         ${
@@ -98,21 +105,26 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
       `}
       title={effect.description}
     >
-      {/* Icon - smaller on mobile */}
-      <span className="text-base md:text-xl">{effect.icon}</span>
-
-      {/* Name - smaller on mobile */}
-      <span
-        className={`text-xs md:text-sm font-medium ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
-      >
-        {effect.name}
+      {/* Icon - smaller on isSmallDevice */}
+      <span className={isSmallDevice ? 'text-sm' : 'text-base md:text-xl'}>
+        {effect.icon}
       </span>
 
-      {/* Duration - smaller on mobile */}
+      {/* Name - hidden on isSmallDevice to save space */}
+      {!isSmallDevice && (
+        <span
+          className={`text-xs md:text-sm font-medium ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
+        >
+          {effect.name}
+        </span>
+      )}
+
+      {/* Duration - smaller on isSmallDevice */}
       {remainingSeconds !== null && (
         <span
           className={`
-            text-[10px] md:text-sm font-stats ml-0.5 md:ml-1 px-1 md:px-1.5 py-0.5 rounded
+            font-stats rounded
+            ${isSmallDevice ? 'text-[8px] px-0.5 py-0' : 'text-[10px] md:text-sm ml-0.5 md:ml-1 px-1 md:px-1.5 py-0.5'}
             ${
               remainingSeconds <= 3
                 ? 'bg-rose-600/80 text-white animate-pulse'
@@ -128,7 +140,15 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect }) => {
 
       {/* Permanent indicator */}
       {effect.isPermanent && (
-        <span className="text-[10px] md:text-xs text-yellow-400">∞</span>
+        <span
+          className={
+            isSmallDevice
+              ? 'text-[8px] text-yellow-400'
+              : 'text-[10px] md:text-xs text-yellow-400'
+          }
+        >
+          ∞
+        </span>
       )}
     </div>
   );

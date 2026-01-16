@@ -127,6 +127,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Squash & Stretch
     playerScaleX: 1,
     playerScaleY: 1,
+    playerRotation: 0,
 
     // Near Miss Tension
     nearMissTimer: 0,
@@ -135,6 +136,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Market Visuals
     rsiVisualState: 'NEUTRAL',
     whaleEventTimer: 0,
+
+    // Lootbox Spawn Timer
+    interactableSpawnTimer: 0,
   });
 
   // Track last synced stats to prevent unnecessary re-renders in App.tsx
@@ -486,8 +490,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             s.dashHaloOpacity = 0;
 
             // Squash effect at end of dash (short and fat)
-            s.playerScaleX = 1.3;
-            s.playerScaleY = 0.7;
+            s.playerScaleX = 0.4;
+            s.playerScaleY = 1.6;
+            // Keep rotation at last dash angle
 
             // Execute queued double dash
             if (s.doubleDashQueued) {
@@ -501,10 +506,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 s.dashCooldownTimer = GAME_ENGINE.DOUBLE_DASH_COOLDOWN; // 4 seconds
                 audio.playDash();
                 s.shake = 10; // Extra feedback for double dash
+                EventBus.emit('playerDash', {
+                  duration: GAME_ENGINE.DASH_DURATION,
+                  cooldown: GAME_ENGINE.DOUBLE_DASH_COOLDOWN,
+                  isDoubleDash: true,
+                });
 
                 // Stretch for double dash
-                s.playerScaleX = 0.6;
-                s.playerScaleY = 1.4;
+                s.playerScaleX = 1.8;
+                s.playerScaleY = 0.4;
+                s.playerRotation = Math.atan2(ddy, ddx);
               } else {
                 s.doubleDashQueued = false;
               }
@@ -513,7 +524,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
           // Add current position to trail
           s.dashTrail.push({ x: player.x, y: player.y });
-          if (s.dashTrail.length > GAME_ENGINE.DASH_TRAIL_MAX_LENGTH) {
+          const maxTrail = s.isDashing
+            ? Math.floor(GAME_ENGINE.DASH_TRAIL_MAX_LENGTH * 1.5)
+            : GAME_ENGINE.DASH_TRAIL_MAX_LENGTH;
+          if (s.dashTrail.length > maxTrail) {
             s.dashTrail.shift();
           }
         } else {
@@ -555,10 +569,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           s.doubleDashUsed = false;
           audio.playDash();
           consumeDash();
+          EventBus.emit('playerDash', {
+            duration: GAME_ENGINE.DASH_DURATION,
+            cooldown: GAME_ENGINE.DASH_COOLDOWN,
+            isDoubleDash: false,
+          });
 
           // Dash Stretch (long and thin)
-          s.playerScaleX = 0.6;
-          s.playerScaleY = 1.4;
+          s.playerScaleX = 1.8;
+          s.playerScaleY = 0.4;
+          s.playerRotation = Math.atan2(dy, dx);
         }
 
         if (dx !== 0 || dy !== 0) {
@@ -575,6 +595,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
           const dirX = dx / mag;
           const dirY = dy / mag;
+
+          // Update rotation for squash/stretch
+          if (!s.isDashing) {
+            s.playerRotation = Math.atan2(dy, dx);
+          }
 
           // Get effective speed from BuffManager (includes buff/card bonuses)
           // Apply system-level cap from PlayerConfig
@@ -638,6 +663,32 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           marketDataRef.current.pnl,
           maxEnemies
         );
+
+        // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---
+        s.interactableSpawnTimer = (s.interactableSpawnTimer || 0) + deltaTime;
+        if (s.interactableSpawnTimer > 20000) {
+          // Every 20 seconds
+          s.interactableSpawnTimer = 0;
+          // Spawn random mining rig
+          const pad = 100;
+          const rx = pad + Math.random() * (width - pad * 2);
+          const ry = pad + Math.random() * (height - pad * 2);
+
+          p.getInteractable(
+            Math.random() > 0.5 ? 'MINING_RIG' : 'LOOT_CRATE',
+            rx,
+            ry,
+            150 // Hit Points
+          );
+
+          // Spawn effect
+          Logger.info('[GameEngine] Spawning Interactable at', rx, ry);
+          EventBus.emit('gameNotification', {
+            title: 'SUPPLY DROP',
+            message: 'A loot crate appeared!',
+          });
+          audio.playLevelUp(); // Cue for supply drop
+        }
 
         // Update Physics & Collisions
         physicsSystem.current.updateEntities(p, dtFactor, width, height, player);

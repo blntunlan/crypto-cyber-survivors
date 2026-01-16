@@ -8,6 +8,7 @@ vi.mock('../../../services/Logger', () => ({
     error: vi.fn(),
     warn: vi.fn(),
     debug: vi.fn(),
+    onError: vi.fn().mockReturnValue(() => {}),
   },
 }));
 

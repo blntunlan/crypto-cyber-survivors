@@ -50,6 +50,78 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+
+  /* Mobile HUD Variables (base values for desktop) */
+  --hud-font-scale: 1;
+  --hud-padding: 16px;
+  --hud-gap: 8px;
+  --hud-element-max-width: 50%;
+  --hud-vertical-scale: 1;
+  --hud-bottom-safe-zone: 0px;
+}
+
+/* ========================================
+   MOBILE RESPONSIVE BREAKPOINTS
+   ======================================== */
+
+/* Medium Phone (360-480px) */
+@media (max-width: 480px) {
+  :root {
+    --hud-font-scale: 0.85;
+    --hud-padding: 8px;
+    --hud-gap: 4px;
+    --hud-element-max-width: 45%;
+  }
+}
+
+/* Small Phone (<360px - iPhone SE, Galaxy A01) */
+@media (max-width: 360px) {
+  :root {
+    --hud-font-scale: 0.75;
+    --hud-padding: 6px;
+    --hud-gap: 2px;
+    --hud-element-max-width: 42%;
+  }
+}
+
+/* Very Small Phone (<320px) */
+@media (max-width: 320px) {
+  :root {
+    --hud-font-scale: 0.7;
+    --hud-padding: 4px;
+    --hud-gap: 2px;
+    --hud-element-max-width: 40%;
+  }
+}
+
+/* Landscape Mobile Specific */
+@media (max-height: 450px) and (orientation: landscape) {
+  :root {
+    --hud-vertical-scale: 0.8;
+    --hud-bottom-safe-zone: 80px; /* Mobile controls area */
+  }
+}
+
+/* Mobile HUD Layout Container */
+.mobile-hud-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--hud-padding, 16px);
+  gap: var(--hud-gap, 8px);
+}
+
+/* Prevent HUD element overflow */
+.hud-element-left,
+.hud-element-right {
+  max-width: var(--hud-element-max-width, 50%);
+  overflow: hidden;
+}
+
+/* Safe zone for bottom elements (avoid mobile controls) */
+.hud-bottom-safe {
+  margin-bottom: var(--hud-bottom-safe-zone, 0px);
 }
 
 /* ========================================

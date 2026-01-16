@@ -47,13 +47,13 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       rounded-2xl
       transition-all duration-300
       hover:bg-white/10 hover:border-white/20
-      hover:shadow-[0_0_30px_-5px_${accentColor}40]
+      hover:shadow-[var(--hub-shadow-hover)]
       active:scale-[0.98]
     `,
     selected: `
       bg-white/10
-      border-[${accentColor}]
-      shadow-[0_0_40px_-5px_${accentColor}60]
+      border-[var(--hub-accent)]
+      shadow-[var(--hub-shadow-selected)]
       scale-[1.02]
     `,
     disabled: 'opacity-50 cursor-not-allowed grayscale',
@@ -82,6 +82,13 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
 
   const styles = isRetro ? retroStyles : cyberStyles;
 
+  // Define dynamic CSS variables
+  const dynamicVars = {
+    '--hub-accent': accentColor,
+    '--hub-shadow-hover': `0 0 30px -5px ${accentColor}40`,
+    '--hub-shadow-selected': `0 0 40px -5px ${accentColor}60`,
+  } as React.CSSProperties;
+
   return (
     <motion.button
       onClick={onClick}
@@ -99,6 +106,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
         ${disabled ? styles.disabled : ''}
       `}
       style={{
+        ...dynamicVars,
         borderColor: isSelected ? accentColor : undefined,
         boxShadow:
           isSelected && !isRetro

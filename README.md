@@ -2,7 +2,9 @@
 
 # 🎮 Crypto Cyber Survivors
 
-**A crypto-themed vampire survivors style game with real-time market data integration**
+**Real-Time Market-Driven Vampire Survivors Game**
+
+*Kill bears, dodge bulls, survive the volatility*
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
@@ -11,7 +13,7 @@
 [![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-[🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🎮 How to Play](#-how-to-play) • [🛠️ Development](#-development) • [📦 Architecture](#-architecture)
+[🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#️-architecture) • [📦 Project Structure](#-project-structure) • [🎮 How to Play](#-how-to-play)
 
 </div>
 
@@ -51,30 +53,6 @@
 - **Temporary & Permanent Effects** - 🔥 Rage Mode, 💎 Diamond Hands, ⚡ Berserk, 🍀 Lucky Star
 - **Debuff Mechanics** - 🐌 Slow, 💀 Vulnerable, 📉 Liquidated, 😵 Weakened
 - **Pause-Aware Timers** - Buff timers freeze during LevelUp and Pause screens
-- **Visual Indicators** - Real-time buff status with countdown timers
-
-### ⚡ Performance & Core Engine
-- **Modular Renderer System** - Decoupled rendering with specialized classes for Background, Entities, Projectiles, Effects
-- **3-Tier Projectile Visuals** - Neon Laser beams: Normal (Cyan), Crit (Gold), Super Crit (Red)
-- **Spatial Grid Collision** - O(1) neighbor lookup for efficient bullet-enemy collision detection
-- **Object Pooling** - O(1) object retrieval for high-performance recycling
-- **Strongly Typed EventBus** - Type-safe event system with tracing mode for debugging
-- **Physics Context DI** - Dependency injection for testable physics systems
-- **60 FPS Canvas Engine** - Optimized draw calls with intelligent shadow-culling
-- **Delta Time Physics** - Framerate-independent game logic
-- **Debug State Methods** - Runtime inspection for DifficultyManager, ComboSystem, SpawnSystem
-
-### 🔐 Beta User System
-- **Nickname Login** - Frictionless onboarding without passwords or wallets
-- **Device Fingerprinting** - Secure identifier for account recovery and anti-cheat
-- **Supabase Integration** - Cloud sync for Leaderboards, User Profiles, Game Sessions
-- **Admin Dashboard** - Real-time monitoring (Ctrl+Shift+A)
-
-### 🏆 Leaderboard & Analytics
-- **Global Leaderboard** - Real-time player rankings
-- **Session Tracking** - Detailed game session analytics
-- **Error Reporting** - Automatic crash reporting with device context
-- **Performance Metrics** - FPS monitoring and optimization insights
 
 ---
 
@@ -103,63 +81,8 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
----
-
-## 📚 API Documentation
-
-TypeDoc-generated API documentation is available for all services, hooks, stores, and types:
-
-```bash
-# Generate API documentation
-npm run docs
-
-# Generate with watch mode
-npm run docs:watch
-
-# Clean generated docs
-npm run docs:clean
-```
-
-The generated documentation can be found in `docs/api/` and includes:
-- **Services**: All singleton services (CardSystem, DifficultyManager, EventBus, etc.)
-- **Hooks**: Custom React hooks with usage examples
-- **Stores**: Zustand state management documentation
-- **Types**: Complete TypeScript type definitions
-- **Components**: React component prop interfaces
-
----
-
-## 🎮 How to Play
-
-### Controls
-| Input Mode | Move | Special / Action |
-|------------|------|------------------|
-| **Desktop** | `W` `A` `S` `D` / `Arrows` | `Space` (Dash), `Esc/P` (Pause) |
-| **Touch (Joystick)** | Left/Right Thumb | Dedicated Dash Button |
-| **Touch (Drag)** | Drag anywhere | Second Finger Tap (Dash) |
-
-### Game Flow
-1. **Select Asset** - Choose BTC or other crypto pairs
-2. **Choose Leverage** - 1x (Safe) to 100x (Extreme Risk)
-3. **Pick Position** - Long (🐂) or Short (🐻)
-4. **Survive** - Defeat enemies, collect XP, level up
-5. **Upgrade** - Choose powerful cards each level
-
-### UI Typography & Scaling
-The UI uses a precision-scaled technical typography system:
-
-| UI Element | Desktop Size | Mobile Size | Style |
-| :--- | :--- | :--- | :--- |
-| **BTC Price** | 36px (`text-4xl`) | 24px (`text-2xl`) | Font-Black, Mono |
-| **PnL Percent** | 24px (`text-2xl`) | 18px (`text-lg`) | Font-Black, Mono |
-| **Large Headings** | 96px (`text-8xl`) | 60px (`text-6xl`) | Italic, Black |
-| **Kernel Status** | 12px (`text-xs`) | 10px (`text-[10px]`) | Uppercase, Spaced |
-
----
-
-## 🛠️ Development
-
 ### Available Scripts
+
 ```bash
 # Development
 npm run dev          # Start dev server with HMR (port 3000)
@@ -180,144 +103,562 @@ npm run format       # Prettier formatting
 npm run docs         # Generate TypeDoc API documentation
 ```
 
-### Debug Tools
-- **Admin Dashboard**: `Ctrl+Shift+A` - Analytics, Price Analysis, Error Reports
-- **Cheat Manager**: Development mode only
-- **FPS Monitor**: Always visible on canvas
-- **Logger**: Structured logging with levels
-
 ---
 
-## 📦 Architecture
+## 🏗️ Architecture
+
+### High-Level System Overview
 
 ```
-crypto-cyber-survivors/
-├── components/               # React Components (53 files)
-│   ├── GameEngine.tsx       # Canvas render loop & game tick
-│   ├── GameHUD.tsx          # Direct Canvas overlays
-│   ├── GameUI.tsx           # Responsive React HUD
-│   ├── admin/               # Admin Dashboard panels
-│   │   ├── AdminDashboard.tsx
-│   │   └── PriceAnalysisPanel.tsx
-│   ├── hud/                 # HUD components (16 files)
-│   │   ├── LiveFeed.tsx
-│   │   ├── LeaderboardPanel.tsx
-│   │   └── BuffStatusPanel.tsx
-│   ├── mobile/              # Touch controllers (5 files)
-│   │   ├── VirtualJoystick.tsx
-│   │   └── DragToMove.tsx
-│   ├── screens/             # Menu screens (11 files)
-│   │   ├── MainMenu.tsx
-│   │   ├── LevelUpScreen.tsx
-│   │   └── GameOverScreen.tsx
-│   └── settings/            # Settings components (8 files)
-│
-├── services/                 # Logic Singletons (95 files)
-│   ├── MarketService.ts     # Binance/Coinbase WebSocket client
-│   ├── PhysicsSystem.ts     # Spatial grid collision engine
-│   ├── DifficultyManager.ts # Market-based difficulty scaling
-│   ├── ComboSystem.ts       # Kill streak logic
-│   ├── EventBus.ts          # Type-safe event system with tracing
-│   ├── ScreenService.ts     # Device & notch handling
-│   ├── PoolManager.ts       # Object pooling (O(1) retrieval)
-│   ├── SpatialGrid.ts       # O(1) neighbor lookup
-│   ├── StatService.ts       # Centralized stat formatting
-│   ├── renderers/           # IRenderer implementations (7 files)
-│   │   ├── ProjectileRenderer.ts
-│   │   ├── EntityRenderer.ts
-│   │   ├── BackgroundRenderer.ts
-│   │   └── EffectsRenderer.ts
-│   ├── metrics/             # Modular analytics subsystem (5 files)
-│   │   ├── MetricsStorage.ts    # localStorage with quota handling
-│   │   ├── MetricsCompiler.ts   # Session data compilation
-│   │   ├── MetricsAnalyzer.ts   # Insights & recommendations
-│   │   └── MetricsExporter.ts   # JSON/CSV export
-│   ├── analytics/           # Analytics & tracking (8 files)
-│   │   ├── PlayerTracker.ts
-│   │   ├── ErrorTracker.ts      # Modular error tracking
-│   │   ├── ErrorQueue.ts        # Offline queue management
-│   │   ├── ErrorSanitizer.ts    # Privacy-safe sanitization
-│   │   ├── ErrorTypes.ts        # Error type definitions
-│   │   └── DeviceProfiler.ts
-│   ├── physics/             # Physics subsystem (3 files)
-│   │   ├── PhysicsContext.ts    # DI container
-│   │   ├── PhysicsTypes.ts      # Interface definitions
-│   │   └── CollisionSystem.ts
-│   ├── patterns/decorators/ # Buff/Debuff system (15 files)
-│   │   ├── BuffManager.ts
-│   │   ├── buffs/           # Rage, DiamondHands, Berserk...
-│   │   └── debuffs/         # Slow, Vulnerable, Liquidated...
-│   ├── audio/               # Sound system (9 files)
-│   │   └── SynthEngine.ts
-│   ├── cards/               # Card system (6 files)
-│   │   ├── CardSystem.ts
-│   │   ├── CardApplicator.ts    # Card effect application
-│   │   └── cardDefinitions.ts
-│   └── auth/                # Authentication (3 files)
-│
-├── hooks/                    # Custom React Hooks (21 files)
-│   ├── useMarketData.ts     # Market data subscription
-│   ├── useLerpValue.ts      # Smooth UI transitions
-│   ├── useDevice.ts         # Device detection
-│   ├── useHUDEvents.ts      # HUD event handling
-│   └── useMenuNav.ts        # Keyboard navigation
-│
-├── stores/                   # Zustand State Management
-│   ├── gameStore.ts         # Main game state
-│   └── admin/               # Admin panel state
-│
-├── types/                    # TypeScript Definitions (7 files)
-│   ├── events.ts            # Typed event payloads
-│   ├── BuffGem.ts           # Buff gem configurations
-│   ├── DeviceProfile.ts     # Device capability types
-│   ├── metrics.ts           # Analytics types
-│   └── admin.ts             # Admin panel types
-│
-├── tests/                    # Vitest Unit Tests (59 files)
-│   ├── services/            # Service tests (15 files)
-│   ├── hooks/               # Hook tests (3 files)
-│   └── edge/                # Edge function tests (5 files)
-│
-├── e2e/                      # Playwright E2E Tests (5 files)
-│   ├── game-flow.spec.ts
-│   ├── mobile-touch-controls.spec.ts
-│   ├── mobile-keyboard.spec.ts
-│   ├── network-error.spec.ts
-│   └── visual.spec.ts
-│
-├── supabase/                 # Supabase Configuration
-│   ├── migrations/          # Database migrations (4 files)
-│   └── functions/           # Edge functions
-│       └── verify-game/     # Score verification
-│
-├── railway-market-server/    # Price Logger Backend
-│   └── src/                 # Express.js server
-│
-├── docs/                     # Documentation (44 files)
-│   ├── MASTER_ROADMAP.md
-│   ├── ARCHITECTURE_REVIEW.md
-│   ├── ANTI_CHEAT_ROADMAP.md
-│   └── completed/           # Completed features (15 files)
-│
-└── config/                   # Configuration (11 files)
-    ├── Colors.ts            # Decoupled color constants
-    ├── EnemyRegistry.ts     # Enemy type definitions
-    ├── AudioRegistry.ts     # Audio sound definitions
-    └── StatRegistry.ts      # Stat definitions
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CRYPTO CYBER SURVIVORS                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                         PRESENTATION LAYER                            │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌─────────────┐  ┌──────────────┐   │   │
+│  │  │   App.tsx  │  │ GameUI.tsx │  │ Screens/*   │  │   HUD/*      │   │   │
+│  │  │  (Router)  │  │  (Overlay) │  │   (Menus)   │  │  (Realtime)  │   │   │
+│  │  └──────┬─────┘  └──────┬─────┘  └──────┬──────┘  └──────┬───────┘   │   │
+│  └─────────┼───────────────┼───────────────┼────────────────┼───────────┘   │
+│            │               │               │                │               │
+│  ┌─────────▼───────────────▼───────────────▼────────────────▼───────────┐   │
+│  │                          GAME ENGINE LAYER                            │   │
+│  │  ┌────────────────┐  ┌─────────────────┐  ┌────────────────────┐     │   │
+│  │  │ GameEngine.tsx │  │  GameRenderer   │  │ PhysicsSystem      │     │   │
+│  │  │  (Game Loop)   │  │ (Canvas Drawing)│  │ (Collision Grid)   │     │   │
+│  │  └────────┬───────┘  └────────┬────────┘  └─────────┬──────────┘     │   │
+│  │           │                   │                     │                │   │
+│  │  ┌────────▼───────────────────▼─────────────────────▼────────────┐   │   │
+│  │  │                    RENDERER SUBSYSTEM                          │   │   │
+│  │  │  ┌────────────┐ ┌──────────────┐ ┌─────────────┐ ┌──────────┐ │   │   │
+│  │  │  │ Background │ │   Entity     │ │ Projectile  │ │  Effect  │ │   │   │
+│  │  │  │  Renderer  │ │  Renderer    │ │  Renderer   │ │ Renderer │ │   │   │
+│  │  │  └────────────┘ └──────────────┘ └─────────────┘ └──────────┘ │   │   │
+│  │  └───────────────────────────────────────────────────────────────┘   │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                          SERVICE LAYER                                │   │
+│  │                                                                       │   │
+│  │  ┌─────────────┐  ┌─────────────────┐  ┌──────────────────────────┐  │   │
+│  │  │  EventBus   │  │ GameStateMachine│  │     MarketService        │  │   │
+│  │  │ (Observer)  │  │  (FSM Control)  │  │  (WebSocket Client)      │  │   │
+│  │  └──────┬──────┘  └────────┬────────┘  └─────────────┬────────────┘  │   │
+│  │         │                  │                         │               │   │
+│  │  ┌──────▼──────────────────▼─────────────────────────▼────────────┐  │   │
+│  │  │                    GAME SYSTEMS                                 │  │   │
+│  │  │  ┌──────────────┐ ┌─────────────┐ ┌────────────┐ ┌───────────┐ │  │   │
+│  │  │  │ Difficulty   │ │  SpawnSystem│ │ CombatSystem│ │ComboSystem│ │  │   │
+│  │  │  │   Manager    │ │             │ │             │ │           │ │  │   │
+│  │  │  └──────────────┘ └─────────────┘ └────────────┘ └───────────┘ │  │   │
+│  │  │  ┌──────────────┐ ┌─────────────┐ ┌────────────┐ ┌───────────┐ │  │   │
+│  │  │  │  CardSystem  │ │ BuffManager │ │PoolManager │ │TimeService│ │  │   │
+│  │  │  │              │ │ (Decorator) │ │  (O(1))    │ │           │ │  │   │
+│  │  │  └──────────────┘ └─────────────┘ └────────────┘ └───────────┘ │  │   │
+│  │  └───────────────────────────────────────────────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                          DATA LAYER                                   │   │
+│  │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────────────┐ │   │
+│  │  │   Zustand      │  │   Supabase     │  │     localStorage        │ │   │
+│  │  │  (gameStore)   │  │ (Cloud Sync)   │  │   (Offline Metrics)     │ │   │
+│  │  └────────────────┘  └────────────────┘  └─────────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Game State Machine
+
+The game uses a **Finite State Machine (FSM)** to manage all game states with validated transitions:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        GAME STATE MACHINE                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│                              ┌──────────┐                               │
+│                              │   MENU   │◄──────────────────────────┐   │
+│                              └────┬─────┘                           │   │
+│                                   │                                 │   │
+│                                   ▼                                 │   │
+│                      ┌───────────────────────┐                      │   │
+│                      │       PLAYING         │◄─────────────────┐   │   │
+│                      └───────────┬───────────┘                  │   │   │
+│                                  │                              │   │   │
+│         ┌────────────────────────┼─────────────────────────┐    │   │   │
+│         │                        │                          │   │   │   │
+│         ▼                        ▼                          ▼   │   │   │
+│   ┌──────────┐           ┌─────────────┐           ┌──────────┐ │   │   │
+│   │  PAUSED  │           │  LEVEL_UP   │           │CYCLE_COMP│ │   │   │
+│   └────┬─────┘           └──────┬──────┘           └────┬─────┘ │   │   │
+│        │                        │                        │      │   │   │
+│        │                        │                        │      │   │   │
+│        └────────────────────────┼────────────────────────┘      │   │   │
+│                                 │                                │   │   │
+│                                 ▼                                │   │   │
+│                          ┌───────────┐                          │   │   │
+│                          │ GAMEOVER  │──────────────────────────┘   │   │
+│                          └───────────┘                              │   │
+│                                                                     │   │
+│   ┌─────────────────────┐                                           │   │
+│   │ DATA_DISCONNECTED   │───────────────────────────────────────────┘   │
+│   └─────────────────────┘                                               │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Valid Transitions:
+  MENU          → PLAYING, CYCLE_COMPLETE
+  PLAYING       → PAUSED, LEVEL_UP, GAMEOVER, CYCLE_COMPLETE, DATA_DISCONNECTED
+  PAUSED        → PLAYING, MENU
+  LEVEL_UP      → PLAYING, GAMEOVER
+  GAMEOVER      → MENU
+  CYCLE_COMPLETE→ PLAYING, GAMEOVER
+  DATA_DISCONNECTED → MENU
+```
+
+### Event-Driven Architecture
+
+All systems communicate through a **strongly-typed EventBus** (Observer Pattern):
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          EVENT BUS FLOW                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Producers                    EventBus                    Consumers     │
+│   (emit)                      (message)                   (subscribe)   │
+│                                                                          │
+│  ┌─────────────┐                                    ┌─────────────────┐ │
+│  │CombatSystem │──┐                              ┌──│ ComboSystem     │ │
+│  └─────────────┘  │                              │  └─────────────────┘ │
+│                   │     ┌─────────────────┐      │                      │
+│  ┌─────────────┐  │     │                 │      │  ┌─────────────────┐ │
+│  │SpawnSystem  │──┼────►│   EVENT BUS     │◄─────┼──│ DifficultyMgr   │ │
+│  └─────────────┘  │     │                 │      │  └─────────────────┘ │
+│                   │     │  enemyKilled    │      │                      │
+│  ┌─────────────┐  │     │  enemySpawned   │      │  ┌─────────────────┐ │
+│  │MarketService│──┼────►│  priceUpdate    │◄─────┼──│ GameUI (HUD)    │ │
+│  └─────────────┘  │     │  levelUp        │      │  └─────────────────┘ │
+│                   │     │  gameReset      │      │                      │
+│  ┌─────────────┐  │     │  buffApplied    │      │  ┌─────────────────┐ │
+│  │BuffManager  │──┘     │  ...40+ events  │◄─────┼──│ MetricsService  │ │
+│  └─────────────┘        │                 │      │  └─────────────────┘ │
+│                         └─────────────────┘      │                      │
+│                                                  │  ┌─────────────────┐ │
+│                                                  └──│ SoundEngine     │ │
+│                                                     └─────────────────┘ │
+│                                                                          │
+│  Key Events:                                                             │
+│  ─────────────────────────────────────────────────────────────────────  │
+│  • enemyKilled     → ComboSystem, MetricsService, SoundEngine            │
+│  • priceUpdate     → LiveFeed, DifficultyManager, AccountHealth          │
+│  • levelUp         → LevelUpScreen, CardSystem, TimeService              │
+│  • gameReset       → All services (state reset)                          │
+│  • buffApplied     → BuffIndicator, PlayerStats, SoundEngine             │
+│  • comboMilestone  → ComboPanel, AchievementService, SoundEngine         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow: Market → Difficulty → Gameplay
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    MARKET-TO-GAMEPLAY DATA FLOW                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────┐     ┌────────────────┐     ┌─────────────────────────┐ │
+│  │  Binance    │────►│ MarketService  │────►│ Technical Indicators    │ │
+│  │  WebSocket  │     │ (WS Client)    │     │ ┌───────┬───────┬─────┐ │ │
+│  └─────────────┘     └────────────────┘     │ │  RSI  │  ATR  │Vol  │ │ │
+│        │                    │               │ └───┬───┴───┬───┴──┬──┘ │ │
+│        │                    │               │     │       │      │    │ │
+│  (fallback)                 ▼               └─────┼───────┼──────┼────┘ │
+│        │             ┌────────────┐               │       │      │      │
+│  ┌─────▼───────┐     │EventBus    │               ▼       ▼      ▼      │
+│  │  Coinbase   │     │priceUpdate │         ┌──────────────────────┐   │
+│  │  WebSocket  │     └────────────┘         │  DifficultyManager   │   │
+│  └─────────────┘                            │  ──────────────────  │   │
+│                                             │  • spawnRate         │   │
+│                                             │  • enemySpeed        │   │
+│                                             │  • enemyHealth       │   │
+│                                             │  • pnlMultiplier     │   │
+│                                             └──────────┬───────────┘   │
+│                                                        │               │
+│      ┌─────────────────────────────────────────────────┼───────────┐   │
+│      │                                                 │           │   │
+│      ▼                                                 ▼           ▼   │
+│ ┌─────────────┐                              ┌─────────────┐ ┌───────┐ │
+│ │SpawnSystem  │                              │CombatSystem │ │BuffMgr│ │
+│ │             │                              │             │ │       │ │
+│ │ spawn()     │                              │ damage()    │ │spawn()│ │
+│ │ schedule()  │                              │ collision() │ │apply()│ │
+│ └─────────────┘                              └─────────────┘ └───────┘ │
+│                                                                        │
+│  Example: High Volatility (ATR > threshold)                            │
+│  ──────────────────────────────────────────                            │
+│  1. MarketService detects spike                                        │
+│  2. DifficultyManager.adjustForVolatility()                            │
+│  3. SpawnSystem increases rate +40%                                    │
+│  4. BuffManager spawns "Pump" or "Dump" event                          │
+│  5. CombatSystem applies volatility damage modifier                    │
+│                                                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Rendering Pipeline
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        RENDERING PIPELINE                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │                      GameEngine.tsx (Main Loop)                    │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐  │ │
+│  │  │  requestAnimationFrame(gameLoop)                             │  │ │
+│  │  │                                                              │  │ │
+│  │  │  1. Calculate deltaTime                                      │  │ │
+│  │  │  2. Update game state (physics, input, spawning)             │  │ │
+│  │  │  3. Call GameRenderer.render()                               │  │ │
+│  │  │  4. Schedule next frame                                      │  │ │
+│  │  └──────────────────────────────────────────────────────────────┘  │ │
+│  └───────────────────────────────┬────────────────────────────────────┘ │
+│                                  │                                      │
+│                                  ▼                                      │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │                      GameRenderer.ts (Orchestrator)                │ │
+│  │                                                                    │ │
+│  │  render(ctx, state) {                                              │ │
+│  │    ctx.clearRect(...)                                             │ │
+│  │                                                                    │ │
+│  │    ┌─────────────────────────────────────────────────────────┐    │ │
+│  │    │ Layer 0: BackgroundRenderer                              │    │ │
+│  │    │          - Grid lines, market indicators                │    │ │
+│  │    └─────────────────────────────────────────────────────────┘    │ │
+│  │                          │                                        │ │
+│  │    ┌─────────────────────▼───────────────────────────────────┐    │ │
+│  │    │ Layer 1: EntityRenderer                                  │    │ │
+│  │    │          - Enemies (bears, bulls, whales)               │    │ │
+│  │    │          - Player character                              │    │ │
+│  │    │          - Buff gems                                     │    │ │
+│  │    └─────────────────────────────────────────────────────────┘    │ │
+│  │                          │                                        │ │
+│  │    ┌─────────────────────▼───────────────────────────────────┐    │ │
+│  │    │ Layer 2: ProjectileRenderer                              │    │ │
+│  │    │          - Neon laser beams (Normal/Crit/Super)         │    │ │
+│  │    │          - Enemy projectiles                             │    │ │
+│  │    └─────────────────────────────────────────────────────────┘    │ │
+│  │                          │                                        │ │
+│  │    ┌─────────────────────▼───────────────────────────────────┐    │ │
+│  │    │ Layer 3: EffectRenderer                                  │    │ │
+│  │    │          - Damage numbers (floating)                    │    │ │
+│  │    │          - XP particles                                  │    │ │
+│  │    │          - Death explosions                              │    │ │
+│  │    │          - Screen shake                                  │    │ │
+│  │    └─────────────────────────────────────────────────────────┘    │ │
+│  │  }                                                                │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  Performance Optimizations:                                              │
+│  ─────────────────────────                                              │
+│  • Object Pooling (PoolManager) - O(1) object retrieval                 │
+│  • Spatial Grid (SpatialGrid) - O(1) neighbor lookup for collision      │
+│  • View Frustum Culling - Skip rendering off-screen entities            │
+│  • Shadow/Filter culling on mobile - Disable expensive effects          │
+│  • Delta-time physics - Framerate-independent movement                  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Buff/Debuff Decorator System
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    DECORATOR PATTERN: BUFF SYSTEM                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │                      IPlayerStats (Interface)                       │ │
+│  │  ──────────────────────────────────────────────────────────────── │ │
+│  │  + getSpeed(): number                                               │ │
+│  │  + getDamage(): number                                              │ │
+│  │  + getMaxHealth(): number                                           │ │
+│  │  + getCritChance(): number                                          │ │
+│  │  + getLuck(): number                                                │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                              ▲                                           │
+│                              │ implements                                │
+│          ┌───────────────────┴───────────────────┐                      │
+│          │                                       │                      │
+│  ┌───────────────────┐               ┌───────────────────────┐          │
+│  │PlayerStatsAdapter │               │   BaseDecorator       │          │
+│  │ (Concrete Stats)  │               │ (Abstract Decorator)  │          │
+│  │                   │               │ ┌───────────────────┐ │          │
+│  │ - speed: 5        │               │ │ wrapped: IStats   │ │          │
+│  │ - damage: 10      │               │ └───────────────────┘ │          │
+│  │ - health: 100     │               └───────────┬───────────┘          │
+│  └───────────────────┘                           │                      │
+│                                  ┌───────────────┼───────────────┐      │
+│                                  │               │               │      │
+│                                  ▼               ▼               ▼      │
+│                          ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+│                          │  RageBuff   │ │DiamondHands │ │  SlowDebuff ││
+│                          │  ─────────  │ │  ─────────  │ │  ─────────  ││
+│                          │ +50% damage │ │ +25% health │ │ -30% speed  ││
+│                          │ -10% defense│ │ +50% luck   │ │             ││
+│                          └─────────────┘ └─────────────┘ └─────────────┘│
+│                                                                          │
+│  Stack Example:                                                          │
+│  ──────────────                                                          │
+│  Player → RageBuff → DiamondHands → SlowDebuff → BaseStats              │
+│                                                                          │
+│  getDamage():                                                            │
+│    SlowDebuff.getDamage()                                               │
+│      → DiamondHands.getDamage()                                         │
+│        → RageBuff.getDamage()                                           │
+│          → BaseStats.getDamage() = 10                                   │
+│          return 10 * 1.5 = 15                                           │
+│        return 15                                                        │
+│      return 15                                                          │
+│    return 15 (final damage with Rage buff)                              │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Design Patterns
 
-| Pattern | Usage |
-|---------|-------|
-| **Singleton** | Global services (CardSystem, DifficultyManager, EventBus) |
-| **Factory** | Scalable enemy and particle creation |
-| **Observer** | Decoupled communication via EventBus |
-| **Object Pool** | High-performance recycling (bullets, enemies, particles) |
-| **Strategy** | Pluggable enemy AI and movement behaviors |
-| **Decorator** | Stackable buff/debuff stat modifiers |
-| **State Machine** | Game state transitions (Menu → Playing → Paused → GameOver) |
-| **Dependency Injection** | PhysicsContext for testable collision systems |
+| Pattern | Usage | Implementation |
+|---------|-------|----------------|
+| **Singleton** | Global services | `EventBus`, `DifficultyManager`, `CardSystem`, `TimeService` |
+| **Factory** | Entity creation | Enemy spawning with type-specific configurations |
+| **Observer** | Decoupled communication | `EventBus.on()` / `EventBus.emit()` with 40+ typed events |
+| **Object Pool** | High-performance recycling | `PoolManager` for bullets, enemies, particles (O(1) retrieval) |
+| **Strategy** | Pluggable behaviors | Enemy AI movement patterns, control schemes |
+| **Decorator** | Stackable modifiers | `BuffManager` with composable stat modifiers |
+| **State Machine** | Game flow control | `GameStateMachine` with validated transitions |
+| **Dependency Injection** | Testable systems | `PhysicsContext` for collision system testing |
+| **Spatial Hashing** | Efficient collision | `SpatialGrid` with O(1) neighbor lookup |
+
+---
+
+## 📦 Project Structure
+
+```
+crypto-cyber-survivors/
+│
+├── 📄 App.tsx                      # Main application router & state orchestrator
+├── 📄 index.tsx                    # React entry point
+├── 📄 index.css                    # Global styles & CSS variables
+├── 📄 types.ts                     # Core game types (Player, Enemy, GameStatus)
+├── 📄 constants.ts                 # Global constants (Z_LAYERS, PHYSICS, etc.)
+│
+├── 📁 components/                   # React Components (68 files)
+│   ├── 📄 GameEngine.tsx           # Canvas render loop & game tick (25KB)
+│   ├── 📄 GameHUD.tsx              # Direct canvas overlays
+│   ├── 📄 GameUI.tsx               # Responsive React HUD layer
+│   ├── 📄 ErrorBoundary.tsx        # React error boundary with reporting
+│   │
+│   ├── 📁 screens/                 # Full-screen game states (13 files)
+│   │   ├── 📄 MainMenu.tsx         # Title screen with animations (22KB)
+│   │   ├── 📄 LevelUpScreen/       # Card selection with slot machine UX
+│   │   ├── 📄 PauseMenu.tsx        # Pause overlay with settings
+│   │   ├── 📄 GameOverScreen.tsx   # Score summary & leaderboard submit
+│   │   ├── 📄 CycleCompleteScreen.tsx # Loop completion celebration
+│   │   └── 📄 NicknameEntryScreen.tsx # Beta user onboarding
+│   │
+│   ├── 📁 hud/                     # In-game HUD components (17 files)
+│   │   ├── 📄 LiveFeed.tsx         # Real-time BTC price display (11KB)
+│   │   ├── 📄 AccountHealthPremium.tsx # PnL & health bars
+│   │   ├── 📄 ComboPanel.tsx       # Kill streak display
+│   │   ├── 📄 BuffIndicator.tsx    # Active buff icons with timers
+│   │   ├── 📄 LeaderboardPanel.tsx # Real-time rankings (16KB)
+│   │   └── 📄 KernelStatus.tsx     # System status indicator
+│   │
+│   ├── 📁 mobile/                  # Touch control components (5 files)
+│   │   ├── 📄 VirtualJoystick.tsx  # Left-stick + buttons
+│   │   └── 📄 DragToMoveController.tsx # Drag anywhere + tap dash
+│   │
+│   ├── 📁 settings/                # Settings panels (10 files)
+│   │   ├── 📄 AudioSettings.tsx    # Volume sliders per category
+│   │   ├── 📄 GraphicsSettings.tsx # Particle, shake, FPS toggles
+│   │   └── 📄 MobileSettings.tsx   # Control scheme selection
+│   │
+│   ├── 📁 admin/                   # Admin dashboard (2 files)
+│   │   ├── 📄 AdminDashboard.tsx   # Debug panel (Ctrl+Shift+A)
+│   │   └── 📄 PriceAnalysisPanel.tsx # Market data visualization
+│   │
+│   └── 📁 themed/                  # Theme-aware wrappers (4 files)
+│
+├── 📁 services/                     # Business Logic Singletons (119 files)
+│   │
+│   ├── 📄 EventBus.ts              # Type-safe pub/sub (7KB) with tracing
+│   ├── 📄 GameStateMachine.ts      # FSM with validated transitions
+│   ├── 📄 GameRenderer.ts          # Render orchestrator
+│   ├── 📄 MarketService.ts         # WebSocket client (14KB)
+│   ├── 📄 DifficultyManager.ts     # Market → difficulty mapping (17KB)
+│   ├── 📄 PhysicsSystem.ts         # Collision entry point
+│   ├── 📄 PoolManager.ts           # Object pooling (14KB)
+│   ├── 📄 SpatialGrid.ts           # Spatial hashing for collision
+│   ├── 📄 TimeService.ts           # Pause-aware game timer
+│   ├── 📄 CombatSystem.ts          # Damage & collision resolution (11KB)
+│   ├── 📄 ComboSystem.ts           # Kill streak logic (9KB)
+│   ├── 📄 SpawnSystem.ts           # Enemy spawning scheduler (8KB)
+│   ├── 📄 ScreenService.ts         # Device & safe area detection (9KB)
+│   ├── 📄 MetricsService.ts        # Analytics aggregator (21KB)
+│   ├── 📄 CheatManager.ts          # Development cheats (10KB)
+│   ├── 📄 Logger.ts                # Structured logging utility
+│   │
+│   ├── 📁 renderers/               # Canvas renderers (7 files)
+│   │   ├── 📄 BackgroundRenderer.ts  # Grid & market visualization
+│   │   ├── 📄 EntityRenderer.ts      # Players, enemies, gems (17KB)
+│   │   ├── 📄 ProjectileRenderer.ts  # Neon laser beams
+│   │   ├── 📄 EffectRenderer.ts      # Particles, damage numbers (11KB)
+│   │   └── 📄 CullingUtils.ts        # View frustum culling
+│   │
+│   ├── 📁 patterns/decorators/     # Buff/Debuff system (15 files)
+│   │   ├── 📄 BuffManager.ts       # Decorator orchestrator (12KB)
+│   │   ├── 📄 BaseDecorator.ts     # Abstract decorator base
+│   │   ├── 📁 buffs/               # RageBuff, DiamondHandsBuff, etc.
+│   │   └── 📁 debuffs/             # SlowDebuff, VulnerableDebuff, etc.
+│   │
+│   ├── 📁 cards/                   # Card/Upgrade system (6 files)
+│   │   ├── 📄 CardSystem.ts        # Card pool management
+│   │   ├── 📄 CardApplicator.ts    # Effect application
+│   │   └── 📄 cardDefinitions.ts   # 40+ card definitions
+│   │
+│   ├── 📁 physics/                 # Physics subsystem (6 files)
+│   │   ├── 📄 PhysicsContext.ts    # DI container for testing
+│   │   ├── 📄 CollisionSystem.ts   # Collision detection
+│   │   └── 📄 PhysicsTypes.ts      # Interface definitions
+│   │
+│   ├── 📁 audio/                   # Sound system (9 files)
+│   │   ├── 📄 SynthEngine.ts       # Procedural audio generation
+│   │   └── 📄 constants.ts         # Category volume defaults
+│   │
+│   ├── 📁 analytics/               # Error & player tracking (8 files)
+│   │   ├── 📄 ErrorTracker.ts      # Modular error collection
+│   │   ├── 📄 ErrorQueue.ts        # Offline queue management
+│   │   ├── 📄 ErrorSanitizer.ts    # Privacy-safe sanitization
+│   │   └── 📄 PlayerTracker.ts     # Session analytics
+│   │
+│   ├── 📁 metrics/                 # Modular metrics (5 files)
+│   │   ├── 📄 MetricsStorage.ts    # localStorage with quota
+│   │   ├── 📄 MetricsCompiler.ts   # Session data compilation
+│   │   ├── 📄 MetricsAnalyzer.ts   # Insights & recommendations
+│   │   └── 📄 MetricsExporter.ts   # JSON/CSV export
+│   │
+│   ├── 📁 auth/                    # Authentication (3 files)
+│   │   └── 📄 IdentityService.ts   # Nickname-based auth
+│   │
+│   └── 📁 indicators/              # Technical indicators (4 files)
+│       ├── 📄 RSICalculator.ts     # Relative Strength Index
+│       └── 📄 ATRCalculator.ts     # Average True Range
+│
+├── 📁 hooks/                        # Custom React Hooks (25 files)
+│   ├── 📄 useMarketData.ts         # Market subscription (10KB)
+│   ├── 📄 useHUDEvents.ts          # HUD event handling (6KB)
+│   ├── 📄 useHUDUpdateLoop.ts      # 60fps HUD updates (7KB)
+│   ├── 📄 useLerpValue.ts          # Smooth value transitions (6KB)
+│   ├── 📄 useGameStatus.ts         # State machine subscription
+│   ├── 📄 useDevice.ts             # Device capability detection
+│   ├── 📄 useMenuNav.ts            # Keyboard navigation
+│   ├── 📄 useResponsiveUI.ts       # Responsive breakpoints
+│   └── 📄 usePauseBudget.ts        # Pause time limiting
+│
+├── 📁 stores/                       # Zustand State Management
+│   ├── 📄 gameStore.ts             # Main persistent store (13KB)
+│   └── 📁 admin/                   # Admin panel state
+│
+├── 📁 contexts/                     # React Contexts (6 files)
+│   ├── 📄 GameContext.tsx          # Game instance context
+│   ├── 📄 ThemeContext.tsx         # Theme provider
+│   └── 📄 UserContext.tsx          # User/auth context
+│
+├── 📁 types/                        # TypeScript Definitions (14 files)
+│   ├── 📄 events.ts                # 40+ typed event payloads (11KB)
+│   ├── 📄 indicators.ts            # Market indicator types (12KB)
+│   ├── 📄 metrics.ts               # Analytics types (9KB)
+│   ├── 📄 BuffGem.ts               # Buff gem configurations
+│   ├── 📄 DeviceProfile.ts         # Device capability types
+│   └── 📄 MobileSettings.ts        # Mobile control types
+│
+├── 📁 config/                       # Configuration (16 files)
+│   ├── 📄 GameConfig.ts            # Core game settings
+│   ├── 📄 EnemyConfig.ts           # Enemy type definitions
+│   ├── 📄 EnemyRegistry.ts         # Enemy registry
+│   ├── 📄 PlayerConfig.ts          # Player defaults
+│   ├── 📄 CombatConfig.ts          # Damage formulas
+│   ├── 📄 UILayout.ts              # Layout constants
+│   ├── 📄 Colors.ts                # Decoupled color constants
+│   ├── 📄 PerformancePresets.ts    # Mobile/desktop presets
+│   └── 📁 themes/                  # Theme variants
+│
+├── 📁 tests/                        # Vitest Unit Tests (114 files)
+│   ├── 📁 services/                # Service tests (15+ files)
+│   ├── 📁 hooks/                   # Hook tests (3 files)
+│   ├── 📁 components/              # Component tests
+│   └── 📁 edge/                    # Edge function tests (5 files)
+│
+├── 📁 e2e/                          # Playwright E2E Tests (16 files)
+│   ├── 📄 game-flow.spec.ts        # Full game flow
+│   ├── 📄 mobile-touch-controls.spec.ts
+│   ├── 📄 mobile-hud-layout.spec.ts
+│   ├── 📄 network-error.spec.ts
+│   └── 📄 visual.spec.ts           # Visual regression
+│
+├── 📁 supabase/                     # Supabase Configuration
+│   ├── 📁 migrations/              # Database migrations (18 files)
+│   │   └── 📄 20260114_security_hardening.sql
+│   └── 📁 functions/               # Edge Functions
+│       ├── 📁 verify-game/         # Score verification
+│       └── 📁 start-session/       # Session initialization
+│
+├── 📁 railway-market-server/        # Price Logger Backend (22 files)
+│   └── 📁 src/                     # Express.js server
+│
+├── 📁 docs/                         # Documentation (62 files)
+│   ├── 📄 MASTER_ROADMAP.md       # Feature roadmap
+│   ├── 📄 ARCHITECTURE_REVIEW.md  # Architecture decisions
+│   └── 📁 completed/              # Completed features (15 files)
+│
+└── 📁 .agent/                       # AI Agent Workflows
+    └── 📁 workflows/               # Automation scripts
+        ├── 📄 code-review.md
+        └── 📄 debug-push.md
+```
+
+---
+
+## 🎮 How to Play
+
+### Controls
+
+| Input Mode | Move | Special / Action |
+|------------|------|------------------|
+| **Desktop** | `W` `A` `S` `D` / `Arrows` | `Space` (Dash), `Esc/P` (Pause) |
+| **Touch (Joystick)** | Left/Right Thumb | Dedicated Dash Button |
+| **Touch (Drag)** | Drag anywhere | Second Finger Tap (Dash) |
+
+### Game Flow
+
+1. **Select Asset** - Choose BTC or other crypto pairs
+2. **Choose Leverage** - 1x (Safe) to 100x (Extreme Risk)
+3. **Pick Position** - Long (🐂) or Short (🐻)
+4. **Survive** - Defeat enemies, collect XP, level up
+5. **Upgrade** - Choose powerful cards each level
+
+### UI Typography & Scaling
+
+| UI Element | Desktop Size | Mobile Size | Style |
+| :--- | :--- | :--- | :--- |
+| **BTC Price** | 36px (`text-4xl`) | 24px (`text-2xl`) | Font-Black, Mono |
+| **PnL Percent** | 24px (`text-2xl`) | 18px (`text-lg`) | Font-Black, Mono |
+| **Large Headings** | 96px (`text-8xl`) | 60px (`text-6xl`) | Italic, Black |
+| **Kernel Status** | 12px (`text-xs`) | 10px (`text-[10px]`) | Uppercase, Spaced |
 
 ---
 
@@ -344,10 +685,10 @@ crypto-cyber-survivors/
 | Stat | Value |
 |------|-------|
 | **TypeScript Files** | 300+ |
-| **React Components** | 46 |
-| **Services** | 95 |
-| **Custom Hooks** | 21 |
-| **Config Files** | 11 |
+| **React Components** | 68 |
+| **Services** | 119 |
+| **Custom Hooks** | 25 |
+| **Config Files** | 16 |
 | **Unit Tests** | **979 passing** (71 test suites) |
 | **E2E Tests** | **72 passing** |
 | **Test Coverage** | 80%+ |
@@ -355,20 +696,17 @@ crypto-cyber-survivors/
 | **Circular Dependencies** | **0** |
 | **Performance** | Stable 60 FPS (Mobile & Desktop) |
 
-### 🔍 Code Quality
+---
 
-Latest review: **January 3, 2026**
+## 🛠️ Debug Tools
 
-**Highlights:**
-- ✅ Excellent architecture with clean separation of concerns
-- ✅ Strong type safety with TypeScript strict mode
-- ✅ High test coverage (979 unit + 72 E2E tests)
-- ✅ Performance optimizations (object pooling, spatial grid)
-- ✅ Security hardened (RLS policies, replay protection)
-- ✅ Modular metrics subsystem
-- ✅ Zero circular dependencies
-- ✅ Debug state methods for runtime inspection
-- ✅ EventBus tracing mode for debugging
+| Tool | Shortcut | Description |
+|------|----------|-------------|
+| **Admin Dashboard** | `Ctrl+Shift+A` | Analytics, Price Analysis, Error Reports |
+| **Cheat Manager** | Dev mode only | God mode, instant level up, spawn controls |
+| **FPS Monitor** | Always visible | Canvas-rendered FPS counter |
+| **EventBus Tracing** | `EventBus.enableTracing()` | Log all event emissions |
+| **Debug State** | `DifficultyManager.getDebugState()` | Runtime inspection |
 
 ---
 
@@ -376,9 +714,9 @@ Latest review: **January 3, 2026**
 
 ### Supabase
 - **Database**: PostgreSQL with RLS policies
-- **Tables**: `players`, `game_sessions`, `player_wallets`, `price_logs`
-- **Views**: `leaderboard`
-- **Edge Functions**: `verify-game` (score verification)
+- **Tables**: `players`, `game_sessions`, `player_wallets`, `price_logs`, `coin_transactions`
+- **Views**: `leaderboard` (SECURITY INVOKER)
+- **Edge Functions**: `verify-game`, `start-session`
 - **Real-time**: Leaderboard subscriptions
 
 ### Railway
@@ -388,6 +726,20 @@ Latest review: **January 3, 2026**
 ### WebSocket Feeds
 - **Primary**: Binance (`wss://stream.binance.com:9443/ws/btcusdt@trade`)
 - **Fallback**: Coinbase (`wss://ws-feed.exchange.coinbase.com`)
+
+---
+
+## 📚 API Documentation
+
+TypeDoc-generated API documentation is available:
+
+```bash
+npm run docs          # Generate docs
+npm run docs:watch    # Watch mode
+npm run docs:clean    # Clean generated docs
+```
+
+Documentation location: `docs/api/`
 
 ---
 

@@ -10,8 +10,7 @@ import {
   type ViewportBounds,
 } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
-import { COLORS } from '../../config/Colors';
-import { GAME_ENGINE } from '../../constants';
+import { GAME_ENGINE, GEMS } from '../../constants';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -51,10 +50,75 @@ export class EntityRenderer implements IRenderer {
     );
 
     // Layered rendering (Bottom to Top)
+    this.drawInteractables(ctx, pool, bounds);
     this.drawGems(ctx, pool, shadowsEnabled, bounds);
     this.drawBuffGems(ctx, shadowsEnabled, bounds);
     this.drawEnemies(ctx, pool, bounds);
     this.drawPlayer(ctx, player, state, shadowsEnabled);
+  }
+
+  /**
+   * Renders interactive environmental objects (Lootboxes, Mining Rigs).
+   */
+  private drawInteractables(
+    ctx: CanvasRenderingContext2D,
+    pool: IPoolManager,
+    bounds: ViewportBounds
+  ): void {
+    const interactables = pool.activeInteractables;
+    if (!interactables) return;
+
+    interactables.forEach(obj => {
+      if (!isCircleVisible(obj.x, obj.y, obj.radius + 10, bounds)) {
+        return;
+      }
+
+      ctx.save();
+
+      // Hit flash effect
+      if (obj.isHit) {
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#FFFFFF';
+      } else {
+        ctx.fillStyle = obj.color;
+      }
+
+      // Shake effect if hit
+      const shakeX = obj.isHit ? (Math.random() - 0.5) * 4 : 0;
+      const shakeY = obj.isHit ? (Math.random() - 0.5) * 4 : 0;
+
+      const size = obj.radius * 2;
+      const x = Math.round(obj.x + shakeX) - obj.radius;
+      const y = Math.round(obj.y + shakeY) - obj.radius;
+
+      // Draw Base (Box shape)
+      ctx.fillRect(x, y, size, size);
+
+      // Draw Detail (Icon or Border)
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, size, size);
+
+      // Inner Icon
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = `${Math.round(obj.radius)}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const icon = obj.type === 'MINING_RIG' ? '⛏️' : '🎁';
+      ctx.fillText(icon, Math.round(obj.x + shakeX), Math.round(obj.y + shakeY));
+
+      // Health Bar (Mini)
+      const healthPct = obj.health / obj.maxHealth;
+      if (healthPct < 1) {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(x, y - 8, size, 4);
+        ctx.fillStyle = healthPct > 0.5 ? '#0f0' : '#f00';
+        ctx.fillRect(x, y - 8, size * healthPct, 4);
+      }
+
+      ctx.restore();
+    });
   }
 
   /**
@@ -67,9 +131,33 @@ export class EntityRenderer implements IRenderer {
     bounds: ViewportBounds
   ): void {
     pool.activeGems.forEach(g => {
+      if (!g.active) {
+        return;
+      }
+
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
         return;
       }
+
+      // Calculate fade-out alpha based on lifetime
+      const elapsed = g.elapsedLifetime ?? 0;
+      const lifetime = GEMS.LIFETIME;
+      const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+
+      // Start fading when 30% of lifetime remains
+      const fadeStartThreshold = 0.3;
+      let alpha = 1.0;
+
+      if (remainingRatio < fadeStartThreshold) {
+        alpha = remainingRatio / fadeStartThreshold;
+        // Add a "blinking" effect when very close to expiry
+        if (remainingRatio < 0.1) {
+          alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+        }
+      }
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
 
       if (g.isRare && shadowsEnabled) {
         ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
@@ -81,9 +169,7 @@ export class EntityRenderer implements IRenderer {
       ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      if (shadowsEnabled) {
-        ctx.shadowBlur = 0;
-      }
+      ctx.restore();
     });
   }
 
@@ -367,7 +453,9 @@ export class EntityRenderer implements IRenderer {
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fillRect(ex - e.radius, barY, barWidth, 4);
 
-    ctx.fillStyle = ThemeService.isRetro() ? COLORS.CASINO_RED : COLORS.SHORT;
+    // Theme-aware health bar color
+    const healthColor = ThemeService.getConfig().colors.health;
+    ctx.fillStyle = healthColor;
     ctx.fillRect(
       ex - e.radius,
       barY,
@@ -385,13 +473,38 @@ export class EntityRenderer implements IRenderer {
     state: GameState,
     shadowsEnabled: boolean
   ): void {
-    // 1. Render Dash Ghosting/Trail
+    // 1. Render Dash Ghosting/Trail (Theme-aware)
+    const isRetro = ThemeService.isRetro();
+
     state.dashTrail.forEach((pos, i) => {
-      ctx.globalAlpha = (i / state.dashTrail.length) * 0.4;
+      const progress = i / state.dashTrail.length;
+      ctx.globalAlpha = progress * 0.4;
+
+      // Use player's current color (based on Market Position) for the trail
+      // This ensures Green trail for Long, Red for Short.
       ctx.fillStyle = player.color;
-      ctx.beginPath();
-      ctx.arc(Math.round(pos.x), Math.round(pos.y), player.radius, 0, Math.PI * 2);
-      ctx.fill();
+
+      if (isRetro) {
+        // Retro 16-bit: Pixelated square afterimage
+        const size = player.radius * 2 * (0.6 + progress * 0.4);
+        ctx.fillRect(
+          Math.round(pos.x) - size / 2,
+          Math.round(pos.y) - size / 2,
+          size,
+          size
+        );
+      } else {
+        // Cyberpunk: Neon trail with glow
+        ctx.beginPath();
+        ctx.arc(
+          Math.round(pos.x),
+          Math.round(pos.y),
+          player.radius * (0.7 + progress * 0.3),
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
     });
     ctx.globalAlpha = 1;
 
@@ -418,7 +531,7 @@ export class EntityRenderer implements IRenderer {
   }
 
   /**
-   * Pumping glow rings for double-dash window.
+   * Pumping glow rings for double-dash window (Theme-aware).
    */
   private renderPlayerHalo(
     ctx: CanvasRenderingContext2D,
@@ -429,46 +542,77 @@ export class EntityRenderer implements IRenderer {
     ctx.save();
     const haloRadius = player.radius * GAME_ENGINE.PLAYER_HALO_RADIUS_MULT;
     const opac = state.dashHaloOpacity;
+    const isRetro = ThemeService.isRetro();
 
-    // A. Visual "Jackpot" Alert Ring
-    ctx.globalAlpha = opac * 0.6;
-    ctx.strokeStyle = COLORS.JACKPOT_YELLOW;
-    ctx.lineWidth = ThemeService.isRetro() ? 4 : 3;
-    ctx.beginPath();
-    ctx.arc(Math.round(player.x), Math.round(player.y), haloRadius, 0, Math.PI * 2);
-    ctx.stroke();
+    const pColor = player.color;
 
-    // B. Inner Momentum Ring
-    ctx.globalAlpha = opac * 0.4;
-    ctx.strokeStyle = COLORS.CASINO_GOLD;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(
-      Math.round(player.x),
-      Math.round(player.y),
-      haloRadius - GAME_ENGINE.PLAYER_HALO_GLOW_OFFSET,
-      0,
-      Math.PI * 2
-    );
-    ctx.stroke();
+    if (isRetro) {
+      // Retro 16-bit: High-contrast blinking squared halo
+      const size = haloRadius * 2;
+      const px = Math.round(player.x);
+      const py = Math.round(player.y);
 
-    // C. Radial Field Glow
-    if (shadowsEnabled) {
-      ctx.globalAlpha = opac * 0.3;
-      const gradient = ctx.createRadialGradient(
-        player.x,
-        player.y,
-        player.radius,
-        player.x,
-        player.y,
-        haloRadius
-      );
-      gradient.addColorStop(0, 'rgba(255, 214, 0, 0.5)'); // Jackpot Yellow base
-      gradient.addColorStop(1, 'rgba(255, 214, 0, 0)');
-      ctx.fillStyle = gradient;
+      // A. Outer square ring (White for visibility)
+      ctx.globalAlpha = opac * 0.8;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(px - size / 2, py - size / 2, size, size);
+
+      // B. Inner square ring (Player color)
+      const innerSize = size - 8;
+      ctx.globalAlpha = opac * 0.6;
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px - innerSize / 2, py - innerSize / 2, innerSize, innerSize);
+    } else {
+      // Cyberpunk: High-energy neon glow rings based on player state
+
+      // A. Critical Momentum Ring (White core)
+      ctx.globalAlpha = opac * 0.8;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(Math.round(player.x), Math.round(player.y), haloRadius, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.stroke();
+
+      // B. Energy Burst Ring (Player color)
+      ctx.globalAlpha = opac * 0.5;
+      ctx.strokeStyle = pColor;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(
+        Math.round(player.x),
+        Math.round(player.y),
+        haloRadius + 4,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+
+      // C. Radial Field Glow
+      if (shadowsEnabled) {
+        ctx.globalAlpha = opac * 0.3;
+        const gradient = ctx.createRadialGradient(
+          player.x,
+          player.y,
+          player.radius,
+          player.x,
+          player.y,
+          haloRadius + 10
+        );
+        gradient.addColorStop(0, `${pColor}80`);
+        gradient.addColorStop(1, `${pColor}00`);
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(
+          Math.round(player.x),
+          Math.round(player.y),
+          haloRadius + 10,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
     }
 
     ctx.restore();
@@ -524,15 +668,15 @@ export class EntityRenderer implements IRenderer {
 
     // Apply scaling factor for impact/movement "feel"
     if (
-      Math.abs(state.playerScaleX - 1) > 0.01 ||
-      Math.abs(state.playerScaleY - 1) > 0.01
+      Math.abs(state.playerScaleX - 1) > 0.001 ||
+      Math.abs(state.playerScaleY - 1) > 0.001
     ) {
       ctx.ellipse(
         px,
         py,
         player.radius * state.playerScaleX,
         player.radius * state.playerScaleY,
-        0,
+        state.playerRotation,
         0,
         Math.PI * 2
       );

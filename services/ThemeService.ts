@@ -5,7 +5,14 @@
  * that cannot use hooks.
  */
 
-import { type ThemeName } from '../types/theme';
+import { type ThemeName, type ThemeConfig } from '../types/theme';
+import { cyberpunkTheme, retro16bitTheme } from '../config/themes';
+
+/** Theme lookup table for quick config access */
+const THEMES: Record<ThemeName, ThemeConfig> = {
+  cyberpunk: cyberpunkTheme,
+  'retro-16bit': retro16bitTheme,
+};
 
 class ThemeServiceClass {
   private currentTheme: ThemeName = 'cyberpunk';
@@ -30,6 +37,13 @@ class ThemeServiceClass {
    */
   isCyberpunk(): boolean {
     return this.currentTheme === 'cyberpunk';
+  }
+
+  /**
+   * Get full theme configuration (colors, fonts, effects)
+   */
+  getConfig(): ThemeConfig {
+    return THEMES[this.currentTheme];
   }
 
   /**

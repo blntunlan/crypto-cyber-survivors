@@ -120,6 +120,7 @@ export interface Gem extends Entity {
   magnetized?: boolean;
   vx?: number;
   vy?: number;
+  elapsedLifetime?: number;
 }
 
 export interface Particle extends Entity {
@@ -146,6 +147,14 @@ export interface Candle {
   h: number;
   color: string;
   speed: number;
+}
+
+export interface Interactable extends Entity {
+  type: 'MINING_RIG' | 'LOOT_CRATE' | 'GAS_STATION';
+  health: number;
+  maxHealth: number;
+  isHit?: boolean; // Visual feedback
+  hitTimer?: number;
 }
 
 export interface GameState {
@@ -180,6 +189,7 @@ export interface GameState {
   // Squash & Stretch (player animation)
   playerScaleX: number; // Horizontal scale (1.0 = normal)
   playerScaleY: number; // Vertical scale (1.0 = normal)
+  playerRotation: number; // Rotation angle in radians for squash/stretch
 
   // Near Miss Tension
   nearMissTimer: number; // Timer for slow-mo effect
@@ -188,6 +198,7 @@ export interface GameState {
   // Market Visuals
   rsiVisualState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   whaleEventTimer: number; // For whale spawn splash/shake effect
+  interactableSpawnTimer?: number; // Timer for lootbox generation
 }
 
 export interface Achievement {

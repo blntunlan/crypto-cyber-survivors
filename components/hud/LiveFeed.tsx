@@ -137,25 +137,30 @@ const MobileLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
 > = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
   const isRetro = useIsRetro();
-  const { rs, rfs } = useResponsiveUI();
+  const { rs, rfs, isSmallDevice } = useResponsiveUI();
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
+
+  // Reduce decimal places on small devices to save space
+  const displayDecimals = isSmallDevice
+    ? Math.min(pairConfig.decimals, 2)
+    : pairConfig.decimals;
 
   return (
     <div
       className="bg-transparent flex flex-col gap-0 relative overflow-hidden"
       style={{
-        paddingTop: rs(8),
-        paddingBottom: rs(8),
-        paddingLeft: rs(8),
-        paddingRight: rs(8),
-        // Removed minWidth to prevent overlap with center timer on narrow screens
+        paddingTop: isSmallDevice ? rs(4) : rs(8),
+        paddingBottom: isSmallDevice ? rs(4) : rs(8),
+        paddingLeft: isSmallDevice ? rs(4) : rs(8),
+        paddingRight: isSmallDevice ? rs(4) : rs(8),
+        maxWidth: '100%', // Prevent overflow
       }}
     >
       <div className="flex items-center justify-between mb-1">
         <div
           className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5"
-          style={{ fontSize: isRetro ? rfs(9) : rfs(10) }}
+          style={{ fontSize: isRetro ? rfs(9) : rfs(isSmallDevice ? 8 : 10) }}
         >
           <span
             className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'opacity-75'}`}
@@ -165,13 +170,13 @@ const MobileLiveFeed: React.FC<
         <div className="flex items-center gap-1.5">
           <span
             className="font-bold"
-            style={{ color: pairConfig.color, fontSize: rfs(10) }}
+            style={{ color: pairConfig.color, fontSize: rfs(isSmallDevice ? 8 : 10) }}
           >
             {pairConfig.id}
           </span>
           <div
             className="text-slate-400 font-feed opacity-60"
-            style={{ fontSize: rfs(9) }}
+            style={{ fontSize: rfs(isSmallDevice ? 7 : 9) }}
           >
             {marketData.leverage}X
           </div>
@@ -181,64 +186,73 @@ const MobileLiveFeed: React.FC<
       <div className="flex flex-col">
         <div
           className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} leading-none ${isRetro ? 'font-retro-pixel' : ''}`}
-          style={{ fontSize: isRetro ? rfs(16) : rfs(24) }}
+          style={{ fontSize: isRetro ? rfs(16) : rfs(isSmallDevice ? 18 : 24) }}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
-            minimumFractionDigits: pairConfig.decimals,
-            maximumFractionDigits: pairConfig.decimals,
+            minimumFractionDigits: displayDecimals,
+            maximumFractionDigits: displayDecimals,
           })}
         </div>
         <div
           className="font-black flex items-center gap-1.5 mt-0.5"
-          style={{ color: pnlHex, fontSize: rfs(13) }}
+          style={{ color: pnlHex, fontSize: rfs(isSmallDevice ? 11 : 13) }}
         >
-          <span className="text-base">{(smoothValues.pnl * 100).toFixed(2)}%</span>
-          <span className="opacity-70 tracking-tighter" style={{ fontSize: rfs(10) }}>
+          <span className={isSmallDevice ? 'text-sm' : 'text-base'}>
+            {(smoothValues.pnl * 100).toFixed(2)}%
+          </span>
+          <span
+            className="opacity-70 tracking-tighter"
+            style={{ fontSize: rfs(isSmallDevice ? 8 : 10) }}
+          >
             {marketData.effectivePnl >= 0 ? 'PROFIT' : 'LOSS'}
           </span>
         </div>
       </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-y-1.5 opacity-80 border-t border-white/5 pt-1.5">
-        <div
-          className="text-slate-200 uppercase leading-none font-bold"
-          style={{ fontSize: rfs(11) }}
-        >
-          Entry ${Math.floor(entryPrice)}
-        </div>
-        <div
-          className="text-slate-200 uppercase leading-none text-right font-bold"
-          style={{ fontSize: rfs(11) }}
-        >
-          Vol x{smoothValues.difficulty.toFixed(1)}
-        </div>
+      {/* Secondary info - Hidden on small devices to save space */}
+      {!isSmallDevice && (
+        <div className="mt-2 grid grid-cols-2 gap-y-1.5 opacity-80 border-t border-white/5 pt-1.5">
+          <div
+            className="text-slate-200 uppercase leading-none font-bold"
+            style={{ fontSize: rfs(11) }}
+          >
+            Entry ${Math.floor(entryPrice)}
+          </div>
+          <div
+            className="text-slate-200 uppercase leading-none text-right font-bold"
+            style={{ fontSize: rfs(11) }}
+          >
+            Vol x{smoothValues.difficulty.toFixed(1)}
+          </div>
 
-        {/* Combined Row: Liquidation & RSI */}
-        <div
-          className={`uppercase leading-none pt-1.5 mt-0.5 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-300 font-bold'}`}
-          style={{ fontSize: rfs(11) }}
-        >
-          {marketData.liquidationPrice !== undefined && marketData.liquidationPrice > 0
-            ? `LIQ: $${marketData.liquidationPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-            : ''}
-        </div>
+          {/* Combined Row: Liquidation & RSI */}
+          <div
+            className={`uppercase leading-none pt-1.5 mt-0.5 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-300 font-bold'}`}
+            style={{ fontSize: rfs(11) }}
+          >
+            {marketData.liquidationPrice !== undefined &&
+            marketData.liquidationPrice > 0
+              ? `LIQ: $${marketData.liquidationPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+              : ''}
+          </div>
 
-        <div
-          className={`uppercase leading-none text-right pt-1.5 mt-0.5 border-t border-white/5 font-bold ${
-            serverState
-              ? serverState.rsi >= 70
-                ? 'text-red-400'
-                : serverState.rsi <= 30
-                  ? 'text-green-400'
-                  : 'text-slate-300'
-              : 'text-slate-500'
-          }`}
-          style={{ fontSize: rfs(11) }}
-        >
-          {serverState ? `RSI ${Math.round(serverState.rsi)}` : ''}
+          <div
+            className={`uppercase leading-none text-right pt-1.5 mt-0.5 border-t border-white/5 font-bold ${
+              serverState
+                ? serverState.rsi >= 70
+                  ? 'text-red-400'
+                  : serverState.rsi <= 30
+                    ? 'text-green-400'
+                    : 'text-slate-300'
+                : 'text-slate-500'
+            }`}
+            style={{ fontSize: rfs(11) }}
+          >
+            {serverState ? `RSI ${Math.round(serverState.rsi)}` : ''}
+          </div>
         </div>
-      </div>
+      )}
 
       {serverState && serverState.whaleTier > 0 && (
         <div className="absolute top-0 right-0 p-1 animate-pulse">

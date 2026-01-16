@@ -116,6 +116,78 @@ export class CollisionSystem implements ICollisionSystem {
         perfConfig.particleMultiplier
       );
     });
+
+    // 6. Interactables (Mining Rigs / Loot Crates)
+    pool.activeInteractables.forEach(obj => {
+      // Very simple AABB/Circle check against bullets
+      // Optimization: Only check if obj is on screen?
+
+      const nearbyBullets = this.ctx.bulletGrid.getNearby(obj.x, obj.y);
+      for (const bullet of nearbyBullets) {
+        if (!obj.active || !bullet.active) continue;
+
+        const dx = obj.x - bullet.x;
+        const dy = obj.y - bullet.y;
+        const distSq = dx * dx + dy * dy;
+        const combinedRadius = obj.radius + bullet.radius;
+
+        if (distSq < combinedRadius * combinedRadius) {
+          // Hit!
+          bullet.active = false;
+          obj.health -= bullet.damage;
+          obj.isHit = true;
+          obj.hitTimer = 0.2; // 200ms flash
+
+          // Spawn chip particles
+          const count = Math.round(3 * perfConfig.particleMultiplier);
+          for (let i = 0; i < count; i++) {
+            pool.getParticle(
+              obj.x,
+              obj.y,
+              (Math.random() - 0.5) * 100,
+              (Math.random() - 0.5) * 100,
+              obj.color
+            ).life = 0.5;
+          }
+
+          if (obj.health <= 0) {
+            obj.active = false;
+            // Reward: Spawn a high-value Gem
+            // Mining Rig -> Large XP/Coin
+            // Loot Crate -> Buff or HP
+            const rewardValue = obj.type === 'MINING_RIG' ? 50 : 100;
+            const rewardColor = obj.type === 'MINING_RIG' ? '#FFD700' : '#A855F7';
+
+            pool.getGem(
+              obj.x,
+              obj.y,
+              rewardValue,
+              15, // larger radius
+              rewardColor,
+              true // isRare
+            );
+
+            this.ctx.audio.playCrit(); // Reuse nice sound
+
+            // Explosion effect
+            for (let i = 0; i < 15; i++) {
+              pool.getParticle(
+                obj.x,
+                obj.y,
+                (Math.random() - 0.5) * 300,
+                (Math.random() - 0.5) * 300,
+                rewardColor
+              ).life = 1.0;
+            }
+          }
+        }
+      }
+
+      if (obj.hitTimer && obj.hitTimer > 0) {
+        obj.hitTimer -= dtFactor;
+        if (obj.hitTimer <= 0) obj.isHit = false;
+      }
+    });
   }
 
   /**
