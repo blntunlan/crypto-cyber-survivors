@@ -1,6 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player, type Enemy } from '../../types';
+import { type GameState, type Player, type Enemy, type Gem } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
@@ -25,6 +25,8 @@ import { GAME_ENGINE } from '../../constants';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  // Batching cache to avoid allocation per frame
+  private gemBatches: Map<string, Gem[]> = new Map();
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -59,6 +61,7 @@ export class EntityRenderer implements IRenderer {
 
   /**
    * Renders experience gems. Rare gems get a circular glow.
+   * Optimized with batching to minimize draw calls.
    */
   private drawGems(
     ctx: CanvasRenderingContext2D,
@@ -66,22 +69,54 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    // Reset existing batches
+    this.gemBatches.forEach(batch => (batch.length = 0));
+
+    // Group gems by unique style key
     pool.activeGems.forEach(g => {
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
         return;
       }
 
-      if (g.isRare && shadowsEnabled) {
+      // Key differentiates by color and rarity (since rarity affects shadow)
+      const key = g.color + (g.isRare ? '_rare' : '');
+      let batch = this.gemBatches.get(key);
+      if (!batch) {
+        batch = [];
+        this.gemBatches.set(key, batch);
+      }
+      batch.push(g);
+    });
+
+    // Draw each batch
+    this.gemBatches.forEach(batch => {
+      if (batch.length === 0) return;
+
+      const first = batch[0];
+      const isRare = first.isRare;
+      const color = first.color;
+
+      if (isRare && shadowsEnabled) {
         ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
-        ctx.shadowColor = g.color;
+        ctx.shadowColor = color;
       }
 
-      ctx.fillStyle = g.color;
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+
+      for (let i = 0; i < batch.length; i++) {
+        const g = batch[i];
+        const gx = Math.round(g.x);
+        const gy = Math.round(g.y);
+
+        // Move to start of arc to ensure disjoint shapes
+        ctx.moveTo(gx + g.radius, gy);
+        ctx.arc(gx, gy, g.radius, 0, Math.PI * 2);
+      }
+
       ctx.fill();
 
-      if (shadowsEnabled) {
+      if (isRare && shadowsEnabled) {
         ctx.shadowBlur = 0;
       }
     });
@@ -97,6 +132,7 @@ export class EntityRenderer implements IRenderer {
   ): void {
     const buffGems = BuffGemSpawner.getActiveGems();
     const now = Date.now();
+    const isRetro = ThemeService.isRetro();
 
     buffGems.forEach(gem => {
       if (!gem.active) {
@@ -164,7 +200,7 @@ export class EntityRenderer implements IRenderer {
       }
 
       // 4. Buff Icon (Emoji)
-      ctx.font = `${Math.round(radius * 1.2)}px ${ThemeService.isRetro() ? 'VT323' : 'Arial'}`;
+      ctx.font = `${Math.round(radius * 1.2)}px ${isRetro ? 'VT323' : 'Arial'}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.globalAlpha = flashAlpha;
@@ -199,6 +235,7 @@ export class EntityRenderer implements IRenderer {
     pool: IPoolManager,
     bounds: ViewportBounds
   ): void {
+    const isRetro = ThemeService.isRetro();
     pool.activeEnemies.forEach(e => {
       // Visibility Check: Buffer for large spawn glows
       const spawnPadding =
@@ -214,7 +251,7 @@ export class EntityRenderer implements IRenderer {
       if (e.isDying && e.deathProgress !== undefined) {
         this.renderEnemyDeath(ctx, e);
       } else {
-        this.renderEnemyLiving(ctx, e);
+        this.renderEnemyLiving(ctx, e, isRetro);
       }
     });
   }
@@ -257,40 +294,56 @@ export class EntityRenderer implements IRenderer {
 
   /**
    * Handles normal state and spawn-in "pop" logic for enemies.
+   * Optimized to avoid expensive save/restore calls when no transformation is needed.
    */
-  private renderEnemyLiving(ctx: CanvasRenderingContext2D, e: Enemy): void {
+  private renderEnemyLiving(ctx: CanvasRenderingContext2D, e: Enemy, isRetro: boolean): void {
     const ex = Math.round(e.x);
     const ey = Math.round(e.y);
+    const isSpawning = e.spawnTimer !== undefined && e.spawnTimer > 0;
 
-    ctx.save();
-    ctx.translate(ex, ey);
-
-    // 1. Spawn Animation (Elastic scaling + burst)
-    if (e.spawnTimer !== undefined && e.spawnTimer > 0) {
+    if (isSpawning) {
+      // EXPENSIVE PATH: Use save/restore for complex spawn transformations
+      ctx.save();
+      ctx.translate(ex, ey);
       this.applyEnemySpawnTransform(ctx, e);
-    }
 
-    // 2. Theme-Specific Skins
-    if (ThemeService.isRetro()) {
-      const sizeRect = e.radius * GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
-      ctx.fillStyle = e.color;
-      ctx.fillRect(-sizeRect / 2, -sizeRect / 2, sizeRect, sizeRect);
+      if (isRetro) {
+        const sizeRect = e.radius * GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(-sizeRect / 2, -sizeRect / 2, sizeRect, sizeRect);
 
-      // Retro detail: Eye/Core highlight
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.fillRect(-sizeRect / 2 + 2, -sizeRect / 2 + 2, 4, 4);
+        // Retro detail: Eye/Core highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(-sizeRect / 2 + 2, -sizeRect / 2 + 2, 4, 4);
+      } else {
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     } else {
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
+      // FAST PATH: Direct absolute coordinates, no save/restore
+      if (isRetro) {
+        const sizeRect = e.radius * GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
+        const halfSize = sizeRect / 2;
+        ctx.fillStyle = e.color;
+        ctx.fillRect(ex - halfSize, ey - halfSize, sizeRect, sizeRect);
+
+        // Retro detail: Eye/Core highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(ex - halfSize + 2, ey - halfSize + 2, 4, 4);
+      } else {
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        ctx.arc(ex, ey, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
-    ctx.restore();
-
-    // 3. Health Bar (Overlays)
+    // 3. Health Bar (Overlays) - only if not freshly spawning
     if (e.spawnTimer === undefined || e.spawnTimer < 0.7) {
-      this.drawEnemyHealthBar(ctx, e, ex, ey);
+      this.drawEnemyHealthBar(ctx, e, ex, ey, isRetro);
     }
   }
 
@@ -359,7 +412,8 @@ export class EntityRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     e: Enemy,
     ex: number,
-    ey: number
+    ey: number,
+    isRetro: boolean
   ): void {
     const barWidth = e.radius * 2;
     const barY = ey - e.radius - 8;
@@ -367,7 +421,7 @@ export class EntityRenderer implements IRenderer {
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fillRect(ex - e.radius, barY, barWidth, 4);
 
-    ctx.fillStyle = ThemeService.isRetro() ? COLORS.CASINO_RED : COLORS.SHORT;
+    ctx.fillStyle = isRetro ? COLORS.CASINO_RED : COLORS.SHORT;
     ctx.fillRect(
       ex - e.radius,
       barY,

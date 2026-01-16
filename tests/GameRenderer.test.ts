@@ -285,12 +285,9 @@ describe('GameRenderer', () => {
         GameStatus.PLAYING
       );
 
-      // Should translate to enemy position and draw arc at origin
-      expect(mockCtx.translate).toHaveBeenCalledWith(100, 100);
-      expect(mockCtx.arc).toHaveBeenCalledWith(0, 0, 15, 0, Math.PI * 2);
-
-      expect(mockCtx.translate).toHaveBeenCalledWith(200, 200);
-      expect(mockCtx.arc).toHaveBeenCalledWith(0, 0, 20, 0, Math.PI * 2);
+      // Now using absolute coordinates for non-spawning enemies (fast path)
+      expect(mockCtx.arc).toHaveBeenCalledWith(100, 100, 15, 0, Math.PI * 2);
+      expect(mockCtx.arc).toHaveBeenCalledWith(200, 200, 20, 0, Math.PI * 2);
     });
 
     it('should draw all active bullets', () => {
