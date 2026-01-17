@@ -88,6 +88,33 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (disabled) return;
+
+      // FIX: Don't intercept touches on interactive UI elements (pause button, etc.)
+      // Safari iOS: e.target may be this overlay div itself, so we use elementsFromPoint
+      // to check ALL elements at the touch coordinates (respecting z-index stacking)
+      const touch = e.touches[0] ?? e.changedTouches[0];
+      if (touch) {
+        // Get all elements at touch point, ordered by z-index (topmost first)
+        const elementsAtPoint = document.elementsFromPoint(
+          touch.clientX,
+          touch.clientY
+        );
+
+        // Check if any element in the stack is interactive
+        const hasInteractiveElement = elementsAtPoint.some(
+          el =>
+            el.tagName === 'BUTTON' ||
+            el.closest('button') !== null ||
+            el.classList.contains('pointer-events-auto') ||
+            el.closest('.pointer-events-auto') !== null
+        );
+
+        if (hasInteractiveElement) {
+          // Let the interactive element handle the touch natively
+          return;
+        }
+      }
+
       e.preventDefault();
 
       for (const touch of Array.from(e.changedTouches)) {

@@ -65,10 +65,7 @@ export class EntityRenderer implements IRenderer {
     pool: IPoolManager,
     bounds: ViewportBounds
   ): void {
-    const interactables = pool.activeInteractables;
-    if (!interactables) return;
-
-    interactables.forEach(obj => {
+    pool.activeInteractables.forEach(obj => {
       if (!isCircleVisible(obj.x, obj.y, obj.radius + 10, bounds)) {
         return;
       }

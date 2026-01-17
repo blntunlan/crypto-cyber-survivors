@@ -7,35 +7,47 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="google" content="notranslate" />
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#020617" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CryptoSurvivors" />
-    
+
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Real-time market-driven vampire survivors game. Kill bears, dodge bulls, survive the volatility with live BTC price data." />
-    <meta name="keywords" content="crypto, game, bitcoin, survivors, trading, web3, btc" />
+    <meta
+      name="description"
+      content="Real-time market-driven vampire survivors game. Kill bears, dodge bulls, survive the volatility with live BTC price data."
+    />
+    <meta
+      name="keywords"
+      content="crypto, game, bitcoin, survivors, trading, web3, btc"
+    />
     <meta name="author" content="Crypto Cyber Survivors Team" />
-    
+
     <!-- Open Graph -->
     <meta property="og:title" content="Crypto Cyber Survivors" />
-    <meta property="og:description" content="Real-time market-driven vampire survivors game. Survive the crypto chaos!" />
+    <meta
+      property="og:description"
+      content="Real-time market-driven vampire survivors game. Survive the crypto chaos!"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/icons/icon-512.png" />
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Crypto Cyber Survivors" />
-    <meta name="twitter:description" content="Real-time market-driven vampire survivors game" />
-    
+    <meta
+      name="twitter:description"
+      content="Real-time market-driven vampire survivors game"
+    />
+
     <title>Crypto Cyber Survivors</title>
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    
+
     <!-- Favicon & Apple Touch Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png" />
@@ -43,10 +55,10 @@
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192.png" />
-    
+
     <!-- Splash Screens for iOS (optional, can be generated later) -->
     <!-- <link rel="apple-touch-startup-image" href="/splash/splash-2048x2732.png" media="..." /> -->
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -63,7 +75,7 @@
   >
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    
+
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
@@ -72,13 +84,16 @@
             .register('/sw.js')
             .then(registration => {
               console.log('[App] Service Worker registered:', registration.scope);
-              
+
               // Check for updates
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 if (newWorker) {
                   newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    if (
+                      newWorker.state === 'installed' &&
+                      navigator.serviceWorker.controller
+                    ) {
                       // New version available
                       console.log('[App] New version available!');
                       // You could show a toast here: "New version available, refresh to update"

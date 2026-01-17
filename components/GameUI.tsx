@@ -185,10 +185,16 @@ export const GameUI: React.FC<GameUIProps> = memo(
             {status === GameStatus.PLAYING && onTogglePause && (
               <div
                 className="pointer-events-auto p-2 -m-2 z-[1005] relative"
-                style={{ touchAction: 'auto' }}
+                style={{
+                  touchAction: 'auto',
+                  // Safari iOS: Force new stacking context for proper z-index and touch handling
+                  transform: 'translateZ(0)',
+                  WebkitTransform: 'translateZ(0)',
+                }}
               >
                 {/* z-[1005] ensures pause button is above DragToMoveController (z-998) and its feedback (z-1003) */}
                 {/* touch-action: auto overrides parent's touch-none for Safari compatibility */}
+                {/* transform: translateZ(0) creates new stacking context for Safari iOS touch events */}
                 <button
                   onClick={e => {
                     e.stopPropagation();

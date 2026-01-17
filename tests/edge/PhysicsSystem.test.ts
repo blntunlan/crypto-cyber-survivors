@@ -75,6 +75,7 @@ describe('PhysicsSystem Edge Cases', () => {
       activeFloatingTexts: [],
       activeEnemies: [],
       activeGems: [],
+      activeInteractables: [],
       activeSpeedLines: [],
       getParticle: vi.fn(() => ({
         active: true,

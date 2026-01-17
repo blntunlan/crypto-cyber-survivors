@@ -665,7 +665,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
 
         // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---
-        s.interactableSpawnTimer = (s.interactableSpawnTimer || 0) + deltaTime;
+        s.interactableSpawnTimer = (s.interactableSpawnTimer ?? 0) + deltaTime;
         if (s.interactableSpawnTimer > 20000) {
           // Every 20 seconds
           s.interactableSpawnTimer = 0;
@@ -682,7 +682,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           );
 
           // Spawn effect
-          Logger.info('[GameEngine] Spawning Interactable at', rx, ry);
+          Logger.info(`[GameEngine] Spawning Interactable at ${rx}, ${ry}`);
           EventBus.emit('gameNotification', {
             title: 'SUPPLY DROP',
             message: 'A loot crate appeared!',

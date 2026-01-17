@@ -58,6 +58,7 @@ describe('GameRenderer', () => {
       activeParticles: [],
       activeFloatingTexts: [],
       activeSpeedLines: [],
+      activeInteractables: [],
     } as unknown as IPoolManager;
 
     // Mock GameState

@@ -89,6 +89,7 @@ describe('PhysicsSystem', () => {
       activeFloatingTexts: [],
       activeSpeedLines: [],
       activeEnemies: [],
+      activeInteractables: [],
       activeGems: [],
       getParticle: vi.fn(() => ({
         active: true,
@@ -167,6 +168,7 @@ describe('PhysicsSystem', () => {
       hitStopTimer: 0,
       playerScaleX: 1,
       playerScaleY: 1,
+      playerRotation: 0,
       nearMissTimer: 0,
       nearMissCooldown: 0,
       rsiVisualState: 'NEUTRAL',

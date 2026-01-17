@@ -78,6 +78,7 @@ vi.mock('../services/Logger', () => ({
 vi.mock('../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getNickname: vi.fn(() => 'TestUser'),
+    getPlayerId: vi.fn(() => 'test-player-id'),
   },
 }));
 
@@ -103,6 +104,15 @@ vi.mock('../hooks/useRunStats', () => ({
 
 vi.mock('../hooks/useSessionTiming', () => ({
   useSessionTiming: () => ({ sessionStartTime: 0 }),
+}));
+
+vi.mock('../hooks/useCloudflareSession', () => ({
+  useCloudflareSession: () => ({
+    isEnabled: false,
+    sessionId: null,
+    lastValidation: null,
+    validateSession: vi.fn(),
+  }),
 }));
 
 vi.mock('../hooks/useCheatManager', () => ({

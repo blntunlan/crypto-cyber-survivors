@@ -49,6 +49,7 @@ import { useBeforeUnload } from './hooks/useBeforeUnload';
 import { useDevShortcuts } from './hooks/useDevShortcuts';
 import { useMarketTimeout } from './hooks/useMarketTimeout';
 import { usePauseBudget } from './hooks/usePauseBudget';
+import { useCloudflareSession } from './hooks/useCloudflareSession';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
 
@@ -110,6 +111,11 @@ const App: React.FC = () => {
   const { gameStatus, handlePauseToggle } = useGameStatus();
   const { runStats, resetRunStats } = useRunStats();
   const { sessionStartTime } = useSessionTiming(gameStatus);
+
+  // Cloudflare session validation (anti-cheat) - starts session on PLAYING, resets on MENU
+  const playerId = UserSessionService.getPlayerId() || 'anonymous';
+  // Hook manages session lifecycle via side effects
+  useCloudflareSession(gameStatus, playerId, 'BTCUSDT');
 
   // Local state for gameMode - needed before usePauseBudget
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
