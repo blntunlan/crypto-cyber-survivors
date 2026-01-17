@@ -5,7 +5,7 @@
  * - Load/save sessions to localStorage
  * - Quota exceeded handling with graceful degradation
  * - Session limiting
- * - Cloud sync to Supabase
+ * - Cloud sync to Supabase with retry logic
  */
 
 import { Logger } from '../Logger';
@@ -13,9 +13,20 @@ import { type SessionMetrics } from '../../types/metrics';
 import { supabase, isSupabaseConfigured } from '../Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
 import { VerificationQueue } from '../verification/VerificationQueue';
+import { EventBus } from '../EventBus';
 
 const METRICS_VERSION = '1.0.0';
 const STORAGE_KEY = 'crypto_survivors_metrics';
+
+// Retry configuration
+const MAX_SYNC_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
+const RETRY_BACKOFF_MULTIPLIER = 2;
+
+// PostgreSQL error interface
+interface PostgresError extends Error {
+  code?: string;
+}
 
 export class MetricsStorage {
   private sessions: SessionMetrics[] = [];
@@ -81,9 +92,11 @@ export class MetricsStorage {
   }
 
   /**
-   * Sync session to Supabase
+   * Sync session to Supabase with retry logic
+   * Uses UPSERT logic: if serverSessionId exists, update the existing record.
+   * Otherwise, insert a new record.
    */
-  private async syncToSupabase(session: SessionMetrics): Promise<void> {
+  private async syncToSupabase(session: SessionMetrics, retryCount = 0): Promise<void> {
     // Skip sync if Supabase is not configured
     if (!isSupabaseConfigured() || !supabase) {
       Logger.debug('[MetricsStorage] Supabase not configured, skipping sync');
@@ -103,36 +116,74 @@ export class MetricsStorage {
       const playerId = UserSessionService.getPlayerId();
       const isAnonymous = playerId.startsWith('anon-');
 
-      // 1. Insert game session (without FPS - moved to performance_metrics)
-      const { data: gameSession, error: sessionError } = await supabase
-        .from('game_sessions')
-        .insert({
-          player_id: isAnonymous ? null : playerId,
-          session_timestamp: new Date(session.sessionTimestamp).toISOString(),
-          survival_time_ms: session.player.survivalTimeMs,
-          end_reason: session.gameEndReason,
-          max_level: session.player.maxLevel,
-          total_kills: session.player.totalKills,
-          crypto_pair: session.pair,
-          position: session.bitcoin.positionChosen,
-          leverage: session.bitcoin.leverage,
-          entry_price: session.bitcoin.priceAtStart,
-          exit_price: session.bitcoin.priceAtEnd,
-          pnl_percent: session.bitcoin.pnlAtDeath,
-          claimed_entry_price: session.bitcoin.priceAtStart,
-          claimed_exit_price: session.bitcoin.priceAtEnd,
-          claimed_pnl: session.bitcoin.pnlAtDeath,
-          device_fingerprint: session.performance?.deviceFingerprint,
-          is_suspicious: session.verification?.isSuspicious ?? false,
-          suspicion_reason: session.verification?.suspicionReason,
-          session_id: session.sessionId,
-        })
-        .select('id')
-        .single();
+      // Session data to save
+      const sessionData = {
+        player_id: isAnonymous ? null : playerId,
+        session_timestamp: new Date(session.sessionTimestamp).toISOString(),
+        survival_time_ms: session.player.survivalTimeMs,
+        end_reason: session.gameEndReason,
+        max_level: session.player.maxLevel,
+        total_kills: session.player.totalKills,
+        crypto_pair: session.pair,
+        position_chosen: session.bitcoin.positionChosen,
+        leverage: session.bitcoin.leverage,
+        entry_price: session.bitcoin.priceAtStart,
+        exit_price: session.bitcoin.priceAtEnd,
+        pnl_percent: session.bitcoin.pnlAtDeath,
+        claimed_entry_price: session.bitcoin.priceAtStart,
+        claimed_exit_price: session.bitcoin.priceAtEnd,
+        claimed_pnl: session.bitcoin.pnlAtDeath,
+        device_fingerprint: session.performance?.deviceFingerprint,
+        is_suspicious: session.verification?.isSuspicious ?? false,
+        suspicion_reason: session.verification?.suspicionReason,
+        session_id: session.sessionId,
+        end_time: new Date().toISOString(),
+      };
+
+      let gameSession: { id: string } | null = null;
+      let sessionError: Error | null = null;
+
+      // If we have a serverSessionId, UPDATE the existing record
+      if (session.serverSessionId) {
+        Logger.debug('[MetricsStorage] Updating existing server session', {
+          serverSessionId: session.serverSessionId,
+        });
+
+        const { data, error } = await supabase
+          .from('game_sessions')
+          .update(sessionData)
+          .eq('id', session.serverSessionId)
+          .select('id')
+          .single();
+
+        gameSession = data;
+        sessionError = error as Error | null;
+
+        if (error) {
+          Logger.warn(
+            '[MetricsStorage] Failed to update server session, falling back to insert',
+            error
+          );
+          // Fall through to insert
+        }
+      }
+
+      // If no serverSessionId OR update failed, try INSERT
+      if (!gameSession) {
+        const { data, error } = await supabase
+          .from('game_sessions')
+          .insert(sessionData)
+          .select('id')
+          .single();
+
+        gameSession = data;
+        sessionError = error as Error | null;
+      }
 
       if (sessionError) {
         // PostgreSQL unique constraint violation code: 23505 (Replay Attack Protection)
-        if (sessionError.code === '23505') {
+        const pgError = sessionError as PostgresError;
+        if (pgError.code === '23505') {
           Logger.warn(
             '[MetricsStorage] Duplicate session detected - replay attack blocked',
             {
@@ -144,6 +195,10 @@ export class MetricsStorage {
         }
         throw sessionError;
       }
+
+      // Get the actual session ID (from server or local)
+      const actualSessionId =
+        gameSession?.id ?? session.serverSessionId ?? session.sessionId;
 
       // 1b. Enqueue for server-side verification (rewards & anti-cheat)
       const nickname = UserSessionService.getNickname();
@@ -167,12 +222,21 @@ export class MetricsStorage {
         });
       }
 
-      Logger.info('[MetricsStorage] Game session synced');
+      Logger.info('[MetricsStorage] Game session synced', {
+        sessionId: actualSessionId,
+        retryCount,
+      });
+
+      // Emit success event
+      EventBus.emit('sessionSynced', {
+        sessionId: actualSessionId,
+        playerId,
+      });
 
       // 2. Insert performance metrics (if available)
-      if (session.performance && gameSession.id) {
+      if (session.performance && actualSessionId) {
         const { error: perfError } = await supabase.from('performance_metrics').insert({
-          session_id: gameSession.id,
+          session_id: actualSessionId,
           avg_fps: session.performance.avgFps,
           min_fps: session.performance.minFps,
           max_fps: session.performance.maxFps ?? session.performance.avgFps,
@@ -257,9 +321,39 @@ export class MetricsStorage {
       // 5. Player stats are updated automatically via database trigger
       // on the server when a record is inserted into 'game_sessions'.
     } catch (err) {
-      // Silent fail is okay for metrics, but log warning
-      Logger.warn('[MetricsStorage] Supabase sync failed', err);
+      // Retry logic with exponential backoff
+      if (retryCount < MAX_SYNC_RETRIES) {
+        const delay =
+          INITIAL_RETRY_DELAY_MS * Math.pow(RETRY_BACKOFF_MULTIPLIER, retryCount);
+        Logger.warn(
+          `[MetricsStorage] Sync failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_SYNC_RETRIES})`,
+          err
+        );
+
+        await this.sleep(delay);
+        return this.syncToSupabase(session, retryCount + 1);
+      }
+
+      // Max retries exceeded
+      Logger.error(
+        `[MetricsStorage] Supabase sync failed after ${MAX_SYNC_RETRIES} retries`,
+        err
+      );
+
+      // Emit failure event for monitoring
+      EventBus.emit('sessionSyncFailed', {
+        sessionId: session.sessionId,
+        error: err instanceof Error ? err.message : String(err),
+        retryCount,
+      });
     }
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

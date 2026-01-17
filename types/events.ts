@@ -69,7 +69,10 @@ export type GameEvent =
   | 'integrityCheckFailed'
   // Player events
   | 'playerDash'
-  | 'gameNotification';
+  | 'gameNotification'
+  // Session sync events
+  | 'sessionSynced'
+  | 'sessionSyncFailed';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -486,6 +489,9 @@ export interface EventDataMap {
   integrityCheckFailed: IntegrityCheckFailedEvent;
   playerDash: { duration: number; cooldown: number; isDoubleDash: boolean };
   gameNotification: NotificationEvent;
+  // Session sync events
+  sessionSynced: SessionSyncedEvent;
+  sessionSyncFailed: SessionSyncFailedEvent;
 }
 
 export interface NotificationEvent {
@@ -501,3 +507,20 @@ export interface NotificationEvent {
 
 /** Callback type for event handlers */
 export type EventCallback<K extends GameEvent> = (data: EventDataMap[K]) => void;
+
+// =============================================================================
+// SESSION SYNC EVENTS
+// =============================================================================
+
+/** Session successfully synced to Supabase */
+export interface SessionSyncedEvent {
+  sessionId: string;
+  playerId: string;
+}
+
+/** Session sync failed after retries */
+export interface SessionSyncFailedEvent {
+  sessionId: string;
+  error: string;
+  retryCount: number;
+}

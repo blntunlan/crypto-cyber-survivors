@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck: Deno edge function - TypeScript checks handled by Deno runtime
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
@@ -60,16 +60,13 @@ serve(async (req: Request) => {
       .insert({
         player_id: player.id,
         start_time: startTime.toISOString(),
+        session_timestamp: startTime.toISOString(), // Use same timestamp for uniqueness tracking
         crypto_pair: pair,
         position_chosen: position,
         leverage: leverage,
-        reward_status: 'pending',
         is_verified: false,
-        // session_id (UUID) is auto-generated if default, but we need to return it.
-        // If the table column has default gen_random_uuid(), we just select it.
-        // Assuming we rely on DB default.
       })
-      .select('session_id, start_time')
+      .select('id, start_time') // Return UUID 'id' for later UPDATE
       .single();
 
     if (sessionError) {
@@ -78,7 +75,7 @@ serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        sessionId: session.session_id,
+        sessionId: session.id, // UUID for client to store as serverSessionId
         startTime: session.start_time, // Send back server time for sync
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

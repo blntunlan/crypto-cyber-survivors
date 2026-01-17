@@ -186,7 +186,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
               <div
                 className="pointer-events-auto p-2 -m-2 z-[1005] relative"
                 style={{
-                  touchAction: 'auto',
+                  touchAction: 'manipulation',
                   // Safari iOS: Force new stacking context for proper z-index and touch handling
                   transform: 'translateZ(0)',
                   WebkitTransform: 'translateZ(0)',
@@ -209,7 +209,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
                     e.preventDefault();
                     onTogglePause();
                   }}
-                  className="bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
+                  className="pointer-events-auto bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
                   style={{ touchAction: 'manipulation', cursor: 'pointer' }}
                   title="Pause (Esc)"
                   aria-label="Pause Game"
