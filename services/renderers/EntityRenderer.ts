@@ -42,6 +42,10 @@ export class EntityRenderer implements IRenderer {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
     const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
 
+    // Cache ThemeService lookups
+    const isRetro = ThemeService.isRetro();
+    const healthColor = ThemeService.getConfig().colors.health;
+
     // Boundary Check: 50px padding to ensure smooth entry into screen
     const bounds = createViewportBounds(
       opts.width,
@@ -52,9 +56,9 @@ export class EntityRenderer implements IRenderer {
     // Layered rendering (Bottom to Top)
     this.drawInteractables(ctx, pool, bounds);
     this.drawGems(ctx, pool, shadowsEnabled, bounds);
-    this.drawBuffGems(ctx, shadowsEnabled, bounds);
-    this.drawEnemies(ctx, pool, bounds);
-    this.drawPlayer(ctx, player, state, shadowsEnabled);
+    this.drawBuffGems(ctx, shadowsEnabled, bounds, isRetro);
+    this.drawEnemies(ctx, pool, bounds, isRetro, healthColor);
+    this.drawPlayer(ctx, player, state, shadowsEnabled, isRetro);
   }
 
   /**
@@ -176,10 +180,12 @@ export class EntityRenderer implements IRenderer {
   private drawBuffGems(
     ctx: CanvasRenderingContext2D,
     shadowsEnabled: boolean,
-    bounds: ViewportBounds
+    bounds: ViewportBounds,
+    isRetro: boolean
   ): void {
     const buffGems = BuffGemSpawner.getActiveGems();
     const now = Date.now();
+    const fontFamily = isRetro ? 'VT323' : 'Arial';
 
     buffGems.forEach(gem => {
       if (!gem.active) {
@@ -247,7 +253,7 @@ export class EntityRenderer implements IRenderer {
       }
 
       // 4. Buff Icon (Emoji)
-      ctx.font = `${Math.round(radius * 1.2)}px ${ThemeService.isRetro() ? 'VT323' : 'Arial'}`;
+      ctx.font = `${Math.round(radius * 1.2)}px ${fontFamily}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.globalAlpha = flashAlpha;
@@ -280,7 +286,9 @@ export class EntityRenderer implements IRenderer {
   private drawEnemies(
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
-    bounds: ViewportBounds
+    bounds: ViewportBounds,
+    isRetro: boolean,
+    healthColor: string
   ): void {
     pool.activeEnemies.forEach(e => {
       // Visibility Check: Buffer for large spawn glows
@@ -297,7 +305,7 @@ export class EntityRenderer implements IRenderer {
       if (e.isDying && e.deathProgress !== undefined) {
         this.renderEnemyDeath(ctx, e);
       } else {
-        this.renderEnemyLiving(ctx, e);
+        this.renderEnemyLiving(ctx, e, isRetro, healthColor);
       }
     });
   }
@@ -341,7 +349,12 @@ export class EntityRenderer implements IRenderer {
   /**
    * Handles normal state and spawn-in "pop" logic for enemies.
    */
-  private renderEnemyLiving(ctx: CanvasRenderingContext2D, e: Enemy): void {
+  private renderEnemyLiving(
+    ctx: CanvasRenderingContext2D,
+    e: Enemy,
+    isRetro: boolean,
+    healthColor: string
+  ): void {
     const ex = Math.round(e.x);
     const ey = Math.round(e.y);
 
@@ -354,7 +367,7 @@ export class EntityRenderer implements IRenderer {
     }
 
     // 2. Theme-Specific Skins
-    if (ThemeService.isRetro()) {
+    if (isRetro) {
       const sizeRect = e.radius * GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
       ctx.fillStyle = e.color;
       ctx.fillRect(-sizeRect / 2, -sizeRect / 2, sizeRect, sizeRect);
@@ -373,7 +386,7 @@ export class EntityRenderer implements IRenderer {
 
     // 3. Health Bar (Overlays)
     if (e.spawnTimer === undefined || e.spawnTimer < 0.7) {
-      this.drawEnemyHealthBar(ctx, e, ex, ey);
+      this.drawEnemyHealthBar(ctx, e, ex, ey, healthColor);
     }
   }
 
@@ -442,7 +455,8 @@ export class EntityRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     e: Enemy,
     ex: number,
-    ey: number
+    ey: number,
+    healthColor: string
   ): void {
     const barWidth = e.radius * 2;
     const barY = ey - e.radius - 8;
@@ -450,8 +464,7 @@ export class EntityRenderer implements IRenderer {
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fillRect(ex - e.radius, barY, barWidth, 4);
 
-    // Theme-aware health bar color
-    const healthColor = ThemeService.getConfig().colors.health;
+    // Theme-aware health bar color (cached)
     ctx.fillStyle = healthColor;
     ctx.fillRect(
       ex - e.radius,
@@ -468,10 +481,10 @@ export class EntityRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     player: Player,
     state: GameState,
-    shadowsEnabled: boolean
+    shadowsEnabled: boolean,
+    isRetro: boolean
   ): void {
     // 1. Render Dash Ghosting/Trail (Theme-aware)
-    const isRetro = ThemeService.isRetro();
 
     state.dashTrail.forEach((pos, i) => {
       const progress = i / state.dashTrail.length;
@@ -507,7 +520,7 @@ export class EntityRenderer implements IRenderer {
 
     // 2. Dash Feedback Halo
     if (state.dashHaloOpacity > 0) {
-      this.renderPlayerHalo(ctx, player, state, shadowsEnabled);
+      this.renderPlayerHalo(ctx, player, state, shadowsEnabled, isRetro);
     }
 
     // 3. Main Character Body
@@ -516,7 +529,7 @@ export class EntityRenderer implements IRenderer {
       ctx.shadowColor = player.color;
     }
 
-    if (ThemeService.isRetro()) {
+    if (isRetro) {
       this.renderRetroPlayer(ctx, player);
     } else {
       this.renderCyberpunkPlayer(ctx, player, state);
@@ -534,12 +547,12 @@ export class EntityRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     player: Player,
     state: GameState,
-    shadowsEnabled: boolean
+    shadowsEnabled: boolean,
+    isRetro: boolean
   ): void {
     ctx.save();
     const haloRadius = player.radius * GAME_ENGINE.PLAYER_HALO_RADIUS_MULT;
     const opac = state.dashHaloOpacity;
-    const isRetro = ThemeService.isRetro();
 
     const pColor = player.color;
 
