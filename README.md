@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-979%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-1431%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -92,7 +92,7 @@ npm run preview      # Preview production build
 # Testing
 npm run test         # Run 979 unit tests
 npm run test:watch   # Watch mode
-npm run test:coverage # Check test coverage (80%+)
+npm run test:coverage # Check test coverage (65-80%)
 npm run test:e2e     # Run 72 E2E tests (Playwright)
 npm run test:e2e:ui  # Playwright UI mode
 
@@ -689,11 +689,11 @@ crypto-cyber-survivors/
 | **Services** | 119 |
 | **Custom Hooks** | 25 |
 | **Config Files** | 16 |
-| **Unit Tests** | **979 passing** (71 test suites) |
+| **Unit Tests** | **1431 passing** (118 test suites) |
 | **E2E Tests** | **72 passing** |
-| **Test Coverage** | 80%+ |
+| **Test Coverage** | ~65% (Overall), 80%+ (Core Logic) |
 | **ESLint** | **0 errors, 0 warnings** |
-| **Circular Dependencies** | **0** |
+| **Circular Dependencies** | **0 (Frontend), 1 (Backend)** |
 | **Performance** | Stable 60 FPS (Mobile & Desktop) |
 
 ---
