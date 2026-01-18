@@ -120,6 +120,7 @@ export class EntityRenderer implements IRenderer {
 
   /**
    * Renders experience gems. Rare gems get a circular glow.
+   * Optimized to batch standard opaque gems by color.
    */
   private drawGems(
     ctx: CanvasRenderingContext2D,
@@ -127,6 +128,10 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    // Optimization: Batch standard gems by color to reduce draw calls
+    // Record<Color, Gem[]>
+    const batches: Record<string, typeof pool.activeGems> = {};
+
     pool.activeGems.forEach(g => {
       if (!g.active) {
         return;
@@ -153,20 +158,44 @@ export class EntityRenderer implements IRenderer {
         }
       }
 
-      ctx.save();
-      ctx.globalAlpha = alpha;
+      const isStandard = alpha >= 0.99 && !g.isRare;
 
-      if (g.isRare && shadowsEnabled) {
-        ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
-        ctx.shadowColor = g.color;
+      if (isStandard) {
+        batches[g.color] ??= [];
+        batches[g.color].push(g);
+      } else {
+        // Fallback: Draw non-standard gems (rare, fading) individually with full state setup
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        if (g.isRare && shadowsEnabled) {
+          ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
+          ctx.shadowColor = g.color;
+        }
+
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    });
+
+    // Flush batches
+    Object.entries(batches).forEach(([color, gems]) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+
+      for (let i = 0; i < gems.length; i++) {
+        const g = gems[i];
+        const rx = Math.round(g.x);
+        const ry = Math.round(g.y);
+        ctx.moveTo(rx + g.radius, ry);
+        ctx.arc(rx, ry, g.radius, 0, Math.PI * 2);
       }
 
-      ctx.fillStyle = g.color;
-      ctx.beginPath();
-      ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.restore();
     });
   }
 
