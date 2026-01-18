@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PhysicsSystem } from '../services/PhysicsSystem';
-import { type Player, type GameState } from '../types';
+import { type Player, type GameState, MarketPosition } from '../types';
 import { type PoolManager } from '../services/PoolManager';
 
 // Mock dependencies
@@ -50,6 +50,29 @@ vi.mock('../services/patterns/decorators/BuffManager', () => ({
     isInitialized: vi.fn(() => true),
     getDecoratedStats: vi.fn(),
     addEffect: vi.fn(),
+  },
+}));
+
+// Mock SpatialGrid - forEachNearby will iterate over inserted bullets
+const mockBullets: any[] = [];
+vi.mock('../services/SpatialGrid', () => ({
+  bulletGrid: {
+    clear: vi.fn(() => {
+      mockBullets.length = 0;
+    }),
+    insertAll: vi.fn((bullets: any[]) => {
+      mockBullets.push(...bullets);
+    }),
+    getNearby: vi.fn(() => mockBullets),
+    forEachNearby: vi.fn((_x: number, _y: number, callback: (b: any) => void) => {
+      mockBullets.forEach(callback);
+    }),
+  },
+  enemyGrid: {
+    clear: vi.fn(),
+    insertAll: vi.fn(),
+    getNearby: vi.fn(() => []),
+    forEachNearby: vi.fn(),
   },
 }));
 
@@ -173,6 +196,9 @@ describe('PhysicsSystem', () => {
       nearMissCooldown: 0,
       rsiVisualState: 'NEUTRAL',
       whaleEventTimer: 0,
+      atrPercent: 0,
+      spawnRateMultiplier: 1,
+      marketPosition: MarketPosition.LONG,
     };
 
     mockOnGameOver = vi.fn();

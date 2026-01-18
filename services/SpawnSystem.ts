@@ -21,6 +21,7 @@ import { type EnemyId } from '../config/EnemyRegistry';
  */
 export class SpawnSystem implements ISpawnSystem {
   private spawnTimer: number = 0;
+  private whaleCooldownTimer: number = 0;
 
   constructor() {}
 
@@ -46,20 +47,25 @@ export class SpawnSystem implements ISpawnSystem {
     position: MarketPosition,
     pool: IPoolManager,
     pnl: number = 0,
-    maxEnemiesOverride?: number
+    maxEnemiesOverride?: number,
+    spawnRateMultiplier: number = 1
   ): number {
     const config = this.getSpawnConfig();
     const marketState = marketStateService.getState();
 
     this.spawnTimer += deltaTime;
+    this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
 
     // Resolve current wave intensity modifiers
     const waveIntensity = config.waveIntensity;
     const intensityMultiplier = SPAWN.WAVE_INTENSITY_OFFSET + waveIntensity;
 
     // Difficulty-scaled spawn rate calculation
+    // Multiplier from server (ATR/Trend based) generally scales the entire difficulty
     const scaledDifficulty =
-      1 + (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE * intensityMultiplier;
+      (1 +
+        (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE * intensityMultiplier) *
+      spawnRateMultiplier;
 
     // Determine current population limit
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
@@ -112,10 +118,15 @@ export class SpawnSystem implements ISpawnSystem {
     // Probability is dampened per frame to prevent spawning spikes from persistent server data
     const probPerFrame = whaleConfig.spawnChance * SPAWN.WHALE_PROBABILITY_MODIFIER;
 
-    if (Math.random() < probPerFrame && pool.activeEnemies.length < maxEnemies) {
+    if (
+      this.whaleCooldownTimer <= 0 &&
+      Math.random() < probPerFrame &&
+      pool.activeEnemies.length < maxEnemies
+    ) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
       pool.getWhaleEnemy(x, y, difficulty, position, marketState.whaleTier);
       Logger.debug(`[SpawnSystem] Spawned whale tier ${marketState.whaleTier}`);
+      this.whaleCooldownTimer = 20000; // 20s cooldown hardcoded for now
     }
   }
 

@@ -33,6 +33,11 @@ coverage/
 playwright-report/
 test-results/
 *.spec.js.map
+test-results.json
+test_results.txt
+coverage_report*.txt
+failures.txt
+lint_results.txt
 
 # Generated documentation
 docs/api/

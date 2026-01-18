@@ -63,7 +63,8 @@ export class EnemyFactory {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    aggroMultiplier: number = 1.0
+    aggroMultiplier: number = 1.0,
+    target?: GameEnemy
   ): GameEnemy {
     const config = (ENEMY_DEFINITIONS[type as EnemyId] ??
       ENEMY_DEFINITIONS['bear']) as EnemyConfig;
@@ -117,26 +118,28 @@ export class EnemyFactory {
       behavior = createMovementStrategy(type);
     }
 
-    return {
-      active: true,
-      x,
-      y,
-      type: config.type as EnemyId, // Cast for type compatibility with old enum if needed
-      radius: config.radius,
-      health: config.baseHealth * (1 + (difficulty - 1) * 0.2),
-      maxHealth: config.baseHealth * (1 + (difficulty - 1) * 0.2),
-      speed: modifiedSpeed,
-      color,
-      behavior,
-      // Spawn animation - starts at 0, set to 1 when entering screen
-      spawnTimer: 0,
-      hasEnteredScreen: false,
-      // Death animation
-      isDying: false,
-      deathProgress: 0,
-      // Near miss tracking
-      hasTriggeredNearMiss: false,
-    };
+    const enemyObj = target ?? ({} as GameEnemy);
+
+    enemyObj.active = true;
+    enemyObj.x = x;
+    enemyObj.y = y;
+    enemyObj.type = config.type as EnemyId;
+    enemyObj.radius = config.radius;
+    enemyObj.health = config.baseHealth * (1 + (difficulty - 1) * 0.2);
+    enemyObj.maxHealth = config.baseHealth * (1 + (difficulty - 1) * 0.2);
+    enemyObj.speed = modifiedSpeed;
+    enemyObj.color = color;
+    enemyObj.behavior = behavior;
+    enemyObj.spawnTimer = 0;
+    enemyObj.hasEnteredScreen = false;
+    enemyObj.isDying = false;
+    enemyObj.deathProgress = 0;
+    enemyObj.hasTriggeredNearMiss = false;
+    // Reset buffers just in case
+    enemyObj.damageBuffer = 0;
+    enemyObj.damageBufferTimer = 0;
+
+    return enemyObj;
   }
 
   /**

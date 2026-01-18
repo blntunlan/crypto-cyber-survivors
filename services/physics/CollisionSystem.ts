@@ -99,7 +99,7 @@ export class CollisionSystem implements ICollisionSystem {
 
       // 4. Damage Buffer Decay (Prevents UI clutter from multiple rapid hits)
       if (enemy.damageBufferTimer !== undefined && enemy.damageBufferTimer > 0) {
-        enemy.damageBufferTimer -= dtFactor;
+        enemy.damageBufferTimer -= 0.05 * dtFactor; // Decays over ~6 frames (100ms)
         if (enemy.damageBufferTimer <= 0) {
           this.flushDamageBuffer(pool, enemy);
         }
@@ -184,7 +184,7 @@ export class CollisionSystem implements ICollisionSystem {
       }
 
       if (obj.hitTimer && obj.hitTimer > 0) {
-        obj.hitTimer -= dtFactor;
+        obj.hitTimer -= 0.05 * dtFactor; // Consistent with enemy damage buffer
         if (obj.hitTimer <= 0) obj.isHit = false;
       }
     });
@@ -256,6 +256,17 @@ export class CollisionSystem implements ICollisionSystem {
         player.hp -= damageMultiplier * dtFactor;
         player.hp = Math.max(0, player.hp);
 
+        // Add damage direction indicator (throttled to once every 200ms)
+        const gameTime = this.ctx.constants.getGameTime();
+        const lastInd = state.damageIndicators[state.damageIndicators.length - 1];
+        if (!lastInd || gameTime - lastInd.timestamp > 200) {
+          state.damageIndicators.push({
+            sourceX: enemy.x,
+            sourceY: enemy.y,
+            timestamp: gameTime,
+          });
+        }
+
         // Visual Feedback
         state.shake = GAME_ENGINE.PLAYER_HIT_SHAKE;
 
@@ -284,12 +295,10 @@ export class CollisionSystem implements ICollisionSystem {
     dtFactor: number,
     particleMultiplier: number
   ): void {
-    // Optimization: Only check bullets in the same spatial cell
-    const nearbyBullets = this.ctx.bulletGrid.getNearby(enemy.x, enemy.y);
-
-    for (const bullet of nearbyBullets) {
+    // Optimization: Use zero-allocation iterator
+    this.ctx.bulletGrid.forEachNearby(enemy.x, enemy.y, bullet => {
       if (!enemy.active || !bullet.active) {
-        continue;
+        return;
       }
 
       const dx = enemy.x - bullet.x;
@@ -308,7 +317,7 @@ export class CollisionSystem implements ICollisionSystem {
           particleMultiplier
         );
       }
-    }
+    });
   }
 
   /**
@@ -335,6 +344,14 @@ export class CollisionSystem implements ICollisionSystem {
 
     // Hit Stop Effect (Only on Crits/Super Crits to maintain flow)
     if (bullet.isCrit || bullet.isSuperCrit) {
+      // Add screen shake for impact
+      state.shake = Math.max(
+        state.shake,
+        bullet.isSuperCrit
+          ? GAME_ENGINE.PLAYER_HIT_SHAKE * 0.8
+          : GAME_ENGINE.PLAYER_HIT_SHAKE * 0.4
+      );
+
       EventBus.emit('hitStop', {
         duration: bullet.isSuperCrit
           ? this.ctx.constants.HIT_STOP_CRIT
@@ -389,8 +406,14 @@ export class CollisionSystem implements ICollisionSystem {
    * Accumulates damage onto an enemy to show a combined number later.
    */
   private bufferDamage(enemy: Enemy, bullet: Bullet): void {
+    const isNewBuffer = !enemy.damageBufferTimer || enemy.damageBufferTimer <= 0;
     enemy.damageBuffer = (enemy.damageBuffer ?? 0) + bullet.damage;
-    enemy.damageBufferTimer = GAME_ENGINE.DAMAGE_BUFFER_TIMER_DEFAULT;
+
+    // Only set timer if it's the first hit in a stack
+    // This prevents high-fire-rate builds from delaying the feedback indefinitely
+    if (isNewBuffer) {
+      enemy.damageBufferTimer = GAME_ENGINE.DAMAGE_BUFFER_TIMER_DEFAULT;
+    }
 
     // Preserve the highest crit tier for the coloring
     if (bullet.isSuperCrit) {
@@ -424,6 +447,10 @@ export class CollisionSystem implements ICollisionSystem {
         ? GAME_ENGINE.DAMAGE_TEXT_SIZE_CRIT
         : GAME_ENGINE.DAMAGE_TEXT_SIZE_NORMAL;
 
+    // Dynamic scale based on stack intensity
+    const stackWeight = Math.min(0.5, enemy.damageBuffer / (enemy.maxHealth * 0.5));
+    const finalSize = size * (1 + stackWeight);
+
     const text = StatService.formatCompact(enemy.damageBuffer);
 
     if (text) {
@@ -432,7 +459,7 @@ export class CollisionSystem implements ICollisionSystem {
         enemy.y - GAME_ENGINE.COLLISION_TEXT_OFFSET_Y,
         text,
         color,
-        size
+        finalSize
       );
     }
 

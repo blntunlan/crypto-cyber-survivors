@@ -139,6 +139,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     // Lootbox Spawn Timer
     interactableSpawnTimer: 0,
+
+    // Market Indicators
+    atrPercent: 0,
+    spawnRateMultiplier: 1,
+    marketPosition: position,
   });
 
   // Track last synced stats to prevent unnecessary re-renders in App.tsx
@@ -332,13 +337,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
       if (status !== GameStatus.MENU) {
-        const waveMultiplier = DifficultyManager.getWaveMultiplier();
-        const momentum = DifficultyManager.getMomentum();
         renderer.current.updateBackgroundCandles(
-          s,
+          state.current,
           marketDataRef.current.pnl,
-          waveMultiplier,
-          momentum,
+          marketDataRef.current.difficulty, // Use total difficulty as speed/intensity proxy
+          marketDataRef.current.momentum,
           dtFactor,
           width,
           height
@@ -652,7 +655,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Use the lower of layout limit and performance config limit
         const maxEnemies = Math.min(layout.maxEnemies, perfConfig.maxEnemies);
 
-        // Update Spawn System
+        // 0. Sync Market Metadata from marketDataRef
+        state.current.atrPercent = marketDataRef.current.atrPercent ?? 0;
+        state.current.spawnRateMultiplier =
+          marketDataRef.current.spawnRateMultiplier ?? 1;
+        state.current.marketPosition = position;
+
+        // 1. Update Sub-systems (Physics, Spawning, etc.)
         spawnSystemRef.current.update(
           deltaTime,
           marketDataRef.current.difficulty,
@@ -661,7 +670,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           position,
           p,
           marketDataRef.current.pnl,
-          maxEnemies
+          maxEnemies,
+          state.current.spawnRateMultiplier
         );
 
         // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---

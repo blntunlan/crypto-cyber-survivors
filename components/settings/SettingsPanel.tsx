@@ -7,6 +7,7 @@ import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { useIsRetro, useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';
+import { Z_LAYERS } from '../../constants/ZIndex';
 
 // Section components
 import { AudioSection } from './AudioSection';
@@ -245,7 +246,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     <div
       className={`fixed inset-0 flex items-center justify-center p-4 md:p-6 ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
       style={{
-        zIndex: 2100,
+        zIndex: Z_LAYERS.SETTINGS_PANEL,
         paddingTop: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
         paddingBottom: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-bottom, 0px))`,
       }}

@@ -185,6 +185,7 @@ export class MetricsServiceClass {
           } else if (data && this.state?.sessionId === sessionId) {
             // Only update if state hasn't changed (race condition check)
             this.state.serverSessionId = data.sessionId;
+            this.state.serverSigningKey = data.signingKey;
             Logger.info(`[Metrics] Server session established: ${data.sessionId}`);
           }
         } catch (err) {
@@ -257,6 +258,7 @@ export class MetricsServiceClass {
     const session: SessionMetrics = {
       sessionId: this.state.sessionId,
       serverSessionId: this.state.serverSessionId,
+      serverSigningKey: this.state.serverSigningKey,
       sessionTimestamp: this.state.sessionStartTime,
       gameEndReason: reason,
       pair: this.state.pair,

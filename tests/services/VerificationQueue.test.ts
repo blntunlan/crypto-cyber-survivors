@@ -142,7 +142,7 @@ describe('VerificationQueue', () => {
       await queue.enqueue(createTestData());
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://test.supabase.co/functions/v1/verify-game',
+        'https://test.supabase.co/functions/v1/verify-game-v3',
         expect.objectContaining({
           method: 'POST',
           headers: {

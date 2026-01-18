@@ -47,6 +47,7 @@ export interface MarketData {
   difficulty: number;
   pair?: CryptoPair;
   symbol?: string; // e.g. 'BTCUSDT'
+  momentum: number; // Market momentum for parallax drift
   // Server-synced indicators
   atrPercent?: number; // ATR as percentage of price (from server)
   whaleTier?: 0 | 1 | 2 | 3;
@@ -147,6 +148,8 @@ export interface Candle {
   h: number;
   color: string;
   speed: number;
+  layer: 1 | 2 | 3; // 1: Back, 2: Mid, 3: Front
+  z?: number; // Normalized depth (0-1)
 }
 
 export interface Interactable extends Entity {
@@ -199,6 +202,11 @@ export interface GameState {
   rsiVisualState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   whaleEventTimer: number; // For whale spawn splash/shake effect
   interactableSpawnTimer?: number; // Timer for lootbox generation
+
+  // Market Indicators for Visuals
+  atrPercent: number; // Current volatility (0-100+)
+  spawnRateMultiplier: number; // Server-provided multiplier
+  marketPosition: MarketPosition;
 }
 
 export interface Achievement {

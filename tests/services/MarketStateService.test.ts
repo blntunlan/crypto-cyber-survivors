@@ -76,7 +76,7 @@ describe('MarketStateService', () => {
 
     await MarketStateService.init();
 
-    expect(supabase.from).toHaveBeenCalledWith('market_state');
+    expect(supabase!.from).toHaveBeenCalledWith('market_state');
 
     // Check if state is set
     const state = MarketStateService.getState('BTC');
@@ -90,7 +90,7 @@ describe('MarketStateService', () => {
 
     await MarketStateService.init();
 
-    expect(supabase.channel).toHaveBeenCalledWith('market_state_changes');
+    expect(supabase!.channel).toHaveBeenCalledWith('market_state_changes');
     expect(mockChannel.on).toHaveBeenCalledWith(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'market_state' },
@@ -108,7 +108,7 @@ describe('MarketStateService', () => {
       call => call[0] === 'postgres_changes'
     );
     expect(onCall).toBeDefined();
-    const updateCallback = onCall[2];
+    const updateCallback = onCall![2];
 
     const newData = {
       pair: 'BTC',

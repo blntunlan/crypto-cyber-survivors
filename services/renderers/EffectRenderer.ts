@@ -69,21 +69,64 @@ export class EffectRenderer implements IRenderer {
     height: number,
     state: GameState
   ): void {
-    // RSI Tints
+    // RSI Tints - Position Aware
     if (state.rsiVisualState !== 'NEUTRAL') {
       ctx.save();
-      ctx.globalCompositeOperation = 'overlay';
-      ctx.globalAlpha = 0.15; // Subtle tint
-      ctx.fillStyle = state.rsiVisualState === 'OVERSOLD' ? '#22c55e' : '#ef4444';
+      // Optimization: Default blending is much faster than 'overlay'
+
+      // Determine favorability
+      const isLong = state.marketPosition === 'LONG';
+      const isOversold = state.rsiVisualState === 'OVERSOLD';
+
+      // Oversold (<30) is a BUY signal.
+      // - If LONG, this matches our direction (Good/Favorable)
+      // - If SHORT, this opposes our direction (Bad/Unfavorable)
+      // Overbought (>70) is a SELL signal.
+      // - If SHORT, matches (Good/Favorable)
+      // - If LONG, opposes (Bad/Unfavorable)
+
+      const isFavorable = (isLong && isOversold) || (!isLong && !isOversold);
+
+      const opacity = 0.15;
+      // Favorable: Emerald/Cyan tint. Unfavorable: Red/Orange tint.
+      ctx.fillStyle = isFavorable ? '#10b981' : '#ef4444';
+      ctx.globalAlpha = opacity;
+
       ctx.fillRect(0, 0, width, height);
       ctx.restore();
+    }
+
+    // Volatility Pulse (ATR)
+    // Pulse the vignette opacity based on ATR and time
+    if (state.atrPercent > 0.5) {
+      const pulse = (Math.sin(state.lastFireTime * 0.005) + 1) * 0.5; // 0 to 1 oscillating
+      // Higher ATR = Stronger pulse base
+      const intensity = Math.min(0.3, (state.atrPercent / 5) * pulse);
+
+      if (intensity > 0.05) {
+        ctx.save();
+        // Optimization: Use standard blending instead of 'multiply'
+        const gradient = ctx.createRadialGradient(
+          width / 2,
+          height / 2,
+          height * 0.4,
+          width / 2,
+          height / 2,
+          height * 0.9
+        );
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(1, `rgba(0,0,0,${intensity})`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
     }
 
     // Whale Splash Effect
     if (state.whaleEventTimer > 0) {
       const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
       ctx.save();
-      ctx.globalCompositeOperation = 'color-dodge';
+      // Optimization: Skip color-dodge
       ctx.globalAlpha = intensity * 0.2;
 
       // Blue Ripple

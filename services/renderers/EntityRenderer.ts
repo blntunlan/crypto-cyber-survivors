@@ -353,17 +353,32 @@ export class EntityRenderer implements IRenderer {
       this.applyEnemySpawnTransform(ctx, e);
     }
 
-    // 2. Theme-Specific Skins
+    // 2. Hit Flash & Theme-Specific Skins
+    const isHit = e.damageBufferTimer !== undefined && e.damageBufferTimer > 0;
+
     if (ThemeService.isRetro()) {
       const sizeRect = e.radius * GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
-      ctx.fillStyle = e.color;
+
+      if (isHit) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.globalAlpha = 0.8;
+      } else {
+        ctx.fillStyle = e.color;
+      }
+
       ctx.fillRect(-sizeRect / 2, -sizeRect / 2, sizeRect, sizeRect);
 
       // Retro detail: Eye/Core highlight
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.fillRect(-sizeRect / 2 + 2, -sizeRect / 2 + 2, 4, 4);
     } else {
-      ctx.fillStyle = e.color;
+      if (isHit) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.globalAlpha = 0.8;
+      } else {
+        ctx.fillStyle = e.color;
+      }
+
       ctx.beginPath();
       ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();

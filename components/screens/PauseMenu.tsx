@@ -2,6 +2,7 @@ import React from 'react';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';
+import { Z_LAYERS } from '../../constants/ZIndex';
 import { IconSettings, IconVolume, IconVolumeMuted } from '../icons/CardIcons';
 
 interface PauseMenuProps {
@@ -51,8 +52,8 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
   const isLowBudget = isLimited && pauseSecondsRemaining <= 3;
 
   const containerClasses = isRetro
-    ? 'fixed inset-0 z-[2100] bg-black/90 flex items-center justify-center p-4 overflow-y-auto'
-    : 'fixed inset-0 z-[2100] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto';
+    ? `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-black/90 flex items-center justify-center p-4 overflow-y-auto`
+    : `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto`;
 
   return (
     <div className={containerClasses}>

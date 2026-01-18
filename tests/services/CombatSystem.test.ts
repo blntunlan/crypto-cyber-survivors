@@ -55,6 +55,7 @@ const mockPool: IPoolManager = {
   activeParticles: [],
   activeFloatingTexts: [],
   activeSpeedLines: [],
+  activeInteractables: [],
   preWarm: vi.fn(),
   getEnemy: vi.fn(),
   getWhaleEnemy: vi.fn(),
@@ -63,6 +64,7 @@ const mockPool: IPoolManager = {
   getParticle: vi.fn(),
   getFloatingText: vi.fn(),
   getSpeedLine: vi.fn(),
+  getInteractable: vi.fn(),
   cleanup: vi.fn(),
   clearAll: vi.fn(),
   trimFreeLists: vi.fn(),
@@ -203,11 +205,12 @@ describe('CombatSystem', () => {
       expect(calls.length).toBeGreaterThan(0);
 
       const call = calls[0];
+      if (!call) throw new Error('Call not found');
 
       // Since enemy is moving directly at player, bullet should fire directly at enemy
       // No lead needed on Y axis
       const vy = call[3];
-      expect(Math.abs(vy)).toBeLessThan(0.1);
+      expect(Math.abs(vy as number)).toBeLessThan(0.1);
     });
 
     it('should ignore off-screen enemies', () => {
@@ -230,6 +233,7 @@ describe('CombatSystem', () => {
 
       expect(mockPool.getBullet).toHaveBeenCalled();
       const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      if (!call) throw new Error('Call not found');
 
       expect(call[4]).toBe(10); // Damage
       expect(call[7]).toBe(false); // isCrit

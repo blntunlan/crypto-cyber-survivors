@@ -106,26 +106,22 @@ export class ProjectileRenderer implements IRenderer {
     // 1. Determine Visual Tier Properties
     let glowColor = b.color;
     let coreColor = GAME_ENGINE.BULLET_COLOR_CORE;
-    let glowSize = GAME_ENGINE.BULLET_GLOW_SIZE_NORMAL;
     let lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_NORMAL;
     let widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_NORMAL;
 
     if (b.isSuperCrit) {
       glowColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT;
       coreColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT_CORE;
-      glowSize = GAME_ENGINE.BULLET_GLOW_SIZE_SUPER_CRIT;
       lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_SUPER_CRIT;
       widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_SUPER_CRIT;
     } else if (b.isCrit) {
       glowColor = GAME_ENGINE.BULLET_COLOR_CRIT;
-      glowSize = GAME_ENGINE.BULLET_GLOW_SIZE_CRIT;
     }
 
-    // 2. Setup Neon Glow (Desktop Only)
+    // 2. Setup Neon Glow (Desktop Only) - Optimized
+    // We disable expensive ctx.shadowBlur and simulate glow with a wider, transparent stroke.
+    // This is much faster for hundreds of projectiles.
     if (!this.isMobileDevice) {
-      ctx.shadowBlur = glowSize;
-      ctx.shadowColor = glowColor;
-    } else {
       ctx.shadowBlur = 0;
     }
 
@@ -138,13 +134,26 @@ export class ProjectileRenderer implements IRenderer {
     ctx.translate(b.x, b.y);
     ctx.rotate(angle);
 
-    // A. Glowy Trail/Outer Beam Body
+    // A. Fake Glow (Wide, very transparent) - The "Blur" replacement
+    if (!this.isMobileDevice) {
+      ctx.beginPath();
+      ctx.moveTo(-length / 2, 0);
+      ctx.lineTo(length / 2, 0);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = width * 4; // Wide glow
+      ctx.strokeStyle = b.isSuperCrit || b.isCrit ? glowColor : `${b.color}40`; // 25% opacity
+      ctx.globalAlpha = 0.3;
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+    }
+
+    // B. Outer Beam Body
     ctx.beginPath();
     ctx.moveTo(-length / 2, 0);
     ctx.lineTo(length / 2, 0);
 
     ctx.lineCap = 'round';
-    ctx.lineWidth = width * 2;
+    ctx.lineWidth = width * 1.5;
     ctx.strokeStyle = b.isSuperCrit || b.isCrit ? glowColor : b.color;
     ctx.stroke();
 

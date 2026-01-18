@@ -203,6 +203,7 @@ describe('GameEngine', () => {
       volume: 1000,
       leverage: 10 as LeverageOption, // Cast to valid LeverageOption
       rsi: 50,
+      momentum: 0,
     },
     onGameOver: vi.fn(),
     onLevelUp: vi.fn(),

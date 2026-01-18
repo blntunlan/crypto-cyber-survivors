@@ -203,23 +203,26 @@ export class MetricsStorage {
       // 1b. Enqueue for server-side verification (rewards & anti-cheat)
       const nickname = UserSessionService.getNickname();
       if (nickname) {
-        void VerificationQueue.enqueue({
-          userId: nickname, // Edge function uses display_name (nickname) for lookup
-          startTime: session.sessionTimestamp,
-          endTime: session.sessionTimestamp + session.player.survivalTimeMs,
-          pair: session.pair,
-          position: session.bitcoin.positionChosen,
-          leverage: session.bitcoin.leverage,
-          claimedEntryPrice: session.bitcoin.priceAtStart,
-          claimedExitPrice: session.bitcoin.priceAtEnd,
-          claimedPnL: session.bitcoin.pnlAtDeath, // Percentage
-          kills: session.player.totalKills,
-          level: session.player.maxLevel,
-          goldCollected: 0, // Not tracked yet
-          survivalTimeMs: session.player.survivalTimeMs,
-          optimisticReward: 0, // No client-side optimistic reward yet
-          sessionId: session.serverSessionId ?? session.sessionId,
-        });
+        void VerificationQueue.enqueue(
+          {
+            userId: nickname, // Edge function uses display_name (nickname) for lookup
+            startTime: session.sessionTimestamp,
+            endTime: session.sessionTimestamp + session.player.survivalTimeMs,
+            pair: session.pair,
+            position: session.bitcoin.positionChosen,
+            leverage: session.bitcoin.leverage,
+            claimedEntryPrice: session.bitcoin.priceAtStart,
+            claimedExitPrice: session.bitcoin.priceAtEnd,
+            claimedPnL: session.bitcoin.pnlAtDeath, // Percentage
+            kills: session.player.totalKills,
+            level: session.player.maxLevel,
+            goldCollected: 0, // Not tracked yet
+            survivalTimeMs: session.player.survivalTimeMs,
+            optimisticReward: 0, // No client-side optimistic reward yet
+            sessionId: session.serverSessionId ?? session.sessionId,
+          },
+          session.serverSigningKey
+        );
       }
 
       Logger.info('[MetricsStorage] Game session synced', {

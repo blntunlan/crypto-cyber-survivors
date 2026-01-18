@@ -90,6 +90,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     leverage: 1,
     rsi: 50,
     difficulty: 1,
+    momentum: 0,
   });
 
   // Game State (event-based updates)

@@ -138,6 +138,7 @@ export interface ICheatProvider {
  */
 export interface ISpatialGrid<T> {
   getNearby(x: number, y: number): T[];
+  forEachNearby(x: number, y: number, callback: (entity: T) => void): void;
 }
 
 // =============================================================================
@@ -155,6 +156,7 @@ export interface IPhysicsConstants {
   HIT_STOP_NORMAL: number;
   HIT_STOP_CRIT: number;
   NEAR_MISS_THRESHOLD: number;
+  getGameTime(): number;
 }
 
 /**

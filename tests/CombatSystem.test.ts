@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatSystem } from '../services/CombatSystem';
-import { type Player, type GameState } from '../types';
+import { type Player, type GameState, MarketPosition } from '../types';
 import { type PoolManager } from '../services/PoolManager';
 
 // Mock audio service
@@ -105,10 +105,14 @@ describe('CombatSystem', () => {
       hitStopTimer: 0,
       playerScaleX: 1,
       playerScaleY: 1,
+      playerRotation: 0,
       nearMissTimer: 0,
       nearMissCooldown: 0,
       rsiVisualState: 'NEUTRAL',
       whaleEventTimer: 0,
+      atrPercent: 1,
+      spawnRateMultiplier: 1,
+      marketPosition: MarketPosition.LONG,
     };
   });
 

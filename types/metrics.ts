@@ -164,6 +164,7 @@ export interface EnemyMetrics {
 export interface SessionMetrics {
   sessionId: string;
   serverSessionId?: string; // UUID from server
+  serverSigningKey?: string; // Secret key for results signing
   sessionTimestamp: number;
   serverStartTime?: number; // Timestamp from server
   gameEndReason: GameEndReason;
@@ -225,6 +226,7 @@ export interface SessionMetrics {
 export interface MetricsState {
   sessionId: string;
   serverSessionId?: string;
+  serverSigningKey?: string;
   sessionStartTime: number;
   isActive: boolean;
   pair: CryptoPair;

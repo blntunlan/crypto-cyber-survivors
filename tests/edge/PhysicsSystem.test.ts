@@ -59,6 +59,22 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 
+// Mock SpatialGrid to avoid forEachNearby issues
+vi.mock('../../services/SpatialGrid', () => ({
+  bulletGrid: {
+    clear: vi.fn(),
+    insertAll: vi.fn(),
+    getNearby: vi.fn(() => []),
+    forEachNearby: vi.fn(),
+  },
+  enemyGrid: {
+    clear: vi.fn(),
+    insertAll: vi.fn(),
+    getNearby: vi.fn(() => []),
+    forEachNearby: vi.fn(),
+  },
+}));
+
 describe('PhysicsSystem Edge Cases', () => {
   let mockPool: any;
   let mockPlayer: Player;

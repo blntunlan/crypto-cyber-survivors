@@ -63,6 +63,7 @@ describe('GameUI', () => {
       volume: 1000000,
       leverage: 10 as LeverageOption,
       rsi: 50,
+      momentum: 0,
     },
     player: {
       x: 0,

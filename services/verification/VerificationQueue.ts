@@ -7,6 +7,7 @@
 
 import { Logger } from '../Logger';
 import { EventBus, type GameEvent } from '../EventBus';
+import { signPayload, createSignablePayload } from '../../utils/crypto';
 
 const STORAGE_KEY = 'verification_queue';
 const MAX_RETRIES = 5;
@@ -38,6 +39,7 @@ export interface VerificationData {
   survivalTimeMs: number;
   optimisticReward: number;
   sessionId?: string;
+  signature?: string; // HMAC signature
 }
 
 export interface VerificationResult {
@@ -79,12 +81,28 @@ class VerificationQueueService {
   /**
    * Add a verification request to the queue
    */
-  async enqueue(data: VerificationData): Promise<VerificationResult> {
+  async enqueue(
+    data: VerificationData,
+    signingKey?: string
+  ): Promise<VerificationResult> {
+    // Generate signature if signing key is provided
+    if (signingKey && !data.signature) {
+      try {
+        const signablePayload = createSignablePayload(
+          data as unknown as Record<string, unknown>
+        );
+        data.signature = await signPayload(signablePayload, signingKey);
+        Logger.debug('[VerificationQueue] Session signature generated');
+      } catch (err) {
+        Logger.warn('[VerificationQueue] Failed to sign session', err);
+      }
+    }
+
     const request: VerificationRequest = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
       retryCount: 0,
-      data,
+      data: { ...data }, // Clone data
     };
 
     // Try immediate verification first
@@ -198,7 +216,7 @@ class VerificationQueueService {
       throw new Error('Supabase not configured');
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/verify-game`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/verify-game-v3`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

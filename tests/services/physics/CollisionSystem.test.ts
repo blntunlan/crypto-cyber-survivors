@@ -78,6 +78,9 @@ describe('CollisionSystem', () => {
       },
       bulletGrid: {
         getNearby: vi.fn(() => []),
+        forEachNearby: vi.fn((_x: number, _y: number, _callback: (b: any) => void) => {
+          // Default: no bullets nearby
+        }),
       },
       constants: {
         GEM_MAGNET_BASE_RANGE: 100,
@@ -86,6 +89,7 @@ describe('CollisionSystem', () => {
         HIT_STOP_NORMAL: 5,
         HIT_STOP_CRIT: 10,
         NEAR_MISS_THRESHOLD: 50,
+        getGameTime: () => 0,
       },
       statCaps: {
         MAX_MAGNET: 500,
@@ -175,7 +179,8 @@ describe('CollisionSystem', () => {
         isDying: false,
         hasEnteredScreen: true,
         damageBuffer: 50,
-        damageBufferTimer: 0.1, // Will drop <= 0 after update(1)
+        damageBufferTimer: 0.05, // Will drop <= 0 after 0.05 * dtFactor(1) is subtracted
+        maxHealth: 100,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [enemy];
@@ -329,8 +334,12 @@ describe('CollisionSystem', () => {
         color: '#fff',
       } as Bullet;
 
-      // Mock spatial grid returning this bullet
-      vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
+      // Mock spatial grid to call callback with our bullet
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
@@ -358,7 +367,11 @@ describe('CollisionSystem', () => {
         vx: 0,
         vy: 0,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
@@ -388,7 +401,11 @@ describe('CollisionSystem', () => {
         vy: 0,
         isCrit: true,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
@@ -420,7 +437,11 @@ describe('CollisionSystem', () => {
         vx: 0,
         vy: 0,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
@@ -457,7 +478,11 @@ describe('CollisionSystem', () => {
         isSuperCrit: false,
         color: '#f00',
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.getNearby).mockReturnValue([bullet]);
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 

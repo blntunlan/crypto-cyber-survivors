@@ -186,7 +186,7 @@
   background-clip: border-box !important;
   -webkit-background-clip: border-box !important;
   color: var(--color-text, #ffffff) !important;
-  text-shadow: none !important;
+  text-shadow: none; /* Removed !important to allow retro-shadows to override */
 }
 
 /* Retro Typography Force-Reset */
@@ -268,11 +268,11 @@ html[data-theme-switching='true'] body::before {
 }
 
 [data-theme='cyberpunk'] .cyber-glass {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 8px 32px 0 rgba(0, 0, 0, 0.8),
+    0 10px 40px -10px rgba(0, 0, 0, 0.7),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
@@ -350,7 +350,7 @@ html[data-theme-switching='true'] body::before {
 [data-theme='retro-16bit'] .drop-shadow-2xl,
 [data-theme='retro-16bit'] [class*='drop-shadow-['] {
   box-shadow: none !important;
-  filter: none !important;
+  filter: none; /* Removed !important to allow subtle icon shadows */
 }
 
 /* Chunky pixel borders and bevel in retro mode */

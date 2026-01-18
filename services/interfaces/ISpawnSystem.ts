@@ -28,7 +28,8 @@ export interface ISpawnSystem {
     position: MarketPosition,
     pool: IPoolManager,
     pnl?: number,
-    maxEnemiesOverride?: number
+    maxEnemiesOverride?: number,
+    spawnRateMultiplier?: number
   ): number;
 
   /**

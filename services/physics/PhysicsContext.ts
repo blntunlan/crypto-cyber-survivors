@@ -28,6 +28,7 @@ import {
 
 import { type Bullet, type Player } from '../../types';
 import { audio } from '../AudioService';
+import { TimeService } from '../TimeService';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { ParticleConfigService } from '../ParticleConfigService';
@@ -117,6 +118,8 @@ const cheatAdapter: ICheatProvider = {
  */
 const bulletGridAdapter: ISpatialGrid<Bullet> = {
   getNearby: (x: number, y: number) => bulletGrid.getNearby(x, y),
+  forEachNearby: (x: number, y: number, callback: (entity: Bullet) => void) =>
+    bulletGrid.forEachNearby(x, y, callback),
 };
 
 /**
@@ -129,6 +132,7 @@ const physicsConstants: IPhysicsConstants = {
   HIT_STOP_NORMAL: GAME_ENGINE.HIT_STOP_NORMAL,
   HIT_STOP_CRIT: GAME_ENGINE.HIT_STOP_CRIT,
   NEAR_MISS_THRESHOLD: GAME_ENGINE.NEAR_MISS_THRESHOLD,
+  getGameTime: () => TimeService.getGameTime(),
 };
 
 /**

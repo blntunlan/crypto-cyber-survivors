@@ -1,6 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player } from '../../types';
+import { type GameState, type Player, type Candle } from '../../types';
 import { screenService } from '../ScreenService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { ThemeService } from '../ThemeService';
@@ -123,7 +123,7 @@ export class BackgroundRenderer implements IRenderer {
 
     // 3. Retro-style candles (Chunky pixels)
     state.bgCandles.forEach(c => {
-      const sizeRatio = c.w / 8;
+      const sizeRatio = (c.w / 8) * (c.z ?? 1); // Changed || to ??
       const baseOpacity =
         (this.isMobileDevice
           ? GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_MOBILE
@@ -132,6 +132,11 @@ export class BackgroundRenderer implements IRenderer {
 
       ctx.globalAlpha = baseOpacity;
       ctx.fillStyle = c.color;
+
+      // Depth effect: Blur for back layer (Layer 1)
+      if (c.layer === 1 && !this.isMobileDevice) {
+        ctx.filter = 'blur(1px)';
+      }
 
       // Round to grid for pixel-perfect look
       const rounding = GAME_ENGINE.BG_RETRO_CANDLE_ROUNDING;
@@ -148,6 +153,10 @@ export class BackgroundRenderer implements IRenderer {
       const wickX = rx + rw / 2 - 1;
       ctx.fillRect(wickX, ry - 4, 2, 4);
       ctx.fillRect(wickX, ry + rh, 2, 4);
+
+      if (c.layer === 1 && !this.isMobileDevice) {
+        ctx.filter = 'none';
+      }
     });
   }
 
@@ -210,7 +219,7 @@ export class BackgroundRenderer implements IRenderer {
 
     // Render smooth neon candles
     state.bgCandles.forEach(c => {
-      const sizeRatio = c.w / 8;
+      const sizeRatio = (c.w / 8) * (c.z ?? 1); // Changed || to ??
       const baseOpacity =
         (this.isMobileDevice
           ? GAME_ENGINE.BG_CANDLE_OPACITY_BASE_MOBILE
@@ -219,6 +228,13 @@ export class BackgroundRenderer implements IRenderer {
 
       ctx.globalAlpha = baseOpacity;
       ctx.fillStyle = c.color;
+
+      // Depth effect: Ghost Candles (Lower opacity instead of expensive blur)
+      if (c.layer === 1) {
+        ctx.globalAlpha = baseOpacity * 0.5; // Significantly fainter for depth
+      } else if (c.layer === 2) {
+        ctx.globalAlpha = baseOpacity * 0.8;
+      }
 
       const rx = Math.round(c.x);
       const ry = Math.round(c.y);
@@ -259,7 +275,7 @@ export class BackgroundRenderer implements IRenderer {
    * @param state - Game state containing candle definitions
    * @param pnl - Current profit/loss percentage (determines direction)
    * @param waveMultiplier - Intensity multiplier from DifficultyManager
-   * @param _unused - Reserved for API compatibility
+   * @param momentum - Market momentum factor for parallax drift
    * @param dtFactor - Frame time scaling factor
    * @param width - Canvas width for wrapping
    * @param height - Canvas height for wrapping
@@ -268,7 +284,7 @@ export class BackgroundRenderer implements IRenderer {
     state: GameState,
     pnl: number,
     waveMultiplier: number,
-    _unused: number,
+    momentum: number,
     dtFactor: number,
     width: number,
     height: number
@@ -277,25 +293,78 @@ export class BackgroundRenderer implements IRenderer {
     const trendMultiplier = pnl >= 0 ? -1 : 1;
 
     // Intensity: Sync speed with current wave phase
+    // Momentum adds extra weight to the speed
     const waveSpeedMult =
-      GAME_ENGINE.BG_WAVE_SPEED_BASE +
-      waveMultiplier * GAME_ENGINE.BG_WAVE_SPEED_FACTOR;
+      (GAME_ENGINE.BG_WAVE_SPEED_BASE +
+        waveMultiplier * GAME_ENGINE.BG_WAVE_SPEED_FACTOR) *
+      (1 + Math.abs(momentum) * 0.2);
 
     const threshold = GAME_ENGINE.BG_CANDLE_WRAP_THRESHOLD;
+    const candles = state.bgCandles;
 
-    state.bgCandles.forEach(c => {
+    candles.forEach(c => {
       // Final velocity calculation
       const volatilitySpeed = c.speed * waveSpeedMult;
       c.y += volatilitySpeed * trendMultiplier * dtFactor;
 
+      // Parallax Drift: Subtle horizontal movement based on momentum
+      // Layer factor (c.z) determines parallax intensity
+      c.x += momentum * (c.z ?? 0.5) * 2 * dtFactor;
+
       // Coordinate Wrapping
       if (c.y > height + threshold) {
         c.y = -threshold;
-        c.x = Math.random() * width;
+        c.x = this.getNonOverlappingX(c, candles, width);
       } else if (c.y < -threshold) {
         c.y = height + threshold;
-        c.x = Math.random() * width;
+        c.x = this.getNonOverlappingX(c, candles, width);
+      }
+
+      // Horizontal wrapping
+      if (c.x > width + threshold) {
+        c.x = -threshold;
+      } else if (c.x < -threshold) {
+        c.x = width + threshold;
       }
     });
+  }
+
+  /**
+   * Anti-Overlap Logic: Finds an X position that minimizes overlap with active candles.
+   * Uses a grid-sampling approach for efficiency.
+   */
+  private getNonOverlappingX(
+    candle: Candle,
+    allCandles: Candle[],
+    width: number
+  ): number {
+    const minMesafe = 15; // Minimum horizontal distance between candles
+    let bestX = Math.random() * width;
+    let minOverlapCount = Infinity;
+
+    // Try a few random positions and pick the one with least overlap
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const testX = Math.random() * width;
+      let overlaps = 0;
+
+      for (let i = 0; i < allCandles.length; i++) {
+        const other = allCandles[i];
+        if (!other || other === candle) continue;
+
+        const dist = Math.abs(testX - other.x);
+        if (dist < minMesafe) {
+          overlaps++;
+        }
+      }
+
+      if (overlaps < minOverlapCount) {
+        minOverlapCount = overlaps;
+        bestX = testX;
+      }
+
+      if (minOverlapCount === 0) break;
+    }
+
+    return bestX;
   }
 }

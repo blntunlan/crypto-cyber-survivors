@@ -40,6 +40,7 @@ export const useMarketData = (
     difficulty: 1,
     pair: 'BTC',
     symbol: 'BTCUSDT',
+    momentum: 0,
   });
 
   const [_priceHistory, setPriceHistory] = useState<number[]>([]);
@@ -265,6 +266,7 @@ export const useMarketData = (
             difficulty: difficultyOutput.total,
             pair: expectedPair,
             symbol: expectedPair + 'USDT',
+            momentum: difficultyOutput.total > 0 ? pnlResult.effectivePnl * 0.1 : 0, // Rudimentary momentum based on PnL
           };
 
           // Emit for GameEngine (Ref tracking) to avoid React re-render overhead

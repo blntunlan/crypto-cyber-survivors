@@ -3,9 +3,9 @@ import {
   type Gem,
   type Particle,
   type FloatingText,
-  type MarketPosition,
   type SpeedLine,
   type Interactable,
+  MarketPosition,
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
@@ -176,6 +176,7 @@ export class PoolManager implements IPoolManager {
     particles?: number;
     gems?: number;
     texts?: number;
+    speedLines?: number;
   }): void {
     const counts = {
       enemies: config?.enemies ?? POOL.PRE_WARM.ENEMIES,
@@ -246,6 +247,39 @@ export class PoolManager implements IPoolManager {
       });
     }
 
+    // Pre-allocate speed lines
+    const speedLinesCount = config?.speedLines ?? 20; // Default count
+    for (let i = 0; i < speedLinesCount; i++) {
+      this.speedLines.free.push({
+        active: false,
+        x: 0,
+        y: 0,
+        length: 0,
+        angle: 0,
+        opacity: 0,
+        width: 0,
+        decay: 0,
+        vx: 0,
+        vy: 0,
+        radius: 0,
+        color: '',
+      });
+    }
+
+    // Pre-allocate enemies (Fixes first-spawn freeze)
+    for (let i = 0; i < counts.enemies; i++) {
+      // Create a dummy 'bear' enemy to populate the pool
+      const dummyEnemy = enemyFactory.createEnemy(
+        'bear',
+        -1000,
+        -1000,
+        1,
+        MarketPosition.LONG
+      );
+      dummyEnemy.active = false;
+      this.enemies.free.push(dummyEnemy);
+    }
+
     Logger.debug(`[PoolManager] Pre-warmed pools with counts:`, counts);
   }
 
@@ -284,27 +318,18 @@ export class PoolManager implements IPoolManager {
           aggroMultiplier
         ),
       obj => {
-        const newEnemy = enemyFactory.createEnemy(
+        // Reuse the existing object strictly!
+        // We pass 'obj' as the 7th argument (target) to mutate it in place
+        // This prevents 'new' allocation during gameplay
+        enemyFactory.createEnemy(
           enemyType,
           x,
           y,
           difficulty,
           position,
-          aggroMultiplier
+          aggroMultiplier,
+          obj
         );
-        Object.assign(obj, newEnemy);
-
-        // Ensure state is fully reset for the recycled object
-        obj.active = true;
-        obj.spawnTimer = 0;
-        obj.hasEnteredScreen = false;
-        obj.isDying = false;
-        obj.deathProgress = 0;
-        obj.hasTriggeredNearMiss = false;
-        obj.damageBuffer = 0;
-        obj.damageBufferTimer = 0;
-        obj.damageBufferIsCrit = false;
-        obj.damageBufferIsSuperCrit = false;
       }
     );
   }

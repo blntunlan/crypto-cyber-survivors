@@ -27,7 +27,8 @@ const CANDLE_REDS = [
 const CANDLE_COLORS = [...CANDLE_GREENS, ...CANDLE_REDS];
 
 /**
- * Generate background candles based on performance config
+ * Generate background candles based on performance config.
+ * Implements a slot-based distribution to prevent X-axis overlap.
  */
 export function generateBackgroundCandles(
   width: number,
@@ -37,10 +38,22 @@ export function generateBackgroundCandles(
   const totalCandles = config.candleCount;
   const candles: Candle[] = [];
 
-  // Distribute candles across 3 layers
-  // Layer 1 (far): 35% - smaller, slower
-  // Layer 2 (mid): 40% - medium
-  // Layer 3 (near): 25% - larger, faster, with glow
+  // Define slots to prevent horizontal overlapping
+  // We use more slots than candles to allow for some randomness
+  const slotCount = Math.max(totalCandles, Math.floor(width / 12));
+  const slotWidth = width / slotCount;
+  const availableSlots = Array.from({ length: slotCount }, (_, i) => i);
+
+  // Function to pick a random slot and remove it from available pool
+  const pickSlot = () => {
+    if (availableSlots.length === 0) return Math.random() * width;
+    const index = Math.floor(Math.random() * availableSlots.length);
+    const slotIndex = availableSlots.splice(index, 1)[0]!;
+    // Add small random offset within the slot
+    return slotIndex * slotWidth + Math.random() * (slotWidth * 0.5);
+  };
+
+  // Layers distribution stays the same
   const layer1Count = Math.floor(totalCandles * 0.35);
   const layer2Count = Math.floor(totalCandles * 0.4);
   const layer3Count = totalCandles - layer1Count - layer2Count;
@@ -48,36 +61,42 @@ export function generateBackgroundCandles(
   // Layer 1: Far background (smallest, slowest)
   for (let i = 0; i < layer1Count; i++) {
     candles.push({
-      x: Math.random() * width,
+      x: pickSlot(),
       y: Math.random() * height,
-      w: 1 + Math.random() * 2,
-      h: 15 + Math.random() * 30,
+      w: 1 + Math.random() * 1.5,
+      h: 15 + Math.random() * 20,
       color: CANDLE_COLORS[Math.floor(Math.random() * CANDLE_COLORS.length)]!,
-      speed: 0.1 + Math.random() * 0.5,
+      speed: 0.1 + Math.random() * 0.3,
+      layer: 1,
+      z: 0.2, // Deep background
     });
   }
 
   // Layer 2: Mid background
   for (let i = 0; i < layer2Count; i++) {
     candles.push({
-      x: Math.random() * width,
+      x: pickSlot(),
       y: Math.random() * height,
-      w: 2 + Math.random() * 3,
-      h: 25 + Math.random() * 50,
+      w: 2 + Math.random() * 2,
+      h: 25 + Math.random() * 40,
       color: CANDLE_COLORS[Math.floor(Math.random() * CANDLE_COLORS.length)]!,
-      speed: 0.3 + Math.random() * 1.0,
+      speed: 0.4 + Math.random() * 0.6,
+      layer: 2,
+      z: 0.5, // Middle ground
     });
   }
 
   // Layer 3: Near foreground (largest, fastest)
   for (let i = 0; i < layer3Count; i++) {
     candles.push({
-      x: Math.random() * width,
+      x: pickSlot(),
       y: Math.random() * height,
-      w: 3 + Math.random() * 5,
-      h: 40 + Math.random() * 80,
+      w: 3 + Math.random() * 4,
+      h: 40 + Math.random() * 60,
       color: CANDLE_COLORS[Math.floor(Math.random() * CANDLE_COLORS.length)]!,
-      speed: 0.5 + Math.random() * 1.5,
+      speed: 1.0 + Math.random() * 1.0,
+      layer: 3,
+      z: 0.9, // Near foreground
     });
   }
 

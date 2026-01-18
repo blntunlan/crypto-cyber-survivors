@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameRenderer } from '../services/GameRenderer';
-import { GameStatus, type GameState } from '../types';
+import { GameStatus, MarketPosition, type GameState } from '../types';
 import { type IPoolManager } from '../services/interfaces/IPoolManager';
 
 describe('GameRenderer', () => {
@@ -72,8 +72,16 @@ describe('GameRenderer', () => {
       dashTrail: [],
       dashTrailAccumulator: 0,
       bgCandles: [
-        { x: 100, y: 200, w: 20, h: 50, color: '#22c55e', speed: 1 },
-        { x: 300, y: 400, w: 20, h: 60, color: '#ef4444', speed: 1.5 },
+        { x: 100, y: 200, w: 20, h: 50, color: '#22c55e', speed: 1, layer: 1 as const },
+        {
+          x: 300,
+          y: 400,
+          w: 20,
+          h: 60,
+          color: '#ef4444',
+          speed: 1.5,
+          layer: 2 as const,
+        },
       ],
       currentBg: { r: 15, g: 23, b: 42 },
       spawnTimer: 0,
@@ -96,6 +104,9 @@ describe('GameRenderer', () => {
       nearMissCooldown: 0,
       rsiVisualState: 'NEUTRAL',
       whaleEventTimer: 0,
+      atrPercent: 1,
+      spawnRateMultiplier: 1,
+      marketPosition: MarketPosition.LONG,
     };
 
     // Mock Player
@@ -252,11 +263,31 @@ describe('GameRenderer', () => {
     it('should increase speed with wave multiplier', () => {
       const lowDiffState = {
         ...mockState,
-        bgCandles: [{ x: 100, y: 200, w: 20, h: 50, color: '#22c55e', speed: 1 }],
+        bgCandles: [
+          {
+            x: 100,
+            y: 200,
+            w: 20,
+            h: 50,
+            color: '#22c55e',
+            speed: 1,
+            layer: 1 as const,
+          },
+        ],
       };
       const highDiffState = {
         ...mockState,
-        bgCandles: [{ x: 100, y: 200, w: 20, h: 50, color: '#22c55e', speed: 1 }],
+        bgCandles: [
+          {
+            x: 100,
+            y: 200,
+            w: 20,
+            h: 50,
+            color: '#22c55e',
+            speed: 1,
+            layer: 1 as const,
+          },
+        ],
       };
 
       renderer.updateBackgroundCandles(lowDiffState, 0.05, 0.5, 1, 1, 800, 600); // Low wave mult
