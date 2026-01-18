@@ -53,10 +53,10 @@
 > **Not:** Bu paketlerin çoğu dolaylı olarak kullanılıyor olabilir. Manuel inceleme önerilir.
 
 ### 1.4 Import Düzeni
-- **Sonuç:** ⚠️ 1 Circular Dependency
-- **Konum:** `railway-market-server/`:
-  - `supabaseService.ts` ↔ `errorReporter.ts`
-- **Çözüm önerisi:** ErrorReporter'da lazy import veya SupabaseService'de inline logging
+- **Sonuç:** ✅ GEÇTI
+- **Durum:** 0 Circular Dependency (Dairesel bağımlılık yok).
+- **Detay:** `railway-market-server` üzerindeki döngü, bağımlılık enjeksiyonu yöntemiyle temizlendi.
+
 
 ---
 
@@ -124,13 +124,15 @@
 5. ✅ MarketData mock'larına `momentum` property eklendi (3 dosya)
 6. ✅ Null assertion fixes (`!`) eklendi test dosyalarına
 7. ✅ MarketPosition import'ları eklendi
+8. ✅ Railway Market Server circular dependency düzeltildi
+9. ✅ E2E Cheat key fix (LevelUp) yapıldı
 
 ---
 
 ## 📝 Sonraki Adımlar
 
 ### Kritik (Beta Öncesi):
-1. [ ] Railway market server circular dependency düzelt
+1. [x] Railway market server circular dependency düzelt
 2. [ ] Test coverage %80+ hedefine ulaş
 3. [ ] Manuel oyun mekanikleri testi
 4. [ ] Manuel UI/UX testi (responsive)
@@ -152,7 +154,7 @@
 | Tüm testler geçiyor | ✅ |
 | Coverage hedefleri | ⚠️ Düşük |
 | Production build | ✅ |
-| Circular imports | ⚠️ 1 sorun |
+| Circular imports | ✅ |
 
 **Genel Değerlendirme:** Beta release için uygun, ancak coverage ve circular import sorunları gelecek sürümler için önceliklendirilmeli.
 

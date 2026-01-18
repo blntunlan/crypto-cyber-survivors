@@ -2,6 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { spawnSystem } from '../../services/SpawnSystem';
 import { MarketPosition } from '../../types';
 
+// Mock config store
+vi.mock('../../stores/admin/configStore', () => ({
+  useAdminConfigStore: {
+    getState: vi.fn(() => ({
+      config: {
+        spawn: {
+          baseInterval: 1000,
+          maxEnemies: 150,
+          waveIntensity: 0.5,
+        },
+      },
+    })),
+  },
+}));
+
 describe('SpawnSystem Edge Cases', () => {
   let mockPool: any;
 
@@ -29,7 +44,7 @@ describe('SpawnSystem Edge Cases', () => {
     );
 
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
-    expect(result).toBe(0); // Timer resets even if skip
+    expect(result).toBeCloseTo(4000, 1); // 5000 - 1000 = 4000
   });
 
   it('should handle zero or negative deltaTime gracefully', () => {
@@ -54,6 +69,9 @@ describe('SpawnSystem Edge Cases', () => {
       mockPool
     );
     expect(mockPool.getEnemy).toHaveBeenCalled();
-    expect(result).toBe(0);
+    // scaledDifficulty = (1 + 99 * 0.5 * 1.0) * 1 = 50.5
+    // threshold = 1000 / 50.5 = 19.802
+    // result = 100 - 19.802 = 80.198
+    expect(result).toBeCloseTo(80.198, 0.1);
   });
 });

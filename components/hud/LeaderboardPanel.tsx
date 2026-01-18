@@ -56,35 +56,40 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
     }
 
     try {
-      const { data, error } = await supabase
-        .from('leaderboard')
-        .select('*')
-        .order('score', { ascending: false })
-        .limit(10);
+      const { data, error } = await supabase.from('leaderboard').select('*').limit(10);
 
       if (error) {
-        // Fallback to mock data if table doesn't exist yet
+        // Fallback to empty if table doesn't exist yet
         Logger.warn('[Leaderboard] Fetch failed', error);
         setEntries([]);
         setLastUpdated(new Date());
       } else {
-        // Filter out entries with null/empty player names and add rank
-        const validEntries = data.filter(
-          entry => entry.player_name && entry.player_name.trim() !== ''
-        );
-
-        const rankedEntries = validEntries.map((entry, index) => ({
-          ...entry,
-          // Ensure player_name is never null/undefined in display
-          player_name: entry.player_name ?? 'Anonymous',
-          rank: index + 1,
-        }));
+        // Map data using fallbacks for both OLD and NEW view schemas
+        const rankedEntries = data
+          .map((entry, index) => {
+            const name = (
+              entry.display_name ??
+              entry.player_name ??
+              'Anonymous'
+            ).trim();
+            return {
+              ...entry,
+              id: entry.id ?? entry.player_id ?? `entry-${index}`,
+              player_name: name,
+              score: entry.score ?? entry.high_score ?? 0,
+              survival_time_ms: entry.survival_time_ms ?? entry.total_playtime_ms ?? 0,
+              rank: entry.rank ?? index + 1,
+            };
+          })
+          // Filter out anonymous/empty names
+          .filter(entry => entry.player_name !== '');
 
         setEntries(rankedEntries);
         setLastUpdated(new Date());
         Logger.debug('[Leaderboard] Fetched', {
           count: rankedEntries.length,
-          filtered: data.length - validEntries.length,
+          source:
+            data.length > 0 && 'display_name' in data[0] ? 'new_view' : 'old_view',
         });
       }
     } catch (err) {

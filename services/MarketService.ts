@@ -135,6 +135,7 @@ export class MarketService {
    * @private
    */
   private pauseConnections(): void {
+    this.wasClosedIntentionally = true; // Prevents onclose from triggering reconnection
     if (this.binanceSocket) {
       this.binanceSocket.close();
       this.binanceSocket = null;
@@ -153,10 +154,9 @@ export class MarketService {
    * @private
    */
   private resumeConnections(): void {
-    if (!this.wasClosedIntentionally) {
-      this.connectBinance();
-      this.connectCoinbase();
-    }
+    this.wasClosedIntentionally = false;
+    this.connectBinance();
+    this.connectCoinbase();
   }
 
   /**
@@ -181,6 +181,14 @@ export class MarketService {
    * Returns current price with reliable fallback to static baseline if no data received.
    */
   public getPrice(): number {
+    const now = Date.now();
+    const isStale =
+      this.lastPriceTime && now - this.lastPriceTime > MARKET.STALE_PRICE_THRESHOLD_MS;
+
+    if (isStale) {
+      return MARKET.FALLBACK_PRICES[this.pair];
+    }
+
     return this.lastKnownPrice ?? MARKET.FALLBACK_PRICES[this.pair];
   }
 
@@ -392,6 +400,12 @@ export class MarketService {
     const delay =
       source === 'binance' ? this.binanceReconnectDelay : this.coinbaseReconnectDelay;
     Logger.info(`[Market] Scheduling ${source} reconnect in ${delay}ms`);
+
+    if (source === 'binance' && this.binanceReconnectTimer) {
+      clearTimeout(this.binanceReconnectTimer);
+    } else if (source === 'coinbase' && this.coinbaseReconnectTimer) {
+      clearTimeout(this.coinbaseReconnectTimer);
+    }
 
     const timer = setTimeout(() => {
       if (source === 'binance') {

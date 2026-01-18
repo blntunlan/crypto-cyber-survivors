@@ -62,6 +62,14 @@ export class CollisionSystem implements ICollisionSystem {
   ): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
 
+    // Decrement Player I-Frames
+    if (player.invulnerabilityTimer > 0) {
+      player.invulnerabilityTimer = Math.max(
+        0,
+        player.invulnerabilityTimer - 16.6 * dtFactor
+      );
+    }
+
     pool.activeEnemies.forEach(enemy => {
       // Skip dead/vanishing enemies
       if (enemy.isDying) {
@@ -222,8 +230,12 @@ export class CollisionSystem implements ICollisionSystem {
 
     // Radius-based collision check
     if (distSq < combinedRadius * combinedRadius) {
-      // Skill Check: Invulnerable during Dash or if God Mode enabled
-      if (!this.ctx.cheat.isGodMode() && !state.isDashing) {
+      // Skill Check: Invulnerable during Dash, I-Frames or if God Mode enabled
+      if (
+        !this.ctx.cheat.isGodMode() &&
+        !state.isDashing &&
+        player.invulnerabilityTimer <= 0
+      ) {
         // A. Dodge Check
         const rawDodge = this.ctx.stats.getDodge(player);
         const dodgeChance = Math.min(rawDodge, this.ctx.statCaps.MAX_DODGE);
@@ -236,6 +248,8 @@ export class CollisionSystem implements ICollisionSystem {
             physicsColors.BULLET,
             GAME_ENGINE.DODGE_INDICATOR_SIZE
           );
+          // Give brief I-Frame even on dodge to prevent immediate re-roll
+          player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION / 2;
           return;
         }
 
@@ -255,6 +269,9 @@ export class CollisionSystem implements ICollisionSystem {
         // Apply HP loss (scaled by frame time)
         player.hp -= damageMultiplier * dtFactor;
         player.hp = Math.max(0, player.hp);
+
+        // Set I-Frames after taking damage
+        player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION;
 
         // Add damage direction indicator (throttled to once every 200ms)
         const gameTime = this.ctx.constants.getGameTime();

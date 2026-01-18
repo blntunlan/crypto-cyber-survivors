@@ -72,7 +72,7 @@ describe('SpawnSystem', () => {
       mockPool as PoolManager
     );
 
-    expect(result).toBe(0);
+    expect(result).toBeCloseTo(10, 1);
     expect(mockPool.getEnemy).toHaveBeenCalled();
     const callArgs = mockPool.getEnemy.mock.calls[0];
     // x, y, difficulty, position
@@ -114,7 +114,7 @@ describe('SpawnSystem', () => {
       mockPool as PoolManager
     );
     expect(mockPool.getEnemy).toHaveBeenCalled();
-    expect(timer2).toBe(0);
+    expect(timer2).toBeLessThan(20.1);
   });
 
   it('should spawn at off-screen positions', () => {
@@ -172,7 +172,7 @@ describe('SpawnSystem', () => {
       );
 
       expect(mockPool.getEnemy).toHaveBeenCalled();
-      expect(result).toBe(0);
+      expect(result).toBeCloseTo(10, 1);
     });
 
     it('should respect max enemies limit', () => {

@@ -127,6 +127,7 @@ describe('PhysicsSystem Edge Cases', () => {
       projectiles: 1,
       area: 1,
       color: '#fff',
+      invulnerabilityTimer: 0,
     } as any;
 
     mockState = {

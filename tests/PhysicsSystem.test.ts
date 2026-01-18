@@ -163,6 +163,7 @@ describe('PhysicsSystem', () => {
       level: 1,
       armor: 0,
       magnet: 1,
+      invulnerabilityTimer: 0,
     };
 
     // Mock GameState

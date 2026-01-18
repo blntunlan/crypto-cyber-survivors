@@ -502,8 +502,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               const { dx: ddx, dy: ddy } = getMovementVector();
               if (ddx !== 0 || ddy !== 0) {
                 // Start second dash immediately
+                const effectiveDashDuration = device.isMobile
+                  ? GAME_ENGINE.DASH_DURATION_MOBILE
+                  : GAME_ENGINE.DASH_DURATION;
+
                 s.isDashing = true;
-                s.dashTimer = GAME_ENGINE.DASH_DURATION;
+                s.dashTimer = effectiveDashDuration;
                 s.doubleDashQueued = false;
                 s.doubleDashUsed = true;
                 s.dashCooldownTimer = GAME_ENGINE.DOUBLE_DASH_COOLDOWN; // 4 seconds
@@ -565,8 +569,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           (dx !== 0 || dy !== 0) &&
           !s.isDashing
         ) {
+          const effectiveDashDuration = device.isMobile
+            ? GAME_ENGINE.DASH_DURATION_MOBILE
+            : GAME_ENGINE.DASH_DURATION;
+
           s.isDashing = true;
-          s.dashTimer = GAME_ENGINE.DASH_DURATION;
+          s.dashTimer = effectiveDashDuration;
           s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
           s.doubleDashQueued = false;
           s.doubleDashUsed = false;

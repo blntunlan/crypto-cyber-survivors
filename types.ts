@@ -72,6 +72,9 @@ export interface Player extends Omit<Entity, 'active'>, PlayerStats {
   level: number;
   exp: number;
   nextLevelExp: number;
+  hp: number;
+  maxHp: number;
+  invulnerabilityTimer: number; // For I-Frames
 }
 
 // Note: UpgradeOption removed - now using Card from CardSystem

@@ -99,6 +99,7 @@ export const GAME_ENGINE = {
   BAR_WIDTH_BASE: 200,
   BAR_HEIGHT_BASE: 12,
   CRIT_FLASH_DURATION: 0.2, // 200ms
+  PLAYER_I_FRAME_DURATION: 400, // ms of invulnerability after hit
   CRIT_FLASH_ALPHA: 0.12,
   DAMAGE_INDICATOR_DURATION: 1000,
   DAMAGE_INDICATOR_RADIUS: 80,
@@ -240,7 +241,7 @@ export const GAME_ENGINE = {
   // Timing
   THROTTLED_UPDATE_MS: 33, // ~30 FPS sync
   SYNC_THROTTLE_MS: 100,
-  PENDING_LEVEL_UP_FREEZE_MS: 2000, // Time to wait before showing level up screen
+  PENDING_LEVEL_UP_FREEZE_MS: 300, // Reduced from 2000ms for snappier transition to level up screen
 
   // Speed Lines
   SPEED_LINE_COUNT_MAX: 50,
@@ -274,7 +275,8 @@ export const GAME_ENGINE = {
   DASH_HALO_PULSE_SPEED: 200,
   DASH_HALO_OPACITY_BASE: 0.3,
   DASH_HALO_OPACITY_AMP: 0.7,
-  DASH_DURATION: 150,
+  DASH_DURATION: 200,
+  DASH_DURATION_MOBILE: 350, // More lenient window for mobile double-tap
   DASH_COOLDOWN: 1000,
   DOUBLE_DASH_COOLDOWN: 4000,
   DASH_TRAIL_MAX_LENGTH: 10,
@@ -435,6 +437,8 @@ export const MARKET = {
     ETH: 2300,
     SOL: 100,
   },
+  STALE_PRICE_THRESHOLD_MS: 30000,
+  STALE_PRICE_THRESHOLD_SEC: 30,
 } as const;
 
 /**

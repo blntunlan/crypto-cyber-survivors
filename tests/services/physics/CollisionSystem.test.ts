@@ -117,6 +117,10 @@ describe('CollisionSystem', () => {
       maxHp: 100,
       armor: 0,
       dodge: 0,
+      invulnerabilityTimer: 0,
+      level: 1,
+      exp: 0,
+      nextLevelExp: 100,
     } as Player;
 
     mockState = {

@@ -1,4 +1,4 @@
-import { SupabaseService } from '../services/supabaseService';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { Logger } from './logger';
 
 export interface ErrorReportOptions {
@@ -11,14 +11,25 @@ export interface ErrorReportOptions {
 
 export class ErrorReporter {
   private static serviceName = 'railway-market-server';
+  private static client: SupabaseClient | null = null;
+
+  /**
+   * Set the client instance to avoid circular dependencies with SupabaseService
+   */
+  static setClient(client: SupabaseClient): void {
+    this.client = client;
+  }
 
   static async report(options: ErrorReportOptions): Promise<void> {
     const { type, message, stack, severity = 'high', context = {} } = options;
 
     try {
-      const supabase = SupabaseService.getInstance().getClient();
+      if (!this.client) {
+        Logger.warn('[ErrorReporter] No Supabase client set, logging only:', message);
+        return;
+      }
 
-      const { error } = await supabase.from('error_reports').insert({
+      const { error } = await this.client.from('error_reports').insert({
         error_type: type,
         error_message: message,
         stack_trace: stack,

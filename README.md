@@ -693,7 +693,7 @@ crypto-cyber-survivors/
 | **E2E Tests** | **72 passing** |
 | **Test Coverage** | ~65% (Overall), 80%+ (Core Logic) |
 | **ESLint** | **0 errors, 0 warnings** |
-| **Circular Dependencies** | **0 (Frontend), 1 (Backend)** |
+| **Circular Dependencies** | **0** |
 | **Performance** | Stable 60 FPS (Mobile & Desktop) |
 
 ---

@@ -23,6 +23,9 @@ export class SupabaseService {
       },
     });
 
+    // Inject client into ErrorReporter to break circular dependency
+    ErrorReporter.setClient(this.client);
+
     Logger.info('✅ Supabase client initialized');
   }
 

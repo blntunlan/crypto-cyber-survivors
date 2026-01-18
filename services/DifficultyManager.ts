@@ -65,7 +65,7 @@ class DifficultyManagerClass {
   private lastKillStreakTime: number = 0;
   private lastWaveUpdateTime: number = 0;
   private currentCycle: number = 1;
-  private lastPnlForShock: number = 0;
+  private lastPnlForShock: number | null = null;
   private lastShockTime: number = 0;
 
   // Use centralized wave config from GameConfig
@@ -96,7 +96,7 @@ class DifficultyManagerClass {
     this.lastKillStreakTime = 0;
     this.lastWaveUpdateTime = TimeService.getGameTimeSeconds();
     this.currentCycle = 1;
-    this.lastPnlForShock = 0;
+    this.lastPnlForShock = null; // Will be properly set on first calculate call
     this.lastShockTime = -DIFFICULTY.SHOCK_COOLDOWN_SEC;
   }
 
@@ -209,10 +209,19 @@ class DifficultyManagerClass {
    * @private
    */
   private getNearDeathMod(hpPercent: number): number {
-    if (hpPercent < DIFFICULTY.NEAR_DEATH_HP_THRESHOLD) {
-      return DIFFICULTY.NEAR_DEATH_DIFFICULTY_MODIFIER;
+    const threshold = DIFFICULTY.NEAR_DEATH_HP_THRESHOLD; // e.g., 0.3
+    const critical = threshold * 0.33; // e.g., 0.1
+
+    if (hpPercent >= threshold) {
+      return 1.0;
     }
-    return 1.0;
+
+    // Fully applies mercy at critical HP, scales lineary between threshold and critical
+    const mercyStrength = Math.max(0, (threshold - hpPercent) / (threshold - critical));
+    const finalMercy =
+      1.0 - mercyStrength * (1.0 - DIFFICULTY.NEAR_DEATH_DIFFICULTY_MODIFIER);
+
+    return Math.max(DIFFICULTY.NEAR_DEATH_DIFFICULTY_MODIFIER, finalMercy);
   }
 
   /**
@@ -280,6 +289,10 @@ class DifficultyManagerClass {
    * @private
    */
   private detectShock(pnl: number): void {
+    if (this.lastPnlForShock === null) {
+      this.lastPnlForShock = pnl;
+      return;
+    }
     const diff = Math.abs(pnl - this.lastPnlForShock);
     const now = TimeService.getGameTimeSeconds();
 

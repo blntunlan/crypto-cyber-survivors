@@ -79,7 +79,8 @@ export class SpawnSystem implements ISpawnSystem {
         position,
         width,
         height,
-        maxEnemies
+        maxEnemies,
+        deltaTime
       );
     }
 
@@ -89,7 +90,8 @@ export class SpawnSystem implements ISpawnSystem {
       if (pool.activeEnemies.length < maxEnemies) {
         this.spawnRegularEnemy(pool, difficulty, position, pnl, width, height);
       }
-      this.spawnTimer = 0;
+      // Subtract threshold instead of resetting to 0 to preserve overflow time (Lag Compensation)
+      this.spawnTimer = Math.max(0, this.spawnTimer - spawnThreshold);
     }
 
     return this.spawnTimer;
@@ -107,7 +109,8 @@ export class SpawnSystem implements ISpawnSystem {
     position: MarketPosition,
     width: number,
     height: number,
-    maxEnemies: number
+    maxEnemies: number,
+    deltaTime: number
   ): void {
     const whaleConfig =
       WHALE_TIER_CONFIGS[marketState.whaleTier as keyof typeof WHALE_TIER_CONFIGS];
@@ -115,8 +118,13 @@ export class SpawnSystem implements ISpawnSystem {
       return;
     }
 
-    // Probability is dampened per frame to prevent spawning spikes from persistent server data
-    const probPerFrame = whaleConfig.spawnChance * SPAWN.WHALE_PROBABILITY_MODIFIER;
+    // Probability is dampened per frame and normalized by deltaTime to prevent spawning spikes
+    // from persistent server data, ensuring consistency across different frame rates.
+    const frameTargetMs = 16.66; // 60 FPS baseline
+    const probPerFrame =
+      whaleConfig.spawnChance *
+      SPAWN.WHALE_PROBABILITY_MODIFIER *
+      (deltaTime / frameTargetMs);
 
     if (
       this.whaleCooldownTimer <= 0 &&

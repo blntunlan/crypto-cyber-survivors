@@ -17,8 +17,13 @@ if (!isConfigured) {
  * Will be null if credentials are not configured.
  * Always check with `isSupabaseConfigured()` before using.
  */
-export const supabase: SupabaseClient | null = isConfigured
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
+// Generate types with: npm run supabase:gen
+// Then import { Database } from '../types/supabase';
+// For now, using 'any' to avoid build break until first generation.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabase: SupabaseClient<any> | null = isConfigured
+  ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    createClient<any>(supabaseUrl!, supabaseAnonKey!)
   : null;
 
 /**

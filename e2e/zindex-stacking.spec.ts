@@ -104,8 +104,8 @@ test.describe('Z-Index Screen Stacking', () => {
     await page.getByRole('button', { name: /Long/i }).click();
     await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
 
-    // Trigger level up via cheat (key '2' typically)
-    await page.keyboard.press('2');
+    // Trigger level up via cheat (key 'L')
+    await page.keyboard.press('L');
 
     // Wait for level up screen - look for upgrade cards or level up text
     await expect(page.getByText(/Level Up|Choose|Select/i).first()).toBeVisible({
