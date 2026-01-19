@@ -31,7 +31,15 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
    * Clear the grid for a new frame
    */
   public clear(): void {
-    this.grid.clear();
+    for (const [key, cell] of this.grid) {
+      // If cell was empty last frame, remove it to conserve memory and iteration time
+      if (cell.length === 0) {
+        this.grid.delete(key);
+      } else {
+        // Otherwise keep the array instance but reset length
+        cell.length = 0;
+      }
+    }
   }
 
   /**
