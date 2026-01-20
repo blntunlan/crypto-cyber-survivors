@@ -16,6 +16,7 @@ import { GameStatus, type Player } from '../types';
 import { ComboSystem, COMBO_MILESTONES } from '../services/ComboSystem';
 import { MilestoneService } from '../services/MilestoneService';
 import { DifficultyManager } from '../services/DifficultyManager';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HUDLayoutOffset {
   x: number;
@@ -38,7 +39,9 @@ export function useHUDUpdateLoop({
   containerRef,
   comboPanelOffset = { x: 0, y: 0 },
 }: UseHUDUpdateLoopParams): void {
+  const { t } = useLanguage();
   const requestRef = useRef<number | null>(null);
+
   const streakValueRef = useRef(0);
   const multiplierValueRef = useRef(1.0);
   const fpsFramesRef = useRef<number[]>([]);
@@ -60,8 +63,9 @@ export function useHUDUpdateLoop({
           const avgFps =
             fpsFramesRef.current.reduce((a, b) => a + b, 0) /
             fpsFramesRef.current.length;
-          const fpsText = `${Math.round(avgFps)} FPS`;
+          const fpsText = t('hud.fps_formatted', { val: Math.round(avgFps) });
           // Update desktop FPS element
+
           const fpsElement = document.getElementById('fps-counter');
           if (fpsElement) fpsElement.textContent = fpsText;
           // Update mobile FPS element
@@ -119,7 +123,11 @@ export function useHUDUpdateLoop({
       if (Math.abs(multiplierValueRef.current - multTarget) > 0.001) {
         multiplierValueRef.current += (multTarget - multiplierValueRef.current) * 0.1;
         const el = document.getElementById('combo-multiplier-badge');
-        if (el) el.textContent = `${multiplierValueRef.current.toFixed(1)}x XP`;
+        if (el) {
+          el.textContent = t('hud.xp_multiplier_formatted', {
+            val: multiplierValueRef.current.toFixed(1),
+          });
+        }
       }
 
       // Combo Panel Visibility
@@ -177,5 +185,5 @@ export function useHUDUpdateLoop({
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [status, player, containerRef, comboPanelOffset]);
+  }, [status, player, containerRef, comboPanelOffset, t]);
 }

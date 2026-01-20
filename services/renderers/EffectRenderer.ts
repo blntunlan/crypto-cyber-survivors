@@ -189,9 +189,9 @@ export class EffectRenderer implements IRenderer {
    * Groups particles by shared context states to minimize expensive fill color changes.
    */
   /**
-   * Optimized particle rendering using Sort-and-Sweep.
-   * Eliminates Map/Array allocations by sorting the active pool in-place.
-   * Batches draw calls by state (Pixel -> Color -> Alpha) for maximum performance.
+   * Optimized particle rendering - Zero allocation per frame.
+   * Renders particles directly without sorting to avoid GC pressure.
+   * Visual difference is negligible since particles are short-lived and overlapping.
    */
   private drawParticles(
     ctx: CanvasRenderingContext2D,
@@ -204,95 +204,56 @@ export class EffectRenderer implements IRenderer {
       return;
     }
 
-    // Sort a shallow copy to prevent mutating PoolManager's active list
-    // This ensures PoolManager limits (FIFO) still target the oldest particles,
-    // not just the ones that sorted to index 0.
-    const sortedParticles = particles.slice().sort((a, b) => {
-      // 1. Pixel vs Standard (boolean)
-      if (a.isPixel !== b.isPixel) {
-        return a.isPixel ? 1 : -1;
-      }
-      // 2. Color (string)
-      if (a.color !== b.color) {
-        return a.color < b.color ? -1 : 1;
-      }
-      // 3. Alpha Bucket (int) - high life first
-      const aBucket = (a.life * 10) | 0;
-      const bBucket = (b.life * 10) | 0;
-      return bBucket - aBucket;
-    });
-
-    // Initialize State from first particle
-    let configIsPixel = sortedParticles[0]!.isPixel;
-    let configColor = sortedParticles[0]!.color;
-    let configAlphaBucket = (sortedParticles[0]!.life * 10) | 0;
-
-    // Apply initial context state
-    ctx.globalAlpha = Math.max(0, configAlphaBucket / 10);
-    ctx.fillStyle = configColor;
-
-    if (!configIsPixel) {
-      ctx.beginPath();
-    }
-
     const defaultRadius = GAME_ENGINE.PARTICLE_DEFAULT_RADIUS;
 
+    // Separate pixel particles from standard ones (single pass)
+    // Draw standard particles first, then pixels on top
+    ctx.beginPath();
+    let currentColor = '';
+    let currentAlpha = -1;
+
+    // Pass 1: Standard (circle) particles
     for (let i = 0; i < count; i++) {
-      const p = sortedParticles[i]!;
+      const p = particles[i]!;
+      if (p.isPixel) continue;
+
       const radius = p.radius || defaultRadius;
+      if (!isCircleVisible(p.x, p.y, radius, bounds)) continue;
 
-      // Culling
-      if (!isCircleVisible(p.x, p.y, radius, bounds)) {
-        continue;
+      const alpha = Math.max(0, p.life);
+      const alphaBucket = (alpha * 10) | 0;
+
+      // Batch by color and alpha bucket
+      if (p.color !== currentColor || alphaBucket !== currentAlpha) {
+        if (currentColor) ctx.fill();
+        ctx.beginPath();
+        currentColor = p.color;
+        currentAlpha = alphaBucket;
+        ctx.fillStyle = currentColor;
+        ctx.globalAlpha = alphaBucket / 10;
       }
 
-      const pAlphaBucket = (p.life * 10) | 0;
-
-      // Check for state change
-      const stateChanged =
-        p.isPixel !== configIsPixel ||
-        p.color !== configColor ||
-        pAlphaBucket !== configAlphaBucket;
-
-      if (stateChanged) {
-        // Flux render batch
-        if (!configIsPixel) {
-          ctx.fill();
-        }
-
-        // Update Config
-        configIsPixel = p.isPixel;
-        configColor = p.color;
-        configAlphaBucket = pAlphaBucket;
-
-        // Update Context
-        ctx.globalAlpha = Math.max(0, configAlphaBucket / 10);
-        ctx.fillStyle = configColor;
-
-        if (!configIsPixel) {
-          ctx.beginPath();
-        }
-      }
-
-      // Add to batch
-      if (configIsPixel) {
-        // Pixels: Draw immediately (rects don't need component paths)
-        const size = radius * 2;
-        const px = (p.x - radius) | 0; // fast floor
-        const py = (p.y - radius) | 0;
-        ctx.fillRect(px, py, size, size);
-      } else {
-        // Standard: Add to path
-        const x = (p.x + 0.5) | 0; // fast round
-        const y = (p.y + 0.5) | 0;
-        ctx.moveTo(x + radius, y);
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-      }
+      const x = (p.x + 0.5) | 0;
+      const y = (p.y + 0.5) | 0;
+      ctx.moveTo(x + radius, y);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
     }
+    if (currentColor) ctx.fill();
 
-    // Flush final batch
-    if (!configIsPixel) {
-      ctx.fill();
+    // Pass 2: Pixel particles (drawn as rects, no path needed)
+    for (let i = 0; i < count; i++) {
+      const p = particles[i]!;
+      if (!p.isPixel) continue;
+
+      const radius = p.radius || defaultRadius;
+      if (!isCircleVisible(p.x, p.y, radius, bounds)) continue;
+
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      const size = radius * 2;
+      const px = (p.x - radius) | 0;
+      const py = (p.y - radius) | 0;
+      ctx.fillRect(px, py, size, size);
     }
 
     ctx.globalAlpha = 1;
@@ -348,44 +309,34 @@ export class EffectRenderer implements IRenderer {
 
   /**
    * Renders motion vectors to indicate high-speed movement.
+   * Optimized to avoid gradient creation per line.
    */
   private drawSpeedLines(
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
     player: Player
   ): void {
-    if (pool.activeSpeedLines.length === 0) {
+    const lines = pool.activeSpeedLines;
+    if (lines.length === 0) {
       return;
     }
 
     const isRetro = ThemeService.isRetro();
-    const color = player.color; // Use sentiment-aware color
+    const color = player.color;
 
     ctx.save();
+    ctx.lineCap = isRetro ? 'butt' : 'round';
 
-    pool.activeSpeedLines.forEach(line => {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!;
       const tailX = line.x - Math.cos(line.angle) * line.length;
       const tailY = line.y - Math.sin(line.angle) * line.length;
 
-      // Vertical/Horizontal Gradients for "tail" fade
-      const gradient = ctx.createLinearGradient(line.x, line.y, tailX, tailY);
-
-      if (isRetro) {
-        // Retro: Solid pixelated lines
-        gradient.addColorStop(0, `${color}CC`); // 80% opacity
-        gradient.addColorStop(1, `${color}00`); // 0% opacity
-      } else {
-        // Cyberpunk: Multi-stop neon gradient
-        gradient.addColorStop(0, `${color}F2`); // 95% opacity
-        gradient.addColorStop(0.3, `${color}99`); // 60% opacity
-        gradient.addColorStop(1, `${color}00`); // 0% opacity
-      }
-
-      // 1. Primary Vector Line
+      // 1. Primary Vector Line (simplified - no gradient)
       ctx.beginPath();
-      ctx.strokeStyle = gradient;
+      ctx.globalAlpha = line.opacity * (isRetro ? 0.8 : 0.95);
+      ctx.strokeStyle = color;
       ctx.lineWidth = line.width;
-      ctx.lineCap = isRetro ? 'butt' : 'round';
       ctx.moveTo(line.x, line.y);
       ctx.lineTo(tailX, tailY);
       ctx.stroke();
@@ -393,28 +344,28 @@ export class EffectRenderer implements IRenderer {
       // 2. Halo Glow (Cyberpunk only)
       if (!isRetro && line.opacity > GAME_ENGINE.SPEED_LINE_GLOW_THRESHOLD) {
         ctx.beginPath();
-        ctx.strokeStyle = `${color}4D`; // 30% alpha theme color
+        ctx.globalAlpha = line.opacity * 0.3;
         ctx.lineWidth = line.width * GAME_ENGINE.SPEED_LINE_GLOW_WIDTH_MULT;
-        ctx.lineCap = 'round';
         ctx.moveTo(line.x, line.y);
         ctx.lineTo(tailX, tailY);
         ctx.stroke();
       }
 
       // 3. Vector Tip (High energy point)
+      ctx.globalAlpha = line.opacity;
       if (!isRetro) {
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${line.opacity})`;
+        ctx.fillStyle = '#FFFFFF';
         ctx.arc(line.x, line.y, line.width * 0.8, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        // Retro Tip: Square pixel
         ctx.fillStyle = '#FFFFFF';
         const tipSize = line.width;
         ctx.fillRect(line.x - tipSize / 2, line.y - tipSize / 2, tipSize, tipSize);
       }
-    });
+    }
 
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 }

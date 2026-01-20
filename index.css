@@ -213,34 +213,37 @@ html[data-theme-switching='true'] body::before {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: white;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(0, 255, 255, 0.3),
+    rgba(255, 0, 255, 0.3)
+  );
   animation: theme-glitch 0.4s steps(2, end) forwards;
   pointer-events: none;
+  will-change: opacity, transform;
 }
 
+/* GPU-composited theme transition - uses only opacity and transform */
 @keyframes theme-glitch {
   0% {
     opacity: 0;
     transform: scale(1.1) skew(5deg);
-    background: rgba(255, 255, 255, 0.8);
   }
 
   20% {
     opacity: 0.5;
     transform: scale(1) skew(-10deg);
-    background: rgba(0, 255, 255, 0.3);
   }
 
   40% {
     opacity: 0.8;
     transform: scale(1.2) translateX(20px);
-    background: rgba(255, 0, 255, 0.3);
   }
 
   60% {
     opacity: 0.4;
     transform: scale(0.9) translateX(-10px);
-    background: rgba(255, 255, 255, 0.5);
   }
 
   80% {
@@ -258,13 +261,15 @@ html[data-theme-switching='true'] body::before {
    CYBERPUNK THEME PREMIUM EFFECTS
    ======================================== */
 
+/* GPU-composited cyber glitch using pseudo-elements instead of text-shadow animation */
 [data-theme='cyberpunk'] .cyber-glitch-text {
   position: relative;
   text-shadow:
     0.05em 0 0 rgba(255, 0, 80, 0.75),
     -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
     0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-  animation: cyber-glitch 500ms infinite;
+  animation: cyber-glitch-transform 500ms infinite steps(3);
+  will-change: transform;
 }
 
 [data-theme='cyberpunk'] .cyber-glass {
@@ -282,54 +287,22 @@ html[data-theme-switching='true'] body::before {
     inset 0 0 10px rgba(0, 255, 255, 0.1);
 }
 
-@keyframes cyber-glitch {
-  0% {
-    text-shadow:
-      0.05em 0 0 rgba(255, 0, 80, 0.75),
-      -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
-      0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-
+/* GPU-composited glitch effect using only transform */
+@keyframes cyber-glitch-transform {
+  0%,
   14% {
-    text-shadow:
-      0.05em 0 0 rgba(255, 0, 80, 0.75),
-      -0.05em -0.025em 0 rgba(0, 255, 0, 0.75),
-      0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+    transform: translate(0, 0);
   }
-
-  15% {
-    text-shadow:
-      -0.05em -0.025em 0 rgba(255, 0, 80, 0.75),
-      0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-
+  15%,
   49% {
-    text-shadow:
-      -0.05em -0.025em 0 rgba(255, 0, 80, 0.75),
-      0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+    transform: translate(-1px, 1px);
   }
-
-  50% {
-    text-shadow:
-      0.025em 0.05em 0 rgba(255, 0, 80, 0.75),
-      0.05em 0 0 rgba(0, 255, 0, 0.75),
-      0 -0.05em 0 rgba(0, 0, 255, 0.75);
-  }
-
+  50%,
   99% {
-    text-shadow:
-      0.025em 0.05em 0 rgba(255, 0, 80, 0.75),
-      0.05em 0 0 rgba(0, 255, 0, 0.75),
-      0 -0.05em 0 rgba(0, 0, 255, 0.75);
+    transform: translate(1px, -1px);
   }
-
   100% {
-    text-shadow:
-      -0.025em 0 0 rgba(255, 0, 80, 0.75),
-      -0.025em -0.025em 0 rgba(0, 255, 0, 0.75),
-      -0.025em -0.05em 0 rgba(0, 0, 255, 0.75);
+    transform: translate(-0.5px, 0.5px);
   }
 }
 
@@ -711,4 +684,25 @@ canvas {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ========================================
+   CUSTOM UTILITIES
+   ======================================== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

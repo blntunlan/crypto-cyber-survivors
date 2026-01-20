@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '../test-utils';
 import { CycleCompleteScreen } from '../../components/screens/CycleCompleteScreen';
 import { useTheme } from '../../contexts/useTheme';
 
@@ -82,7 +82,7 @@ describe('CycleCompleteScreen', () => {
       />
     );
 
-    expect(screen.getByText(/CYCLE 1 COMPLETE/i)).toBeInTheDocument();
+    expect(screen.getByText('common.cycle_complete_screen.title')).toBeInTheDocument();
     // Time formatted as 5:00
     expect(screen.getByText('5:00')).toBeInTheDocument();
     expect(screen.getByText('150')).toBeInTheDocument(); // Kills
@@ -103,7 +103,7 @@ describe('CycleCompleteScreen', () => {
       />
     );
 
-    expect(screen.getByText(/CYCLE 1 COMPLETE/i)).toBeInTheDocument();
+    expect(screen.getByText('common.cycle_complete_screen.title')).toBeInTheDocument();
     expect(screen.getByText('5:00')).toBeInTheDocument();
   });
 
@@ -116,7 +116,7 @@ describe('CycleCompleteScreen', () => {
       />
     );
 
-    const cashOutBtn = screen.getByText('Cash Out');
+    const cashOutBtn = screen.getByText('common.cycle_complete_screen.cash_out');
     fireEvent.click(cashOutBtn);
     expect(mockOnCashOut).toHaveBeenCalled();
   });
@@ -130,7 +130,7 @@ describe('CycleCompleteScreen', () => {
       />
     );
 
-    const continueBtn = screen.getByText('Continue');
+    const continueBtn = screen.getByText('common.cycle_complete_screen.continue');
     fireEvent.click(continueBtn);
     expect(mockOnContinue).toHaveBeenCalled();
   });

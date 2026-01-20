@@ -77,6 +77,7 @@ describe('CombatSystem', () => {
       lifesteal: 0,
       dodge: 0,
       regen: 0,
+      invulnerabilityTimer: 0,
     };
 
     // Mock GameState
@@ -91,6 +92,7 @@ describe('CombatSystem', () => {
       currentBg: { r: 15, g: 23, b: 42 },
       spawnTimer: 0,
       lastTime: 0,
+      bgUpdateFrameCounter: 0,
       levelUpFreeze: 0,
       isDashing: false,
       dashTimer: 0,
@@ -131,7 +133,7 @@ describe('CombatSystem', () => {
     });
 
     it('should not fire when fire rate cooldown is active', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockState.fireTimer = 100; // Accumulated 100ms
       mockPlayer.fireRate = 300;
 
@@ -142,7 +144,7 @@ describe('CombatSystem', () => {
     });
 
     it('should fire when cooldown has passed and enemy exists', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
@@ -152,7 +154,7 @@ describe('CombatSystem', () => {
     });
 
     it('should use decorated fire rate if BuffManager is initialized', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockState.fireTimer = 0;
 
       // Decorated fire rate is 100ms
@@ -171,7 +173,7 @@ describe('CombatSystem', () => {
     });
 
     it('should reset fireTimer when firing', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
@@ -186,7 +188,7 @@ describe('CombatSystem', () => {
     });
 
     it('should fire multiple projectiles when player has projectiles > 1', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockPlayer.projectiles = 3;
       mockState.lastFireTime = 0;
 
@@ -205,8 +207,8 @@ describe('CombatSystem', () => {
     it('should target the nearest enemy', () => {
       // Far enemy
       mockPool.activeEnemies = [
-        { x: 700, y: 300, radius: 15, speed: 2 }, // 300 units away
-        { x: 450, y: 300, radius: 15, speed: 2 }, // 50 units away (closer)
+        { x: 700, y: 300, radius: 15, speed: 2, active: true }, // 300 units away
+        { x: 450, y: 300, radius: 15, speed: 2, active: true }, // 50 units away (closer)
       ];
       mockState.lastFireTime = 0;
 
@@ -230,7 +232,9 @@ describe('CombatSystem', () => {
 
     it('should not target off-screen enemies when screen dimensions provided', () => {
       // Enemy is outside the screen (screen is 800x600, enemy at x=1000)
-      mockPool.activeEnemies = [{ x: 1000, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [
+        { x: 1000, y: 300, radius: 15, speed: 2, active: true },
+      ];
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
@@ -249,7 +253,7 @@ describe('CombatSystem', () => {
 
     it('should target on-screen enemy when screen dimensions provided', () => {
       // Enemy is inside the screen (screen is 800x600, enemy at x=500)
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
 
@@ -269,8 +273,8 @@ describe('CombatSystem', () => {
     it('should skip off-screen enemies and target on-screen one', () => {
       // Two enemies: one off-screen (closer), one on-screen (farther)
       mockPool.activeEnemies = [
-        { x: -100, y: 300, radius: 15, speed: 2 }, // Off-screen (left), 500 units away
-        { x: 600, y: 300, radius: 15, speed: 2 }, // On-screen, 200 units away
+        { x: -100, y: 300, radius: 15, speed: 2, active: true }, // Off-screen (left), 500 units away
+        { x: 600, y: 300, radius: 15, speed: 2, active: true }, // On-screen, 200 units away
       ];
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
@@ -295,7 +299,7 @@ describe('CombatSystem', () => {
 
   describe('damage calculation', () => {
     it('should use decorated damage for normal shots', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
 
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getFireRate: () => 300,
@@ -320,7 +324,7 @@ describe('CombatSystem', () => {
     });
 
     it('should apply decorated area to bullet radius', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
 
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getFireRate: () => 300,
@@ -339,7 +343,8 @@ describe('CombatSystem', () => {
       );
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
-      const radius = bulletCallArgs[5];
+      expect(bulletCallArgs).toBeDefined();
+      const radius = bulletCallArgs![5];
 
       // Default radius is 4. area=2.0 -> 8. BUT with mobileMultiplier (default 1.25 on desktop) -> 10.
       expect(radius).toBe(10);
@@ -348,7 +353,7 @@ describe('CombatSystem', () => {
 
   describe('bullet spawning', () => {
     it('should spawn bullet at player position', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockPlayer.x = 100;
       mockPlayer.y = 200;
       mockState.lastFireTime = 0;
@@ -361,15 +366,16 @@ describe('CombatSystem', () => {
       );
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
-      const bulletX = bulletCallArgs[0];
-      const bulletY = bulletCallArgs[1];
+      expect(bulletCallArgs).toBeDefined();
+      const bulletX = bulletCallArgs![0];
+      const bulletY = bulletCallArgs![1];
 
       expect(bulletX).toBe(100);
       expect(bulletY).toBe(200);
     });
 
     it('should spread projectiles when firing multiple', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
 
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getFireRate: () => 300,
@@ -388,7 +394,9 @@ describe('CombatSystem', () => {
       );
 
       // Get all velocity vectors
-      const velocities = mockPool.getBullet.mock.calls.map((call: any[]) => ({
+      const calls = mockPool.getBullet.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const velocities = calls.map((call: any[]) => ({
         vx: call[2],
         vy: call[3],
       }));
@@ -406,7 +414,7 @@ describe('CombatSystem', () => {
 
   describe('crit behavior', () => {
     it('should pass crit flags to bullet', () => {
-      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2 }];
+      mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
 
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getFireRate: () => 300,
@@ -425,8 +433,9 @@ describe('CombatSystem', () => {
       );
 
       const bulletCallArgs = mockPool.getBullet.mock.calls[0];
-      const isCrit = bulletCallArgs[7];
-      const isSuperCrit = bulletCallArgs[8];
+      expect(bulletCallArgs).toBeDefined();
+      const isCrit = bulletCallArgs![7];
+      const isSuperCrit = bulletCallArgs![8];
 
       expect(isCrit).toBe(false);
       expect(isSuperCrit).toBe(false);

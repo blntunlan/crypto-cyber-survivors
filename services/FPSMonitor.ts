@@ -20,16 +20,23 @@ const CONFIG = {
 };
 
 class FPSMonitorClass {
+  // Config
   private frames: number[] = [];
   private lastTime = 0;
   private lastCheckTime = 0;
   private isMonitoring = false;
+  private smoothedFps = 0; // Jitter filter (EMA)
   private profiles = [
     DeviceProfile.LOW,
     DeviceProfile.MEDIUM,
     DeviceProfile.HIGH,
     DeviceProfile.ULTRA,
   ];
+
+  // Performance Timings
+  private updateDurations: number[] = [];
+  private renderDurations: number[] = [];
+  private physicsDurations: number[] = [];
 
   constructor() {
     // FIXED: Listen to gameReset to clear state between games
@@ -41,8 +48,12 @@ class FPSMonitorClass {
    */
   public reset(): void {
     this.frames = [];
+    this.updateDurations = [];
+    this.renderDurations = [];
+    this.physicsDurations = [];
     this.lastTime = 0;
     this.lastCheckTime = 0;
+    this.smoothedFps = 0;
     // Note: Don't stop monitoring, just clear accumulated data
     Logger.debug('[FPSMonitor] State reset for new game');
   }
@@ -53,8 +64,12 @@ class FPSMonitorClass {
   public start() {
     this.isMonitoring = true;
     this.frames = [];
+    this.updateDurations = [];
+    this.renderDurations = [];
+    this.physicsDurations = [];
     this.lastTime = performance.now();
     this.lastCheckTime = performance.now();
+    this.smoothedFps = 0;
     Logger.info('[FPSMonitor] Started');
   }
 
@@ -63,6 +78,55 @@ class FPSMonitorClass {
    */
   public stop() {
     this.isMonitoring = false;
+  }
+
+  public recordUpdate(duration: number) {
+    if (!this.isMonitoring) return;
+    this.updateDurations.push(duration);
+    if (this.updateDurations.length > CONFIG.SAMPLE_SIZE) this.updateDurations.shift();
+  }
+
+  public recordRender(duration: number) {
+    if (!this.isMonitoring) return;
+    this.renderDurations.push(duration);
+    if (this.renderDurations.length > CONFIG.SAMPLE_SIZE) this.renderDurations.shift();
+  }
+
+  public recordPhysics(duration: number) {
+    if (!this.isMonitoring) return;
+    this.physicsDurations.push(duration);
+    if (this.physicsDurations.length > CONFIG.SAMPLE_SIZE) {
+      this.physicsDurations.shift();
+    }
+  }
+
+  public getStats() {
+    const avg = (arr: number[]) =>
+      arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const max = (arr: number[]) => (arr.length ? Math.max(...arr) : 0);
+
+    return {
+      fps: this.smoothedFps || avg(this.frames),
+      updateAvg: avg(this.updateDurations),
+      updateMax: max(this.updateDurations),
+      renderAvg: avg(this.renderDurations),
+      renderMax: max(this.renderDurations),
+      physicsAvg: avg(this.physicsDurations),
+      activeEnemies: this.activeEnemies,
+      activeBullets: this.activeBullets,
+      activeParticles: this.activeParticles,
+    };
+  }
+
+  // Debug Counts
+  private activeEnemies = 0;
+  private activeBullets = 0;
+  private activeParticles = 0;
+
+  public updateInternalCounts(enemies: number, bullets: number, particles: number) {
+    this.activeEnemies = enemies;
+    this.activeBullets = bullets;
+    this.activeParticles = particles;
   }
 
   /**
@@ -76,11 +140,23 @@ class FPSMonitorClass {
     const dt = now - this.lastTime;
     this.lastTime = now;
 
-    // Reject outliers (e.g. tab switching pauses)
-    if (dt > 1000) return;
+    // Reject outliers (e.g. tab switching pauses, OS hiccups)
+    // 250ms is more sensitive than 1000ms but still ignores meaningful pauses
+    if (dt > 250) return;
 
-    const fps = 1000 / dt;
-    this.frames.push(fps);
+    const currentFps = 1000 / dt;
+
+    // Apply Exponential Moving Average (EMA) as Jitter Filter
+    // Alpha 0.1 means 10% new value + 90% old value
+    // This provides a smooth trend and ignores micro-stutters
+    if (this.smoothedFps === 0) {
+      this.smoothedFps = currentFps;
+    } else {
+      const alpha = 0.1;
+      this.smoothedFps = this.smoothedFps * (1 - alpha) + currentFps * alpha;
+    }
+
+    this.frames.push(currentFps);
 
     if (this.frames.length > CONFIG.SAMPLE_SIZE) {
       this.frames.shift();
@@ -99,8 +175,7 @@ class FPSMonitorClass {
   private checkPerformance() {
     if (this.frames.length < CONFIG.SAMPLE_SIZE / 2) return;
 
-    const sum = this.frames.reduce((a, b) => a + b, 0);
-    const avgFps = sum / this.frames.length;
+    const avgFps = this.smoothedFps;
 
     // Get current config to see target
     const currentConfig = DeviceBenchmarkService.getPerformanceConfig();

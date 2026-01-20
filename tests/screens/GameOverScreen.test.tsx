@@ -60,12 +60,12 @@ describe('GameOverScreen', () => {
     const onRestart = vi.fn();
     render(<GameOverScreen {...defaultProps} onRestart={onRestart} />);
 
-    fireEvent.click(screen.getByText(/Back to Terminal/i));
+    fireEvent.click(screen.getByText('common.game_over_screen.back_to_menu'));
     expect(onRestart).toHaveBeenCalled();
   });
 
   it('should show career stats section', () => {
     render(<GameOverScreen {...defaultProps} />);
-    expect(screen.getByText('Career Stats')).toBeDefined();
+    expect(screen.getByText('common.game_over_screen.career_stats')).toBeDefined();
   });
 });

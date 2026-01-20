@@ -16,7 +16,7 @@ export type { WavePhase } from '../types/metrics';
 export const WAVE_CONFIG = {
   // Duration of each phase in seconds (total: 300s = 5 minutes)
   DURATIONS: {
-    warmup: 45, // 0:00-0:45 - Easy start
+    warmup: 25, // 0:00-0:25 - Quick start
     buildup: 60, // 0:45-1:45 - Gradual increase
     firstPeak: 30, // 1:45-2:15 - First spike
     breather: 45, // 2:15-3:00 - Relief
@@ -27,7 +27,7 @@ export const WAVE_CONFIG = {
 
   // Difficulty multipliers for each phase (yo-yo pattern)
   MULTIPLIERS: {
-    warmup: 0.5, // Very easy start
+    warmup: 0.75, // Engaging start
     buildup: 0.8, // Ramping up
     firstPeak: 1.3, // First adrenaline hit
     breather: 0.6, // Relief - collect power

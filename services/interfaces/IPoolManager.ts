@@ -105,4 +105,13 @@ export interface IPoolManager {
   cleanup(): void;
   clearAll(): void;
   trimFreeLists(maxPoolSize?: number): void;
+
+  // O(1) individual release methods
+  releaseEnemy(enemy: GameEnemy): void;
+  releaseBullet(bullet: Bullet): void;
+  releaseGem(gem: Gem): void;
+  releaseParticle(particle: Particle): void;
+  releaseFloatingText(text: FloatingText): void;
+  releaseSpeedLine(line: SpeedLine): void;
+  releaseInteractable(interactable: Interactable): void;
 }

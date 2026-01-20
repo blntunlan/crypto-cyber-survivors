@@ -34,7 +34,8 @@ playwright-report/
 test-results/
 *.spec.js.map
 test-results.json
-test_results.txt
+test_results.json
+test_*.txt
 coverage_report*.txt
 failures.txt
 lint_results.txt

@@ -6,6 +6,7 @@ import { STAT_DEFINITIONS, type StatKey } from '../../config/StatRegistry';
 import { StatService } from '../../services/StatService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface KernelStatusProps {
   player: Player;
@@ -27,6 +28,8 @@ interface KernelStatusProps {
 
 const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
+
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
   return (
     <div className="bg-transparent p-3 flex flex-col gap-2 min-w-[220px] text-right">
@@ -34,15 +37,16 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
         className={`text-[9px] uppercase font-black tracking-[0.2em] mb-1 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
         style={{ color: COLORS.ELECTRIC_BLUE }}
       >
-        Kernel Status
+        {t('hud.kernel_status')}
       </div>
 
       <div className="flex flex-col gap-0.5">
         <div
           className={`text-3xl font-black italic text-white leading-none tracking-tighter ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
         >
-          LVL {player.level}
+          {t('hud.level_short')} {player.level}
         </div>
+
         <div
           className={`w-full h-2 bg-slate-800 overflow-hidden mt-1 ${isRetro ? 'rounded-none border-2 border-slate-700' : 'rounded-full'}`}
         >
@@ -63,7 +67,7 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
           return (
             <StatRow
               key={stat.id}
-              label={stat.label}
+              label={t(`hud.stat.${stat.id}`)}
               value={displayValue}
               color={stat.uiColor}
             />
@@ -76,7 +80,9 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) =>
 
 const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => {
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
   const { rs, rfs, isSmallDevice } = useResponsiveUI();
+
   const expPercent = (smoothValues.exp / player.nextLevelExp) * 100;
 
   // Minimal mobile UI: Only Level + XP bar, no stat grid
@@ -98,8 +104,9 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player, smoothValues }) => 
           className="uppercase font-black tracking-wider text-blue-400/70"
           style={{ fontSize: rfs(isSmallDevice ? 7 : 8) }}
         >
-          LV
+          {t('hud.level_short').substring(0, 2)}
         </div>
+
         <div
           className={`font-black text-white leading-none tracking-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
           style={{ fontSize: rfs(isSmallDevice ? 18 : 24) }}

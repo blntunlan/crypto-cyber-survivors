@@ -8,6 +8,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
+
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedText } from '../themed/ThemedText';
 import {
@@ -47,6 +49,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const { isRetro } = useTheme();
+  const { t } = useLanguage();
   const currentNickname = UserSessionService.getNickname();
 
   const fetchLeaderboard = useCallback(async () => {
@@ -217,7 +220,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
             variant="h2"
             className="text-[11px] font-black text-white uppercase tracking-[0.2em]"
           >
-            Data Leaderboard
+            {t('hud.leaderboard_title')}
           </ThemedText>
         </div>
         <div className="flex items-center gap-2 relative z-10">
@@ -227,7 +230,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
               void fetchLeaderboard();
             }}
             className="p-1 hover:bg-white/10 rounded transition-colors group/refresh"
-            title="Refresh Pool"
+            title={t('hud.refresh_pool')}
           >
             <RefreshCw
               className={`w-3.5 h-3.5 text-slate-400 group-hover/refresh:text-cyan-400 transition-colors ${loading ? 'animate-spin' : ''}`}
@@ -269,10 +272,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                 <div className="text-center py-8 px-4">
                   <TrendingUp className="w-8 h-8 text-slate-600 mx-auto mb-2" />
                   <ThemedText className="text-sm text-slate-500">
-                    No scores yet
+                    {t('hud.no_scores')}
                   </ThemedText>
                   <ThemedText className="text-xs text-slate-600 mt-1">
-                    Be the first to claim the top!
+                    {t('hud.claim_top')}
                   </ThemedText>
                 </div>
               ) : (
@@ -319,7 +322,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                               <span
                                 className={`text-[9px] px-1.5 py-0.5 ${isRetro ? 'bg-yellow-500/20 text-yellow-500 font-display' : 'bg-cyan-500/20 text-cyan-400 rounded uppercase font-bold'}`}
                               >
-                                You
+                                {t('hud.you')}
                               </span>
                             )}
                           </div>
@@ -382,7 +385,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                             variant="mono"
                             className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter"
                           >
-                            points
+                            {t('hud.points')}
                           </ThemedText>
                         </div>
                       </motion.div>
@@ -394,7 +397,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
               {/* Footer */}
               {lastUpdated && (
                 <div className="px-4 py-2 border-t border-slate-800/50 text-[8px] text-slate-600 text-center uppercase tracking-widest font-mono">
-                  &lt; SYNC_COMPLETE: {lastUpdated.toLocaleTimeString()} &gt;
+                  &lt; {t('hud.sync_complete')}: {lastUpdated.toLocaleTimeString()} &gt;
                 </div>
               )}
             </ThemedPanel>

@@ -155,7 +155,7 @@ describe('EffectRenderer', () => {
       });
 
       // Should have 2 batches (1 standard white, 1 pixel red)
-      expect(mockCtx.beginPath).toHaveBeenCalledTimes(1);
+      expect(mockCtx.beginPath).toHaveBeenCalledTimes(2);
       expect(mockCtx.fill).toHaveBeenCalledTimes(1); // Standard batch
       expect(mockCtx.fillRect).toHaveBeenCalledTimes(1); // Pixel batch
     });
@@ -204,7 +204,6 @@ describe('EffectRenderer', () => {
 
       expect(mockCtx.beginPath).toHaveBeenCalled();
       expect(mockCtx.stroke).toHaveBeenCalled();
-      expect(mockCtx.createLinearGradient).toHaveBeenCalled();
     });
 
     it('should draw retro speed lines', () => {

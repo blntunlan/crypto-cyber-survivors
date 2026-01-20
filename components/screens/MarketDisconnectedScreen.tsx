@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MarketDisconnectedScreenProps {
   onBackToMenu: () => void;
@@ -13,6 +14,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
 }) => {
   const sizes = useThemeSize();
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
 
   return (
     <motion.div
@@ -53,12 +55,14 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
 
         {/* Disconnected Title */}
         <motion.h2
-          className={`font-display ${sizes.title} md:text-6xl font-black text-white italic tracking-tighter mb-4 uppercase`}
-          initial={{ y: -20, opacity: 0 }}
+          className="font-display text-2xl sm:text-4xl md:text-6xl font-black text-white italic tracking-tighter mb-4 uppercase leading-none break-words"
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          LIVE FEED <span style={{ color: COLORS.JACKPOT_YELLOW }}>DISCONNECTED</span>
+          {t('market.disconnected_title')}{' '}
+          <span style={{ color: COLORS.JACKPOT_YELLOW }}>
+            {t('market.disconnected_status')}
+          </span>
         </motion.h2>
 
         <motion.div
@@ -70,8 +74,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
           <p
             className={`${sizes.body} text-slate-400 font-mono tracking-wider text-xs`}
           >
-            The game has been paused to ensure market fairness. World state is frozen
-            until data resumes.
+            {t('market.disconnected_desc')}
           </p>
 
           <div className="flex flex-col items-center space-y-4">
@@ -90,7 +93,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
               className={`font-display ${sizes.tiny} uppercase font-black tracking-widest`}
               style={{ color: COLORS.JACKPOT_YELLOW }}
             >
-              Waiting for Signal...
+              {t('market.waiting_signal')}
             </p>
           </div>
 
@@ -104,7 +107,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Exit to Terminal
+            {t('market.exit_terminal')}
           </motion.button>
         </motion.div>
       </div>

@@ -220,5 +220,30 @@ describe('usePauseBudget', () => {
 
       expect(result.current.rechargeProgress).toBeCloseTo(0.5, 1);
     });
+
+    it('should immediately Resume if paused while budget is 0 (recharging)', () => {
+      const onAutoResume = vi.fn();
+      const { result, rerender } = renderHook(
+        ({ status }) => usePauseBudget(GameMode.COMPETITIVE, status, onAutoResume),
+        { initialProps: { status: GameStatus.PAUSED } }
+      );
+
+      // 1. Deplete budget
+      act(() => {
+        vi.advanceTimersByTime(11000); // 11 seconds (max is 10)
+      });
+
+      expect(result.current.remainingSeconds).toBe(0);
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+
+      // 2. Simulate auto-resume behavior (switch to PLAYING)
+      rerender({ status: GameStatus.PLAYING });
+
+      // 3. User immediately pauses again (while budget is still 0/recharging)
+      rerender({ status: GameStatus.PAUSED });
+
+      // Should IMMEDIATELY trigger auto-resume again
+      expect(onAutoResume).toHaveBeenCalledTimes(2);
+    });
   });
 });

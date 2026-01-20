@@ -135,7 +135,7 @@ describe('SettingsPanel Full Test Suite', () => {
 
     it('should toggle mute', () => {
       render(<SettingsPanel onClose={() => {}} />);
-      const muteBtn = screen.getByText('Sound ON');
+      const muteBtn = screen.getByText('settings.unmuted');
       fireEvent.click(muteBtn);
 
       expect(useGameStore.getState().audio.isMuted).toBe(true);
@@ -147,7 +147,7 @@ describe('SettingsPanel Full Test Suite', () => {
   describe('Graphics Settings', () => {
     it('should toggle particles', () => {
       render(<SettingsPanel onClose={() => {}} />);
-      const btn = screen.getByText('Particles'); // ToggleButton uses label text
+      const btn = screen.getByText('settings.particles'); // ToggleButton uses label text
       fireEvent.click(btn);
 
       expect(useGameStore.getState().graphics.showParticles).toBe(false);
@@ -155,7 +155,7 @@ describe('SettingsPanel Full Test Suite', () => {
 
     it('should toggle screen shake', () => {
       render(<SettingsPanel onClose={() => {}} />);
-      const btn = screen.getByText('Screen Shake');
+      const btn = screen.getByText('settings.screen_shake');
       fireEvent.click(btn);
 
       expect(useGameStore.getState().graphics.showScreenShake).toBe(false);
@@ -167,7 +167,7 @@ describe('SettingsPanel Full Test Suite', () => {
     it('should switch quality profiles', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
-      const lowBtn = screen.getByText('LOW');
+      const lowBtn = screen.getByText('settings.quality_low');
       fireEvent.click(lowBtn);
 
       expect(DeviceBenchmarkService.setManualProfile).toHaveBeenCalledWith(
@@ -178,7 +178,7 @@ describe('SettingsPanel Full Test Suite', () => {
     it('should reset to auto', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
-      const autoBtn = screen.getByText('Auto');
+      const autoBtn = screen.getByText('settings.quality_auto');
       fireEvent.click(autoBtn);
 
       expect(DeviceBenchmarkService.resetToAuto).toHaveBeenCalled();
@@ -191,7 +191,7 @@ describe('SettingsPanel Full Test Suite', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
       // Current mock returns 'cyberpunk', so '16-Bit' button click should trigger toggle
-      const retroBtn = screen.getByText('16-Bit');
+      const retroBtn = screen.getByText('settings.theme_retro');
       fireEvent.click(retroBtn); // Click the closest interactive element (button parent)
 
       expect(mockToggleTheme).toHaveBeenCalled();
@@ -222,7 +222,7 @@ describe('SettingsPanel Full Test Suite', () => {
       screenService.isMobile = vi.fn().mockReturnValue(true);
 
       const { getByText } = render(<SettingsPanel onClose={() => {}} />);
-      expect(getByText('Mobile Controls')).toBeTruthy();
+      expect(getByText('settings.mobile')).toBeTruthy();
     });
 
     it('should change control type', async () => {
@@ -238,7 +238,7 @@ describe('SettingsPanel Full Test Suite', () => {
       screenService.isMobile = vi.fn().mockReturnValue(true);
 
       const { getByText } = render(<SettingsPanel onClose={() => {}} />);
-      const dragBtn = getByText('Drag');
+      const dragBtn = getByText('settings.control_drag');
       fireEvent.click(dragBtn);
 
       expect(useGameStore.getState().mobile.controlType).toBe('drag');
@@ -252,7 +252,7 @@ describe('SettingsPanel Full Test Suite', () => {
 
       // There are multiple sliders. Let's find the one for 'Combat'
       // We can find the container with 'Combat' text and find the input inside it
-      const combatLabel = screen.getByText('Combat');
+      const combatLabel = screen.getByText('settings.cat_combat');
       const container = combatLabel.closest('div')?.parentElement; // Label is inside a span inside a div inside the container div
       const slider = container?.querySelector('input[type="range"]');
 
@@ -274,7 +274,7 @@ describe('SettingsPanel Full Test Suite', () => {
 
       render(<SettingsPanel onClose={() => {}} />);
 
-      const resetBtn = screen.getByText('Reset');
+      const resetBtn = screen.getByText('settings.reset');
       fireEvent.click(resetBtn);
 
       // Should revert to default (particles: true)
@@ -287,7 +287,7 @@ describe('SettingsPanel Full Test Suite', () => {
       const onCloseSpy = vi.fn();
       render(<SettingsPanel onClose={onCloseSpy} />);
 
-      const closeBtn = screen.getByText('Close');
+      const closeBtn = screen.getByText('settings.close');
       fireEvent.click(closeBtn);
 
       expect(onCloseSpy).toHaveBeenCalled();

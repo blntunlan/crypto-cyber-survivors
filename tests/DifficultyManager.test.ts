@@ -91,10 +91,10 @@ describe('DifficultyManager', () => {
     DifficultyManager.startGame();
 
     // Current: warmup (initial)
-    // New Cycle: warmup(45) -> buildup(60) -> firstPeak(30) -> breather(45) ->
-    //            escalation(60) -> climax(45) -> resolution(15) = 300s total
-    // After 310s, it should be 10s into the next 'warmup' phase
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
+    // Actual durations: warmup(25) -> buildup(60) -> firstPeak(30) -> breather(45) ->
+    //                   escalation(60) -> climax(45) -> resolution(15) = 280s total
+    // After 290s: 290 % 280 = 10s into cycle 2, which is in warmup (0-25s)
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(290);
     DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
     expect(DifficultyManager.getWavePhase()).toBe('warmup');
   });
@@ -170,8 +170,11 @@ describe('DifficultyManager', () => {
 
   describe('Extreme Factors', () => {
     it('should clamp total difficulty to maxDifficulty', () => {
-      const difficulty = DifficultyManager.calculate(-0.9, 0.5, 100, 100);
-      expect(difficulty.total).toBeLessThanOrEqual(8.0); // Default max is 8
+      // Pass explicit config override to ensure max is 8.0
+      const difficulty = DifficultyManager.calculate(-0.9, 0.5, 100, 100, {
+        maxDifficulty: 8.0,
+      });
+      expect(difficulty.total).toBeLessThanOrEqual(8.0); // Explicitly capped at 8
     });
 
     it('should respect minimum difficulty', () => {

@@ -9,6 +9,7 @@ import React from 'react';
 import { useTheme } from '../../contexts/useTheme';
 
 import { IconCyberpunk, IconRetro } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ThemeSectionProps {
   isFocused?: boolean;
@@ -16,6 +17,7 @@ interface ThemeSectionProps {
 
 export const ThemeSection: React.FC<ThemeSectionProps> = ({ isFocused = false }) => {
   const { themeName, toggleTheme, theme } = useTheme();
+  const { t } = useLanguage();
 
   const isCyberpunk = themeName === 'cyberpunk';
 
@@ -32,7 +34,7 @@ export const ThemeSection: React.FC<ThemeSectionProps> = ({ isFocused = false })
     >
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-[11px] md:text-xs font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
-          Visual Style
+          {t('settings.theme')}
           {isFocused && (
             <span className="text-[8px] text-cyan-400 animate-pulse ml-2">← →</span>
           )}
@@ -74,9 +76,11 @@ export const ThemeSection: React.FC<ThemeSectionProps> = ({ isFocused = false })
             color={isCyberpunk ? '#06b6d4' : '#64748b'}
           />
           <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-            Cyberpunk
+            {t('settings.theme_cyber')}
           </span>
-          <span className="text-[8px] text-slate-400">Neon • Glow • Modern</span>
+          <span className="text-[8px] text-slate-400">
+            {t('settings.theme_cyber_subtitle')}
+          </span>
         </button>
 
         {/* 16-Bit Retro Button */}
@@ -103,17 +107,17 @@ export const ThemeSection: React.FC<ThemeSectionProps> = ({ isFocused = false })
             color={!isCyberpunk ? '#f97316' : '#64748b'}
           />
           <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-            16-Bit
+            {t('settings.theme_retro')}
           </span>
-          <span className="text-[8px] text-slate-400">Pixel • Retro • Classic</span>
+          <span className="text-[8px] text-slate-400">
+            {t('settings.theme_retro_subtitle')}
+          </span>
         </button>
       </div>
 
       {/* Theme Description */}
       <p className="text-[9px] text-slate-500 text-center mt-3">
-        {isCyberpunk
-          ? 'Modern aesthetic with neon colors and smooth effects'
-          : 'Classic 16-bit style with pixel fonts and scanlines'}
+        {isCyberpunk ? t('settings.theme_cyber_desc') : t('settings.theme_retro_desc')}
       </p>
     </section>
   );

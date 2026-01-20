@@ -18,7 +18,6 @@ export class PhysicsSystem implements IPhysicsSystem {
   private movementSystem: IMovementSystem;
   private collisionSystem: ICollisionSystem;
   private collectionSystem: ICollectionSystem;
-
   constructor(
     movement: IMovementSystem = new MovementSystem(),
     collision: ICollisionSystem = new CollisionSystem(),
@@ -66,8 +65,11 @@ export class PhysicsSystem implements IPhysicsSystem {
 
   /**
    * Rebuild spatial hash grids with current active entities.
+   * Grids are rebuilt every frame to reflect current positions of moving entities.
    */
   private refreshSpatialGrids(p: IPoolManager): void {
+    // Note: Always rebuild every frame because positions change constantly.
+    // The cost of O(N) rebuild is much lower than the correctness issues of stale grids.
     bulletGrid.clear();
     enemyGrid.clear();
 

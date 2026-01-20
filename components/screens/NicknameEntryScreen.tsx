@@ -9,6 +9,7 @@ import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedInput } from '../themed/ThemedInput';
 import { ThemedButton } from '../themed/ThemedButton';
 import { ThemedText } from '../themed/ThemedText';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface NicknameEntryScreenProps {
   onComplete: (nickname: string) => void;
@@ -19,6 +20,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
 }) => {
   const { isRetro } = useTheme();
   const { login } = useUser();
+  const { t } = useLanguage();
+
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,11 +55,11 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
         audio.playLevelUp();
         onComplete(nickname);
       } else {
-        setError(result.error ?? 'Registration failed');
+        setError(result.error ?? t('common.nickname_screen.registration_failed'));
         audio.playHit();
       }
     } catch (_err) {
-      setError('System error. Please try again.');
+      setError(t('common.nickname_screen.system_error'));
       audio.playHit();
     } finally {
       setIsSubmitting(false);
@@ -153,13 +156,14 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               variant="h1"
               className={`text-2xl font-black tracking-tight text-white uppercase ${isRetro ? '' : 'italic'}`}
             >
-              Identify{' '}
+              {t('common.nickname_screen.title_identify')}{' '}
               <span
                 className={`text-transparent bg-clip-text ${isRetro ? 'bg-cyan-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-white'}`}
               >
-                Survivor
+                {t('common.nickname_screen.title_survivor')}
               </span>
             </ThemedText>
+
             <ThemedText
               variant="mono"
               className="text-slate-500 text-[8px] tracking-[0.3em] uppercase"
@@ -180,8 +184,9 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                   htmlFor="nickname-input"
                   className="text-[10px] text-cyan-400/80 font-bold uppercase tracking-widest flex items-center gap-1.5"
                 >
-                  <Shield className="w-3 h-3" /> Callsign
+                  <Shield className="w-3 h-3" /> {t('common.nickname_screen.callsign')}
                 </label>
+
                 <span
                   className={`text-[10px] font-black tracking-tighter transition-colors ${
                     nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'
@@ -202,12 +207,12 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                     setNickname(e.target.value);
                     if (error) setError(null);
                   }}
-                  placeholder="Enter your nickname..."
                   className={`w-full px-5 py-4 transition-all tracking-wide placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-cyan-500/30 ${
                     error
                       ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
                       : `text-white focus:border-cyan-500/50 group-hover:border-slate-600`
                   } ${!isRetro ? 'font-semibold' : ''}`}
+                  placeholder={t('common.nickname_screen.placeholder')}
                   maxLength={16}
                   disabled={isSubmitting}
                   autoComplete="off"
@@ -255,11 +260,11 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Connecting...</span>
+                  <span>{t('common.nickname_screen.connecting')}</span>
                 </div>
               ) : (
                 <>
-                  <span>Enter the Arena</span>
+                  <span>{t('common.nickname_screen.enter_arena')}</span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -289,9 +294,10 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                 transition={{ duration: 2, repeat: Infinity }}
               />
               <ThemedText variant="body" className="text-[9px]">
-                Systems Online
+                {t('common.nickname_screen.systems_online')}
               </ThemedText>
             </div>
+
             <ThemedText variant="body" className="text-slate-600 text-[9px]">
               Crypto Cyber Survivors
             </ThemedText>
@@ -311,7 +317,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               variant="body"
               className="text-[9px] text-slate-400 font-medium"
             >
-              3-16 Characters
+              {t('common.nickname_screen.char_limit')}
             </ThemedText>
           </div>
           <div
@@ -324,7 +330,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               variant="body"
               className="text-[9px] text-slate-400 font-medium"
             >
-              Letters & Numbers
+              {t('common.nickname_screen.chars_allowed')}
             </ThemedText>
           </div>
         </div>

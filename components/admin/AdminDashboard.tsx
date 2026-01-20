@@ -31,6 +31,7 @@ import {
   type ErrorOccurence,
 } from '../../services/admin/AdminAnalyticsService';
 import type { CryptoPair, PriceAnalysis, TrendDirection } from '../../types/admin';
+import { FPSMonitor } from '../../services/FPSMonitor';
 
 // =============================================================================
 // TYPES
@@ -821,7 +822,15 @@ const VisualsPanel: React.FC = () => {
 const AnalyticsPanel: React.FC = () => {
   const [health, setHealth] = useState<MarketHealth | null>(null);
   const [errors, setErrors] = useState<ErrorOccurence[]>([]);
+  const [perfStats, setPerfStats] = useState(FPSMonitor.getStats());
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPerfStats(FPSMonitor.getStats());
+    }, 500);
+    return () => clearInterval(timer);
+  }, []);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -873,6 +882,83 @@ const AnalyticsPanel: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Performance Metrics Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Activity size={20} className="text-green-400" />
+            Real-Time Engine Metrics
+          </h2>
+          <div className="text-xs text-slate-500 font-mono">
+            Tick Budget: 16.6ms (60 FPS)
+          </div>
+        </div>
+
+        <div className="grid grid-cols-5 gap-4">
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="text-xs text-slate-500 mb-1">FPS</div>
+            <div
+              className={`text-2xl font-bold font-mono ${perfStats.fps > 55 ? 'text-green-400' : 'text-yellow-400'}`}
+            >
+              {perfStats.fps.toFixed(1)}
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="text-xs text-slate-500 mb-1">Game Logic (Update)</div>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-xl font-bold font-mono ${perfStats.updateAvg > 10 ? 'text-red-400' : 'text-cyan-400'}`}
+              >
+                {perfStats.updateAvg.toFixed(2)}ms
+              </span>
+              <span className="text-xs text-slate-500">
+                Max: {perfStats.updateMax.toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="text-xs text-slate-500 mb-1">Physics System</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold font-mono text-cyan-400">
+                {perfStats.physicsAvg.toFixed(2)}ms
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="text-xs text-slate-500 mb-1">Entities (E/B/P)</div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold font-mono text-cyan-400">
+                {perfStats.activeEnemies}
+              </span>
+              <span className="text-slate-600">/</span>
+              <span className="text-lg font-bold font-mono text-yellow-400">
+                {perfStats.activeBullets}
+              </span>
+              <span className="text-slate-600">/</span>
+              <span className="text-lg font-bold font-mono text-purple-400">
+                {perfStats.activeParticles}
+              </span>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="text-xs text-slate-500 mb-1">Renderer (Draw)</div>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-xl font-bold font-mono ${perfStats.renderAvg > 8 ? 'text-yellow-400' : 'text-purple-400'}`}
+              >
+                {perfStats.renderAvg.toFixed(2)}ms
+              </span>
+              <span className="text-xs text-slate-500">
+                Max: {perfStats.renderMax.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
       {/* Market Health Section */}
       <section>
         <div className="flex items-center justify-between mb-4">

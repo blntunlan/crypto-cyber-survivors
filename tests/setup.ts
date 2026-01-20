@@ -101,3 +101,12 @@ vi.stubGlobal(
 
 // Mock scrollIntoView (not implemented in JSDOM)
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+// Mock fetch for translations
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({}),
+    ok: true,
+    status: 200,
+  } as Response)
+);

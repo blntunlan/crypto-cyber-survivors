@@ -39,17 +39,23 @@ describe('NicknameEntryScreen', () => {
 
   it('renders the screen correctly', () => {
     render(<NicknameEntryScreen onComplete={mockOnComplete} />);
-    expect(screen.getByText(/Identify/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/common.nickname_screen.title_identify/i)
+    ).toBeInTheDocument();
     // Use getAllByText for 'Survivor' or target the specific header one
     expect(screen.getByText(/Beta Access Protocol/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Enter your nickname.../i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('common.nickname_screen.placeholder')
+    ).toBeInTheDocument();
   });
 
   it('shows error for invalid nicknames', async () => {
     render(<NicknameEntryScreen onComplete={mockOnComplete} />);
 
-    const input = screen.getByPlaceholderText(/Enter your nickname.../i);
-    const submitBtn = screen.getByRole('button', { name: /Enter the Arena/i });
+    const input = screen.getByPlaceholderText('common.nickname_screen.placeholder');
+    const submitBtn = screen.getByRole('button', {
+      name: 'common.nickname_screen.enter_arena',
+    });
 
     // Use a value that is long enough (enabled button) but invalid (contains space)
     fireEvent.change(input, { target: { value: 'a b' } });
@@ -66,10 +72,12 @@ describe('NicknameEntryScreen', () => {
 
     render(<NicknameEntryScreen onComplete={mockOnComplete} />);
 
-    const input = screen.getByPlaceholderText(/Enter your nickname.../i);
+    const input = screen.getByPlaceholderText('common.nickname_screen.placeholder');
     fireEvent.change(input, { target: { value: 'TopTrader' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Enter the Arena/i });
+    const submitBtn = screen.getByRole('button', {
+      name: 'common.nickname_screen.enter_arena',
+    });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -83,10 +91,12 @@ describe('NicknameEntryScreen', () => {
 
     render(<NicknameEntryScreen onComplete={mockOnComplete} />);
 
-    const input = screen.getByPlaceholderText(/Enter your nickname.../i);
+    const input = screen.getByPlaceholderText('common.nickname_screen.placeholder');
     fireEvent.change(input, { target: { value: 'TakenName' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Enter the Arena/i });
+    const submitBtn = screen.getByRole('button', {
+      name: 'common.nickname_screen.enter_arena',
+    });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

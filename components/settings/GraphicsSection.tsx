@@ -8,6 +8,7 @@ import { memo } from 'react';
 import { useGameStore, selectGraphics } from '../../stores/gameStore';
 import { ToggleButton } from './ToggleButton';
 import { IconMonitor } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface GraphicsSectionProps {
   isMobile: boolean;
@@ -24,28 +25,32 @@ export const GraphicsSection = memo(
       setHudScale,
       toggleFPS,
     } = useGameStore();
+    const { t } = useLanguage();
 
     return (
       <section className="space-y-3 md:space-y-4">
         <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
           <IconMonitor className="w-3.5 h-3.5" color="#64748b" />
-          <span>Graphics</span>
+          <span>{t('settings.visuals')}</span>
         </h3>
+
         <div className="space-y-1 md:space-y-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
           <ToggleButton
-            label="Particles"
+            label={t('settings.particles')}
             enabled={graphics.showParticles}
             onToggle={toggleParticles}
             isFocused={focusedToggle === 'particles'}
           />
+
           <ToggleButton
-            label="Screen Shake"
+            label={t('settings.screen_shake')}
             enabled={graphics.showScreenShake}
             onToggle={toggleScreenShake}
             isFocused={focusedToggle === 'shake'}
           />
+
           <ToggleButton
-            label="Damage Numbers"
+            label={t('settings.damage_numbers')}
             enabled={graphics.showDamageNumbers}
             onToggle={toggleDamageNumbers}
             isFocused={focusedToggle === 'damage'}
@@ -56,8 +61,9 @@ export const GraphicsSection = memo(
               <div className="pt-3 md:pt-4 space-y-3 md:space-y-4 border-t border-white/5">
                 <div className="flex justify-between items-center">
                   <span className="text-xs md:text-sm font-bold text-white uppercase tracking-tighter">
-                    HUD Scale
+                    {t('settings.hud_scale')}
                   </span>
+
                   <span className="text-[10px] md:text-xs font-tech text-yellow-500">
                     {Math.round(graphics.hudScale * 100)}%
                   </span>
@@ -73,7 +79,7 @@ export const GraphicsSection = memo(
                 />
               </div>
               <ToggleButton
-                label="Show FPS"
+                label={t('settings.show_fps')}
                 enabled={graphics.showFPS}
                 onToggle={toggleFPS}
               />

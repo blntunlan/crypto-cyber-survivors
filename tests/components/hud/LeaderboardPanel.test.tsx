@@ -84,8 +84,8 @@ describe('LeaderboardPanel', () => {
   it('should render leaderboard entries after fetching', async () => {
     render(<LeaderboardPanel isVisible={true} />);
 
-    // Header should be visible - text is "Data Leaderboard" in the component
-    expect(screen.getByText('Data Leaderboard')).toBeInTheDocument();
+    // Header should be visible - text is "hud.leaderboard_title" in the component
+    expect(screen.getByText('hud.leaderboard_title')).toBeInTheDocument();
 
     // Entries should appear
     await waitFor(() => {
@@ -97,7 +97,7 @@ describe('LeaderboardPanel', () => {
     expect(screen.getByText('5,000')).toBeInTheDocument();
 
     // Check for "You" badge for Player1 (mocked as current user)
-    const youBadge = screen.getByText('You');
+    const youBadge = screen.getByText('hud.you');
     expect(youBadge).toBeInTheDocument();
   });
 
@@ -108,8 +108,9 @@ describe('LeaderboardPanel', () => {
       expect(screen.getByText('Player1')).toBeInTheDocument();
     });
 
-    // Click header to collapse - text is "Data Leaderboard" in the component
-    const header = screen.getByText('Data Leaderboard').parentElement?.parentElement;
+    // Click header to collapse - text is "hud.leaderboard_title" in the component
+    const header = screen.getByText('hud.leaderboard_title').parentElement
+      ?.parentElement;
     if (!header) throw new Error('Header not found');
 
     fireEvent.click(header);
@@ -129,19 +130,19 @@ describe('LeaderboardPanel', () => {
       expect(mockSupabase.limit).toHaveBeenCalled();
     });
 
-    const refreshButton = screen.getByTitle('Refresh Pool');
+    const refreshButton = screen.getByTitle('hud.refresh_pool');
     fireEvent.click(refreshButton);
 
     expect(mockSupabase.limit).toHaveBeenCalledTimes(2);
   });
 
-  it('should show "No scores yet" when list is empty', async () => {
+  it('should show "hud.no_scores" when list is empty', async () => {
     (mockSupabase.limit as any).mockResolvedValueOnce({ data: [], error: null });
 
     render(<LeaderboardPanel isVisible={true} />);
 
     await waitFor(() => {
-      expect(screen.getByText('No scores yet')).toBeInTheDocument();
+      expect(screen.getByText('hud.no_scores')).toBeInTheDocument();
     });
   });
 

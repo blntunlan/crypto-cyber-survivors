@@ -25,9 +25,11 @@ interface UseMarketTimeoutParams {
 export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
   useEffect(() => {
     const unsubscribe = EventBus.on('marketDataTimeout', data => {
+      const currentState = GameStateMachine.getState();
+
       // Transition to DATA_DISCONNECTED instead of ending game immediately
-      if (GameStateMachine.getState() !== GameStatus.DATA_DISCONNECTED) {
-        Logger.warn(`[App] Market data timeout - pausing game (DATA_DISCONNECTED)`);
+      if (currentState !== GameStatus.DATA_DISCONNECTED) {
+        Logger.warn(`[App] Market data timeout - current state: ${currentState}`);
         GameStateMachine.transition(GameStatus.DATA_DISCONNECTED);
       }
 
@@ -35,13 +37,15 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
       void import('../services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
         void ErrorReporter.report(
           new Error('Market data timeout - live feed disconnected'),
-          'MarketDataTimeout',
+          'network', // Use valid category 'network'
           {
             pair: data.pair,
             disconnectedDuration: data.disconnectedDuration,
             lastPriceTime: data.lastPriceTime,
             playerLevel: playerRef.current.level,
             survivalTime: DifficultyManager.getTotalElapsedSeconds(),
+            wasInGame:
+              currentState === GameStatus.PLAYING || currentState === GameStatus.PAUSED,
           }
         );
       });
@@ -49,8 +53,12 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
 
     const subRecovered = EventBus.on('marketDataRecovered', () => {
       if (GameStateMachine.getState() === GameStatus.DATA_DISCONNECTED) {
-        Logger.info(`[App] Market data recovered - resuming game`);
-        GameStateMachine.transition(GameStatus.PLAYING);
+        Logger.info(
+          `[App] Market data recovered - returning to MENU (automatic resume disabled for safety)`
+        );
+        // We go back to MENU for now to be safe, since forcing PLAYING might break things
+        // if they weren't in a game.
+        GameStateMachine.transition(GameStatus.MENU);
       }
     });
 

@@ -90,12 +90,12 @@ describe('LevelUpScreen', () => {
 
   it('should render LEVEL UP title', () => {
     render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
-    expect(screen.getByText('LEVEL UP')).toBeDefined();
+    expect(screen.getByText('levelup.title')).toBeDefined();
   });
 
   it('should render spinning status initially', () => {
     render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
-    expect(screen.getByText(/Spinning/)).toBeDefined();
+    expect(screen.getByText('levelup.spinning')).toBeDefined();
   });
 
   it('should call onSelect with the chosen card when a card is clicked', async () => {
@@ -143,7 +143,7 @@ describe('LevelUpScreen', () => {
     // Wait for all reels to stop (total time ~4-5 seconds in real implementation)
     await waitFor(
       () => {
-        expect(screen.getByText(/Choose your upgrade/)).toBeDefined();
+        expect(screen.getByText('levelup.choose_upgrade')).toBeDefined();
       },
       { timeout: 6000 }
     );
@@ -153,6 +153,6 @@ describe('LevelUpScreen', () => {
     render(<LevelUpScreen upgradeChoices={mockChoices} onSelect={() => {}} />);
 
     // At least check that the component renders without error
-    expect(screen.getByText('LEVEL UP')).toBeDefined();
+    expect(screen.getByText('levelup.title')).toBeDefined();
   });
 });

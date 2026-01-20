@@ -6,6 +6,7 @@ import { useGameStore } from '../../stores/gameStore';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
 import { IconTrophy } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface GameOverScreenProps {
   level: number;
@@ -24,6 +25,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 }) => {
   const sizes = useThemeSize();
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
   const { progress, recordGameEnd } = useGameStore();
 
   // Record this game to progress on mount
@@ -72,7 +74,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           }}
           transition={{ duration: 0.1, repeat: 3 }}
         >
-          LIQUIDATED
+          {t('common.game_over_screen.liquidated')}
         </motion.span>
       </motion.h2>
 
@@ -99,28 +101,39 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             <span
               className={`text-yellow-500 font-black ${sizes.small} uppercase tracking-widest`}
             >
-              New High Score!
+              {t('common.game_over_screen.new_high_score')}
             </span>
           </motion.div>
         )}
 
         {/* Stats Grid */}
         <div className={`grid grid-cols-2 ${sizes.gap} text-left`}>
-          <StatItem label="Level" value={`L${level}`} delay={0.5} sizes={sizes} />
           <StatItem
-            label="P&L"
+            label={t('common.level_label', { defaultValue: 'Level' })}
+            value={`L${level}`}
+            delay={0.5}
+            sizes={sizes}
+          />
+
+          <StatItem
+            label={t('common.game_over_screen.pnl')}
             value={`${(finalPnl * 100).toFixed(1)}%`}
             color={finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE}
             delay={0.6}
             sizes={sizes}
           />
           <StatItem
-            label="Time"
+            label={t('common.game_over_screen.time')}
             value={formatTime(survivalTime)}
             delay={0.7}
             sizes={sizes}
           />
-          <StatItem label="Kills" value={kills.toString()} delay={0.8} sizes={sizes} />
+          <StatItem
+            label={t('common.game_over_screen.kills')}
+            value={kills.toString()}
+            delay={0.8}
+            sizes={sizes}
+          />
         </div>
 
         {/* Career Stats */}
@@ -133,26 +146,38 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           <p
             className={`${sizes.tiny} font-black text-slate-500 uppercase tracking-widest mb-3`}
           >
-            Career Stats
+            {t('common.game_over_screen.career_stats')}
           </p>
+
           <div className={`grid grid-cols-3 ${sizes.gap} text-center`}>
             <div>
               <p className={`${sizes.stat} font-black text-white`}>
                 {progress.totalGamesPlayed}
               </p>
-              <p className={`${sizes.tiny} text-slate-500 uppercase`}>Games</p>
+
+              <p className={`${sizes.tiny} text-slate-500 uppercase`}>
+                {t('common.game_over_screen.games')}
+              </p>
             </div>
+
             <div>
               <p className={`${sizes.stat} font-black text-white`}>
                 {progress.totalKills}
               </p>
-              <p className={`${sizes.tiny} text-slate-500 uppercase`}>Total Kills</p>
+
+              <p className={`${sizes.tiny} text-slate-500 uppercase`}>
+                {t('common.game_over_screen.total_kills')}
+              </p>
             </div>
+
             <div>
               <p className={`${sizes.stat} font-black text-white`}>
                 L{progress.highestLevel}
               </p>
-              <p className={`${sizes.tiny} text-slate-500 uppercase`}>Best Level</p>
+
+              <p className={`${sizes.tiny} text-slate-500 uppercase`}>
+                {t('common.game_over_screen.best_level')}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -167,7 +192,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          Back to Terminal
+          {t('common.game_over_screen.back_to_menu')}
         </motion.button>
       </motion.div>
     </motion.div>

@@ -5,7 +5,7 @@
 ## 📋 Proje Özeti
 
 Crypto-themed vampire survivors oyunu. React 19 + TypeScript + Vite + Zustand ile geliştirilmiş.
-Gerçek zamanlı BTC/USD fiyat verilerini Binance & Coinbase WebSocket üzerinden alır.
+Gerçek zamanlı BTC/USD fiyat verilerini Binance & Coinbase WebSocket üzerinden alır.Windows üzerinden geliştirdiğim için && kullanma ; kullan.
 
 ## 🛠️ Sık Kullanılan Komutlar
 
@@ -67,6 +67,12 @@ crypto-cyber-survivors/
 - **PascalCase**: Sınıflar, interface'ler ve type'lar için
 - **Strict mode**: `tsconfig.json` strict modda
 
+### Performans ve Optimizasyon
+- **O(N) Döngülerinden Kaçın**: Oyun (update/render) döngüsü içinde aktif dizi taramalarından kaçın.
+- **SpatialGrid Kullanımı**: Mesafe bazlı aramalar (en yakın düşman, çarpışma) için mutlaka `SpatialGrid` kullan.
+- **Object Pooling (O(1))**: Objeleri havuza geri bırakırken `poolIndex` kullanarak O(1) serbest bırakma ve "Swap-and-Pop" ile O(1) geri dönüşüm uygula.
+- **Hafıza Yönetimi**: Sıcak (hot) döngülerde nesne (object/array) oluşturmaktan kaçın (GC pressure azalt).
+
 ### React Patterns
 - **Fonksiyonel bileşenler**: Class component kullanma
 - **Custom hooks**: Tekrarlayan mantık için `use*` hook'ları çıkar
@@ -127,7 +133,8 @@ crypto-cyber-survivors/
 
 ## 📊 Performans Hedefleri
 
-- **FPS**: 60 FPS (mobil ve desktop)
+- **FPS**: 60 FPS (min. 200+ aktif entity ile sabit)
+- **Scripting Time**: < 4ms per frame
 - **Bundle Size**: < 500KB gzipped
 - **Build Time**: < 30 saniye
 - **Test Suite**: < 60 saniye

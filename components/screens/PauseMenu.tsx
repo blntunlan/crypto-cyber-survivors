@@ -4,6 +4,7 @@ import { useIsRetro } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { IconSettings, IconVolume, IconVolumeMuted } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface PauseMenuProps {
   sessionStartTime: number;
@@ -38,6 +39,8 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
 }) => {
   const sizes = useThemeSize();
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
+
   const duration = Date.now() - sessionStartTime;
   const minutes = Math.floor(duration / 60000);
   const seconds = Math.floor((duration % 60000) / 1000);
@@ -70,7 +73,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : 'none',
           }}
         >
-          PAUSED
+          {t('common.paused')}
         </h2>
 
         {/* Pause Budget Timer - Competitive Mode Only */}
@@ -89,8 +92,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                   color: isLowBudget ? COLORS.CASINO_RED : COLORS.JACKPOT_YELLOW,
                 }}
               >
-                ⏱ Auto-Resume In
+                ⏱ {t('common.auto_resume')}
               </span>
+
               <span
                 className={`${sizes.heading} font-black font-stats tabular-nums`}
                 style={{
@@ -117,7 +121,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.tiny} mt-2 opacity-60`}
               style={{ color: isLowBudget ? COLORS.CASINO_RED : COLORS.JACKPOT_YELLOW }}
             >
-              COMPETITIVE MODE - Limited Pause
+              {t('common.limited_pause')}
             </p>
           </div>
         )}
@@ -135,8 +139,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.tiny} font-black uppercase tracking-wider opacity-50`}
               style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
             >
-              Duration
+              {t('common.duration')}
             </p>
+
             <p className={`${sizes.stat} font-bold text-white font-stats`}>
               {minutes}:{String(seconds).padStart(2, '0')}
             </p>
@@ -146,8 +151,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.tiny} font-black uppercase tracking-wider opacity-50`}
               style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
             >
-              Kills
+              {t('common.game_over_screen.kills')}
             </p>
+
             <p className={`${sizes.stat} font-bold text-white font-stats`}>
               {runStats.totalKills}
             </p>
@@ -157,8 +163,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.tiny} font-black uppercase tracking-wider opacity-50`}
               style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
             >
-              Combo
+              {t('common.combo')}
             </p>
+
             <p className={`${sizes.stat} font-bold text-white font-stats`}>
               {runStats.maxStreak}
             </p>
@@ -168,8 +175,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.tiny} font-black uppercase tracking-wider opacity-50`}
               style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
             >
-              Bonus
+              {t('common.bonus')}
             </p>
+
             <p className={`${sizes.stat} font-bold text-white font-stats`}>
               {Math.floor(runStats.totalBonusXp)}
             </p>
@@ -186,7 +194,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             }`}
             style={{ backgroundColor: isRetro ? COLORS.CASINO_GREEN : undefined }}
           >
-            Resume
+            {t('common.resume')}
           </button>
 
           <div className={`grid grid-cols-2 ${sizes.gap}`}>
@@ -199,8 +207,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               }`}
               style={{ backgroundColor: isRetro ? COLORS.CASINO_RED : undefined }}
             >
-              Restart
+              {t('common.restart')}
             </button>
+
             <button
               onClick={onMainMenu}
               className={`${sizes.buttonMd} font-black uppercase tracking-widest transition-all ${
@@ -209,7 +218,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                   : 'bg-slate-800 text-white rounded-lg border border-white/10 hover:bg-slate-700'
               }`}
             >
-              Menu
+              {t('common.back')}
             </button>
           </div>
 
@@ -226,7 +235,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                 className="w-4 h-4"
                 color={isRetro ? '#ffd600' : 'currentColor'}
               />
-              <span>Settings</span>
+              <span>{t('common.settings')}</span>
             </button>
 
             <button
@@ -243,7 +252,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                     className="w-4 h-4"
                     color={isRetro ? '#ffd600' : 'currentColor'}
                   />
-                  <span>Muted</span>
+                  <span>{t('settings.muted')}</span>
                 </>
               ) : (
                 <>
@@ -251,7 +260,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
                     className="w-4 h-4"
                     color={isRetro ? '#ffd600' : 'currentColor'}
                   />
-                  <span>Audio</span>
+                  <span>{t('settings.audio')}</span>
                 </>
               )}
             </button>
@@ -261,7 +270,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
         <p
           className={`pt-4 ${isRetro ? 'text-zinc-500' : 'text-slate-500'} ${sizes.tiny} font-black uppercase tracking-[0.3em]`}
         >
-          {isRetro ? '::: GAME STOPPED :::' : 'SESSION ENCRYPTED // TRADING HALTED'}
+          {isRetro ? t('common.game_stopped') : t('common.session_halted')}
         </p>
       </div>
     </div>

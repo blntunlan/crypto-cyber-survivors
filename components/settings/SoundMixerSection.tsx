@@ -25,6 +25,7 @@ import {
   IconGenesisEmblem,
   IconSettings,
 } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface CategoryConfig {
   label: string;
@@ -66,6 +67,7 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
   const categoryVolumes = useGameStore(state => state.audio.categoryVolumes);
   const setCategoryVolume = useGameStore(state => state.setCategoryVolume);
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
 
   // Sync category volumes to AudioService
   useEffect(() => {
@@ -84,8 +86,9 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
     <section className="space-y-3 md:space-y-4">
       <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
         <IconSettings className="w-3.5 h-3.5" color="#64748b" />
-        <span>Sound Mixer</span>
+        <span>{t('settings.mixer')}</span>
       </h3>
+
       <div
         className={`space-y-2 p-3 md:p-4 ${
           isRetro
@@ -115,8 +118,9 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
                     className="w-3 h-3 md:w-3.5 md:h-3.5"
                     color={isRetro ? COLORS.JACKPOT_YELLOW : 'currentColor'}
                   />
-                  <span>{config.label}</span>
+                  <span>{t(`settings.cat_${category}`)}</span>
                 </span>
+
                 <span
                   className={`text-[9px] md:text-[10px] font-tech tabular-nums ${
                     isRetro ? 'text-zinc-400' : 'text-slate-500'
@@ -144,7 +148,7 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
               <p
                 className={`text-[8px] mt-0.5 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
               >
-                {config.description}
+                {t(`settings.desc_${category}`)}
               </p>
             </div>
           );

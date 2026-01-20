@@ -17,6 +17,8 @@ import { GraphicsSection } from './GraphicsSection';
 import { MobileSection } from './MobileSection';
 import { ControlsSection } from './ControlsSection';
 import { ThemeSection } from './ThemeSection';
+import { LanguageSection } from './LanguageSection';
+import { useLanguage, SUPPORTED_LANGUAGES } from '../../contexts/LanguageContext';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -34,6 +36,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const isMobile = screenService.isMobile();
   const isRetro = useIsRetro();
   const { toggleTheme } = useTheme();
+  const { t } = useLanguage();
 
   // Sync audio service with store
   React.useEffect(() => {
@@ -60,11 +63,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // 12: Damage numbers toggle
   // 13: Reset button
   // 14: Close button
+  const { language, setLanguage } = useLanguage();
   const [focusedIndex, setFocusedIndex] = React.useState<number>(isInGame ? 0 : 0);
 
   // Adjust max index based on whether theme section is shown
   const THEME_OFFSET = isInGame ? 0 : 1;
-  const MAX_INDEX = 13 + THEME_OFFSET;
+  const LANG_INDEX = THEME_OFFSET;
+  const SECTION_OFFSET = THEME_OFFSET + 1; // Start of other sections after Language
+  const MAX_INDEX = 13 + SECTION_OFFSET;
 
   // Refs for scroll-into-view functionality
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -103,16 +109,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         e.preventDefault();
       }
 
-      // Adjusted indices accounting for theme section
-      const qualityIdx = THEME_OFFSET;
-      const volumeIdx = THEME_OFFSET + 1;
-      const muteIdx = THEME_OFFSET + 2;
-      const mixerStartIdx = THEME_OFFSET + 3;
-      const particlesIdx = THEME_OFFSET + 9;
-      const shakeIdx = THEME_OFFSET + 10;
-      const damageIdx = THEME_OFFSET + 11;
-      const resetIdx = THEME_OFFSET + 12;
-      const closeIdx = THEME_OFFSET + 13;
+      // Adjusted indices accounting for theme and language
+      const languageIdx = LANG_INDEX;
+      const qualityIdx = SECTION_OFFSET;
+      const volumeIdx = SECTION_OFFSET + 1;
+      const muteIdx = SECTION_OFFSET + 2;
+      const mixerStartIdx = SECTION_OFFSET + 3;
+      const particlesIdx = SECTION_OFFSET + 9;
+      const shakeIdx = SECTION_OFFSET + 10;
+      const damageIdx = SECTION_OFFSET + 11;
+      const resetIdx = SECTION_OFFSET + 12;
+      const closeIdx = SECTION_OFFSET + 13;
+
+      // Use the variables to avoid lint errors
+      void languageIdx;
 
       switch (e.key) {
         case 'ArrowUp':
@@ -143,6 +153,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           } else if (focusedIndex === volumeIdx) {
             const newVol = Math.max(0, audioSettings.masterVolume - 0.05);
             useGameStore.getState().setMasterVolume(newVol);
+          } else if (focusedIndex === languageIdx) {
+            const currentIdx = SUPPORTED_LANGUAGES.indexOf(language);
+            const prevIdx =
+              (currentIdx - 1 + SUPPORTED_LANGUAGES.length) %
+              SUPPORTED_LANGUAGES.length;
+            setLanguage(SUPPORTED_LANGUAGES[prevIdx]!);
           } else if (
             focusedIndex >= mixerStartIdx &&
             focusedIndex < mixerStartIdx + 6
@@ -181,6 +197,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           } else if (focusedIndex === volumeIdx) {
             const newVol = Math.min(1, audioSettings.masterVolume + 0.05);
             useGameStore.getState().setMasterVolume(newVol);
+          } else if (focusedIndex === languageIdx) {
+            const currentIdx = SUPPORTED_LANGUAGES.indexOf(language);
+            const nextIdx = (currentIdx + 1) % SUPPORTED_LANGUAGES.length;
+            setLanguage(SUPPORTED_LANGUAGES[nextIdx]!);
           } else if (
             focusedIndex >= mixerStartIdx &&
             focusedIndex < mixerStartIdx + 6
@@ -238,8 +258,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     resetSettings,
     isInGame,
     THEME_OFFSET,
+    LANG_INDEX,
+    SECTION_OFFSET,
     MAX_INDEX,
     toggleTheme,
+    language,
+    setLanguage,
   ]);
 
   return (
@@ -266,8 +290,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : 'none',
             }}
           >
-            Settings
+            {t('settings.title')}
           </h2>
+
           <div
             className={`h-1 mx-auto mt-2 ${isRetro ? 'w-24' : 'w-12 bg-[var(--color-primary)] rounded-full opacity-50'}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
@@ -290,21 +315,28 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           )}
           <div
             ref={el => {
-              if (el) focusableRefs.current.set(THEME_OFFSET, el);
+              if (el) focusableRefs.current.set(LANG_INDEX, el);
             }}
           >
-            <QualitySection isFocused={focusedIndex === THEME_OFFSET} />
+            <LanguageSection isFocused={focusedIndex === LANG_INDEX} />
           </div>
           <div
             ref={el => {
-              if (el) focusableRefs.current.set(THEME_OFFSET + 1, el);
+              if (el) focusableRefs.current.set(SECTION_OFFSET, el);
+            }}
+          >
+            <QualitySection isFocused={focusedIndex === SECTION_OFFSET} />
+          </div>
+          <div
+            ref={el => {
+              if (el) focusableRefs.current.set(SECTION_OFFSET + 1, el);
             }}
           >
             <AudioSection
               focusedItem={
-                focusedIndex === THEME_OFFSET + 1
+                focusedIndex === SECTION_OFFSET + 1
                   ? 'volume'
-                  : focusedIndex === THEME_OFFSET + 2
+                  : focusedIndex === SECTION_OFFSET + 2
                     ? 'mute'
                     : null
               }
@@ -312,22 +344,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
           <div
             ref={el => {
-              if (el) focusableRefs.current.set(THEME_OFFSET + 3, el);
+              if (el) focusableRefs.current.set(SECTION_OFFSET + 3, el);
             }}
           >
             <SoundMixerSection
               focusedCategory={
-                focusedIndex === THEME_OFFSET + 3
+                focusedIndex === SECTION_OFFSET + 3
                   ? 'combat'
-                  : focusedIndex === THEME_OFFSET + 4
+                  : focusedIndex === SECTION_OFFSET + 4
                     ? 'feedback'
-                    : focusedIndex === THEME_OFFSET + 5
+                    : focusedIndex === SECTION_OFFSET + 5
                       ? 'movement'
-                      : focusedIndex === THEME_OFFSET + 6
+                      : focusedIndex === SECTION_OFFSET + 6
                         ? 'ui'
-                        : focusedIndex === THEME_OFFSET + 7
+                        : focusedIndex === SECTION_OFFSET + 7
                           ? 'alerts'
-                          : focusedIndex === THEME_OFFSET + 8
+                          : focusedIndex === SECTION_OFFSET + 8
                             ? 'slots'
                             : null
               }
@@ -336,22 +368,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           {showMobileSection && <MobileSection />}
           <div
             ref={el => {
-              if (el) focusableRefs.current.set(THEME_OFFSET + 9, el);
+              if (el) focusableRefs.current.set(SECTION_OFFSET + 9, el);
             }}
           >
             <GraphicsSection
               isMobile={showMobileSection}
               focusedToggle={
-                focusedIndex === THEME_OFFSET + 9
+                focusedIndex === SECTION_OFFSET + 9
                   ? 'particles'
-                  : focusedIndex === THEME_OFFSET + 10
+                  : focusedIndex === SECTION_OFFSET + 10
                     ? 'shake'
-                    : focusedIndex === THEME_OFFSET + 11
+                    : focusedIndex === SECTION_OFFSET + 11
                       ? 'damage'
                       : null
               }
             />
           </div>
+
           <ControlsSection />
         </div>
 
@@ -359,37 +392,38 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="flex gap-3 pt-4 md:pt-6 shrink-0 mt-auto">
           <button
             ref={el => {
-              if (el) focusableRefs.current.set(THEME_OFFSET + 12, el);
+              if (el) focusableRefs.current.set(SECTION_OFFSET + 12, el);
             }}
             onClick={resetSettings}
             className={`flex-1 py-3 font-black uppercase text-[10px] tracking-widest transition-all border ${
               isRetro
                 ? 'bg-zinc-700 text-white border-zinc-900 rounded-none border-b-2 active:translate-y-0.5'
                 : 'bg-slate-800 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white border-slate-700 shadow-sm'
-            } ${focusedIndex === THEME_OFFSET + 12 ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'ring-2 ring-white scale-105 bg-slate-700 text-white') : ''}`}
+            } ${focusedIndex === SECTION_OFFSET + 12 ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'ring-2 ring-white scale-105 bg-slate-700 text-white') : ''}`}
           >
-            Reset
+            {t('settings.reset')}
           </button>
+
           <button
             ref={el => {
-              if (el) focusableRefs.current.set(THEME_OFFSET + 13, el);
+              if (el) focusableRefs.current.set(SECTION_OFFSET + 13, el);
             }}
             onClick={onClose}
             className={`flex-[2] py-3 font-black uppercase tracking-[0.2em] text-sm transition-all ${
               isRetro
                 ? 'text-black rounded-none border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0'
                 : 'bg-white text-black rounded-xl hover:bg-yellow-500 shadow-lg shadow-white/5'
-            } ${focusedIndex === THEME_OFFSET + 13 ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
+            } ${focusedIndex === SECTION_OFFSET + 13 ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           >
-            Close
+            {t('settings.close')}
           </button>
         </div>
 
         <p
           className={`text-center text-[8px] font-bold uppercase tracking-[0.5em] mt-3 shrink-0 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
         >
-          Settings are saved automatically
+          {t('settings.auto_save')}
         </p>
       </div>
     </div>

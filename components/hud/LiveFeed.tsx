@@ -8,6 +8,7 @@ import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { EventBus } from '../../services/EventBus';
 import { type MarketStateData } from '../../types/events';
 import { useIsRetro } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface LiveFeedProps {
   marketData: MarketData;
@@ -24,6 +25,8 @@ const DesktopLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
 > = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
+
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
@@ -36,8 +39,9 @@ const DesktopLiveFeed: React.FC<
           <span
             className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'animate-pulse'}`}
           ></span>
-          Live Feed
+          {t('hud.live_feed')}
         </div>
+
         <div className="flex items-center gap-2 text-[10px] font-feed text-white">
           <span className="opacity-40">{marketData.leverage}X</span>
           <span style={{ color: pairConfig.color }} className="font-black">
@@ -62,14 +66,14 @@ const DesktopLiveFeed: React.FC<
         >
           <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
           <span className="text-[10px] opacity-70 tracking-widest uppercase">
-            {marketData.effectivePnl >= 0 ? 'Profit' : 'Loss'}
+            {marketData.effectivePnl >= 0 ? t('hud.profit') : t('hud.loss')}
           </span>
         </div>
       </div>
 
       <div className="mt-3 flex flex-col gap-1.5 pt-2">
         <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-widest font-bold">
-          <span>Entry</span>
+          <span>{t('hud.entry')}</span>
           <span className="text-slate-100">
             $
             {entryPrice.toLocaleString(undefined, {
@@ -78,14 +82,14 @@ const DesktopLiveFeed: React.FC<
           </span>
         </div>
         <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-widest font-bold">
-          <span>Volatility</span>
+          <span>{t('hud.volatility')}</span>
           <span className="text-slate-100">x{smoothValues.difficulty.toFixed(2)}</span>
         </div>
 
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
             <div className="flex justify-between items-center text-[11px] uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50 font-bold">
-              <span className="text-slate-400">Liquidation</span>
+              <span className="text-slate-400">{t('hud.liquidation')}</span>
               <span
                 className={
                   marketData.effectivePnl <= -0.7
@@ -123,7 +127,7 @@ const DesktopLiveFeed: React.FC<
             </div>
             {serverState.whaleTier > 0 && (
               <div className="mt-1 text-center text-[9px] text-amber-400 font-black tracking-widest animate-pulse border border-amber-400/30 rounded bg-amber-400/10 px-1 py-0.5 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
-                ⚠️ WHALE DETECTED (T{serverState.whaleTier})
+                ⚠️ {t('hud.whale_detected')} (T{serverState.whaleTier})
               </div>
             )}
           </>
@@ -137,7 +141,9 @@ const MobileLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
 > = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
   const { rs, rfs, isSmallDevice } = useResponsiveUI();
+
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
@@ -205,7 +211,7 @@ const MobileLiveFeed: React.FC<
             className="opacity-70 tracking-tighter"
             style={{ fontSize: rfs(isSmallDevice ? 8 : 10) }}
           >
-            {marketData.effectivePnl >= 0 ? 'PROFIT' : 'LOSS'}
+            {marketData.effectivePnl >= 0 ? t('hud.profit') : t('hud.loss')}
           </span>
         </div>
       </div>
@@ -217,13 +223,13 @@ const MobileLiveFeed: React.FC<
             className="text-slate-200 uppercase leading-none font-bold"
             style={{ fontSize: rfs(11) }}
           >
-            Entry ${Math.floor(entryPrice)}
+            {t('hud.entry')} ${Math.floor(entryPrice)}
           </div>
           <div
             className="text-slate-200 uppercase leading-none text-right font-bold"
             style={{ fontSize: rfs(11) }}
           >
-            Vol x{smoothValues.difficulty.toFixed(1)}
+            {t('hud.volatility').substring(0, 3)} x{smoothValues.difficulty.toFixed(1)}
           </div>
 
           {/* Combined Row: Liquidation & RSI */}

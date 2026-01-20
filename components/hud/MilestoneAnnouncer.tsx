@@ -4,6 +4,7 @@ import { COLORS } from '../../constants';
 import { screenService } from '../../services/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MilestoneAnnouncerProps {
   show: boolean;
@@ -20,6 +21,7 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
   color,
   isRetro,
 }) => {
+  const { t } = useLanguage();
   if (!show || !text) return null;
 
   return (
@@ -65,7 +67,7 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
           <span
             className={`relative z-10 tracking-widest text-xl ${isRetro ? '' : ''}`}
           >
-            XP MULTIPLIER UP!
+            {t('hud.xp_multiplier_up')}
           </span>
 
           {!isRetro && (
@@ -97,6 +99,7 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
   color,
   isRetro,
 }) => {
+  const { t } = useLanguage();
   const { rs, rfs } = useResponsiveUI();
 
   return (
@@ -147,7 +150,9 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
                 padding: `${rs(6)}px ${rs(20)}px`,
               }}
             >
-              <span className="relative z-10 tracking-tight">XP MULTIPLIER UP!</span>
+              <span className="relative z-10 tracking-tight">
+                {t('hud.xp_multiplier_up')}
+              </span>
 
               {/* Decorative elements for retro */}
               {isRetro && (

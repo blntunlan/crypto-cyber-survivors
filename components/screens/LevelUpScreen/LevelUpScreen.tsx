@@ -15,12 +15,15 @@ import {
   IconTarget,
   IconBolt,
 } from '../../../components/icons/CardIcons';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   upgradeChoices,
   onSelect,
 }) => {
   const sizes = useThemeSize();
+  const { t } = useLanguage();
+
   // Track how many reels have stopped
   const [stoppedCount, setStoppedCount] = useState(0);
   const allStopped = stoppedCount >= upgradeChoices.length;
@@ -111,7 +114,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
       return (
         <span className="flex items-center justify-center gap-2">
           <IconSparkles className="w-3.5 h-3.5" color={COLORS.NEON_GREEN} />
-          Choose your upgrade! (W/S + Space)
+          {t('levelup.choose_upgrade')}
         </span>
       );
     }
@@ -119,7 +122,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
       return (
         <span className="flex items-center justify-center gap-2">
           <IconSlot className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
-          Spinning...
+          {t('levelup.spinning')}
         </span>
       );
     }
@@ -127,14 +130,14 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
       return (
         <span className="flex items-center justify-center gap-2">
           <IconTarget className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
-          Almost there...
+          {t('levelup.almost_there')}
         </span>
       );
     }
     return (
       <span className="flex items-center justify-center gap-2">
         <IconBolt className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
-        Last one!
+        {t('levelup.last_one')}
       </span>
     );
   };
@@ -205,8 +208,9 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
                 }}
                 transition={{ duration: allStopped ? 0.5 : 2, repeat: Infinity }}
               >
-                LEVEL UP
+                {t('levelup.title')}
               </motion.h3>
+
               <motion.p
                 className={`font-bold uppercase ${sizes.tiny} mt-1 md:mt-2`}
                 style={{ color: allStopped ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE }}

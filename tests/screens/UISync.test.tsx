@@ -68,7 +68,7 @@ describe('UI Consistency Sync', () => {
       expect(frame).toBeDefined();
       expect(frame?.className).toContain('rounded-2xl');
 
-      const title = screen.getByText('PAUSED');
+      const title = screen.getByText('common.paused');
       // PauseMenu uses font-cyber for cyberpunk mode
       expect(title.className).toContain('font-cyber');
     });
@@ -111,7 +111,7 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      const title = screen.getByText('LIQUIDATED');
+      const title = screen.getByText('common.game_over_screen.liquidated');
       // In retro mode, GameOverScreen uses font-retro-pixel class
       expect(title.parentElement?.className).toContain('font-retro-pixel');
     });

@@ -9,11 +9,14 @@ import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { Logger } from '../../services/Logger';
 import { IconCpu } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean }) => {
   const [currentProfile, setCurrentProfile] = useState(
     DeviceBenchmarkService.getPerformanceConfig().profile
   );
+  const { t } = useLanguage();
+
   const [isAuto, setIsAuto] = useState<boolean>(
     !DeviceBenchmarkService.isInManualMode()
   );
@@ -65,11 +68,12 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
       <div className="flex justify-between items-end">
         <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
           <IconCpu className="w-3.5 h-3.5" color="#64748b" />
-          <span>Performance</span>
+          <span>{t('settings.quality')}</span>
         </h3>
+
         {isAuto && (
           <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">
-            ● Auto Optimized
+            ● {t('settings.quality_auto_active')}
           </span>
         )}
       </div>
@@ -90,8 +94,9 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
                 : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
             }`}
           >
-            Auto
+            {t('settings.quality_auto')}
           </button>
+
           {Object.values(DeviceProfile).map(profile => (
             <button
               key={profile}
@@ -103,18 +108,16 @@ export const QualitySection = memo(({ isFocused = false }: { isFocused?: boolean
                   : 'bg-white/5 text-slate-500 border-transparent hover:bg-white/10'
               }`}
             >
-              {profile}
+              {t(`settings.quality_${profile.toLowerCase()}`)}
             </button>
           ))}
         </div>
 
         <div className="text-[10px] text-slate-400 font-tech text-center">
-          {currentProfile === DeviceProfile.ULTRA &&
-            'Cinematic lighting, max effects (High-end only)'}
-          {currentProfile === DeviceProfile.HIGH && 'Full effects, shadows enabled'}
-          {currentProfile === DeviceProfile.MEDIUM &&
-            'Balanced performance and visuals'}
-          {currentProfile === DeviceProfile.LOW && 'Max FPS, simplified graphics'}
+          {currentProfile === DeviceProfile.ULTRA && t('settings.quality_desc_ultra')}
+          {currentProfile === DeviceProfile.HIGH && t('settings.quality_desc_high')}
+          {currentProfile === DeviceProfile.MEDIUM && t('settings.quality_desc_medium')}
+          {currentProfile === DeviceProfile.LOW && t('settings.quality_desc_low')}
         </div>
       </div>
     </section>

@@ -5,7 +5,9 @@ import { DifficultyManager } from '../../services/DifficultyManager';
 import { COLORS } from '../../constants';
 import { EventBus } from '../../services/EventBus';
 import { type WavePhase } from '../../types/metrics';
+
 import { useIsRetro } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface AccountHealthProps {
   hpPercent: number;
@@ -21,9 +23,12 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   hpPercent,
   hp,
   maxHp,
+
   isMobile,
 }) => {
+  const { t } = useLanguage();
   const { rs, rfs, isSmallDevice, bottomSafeZone } = useResponsiveUI();
+
   const isRetro = useIsRetro();
   const [wavePhase, setWavePhase] = useState(DifficultyManager.getWavePhase());
 
@@ -39,7 +44,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   const getStatusConfig = () => {
     if (hpPercent > 75) {
       return {
-        text: 'EQUITY SECURE',
+        text: t('hud.equity_secure'),
         color: 'text-cyan-400',
         bg: `linear-gradient(90deg, ${COLORS.CASINO_GREEN}, ${COLORS.PUMP_GREEN})`,
         glow: COLORS.CASINO_GREEN,
@@ -47,7 +52,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
     }
     if (hpPercent > 50) {
       return {
-        text: 'MARGIN CAUTION',
+        text: t('hud.margin_caution'),
         color: 'text-yellow-400',
         bg: `linear-gradient(90deg, ${COLORS.CASINO_GOLD}, ${COLORS.JACKPOT_YELLOW})`,
         glow: COLORS.CASINO_GOLD,
@@ -55,14 +60,14 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
     }
     if (hpPercent > 25) {
       return {
-        text: 'MARGIN PRESSURE',
+        text: t('hud.margin_pressure'),
         color: 'text-orange-500',
         bg: `linear-gradient(90deg, ${COLORS.NEON_ORANGE}, ${COLORS.DUMP_ORANGE})`,
         glow: COLORS.NEON_ORANGE,
       };
     }
     return {
-      text: 'LIQUIDATION RISK',
+      text: t('hud.liquidation_risk'),
       color: 'text-red-600',
       bg: `linear-gradient(90deg, ${COLORS.CASINO_RED}, ${COLORS.SUPER_CRIT})`,
       glow: COLORS.CASINO_RED,
@@ -98,13 +103,14 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
               className="text-slate-500 font-bold uppercase opacity-60"
               style={{ fontSize: '10px' }}
             >
-              System Phase
+              {t('hud.system_phase')}
             </span>
+
             <span
               className={`font-black uppercase italic ${getWaveColorText(wavePhase)}`}
               style={{ fontSize: '16px' }}
             >
-              {wavePhase}
+              {t(`hud.phases.${wavePhase}`)}
             </span>
           </div>
 

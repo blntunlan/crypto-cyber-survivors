@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen } from '../../test-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ClutchAnnouncement } from '../../../components/hud/ClutchAnnouncement';
 import { screenService } from '../../../services/ScreenService';
@@ -38,15 +38,15 @@ describe('ClutchAnnouncement', () => {
     vi.mocked(screenService.isMobile).mockReturnValue(false);
     vi.mocked(useIsRetro).mockReturnValue(false);
     render(<ClutchAnnouncement active={true} />);
-    expect(screen.getByText('CLUTCH!')).toBeInTheDocument();
+    expect(screen.getByText('hud.clutch')).toBeInTheDocument();
   });
 
   it('should render "CLUTCH!" and "RECOVERED" on Mobile when active is true', () => {
     vi.mocked(screenService.isMobile).mockReturnValue(true);
     vi.mocked(useIsRetro).mockReturnValue(false);
     render(<ClutchAnnouncement active={true} />);
-    expect(screen.getByText('CLUTCH!')).toBeInTheDocument();
-    expect(screen.getByText('RECOVERED')).toBeInTheDocument();
+    expect(screen.getByText('hud.clutch')).toBeInTheDocument();
+    expect(screen.getByText('hud.recovered')).toBeInTheDocument();
   });
 
   it('should apply retro styles when isRetro is true', () => {
@@ -55,7 +55,7 @@ describe('ClutchAnnouncement', () => {
     render(<ClutchAnnouncement active={true} />);
 
     // Desktop layout
-    const element = screen.getByText('CLUTCH!').parentElement;
+    const element = screen.getByText('hud.clutch').parentElement;
     expect(element).toHaveClass('border-4');
     expect(element).toHaveClass('rounded-none');
     expect(element).not.toHaveClass('bg-gradient-to-r');
@@ -67,7 +67,7 @@ describe('ClutchAnnouncement', () => {
     render(<ClutchAnnouncement active={true} />);
 
     // Desktop layout
-    const element = screen.getByText('CLUTCH!').parentElement;
+    const element = screen.getByText('hud.clutch').parentElement;
     expect(element).toHaveClass('bg-gradient-to-r');
     expect(element).not.toHaveClass('rounded-none');
   });

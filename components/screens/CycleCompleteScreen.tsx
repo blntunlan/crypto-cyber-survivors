@@ -25,6 +25,7 @@ import {
 } from '../icons/CardIcons';
 import { type CycleCompleteData } from '../../types/gameMode';
 import { Logger } from '../../services/Logger';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface CycleCompleteScreenProps {
   data: CycleCompleteData;
@@ -39,6 +40,8 @@ export function CycleCompleteScreen({
 }: CycleCompleteScreenProps): React.JSX.Element {
   const { theme, isRetro } = useTheme();
   const sizes = useThemeSize();
+  const { t } = useLanguage();
+
   const [coinCalculation, setCoinCalculation] = useState<CoinCalculation | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
@@ -91,19 +94,20 @@ export function CycleCompleteScreen({
             className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.heading} font-black mb-1 text-shadow-none`}
             style={{ color: COLORS.JACKPOT_YELLOW }}
           >
-            CYCLE {data.cycleNumber} COMPLETE
+            {t('common.cycle_complete_screen.title', { val: data.cycleNumber })}
           </div>
+
           <div
             className={`text-slate-400 text-[8px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-widest`}
           >
-            5 minutes survived
+            {t('common.cycle_complete_screen.subtitle')}
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <StatBox
-            label="Time Survived"
+            label={t('common.cycle_complete_screen.time_survived')}
             value={formatTime(data.survivalTimeSeconds)}
             theme={theme}
             isRetro={isRetro}
@@ -115,7 +119,7 @@ export function CycleCompleteScreen({
             }
           />
           <StatBox
-            label="Level Reached"
+            label={t('common.cycle_complete_screen.level_reached')}
             value={data.level.toString()}
             theme={theme}
             isRetro={isRetro}
@@ -127,7 +131,7 @@ export function CycleCompleteScreen({
             }
           />
           <StatBox
-            label="Total Kills"
+            label={t('common.cycle_complete_screen.total_kills')}
             value={data.totalKills.toString()}
             theme={theme}
             isRetro={isRetro}
@@ -139,7 +143,7 @@ export function CycleCompleteScreen({
             }
           />
           <StatBox
-            label="P&L Performance"
+            label={t('common.cycle_complete_screen.pnl_performance')}
             value={`${data.effectivePnl >= 0 ? '+' : ''}${(data.effectivePnl * 100).toFixed(1)}%`}
             theme={theme}
             isRetro={isRetro}
@@ -170,12 +174,17 @@ export function CycleCompleteScreen({
             }}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-slate-300 font-bold">COINS EARNED</span>
+              <span className="text-slate-300 font-bold">
+                {t('common.cycle_complete_screen.coins_earned')}
+              </span>
+
               <button
                 onClick={() => setShowBreakdown(!showBreakdown)}
                 className="text-xs text-slate-400 underline"
               >
-                {showBreakdown ? 'Hide' : 'Details'}
+                {showBreakdown
+                  ? t('common.cycle_complete_screen.hide')
+                  : t('common.cycle_complete_screen.details')}
               </button>
             </div>
             <div
@@ -207,7 +216,10 @@ export function CycleCompleteScreen({
             color: COLORS.DUMP_ORANGE,
           }}
         >
-          ⚠️ Continue Risk: {Math.round(continueRisk * 100)}% difficulty increase
+          ⚠️{' '}
+          {t('common.cycle_complete_screen.continue_risk', {
+            val: Math.round(continueRisk * 100),
+          })}
         </div>
 
         {/* Action Buttons */}
@@ -229,8 +241,9 @@ export function CycleCompleteScreen({
             }}
           >
             <IconBitcoin className="w-5 h-5" color="black" />
-            Cash Out
+            {t('common.cycle_complete_screen.cash_out')}
           </button>
+
           <button
             onClick={() => {
               audio.playButton();
@@ -248,14 +261,15 @@ export function CycleCompleteScreen({
             }}
           >
             <IconZap className="w-5 h-5" color={theme.colors.primary} />
-            Continue
+            {t('common.cycle_complete_screen.continue')}
           </button>
         </div>
 
         {/* Continue Multiplier Hint */}
         <div className="text-center mt-3 text-xs text-slate-500">
-          Continue to earn {Math.round((1 + data.cycleNumber * 0.5) * 100)}% coin
-          multiplier next cycle
+          {t('common.cycle_complete_screen.multiplier_hint', {
+            val: Math.round((1 + data.cycleNumber * 0.5) * 100),
+          })}
         </div>
       </div>
     </div>

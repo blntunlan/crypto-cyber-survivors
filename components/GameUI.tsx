@@ -10,6 +10,7 @@ import { screenService } from '../services/ScreenService';
 import { useGameStore } from '../stores/gameStore';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { EventBus } from '../services/EventBus';
+import { useLanguage } from '../contexts/LanguageContext';
 
 import { Logger } from '../services/Logger';
 import { Z_LAYERS } from '../constants/ZIndex';
@@ -33,7 +34,9 @@ interface GameUIProps {
 
 export const GameUI: React.FC<GameUIProps> = memo(
   ({ position: _position, entryPrice, marketData, player, onTogglePause, status }) => {
+    const { t } = useLanguage();
     const [lastPrice, setLastPrice] = useState(marketData.price);
+
     const [priceColor, setPriceColor] = useState('text-white');
     const [buffTrigger, setBuffTrigger] = useState(0);
 
@@ -171,7 +174,9 @@ export const GameUI: React.FC<GameUIProps> = memo(
             {/* Mobile FPS Counter - Below LiveFeed */}
             {isMobile && showFPS && (
               <div className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white w-fit">
-                <span id="fps-counter-mobile">-- FPS</span>
+                <span id="fps-counter-mobile">
+                  {t('hud.fps_formatted', { val: '--' })}
+                </span>
               </div>
             )}
           </div>
@@ -211,8 +216,8 @@ export const GameUI: React.FC<GameUIProps> = memo(
                   }}
                   className="pointer-events-auto bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
                   style={{ touchAction: 'manipulation', cursor: 'pointer' }}
-                  title="Pause (Esc)"
-                  aria-label="Pause Game"
+                  title={t('hud.pause_title')}
+                  aria-label={t('hud.pause_aria')}
                 >
                   <div className="flex gap-1.5">
                     <div className="w-1.5 h-5 bg-white rounded-full"></div>

@@ -56,6 +56,10 @@ class BuffManagerClass {
 
   private effectIdCounter: number = 0;
 
+  // Stats cache to avoid rebuilding decorator chain every frame
+  private cachedStats: IPlayerStats | null = null;
+  private statsCacheDirty: boolean = true;
+
   private constructor() {
     // Listen for game reset to clear all effects
     EventBus.on('gameReset', () => {
@@ -93,6 +97,7 @@ class BuffManagerClass {
       return;
     }
     this.state.baseStats = new PlayerStatsAdapter(player);
+    this.statsCacheDirty = true;
   }
 
   /**
@@ -167,6 +172,7 @@ class BuffManagerClass {
     }
 
     this.state.activeEffects.push(effect);
+    this.statsCacheDirty = true;
 
     // Emit event for UI
     EventBus.emit('buffApplied', {
@@ -210,6 +216,7 @@ class BuffManagerClass {
     }
 
     this.state.activeEffects.splice(index, 1);
+    this.statsCacheDirty = true;
     return true;
   }
 
@@ -237,7 +244,7 @@ class BuffManagerClass {
 
   /**
    * Update effect timers - call each frame in the game loop.
-   * Automatically handles pausing as it relies on TimeService.gameTime.
+   * Uses in-place swap-and-pop to avoid array allocations.
    */
   update(): void {
     if (!this.state.isInitialized || this.state.isPaused) {
@@ -245,21 +252,21 @@ class BuffManagerClass {
     }
 
     const now = TimeService.getGameTime();
+    const effects = this.state.activeEffects;
 
-    // Find expired effects
-    const expired = this.state.activeEffects.filter(
-      e => e.expiresAt !== PERMANENT_DURATION && e.expiresAt <= now
-    );
+    // In-place removal using swap-and-pop (O(n) with zero allocations)
+    for (let i = effects.length - 1; i >= 0; i--) {
+      const e = effects[i]!;
+      if (e.expiresAt !== PERMANENT_DURATION && e.expiresAt <= now) {
+        EventBus.emit('buffExpired', { name: e.decorator.getName() });
+        Logger.debug(`[BuffManager] Effect expired: ${e.decorator.getName()}`);
 
-    for (const effect of expired) {
-      EventBus.emit('buffExpired', { name: effect.decorator.getName() });
-      Logger.debug(`[BuffManager] Effect expired: ${effect.decorator.getName()}`);
+        // Swap with last element and pop (O(1) removal)
+        effects[i] = effects[effects.length - 1]!;
+        effects.pop();
+        this.statsCacheDirty = true;
+      }
     }
-
-    // Filter out expired effects
-    this.state.activeEffects = this.state.activeEffects.filter(
-      e => e.expiresAt === PERMANENT_DURATION || e.expiresAt > now
-    );
   }
 
   /**
@@ -312,21 +319,28 @@ class BuffManagerClass {
 
   /**
    * Get the decorated stats with all active effects applied.
-   * This is the primary method to use for stat calculations.
+   * Uses caching to avoid rebuilding decorator chain every frame.
    */
   getDecoratedStats(): IPlayerStats {
     if (!this.state.isInitialized || !this.state.baseStats) {
       throw new Error('[BuffManager] Not initialized');
     }
 
-    // Start with base stats
-    let stats: IPlayerStats = this.state.baseStats;
+    // Return cached stats if still valid
+    if (!this.statsCacheDirty && this.cachedStats) {
+      return this.cachedStats;
+    }
 
-    // Apply each effect in order (newer effects wrap older ones)
+    // Rebuild decorator chain
+    let stats: IPlayerStats = this.state.baseStats;
     for (const effect of this.state.activeEffects) {
       const DecoratorClass = effect.decorator.constructor as DecoratorConstructor;
       stats = new DecoratorClass(stats);
     }
+
+    // Cache the result
+    this.cachedStats = stats;
+    this.statsCacheDirty = false;
 
     return stats;
   }

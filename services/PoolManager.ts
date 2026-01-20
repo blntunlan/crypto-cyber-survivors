@@ -20,7 +20,7 @@ import { POOL } from '../constants';
  * ObjectPool - A generic, high-performance object pooling container.
  * Manages 'active' and 'free' lists for efficient object recycling.
  */
-class ObjectPool<T extends { active: boolean }> {
+class ObjectPool<T extends { active: boolean; poolIndex?: number }> {
   public active: T[] = [];
   public free: T[] = [];
   private maxActive: number;
@@ -30,23 +30,26 @@ class ObjectPool<T extends { active: boolean }> {
   }
 
   /**
-   * Retrieves an object from the pool, initializing it as necessary.
-   * If the pool has reached capacity, it recycles the oldest active object.
-   *
-   * @param factory - Creator function for new objects.
-   * @param initializer - Function to reset the state of a recycled object.
+   * Retrieves an object from the pool.
+   * If full, recycles the object at index 0 (O(1) swap-and-pop).
    */
   get(factory: () => T, initializer?: (obj: T) => void): T {
-    // Capacity Check: If at limit, recycle the oldest active object (O(1) shift)
     if (this.active.length >= this.maxActive) {
-      const oldest = this.active.shift();
+      // O(1) recycling: Swap-and-Pop from index 0
+      const oldest = this.active[0];
       if (oldest) {
         oldest.active = false;
+        oldest.poolIndex = undefined;
         this.free.push(oldest);
+
+        const last = this.active.pop();
+        if (last && this.active.length > 0) {
+          this.active[0] = last;
+          last.poolIndex = 0;
+        }
       }
     }
 
-    // Attempt to pull from free list first, otherwise instantiate
     let obj = this.free.pop();
     obj ??= factory();
 
@@ -55,30 +58,33 @@ class ObjectPool<T extends { active: boolean }> {
       initializer(obj);
     }
 
+    obj.poolIndex = this.active.length;
     this.active.push(obj);
     return obj;
   }
 
   /**
    * Explicitly releases an object back into the free pool.
-   * Uses Swap-and-Pop (O(1)) instead of Splice (O(N)) to prevent frame drops.
+   * Uses poolIndex for O(1) lookup instead of indexOf O(N).
    */
   release(obj: T): void {
-    const index = this.active.indexOf(obj);
-    if (index > -1) {
+    const index = obj.poolIndex;
+    if (index !== undefined && index > -1 && index < this.active.length) {
       obj.active = false;
+      obj.poolIndex = undefined;
       this.free.push(obj);
 
       const last = this.active.pop();
       if (last && index < this.active.length) {
         this.active[index] = last;
+        last.poolIndex = index;
       }
     }
   }
 
   /**
    * Scans the active pool and moves any deactivated objects to the free pool.
-   * Uses Swap-and-Pop optimization for O(N) total complexity instead of O(N^2).
+   * Updates poolIndex for remaining objects to keep O(1) capability.
    */
   cleanup(): void {
     const active = this.active;
@@ -87,8 +93,11 @@ class ObjectPool<T extends { active: boolean }> {
       const obj = active[readIndex]!;
       if (obj.active) {
         active[writeIndex] = obj;
+        obj.poolIndex = writeIndex;
         writeIndex++;
       } else {
+        obj.active = false;
+        obj.poolIndex = undefined;
         this.free.push(obj);
       }
     }
@@ -103,13 +112,14 @@ class ObjectPool<T extends { active: boolean }> {
       const item = this.active.pop();
       if (item) {
         item.active = false;
+        item.poolIndex = undefined;
         this.free.push(item);
       }
     }
   }
 
   /**
-   * Controls the size of the free list to free up memory during idle periods.
+   * Controls the size of the free list.
    */
   trim(maxFree: number): void {
     if (this.free.length > maxFree) {
@@ -284,15 +294,34 @@ export class PoolManager implements IPoolManager {
   }
 
   /**
-   * Generic release method for backward compatibility.
+   * O(1) Releases for individual entities
    */
-  release<T extends { active: boolean }>(obj: T, activeList: T[], freeList: T[]) {
-    obj.active = false;
-    const index = activeList.indexOf(obj);
-    if (index > -1) {
-      activeList.splice(index, 1);
-      freeList.push(obj);
-    }
+  releaseEnemy(enemy: GameEnemy): void {
+    this.enemies.release(enemy);
+  }
+
+  releaseBullet(bullet: Bullet): void {
+    this.bullets.release(bullet);
+  }
+
+  releaseGem(gem: Gem): void {
+    this.gems.release(gem);
+  }
+
+  releaseParticle(particle: Particle): void {
+    this.particles.release(particle);
+  }
+
+  releaseFloatingText(text: FloatingText): void {
+    this.floatingTexts.release(text);
+  }
+
+  releaseSpeedLine(line: SpeedLine): void {
+    this.speedLines.release(line);
+  }
+
+  releaseInteractable(interactable: Interactable): void {
+    this.interactables.release(interactable);
   }
 
   /**
@@ -359,26 +388,15 @@ export class PoolManager implements IPoolManager {
         return e;
       },
       obj => {
-        const e = enemyFactory.createEnemy('whale', x, y, difficulty, position);
-        if (tierConfig) {
-          e.radius *= tierConfig.sizeMultiplier;
-          e.health *= tierConfig.healthMultiplier;
-          e.maxHealth = e.health;
-          e.valueMultiplier = tierConfig.valueMultiplier;
-        }
-        Object.assign(obj, e);
+        // Use the target-based mutation pattern for whales too
+        enemyFactory.createEnemy('whale', x, y, difficulty, position, 1.0, obj);
 
-        // Reset state
-        obj.active = true;
-        obj.spawnTimer = 0;
-        obj.hasEnteredScreen = false;
-        obj.isDying = false;
-        obj.deathProgress = 0;
-        obj.hasTriggeredNearMiss = false;
-        obj.damageBuffer = 0;
-        obj.damageBufferTimer = 0;
-        obj.damageBufferIsCrit = false;
-        obj.damageBufferIsSuperCrit = false;
+        if (tierConfig) {
+          obj.radius *= tierConfig.sizeMultiplier;
+          obj.health *= tierConfig.healthMultiplier;
+          obj.maxHealth = obj.health;
+          obj.valueMultiplier = tierConfig.valueMultiplier;
+        }
       }
     );
   }

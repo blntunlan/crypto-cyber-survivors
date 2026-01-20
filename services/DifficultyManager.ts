@@ -293,19 +293,21 @@ class DifficultyManagerClass {
       this.lastPnlForShock = pnl;
       return;
     }
-    const diff = Math.abs(pnl - this.lastPnlForShock);
+    // Normalize PnL difference by leverage to get underlying price movement
+    const priceMove =
+      Math.abs(pnl - this.lastPnlForShock) / Math.max(1, this.currentLeverage);
     const now = TimeService.getGameTimeSeconds();
 
     if (
-      diff > DIFFICULTY.SHOCK_THRESHOLD &&
+      priceMove > DIFFICULTY.SHOCK_THRESHOLD &&
       now - this.lastShockTime > DIFFICULTY.SHOCK_COOLDOWN_SEC
     ) {
       this.lastShockTime = now;
       Logger.info(
-        `[Shockwave] Sudden price movement detected! Diff: ${(diff * 100).toFixed(2)}%`
+        `[Shockwave] Sudden price movement detected! Price Move: ${(priceMove * 100).toFixed(2)}%`
       );
       EventBus.emit('volatilityShock', {
-        intensity: Math.min(2.0, diff / DIFFICULTY.SHOCK_THRESHOLD),
+        intensity: Math.min(2.0, priceMove / DIFFICULTY.SHOCK_THRESHOLD),
         direction: pnl > this.lastPnlForShock ? 'up' : 'down',
       });
     }

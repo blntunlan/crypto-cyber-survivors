@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EventBus } from '../../services/EventBus';
 import { Logger } from '../../services/Logger';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './hud-animations.css';
 
 interface MarketAlert {
@@ -15,14 +16,24 @@ interface MarketAlert {
 
 export const MarketAnnouncer: React.FC = () => {
   const [alerts, setAlerts] = useState<MarketAlert[]>([]);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const handleRSI = (data: { state: string; rsi: number }) => {
       if (data.state === 'OVERSOLD' || data.state === 'OVERBOUGHT') {
         addAlert({
           type: 'RSI',
-          title: data.state === 'OVERSOLD' ? 'MARKET OVERSOLD' : 'MARKET OVERBOUGHT',
-          message: `${data.state === 'OVERSOLD' ? 'Bullish' : 'Bearish'} conditions detected (RSI: ${data.rsi.toFixed(1)})`,
+          title:
+            data.state === 'OVERSOLD'
+              ? t('hud.announcer.oversold')
+              : t('hud.announcer.overbought'),
+          message: t('hud.announcer.rsi_message', {
+            sentiment:
+              data.state === 'OVERSOLD'
+                ? t('hud.announcer.bullish')
+                : t('hud.announcer.bearish'),
+            rsi: data.rsi.toFixed(1),
+          }),
           color: data.state === 'OVERSOLD' ? '#4ade80' : '#f87171',
           icon: data.state === 'OVERSOLD' ? '📈' : '📉',
         });
@@ -31,11 +42,13 @@ export const MarketAnnouncer: React.FC = () => {
 
     const handleWhale = (data: { tier: number }) => {
       if (data.tier > 0) {
-        const tierNames = ['', 'BABY WHALE', 'MEGA WHALE', 'GIGA WHALE'];
+        const tierKeys = ['', 'baby', 'mega', 'giga'];
+        const tierKey = tierKeys[data.tier];
+        const tierName = t(`hud.announcer.tiers.${tierKey}`);
         addAlert({
           type: 'WHALE',
-          title: `${tierNames[data.tier]} SPOTTED`,
-          message: 'Massive volume detected on the market!',
+          title: t('hud.announcer.whale_spotted', { tier: tierName }),
+          message: t('hud.announcer.whale_volume'),
           color: '#fbbf24',
           icon: '🐋',
         });
@@ -49,7 +62,7 @@ export const MarketAnnouncer: React.FC = () => {
       unsubRSI();
       unsubWhale();
     };
-  }, []);
+  }, [t]);
 
   const addAlert = (alert: Omit<MarketAlert, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 11);

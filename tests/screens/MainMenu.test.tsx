@@ -32,7 +32,7 @@ describe('MainMenu', () => {
         onModeChange={() => {}}
       />
     );
-    expect(screen.getByText(/CONNECTING/i)).toBeDefined();
+    expect(screen.getByText('common.menu.connecting')).toBeDefined();
   });
 
   it('should call onStart with LONG and default leverage when Long button is clicked', () => {
@@ -49,7 +49,7 @@ describe('MainMenu', () => {
       />
     );
 
-    fireEvent.click(screen.getByText(/Long/i));
+    fireEvent.click(screen.getByText('common.long'));
     expect(onStart).toHaveBeenCalledWith(MarketPosition.LONG, 10); // Default leverage is 10
   });
 
@@ -67,7 +67,7 @@ describe('MainMenu', () => {
       />
     );
 
-    fireEvent.click(screen.getByText(/Short/i));
+    fireEvent.click(screen.getByText('common.short'));
     expect(onStart).toHaveBeenCalledWith(MarketPosition.SHORT, 10); // Default leverage is 10
   });
 
@@ -85,7 +85,7 @@ describe('MainMenu', () => {
       />
     );
 
-    fireEvent.click(screen.getByText(/Settings/i));
+    fireEvent.click(screen.getByText('common.settings'));
     expect(onOpenSettings).toHaveBeenCalled();
   });
 
@@ -126,7 +126,9 @@ describe('MainMenu', () => {
     );
 
     // Find the Competitive mode button
-    const competitiveBtn = screen.getByText(/Competitive/i).closest('button');
+    const competitiveBtn = screen
+      .getByText('common.modes.competitive_name')
+      .closest('button');
     if (competitiveBtn) {
       fireEvent.click(competitiveBtn);
       expect(onModeChange).toHaveBeenCalledWith(GameMode.COMPETITIVE);

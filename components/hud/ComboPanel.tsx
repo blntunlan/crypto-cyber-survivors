@@ -2,6 +2,8 @@ import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
+
 import { COLORS } from '../../config/Colors';
 
 interface ComboPanelProps {
@@ -16,6 +18,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
   totalBonusXp,
 }) => {
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
 
   return (
     <div
@@ -37,9 +40,10 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
             color: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
           }}
         >
-          <span>BEST</span>
+          <span>{t('hud.best')}</span>
           <span className="tabular-nums">{maxStreak}</span>
         </div>
+
         <div
           className={`flex items-center gap-1.5 px-2 py-0.5 ${isRetro ? 'border-2 rounded-none bg-black' : 'rounded-full bg-green-500/10 border border-green-500/20'}`}
           style={{
@@ -47,7 +51,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
             color: isRetro ? COLORS.NEON_GREEN : undefined,
           }}
         >
-          <span>BONUS</span>
+          <span>{t('hud.bonus')}</span>
           <span className="tabular-nums">+{Math.round(totalBonusXp)}</span>
         </div>
       </div>
@@ -79,7 +83,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
           <span
             className={`text-[8px] font-black uppercase tracking-widest ${isRetro ? 'font-display text-white' : 'text-white/60'}`}
           >
-            COMBO
+            {t('hud.combo')}
           </span>
         </div>
 
@@ -105,6 +109,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
 }) => {
   const { rs, rfs, isSmallDevice } = useResponsiveUI();
   const isRetro = useIsRetro();
+  const { t } = useLanguage();
 
   // Hide on small devices to reduce clutter near health bar
   if (isSmallDevice) {
@@ -130,8 +135,9 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
         style={{ gap: rs(5), fontSize: rfs(6) }}
       >
         <span style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : '#fbbf24' }}>
-          BEST {maxStreak}
+          {t('hud.best')} {maxStreak}
         </span>
+
         <span style={{ color: isRetro ? COLORS.NEON_GREEN : '#22d3ee' }}>
           +{Math.round(totalBonusXp)} XP
         </span>
@@ -172,7 +178,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
             className={`font-black uppercase tracking-tighter ${isRetro ? 'font-display text-white' : 'text-white/60'}`}
             style={{ fontSize: rfs(7) }}
           >
-            COMBO
+            {t('hud.combo')}
           </span>
         </div>
 

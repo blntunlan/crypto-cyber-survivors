@@ -7,12 +7,14 @@ import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 import { audio } from '../../services/AudioService';
 import { useThemeSize } from '../../hooks/useThemeSize';
-import { GameMode, GAME_MODE_CONFIGS } from '../../types/gameMode';
+import { GameMode } from '../../types/gameMode';
+
 import { useTheme } from '../../contexts/useTheme';
 import { IconTrendUp, IconTrendDown, IconZap, IconTrophy } from '../icons/CardIcons';
 import { COLORS } from '../../config/Colors';
 import { ThemedButton } from '../themed/ThemedButton';
 import { ThemedPanel } from '../themed/ThemedPanel';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MainMenuProps {
   price: number;
@@ -35,6 +37,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 }) => {
   const { isRetro } = useTheme();
   const sizes = useThemeSize();
+  const { t } = useLanguage();
+
   const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
 
   // Navigation State
@@ -157,11 +161,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   const getLeverageLabel = (lev: LeverageOption) => {
-    if (lev === 1) return 'SPOT';
-    if (lev <= 2) return 'SAFE';
-    if (lev <= 10) return 'STANDARD';
-    if (lev <= 25) return 'RISKY';
-    return 'DEGEN';
+    if (lev === 1) return t('common.menu.lev_spot');
+    if (lev <= 2) return t('common.menu.lev_safe');
+    if (lev <= 10) return t('common.menu.lev_standard');
+    if (lev <= 25) return t('common.menu.lev_risky');
+    return t('common.menu.lev_degen');
   };
 
   return (
@@ -171,16 +175,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <h1
             className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
           >
-            CRYPTO
+            {t('common.menu.title')}
             <br />
-            <span style={{ color: pairConfig.color }}>SURVIVORS</span>
+            <span style={{ color: pairConfig.color }}>{t('common.menu.subtitle')}</span>
           </h1>
+
           <div className="flex flex-col items-center gap-2">
             <p
               className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
             >
-              Market Sentiment Engine
+              {t('common.menu.sentiment_engine')}
             </p>
+
             <OptimizationBadge sizes={sizes} />
           </div>
         </header>
@@ -205,15 +211,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 className={`text-[7px] uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-[0.2em] font-bold`}
                 style={{ color: COLORS.WHALE }}
               >
-                Game Mode
+                {t('common.menu.game_mode')}
               </span>
+
               <div
                 className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-l from-transparent to-white/10'}`}
               />
             </div>
             <div className="flex gap-2">
               {Object.values(GameMode).map(mode => {
-                const config = GAME_MODE_CONFIGS[mode];
                 const isActive = selectedMode === mode;
                 const ModeIcon = mode === GameMode.CASUAL ? IconZap : IconTrophy;
                 const modeColor =
@@ -273,13 +279,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                             : '#475569',
                         }}
                       >
-                        {config.displayName}
+                        {mode === GameMode.CASUAL
+                          ? t('common.modes.casual_name')
+                          : t('common.modes.competitive_name')}
                       </div>
                     </div>
                     <div
                       className={`text-[10px] leading-tight font-medium ${isActive ? 'text-white' : 'text-slate-500'} ${isRetro ? 'font-primary' : ''}`}
                     >
-                      {config.description}
+                      {mode === GameMode.CASUAL
+                        ? t('common.modes.casual_desc')
+                        : t('common.modes.competitive_desc')}
                     </div>
 
                     {/* Active Indicator Line */}
@@ -305,8 +315,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 className={`text-[7px] uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-[0.2em] font-bold`}
                 style={{ color: COLORS.CASINO_GOLD }}
               >
-                Select Asset
+                {t('common.menu.select_asset')}
               </span>
+
               <div
                 className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-l from-transparent to-white/10'}`}
               />
@@ -329,7 +340,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           >
             {price > 0
               ? `$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-              : 'CONNECTING...'}
+              : t('common.menu.connecting')}
           </div>
 
           <div className="space-y-2 mb-2 sm:mb-4">
@@ -337,8 +348,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               <span
                 className={`text-[7px] uppercase font-display tracking-[0.2em] font-bold text-slate-500`}
               >
-                Leverage
+                {t('common.menu.leverage')}
               </span>
+
               <div className="flex items-center gap-1.5">
                 <div
                   className={`w-1 h-1 rounded-full ${isRetro ? '' : 'animate-pulse'}`}
@@ -402,7 +414,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       color: isSelected ? levColor : '#64748b',
                     }}
                   >
-                    {lev === 1 ? 'SPOT' : `${lev}x`}
+                    {lev === 1 ? t('common.menu.lev_spot') : `${lev}x`}
                   </button>
                 );
               })}
@@ -427,8 +439,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 />
               </div>
               <span className="font-display text-green-500 text-[10px] sm:text-xs uppercase tracking-tighter">
-                Long
+                {t('common.long')}
               </span>
+
               <span className="text-[10px] sm:text-xs text-green-500/60 mt-0.5">
                 {selectedLeverage}x
               </span>
@@ -449,8 +462,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 />
               </div>
               <span className="font-display text-red-500 text-[10px] sm:text-xs uppercase tracking-tighter">
-                Short
+                {t('common.short')}
               </span>
+
               <span className="text-[10px] sm:text-xs text-red-500/60 mt-0.5">
                 {selectedLeverage}x
               </span>
@@ -467,12 +481,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   : ''
               }`}
           >
-            Settings
+            {t('common.settings')}
           </ThemedButton>
           <div
             className={`pt-1 sm:pt-2 text-[7px] sm:text-[8px] font-display text-slate-500 uppercase tracking-widest ${isRetro ? 'font-primary brightness-150' : ''}`}
           >
-            WASD / Arrows to Move • SPACE to Dash
+            {t('common.menu.controls_hint')}
           </div>
         </ThemedPanel>
       </div>
@@ -486,6 +500,7 @@ interface OptimizationBadgeProps {
 const OptimizationBadge: React.FC<OptimizationBadgeProps> = ({ sizes }) => {
   const config = DeviceBenchmarkService.getPerformanceConfig();
   const { isRetro } = useTheme();
+  const { t } = useLanguage();
   const profile = config.profile;
 
   const getColor = (p: DeviceProfile) => {
@@ -508,7 +523,7 @@ const OptimizationBadge: React.FC<OptimizationBadgeProps> = ({ sizes }) => {
       className={`px-3 py-1 border ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)} 
         ${isRetro ? 'rounded-none border-2 border-zinc-700 font-primary' : 'rounded-full'}`}
     >
-      Optimized: {profile}
+      {t('common.menu.optimized')}: {profile}
     </div>
   );
 };

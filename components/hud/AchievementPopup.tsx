@@ -2,6 +2,7 @@ import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface AchievementPopupProps {
   achievement: { name: string; icon: string; color: string } | null;
@@ -11,7 +12,9 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
   achievement,
   isRetro,
 }) => {
+  const { t } = useLanguage();
   if (!achievement) return null;
+
   return (
     <div
       className="absolute top-80 right-4 z-[140] pointer-events-none"
@@ -33,8 +36,9 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
           <span
             className={`text-[10px] font-bold uppercase tracking-widest ${isRetro ? 'text-white' : 'text-white/70'}`}
           >
-            Achievement!
+            {t('hud.achievement')}
           </span>
+
           <span
             className={`text-xl font-black italic tracking-tight ${isRetro ? 'text-shadow-retro' : ''}`}
             style={{ color: achievement.color }}
@@ -51,9 +55,10 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
   achievement,
   isRetro,
 }) => {
+  const { t } = useLanguage();
   const { rs, rfs } = useResponsiveUI();
-
   if (!achievement) return null;
+
   return (
     <div
       className="absolute right-4 z-[140] pointer-events-none"
@@ -81,8 +86,9 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
             className={`font-black uppercase tracking-widest ${isRetro ? 'text-white' : 'text-blue-400 opacity-80'} whitespace-nowrap`}
             style={{ fontSize: rfs(7) }}
           >
-            ACHIEVEMENT!
+            {t('hud.achievement').toUpperCase()}
           </span>
+
           <span
             className="font-black italic tracking-tight text-white leading-none mt-0.5 truncate"
             style={{ fontSize: rfs(12) }}

@@ -13,23 +13,27 @@ import {
 } from '../../types/MobileSettings';
 import { ToggleButton } from './ToggleButton';
 import { IconSmartphone } from '../icons/CardIcons';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export const MobileSection = memo(() => {
   const mobile = useGameStore(state => state.mobile);
   const setMobileSetting = useGameStore(state => state.setMobileSetting);
+  const { t } = useLanguage();
 
   return (
     <section className="space-y-3 md:space-y-4">
       <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
         <IconSmartphone className="w-3.5 h-3.5" color="#64748b" />
-        <span>Mobile Controls</span>
+        <span>{t('settings.mobile')}</span>
       </h3>
+
       <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
         {/* Control Type Selection */}
         <div className="space-y-1">
           <span className="text-[10px] text-slate-500 font-bold uppercase">
-            Control Type
+            {t('settings.control_type')}
           </span>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setMobileSetting('controlType', 'drag' as ControlType)}
@@ -39,8 +43,9 @@ export const MobileSection = memo(() => {
                   : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'
               }`}
             >
-              Drag
+              {t('settings.control_drag')}
             </button>
+
             <button
               onClick={() => setMobileSetting('controlType', 'joystick' as ControlType)}
               className={`py-2 rounded-lg text-xs font-bold uppercase transition-all ${
@@ -49,7 +54,7 @@ export const MobileSection = memo(() => {
                   : 'bg-white/5 text-slate-400 border border-white/5 hover:bg-white/10'
               }`}
             >
-              Joystick
+              {t('settings.control_joystick')}
             </button>
           </div>
         </div>
@@ -59,8 +64,9 @@ export const MobileSection = memo(() => {
           <>
             <div className="space-y-1">
               <span className="text-[10px] text-slate-500 font-bold uppercase">
-                Joystick Size
+                {t('settings.joystick_size')}
               </span>
+
               <div className="grid grid-cols-3 gap-2">
                 {(['small', 'medium', 'large'] as JoystickSize[]).map(size => (
                   <button
@@ -72,15 +78,16 @@ export const MobileSection = memo(() => {
                         : 'bg-white/5 text-slate-400 border border-white/5'
                     }`}
                   >
-                    {size}
+                    {t(`settings.size_${size}`)}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-1">
               <span className="text-[10px] text-slate-500 font-bold uppercase">
-                Joystick Side
+                {t('settings.joystick_side')}
               </span>
+
               <div className="grid grid-cols-2 gap-2">
                 {(['left', 'right'] as JoystickPosition[]).map(pos => (
                   <button
@@ -92,7 +99,7 @@ export const MobileSection = memo(() => {
                         : 'bg-white/5 text-slate-400 border border-white/5'
                     }`}
                   >
-                    {pos}
+                    {t(`settings.side_${pos}`)}
                   </button>
                 ))}
               </div>
@@ -102,12 +109,13 @@ export const MobileSection = memo(() => {
 
         {/* Feedback Toggles */}
         <ToggleButton
-          label="Haptic Feedback"
+          label={t('settings.haptic_feedback')}
           enabled={mobile.hapticFeedback}
           onToggle={() => setMobileSetting('hapticFeedback', !mobile.hapticFeedback)}
         />
+
         <ToggleButton
-          label="Visual Feedback"
+          label={t('settings.visual_feedback')}
           enabled={mobile.showDragFeedback}
           onToggle={() =>
             setMobileSetting('showDragFeedback', !mobile.showDragFeedback)

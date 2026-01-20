@@ -8,7 +8,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GameUI } from '../../components/GameUI';
-import { GameStatus, MarketPosition, type LeverageOption } from '../../types';
+import { GameStatus, MarketPosition } from '../../types';
+import { LanguageProvider } from '../../contexts/LanguageContext';
 
 // Mock dependencies
 vi.mock('../../services/ScreenService', () => ({
@@ -53,21 +54,21 @@ describe('GameUI', () => {
     marketData: {
       price: 51000,
       pnl: 0.02,
-      effectivePnl: 0.02,
+      effectivePnl: 0.018,
       difficulty: 1,
       trend: 'bullish' as const,
-      volatility: 0.5,
+      volatility: 0.3,
       volume24h: 1000000,
-      priceChange24h: 2.5,
-      timestamp: Date.now(),
+      spread: 10,
+      liquidity: 500000,
+      momentum: 0.1,
       volume: 1000000,
-      leverage: 10 as LeverageOption,
+      leverage: 10 as const,
       rsi: 50,
-      momentum: 0,
     },
     player: {
-      x: 0,
-      y: 0,
+      x: 400,
+      y: 300,
       hp: 100,
       maxHp: 100,
       exp: 0,
@@ -76,18 +77,19 @@ describe('GameUI', () => {
       baseDamage: 10,
       speed: 5,
       fireRate: 1,
-      luck: 1,
+      luck: 0,
       lifesteal: 0,
       critChance: 0.1,
-      critDamage: 1.5,
-      magnet: 50,
-      armor: 0,
       area: 1,
-      color: '#00ff00',
-      radius: 16,
-      projectiles: 1,
+      armor: 0,
       regen: 0,
       dodge: 0,
+      invulnerabilityTimer: 0,
+      radius: 20,
+      color: '#00FF00',
+      critDamage: 1.5,
+      projectiles: 1,
+      magnet: 1,
     },
     status: GameStatus.PLAYING,
   };
@@ -100,14 +102,22 @@ describe('GameUI', () => {
     it('should render pause button when status is PLAYING and onTogglePause is provided', () => {
       const onTogglePause = vi.fn();
 
-      render(<GameUI {...defaultProps} onTogglePause={onTogglePause} />);
+      render(
+        <LanguageProvider>
+          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
+        </LanguageProvider>
+      );
 
-      const pauseButton = screen.getByRole('button', { name: /pause game/i });
+      const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
       expect(pauseButton).toBeInTheDocument();
     });
 
     it('should NOT render pause button when onTogglePause is not provided', () => {
-      render(<GameUI {...defaultProps} />);
+      render(
+        <LanguageProvider>
+          <GameUI {...defaultProps} />
+        </LanguageProvider>
+      );
 
       const pauseButton = screen.queryByRole('button', { name: /pause game/i });
       expect(pauseButton).not.toBeInTheDocument();
@@ -117,11 +127,13 @@ describe('GameUI', () => {
       const onTogglePause = vi.fn();
 
       render(
-        <GameUI
-          {...defaultProps}
-          status={GameStatus.PAUSED}
-          onTogglePause={onTogglePause}
-        />
+        <LanguageProvider>
+          <GameUI
+            {...defaultProps}
+            status={GameStatus.PAUSED}
+            onTogglePause={onTogglePause}
+          />
+        </LanguageProvider>
       );
 
       const pauseButton = screen.queryByRole('button', { name: /pause game/i });
@@ -131,9 +143,13 @@ describe('GameUI', () => {
     it('should call onTogglePause when pause button is clicked', () => {
       const onTogglePause = vi.fn();
 
-      render(<GameUI {...defaultProps} onTogglePause={onTogglePause} />);
+      render(
+        <LanguageProvider>
+          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
+        </LanguageProvider>
+      );
 
-      const pauseButton = screen.getByRole('button', { name: /pause game/i });
+      const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
       fireEvent.click(pauseButton);
 
       expect(onTogglePause).toHaveBeenCalledTimes(1);
@@ -142,9 +158,13 @@ describe('GameUI', () => {
     it('should call onTogglePause when pause button receives touchEnd event (mobile)', () => {
       const onTogglePause = vi.fn();
 
-      render(<GameUI {...defaultProps} onTogglePause={onTogglePause} />);
+      render(
+        <LanguageProvider>
+          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
+        </LanguageProvider>
+      );
 
-      const pauseButton = screen.getByRole('button', { name: /pause game/i });
+      const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
       fireEvent.touchEnd(pauseButton);
 
       expect(onTogglePause).toHaveBeenCalledTimes(1);
@@ -158,9 +178,13 @@ describe('GameUI', () => {
     it('should have z-index higher than DragToMoveController (z-998) for mobile touch', () => {
       const onTogglePause = vi.fn();
 
-      render(<GameUI {...defaultProps} onTogglePause={onTogglePause} />);
+      render(
+        <LanguageProvider>
+          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
+        </LanguageProvider>
+      );
 
-      const pauseButton = screen.getByRole('button', { name: /pause game/i });
+      const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
       const pauseWrapper = pauseButton.parentElement;
 
       expect(pauseWrapper).toBeInTheDocument();

@@ -114,7 +114,18 @@ export class MetricsStorage {
 
     try {
       const playerId = UserSessionService.getPlayerId();
+      const nickname = UserSessionService.getNickname();
       const isAnonymous = playerId.startsWith('anon-');
+
+      // Log detailed state for debugging
+      Logger.info('[MetricsStorage] Attempting sync with player state', {
+        playerId: isAnonymous ? 'anonymous' : playerId.substring(0, 8) + '...',
+        hasNickname: !!nickname,
+        isAnonymous,
+        sessionId: session.sessionId,
+        survivalTimeMs: session.player.survivalTimeMs,
+        totalKills: session.player.totalKills,
+      });
 
       // Session data to save
       const sessionData = {
@@ -201,7 +212,7 @@ export class MetricsStorage {
         gameSession?.id ?? session.serverSessionId ?? session.sessionId;
 
       // 1b. Enqueue for server-side verification (rewards & anti-cheat)
-      const nickname = UserSessionService.getNickname();
+      // nickname is already declared above at the start of syncToSupabase
       if (nickname) {
         void VerificationQueue.enqueue(
           {

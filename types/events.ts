@@ -114,6 +114,7 @@ export interface CritHitEvent {
   isSuperCrit: boolean;
   x: number;
   y: number;
+  count?: number;
 }
 
 /** Player hit event data */

@@ -19,6 +19,8 @@ import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
 import { audio } from '../../services/AudioService';
 import { HubMenuButton, type HubButtonId } from './HubMenuButton';
+import { useLanguage } from '../../contexts/LanguageContext';
+
 import { HubPlayerCard } from './HubPlayerCard';
 import { LootboxService } from '../../services/lootbox';
 import { InventoryService } from '../../services/inventory';
@@ -52,7 +54,9 @@ interface HubButtonConfig {
 
 export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate }) => {
   const { isRetro } = useTheme();
+  const { t } = useLanguage();
   const [selectedIndex, setSelectedIndex] = useState(0);
+
   const [lootboxCount, setLootboxCount] = useState(0);
   const [consumableCount, setConsumableCount] = useState(0);
 
@@ -83,9 +87,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             isAnimated
           />
         ),
-        title: 'PLAY',
-        getSubtitle: () => 'Start Game',
+        title: t('hub.play'),
+        getSubtitle: () => t('hub.play_subtitle'),
         getBadge: () => 0,
+
         accentColor: COLORS.PUMP_GREEN,
         screen: 'play',
       },
@@ -99,9 +104,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             isAnimated
           />
         ),
-        title: 'STASH',
-        getSubtitle: () => `Items: ${consumableCount}`,
+        title: t('hub.stash'),
+        getSubtitle: () => t('hub.stash_subtitle', { count: consumableCount }),
         getBadge: () => 0,
+
         accentColor: COLORS.WHALE,
         screen: 'stash',
         disabled: true,
@@ -116,9 +122,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             isAnimated
           />
         ),
-        title: 'LOOT',
-        getSubtitle: () => (lootboxCount > 0 ? 'Open Crates!' : 'No Crates'),
+        title: t('hub.loot'),
+        getSubtitle: () =>
+          lootboxCount > 0 ? t('hub.loot_subtitle') : t('hub.no_crates'),
         getBadge: () => lootboxCount,
+
         accentColor: COLORS.CASINO_GOLD,
         screen: 'loot',
         disabled: true,
@@ -133,9 +141,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             isAnimated
           />
         ),
-        title: 'SKINS',
-        getSubtitle: () => 'Customize',
+        title: t('hub.skins'),
+        getSubtitle: () => t('hub.skins_subtitle'),
         getBadge: () => 0,
+
         accentColor: '#9945FF',
         screen: 'skins',
         disabled: true,
@@ -150,9 +159,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             isAnimated
           />
         ),
-        title: 'RANKS',
-        getSubtitle: () => 'Leaderboard',
+        title: t('hub.ranks'),
+        getSubtitle: () => t('hub.ranks_subtitle'),
         getBadge: () => 0,
+
         accentColor: COLORS.NEON_ORANGE,
         screen: 'ranks',
         disabled: true,
@@ -167,14 +177,15 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             isAnimated
           />
         ),
-        title: 'GEAR',
-        getSubtitle: () => 'Settings',
+        title: t('hub.gear'),
+        getSubtitle: () => t('hub.gear_subtitle'),
         getBadge: () => 0,
+
         accentColor: '#64748b',
         screen: 'gear',
       },
     ],
-    [consumableCount, lootboxCount, iconClass, isRetro]
+    [consumableCount, lootboxCount, iconClass, isRetro, t]
   );
 
   // Keyboard navigation
@@ -349,9 +360,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             uppercase tracking-widest
           `}
         >
-          {isRetro
-            ? '[WASD] MOVE   [ENTER] SELECT'
-            : 'wasd to navigate • enter to select'}
+          {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
         </motion.div>
       </div>
     </div>

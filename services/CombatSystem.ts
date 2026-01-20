@@ -92,7 +92,7 @@ export class CombatSystem implements ICombatSystem {
   }
 
   /**
-   * Search for the nearest on-screen enemy to the player using spatial filtering.
+   * Search for the nearest on-screen enemy to the player.
    * Uses squared distance calculation for optimal loop performance.
    *
    * @private
@@ -103,38 +103,52 @@ export class CombatSystem implements ICombatSystem {
     screenWidth?: number,
     screenHeight?: number
   ): NearestEnemy | null {
+    // Cache viewport bounds calculation to avoid redundant math in the loop
     const viewportBounds =
-      screenWidth && screenHeight
+      screenWidth !== undefined && screenHeight !== undefined
         ? createViewportBounds(screenWidth, screenHeight, 0)
         : null;
 
-    let bestEnemy: { x: number; y: number; distSq: number; speed: number } | null =
+    let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
       null;
 
-    for (const enemy of pool.activeEnemies) {
-      // Ignore enemies that are outside the current view to avoid "blind" shooting
+    // Direct iteration over all active enemies.
+    const enemies = pool.activeEnemies;
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i]!;
+
+      // Skip dead or dying enemies
+      if (enemy.isDying || !enemy.active) {
+        continue;
+      }
+
+      // Optimized viewport check - only calculate if bounds exist
+      // This ensures we only target "rendered" or visible enemies
       if (viewportBounds) {
         const enemyRadius = enemy.radius || COMBAT.DEFAULT_ENEMY_RADIUS_FALLBACK;
+        // Strict visibility check: ensuring the enemy is actually within the play area
         if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
           continue;
         }
       }
 
+      // Use squared distance to avoid Math.sqrt() in the hot loop
       const dx = enemy.x - player.x;
       const dy = enemy.y - player.y;
       const distSq = dx * dx + dy * dy;
 
-      if (!bestEnemy || distSq < bestEnemy.distSq) {
-        bestEnemy = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+      // Update best candidate if this enemy is closer than the previous best
+      if (!bestCandidate || distSq < bestCandidate.distSq) {
+        bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
       }
     }
 
-    if (bestEnemy) {
+    if (bestCandidate) {
       return {
-        x: bestEnemy.x,
-        y: bestEnemy.y,
-        dist: Math.sqrt(bestEnemy.distSq),
-        speed: bestEnemy.speed,
+        x: bestCandidate.x,
+        y: bestCandidate.y,
+        dist: Math.sqrt(bestCandidate.distSq), // Only one square root per fire cycle
+        speed: bestCandidate.speed,
       };
     }
 
@@ -210,7 +224,7 @@ export class CombatSystem implements ICombatSystem {
 
   /**
    * Predicts where a target will be when a projectile arrives.
-   * Solves a quadratic intercept equation for moving points.
+   * Optimized with cached calculations and early returns.
    *
    * @private
    */
@@ -218,24 +232,37 @@ export class CombatSystem implements ICombatSystem {
     player: Player,
     target: NearestEnemy
   ): { x: number; y: number } {
-    // Vector analysis of enemy movement relative to player
+    // Cache frequently used values
     const distSafe = target.dist || 1;
+    const bulletSpeed = GAME_ENGINE.BULLET_SPEED;
+
+    // Early return for very close targets (no prediction needed)
+    if (distSafe < COMBAT.MIN_LEAD_DISTANCE) {
+      return { x: target.x, y: target.y };
+    }
+
+    // Vector analysis of enemy movement relative to player
     const enemyVx = ((player.x - target.x) / distSafe) * target.speed;
     const enemyVy = ((player.y - target.y) / distSafe) * target.speed;
 
     const relX = target.x - player.x;
     const relY = target.y - player.y;
-    const bulletSpeed = GAME_ENGINE.BULLET_SPEED;
 
     // Quadratic intercept: |P + V*t| = B*t
-    const a = enemyVx * enemyVx + enemyVy * enemyVy - bulletSpeed * bulletSpeed;
+    const enemySpeedSq = enemyVx * enemyVx + enemyVy * enemyVy;
+    const bulletSpeedSq = bulletSpeed * bulletSpeed;
+    const a = enemySpeedSq - bulletSpeedSq;
     const b = 2 * (relX * enemyVx + relY * enemyVy);
     const c = relX * relX + relY * relY;
 
     let interceptTime = 0;
-    if (Math.abs(a) < COMBAT.INTERCEPT_EPSILON) {
-      if (Math.abs(b) > COMBAT.INTERCEPT_EPSILON) {
-        interceptTime = -c / b;
+    const epsilon = COMBAT.INTERCEPT_EPSILON;
+
+    // Optimized quadratic solution with early returns
+    if (Math.abs(a) < epsilon) {
+      // Linear case: a ≈ 0
+      if (Math.abs(b) > epsilon) {
+        interceptTime = Math.max(0, -c / b);
       }
     } else {
       const discriminant = b * b - 4 * a * c;
@@ -243,6 +270,8 @@ export class CombatSystem implements ICombatSystem {
         const sqrtD = Math.sqrt(discriminant);
         const t1 = (-b - sqrtD) / (2 * a);
         const t2 = (-b + sqrtD) / (2 * a);
+
+        // Choose the smallest positive time
         if (t1 > 0 && t2 > 0) {
           interceptTime = Math.min(t1, t2);
         } else if (t1 > 0) {
@@ -253,18 +282,21 @@ export class CombatSystem implements ICombatSystem {
       }
     }
 
-    // Lead Factor: Smooths prediction transition based on distance
+    // Clamp to reasonable limits and apply lead factor
+    const maxTime = COMBAT.MAX_INTERCEPT_TIME_FRAMES;
+    interceptTime = Math.max(0, Math.min(interceptTime, maxTime));
+
+    // Smooth lead factor based on distance
     const leadFactor = Math.min(
       1,
       Math.max(
         0,
-        (target.dist - COMBAT.MIN_LEAD_DISTANCE) /
+        (distSafe - COMBAT.MIN_LEAD_DISTANCE) /
           (COMBAT.MAX_LEAD_DISTANCE - COMBAT.MIN_LEAD_DISTANCE)
       )
     );
 
-    interceptTime =
-      Math.min(interceptTime, COMBAT.MAX_INTERCEPT_TIME_FRAMES) * leadFactor;
+    interceptTime *= leadFactor;
 
     return {
       x: target.x + enemyVx * interceptTime,

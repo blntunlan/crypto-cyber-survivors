@@ -59,6 +59,7 @@ describe('GameHUD', () => {
       regen: 0,
       dodge: 0,
       lifesteal: 0,
+      invulnerabilityTimer: 0,
     };
   });
 
@@ -76,7 +77,7 @@ describe('GameHUD', () => {
 
     // In the new decoupled architecture, streak and multiplier are updated via DOM
     // We check if the elements exist with correct IDs
-    expect(screen.getByText('COMBO')).toBeInTheDocument();
+    expect(screen.getByText('hud.combo')).toBeInTheDocument();
     expect(document.getElementById('combo-streak-count')).toBeInTheDocument();
     expect(document.getElementById('combo-multiplier-badge')).toBeInTheDocument();
     expect(document.getElementById('combo-timer-bar')).toBeInTheDocument();
@@ -98,6 +99,8 @@ describe('GameHUD', () => {
     const milestoneText = screen.getByText(/KILLING SPREE/i);
     expect(milestoneText).toBeInTheDocument();
     // Use rgb value to match JSDOM expectation
+    // Note: The actual component likely renders white text or uses the prop color.
+    // If previous tests passed with white, we keep it, otherwise potentially update if color logic changed.
     expect(milestoneText).toHaveStyle({ color: 'rgb(255, 255, 255)' });
 
     act(() => {
@@ -129,20 +132,20 @@ describe('GameHUD', () => {
       rerender(<GameHUD status={GameStatus.PLAYING} player={recoveredPlayer} />);
     });
 
-    expect(screen.getByText('CLUTCH!')).toBeInTheDocument();
+    expect(screen.getByText('hud.clutch')).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(2100);
     });
 
-    expect(screen.queryByText('CLUTCH!')).not.toBeInTheDocument();
+    expect(screen.queryByText('hud.clutch')).not.toBeInTheDocument();
   });
 
   it('should display the wave timer container', () => {
     const startTime = Date.now() - 65000; // 65 seconds ago
     render(<GameHUD status={GameStatus.PLAYING} sessionStartTime={startTime} />);
 
-    expect(screen.getByText(/Survival Time/i)).toBeInTheDocument();
+    expect(screen.getByText('hud.survival_time')).toBeInTheDocument();
     expect(document.getElementById('wave-timer-text')).toBeInTheDocument();
   });
 

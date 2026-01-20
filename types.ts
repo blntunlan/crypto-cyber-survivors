@@ -1,4 +1,5 @@
 import { type CryptoPair } from './types/crypto';
+export type { CryptoPair };
 
 // Re-export GameMode types
 export {
@@ -56,6 +57,7 @@ export interface MarketData {
 
 export interface Entity {
   active: boolean; // For Pooling
+  poolIndex?: number; // Internal tracking for O(1) release
   x: number;
   y: number;
   radius: number;
@@ -98,6 +100,7 @@ export interface Enemy extends Entity {
   damageBufferTimer?: number;
   damageBufferIsCrit?: boolean;
   damageBufferIsSuperCrit?: boolean;
+  damageBufferCritCount?: number; // Number of crits in this stack
 }
 
 export interface Bullet extends Entity {
@@ -174,6 +177,7 @@ export interface GameState {
   critFlashColor: string;
   currentBg: { r: number; g: number; b: number };
   lastTime: number;
+  bgUpdateFrameCounter: number; // Frame counter for background optimization
 
   levelUpFreeze: number;
   isDashing: boolean;

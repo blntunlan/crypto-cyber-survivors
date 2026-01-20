@@ -10,6 +10,7 @@ import { BuffManager } from '../../services/patterns/decorators/BuffManager';
 import { EventBus } from '../../services/EventBus';
 import { GameStatus } from '../../types';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ActiveEffect {
   id: string;
@@ -80,6 +81,7 @@ interface BuffItemProps {
 }
 
 const BuffItem: React.FC<BuffItemProps> = ({ effect, isSmallDevice = false }) => {
+  const { t } = useLanguage();
   const remainingSeconds = effect.isPermanent
     ? null
     : Math.ceil(effect.remainingMs / 1000);
@@ -115,7 +117,9 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect, isSmallDevice = false }) =>
         <span
           className={`text-xs md:text-sm font-medium ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
         >
-          {effect.name}
+          {t(`hud.buffs.${effect.name.toLowerCase().replace(/ /g, '_')}`, {
+            defaultValue: effect.name,
+          })}
         </span>
       )}
 

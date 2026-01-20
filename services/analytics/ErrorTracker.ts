@@ -549,13 +549,13 @@ export class ErrorTracker {
         error_message: report.errorMessage,
         stack_trace: report.stackTrace,
         user_agent: report.userAgent,
-        url: report.url,
         device_fingerprint: report.deviceFingerprint,
         severity: report.severity,
         category: report.category,
         fingerprint: report.fingerprint,
         context: {
           ...report.context,
+          url: report.url, // Moved here since column doesn't exist in table
           viewport: report.viewport,
           nickname: report.nickname,
           gameContext: report.gameContext,

@@ -106,6 +106,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     critFlashColor: COLORS.CRIT,
     currentBg: { r: 2, g: 6, b: 23 },
     lastTime: 0,
+    bgUpdateFrameCounter: 0, // Add frame counter for background updates
 
     levelUpFreeze: 0,
     isDashing: false,
@@ -316,6 +317,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   const update = useCallback(
     (time: number) => {
+      const frameStart = performance.now();
+      FPSMonitor.tick();
       const s = state.current;
       const player = playerRef.current;
       const p = pool.current;
@@ -333,7 +336,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       const dtFactor = (deltaTime / GAME_ENGINE.TARGET_FRAME_TIME) * timeScale;
       s.lastTime = time;
-      FPSMonitor.tick();
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
       if (status !== GameStatus.MENU) {
@@ -358,7 +360,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           if (s.levelUpFreeze <= 0) {
             onLevelUp();
           }
-          // During freeze, we still want to draw but not update physics
+          // During freeze, skip physics updates but still draw
           draw();
           requestRef.current = requestAnimationFrame(update);
           return;
@@ -367,8 +369,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Handle Hit Stop (freeze frame on impact)
         if (s.hitStopTimer > 0) {
           s.hitStopTimer -= deltaTime;
-          // During hit stop: still draw, but skip physics updates
-          // This creates the "freeze frame" impact feel
+          // During hit stop: skip physics updates but still draw
           draw();
           requestRef.current = requestAnimationFrame(update);
           return;
@@ -457,16 +458,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // I will target the MetricsService block specifically, and then the updatePlayerStats block specifically.
 
         // Skipping dash logic lines for the tool call... see next tool call for PlayerStats throttling.
-        if (hpPercent < 25) {
-          const urgency = 1 - hpPercent / 25;
-          // Pulse intervals: 1000ms (start) -> 400ms (near death)
-          const interval = 1000 - urgency * 600;
-
-          if (time - s.lastHeartbeatTime > interval) {
-            audio.playHeartbeat();
-            s.lastHeartbeatTime = time;
-          }
-        }
 
         // Dash Logic Timers
         if (s.dashTimer > 0) {
@@ -629,30 +620,35 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Calculate target background based on PnL
         // On mobile, we increase the floor values to prevent the screen from being too dark at low brightness
         const minVal = device.isMobile ? 12 : 2;
-        const targetBg =
-          marketDataRef.current.pnl >= 0
-            ? {
-                r: minVal,
-                g: lerp(minVal + 4, 45, Math.min(1, marketDataRef.current.pnl * 20)),
-                b: minVal + 8,
-              }
-            : {
-                r: lerp(
-                  minVal,
-                  45,
-                  Math.min(
-                    1,
-                    Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
-                  )
-                ),
-                g: minVal,
-                b: minVal,
-              };
 
-        const bgLerpFactor = 1 - Math.pow(GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
-        s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
-        s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
-        s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
+        // Only update background every 3 frames to optimize performance
+        s.bgUpdateFrameCounter = (s.bgUpdateFrameCounter + 1) % 3;
+        if (s.bgUpdateFrameCounter === 0) {
+          const targetBg =
+            marketDataRef.current.pnl >= 0
+              ? {
+                  r: minVal,
+                  g: lerp(minVal + 4, 45, Math.min(1, marketDataRef.current.pnl * 20)),
+                  b: minVal + 8,
+                }
+              : {
+                  r: lerp(
+                    minVal,
+                    45,
+                    Math.min(
+                      1,
+                      Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
+                    )
+                  ),
+                  g: minVal,
+                  b: minVal,
+                };
+
+          const bgLerpFactor = 1 - Math.pow(GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
+          s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
+          s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
+          s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
+        }
 
         // Combat System - Auto Fire (only targets on-screen enemies)
         combatSystem.current.processAutoFire(p, player, s, deltaTime, width, height);
@@ -709,6 +705,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
 
         // Update Physics & Collisions
+        const physStart = performance.now();
         physicsSystem.current.updateEntities(p, dtFactor, width, height, player);
         physicsSystem.current.handleCollisions(
           p,
@@ -719,6 +716,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           height,
           onGameOver
         );
+        FPSMonitor.recordPhysics(performance.now() - physStart);
 
         // Only update React state if meaningful stats changed AND enough time passed (Throttle 100ms)
         // Exception: Always update immediately on Level Up
@@ -739,12 +737,26 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           };
         }
 
+        // PERF: Report Entity Counts to Monitor
+        FPSMonitor.updateInternalCounts(
+          p.activeEnemies.length,
+          p.activeBullets.length,
+          p.activeParticles.length
+        );
+
         p.cleanup(); // Consolidate inactive objects
       }
 
+      const updateEnd = performance.now();
+      FPSMonitor.recordUpdate(updateEnd - frameStart);
+
+      const renderStart = performance.now();
       draw();
+      FPSMonitor.recordRender(performance.now() - renderStart);
+
       requestRef.current = requestAnimationFrame(update);
     },
+
     [
       status,
       width,

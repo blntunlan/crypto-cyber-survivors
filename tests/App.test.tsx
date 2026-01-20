@@ -143,6 +143,15 @@ vi.mock('../hooks/useMarketTimeout', () => ({
   useMarketTimeout: vi.fn(),
 }));
 
+vi.mock('../contexts/LanguageContext', () => ({
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => children,
+  useLanguage: () => ({
+    language: 'en',
+    setLanguage: vi.fn(),
+    t: (key: string) => key,
+  }),
+}));
+
 vi.mock('../hooks/useMarketData', () => ({
   useMarketData: () => ({
     marketData: {

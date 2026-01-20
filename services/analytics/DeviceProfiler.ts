@@ -94,7 +94,7 @@ export class DeviceProfiler {
           browser: profile.userAgent.substring(0, 64),
           screen_width: profile.screenWidth,
           screen_height: profile.screenHeight,
-          device_pixel_ratio: profile.pixelRatio,
+          pixel_ratio: profile.pixelRatio,
           gpu_renderer: profile.gpu,
           hardware_concurrency: profile.cores,
           device_memory: profile.memory,

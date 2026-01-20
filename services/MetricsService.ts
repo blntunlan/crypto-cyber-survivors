@@ -391,17 +391,22 @@ export class MetricsServiceClass {
   /**
    * Increments damage metrics.
    */
-  public trackDamageDealt(amount: number, isCrit: boolean, isSuperCrit: boolean): void {
+  public trackDamageDealt(
+    amount: number,
+    isCrit: boolean,
+    isSuperCrit: boolean,
+    count: number = 1
+  ): void {
     if (!this.state?.isActive) {
       return;
     }
 
     this.state.totalDamageDealt += amount;
     if (isCrit) {
-      this.state.totalCrits++;
+      this.state.totalCrits += count;
     }
     if (isSuperCrit) {
-      this.state.totalSuperCrits++;
+      this.state.totalSuperCrits += count;
     }
   }
 
@@ -735,7 +740,7 @@ export class MetricsServiceClass {
 
     this.eventUnsubscribers.push(
       EventBus.on('critHit', data => {
-        this.trackDamageDealt(data.damage, true, data.isSuperCrit);
+        this.trackDamageDealt(data.damage, true, data.isSuperCrit, data.count ?? 1);
       })
     );
 

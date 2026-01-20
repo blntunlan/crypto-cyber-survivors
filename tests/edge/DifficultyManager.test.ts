@@ -61,10 +61,11 @@ describe('DifficultyManager Edge Cases', () => {
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
       DifficultyManager.startGame();
 
-      // New Cycle: warmup(45) -> buildup(60) -> firstPeak(30) -> breather(45) ->
-      //            escalation(60) -> climax(45) -> resolution(15) = 300s total
-      // Jump to 310s should be 10s into warmup of cycle 2
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
+      // Actual durations from GameConfig: warmup(25) -> buildup(60) -> firstPeak(30) -> breather(45) ->
+      //            escalation(60) -> climax(45) -> resolution(15) = 280s total
+      // Jump to 305s: 305 % 280 = 25s into cycle 2, which is exactly at buildup start
+      // Jump to 290s: 290 % 280 = 10s into cycle 2, which is in warmup (0-25s)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(290);
       DifficultyManager.calculate(0, 0, 1, 100); // Triggers sync
       expect(DifficultyManager.getWavePhase()).toBe('warmup');
     });

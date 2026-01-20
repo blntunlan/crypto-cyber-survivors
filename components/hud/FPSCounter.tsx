@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/ScreenService';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 /**
  * FPSCounter - Development-only FPS display
@@ -8,33 +9,39 @@ import { screenService } from '../../services/ScreenService';
  * from the parent's RAF loop using the ID 'fps-counter'
  */
 
-const DesktopFPS: React.FC = () => (
-  <div
-    className="absolute left-2 z-[110]"
-    style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
-  >
+const DesktopFPS: React.FC = () => {
+  const { t } = useLanguage();
+  return (
     <div
-      id="fps-counter"
-      className="px-2 py-1 rounded text-[10px] font-stats font-bold bg-green-500/80 text-white shadow-lg"
+      className="absolute left-2 z-[110]"
+      style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
     >
-      -- FPS
+      <div
+        id="fps-counter"
+        className="px-2 py-1 rounded text-[10px] font-stats font-bold bg-green-500/80 text-white shadow-lg"
+      >
+        {t('hud.fps_formatted', { val: '--' })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-const MobileFPS: React.FC = () => (
-  <div
-    className="absolute left-4 z-[110]"
-    style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
-  >
+const MobileFPS: React.FC = () => {
+  const { t } = useLanguage();
+  return (
     <div
-      id="fps-counter"
-      className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white"
+      className="absolute left-4 z-[110]"
+      style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
     >
-      -- FPS
+      <div
+        id="fps-counter"
+        className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white"
+      >
+        {t('hud.fps_formatted', { val: '--' })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const FPSCounter: React.FC = memo(() => {
   const [isMobile, setIsMobile] = useState(screenService.isMobile());

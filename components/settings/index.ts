@@ -11,4 +11,5 @@ export { GraphicsSection } from './GraphicsSection';
 export { MobileSection } from './MobileSection';
 export { ControlsSection } from './ControlsSection';
 export { ToggleButton } from './ToggleButton';
+export { LanguageSection } from './LanguageSection';
 export type { ToggleButtonProps } from './ToggleButton';

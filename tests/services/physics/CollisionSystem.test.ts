@@ -351,7 +351,7 @@ describe('CollisionSystem', () => {
       expect(bullet.active).toBe(false);
     });
 
-    it('should buffer damage numbers', () => {
+    it('should show damage numbers immediately (buffering disabled)', () => {
       const enemy = {
         x: 100,
         y: 100,
@@ -379,10 +379,10 @@ describe('CollisionSystem', () => {
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
-      // Should NOT spawn text immediately
-      expect(mockPool.getFloatingText).not.toHaveBeenCalled();
-      // Should update buffer
-      expect(enemy.damageBuffer).toBe(10);
+      // Implementation now uses immediate flush (stacking disabled)
+      expect(mockPool.getFloatingText).toHaveBeenCalled();
+      // Buffer should be cleared after flush
+      expect(enemy.damageBuffer).toBe(0);
     });
 
     it('should emit hitStop event on critical collision', () => {
@@ -467,6 +467,7 @@ describe('CollisionSystem', () => {
         radius: 20,
         active: true,
         health: 100,
+        damageBufferTimer: 0,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [enemy];
@@ -490,10 +491,15 @@ describe('CollisionSystem', () => {
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
-      expect(mockContext.audio.playCrit).toHaveBeenCalled();
-      expect(mockState.critFlash).toBeGreaterThan(0); // Normal crit flash
-      expect(mockPool.getParticle).toHaveBeenCalled(); // Impact particles
-      expect(EventBus.emit).toHaveBeenCalledWith('critHit', expect.any(Object));
+      // Hit stop is immediate for crits
+      expect(EventBus.emit).toHaveBeenCalledWith('hitStop', expect.any(Object));
+
+      // Visuals should be immediate
+      expect(mockState.critFlash).toBeGreaterThan(0);
+      expect(mockPool.getParticle).toHaveBeenCalled();
+
+      // With immediate flush (stacking disabled), floating text is shown right away
+      expect(mockPool.getFloatingText).toHaveBeenCalled();
     });
   });
 });

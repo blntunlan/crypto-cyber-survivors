@@ -3,12 +3,13 @@ import { Logger } from './Logger';
 import { EventBus } from './EventBus';
 import { type MarketStateUpdatedEvent } from '../types/events';
 import { type RealtimeChannel } from '@supabase/supabase-js';
+import { type CryptoPair } from '../types';
 
 export type MarketState = MarketStateUpdatedEvent;
 
 type RsiState = 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
 
-const STALE_THRESHOLD_MS = 15000; // 15 seconds
+const STALE_THRESHOLD_MS = 15000; // 15 seconds - reduced from 30s per user feedback
 
 class MarketStateServiceClass {
   private static instance: MarketStateServiceClass | null = null;
@@ -16,6 +17,7 @@ class MarketStateServiceClass {
   private subscription: RealtimeChannel | null = null;
   private lastUpdate: number = Date.now();
   private stalenessTimer: ReturnType<typeof setInterval> | null = null;
+  private isStale: boolean = false;
 
   static getInstance(): MarketStateServiceClass {
     return (MarketStateServiceClass.instance ??= new MarketStateServiceClass());
@@ -39,7 +41,24 @@ class MarketStateServiceClass {
           payload => {
             const row = payload.new as Record<string, unknown> | null;
             if (row && typeof row.pair === 'string') {
-              this.lastUpdate = Date.now();
+              const now = Date.now();
+              const wasStale = this.isStale;
+              this.lastUpdate = now;
+              this.isStale = false;
+
+              if (wasStale) {
+                Logger.info(
+                  `[MarketState] Data recovered after ${((now - this.lastUpdate) / 1000).toFixed(1)}s`
+                );
+
+                // Map pair string to CryptoPair type
+                let cryptoPair: CryptoPair = 'BTC';
+                if (row.pair.includes('ETH')) cryptoPair = 'ETH';
+                if (row.pair.includes('SOL')) cryptoPair = 'SOL';
+
+                EventBus.emit('marketDataRecovered', { pair: cryptoPair });
+              }
+
               // Map snake_case from DB to camelCase for Event
               const pair = row.pair;
               const mappedState: MarketState = {
@@ -77,7 +96,8 @@ class MarketStateServiceClass {
     const now = Date.now();
     const elapsed = now - this.lastUpdate;
 
-    if (elapsed > STALE_THRESHOLD_MS) {
+    if (elapsed > STALE_THRESHOLD_MS && !this.isStale) {
+      this.isStale = true;
       Logger.warn(`[MarketState] Data is stale! (${(elapsed / 1000).toFixed(1)}s)`);
       EventBus.emit('marketDataTimeout', {
         lastPriceTime: this.lastUpdate,
