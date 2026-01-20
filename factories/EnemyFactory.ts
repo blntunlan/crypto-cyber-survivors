@@ -64,57 +64,45 @@ export class EnemyFactory {
     difficulty: number,
     position: MarketPosition,
     aggroMultiplier: number = 1.0,
+    damageMultiplier: number = 1.0,
     target?: GameEnemy
   ): GameEnemy {
     const config = (ENEMY_DEFINITIONS[type as EnemyId] ??
       ENEMY_DEFINITIONS['bear']) as EnemyConfig;
 
-    // Determine color based on position (enemies serve as market opposition)
-    // Rule: If Player is LONG (Green), Enemies should be RED tones.
-    //       If Player is SHORT (Red), Enemies should be GREEN tones.
+    // ... (color logic remains the same)
     let color = config.color;
 
-    // FUD and Whale keep their identity colors
     const preserveIdentity = type === 'fud' || type === 'whale';
 
     if (!preserveIdentity) {
       if (position === MarketPosition.LONG) {
-        // Player is Green -> Enemies must be Red/Orange
         if (type === 'liquidator' || type === 'pumpdump') {
-          color = COLORS.DUMP_ORANGE; // Distinct Red-ish tone for specials
+          color = COLORS.DUMP_ORANGE;
         } else {
-          color = COLORS.SHORT; // Standard Red
+          color = COLORS.SHORT;
         }
       } else {
-        // Player is Red -> Enemies must be Green/Lime
         if (type === 'liquidator' || type === 'pumpdump') {
-          color = COLORS.PUMP_GREEN; // Distinct Green-ish tone for specials
+          color = COLORS.PUMP_GREEN;
         } else {
-          color = COLORS.LONG; // Standard Green
+          color = COLORS.LONG;
         }
       }
     } else if (config.isOppositeColor) {
-      // Fallback for strict opposites defined in registry
       color = position === MarketPosition.LONG ? COLORS.SHORT : COLORS.LONG;
     }
 
-    // Apply difficulty to speed with softer scaling (25% effect instead of 100%)
-    // This reduces the extreme speed gap between easy (0.3 diff) and hard (8.0 diff)
-    // Old: 0.3x - 8.0x range | New: 0.825x - 2.75x range
     const speedDifficultyMult = 1 + (difficulty - 1) * 0.25;
     const baseSpeed = config.baseSpeed * speedDifficultyMult;
     const modifiedSpeed = baseSpeed * aggroMultiplier;
 
-    // Determine movement behavior based on aggro level
     let behavior: MovementStrategy;
     if (aggroMultiplier >= 1.3) {
-      // High aggro (OVERBOUGHT for LONG, OVERSOLD for SHORT) - aggressive zigzag
       behavior = createMarketMovementStrategy('zigzag');
     } else if (aggroMultiplier <= 0.8) {
-      // Low aggro (OVERSOLD for LONG, OVERBOUGHT for SHORT) - easy straight movement
       behavior = createMarketMovementStrategy('straight');
     } else {
-      // Neutral - use default type-based behavior
       behavior = createMovementStrategy(type);
     }
 
@@ -127,6 +115,7 @@ export class EnemyFactory {
     enemyObj.radius = config.radius;
     enemyObj.health = config.baseHealth * (1 + (difficulty - 1) * 0.2);
     enemyObj.maxHealth = config.baseHealth * (1 + (difficulty - 1) * 0.2);
+    enemyObj.damage = config.baseDamage * damageMultiplier;
     enemyObj.speed = modifiedSpeed;
     enemyObj.color = color;
     enemyObj.behavior = behavior;
@@ -135,7 +124,6 @@ export class EnemyFactory {
     enemyObj.isDying = false;
     enemyObj.deathProgress = 0;
     enemyObj.hasTriggeredNearMiss = false;
-    // Reset buffers and multipliers to prevent leakage from previous pool usage
     enemyObj.damageBuffer = 0;
     enemyObj.damageBufferTimer = 0;
     enemyObj.damageBufferIsCrit = false;
@@ -148,15 +136,14 @@ export class EnemyFactory {
 
   /**
    * Create a random enemy based on spawn weights
-   *
-   * @param aggroMultiplier RSI-based difficulty modifier (>1 = harder, <1 = easier)
    */
   createRandomEnemy(
     x: number,
     y: number,
     difficulty: number,
     position: MarketPosition,
-    aggroMultiplier: number = 1.0
+    aggroMultiplier: number = 1.0,
+    damageMultiplier: number = 1.0
   ): GameEnemy {
     const roll = Math.random() * this.totalWeight;
     let cumulative = 0;
@@ -164,12 +151,27 @@ export class EnemyFactory {
     for (const [type, config] of Object.entries(ENEMY_DEFINITIONS)) {
       cumulative += config.spawnWeight;
       if (roll < cumulative) {
-        return this.createEnemy(type, x, y, difficulty, position, aggroMultiplier);
+        return this.createEnemy(
+          type,
+          x,
+          y,
+          difficulty,
+          position,
+          aggroMultiplier,
+          damageMultiplier
+        );
       }
     }
 
-    // Fallback to bear
-    return this.createEnemy('bear', x, y, difficulty, position, aggroMultiplier);
+    return this.createEnemy(
+      'bear',
+      x,
+      y,
+      difficulty,
+      position,
+      aggroMultiplier,
+      damageMultiplier
+    );
   }
 
   /**

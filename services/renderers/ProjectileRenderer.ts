@@ -1,7 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Bullet } from '../../types';
-import { screenService } from '../ScreenService';
 import { createViewportBounds, isCircleVisible } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
 import { GAME_ENGINE } from '../../constants';
@@ -16,20 +15,10 @@ import { GAME_ENGINE } from '../../constants';
  * 4. Device-aware performance scaling (toggles shadows on mobile).
  */
 export class ProjectileRenderer implements IRenderer {
-  private isMobileDevice: boolean;
-
-  constructor() {
-    this.isMobileDevice = screenService.isMobile();
-  }
+  constructor() {}
 
   /**
    * Primary render loop for projectiles.
-   *
-   * @param ctx - Canvas rendering context
-   * @param pool - Pool manager containing active bullets
-   * @param _state - Global game engine state
-   * @param _player - Player reference
-   * @param opts - Global rendering options
    */
   render(
     ctx: CanvasRenderingContext2D,
@@ -38,95 +27,128 @@ export class ProjectileRenderer implements IRenderer {
     _player: Player,
     opts: RenderOptions
   ): void {
-    // Optimization: Create viewport bounds once per frame
-    // Large padding used because bullets travel fast and we want to avoid popping at edges.
     const bounds = createViewportBounds(
       opts.width,
       opts.height,
       GAME_ENGINE.BULLET_CULLING_PADDING
     );
 
-    pool.activeBullets.forEach(b => {
-      // 1. Frustum Culling
-      if (
-        !isCircleVisible(
-          b.x,
-          b.y,
-          b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
-          bounds
-        )
-      ) {
-        return;
+    const isRetro = ThemeService.isRetro();
+
+    // Cache common values outside loop
+    const superCritColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT;
+    const critColor = GAME_ENGINE.BULLET_COLOR_CRIT;
+    const normalCoreColor = GAME_ENGINE.BULLET_COLOR_CORE;
+
+    // 2. Optimized Rendering Path
+    if (isRetro) {
+      // Group by tier for batching fillStyle in retro mode
+      const superCrits: Bullet[] = [];
+      const crits: Bullet[] = [];
+      const normals: Bullet[] = [];
+
+      pool.activeBullets.forEach(b => {
+        if (
+          !isCircleVisible(
+            b.x,
+            b.y,
+            b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
+            bounds
+          )
+        ) {
+          return;
+        }
+        if (b.isSuperCrit) superCrits.push(b);
+        else if (b.isCrit) crits.push(b);
+        else normals.push(b);
+      });
+
+      // Render Normal
+      if (normals.length > 0) {
+        ctx.fillStyle = normalCoreColor; // Simplified for retro: use tier color or fallback
+        normals.forEach(b => {
+          ctx.fillStyle = b.color; // Some bullets might have unique colors
+          ctx.fillRect(
+            Math.round(b.x - b.radius / 2),
+            Math.round(b.y - b.radius / 2),
+            b.radius,
+            b.radius
+          );
+        });
+        // Actually, many normals might have DIFFERENT colors if we support multiple weapons.
+        // Let's re-batch by color if needed, but for now tier is enough if they share colors.
       }
 
-      // 2. Select Rendering Strategy
-      if (ThemeService.isRetro()) {
-        this.renderRetroProjectile(ctx, b);
-      } else {
-        this.renderCyberpunkProjectile(ctx, b);
+      // Render Crits (usually same color)
+      if (crits.length > 0) {
+        ctx.fillStyle = critColor;
+        crits.forEach(b => {
+          ctx.fillRect(
+            Math.round(b.x - b.radius / 2),
+            Math.round(b.y - b.radius / 2),
+            b.radius,
+            b.radius
+          );
+        });
       }
-    });
 
-    // Final shadow cleanup
-    ctx.shadowBlur = 0;
-  }
-
-  /**
-   * Renders 16-bit style pixel projectiles.
-   * Focuses on performance and visual clarity in high-bullet scenarios.
-   */
-  private renderRetroProjectile(ctx: CanvasRenderingContext2D, b: Bullet): void {
-    ctx.save();
-    ctx.translate(b.x, b.y);
-
-    // No glow in retro for clarity and "sharp" pixel look
-    ctx.shadowBlur = 0;
-
-    const size = b.radius;
-
-    // Tiered coloring for retro squares
-    if (b.isSuperCrit) {
-      ctx.fillStyle = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT;
-    } else if (b.isCrit) {
-      ctx.fillStyle = GAME_ENGINE.BULLET_COLOR_CRIT;
+      // Render Super Crits
+      if (superCrits.length > 0) {
+        ctx.fillStyle = superCritColor;
+        superCrits.forEach(b => {
+          ctx.fillRect(
+            Math.round(b.x - b.radius / 2),
+            Math.round(b.y - b.radius / 2),
+            b.radius,
+            b.radius
+          );
+        });
+      }
     } else {
-      ctx.fillStyle = b.color;
+      pool.activeBullets.forEach(b => {
+        if (
+          !isCircleVisible(
+            b.x,
+            b.y,
+            b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
+            bounds
+          )
+        ) {
+          return;
+        }
+        this.renderCyberpunkProjectile(ctx, b, normalCoreColor, superCritColor);
+      });
     }
 
-    // Draw centered pixel square
-    ctx.fillRect(-size / 2, -size / 2, size, size);
-
-    ctx.restore();
+    if (!isRetro) {
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1.0;
+    }
   }
 
   /**
-   * Renders high-fidelity "laser bolt" style projectiles with neon glows.
+   * Refined "energy bolt" style projectiles with tier-specific designs.
+   * Now accepts cached colors to avoid property lookups.
    */
-  private renderCyberpunkProjectile(ctx: CanvasRenderingContext2D, b: Bullet): void {
-    // 1. Determine Visual Tier Properties
-    let glowColor = b.color;
-    let coreColor = GAME_ENGINE.BULLET_COLOR_CORE;
+  private renderCyberpunkProjectile(
+    ctx: CanvasRenderingContext2D,
+    b: Bullet,
+    cachedCoreColor: string,
+    superCritGlow: string
+  ): void {
+    // 1. Base Properties
+    const angle = Math.atan2(b.vy, b.vx);
     let lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_NORMAL;
     let widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_NORMAL;
+    let glowColor = b.color;
+    const coreColor = cachedCoreColor;
 
     if (b.isSuperCrit) {
-      glowColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT;
-      coreColor = GAME_ENGINE.BULLET_COLOR_SUPER_CRIT_CORE;
       lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_SUPER_CRIT;
       widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_SUPER_CRIT;
-    } else if (b.isCrit) {
-      glowColor = GAME_ENGINE.BULLET_COLOR_CRIT;
+      glowColor = superCritGlow;
     }
 
-    // 2. Setup Neon Glow (Desktop Only) - Optimized
-    // We disable expensive ctx.shadowBlur and simulate glow with a wider, transparent stroke.
-    // This is much faster for hundreds of projectiles.
-    if (!this.isMobileDevice) {
-      ctx.shadowBlur = 0;
-    }
-
-    // 3. Draw Laser Bolt
-    const angle = Math.atan2(b.vy, b.vx);
     const length = b.radius * lengthMult;
     const width = b.radius * widthMult;
 
@@ -134,37 +156,89 @@ export class ProjectileRenderer implements IRenderer {
     ctx.translate(b.x, b.y);
     ctx.rotate(angle);
 
-    // A. Fake Glow (Wide, very transparent) - The "Blur" replacement
-    if (!this.isMobileDevice) {
+    // 2. Sophisticated Layering
+    if (b.isSuperCrit) {
+      // --- SUPER CRIT: "Railgun-Pulse" Design ---
+      // A slightly wider energy envelope
+      ctx.globalAlpha = 0.2;
       ctx.beginPath();
       ctx.moveTo(-length / 2, 0);
       ctx.lineTo(length / 2, 0);
-      ctx.lineCap = 'round';
-      ctx.lineWidth = width * 4; // Wide glow
-      ctx.strokeStyle = b.isSuperCrit || b.isCrit ? glowColor : `${b.color}40`; // 25% opacity
-      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = width * 5;
+      ctx.strokeStyle = glowColor;
       ctx.stroke();
+
+      // Triple-track energy core
       ctx.globalAlpha = 1.0;
+      ctx.strokeStyle = coreColor;
+      ctx.lineWidth = width * 0.4;
+
+      // Center
+      ctx.beginPath();
+      ctx.moveTo(-length / 2, 0);
+      ctx.lineTo(length / 2, 0);
+      ctx.stroke();
+
+      // Top/Bottom lines for "High Energy" look
+      ctx.beginPath();
+      ctx.moveTo(-length * 0.4, -width);
+      ctx.lineTo(length * 0.4, -width);
+      ctx.moveTo(-length * 0.4, width);
+      ctx.lineTo(length * 0.4, width);
+      ctx.stroke();
+
+      // Pulse Flare at the tip
+      ctx.beginPath();
+      ctx.arc(length / 2, 0, width * 1.8, 0, Math.PI * 2);
+      ctx.fillStyle = coreColor;
+      ctx.fill();
+    } else if (b.isCrit) {
+      // --- CRIT: "Shaped Charge" Design ---
+      // Outer glow body
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = width * 2.5;
+      ctx.strokeStyle = glowColor;
+      ctx.beginPath();
+      ctx.moveTo(-length / 2, 0);
+      ctx.lineTo(length / 2, 0);
+      ctx.stroke();
+
+      // Sharp Core
+      ctx.globalAlpha = 1.0;
+      ctx.lineWidth = width * 0.8;
+      ctx.strokeStyle = coreColor;
+      ctx.beginPath();
+      ctx.moveTo(-length / 2, 0);
+      ctx.lineTo(length * 0.4, 0); // Stops slightly before tip
+      ctx.stroke();
+
+      // Impact Flare
+      ctx.beginPath();
+      ctx.arc(length / 2, 0, width * 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = coreColor;
+      ctx.fill();
+    } else {
+      // --- NORMAL: "Smooth Tracer" Design ---
+      // Transparent Tail
+      const gradient = ctx.createLinearGradient(-length / 2, 0, length / 2, 0);
+      gradient.addColorStop(0, 'transparent');
+      gradient.addColorStop(0.5, `${b.color}80`);
+      gradient.addColorStop(1, b.color);
+
+      ctx.lineWidth = width * 1.5;
+      ctx.strokeStyle = gradient;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-length / 2, 0);
+      ctx.lineTo(length / 2, 0);
+      ctx.stroke();
+
+      // Tiny bright tip
+      ctx.fillStyle = coreColor;
+      ctx.beginPath();
+      ctx.arc(length / 2, 0, width * 0.6, 0, Math.PI * 2);
+      ctx.fill();
     }
-
-    // B. Outer Beam Body
-    ctx.beginPath();
-    ctx.moveTo(-length / 2, 0);
-    ctx.lineTo(length / 2, 0);
-
-    ctx.lineCap = 'round';
-    ctx.lineWidth = width * 1.5;
-    ctx.strokeStyle = b.isSuperCrit || b.isCrit ? glowColor : b.color;
-    ctx.stroke();
-
-    // B. Inner Bright Core (The "hot" part of the laser)
-    ctx.beginPath();
-    ctx.moveTo(-length / 2 + GAME_ENGINE.BULLET_LASER_CORE_OFFSET_START, 0);
-    ctx.lineTo(length / 2 - GAME_ENGINE.BULLET_LASER_CORE_OFFSET_END, 0);
-
-    ctx.lineWidth = width;
-    ctx.strokeStyle = coreColor;
-    ctx.stroke();
 
     ctx.restore();
   }

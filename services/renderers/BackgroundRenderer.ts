@@ -100,64 +100,74 @@ export class BackgroundRenderer implements IRenderer {
     )`;
     ctx.fillRect(0, 0, width, height);
 
-    // 2. Pixel Grid Pattern (Subtle)
-    ctx.strokeStyle = `rgba(${r + 20}, ${g + 20}, ${b + 30}, 0.1)`;
+    // 2. Pixel Grid Pattern (Optimized: Single Draw Call)
+    // 2. Pixel Grid Pattern (Optimized: Single Draw Call)
+    const gridColor = `rgba(${r + 20}, ${g + 20}, ${b + 30}, 0.1)`;
+    ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     const gridSize = GAME_ENGINE.BG_RETRO_GRID_SIZE;
 
+    ctx.beginPath();
     // Vertical grid lines
     for (let x = 0; x < width; x += gridSize) {
-      ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
-      ctx.stroke();
     }
-
     // Horizontal grid lines
     for (let y = 0; y < height; y += gridSize) {
-      ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
-      ctx.stroke();
+    }
+    ctx.stroke();
+
+    // 3. Retro-style candles (Chunky pixels - Optimized: Batch by Color & Alpha)
+    const rounding = GAME_ENGINE.BG_RETRO_CANDLE_ROUNDING;
+    const opacityBase = this.isMobileDevice
+      ? GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_MOBILE
+      : GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_DESKTOP;
+
+    // Group candles by color to minimize fillStyle changes
+    const candlesByColor: Record<string, typeof state.bgCandles> = {};
+    state.bgCandles.forEach(c => {
+      (candlesByColor[c.color] ??= []).push(c);
+    });
+
+    for (const color in candlesByColor) {
+      ctx.fillStyle = color;
+      const group = candlesByColor[color]!;
+
+      // Batch Body
+      group.forEach(c => {
+        const sizeRatio = (c.w / 8) * (c.z ?? 1);
+        ctx.globalAlpha =
+          opacityBase + sizeRatio * GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_STEP;
+
+        const rx = Math.round(c.x / rounding) * rounding;
+        const ry = Math.round(c.y / rounding) * rounding;
+        const rw = Math.max(rounding, Math.round(c.w / rounding) * rounding);
+        const rh = Math.max(rounding * 2, Math.round(c.h / rounding) * rounding);
+
+        ctx.fillRect(rx, ry, rw, rh);
+      });
+
+      // Batch Wicks (drawn with 50% alpha of the body)
+      group.forEach(c => {
+        const sizeRatio = (c.w / 8) * (c.z ?? 1);
+        ctx.globalAlpha =
+          (opacityBase + sizeRatio * GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_STEP) * 0.5;
+
+        const rx = Math.round(c.x / rounding) * rounding;
+        const ry = Math.round(c.y / rounding) * rounding;
+        const rw = Math.max(rounding, Math.round(c.w / rounding) * rounding);
+        const rh = Math.max(rounding * 2, Math.round(c.h / rounding) * rounding);
+
+        const wickX = rx + rw / 2 - 1;
+        ctx.fillRect(wickX, ry - 4, 2, 4);
+        ctx.fillRect(wickX, ry + rh, 2, 4);
+      });
     }
 
-    // 3. Retro-style candles (Chunky pixels)
-    state.bgCandles.forEach(c => {
-      const sizeRatio = (c.w / 8) * (c.z ?? 1); // Changed || to ??
-      const baseOpacity =
-        (this.isMobileDevice
-          ? GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_MOBILE
-          : GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_BASE_DESKTOP) +
-        sizeRatio * GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_STEP;
-
-      ctx.globalAlpha = baseOpacity;
-      ctx.fillStyle = c.color;
-
-      // Depth effect: Blur for back layer (Layer 1)
-      if (c.layer === 1 && !this.isMobileDevice) {
-        ctx.filter = 'blur(1px)';
-      }
-
-      // Round to grid for pixel-perfect look
-      const rounding = GAME_ENGINE.BG_RETRO_CANDLE_ROUNDING;
-      const rx = Math.round(c.x / rounding) * rounding;
-      const ry = Math.round(c.y / rounding) * rounding;
-      const rw = Math.max(rounding, Math.round(c.w / rounding) * rounding);
-      const rh = Math.max(rounding * 2, Math.round(c.h / rounding) * rounding);
-
-      // Chunky candle body
-      ctx.fillRect(rx, ry, rw, rh);
-
-      // Minimalist wick
-      ctx.globalAlpha = baseOpacity * 0.5;
-      const wickX = rx + rw / 2 - 1;
-      ctx.fillRect(wickX, ry - 4, 2, 4);
-      ctx.fillRect(wickX, ry + rh, 2, 4);
-
-      if (c.layer === 1 && !this.isMobileDevice) {
-        ctx.filter = 'none';
-      }
-    });
+    ctx.globalAlpha = 1.0;
   }
 
   /**

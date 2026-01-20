@@ -107,14 +107,7 @@ export class CollisionSystem implements ICollisionSystem {
           enemy.hasEnteredScreen = true;
           enemy.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
-      }
-
-      // 3. Decrement Animation Timers
-      if (
-        enemy.hasEnteredScreen &&
-        enemy.spawnTimer !== undefined &&
-        enemy.spawnTimer > 0
-      ) {
+      } else if (enemy.spawnTimer !== undefined && enemy.spawnTimer > 0) {
         enemy.spawnTimer -= GAME_ENGINE.COLLISION_SPAWN_TIMER_DEC * dtFactor;
       }
 
@@ -131,7 +124,7 @@ export class CollisionSystem implements ICollisionSystem {
       }
 
       // 5. Interaction Checks
-      this.checkPlayerEnemyCollision(pool, player, enemy, state, dtFactor, onGameOver);
+      this.checkPlayerEnemyCollision(pool, player, enemy, state, onGameOver);
       this.processBulletCollisions(
         pool,
         enemy,
@@ -257,7 +250,6 @@ export class CollisionSystem implements ICollisionSystem {
     player: Player,
     enemy: Enemy,
     state: GameState,
-    dtFactor: number,
     onGameOver: () => void
   ): void {
     const dx = player.x - enemy.x;
@@ -299,19 +291,21 @@ export class CollisionSystem implements ICollisionSystem {
         const armorReduction =
           effectiveArmor / (effectiveArmor + GAME_ENGINE.ARMOR_RESISTANCE_FACTOR);
 
-        const damageMultiplier = Math.max(
-          GAME_ENGINE.DAMAGE_MINIMUM_MULTIPLIER,
-          GAME_ENGINE.DAMAGE_REDUCTION_BASE * (1 - armorReduction)
+        const baseDamage = enemy.damage;
+        const finalDamage = Math.max(
+          baseDamage * GAME_ENGINE.DAMAGE_MINIMUM_MULTIPLIER,
+          baseDamage * GAME_ENGINE.DAMAGE_REDUCTION_BASE * (1 - armorReduction)
         );
 
-        // Apply HP loss (scaled by frame time)
-        player.hp -= damageMultiplier * dtFactor;
+        // Apply HP loss (Fixed per hit, not scaled by dtFactor since we use I-Frames)
+        player.hp -= finalDamage;
         player.hp = Math.max(0, player.hp);
 
         // Set I-Frames after taking damage
         player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION;
 
         // Add damage direction indicator (throttled to once every 200ms)
+        /*
         const gameTime = this.ctx.constants.getGameTime();
         const lastInd = state.damageIndicators[state.damageIndicators.length - 1];
         if (!lastInd || gameTime - lastInd.timestamp > 200) {
@@ -321,6 +315,7 @@ export class CollisionSystem implements ICollisionSystem {
             timestamp: gameTime,
           });
         }
+        */
 
         // Visual Feedback
         state.shake = GAME_ENGINE.PLAYER_HIT_SHAKE;

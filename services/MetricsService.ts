@@ -12,8 +12,7 @@ import { EventBus } from './EventBus';
 import { Logger } from './Logger';
 import { type MarketPosition } from '../types';
 import { type CryptoPair } from '../types/crypto';
-import { supabase, isSupabaseConfigured } from './Supabase';
-import { UserSessionService } from './auth/UserSessionService';
+import { EventRecorderService } from './EventRecorderService';
 import { InputLogger } from './InputLogger';
 import { getMetricsConfig, type MetricsConfig } from '../config/MetricsConfig';
 import {
@@ -80,13 +79,15 @@ export class MetricsServiceClass {
    * @param entryPrice - BTC price at start
    * @param leverage - Current game multiplier
    * @param pair - Active crypto asset
+   * @param serverSessionId - Optional session ID from server
    * @returns Generated session ID
    */
   public startSession(
     position: MarketPosition,
     entryPrice: number,
     leverage: number,
-    pair: CryptoPair
+    pair: CryptoPair,
+    serverSessionId?: string
   ): string {
     if (!this.config.enabled) {
       return '';
@@ -97,6 +98,7 @@ export class MetricsServiceClass {
 
     this.state = {
       sessionId,
+      serverSessionId, // Store server-side ID for syncing
       sessionStartTime: now,
       isActive: true,
       lastUpdateTime: now,
@@ -162,37 +164,8 @@ export class MetricsServiceClass {
       position,
       entryPrice,
       leverage,
+      serverSessionId,
     });
-
-    // START SERVER-SIDE SESSION (Async)
-    if (isSupabaseConfigured() && supabase) {
-      void (async () => {
-        try {
-          const nickname = UserSessionService.getNickname();
-          if (!nickname) return;
-
-          const { data, error } = await supabase.functions.invoke('start-session', {
-            body: {
-              userId: nickname,
-              pair,
-              position,
-              leverage,
-            },
-          });
-
-          if (error) {
-            Logger.warn('[Metrics] Failed to start server session', error);
-          } else if (data && this.state?.sessionId === sessionId) {
-            // Only update if state hasn't changed (race condition check)
-            this.state.serverSessionId = data.sessionId;
-            this.state.serverSigningKey = data.signingKey;
-            Logger.info(`[Metrics] Server session established: ${data.sessionId}`);
-          }
-        } catch (err) {
-          Logger.warn('[Metrics] Error starting server session', err);
-        }
-      })();
-    }
 
     return sessionId;
   }
@@ -253,6 +226,18 @@ export class MetricsServiceClass {
 
     const now = Date.now();
     const survivalTime = now - this.state.sessionStartTime;
+    const survivalTimeMs = survivalTime;
+
+    // 1. Get Replay Data
+    const replayResult = EventRecorderService.endSession({
+      finalLevel: finalData.level,
+      totalKills: finalData.totalKills,
+      totalDamageDealt: this.state.totalDamageDealt,
+      totalDamageTaken: this.state.totalDamageTaken,
+      exitPrice: finalData.price,
+      pnlPercent: finalData.pnl,
+      survivalTimeMs,
+    });
 
     // Use MetricsCompiler for standardized report generation
     const session: SessionMetrics = {
@@ -273,6 +258,11 @@ export class MetricsServiceClass {
       card: MetricsCompiler.compileCardMetrics(this.state),
       enemy: MetricsCompiler.compileEnemyMetrics(this.state),
       inputLogs: InputLogger.getInstance().stop(),
+
+      // Replay Data
+      replayData: replayResult?.replayData,
+      replayMetadata: replayResult?.metadata,
+
       performance:
         finalData.avgFps !== undefined
           ? MetricsCompiler.compilePerformanceMetrics({

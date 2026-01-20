@@ -1,6 +1,6 @@
 # 🏛️ Crypto Cyber Survivors - Mimari Doküman
 
-**Tarih**: 2026-01-18  
+**Tarih**: 2026-01-20  
 **Versiyon**: 0.1.0 (Beta)
 
 ---
@@ -14,7 +14,7 @@
 │  │                              React 19 + TypeScript                           │    │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │    │
 │  │  │   App.tsx    │  │  GameEngine  │  │   GameUI     │  │   Screens    │    │    │
-│  │  │  (677 lines) │  │  (Canvas)    │  │  (React HUD) │  │  (Menu etc)  │    │    │
+│  │  │  (~650 lines) │  │  (Canvas)    │  │  (React HUD) │  │  (Menu etc)  │    │    │
 │  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────────────┘    │    │
 │  │         │                 │                 │                               │    │
 │  │         └────────────────┬┴─────────────────┘                               │    │
@@ -63,7 +63,7 @@
 
 ```
 crypto-cyber-survivors/
-├── 📱 App.tsx                 # Ana uygulama (677 satır)
+├── 📱 App.tsx                 # Ana uygulama (~650 satır)
 ├── 📂 components/             # React bileşenleri (68 dosya)
 │   ├── GameEngine.tsx         # Canvas render loop
 │   ├── GameUI.tsx             # React HUD overlay
@@ -122,7 +122,7 @@ crypto-cyber-survivors/
 ### Testing
 | Teknoloji | Kullanım | Coverage |
 |-----------|----------|----------|
-| Vitest | Unit Tests | 1431 tests |
+| Vitest | Unit Tests | 1200+ tests |
 | Playwright | E2E Tests | 72 tests |
 
 ---
@@ -262,7 +262,7 @@ Impact: Code quality
 
 | Metrik | Değer | Hedef |
 |--------|-------|-------|
-| **Unit Tests** | 1431 | 1500+ |
+| **Unit Tests** | 1200+ | 1200+ |
 | **E2E Tests** | 72 | 100+ |
 | **Lint Errors** | 0 | 0 |
 | **Bundle Size** | ~400KB | <500KB |

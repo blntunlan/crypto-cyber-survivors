@@ -39,6 +39,28 @@ vi.mock('../../services/MetricsService', () => ({
 vi.mock('../../services/Logger', () => ({
   Logger: {
     warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/auth/GameSessionService', () => ({
+  GameSessionService: {
+    startSession: vi.fn().mockResolvedValue({
+      sessionId: 'mock-session-id',
+      sessionSecret: 'mock-secret',
+    }),
+  },
+}));
+
+vi.mock('../../services/auth/UserSessionService', () => ({
+  UserSessionService: {
+    getNickname: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/EventRecorderService', () => ({
+  EventRecorderService: {
+    startSession: vi.fn(),
   },
 }));
 
@@ -69,7 +91,7 @@ describe('GameStateManager', () => {
   });
 
   describe('initializeNewGame', () => {
-    it('should initialize new game state and start metrics', () => {
+    it('should initialize new game state and start metrics', async () => {
       const startParams = {
         position: MarketPosition.LONG,
         entryPrice: 50000,
@@ -77,7 +99,7 @@ describe('GameStateManager', () => {
         pair: 'BTC' as const,
       };
 
-      GameStateManager.initializeNewGame(
+      await GameStateManager.initializeNewGame(
         startParams.position,
         startParams.entryPrice,
         startParams.leverage,
@@ -92,11 +114,15 @@ describe('GameStateManager', () => {
         startParams.position,
         startParams.entryPrice,
         startParams.leverage,
-        startParams.pair
+        startParams.pair,
+        'mock-session-id'
       );
 
       // Should emit gameInitialized
-      expect(EventBus.emit).toHaveBeenCalledWith('gameInitialized', startParams);
+      expect(EventBus.emit).toHaveBeenCalledWith('gameInitialized', {
+        ...startParams,
+        sessionId: 'mock-session-id',
+      });
     });
   });
 

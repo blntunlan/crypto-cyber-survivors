@@ -55,7 +55,10 @@ describe('SpawnSystem', () => {
     vi.clearAllMocks();
     spawnSystem = new SpawnSystem();
     (mockPool as any).activeEnemies = [];
-    (marketStateService.getState as any).mockReturnValue({ whaleTier: 0 });
+    (marketStateService.getState as any).mockReturnValue({
+      whaleTier: 0,
+      rsiState: 'NEUTRAL',
+    });
   });
 
   it('should not spawn if timer is below threshold', () => {
@@ -93,7 +96,8 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(Number),
       expect.any(String),
-      1 // tier
+      1, // tier
+      expect.any(Number) // damageMultiplier
     );
   });
 
@@ -107,7 +111,9 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(Number),
       expect.any(String),
-      'bear'
+      'bear',
+      expect.any(String), // pair
+      expect.any(Number) // damageMultiplier
     );
 
     // LONG + Profit = Bull
@@ -117,7 +123,9 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(Number),
       expect.any(String),
-      'bull'
+      'bull',
+      expect.any(String), // pair
+      expect.any(Number) // damageMultiplier
     );
   });
 
@@ -138,7 +146,9 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(Number),
       expect.any(String),
-      'pumpdump'
+      'pumpdump',
+      expect.any(String), // pair
+      expect.any(Number) // damageMultiplier
     );
   });
 });

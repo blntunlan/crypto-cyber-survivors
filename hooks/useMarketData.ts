@@ -66,6 +66,16 @@ export const useMarketData = (
     pairRef.current = pair;
   }, [gameStatus, position, entryPrice, leverage, pair]);
 
+  // Reset timeout timer when resuming game to prevent immediate disconnects from background time
+  useEffect(() => {
+    // Defensive check: GameStatus might be undefined during hot reload or circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (gameStatus === GameStatus?.PLAYING) {
+      lastPriceTimeRef.current = Date.now();
+      timeoutTriggeredRef.current = false;
+    }
+  }, [gameStatus]);
+
   // Market data timeout checker
   useEffect(() => {
     const checkTimeout = () => {
@@ -213,12 +223,16 @@ export const useMarketData = (
 
         // Guard: If price is invalid, trigger timeout/pause
         if (!price || price <= 0) {
-          Logger.error(`[Market] Invalid price received: ${price}. Triggering pause.`);
-          EventBus.emit('marketDataTimeout', {
-            lastPriceTime: lastPriceTimeRef.current,
-            disconnectedDuration: 0,
-            pair: expectedPair,
-          });
+          if (currentStatus === GameStatus.PLAYING) {
+            Logger.error(
+              `[Market] Invalid price received: ${price}. Triggering pause.`
+            );
+            EventBus.emit('marketDataTimeout', {
+              lastPriceTime: lastPriceTimeRef.current,
+              disconnectedDuration: 0,
+              pair: expectedPair,
+            });
+          }
           return;
         }
 
@@ -264,6 +278,7 @@ export const useMarketData = (
             position: currentPosition,
             liquidationPrice,
             difficulty: difficultyOutput.total,
+            enemyDamage: difficultyOutput.enemyDamage,
             pair: expectedPair,
             symbol: expectedPair + 'USDT',
             momentum: difficultyOutput.total > 0 ? pnlResult.effectivePnl * 0.1 : 0, // Rudimentary momentum based on PnL

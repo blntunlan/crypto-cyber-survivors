@@ -1,14 +1,8 @@
-/**
- * UserContext - React Context for User Session Management
- *
- * Provides reactive user state across the application.
- * Replaces static UserSessionService calls with hook-based access.
- */
-
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { type StoredUser } from '../services/auth/types';
 import { Logger } from '../services/Logger';
 import { nanoid } from 'nanoid';
+import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 
 // ============================================================================
 // Types
@@ -38,47 +32,11 @@ interface UserProviderProps {
 }
 
 // ============================================================================
-// Constants
-// ============================================================================
-
-const STORAGE_KEY = 'crypto_survivors_user';
-
-// ============================================================================
 // Context
 // ============================================================================
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const UserContext = createContext<UserContextType | undefined>(undefined);
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function loadUserFromStorage(): StoredUser | null {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored) as StoredUser;
-    }
-  } catch (error) {
-    Logger.error('[UserContext] Failed to load user from storage', error);
-  }
-  return null;
-}
-
-function saveUserToStorage(user: StoredUser): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    Logger.info(`[UserContext] User saved: ${user.nickname} (${user.playerId})`);
-  } catch (error) {
-    Logger.error('[UserContext] Failed to save user to storage', error);
-  }
-}
-
-function clearUserFromStorage(): void {
-  localStorage.removeItem(STORAGE_KEY);
-  Logger.info('[UserContext] User identity cleared');
-}
 
 // ============================================================================
 // Provider Component
@@ -88,11 +46,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from storage on mount
+  // Load user from storage on mount using robust service
   useEffect(() => {
-    const storedUser = loadUserFromStorage();
-    setUser(storedUser);
-    setIsLoading(false);
+    let mounted = true;
+
+    const init = async () => {
+      const storedUser = await UserPersistenceService.initialize();
+      if (mounted) {
+        setUser(storedUser);
+        setIsLoading(false);
+      }
+    };
+
+    void init();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Login / Register
@@ -116,7 +86,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           createdAt: now,
           lastSeenAt: now,
         };
-        saveUserToStorage(newUser);
+        UserPersistenceService.saveUser(newUser);
         setUser(newUser);
         return { success: true };
       }
@@ -138,7 +108,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             createdAt: now,
             lastSeenAt: now,
           };
-          saveUserToStorage(newUser);
+          UserPersistenceService.saveUser(newUser);
           setUser(newUser);
 
           // Update last seen timestamp
@@ -174,7 +144,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             createdAt: now,
             lastSeenAt: now,
           };
-          saveUserToStorage(createdUser);
+          UserPersistenceService.saveUser(createdUser);
           setUser(createdUser);
           return { success: true };
         }
@@ -190,7 +160,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // Logout
   const logout = useCallback(() => {
-    clearUserFromStorage();
+    UserPersistenceService.clear();
     setUser(null);
   }, []);
 
@@ -201,7 +171,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const now = Date.now();
     const updatedUser = { ...user, lastSeenAt: now };
 
-    saveUserToStorage(updatedUser);
+    UserPersistenceService.saveUser(updatedUser);
     setUser(updatedUser);
 
     // Async sync to Supabase

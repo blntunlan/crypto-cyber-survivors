@@ -6,6 +6,7 @@ import {
   type MarketPosition,
   type SpeedLine,
   type Interactable,
+  type CryptoPair,
 } from '../../types';
 import { type GameEnemy } from '../../factories/EnemyFactory';
 import { type WhaleTier } from '../../types/indicators';
@@ -37,7 +38,9 @@ export interface IPoolManager {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    enemyType?: EnemyId
+    enemyType?: EnemyId,
+    pair?: CryptoPair,
+    damageMultiplier?: number
   ): GameEnemy;
 
   getWhaleEnemy(
@@ -45,7 +48,8 @@ export interface IPoolManager {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    tier: WhaleTier
+    tier: WhaleTier,
+    damageMultiplier?: number
   ): GameEnemy;
 
   getBullet(

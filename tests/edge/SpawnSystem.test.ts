@@ -44,7 +44,14 @@ describe('SpawnSystem Edge Cases', () => {
     );
 
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
-    expect(result).toBeCloseTo(4000, 1); // 5000 - 1000 = 4000
+    // Burst logic consumes time up to 5 times or until threshold
+    // 5000 initial. Threshold 1000.
+    // Loop 1: 4000 (Burst 1)
+    // Loop 2: 3000 (Burst 2)
+    // Loop 3: 2000 (Burst 3)
+    // Loop 4: 1000 (Burst 4)
+    // Loop stops as 1000 is not > 1000
+    expect(result).toBeCloseTo(1000, 1);
   });
 
   it('should handle zero or negative deltaTime gracefully', () => {
@@ -58,8 +65,8 @@ describe('SpawnSystem Edge Cases', () => {
 
   it('should handle very high difficulty scaling', () => {
     // Difficulty 100
-    // scaledDifficulty = 1 + (99) * 0.5 = 50.5
-    // threshold = 2000 / 50.5 ~= 39ms
+    // scaledDifficulty = 1 + (99) * 0.5 * 1.0 = 50.5
+    // threshold = 1000 / 50.5 ~= 19.802 ms
     const result = spawnSystem.update(
       100,
       100,
@@ -69,9 +76,12 @@ describe('SpawnSystem Edge Cases', () => {
       mockPool
     );
     expect(mockPool.getEnemy).toHaveBeenCalled();
-    // scaledDifficulty = (1 + 99 * 0.5 * 1.0) * 1 = 50.5
-    // threshold = 1000 / 50.5 = 19.802
-    // result = 100 - 19.802 = 80.198
-    expect(result).toBeCloseTo(80.198, 0.1);
+
+    // Burst will trigger multiple spawns
+    // 100 / 19.802 ~= 5.05 spawns
+    // Burst cap is 5
+    // Consumed = 5 * 19.802 = 99.01
+    // Remaining = 100 - 99.01 = 0.99
+    expect(result).toBeCloseTo(0.99, 0.1);
   });
 });

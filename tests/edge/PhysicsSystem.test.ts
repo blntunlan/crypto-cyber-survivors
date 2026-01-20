@@ -180,6 +180,7 @@ describe('PhysicsSystem Edge Cases', () => {
         radius: 10,
         active: true,
         health: 10,
+        damage: 1,
         behavior: {
           move: (e: any, _px: number, _py: number, dt: number) => {
             e.x += 100 * dt;
@@ -222,6 +223,7 @@ describe('PhysicsSystem Edge Cases', () => {
         y: 300,
         radius: 10,
         active: true,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -244,6 +246,7 @@ describe('PhysicsSystem Edge Cases', () => {
         y: 300,
         radius: 10,
         active: true,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -268,6 +271,7 @@ describe('PhysicsSystem Edge Cases', () => {
         y: 300,
         radius: 15,
         active: true,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];

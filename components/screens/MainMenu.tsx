@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion'; // 📦 [Import Cost]: 32.4KB (gzipped: 10.8KB)
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
-import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
-import { DeviceProfile } from '../../types/DeviceProfile';
 import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 import { audio } from '../../services/AudioService';
@@ -15,10 +13,11 @@ import { COLORS } from '../../config/Colors';
 import { ThemedButton } from '../themed/ThemedButton';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { OptimizationBadge } from '../ui/OptimizationBadge';
 
 interface MainMenuProps {
   price: number;
-  onStart: (choice: MarketPosition, leverage: LeverageOption) => void;
+  onStart: (choice: MarketPosition, leverage: LeverageOption) => void | Promise<void>;
   onOpenSettings: () => void;
   selectedPair: CryptoPair;
   onPairChange: (pair: CryptoPair) => void;
@@ -128,8 +127,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           audio.playButton();
           if (activeRow === 3) {
             // Start Game
-            if (actionCol === 0) onStart(MarketPosition.LONG, selectedLeverage);
-            else onStart(MarketPosition.SHORT, selectedLeverage);
+            if (actionCol === 0) void onStart(MarketPosition.LONG, selectedLeverage);
+            else void onStart(MarketPosition.SHORT, selectedLeverage);
           } else if (activeRow === 4) {
             onOpenSettings();
           }
@@ -171,9 +170,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   return (
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-slate-950/60 p-3 backdrop-blur-sm landscape:py-2 sm:justify-center sm:p-6">
       <div className="max-w-xl w-full text-center space-y-4 py-2 sm:space-y-8 sm:py-0 landscape:space-y-2">
-        <header className="space-y-3 sm:space-y-5">
+        <motion.header
+          className="space-y-3 sm:space-y-5"
+          initial={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+        >
           <h1
-            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
+            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
           >
             {t('common.menu.title')}
             <br />
@@ -189,7 +193,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
             <OptimizationBadge sizes={sizes} />
           </div>
-        </header>
+        </motion.header>
 
         <ThemedPanel
           className={`relative p-3 sm:p-5 transition-all duration-700 ${!isRetro ? 'backdrop-blur-xl !rounded-[1.5rem] overflow-hidden' : ''}`}
@@ -424,7 +428,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           {/* Position Selection */}
           <div className={`grid grid-cols-2 gap-2 sm:gap-4 landscape:gap-2`}>
             <button
-              onClick={() => onStart(MarketPosition.LONG, selectedLeverage)}
+              onClick={() => void onStart(MarketPosition.LONG, selectedLeverage)}
               disabled={price === 0}
               className={`flex flex-col items-center p-3 sm:p-5 landscape:p-2 bg-green-500/10 transition-all group touch-manipulation active:scale-95 
                 ${isRetro ? 'rounded-none border-2 border-zinc-700 hover:border-green-500 font-display' : 'rounded-xl hover:bg-green-500/20'}
@@ -447,7 +451,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </span>
             </button>
             <button
-              onClick={() => onStart(MarketPosition.SHORT, selectedLeverage)}
+              onClick={() => void onStart(MarketPosition.SHORT, selectedLeverage)}
               disabled={price === 0}
               className={`flex flex-col items-center p-3 sm:p-5 landscape:p-2 bg-red-500/10 transition-all group touch-manipulation active:scale-95 
                 ${isRetro ? 'rounded-none border-2 border-zinc-700 hover:border-red-500 font-display' : 'rounded-xl hover:bg-red-500/20'}
@@ -490,40 +494,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
         </ThemedPanel>
       </div>
-    </div>
-  );
-};
-interface OptimizationBadgeProps {
-  sizes: ReturnType<typeof useThemeSize>;
-}
-
-const OptimizationBadge: React.FC<OptimizationBadgeProps> = ({ sizes }) => {
-  const config = DeviceBenchmarkService.getPerformanceConfig();
-  const { isRetro } = useTheme();
-  const { t } = useLanguage();
-  const profile = config.profile;
-
-  const getColor = (p: DeviceProfile) => {
-    switch (p) {
-      case DeviceProfile.ULTRA:
-        return `text-purple-400 bg-purple-500/10 ${isRetro ? '' : 'border-purple-500/20'}`;
-      case DeviceProfile.HIGH:
-        return `text-green-400 bg-green-500/10 ${isRetro ? '' : 'border-green-500/20'}`;
-      case DeviceProfile.MEDIUM:
-        return `text-yellow-400 bg-yellow-500/10 ${isRetro ? '' : 'border-yellow-500/20'}`;
-      case DeviceProfile.LOW:
-        return `text-red-400 bg-red-500/10 ${isRetro ? '' : 'border-red-500/20'}`;
-      default:
-        return `text-slate-400 bg-slate-500/10 ${isRetro ? '' : 'border-slate-500/20'}`;
-    }
-  };
-
-  return (
-    <div
-      className={`px-3 py-1 border ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)} 
-        ${isRetro ? 'rounded-none border-2 border-zinc-700 font-primary' : 'rounded-full'}`}
-    >
-      {t('common.menu.optimized')}: {profile}
     </div>
   );
 };

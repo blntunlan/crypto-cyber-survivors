@@ -171,7 +171,7 @@ describe('CollisionSystem', () => {
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
       expect(enteringEnemy.hasEnteredScreen).toBe(true);
-      expect(enteringEnemy.spawnTimer).toBeCloseTo(0.9);
+      expect(enteringEnemy.spawnTimer).toBeCloseTo(1.0);
     });
 
     it('should flush damage buffer when timer expires', () => {
@@ -211,6 +211,8 @@ describe('CollisionSystem', () => {
         y: 0,
         radius: 10,
         active: true,
+        damage: 10,
+        maxHealth: 100,
         isDying: false,
         hasEnteredScreen: true,
         behavior: { move: vi.fn() },
@@ -234,6 +236,8 @@ describe('CollisionSystem', () => {
         y: 0,
         radius: 10,
         active: true,
+        damage: 10,
+        maxHealth: 100,
         isDying: false,
         hasEnteredScreen: true,
         behavior: { move: vi.fn() },
@@ -255,6 +259,8 @@ describe('CollisionSystem', () => {
         y: 0,
         radius: 10,
         active: true,
+        damage: 10,
+        maxHealth: 100,
         isDying: false,
         behavior: { move: vi.fn() },
       };
@@ -274,6 +280,8 @@ describe('CollisionSystem', () => {
         y: 0,
         radius: 10,
         active: true,
+        damage: 1,
+        maxHealth: 100,
         isDying: false,
         behavior: { move: vi.fn() },
       };
@@ -297,6 +305,8 @@ describe('CollisionSystem', () => {
         y: 0,
         radius: 10,
         active: true,
+        damage: 10,
+        maxHealth: 100,
         isDying: false,
         behavior: { move: vi.fn() },
       };

@@ -6,6 +6,7 @@ import {
   type SpeedLine,
   type Interactable,
   MarketPosition,
+  type CryptoPair,
 } from '../types';
 import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
@@ -332,31 +333,35 @@ export class PoolManager implements IPoolManager {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    enemyType: EnemyId = 'bear'
+    enemyType?: EnemyId,
+    pair?: CryptoPair,
+    damageMultiplier: number = 1.0
   ): GameEnemy {
-    const aggroMultiplier = marketStateService.getState()?.enemyAggroMultiplier ?? 1.0;
+    const currentPair = pair ?? 'BTC';
+    const currentEnemyType = enemyType ?? 'bear';
+    const aggroMultiplier =
+      marketStateService.getState(`${currentPair}-USD`)?.enemyAggroMultiplier ?? 1.0;
 
     return this.enemies.get(
       () =>
         enemyFactory.createEnemy(
-          enemyType,
-          x,
-          y,
-          difficulty,
-          position,
-          aggroMultiplier
-        ),
-      obj => {
-        // Reuse the existing object strictly!
-        // We pass 'obj' as the 7th argument (target) to mutate it in place
-        // This prevents 'new' allocation during gameplay
-        enemyFactory.createEnemy(
-          enemyType,
+          currentEnemyType,
           x,
           y,
           difficulty,
           position,
           aggroMultiplier,
+          damageMultiplier
+        ),
+      obj => {
+        enemyFactory.createEnemy(
+          currentEnemyType,
+          x,
+          y,
+          difficulty,
+          position,
+          aggroMultiplier,
+          damageMultiplier,
           obj
         );
       }
@@ -371,14 +376,23 @@ export class PoolManager implements IPoolManager {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    tier: WhaleTier
+    tier: WhaleTier,
+    damageMultiplier: number = 1.0
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
     audio.playWhaleArrival();
 
     return this.enemies.get(
       () => {
-        const e = enemyFactory.createEnemy('whale', x, y, difficulty, position);
+        const e = enemyFactory.createEnemy(
+          'whale',
+          x,
+          y,
+          difficulty,
+          position,
+          1.0,
+          damageMultiplier
+        );
         if (tierConfig) {
           e.radius *= tierConfig.sizeMultiplier;
           e.health *= tierConfig.healthMultiplier;
@@ -389,7 +403,16 @@ export class PoolManager implements IPoolManager {
       },
       obj => {
         // Use the target-based mutation pattern for whales too
-        enemyFactory.createEnemy('whale', x, y, difficulty, position, 1.0, obj);
+        enemyFactory.createEnemy(
+          'whale',
+          x,
+          y,
+          difficulty,
+          position,
+          1.0,
+          damageMultiplier,
+          obj
+        );
 
         if (tierConfig) {
           obj.radius *= tierConfig.sizeMultiplier;

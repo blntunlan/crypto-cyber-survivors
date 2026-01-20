@@ -1,7 +1,7 @@
 # 🗺️ Crypto Cyber Survivors - Master Roadmap
 
 > Bu döküman projenin stratejik yol haritasını, önceliklerini ve zaman çizelgesini içerir.
-> Son Güncelleme: 2026-01-17
+> Son Güncelleme: 2026-01-20
 
 ---
 
@@ -10,7 +10,7 @@
 | Metrik | Değer |
 |--------|-------|
 | **Versiyon** | 0.1.0 (Beta) |
-| **Test Coverage** | 979+ unit tests, 72 E2E tests ✅ |
+| **Test Coverage** | 1200+ unit tests, 72 E2E tests ✅ |
 | **Lint Status** | 0 error, 0 warning ✅ |
 | **Core Features** | ✅ Tamamlandı |
 | **Mobile Support** | ✅ Tamamlandı |
@@ -270,7 +270,7 @@ Mevcut: Railway
 
 | Metrik | Mevcut | Hedef |
 |--------|--------|-------|
-| Unit Tests | 979 | 1000+ |
+| Unit Tests | 1200+ | 1200+ |
 | E2E Tests | 72 | 100+ |
 | Lighthouse Performance | ~85 | 90+ |
 | Build Size | ~400KB | < 500KB |
@@ -327,7 +327,7 @@ Mevcut: Railway
 2. ~~**ROADMAP güncelleme**~~ ✅ Tamamlandı
 3. **Anti-cheat temel implementasyonu** 🔶
 4. **PWA manifest + service worker** 🔶
-5. **TODO dokümanı oluşturma** 🔶
+5. ~~**TODO dökümanı oluşturma**~~ ✅ Tamamlandı
 
 ### Karar Noktaları
 

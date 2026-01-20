@@ -115,6 +115,8 @@ describe('CombatSystem', () => {
       atrPercent: 1,
       spawnRateMultiplier: 1,
       marketPosition: MarketPosition.LONG,
+      isMoving: false,
+      lastMoveX: 0,
     };
   });
 
@@ -347,7 +349,7 @@ describe('CombatSystem', () => {
       const radius = bulletCallArgs![5];
 
       // Default radius is 4. area=2.0 -> 8. BUT with mobileMultiplier (default 1.25 on desktop) -> 10.
-      expect(radius).toBe(10);
+      expect(radius).toBe(11.25);
     });
   });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
+import { UserPersistenceService } from '../../../services/auth/UserPersistenceService';
 
 // Mock types
 interface StoredUser {
@@ -74,7 +75,7 @@ describe('UserSessionService', () => {
       expect(UserSessionService.getStoredUser()).toBeNull();
     });
 
-    it('should return stored user from localStorage', () => {
+    it('should return stored user from localStorage', async () => {
       const mockUser: StoredUser = {
         playerId: 'test-id',
         nickname: 'Tester',
@@ -82,6 +83,7 @@ describe('UserSessionService', () => {
         lastSeenAt: Date.now(),
       };
       localStorage.setItem('crypto_survivors_user', JSON.stringify(mockUser));
+      await UserPersistenceService.initialize();
 
       const user = UserSessionService.getStoredUser();
       expect(user).toEqual(mockUser);

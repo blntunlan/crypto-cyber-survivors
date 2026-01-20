@@ -43,6 +43,8 @@ export interface DifficultyOutput {
   enemySpeed: number;
   /** Enemy health multiplier */
   enemyHealth: number;
+  /** Enemy damage multiplier */
+  enemyDamage: number;
   /** Combined raw difficulty value */
   total: number;
 }
@@ -493,6 +495,11 @@ class DifficultyManagerClass {
         factors.baseTime * factors.levelFactor,
         DIFFICULTY.ENEMY_HEALTH_MIN,
         DIFFICULTY.ENEMY_HEALTH_MAX
+      ),
+      enemyDamage: this.clamp(
+        factors.baseTime * factors.cycleFactor * factors.pnlEffect,
+        DIFFICULTY.ENEMY_DAMAGE_MIN,
+        DIFFICULTY.ENEMY_DAMAGE_MAX
       ),
       total,
     };

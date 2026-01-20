@@ -1,4 +1,4 @@
-import { MarketPosition } from '../types';
+import { MarketPosition, type CryptoPair } from '../types';
 import { type IPoolManager } from './interfaces/IPoolManager';
 import { GAME_ENGINE, SPAWN } from '../constants';
 import { useAdminConfigStore } from '../stores/admin/configStore';
@@ -48,10 +48,12 @@ export class SpawnSystem implements ISpawnSystem {
     pool: IPoolManager,
     pnl: number = 0,
     maxEnemiesOverride?: number,
-    spawnRateMultiplier: number = 1
+    spawnRateMultiplier: number = 1,
+    pair: CryptoPair = 'BTC',
+    damageMultiplier: number = 1.0
   ): number {
     const config = this.getSpawnConfig();
-    const marketState = marketStateService.getState();
+    const marketState = marketStateService.getState(`${pair}-USD`);
 
     this.spawnTimer += deltaTime;
     this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
@@ -80,21 +82,86 @@ export class SpawnSystem implements ISpawnSystem {
         width,
         height,
         maxEnemies,
-        deltaTime
+        deltaTime,
+        damageMultiplier
       );
     }
 
-    // 2. Standard Content: Regular Enemy Generation
+    // 1.5. Momentum Content: RSI-based Specialized Spawning
+    if (marketState && marketState.rsiState !== 'NEUTRAL') {
+      this.handleRSISpawning(
+        marketState,
+        pool,
+        difficulty,
+        position,
+        width,
+        height,
+        maxEnemies,
+        deltaTime,
+        pair,
+        damageMultiplier
+      );
+    }
+
+    // 2. Standard Content: Regular Enemy Generation (Burst Capable)
     const spawnThreshold = config.baseInterval / scaledDifficulty;
-    if (this.spawnTimer > spawnThreshold) {
+
+    // Use 'while' to allow multiple spawns per frame if we are behind (Burst/Catch-up)
+    // Limit burst to 5 per frame to prevent freezing
+    let burstCount = 0;
+    while (this.spawnTimer > spawnThreshold && burstCount < 5) {
       if (pool.activeEnemies.length < maxEnemies) {
-        this.spawnRegularEnemy(pool, difficulty, position, pnl, width, height);
+        this.spawnRegularEnemy(
+          pool,
+          difficulty,
+          position,
+          pnl,
+          width,
+          height,
+          pair,
+          damageMultiplier
+        );
       }
-      // Subtract threshold instead of resetting to 0 to preserve overflow time (Lag Compensation)
-      this.spawnTimer = Math.max(0, this.spawnTimer - spawnThreshold);
+      this.spawnTimer -= spawnThreshold;
+      burstCount++;
+    }
+
+    // If we still have too much time accumulated, cap it to prevent infinite spirals later
+    if (this.spawnTimer > spawnThreshold) {
+      this.spawnTimer = spawnThreshold;
     }
 
     return this.spawnTimer;
+  }
+
+  /**
+   * Internal logic for handling RSI-based specialized spawning.
+   * Spawns 'rsi' type enemies during overbought/oversold extremes.
+   *
+   * @private
+   */
+  private handleRSISpawning(
+    marketState: MarketState,
+    pool: IPoolManager,
+    difficulty: number,
+    position: MarketPosition,
+    width: number,
+    height: number,
+    maxEnemies: number,
+    deltaTime: number,
+    pair: CryptoPair,
+    damageMultiplier: number = 1.0
+  ): void {
+    // RSI spawns have a slightly higher chance but smaller impact than whales
+    const frameTargetMs = 16.66;
+    const rsiProb = 0.08 * (deltaTime / frameTargetMs); // 8% chance per second approx.
+
+    if (Math.random() < rsiProb && pool.activeEnemies.length < maxEnemies) {
+      const { x, y } = this.getRandomSpawnPosition(width, height);
+      // Spawn specialized RSI enemy
+      pool.getEnemy(x, y, difficulty, position, 'rsi', pair, damageMultiplier);
+      Logger.debug(`[SpawnSystem] RSI Extreme Spawn: ${marketState.rsiState}`);
+    }
   }
 
   /**
@@ -110,7 +177,8 @@ export class SpawnSystem implements ISpawnSystem {
     width: number,
     height: number,
     maxEnemies: number,
-    deltaTime: number
+    deltaTime: number,
+    damageMultiplier: number = 1.0
   ): void {
     const whaleConfig =
       WHALE_TIER_CONFIGS[marketState.whaleTier as keyof typeof WHALE_TIER_CONFIGS];
@@ -132,7 +200,14 @@ export class SpawnSystem implements ISpawnSystem {
       pool.activeEnemies.length < maxEnemies
     ) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
-      pool.getWhaleEnemy(x, y, difficulty, position, marketState.whaleTier);
+      pool.getWhaleEnemy(
+        x,
+        y,
+        difficulty,
+        position,
+        marketState.whaleTier,
+        damageMultiplier
+      );
       Logger.debug(`[SpawnSystem] Spawned whale tier ${marketState.whaleTier}`);
       this.whaleCooldownTimer = 20000; // 20s cooldown hardcoded for now
     }
@@ -149,7 +224,9 @@ export class SpawnSystem implements ISpawnSystem {
     position: MarketPosition,
     pnl: number,
     width: number,
-    height: number
+    height: number,
+    pair: CryptoPair,
+    damageMultiplier: number = 1.0
   ): void {
     const { x, y } = this.getRandomSpawnPosition(width, height);
 
@@ -160,7 +237,7 @@ export class SpawnSystem implements ISpawnSystem {
         (position === MarketPosition.LONG && pnl < 0) ||
         (position === MarketPosition.SHORT && pnl > 0);
       const enemyType: EnemyId = isBearMarket ? 'bear' : 'bull';
-      pool.getEnemy(x, y, difficulty, position, enemyType);
+      pool.getEnemy(x, y, difficulty, position, enemyType, pair, damageMultiplier);
     } else {
       // Variant Spawning: Randomly select from secondary enemy archetypes
       const roll = Math.random();
@@ -174,7 +251,7 @@ export class SpawnSystem implements ISpawnSystem {
         enemyType = 'pumpdump';
       }
 
-      pool.getEnemy(x, y, difficulty, position, enemyType);
+      pool.getEnemy(x, y, difficulty, position, enemyType, pair, damageMultiplier);
     }
   }
 

@@ -1,4 +1,4 @@
-import { type MarketPosition } from '../../types';
+import { type MarketPosition, type CryptoPair } from '../../types';
 import { type IPoolManager } from './IPoolManager';
 import { type SpawnDebugState } from '../../types/DebugState';
 
@@ -18,6 +18,8 @@ export interface ISpawnSystem {
    * @param pool PoolManager instance to get/recycle entities
    * @param pnl Current player PnL for enemy type selection
    * @param maxEnemiesOverride Optional limit for total enemies
+   * @param spawnRateMultiplier Optional multiplier for spawn frequency
+   * @param pair Current crypto pair for market indicators
    * @returns Updated internal spawn timer
    */
   update(
@@ -29,7 +31,9 @@ export interface ISpawnSystem {
     pool: IPoolManager,
     pnl?: number,
     maxEnemiesOverride?: number,
-    spawnRateMultiplier?: number
+    spawnRateMultiplier?: number,
+    pair?: CryptoPair,
+    damageMultiplier?: number
   ): number;
 
   /**

@@ -1,0 +1,165 @@
+/**
+ * UserPersistenceService - Durable storage for user identity.
+ *
+ * Specifically designed to handle mobile browser (Safari) quirks:
+ * 1. Immediate localStorage check
+ * 2. Async localStorage retry (handles busy main thread)
+ * 3. Cookie fallback (handles privacy mode/PWA storage partitioning)
+ * 4. Cache-in-memory to avoid redundant storage hits
+ */
+
+import { type StoredUser } from './types';
+import { Logger } from '../Logger';
+
+const STORAGE_KEY = 'crypto_survivors_user';
+const COOKIE_NAME = 'cs_identity';
+
+export class UserPersistenceService {
+  private static cachedUser: StoredUser | null = null;
+  private static initPromise: Promise<StoredUser | null> | null = null;
+
+  /**
+   * Initializes the user identity from all available storage sources.
+   * Uses a promise to prevent multiple concurrent initializations.
+   */
+  static async initialize(): Promise<StoredUser | null> {
+    if (this.cachedUser) return this.cachedUser;
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = (async () => {
+      // 1. Immediate localStorage check
+      let user = this.loadFromLocalStorage();
+      if (user) {
+        this.cachedUser = user;
+        this.syncToCookie(user); // Ensure cookie is in sync
+        return user;
+      }
+
+      // 2. Cookie fallback
+      user = this.loadFromCookie();
+      if (user) {
+        Logger.info('[UserPersistence] Recovered user from cookie');
+        this.cachedUser = user;
+        this.saveToLocalStorage(user); // Sync back to localStorage
+        return user;
+      }
+
+      // 3. Short retry for Safari lazy storage
+      await new Promise(resolve => setTimeout(resolve, 150));
+      user = this.loadFromLocalStorage();
+      if (user) {
+        Logger.info('[UserPersistence] Recovered user from localStorage after retry');
+        this.cachedUser = user;
+        this.syncToCookie(user);
+        return user;
+      }
+
+      Logger.debug('[UserPersistence] No stored user found after all checks');
+      return null;
+    })();
+
+    try {
+      const result = await this.initPromise;
+      return result;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  /**
+   * Get current user (sync, returns cached if available)
+   */
+  static getStoredUser(): StoredUser | null {
+    return this.cachedUser;
+  }
+
+  /**
+   * Save user to all storage sources
+   */
+  static saveUser(user: StoredUser): void {
+    this.cachedUser = user;
+    this.saveToLocalStorage(user);
+    this.syncToCookie(user);
+  }
+
+  /**
+   * Clear user from all storage
+   */
+  static clear(): void {
+    this.cachedUser = null;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      document.cookie = `${COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; sameSite=Lax`;
+      Logger.info('[UserPersistence] User cleared from all storage');
+    } catch (e) {
+      Logger.error('[UserPersistence] Error clearing storage', e);
+    }
+  }
+
+  // --- Internals ---
+
+  private static loadFromLocalStorage(): StoredUser | null {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.playerId && parsed?.nickname) {
+          return parsed as StoredUser;
+        }
+      }
+    } catch (e) {
+      Logger.debug('[UserPersistence] LocalStorage read failed', e);
+    }
+    return null;
+  }
+
+  private static saveToLocalStorage(user: StoredUser): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    } catch (e) {
+      Logger.warn('[UserPersistence] LocalStorage write failed', e);
+    }
+  }
+
+  private static loadFromCookie(): StoredUser | null {
+    try {
+      const name = COOKIE_NAME + '=';
+      const decodedCookie = decodeURIComponent(document.cookie);
+      const ca = decodedCookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        if (!c) continue;
+        while (c.charAt(0) === ' ') {
+          c = c.substring(1);
+        }
+        if (c.indexOf(name) === 0) {
+          const content = c.substring(name.length, c.length);
+          const parsed = JSON.parse(atob(content)); // Decode Base64
+          if (parsed?.playerId && parsed?.nickname) {
+            return parsed as StoredUser;
+          }
+        }
+      }
+    } catch (e) {
+      Logger.debug('[UserPersistence] Cookie read failed', e);
+    }
+    return null;
+  }
+
+  private static syncToCookie(user: StoredUser): void {
+    try {
+      const identityMinimal = {
+        playerId: user.playerId,
+        nickname: user.nickname,
+      };
+      const content = btoa(JSON.stringify(identityMinimal)); // Encode to Base64 to avoid semi-colon issues
+      // Expires in 365 days
+      const d = new Date();
+      d.setTime(d.getTime() + 365 * 24 * 60 * 60 * 1000);
+      const expires = 'expires=' + d.toUTCString();
+      document.cookie = `${COOKIE_NAME}=${content}; ${expires}; path=/; sameSite=Lax`;
+    } catch (e) {
+      Logger.debug('[UserPersistence] Cookie sync failed', e);
+    }
+  }
+}

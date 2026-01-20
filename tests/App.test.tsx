@@ -123,6 +123,7 @@ vi.mock('../hooks/useAppInitialization', () => ({
   useAppInitialization: () => ({
     needsNickname: false,
     setNeedsNickname: vi.fn(),
+    isInitialized: true,
   }),
 }));
 

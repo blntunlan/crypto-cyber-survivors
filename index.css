@@ -706,3 +706,38 @@ canvas {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+/* Smooth slow motion sway for headers */
+[data-theme='cyberpunk'] .cyber-sway-text {
+  position: relative;
+  text-shadow:
+    0.05em 0 0 rgba(255, 0, 80, 0.75),
+    -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
+    0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+  animation: cyber-sway 6s ease-in-out infinite;
+  will-change: transform, text-shadow;
+}
+
+@keyframes cyber-sway {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    text-shadow:
+      2px 0 0 rgba(255, 0, 80, 0.75),
+      -1px -2px 0 rgba(0, 255, 0, 0.75),
+      1px 2px 0 rgba(0, 0, 255, 0.75);
+  }
+  33% {
+    transform: translate(2px, -2px) scale(1.01);
+    text-shadow:
+      3px 1px 0 rgba(255, 0, 80, 0.75),
+      -2px -3px 0 rgba(0, 255, 0, 0.75),
+      2px 3px 0 rgba(0, 0, 255, 0.75);
+  }
+  66% {
+    transform: translate(-2px, 1px) scale(0.99);
+    text-shadow:
+      1px -1px 0 rgba(255, 0, 80, 0.75),
+      0px -1px 0 rgba(0, 255, 0, 0.75),
+      0px 1px 0 rgba(0, 0, 255, 0.75);
+  }
+}

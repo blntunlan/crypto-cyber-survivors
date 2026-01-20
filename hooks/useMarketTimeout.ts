@@ -28,7 +28,13 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
       const currentState = GameStateMachine.getState();
 
       // Transition to DATA_DISCONNECTED instead of ending game immediately
-      if (currentState !== GameStatus.DATA_DISCONNECTED) {
+      // STRICT: Only do this if we are in PLAYING mode.
+      // If we are in MENU, PAUSED, GAMEOVER, etc., we ignore the timeout.
+
+      if (
+        currentState !== GameStatus.DATA_DISCONNECTED &&
+        currentState === GameStatus.PLAYING
+      ) {
         Logger.warn(`[App] Market data timeout - current state: ${currentState}`);
         GameStateMachine.transition(GameStatus.DATA_DISCONNECTED);
       }

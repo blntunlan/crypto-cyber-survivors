@@ -282,6 +282,9 @@ export class EntityRenderer implements IRenderer {
     pool: IPoolManager,
     bounds: ViewportBounds
   ): void {
+    const isRetro = ThemeService.isRetro();
+    const retroSizeMult = GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
+
     pool.activeEnemies.forEach(e => {
       // Visibility Check: Buffer for large spawn glows
       const spawnPadding =
@@ -297,7 +300,7 @@ export class EntityRenderer implements IRenderer {
       if (e.isDying && e.deathProgress !== undefined) {
         this.renderEnemyDeath(ctx, e);
       } else {
-        this.renderEnemyLiving(ctx, e);
+        this.renderEnemyLiving(ctx, e, isRetro, retroSizeMult);
       }
     });
   }
@@ -341,37 +344,51 @@ export class EntityRenderer implements IRenderer {
   /**
    * Handles normal state and spawn-in "pop" logic for enemies.
    */
-  private renderEnemyLiving(ctx: CanvasRenderingContext2D, e: Enemy): void {
+  private renderEnemyLiving(
+    ctx: CanvasRenderingContext2D,
+    e: Enemy,
+    isRetro: boolean,
+    retroSizeMult: number
+  ): void {
     const ex = Math.round(e.x);
     const ey = Math.round(e.y);
 
-    ctx.save();
-    ctx.translate(ex, ey);
-
-    // 1. Spawn Animation (Elastic scaling + burst)
-    if (e.spawnTimer !== undefined && e.spawnTimer > 0) {
-      this.applyEnemySpawnTransform(ctx, e);
-    }
-
-    // 2. Hit Flash & Theme-Specific Skins
+    // 1. Check if we need complex transforms (spawning or hit rotation)
+    const isSpawning = e.spawnTimer !== undefined && e.spawnTimer > 0;
     const isHit = e.damageBufferTimer !== undefined && e.damageBufferTimer > 0;
 
-    if (ThemeService.isRetro()) {
-      const sizeRect = e.radius * GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
-
-      if (isHit) {
-        ctx.fillStyle = '#FFFFFF';
-        ctx.globalAlpha = 0.8;
+    if (isRetro) {
+      if (isSpawning) {
+        ctx.save();
+        ctx.translate(ex, ey);
+        this.applyEnemySpawnTransform(ctx, e);
+        ctx.fillStyle = isHit ? '#FFFFFF' : e.color;
+        if (isHit) ctx.globalAlpha = 0.8;
+        const sizeRect = e.radius * retroSizeMult;
+        ctx.fillRect(-sizeRect / 2, -sizeRect / 2, sizeRect, sizeRect);
+        ctx.restore();
       } else {
-        ctx.fillStyle = e.color;
+        // FAST PATH: Direct draw for retro blocks
+        const sizeRect = e.radius * retroSizeMult;
+        ctx.fillStyle = isHit ? '#FFFFFF' : e.color;
+        const alpha = isHit ? 0.8 : 1.0;
+        if (alpha !== 1.0) ctx.globalAlpha = alpha;
+
+        ctx.fillRect(
+          Math.round(ex - sizeRect / 2),
+          Math.round(ey - sizeRect / 2),
+          sizeRect,
+          sizeRect
+        );
+
+        if (alpha !== 1.0) ctx.globalAlpha = 1.0;
       }
-
-      ctx.fillRect(-sizeRect / 2, -sizeRect / 2, sizeRect, sizeRect);
-
-      // Retro detail: Eye/Core highlight
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.fillRect(-sizeRect / 2 + 2, -sizeRect / 2 + 2, 4, 4);
     } else {
+      // Cyberpunk mode
+      ctx.save();
+      ctx.translate(ex, ey);
+      if (isSpawning) this.applyEnemySpawnTransform(ctx, e);
+
       if (isHit) {
         ctx.fillStyle = '#FFFFFF';
         ctx.globalAlpha = 0.8;
@@ -382,11 +399,10 @@ export class EntityRenderer implements IRenderer {
       ctx.beginPath();
       ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
     }
 
-    ctx.restore();
-
-    // 3. Health Bar (Overlays)
+    // 2. Health Bar (Overlays) - only draw if healthy enough or if player needs info
     if (e.spawnTimer === undefined || e.spawnTimer < 0.7) {
       this.drawEnemyHealthBar(ctx, e, ex, ey);
     }
@@ -643,7 +659,14 @@ export class EntityRenderer implements IRenderer {
     ctx.strokeStyle = '#FFFFFF';
     ctx.strokeRect(px, py, size, size);
 
-    ctx.fillStyle = player.color;
+    // Hurt flash effect (High-frequency blinking for first 200ms of I-frame)
+    if (player.invulnerabilityTimer > 200) {
+      const isVisible = Math.floor(Date.now() / 50) % 2 === 0;
+      if (!isVisible) return;
+      ctx.fillStyle = '#FFFFFF';
+    } else {
+      ctx.fillStyle = player.color;
+    }
     ctx.fillRect(px, py, size, size);
 
     // Character Detail: Simple 8-bit eyes
@@ -652,6 +675,7 @@ export class EntityRenderer implements IRenderer {
     ctx.fillRect(Math.round(player.x) + 2, Math.round(player.y) - 2, 4, 4);
   }
 
+  /**
   /**
    * Smooth vector player with physics-based squash/stretch.
    */
@@ -675,7 +699,12 @@ export class EntityRenderer implements IRenderer {
     );
     ctx.fill();
 
-    ctx.fillStyle = player.color;
+    // Hurt flash effect (Cyberpunk style: additive white overlay)
+    if (player.invulnerabilityTimer > 150) {
+      ctx.fillStyle = '#FFFFFF';
+    } else {
+      ctx.fillStyle = player.color;
+    }
     ctx.beginPath();
 
     // Apply scaling factor for impact/movement "feel"

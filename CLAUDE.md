@@ -40,20 +40,30 @@ npm run format           # Prettier formatting
 ├── App.tsx                    # Main application component
 ├── components/                # React components
 │   ├── GameEngine.tsx        # Canvas render loop
-│   ├── GameUI.tsx            # Responsive HUD overlay
-│   ├── screens/              # Menu screens
+│   ├── GameHUD.tsx           # In-game UI overlay (Legacy)
+│   ├── GameUI.tsx            # Responsive React HUD (Main)
+│   ├── hub/                  # Hub/Menu components
+│   ├── hud/                  # Modular HUD components
+│   ├── screens/              # Game screens (Main, Hub, etc.)
+│   ├── admin/                # Admin dashboard panels
 │   └── mobile/               # Touch controls
 ├── services/                  # Singleton services
+│   ├── MarketService.ts      # Price feeds & fallback logic
+│   ├── PhysicsSystem.ts      # Collision detection
+│   ├── DifficultyManager.ts  # Market-based difficulty logic
 │   ├── EventBus.ts           # Type-safe event system
-│   ├── MarketService.ts      # WebSocket price feeds
-│   ├── DifficultyManager.ts  # Market-based difficulty
-│   ├── PoolManager.ts        # Object pooling
-│   └── renderers/            # Canvas renderers
+│   ├── PoolManager.ts        # O(1) Object pooling
+│   ├── AntiCheatService.ts   # Security & validation
+│   ├── analytics/            # Global metrics
+│   ├── renderers/            # Canvas renderers
+│   └── metrics/              # Performance & data analysis
 ├── hooks/                     # Custom React hooks
-├── stores/                    # Zustand state
-├── types/                     # TypeScript definitions
-├── tests/                     # Vitest tests
-└── e2e/                       # Playwright E2E tests
+├── stores/                    # Zustand state management
+├── types/                     # TypeScript & Supabase types
+├── tests/                     # Vitest unit & integration tests
+├── e2e/                       # Playwright E2E tests
+├── supabase/                  # Migrations & Edge Functions
+└── railway-market-server/     # Price logger backend
 ```
 
 ## ✅ Coding Standards
@@ -75,19 +85,6 @@ npm run format           # Prettier formatting
 - **EventBus** - Inter-service communication via `EventBus.emit()`
 - **gameReset event** - Subscribe to reset state on new game
 
-```typescript
-// Example: Service pattern
-class MyServiceClass {
-  private static instance: MyServiceClass | null = null;
-  
-  static getInstance(): MyServiceClass {
-    return (MyServiceClass.instance ??= new MyServiceClass());
-  }
-}
-
-export const MyService = MyServiceClass.getInstance();
-```
-
 ## 🧪 Testing Rules
 
 ### Unit Tests (Vitest)
@@ -97,8 +94,7 @@ export const MyService = MyServiceClass.getInstance();
 
 ### E2E Tests (Playwright)
 - Location: `e2e/` folder
-- Run headless by default
-- Test critical user flows
+- Run headless by default (CI/CD compatible)
 
 ## ⛔ DO NOT
 
@@ -106,9 +102,8 @@ export const MyService = MyServiceClass.getInstance();
 2. ❌ Use `eval()` or `exec()`
 3. ❌ Hardcode API keys or secrets
 4. ❌ Commit `.env*` files
-5. ❌ Use bare `catch` without specific error handling
+5. ❌ Leave `console.log` in production code - use `Logger` service
 6. ❌ Use global variables - use Zustand or singleton services
-7. ❌ Use `console.log` - use `Logger.info/warn/error`
 
 ## ✅ MUST DO
 
@@ -122,35 +117,45 @@ export const MyService = MyServiceClass.getInstance();
 ## 🔌 Integrations
 
 ### Supabase
-- Tables: `players`, `game_sessions`, `player_wallets`, `leaderboard`
-- Edge Functions: `verify-game`, `submit-score`
+- Tables: `players`, `game_sessions`, `player_wallets`, `achievements`, `shop_items`, `player_inventory`, `price_logs`
+- Edge Functions: `verify-game`, `submit-score`, `handle-purchase`
 - RLS enabled on all tables
 
 ### WebSocket Feeds
-- **Binance** (primary): `wss://stream.binance.com:9443/ws/btcusdt@kline_1m`
-- **Coinbase** (fallback): `wss://ws-feed.exchange.coinbase.com`
+- **Binance** (primary): `wss://stream.binance.com:9443/ws/btcusdt@trade`
+- **Coinbase** (fallback): Fallback price feed logic
+
+## 🔍 Debug Tools
+
+- **Admin Dashboard**: `Ctrl+Shift+A`
+- **Logger**: `Logger.info()`, `Logger.warn()`, `Logger.error()`
+- **FPS/Metrics Monitor**: Displayed on canvas
+- **Cheat Manager**: Active in development mode (F1 or menu)
 
 ## 📊 Performance Targets
 
 | Metric | Target |
 |--------|--------|
 | FPS | 60 (mobile & desktop) |
+| Scripting Time | < 4ms per frame |
 | Bundle Size | < 500KB gzipped |
-| Build Time | < 30 seconds |
 | Test Suite | < 60 seconds |
-
-## 🔍 Debug Tools
-
-- **Admin Dashboard**: `Ctrl+Shift+A`
-- **Logger**: `Logger.info()`, `Logger.warn()`, `Logger.error()`
-- **FPS Monitor**: Displayed on canvas
-- **Cheat Manager**: Active in development mode
 
 ## 📝 Available Workflows
 
 Located in `.agent/workflows/`:
 - `/code-review` - Comprehensive codebase review
-- `/debug-push` - Test, lint, commit, and push
+- `/pre-push-prep` - Test, lint, build, and commit prep
+- `/deploySon` - Full deployment workflow
+- `/fix-bug` - Standardized bug fixing process
+- `/code-doc-sync` - Synchronization of code and documentation
+
+## 📚 Key Resources
+
+- `docs/ARCHITECTURE.md`: System design details
+- `docs/MASTER_ROADMAP.md`: Project status & plans
+- `docs/ANTI_CHEAT_REWARD_SYSTEM.md`: Security & logic reference
+- `docs/TODO_COMPREHENSIVE.md`: Main task list
 
 ---
 

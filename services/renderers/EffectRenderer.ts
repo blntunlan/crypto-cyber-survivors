@@ -69,6 +69,8 @@ export class EffectRenderer implements IRenderer {
     height: number,
     state: GameState
   ): void {
+    const isRetro = ThemeService.isRetro();
+
     // RSI Tints - Position Aware
     if (state.rsiVisualState !== 'NEUTRAL') {
       ctx.save();
@@ -78,16 +80,10 @@ export class EffectRenderer implements IRenderer {
       const isLong = state.marketPosition === 'LONG';
       const isOversold = state.rsiVisualState === 'OVERSOLD';
 
-      // Oversold (<30) is a BUY signal.
-      // - If LONG, this matches our direction (Good/Favorable)
-      // - If SHORT, this opposes our direction (Bad/Unfavorable)
-      // Overbought (>70) is a SELL signal.
-      // - If SHORT, matches (Good/Favorable)
-      // - If LONG, opposes (Bad/Unfavorable)
-
       const isFavorable = (isLong && isOversold) || (!isLong && !isOversold);
 
-      const opacity = 0.15;
+      // Retro uses solid blocks or scanline-friendly tints
+      const opacity = isRetro ? 0.1 : 0.15;
       // Favorable: Emerald/Cyan tint. Unfavorable: Red/Orange tint.
       ctx.fillStyle = isFavorable ? '#10b981' : '#ef4444';
       ctx.globalAlpha = opacity;
@@ -98,6 +94,7 @@ export class EffectRenderer implements IRenderer {
 
     // Volatility Pulse (ATR)
     // Pulse the vignette opacity based on ATR and time
+    // RETRO OPTIMIZATION: Use sharp rectangular vignette instead of radial gradient
     if (state.atrPercent > 0.5) {
       const pulse = (Math.sin(state.lastFireTime * 0.005) + 1) * 0.5; // 0 to 1 oscillating
       // Higher ATR = Stronger pulse base
@@ -105,19 +102,28 @@ export class EffectRenderer implements IRenderer {
 
       if (intensity > 0.05) {
         ctx.save();
-        // Optimization: Use standard blending instead of 'multiply'
-        const gradient = ctx.createRadialGradient(
-          width / 2,
-          height / 2,
-          height * 0.4,
-          width / 2,
-          height / 2,
-          height * 0.9
-        );
-        gradient.addColorStop(0, 'rgba(0,0,0,0)');
-        gradient.addColorStop(1, `rgba(0,0,0,${intensity})`);
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = intensity;
+
+        if (isRetro) {
+          // Retro: Simple border pulse (looks like 16-bit warning)
+          ctx.strokeStyle = `rgba(0, 0, 0, ${intensity})`;
+          ctx.lineWidth = 40;
+          ctx.strokeRect(0, 0, width, height);
+        } else {
+          // Cyberpunk: Smooth radial gradient
+          const gradient = ctx.createRadialGradient(
+            width / 2,
+            height / 2,
+            height * 0.4,
+            width / 2,
+            height / 2,
+            height * 0.9
+          );
+          gradient.addColorStop(0, 'rgba(0,0,0,0)');
+          gradient.addColorStop(1, `rgba(0,0,0,1)`);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+        }
         ctx.restore();
       }
     }
@@ -126,24 +132,28 @@ export class EffectRenderer implements IRenderer {
     if (state.whaleEventTimer > 0) {
       const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
       ctx.save();
-      // Optimization: Skip color-dodge
       ctx.globalAlpha = intensity * 0.2;
 
-      // Blue Ripple
-      const gradient = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
-        0,
-        width / 2,
-        height / 2,
-        Math.max(width, height)
-      );
-      gradient.addColorStop(0, 'rgba(56, 189, 248, 0)');
-      gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.5)'); // Cyan-400
-      gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
+      if (isRetro) {
+        // Retro: Solid full-screen flash then fade
+        ctx.fillStyle = 'rgba(56, 189, 248, 1)';
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        // Cyberpunk: Blue Ripple (Radial Gradient)
+        const gradient = ctx.createRadialGradient(
+          width / 2,
+          height / 2,
+          0,
+          width / 2,
+          height / 2,
+          Math.max(width, height)
+        );
+        gradient.addColorStop(0, 'rgba(56, 189, 248, 0)');
+        gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.5)'); // Cyan-400
+        gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+      }
       ctx.restore();
     }
   }
@@ -326,40 +336,72 @@ export class EffectRenderer implements IRenderer {
 
     ctx.save();
     ctx.lineCap = isRetro ? 'butt' : 'round';
+    ctx.strokeStyle = color;
 
+    // Optimized: Sort/Group by opacity to minimize globalAlpha changes
+    // But since there are few lines (<50), we can just batch groups of similar opacity
+
+    // Batch 1: Main Vector Lines
+    ctx.beginPath();
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
       const tailX = line.x - Math.cos(line.angle) * line.length;
       const tailY = line.y - Math.sin(line.angle) * line.length;
 
-      // 1. Primary Vector Line (simplified - no gradient)
-      ctx.beginPath();
-      ctx.globalAlpha = line.opacity * (isRetro ? 0.8 : 0.95);
-      ctx.strokeStyle = color;
+      // Grouping by alpha bucket (0.1 precision) to minimize state changes
+      const alpha = line.opacity * (isRetro ? 0.8 : 0.95);
+      const alphaBucket = Math.round(alpha * 10) / 10;
+
+      // If alpha changes significantly, flush and restart
+      if (ctx.globalAlpha !== alphaBucket) {
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.globalAlpha = alphaBucket;
+      }
+
       ctx.lineWidth = line.width;
       ctx.moveTo(line.x, line.y);
       ctx.lineTo(tailX, tailY);
-      ctx.stroke();
+    }
+    ctx.stroke();
 
-      // 2. Halo Glow (Cyberpunk only)
-      if (!isRetro && line.opacity > GAME_ENGINE.SPEED_LINE_GLOW_THRESHOLD) {
-        ctx.beginPath();
-        ctx.globalAlpha = line.opacity * 0.3;
+    // Batch 2: Halo Glow (Cyberpunk only)
+    if (!isRetro) {
+      ctx.beginPath();
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (line.opacity <= GAME_ENGINE.SPEED_LINE_GLOW_THRESHOLD) continue;
+
+        const tailX = line.x - Math.cos(line.angle) * line.length;
+        const tailY = line.y - Math.sin(line.angle) * line.length;
+
+        const alpha = line.opacity * 0.3;
+        const alphaBucket = Math.round(alpha * 10) / 10;
+
+        if (ctx.globalAlpha !== alphaBucket) {
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.globalAlpha = alphaBucket;
+        }
+
         ctx.lineWidth = line.width * GAME_ENGINE.SPEED_LINE_GLOW_WIDTH_MULT;
         ctx.moveTo(line.x, line.y);
         ctx.lineTo(tailX, tailY);
-        ctx.stroke();
       }
+      ctx.stroke();
+    }
 
-      // 3. Vector Tip (High energy point)
+    // Batch 3: Tips
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!;
       ctx.globalAlpha = line.opacity;
+
       if (!isRetro) {
         ctx.beginPath();
-        ctx.fillStyle = '#FFFFFF';
         ctx.arc(line.x, line.y, line.width * 0.8, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = '#FFFFFF';
         const tipSize = line.width;
         ctx.fillRect(line.x - tipSize / 2, line.y - tipSize / 2, tipSize, tipSize);
       }

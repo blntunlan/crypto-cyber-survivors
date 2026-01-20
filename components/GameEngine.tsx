@@ -145,6 +145,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     atrPercent: 0,
     spawnRateMultiplier: 1,
     marketPosition: position,
+
+    // Animation metadata
+    isMoving: false,
+    lastMoveX: 1,
   });
 
   // Track last synced stats to prevent unnecessary re-renders in App.tsx
@@ -388,16 +392,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Recover player scale (Squash & Stretch)
         // Lerp back to 1.0 with a springy speed
-        s.playerScaleX = lerp(
-          s.playerScaleX,
-          1,
-          GAME_ENGINE.PLAYER_SCALE_RECOVERY_SPEED * dtFactor
-        );
-        s.playerScaleY = lerp(
-          s.playerScaleY,
-          1,
-          GAME_ENGINE.PLAYER_SCALE_RECOVERY_SPEED * dtFactor
-        );
+        // Use faster recovery on mobile for snappier 100ms dash
+        const recoverySpeed = device.isMobile
+          ? GAME_ENGINE.PLAYER_SCALE_RECOVERY_SPEED * 2.0
+          : GAME_ENGINE.PLAYER_SCALE_RECOVERY_SPEED;
+
+        s.playerScaleX = lerp(s.playerScaleX, 1, recoverySpeed * dtFactor);
+        s.playerScaleY = lerp(s.playerScaleY, 1, recoverySpeed * dtFactor);
 
         // Update difficulty waves in real-time
         DifficultyManager.updateWaveTimer(deltaTime);
@@ -494,8 +495,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               if (ddx !== 0 || ddy !== 0) {
                 // Start second dash immediately
                 const effectiveDashDuration = device.isMobile
-                  ? GAME_ENGINE.DASH_DURATION_MOBILE
-                  : GAME_ENGINE.DASH_DURATION;
+                  ? GAME_ENGINE.PLAYER_DASH_DURATION_MOBILE
+                  : GAME_ENGINE.PLAYER_DASH_DURATION;
 
                 s.isDashing = true;
                 s.dashTimer = effectiveDashDuration;
@@ -505,7 +506,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 audio.playDash();
                 s.shake = 10; // Extra feedback for double dash
                 EventBus.emit('playerDash', {
-                  duration: GAME_ENGINE.DASH_DURATION,
+                  duration: effectiveDashDuration,
                   cooldown: GAME_ENGINE.DOUBLE_DASH_COOLDOWN,
                   isDoubleDash: true,
                 });
@@ -561,8 +562,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           !s.isDashing
         ) {
           const effectiveDashDuration = device.isMobile
-            ? GAME_ENGINE.DASH_DURATION_MOBILE
-            : GAME_ENGINE.DASH_DURATION;
+            ? GAME_ENGINE.PLAYER_DASH_DURATION_MOBILE
+            : GAME_ENGINE.PLAYER_DASH_DURATION;
 
           s.isDashing = true;
           s.dashTimer = effectiveDashDuration;
@@ -572,7 +573,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           audio.playDash();
           consumeDash();
           EventBus.emit('playerDash', {
-            duration: GAME_ENGINE.DASH_DURATION,
+            duration: effectiveDashDuration,
             cooldown: GAME_ENGINE.DASH_COOLDOWN,
             isDoubleDash: false,
           });
@@ -581,6 +582,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           s.playerScaleX = 1.8;
           s.playerScaleY = 0.4;
           s.playerRotation = Math.atan2(dy, dx);
+        }
+
+        // --- ANIMATION METADATA SYNC ---
+        s.isMoving = Math.hypot(dx, dy) > 0.1;
+        if (dx !== 0) {
+          s.lastMoveX = dx > 0 ? 1 : -1;
         }
 
         if (dx !== 0 || dy !== 0) {
@@ -675,7 +682,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           p,
           marketDataRef.current.pnl,
           maxEnemies,
-          state.current.spawnRateMultiplier
+          state.current.spawnRateMultiplier,
+          pair,
+          marketDataRef.current.enemyDamage
         );
 
         // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---
@@ -779,6 +788,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       renderer,
       spawnSystemRef,
       speedLineSpawner,
+      pair,
     ]
   );
 

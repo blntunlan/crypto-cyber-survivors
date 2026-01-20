@@ -53,6 +53,7 @@ export interface MarketData {
   atrPercent?: number; // ATR as percentage of price (from server)
   whaleTier?: 0 | 1 | 2 | 3;
   spawnRateMultiplier?: number;
+  enemyDamage?: number;
 }
 
 export interface Entity {
@@ -87,6 +88,7 @@ export interface Enemy extends Entity {
   speed: number;
   health: number;
   maxHealth: number;
+  damage: number;
   type: EnemyId;
   valueMultiplier?: number;
   // Death animation
@@ -214,6 +216,10 @@ export interface GameState {
   atrPercent: number; // Current volatility (0-100+)
   spawnRateMultiplier: number; // Server-provided multiplier
   marketPosition: MarketPosition;
+
+  // Animation metadata
+  isMoving: boolean;
+  lastMoveX: number; // -1 for Left, 1 for Right
 }
 
 export interface Achievement {

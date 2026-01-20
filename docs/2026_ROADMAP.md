@@ -31,8 +31,8 @@
 | RLS güvenlik düzeltmeleri | ⭐⭐⭐⭐⭐ | 2h | ✅ Tamamlandı |
 | Veri akışı düzeltmeleri (UPSERT) | ⭐⭐⭐⭐⭐ | 2h | ✅ Tamamlandı |
 | Retry logic ekleme | ⭐⭐⭐⭐ | 1h | ✅ Tamamlandı |
-| FK indeksleri ekleme | ⭐⭐⭐ | 30m | ⬜ Bekliyor |
-| Railway'e deploy | ⭐⭐⭐ | 30m | ⬜ Bekliyor |
+| FK indeksleri ekleme | ⭐⭐⭐ | 30m | ✅ Tamamlandı |
+| Railway'e deploy | ⭐⭐⭐ | 30m | ✅ Atlandı (CI/CD) |
 | Dokümanları güncelle | ⭐⭐ | 1h | ✅ Tamamlandı |
 
 **Çıktılar:**
@@ -241,8 +241,9 @@
 2. ~~Veri akışı düzeltmeleri~~ ✅
 3. ~~Mimari doküman~~ ✅
 4. ~~Roadmap güncellemesi~~ ✅
-5. ⬜ FK indekslerini ekle
-6. ⬜ Railway'e deploy
+5. ✅ FK indekslerini ekle
+6. ✅ Railway'e deploy (Otomatik)
+7. ⬜ Sprint 2 Hazırlığı: Anti-cheat teknik analizi
 
 ---
 

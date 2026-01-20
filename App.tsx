@@ -93,10 +93,27 @@ const DebugPanel = React.lazy(() =>
 
 // Fallback components
 const FallbackLoader = () => {
-  const { t } = useLanguage();
+  // Use a simple fallback that doesn't depend on translations
+  // to prevent blank screen during initial load
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-slate-950 text-yellow-500 font-mono text-sm tracking-widest animate-pulse">
-      {t('common.loading_engine')}
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#020617',
+        color: '#eab308',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        letterSpacing: '0.1em',
+      }}
+    >
+      LOADING ENGINE...
     </div>
   );
 };
@@ -138,14 +155,17 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && gameStatus === GameStatus.PLAYING) {
-        // Only auto-pause if not in competitive mode OR if we have remaining budget
+        // Only auto-pause in Casual mode.
+        // In Competitive mode, we NEVER auto-pause when hidden/alt-tabbed.
+        // This prevents users from wasting pause budget automatically and keeps the session "live".
         const isLimited = gameMode === GameMode.COMPETITIVE;
-        const hasBudget = (pauseBudget.remainingSeconds ?? 0) > 0;
 
-        if (!isLimited || hasBudget) {
+        if (!isLimited) {
           GameStateMachine.transition(GameStatus.PAUSED);
         } else {
-          Logger.info('[App] Budget depleted - blocking auto-pause while hidden');
+          Logger.info(
+            '[App] Competitive mode active - skipping auto-pause while hidden'
+          );
         }
       }
     };
@@ -174,12 +194,9 @@ const App: React.FC = () => {
   // ========================================
   // Initialization & Utility Hooks (refactored from inline useEffects)
   // ========================================
-  const { needsNickname, setNeedsNickname } = useAppInitialization();
+  const { needsNickname, setNeedsNickname, isInitialized } = useAppInitialization();
   const { showAnalytics, showAdminDashboard, closeAnalytics, closeAdminDashboard } =
     useDevShortcuts();
-
-  // Handle tab close warning during gameplay
-  useBeforeUnload(gameStatus);
 
   // ========================================
   // Player & Market Hooks
@@ -255,7 +272,7 @@ const App: React.FC = () => {
    * @param selectedLeverage - The selected leverage multiplier.
    */
   const startGame = useCallback(
-    (choice: MarketPosition, selectedLeverage: LeverageOption) => {
+    async (choice: MarketPosition, selectedLeverage: LeverageOption) => {
       // Replaced console.error with Logger.error
       if (marketData.price === 0 || gameStatus !== GameStatus.MENU) {
         Logger.error(
@@ -267,15 +284,33 @@ const App: React.FC = () => {
       resetPlayer();
       setLeverage(selectedLeverage);
       CoinService.resetSession();
-      GameStateManager.initializeNewGame(
+
+      const success = await GameStateManager.initializeNewGame(
         choice,
         marketData.price,
         selectedLeverage,
         selectedPair
       );
+
+      if (!success) {
+        // Show error notification to user
+        EventBus.emit('gameNotification', {
+          title: 'Connection Error',
+          message: 'Failed to start game session. Please try again.',
+          type: 'error',
+        });
+        return;
+      }
+
       setPosition(choice);
       setEntryPrice(marketData.price);
       setPositionColor(choice);
+
+      // Competitive Mode: Increase max delta time to allow real-time catch-up when returning from background/alt-tab.
+      // Casual Mode: Keep a small cap to prevent physics explosions from frame drops.
+      const { TimeService } = await import('./services/TimeService');
+      TimeService.setMaxDeltaTime(gameMode === GameMode.COMPETITIVE ? 10000 : 50);
+
       GameStateMachine.transition(GameStatus.PLAYING);
       MilestoneService.startSession();
       audio.playLevelUp();
@@ -296,6 +331,7 @@ const App: React.FC = () => {
       setLeverage,
       setPosition,
       setEntryPrice,
+      gameMode,
     ]
   );
 
@@ -489,9 +525,18 @@ const App: React.FC = () => {
     };
   }, [handleLevelUp, handleGameOver]);
 
+  // Handle tab close warning during gameplay
+  useBeforeUnload(gameStatus);
+
   // ========================================
   // Render
   // ========================================
+
+  // Show engine loader until critical services are ready
+  if (!isInitialized) {
+    return <FallbackLoader />;
+  }
+
   return (
     <UserProvider>
       <ThemeProvider>
@@ -562,7 +607,9 @@ const App: React.FC = () => {
                     <React.Suspense fallback={<UIFallback />}>
                       <MainMenu
                         price={marketData.price}
-                        onStart={startGame}
+                        onStart={(c, l) => {
+                          void startGame(c, l);
+                        }}
                         onOpenSettings={() => setShowSettings(true)}
                         selectedPair={selectedPair}
                         onPairChange={setSelectedPair}
@@ -574,7 +621,7 @@ const App: React.FC = () => {
                         onClick={() => setHubScreen('hub')}
                         className="fixed top-4 left-4 z-[110] px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all"
                       >
-                        ← {t('common.back_to_hub')}
+                        ← {!device.isMobile && ` ${t('common.back_to_hub')}`}
                       </button>
                     </React.Suspense>
                   )}

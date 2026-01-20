@@ -62,7 +62,7 @@ enum ReplayEventType {
 interface ReplayEvent {
   type: ReplayEventType;
   timestamp: number;
-  data: any;
+  data: unknown;
   hash: string;
   sequence: number;
 }
@@ -128,7 +128,7 @@ serve(async (req: Request) => {
       const decodedData = atob(replayData);
       const jsonData = decodeURIComponent(decodedData);
       events = JSON.parse(jsonData);
-    } catch (e) {
+    } catch (_e) {
       return jsonResponse(
         { valid: false, reason: 'INVALID_REPLAY_FORMAT' },
         400,
@@ -136,8 +136,25 @@ serve(async (req: Request) => {
       );
     }
 
-    // 2. Verify hash chain integrity
-    const chainResult = verifyHashChain(events);
+    // 2. Fetch session secret from database
+    const { data: session, error: sessionFetchError } = await supabaseClient
+      .from('game_sessions')
+      .select('session_secret')
+      .eq('session_id', sessionId)
+      .single();
+
+    if (sessionFetchError || !session?.session_secret) {
+      return jsonResponse(
+        { valid: false, reason: 'SESSION_NOT_FOUND' },
+        400,
+        corsHeaders
+      );
+    }
+
+    const sessionSecret = session.session_secret;
+
+    // 3. Verify hash chain integrity
+    const chainResult = verifyHashChain(events, sessionSecret);
     if (!chainResult.valid) {
       await logVerificationFailure(
         supabaseClient,
@@ -259,15 +276,19 @@ serve(async (req: Request) => {
 /**
  * Verify hash chain integrity
  */
-function verifyHashChain(events: ReplayEvent[]): { valid: boolean; brokenAt?: number } {
+function verifyHashChain(
+  events: ReplayEvent[],
+  secret: string
+): { valid: boolean; brokenAt?: number } {
   let previousHash = '0';
 
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
 
-    // Recompute expected hash
+    // Recompute expected hash - MUST match EventRecorderService.ts
     const expectedHash = quickHash(
       JSON.stringify({
+        secret,
         previousHash,
         type: event.type,
         data: event.data,
@@ -455,13 +476,14 @@ function checkImpossiblePatterns(events: ReplayEvent[]): {
  * Log verification failure for analysis
  */
 async function logVerificationFailure(
-  supabase: any,
+  supabase: unknown,
   sessionId: string,
   reason: string,
-  details: any
+  details: unknown
 ): Promise<void> {
   try {
-    await supabase.from('verification_failures').insert({
+    // deno-lint-ignore no-explicit-any
+    await (supabase as any).from('verification_failures').insert({
       session_id: sessionId,
       failure_reason: reason,
       details: JSON.stringify(details),
@@ -487,7 +509,7 @@ function quickHash(message: string): string {
  * JSON response helper
  */
 function jsonResponse(
-  data: any,
+  data: unknown,
   status: number,
   headers: Record<string, string>
 ): Response {

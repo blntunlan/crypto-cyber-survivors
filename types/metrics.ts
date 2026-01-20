@@ -217,7 +217,15 @@ export interface SessionMetrics {
     timestamp: number;
   }>;
 
-  // Replay Data
+  // Replay Data (Signed Replay System)
+  replayData?: string; // Compressed events
+  replayMetadata?: {
+    finalHash: string;
+    eventCount: number;
+    durationMs: number;
+  };
+
+  // Replay Data (Legacy input logs)
   inputLogs?: Array<{ t: number; a: string; d?: unknown }>;
 }
 

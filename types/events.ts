@@ -181,6 +181,7 @@ export interface GameInitializedEvent {
   entryPrice: number;
   leverage: number;
   pair: CryptoPair;
+  sessionId?: string; // Optional UUID from server
 }
 
 /** Empty event (no payload) */

@@ -85,6 +85,8 @@ describe('EffectRenderer', () => {
         showDamageNumbers: true,
       },
     };
+
+    (ThemeService.isRetro as any).mockReturnValue(false);
   });
 
   describe('render', () => {

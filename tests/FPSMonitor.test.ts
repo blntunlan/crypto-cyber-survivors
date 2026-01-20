@@ -59,7 +59,7 @@ describe('FPSMonitor', () => {
     expect(DeviceBenchmarkService.setManualProfile).not.toHaveBeenCalled();
   });
 
-  it.skip('should downgrade profile if FPS is consistently low', () => {
+  it('should downgrade profile if FPS is consistently low', () => {
     FPSMonitor.start();
 
     // Record 60 frames at 33.33ms (30 FPS)
@@ -70,12 +70,16 @@ describe('FPSMonitor', () => {
     }
 
     // Force a periodic check by advancing performance.now
-    // Jump in steps to avoid outlier rejection (dt > 1000)
-    // Need to advance more time to trigger the 4000ms periodic check
-    (performance.now as any).mockReturnValue(5000);
-    FPSMonitor.tick();
-    (performance.now as any).mockReturnValue(9000);
-    FPSMonitor.tick();
+    // We need to advance time to trigger the 3000ms periodic check (CONFIG.CHECK_INTERVAL_MS)
+    // But we cannot exceed 250ms per tick or it's ignored as an outlier.
+    let currentTime = 2000; // Approx where we left off (60 * 33.33)
+
+    // Advance 4000ms in 100ms steps to ensure we pass the 3000ms threshold
+    for (let i = 0; i < 40; i++) {
+      currentTime += 100;
+      (performance.now as any).mockReturnValue(currentTime);
+      FPSMonitor.tick();
+    }
 
     expect(DeviceBenchmarkService.setManualProfile).toHaveBeenCalledWith(
       DeviceProfile.MEDIUM

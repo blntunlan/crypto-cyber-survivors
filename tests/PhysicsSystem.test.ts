@@ -115,6 +115,8 @@ describe('PhysicsSystem', () => {
     atrPercent: 0,
     spawnRateMultiplier: 1,
     marketPosition: MarketPosition.LONG,
+    isMoving: false,
+    lastMoveX: 1,
   };
   let mockOnGameOver: () => void;
   let physicsSystem: PhysicsSystem;
@@ -315,6 +317,7 @@ describe('PhysicsSystem', () => {
         radius: 15,
         active: true,
         health: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -341,15 +344,14 @@ describe('PhysicsSystem', () => {
         radius: 15,
         active: true,
         health: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
       mockPlayer.hp = 100;
 
-      // Diminishing returns formula:
-      // armorReduction = armor / (armor + 10)
-      // damage = 0.8 * (1 - armorReduction)
-      // With armor 4: reduction = 4/14 ≈ 0.286, damage = 0.8 * 0.714 ≈ 0.571
+      // With armor 4: reduction = 4/14 ≈ 0.286, damage = 1 * 0.8 * 0.714 ≈ 0.571
+      // player.hp = 100 - 0.571 = 99.429...
       vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getArmor: () => 4,
         getMagnet: () => 1,
@@ -366,7 +368,6 @@ describe('PhysicsSystem', () => {
         mockOnGameOver
       );
 
-      // Use closeTo for floating point comparison
       expect(mockPlayer.hp).toBeCloseTo(99.43, 2);
     });
 
@@ -377,6 +378,7 @@ describe('PhysicsSystem', () => {
         radius: 10,
         active: true,
         health: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -425,6 +427,7 @@ describe('PhysicsSystem', () => {
         radius: 15,
         active: true,
         health: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -522,6 +525,7 @@ describe('PhysicsSystem', () => {
         active: true,
         health: 100,
         maxHealth: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -558,6 +562,7 @@ describe('PhysicsSystem', () => {
         radius: 15,
         active: true,
         health: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];
@@ -593,6 +598,7 @@ describe('PhysicsSystem', () => {
         radius: 15,
         active: true,
         health: 100,
+        damage: 1,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [mockEnemy];

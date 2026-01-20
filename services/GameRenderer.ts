@@ -6,10 +6,11 @@ import {
   ProjectileRenderer,
   EffectRenderer,
 } from './renderers';
+import { ThemeService } from './ThemeService';
 import { type GraphicsConfig } from './renderers/types';
 import { type IGameRenderer } from './interfaces/IGameRenderer';
 import { GAME_ENGINE } from '../constants';
-import { TimeService } from './TimeService';
+// import { TimeService } from './TimeService';
 
 /**
  * GameRenderer - Main Canvas Orchestrator
@@ -76,46 +77,52 @@ export class GameRenderer implements IGameRenderer {
       this.entityRenderer.render(ctx, pool, state, player, opts);
       this.effectRenderer.render(ctx, pool, state, player, opts);
 
-      this.drawDamageIndicators(ctx, state, player);
+      // this.drawDamageIndicators(ctx, state, player);
 
       // Near Miss Vignette Overlay (Visual feedback for slow-mo)
       if (state.nearMissTimer > 0) {
+        const isRetro = ThemeService.isRetro();
         // Calculate intensity based on timer progress
         const alpha =
           GAME_ENGINE.NEAR_MISS_MAX_INTENSITY *
           Math.min(1, state.nearMissTimer / GAME_ENGINE.NEAR_MISS_VIGNETTE_TIMER_DEC);
 
-        const gradient = ctx.createRadialGradient(
-          player.x,
-          player.y,
-          height * GAME_ENGINE.NEAR_MISS_GRADIENT_RADIUS_START,
-          player.x,
-          player.y,
-          height * GAME_ENGINE.NEAR_MISS_GRADIENT_RADIUS_END
-        );
+        if (isRetro) {
+          // Retro: Simple thick border instead of radial gradient
+          ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
+          ctx.lineWidth = 60;
+          ctx.strokeRect(0, 0, width, height);
+        } else {
+          const gradient = ctx.createRadialGradient(
+            player.x,
+            player.y,
+            height * GAME_ENGINE.NEAR_MISS_GRADIENT_RADIUS_START,
+            player.x,
+            player.y,
+            height * GAME_ENGINE.NEAR_MISS_GRADIENT_RADIUS_END
+          );
 
-        // Transparent center to dark outer edges
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        gradient.addColorStop(1, `rgba(0, 0, 0, ${alpha})`);
+          // Transparent center to dark outer edges
+          gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          gradient.addColorStop(1, `rgba(0, 0, 0, ${alpha})`);
 
-        ctx.fillStyle = gradient;
+          ctx.fillStyle = gradient;
 
-        // Ensure rectangle covers screen even during shake
-        ctx.fillRect(
-          -state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SHAKE_FACTOR,
-          -state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SHAKE_FACTOR,
-          width + state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SIZE_OFFSET,
-          height + state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SIZE_OFFSET
-        );
+          // Ensure rectangle covers screen even during shake
+          ctx.fillRect(
+            -state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SHAKE_FACTOR,
+            -state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SHAKE_FACTOR,
+            width + state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SIZE_OFFSET,
+            height + state.shake * GAME_ENGINE.NEAR_MISS_VIGNETTE_SIZE_OFFSET
+          );
+        }
       }
     }
 
     ctx.restore();
   }
 
-  /**
-   * Draws directional arrows indicating where damage came from.
-   */
+  /*
   private drawDamageIndicators(
     ctx: CanvasRenderingContext2D,
     state: GameState,
@@ -179,6 +186,7 @@ export class GameRenderer implements IGameRenderer {
       ctx.restore();
     }
   }
+  */
 
   /**
    * Update background candle positions based on market trend and wave intensity.

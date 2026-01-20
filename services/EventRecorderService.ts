@@ -85,6 +85,7 @@ class EventRecorderServiceClass {
   // Recording state
   private isRecording = false;
   private sessionId: string = '';
+  private sessionSecret: string = ''; // Key for HMAC-like signing
   private sessionStartTime: number = 0;
   private events: ReplayEvent[] = [];
   private previousHash: string = '0';
@@ -118,17 +119,19 @@ class EventRecorderServiceClass {
   /**
    * Start recording a new session
    */
-  startSession(data: SessionStartData, heartbeatProvider?: () => HeartbeatData): void {
+  startSession(
+    data: SessionStartData,
+    sessionSecret: string,
+    heartbeatProvider?: () => HeartbeatData
+  ): void {
     if (this.isRecording) {
       Logger.warn('[EventRecorder] Session already in progress, ending previous');
       this.reset();
     }
 
-    // Initialize state - generate session ID with fallback for older browsers
-    this.sessionId =
-      typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // Initialize state
+    this.sessionId = data.sessionId ?? `local-${Date.now()}`;
+    this.sessionSecret = sessionSecret;
     this.sessionStartTime = performance.now();
     this.events = [];
     this.previousHash = '0';
@@ -151,7 +154,10 @@ class EventRecorderServiceClass {
     // Subscribe to EventBus events
     this.subscribeToEvents();
 
-    Logger.info('[EventRecorder] Session started', { sessionId: this.sessionId });
+    Logger.info('[EventRecorder] Session started', {
+      sessionId: this.sessionId,
+      signed: !!sessionSecret,
+    });
   }
 
   /**
@@ -171,7 +177,9 @@ class EventRecorderServiceClass {
     const timestamp = performance.now() - this.sessionStartTime;
 
     // Compute hash synchronously for performance
+    // Incorporate sessionSecret for signing
     const hashPayload = JSON.stringify({
+      secret: this.sessionSecret, // Keyed hash
       previousHash: this.previousHash,
       type,
       data,

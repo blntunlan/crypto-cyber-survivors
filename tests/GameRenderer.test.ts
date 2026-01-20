@@ -46,6 +46,9 @@ describe('GameRenderer', () => {
       createRadialGradient: vi.fn(() => ({
         addColorStop: vi.fn(),
       })),
+      createLinearGradient: vi.fn(() => ({
+        addColorStop: vi.fn(),
+      })),
       rotate: vi.fn(),
       globalCompositeOperation: 'source-over',
     } as unknown as CanvasRenderingContext2D;
@@ -107,6 +110,9 @@ describe('GameRenderer', () => {
       atrPercent: 1,
       spawnRateMultiplier: 1,
       marketPosition: MarketPosition.LONG,
+      bgUpdateFrameCounter: 0,
+      isMoving: false,
+      lastMoveX: 0,
     };
 
     // Mock Player

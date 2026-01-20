@@ -6,15 +6,13 @@
  * - Player tracking initialization
  * - Device profiling and sync
  * - Device benchmarking
- * - Nickname check (waits for localStorage to load first)
+ * - Nickname check using robust UserPersistenceService
  */
 
 import { useEffect, useState, useCallback } from 'react';
 import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
 import { Logger } from '../services/Logger';
-
-// Storage key must match UserContext
-const STORAGE_KEY = 'crypto_survivors_user';
+import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 
 interface UseAppInitializationResult {
   /** Whether the user needs to set a nickname */
@@ -26,55 +24,13 @@ interface UseAppInitializationResult {
 }
 
 /**
- * Checks localStorage with a small delay to handle mobile timing issues.
- * Mobile browsers sometimes have async storage access.
- */
-function checkStoredUserWithRetry(): Promise<boolean> {
-  return new Promise(resolve => {
-    // First immediate check
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.playerId && parsed?.nickname) {
-          Logger.debug('[useAppInitialization] User found in storage immediately');
-          resolve(true);
-          return;
-        }
-      }
-    } catch {
-      // Ignore parse errors
-    }
-
-    // Second check after short delay (for mobile localStorage race conditions)
-    setTimeout(() => {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed?.playerId && parsed?.nickname) {
-            Logger.debug('[useAppInitialization] User found in storage after delay');
-            resolve(true);
-            return;
-          }
-        }
-      } catch {
-        // Ignore parse errors
-      }
-      Logger.debug('[useAppInitialization] No stored user found');
-      resolve(false);
-    }, 100);
-  });
-}
-
-/**
  * Hook to handle application initialization
  * @returns Initialization state and controls
  */
 export function useAppInitialization(): UseAppInitializationResult {
   const [needsNickname, setNeedsNickname] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [hasCheckedNickname, setHasCheckedNickname] = useState<boolean>(false);
+  const [hasStartedInit, setHasStartedInit] = useState<boolean>(false);
 
   // Memoized setter that logs for debugging
   const setNeedsNicknameWithLog = useCallback((value: boolean) => {
@@ -83,39 +39,41 @@ export function useAppInitialization(): UseAppInitializationResult {
   }, []);
 
   useEffect(() => {
-    // Initialize error tracking (auto-initializes on import)
-    void import('../services/analytics/ErrorTracker');
+    if (hasStartedInit) return;
+    setHasStartedInit(true);
 
-    // Initialize player tracking (auto-initializes on import)
-    void import('../services/analytics/PlayerTracker');
+    const init = async () => {
+      // 1. Initialize core analytics services
+      void import('../services/analytics/ErrorTracker');
+      void import('../services/analytics/PlayerTracker');
+      void import('../services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
+        ErrorReporter.init();
+      });
 
-    // Initialize crash/error reporting
-    void import('../services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
-      ErrorReporter.init();
-    });
+      // 2. Sync device profile
+      void import('../services/analytics/DeviceProfiler').then(({ DeviceProfiler }) => {
+        void DeviceProfiler.syncToSupabase();
+      });
 
-    // Sync device profile
-    void import('../services/analytics/DeviceProfiler').then(({ DeviceProfiler }) => {
-      void DeviceProfiler.syncToSupabase();
-    });
+      // 3. Run device benchmark
+      void DeviceBenchmarkService.runBenchmark();
 
-    // Run device benchmark
-    void DeviceBenchmarkService.runBenchmark();
+      // 4. Initialize market state realtime feed
+      void import('../services/MarketStateService').then(({ MarketStateService }) => {
+        void MarketStateService.init();
+      });
 
-    // Initialize market state realtime feed
-    void import('../services/MarketStateService').then(({ MarketStateService }) => {
-      void MarketStateService.init();
-    });
-
-    // Check if player needs to set a nickname (with retry for mobile)
-    void checkStoredUserWithRetry().then(hasUser => {
-      if (!hasUser && !hasCheckedNickname) {
+      // 5. Check if player needs to set a nickname (robustly)
+      const user = await UserPersistenceService.initialize();
+      if (!user) {
         setNeedsNicknameWithLog(true);
       }
-      setHasCheckedNickname(true);
+
       setIsInitialized(true);
-    });
-  }, [hasCheckedNickname, setNeedsNicknameWithLog]);
+    };
+
+    void init();
+  }, [hasStartedInit, setNeedsNicknameWithLog]);
 
   return {
     needsNickname,

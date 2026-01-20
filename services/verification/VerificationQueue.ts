@@ -40,6 +40,12 @@ export interface VerificationData {
   optimisticReward: number;
   sessionId?: string;
   signature?: string; // HMAC signature
+  replayData?: string; // Compressed replay events
+  metadata?: {
+    finalHash: string;
+    eventCount: number;
+    durationMs: number;
+  };
 }
 
 export interface VerificationResult {
@@ -216,13 +222,32 @@ class VerificationQueueService {
       throw new Error('Supabase not configured');
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/verify-game-v3`, {
+    const { data } = request;
+    const isReplayEnabled = !!data.replayData && !!data.metadata;
+    const functionName = isReplayEnabled ? 'verify-replay' : 'verify-game';
+
+    // Prepare body based on function
+    const body = isReplayEnabled
+      ? {
+          sessionId: data.sessionId,
+          metadata: data.metadata,
+          replayData: data.replayData,
+          claimedStats: {
+            kills: data.kills,
+            level: data.level,
+            survivalTimeMs: data.survivalTimeMs,
+            pnlPercent: data.claimedPnL,
+          },
+        }
+      : data;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${supabaseAnonKey}`,
       },
-      body: JSON.stringify(request.data),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

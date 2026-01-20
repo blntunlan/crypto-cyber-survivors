@@ -20,6 +20,8 @@ import { COLORS } from '../../config/Colors';
 import { audio } from '../../services/AudioService';
 import { HubMenuButton, type HubButtonId } from './HubMenuButton';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useThemeSize } from '../../hooks/useThemeSize';
+import { OptimizationBadge } from '../ui/OptimizationBadge';
 
 import { HubPlayerCard } from './HubPlayerCard';
 import { LootboxService } from '../../services/lootbox';
@@ -55,6 +57,7 @@ interface HubButtonConfig {
 export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate }) => {
   const { isRetro } = useTheme();
   const { t } = useLanguage();
+  const sizes = useThemeSize();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [lootboxCount, setLootboxCount] = useState(0);
@@ -272,27 +275,32 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
       {/* Container */}
       <div className="w-full max-w-lg space-y-4 sm:space-y-6">
         {/* Title */}
-        <header className="text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`
-              text-2xl sm:text-3xl lg:text-4xl
-              font-black uppercase tracking-tight
-              ${isRetro ? 'font-retro-pixel text-lg sm:text-xl' : 'font-cyber cyber-glitch-text'}
-            `}
-            style={{
-              color: isRetro ? COLORS.JACKPOT_YELLOW : '#fff',
-              textShadow: isRetro
-                ? '4px 4px 0px rgba(0,0,0,0.8)'
-                : `0 0 30px ${COLORS.WHALE}40`,
-            }}
+        <motion.header
+          className="space-y-3 sm:space-y-5 text-center"
+          initial={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h1
+            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
           >
-            CRYPTO
+            {t('common.menu.title')}
             <br />
-            <span style={{ color: COLORS.PUMP_GREEN }}>SURVIVORS</span>
-          </motion.h1>
-        </header>
+            <span style={{ color: COLORS.PUMP_GREEN }}>
+              {t('common.menu.subtitle')}
+            </span>
+          </h1>
+
+          <div className="flex flex-col items-center gap-2">
+            <p
+              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
+            >
+              HUB TERMINAL
+            </p>
+
+            <OptimizationBadge sizes={sizes} />
+          </div>
+        </motion.header>
 
         {/* Player Card */}
         <motion.div

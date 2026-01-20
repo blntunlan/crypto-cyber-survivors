@@ -138,20 +138,63 @@ class GameStateManagerClass {
    * Initialize a new game session.
    * Called when player selects Long/Short and starts playing.
    */
-  initializeNewGame(
+  async initializeNewGame(
     position: MarketPosition,
     entryPrice: number,
     leverage: number,
     pair: CryptoPair
-  ): void {
+  ): Promise<boolean> {
     // Ensure clean state before starting
     this.resetAll(leverage);
 
-    // Start metrics tracking for this session
-    MetricsService.startSession(position, entryPrice, leverage, pair);
+    // 1. Start server session to get secret and ID
+    const { GameSessionService } = await import('./auth/GameSessionService');
+    const serverSession = await GameSessionService.startSession(
+      pair,
+      leverage,
+      position
+    );
+
+    if (!serverSession) {
+      Logger.error('[GameStateManager] Failed to initialize server session');
+      return false;
+    }
+
+    // 2. Start metrics tracking for this session
+    MetricsService.startSession(
+      position,
+      entryPrice,
+      leverage,
+      pair,
+      serverSession.sessionId
+    );
+
+    // 3. Start Event Recording (Signed Replay)
+    const { EventRecorderService } = await import('./EventRecorderService');
+    const { UserSessionService } = await import('./auth/UserSessionService');
+
+    EventRecorderService.startSession(
+      {
+        sessionId: serverSession.sessionId,
+        pair,
+        position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
+        leverage,
+        entryPrice,
+        playerNickname: UserSessionService.getNickname() ?? 'Anonymous',
+      },
+      serverSession.sessionSecret
+    );
 
     // Emit game initialized event
-    EventBus.emit('gameInitialized', { position, entryPrice, leverage, pair });
+    EventBus.emit('gameInitialized', {
+      position,
+      entryPrice,
+      leverage,
+      pair,
+      sessionId: serverSession.sessionId,
+    });
+
+    return true;
   }
 
   /**

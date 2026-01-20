@@ -9,6 +9,7 @@ export interface EnemyDefinition {
   radius: number;
   baseHealth: number;
   baseSpeed: number;
+  baseDamage: number;
   color: string;
   spawnWeight: number; // Higher = more likely to spawn
   isOppositeColor?: boolean; // If true, color depends on MarketPosition
@@ -25,6 +26,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     radius: 14,
     baseHealth: 50,
     baseSpeed: 1.2,
+    baseDamage: 5,
     color: COLORS.SHORT,
     spawnWeight: 60,
     isOppositeColor: true,
@@ -36,6 +38,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     radius: 16,
     baseHealth: 70,
     baseSpeed: 1.4,
+    baseDamage: 8,
     color: COLORS.LONG,
     spawnWeight: 25,
     isOppositeColor: true,
@@ -47,6 +50,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     radius: 10,
     baseHealth: 30,
     baseSpeed: 1.6,
+    baseDamage: 3,
     color: COLORS.SLOT_SILVER,
     spawnWeight: 10,
     isOppositeColor: false,
@@ -58,6 +62,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     radius: 35,
     baseHealth: 300,
     baseSpeed: 0.8,
+    baseDamage: 25,
     color: COLORS.WHALE,
     spawnWeight: 5,
     isOppositeColor: false,
@@ -69,6 +74,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     radius: 12,
     baseHealth: 40,
     baseSpeed: 1.5,
+    baseDamage: 10,
     color: COLORS.DUMP_ORANGE,
     spawnWeight: 8,
     isOppositeColor: false,
@@ -80,11 +86,24 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     radius: 18,
     baseHealth: 80,
     baseSpeed: 1.2,
+    baseDamage: 12,
     color: COLORS.PUMP_GREEN,
     spawnWeight: 6,
     isOppositeColor: false,
     description: 'Volatile entities that impact equity rapidly.',
   },
-} as const;
+  rsi: {
+    id: 'rsi',
+    type: 'rsi',
+    radius: 13,
+    baseHealth: 60,
+    baseSpeed: 1.8,
+    baseDamage: 6,
+    color: COLORS.ELECTRIC_BLUE,
+    spawnWeight: 10,
+    isOppositeColor: true,
+    description: 'Momentum-based entities that spawn during RSI extremes.',
+  },
+};
 
 export type EnemyId = keyof typeof ENEMY_DEFINITIONS;

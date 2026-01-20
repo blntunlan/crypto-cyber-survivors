@@ -89,6 +89,7 @@ export type ReplayEventData =
 // =============================================================================
 
 export interface SessionStartData {
+  sessionId?: string; // Server-issued UUID
   pair: string;
   position: 'LONG' | 'SHORT';
   leverage: number;

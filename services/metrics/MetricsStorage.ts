@@ -252,6 +252,8 @@ export class MetricsStorage {
             survivalTimeMs: session.player.survivalTimeMs,
             optimisticReward: 0, // No client-side optimistic reward yet
             sessionId: session.serverSessionId ?? session.sessionId,
+            replayData: session.replayData,
+            metadata: session.replayMetadata,
           },
           session.serverSigningKey
         );

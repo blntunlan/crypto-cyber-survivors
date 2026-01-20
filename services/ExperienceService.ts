@@ -16,7 +16,8 @@ export class ExperienceService {
       // Level 10: 100 + floor(10^1.5 * 25) = 100 + 790 = 890
       return Math.floor(
         EXPERIENCE_CONFIG.BASE_EXP +
-          Math.pow(level, EXPERIENCE_CONFIG.CURVE_EXPONENT) * 40
+          Math.pow(level, EXPERIENCE_CONFIG.CURVE_EXPONENT) *
+            EXPERIENCE_CONFIG.SCALING_FACTOR
       );
     } else {
       // Mid-Late game: Switch to linear to keep it playable
@@ -26,7 +27,7 @@ export class ExperienceService {
             EXPERIENCE_CONFIG.PLATEAU_LEVEL - 1,
             EXPERIENCE_CONFIG.CURVE_EXPONENT
           ) *
-            40
+            EXPERIENCE_CONFIG.SCALING_FACTOR
       );
       const levelsOverPlateau = level - (EXPERIENCE_CONFIG.PLATEAU_LEVEL - 1);
       return plateauExp + levelsOverPlateau * EXPERIENCE_CONFIG.LINEAR_STEP;

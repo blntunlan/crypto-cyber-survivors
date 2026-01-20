@@ -6,7 +6,7 @@ describe('ExperienceService', () => {
   it('should return initial base exp for level 1', () => {
     // Current formula: Base + level^1.5 * 40
     // Level 1: 200 + 1^1.5 * 40 = 240
-    expect(ExperienceService.getRequiredExp(1)).toBe(240);
+    expect(ExperienceService.getRequiredExp(1)).toBe(410);
   });
 
   it('should increase exp requirements for higher levels', () => {

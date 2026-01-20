@@ -53,20 +53,23 @@ serve(async (req: Request) => {
       });
     }
 
-    // 2. Create Session
+    // 2. Create Session with Secret
     const startTime = new Date();
+    const sessionSecret = crypto.randomUUID(); // Secret for signing events
+
     const { data: session, error: sessionError } = await supabaseClient
       .from('game_sessions')
       .insert({
         player_id: player.id,
         start_time: startTime.toISOString(),
-        session_timestamp: startTime.toISOString(), // Use same timestamp for uniqueness tracking
+        session_timestamp: startTime.toISOString(),
         crypto_pair: pair,
         position_chosen: position,
         leverage: leverage,
         is_verified: false,
+        session_secret: sessionSecret,
       })
-      .select('id, start_time') // Return UUID 'id' for later UPDATE
+      .select('id, start_time')
       .single();
 
     if (sessionError) {
@@ -75,8 +78,9 @@ serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        sessionId: session.id, // UUID for client to store as serverSessionId
-        startTime: session.start_time, // Send back server time for sync
+        sessionId: session.id,
+        startTime: session.start_time,
+        sessionSecret: sessionSecret, // Return secret ONCE to client
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

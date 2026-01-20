@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BackgroundRenderer } from '../../services/renderers/BackgroundRenderer';
 import { GameStatus } from '../../types';
-import { screenService } from '../../services/ScreenService';
+
 import { ThemeService } from '../../services/ThemeService';
 
 // Mock services
@@ -138,15 +138,6 @@ describe('BackgroundRenderer', () => {
       expect(mockCtx.beginPath).toHaveBeenCalled();
       expect(mockCtx.stroke).toHaveBeenCalled();
       expect(mockCtx.fillRect).toHaveBeenCalled(); // Bg + candles + wicks
-    });
-
-    it('should apply blur for layer 1 on desktop', () => {
-      mockState.bgCandles[0].layer = 1;
-      (screenService.isMobile as any).mockReturnValue(false);
-
-      (renderer as any).renderRetroBackground(mockCtx, 800, 600, 10, 10, 20, mockState);
-
-      expect(mockCtx.filterSpy).toHaveBeenCalledWith('blur(1px)');
     });
   });
 

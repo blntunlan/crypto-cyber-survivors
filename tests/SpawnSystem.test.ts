@@ -209,7 +209,8 @@ describe('SpawnSystem', () => {
         expect.any(Number),
         1,
         MarketPosition.LONG,
-        2
+        2,
+        1
       );
     });
 
