@@ -23,6 +23,7 @@ export class CollisionSystem implements ICollisionSystem {
   private ctx: IPhysicsContext;
   private damageBufferUpdateCounter: number = 0;
   private readonly DAMAGE_BUFFER_UPDATE_INTERVAL: number = 3; // Update every 3 frames
+  private nearbyBulletsBuffer: Bullet[] = []; // Reusable buffer for collision checks
 
   constructor(context: IPhysicsContext = getPhysicsContext()) {
     this.ctx = context;
@@ -166,10 +167,12 @@ export class CollisionSystem implements ICollisionSystem {
         }
 
         // Batch collision check - get nearby bullets once
-        const nearbyBullets = this.ctx.bulletGrid.getNearby(obj.x, obj.y);
-        if (nearbyBullets.length === 0) return;
+        this.nearbyBulletsBuffer.length = 0;
+        this.ctx.bulletGrid.getNearbyInto(obj.x, obj.y, this.nearbyBulletsBuffer);
 
-        for (const bullet of nearbyBullets) {
+        if (this.nearbyBulletsBuffer.length === 0) return;
+
+        for (const bullet of this.nearbyBulletsBuffer) {
           if (!bullet.active) continue;
 
           const dx = obj.x - bullet.x;
@@ -352,16 +355,14 @@ export class CollisionSystem implements ICollisionSystem {
     particleMultiplier: number
   ): void {
     // Get nearby bullets in batch to reduce iterator overhead
-    const nearbyBullets: Bullet[] = [];
-    this.ctx.bulletGrid.forEachNearby(enemy.x, enemy.y, bullet => {
-      if (!enemy.active || !bullet.active) {
-        return;
-      }
-      nearbyBullets.push(bullet);
-    });
+    this.nearbyBulletsBuffer.length = 0;
+    this.ctx.bulletGrid.getNearbyInto(enemy.x, enemy.y, this.nearbyBulletsBuffer);
 
     // Process collected bullets with optimized distance checks
-    for (const bullet of nearbyBullets) {
+    for (const bullet of this.nearbyBulletsBuffer) {
+      if (!enemy.active || !bullet.active) {
+        continue;
+      }
       const dx = enemy.x - bullet.x;
       const dy = enemy.y - bullet.y;
       const distSq = dx * dx + dy * dy;

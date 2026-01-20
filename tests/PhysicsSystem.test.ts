@@ -64,6 +64,9 @@ vi.mock('../services/SpatialGrid', () => ({
       mockBullets.push(...bullets);
     }),
     getNearby: vi.fn(() => mockBullets),
+    getNearbyInto: vi.fn((_x: number, _y: number, target: any[]) => {
+      target.push(...mockBullets);
+    }),
     forEachNearby: vi.fn((_x: number, _y: number, callback: (b: any) => void) => {
       mockBullets.forEach(callback);
     }),
@@ -72,6 +75,7 @@ vi.mock('../services/SpatialGrid', () => ({
     clear: vi.fn(),
     insertAll: vi.fn(),
     getNearby: vi.fn(() => []),
+    getNearbyInto: vi.fn(),
     forEachNearby: vi.fn(),
   },
 }));

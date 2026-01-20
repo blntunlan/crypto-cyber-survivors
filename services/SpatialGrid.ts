@@ -101,6 +101,26 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   }
 
   /**
+   * Get all entities in the same cell and neighboring cells, pushing them into a target array.
+   * This allows the caller to reuse the array, reducing GC pressure.
+   */
+  public getNearbyInto(x: number, y: number, target: T[]): void {
+    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
+
+    // Check 3x3 grid of cells (current + 8 neighbors)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const cell = this.grid.get(key);
+        if (cell) {
+          target.push(...cell);
+        }
+      }
+    }
+  }
+
+  /**
    * Zero-allocation iterator for nearby entities.
    * Directly invokes callback for each entity in the 3x3 grid.
    * Significantly reduces GC pressure compared to getNearby().

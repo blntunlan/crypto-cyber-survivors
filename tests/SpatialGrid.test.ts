@@ -373,6 +373,24 @@ describe('SpatialGrid', () => {
         expect(nearby).toEqual([]);
       });
 
+    it('should reuse target array with getNearbyInto', () => {
+      const entity = createTestEntity('e1', 50, 50);
+      grid.insert(entity);
+
+      const buffer: TestEntity[] = [];
+      grid.getNearbyInto(50, 50, buffer);
+
+      expect(buffer).toHaveLength(1);
+      expect(buffer).toContain(entity);
+
+      // Reuse the same buffer without clearing (it should append)
+      const entity2 = createTestEntity('e2', 60, 60);
+      grid.insert(entity2);
+
+      grid.getNearbyInto(60, 60, buffer);
+      expect(buffer).toHaveLength(3); // 1 old + 2 new (both e1 and e2 are nearby)
+    });
+
       it('should return empty array when entities are far away', () => {
         const entity = createTestEntity('far', 500, 500);
         grid.insert(entity);
