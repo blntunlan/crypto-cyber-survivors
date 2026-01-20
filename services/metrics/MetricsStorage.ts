@@ -45,8 +45,21 @@ export class MetricsStorage {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const data = JSON.parse(stored);
-        this.sessions = data.sessions ?? [];
-        Logger.debug(`[MetricsStorage] Loaded ${this.sessions.length} sessions`);
+        let sessions: SessionMetrics[] = data.sessions ?? [];
+
+        // Trim logs from old sessions to keep heap small
+        // Keep logs only for the most recent 3 sessions
+        sessions = sessions.map((s, idx) => {
+          if (idx < sessions.length - 3 && s.inputLogs && s.inputLogs.length > 0) {
+            return { ...s, inputLogs: [] };
+          }
+          return s;
+        });
+
+        this.sessions = sessions;
+        Logger.debug(
+          `[MetricsStorage] Loaded ${this.sessions.length} sessions (trimmed old logs)`
+        );
       }
     } catch (error) {
       Logger.warn('[MetricsStorage] Failed to load from storage', error);
@@ -78,6 +91,14 @@ export class MetricsStorage {
    * Add a session and persist
    */
   addSession(session: SessionMetrics): void {
+    // Before adding, trim logs of old sessions in memory
+    if (this.sessions.length >= 3) {
+      const olderSession = this.sessions[this.sessions.length - 3];
+      if (olderSession?.inputLogs) {
+        olderSession.inputLogs = []; // Free memory from old session logs
+      }
+    }
+
     this.sessions.push(session);
 
     // Enforce max limit

@@ -21,6 +21,7 @@ const CELL_COORD_OFFSET = 32768;
 export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   private cellSize: number;
   private grid: Map<number, T[]>;
+  private arrayPool: T[][] = []; // Pool of arrays for cells
 
   constructor(cellSize: number = 100) {
     this.cellSize = cellSize;
@@ -28,9 +29,14 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   }
 
   /**
-   * Clear the grid for a new frame
+   * Clear the grid for a new frame.
+   * Reuses the arrays in the pool to avoid GC pressure.
    */
   public clear(): void {
+    for (const cell of this.grid.values()) {
+      cell.length = 0; // Empty the array without deallocating
+      this.arrayPool.push(cell);
+    }
     this.grid.clear();
   }
 
@@ -46,27 +52,29 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   }
 
   /**
-   * Insert an entity into the grid
+   * Insert an entity into the grid.
+   * Uses pooled arrays to avoid frame-level allocations.
    */
   public insert(entity: T): void {
     if (!entity.active) return;
 
     const key = this.getNumericKey(entity.x, entity.y);
-    const cell = this.grid.get(key);
+    let cell = this.grid.get(key);
 
-    if (cell) {
-      cell.push(entity);
-    } else {
-      this.grid.set(key, [entity]);
+    if (!cell) {
+      cell = this.arrayPool.pop() ?? [];
+      this.grid.set(key, cell);
     }
+    cell.push(entity);
   }
 
   /**
    * Insert multiple entities into the grid
    */
   public insertAll(entities: T[]): void {
-    for (const entity of entities) {
-      this.insert(entity);
+    const len = entities.length;
+    for (let i = 0; i < len; i++) {
+      this.insert(entities[i]!);
     }
   }
 

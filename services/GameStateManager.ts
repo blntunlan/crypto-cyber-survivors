@@ -5,7 +5,7 @@
  * Coordinates reset across all game systems to ensure consistency.
  */
 
-import { type MarketPosition, type PlayerStats } from '../types';
+import { MarketPosition, type PlayerStats } from '../types';
 import { type CryptoPair } from '../types/crypto';
 import { EventBus } from './EventBus';
 import { DifficultyManager } from './DifficultyManager';
@@ -25,6 +25,9 @@ export const PLAYER_DEFAULTS = {
   exp: PLAYER_STATS.INITIAL_EXP,
   nextLevelExp: PLAYER_STATS.INITIAL_NEXT_LEVEL_EXP,
 
+  // I-Frame timer (must start at 0 for damage to work)
+  invulnerabilityTimer: 0,
+
   // Directly from Registry
   ...(Object.values(STAT_DEFINITIONS).reduce((acc, stat) => {
     acc[stat.id as keyof PlayerStats] = stat.defaultValue;
@@ -34,14 +37,17 @@ export const PLAYER_DEFAULTS = {
 
 export const GAME_STATE_DEFAULTS = {
   spawnTimer: 0,
+  fireTimer: 0,
   lastFireTime: 0,
   shake: 0,
   critFlash: 0,
+  critFlashColor: '#ffffff',
   lastTime: 0,
   levelUpFreeze: 0,
   isDashing: false,
   dashTimer: 0,
   dashCooldownTimer: 0,
+  dashTrail: [],
   dashTrailAccumulator: 0,
   currentBg: { r: 2, g: 6, b: 23 },
   isGameOverTriggered: false,
@@ -58,6 +64,17 @@ export const GAME_STATE_DEFAULTS = {
   // Near Miss Tension
   nearMissTimer: 0,
   nearMissCooldown: 0,
+  // Visual tracking
+  damageIndicators: [],
+  bgUpdateFrameCounter: 0,
+  lastHeartbeatTime: 0,
+  rsiVisualState: 'NEUTRAL',
+  whaleEventTimer: 0,
+  interactableSpawnTimer: 0,
+  // Market Indicators (set to initial safe values)
+  atrPercent: 0,
+  spawnRateMultiplier: 1,
+  marketPosition: MarketPosition.LONG,
 } as const;
 
 export const RUN_STATS_DEFAULTS = {

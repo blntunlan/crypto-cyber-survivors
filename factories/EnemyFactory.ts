@@ -135,9 +135,13 @@ export class EnemyFactory {
     enemyObj.isDying = false;
     enemyObj.deathProgress = 0;
     enemyObj.hasTriggeredNearMiss = false;
-    // Reset buffers just in case
+    // Reset buffers and multipliers to prevent leakage from previous pool usage
     enemyObj.damageBuffer = 0;
     enemyObj.damageBufferTimer = 0;
+    enemyObj.damageBufferIsCrit = false;
+    enemyObj.damageBufferIsSuperCrit = false;
+    enemyObj.damageBufferCritCount = 0;
+    enemyObj.valueMultiplier = 1.0;
 
     return enemyObj;
   }
