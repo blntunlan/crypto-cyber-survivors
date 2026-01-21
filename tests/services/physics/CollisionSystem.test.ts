@@ -78,6 +78,9 @@ describe('CollisionSystem', () => {
       },
       bulletGrid: {
         getNearby: vi.fn(() => []),
+        getNearbyInto: vi.fn((_x: number, _y: number, target: any[]) => {
+          target.length = 0;
+        }),
         forEachNearby: vi.fn((_x: number, _y: number, _callback: (b: any) => void) => {
           // Default: no bullets nearby
         }),
@@ -348,10 +351,10 @@ describe('CollisionSystem', () => {
         color: '#fff',
       } as Bullet;
 
-      // Mock spatial grid to call callback with our bullet
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      // Mock spatial grid to populate buffer with our bullet
+      vi.mocked(mockContext.bulletGrid.getNearbyInto).mockImplementation(
+        (_x: number, _y: number, target: any[]) => {
+          target.push(bullet);
         }
       );
 
@@ -381,9 +384,9 @@ describe('CollisionSystem', () => {
         vx: 0,
         vy: 0,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.getNearbyInto).mockImplementation(
+        (_x: number, _y: number, target: any[]) => {
+          target.push(bullet);
         }
       );
 
@@ -415,9 +418,9 @@ describe('CollisionSystem', () => {
         vy: 0,
         isCrit: true,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.getNearbyInto).mockImplementation(
+        (_x: number, _y: number, target: any[]) => {
+          target.push(bullet);
         }
       );
 
@@ -451,9 +454,9 @@ describe('CollisionSystem', () => {
         vx: 0,
         vy: 0,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.getNearbyInto).mockImplementation(
+        (_x: number, _y: number, target: any[]) => {
+          target.push(bullet);
         }
       );
 
@@ -493,9 +496,9 @@ describe('CollisionSystem', () => {
         isSuperCrit: false,
         color: '#f00',
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.getNearbyInto).mockImplementation(
+        (_x: number, _y: number, target: any[]) => {
+          target.push(bullet);
         }
       );
 

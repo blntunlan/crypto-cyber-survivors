@@ -138,6 +138,7 @@ export interface ICheatProvider {
  */
 export interface ISpatialGrid<T> {
   getNearby(x: number, y: number): T[];
+  getNearbyInto(x: number, y: number, target: T[]): void;
   forEachNearby(x: number, y: number, callback: (entity: T) => void): void;
 }
 

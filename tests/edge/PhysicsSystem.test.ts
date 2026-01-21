@@ -65,12 +65,18 @@ vi.mock('../../services/SpatialGrid', () => ({
     clear: vi.fn(),
     insertAll: vi.fn(),
     getNearby: vi.fn(() => []),
+    getNearbyInto: vi.fn((_x, _y, target) => {
+      target.length = 0;
+    }),
     forEachNearby: vi.fn(),
   },
   enemyGrid: {
     clear: vi.fn(),
     insertAll: vi.fn(),
     getNearby: vi.fn(() => []),
+    getNearbyInto: vi.fn((_x, _y, target) => {
+      target.length = 0;
+    }),
     forEachNearby: vi.fn(),
   },
 }));

@@ -118,6 +118,8 @@ const cheatAdapter: ICheatProvider = {
  */
 const bulletGridAdapter: ISpatialGrid<Bullet> = {
   getNearby: (x: number, y: number) => bulletGrid.getNearby(x, y),
+  getNearbyInto: (x: number, y: number, target: Bullet[]) =>
+    bulletGrid.getNearbyInto(x, y, target),
   forEachNearby: (x: number, y: number, callback: (entity: Bullet) => void) =>
     bulletGrid.forEachNearby(x, y, callback),
 };
