@@ -47,6 +47,8 @@ export interface DifficultyOutput {
   enemyDamage: number;
   /** Combined raw difficulty value */
   total: number;
+  /** Raw contributing factors for debugging/analytics */
+  factors: DifficultyFactors;
 }
 
 /**
@@ -69,11 +71,18 @@ class DifficultyManagerClass {
   private currentCycle: number = 1;
   private lastPnlForShock: number | null = null;
   private lastShockTime: number = 0;
+  private latestOutput: DifficultyOutput | null = null;
 
   // Use centralized wave config from GameConfig
-  private readonly WAVE_DURATIONS = WAVE_CONFIG.DURATIONS;
-  private readonly WAVE_MULTIPLIERS = WAVE_CONFIG.MULTIPLIERS;
-  private readonly PHASE_ORDER = WAVE_CONFIG.PHASE_ORDER;
+  private get WAVE_DURATIONS() {
+    return WAVE_CONFIG.DURATIONS;
+  }
+  private get WAVE_MULTIPLIERS() {
+    return WAVE_CONFIG.MULTIPLIERS;
+  }
+  private get PHASE_ORDER() {
+    return WAVE_CONFIG.PHASE_ORDER;
+  }
 
   private constructor() {}
 
@@ -147,7 +156,10 @@ class DifficultyManagerClass {
       this.lastPnlValues.shift();
     }
 
-    const leverageEffect = pnl * DIFFICULTY.PNL_LEVERAGE_MULTIPLIER;
+    // Dynamic Leverage Effect: PnL * (Selected Leverage * Sensitivity Scaler)
+    // This makes high-leverage positions significantly more volatile in terms of difficulty.
+    const sensitivityScaler = 5.0;
+    const leverageEffect = pnl * this.currentLeverage * sensitivityScaler;
 
     if (leverageEffect < 0) {
       // Losing: increase difficulty with diminishing returns
@@ -319,53 +331,37 @@ class DifficultyManagerClass {
 
   /**
    * Synchronize the progression wave timer with actual game time.
-   * Advances the game state through wave phases (Warmup, Resolution, etc.).
-   *
-   * @private
    */
   private syncWaveTimer(): void {
-    const currentGameTime = TimeService.getGameTimeSeconds();
-    const elapsed = currentGameTime - this.lastWaveUpdateTime;
+    const totalSeconds = TimeService.getGameTimeSeconds();
+    const cycleDuration = 300; // Hardcoded 5 minutes for robustness
 
-    if (elapsed < 0) {
-      Logger.warn(
-        `[WaveSync] Backward time jump detected (${this.lastWaveUpdateTime.toFixed(2)} -> ${currentGameTime.toFixed(2)}). Resetting wave state.`
-      );
-      this.resetWaveToTime(currentGameTime);
-      return;
-    }
+    // 1. Calculate Cycle
+    this.currentCycle = Math.floor(totalSeconds / cycleDuration) + 1;
 
-    if (elapsed === 0) {
-      return;
-    }
+    // 2. Calculate Phase within Cycle
+    const timeInCycle = totalSeconds % cycleDuration;
+    let accumulated = 0;
+    let newPhase: WavePhase = 'warmup';
 
-    this.lastWaveUpdateTime = currentGameTime;
-    this.waveTimer += elapsed;
+    const order = this.PHASE_ORDER;
+    const durations = this.WAVE_DURATIONS;
 
-    // Advance through wave phases based on durations defined in GameConfig
-    while (this.waveTimer >= this.WAVE_DURATIONS[this.currentWavePhase]) {
-      const currentDuration = this.WAVE_DURATIONS[this.currentWavePhase];
-      this.waveTimer -= currentDuration;
-
-      const currentIndex = this.PHASE_ORDER.indexOf(this.currentWavePhase);
-      const nextIndex = (currentIndex + 1) % this.PHASE_ORDER.length;
-      const oldPhase = this.currentWavePhase;
-      this.currentWavePhase = this.PHASE_ORDER[nextIndex]!;
-
-      Logger.info(
-        `[WaveSync] Phase transition: ${oldPhase} -> ${this.currentWavePhase} (Timer: ${this.waveTimer.toFixed(2)})`
-      );
-
-      EventBus.emit('wavePhaseChange', { phase: this.currentWavePhase, oldPhase });
-
-      // Handle cycle completion (Game Loop Decision point)
-      if (nextIndex === 0) {
-        this.currentCycle++;
-        EventBus.emit('cycleComplete', {
-          cycleNumber: this.currentCycle - 1,
-          totalElapsedSeconds: currentGameTime,
-        });
+    for (const phase of order) {
+      const duration = durations[phase];
+      if (timeInCycle < accumulated + duration) {
+        newPhase = phase;
+        this.waveTimer = timeInCycle - accumulated;
+        break;
       }
+      accumulated += duration;
+    }
+
+    // 3. Handle Events
+    if (newPhase !== this.currentWavePhase) {
+      const old = this.currentWavePhase;
+      this.currentWavePhase = newPhase;
+      EventBus.emit('wavePhaseChange', { phase: newPhase, oldPhase: old });
     }
   }
 
@@ -441,8 +437,9 @@ class DifficultyManagerClass {
     hpPercent: number,
     configOverride?: Partial<DifficultyConfig>
   ): DifficultyOutput {
-    this.detectShock(pnl);
+    // Force sync wave state with TimeService before calculating
     this.syncWaveTimer();
+    this.detectShock(pnl);
 
     const adminConfig = configOverride ?? this.getAdminConfig();
     const baseMultiplier = adminConfig?.base
@@ -480,7 +477,7 @@ class DifficultyManagerClass {
       maxDifficulty
     );
 
-    return {
+    const output: DifficultyOutput = {
       spawnRate: this.clamp(
         total * DIFFICULTY.SPAWN_RATE_TOTAL_MULTIPLIER,
         DIFFICULTY.SPAWN_RATE_MIN,
@@ -502,7 +499,18 @@ class DifficultyManagerClass {
         DIFFICULTY.ENEMY_DAMAGE_MAX
       ),
       total,
+      factors,
     };
+
+    this.latestOutput = output;
+    return output;
+  }
+
+  /**
+   * Returns the most recent difficulty calculation results.
+   */
+  public getLatestOutput(): DifficultyOutput | null {
+    return this.latestOutput;
   }
 
   /**
@@ -602,6 +610,34 @@ class DifficultyManagerClass {
       timeRemainingInPhase: this.getTimeRemainingInPhase(),
       timeRemainingInCycle: this.getTimeRemainingInCycle(),
     };
+  }
+
+  /**
+   * Hard reset all internal state.
+   * Useful for testing and total game resets.
+   */
+  reset(): void {
+    this.lastPnlValues = [];
+    this.currentWavePhase = 'warmup';
+    this.currentLeverage = 1;
+    this.waveTimer = 0;
+    this.killStreak = 0;
+    this.lastKillStreakTime = 0;
+    this.lastWaveUpdateTime = 0;
+    this.currentCycle = 1;
+    this.lastPnlForShock = null;
+    this.lastShockTime = 0;
+    this.latestOutput = null;
+    Logger.info('[DifficultyManager] State fully reset');
+  }
+
+  /**
+   * Reset for testing
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      this.instance.reset();
+    }
   }
 
   /** Helper to clamp numeric values within a range */

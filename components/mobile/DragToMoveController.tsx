@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { DRAG_THRESHOLDS } from '../../types/MobileSettings';
+import { Z_LAYERS } from '../../constants/ZIndex';
 
 interface DragState {
   active: boolean;
@@ -208,7 +209,8 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
 
   return (
     <div
-      className="fixed inset-0 touch-none z-[998]"
+      className="fixed inset-0 touch-none"
+      style={{ zIndex: Z_LAYERS.MOBILE_CONTROLS }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

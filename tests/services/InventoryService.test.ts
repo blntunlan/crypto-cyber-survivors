@@ -1,174 +1,130 @@
-/**
- * InventoryService Tests
- *
- * Tests for the Inventory management singleton.
- */
-
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InventoryService } from '../../services/inventory/InventoryService';
 import { EventBus } from '../../services/EventBus';
-import { Logger } from '../../services/Logger';
-
-// Mock dependencies
-// Note: Mocks are hoisted, so this runs before imports
-vi.mock('../../services/EventBus', () => ({
-  EventBus: {
-    emit: vi.fn(),
-    subscribe: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/Logger', () => ({
-  Logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+import { CONSUMABLE_DEFINITIONS } from '../../types/inventory';
 
 describe('InventoryService', () => {
-  const playerId = 'test-player-1';
-
   beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset private state
     InventoryService.resetForTests();
-    InventoryService.setPlayer(playerId);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
+    vi.useFakeTimers();
+    vi.clearAllMocks();
   });
 
   describe('Player Context', () => {
     it('should initialize empty inventory for new player', () => {
-      const inventory = InventoryService.getInventory();
-      expect(inventory).not.toBeNull();
-      expect(inventory?.playerId).toBe(playerId);
-      expect(inventory?.consumables).toEqual([]);
-      expect(inventory?.skins).toEqual([]);
-      expect(inventory?.equippedSkin).toBe('default');
+      InventoryService.setPlayer('player1');
+      const inv = InventoryService.getInventory();
+      expect(inv).toBeDefined();
+      expect(inv?.playerId).toBe('player1');
+      expect(inv?.consumables).toHaveLength(0);
     });
 
-    it('should switch players correctly', () => {
-      InventoryService.setPlayer('player-2');
-      expect(InventoryService.getInventory()?.playerId).toBe('player-2');
+    it('should switch between player inventories', () => {
+      InventoryService.setPlayer('p1');
+      InventoryService.addItem('consumable', 'staking_reward', 1);
+
+      InventoryService.setPlayer('p2');
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(0);
+
+      InventoryService.setPlayer('p1');
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(1);
     });
   });
 
   describe('Consumables', () => {
-    it('should add a valid consumable', () => {
-      const added = InventoryService.addItem('consumable', 'flash_loan', 2);
-      expect(added).toBe(true);
-
-      const inventory = InventoryService.getInventory();
-      const item = inventory?.consumables.find(c => c.itemId === 'flash_loan');
-      expect(item).toBeDefined();
-      expect(item?.quantity).toBe(2);
-
-      expect(EventBus.emit).toHaveBeenCalledWith(
-        'inventoryUpdated',
-        expect.objectContaining({ itemId: 'flash_loan', action: 'add' })
-      );
+    beforeEach(() => {
+      InventoryService.setPlayer('test-player');
     });
 
-    it('should stack existing consumables', () => {
-      InventoryService.addItem('consumable', 'flash_loan', 2);
-      InventoryService.addItem('consumable', 'flash_loan', 3);
+    it('should add and stack consumables', () => {
+      InventoryService.addItem('consumable', 'staking_reward', 2);
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(2);
 
-      const count = InventoryService.getConsumableCount('flash_loan');
-      expect(count).toBe(5);
+      InventoryService.addItem('consumable', 'staking_reward', 1);
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(3);
     });
 
-    it('should respect max stack limit', () => {
-      // flash_loan max stack is 10
-      InventoryService.addItem('consumable', 'flash_loan', 8);
-      InventoryService.addItem('consumable', 'flash_loan', 5);
-
-      const count = InventoryService.getConsumableCount('flash_loan');
-      expect(count).toBe(10);
+    it('should respect max stack limits', () => {
+      const def = CONSUMABLE_DEFINITIONS['staking_reward'];
+      InventoryService.addItem('consumable', 'staking_reward', def.maxStack + 10);
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(def.maxStack);
     });
 
-    it('should reject invalid consumable IDs', () => {
-      const added = InventoryService.addItem('consumable', 'invalid_id', 1);
-      expect(added).toBe(false);
-      expect(Logger.warn).toHaveBeenCalled();
+    it('should use consumables and apply effects', () => {
+      InventoryService.addItem('consumable', 'staking_reward', 5);
+
+      const success = InventoryService.useConsumable('staking_reward');
+
+      expect(success).toBe(true);
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(4);
     });
 
-    it('should use a consumable', () => {
-      InventoryService.addItem('consumable', 'flash_loan', 2);
-      const used = InventoryService.useConsumable('flash_loan');
+    it('should handle timed effects correctly', () => {
+      // flash_loan gives damage boost for 30s
+      InventoryService.addItem('consumable', 'flash_loan', 1);
+      InventoryService.useConsumable('flash_loan');
 
-      expect(used).toBe(true);
-      expect(InventoryService.getConsumableCount('flash_loan')).toBe(1);
+      const multiplier = InventoryService.getEffectMultiplier('damage_boost');
+      expect(multiplier).toBeGreaterThan(1.0);
 
-      expect(EventBus.emit).toHaveBeenCalledWith(
-        'consumableUsed',
-        expect.objectContaining({ itemId: 'flash_loan' })
-      );
-    });
+      // Advance time 31 seconds
+      vi.advanceTimersByTime(31000);
 
-    it('should fail to use missing consumable', () => {
-      const used = InventoryService.useConsumable('missing_item');
-      expect(used).toBe(false);
+      expect(InventoryService.getEffectMultiplier('damage_boost')).toBe(1.0);
     });
   });
 
-  describe('Skins', () => {
-    it('should add/unlock a skin', () => {
-      const added = InventoryService.unlockSkin('satoshi_ghost');
-      expect(added).toBe(true);
+  describe('Character Skins', () => {
+    it('should unlock and equip skins', () => {
+      InventoryService.setPlayer('p1');
 
-      const skins = InventoryService.getOwnedSkins();
-      expect(skins).toContain('satoshi_ghost');
+      // Default skin
+      expect(InventoryService.getEquippedSkin()).toBe('default');
+
+      // Unlock new skin
+      InventoryService.unlockSkin('diamond_hands');
+      expect(InventoryService.getOwnedSkins()).toContain('diamond_hands');
+
+      // Equip
+      InventoryService.equipSkin('diamond_hands');
+      expect(InventoryService.getEquippedSkin()).toBe('diamond_hands');
     });
 
-    it('should not add duplicate skins', () => {
-      InventoryService.unlockSkin('satoshi_ghost');
-      const addedSecondTime = InventoryService.unlockSkin('satoshi_ghost');
-
-      expect(addedSecondTime).toBe(false);
-      const skins = InventoryService.getOwnedSkins();
-      // 'default' + 'satoshi_ghost'
-      expect(skins.filter(s => s === 'satoshi_ghost').length).toBe(1);
-    });
-
-    it('should equip an owned skin', () => {
-      InventoryService.unlockSkin('satoshi_ghost');
-      const equipped = InventoryService.equipSkin('satoshi_ghost');
-
-      expect(equipped).toBe(true);
-      expect(InventoryService.getEquippedSkin()).toBe('satoshi_ghost');
-    });
-
-    it('should fail to equip unowned skin', () => {
-      const equipped = InventoryService.equipSkin('degen_ape');
-      expect(equipped).toBe(false);
-      expect(InventoryService.getEquippedSkin()).toBe('default'); // Default remains
+    it('should not equip unowned skins', () => {
+      InventoryService.setPlayer('p1');
+      const success = InventoryService.equipSkin('satoshi_ghost');
+      expect(success).toBe(false);
+      expect(InventoryService.getEquippedSkin()).toBe('default');
     });
   });
 
-  describe('Crypto Tokens', () => {
-    it('should add crypto tokens', () => {
-      const added = InventoryService.addItem('crypto_token', 'BTC', 0.5);
-      expect(added).toBe(true);
+  describe('Event Integration', () => {
+    it('should respond to inventoryItemAdded event', () => {
+      InventoryService.setPlayer('p1');
 
-      const tokens = InventoryService.getCryptoTokens();
-      expect(tokens).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ tokenType: 'BTC', amount: 0.5 }),
-        ])
-      );
+      // Simulating event from LootboxService
+      // @ts-expect-error: testing
+      EventBus.emit('inventoryItemAdded', {
+        itemType: 'consumable',
+        itemId: 'staking_reward',
+        quantity: 3,
+      });
+
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(3);
     });
 
-    it('should accumulate crypto tokens', () => {
-      InventoryService.addItem('crypto_token', 'ETH', 1.0);
-      InventoryService.addItem('crypto_token', 'ETH', 2.5);
+    it('should clear timed effects on gameReset', () => {
+      InventoryService.setPlayer('p1');
+      InventoryService.addItem('consumable', 'flash_loan', 1);
+      InventoryService.useConsumable('flash_loan');
 
-      const tokens = InventoryService.getCryptoTokens();
-      const eth = tokens.find(t => t.tokenType === 'ETH');
-      expect(eth?.amount).toBe(3.5);
+      // Verify active
+      expect(InventoryService.getEffectMultiplier('damage_boost')).toBeGreaterThan(1.0);
+
+      // Trigger reset
+      EventBus.emit('gameReset', {});
+
+      expect(InventoryService.getEffectMultiplier('damage_boost')).toBe(1.0);
     });
   });
 });

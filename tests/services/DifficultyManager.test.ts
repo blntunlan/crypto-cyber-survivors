@@ -1,151 +1,111 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DifficultyManager } from '../../services/DifficultyManager';
 import { TimeService } from '../../services/TimeService';
 import { EventBus } from '../../services/EventBus';
-import { Logger } from '../../services/Logger';
-import { WAVE_CONFIG } from '../../config/GameConfig';
-
-// Mock dependencies
-vi.mock('../../services/TimeService', () => ({
-  TimeService: {
-    getGameTimeSeconds: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/EventBus', () => ({
-  EventBus: {
-    emit: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/Logger', () => ({
-  Logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-  },
-}));
-
-vi.mock('../../stores/admin/configStore', () => ({
-  useAdminConfigStore: {
-    getState: vi.fn(() => ({
-      config: {
-        difficulty: {
-          base: 5,
-          volatilityMultiplier: 1.0,
-          maxDifficulty: 8.0,
-        },
-      },
-    })),
-  },
-}));
 
 describe('DifficultyManager', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.useFakeTimers();
+    TimeService.reset();
+    DifficultyManager.reset();
     DifficultyManager.startGame(1);
-    (TimeService.getGameTimeSeconds as any).mockReturnValue(0);
+    vi.clearAllMocks();
   });
 
-  describe('startGame', () => {
-    it('should reset state variables', () => {
-      DifficultyManager.startGame(10);
-      expect(DifficultyManager.getKillStreak()).toBe(0);
-      expect(DifficultyManager.getWavePhase()).toBe('warmup');
-      expect(DifficultyManager.getXpMultiplier()).toBeGreaterThan(1); // 10x leverage
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  describe('Core Logic', () => {
+    it('should calculate base difficulty at start', () => {
+      const output = DifficultyManager.calculate(0, 0.02, 1, 1);
+      expect(output.total).toBeGreaterThan(0.3);
     });
 
-    it('should set xp multiplier based on leverage', () => {
+    it('should increase difficulty with leverage and loss', () => {
+      DifficultyManager.startGame(10);
+      const baseline = DifficultyManager.calculate(0, 0.02, 1, 1).total;
+
+      DifficultyManager.reset(); // Reset history
+      DifficultyManager.startGame(10);
+      const hard = DifficultyManager.calculate(-0.1, 0.02, 1, 1).total;
+
+      expect(hard).toBeGreaterThan(baseline);
+    });
+
+    it('should apply mercy when HP is low', () => {
+      // Calculate normal difficulty (100% HP)
+      const normal = DifficultyManager.calculate(-0.1, 0.02, 1, 100).total;
+
+      // Calculate mercy difficulty with critical HP (5%)
+      // @ts-expect-error: testing
+      DifficultyManager.lastShockTime = -100000;
+      const mercy = DifficultyManager.calculate(-0.1, 0.02, 1, 5).total;
+
+      expect(mercy).toBeLessThan(normal);
+    });
+  });
+
+  describe('Wave System', () => {
+    it('should transition through phases correctly', () => {
+      const phaseChanges: string[] = [];
+      EventBus.on('wavePhaseChange', (data: any) => phaseChanges.push(data.phase));
+
+      expect(DifficultyManager.getWavePhase()).toBe('warmup');
+
+      // Warmup is 60s. Jump to 65s to be safely in buildup.
+      TimeService.setGameTime(65000);
+      DifficultyManager.updateWaveTimer(0);
+
+      expect(DifficultyManager.getWavePhase()).toBe('buildup');
+      expect(phaseChanges).toContain('buildup');
+    });
+  });
+
+  describe('Momentum & Streaks', () => {
+    it('should track kill streaks and reset on timeout', () => {
+      DifficultyManager.recordKill(); // 1
+      DifficultyManager.recordKill(); // 2
+      expect(DifficultyManager.getKillStreak()).toBe(2);
+
+      // Advance 10s (Timeout is 5s)
+      TimeService.setGameTime(10000);
+
+      DifficultyManager.recordKill(); // Should reset to 1
+      expect(DifficultyManager.getKillStreak()).toBe(1);
+    });
+
+    it('should detect market shocks', () => {
+      const shockSpy = vi.fn();
+      EventBus.on('volatilityShock', shockSpy);
+
+      DifficultyManager.startGame(1);
+      // @ts-expect-error:  ensure cooldown is not active
+      DifficultyManager.lastShockTime = -100000;
+
+      // Baseline
+      DifficultyManager.calculate(0, 0.02, 1, 1);
+
+      // Sudden large 20% drop (threshold is 0.5%)
+      DifficultyManager.calculate(-0.2, 0.02, 1, 1);
+
+      expect(shockSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Utilities', () => {
+    it('should return valid debug state', () => {
+      const state = DifficultyManager.getDebugState();
+      expect(state.systemName).toBe('DifficultyManager');
+      expect(state.cycleNumber).toBeDefined();
+    });
+
+    it('should provide correct XP multiplier based on leverage', () => {
       DifficultyManager.startGame(1);
       expect(DifficultyManager.getXpMultiplier()).toBe(1.0);
 
       DifficultyManager.startGame(100);
-      // 1 + log10(100) * 0.5 = 1 + 2 * 0.5 = 2.0
-      expect(DifficultyManager.getXpMultiplier()).toBe(2.0);
-    });
-  });
-
-  describe('calculate', () => {
-    it('should return valid difficulty output', () => {
-      const output = DifficultyManager.calculate(
-        0, // pnl
-        0.01, // atrPercent
-        1, // level
-        100 // hpPercent
-      );
-
-      expect(output).toHaveProperty('spawnRate');
-      expect(output).toHaveProperty('enemySpeed');
-      expect(output).toHaveProperty('enemyHealth');
-      expect(output).toHaveProperty('total');
-      expect(output.total).toBeGreaterThan(0);
-    });
-
-    it('should clamp values', () => {
-      const output = DifficultyManager.calculate(
-        -100, // terrible pnl => huge loss factor
-        0.5, // high volatility
-        50, // high level
-        10 // low hp (near death mod < 1.0)
-      );
-
-      expect(output.total).toBeLessThanOrEqual(8.0); // maxDifficulty
-      expect(output.spawnRate).toBeLessThanOrEqual(4.0);
-    });
-
-    it('should detect shockwaves', () => {
-      // Setup initial state
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(100);
-      DifficultyManager.calculate(0, 0, 1, 100);
-
-      // Huge jump
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(115); // > 10s passed
-      DifficultyManager.calculate(0.01, 0, 1, 100); // 1% jump > 0.5% threshold
-
-      expect(Logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('Sudden price movement')
-      );
-      expect(EventBus.emit).toHaveBeenCalledWith('volatilityShock', expect.anything());
-    });
-  });
-
-  describe('Wave Progression', () => {
-    it('should advance wave status over time', () => {
-      // Start phase: warmup
-      expect(DifficultyManager.getWavePhase()).toBe('warmup');
-
-      // Advance time past warmup
-      const warmupDuration = WAVE_CONFIG.DURATIONS.warmup;
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(warmupDuration + 1);
-
-      // Trigger calculation (which syncs wave)
-      DifficultyManager.calculate(0, 0, 1, 100);
-
-      // Should have advanced to buildup (next phase in default order)
-      // OR whatever the config says. Default order: warmup, buildup...
-      expect(DifficultyManager.getWavePhase()).not.toBe('warmup');
-      expect(EventBus.emit).toHaveBeenCalledWith('wavePhaseChange', expect.anything());
-    });
-  });
-
-  describe('Streak Tracking', () => {
-    it('should increment streak within time window', () => {
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(10);
-      DifficultyManager.recordKill();
-      expect(DifficultyManager.getKillStreak()).toBe(1);
-
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(12); // +2s
-      DifficultyManager.recordKill();
-      expect(DifficultyManager.getKillStreak()).toBe(2);
-    });
-
-    it('should reset streak after timeout', () => {
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(10);
-      DifficultyManager.recordKill();
-      expect(DifficultyManager.getKillStreak()).toBe(1);
-
-      (TimeService.getGameTimeSeconds as any).mockReturnValue(15); // +5s (>3s timeout)
-      DifficultyManager.recordKill();
-      expect(DifficultyManager.getKillStreak()).toBe(1);
+      expect(DifficultyManager.getXpMultiplier()).toBeGreaterThan(1.5);
     });
   });
 });

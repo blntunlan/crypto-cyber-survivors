@@ -247,9 +247,7 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
                         ? 'Tiếng Việt'
                         : lang === 'zh'
                           ? '中文'
-                          : lang === 'ru'
-                            ? 'Русский'
-                            : lang}
+                          : 'Русский'}
           </span>
           {language === lang && (
             <motion.div

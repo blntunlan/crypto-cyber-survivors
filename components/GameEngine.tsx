@@ -621,11 +621,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           player.y += dirY * inputFactor * effectiveSpeed * speedMult * dtFactor;
         }
 
+        // Clamp player to screen bounds (prevent going off-screen)
         player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
 
-        // Mobile: Add extra padding at the bottom to stay clear of HP bar and safe areas
+        // Mobile: Add small padding at the bottom to stay clear of HP bar
         // Desktop: Keep standard radius-based clamping
-        const bottomMargin = device.isMobile ? player.radius + 60 : player.radius;
+        const bottomMargin = device.isMobile ? player.radius + 40 : player.radius;
         player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
 
         // Calculate target background based on PnL

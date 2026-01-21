@@ -6,10 +6,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '../test-utils';
 import { GameUI } from '../../components/GameUI';
 import { GameStatus, MarketPosition } from '../../types';
-import { LanguageProvider } from '../../contexts/LanguageContext';
 
 // Mock dependencies
 vi.mock('../../services/ScreenService', () => ({
@@ -118,22 +117,14 @@ describe('GameUI', () => {
     it('should render pause button when status is PLAYING and onTogglePause is provided', () => {
       const onTogglePause = vi.fn();
 
-      render(
-        <LanguageProvider>
-          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
-        </LanguageProvider>
-      );
+      render(<GameUI {...defaultProps} onTogglePause={onTogglePause} />);
 
       const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
       expect(pauseButton).toBeInTheDocument();
     });
 
     it('should NOT render pause button when onTogglePause is not provided', () => {
-      render(
-        <LanguageProvider>
-          <GameUI {...defaultProps} />
-        </LanguageProvider>
-      );
+      render(<GameUI {...defaultProps} />);
 
       const pauseButton = screen.queryByRole('button', { name: /pause game/i });
       expect(pauseButton).not.toBeInTheDocument();
@@ -143,45 +134,29 @@ describe('GameUI', () => {
       const onTogglePause = vi.fn();
 
       render(
-        <LanguageProvider>
-          <GameUI
-            {...defaultProps}
-            status={GameStatus.PAUSED}
-            onTogglePause={onTogglePause}
-          />
-        </LanguageProvider>
+        <GameUI
+          {...defaultProps}
+          status={GameStatus.PAUSED}
+          onTogglePause={onTogglePause}
+        />
       );
 
       const pauseButton = screen.queryByRole('button', { name: /pause game/i });
       expect(pauseButton).not.toBeInTheDocument();
     });
 
-    it('should call onTogglePause when pause button is clicked', () => {
+    it('should call onTogglePause when pause button is pressed (pointerDown)', () => {
       const onTogglePause = vi.fn();
-
       render(
-        <LanguageProvider>
-          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
-        </LanguageProvider>
+        <GameUI
+          {...defaultProps}
+          status={GameStatus.PLAYING}
+          onTogglePause={onTogglePause}
+        />
       );
 
       const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
-      fireEvent.click(pauseButton);
-
-      expect(onTogglePause).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call onTogglePause when pause button receives touchEnd event (mobile)', () => {
-      const onTogglePause = vi.fn();
-
-      render(
-        <LanguageProvider>
-          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
-        </LanguageProvider>
-      );
-
-      const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
-      fireEvent.touchEnd(pauseButton);
+      fireEvent.pointerDown(pauseButton);
 
       expect(onTogglePause).toHaveBeenCalledTimes(1);
     });
@@ -192,19 +167,15 @@ describe('GameUI', () => {
      * DragToMoveController (z-998) to be clickable on mobile.
      */
     it('should have z-index higher than DragToMoveController (z-998) for mobile touch', () => {
-      const onTogglePause = vi.fn();
-
-      render(
-        <LanguageProvider>
-          <GameUI {...defaultProps} onTogglePause={onTogglePause} />
-        </LanguageProvider>
+      const { container } = render(
+        <GameUI {...defaultProps} status={GameStatus.PLAYING} onTogglePause={vi.fn()} />
       );
 
-      const pauseButton = screen.getByRole('button', { name: /hud\.pause_aria/i });
-      const pauseWrapper = pauseButton.parentElement;
+      // Use attribute selector which is more robust for Tailwind's square brackets
+      const pauseWrapper = container.querySelector('[class*="z-[3005]"]');
 
       expect(pauseWrapper).toBeInTheDocument();
-      expect(pauseWrapper?.className).toContain('z-[1005]');
+      expect(pauseWrapper?.className).toContain('z-[3005]');
       expect(pauseWrapper?.className).toContain('relative');
     });
   });

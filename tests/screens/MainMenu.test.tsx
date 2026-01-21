@@ -4,6 +4,17 @@ import { MainMenu } from '../../components/screens/MainMenu';
 import { MarketPosition } from '../../types';
 import { GameMode } from '../../types/gameMode';
 
+// Mock LanguageContext
+vi.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => key,
+    language: 'en',
+    setLanguage: vi.fn(),
+  }),
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SUPPORTED_LANGUAGES: [{ code: 'en', name: 'English', flag: '🇺🇸' }],
+}));
+
 describe('MainMenu', () => {
   it('should render the price correctly', () => {
     render(

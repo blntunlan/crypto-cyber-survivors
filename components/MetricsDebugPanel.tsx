@@ -7,6 +7,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { MetricsService } from '../services/MetricsService';
+import {
+  DifficultyManager,
+  type DifficultyOutput,
+} from '../services/DifficultyManager';
 import { shouldShowDebugPanel } from '../config/MetricsConfig';
 
 interface MetricsDebugPanelProps {
@@ -20,6 +24,7 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
   const [sessionCount, setSessionCount] = useState(0);
   const [currentState, setCurrentState] = useState<string>('No active session');
   const [insights, setInsights] = useState<string | null>(null);
+  const [difficultyData, setDifficultyData] = useState<DifficultyOutput | null>(null);
 
   // Check if panel should be shown (must be before any hooks that depend on it)
   const shouldShow = import.meta.env.DEV && shouldShowDebugPanel();
@@ -30,6 +35,7 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
 
     const interval = setInterval(() => {
       setSessionCount(MetricsService.getSessionCount());
+      setDifficultyData(DifficultyManager.getLatestOutput());
 
       const state = MetricsService.getCurrentState();
       if (state?.isActive) {
@@ -119,6 +125,87 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
               <div className="text-slate-400 text-[10px] mb-1">CURRENT SESSION</div>
               <div className="text-green-400">{currentState}</div>
             </div>
+
+            {/* Real-time Difficulty Factors */}
+            {difficultyData && (
+              <div className="bg-slate-800/50 rounded p-2 border border-orange-500/20">
+                <div className="text-orange-400 text-[10px] mb-2 font-bold flex justify-between">
+                  <span>LIVE DIFFICULTY FACTORS</span>
+                  <span>v{difficultyData.total.toFixed(2)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Spawn:</span>
+                    <span className="text-white">
+                      x{difficultyData.spawnRate.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Speed:</span>
+                    <span className="text-white">
+                      x{difficultyData.enemySpeed.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Health:</span>
+                    <span className="text-white">
+                      x{difficultyData.enemyHealth.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Damage:</span>
+                    <span className="text-white">
+                      x{difficultyData.enemyDamage.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1 text-[8px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">PnL Effect:</span>
+                    <span
+                      className={
+                        difficultyData.factors.pnlEffect > 1
+                          ? 'text-red-400'
+                          : 'text-green-400'
+                      }
+                    >
+                      {difficultyData.factors.pnlEffect.toFixed(3)}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Volat. (ATR):</span>
+                    <span className="text-blue-400">
+                      {difficultyData.factors.volatility.toFixed(3)}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Level Factor:</span>
+                    <span className="text-yellow-400">
+                      {difficultyData.factors.levelFactor.toFixed(3)}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Wave Mult:</span>
+                    <span className="text-purple-400">
+                      {difficultyData.factors.waveMultiplier.toFixed(2)}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Cycle Mult:</span>
+                    <span className="text-cyan-400">
+                      {difficultyData.factors.cycleFactor.toFixed(2)}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Time Factor:</span>
+                    <span className="text-white">
+                      {difficultyData.factors.baseTime.toFixed(2)}x
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Session Count */}
             <div className="bg-slate-800/50 rounded p-2">

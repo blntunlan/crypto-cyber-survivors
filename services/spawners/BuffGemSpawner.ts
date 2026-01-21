@@ -333,9 +333,9 @@ class BuffGemSpawnerClass {
    * Force spawn a gem (for testing/debugging)
    */
   forceSpawn(buffType?: BuffGemType): BuffGem | null {
-    const type =
-      buffType ??
-      POSITIVE_BUFF_TYPES[Math.floor(Math.random() * POSITIVE_BUFF_TYPES.length)]!;
+    const type = buffType ?? this.selectWeightedBuffType(POSITIVE_BUFF_TYPES);
+    if (!type) return null;
+
     const x = this.screenWidth / 2 + (Math.random() - 0.5) * 200;
     const y = this.screenHeight / 2 + (Math.random() - 0.5) * 200;
     return this.spawnGem(type, x, y);

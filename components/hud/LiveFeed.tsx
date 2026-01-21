@@ -137,62 +137,71 @@ const DesktopLiveFeed: React.FC<
   );
 };
 
+/**
+ * Mobile LiveFeed - Ultra Compact Design
+ * - Row 1: LIVE indicator + Pair/Leverage (small)
+ * - Row 2: Price (prominent) + PnL badge
+ * - Row 3: Horizontal pill bar with Entry, LIQ, VOL, RSI
+ */
 const MobileLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
 > = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
-  const { rs, rfs, isSmallDevice } = useResponsiveUI();
+  const { rfs, isSmallDevice } = useResponsiveUI();
 
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
-
-  // Reduce decimal places on small devices to save space
   const displayDecimals = isSmallDevice
     ? Math.min(pairConfig.decimals, 2)
     : pairConfig.decimals;
 
+  // RSI status color
+  const getRsiColor = () => {
+    if (!serverState) return 'text-slate-500';
+    if (serverState.rsi >= 70) return 'text-red-400';
+    if (serverState.rsi <= 30) return 'text-green-400';
+    return 'text-slate-300';
+  };
+
+  // Liquidation status color
+  const getLiqColor = () => {
+    if (marketData.effectivePnl <= -0.7) return 'text-red-500';
+    if (marketData.effectivePnl <= -0.4) return 'text-orange-400';
+    return 'text-slate-300';
+  };
+
   return (
-    <div
-      className="bg-transparent flex flex-col gap-0 relative overflow-hidden"
-      style={{
-        paddingTop: isSmallDevice ? rs(4) : rs(8),
-        paddingBottom: isSmallDevice ? rs(4) : rs(8),
-        paddingLeft: isSmallDevice ? rs(4) : rs(8),
-        paddingRight: isSmallDevice ? rs(4) : rs(8),
-        maxWidth: '100%', // Prevent overflow
-      }}
-    >
-      <div className="flex items-center justify-between mb-1">
+    <div className="flex flex-col gap-0.5">
+      {/* Row 1: Status header */}
+      <div className="flex items-center justify-between">
         <div
-          className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5"
-          style={{ fontSize: isRetro ? rfs(11) : rfs(isSmallDevice ? 10 : 12) }}
+          className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1"
+          style={{ fontSize: rfs(9) }}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'opacity-75'}`}
-          ></span>
+            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+          />
           LIVE
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <span
             className="font-bold"
-            style={{ color: pairConfig.color, fontSize: rfs(isSmallDevice ? 10 : 13) }}
+            style={{ color: pairConfig.color, fontSize: rfs(9) }}
           >
             {pairConfig.id}
           </span>
-          <div
-            className="text-slate-400 font-feed opacity-60"
-            style={{ fontSize: rfs(isSmallDevice ? 9 : 11) }}
-          >
+          <span className="text-slate-500" style={{ fontSize: rfs(8) }}>
             {marketData.leverage}X
-          </div>
+          </span>
         </div>
       </div>
 
-      <div className="flex flex-col">
+      {/* Row 2: Price + PnL - Horizontal compact */}
+      <div className="flex items-baseline gap-2">
         <div
-          className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} leading-none ${isRetro ? 'font-retro-pixel' : ''}`}
-          style={{ fontSize: isRetro ? rfs(16) : rfs(isSmallDevice ? 18 : 24) }}
+          className={`font-black tracking-tight ${priceColor} leading-none ${isRetro ? 'font-retro-pixel' : ''}`}
+          style={{ fontSize: rfs(isSmallDevice ? 18 : 22) }}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
@@ -201,75 +210,64 @@ const MobileLiveFeed: React.FC<
           })}
         </div>
         <div
-          className={`font-black flex items-center gap-1.5 mt-0.5 ${isRetro ? 'font-retro-text' : ''}`}
-          style={{ color: pnlHex, fontSize: rfs(isSmallDevice ? 11 : 13) }}
+          className="font-black px-1.5 py-0.5 rounded"
+          style={{
+            backgroundColor: `${pnlHex}22`,
+            color: pnlHex,
+            fontSize: rfs(isSmallDevice ? 10 : 12),
+          }}
         >
-          <span className={isSmallDevice ? 'text-sm' : 'text-base'}>
-            {(smoothValues.pnl * 100).toFixed(2)}%
-          </span>
-          <span
-            className="opacity-70 tracking-tighter"
-            style={{ fontSize: rfs(isSmallDevice ? 8 : 10) }}
-          >
-            {marketData.effectivePnl >= 0 ? t('hud.profit') : t('hud.loss')}
+          {(smoothValues.pnl * 100).toFixed(2)}%
+          <span className="ml-1 opacity-70" style={{ fontSize: rfs(8) }}>
+            {marketData.effectivePnl >= 0 ? t('hud.profit_short') : t('hud.loss_short')}
           </span>
         </div>
       </div>
 
-      {/* Secondary info - Hidden on small devices to save space */}
-      {!isSmallDevice && (
-        <div className="mt-2 grid grid-cols-2 gap-y-1.5 opacity-80 border-t border-white/5 pt-1.5">
-          <div
-            className="text-slate-200 uppercase leading-none font-bold"
-            style={{ fontSize: rfs(11) }}
-          >
-            {t('hud.entry')} ${Math.floor(entryPrice)}
-          </div>
-          <div
-            className="text-slate-200 uppercase leading-none text-right font-bold"
-            style={{ fontSize: rfs(11) }}
-          >
-            {t('hud.volatility').substring(0, 3)} x{smoothValues.difficulty.toFixed(1)}
-          </div>
-
-          {/* Combined Row: Liquidation & RSI */}
-          <div
-            className={`uppercase leading-none pt-1.5 mt-0.5 border-t border-white/5 ${marketData.effectivePnl <= -0.7 ? 'text-red-500 font-bold' : 'text-slate-300 font-bold'}`}
-            style={{ fontSize: rfs(11) }}
-          >
-            {marketData.liquidationPrice !== undefined &&
-            marketData.liquidationPrice > 0
-              ? `LIQ: $${marketData.liquidationPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-              : ''}
-          </div>
-
-          <div
-            className={`uppercase leading-none text-right pt-1.5 mt-0.5 border-t border-white/5 font-bold ${
-              serverState
-                ? serverState.rsi >= 70
-                  ? 'text-red-400'
-                  : serverState.rsi <= 30
-                    ? 'text-green-400'
-                    : 'text-slate-300'
-                : 'text-slate-500'
-            }`}
-            style={{ fontSize: rfs(11) }}
-          >
-            {serverState ? `RSI ${Math.round(serverState.rsi)}` : ''}
-          </div>
+      {/* Row 3: Compact indicator pills - All in one row */}
+      <div
+        className="flex items-center gap-1 mt-1 flex-wrap"
+        style={{ fontSize: rfs(isSmallDevice ? 9 : 10) }}
+      >
+        {/* Entry pill */}
+        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap">
+          {t('hud.entry_short')} ${Math.floor(entryPrice).toLocaleString()}
         </div>
-      )}
 
-      {serverState && serverState.whaleTier > 0 && (
-        <div className="absolute top-0 right-0 p-1 animate-pulse">
-          <span
-            className="text-amber-400 filter drop-shadow-[0_0_5px_rgba(251,191,36,0.5)]"
-            style={{ fontSize: rfs(12) }}
-          >
-            🐋
-          </span>
+        {/* Liquidation pill */}
+        {marketData.liquidationPrice !== undefined &&
+          marketData.liquidationPrice > 0 && (
+            <div
+              className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap ${getLiqColor()}`}
+            >
+              LIQ: $
+              {marketData.liquidationPrice.toLocaleString(undefined, {
+                maximumFractionDigits: 0,
+              })}
+            </div>
+          )}
+
+        {/* Volatility pill */}
+        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap">
+          {t('hud.volatility_short')} X{smoothValues.difficulty.toFixed(1)}
         </div>
-      )}
+
+        {/* RSI pill */}
+        {serverState && (
+          <div
+            className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap ${getRsiColor()}`}
+          >
+            RSI {Math.round(serverState.rsi)}
+          </div>
+        )}
+
+        {/* Whale indicator */}
+        {serverState && serverState.whaleTier > 0 && (
+          <div className="bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-400 font-bold animate-pulse">
+            🐋 T{serverState.whaleTier}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

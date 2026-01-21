@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameEngine } from '../../components/GameEngine';
 import { GameStatus, MarketPosition, type LeverageOption } from '../../types';
-import { useDevice } from '../../hooks/useDevice';
 import { MarketStateService } from '../../services/MarketStateService';
 import { EventBus } from '../../services/EventBus';
 import { Logger } from '../../services/Logger';
@@ -301,22 +300,10 @@ describe('GameEngine', () => {
   });
 
   it('triggers heartbeat on low HP', () => {
-    // Update player ref to have low HP
-    const lowHpProps = {
-      ...mockProps,
-      playerRef: {
-        current: {
-          ...mockProps.playerRef.current,
-          hp: 10, // Low HP
-        },
-      },
-    };
-
     // We need to trigger the update loop.
     // Since we mocked requestAnimationFrame implicitly (or vitest environment handles it),
     // we can't easily step time without fake timers.
     // However, we can check if AudioService is ready to be called.
-
     // For this test, we'll rely on the fact that useGameSetup calls the loop.
     // But testing the loop logic inside a component test is tricky without exposing the update function.
     // We'll skip deep loop logic testing here and rely on integration/e2e or specific hook tests.

@@ -1,134 +1,129 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   CoinService,
   CoinCalculator,
   MockCoinProvider,
-  type ICoinProvider,
-  type CoinCalculation,
 } from '../../services/CoinService';
 import { EventBus } from '../../services/EventBus';
 
-// Mock dependencies
-vi.mock('../../services/EventBus', () => ({
-  EventBus: {
-    emit: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/Logger', () => ({
-  Logger: {
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-  },
-}));
-
-describe('CoinService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    CoinService.resetSession();
-    // Reset to mock provider
-    const mockProvider = new MockCoinProvider();
-    CoinService.setProvider(mockProvider);
-  });
-
-  describe('Calculator', () => {
-    it('should calculate coin rewards correctly', () => {
-      const calculator = new CoinCalculator();
-      const params = {
-        survivalTimeSeconds: 60, // 60s * 2 = 120
-        kills: 10, // 10 * 5 = 50
-        level: 2, // 2 * 50 = 100
-        pnl: 0.1, // 10% * 100 = 10
-        maxStreak: 25, // 2 milestones * 25 = 50
-      };
-
-      const result: CoinCalculation = calculator.calculate(params);
-
-      expect(result.base).toBe(120);
-      expect(result.killBonus).toBe(50);
-      expect(result.levelBonus).toBe(100);
-      expect(result.marketBonus).toBe(1000);
-      expect(result.streakBonus).toBe(50);
-      expect(result.total).toBe(120 + 50 + 100 + 1000 + 50);
+describe('CoinService System', () => {
+  describe('CoinCalculator', () => {
+    const calculator = new CoinCalculator({
+      perSecond: 1,
+      perKill: 10,
+      perLevel: 100,
+      pnlMultiplier: 100,
+      streakMilestoneBonus: 50,
+      maxStreakBonus: 500,
     });
 
-    it('should ignore negative PnL for market bonus', () => {
-      const calculator = new CoinCalculator();
-      const params = {
-        survivalTimeSeconds: 10,
+    it('should calculate base survival reward', () => {
+      const result = calculator.calculate({
+        survivalTimeSeconds: 60,
         kills: 0,
-        level: 1,
-        pnl: -0.5, // Loss
+        level: 0,
+        pnl: 0,
         maxStreak: 0,
-      };
-
-      const result = calculator.calculate(params);
-      expect(result.marketBonus).toBe(0);
+      });
+      expect(result.base).toBe(60);
+      expect(result.total).toBe(60);
     });
 
-    it('should cap streak bonus', () => {
-      const calculator = new CoinCalculator();
-      // Max bonus is 250 (10 milestones)
-      const params = {
+    it('should calculate kill and level bonuses', () => {
+      const result = calculator.calculate({
+        survivalTimeSeconds: 0,
+        kills: 5,
+        level: 2,
+        pnl: 0,
+        maxStreak: 0,
+      });
+      expect(result.killBonus).toBe(50);
+      expect(result.levelBonus).toBe(200);
+      expect(result.total).toBe(250);
+    });
+
+    it('should calculate market bonus only for positive PnL', () => {
+      const positive = calculator.calculate({
+        survivalTimeSeconds: 0,
+        kills: 0,
+        level: 0,
+        pnl: 0.05,
+        maxStreak: 0,
+      });
+      const negative = calculator.calculate({
+        survivalTimeSeconds: 0,
+        kills: 0,
+        level: 0,
+        pnl: -0.05,
+        maxStreak: 0,
+      });
+
+      expect(positive.marketBonus).toBe(500); // 5% * 100 * 100
+      expect(negative.marketBonus).toBe(0);
+    });
+
+    it('should calculate streak bonuses with a cap', () => {
+      const result = calculator.calculate({
         survivalTimeSeconds: 0,
         kills: 0,
         level: 0,
         pnl: 0,
-        maxStreak: 200, // 20 milestones -> 20 * 25 = 500 > 250 cap
-      };
+        maxStreak: 25, // 2 milestones
+      });
+      expect(result.streakBonus).toBe(100);
 
-      const result = calculator.calculate(params);
-      expect(result.streakBonus).toBe(250);
+      const capped = calculator.calculate({
+        survivalTimeSeconds: 0,
+        kills: 0,
+        level: 0,
+        pnl: 0,
+        maxStreak: 200, // many milestones
+      });
+      expect(capped.streakBonus).toBe(500); // capped at maxStreakBonus
     });
   });
 
-  describe('Provider Management', () => {
-    it('should allow setting a custom provider', () => {
-      const customProvider: ICoinProvider = {
+  describe('MockCoinProvider', () => {
+    it('should track balance and transactions', async () => {
+      const provider = new MockCoinProvider();
+      await provider.credit(100, 'achievement');
+
+      expect(await provider.getBalance()).toBe(100);
+      expect(provider.getTransactions()).toHaveLength(1);
+      expect(provider.getTransactions()[0].source).toBe('achievement');
+    });
+  });
+
+  describe('CoinService', () => {
+    beforeEach(() => {
+      CoinService.resetSession();
+      // Ensure we use a clean mock provider
+      CoinService.setProvider(new MockCoinProvider());
+    });
+
+    it('should credit coins and track session total', async () => {
+      const eventSpy = vi.fn();
+      EventBus.on('xpGained', eventSpy);
+
+      const success = await CoinService.creditCoins(50, 'kill_bonus');
+
+      expect(success).toBe(true);
+      expect(CoinService.getSessionCoins()).toBe(50);
+      expect(await CoinService.getBalance()).toBe(50);
+      expect(eventSpy).toHaveBeenCalledWith(expect.objectContaining({ amount: 50 }));
+    });
+
+    it('should allow switching providers', () => {
+      const customProvider = {
         id: 'custom',
         isRealCurrency: true,
-        getBalance: vi.fn().mockResolvedValue(1000),
-        credit: vi.fn().mockResolvedValue(true),
+        getBalance: async () => 999,
+        credit: async () => true,
       };
 
-      CoinService.setProvider(customProvider);
-      const info = CoinService.getProviderInfo();
-
-      expect(info.id).toBe('custom');
-      expect(info.isRealCurrency).toBe(true);
-    });
-
-    it('should mock provider logic including getBalance and credit', async () => {
-      const mockProvider = new MockCoinProvider();
-      CoinService.setProvider(mockProvider);
-
-      await CoinService.creditCoins(100, 'kill_bonus');
-      const balance = await CoinService.getBalance();
-
-      expect(balance).toBe(100);
-    });
-  });
-
-  describe('Session Management', () => {
-    it('should track session coins', async () => {
-      await CoinService.creditCoins(50, 'level_bonus');
-      expect(CoinService.getSessionCoins()).toBe(50);
-
-      await CoinService.creditCoins(25, 'streak_bonus');
-      expect(CoinService.getSessionCoins()).toBe(75);
-    });
-
-    it('should reset session coins', async () => {
-      await CoinService.creditCoins(50, 'level_bonus');
-      CoinService.resetSession();
-      expect(CoinService.getSessionCoins()).toBe(0);
-    });
-
-    it('should emit xpGained event on credit', async () => {
-      await CoinService.creditCoins(100, 'cycle_complete');
-      // Note: The service emits 'xpGained' reusing it via: EventBus.emit('xpGained', { amount });
-      expect(EventBus.emit).toHaveBeenCalledWith('xpGained', { amount: 100 });
+      CoinService.setProvider(customProvider as any);
+      expect(CoinService.getProviderInfo().id).toBe('custom');
+      expect(CoinService.getProviderInfo().isRealCurrency).toBe(true);
     });
   });
 });

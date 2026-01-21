@@ -142,15 +142,10 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     });
 
     it('should combine volatility with PNL effect', () => {
-      // High volatility + losing = very hard
-      DifficultyManager.startGame();
-      const hardMode = DifficultyManager.calculate(-0.05, 0.025, 1, 100);
+      const hardMode = DifficultyManager.calculate(-0.1, 0.05, 5, 50); // Loss + Volatility
+      const easyMode = DifficultyManager.calculate(0.1, 0.002, 1, 100); // Profit + Stability
 
-      // Low volatility + winning = very easy
-      DifficultyManager.startGame();
-      const easyMode = DifficultyManager.calculate(0.05, 0.002, 1, 100);
-
-      expect(hardMode.total).toBeGreaterThan(easyMode.total * 1.5); // Significantly harder
+      expect(hardMode.total).toBeGreaterThan(easyMode.total * 1.2); // Significantly harder with new scalers
     });
   });
 

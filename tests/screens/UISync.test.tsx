@@ -5,6 +5,17 @@ import { PauseMenu } from '../../components/screens/PauseMenu';
 import { GameOverScreen } from '../../components/screens/GameOverScreen';
 import { GameMode } from '../../types/gameMode';
 
+// Mock LanguageContext
+vi.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => key,
+    language: 'en',
+    setLanguage: vi.fn(),
+  }),
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SUPPORTED_LANGUAGES: [{ code: 'en', name: 'English', flag: '🇺🇸' }],
+}));
+
 // Mock theme
 const mockThemeState = {
   isRetro: false,

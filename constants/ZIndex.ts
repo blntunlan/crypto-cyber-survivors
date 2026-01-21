@@ -18,6 +18,9 @@ export const Z_LAYERS = {
   WORLD: 10,
   PARTICLES: 20,
 
+  // Mobile Controls (Must be below HUD but above World)
+  MOBILE_CONTROLS: 90,
+
   // HUD (Heads Up Display)
   HUD: 100, // Main GameUI container
   CROSSHAIR: 150,

@@ -153,8 +153,10 @@ export const GameUI: React.FC<GameUIProps> = memo(
         className="fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 font-mono"
         style={{
           zIndex: Z_LAYERS.HUD,
+          // Mobile: Use safe-area-inset-top + extra padding for notch/status bar
+          // Desktop: Standard padding with safe area fallback
           paddingTop: isMobile
-            ? '74px'
+            ? `calc(env(safe-area-inset-top, 0px) + 2rem)`
             : `calc(1.5rem + env(safe-area-inset-top, 0px))`,
           paddingLeft: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-left, 0px))`,
           paddingRight: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-right, 0px))`,
@@ -176,34 +178,32 @@ export const GameUI: React.FC<GameUIProps> = memo(
           <div className="flex-1 flex justify-end">
             {status === GameStatus.PLAYING && onTogglePause && (
               <div
-                className="pointer-events-auto p-2 -m-2 z-[1005] relative"
+                className="pointer-events-auto p-2 -m-2 z-[3005] relative"
                 style={{
-                  touchAction: 'manipulation',
-                  transform: 'translateZ(0)',
-                  WebkitTransform: 'translateZ(0)',
+                  touchAction: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
                 }}
               >
                 <button
-                  onClick={e => {
+                  type="button"
+                  onPointerDown={e => {
                     e.stopPropagation();
+                    Logger.info('[GameUI] Pause button pressed (PointerDown)');
                     onTogglePause();
                   }}
-                  onTouchStart={e => {
-                    e.stopPropagation();
+                  className="pointer-events-auto bg-slate-900/80 backdrop-blur-xl border border-white/20 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white active:scale-75 active:bg-slate-700 transition-all shadow-2xl ring-1 ring-white/10"
+                  style={{
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'none',
                   }}
-                  onTouchEnd={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onTogglePause();
-                  }}
-                  className="pointer-events-auto bg-slate-900/60 backdrop-blur-md border border-white/10 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white hover:bg-slate-800/80 active:scale-90 transition-all shadow-lg active:bg-slate-700"
-                  style={{ touchAction: 'manipulation', cursor: 'pointer' }}
                   title={t('hud.pause_title')}
                   aria-label={t('hud.pause_aria')}
                 >
-                  <div className="flex gap-1.5">
-                    <div className="w-1.5 h-5 bg-white rounded-full"></div>
-                    <div className="w-1.5 h-5 bg-white rounded-full"></div>
+                  <div className="flex gap-1.5 pointer-events-none">
+                    <div className="w-1.5 h-6 bg-white rounded-full shadow-sm"></div>
+                    <div className="w-1.5 h-6 bg-white rounded-full shadow-sm"></div>
                   </div>
                 </button>
               </div>

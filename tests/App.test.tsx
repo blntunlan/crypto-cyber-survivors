@@ -88,7 +88,11 @@ vi.mock('../hooks/useDevice', () => ({
 }));
 
 vi.mock('../hooks/useWindowDimensions', () => ({
-  useWindowDimensions: () => ({ width: 1000, height: 800 }),
+  useWindowDimensions: () => ({
+    width: 1000,
+    height: 800,
+    hudInsets: { top: 100, bottom: 80, left: 0, right: 0 },
+  }),
 }));
 
 vi.mock('../hooks/useGameStatus', () => ({

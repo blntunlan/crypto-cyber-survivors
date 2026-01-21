@@ -467,6 +467,26 @@ html[data-theme-switching='true'] body::before {
   padding: 0;
 }
 
+/* HTML element - Critical for PWA scroll prevention */
+html {
+  /* Prevent any scrolling on html level */
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+
+  /* iOS Safari: Prevent rubber-band/bounce scrolling */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  /* Prevent overscroll bounce effect */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   overflow: hidden;
   background-color: #020617;
@@ -474,19 +494,27 @@ body {
   font-family:
     'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     'Liberation Mono', 'Courier New', monospace;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+
+  /* iOS Safari: Fixed position prevents scroll */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 
   /* Mobile-specific: Prevent pull-to-refresh and overscroll */
   overscroll-behavior: none;
+  overscroll-behavior-y: none;
 
   /* Mobile-specific: Prevent text selection during gameplay */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 
-  /* Mobile-specific: Prevent zoom on double-tap, allow touch */
-  touch-action: manipulation;
+  /* Mobile-specific: Prevent zoom on double-tap, restrict to pan only */
+  touch-action: pan-x pan-y;
 
   /* Mobile-specific: Prevent tap highlight */
   -webkit-tap-highlight-color: transparent;
@@ -495,6 +523,9 @@ body {
 #root {
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  position: relative;
+
   /* Safe area padding for notched devices */
   padding-top: var(--sat);
   padding-bottom: var(--sab);
@@ -504,8 +535,9 @@ body {
 
 canvas {
   display: block;
-  /* Prevent canvas from being dragged */
+  /* Prevent canvas from being dragged or scrolled */
   touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 /* ========================================
@@ -571,7 +603,7 @@ canvas {
 .mobile-controls-zone {
   position: fixed;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 90; /* Z_LAYERS.MOBILE_CONTROLS (Below HUD 100) */
 }
 
 .mobile-controls-zone > * {

@@ -71,7 +71,7 @@ describe('MetricsSyncBridge Integration', () => {
     };
 
     // Trigger sync
-    // @ts-expect-error - testing private/internal sync logic via addSession
+    // @ts-expect-error:  testing private/internal sync logic via addSession
     await storage.syncToSupabase(mockSession);
 
     // 1. Verify game_sessions insert

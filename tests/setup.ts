@@ -8,6 +8,72 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Mock Canvas API
+HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+  fillRect: vi.fn(),
+  clearRect: vi.fn(),
+  getImageData: vi.fn(() => ({ data: new Uint8ClampedArray() })),
+  putImageData: vi.fn(),
+  createImageData: vi.fn(),
+  setTransform: vi.fn(),
+  drawImage: vi.fn(),
+  save: vi.fn(),
+  restore: vi.fn(),
+  beginPath: vi.fn(),
+  moveTo: vi.fn(),
+  lineTo: vi.fn(),
+  closePath: vi.fn(),
+  stroke: vi.fn(),
+  fill: vi.fn(),
+  arc: vi.fn(),
+  ellipse: vi.fn(),
+  measureText: vi.fn(() => ({ width: 0 })),
+  translate: vi.fn(),
+  scale: vi.fn(),
+  rotate: vi.fn(),
+}));
+
+// Mock LocalStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    clear: () => {
+      store = {};
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+  };
+})();
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+// Mock Audio (Howler)
+vi.mock('howler', () => ({
+  Howl: vi.fn().mockImplementation(() => ({
+    play: vi.fn(),
+    stop: vi.fn(),
+    fade: vi.fn(),
+    volume: vi.fn(),
+    mute: vi.fn(),
+    on: vi.fn(),
+  })),
+  Howler: {
+    mute: vi.fn(),
+    volume: vi.fn(),
+  },
+}));
+
+// Mock ResizeObserver
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -106,6 +172,9 @@ window.HTMLElement.prototype.scrollIntoView = vi.fn();
 global.fetch = vi.fn(() =>
   Promise.resolve({
     json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    blob: () => Promise.resolve(new Blob()),
+    headers: new Headers(),
     ok: true,
     status: 200,
   } as Response)

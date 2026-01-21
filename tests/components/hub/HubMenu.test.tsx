@@ -9,6 +9,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HubMenu } from '../../../components/hub/HubMenu';
 import { audio } from '../../../services/AudioService';
 
+// Mock LanguageContext
+vi.mock('../../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => key,
+    language: 'en',
+    setLanguage: vi.fn(),
+  }),
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SUPPORTED_LANGUAGES: [{ code: 'en', name: 'English', flag: '🇺🇸' }],
+}));
+
 // Mock Services
 vi.mock('../../../services/lootbox', () => ({
   LootboxService: {

@@ -11,7 +11,7 @@ describe('ScreenService', () => {
 
   beforeEach(() => {
     // Reset cache between tests
-    // @ts-expect-error - reaching into private state for testing
+    // @ts-expect-error:  reaching into private state for testing
     screenService.cachedInfo = null;
     vi.clearAllMocks();
   });
