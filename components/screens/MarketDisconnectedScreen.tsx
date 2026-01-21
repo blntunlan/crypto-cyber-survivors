@@ -18,7 +18,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
 
   return (
     <motion.div
-      className={`fixed inset-0 flex flex-col items-center justify-center text-center p-4 ${
+      className={`fixed inset-0 flex flex-col items-center justify-center text-center p-4 overflow-y-auto ${
         isRetro ? 'bg-black/95' : 'bg-slate-950/90 backdrop-blur-md'
       }`}
       style={{ zIndex: 2200 }}

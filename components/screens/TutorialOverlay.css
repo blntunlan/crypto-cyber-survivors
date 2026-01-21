@@ -51,7 +51,7 @@
 }
 
 /* Retro theme adjustments */
-[data-theme='retro'] .tutorial-hint kbd {
+[data-theme='retro-16bit'] .tutorial-hint kbd {
   border-radius: 0;
   border-width: 2px;
   font-family: 'Press Start 2P', monospace;

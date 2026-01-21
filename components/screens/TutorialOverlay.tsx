@@ -49,7 +49,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   onComplete,
 }) => {
   const { t } = useLanguage();
-  const { theme } = useTheme();
+  const { themeName } = useTheme();
 
   // Handle next action (either next step or complete)
   const handleNext = (): void => {
@@ -75,7 +75,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   return (
     <motion.div
-      className={`tutorial-overlay tutorial-overlay--${theme}`}
+      className={`tutorial-overlay tutorial-overlay--${themeName}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -177,12 +177,10 @@ Mevcut workflow'lar `.agent/workflows/` klasöründe:
 ## 🚀 Deployment
 
 ```bash
-# Frontend ve Backend deploy
-railway up
-
-# Veritabanı işlemleri
-npx supabase db push
-npx supabase functions deploy
+# Değişiklikleri pushlayarak otomatik deploy'u tetikle
+git add .
+git commit -m "feat: your changes"
+npm run deploy  # git push origin main komutunu çalıştırır
 ```
 
 ---

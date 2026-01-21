@@ -164,7 +164,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className={`fixed inset-0 z-[2000] flex items-center justify-center p-4 overflow-y-auto ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
+          className={`fixed inset-0 z-[2000] flex items-center justify-center p-4 overflow-y-auto allow-scroll ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

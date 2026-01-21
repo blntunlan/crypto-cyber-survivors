@@ -29,11 +29,13 @@ describe('5-Minute Cycle Yoyo Analysis', () => {
       // PnL dalgalanması simüle edelim (Yoyo piyasası)
       // İlk 2 dakika kâr, sonra sert düşüş, sonra toparlanma
       let pnl = 0;
-      if (sec < 120)
+      if (sec < 120) {
         pnl = (sec / 120) * 0.2; // %20 kâr
-      else if (sec < 200)
+      } else if (sec < 200) {
         pnl = 0.2 - ((sec - 120) / 80) * 0.5; // %30 zarara düşüş
-      else pnl = -0.3 + ((sec - 200) / 100) * 0.1; // Hafif toparlanma
+      } else {
+        pnl = -0.3 + ((sec - 200) / 100) * 0.1; // Hafif toparlanma
+      }
 
       const output = DifficultyManager.calculate(pnl, 0.02, 5, 0.8);
 

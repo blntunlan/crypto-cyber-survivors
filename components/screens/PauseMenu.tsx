@@ -55,8 +55,8 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
   const isLowBudget = isLimited && pauseSecondsRemaining <= 3;
 
   const containerClasses = isRetro
-    ? `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-black/90 flex items-center justify-center p-4 overflow-y-auto`
-    : `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto`;
+    ? `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-black/90 flex items-center justify-center p-4 overflow-y-auto allow-scroll`
+    : `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto allow-scroll`;
 
   return (
     <div className={containerClasses}>

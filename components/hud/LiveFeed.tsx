@@ -53,6 +53,7 @@ const DesktopLiveFeed: React.FC<
       <div className="flex flex-col">
         <div
           className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} text-3xl leading-none ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+          style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
@@ -60,14 +61,28 @@ const DesktopLiveFeed: React.FC<
             maximumFractionDigits: pairConfig.decimals,
           })}
         </div>
-        <div
-          className={`text-sm font-black flex items-center gap-2 mt-1 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
-          style={{ color: pnlHex }}
-        >
-          <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
-          <span className="text-[10px] opacity-70 tracking-widest uppercase">
-            {marketData.effectivePnl >= 0 ? t('hud.profit') : t('hud.loss')}
-          </span>
+        <div className="flex items-center justify-between mt-1">
+          <div
+            className={`text-sm font-black flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+            style={{ color: pnlHex }}
+          >
+            <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
+            <span className="text-[10px] opacity-70 tracking-widest uppercase">
+              {marketData.effectivePnl >= 0
+                ? t('hud.profit_short')
+                : t('hud.loss_short')}
+            </span>
+          </div>
+          <div
+            className={`text-xs font-black tabular-nums ${isRetro ? 'font-retro-text' : 'font-mono'}`}
+            style={{ color: pnlHex }}
+          >
+            {smoothValues.pnl >= 0 ? '+' : ''}$
+            {(smoothValues.pnl * 1000).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </div>
         </div>
       </div>
 
@@ -197,11 +212,13 @@ const MobileLiveFeed: React.FC<
         </div>
       </div>
 
-      {/* Row 2: Price + PnL - Horizontal compact */}
-      <div className="flex items-baseline gap-2">
+      <div className="flex flex-col gap-1">
         <div
-          className={`font-black tracking-tight ${priceColor} leading-none ${isRetro ? 'font-retro-pixel' : ''}`}
-          style={{ fontSize: rfs(isSmallDevice ? 18 : 22) }}
+          className={`font-black tracking-tighter ${priceColor} leading-none ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+          style={{
+            fontSize: rfs(isSmallDevice ? 18 : 22),
+            fontVariantNumeric: 'tabular-nums',
+          }}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
@@ -210,7 +227,7 @@ const MobileLiveFeed: React.FC<
           })}
         </div>
         <div
-          className="font-black px-1.5 py-0.5 rounded"
+          className="font-black px-1.5 py-0.5 rounded leading-none w-fit"
           style={{
             backgroundColor: `${pnlHex}22`,
             color: pnlHex,
@@ -218,9 +235,6 @@ const MobileLiveFeed: React.FC<
           }}
         >
           {(smoothValues.pnl * 100).toFixed(2)}%
-          <span className="ml-1 opacity-70" style={{ fontSize: rfs(8) }}>
-            {marketData.effectivePnl >= 0 ? t('hud.profit_short') : t('hud.loss_short')}
-          </span>
         </div>
       </div>
 

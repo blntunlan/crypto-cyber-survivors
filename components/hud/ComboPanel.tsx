@@ -31,49 +31,72 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
       }}
     >
       <div
-        className={`flex gap-3 mb-2 text-[6px] font-black uppercase tracking-widest ${isRetro ? 'font-display' : ''}`}
+        className={`flex gap-3 mb-2 text-[8px] font-black uppercase tracking-widest ${isRetro ? 'font-display' : 'font-cyber'}`}
       >
         <div
-          className={`flex items-center gap-1.5 px-2 py-0.5 ${isRetro ? 'border-2 rounded-none bg-black' : 'rounded-full bg-yellow-500/10 border border-yellow-500/20'}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 ${
+            isRetro
+              ? 'border-2 rounded-none bg-black'
+              : 'border-l-2 border-l-yellow-400 rounded-sm'
+          }`}
           style={{
             borderColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
-            color: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
+            color: isRetro ? COLORS.JACKPOT_YELLOW : COLORS.JACKPOT_YELLOW,
+            boxShadow: isRetro ? 'none' : '0 0 15px rgba(255, 214, 0, 0.15)',
           }}
         >
-          <span>{t('hud.best')}</span>
-          <span className="tabular-nums">{maxStreak}</span>
+          <span className="opacity-70">{t('hud.best')}</span>
+          <span className="tabular-nums font-black">{maxStreak}</span>
         </div>
 
         <div
-          className={`flex items-center gap-1.5 px-2 py-0.5 ${isRetro ? 'border-2 rounded-none bg-black' : 'rounded-full bg-green-500/10 border border-green-500/20'}`}
+          className={`flex items-center gap-1.5 px-2.5 py-1 ${
+            isRetro
+              ? 'border-2 rounded-none bg-black'
+              : 'border-l-2 border-l-cyan-400 rounded-sm'
+          }`}
           style={{
             borderColor: isRetro ? COLORS.NEON_GREEN : undefined,
-            color: isRetro ? COLORS.NEON_GREEN : undefined,
+            color: isRetro ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE,
+            boxShadow: isRetro ? 'none' : '0 0 15px rgba(0, 191, 255, 0.15)',
           }}
         >
-          <span>{t('hud.bonus')}</span>
-          <span className="tabular-nums">+{Math.round(totalBonusXp)}</span>
+          <span className="opacity-70">{t('hud.bonus')}</span>
+          <span className="tabular-nums font-black">+{Math.round(totalBonusXp)}</span>
         </div>
       </div>
 
       <div className="w-full">
         <div
-          className={`w-full h-2 mb-3 ${isRetro ? 'bg-zinc-800 rounded-none border-2 border-black' : 'bg-white/10 rounded-full overflow-hidden p-[1px]'}`}
+          className={`w-full h-2 mb-3 relative ${
+            isRetro
+              ? 'bg-zinc-800 rounded-none border-2 border-black'
+              : 'bg-black/20 rounded-sm border border-white/5 overflow-hidden'
+          }`}
         >
           <div
             id="combo-timer-bar"
-            className={`h-full ${isRetro ? '' : 'rounded-full bg-gradient-to-r from-orange-500 to-yellow-400 shadow-[0_0_10px_orange]'}`}
+            className={`h-full ${
+              isRetro
+                ? ''
+                : 'bg-gradient-to-r from-cyan-500 via-blue-400 to-cyan-300 shadow-[0_0_15px_rgba(0,255,255,0.5)]'
+            }`}
             style={{
               width: '100%',
               backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
             }}
           />
+          {!isRetro && (
+            <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.05)_2px,rgba(255,255,255,0.05)_4px)] pointer-events-none" />
+          )}
         </div>
 
         <div className="flex items-baseline justify-center gap-2">
           <span
             id="combo-streak-count"
-            className={`font-display text-2xl font-black italic tracking-tighter text-white tabular-nums ${isRetro ? 'not-italic' : 'drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]'}`}
+            className={`${isRetro ? 'font-display' : 'font-cyber'} text-2xl font-black italic tracking-tighter text-white tabular-nums ${
+              isRetro ? 'not-italic' : 'drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]'
+            }`}
             style={{
               textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : undefined,
             }}
@@ -81,7 +104,12 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
             0
           </span>
           <span
-            className={`font-display text-[8px] font-black uppercase tracking-widest ${isRetro ? 'text-white' : 'text-white/60'}`}
+            className={`font-cyber text-[8px] font-black uppercase tracking-widest ${
+              isRetro ? 'text-white' : 'text-cyan-400'
+            }`}
+            style={{
+              textShadow: isRetro ? 'none' : '0 0 8px rgba(34, 211, 238, 0.5)',
+            }}
           >
             {t('hud.combo')}
           </span>
@@ -89,13 +117,18 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
 
         <div
           id="combo-multiplier-badge"
-          className={`mt-2 px-2 py-0.5 font-black italic tracking-tighter text-center text-[9px] ${isRetro ? 'rounded-none border-2 border-white bg-black not-italic' : 'rounded-lg bg-white/10 border border-white/20 text-white shadow-xl'}`}
+          className={`mt-2 px-3 py-1 font-black italic tracking-tighter text-center text-[10px] ${
+            isRetro
+              ? 'rounded-none border-2 border-white bg-black not-italic'
+              : 'text-white rounded-sm skew-x-[-12deg]'
+          }`}
           style={{
             color: isRetro ? COLORS.JACKPOT_YELLOW : '#ffffff',
             borderColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
+            textShadow: isRetro ? 'none' : '0 0 10px rgba(0, 255, 255, 0.5)',
           }}
         >
-          1.0x XP
+          <div className={isRetro ? '' : 'skew-x-[12deg]'}>1.0x XP</div>
         </div>
       </div>
     </div>
@@ -114,84 +147,119 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`absolute left-1/2 z-[115] transition-all duration-200 ease-out flex flex-col items-center pointer-events-none ${isRetro ? '' : 'backdrop-blur-sm'}`}
+      className="absolute left-1/2 z-[115] transition-all duration-200 ease-out flex flex-col items-center pointer-events-none"
       style={{
-        bottom: rs(160), // Slightly higher to clear character head
-        padding: rs(12),
-        minWidth: rs(140),
-        borderRadius: rs(12),
-        backgroundColor: isRetro ? 'transparent' : 'rgba(0,0,0,0.3)', // Subtle background plate
-        border: isRetro ? 'none' : '1px solid rgba(255,255,255,0.1)',
+        bottom: rs(160),
+        minWidth: rs(150),
         opacity: 0,
         transform: 'translateX(-50%) translateY(20px)',
         willChange: 'transform, opacity',
-        boxShadow: isRetro ? 'none' : '0 4px 20px rgba(0,0,0,0.4)',
       }}
     >
       <div
-        className={`flex mb-2 font-black uppercase tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-display`}
-        style={{ gap: rs(8), fontSize: rfs(10) }}
+        className={`flex mb-3 font-black uppercase tracking-tight ${isRetro ? 'font-display' : 'font-cyber'}`}
+        style={{ gap: rs(8), fontSize: rfs(9) }}
       >
-        <span style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : '#fbbf24' }}>
-          {t('hud.best')} {maxStreak}
-        </span>
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1 ${
+            isRetro
+              ? 'border-2 rounded-none bg-black'
+              : 'border-l-2 border-l-yellow-400 rounded-sm'
+          }`}
+          style={{
+            borderColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
+            color: isRetro ? COLORS.JACKPOT_YELLOW : COLORS.JACKPOT_YELLOW,
+          }}
+        >
+          <span className="opacity-70">{t('hud.best')}</span>
+          <span className="tabular-nums">{maxStreak}</span>
+        </div>
 
-        <span style={{ color: isRetro ? COLORS.NEON_GREEN : '#22d3ee' }}>
-          +{Math.round(totalBonusXp)} XP
-        </span>
+        <div
+          className={`flex items-center gap-1.5 px-2 py-1 ${
+            isRetro
+              ? 'border-2 rounded-none bg-black'
+              : 'border-l-2 border-l-cyan-400 rounded-sm'
+          }`}
+          style={{
+            borderColor: isRetro ? COLORS.NEON_GREEN : undefined,
+            color: isRetro ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE,
+          }}
+        >
+          <span className="opacity-70">{t('hud.bonus')}</span>
+          <span className="tabular-nums">+{Math.round(totalBonusXp)}</span>
+        </div>
       </div>
 
       <div className="w-full" style={{ paddingLeft: rs(4), paddingRight: rs(4) }}>
-        {/* Timer Bar - Thicker and more visible */}
         <div
-          className={`w-full h-2 mb-2 overflow-hidden ${isRetro ? 'bg-black border-2 border-white' : 'bg-white/20 rounded-full shadow-[0_0_5px_rgba(0,0,0,0.5)]'}`}
+          className={`w-full h-2.5 mb-2.5 relative overflow-hidden ${
+            isRetro
+              ? 'bg-black border-2 border-white'
+              : 'bg-black/40 border border-white/5 rounded-sm'
+          }`}
         >
           <div
             id="combo-timer-bar"
-            className={`h-full ${isRetro ? '' : 'bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_10px_cyan]'}`}
+            className={`h-full ${
+              isRetro
+                ? ''
+                : 'bg-gradient-to-r from-cyan-500 via-blue-400 to-cyan-300 shadow-[0_0_15px_rgba(0,255,255,0.5)]'
+            }`}
             style={{
               width: '100%',
               backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
             }}
           />
+          {!isRetro && (
+            <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.05)_2px,rgba(255,255,255,0.05)_4px)] pointer-events-none" />
+          )}
         </div>
 
-        {/* Main Combo Count - BIGGER */}
         <div
-          className={`flex items-baseline justify-center ${isRetro ? '' : 'drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]'}`}
+          className={`flex items-baseline justify-center ${
+            isRetro ? '' : 'drop-shadow-[0_0_20px_rgba(0,255,255,0.5)]'
+          }`}
           style={{ gap: rs(6) }}
         >
           <span
             id="combo-streak-count"
-            className={`font-display font-black italic tracking-tighter text-white tabular-nums leading-none ${isRetro ? 'not-italic' : ''}`}
+            className={`${isRetro ? 'font-display' : 'font-cyber'} font-black italic tracking-tighter text-white tabular-nums leading-none ${
+              isRetro ? 'not-italic' : ''
+            }`}
             style={{
               textShadow: isRetro
                 ? `3px 3px 0px ${COLORS.SLOT_BLACK}`
-                : '0 0 20px rgba(0,255,255,0.4), 2px 2px 0px rgba(0,0,0,0.5)',
-              fontSize: rfs(36), // Much larger foundation
+                : '0 0 30px rgba(255,255,255,0.8)',
+              fontSize: rfs(40),
             }}
           >
             0
           </span>
           <span
-            className={`font-display font-black uppercase tracking-tighter ${isRetro ? 'text-white' : 'text-cyan-200'}`}
+            className={`font-cyber font-black uppercase tracking-widest ${
+              isRetro ? 'text-white' : 'text-cyan-400'
+            }`}
             style={{ fontSize: rfs(12) }}
           >
             {t('hud.combo')}
           </span>
         </div>
 
-        {/* Multiplier Badge */}
         <div
           id="combo-multiplier-badge"
-          className={`mt-1.5 font-display font-black italic text-center ${isRetro ? 'not-italic' : 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]'}`}
+          className={`mt-2 font-black italic text-center ${
+            isRetro
+              ? 'font-display not-italic'
+              : 'font-cyber text-white rounded-sm skew-x-[-12deg]'
+          }`}
           style={{
-            fontSize: rfs(12),
-            color: isRetro ? COLORS.JACKPOT_YELLOW : '#fbbf24', // Gold for multiplier
-            textShadow: isRetro ? 'none' : '0 0 10px rgba(251,191,36,0.3)',
+            fontSize: rfs(14),
+            color: isRetro ? COLORS.JACKPOT_YELLOW : '#ffffff',
+            textShadow: isRetro ? 'none' : '0 0 10px rgba(0,255,255,0.5)',
           }}
         >
-          1.0x XP
+          <div className={isRetro ? '' : 'skew-x-[12deg]'}>1.0x XP</div>
         </div>
       </div>
     </div>

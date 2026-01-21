@@ -281,7 +281,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center p-4 md:p-6 ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
+      className={`fixed inset-0 flex items-center justify-center p-4 md:p-6 overflow-y-auto allow-scroll ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
       style={{
         zIndex: Z_LAYERS.SETTINGS_PANEL,
         paddingTop: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
@@ -315,7 +315,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Settings Sections */}
         <div
           ref={scrollContainerRef}
-          className="space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar"
+          className="flex-1 min-h-0 space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar touch-pan-y allow-scroll"
         >
           {!isInGame && (
             <div

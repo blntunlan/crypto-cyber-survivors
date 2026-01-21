@@ -273,6 +273,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
         flex flex-col items-center justify-start
         p-4 sm:p-6 lg:p-8
         overflow-y-auto
+        allow-scroll
         ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/80 backdrop-blur-sm'}
       `}
     >
@@ -317,7 +318,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             coins={coins}
             cryptoBalance={{ btc: 0, eth: 0, sol: 0 }}
             equippedSkin={equippedSkin}
-            onAvatarClick={() => onNavigate('skins')}
+            // onAvatarClick={() => onNavigate('skins')} // Temporarily disabled: Player menu/skins and stash not yet fully integrated
           />
         </motion.div>
 

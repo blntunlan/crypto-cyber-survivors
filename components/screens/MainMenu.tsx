@@ -185,7 +185,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-slate-950/60 p-3 backdrop-blur-sm landscape:py-2 sm:justify-center sm:p-6">
+    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto bg-slate-950/60 p-3 backdrop-blur-sm landscape:py-2 sm:justify-center sm:p-6 allow-scroll">
       <div className="max-w-xl w-full text-center space-y-4 py-2 sm:space-y-8 sm:py-0 landscape:space-y-2">
         <motion.header
           className="space-y-3 sm:space-y-5"

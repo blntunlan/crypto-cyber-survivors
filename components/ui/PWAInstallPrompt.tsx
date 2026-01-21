@@ -77,6 +77,12 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
           role="dialog"
           aria-labelledby="pwa-install-title"
         >
+          {/* Cyber accents */}
+          <div className="pwa-install-accent-top" />
+          <div className="pwa-install-accent-bottom" />
+          <div className="pwa-install-corner top-left" />
+          <div className="pwa-install-corner bottom-right" />
+
           {/* Glow effect */}
           <div className="pwa-install-glow" />
 
@@ -84,25 +90,29 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
           <div className="pwa-install-content">
             {/* Icon */}
             <div className="pwa-install-icon">
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
+              <div className="pwa-install-icon-inner">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </div>
             </div>
 
             {/* Text */}
             <div className="pwa-install-text">
-              <h3 id="pwa-install-title">{t('pwa.installTitle')}</h3>
+              <h3 id="pwa-install-title" className="cyber-glitch-text">
+                {t('pwa.installTitle')}
+              </h3>
               <p>{t('pwa.installDescription')}</p>
             </div>
 
@@ -118,7 +128,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
               <button
                 onClick={handleInstall}
                 disabled={isPrompting}
-                className="pwa-install-button"
+                className="pwa-install-button neon-glow-cyan"
                 aria-label={t('pwa.install')}
               >
                 {isPrompting ? (

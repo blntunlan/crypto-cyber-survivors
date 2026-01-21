@@ -59,10 +59,9 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
       `}
     >
       {/* Avatar */}
-      <motion.button
-        onClick={onAvatarClick}
-        whileHover={!isRetro ? { scale: 1.05 } : undefined}
-        whileTap={!isRetro ? { scale: 0.95 } : undefined}
+      <motion.div
+        whileHover={onAvatarClick && !isRetro ? { scale: 1.05 } : undefined}
+        whileTap={onAvatarClick && !isRetro ? { scale: 0.95 } : undefined}
         className={`
           relative
           w-14 h-14 sm:w-16 sm:h-16
@@ -73,12 +72,14 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
               ? 'bg-zinc-800 border-2 border-zinc-600 rounded-none'
               : 'bg-gradient-to-br from-white/10 to-white/5 rounded-xl border border-white/20'
           }
+          ${onAvatarClick ? 'cursor-pointer' : 'cursor-default'}
         `}
         style={{
           boxShadow: isRetro
             ? '2px 2px 0px rgba(0,0,0,0.5)'
             : `0 0 20px ${skinDef.glowColor}`,
         }}
+        onClick={onAvatarClick}
       >
         <span>{skinDef.icon}</span>
 
@@ -91,7 +92,7 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
           `}
           style={{ backgroundColor: COLORS.PUMP_GREEN }}
         />
-      </motion.button>
+      </motion.div>
 
       {/* Player Info */}
       <div className="flex-1 min-w-0">

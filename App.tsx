@@ -547,7 +547,9 @@ const App: React.FC = () => {
     <UserProvider>
       <ThemeProvider>
         <LazyMotionProvider>
-          <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-mono">
+          <div
+            className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
+          >
             <ErrorBoundary>
               <React.Suspense fallback={<FallbackLoader />}>
                 {/* Game UI Overlay */}

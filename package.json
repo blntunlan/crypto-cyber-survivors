@@ -23,10 +23,9 @@
     "docs:clean": "rimraf docs/api",
     "prepare": "husky",
     "railway:link": "railway link",
-    "railway:deploy": "railway up",
-    "railway:market:deploy": "cd railway-market-server && railway up",
     "supabase:gen": "supabase gen types typescript --project-id dqaggcizordsijpnfteo > types/supabase.ts",
-    "supabase:push": "supabase db push"
+    "supabase:push": "supabase db push",
+    "deploy": "git push origin main"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.89.0",

@@ -75,14 +75,14 @@ export function CycleCompleteScreen({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto allow-scroll"
       style={{
         backgroundColor: 'rgba(0, 0, 0, 0.9)',
         zIndex: Z_LAYERS.CYCLE_COMPLETE,
       }}
     >
       <div
-        className={`relative w-full max-w-md mx-4 p-6 md:p-8 transition-all ${
+        className={`relative w-full max-w-md mx-4 p-6 md:p-8 my-auto transition-all ${
           isRetro
             ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
             : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
