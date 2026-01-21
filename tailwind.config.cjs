@@ -8,6 +8,7 @@ module.exports = {
         cyber: ['Orbitron', 'sans-serif'],
         // RETRO THEME
         'retro-pixel': ['"Press Start 2P"', 'cursive'],
+        'retro-jersey': ['"Jersey 20"', 'sans-serif'],
         'retro-text': ['VT323', 'monospace'],
         // UTILITIES
         heading: ['Orbitron', 'sans-serif'],

@@ -1,4 +1,5 @@
 import React from 'react';
+import { audio } from '../../services/AudioService';
 import { motion } from 'framer-motion';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
 import {
@@ -45,7 +46,10 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
       {pairs.map(pair => (
         <motion.button
           key={pair.id}
-          onClick={() => onSelect(pair.id)}
+          onClick={() => {
+            audio.playPairSelect();
+            onSelect(pair.id);
+          }}
           disabled={disabled}
           className={`
             relative px-3 py-1.5 transition-all flex flex-col items-center gap-1 min-w-[60px]

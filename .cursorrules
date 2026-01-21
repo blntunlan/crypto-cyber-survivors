@@ -1,0 +1,72 @@
+# Crypto Cyber Survivors - AI Editor Rules
+
+You are an expert software engineer working on "Crypto Cyber Survivors", a Vampire Survivors-style game with real-time crypto market integration.
+
+## 🛠 Tech Stack
+- **Frontend**: React 19, TypeScript 5.8+, Vite 6.x, TailwindCSS
+- **State Management**: Zustand 5.x (UI state), Mutable Singletons (Game Loop state)
+- **Testing**: Vitest (Unit), Playwright (E2E)
+- **Backend/DB**: Supabase (PostgreSQL, Edge Functions, Realtime), Railway (Node.js microservices)
+- **Physics/Math**: Custom 2D physics, Vector math
+
+## 🧠 Core Principles & Architecture
+1.  **Hybrid State Management**:
+    -   **UI/Menu State**: Use **Zustand**. Reactive, easy to debug.
+    -   **Game Loop State**: Use **Singleton Services** (`GameStore`, `EnemyRegistry`). Mutable, high-performance, strictly typed.
+2.  **Performance First**:
+    -   **Zero Allocation Loop**: Avoid `new` keyword in `update()`/`render()` methods.
+    -   **Object Pooling**: Use `PoolManager` for ALL game entities (Projectiles, Enemies, Particles).
+    -   **Spatial Partitioning**: Use `SpatialGrid` for collision checks. Do not use O(N^2) checks.
+3.  **Service Architecture**:
+    -   All core logic resides in Singleton Services (e.g., `MarketService`, `CombatSystem`).
+    -   Services must implement a `reset()` method.
+    -   Communication via `EventBus` (Pub/Sub) to decouple systems.
+
+## 📝 Coding Standards
+-   **TypeScript**: Strict mode enabled. **NO `any`**. Use `interface` for shapes, `type` for unions/primitives.
+-   **Naming**:
+    -   Variables/Functions: `camelCase`
+    -   Components/Classes/Types: `PascalCase`
+    -   Constants: `UPPER_SNAKE_CASE`
+    -   Private Members: Prefix with `_` (e.g., `_lastUpdate`)
+-   **Components**: Functional components only. Extract complex logic into `use*` hooks.
+-   **Styling**: TailwindCSS utility classes. Avoid inline `style={{...}}` unless dynamic (e.g., coordinates).
+
+## 🛡️ Safety & Security
+-   **Secrets**: NEVER commit `.env` files, API keys, or private configs.
+-   **Validation**: Validate all inputs at system boundaries (Zod schemas).
+-   **Cheating**: Logic must be server-authoritative where possible or verified via `AntiCheatService`.
+
+## 🧪 Testing Guidelines
+-   **Unit Tests (Vitest)**:
+    -   Focus on complex logic (Services, Utils).
+    -   Mock dependencies using `vi.mock`.
+    -   Run: `npm run test`
+-   **E2E Tests (Playwright)**:
+    -   Cover critical user flows (Login, Game Start, Shop).
+    -   Run: `npm run test:e2e`
+
+## 📂 Key File Locations
+-   `services/`: Core game logic singletons (`MarketService.ts`, `GameEngine.tsx`).
+-   `components/`: React UI components.
+-   `config/`: Game balance and configuration (`EnemyConfig.ts`, `GameConfig.ts`).
+-   `stores/`: Zustand stores.
+-   `types/`: Shared TypeScript definitions.
+
+## 🚀 Common Workflows
+-   **Adding a Feature**:
+    1.  Define Types (`types/`).
+    2.  Implement Logic in `services/`.
+    3.  Add UI in `components/` (connect via Zustand/Hooks).
+    4.  Add Tests (`tests/`).
+-   **Database Changes**:
+    1.  Create Supabase migration.
+    2.  Run `npm run supabase:gen` to update TS types.
+
+## ⚠️ Critical Reminders
+-   **Game Reset**: Always ensure services subscribe to `gameReset` event to clear local state.
+-   **Market Data**: Handle WebSocket disconnections gracefully. Use fallbacks defined in `MarketService`.
+-   **Logs**: Use `Logger.info/warn/error` instead of `console.log`.
+
+---
+*Follow these rules strictly to maintain code quality and performance.*

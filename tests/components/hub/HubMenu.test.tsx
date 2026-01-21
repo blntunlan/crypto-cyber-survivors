@@ -26,6 +26,7 @@ vi.mock('../../../services/inventory', () => ({
 vi.mock('../../../services/AudioService', () => ({
   audio: {
     playButton: vi.fn(),
+    playSelectionTick: vi.fn(),
   },
 }));
 

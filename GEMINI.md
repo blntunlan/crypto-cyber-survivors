@@ -15,6 +15,10 @@ Büyük diller (ES, PT, HI, VI) eklenmiş durumdadır.
 # Geliştirme
 npm run dev              # Dev server başlat (port 3000)
 npm run build            # Production build
+npm run docs             # TypeDoc dökümantasyonu oluştur
+
+# Veritabanı
+npm run supabase:gen     # Supabase type'larını güncelle
 
 # Test
 npm run test             # Vitest unit testlerini çalıştır
@@ -44,6 +48,8 @@ crypto-cyber-survivors/
 │   ├── themed/               # Temalı ortak bileşenler
 │   ├── admin/                # Admin dashboard panelleri
 │   └── mobile/               # Touch kontrolleri
+├── config/                    # Oyun konfigürasyonları (Enemy, Player, Game)
+├── contexts/                  # React Context'ler (Theme, User, Language)
 ├── services/                  # Singleton servisler
 │   ├── MarketService.ts      # Binance/Coinbase WebSocket & Fallback logic
 │   ├── PhysicsSystem.ts      # Collision detection
@@ -63,8 +69,13 @@ crypto-cyber-survivors/
 │   └── admin/                # Admin panel state
 ├── hooks/                     # Custom React hooks (useMarket, useGame, etc.)
 ├── types/                     # TypeScript tanımları & Supabase types
+├── utils/                     # Yardımcı fonksiyonlar ve araçlar
+├── strategies/                # Oyun strateji pattern'leri
+├── factories/                 # Nesne üretim factory'leri
+├── schemas/                   # Validasyon şemaları
 ├── tests/                     # Vitest unit & integration testleri
 ├── e2e/                       # Playwright E2E testleri
+├── docs/                      # Proje dökümantasyonu ve roadmap
 ├── supabase/                  # Migrations (achievements, wallet, shop, etc.)
 └── railway-market-server/     # Price logger backend
 ```

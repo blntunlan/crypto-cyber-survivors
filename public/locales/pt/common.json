@@ -283,6 +283,60 @@
     "lang_hi": "Hindi",
     "lang_vi": "Vietnamita",
     "lang_es": "Espanhol",
-    "lang_pt": "Português"
+    "lang_pt": "Português",
+    "lang_zh": "Chinês",
+    "lang_ru": "Russo"
+  },
+  "tutorial": {
+    "language": {
+      "title": "Selecionar Idioma",
+      "description": "Escolha seu idioma preferido para a interface."
+    },
+    "theme": {
+      "title": "Escolher Estilo",
+      "description": "Selecione o tema visual que combina com você."
+    },
+    "welcome": {
+      "title": "Bem-vindo, Sobrevivente!",
+      "description": "Aprenda o básico da sobrevivência cripto neste tutorial rápido. Você pode pular a qualquer momento."
+    },
+    "movement": {
+      "title": "Movimento",
+      "description": "Use WASD ou setas para mover. No celular, use o joystick virtual no lado esquerdo."
+    },
+    "dash": {
+      "title": "Dash",
+      "description": "Pressione ESPAÇO ou toque no botão Dash para desviar rapidamente. O Dash tem um tempo de recarga curto!"
+    },
+    "position": {
+      "title": "Posição de Mercado",
+      "description": "Escolha LONG para lucrar na alta do BTC, ou SHORT na baixa. Sua escolha afeta a dificuldade!"
+    },
+    "leverage": {
+      "title": "Alavancagem",
+      "description": "Maior alavancagem = mais risco e recompensa. Comece com SEGURO (2x). DEGEN (10x) é só para experientes!"
+    },
+    "hud": {
+      "title": "Seu HUD",
+      "description": "Monitore sua saúde (topo-esq), XP e P&L. Saúde baixa ativa um aviso vermelho!"
+    },
+    "enemies": {
+      "title": "Conheça os Inimigos",
+      "description": "Ursos atacam no mercado de baixa, Touros na alta. Baleias aparecem na alta volatilidade!"
+    },
+    "levelup": {
+      "title": "Subiu de Nível!",
+      "description": "Ao subir de nível, escolha cartas com sabedoria. Mais sorte = melhores cartas."
+    },
+    "complete": {
+      "title": "Você está Pronto!",
+      "description": "Boa sorte com a volatilidade! Lembre-se: adapte sua posição ao mercado."
+    },
+    "skip": "Pular Tutorial",
+    "next": "Próximo",
+    "prev": "Voltar",
+    "step": "Passo {{current}} de {{total}}",
+    "gotIt": "Entendi!",
+    "replay": "Replay Tutorial"
   }
 }

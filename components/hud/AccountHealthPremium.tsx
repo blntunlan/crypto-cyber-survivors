@@ -87,10 +87,10 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
       style={
         isMobile
           ? {
-              // Use bottomSafeZone for mobile controls spacing
-              bottom: rs(16) + bottomSafeZone,
-              // iOS safe area fallback
-              marginBottom: 'env(safe-area-inset-bottom, 0px)',
+              // Move further down on mobile
+              bottom: rs(8) + bottomSafeZone * 0.2, // Move significantly lower
+              // Keep shadow for depth
+              filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))',
             }
           : undefined
       }

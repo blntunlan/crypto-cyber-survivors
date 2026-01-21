@@ -4,6 +4,7 @@
  * Verifies that all sub-sections of the SettingsPanel function correctly.
  */
 import { render, fireEvent, screen } from '../test-utils';
+import { act } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
 import { audio } from '../../services/AudioService';
@@ -21,17 +22,9 @@ vi.mock('../../services/AudioService', () => ({
     getMuted: vi.fn().mockReturnValue(false),
     toggleMute: vi.fn(),
     setCategoryVolume: vi.fn(),
-  },
-}));
-
-// Mock DeviceBenchmarkService
-vi.mock('../../services/DeviceBenchmarkService', () => ({
-  DeviceBenchmarkService: {
-    getPerformanceConfig: vi.fn().mockReturnValue({ profile: 'HIGH' }),
-    setManualProfile: vi.fn(),
-    resetToAuto: vi.fn(),
-    isInManualMode: vi.fn().mockReturnValue(true),
-    subscribe: vi.fn().mockReturnValue(() => {}),
+    playToggle: vi.fn(),
+    playKeystroke: vi.fn(),
+    playSelectionTick: vi.fn(),
   },
 }));
 
@@ -56,8 +49,20 @@ vi.mock('../../hooks/useDevice', () => ({
   }),
 }));
 
+// Mock DeviceBenchmarkService
+vi.mock('../../services/DeviceBenchmarkService', () => ({
+  DeviceBenchmarkService: {
+    getPerformanceConfig: vi.fn().mockReturnValue({ profile: 'HIGH' }),
+    setManualProfile: vi.fn(),
+    resetToAuto: vi.fn(),
+    isInManualMode: vi.fn().mockReturnValue(true),
+    subscribe: vi.fn().mockReturnValue(() => {}),
+  },
+}));
+
 // Mock useTheme hook
 const mockToggleTheme = vi.fn();
+const mockSetTheme = vi.fn(); // Added
 const mockTheme = {
   colors: { primary: '#00ff00' },
   displayName: 'Cyberpunk',
@@ -67,10 +72,25 @@ vi.mock('../../contexts/useTheme', () => ({
   useTheme: () => ({
     themeName: 'cyberpunk',
     toggleTheme: mockToggleTheme,
+    setTheme: mockSetTheme, // Added
     theme: mockTheme,
     isRetro: false,
   }),
   useIsRetro: () => false,
+}));
+
+// Mock useLanguage hook directly
+vi.mock('../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => key, // Return key as translation
+    language: 'en',
+    setLanguage: vi.fn(),
+  }),
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SUPPORTED_LANGUAGES: [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+  ],
 }));
 
 describe('SettingsPanel Full Test Suite', () => {
@@ -117,9 +137,6 @@ describe('SettingsPanel Full Test Suite', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
       const volumeInputs = screen.getAllByRole('slider');
-      // Assuming master volume is the first slider or we can find by label if accessible
-      // Based on AudioSection.tsx it doesn't have a label for the input itself, but it's near "Master Volume"
-      // Let's find by value since we know it's 0.5
       const masterSlider = volumeInputs.find(
         i => (i as HTMLInputElement).value === '0.5'
       );
@@ -145,18 +162,38 @@ describe('SettingsPanel Full Test Suite', () => {
 
   // --- Graphics Section Tests ---
   describe('Graphics Settings', () => {
-    it('should toggle particles', () => {
-      render(<SettingsPanel onClose={() => {}} />);
-      const btn = screen.getByText('settings.particles'); // ToggleButton uses label text
-      fireEvent.click(btn);
+    it('should toggle particles', async () => {
+      // Set initial state
+      act(() => {
+        useGameStore.setState({
+          graphics: { ...useGameStore.getState().graphics, showParticles: true },
+        });
+      });
+
+      render(<SettingsPanel onClose={vi.fn()} />);
+
+      // Look for the translation key since our mock returns keys
+      const btn = screen.getByText('settings.particles').closest('button');
+      expect(btn).toBeInTheDocument();
+
+      fireEvent.click(btn!);
 
       expect(useGameStore.getState().graphics.showParticles).toBe(false);
     });
 
-    it('should toggle screen shake', () => {
-      render(<SettingsPanel onClose={() => {}} />);
-      const btn = screen.getByText('settings.screen_shake');
-      fireEvent.click(btn);
+    it('should toggle screen shake', async () => {
+      act(() => {
+        useGameStore.setState({
+          graphics: { ...useGameStore.getState().graphics, showScreenShake: true },
+        });
+      });
+
+      render(<SettingsPanel onClose={vi.fn()} />);
+
+      const btn = screen.getByText('settings.screen_shake').closest('button');
+      expect(btn).toBeInTheDocument();
+
+      fireEvent.click(btn!);
 
       expect(useGameStore.getState().graphics.showScreenShake).toBe(false);
     });
@@ -190,35 +227,28 @@ describe('SettingsPanel Full Test Suite', () => {
     it('should attempt to toggle theme', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
-      // Current mock returns 'cyberpunk', so '16-Bit' button click should trigger toggle
       const retroBtn = screen.getByText('settings.theme_retro');
-      fireEvent.click(retroBtn); // Click the closest interactive element (button parent)
+      const button = retroBtn.closest('button');
+      expect(button).toBeInTheDocument();
 
-      expect(mockToggleTheme).toHaveBeenCalled();
+      fireEvent.click(button!);
+
+      expect(mockSetTheme).toHaveBeenCalled();
     });
   });
 
-  // --- Mobile Section Tests (only visible on mobile) ---
+  // --- Mobile Section Tests ---
   describe('Mobile Settings', () => {
     it('should render mobile section when isMobile is true', async () => {
-      // Update useDevice mock for this test
       const { useDevice } = await import('../../hooks/useDevice');
       (useDevice as any).mockReturnValue({
         isMobile: true,
         isTablet: false,
         isDesktop: false,
         platform: 'android',
-        screen: {
-          width: 800,
-          height: 600,
-          isLandscape: true,
-          pixelRatio: 1,
-          safeArea: { top: 0, bottom: 0, left: 0, right: 0 },
-        },
+        screen: { width: 800, height: 600, safeArea: {} },
         hasTouch: true,
       });
-
-      // Also ensure screenService.isMobile returns true (SettingsPanel uses both)
       screenService.isMobile = vi.fn().mockReturnValue(true);
 
       const { getByText } = render(<SettingsPanel onClose={() => {}} />);
@@ -226,7 +256,6 @@ describe('SettingsPanel Full Test Suite', () => {
     });
 
     it('should change control type', async () => {
-      // Mock set for this test too
       const { useDevice } = await import('../../hooks/useDevice');
       (useDevice as any).mockReturnValue({
         isMobile: true,
@@ -250,10 +279,8 @@ describe('SettingsPanel Full Test Suite', () => {
     it('should update category volume', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
-      // There are multiple sliders. Let's find the one for 'Combat'
-      // We can find the container with 'Combat' text and find the input inside it
       const combatLabel = screen.getByText('settings.cat_combat');
-      const container = combatLabel.closest('div')?.parentElement; // Label is inside a span inside a div inside the container div
+      const container = combatLabel.closest('div')?.parentElement;
       const slider = container?.querySelector('input[type="range"]');
 
       if (slider) {
@@ -269,17 +296,12 @@ describe('SettingsPanel Full Test Suite', () => {
   // --- Reset Tests ---
   describe('Reset and Close', () => {
     it('should reset settings', () => {
-      // Change some settings first
       useGameStore.getState().toggleParticles(); // false
-
       render(<SettingsPanel onClose={() => {}} />);
 
       const resetBtn = screen.getByText('settings.reset');
       fireEvent.click(resetBtn);
 
-      // Should revert to default (particles: true)
-      // The resetSettings action in store needs to be verified if it resets to default.
-      // Assuming gameStore has a proper resetSettings implementation.
       expect(useGameStore.getState().graphics.showParticles).toBe(true);
     });
 

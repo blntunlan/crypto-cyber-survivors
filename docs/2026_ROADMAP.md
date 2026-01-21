@@ -1,7 +1,7 @@
 # 🗺️ Crypto Cyber Survivors - 2026 Roadmap
 
 **Oluşturulma**: 2026-01-18  
-**Son Güncelleme**: 2026-01-18  
+**Son Güncelleme**: 2026-01-20  
 **Mevcut Versiyon**: 0.1.0 (Beta)
 
 ---
@@ -9,15 +9,15 @@
 ## 📊 Proje Durumu
 
 ```
-████████████████████████████████░░░░░░░░  75% TAMAMLANDI
+████████████████████████████████████░░░░  80% TAMAMLANDI
 ```
 
 | Faz | İlerleme | Durum |
 |-----|----------|-------|
 | Faz 1: Core Game | ████████████████████ 100% | ✅ Tamamlandı |
-| Faz 2: Polish | ██████████████████░░ 90% | ✅ Tamamlandı |
-| Faz 3: Backend | ████████████░░░░░░░░ 60% | 🔶 Devam Ediyor |
-| Faz 4: Launch | ████░░░░░░░░░░░░░░░░ 20% | ⬜ Başlamadı |
+| Faz 2: Polish | ███████████████████░ 95% | ✅ Tamamlandı |
+| Faz 3: Backend | ██████████████░░░░░░ 70% | 🔶 Devam Ediyor |
+| Faz 4: Launch | ██████░░░░░░░░░░░░░░ 25% | 🔶 Başladı |
 
 ---
 
@@ -25,6 +25,8 @@
 
 **Tarih**: 2026-01-18 → 2026-01-24  
 **Hedef**: Production-ready stabilizasyon
+
+### Temel Görevler
 
 | Task | Öncelik | Süre | Durum |
 |------|---------|------|-------|
@@ -35,12 +37,29 @@
 | Railway'e deploy | ⭐⭐⭐ | 30m | ✅ Atlandı (CI/CD) |
 | Dokümanları güncelle | ⭐⭐ | 1h | ✅ Tamamlandı |
 
+### 2026-01-20 Güncellemeleri
+
+| Task | Öncelik | Süre | Durum |
+|------|---------|------|-------|
+| Test coverage düzeltmeleri (26 failing test) | ⭐⭐⭐⭐⭐ | 3h | ✅ Tamamlandı |
+| Çoklu dil desteği (ES, PT, HI, VI) | ⭐⭐⭐⭐ | 2h | ✅ Tamamlandı |
+| Market data flow & synchronization | ⭐⭐⭐⭐ | 2h | ✅ Tamamlandı |
+| Live Feed Disconnect fix | ⭐⭐⭐⭐ | 1h | ✅ Tamamlandı |
+| PnL Shock detection fix | ⭐⭐⭐ | 1h | ✅ Tamamlandı |
+| Lucky Star buff display fix | ⭐⭐⭐ | 30m | ✅ Tamamlandı |
+| Retro mode performance optimization | ⭐⭐⭐ | 2h | ✅ Tamamlandı |
+| Mobile dash distance adjustment | ⭐⭐ | 30m | ✅ Tamamlandı |
+| Header animation improvements | ⭐⭐ | 30m | ✅ Tamamlandı |
+| Memory & GC pressure optimization | ⭐⭐⭐ | 1h | ✅ Tamamlandı |
+| GameRenderer & GameStateManager tests | ⭐⭐⭐ | 2h | ✅ Tamamlandı |
+
 **Çıktılar:**
 - [x] FRONTEND_DB_MAPPING.md
 - [x] RAILWAY_SUPABASE_INTEGRATION.md
 - [x] DATA_FLOW_FIX_REPORT.md
 - [x] TODO_LIST.md
 - [x] ARCHITECTURE.md
+- [x] 6 dil desteği (EN, TR, ES, PT, HI, VI)
 
 ---
 
@@ -69,9 +88,10 @@
 
 | Task | Öncelik | Süre | Durum |
 |------|---------|------|-------|
-| PWA manifest.json | ⭐⭐⭐⭐ | 1h | ⬜ |
-| Service worker (caching) | ⭐⭐⭐⭐ | 3h | ⬜ |
-| Install prompt UI | ⭐⭐⭐ | 2h | ⬜ |
+| PWA manifest.json | ⭐⭐⭐⭐ | 1h | ✅ Tamamlandı |
+| Service worker (caching) | ⭐⭐⭐⭐ | 3h | ✅ Tamamlandı |
+| Apple touch icons | ⭐⭐⭐ | 1h | ✅ Tamamlandı |
+| Install prompt UI | ⭐⭐⭐ | 2h | ✅ Tamamlandı |
 | Offline demo mode | ⭐⭐⭐ | 4h | ⬜ |
 | Tutorial/Onboarding | ⭐⭐⭐ | 6h | ⬜ |
 | Loading optimizations | ⭐⭐ | 2h | ⬜ |
@@ -196,11 +216,12 @@
 ### Teknik
 | Metrik | Şu An | Q1 Hedef | Q2 Hedef |
 |--------|-------|----------|----------|
-| Unit Tests | 1431 | 1600 | 2000 |
-| E2E Tests | 72 | 100 | 150 |
+| Unit Tests | 1479 ✅ | 1600 | 2000 |
+| E2E Tests | 342 ✅ | 100 | 150 |
 | Lighthouse | ~85 | 90+ | 95+ |
-| Bundle Size | 400KB | <450KB | <500KB |
+| Bundle Size | 443KB (gzip) ✅ | <450KB | <500KB |
 | Uptime | - | 99.5% | 99.9% |
+| Dil Desteği | 6 ✅ | 6 | 10 |
 
 ### İş
 | Metrik | Soft Launch | Q2 Hedef |
@@ -235,16 +256,46 @@
 
 ---
 
-## ✅ Sonraki Adımlar (Bugün)
+## ✅ 2026-01-20 Tamamlanan Görevler
 
-1. ~~RLS düzeltmeleri~~ ✅
-2. ~~Veri akışı düzeltmeleri~~ ✅
-3. ~~Mimari doküman~~ ✅
-4. ~~Roadmap güncellemesi~~ ✅
-5. ✅ FK indekslerini ekle
-6. ✅ Railway'e deploy (Otomatik)
-7. ⬜ Sprint 2 Hazırlığı: Anti-cheat teknik analizi
+- [x] Test coverage düzeltmeleri (1479 test geçti)
+- [x] Çoklu dil desteği (ES, PT, HI, VI)
+- [x] Market data flow synchronization
+- [x] Live Feed Disconnect fix
+- [x] PnL Shock detection fix
+- [x] Lucky Star buff display fix
+- [x] Retro mode performance optimization
+- [x] Mobile dash distance adjustment
+- [x] Header animation improvements
+- [x] Memory & GC pressure optimization
+- [x] GameRenderer & GameStateManager tests
+
+## 🎯 Sonraki Adımlar (Sprint 1 Kalan)
+
+| Öncelik | Task | Tahmini Süre |
+|---------|------|-------------|
+| ⭐⭐⭐⭐⭐ | E2E test suite genişletme | 2h |
+| ⭐⭐⭐⭐ | PWA manifest.json hazırlığı | 1h |
+| ⭐⭐⭐⭐ | Performance profiling (Lighthouse) | 2h |
+| ⭐⭐⭐ | Tutorial/Onboarding tasarımı | 3h |
+| ⭐⭐⭐ | Sprint 2 Anti-cheat teknik analizi | 2h |
+
+---
+
+## 📈 Sprint 1 Özet (2026-01-18 → 2026-01-24)
+
+**İlerleme**: ██████████████████░░ 90%
+
+| Kategori | Tamamlanan | Kalan |
+|----------|------------|-------|
+| Bug Fixes | 8 | 0 |
+| Performance | 3 | 1 (Lighthouse) |
+| Localization | 4 yeni dil | 0 |
+| Testing | 1479 unit + 342 E2E | - |
+| PWA | manifest, SW, icons | Install prompt |
+| Docs | 6 dosya | 1 |
 
 ---
 
 > 💡 Bu roadmap living document'tır. Her sprint sonunda güncellenecektir.
+> 📅 Sonraki güncelleme: 2026-01-24 (Sprint 1 Kapanış)

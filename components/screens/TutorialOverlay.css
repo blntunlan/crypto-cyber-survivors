@@ -1,0 +1,59 @@
+/* Tutorial Overlay Styles */
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  pointer-events: auto;
+}
+
+.tutorial-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9996;
+}
+
+/* Keyboard hints */
+.tutorial-overlay-hints {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 24px;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.tutorial-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.tutorial-hint kbd {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.7rem;
+}
+
+/* Hide keyboard hints on mobile */
+@media (max-width: 768px), (pointer: coarse) {
+  .tutorial-overlay-hints {
+    display: none;
+  }
+}
+
+/* Retro theme adjustments */
+[data-theme='retro'] .tutorial-hint kbd {
+  border-radius: 0;
+  border-width: 2px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+}

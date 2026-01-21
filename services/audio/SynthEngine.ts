@@ -288,12 +288,14 @@ export class SynthEngine {
     if (!context) return;
 
     const { ctx, masterGain } = context;
-    const now = ctx.currentTime + (overrides?.delay ?? 0);
+    const baseDelay = overrides?.delay ?? 0;
     const freqMult = overrides?.frequencyMultiplier ?? 1;
     const durMult = overrides?.durationMultiplier ?? 1;
     const volMult = overrides?.volumeMultiplier ?? 1;
+    const ctxNow = ctx.currentTime;
 
     preset.components.forEach(comp => {
+      const now = ctxNow + baseDelay + (comp.delay ?? 0);
       // Noise component (simulated or ignored for now)
       if (comp.type === 'noise') {
         // Skipping noise implementation for now to keep it lean

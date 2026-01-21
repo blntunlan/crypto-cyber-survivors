@@ -3,6 +3,7 @@
     "start": "Start Game",
     "settings": "Settings",
     "back": "Back",
+    "close": "Close",
     "loading": "Loading...",
     "game_over": "Game Over",
     "score": "Score: {{val}}",
@@ -287,6 +288,66 @@
     "lang_hi": "Hindi",
     "lang_vi": "Vietnamese",
     "lang_es": "Spanish",
-    "lang_pt": "Portuguese"
+    "lang_pt": "Portuguese",
+    "lang_zh": "Chinese",
+    "lang_ru": "Russian"
+  },
+  "pwa": {
+    "installTitle": "Install App",
+    "installDescription": "Add to home screen for the best experience",
+    "install": "Install",
+    "notNow": "Not now"
+  },
+  "tutorial": {
+    "language": {
+      "title": "Select Language",
+      "description": "Choose your preferred language for the interface."
+    },
+    "theme": {
+      "title": "Choose Style",
+      "description": "Select the visual theme that suits your vibe."
+    },
+    "welcome": {
+      "title": "Welcome, Survivor!",
+      "description": "Learn the basics of crypto survival in this quick tutorial. You can skip at any time."
+    },
+    "movement": {
+      "title": "Movement",
+      "description": "Use WASD or Arrow keys to move around. On mobile, use the virtual joystick on the left side of the screen."
+    },
+    "dash": {
+      "title": "Dash",
+      "description": "Press SPACE or tap the Dash button to quickly evade enemies. Dash has a short cooldown, so use it wisely!"
+    },
+    "position": {
+      "title": "Market Position",
+      "description": "Choose LONG to profit when BTC rises, or SHORT to profit when it falls. Your choice affects gameplay difficulty!"
+    },
+    "leverage": {
+      "title": "Leverage",
+      "description": "Higher leverage = more risk & reward. Start with SAFE (2x) for beginners. DEGEN (10x) is for experienced traders only!"
+    },
+    "hud": {
+      "title": "Your HUD",
+      "description": "Monitor your health (top-left), experience bar, and P&L at all times. Low health triggers a red warning!"
+    },
+    "enemies": {
+      "title": "Know Your Enemies",
+      "description": "Bears attack in bear markets, Bulls in bull markets. Whales are always dangerous and spawn during high volatility!"
+    },
+    "levelup": {
+      "title": "Level Up!",
+      "description": "When you level up, choose upgrade cards wisely. Higher luck stat = better card quality chances."
+    },
+    "complete": {
+      "title": "You're Ready!",
+      "description": "Good luck surviving the market volatility! Remember: adapt your position to market conditions for maximum profit."
+    },
+    "skip": "Skip Tutorial",
+    "next": "Next",
+    "prev": "Back",
+    "step": "Step {{current}} of {{total}}",
+    "gotIt": "Got it!",
+    "replay": "Replay Tutorial"
   }
 }

@@ -141,12 +141,14 @@ describe('GameHUD', () => {
     expect(screen.queryByText('hud.clutch')).not.toBeInTheDocument();
   });
 
-  it('should display the wave timer container', () => {
-    const startTime = Date.now() - 65000; // 65 seconds ago
-    render(<GameHUD status={GameStatus.PLAYING} sessionStartTime={startTime} />);
+  it('should display basic HUD overlay elements', async () => {
+    // Basic wrapper test to ensure the component renders without crashing
+    render(<GameHUD status={GameStatus.PLAYING} />);
 
-    expect(screen.getByText('hud.survival_time')).toBeInTheDocument();
-    expect(document.getElementById('wave-timer-text')).toBeInTheDocument();
+    // WaveTimer is now in GameUI, so we don't test it here.
+    // Instead we verify the container exists
+    const container = document.querySelector('.absolute.inset-0');
+    expect(container).toBeInTheDocument();
   });
 
   it('should render off-screen enemy pointers container', () => {

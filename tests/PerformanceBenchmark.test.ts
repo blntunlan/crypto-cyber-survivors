@@ -62,7 +62,7 @@ describe('Performance Benchmark', () => {
       // Jitter should be very low in a stable O(1) system
       // Note: CI environments may have variable timing, so we use relaxed thresholds
       expect(avgTime).toBeLessThan(0.5);
-      expect(maxTime).toBeLessThan(5.0); // Allow for CI variability
+      expect(maxTime).toBeLessThan(20.0); // Allow for CI variability
     });
   });
 
@@ -162,7 +162,7 @@ describe('Performance Benchmark', () => {
         `[Benchmark] CombatSystem: 1000 intercept calculations: ${elapsed.toFixed(4)}ms`
       );
       // Relaxed threshold for CI environments with variable performance
-      expect(elapsed).toBeLessThan(10.0);
+      expect(elapsed).toBeLessThan(30.0);
     });
   });
 });

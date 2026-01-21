@@ -21,6 +21,7 @@ import {
   AccountHealthPremium,
   BuffIndicator,
   MarketAnnouncer,
+  WaveTimer,
 } from './hud';
 
 interface GameUIProps {
@@ -152,61 +153,42 @@ export const GameUI: React.FC<GameUIProps> = memo(
         className="fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 font-mono"
         style={{
           zIndex: Z_LAYERS.HUD,
-          paddingTop: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-top, 0px))`,
+          paddingTop: isMobile
+            ? '74px'
+            : `calc(1.5rem + env(safe-area-inset-top, 0px))`,
           paddingLeft: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-left, 0px))`,
           paddingRight: `calc(${isMobile ? '1rem' : '1.5rem'} + env(safe-area-inset-right, 0px))`,
         }}
       >
-        <div className="flex justify-between items-start w-full">
-          {/* Left Panel: Transparent & Numerical Only - Constrained for mobile */}
+        {/* ROW 1: TOP ALIGNED ELEMENTS (Timer & Pause) */}
+        <div className="flex justify-between items-center w-full relative min-h-[44px]">
+          {/* Spacer to balance the layout for desktop, on mobile we use absolute center for timer */}
+          <div className="flex-1"></div>
+
+          {/* Survival Time - Centered */}
           <div
-            className="flex flex-col gap-2 hud-element-left"
-            style={{ maxWidth: isMobile ? '48%' : undefined }}
+            className={`${isMobile ? 'absolute left-1/2 -translate-x-1/2' : 'flex-1 flex justify-center'}`}
           >
-            <LiveFeed
-              marketData={marketData}
-              entryPrice={entryPrice}
-              smoothValues={smoothValues}
-              priceColor={priceColor}
-            />
-            {/* Buff Indicator - Below LiveFeed */}
-            {status === GameStatus.PLAYING && <BuffIndicator status={status} />}
-            {/* Mobile FPS Counter - Below LiveFeed */}
-            {isMobile && showFPS && (
-              <div className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white w-fit">
-                <span id="fps-counter-mobile">
-                  {t('hud.fps_formatted', { val: '--' })}
-                </span>
-              </div>
-            )}
+            <WaveTimer />
           </div>
 
-          {/* Right Panel: Enhanced Stats - Constrained for mobile */}
-          <div
-            className="flex flex-col items-end gap-3 hud-element-right"
-            style={{ maxWidth: isMobile ? '48%' : undefined }}
-          >
-            {/* Pause Button - Visible during active play */}
+          {/* Pause Button - Aligned Right */}
+          <div className="flex-1 flex justify-end">
             {status === GameStatus.PLAYING && onTogglePause && (
               <div
                 className="pointer-events-auto p-2 -m-2 z-[1005] relative"
                 style={{
                   touchAction: 'manipulation',
-                  // Safari iOS: Force new stacking context for proper z-index and touch handling
                   transform: 'translateZ(0)',
                   WebkitTransform: 'translateZ(0)',
                 }}
               >
-                {/* z-[1005] ensures pause button is above DragToMoveController (z-998) and its feedback (z-1003) */}
-                {/* touch-action: auto overrides parent's touch-none for Safari compatibility */}
-                {/* transform: translateZ(0) creates new stacking context for Safari iOS touch events */}
                 <button
                   onClick={e => {
                     e.stopPropagation();
                     onTogglePause();
                   }}
                   onTouchStart={e => {
-                    // Safari needs touchStart to register the element as interactive
                     e.stopPropagation();
                   }}
                   onTouchEnd={e => {
@@ -226,8 +208,39 @@ export const GameUI: React.FC<GameUIProps> = memo(
                 </button>
               </div>
             )}
+          </div>
+        </div>
 
-            {/* Right Panel: Enhanced Stats */}
+        {/* ROW 2: HUD CORE (Live Feed & Kernel Status) */}
+        <div className="flex justify-between items-start w-full mt-2">
+          {/* Left Panel: Live Feed */}
+          <div
+            className="flex flex-col gap-2 hud-element-left"
+            style={{ maxWidth: isMobile ? '55%' : undefined }}
+          >
+            <LiveFeed
+              marketData={marketData}
+              entryPrice={entryPrice}
+              smoothValues={smoothValues}
+              priceColor={priceColor}
+            />
+            {/* Buff Indicator - Below LiveFeed */}
+            {status === GameStatus.PLAYING && <BuffIndicator status={status} />}
+            {/* Mobile FPS Counter - Below LiveFeed */}
+            {isMobile && showFPS && (
+              <div className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white w-fit">
+                <span id="fps-counter-mobile">
+                  {t('hud.fps_formatted', { val: '--' })}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Panel: Enhanced Stats / Level */}
+          <div
+            className="flex flex-col items-end gap-3 hud-element-right"
+            style={{ maxWidth: isMobile ? '40%' : undefined }}
+          >
             <KernelStatus player={player} smoothValues={smoothValues} />
           </div>
         </div>

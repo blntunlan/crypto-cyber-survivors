@@ -206,6 +206,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
           event.preventDefault();
           if (currentRow > 0) {
             setSelectedIndex(prev => prev - cols);
+            audio.playSelectionTick();
           }
           break;
 
@@ -217,6 +218,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
             const newIndex = selectedIndex + cols;
             if (newIndex < buttons.length) {
               setSelectedIndex(newIndex);
+              audio.playSelectionTick();
             }
           }
           break;
@@ -227,6 +229,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
           event.preventDefault();
           if (currentCol > 0) {
             setSelectedIndex(prev => prev - 1);
+            audio.playSelectionTick();
           }
           break;
 
@@ -236,6 +239,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
           event.preventDefault();
           if (currentCol < cols - 1 && selectedIndex < buttons.length - 1) {
             setSelectedIndex(prev => prev + 1);
+            audio.playSelectionTick();
           }
           break;
 

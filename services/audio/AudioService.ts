@@ -176,6 +176,41 @@ export class AudioService implements IAudioService {
     GameSounds.playButton();
   }
 
+  /**
+   * Play menu selection/focus tick
+   */
+  playSelectionTick(): void {
+    GameSounds.playSelectionTick();
+  }
+
+  /**
+   * Play keystroke sound for typing/text
+   */
+  playKeystroke(): void {
+    GameSounds.playKeystroke();
+  }
+
+  /**
+   * Play toggle switch sound
+   */
+  playToggle(): void {
+    GameSounds.playToggle();
+  }
+
+  /**
+   * Play achievement/high score glint
+   */
+  playAchievementGlint(): void {
+    GameSounds.playAchievementGlint();
+  }
+
+  /**
+   * Play pair selection sound
+   */
+  playPairSelect(): void {
+    GameSounds.playPairSelect();
+  }
+
   // ========================================
   // Combo Milestone Sounds
   // ========================================

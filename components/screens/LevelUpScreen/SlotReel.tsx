@@ -133,7 +133,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     <motion.button
       onClick={() => isStopped && onSelect(finalCard)}
       disabled={!isStopped}
-      className={`group flex flex-row items-center text-left p-3 md:p-5 transition-all w-full relative overflow-hidden 
+      className={`group flex flex-row items-center text-left p-3 md:p-5 w-full relative overflow-hidden min-h-[100px] md:min-h-[140px]
         ${isRetro ? 'rounded-none' : 'rounded-xl md:rounded-2xl'}
         ${isStopped ? 'cursor-pointer' : 'cursor-wait'} 
         ${isSelected && isStopped ? 'z-10' : 'z-0'}
@@ -279,7 +279,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       {/* Middle/Right: Info */}
       <div className="flex-1 flex flex-col justify-center">
         <motion.div
-          className={`${sizes.heading} font-black uppercase leading-tight mb-1`}
+          className={`${sizes.heading} ${isRetro ? 'font-retro-jersey text-3xl md:text-5xl' : 'font-black tracking-tight'} uppercase leading-tight mb-1 ${isSpinning ? 'truncate whitespace-nowrap' : 'whitespace-normal'}`}
           style={{
             color: isSelected ? '#ffffff' : tierConfig.color,
             textShadow: isRetro
@@ -306,7 +306,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         </motion.div>
 
         <motion.div
-          className={`${sizes.subheading} ${isSelected ? 'text-white' : 'text-slate-300'} font-bold leading-tight`}
+          className={`${sizes.subheading} ${isRetro ? 'font-retro-jersey text-xl md:text-2xl' : 'font-bold'} ${isSelected ? 'text-white' : 'text-slate-300'} leading-tight`}
           animate={{ opacity: isStopped ? 1 : 0 }}
         >
           {isStopped ? displayCard.description : 'Decrypting slot...'}

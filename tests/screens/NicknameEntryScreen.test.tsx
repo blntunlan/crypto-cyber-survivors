@@ -20,6 +20,7 @@ vi.mock('../../services/AudioService', () => ({
     playLevelUp: vi.fn(),
     playHit: vi.fn(),
     playButton: vi.fn(),
+    playKeystroke: vi.fn(),
   },
 }));
 

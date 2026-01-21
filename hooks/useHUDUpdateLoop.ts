@@ -149,11 +149,11 @@ export function useHUDUpdateLoop({
 
           // Progressive opacity reduction based on enemy density
           if (enemyCount >= 15) {
-            baseOpacity = 0.25; // Very crowded - almost invisible
+            baseOpacity = 0.45; // Increased from 0.25
           } else if (enemyCount >= 10) {
-            baseOpacity = 0.4; // Crowded - quite transparent
+            baseOpacity = 0.6; // Increased from 0.4
           } else if (enemyCount >= 5) {
-            baseOpacity = 0.6; // Moderate - slightly transparent
+            baseOpacity = 0.8; // Increased from 0.6
           }
         }
 

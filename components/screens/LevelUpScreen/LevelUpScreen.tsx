@@ -179,7 +179,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
             {/* Title */}
             <motion.div className="text-center mb-4 md:mb-10" variants={titleVariants}>
               <motion.h3
-                className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} font-black italic text-white tracking-tighter`}
+                className={`${isRetro ? 'font-retro-jersey text-5xl md:text-8xl' : 'font-cyber cyber-glitch-text font-black italic tracking-tighter'} ${sizes.title} text-white`}
                 animate={{
                   textShadow: allStopped
                     ? isRetro
@@ -212,7 +212,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
               </motion.h3>
 
               <motion.p
-                className={`font-bold uppercase ${sizes.tiny} mt-1 md:mt-2`}
+                className={`font-bold uppercase ${sizes.tiny} mt-1 md:mt-2 min-h-[1.5em]`}
                 style={{ color: allStopped ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE }}
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 0.8, repeat: Infinity }}

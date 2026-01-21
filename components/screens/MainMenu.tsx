@@ -67,15 +67,21 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         case 'w':
         case 'W':
           e.preventDefault();
-          setActiveRow(prev => Math.max(0, prev - 1));
-          // audio.playHover(); // Optional: Add nav sound
+          setActiveRow(prev => {
+            const next = Math.max(0, prev - 1);
+            if (next !== prev) audio.playSelectionTick();
+            return next;
+          });
           break;
         case 'ArrowDown':
         case 's':
         case 'S':
           e.preventDefault();
-          setActiveRow(prev => Math.min(4, prev + 1));
-          // audio.playHover();
+          setActiveRow(prev => {
+            const next = Math.min(4, prev + 1);
+            if (next !== prev) audio.playSelectionTick();
+            return next;
+          });
           break;
         case 'ArrowLeft':
         case 'a':
@@ -86,18 +92,22 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             onModeChange(
               selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL
             );
+            audio.playSelectionTick();
           } else if (activeRow === 1) {
             // Cycle Assets
             const currIdx = pairsList.findIndex(p => p.id === selectedPair);
             const nextIdx = (currIdx - 1 + pairsList.length) % pairsList.length;
             onPairChange(pairsList[nextIdx]!.id);
+            audio.playPairSelect();
           } else if (activeRow === 2) {
             // Cycle Leverage
             const currIdx = leverageList.indexOf(selectedLeverage);
             const nextIdx = (currIdx - 1 + leverageList.length) % leverageList.length;
             setSelectedLeverage(leverageList[nextIdx]!);
+            audio.playSelectionTick();
           } else if (activeRow === 3) {
             setActionCol(0); // Focus Long
+            audio.playSelectionTick();
           }
           break;
         case 'ArrowRight':
@@ -109,28 +119,35 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             onModeChange(
               selectedMode === GameMode.CASUAL ? GameMode.COMPETITIVE : GameMode.CASUAL
             );
+            audio.playSelectionTick();
           } else if (activeRow === 1) {
             const currIdx = pairsList.findIndex(p => p.id === selectedPair);
             const nextIdx = (currIdx + 1) % pairsList.length;
             onPairChange(pairsList[nextIdx]!.id);
+            audio.playPairSelect();
           } else if (activeRow === 2) {
             const currIdx = leverageList.indexOf(selectedLeverage);
             const nextIdx = (currIdx + 1) % leverageList.length;
             setSelectedLeverage(leverageList[nextIdx]!);
+            audio.playSelectionTick();
           } else if (activeRow === 3) {
             setActionCol(1); // Focus Short
+            audio.playSelectionTick();
           }
           break;
         case 'Enter':
         case ' ':
           e.preventDefault();
-          audio.playButton();
           if (activeRow === 3) {
             // Start Game
+            audio.playLevelUp(); // Play extra start sound
             if (actionCol === 0) void onStart(MarketPosition.LONG, selectedLeverage);
             else void onStart(MarketPosition.SHORT, selectedLeverage);
           } else if (activeRow === 4) {
+            audio.playButton();
             onOpenSettings();
+          } else {
+            audio.playButton();
           }
           break;
       }

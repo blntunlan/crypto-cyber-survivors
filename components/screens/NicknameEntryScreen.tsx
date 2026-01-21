@@ -206,6 +206,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                   onChange={e => {
                     setNickname(e.target.value);
                     if (error) setError(null);
+                    audio.playKeystroke();
                   }}
                   className={`w-full px-5 py-4 transition-all tracking-wide placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-cyan-500/30 ${
                     error

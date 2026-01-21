@@ -543,7 +543,7 @@ export class EntityRenderer implements IRenderer {
 
     // 3. Main Character Body
     if (shadowsEnabled) {
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 25; // Increased from 15 for enhanced visibility
       ctx.shadowColor = player.color;
     }
 
@@ -676,8 +676,8 @@ export class EntityRenderer implements IRenderer {
   }
 
   /**
-  /**
    * Smooth vector player with physics-based squash/stretch.
+   * Enhanced visibility with stronger glow and pulsing outline.
    */
   private renderCyberpunkPlayer(
     ctx: CanvasRenderingContext2D,
@@ -687,9 +687,43 @@ export class EntityRenderer implements IRenderer {
     const px = Math.round(player.x);
     const py = Math.round(player.y);
 
-    // Stylized Spotlight logic
+    // 1. Outer Glow Ring (Always visible, pulsing)
+    const pulseTime = performance.now() * 0.003;
+    const pulseScale = 1 + Math.sin(pulseTime) * 0.1; // Subtle pulse
+    const outerRingRadius = player.radius * 1.8 * pulseScale;
+
+    ctx.save();
+    ctx.globalAlpha = 0.4 + Math.sin(pulseTime) * 0.1;
+    ctx.strokeStyle = player.color;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.arc(px, py, outerRingRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. Radial Glow Field (Enhanced visibility backdrop)
+    ctx.save();
+    const glowRadius = player.radius * 2.5;
+    const gradient = ctx.createRadialGradient(
+      px,
+      py,
+      player.radius * 0.5,
+      px,
+      py,
+      glowRadius
+    );
+    gradient.addColorStop(0, `${player.color}40`); // 25% alpha at center
+    gradient.addColorStop(0.5, `${player.color}20`); // 12% alpha mid
+    gradient.addColorStop(1, `${player.color}00`); // Transparent at edge
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 3. Stylized Spotlight (Brighter than before)
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'; // Increased from 0.15
     ctx.arc(
       px,
       py,
@@ -699,6 +733,7 @@ export class EntityRenderer implements IRenderer {
     );
     ctx.fill();
 
+    // 4. Main Player Body with enhanced inner glow
     // Hurt flash effect (Cyberpunk style: additive white overlay)
     if (player.invulnerabilityTimer > 150) {
       ctx.fillStyle = '#FFFFFF';
@@ -726,5 +761,30 @@ export class EntityRenderer implements IRenderer {
     }
 
     ctx.fill();
+
+    // 5. White Core Highlight (makes player pop more)
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(
+      px - player.radius * 0.2,
+      py - player.radius * 0.2,
+      player.radius * 0.35,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.restore();
+
+    // 6. Outer Edge Highlight Ring (crisp visibility)
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(px, py, player.radius + 1, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }

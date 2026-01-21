@@ -7,6 +7,7 @@ import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
 import { IconTrophy } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { audio } from '../../services/AudioService';
 
 interface GameOverScreenProps {
   level: number;
@@ -43,6 +44,16 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   };
 
   const isNewHighScore = Math.floor(kills * 10 + survivalTime) > progress.highScore;
+
+  // Play game end sounds
+  React.useEffect(() => {
+    audio.playDeath();
+    if (isNewHighScore) {
+      setTimeout(() => {
+        audio.playAchievementGlint();
+      }, 1000);
+    }
+  }, [isNewHighScore]);
 
   return (
     <motion.div
@@ -113,6 +124,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             value={`L${level}`}
             delay={0.5}
             sizes={sizes}
+            isRetro={isRetro}
           />
 
           <StatItem
@@ -121,18 +133,21 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             color={finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE}
             delay={0.6}
             sizes={sizes}
+            isRetro={isRetro}
           />
           <StatItem
             label={t('common.game_over_screen.time')}
             value={formatTime(survivalTime)}
             delay={0.7}
             sizes={sizes}
+            isRetro={isRetro}
           />
           <StatItem
             label={t('common.game_over_screen.kills')}
             value={kills.toString()}
             delay={0.8}
             sizes={sizes}
+            isRetro={isRetro}
           />
         </div>
 
@@ -208,20 +223,28 @@ interface StatItemProps {
   sizes: ReturnType<typeof useThemeSize>;
 }
 
-const StatItem: React.FC<StatItemProps> = ({
+const StatItem: React.FC<StatItemProps & { isRetro?: boolean }> = ({
   label,
   value,
   color = '#ffffff',
   delay,
   sizes,
+  isRetro,
 }) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ delay }}
   >
-    <p className={`text-slate-500 ${sizes.tiny} font-black uppercase`}>{label}</p>
-    <p className={`${sizes.heading} font-black`} style={{ color }}>
+    <p
+      className={`text-slate-500 ${sizes.tiny} font-black uppercase ${isRetro ? 'font-retro-text' : ''}`}
+    >
+      {label}
+    </p>
+    <p
+      className={`${sizes.heading} font-black ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+      style={{ color }}
+    >
       {value}
     </p>
   </motion.div>

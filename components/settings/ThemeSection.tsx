@@ -2,123 +2,72 @@
  * ThemeSection - Theme Selection Settings
  *
  * Allows users to switch between Cyberpunk and 16-bit Retro themes.
- * Supports keyboard navigation with left/right arrows to switch themes.
+ * Supports keyboard navigation with separate focus for each theme.
  */
 
-import React from 'react';
+import { memo } from 'react';
 import { useTheme } from '../../contexts/useTheme';
-
-import { IconCyberpunk, IconRetro } from '../icons/CardIcons';
+import { IconCyberpunk, IconRetro, IconSparkles } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-interface ThemeSectionProps {
-  isFocused?: boolean;
-}
+export const ThemeSection = memo(
+  ({ focusedItem = null }: { focusedItem?: 'cyberpunk' | 'retro-16bit' | null }) => {
+    const { themeName, setTheme } = useTheme();
+    const { t } = useLanguage();
 
-export const ThemeSection: React.FC<ThemeSectionProps> = ({ isFocused = false }) => {
-  const { themeName, toggleTheme, theme } = useTheme();
-  const { t } = useLanguage();
+    const isCyberpunk = themeName === 'cyberpunk';
+    const isRetro = themeName === 'retro-16bit';
 
-  const isCyberpunk = themeName === 'cyberpunk';
+    return (
+      <section className="space-y-3 md:space-y-4">
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+          <IconSparkles className="w-3.5 h-3.5" color="#64748b" />
+          <span>{t('settings.theme')}</span>
+        </h3>
 
-  // Note: Keyboard navigation is handled by parent SettingsPanel
-  // This component only needs to render and respond to clicks
-
-  return (
-    <section
-      className={`p-4 md:p-5 bg-slate-800/30 border rounded-2xl transition-all ${
-        isFocused
-          ? 'border-white/60 ring-2 ring-white/30 scale-[1.01]'
-          : 'border-slate-700/50'
-      }`}
-    >
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="text-[11px] md:text-xs font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
-          {t('settings.theme')}
-          {isFocused && (
-            <span className="text-[8px] text-cyan-400 animate-pulse ml-2">← →</span>
-          )}
-        </h4>
-        <span
-          className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
-          style={{
-            backgroundColor: `${theme.colors.primary}30`,
-            color: theme.colors.primary,
-          }}
-        >
-          {theme.displayName}
-        </span>
-      </div>
-
-      {/* Theme Toggle Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Cyberpunk Button */}
-        <button
-          onClick={() => !isCyberpunk && toggleTheme()}
-          className={`
-            relative p-4 rounded-xl border-2 transition-all duration-200
-            flex flex-col items-center gap-2
-            ${
+        <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-2 transition-all">
+          {/* Cyberpunk Button */}
+          <button
+            onClick={() => setTheme('cyberpunk')}
+            className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between ${
               isCyberpunk
-                ? 'border-cyan-500 bg-cyan-500/20 scale-[1.02]'
-                : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-700/50'
-            }
-            ${isFocused && !isCyberpunk ? 'ring-1 ring-white/30' : ''}
-          `}
-        >
-          {/* Selected Indicator */}
-          {isCyberpunk && (
-            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          )}
+                ? 'bg-cyan-600/20 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'
+            } ${focusedItem === 'cyberpunk' ? 'ring-2 ring-white scale-[1.02] bg-white/10' : ''}`}
+          >
+            <div className="flex items-center gap-3">
+              <IconCyberpunk
+                className="w-4 h-4"
+                color={isCyberpunk ? '#22d3ee' : '#64748b'}
+              />
+              <span className={isCyberpunk ? 'text-white' : ''}>
+                {t('settings.theme_cyber')}
+              </span>
+            </div>
+            {isCyberpunk && <span className="text-[9px] animate-pulse">ACTIVE</span>}
+          </button>
 
-          <IconCyberpunk
-            className="w-8 h-8 md:w-10 md:h-10"
-            color={isCyberpunk ? '#06b6d4' : '#64748b'}
-          />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-            {t('settings.theme_cyber')}
-          </span>
-          <span className="text-[8px] text-slate-400">
-            {t('settings.theme_cyber_subtitle')}
-          </span>
-        </button>
+          {/* Retro Button */}
+          <button
+            onClick={() => setTheme('retro-16bit')}
+            className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between ${
+              isRetro
+                ? 'bg-orange-600/20 text-orange-400 border-orange-500/50 shadow-[0_0_10px_rgba(249,115,22,0.2)]'
+                : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'
+            } ${focusedItem === 'retro-16bit' ? 'ring-2 ring-white scale-[1.02] bg-white/10' : ''}`}
+          >
+            <div className="flex items-center gap-3">
+              <IconRetro className="w-4 h-4" color={isRetro ? '#fb923c' : '#64748b'} />
+              <span className={isRetro ? 'text-white' : ''}>
+                {t('settings.theme_retro')}
+              </span>
+            </div>
+            {isRetro && <span className="text-[9px] animate-pulse">ACTIVE</span>}
+          </button>
+        </div>
+      </section>
+    );
+  }
+);
 
-        {/* 16-Bit Retro Button */}
-        <button
-          onClick={() => isCyberpunk && toggleTheme()}
-          className={`
-            relative p-4 rounded-xl border-2 transition-all duration-200
-            flex flex-col items-center gap-2
-            ${
-              !isCyberpunk
-                ? 'border-orange-500 bg-orange-500/20 scale-[1.02]'
-                : 'border-slate-600 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-700/50'
-            }
-            ${isFocused && isCyberpunk ? 'ring-1 ring-white/30' : ''}
-          `}
-        >
-          {/* Selected Indicator */}
-          {!isCyberpunk && (
-            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-          )}
-
-          <IconRetro
-            className="w-8 h-8 md:w-10 md:h-10"
-            color={!isCyberpunk ? '#f97316' : '#64748b'}
-          />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-            {t('settings.theme_retro')}
-          </span>
-          <span className="text-[8px] text-slate-400">
-            {t('settings.theme_retro_subtitle')}
-          </span>
-        </button>
-      </div>
-
-      {/* Theme Description */}
-      <p className="text-[9px] text-slate-500 text-center mt-3">
-        {isCyberpunk ? t('settings.theme_cyber_desc') : t('settings.theme_retro_desc')}
-      </p>
-    </section>
-  );
-};
+ThemeSection.displayName = 'ThemeSection';

@@ -3,9 +3,29 @@ import { LanguageContext } from './LanguageContextDefinition';
 import { type Language } from './LanguageConstants';
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>(
-    (localStorage.getItem('game_lang') as Language | null) ?? 'en'
-  );
+  // Helper to determine initial language
+  const getInitialLanguage = (): Language => {
+    // 1. Priority: User's saved preference
+    const saved = localStorage.getItem('game_lang') as Language | null;
+    if (saved && ['en', 'tr', 'hi', 'vi', 'es', 'pt'].includes(saved)) {
+      return saved;
+    }
+
+    // 2. Priority: Browser/Device language
+    try {
+      const browserLang = navigator.language.split('-')[0] as Language; // 'tr-TR' -> 'tr'
+      if (['en', 'tr', 'hi', 'vi', 'es', 'pt'].includes(browserLang)) {
+        return browserLang;
+      }
+    } catch {
+      // Ignore errors in non-browser envs
+    }
+
+    // 3. Fallback
+    return 'en';
+  };
+
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
   const [translations, setTranslations] = useState<Record<string, unknown>>({});
 
   useEffect(() => {

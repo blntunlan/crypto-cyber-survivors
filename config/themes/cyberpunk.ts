@@ -32,11 +32,11 @@ export const cyberpunkTheme: ThemeConfig = {
   },
 
   fonts: {
-    display: '"Orbitron", sans-serif',
-    primary: '"Oxanium", sans-serif',
-    secondary: '"Exo 2", sans-serif',
-    mono: '"Share Tech Mono", monospace',
-    numbers: '"Orbitron", sans-serif',
+    display: '"Audiowide", system-ui, sans-serif',
+    primary: '"Chakra Petch", sans-serif',
+    secondary: '"Michroma", sans-serif',
+    mono: '"Quantico", monospace',
+    numbers: '"Quantico", sans-serif',
   },
 
   effects: {

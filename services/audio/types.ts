@@ -84,6 +84,7 @@ export interface SynthComponent {
     frequency: number;
     frequencyEnd?: number;
   };
+  delay?: number;
 }
 
 /**

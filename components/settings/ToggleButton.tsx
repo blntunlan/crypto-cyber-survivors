@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { audio } from '../../services/AudioService';
 
 export interface ToggleButtonProps {
   label: string;
@@ -20,7 +21,10 @@ export const ToggleButton: React.FC<ToggleButtonProps> = ({
   isFocused = false,
 }) => (
   <button
-    onClick={onToggle}
+    onClick={() => {
+      audio.playToggle();
+      onToggle();
+    }}
     className={`w-full flex justify-between items-center py-2 px-3 rounded-lg hover:bg-white/5 transition-all ${
       isFocused
         ? 'bg-white/10 ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)]'

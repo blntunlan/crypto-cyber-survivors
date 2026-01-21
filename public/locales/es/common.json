@@ -283,6 +283,66 @@
     "lang_hi": "Hindi",
     "lang_vi": "Vietnamita",
     "lang_es": "Español",
-    "lang_pt": "Portugués"
+    "lang_pt": "Portugués",
+    "lang_zh": "Chino",
+    "lang_ru": "Ruso"
+  },
+  "pwa": {
+    "installTitle": "Instalar App",
+    "installDescription": "Añadir a la pantalla de inicio para la mejor experiencia",
+    "install": "Instalar",
+    "notNow": "Ahora no"
+  },
+  "tutorial": {
+    "language": {
+      "title": "Seleccionar Idioma",
+      "description": "Elige tu idioma preferido para la interfaz."
+    },
+    "theme": {
+      "title": "Elegir Estilo",
+      "description": "Selecciona el tema visual que se adapte a tu estilo."
+    },
+    "welcome": {
+      "title": "¡Bienvenido, Superviviente!",
+      "description": "Aprende los fundamentos de la supervivencia cripto en este breve tutorial. Puedes saltarlo en cualquier momento."
+    },
+    "movement": {
+      "title": "Movimiento",
+      "description": "Usa WASD o las teclas de flecha para moverte. En móvil, usa el joystick virtual en el lado izquierdo de la pantalla."
+    },
+    "dash": {
+      "title": "Dash",
+      "description": "Presiona ESPACIO o toca el botón Dash para evadir enemigos rápidamente. Dash tiene un tiempo de recarga corto, ¡úsalo sabiamente!"
+    },
+    "position": {
+      "title": "Posición de Mercado",
+      "description": "Elige LONG para ganar cuando BTC sube, o SHORT para ganar cuando baja. ¡Tu elección afecta la dificultad del juego!"
+    },
+    "leverage": {
+      "title": "Apalancamiento",
+      "description": "Mayor apalancamiento = más riesgo y recompensa. Empieza con SEGURO (2x) para principiantes. ¡DEGEN (10x) es solo para traders experimentados!"
+    },
+    "hud": {
+      "title": "Tu HUD",
+      "description": "Monitorea tu salud (arriba-izquierda), barra de experiencia y P&L en todo momento. ¡La salud baja activa una advertencia roja!"
+    },
+    "enemies": {
+      "title": "Conoce a Tus Enemigos",
+      "description": "Los osos atacan en mercados bajistas, los toros en mercados alcistas. ¡Las ballenas siempre son peligrosas y aparecen durante alta volatilidad!"
+    },
+    "levelup": {
+      "title": "¡Subida de Nivel!",
+      "description": "Cuando subas de nivel, elige las cartas de mejora sabiamente. Mayor estadística de suerte = mejores posibilidades de calidad de cartas."
+    },
+    "complete": {
+      "title": "¡Estás Listo!",
+      "description": "¡Buena suerte sobreviviendo la volatilidad del mercado! Recuerda: adapta tu posición a las condiciones del mercado para máximo beneficio."
+    },
+    "skip": "Saltar Tutorial",
+    "next": "Siguiente",
+    "prev": "Atrás",
+    "step": "Paso {{current}} de {{total}}",
+    "gotIt": "¡Entendido!",
+    "replay": "Repetir Tutorial"
   }
 }

@@ -50,6 +50,7 @@ import { useDevShortcuts } from './hooks/useDevShortcuts';
 import { useMarketTimeout } from './hooks/useMarketTimeout';
 import { usePauseBudget } from './hooks/usePauseBudget';
 import { useCloudflareSession } from './hooks/useCloudflareSession';
+import { useTutorial } from './hooks/useTutorial';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
 import { useLanguage } from './contexts/LanguageContext';
@@ -71,6 +72,8 @@ import { ComboDebugPanel } from './components/ComboDebugPanel';
 import { ParticleDebugPanel } from './components/ParticleDebugPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
+import { PWAInstallPrompt } from './components/ui/PWAInstallPrompt';
+import { TutorialOverlay } from './components/screens/TutorialOverlay';
 
 // Optimization: Keep heavy admin/debug components lazy
 const AnalyticsDashboard = React.lazy(() =>
@@ -197,6 +200,9 @@ const App: React.FC = () => {
   const { needsNickname, setNeedsNickname, isInitialized } = useAppInitialization();
   const { showAnalytics, showAdminDashboard, closeAnalytics, closeAdminDashboard } =
     useDevShortcuts();
+
+  // Tutorial system for new users
+  const tutorial = useTutorial();
 
   // ========================================
   // Player & Market Hooks
@@ -552,6 +558,23 @@ const App: React.FC = () => {
                     <NicknameEntryScreen onComplete={handleNicknameComplete} />
                   </React.Suspense>
                 )}
+
+                {/* Tutorial Overlay - Shows for new users */}
+                {tutorial.showTutorial &&
+                  !needsNickname &&
+                  gameStatus === GameStatus.MENU && (
+                    <TutorialOverlay
+                      step={tutorial.currentStep}
+                      stepIndex={tutorial.currentStepIndex}
+                      totalSteps={tutorial.totalSteps}
+                      isFirstStep={tutorial.isFirstStep}
+                      isLastStep={tutorial.isLastStep}
+                      onNext={tutorial.nextStep}
+                      onPrev={tutorial.prevStep}
+                      onSkip={tutorial.skipTutorial}
+                      onComplete={tutorial.completeTutorial}
+                    />
+                  )}
                 {/* Game Engine */}
                 <React.Suspense fallback={<FallbackLoader />}>
                   <GameEngine
@@ -619,7 +642,11 @@ const App: React.FC = () => {
                       {/* Back button to Hub */}
                       <button
                         onClick={() => setHubScreen('hub')}
-                        className="fixed top-4 left-4 z-[110] px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all"
+                        className="fixed z-[110] px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation"
+                        style={{
+                          top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
+                          left: `calc(${device.isMobile ? '1rem' : '1rem'} + env(safe-area-inset-left, 0px))`,
+                        }}
                       >
                         ← {!device.isMobile && ` ${t('common.back_to_hub')}`}
                       </button>
@@ -651,6 +678,7 @@ const App: React.FC = () => {
                     <SettingsPanel
                       onClose={() => setShowSettings(false)}
                       isInGame={gameStatus !== GameStatus.MENU}
+                      onReplayTutorial={tutorial.startTutorial}
                     />
                   </React.Suspense>
                 )}
@@ -723,6 +751,9 @@ const App: React.FC = () => {
                 )}
               </React.Suspense>
             </ErrorBoundary>
+
+            {/* PWA Install Prompt - Shows when app is installable */}
+            {gameStatus === GameStatus.MENU && <PWAInstallPrompt />}
           </div>
         </LazyMotionProvider>
       </ThemeProvider>

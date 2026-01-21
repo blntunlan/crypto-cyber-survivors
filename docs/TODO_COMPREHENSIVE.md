@@ -1,7 +1,7 @@
 # 📋 Crypto Cyber Survivors - Comprehensive TODO
 
 > Projedeki tüm eksiklikler, teknik borçlar ve gelecek özellikler.
-> Son Güncelleme: 2026-01-20
+> Son Güncelleme: 2026-01-20 23:39
 
 ---
 
@@ -51,16 +51,16 @@
 
 | ID | Task | Dosya/Alan | Effort |
 |----|------|------------|--------|
-| PWA-001 | manifest.json oluştur | `public/manifest.json` | 1 saat |
-| PWA-002 | App icons (192x192, 512x512) | `public/icons/` | 1 saat |
-| PWA-003 | Service worker (asset caching) | `public/sw.js` | 3 saat |
+| PWA-001 | ~~manifest.json oluştur~~ | `public/manifest.json` | ✅ Tamamlandı |
+| PWA-002 | ~~App icons (192x192, 512x512)~~ | `public/icons/` | ✅ Tamamlandı |
+| PWA-003 | ~~Service worker (asset caching)~~ | `public/sw.js` | ✅ Tamamlandı |
 
 ### 🟡 P2 - Orta
 
 | ID | Task | Dosya/Alan | Effort |
 |----|------|------------|--------|
-| PWA-004 | Install prompt UI | `components/ui/` | 2 saat |
-| PWA-005 | Offline fallback page | `public/offline.html` | 1 saat |
+| PWA-004 | ~~Install prompt UI~~ | `components/ui/PWAInstallPrompt.tsx` | ✅ Tamamlandı |
+| PWA-005 | ~~Offline fallback page~~ | `public/offline.html` | ✅ Tamamlandı |
 | PWA-006 | Background sync (score queue) | Service Worker | 3 saat |
 
 ---
@@ -117,7 +117,7 @@
 | ID | Task | Dosya/Alan | Effort |
 |----|------|------------|--------|
 | UI-007 | Dark/Light theme toggle | `contexts/ThemeContext.tsx` | 3 saat |
-| UI-008 | Localization (i18n) | `locales/` | 2-3 gün |
+| UI-008 | ~~Localization (i18n)~~ | `locales/` | ✅ Tamamlandı (6 dil) |
 | UI-009 | Custom cursor | CSS | 1 saat |
 
 ---
@@ -256,6 +256,10 @@
 
 ### Sprint 1 (Bu Hafta) - Güvenlik Temeli
 - [x] SEC-001: Lint fixes ✅
+- [x] UI-008: Localization (6 dil) ✅
+- [x] Test coverage düzeltmeleri (1479 test) ✅
+- [x] Market data flow fixes ✅
+- [x] Performance optimizations ✅
 - [ ] SEC-001: Session signing
 - [ ] SEC-002: Replay hash validation
 - [ ] PWA-001: manifest.json

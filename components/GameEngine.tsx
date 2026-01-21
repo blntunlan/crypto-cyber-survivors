@@ -622,7 +622,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
 
         player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
-        player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
+
+        // Mobile: Add extra padding at the bottom to stay clear of HP bar and safe areas
+        // Desktop: Keep standard radius-based clamping
+        const bottomMargin = device.isMobile ? player.radius + 60 : player.radius;
+        player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
 
         // Calculate target background based on PnL
         // On mobile, we increase the floor values to prevent the screen from being too dark at low brightness

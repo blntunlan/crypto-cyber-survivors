@@ -12,7 +12,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 interface GraphicsSectionProps {
   isMobile: boolean;
-  focusedToggle?: 'particles' | 'shake' | 'damage' | null;
+  focusedToggle?: 'particles' | 'shake' | 'damage' | 'hudScale' | 'fps' | null;
 }
 
 export const GraphicsSection = memo(
@@ -75,14 +75,21 @@ export const GraphicsSection = memo(
                   step="0.05"
                   value={graphics.hudScale}
                   onChange={e => setHudScale(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+                  className={`w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all ${
+                    focusedToggle === 'hudScale'
+                      ? 'ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)]'
+                      : ''
+                  }`}
                 />
               </div>
-              <ToggleButton
-                label={t('settings.show_fps')}
-                enabled={graphics.showFPS}
-                onToggle={toggleFPS}
-              />
+              <div className="pt-2">
+                <ToggleButton
+                  label={t('settings.show_fps')}
+                  enabled={graphics.showFPS}
+                  onToggle={toggleFPS}
+                  isFocused={focusedToggle === 'fps'}
+                />
+              </div>
             </>
           )}
         </div>

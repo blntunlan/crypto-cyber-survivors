@@ -196,3 +196,58 @@ export function playButton(): void {
     synthEngine.playPreset(buttonPreset, { volumeMultiplier: catVol });
   }
 }
+
+/**
+ * Play menu selection/focus tick
+ */
+export function playSelectionTick(): void {
+  const catVol = getCategoryVolumeMultiplier('selection_tick');
+  const tickPreset = getPreset('selection_tick');
+  if (tickPreset) {
+    synthEngine.playPreset(tickPreset, { volumeMultiplier: catVol });
+  }
+}
+
+/**
+ * Play keystroke sound for typing/text
+ */
+export function playKeystroke(): void {
+  const catVol = getCategoryVolumeMultiplier('keystroke');
+  const keyPreset = getPreset('keystroke');
+  if (keyPreset) {
+    synthEngine.playPreset(keyPreset, { volumeMultiplier: catVol });
+  }
+}
+
+/**
+ * Play toggle switch sound
+ */
+export function playToggle(): void {
+  const catVol = getCategoryVolumeMultiplier('toggle_switch');
+  const togglePreset = getPreset('toggle_switch');
+  if (togglePreset) {
+    synthEngine.playPreset(togglePreset, { volumeMultiplier: catVol });
+  }
+}
+
+/**
+ * Play achievement/high score glint
+ */
+export function playAchievementGlint(): void {
+  const catVol = getCategoryVolumeMultiplier('achievement_glint');
+  const glintPreset = getPreset('achievement_glint');
+  if (glintPreset) {
+    synthEngine.playPreset(glintPreset, { volumeMultiplier: catVol });
+  }
+}
+
+/**
+ * Play pair selection sound
+ */
+export function playPairSelect(): void {
+  const catVol = getCategoryVolumeMultiplier('pair_select');
+  const pairPreset = getPreset('pair_select');
+  if (pairPreset) {
+    synthEngine.playPreset(pairPreset, { volumeMultiplier: catVol });
+  }
+}

@@ -109,6 +109,62 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
       },
     ],
   },
+  selection_tick: {
+    components: [
+      {
+        type: 'sine',
+        frequency: 1200,
+        envelope: { initial: 0.02, peak: 0.02, duration: 0.02, ramp: 'exponential' },
+      },
+    ],
+    cooldown: 40,
+  },
+  keystroke: {
+    components: [
+      {
+        type: 'sine',
+        frequency: 800,
+        envelope: { initial: 0.015, peak: 0.02, duration: 0.03, ramp: 'linear' },
+      },
+    ],
+    cooldown: 30,
+  },
+  toggle_switch: {
+    components: [
+      {
+        type: 'sine',
+        frequency: 600,
+        frequencyEnd: 800,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.05, ramp: 'linear' },
+      },
+    ],
+  },
+  achievement_glint: {
+    components: [
+      {
+        type: 'sine',
+        frequency: 2000,
+        frequencyEnd: 3000,
+        envelope: { initial: 0.04, peak: 0.04, duration: 0.3, ramp: 'exponential' },
+      },
+      {
+        type: 'sine',
+        frequency: 2500,
+        delay: 0.05,
+        envelope: { initial: 0.02, peak: 0.02, duration: 0.2, ramp: 'exponential' },
+      },
+    ],
+  },
+  pair_select: {
+    components: [
+      {
+        type: 'triangle',
+        frequency: 440,
+        frequencyEnd: 880,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.1, ramp: 'exponential' },
+      },
+    ],
+  },
   levelUpNote: {
     components: [
       {
@@ -453,6 +509,110 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
         frequency: 2400,
         frequencyEnd: 1800,
         envelope: { initial: 0.03, peak: 0.03, duration: 0.1, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_button: {
+    components: [
+      {
+        type: 'square',
+        frequency: 1000,
+        envelope: { initial: 0.04, peak: 0.04, duration: 0.05, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_deathNote: {
+    components: [
+      {
+        type: 'square',
+        frequency: 200,
+        frequencyEnd: 50,
+        envelope: { initial: 0.08, peak: 0.08, duration: 0.4, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_nearMiss: {
+    components: [
+      {
+        type: 'square',
+        frequency: 120,
+        frequencyEnd: 400,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.2, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_selection_tick: {
+    components: [
+      {
+        type: 'square',
+        frequency: 1200,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.02, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_keystroke: {
+    components: [
+      {
+        type: 'square',
+        frequency: 800,
+        envelope: { initial: 0.02, peak: 0.02, duration: 0.03, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_toggle_switch: {
+    components: [
+      {
+        type: 'square',
+        frequency: 600,
+        frequencyEnd: 900,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.05, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_achievement_glint: {
+    components: [
+      {
+        type: 'square',
+        frequency: 2000,
+        frequencyEnd: 3000,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.2, ramp: 'linear' },
+      },
+      {
+        type: 'square',
+        frequency: 2500,
+        delay: 0.05,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.15, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_pair_select: {
+    components: [
+      {
+        type: 'square',
+        frequency: 440,
+        frequencyEnd: 880,
+        envelope: { initial: 0.06, peak: 0.06, duration: 0.1, ramp: 'linear' },
+      },
+    ],
+  },
+  retro_whaleArrival: {
+    components: [
+      {
+        type: 'square',
+        frequency: 100,
+        frequencyEnd: 30,
+        envelope: { initial: 0.1, peak: 0.1, duration: 1.0, ramp: 'linear' },
+        filter: { type: 'lowpass', frequency: 500 },
+      },
+    ],
+  },
+  retro_combo: {
+    components: [
+      {
+        type: 'square',
+        frequency: 600,
+        frequencyEnd: 900,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.15, ramp: 'exponential' },
       },
     ],
   },

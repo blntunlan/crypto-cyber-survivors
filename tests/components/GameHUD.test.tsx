@@ -84,7 +84,6 @@ describe('GameHUD', () => {
     render(<GameHUD status={GameStatus.PLAYING} width={800} height={600} />);
 
     expect(screen.getByTestId('near-death-glow')).toBeTruthy();
-    expect(screen.getByTestId('wave-timer')).toBeTruthy();
     expect(screen.getByTestId('fps-counter')).toBeTruthy();
     expect(screen.getByTestId('enemy-pointers')).toBeTruthy();
     expect(screen.getByTestId('level-up-flash')).toBeTruthy();

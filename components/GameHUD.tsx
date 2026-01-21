@@ -24,7 +24,6 @@ import { useEnemyPointers } from '../hooks/useEnemyPointers';
 
 // Import HUD sub-components
 import {
-  WaveTimer,
   FPSCounter,
   ClutchAnnouncement,
   LevelUpFlash,
@@ -104,7 +103,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       }
     >
       <NearDeathGlow />
-      {layout.elements.waveTimer.visible && <WaveTimer />}
       {/* FPS Counter - Desktop only (mobile version is in GameUI below LiveFeed) */}
       {device.platform === 'desktop' &&
         (layout.elements.fpsCounter.visible || showFPSSource) && <FPSCounter />}

@@ -283,6 +283,60 @@
     "lang_hi": "Tiếng Hindi",
     "lang_vi": "Tiếng Việt",
     "lang_es": "Tiếng Tây Ban Nha",
-    "lang_pt": "Tiếng Bồ Đào Nha"
+    "lang_pt": "Tiếng Bồ Đào Nha",
+    "lang_zh": "Tiếng Trung",
+    "lang_ru": "Tiếng Nga"
+  },
+  "tutorial": {
+    "language": {
+      "title": "Chọn Ngôn Ngữ",
+      "description": "Chọn ngôn ngữ ưu thích cho giao diện."
+    },
+    "theme": {
+      "title": "Chọn Phong Cách",
+      "description": "Chọn chủ đề hình ảnh phù hợp với bạn."
+    },
+    "welcome": {
+      "title": "Chào mừng, Người sống sót!",
+      "description": "Học những điều cơ bản để sinh tồn trong thế giới crypto. Bạn có thể bỏ qua bất cứ lúc nào."
+    },
+    "movement": {
+      "title": "Di chuyển",
+      "description": "Dùng WASD hoặc phím mũi tên. Trên điện thoại, dùng joystick ảo bên trái."
+    },
+    "dash": {
+      "title": "Lướt (Dash)",
+      "description": "Nhấn SPACE hoặc nút Dash để né tránh nhanh. Dash có thời gian hồi chiêu ngắn!"
+    },
+    "position": {
+      "title": "Vị thế Thị trường",
+      "description": "Chọn LONG để lời khi BTC tăng, hoặc SHORT khi giảm. Lựa chọn ảnh hưởng độ khó!"
+    },
+    "leverage": {
+      "title": "Đòn bẩy",
+      "description": "Đòn bẩy cao = rủi ro & phần thưởng cao. Bắt đầu với AN TOÀN (2x). DEGEN (10x) chỉ dành cho chuyên gia!"
+    },
+    "hud": {
+      "title": "Giao diện (HUD)",
+      "description": "Theo dõi máu (trái-trên), thanh kinh nghiệm và P&L. Máu thấp sẽ có cảnh báo đỏ!"
+    },
+    "enemies": {
+      "title": "Biết kẻ thù",
+      "description": "Gấu tấn công khi thị trường giảm, Bò khi tăng. Cá voi xuất hiện khi biến động cao!"
+    },
+    "levelup": {
+      "title": "Lên cấp!",
+      "description": "Khi lên cấp, chọn thẻ nâng cấp khôn ngoan. Chỉ số may mắn cao = tỉ lệ thẻ xịn cao hơn."
+    },
+    "complete": {
+      "title": "Bạn đã sẵn sàng!",
+      "description": "Chúc may mắn với sự biến động của thị trường! Hãy thích nghi vị thế của bạn."
+    },
+    "skip": "Bỏ qua",
+    "next": "Tiếp",
+    "prev": "Lùi",
+    "step": "Bước {{current}} / {{total}}",
+    "gotIt": "Đã hiểu!",
+    "replay": "Xem lại Tutorial"
   }
 }

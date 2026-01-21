@@ -3,6 +3,7 @@
     "start": "Oyunu Başlat",
     "settings": "Ayarlar",
     "back": "Geri",
+    "close": "Kapat",
     "loading": "Yükleniyor...",
     "game_over": "Oyun Bitti",
     "score": "Skor: {{val}}",
@@ -288,6 +289,66 @@
     "lang_hi": "Hintçe",
     "lang_vi": "Vietnamca",
     "lang_es": "İspanyolca",
-    "lang_pt": "Portekizce"
+    "lang_pt": "Portekizce",
+    "lang_zh": "Çince",
+    "lang_ru": "Rusça"
+  },
+  "pwa": {
+    "installTitle": "Uygulamayı Yükle",
+    "installDescription": "En iyi deneyim için ana ekrana ekleyin",
+    "install": "Yükle",
+    "notNow": "Şimdi değil"
+  },
+  "tutorial": {
+    "language": {
+      "title": "Dil Seçimi",
+      "description": "Arayüz için tercih ettiğiniz dili seçin."
+    },
+    "theme": {
+      "title": "Stilini Seç",
+      "description": "Tarzınıza uygun görsel temayı seçin."
+    },
+    "welcome": {
+      "title": "Hoş Geldin, Survivor!",
+      "description": "Bu kısa öğreticide kripto hayatta kalmanın temellerini öğren. İstediğin zaman atlayabilirsin."
+    },
+    "movement": {
+      "title": "Hareket",
+      "description": "Etrafta dolaşmak için WASD veya Ok tuşlarını kullan. Mobilde, ekranın sol tarafındaki sanal joystick'i kullan."
+    },
+    "dash": {
+      "title": "Atılma",
+      "description": "Düşmanlardan hızlıca kaçmak için SPACE tuşuna bas veya Dash butonuna dokun. Atılmanın kısa bir bekleme süresi var, akıllıca kullan!"
+    },
+    "position": {
+      "title": "Piyasa Pozisyonu",
+      "description": "BTC yükselirken kâr etmek için LONG, düşerken kâr etmek için SHORT seç. Seçimin oyun zorluğunu etkiler!"
+    },
+    "leverage": {
+      "title": "Kaldıraç",
+      "description": "Yüksek kaldıraç = daha fazla risk ve ödül. Yeni başlayanlar için GÜVENLİ (2x) ile başla. DEGEN (10x) sadece deneyimli trader'lar için!"
+    },
+    "hud": {
+      "title": "HUD'un",
+      "description": "Her zaman sağlığını (sol üst), deneyim çubuğunu ve K/Z'ını izle. Düşük sağlık kırmızı uyarı tetikler!"
+    },
+    "enemies": {
+      "title": "Düşmanlarını Tanı",
+      "description": "Ayılar ayı piyasasında, Boğalar boğa piyasasında saldırır. Balinalar her zaman tehlikelidir ve yüksek volatilitede ortaya çıkar!"
+    },
+    "levelup": {
+      "title": "Seviye Atla!",
+      "description": "Seviye atladığında, yükseltme kartlarını akıllıca seç. Daha yüksek şans istatistiği = daha iyi kart kalitesi şansı."
+    },
+    "complete": {
+      "title": "Hazırsın!",
+      "description": "Piyasa volatilitesinde hayatta kalmak için iyi şanslar! Unutma: maksimum kâr için pozisyonunu piyasa koşullarına göre ayarla."
+    },
+    "skip": "Öğreticiyi Atla",
+    "next": "İleri",
+    "prev": "Geri",
+    "step": "Adım {{current}} / {{total}}",
+    "gotIt": "Anladım!",
+    "replay": "Öğreticiyi Tekrarla"
   }
 }

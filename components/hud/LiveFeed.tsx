@@ -31,7 +31,7 @@ const DesktopLiveFeed: React.FC<
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
-    <div className="bg-transparent p-2 flex flex-col gap-0 min-w-[220px]">
+    <div className="bg-transparent p-1.5 flex flex-col gap-0 min-w-[200px]">
       <div className="flex items-center justify-between mb-2">
         <div
           className={`text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
@@ -61,7 +61,7 @@ const DesktopLiveFeed: React.FC<
           })}
         </div>
         <div
-          className="text-sm font-black flex items-center gap-2 mt-1 font-cyber"
+          className={`text-sm font-black flex items-center gap-2 mt-1 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
           style={{ color: pnlHex }}
         >
           <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
@@ -166,23 +166,23 @@ const MobileLiveFeed: React.FC<
       <div className="flex items-center justify-between mb-1">
         <div
           className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1.5"
-          style={{ fontSize: isRetro ? rfs(9) : rfs(isSmallDevice ? 8 : 10) }}
+          style={{ fontSize: isRetro ? rfs(11) : rfs(isSmallDevice ? 10 : 12) }}
         >
           <span
-            className={`w-1 h-1 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'opacity-75'}`}
+            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'opacity-75'}`}
           ></span>
           LIVE
         </div>
         <div className="flex items-center gap-1.5">
           <span
             className="font-bold"
-            style={{ color: pairConfig.color, fontSize: rfs(isSmallDevice ? 8 : 10) }}
+            style={{ color: pairConfig.color, fontSize: rfs(isSmallDevice ? 10 : 13) }}
           >
             {pairConfig.id}
           </span>
           <div
             className="text-slate-400 font-feed opacity-60"
-            style={{ fontSize: rfs(isSmallDevice ? 7 : 9) }}
+            style={{ fontSize: rfs(isSmallDevice ? 9 : 11) }}
           >
             {marketData.leverage}X
           </div>
@@ -201,7 +201,7 @@ const MobileLiveFeed: React.FC<
           })}
         </div>
         <div
-          className="font-black flex items-center gap-1.5 mt-0.5"
+          className={`font-black flex items-center gap-1.5 mt-0.5 ${isRetro ? 'font-retro-text' : ''}`}
           style={{ color: pnlHex, fontSize: rfs(isSmallDevice ? 11 : 13) }}
         >
           <span className={isSmallDevice ? 'text-sm' : 'text-base'}>
