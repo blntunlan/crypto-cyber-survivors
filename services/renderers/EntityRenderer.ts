@@ -127,6 +127,9 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    // Optimization: Batch rendering to avoid expensive save/restore per gem
+    ctx.save();
+
     pool.activeGems.forEach(g => {
       if (!g.active) {
         return;
@@ -153,21 +156,22 @@ export class EntityRenderer implements IRenderer {
         }
       }
 
-      ctx.save();
       ctx.globalAlpha = alpha;
 
       if (g.isRare && shadowsEnabled) {
         ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
         ctx.shadowColor = g.color;
+      } else {
+        ctx.shadowBlur = 0;
       }
 
       ctx.fillStyle = g.color;
       ctx.beginPath();
       ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.restore();
     });
+
+    ctx.restore();
   }
 
   /**
