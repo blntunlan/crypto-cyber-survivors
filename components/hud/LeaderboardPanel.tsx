@@ -106,13 +106,15 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
 
   // Initial fetch and interval
   useEffect(() => {
+    if (!isVisible) return;
+
     void fetchLeaderboard();
     const interval = setInterval(() => {
       void fetchLeaderboard();
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchLeaderboard]);
+  }, [fetchLeaderboard, isVisible]);
 
   // Format survival time
   const formatTime = (ms: number): string => {

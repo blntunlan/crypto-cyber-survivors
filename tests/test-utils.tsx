@@ -25,19 +25,63 @@ export const createServiceMock = <T extends object>(methods: Array<keyof T>) => 
   return mock as T;
 };
 
-import { LanguageProvider } from '../contexts/LanguageContext';
+import { LanguageContext } from '../contexts/LanguageContextDefinition';
+import { ThemeContext } from '../contexts/themeContextDef';
+import { cyberpunkTheme } from '../config/themes';
+import { UserContext } from '../contexts/UserContext';
 
-import { ThemeProvider } from '../contexts/ThemeContext';
+const MockLanguageProvider = ({ children }: { children: React.ReactNode }) => {
+  const t = (key: string) => key;
+  return (
+    <LanguageContext.Provider value={{ language: 'en', setLanguage: () => {}, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
 
-import { UserProvider } from '../contexts/UserContext';
+const MockThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <ThemeContext.Provider
+      value={{
+        theme: cyberpunkTheme,
+        themeName: 'cyberpunk',
+        setTheme: () => {},
+        toggleTheme: () => {},
+        isRetro: false,
+        isTransitioning: false,
+      }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+const MockUserProvider = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <UserContext.Provider
+      value={{
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        playerId: 'test-player-id',
+        nickname: 'TestPlayer',
+        login: async () => ({ success: true }),
+        logout: () => {},
+        updateLastSeen: async () => {},
+      }}
+    >
+      {children}
+    </UserContext.Provider>
+  );
+};
 
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <UserProvider>
-      <ThemeProvider>
-        <LanguageProvider>{children}</LanguageProvider>
-      </ThemeProvider>
-    </UserProvider>
+    <MockUserProvider>
+      <MockThemeProvider>
+        <MockLanguageProvider>{children}</MockLanguageProvider>
+      </MockThemeProvider>
+    </MockUserProvider>
   );
 };
 

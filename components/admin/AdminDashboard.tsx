@@ -32,6 +32,7 @@ import {
 } from '../../services/admin/AdminAnalyticsService';
 import type { CryptoPair, PriceAnalysis, TrendDirection } from '../../types/admin';
 import { FPSMonitor } from '../../services/FPSMonitor';
+import { DifficultyV2Monitor } from './DifficultyV2Monitor';
 
 // =============================================================================
 // TYPES
@@ -592,6 +593,13 @@ const DifficultyPanel: React.FC = () => {
             <option value="logarithmic">Logarithmic</option>
           </select>
         </div>
+      </div>
+
+      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <h3 className="text-md font-bold text-cyan-400 mb-4 uppercase tracking-wider">
+          Live System Monitor (V2)
+        </h3>
+        <DifficultyV2Monitor />
       </div>
     </div>
   );

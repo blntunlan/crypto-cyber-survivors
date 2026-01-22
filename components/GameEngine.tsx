@@ -37,6 +37,7 @@ import { MarketStateService } from '../services/MarketStateService';
 import { Logger } from '../services/Logger';
 import { EventBus } from '../services/EventBus';
 import { EngineRegistry } from '../services/EngineRegistry';
+import { difficultyContext } from '../services/difficulty';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -402,6 +403,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Update difficulty waves in real-time
         DifficultyManager.updateWaveTimer(deltaTime);
+        difficultyContext.updateTime(TimeService.getGameTimeSeconds());
 
         // Update combo system
         ComboSystem.update();
@@ -689,7 +691,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           maxEnemies,
           state.current.spawnRateMultiplier,
           pair,
-          marketDataRef.current.enemyDamage
+          marketDataRef.current.enemyDamage,
+          marketDataRef.current.enemySpeed
         );
 
         // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---

@@ -3,18 +3,20 @@
  */
 
 import { EXPERIENCE_CONFIG } from '../config/ExperienceConfig';
+import { getLeverageScale } from './difficulty/constants';
 
 export class ExperienceService {
   /**
    * Calculates the total experience required to reach the NEXT level.
    * @param level Current level
+   * @param leverage Optional leverage to scale requirement (V2)
    */
-  static getRequiredExp(level: number): number {
+  static getRequiredExp(level: number, leverage: number = 1): number {
+    let baseExp = 0;
+
     if (level < EXPERIENCE_CONFIG.PLATEAU_LEVEL) {
       // Early game: Power curve for satisfying progression
-      // Level 1: 100 + floor(1^1.5 * 25) = 125
-      // Level 10: 100 + floor(10^1.5 * 25) = 100 + 790 = 890
-      return Math.floor(
+      baseExp = Math.floor(
         EXPERIENCE_CONFIG.BASE_EXP +
           Math.pow(level, EXPERIENCE_CONFIG.CURVE_EXPONENT) *
             EXPERIENCE_CONFIG.SCALING_FACTOR
@@ -30,8 +32,12 @@ export class ExperienceService {
             EXPERIENCE_CONFIG.SCALING_FACTOR
       );
       const levelsOverPlateau = level - (EXPERIENCE_CONFIG.PLATEAU_LEVEL - 1);
-      return plateauExp + levelsOverPlateau * EXPERIENCE_CONFIG.LINEAR_STEP;
+      baseExp = plateauExp + levelsOverPlateau * EXPERIENCE_CONFIG.LINEAR_STEP;
     }
+
+    // Scale by leverage (V2)
+    const scale = getLeverageScale(leverage);
+    return Math.floor(baseExp * scale.xpReq);
   }
 
   /**

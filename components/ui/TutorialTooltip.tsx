@@ -230,6 +230,8 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
           key={lang}
           className={`tutorial-selection-item ${language === lang ? 'active' : ''}`}
           onClick={() => setLanguage(lang)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.95 }}
         >
           <span className="lang-code">{lang.toUpperCase()}</span>
           <span className="lang-label">
@@ -267,6 +269,8 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
       <motion.button
         className={`tutorial-selection-item theme-cyberpunk ${themeName === 'cyberpunk' ? 'active' : ''}`}
         onClick={() => setTheme('cyberpunk' as ThemeName)}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.95 }}
       >
         <div className="theme-preview cyberpunk-preview" />
         <span className="theme-label">Cyberpunk</span>
@@ -282,6 +286,8 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
       <motion.button
         className={`tutorial-selection-item theme-retro-16bit ${themeName === 'retro-16bit' ? 'active' : ''}`}
         onClick={() => setTheme('retro-16bit' as ThemeName)}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.95 }}
       >
         <div className="theme-preview retro-preview" />
         <span className="theme-label">Retro Pixel</span>
@@ -353,33 +359,39 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
             </span>
 
             <div className="tutorial-tooltip-actions">
-              <button
+              <motion.button
                 type="button"
                 className="tutorial-tooltip-btn tutorial-tooltip-btn-skip"
                 onClick={onSkip}
+                whileHover={{ scale: 1.05, opacity: 0.8 }}
+                whileTap={{ scale: 0.95 }}
               >
                 {skipText}
-              </button>
+              </motion.button>
 
               <div className="nav-group">
                 {showBack && onPrev && stepNumber > 1 && (
-                  <button
+                  <motion.button
                     type="button"
                     className="tutorial-tooltip-btn tutorial-tooltip-btn-back"
                     onClick={onPrev}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
                     {backText}
-                  </button>
+                  </motion.button>
                 )}
 
-                <button
+                <motion.button
                   type="button"
                   className="tutorial-tooltip-btn tutorial-tooltip-btn-next"
                   onClick={onNext}
                   autoFocus
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   {isLastStep ? finishText : nextText}
-                </button>
+                </motion.button>
               </div>
             </div>
           </div>

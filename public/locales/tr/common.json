@@ -193,7 +193,18 @@
     "claim_top": "Zirveyi ilk sen kap!",
     "you": "Sen",
     "points": "puan",
-    "sync_complete": "SENKRONİZASYON TAMAMLANDI"
+    "sync_complete": "SENKRONİZASYON TAMAMLANDI",
+    "cycle_complete": "DÖNGÜ TAMAMLANDI",
+    "finished": "Tamamlandı",
+    "auto_continue": "Oto-devam",
+    "current_difficulty": "Mevcut Zorluk",
+    "next_difficulty": "Sonraki Döngü Zorluğu",
+    "harder": "daha zor",
+    "continue_playing": "DEVAM ET",
+    "risk_reward": "Yüksek risk, yüksek ödül",
+    "cash_out": "NAKİT ÇIK",
+    "secure_rewards": "Ödüllerini güvence altına al",
+    "decision_hint": "Yüksek döngüler = Daha fazla XP & daha iyi ganimetler"
   },
   "hub": {
     "play": "OYNA",

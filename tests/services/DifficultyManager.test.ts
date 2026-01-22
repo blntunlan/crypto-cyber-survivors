@@ -35,12 +35,12 @@ describe('DifficultyManager', () => {
 
     it('should apply mercy when HP is low', () => {
       // Calculate normal difficulty (100% HP)
-      const normal = DifficultyManager.calculate(-0.1, 0.02, 1, 100).total;
+      const normal = DifficultyManager.calculate(-0.1, 0.02, 10, 1.0).total;
 
       // Calculate mercy difficulty with critical HP (5%)
       // @ts-expect-error: testing
       DifficultyManager.lastShockTime = -100000;
-      const mercy = DifficultyManager.calculate(-0.1, 0.02, 1, 5).total;
+      const mercy = DifficultyManager.calculate(-0.1, 0.02, 10, 0.05).total;
 
       expect(mercy).toBeLessThan(normal);
     });
@@ -53,8 +53,8 @@ describe('DifficultyManager', () => {
 
       expect(DifficultyManager.getWavePhase()).toBe('warmup');
 
-      // Warmup is 60s. Jump to 65s to be safely in buildup.
-      TimeService.setGameTime(65000);
+      // Warmup is 25s. Jump to 30s to be safely in buildup.
+      TimeService.setGameTime(30000);
       DifficultyManager.updateWaveTimer(0);
 
       expect(DifficultyManager.getWavePhase()).toBe('buildup');
@@ -83,11 +83,10 @@ describe('DifficultyManager', () => {
       // @ts-expect-error:  ensure cooldown is not active
       DifficultyManager.lastShockTime = -100000;
 
-      // Baseline
-      DifficultyManager.calculate(0, 0.02, 1, 1);
-
       // Sudden large 20% drop (threshold is 0.5%)
-      DifficultyManager.calculate(-0.2, 0.02, 1, 1);
+      // Need 6 points for shock detection in V2
+      for (let i = 0; i < 3; i++) DifficultyManager.calculate(0, 0.02, 1, 1);
+      for (let i = 0; i < 3; i++) DifficultyManager.calculate(-0.2, 0.02, 1, 1);
 
       expect(shockSpy).toHaveBeenCalled();
     });

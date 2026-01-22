@@ -33,7 +33,8 @@ export interface ISpawnSystem {
     maxEnemiesOverride?: number,
     spawnRateMultiplier?: number,
     pair?: CryptoPair,
-    damageMultiplier?: number
+    damageMultiplier?: number,
+    speedMultiplier?: number
   ): number;
 
   /**

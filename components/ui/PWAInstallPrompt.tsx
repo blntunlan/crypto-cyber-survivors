@@ -115,29 +115,29 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
               </h3>
               <p>{t('pwa.installDescription')}</p>
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="pwa-install-actions">
-              <button
-                onClick={handleDismiss}
-                className="pwa-install-dismiss"
-                aria-label={t('pwa.notNow')}
-              >
-                {t('pwa.notNow')}
-              </button>
-              <button
-                onClick={handleInstall}
-                disabled={isPrompting}
-                className="pwa-install-button neon-glow-cyan"
-                aria-label={t('pwa.install')}
-              >
-                {isPrompting ? (
-                  <span className="pwa-install-loading">...</span>
-                ) : (
-                  t('pwa.install')
-                )}
-              </button>
-            </div>
+          {/* Actions - Moved outside for better layout */}
+          <div className="pwa-install-actions">
+            <button
+              onClick={handleDismiss}
+              className="pwa-install-dismiss"
+              aria-label={t('pwa.notNow')}
+            >
+              {t('pwa.notNow')}
+            </button>
+            <button
+              onClick={handleInstall}
+              disabled={isPrompting}
+              className="pwa-install-button neon-glow-cyan"
+              aria-label={t('pwa.install')}
+            >
+              {isPrompting ? (
+                <span className="pwa-install-loading">...</span>
+              ) : (
+                t('pwa.install')
+              )}
+            </button>
           </div>
 
           {/* Close button (mobile) */}

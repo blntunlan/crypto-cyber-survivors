@@ -9,13 +9,17 @@ vi.mock('framer-motion', () => {
       (
         {
           children,
-          _initial,
-          _animate,
-          _exit,
-          _variants,
-          _whileHover,
-          _whileTap,
-          _transition,
+          initial,
+          animate,
+          exit,
+          variants,
+          whileHover,
+          whileTap,
+          transition,
+          onAnimationStart,
+          onAnimationComplete,
+          onUpdate,
+          layout,
           ...rest
         },
         ref

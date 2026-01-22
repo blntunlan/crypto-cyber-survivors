@@ -192,7 +192,18 @@
     "claim_top": "Be the first to claim the top!",
     "you": "You",
     "points": "points",
-    "sync_complete": "SYNC COMPLETE"
+    "sync_complete": "SYNC COMPLETE",
+    "cycle_complete": "CYCLE COMPLETE",
+    "finished": "Finished",
+    "auto_continue": "Auto-continue",
+    "current_difficulty": "Current Difficulty",
+    "next_difficulty": "Next Cycle Difficulty",
+    "harder": "harder",
+    "continue_playing": "CONTINUE PLAYING",
+    "risk_reward": "Higher risk, higher reward",
+    "cash_out": "CASH OUT",
+    "secure_rewards": "Secure your rewards",
+    "decision_hint": "Higher cycles = More XP & better loot drops"
   },
   "hub": {
     "play": "PLAY",

@@ -59,7 +59,7 @@ import { useLanguage } from './contexts/LanguageContext';
 import { NicknameEntryScreen } from './components/screens/NicknameEntryScreen';
 import { GameEngine } from './components/GameEngine';
 import { GameUI } from './components/GameUI';
-import { SettingsPanel } from './components/SettingsPanel';
+import { SettingsPanel } from './components/settings/SettingsPanel';
 import { MainMenu } from './components/screens/MainMenu';
 import { HubMenu } from './components/hub';
 import { LevelUpScreen } from './components/screens/LevelUpScreen';
@@ -312,6 +312,13 @@ const App: React.FC = () => {
       setEntryPrice(marketData.price);
       setPositionColor(choice);
 
+      // Scale initial XP requirement based on leverage
+      playerRef.current.nextLevelExp = ExperienceService.getRequiredExp(
+        playerRef.current.level,
+        selectedLeverage
+      );
+      setUiStats({ ...playerRef.current });
+
       // Competitive Mode: Increase max delta time to allow real-time catch-up when returning from background/alt-tab.
       // Casual Mode: Keep a small cap to prevent physics explosions from frame drops.
       const { TimeService } = await import('./services/TimeService');
@@ -338,6 +345,8 @@ const App: React.FC = () => {
       setPosition,
       setEntryPrice,
       gameMode,
+      playerRef,
+      setUiStats,
     ]
   );
 
@@ -351,8 +360,8 @@ const App: React.FC = () => {
       const nextP = applyCardEffect(p, card);
       nextP.level += 1;
       nextP.exp -= nextP.nextLevelExp;
-      // Calculate next level requirements using centralized ExperienceService
-      nextP.nextLevelExp = ExperienceService.getRequiredExp(nextP.level);
+      // Calculate next level requirements using centralized ExperienceService (with leverage scaling)
+      nextP.nextLevelExp = ExperienceService.getRequiredExp(nextP.level, leverage);
 
       MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
       playerRef.current = nextP;
@@ -365,7 +374,7 @@ const App: React.FC = () => {
         GameStateMachine.transition(GameStatus.PLAYING);
       }
     },
-    [playerRef, setUiStats, handleLevelUp]
+    [playerRef, setUiStats, handleLevelUp, leverage]
   );
 
   /**

@@ -4,7 +4,7 @@
  * Verifies that the settings panel correctly synchronizes UI state with
  * the background audio services and game store.
  */
-import { render } from '../test-utils';
+import { render, act } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
 import { audio } from '../../services/AudioService';
@@ -37,8 +37,10 @@ vi.mock('../../contexts/LanguageContext', () => ({
 describe('SettingsPanel - Audio Sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset store state if needed, but since we're testing the side effect in useEffect
-    // we mostly care about the initial render and updates.
+    // Reset store state
+    act(() => {
+      useGameStore.getState().resetSettings();
+    });
   });
 
   it('should sync master volume to audio service on mount', () => {
@@ -50,26 +52,32 @@ describe('SettingsPanel - Audio Sync', () => {
     expect(audio.setVolume).toHaveBeenCalledWith(masterVolume);
   });
 
-  it('should call setVolume when master volume changes', () => {
-    const { rerender } = render(<SettingsPanel onClose={() => {}} />);
+  it('should call setVolume when master volume changes', async () => {
+    let renderResult: any;
+    await act(async () => {
+      renderResult = render(<SettingsPanel onClose={() => {}} />);
+    });
+
+    const { rerender } = renderResult;
 
     // Simulate store change
-    // Note: In a real test we'd use the provider, but since we're testing the component's
-    // internal useEffect dependency on the store, we can trigger a re-render or
-    // rely on the component subscribing to the store.
+    await act(async () => {
+      useGameStore.getState().setMasterVolume(0.5);
+    });
 
-    // Changing the store directly:
-    useGameStore.getState().setMasterVolume(0.5);
-
-    // Rerender to trigger useEffect if it didn't automatically (it should via the hook)
-    rerender(<SettingsPanel onClose={() => {}} />);
+    // Rerender to trigger useEffect if it didn't automatically
+    await act(async () => {
+      rerender(<SettingsPanel onClose={() => {}} />);
+    });
 
     expect(audio.setVolume).toHaveBeenCalledWith(0.5);
   });
 
   it('should sync muted state to audio service', () => {
     // Set store to muted
-    useGameStore.getState().toggleMute(); // Now true
+    act(() => {
+      useGameStore.getState().toggleMute(); // Now true
+    });
     vi.mocked(audio.getMuted).mockReturnValue(false); // Service thinks it's not muted
 
     render(<SettingsPanel onClose={() => {}} />);

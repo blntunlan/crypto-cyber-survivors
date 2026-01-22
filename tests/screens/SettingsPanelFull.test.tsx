@@ -3,8 +3,7 @@
  *
  * Verifies that all sub-sections of the SettingsPanel function correctly.
  */
-import { render, fireEvent, screen } from '../test-utils';
-import { act } from 'react';
+import { render, fireEvent, screen, act } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
 import { audio } from '../../services/AudioService';
@@ -96,38 +95,40 @@ vi.mock('../../contexts/LanguageContext', () => ({
 describe('SettingsPanel Full Test Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useGameStore.setState({
-      graphics: {
-        showParticles: true,
-        showScreenShake: true,
-        showDamageNumbers: true,
-        showFPS: true,
-        hudScale: 1,
-        reducedMotion: false,
-      },
-      audio: {
-        masterVolume: 0.5,
-        sfxVolume: 1,
-        musicVolume: 1,
-        isMuted: false,
-        categoryVolumes: {
-          combat: 1,
-          feedback: 1,
-          movement: 1,
-          ui: 1,
-          alerts: 1,
-          slots: 1,
+    act(() => {
+      useGameStore.setState({
+        graphics: {
+          showParticles: true,
+          showScreenShake: true,
+          showDamageNumbers: true,
+          showFPS: true,
+          hudScale: 1,
+          reducedMotion: false,
         },
-      },
-      mobile: {
-        controlType: 'joystick',
-        joystickSize: 'medium',
-        joystickPosition: 'left',
-        hapticFeedback: true,
-        showDragFeedback: true,
-        dashMethod: 'secondTap',
-        sensitivity: 1,
-      },
+        audio: {
+          masterVolume: 0.5,
+          sfxVolume: 1,
+          musicVolume: 1,
+          isMuted: false,
+          categoryVolumes: {
+            combat: 1,
+            feedback: 1,
+            movement: 1,
+            ui: 1,
+            alerts: 1,
+            slots: 1,
+          },
+        },
+        mobile: {
+          controlType: 'joystick',
+          joystickSize: 'medium',
+          joystickPosition: 'left',
+          hapticFeedback: true,
+          showDragFeedback: true,
+          dashMethod: 'secondTap',
+          sensitivity: 1,
+        },
+      });
     });
   });
 
@@ -296,7 +297,9 @@ describe('SettingsPanel Full Test Suite', () => {
   // --- Reset Tests ---
   describe('Reset and Close', () => {
     it('should reset settings', () => {
-      useGameStore.getState().toggleParticles(); // false
+      act(() => {
+        useGameStore.getState().toggleParticles(); // false
+      });
       render(<SettingsPanel onClose={() => {}} />);
 
       const resetBtn = screen.getByText('settings.reset');

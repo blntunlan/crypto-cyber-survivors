@@ -104,6 +104,18 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     isOppositeColor: true,
     description: 'Momentum-based entities that spawn during RSI extremes.',
   },
+  market_maker: {
+    id: 'market_maker',
+    type: 'market_maker',
+    radius: 50,
+    baseHealth: 2500,
+    baseSpeed: 0.7,
+    baseDamage: 40,
+    color: '#FF00FF', // Neon Magenta
+    spawnWeight: 0, // Manual spawn only
+    isOppositeColor: false,
+    description: 'The ultimate entropy provider. Appears only at the peak of cycles.',
+  },
 };
 
 export type EnemyId = keyof typeof ENEMY_DEFINITIONS;

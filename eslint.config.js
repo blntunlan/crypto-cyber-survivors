@@ -19,6 +19,10 @@ export default tseslint.config(
       'coverage/**',
       'playwright-report/**',
       'test-results/**',
+      '.gemini/**',
+      '.agent/**',
+      '.agents/**',
+      '.windsurf/**',
       'supabase/functions/**', // Deno environment - different runtime
     ],
   },

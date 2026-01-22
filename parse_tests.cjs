@@ -6,7 +6,7 @@ try {
   const results = JSON.parse(data);
 
   if (!results.testResults) {
-    console.log("No test results found.");
+    console.log('No test results found.');
     process.exit(1);
   }
 
@@ -19,23 +19,23 @@ try {
           file: file.name,
           title: test.title,
           fullName: test.fullName,
-          failureMessages: test.failureMessages
+          failureMessages: test.failureMessages,
         });
       }
     });
   });
 
-  const output = failedTests.map((t, i) => {
-    return `\n--- Usage ${i + 1} ---
+  const output = failedTests
+    .map((t, i) => {
+      return `\n--- Usage ${i + 1} ---
 File: ${t.file}
 Test: ${t.fullName}
 Error: ${t.failureMessages.join('\n')}`;
-  }).join('\n');
+    })
+    .join('\n');
 
   console.log(`Total Failed Tests: ${failedTests.length}`);
   fs.writeFileSync('parsed_errors_utf8.txt', output, 'utf8');
-
-
 } catch (err) {
-  console.error("Error parsing JSON:", err);
+  console.error('Error parsing JSON:', err);
 }

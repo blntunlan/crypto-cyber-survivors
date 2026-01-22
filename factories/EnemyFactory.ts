@@ -93,9 +93,7 @@ export class EnemyFactory {
       color = position === MarketPosition.LONG ? COLORS.SHORT : COLORS.LONG;
     }
 
-    const speedDifficultyMult = 1 + (difficulty - 1) * 0.25;
-    const baseSpeed = config.baseSpeed * speedDifficultyMult;
-    const modifiedSpeed = baseSpeed * aggroMultiplier;
+    const modifiedSpeed = config.baseSpeed * aggroMultiplier;
 
     let behavior: MovementStrategy;
     if (aggroMultiplier >= 1.3) {

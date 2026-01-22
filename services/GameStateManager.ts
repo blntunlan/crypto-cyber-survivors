@@ -194,6 +194,13 @@ class GameStateManagerClass {
       sessionId: serverSession.sessionId,
     });
 
+    // Emit gameStart event for DifficultyContext V2
+    EventBus.emit('gameStart', {
+      leverage,
+      position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
+      entryPrice,
+    });
+
     return true;
   }
 

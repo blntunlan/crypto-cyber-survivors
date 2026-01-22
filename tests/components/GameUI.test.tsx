@@ -38,29 +38,26 @@ vi.mock('../../services/EventBus', () => ({
 }));
 
 // Mock HUD sub-components to simplify testing
-vi.mock('../../components/hud', async () => {
-  return {
-    KernelStatus: () => <div data-testid="kernel-status">KernelStatus</div>,
-    LiveFeed: () => <div data-testid="live-feed">LiveFeed</div>,
-    AccountHealthPremium: () => <div data-testid="account-health">AccountHealth</div>,
-    BuffIndicator: () => <div data-testid="buff-indicator">BuffIndicator</div>,
-    MarketAnnouncer: () => <div data-testid="market-announcer">MarketAnnouncer</div>,
-    WaveTimer: () => <div data-testid="wave-timer">WaveTimer</div>, // Added explicit mock
-    ExperienceBar: () => <div data-testid="experience-bar">ExperienceBar</div>,
-    NearDeathGlow: () => <div data-testid="near-death-glow">NearDeathGlow</div>,
-    FPSCounter: () => <div data-testid="fps-counter">FPSCounter</div>,
-    EnemyPointers: () => <div data-testid="enemy-pointers">EnemyPointers</div>,
-    LevelUpFlash: () => <div data-testid="level-up-flash">LevelUpFlash</div>,
-    ClutchAnnouncement: () => (
-      <div data-testid="clutch-announcement">ClutchAnnouncement</div>
-    ),
-    ComboPanel: () => <div data-testid="combo-panel">ComboPanel</div>,
-    MilestoneAnnouncer: () => (
-      <div data-testid="milestone-announcer">MilestoneAnnouncer</div>
-    ),
-    AchievementPopup: () => <div data-testid="achievement-popup">AchievementPopup</div>,
-  };
-});
+vi.mock('../../components/hud', () => ({
+  WaveTimer: () => <div data-testid="wave-timer" />,
+  FPSCounter: () => <div data-testid="fps-counter" />,
+  ClutchAnnouncement: () => <div data-testid="clutch-announcement" />,
+  LevelUpFlash: () => <div data-testid="level-up-flash" />,
+  NearDeathGlow: () => <div data-testid="near-death-glow" />,
+  EnemyPointers: () => <div data-testid="enemy-pointers" />,
+  AchievementPopup: () => <div data-testid="achievement-popup" />,
+  MilestoneAnnouncer: () => <div data-testid="milestone-announcer" />,
+  ComboPanel: () => <div data-testid="combo-panel" />,
+  KernelStatus: () => <div data-testid="kernel-status" />,
+  LiveFeed: () => <div data-testid="live-feed" />,
+  AccountHealthPremium: () => <div data-testid="account-health" />,
+  BuffIndicator: () => <div data-testid="buff-indicator" />,
+  MarketAnnouncer: () => <div data-testid="market-announcer" />,
+  LiquidationWarningOverlay: () => <div data-testid="liquidation-warning" />,
+  CycleDecisionScreen: () => <div data-testid="cycle-decision-screen" />,
+  LeaderboardPanel: () => <div data-testid="leaderboard-panel" />,
+  MarketBanner: () => <div data-testid="market-banner" />,
+}));
 
 describe('GameUI', () => {
   const defaultProps = {

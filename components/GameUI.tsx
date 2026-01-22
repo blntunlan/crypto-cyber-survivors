@@ -22,7 +22,10 @@ import {
   BuffIndicator,
   MarketAnnouncer,
   WaveTimer,
+  LiquidationWarningOverlay,
+  CycleDecisionScreen,
 } from './hud';
+import { useDifficultyV2 } from '../hooks/useDifficultyV2';
 
 interface GameUIProps {
   position: MarketPosition;
@@ -110,6 +113,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
       { speed: 0.15, decimals: 4 }
     );
 
+    const { fovReduction } = useDifficultyV2();
     const hpPercent = (smoothValues.hp / player.maxHp) * 100;
 
     // FIXED: Store timeout ref to prevent memory leaks and unmount errors
@@ -254,6 +258,12 @@ export const GameUI: React.FC<GameUIProps> = memo(
           hp={smoothValues.hp}
           maxHp={player.maxHp}
         />
+
+        {/* Liquidation Warning Overlay */}
+        <LiquidationWarningOverlay fovReduction={fovReduction} />
+
+        {/* Cycle Decision Screen - End of cycle Continue/Cash Out */}
+        {status === GameStatus.PLAYING && <CycleDecisionScreen />}
       </div>
     );
   }

@@ -97,7 +97,8 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(String),
       1, // tier
-      expect.any(Number) // damageMultiplier
+      expect.any(Number), // damageMultiplier
+      expect.any(Number) // speedMultiplier
     );
   });
 
@@ -113,7 +114,8 @@ describe('SpawnSystem', () => {
       expect.any(String),
       'bear',
       expect.any(String), // pair
-      expect.any(Number) // damageMultiplier
+      expect.any(Number), // damageMultiplier
+      expect.any(Number) // speedMultiplier
     );
 
     // LONG + Profit = Bull
@@ -125,7 +127,8 @@ describe('SpawnSystem', () => {
       expect.any(String),
       'bull',
       expect.any(String), // pair
-      expect.any(Number) // damageMultiplier
+      expect.any(Number), // damageMultiplier
+      expect.any(Number) // speedMultiplier
     );
   });
 
@@ -148,7 +151,8 @@ describe('SpawnSystem', () => {
       expect.any(String),
       'pumpdump',
       expect.any(String), // pair
-      expect.any(Number) // damageMultiplier
+      expect.any(Number), // damageMultiplier
+      expect.any(Number) // speedMultiplier
     );
   });
 });

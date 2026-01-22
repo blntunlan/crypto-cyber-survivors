@@ -5,29 +5,52 @@ import { GameOverScreen } from '../../components/screens/GameOverScreen';
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <div {...props}>{children}</div>
-    ),
-    h2: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <h2 {...props}>{children}</h2>
-    ),
+    div: ({
+      children,
+      initial,
+      animate,
+      exit,
+      variants,
+      whileHover,
+      whileTap,
+      transition,
+      ...props
+    }: any) => <div {...props}>{children}</div>,
+    h2: ({
+      children,
+      initial,
+      animate,
+      exit,
+      variants,
+      whileHover,
+      whileTap,
+      transition,
+      ...props
+    }: any) => <h2 {...props}>{children}</h2>,
     span: ({
       children,
+      initial,
+      animate,
+      exit,
+      variants,
+      whileHover,
+      whileTap,
+      transition,
       ...props
-    }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <span {...props}>{children}</span>
-    ),
+    }: any) => <span {...props}>{children}</span>,
     button: ({
       children,
-      onClick,
+      initial,
+      animate,
+      exit,
+      variants,
+      whileHover,
+      whileTap,
+      transition,
       ...props
-    }: React.PropsWithChildren<{ onClick?: () => void }>) => (
-      <button onClick={onClick} {...props}>
-        {children}
-      </button>
-    ),
+    }: any) => <button {...props}>{children}</button>,
   },
-  AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
 describe('GameOverScreen', () => {

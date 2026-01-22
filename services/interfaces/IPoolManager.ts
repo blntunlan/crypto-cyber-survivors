@@ -40,7 +40,8 @@ export interface IPoolManager {
     position: MarketPosition,
     enemyType?: EnemyId,
     pair?: CryptoPair,
-    damageMultiplier?: number
+    damageMultiplier?: number,
+    speedMultiplier?: number
   ): GameEnemy;
 
   getWhaleEnemy(
@@ -49,7 +50,8 @@ export interface IPoolManager {
     difficulty: number,
     position: MarketPosition,
     tier: WhaleTier,
-    damageMultiplier?: number
+    damageMultiplier?: number,
+    speedMultiplier?: number
   ): GameEnemy;
 
   getBullet(

@@ -21,12 +21,12 @@
 
 /* Theme: Retro 16-bit - Sharp Panels */
 .tutorial-tooltip.theme-retro-16bit {
-  background: #0d0d0d;
-  border: 4px solid #ffaa00;
+  background: #020a02; /* Very dark terminal green background */
+  border: 4px solid #00ff33; /* Terminal Green */
   border-radius: 0;
   box-shadow:
     inset -4px -4px 0px rgba(0, 0, 0, 0.4),
-    inset 4px 4px 0px rgba(255, 255, 255, 0.1),
+    inset 4px 4px 0px rgba(0, 255, 51, 0.2),
     0 10px 40px rgba(0, 0, 0, 0.8);
   image-rendering: pixelated;
   font-family: 'Press Start 2P', cursive, sans-serif;
@@ -47,7 +47,7 @@
 }
 
 .theme-retro-16bit .tutorial-tooltip-progress-fill {
-  background: #ffaa00;
+  background: #00ff33;
   box-shadow: none;
 }
 
@@ -79,10 +79,10 @@
 }
 
 .theme-retro-16bit .tutorial-tooltip-icon {
-  border: 3px solid #ffaa00;
-  background: #1a1a1a;
+  border: 3px solid #00ff33;
+  background: #051a05;
   border-radius: 0;
-  color: #fff;
+  color: #00ff33;
   display: flex;
   flex-shrink: 0;
   padding: 0;
@@ -103,7 +103,7 @@
 .theme-retro-16bit .tutorial-tooltip-title {
   font-size: 10px; /* Reduced to fix overflow and look better */
   line-height: 1.5;
-  color: #ffaa00;
+  color: #00ff33;
   letter-spacing: 0;
   text-shadow: 2px 2px 0 #000;
 }
@@ -123,7 +123,7 @@
 .theme-retro-16bit .tutorial-tooltip-description {
   font-size: 8px; /* Reduced for pixel density compatibility */
   line-height: 1.8;
-  color: #f2f2f2;
+  color: #ccffcc; /* Slight green tint for white text */
   margin-bottom: 20px;
 }
 
@@ -150,12 +150,36 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
+  overflow: hidden; /* Contain the indicator */
+}
+
+/* Ensure content sits above the selection indicator */
+.tutorial-selection-item > * {
+  position: relative;
+  z-index: 1;
+}
+
+.tutorial-selection-item .active-indicator {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 12px;
+  border: 2px solid #00ffff;
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+.theme-retro-16bit .tutorial-selection-item .active-indicator {
+  border-radius: 0;
+  border: 3px solid #00ff33;
+  background: rgba(0, 255, 51, 0.1);
+  box-shadow: none;
 }
 
 .theme-retro-16bit .tutorial-selection-item {
   border-radius: 0;
-  border: 3px solid #333;
-  background: #111;
+  border: 3px solid #0a330a;
+  background: #020a02;
   padding: 12px 8px;
 }
 
@@ -166,10 +190,10 @@
 }
 
 .theme-retro-16bit .tutorial-selection-item.active {
-  border-color: #ffaa00;
-  color: #ffaa00;
-  background: rgba(255, 170, 0, 0.15);
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+  border-color: #00ff33;
+  color: #00ff33;
+  background: rgba(0, 255, 51, 0.15);
+  box-shadow: inset 0 0 10px rgba(0, 20, 0, 0.8);
 }
 
 .lang-code {
@@ -206,6 +230,49 @@
   border-color: #444;
 }
 
+/* Cyberpunk Preview Icon */
+.cyberpunk-preview {
+  background: linear-gradient(135deg, #00d4ff, #00ff88);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.cyberpunk-preview::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: skewX(-20deg) translateX(-20%);
+}
+
+/* Retro Preview Icon */
+.retro-preview {
+  background: #333;
+  image-rendering: pixelated;
+  position: relative;
+}
+
+.retro-preview::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 12px;
+  height: 12px;
+  background: #00ff33;
+  box-shadow:
+    4px 0 0 #00ff33,
+    8px 0 0 #00ff33,
+    0 4px 0 #00ff33,
+    8px 4px 0 #00ff33,
+    4px 8px 0 #00ff33;
+  transform: scale(0.5) translate(10px, 4px);
+}
+
 /* Footer */
 .tutorial-tooltip-footer {
   display: flex;
@@ -218,7 +285,7 @@
 
 .theme-retro-16bit .tutorial-tooltip-footer {
   background: #000;
-  border-top: 2px solid #222;
+  border-top: 2px solid #0a330a;
 }
 
 .tutorial-tooltip-step {
@@ -230,7 +297,7 @@
 .theme-retro-16bit .tutorial-tooltip-step {
   font-family: inherit;
   font-size: 8px;
-  color: #666;
+  color: #6da; /* Muted cyan-green for steps */
 }
 
 .tutorial-tooltip-actions {
@@ -261,8 +328,9 @@
   font-size: 8px; /* Balanced pixel size for 'Press Start 2P' */
   padding: 10px 14px;
   line-height: 1;
-  border: 3px solid #000;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+  border: 3px solid #0a330a;
+  box-shadow: 3px 3px 0 rgba(0, 20, 0, 0.8);
+  color: #00ff33;
 }
 
 .theme-retro-16bit .tutorial-tooltip-btn-skip {
@@ -273,26 +341,27 @@
 }
 
 .theme-retro-16bit .tutorial-tooltip-btn-skip:hover {
-  color: #fff;
-  border-color: #333;
+  color: #00ff33;
+  border-color: #00ff33;
 }
 
 .theme-retro-16bit .tutorial-tooltip-btn-back {
-  background: #222;
-  color: #fff;
+  background: #0a330a;
+  color: #00ff33;
 }
 
 .theme-retro-16bit .tutorial-tooltip-btn-next {
-  background: #ffaa00;
+  background: #00ff33;
   color: #000;
   font-weight: 900;
   min-width: 80px;
+  text-shadow: none !important; /* Fix readability on dark text */
 }
 
 .theme-retro-16bit .tutorial-tooltip-btn-next:hover {
-  background: #ffbb33;
+  background: #33ff66;
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  box-shadow: 4px 4px 0 rgba(0, 30, 0, 0.8);
 }
 
 .theme-retro-16bit .tutorial-tooltip-btn-next:active {
@@ -315,7 +384,7 @@
 }
 
 .theme-retro-16bit .tutorial-tooltip-dot.active {
-  background: #ffaa00;
+  background: #00ff33;
   width: 8px; /* Stay square in retro */
 }
 

@@ -210,6 +210,7 @@ describe('SpawnSystem', () => {
         1,
         MarketPosition.LONG,
         2,
+        1,
         1
       );
     });

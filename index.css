@@ -794,37 +794,32 @@ canvas {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 
-  /* Clipped corner aesthetic */
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    100% calc(100% - 20px),
-    calc(100% - 20px) 100%,
-    0 100%
-  );
+  /* Clipped corner aesthetic - Top Right */
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
 
   border: 1px solid rgba(0, 255, 255, 0.25);
   border-left: 4px solid var(--color-primary, #00ffff);
-  padding: 20px 24px;
+  padding: 24px 28px 24px 28px; /* More breathing room */
 
   box-shadow:
-    0 0 40px rgba(0, 0, 0, 0.6),
-    0 0 20px rgba(0, 255, 255, 0.1),
-    inset 0 0 15px rgba(255, 255, 255, 0.03);
+    0 0 60px rgba(0, 0, 0, 0.8),
+    /* Deeper shadow */ 0 0 20px rgba(0, 255, 255, 0.1),
+    inset 0 0 20px rgba(255, 255, 255, 0.03);
 
-  width: 440px;
-  max-width: calc(100vw - 60px);
+  width: 480px; /* Wider for better text flow */
+  max-width: calc(100vw - 40px);
 
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px; /* More vertical separation */
 }
 
 /* Cyber accents */
 .pwa-install-accent-top {
   position: absolute;
   top: 0;
-  right: 40px;
+  left: 40px; /* Moved to left */
+  right: auto;
   width: 100px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
@@ -834,7 +829,8 @@ canvas {
 .pwa-install-accent-bottom {
   position: absolute;
   bottom: 0;
-  left: 20px;
+  left: auto;
+  right: 20px; /* Moved to right */
   width: 60px;
   height: 1px;
   background: var(--color-secondary);
@@ -899,8 +895,8 @@ canvas {
 .pwa-install-icon {
   flex-shrink: 0;
   position: relative;
-  width: 52px;
-  height: 52px;
+  width: 64px; /* Larger icon container */
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -957,9 +953,10 @@ canvas {
 /* Action buttons */
 .pwa-install-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px; /* Increased button gap */
   justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: 8px;
+  padding-right: 12px; /* Avoid the clipped corner */
 }
 
 .pwa-install-dismiss {
@@ -967,9 +964,9 @@ canvas {
   font-family: var(--font-secondary, 'Exo 2', sans-serif);
   font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1038,49 +1035,75 @@ canvas {
 @media (max-width: 640px) {
   .pwa-install-prompt {
     top: auto;
-    bottom: 25px;
-    right: 15px;
-    left: 15px;
-    width: auto;
+    bottom: 0px; /* Hug bottom */
+    right: 0px;
+    left: 0px;
+    width: 100%;
+    margin: 0;
     max-width: none;
-    padding: 18px 20px;
-    clip-path: none; /* Simplify for mobile */
-    border-radius: 12px;
+    padding: 24px 20px 30px 20px; /* Extra bottom padding for safe area */
+    clip-path: none; /* No clipping on mobile */
+    border-radius: 20px 20px 0 0; /* Rounded top only */
+    border-bottom: none;
+    border-left: none;
+    border-top: 2px solid var(--color-primary);
+    background: rgba(10, 15, 25, 0.95); /* More opaque on mobile */
+  }
+
+  /* Adjust shadow for bottom sheet */
+  .pwa-install-prompt {
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
   }
 
   .pwa-install-content {
-    flex-direction: column;
+    flex-direction: row; /* Icon + Text side-by-side on mobile too */
+    align-items: center;
     gap: 16px;
   }
 
   .pwa-install-icon {
-    display: none; /* Hide icon on small mobile to save vertical space */
+    display: flex; /* Show icon on mobile now */
+    width: 48px;
+    height: 48px;
+  }
+
+  .pwa-install-text {
+    text-align: left; /* Keep left alignment */
   }
 
   .pwa-install-text h3 {
-    font-size: 1rem;
-    text-align: center;
+    font-size: 1.1rem;
+    text-align: left;
+    margin-bottom: 4px;
   }
 
   .pwa-install-text p {
-    font-size: 0.8rem;
-    text-align: center;
+    font-size: 0.85rem;
+    text-align: left;
+    line-height: 1.4;
   }
 
   .pwa-install-actions {
     width: 100%;
-    margin-top: 0;
+    margin-top: 8px;
+    padding-right: 0;
+    gap: 12px;
   }
 
   .pwa-install-dismiss,
   .pwa-install-button {
     flex: 1;
-    padding: 12px;
-    font-size: 0.8rem;
+    padding: 14px;
+    font-size: 0.9rem;
+    height: auto; /* Allow height to adjust */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
+  /* Hide the small close button on mobile since we have a big Dismiss action */
   .pwa-install-close {
-    display: flex;
+    display: none;
   }
 }
 

@@ -54,6 +54,7 @@ export interface MarketData {
   whaleTier?: 0 | 1 | 2 | 3;
   spawnRateMultiplier?: number;
   enemyDamage?: number;
+  enemySpeed?: number;
 }
 
 export interface Entity {

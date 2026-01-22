@@ -341,14 +341,23 @@ export const DIFFICULTY = {
   CYCLE_DIFFICULTY_INCREMENT: 0.6,
   SPAWN_RATE_TOTAL_MULTIPLIER: 1.6,
   SPAWN_RATE_MIN: 0.6,
-  SPAWN_RATE_MAX: 4.0,
+  SPAWN_RATE_MAX: 10.0,
   ENEMY_SPEED_MIN: 0.5,
-  ENEMY_SPEED_MAX: 1.5,
+  ENEMY_SPEED_MAX: 5.0,
   ENEMY_HEALTH_MIN: 0.8,
   ENEMY_HEALTH_MAX: 3.0,
   ENEMY_DAMAGE_MIN: 0.8,
-  ENEMY_DAMAGE_MAX: 4.0,
+  ENEMY_DAMAGE_MAX: 10.0,
   BASE_ADMIN_DIVISOR: 5,
+  LEVERAGE_SCALING: {
+    1: { damage: 1.0, spawn: 0.8, speed: 0.9 },
+    2: { damage: 1.0, spawn: 0.8, speed: 0.9 },
+    5: { damage: 1.2, spawn: 1.3, speed: 1.1 },
+    10: { damage: 1.2, spawn: 1.3, speed: 1.1 },
+    25: { damage: 1.5, spawn: 1.8, speed: 1.25 },
+    50: { damage: 2.0, spawn: 2.5, speed: 1.4 },
+    100: { damage: 4.0, spawn: 5.0, speed: 2.5 },
+  },
 } as const;
 
 /**

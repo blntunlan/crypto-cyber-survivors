@@ -335,7 +335,8 @@ export class PoolManager implements IPoolManager {
     position: MarketPosition,
     enemyType?: EnemyId,
     pair?: CryptoPair,
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    speedMultiplier: number = 1.0
   ): GameEnemy {
     const currentPair = pair ?? 'BTC';
     const currentEnemyType = enemyType ?? 'bear';
@@ -350,7 +351,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          aggroMultiplier,
+          aggroMultiplier * speedMultiplier,
           damageMultiplier
         ),
       obj => {
@@ -360,7 +361,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          aggroMultiplier,
+          aggroMultiplier * speedMultiplier,
           damageMultiplier,
           obj
         );
@@ -377,7 +378,8 @@ export class PoolManager implements IPoolManager {
     difficulty: number,
     position: MarketPosition,
     tier: WhaleTier,
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    speedMultiplier: number = 1.0
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
     audio.playWhaleArrival();
@@ -390,7 +392,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          1.0,
+          1.0 * speedMultiplier,
           damageMultiplier
         );
         if (tierConfig) {
@@ -409,7 +411,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          1.0,
+          1.0 * speedMultiplier,
           damageMultiplier,
           obj
         );

@@ -50,7 +50,8 @@ export class SpawnSystem implements ISpawnSystem {
     maxEnemiesOverride?: number,
     spawnRateMultiplier: number = 1,
     pair: CryptoPair = 'BTC',
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    speedMultiplier: number = 1.0
   ): number {
     const config = this.getSpawnConfig();
     const marketState = marketStateService.getState(`${pair}-USD`);
@@ -83,7 +84,8 @@ export class SpawnSystem implements ISpawnSystem {
         height,
         maxEnemies,
         deltaTime,
-        damageMultiplier
+        damageMultiplier,
+        speedMultiplier
       );
     }
 
@@ -99,7 +101,8 @@ export class SpawnSystem implements ISpawnSystem {
         maxEnemies,
         deltaTime,
         pair,
-        damageMultiplier
+        damageMultiplier,
+        speedMultiplier
       );
     }
 
@@ -150,7 +153,8 @@ export class SpawnSystem implements ISpawnSystem {
     maxEnemies: number,
     deltaTime: number,
     pair: CryptoPair,
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    speedMultiplier: number = 1.0
   ): void {
     // RSI spawns have a slightly higher chance but smaller impact than whales
     const frameTargetMs = 16.66;
@@ -159,7 +163,16 @@ export class SpawnSystem implements ISpawnSystem {
     if (Math.random() < rsiProb && pool.activeEnemies.length < maxEnemies) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
       // Spawn specialized RSI enemy
-      pool.getEnemy(x, y, difficulty, position, 'rsi', pair, damageMultiplier);
+      pool.getEnemy(
+        x,
+        y,
+        difficulty,
+        position,
+        'rsi',
+        pair,
+        damageMultiplier,
+        speedMultiplier
+      );
       Logger.debug(`[SpawnSystem] RSI Extreme Spawn: ${marketState.rsiState}`);
     }
   }
@@ -178,7 +191,8 @@ export class SpawnSystem implements ISpawnSystem {
     height: number,
     maxEnemies: number,
     deltaTime: number,
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    speedMultiplier: number = 1.0
   ): void {
     const whaleConfig =
       WHALE_TIER_CONFIGS[marketState.whaleTier as keyof typeof WHALE_TIER_CONFIGS];
@@ -206,7 +220,8 @@ export class SpawnSystem implements ISpawnSystem {
         difficulty,
         position,
         marketState.whaleTier,
-        damageMultiplier
+        damageMultiplier,
+        speedMultiplier
       );
       Logger.debug(`[SpawnSystem] Spawned whale tier ${marketState.whaleTier}`);
       this.whaleCooldownTimer = 20000; // 20s cooldown hardcoded for now
@@ -226,7 +241,8 @@ export class SpawnSystem implements ISpawnSystem {
     width: number,
     height: number,
     pair: CryptoPair,
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    speedMultiplier: number = 1.0
   ): void {
     const { x, y } = this.getRandomSpawnPosition(width, height);
 
@@ -237,7 +253,16 @@ export class SpawnSystem implements ISpawnSystem {
         (position === MarketPosition.LONG && pnl < 0) ||
         (position === MarketPosition.SHORT && pnl > 0);
       const enemyType: EnemyId = isBearMarket ? 'bear' : 'bull';
-      pool.getEnemy(x, y, difficulty, position, enemyType, pair, damageMultiplier);
+      pool.getEnemy(
+        x,
+        y,
+        difficulty,
+        position,
+        enemyType,
+        pair,
+        damageMultiplier,
+        speedMultiplier
+      );
     } else {
       // Variant Spawning: Randomly select from secondary enemy archetypes
       const roll = Math.random();
@@ -251,7 +276,16 @@ export class SpawnSystem implements ISpawnSystem {
         enemyType = 'pumpdump';
       }
 
-      pool.getEnemy(x, y, difficulty, position, enemyType, pair, damageMultiplier);
+      pool.getEnemy(
+        x,
+        y,
+        difficulty,
+        position,
+        enemyType,
+        pair,
+        damageMultiplier,
+        speedMultiplier
+      );
     }
   }
 

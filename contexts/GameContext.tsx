@@ -122,6 +122,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     dodge: 0,
     lifesteal: 0,
     magnet: 0,
+    invulnerabilityTimer: 0,
   });
 
   const [player, setPlayer] = useState<Player>(playerRef.current!);

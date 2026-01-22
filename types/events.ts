@@ -72,7 +72,19 @@ export type GameEvent =
   | 'gameNotification'
   // Session sync events
   | 'sessionSynced'
-  | 'sessionSyncFailed';
+  | 'sessionSyncFailed'
+  // Difficulty System V2 events
+  | 'marketUpdate'
+  | 'playerLevelUp'
+  | 'playerHealthChange'
+  | 'gameStart'
+  | 'difficultyUpdated'
+  | 'shockDetected'
+  | 'liquidationWarning'
+  | 'bossWaveStart'
+  | 'bossWaveEnd'
+  | 'cycleDecisionScreen'
+  | 'cycleDecisionMade';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -106,6 +118,8 @@ export interface LevelUpCompleteEvent {
 export interface GameOverEvent {
   finalLevel: number;
   finalPnl: number;
+  /** Reason for game over: 'DEATH' (default), 'CASH_OUT', 'TIMEOUT' */
+  reason?: 'DEATH' | 'CASH_OUT' | 'TIMEOUT';
 }
 
 /** Critical hit event data */
@@ -494,6 +508,21 @@ export interface EventDataMap {
   // Session sync events
   sessionSynced: SessionSyncedEvent;
   sessionSyncFailed: SessionSyncFailedEvent;
+  // Difficulty System V2 events
+  marketUpdate: { pnlPercent?: number; price?: number };
+  playerLevelUp: { level: number };
+  playerHealthChange: { hpPercent: number };
+  gameStart: { leverage?: number; position?: 'LONG' | 'SHORT'; entryPrice?: number };
+  difficultyUpdated: Record<string, unknown>;
+  shockDetected: { intensity: number; direction: 'up' | 'down' };
+  liquidationWarning: {
+    level: 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';
+    distance: number;
+  };
+  bossWaveStart: { cycleNumber: number };
+  bossWaveEnd: { cycleNumber: number };
+  cycleDecisionScreen: { cycleNumber: number; options: string[] };
+  cycleDecisionMade: { decision: 'CONTINUE' | 'CASH_OUT'; cycleNumber: number };
 }
 
 export interface NotificationEvent {

@@ -5,7 +5,17 @@ import LeaderboardPanel from '../../../components/hud/LeaderboardPanel';
 // Mock Framer Motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({
+      children,
+      initial,
+      animate,
+      exit,
+      variants,
+      whileHover,
+      whileTap,
+      transition,
+      ...props
+    }: any) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
@@ -133,7 +143,9 @@ describe('LeaderboardPanel', () => {
     const refreshButton = screen.getByTitle('hud.refresh_pool');
     fireEvent.click(refreshButton);
 
-    expect(mockSupabase.limit).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(mockSupabase.limit).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('should show "hud.no_scores" when list is empty', async () => {
