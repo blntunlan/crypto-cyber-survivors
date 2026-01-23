@@ -118,6 +118,10 @@ describe('MarketService', () => {
           pair: 'BTC',
         })
       );
+      if ((onData as any).mock.calls.length === 0) {
+        // If failed, check if it warned
+        expect(Logger.warn).not.toHaveBeenCalled();
+      }
       expect(marketService.getPrice()).toBe(50000);
     });
 

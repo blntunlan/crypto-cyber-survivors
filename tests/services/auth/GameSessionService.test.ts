@@ -42,7 +42,7 @@ describe('GameSessionService', () => {
       supabase.functions.invoke.mockResolvedValue({ data: mockResponse, error: null });
 
       const result = await GameSessionService.startSession(
-        'BTC-USD',
+        'BTC',
         10,
         MarketPosition.LONG
       );
@@ -57,7 +57,7 @@ describe('GameSessionService', () => {
       UserSessionService.getNickname.mockReturnValue(null);
 
       const result = await GameSessionService.startSession(
-        'BTC-USD',
+        'BTC',
         10,
         MarketPosition.LONG
       );
@@ -75,7 +75,7 @@ describe('GameSessionService', () => {
       });
 
       const result = await GameSessionService.startSession(
-        'BTC-USD',
+        'BTC',
         10,
         MarketPosition.LONG
       );
@@ -97,8 +97,8 @@ describe('GameSessionService', () => {
       // @ts-expect-error: testing
       supabase.functions.invoke.mockReturnValue(slowPromise);
 
-      const call1 = GameSessionService.startSession('BTC-USD', 10, MarketPosition.LONG);
-      const call2 = GameSessionService.startSession('BTC-USD', 10, MarketPosition.LONG);
+      const call1 = GameSessionService.startSession('BTC', 10, MarketPosition.LONG);
+      const call2 = GameSessionService.startSession('BTC', 10, MarketPosition.LONG);
 
       await expect(call2).resolves.toBeNull(); // Second call should fail immediately
 
@@ -115,7 +115,7 @@ describe('GameSessionService', () => {
         error: null,
       });
 
-      await GameSessionService.startSession('BTC-USD', 10, MarketPosition.LONG);
+      await GameSessionService.startSession('BTC', 10, MarketPosition.LONG);
       expect(GameSessionService.getCurrentSessionId()).toBe('s1');
 
       GameSessionService.clearSession();

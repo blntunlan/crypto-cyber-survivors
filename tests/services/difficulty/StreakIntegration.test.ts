@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { DifficultyManager } from '../../../services/DifficultyManager';
 import { TimeService } from '../../../services/TimeService';
 import { EventBus } from '../../../services/EventBus';
-import { difficultyContext } from '../../../services/difficulty/DifficultyContext'; // Ensure this uses the correct path
 
 describe('DifficultyManager V2 - Streak Integration', () => {
   beforeEach(() => {

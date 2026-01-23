@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -103,6 +103,7 @@ describe('VerificationQueue', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', mockFetch);
     localStorageMock.clear();
     mockFetch.mockReset();
     mockOnline = true;

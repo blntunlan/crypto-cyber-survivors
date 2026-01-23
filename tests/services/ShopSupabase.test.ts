@@ -47,8 +47,9 @@ describe('ShopService Supabase Integration', () => {
 
     const items = await service.getItems();
     expect(items).toHaveLength(1);
-    expect(items[0].id).toBe('item-1');
-    expect(items[0].costGold).toBe(100);
+    expect(items).toHaveLength(1);
+    expect(items![0]!.id).toBe('item-1');
+    expect(items![0]!.costGold).toBe(100);
   });
 
   it('should call purchase_item RPC and handle success', async () => {
@@ -60,7 +61,7 @@ describe('ShopService Supabase Integration', () => {
 
     const result = await service.purchaseItem('item-1');
 
-    expect(supabase.rpc).toHaveBeenCalledWith('purchase_item', {
+    expect(supabase!.rpc).toHaveBeenCalledWith('purchase_item', {
       p_player_id: 'real-player-123',
       p_item_id: 'item-1',
     });

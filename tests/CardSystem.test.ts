@@ -146,6 +146,7 @@ describe('CardSystem', () => {
       exp: 0,
       nextLevelExp: 100,
       invulnerable: false,
+      invulnerabilityTimer: 0,
       dead: false,
       velocity: { x: 0, y: 0 },
       isDashing: false,

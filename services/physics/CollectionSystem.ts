@@ -7,7 +7,8 @@ import { EventBus } from '../EventBus';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { lerp } from '../../utils/math';
 import { type ICollectionSystem } from '../interfaces/IPhysicsSubsystems';
-import { GAME_ENGINE, GEMS } from '../../constants';
+import { GAME_ENGINE } from '../../constants';
+import { ECONOMY_CONFIG } from '../../config';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
@@ -70,7 +71,7 @@ export class CollectionSystem implements ICollectionSystem {
       gem.elapsedLifetime ??= 0;
       gem.elapsedLifetime += dtFactor * GAME_ENGINE.MS_PER_FRAME;
 
-      if (gem.elapsedLifetime >= GEMS.LIFETIME) {
+      if (gem.elapsedLifetime >= ECONOMY_CONFIG.GEMS.LIFETIME_MS) {
         gem.active = false;
         return;
       }

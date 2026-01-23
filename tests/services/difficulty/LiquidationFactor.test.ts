@@ -8,13 +8,14 @@ import {
   getLiquidationDistance,
   isLiquidationImminent,
 } from '../../../services/difficulty/factors/LiquidationFactor';
+import { MarketPosition } from '../../../types';
 
 describe('LiquidationFactor', () => {
   describe('calculateLiquidationFactor - LONG position', () => {
     const baseInput = {
       entryPrice: 100000,
       liquidationPrice: 80000, // 20% below entry
-      position: 'LONG' as const,
+      position: MarketPosition.LONG,
     };
 
     it('should return NONE for price well above liquidation (>30%)', () => {
@@ -65,7 +66,7 @@ describe('LiquidationFactor', () => {
     const baseInput = {
       entryPrice: 100000,
       liquidationPrice: 120000, // 20% above entry
-      position: 'SHORT' as const,
+      position: MarketPosition.SHORT,
     };
 
     it('should return NONE for price well below liquidation', () => {
@@ -94,7 +95,7 @@ describe('LiquidationFactor', () => {
         currentPrice: 100000,
         entryPrice: 100000,
         liquidationPrice: 80000,
-        position: 'LONG',
+        position: MarketPosition.LONG,
       });
       expect(distance).toBe(100);
     });
@@ -104,7 +105,7 @@ describe('LiquidationFactor', () => {
         currentPrice: 80000,
         entryPrice: 100000,
         liquidationPrice: 80000,
-        position: 'LONG',
+        position: MarketPosition.LONG,
       });
       expect(distance).toBe(0);
     });
@@ -117,7 +118,7 @@ describe('LiquidationFactor', () => {
           currentPrice: 81000,
           entryPrice: 100000,
           liquidationPrice: 80000,
-          position: 'LONG',
+          position: MarketPosition.LONG,
         })
       ).toBe(true);
     });
@@ -128,7 +129,7 @@ describe('LiquidationFactor', () => {
           currentPrice: 90000,
           entryPrice: 100000,
           liquidationPrice: 80000,
-          position: 'LONG',
+          position: MarketPosition.LONG,
         })
       ).toBe(false);
     });

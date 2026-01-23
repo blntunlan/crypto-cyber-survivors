@@ -1,6 +1,98 @@
 import { CRYPTO_PAIRS, type CryptoPair } from './types/crypto';
 
 /**
+ * Game Color Palette
+ * Centralized color definitions for consistency across formatting
+ */
+/**
+ * Combo System Constants
+ */
+export const COMBO = {
+  TIMEOUT_MS: 3000,
+  MILESTONE_SOUND_COOLDOWN: 1000,
+} as const;
+
+export const METRICS = {
+  HIGH_DIFFICULTY_THRESHOLD: 1.5,
+  LOW_DIFFICULTY_THRESHOLD: 0.5,
+  NEAR_DEATH_HP_THRESHOLD: 25,
+};
+
+/**
+ * Object Pool Configuration
+ */
+export const POOL = {
+  MAX_ACTIVE: {
+    ENEMIES: 300,
+    BULLETS: 1000,
+    GEMS: 500,
+    PARTICLES: 2000,
+    FLOATING_TEXTS: 200,
+    SPEED_LINES: 100,
+  },
+  PRE_WARM: {
+    ENEMIES: 30,
+    BULLETS: 100,
+    PARTICLES: 200,
+    GEMS: 50,
+    TEXTS: 50,
+  },
+  TRIM_SIZE: 50,
+};
+
+/**
+ * Difficulty Limits
+ */
+export const DIFFICULTY = {
+  SPAWN_RATE_MAX: 10.0,
+  ENEMY_SPEED_MAX: 5.0,
+  ENEMY_DAMAGE_MAX: 500,
+  SPAWN_RATE_MIN: 0.2, // Safety floor
+};
+
+export const COMBAT = {
+  CRIT_CHANCE_BASE: 0.05,
+  CRIT_MULTIPLIER: 2.0,
+  SUPER_CRIT_MULTIPLIER: 4.0,
+  BASE_DAMAGE: 10,
+  BASE_SPEED: 5,
+  PROJECTILE_RADIUS_BASE: 4,
+};
+
+export const COLORS = {
+  PRIMARY_CYBER: '#c800ff',
+  SECONDARY_CYBER: '#00ccff',
+  ACCENT_CYBER: '#ffff00',
+
+  TEXT_PRIMARY: '#ffffff',
+  TEXT_SECONDARY: '#a0a0a0',
+  BULLET: '#00FFFF',
+  CRIT: '#FFD700',
+  SUPER_CRIT: '#D20202',
+
+  BG_CYBER: '#050505',
+  BG_RETRO: '#000033',
+
+  LONG: '#22c55e',
+  SHORT: '#ef4444',
+  CASINO_GOLD: '#D6B85C',
+  CASINO_RED: '#B22222',
+  CASINO_GREEN: '#05732c',
+  SLOT_SILVER: '#DCDCDC',
+  JACKPOT_YELLOW: '#FFD600',
+  ELECTRIC_BLUE: '#00BFFF',
+  NEON_ORANGE: '#FF6600',
+  NEON_GREEN: '#39FF14',
+  BRILLIANT_ROSE: '#F4599D',
+  PUMP_GREEN: '#00E676',
+  DUMP_ORANGE: '#FF3D00',
+  ROYAL_PURPLE: '#7558A4',
+  GEM: '#FFD700',
+  RARE_GEM: '#FF10F0',
+  SLOT_BLACK: '#1A1A1A',
+};
+
+/**
  * Game Engine Tuning Constants
  */
 export const GAME_ENGINE = {
@@ -310,201 +402,24 @@ export const COINBASE_WS_URL = 'wss://ws-feed.exchange.coinbase.com';
 export const getBinanceWsUrl = (pair: CryptoPair) =>
   `wss://stream.binance.com:9443/ws/${CRYPTO_PAIRS[pair].binanceSymbol}@kline_1m`;
 
-/**
- * Difficulty System Constants
- */
-export const DIFFICULTY = {
-  KILL_STREAK_TIMEOUT_SEC: 3.0,
-  TIME_FACTOR_INCREASE_PER_MINUTE: 0.15,
-  TIME_FACTOR_MAX: 2.5,
-  PNL_LOSS_CAP: 3.0,
-  PNL_WIN_FLOOR: 0.7,
-  PNL_WIN_LOG_SCALE: 0.15,
-  VOLATILITY_MAX: 1.8,
-  VOLATILITY_MIN: 0.9,
-  VOLATILITY_ATR_SCALE: 50,
-  VOLATILITY_DAMPING_INITIAL: 0.2,
-  VOLATILITY_DAMPING_FULL_TIME: 300,
-  LEVEL_FACTOR_INCREASE: 0.05,
-  LEVEL_FACTOR_MAX: 1.5,
-  NEAR_DEATH_HP_THRESHOLD: 20,
-  NEAR_DEATH_DIFFICULTY_MODIFIER: 0.7,
-  STREAK_INCREMENT_THRESHOLD: 5,
-  STREAK_INCREMENT_BONUS: 0.05,
-  STREAK_CAP: 0.3,
-  MOMENTUM_WINDOW_SMALL: 10,
-  MOMENTUM_WINDOW_LARGE: 20,
-  MOMENTUM_BUFF: 1.1,
-  MOMENTUM_DEBUFF: 0.9,
-  SHOCK_THRESHOLD: 0.005,
-  SHOCK_COOLDOWN_SEC: 10,
-  CYCLE_DIFFICULTY_INCREMENT: 0.6,
-  SPAWN_RATE_TOTAL_MULTIPLIER: 1.6,
-  SPAWN_RATE_MIN: 0.6,
-  SPAWN_RATE_MAX: 10.0,
-  ENEMY_SPEED_MIN: 0.5,
-  ENEMY_SPEED_MAX: 5.0,
-  ENEMY_HEALTH_MIN: 0.8,
-  ENEMY_HEALTH_MAX: 3.0,
-  ENEMY_DAMAGE_MIN: 0.8,
-  ENEMY_DAMAGE_MAX: 10.0,
-  BASE_ADMIN_DIVISOR: 5,
-  LEVERAGE_SCALING: {
-    1: { damage: 1.0, spawn: 0.8, speed: 0.9 },
-    2: { damage: 1.0, spawn: 0.8, speed: 0.9 },
-    5: { damage: 1.2, spawn: 1.3, speed: 1.1 },
-    10: { damage: 1.2, spawn: 1.3, speed: 1.1 },
-    25: { damage: 1.5, spawn: 1.8, speed: 1.25 },
-    50: { damage: 2.0, spawn: 2.5, speed: 1.4 },
-    100: { damage: 4.0, spawn: 5.0, speed: 2.5 },
-  },
-} as const;
-
-/**
- * Combat & Projectile Constants
- */
-export const COMBAT = {
-  FIRE_RATE_AUDIO_THRESHOLD: 200,
-  DEFAULT_ENEMY_RADIUS_FALLBACK: 20,
-  CRIT_DAMAGE_MULTIPLIER: 2,
-  SUPER_CRIT_DAMAGE_MULTIPLIER: 4,
-  INTERCEPT_EPSILON: 0.0001,
-  MIN_LEAD_DISTANCE: 100,
-  MAX_LEAD_DISTANCE: 400,
-  MAX_INTERCEPT_TIME_FRAMES: 60,
-  PROJECTILE_RADIUS_BASE: 4.5,
-  PROJECTILE_RADIUS_CRIT: 5.5,
-  PROJECTILE_RADIUS_SUPER_CRIT: 6.5,
-} as const;
-
-/**
- * Spawn System Constants
- */
-export const SPAWN = {
-  THEMATIC_SPAWN_CHANCE: 0.7,
-  WHALE_PROBABILITY_MODIFIER: 0.1,
-  RANDOM_FUD_THRESHOLD: 0.4,
-  RANDOM_LIQUIDATOR_THRESHOLD: 0.7,
-  MIN_SAFE_SPAWN_OFFSET: 80,
-  WAVE_INTENSITY_OFFSET: 0.5,
-  MAX_DEFAULT_ENEMIES: 150,
-} as const;
-
-/**
- * Experience Gem Constants
- */
-export const GEMS = {
-  BASE_VALUE_NORMAL: 10,
-  BASE_VALUE_WHALE: 100,
-  RARE_MULTIPLIER: 5,
-  NORMAL_SIZE: 4,
-  RARE_SIZE: 8,
-  LIFETIME: 5000,
-} as const;
-
-/**
- * Luck & Chance Logic Constants
- */
-export const LUCK = {
-  VALUE_BONUS_PER_LUCK: 0.05,
-  MAX_BONUS_GEM_CHANCE: 0.5,
-  BONUS_GEM_CHANCE_PER_LUCK: 0.02,
-} as const;
-
-/**
- * Object Pool Constants
- */
-export const POOL = {
-  MAX_ACTIVE: {
-    ENEMIES: 150,
-    BULLETS: 200,
-    GEMS: 300,
-    PARTICLES: 400,
-    FLOATING_TEXTS: 50,
-    SPEED_LINES: 50,
-  },
-  PRE_WARM: {
-    ENEMIES: 30,
-    BULLETS: 80,
-    PARTICLES: 150,
-    GEMS: 20,
-    TEXTS: 30,
-  },
-  TRIM_SIZE: 50,
-} as const;
-
-/**
- * Market Service Constants
- */
 export const MARKET = {
   RECONNECT: {
     INITIAL_DELAY: 1000,
     MAX_DELAY: 30000,
-    MULTIPLIER: 2,
+    MULTIPLIER: 1.5,
     FORCE_RECONNECT_DELAY: 500,
   },
+  STALE_PRICE_THRESHOLD_MS: 10000,
   FALLBACK_PRICES: {
     BTC: 43000,
     ETH: 2300,
     SOL: 100,
   },
-  STALE_PRICE_THRESHOLD_MS: 30000,
-  STALE_PRICE_THRESHOLD_SEC: 30,
-} as const;
-
-/**
- * Metrics Service Constants
- */
-export const METRICS = {
-  HIGH_DIFFICULTY_THRESHOLD: 3.0,
-  LOW_DIFFICULTY_THRESHOLD: 0.8,
-  NEAR_DEATH_HP_THRESHOLD: 20,
-} as const;
-
-/**
- * Combo System Constants
- */
-export const COMBO = {
-  TIMEOUT_MS: 3000,
-  MILESTONE_SOUND_COOLDOWN: 1000,
-} as const;
-
-/**
- * Color Palette and Theme Tokens
- */
-export const COLORS = {
-  PRIMARY_CYBER: '#c800ff',
-  SECONDARY_CYBER: '#00ccff',
-  ACCENT_CYBER: '#ffff00',
-
-  TEXT_PRIMARY: '#ffffff',
-  TEXT_SECONDARY: '#a0a0a0',
-
-  BULLET: '#00f2ff',
-  CRIT: '#ffff00',
-  SUPER_CRIT: '#ff0055',
-
-  BG_CYBER: '#050505',
-  BG_RETRO: '#000033',
-
-  LONG: '#22c55e',
-  SHORT: '#ef4444',
-  CASINO_GOLD: '#D6B85C',
-  CASINO_RED: '#B22222',
-  CASINO_GREEN: '#05732c',
-  SLOT_SILVER: '#DCDCDC',
-  JACKPOT_YELLOW: '#FFD600',
-  ELECTRIC_BLUE: '#00BFFF',
-  NEON_ORANGE: '#FF6600',
-  NEON_GREEN: '#39FF14',
-  BRILLIANT_ROSE: '#F4599D',
-  PUMP_GREEN: '#00E676',
-  DUMP_ORANGE: '#FF3D00',
-  ROYAL_PURPLE: '#7558A4',
-  GEM: '#FFD700',
-  RARE_GEM: '#FF10F0',
-  SLOT_BLACK: '#1A1A1A',
 };
+
+/**
+ * Combat & Projectile Constants
+ */
 
 /**
  * Cheat Manager Constants
@@ -516,7 +431,6 @@ export const CHEATS = {
   NOTIFICATION_DURATION_MS: 2000,
   BUFFER_CLEAR_DELAY_MS: 2000,
 } as const;
-
 /**
  * Performance Benchmark Constants
  */

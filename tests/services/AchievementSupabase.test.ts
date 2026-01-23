@@ -63,7 +63,7 @@ describe('AchievementService Supabase Integration', () => {
         },
       ];
 
-      (supabase.from as any).mockReturnValueOnce({
+      (supabase!.from as any).mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             order: vi.fn(() => Promise.resolve({ data: mockData, error: null })),
@@ -73,12 +73,12 @@ describe('AchievementService Supabase Integration', () => {
 
       const result = await service.getAchievements();
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('First Blood');
-      expect(result[0].category).toBe('combat');
+      expect(result[0]!.name).toBe('First Blood');
+      expect(result[0]!.category).toBe('combat');
     });
 
     it('should return empty array on database error', async () => {
-      (supabase.from as any).mockReturnValueOnce({
+      (supabase!.from as any).mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             order: vi.fn(() =>
@@ -117,7 +117,7 @@ describe('AchievementService Supabase Integration', () => {
         },
       ];
 
-      (supabase.from as any).mockReturnValueOnce({
+      (supabase!.from as any).mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() => Promise.resolve({ data: mockUnlocks, error: null })),
         })),
@@ -125,12 +125,12 @@ describe('AchievementService Supabase Integration', () => {
 
       const result = await service.getMyUnlocks();
       expect(result).toHaveLength(1);
-      expect(result[0].achievementId).toBe('a1');
-      expect(result[0].formattedDate).toBeDefined();
+      expect(result[0]!.achievementId).toBe('a1');
+      expect(result[0]!.formattedDate).toBeDefined();
     });
 
     it('should return empty array and log error on fetch failure', async () => {
-      (supabase.from as any).mockReturnValueOnce({
+      (supabase!.from as any).mockReturnValueOnce({
         select: vi.fn(() => ({
           eq: vi.fn(() =>
             Promise.resolve({ data: null, error: { message: 'Fetch error' } })

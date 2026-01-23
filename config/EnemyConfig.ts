@@ -92,17 +92,31 @@ export const ENEMY_TYPES: Record<EnemyType, EnemyTypeConfig> = {
 
 // Spawn configuration
 export const ENEMY_SPAWN = {
-  BASE_RATE: 2000, // ms between spawns at difficulty 1
-  MIN_RATE: 300, // minimum ms between spawns
+  // Timing & Intervals
+  BASE_INTERVAL: 800, // ms between spawns at difficulty 1
+  MIN_INTERVAL: 300, // minimum ms between spawns
   SPAWN_DISTANCE: 100, // pixels outside screen
-  MAX_ENEMIES: 100, // performance cap
+  MIN_SAFE_OFFSET: 80, // minimum distance from screen edge
+
+  // Limits
+  MAX_ENEMIES: 150, // performance cap
+
+  // Probabilities & Logic
+  THEMATIC_CHANCE: 0.7, // Chance to spawn enemy matching market context
+  WHALE_PROBABILITY_MODIFIER: 0.1,
+  RANDOM_FUD_THRESHOLD: 0.4,
+  RANDOM_LIQUIDATOR_THRESHOLD: 0.7,
+  WAVE_INTENSITY_OFFSET: 0.5,
+
+  // Scaling
+  DIFFICULTY_SCALE: 0.5,
 };
 
-// Difficulty scaling
+// Scaling multipliers for difficulty
 export const ENEMY_SCALING = {
-  HEALTH_PER_DIFFICULTY: 0.2, // +20% HP per difficulty
-  SPEED_PER_DIFFICULTY: 0.1, // +10% speed per difficulty
-  SPAWN_RATE_PER_DIFFICULTY: 0.15, // 15% faster spawns per difficulty
+  HEALTH_PER_LEVEL: 0.2, // +20% HP per level
+  SPEED_PER_LEVEL: 0.1, // +10% speed per level
+  SPAWN_RATE_PER_LEVEL: 0.15, // 15% faster spawns per level
 };
 
 // Legacy export

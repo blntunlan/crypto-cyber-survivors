@@ -2,8 +2,7 @@ import { type Player, type GameState } from '../types';
 import { type IPoolManager } from './interfaces/IPoolManager';
 import { type IAudioService } from './interfaces/IAudioService';
 import { audio as defaultAudio } from './AudioService';
-import { COLORS, GAME_ENGINE, COMBAT } from '../constants';
-import { PLAYER_STATS } from '../config/PlayerConfig';
+import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../config';
 import { screenService } from './ScreenService';
 import { ParticleConfigService } from './ParticleConfigService';
 import { CheatManager } from './CheatManager';
@@ -87,7 +86,7 @@ export class CombatSystem implements ICombatSystem {
     state.fireTimer = 0;
 
     // Provide dynamic audio feedback based on firing intensity
-    const fireRateMultiplier = 200 / cappedFireRate;
+    const fireRateMultiplier = COMBAT_CONFIG.FIRE_RATE_AUDIO_THRESHOLD / cappedFireRate;
     this.audio.playShoot(fireRateMultiplier, effectiveProjectiles);
   }
 
@@ -125,7 +124,7 @@ export class CombatSystem implements ICombatSystem {
       // Optimized viewport check - only calculate if bounds exist
       // This ensures we only target "rendered" or visible enemies
       if (viewportBounds) {
-        const enemyRadius = enemy.radius || COMBAT.DEFAULT_ENEMY_RADIUS_FALLBACK;
+        const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
         // Strict visibility check: ensuring the enemy is actually within the play area
         if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
           continue;
@@ -187,9 +186,9 @@ export class CombatSystem implements ICombatSystem {
     // 3. Apply damage multipliers
     let damage = effectiveDamage;
     if (isSuperCrit) {
-      damage *= COMBAT.SUPER_CRIT_DAMAGE_MULTIPLIER;
+      damage *= COMBAT_CONFIG.SUPER_CRIT_MULTIPLIER;
     } else if (isCrit) {
-      damage *= COMBAT.CRIT_DAMAGE_MULTIPLIER;
+      damage *= COMBAT_CONFIG.CRIT_DAMAGE_MULTIPLIER;
     }
 
     // 4. Calculate predictive intercept position (Leading shots)
@@ -234,10 +233,10 @@ export class CombatSystem implements ICombatSystem {
   ): { x: number; y: number } {
     // Cache frequently used values
     const distSafe = target.dist || 1;
-    const bulletSpeed = GAME_ENGINE.BULLET_SPEED;
+    const bulletSpeed = COMBAT_CONFIG.BULLET_SPEED;
 
     // Early return for very close targets (no prediction needed)
-    if (distSafe < COMBAT.MIN_LEAD_DISTANCE) {
+    if (distSafe < COMBAT_CONFIG.MIN_LEAD_DISTANCE) {
       return { x: target.x, y: target.y };
     }
 
@@ -256,7 +255,7 @@ export class CombatSystem implements ICombatSystem {
     const c = relX * relX + relY * relY;
 
     let interceptTime = 0;
-    const epsilon = COMBAT.INTERCEPT_EPSILON;
+    const epsilon = COMBAT_CONFIG.INTERCEPT_EPSILON;
 
     // Optimized quadratic solution with early returns
     if (Math.abs(a) < epsilon) {
@@ -283,7 +282,7 @@ export class CombatSystem implements ICombatSystem {
     }
 
     // Clamp to reasonable limits and apply lead factor
-    const maxTime = COMBAT.MAX_INTERCEPT_TIME_FRAMES;
+    const maxTime = COMBAT_CONFIG.MAX_INTERCEPT_TIME_FRAMES;
     interceptTime = Math.max(0, Math.min(interceptTime, maxTime));
 
     // Smooth lead factor based on distance
@@ -291,8 +290,8 @@ export class CombatSystem implements ICombatSystem {
       1,
       Math.max(
         0,
-        (distSafe - COMBAT.MIN_LEAD_DISTANCE) /
-          (COMBAT.MAX_LEAD_DISTANCE - COMBAT.MIN_LEAD_DISTANCE)
+        (distSafe - COMBAT_CONFIG.MIN_LEAD_DISTANCE) /
+          (COMBAT_CONFIG.MAX_LEAD_DISTANCE - COMBAT_CONFIG.MIN_LEAD_DISTANCE)
       )
     );
 
@@ -320,16 +319,16 @@ export class CombatSystem implements ICombatSystem {
     const { isCrit, isSuperCrit, effectiveArea } = options;
 
     for (let i = 0; i < count; i++) {
-      const spread = GAME_ENGINE.PROJECTILE_SPREAD;
+      const spread = COMBAT_CONFIG.PROJECTILE_SPREAD;
       const angleOffset = (i - (count - 1) / 2) * spread;
       const finalAngle = baseAngle + angleOffset;
 
       // Base radius varies by crit tier
       const baseRadius = isSuperCrit
-        ? COMBAT.PROJECTILE_RADIUS_SUPER_CRIT
+        ? COMBAT_CONFIG.PROJECTILE_RADIUS_SUPER_CRIT
         : isCrit
-          ? COMBAT.PROJECTILE_RADIUS_CRIT
-          : COMBAT.PROJECTILE_RADIUS_BASE;
+          ? COMBAT_CONFIG.PROJECTILE_RADIUS_CRIT
+          : COMBAT_CONFIG.PROJECTILE_RADIUS_BASE;
 
       // Increase projectile size on mobile for better visibility/gameplay
       // On Desktop, we also boost it slightly for better impact visibility (1.0 -> 1.25)
@@ -357,8 +356,8 @@ export class CombatSystem implements ICombatSystem {
       pool.getBullet(
         player.x,
         player.y,
-        Math.cos(finalAngle) * GAME_ENGINE.BULLET_SPEED,
-        Math.sin(finalAngle) * GAME_ENGINE.BULLET_SPEED,
+        Math.cos(finalAngle) * COMBAT_CONFIG.BULLET_SPEED,
+        Math.sin(finalAngle) * COMBAT_CONFIG.BULLET_SPEED,
         damage,
         bulletRadius,
         bulletColor,

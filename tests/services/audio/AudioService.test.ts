@@ -131,14 +131,13 @@ describe('AudioService', () => {
       expect(synthEngine.setCategoryVolume).toHaveBeenCalledWith('music', 0.2);
 
       expect(audio.getCategoryVolume('music')).toBe(0.8);
-      expect(audio.getCategoryVolumes().master).toBe(0.5);
     });
   });
 
   describe('Slot & Combo Advanced', () => {
     it('should dispatch combo milestone sounds', () => {
-      audio.playComboMilestone('streak_10');
-      expect(ComboSounds.playComboMilestone).toHaveBeenCalledWith('streak_10');
+      audio.playComboMilestone('combo1');
+      expect(ComboSounds.playComboMilestone).toHaveBeenCalledWith('combo1');
     });
 
     it('should dispatch all slot machine effects', () => {

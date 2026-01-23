@@ -54,18 +54,24 @@ describe('EventRecorderService', () => {
     it('should produce consistent and chained hashes', () => {
       EventRecorderService.startSession({ entryPrice: 50000 } as any, 'secret');
 
-      EventRecorderService.record(ReplayEventType.XP_GAINED, { amount: 10 });
+      EventRecorderService.record(ReplayEventType.XP_GAINED, {
+        amount: 10,
+        source: 'test',
+      });
       // @ts-expect-error:  access private events
       const event1 = EventRecorderService.events[1];
-      const hash1 = event1.hash;
+      const hash1 = event1!.hash;
 
-      EventRecorderService.record(ReplayEventType.XP_GAINED, { amount: 20 });
+      EventRecorderService.record(ReplayEventType.XP_GAINED, {
+        amount: 20,
+        source: 'test',
+      });
       // @ts-expect-error: testing
       const event2 = EventRecorderService.events[2];
-      const hash2 = event2.hash;
+      const hash2 = event2!.hash;
 
       expect(hash1).not.toBe(hash2);
-      expect(event2.sequence).toBe(2);
+      expect(event2!.sequence).toBe(2);
     });
   });
 
@@ -74,8 +80,8 @@ describe('EventRecorderService', () => {
       EventRecorderService.startSession({ entryPrice: 50000 } as any, 'secret');
 
       // Emit events that should be auto-captured
-      EventBus.emit('enemyKilled', { type: 'fud_bear', id: '1' });
-      EventBus.emit('playerHit', { damage: 10 });
+      EventBus.emit('enemyKilled', { type: 'fud_bear', x: 0, y: 0 });
+      EventBus.emit('playerHit', { damage: 10, remainingHp: 90 });
       EventBus.emit('levelUp', { level: 2 });
 
       // SESSION_START + 3 events
@@ -86,11 +92,11 @@ describe('EventRecorderService', () => {
   describe('Heartbeat Logic', () => {
     it('should record heartbeats periodically', () => {
       const heartbeatProvider = () => ({
-        hp: 100,
-        x: 0,
-        y: 0,
-        pnl: 0.01,
-        timestamp: Date.now(),
+        playerHp: 100,
+        playerX: 0,
+        playerY: 0,
+        currentPrice: 50000,
+        enemyCount: 0,
       });
 
       EventRecorderService.startSession(
@@ -105,7 +111,7 @@ describe('EventRecorderService', () => {
       // SESSION_START + 1 HEARTBEAT
       expect(EventRecorderService.getEventCount()).toBe(2);
       // @ts-expect-error: testing
-      expect(EventRecorderService.events[1].type).toBe(ReplayEventType.HEARTBEAT);
+      expect(EventRecorderService.events[1]!.type).toBe(ReplayEventType.HEARTBEAT);
     });
   });
 });

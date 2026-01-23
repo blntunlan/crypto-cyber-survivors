@@ -3,10 +3,9 @@ import { useAdminConfigStore } from '../stores/admin/configStore';
 import type { DifficultyConfig } from '../types/admin';
 import { type DifficultyDebugState, getDebugTimestamp } from '../types/DebugState';
 import { type WavePhase } from '../types/metrics';
-import { WAVE_CONFIG } from '../config/GameConfig';
+import { WAVE_CONFIG, DIFFICULTY_CONFIG as D_CONFIG } from '../config';
 import { EventBus } from './EventBus';
 import { Logger } from './Logger';
-import { DIFFICULTY } from '../constants';
 import { difficultyContext } from './difficulty/DifficultyContext';
 import { clamp } from './difficulty/utils';
 import { getShockDirection } from './difficulty/factors';
@@ -93,7 +92,7 @@ class DifficultyManagerClass {
    */
   recordKill(): void {
     const gameTimeSec = TimeService.getGameTimeSeconds();
-    if (gameTimeSec - this.lastKillStreakTime < DIFFICULTY.KILL_STREAK_TIMEOUT_SEC) {
+    if (gameTimeSec - this.lastKillStreakTime < D_CONFIG.STREAK_TIMEOUT_MS / 1000) {
       this.killStreak += 1;
     } else {
       this.killStreak = 1;
@@ -139,34 +138,38 @@ class DifficultyManagerClass {
     // 3. Admin & Override Scaling
     const adminConfig = configOverride ?? this.getAdminConfig();
     const baseMultiplier = adminConfig?.base
-      ? adminConfig.base / DIFFICULTY.BASE_ADMIN_DIVISOR
+      ? adminConfig.base / D_CONFIG.BASE_ADMIN_DIVISOR
       : 1.0;
-    const maxDifficulty = adminConfig?.maxDifficulty ?? 8.0;
+    const maxDifficulty = adminConfig?.maxDifficulty ?? D_CONFIG.LIMITS.total.max;
 
     // 4. Transform Aggregates to Engine Outputs (Layer 4 Mapping)
-    const total = clamp(agg.total * baseMultiplier, 0.3, maxDifficulty);
+    const total = clamp(
+      agg.total * baseMultiplier,
+      D_CONFIG.LIMITS.total.min,
+      maxDifficulty
+    );
     const scale = inp.leverageScale;
 
     const output: DifficultyOutput = {
       spawnRate: clamp(
-        total * scale.spawn * DIFFICULTY.SPAWN_RATE_TOTAL_MULTIPLIER,
-        DIFFICULTY.SPAWN_RATE_MIN,
-        DIFFICULTY.SPAWN_RATE_MAX
+        total * scale.spawn * D_CONFIG.SPAWN_RATE_TOTAL_MULTIPLIER,
+        D_CONFIG.LIMITS.spawnRate.min,
+        D_CONFIG.LIMITS.spawnRate.max
       ),
       enemySpeed: clamp(
         f.pnl * f.atr * f.wave * scale.speed,
-        DIFFICULTY.ENEMY_SPEED_MIN,
-        DIFFICULTY.ENEMY_SPEED_MAX
+        D_CONFIG.LIMITS.enemySpeed.min,
+        D_CONFIG.LIMITS.enemySpeed.max
       ),
       enemyHealth: clamp(
         f.cycle * f.level * scale.hp,
-        DIFFICULTY.ENEMY_HEALTH_MIN,
-        DIFFICULTY.ENEMY_HEALTH_MAX
+        D_CONFIG.LIMITS.enemyHP.min,
+        D_CONFIG.LIMITS.enemyHP.max
       ),
       enemyDamage: clamp(
         f.cycle * f.pnl * scale.damage,
-        DIFFICULTY.ENEMY_DAMAGE_MIN,
-        DIFFICULTY.ENEMY_DAMAGE_MAX
+        D_CONFIG.LIMITS.enemyDamage.min,
+        D_CONFIG.LIMITS.enemyDamage.max
       ),
       total,
       factors: {
@@ -248,7 +251,8 @@ class DifficultyManagerClass {
 
     let accumulated = 0;
     for (const p of WAVE_CONFIG.PHASE_ORDER) {
-      const d = WAVE_CONFIG.DURATIONS[p];
+      const phaseConfig = WAVE_CONFIG.PHASES.find(pc => pc.name === p);
+      const d = phaseConfig?.duration ?? 0;
       if (p === phase) {
         return Math.max(0, d - (timeInCycle - accumulated));
       }
@@ -258,7 +262,9 @@ class DifficultyManagerClass {
   }
 
   getWaveMultiplier(): number {
-    return WAVE_CONFIG.MULTIPLIERS[this.getWavePhase()];
+    const phase = this.getWavePhase();
+    const phaseConfig = WAVE_CONFIG.PHASES.find(pc => pc.name === phase);
+    return phaseConfig?.multiplier ?? 1.0;
   }
 
   getTimeRemainingInCycle(): number {
@@ -282,8 +288,12 @@ class DifficultyManagerClass {
       killStreak: this.killStreak,
       totalElapsedSeconds: TimeService.getGameTimeSeconds(),
       pnlHistoryLength: 0,
-      waveDurations: { ...WAVE_CONFIG.DURATIONS },
-      waveMultipliers: { ...WAVE_CONFIG.MULTIPLIERS },
+      waveDurations: Object.fromEntries(
+        WAVE_CONFIG.PHASES.map(p => [p.name, p.duration])
+      ),
+      waveMultipliers: Object.fromEntries(
+        WAVE_CONFIG.PHASES.map(p => [p.name, p.multiplier])
+      ),
       cycleNumber: this.getCycleNumber(),
       cycleProgress: this.getCycleProgress(),
       timeRemainingInPhase: this.getTimeRemainingInPhase(),

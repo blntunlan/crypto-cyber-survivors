@@ -48,6 +48,8 @@ const CATEGORY_CONFIG: Record<SoundCategory, CategoryConfig> = {
     Icon: IconGenesisEmblem,
     description: 'Level up slot machine',
   },
+  music: { label: 'Music', Icon: IconBolt, description: 'Background music' },
+  sfx: { label: 'SFX', Icon: IconBolt, description: 'Sound effects' },
 };
 
 const CATEGORIES: SoundCategory[] = [
@@ -57,6 +59,8 @@ const CATEGORIES: SoundCategory[] = [
   'ui',
   'alerts',
   'slots',
+  'music',
+  'sfx',
 ];
 
 interface SoundMixerSectionProps {

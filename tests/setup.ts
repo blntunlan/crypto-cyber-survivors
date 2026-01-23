@@ -6,7 +6,13 @@
  */
 
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { vi, beforeAll, afterEach, afterAll } from 'vitest';
+import { server } from './mocks/server';
+
+// MSW Setup
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 // Mock Canvas API
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
@@ -31,7 +37,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   translate: vi.fn(),
   scale: vi.fn(),
   rotate: vi.fn(),
-}));
+})) as any;
 
 // Mock LocalStorage
 const localStorageMock = (() => {
@@ -139,6 +145,8 @@ vi.stubGlobal('import.meta', {
     DEV: true,
     PROD: false,
     MODE: 'test',
+    VITE_SUPABASE_URL: 'https://dqaggcizordsijpnfteo.supabase.co',
+    VITE_SUPABASE_ANON_KEY: 'mock-key',
   },
 });
 

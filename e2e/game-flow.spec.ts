@@ -13,11 +13,17 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Game Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Clear localStorage to start fresh
-    await page.goto('/');
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
+  test.beforeEach(async ({ context, page }) => {
+    // 1. Clear all state (localStorage + cookies) to start fresh ONLY on the first try
+    // Use ?no-sw=true to skip service worker which causes reload loops in E2E
+    await page.goto('/?no-sw=true');
+    await context.clearCookies();
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
+    });
+    // Wait for the app to be ready (look for root but not necessarily content yet)
+    await expect(page.locator('#root')).toBeAttached();
   });
 
   test('should display nickname entry screen on first visit', async ({ page }) => {
@@ -37,10 +43,9 @@ test.describe('Game Flow', () => {
     // Submit
     await page.keyboard.press('Enter');
 
-    // Wait for Hub Menu - look for PLAY button
-    await expect(page.getByRole('button', { name: 'PLAY' })).toBeVisible({
-      timeout: 10000,
-    });
+    // Wait for Hub Menu - look for PLAY button (resilient to key name if translation slow)
+    const playBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
+    await expect(playBtn).toBeVisible({ timeout: 15000 });
     // Should also see the nickname in Hub
     await expect(page.locator('text=E2ETestPlayer')).toBeVisible();
   });

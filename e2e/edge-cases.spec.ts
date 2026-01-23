@@ -7,9 +7,14 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Edge Cases', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => localStorage.clear());
+  test.beforeEach(async ({ context, page }) => {
+    // Navigate with no-sw flag
+    await page.goto('/?no-sw=true');
+    await context.clearCookies();
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
+    });
     await page.reload();
   });
 

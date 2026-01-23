@@ -71,7 +71,7 @@ export function isInResolutionPhase(
 /**
  * Get full timeline of phases for UI/Planning
  */
-export function getPhaseTimeline(cycleDuration = 300) {
+export function getPhaseTimeline(_cycleDuration: number = 300) {
   let startTime = 0;
   return WAVE_PHASES.map(phase => {
     const end = startTime + phase.duration;

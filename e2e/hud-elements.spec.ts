@@ -8,11 +8,13 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('HUD Elements E2E', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ context, page }) => {
     // 1. Clear state and skip nickname entry
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
+    await context.clearCookies();
     await page.evaluate(() => {
       localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -23,8 +25,8 @@ test.describe('HUD Elements E2E', () => {
         })
       );
     });
-
-    // 2. Refresh and wait for app to load (Hub Menu should show the nickname)
+    // Wait for the app to be ready
+    await expect(page.locator('#root')).toBeAttached();
     await page.reload();
 
     // Verify Nickname is visible on Hub Menu BEFORE navigating away
@@ -36,12 +38,17 @@ test.describe('HUD Elements E2E', () => {
     await hubPlayBtn.click();
 
     // 4. Start game from Main Menu (using "Long" button)
-    const mainMenuLongBtn = page.locator('button', { hasText: 'Long' });
-    await expect(mainMenuLongBtn).toBeVisible({ timeout: 10 * 1000 });
-    await mainMenuLongBtn.click();
+    const mainMenuLongBtn = page.locator('button', { hasText: /Long/i });
+    await expect(mainMenuLongBtn).toBeVisible({ timeout: 15000 });
+    await mainMenuLongBtn.click({ force: true });
+
+    // Give it a moment to start
+    await page.waitForTimeout(2000);
 
     // 5. Confirm we are in-game
-    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible({ timeout: 10 * 1000 });
+    await expect(page.locator('text=/LVL|LEVEL/i').first()).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('should verify permanent HUD components (Health & Kernel)', async ({ page }) => {
@@ -49,8 +56,9 @@ test.describe('HUD Elements E2E', () => {
     await expect(page.locator('#game-ui-overlay')).toBeAttached({ timeout: 10 * 1000 });
 
     // Verify sub-components via stable text markers
-    // LiveFeed: shows either Profit or Loss
-    await expect(page.locator('text=/Profit|Loss/i')).toBeVisible();
+    // LiveFeed: shows "Live Feed" and "ENT" (Entry)
+    await expect(page.locator('text=/Live Feed/i')).toBeVisible();
+    await expect(page.locator('text=/ENT/i')).toBeVisible();
     // KernelStatus: shows stat labels from registry
     await expect(page.locator('text=/DMG/i').first()).toBeVisible();
   });

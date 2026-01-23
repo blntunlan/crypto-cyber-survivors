@@ -9,6 +9,8 @@ Crypto-themed vampire survivors oyunu. React 19 + TypeScript + Vite + Zustand il
 Gerçek zamanlı BTC/USD fiyat verilerini Binance & Coinbase WebSocket (Price) ve Supabase Realtime (Indicators) üzerinden alır. Windows üzerinden geliştirdiğim için && kullanma ; kullan.
 Büyük diller (ES, PT, HI, VI) eklenmiş durumdadır.
 
+**QA & Testing:** Professional testing lifecycle (Level 0-8) active. Vitest + MSW for integration, Playwright for E2E. Mandatory pre-commit tests via Husky + lint-staged.
+
 ## 🛠️ Sık Kullanılan Komutlar
 
 ```bash
@@ -106,12 +108,11 @@ crypto-cyber-survivors/
 - **EventBus**: Servisler arası iletişim için `EventBus.emit()` kullan
 - **gameReset event**: Yeni oyun başladığında state sıfırlamak için subscribe ol
 
-## 🧪 Test Kuralları
-
-### Vitest
+### Unit & Integration (Vitest + MSW)
 - Test dosyaları: `tests/` klasöründe veya `*.test.ts` uzantılı
-- Mock'lar: `vi.mock()` kullan
-- Coverage: Yeni özellikler için min %80 coverage koru
+- **MSW**: API ve network çağrıları için MSW kullanımı zorunludur.
+- Mock'lar: `vi.mock()` kullan (logic için), `MSW` kullan (network için).
+- Coverage: Yeni özellikler için min %80 coverage koru.
 
 ### Playwright E2E
 - Spec dosyaları: `e2e/` klasöründe
@@ -126,6 +127,7 @@ crypto-cyber-survivors/
 4. ❌ `.env*` dosyalarını commit etme
 5. ❌ `console.log` bırakma - `Logger` servisini kullan
 6. ❌ Global değişkenler kullanma - Zustand store veya singleton servis kullan
+7. ❌ **Testi olmayan kod pushlama** - QA Lifecycle (Level 0-8) takip edilmeli.
 
 ### YAPMALISIN
 1. ✅ Her public method için JSDoc yaz
@@ -133,6 +135,7 @@ crypto-cyber-survivors/
 3. ✅ Commit mesajları conventional format: `feat:`, `fix:`, `docs:`, `test:`
 4. ✅ Lint hatası bırakma: `npm run lint` başarılı olmalı
 5. ✅ `gameReset` event'ine subscribe olarak state temizliği yap (Örn: Lucky Star buff fix sonrası)
+6. ✅ **MSW Handlers**: Yeni API endpoint'leri için handler ekle.
 
 ## 🔌 Entegrasyonlar
 
@@ -163,6 +166,7 @@ Mevcut workflow'lar `.agent/workflows/` klasöründe:
 
 - `/code-review` - Kapsamlı kod ve mimari incelemesi
 - `/pre-push-prep` - Test, lint, build ve commit hazırlığı
+- `/qa-lifestyle-workflow` - **Master QA & Test döngüsü (Level 0-8)**
 - `/deploySon` - Tam kapsamlı deployment süreci
 - `/fix-bug` - Hata ayıklama ve düzeltme standartları
 - `/code-doc-sync` - Kod ve dökümantasyon senkronizasyonu (Manual)

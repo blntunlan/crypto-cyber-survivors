@@ -68,6 +68,13 @@ const mockPool: IPoolManager = {
   cleanup: vi.fn(),
   clearAll: vi.fn(),
   trimFreeLists: vi.fn(),
+  releaseEnemy: vi.fn(),
+  releaseBullet: vi.fn(),
+  releaseGem: vi.fn(),
+  releaseParticle: vi.fn(),
+  releaseFloatingText: vi.fn(),
+  releaseSpeedLine: vi.fn(),
+  releaseInteractable: vi.fn(),
 };
 
 // Mock Objects
@@ -254,8 +261,7 @@ describe('CombatSystem', () => {
       expect(mockPool.getBullet).toHaveBeenCalled();
       const call = vi.mocked(mockPool.getBullet).mock.calls[0];
       if (!call) throw new Error('Call not found');
-      const expectedDamage = 10 * COMBAT.CRIT_DAMAGE_MULTIPLIER;
-
+      const expectedDamage = 10 * COMBAT.CRIT_MULTIPLIER;
       expect(call[4]).toBe(expectedDamage);
       expect(call[7]).toBe(true); // isCrit
       expect(call[6]).toBe(COLORS.CRIT);
@@ -272,8 +278,7 @@ describe('CombatSystem', () => {
       expect(mockPool.getBullet).toHaveBeenCalled();
       const call = vi.mocked(mockPool.getBullet).mock.calls[0];
       if (!call) throw new Error('Call not found');
-      const expectedDamage = 10 * COMBAT.SUPER_CRIT_DAMAGE_MULTIPLIER;
-
+      const expectedDamage = 10 * COMBAT.SUPER_CRIT_MULTIPLIER;
       expect(call[4]).toBe(expectedDamage);
       expect(call[8]).toBe(true); // isSuperCrit
       expect(call[6]).toBe(COLORS.SUPER_CRIT);

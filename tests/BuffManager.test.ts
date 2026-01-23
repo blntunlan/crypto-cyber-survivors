@@ -53,6 +53,7 @@ const createMockPlayer = (): Player => ({
   area: 1,
   projectiles: 1,
   regen: 0,
+  invulnerabilityTimer: 0,
 });
 
 describe('BuffManager', () => {

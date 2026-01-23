@@ -117,6 +117,8 @@ describe('SettingsPanel Full Test Suite', () => {
             ui: 1,
             alerts: 1,
             slots: 1,
+            music: 1,
+            sfx: 1,
           },
         },
         mobile: {

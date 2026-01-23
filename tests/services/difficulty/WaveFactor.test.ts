@@ -65,12 +65,12 @@ describe('WaveFactor', () => {
   describe('getPhaseConfig', () => {
     it('should return correct phase config', () => {
       const warmup = getPhaseConfig('warmup');
-      expect(warmup.duration).toBe(25);
-      expect(warmup.multiplier).toBe(0.3);
+      expect(warmup!.duration).toBe(25);
+      expect(warmup!.multiplier).toBe(0.3);
 
       const climax = getPhaseConfig('climax');
-      expect(climax.duration).toBe(45);
-      expect(climax.multiplier).toBe(1.5);
+      expect(climax!.duration).toBe(45);
+      expect(climax!.multiplier).toBe(1.5);
     });
   });
 
@@ -104,15 +104,16 @@ describe('WaveFactor', () => {
 
     it('should have correct start and end times', () => {
       const timeline = getPhaseTimeline();
-
-      expect(timeline[0].phase).toBe('warmup');
-      expect(timeline[0].startTime).toBe(0);
-      expect(timeline[0].endTime).toBe(25);
+      expect(timeline[0]).toBeDefined();
+      expect(timeline[0]!.phase).toBe('warmup');
+      expect(timeline[0]!.startTime).toBe(0);
+      expect(timeline[0]!.endTime).toBe(25);
 
       // Last phase should end at 300
       const lastPhase = timeline[timeline.length - 1];
-      expect(lastPhase.phase).toBe('resolution');
-      expect(lastPhase.endTime).toBe(300);
+      expect(lastPhase).toBeDefined();
+      expect(lastPhase!.phase).toBe('resolution');
+      expect(lastPhase!.endTime).toBe(300);
     });
   });
 });

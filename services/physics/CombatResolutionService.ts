@@ -3,9 +3,7 @@ import { type Player, type Enemy } from '../../types';
 import { DifficultyManager } from '../DifficultyManager';
 import { EventBus } from '../EventBus';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
-import { COLORS } from '../../constants';
-import { PLAYER_STATS } from '../../config/PlayerConfig';
-import { COMBAT_CONFIG } from '../../config/CombatConfig';
+import { COLORS, COMBAT_CONFIG, ECONOMY_CONFIG, PLAYER_STATS } from '../../config';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { Logger } from '../Logger';
 import { ThemeService } from '../ThemeService';
@@ -133,11 +131,11 @@ export class CombatResolutionService {
 
     // Particle count scales with hit quality and hardware performance
     const baseCount = isSuperCrit
-      ? COMBAT_CONFIG.PARTICLES.SUPER_CRIT_COUNT
-      : COMBAT_CONFIG.PARTICLES.NORMAL_COUNT;
+      ? COMBAT_CONFIG.DEATH_PARTICLES.SUPER_CRIT_COUNT
+      : COMBAT_CONFIG.DEATH_PARTICLES.NORMAL_COUNT;
 
     const count = Math.round(baseCount * perfConfig.particleMultiplier);
-    const velocityRange = COMBAT_CONFIG.PARTICLES.VELOCITY_RANGE;
+    const velocityRange = COMBAT_CONFIG.DEATH_PARTICLES.VELOCITY_RANGE;
 
     // Retro Theme: Distinctive 8-way burst + Center filler (Cardinals & Diagonals)
     if (isRetro) {
@@ -182,7 +180,7 @@ export class CombatResolutionService {
     enemy: Enemy,
     player: Player
   ): void {
-    const { GEMS, LUCK } = COMBAT_CONFIG;
+    const { GEMS, LUCK } = ECONOMY_CONFIG;
 
     // Stat Resolution with systemic caps
     const rawLuck = BuffManager.isInitialized()

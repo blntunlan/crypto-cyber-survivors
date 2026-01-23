@@ -161,7 +161,7 @@ describe('MetricsService', () => {
       // Difficulty > 5 is considered high
       MetricsService.update(1000, 0, 6.0, 100, 5, 0, 0, 'buildup', 0.01);
       MetricsService.update(500, 0, 7.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(1000, 0, 3.0, 100, 5, 0, 0, 'buildup', 0.01); // Not high
+      MetricsService.update(1000, 0, 1.0, 100, 5, 0, 0, 'buildup', 0.01); // Not high
 
       const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 

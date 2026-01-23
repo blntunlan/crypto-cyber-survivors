@@ -93,7 +93,7 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[9999] font-debug text-xs"
+      className="fixed bottom-4 right-40 z-[9999] font-debug text-xs"
       style={{ pointerEvents: 'auto' }}
     >
       {/* Toggle Button */}

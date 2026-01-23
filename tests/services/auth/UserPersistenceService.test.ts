@@ -27,6 +27,8 @@ describe('UserPersistenceService', () => {
       hasNickname: true,
       isAnonymous: false,
       lastLogin: new Date().toISOString(),
+      createdAt: Date.now(),
+      lastSeenAt: Date.now(),
     };
 
     it('should load user from localStorage immediately', async () => {
@@ -39,7 +41,12 @@ describe('UserPersistenceService', () => {
 
     it('should fallback to Cookie if localStorage is empty', async () => {
       // Create Base64 cookie content like the service does
-      const minimalUser = { playerId: 'cookie-id', nickname: 'CookieUser' };
+      const minimalUser = {
+        playerId: 'cookie-id',
+        nickname: 'CookieUser',
+        createdAt: 1000,
+        lastSeenAt: 2000,
+      };
       const content = btoa(JSON.stringify(minimalUser));
       document.cookie = `${COOKIE_NAME}=${content}; path=/`;
 
@@ -73,6 +80,8 @@ describe('UserPersistenceService', () => {
       hasNickname: true,
       isAnonymous: false,
       lastLogin: new Date().toISOString(),
+      createdAt: Date.now(),
+      lastSeenAt: Date.now(),
     };
 
     it('should save user to both storage and cookie', () => {

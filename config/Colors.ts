@@ -40,6 +40,13 @@ export const COLORS = {
   PUMP_GREEN: '#00E676',
   DUMP_ORANGE: '#FF3D00',
   JACKPOT_YELLOW: '#FFD600',
+
+  // Theme Specific
+  PRIMARY_CYBER: '#c800ff',
+  SECONDARY_CYBER: '#00ccff',
+  ACCENT_CYBER: '#ffff00',
+  BG_CYBER: '#050505',
+  BG_RETRO: '#000033',
 } as const;
 
 // Type export for color keys

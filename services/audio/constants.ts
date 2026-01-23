@@ -97,4 +97,6 @@ export const DEFAULT_CATEGORY_VOLUMES: CategoryVolumes = {
   ui: 1.0,
   alerts: 1.0,
   slots: 1.0,
+  music: 1.0,
+  sfx: 1.0,
 };

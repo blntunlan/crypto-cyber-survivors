@@ -10,7 +10,8 @@ import {
   type ViewportBounds,
 } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
-import { GAME_ENGINE, GEMS } from '../../constants';
+import { GAME_ENGINE } from '../../constants';
+import { ECONOMY_CONFIG } from '../../config';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -138,7 +139,7 @@ export class EntityRenderer implements IRenderer {
 
       // Calculate fade-out alpha based on lifetime
       const elapsed = g.elapsedLifetime ?? 0;
-      const lifetime = GEMS.LIFETIME;
+      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
       const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
 
       // Start fading when 30% of lifetime remains

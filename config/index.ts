@@ -30,5 +30,8 @@ export {
   COMBAT_CONFIG,
   VISUAL_CONFIG,
   UI_CONFIG,
+  LEVERAGE_TIERS,
+  ECONOMY_CONFIG,
+  CHEAT_CONFIG,
 } from './GameConfig';
 export type { WavePhase } from './GameConfig';

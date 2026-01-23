@@ -40,7 +40,7 @@ describe('Supabase Error Handling in Services', () => {
     };
 
     // Example service logic test (AchievementService or similar)
-    const { data, error } = await mockSupabase.from('test').select('*').eq('id', '1');
+    const { data, error } = await mockSupabase.from().select().eq();
 
     expect(data).toBeNull();
     expect(error.message).toBe('Database unreachable');

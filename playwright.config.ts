@@ -26,8 +26,8 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Limit workers on CI
-  workers: process.env.CI ? 1 : undefined,
+  // Limit workers
+  workers: 1,
 
   // Reporter
   reporter: [['html', { open: 'never' }], ['list']],
@@ -35,7 +35,7 @@ export default defineConfig({
   // Shared settings
   use: {
     // Base URL for all tests
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3000?no-sw=true',
 
     // Collect trace on failure
     trace: 'on-first-retry',
@@ -45,6 +45,11 @@ export default defineConfig({
 
     // Video on failure
     video: 'on-first-retry',
+
+    // Disable service worker in tests
+    contextOptions: {
+      ignoreHTTPSErrors: true,
+    },
   },
 
   // Projects for different browsers

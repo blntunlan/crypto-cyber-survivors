@@ -46,8 +46,10 @@ describe('InventoryService', () => {
 
     it('should respect max stack limits', () => {
       const def = CONSUMABLE_DEFINITIONS['staking_reward'];
-      InventoryService.addItem('consumable', 'staking_reward', def.maxStack + 10);
-      expect(InventoryService.getConsumableCount('staking_reward')).toBe(def.maxStack);
+      // Ensure definition exists
+      expect(def).toBeDefined();
+      InventoryService.addItem('consumable', 'staking_reward', def!.maxStack + 10);
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(def!.maxStack);
     });
 
     it('should use consumables and apply effects', () => {
@@ -103,7 +105,6 @@ describe('InventoryService', () => {
       InventoryService.setPlayer('p1');
 
       // Simulating event from LootboxService
-      // @ts-expect-error: testing
       EventBus.emit('inventoryItemAdded', {
         itemType: 'consumable',
         itemId: 'staking_reward',

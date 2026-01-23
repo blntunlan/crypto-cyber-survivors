@@ -33,7 +33,9 @@ export type SoundCategory =
   | 'movement'
   | 'ui'
   | 'alerts'
-  | 'slots';
+  | 'slots'
+  | 'music'
+  | 'sfx';
 
 /**
  * Category volumes record type

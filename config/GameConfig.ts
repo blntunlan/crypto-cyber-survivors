@@ -4,39 +4,26 @@
  * Configuration for game flow, waves, and timing.
  */
 
-import { type WavePhase } from '../types/metrics';
+import { type WavePhase } from '../services/difficulty/types';
+export type { WavePhase };
 
 // =============================================================================
 // WAVE SYSTEM (5-minute cycle = 300 seconds)
 // =============================================================================
 
-// Re-export WavePhase for backwards compatibility
-export type { WavePhase } from '../types/metrics';
-
 export const WAVE_CONFIG = {
-  // Duration of each phase in seconds (total: 300s = 5 minutes)
-  DURATIONS: {
-    warmup: 25, // 0:00-0:25 - Quick start
-    buildup: 60, // 0:45-1:45 - Gradual increase
-    firstPeak: 30, // 1:45-2:15 - First spike
-    breather: 45, // 2:15-3:00 - Relief
-    escalation: 60, // 3:00-4:00 - Building
-    climax: 45, // 4:00-4:45 - Maximum
-    resolution: 15, // 4:45-5:00 - Decision
-  } as Record<WavePhase, number>,
+  // Ordered phases for the difficulty cycle
+  PHASES: [
+    { name: 'warmup', duration: 25, multiplier: 0.3 },
+    { name: 'buildup', duration: 60, multiplier: 0.5 },
+    { name: 'firstPeak', duration: 30, multiplier: 1.3 },
+    { name: 'breather', duration: 45, multiplier: 0.6 },
+    { name: 'escalation', duration: 60, multiplier: 1.15 },
+    { name: 'climax', duration: 45, multiplier: 1.5 },
+    { name: 'resolution', duration: 35, multiplier: 0.5 },
+  ] as Array<{ name: WavePhase; duration: number; multiplier: number }>,
 
-  // Difficulty multipliers for each phase (yo-yo pattern)
-  MULTIPLIERS: {
-    warmup: 0.75, // Engaging start
-    buildup: 0.8, // Ramping up
-    firstPeak: 1.3, // First adrenaline hit
-    breather: 0.6, // Relief - collect power
-    escalation: 1.1, // Building tension
-    climax: 1.5, // Maximum intensity
-    resolution: 0.4, // Cooldown for decision
-  } as Record<WavePhase, number>,
-
-  // Phase order for cycling
+  // Phase order for cycling (keys only)
   PHASE_ORDER: [
     'warmup',
     'buildup',
@@ -47,62 +34,105 @@ export const WAVE_CONFIG = {
     'resolution',
   ] as WavePhase[],
 
-  // Total cycle duration (calculated)
-  TOTAL_DURATION: 300, // 5 minutes in seconds
+  // Total cycle duration (calculated: 300s = 5 minutes)
+  TOTAL_DURATION: 300,
 };
 
 // =============================================================================
-// DIFFICULTY SYSTEM
+// DIFFICULTY V2 SYSTEM CONFIG
 // =============================================================================
 
 export const DIFFICULTY_CONFIG = {
-  // Time-based scaling
-  BASE_TIME_INCREASE: 0.15, // 15% per minute
-  MAX_TIME_MULTIPLIER: 2.5,
+  /** PnL history buffer size */
+  PNL_HISTORY_SIZE: 30,
 
-  // P&L scaling
-  MIN_PNL_MULTIPLIER: 0.7, // when winning
-  MAX_PNL_MULTIPLIER: 3.0, // when losing
+  /** Kill streak timeout (ms) */
+  STREAK_TIMEOUT_MS: 3000,
 
-  // Volatility
-  MIN_VOLATILITY_MULT: 0.9,
-  MAX_VOLATILITY_MULT: 1.8,
+  /** Shock detection threshold (underlying price %) */
+  SHOCK_THRESHOLD: 0.005,
 
-  // Level
-  LEVEL_INCREASE: 0.05, // 5% per level
-  MAX_LEVEL_MULTIPLIER: 1.5,
+  /** Clamp limits for engine outputs */
+  LIMITS: {
+    total: { min: 0.5, max: 10.0 },
+    spawnRate: { min: 0.5, max: 8.0 },
+    enemySpeed: { min: 0.5, max: 4.0 },
+    enemyHP: { min: 0.5, max: 5.0 },
+    enemyDamage: { min: 0.8, max: 8.0 },
+  },
 
-  // Special modifiers
-  NEAR_DEATH_THRESHOLD: 20, // HP %
-  NEAR_DEATH_REDUCTION: 0.7, // 30% easier
+  /** Near Death Threshold */
+  NEAR_DEATH_HP_THRESHOLD: 20, // %
+  NEAR_DEATH_DIFFICULTY_MODIFIER: 0.7, // 30% easier
 
-  // Kill streak
-  STREAK_TIMEOUT: 3000, // ms
-  STREAK_BONUS_PER_5: 0.05, // 5% per 5 kills
-  MAX_STREAK_BONUS: 0.3, // 30% max
+  /** Admin scaling */
+  BASE_ADMIN_DIVISOR: 5,
 
-  // Overall caps
-  MIN_DIFFICULTY: 0.3,
-  MAX_DIFFICULTY: 8.0,
+  /** Output scaling */
+  SPAWN_RATE_TOTAL_MULTIPLIER: 1.6,
+};
+
+/**
+ * Leverage Scaling Tiers
+ * Maps player leverage to difficulty multipliers and XP requirements.
+ */
+export const LEVERAGE_TIERS: Record<
+  number,
+  { spawn: number; speed: number; hp: number; damage: number; xpReq: number }
+> = {
+  1: { spawn: 0.7, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 },
+  2: { spawn: 0.8, speed: 0.85, hp: 0.9, damage: 0.9, xpReq: 1.1 },
+  5: { spawn: 1.0, speed: 1.0, hp: 1.0, damage: 1.0, xpReq: 1.25 },
+  10: { spawn: 1.2, speed: 1.1, hp: 1.1, damage: 1.15, xpReq: 1.5 },
+  25: { spawn: 1.5, speed: 1.25, hp: 1.2, damage: 1.4, xpReq: 2.0 },
+  50: { spawn: 2.0, speed: 1.4, hp: 1.4, damage: 1.8, xpReq: 3.0 },
+  100: { spawn: 2.5, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 5.0 },
 };
 
 // =============================================================================
-// COMBAT TIMINGS
+// COMBAT TIMINGS & LOGIC
 // =============================================================================
 
 export const COMBAT_CONFIG = {
-  // Bullet
+  // Projectile
   BULLET_SPEED: 10,
   BULLET_LIFETIME: 2000, // ms
+  PROJECTILE_SPREAD: 0.1,
+  PROJECTILE_RADIUS_BASE: 4.5,
+  PROJECTILE_RADIUS_CRIT: 5.5,
+  PROJECTILE_RADIUS_SUPER_CRIT: 6.5,
 
-  // Auto-aim
+  // Auto-aim / Lead
   AIM_RANGE: 400, // pixels
+  MIN_LEAD_DISTANCE: 100,
+  MAX_LEAD_DISTANCE: 400,
+  INTERCEPT_EPSILON: 0.0001,
+  MAX_INTERCEPT_TIME_FRAMES: 60,
 
-  // Damage
-  ARMOR_REDUCTION_PER_POINT: 0.05, // 5% per armor
+  // Damage Logic
+  ARMOR_REDUCTION_PER_POINT: 0.05,
   CRIT_DAMAGE_MULTIPLIER: 2.0,
-  SUPER_CRIT_MULTIPLIER: 3.0,
-  SUPER_CRIT_LUCK_THRESHOLD: 3, // luck needed for super crits
+  SUPER_CRIT_MULTIPLIER: 4.0,
+  SUPER_CRIT_LUCK_THRESHOLD: 3,
+
+  // Physics Effects
+  SHOCKWAVE: {
+    BASE_FORCE: 15,
+    STAGGER_DURATION: 0.5,
+  },
+  LIFESTEAL: {
+    HEAL_AMOUNT_NORMAL: 3,
+    HEAL_AMOUNT_WHALE: 8,
+  },
+  DEATH_PARTICLES: {
+    NORMAL_COUNT: 10,
+    SUPER_CRIT_COUNT: 30,
+    VELOCITY_RANGE: 6,
+  },
+
+  // Fallbacks & Audio
+  FIRE_RATE_AUDIO_THRESHOLD: 200,
+  DEFAULT_ENEMY_RADIUS_FALLBACK: 20,
 };
 
 // =============================================================================
@@ -128,7 +158,48 @@ export const VISUAL_CONFIG = {
 };
 
 // =============================================================================
-// UI/UX
+// ECONOMY & PROGRESSION
+// =============================================================================
+
+export const ECONOMY_CONFIG = {
+  // Experience Gems
+  GEMS: {
+    BASE_VALUE_NORMAL: 15,
+    BASE_VALUE_WHALE: 100,
+    RARE_MULTIPLIER: 3,
+    RARE_SIZE: 10,
+    NORMAL_SIZE: 7,
+    BONUS_SIZE: 5,
+    BONUS_OFFSET: 20,
+    LIFETIME_MS: 5000,
+  },
+
+  // Luck System
+  LUCK: {
+    BASE_RARE_CHANCE: 0.05,
+    RARE_CHANCE_PER_LUCK: 0.03,
+    MAX_RARE_CHANCE: 0.5,
+    BONUS_GEM_CHANCE_PER_LUCK: 0.1,
+    MAX_BONUS_GEM_CHANCE: 0.5,
+    VALUE_BONUS_PER_LUCK: 0.01,
+    BONUS_VALUE_MULTIPLIER: 0.5,
+  },
+};
+
+// =============================================================================
+// ADMIN & DEBUG TOOLS
+// =============================================================================
+
+export const CHEAT_CONFIG = {
+  TIMEOUT_MS: 2000,
+  EXP_BOOST: 500,
+  CYCLE_TIME: 300,
+  NOTIFICATION_DURATION_MS: 2000,
+  BUFFER_CLEAR_DELAY_MS: 2000,
+};
+
+// =============================================================================
+// UI/X CONFIG
 // =============================================================================
 
 export const UI_CONFIG = {

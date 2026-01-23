@@ -90,7 +90,9 @@ describe('CoinService System', () => {
 
       expect(await provider.getBalance()).toBe(100);
       expect(provider.getTransactions()).toHaveLength(1);
-      expect(provider.getTransactions()[0].source).toBe('achievement');
+      const tx = provider.getTransactions()[0];
+      expect(tx).toBeDefined();
+      expect(tx!.source).toBe('achievement');
     });
   });
 

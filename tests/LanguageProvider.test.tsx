@@ -12,7 +12,7 @@ import { useLanguage } from '../contexts/useLanguage';
 
 // Mock fetch to simulate translation loading failure
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 // Test component that uses useLanguage hook
 const TestComponent = () => {
@@ -112,7 +112,13 @@ describe('LanguageProvider - Blank Screen Bug', () => {
     );
 
     // Should show the translated text
-    const loadingText = await screen.findByTestId('loading-text');
-    expect(loadingText).toHaveTextContent('LOADING ENGINE...');
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('loading-text')).toHaveTextContent(
+          'LOADING ENGINE...'
+        );
+      },
+      { timeout: 2000 }
+    );
   });
 });

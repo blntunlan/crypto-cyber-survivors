@@ -44,7 +44,7 @@ export const ParticleDebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-80 z-[9999] bg-slate-800 text-slate-400 p-2 rounded-lg 
+        className="fixed bottom-4 right-[30rem] z-[9999] bg-slate-800 text-slate-400 p-2 rounded-lg 
                    border border-slate-700 hover:bg-slate-700 transition-colors text-[10px]"
       >
         ✨ PARTICLE DBG (ALT+P)

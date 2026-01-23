@@ -3,9 +3,16 @@ import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Accessibility (A11y) Checks', () => {
   test('should not have accessibility violations on Nickname Entry screen', async ({
+    context,
     page,
   }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
+    await context.clearCookies();
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
+    });
+    await page.reload();
 
     // Scan Nickname Screen
     // The nickname screen is the first thing shown
@@ -31,12 +38,16 @@ test.describe('Accessibility (A11y) Checks', () => {
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 
-  test('should not have accessibility violations on Main Menu', async ({ page }) => {
+  test('should not have accessibility violations on Main Menu', async ({
+    context,
+    page,
+  }) => {
     // Navigate to Main Menu
-    await page.goto('/');
-
-    // 1. Bypass nickname entry via localStorage
+    await page.goto('/?no-sw=true');
+    await context.clearCookies();
     await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({

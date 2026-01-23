@@ -1,6 +1,6 @@
 import { MarketPosition, type CryptoPair } from '../types';
 import { type IPoolManager } from './interfaces/IPoolManager';
-import { GAME_ENGINE, SPAWN } from '../constants';
+import { ENEMY_SPAWN } from '../config';
 import { useAdminConfigStore } from '../stores/admin/configStore';
 import {
   MarketStateService as marketStateService,
@@ -61,13 +61,12 @@ export class SpawnSystem implements ISpawnSystem {
 
     // Resolve current wave intensity modifiers
     const waveIntensity = config.waveIntensity;
-    const intensityMultiplier = SPAWN.WAVE_INTENSITY_OFFSET + waveIntensity;
+    const intensityMultiplier = ENEMY_SPAWN.WAVE_INTENSITY_OFFSET + waveIntensity;
 
     // Difficulty-scaled spawn rate calculation
     // Multiplier from server (ATR/Trend based) generally scales the entire difficulty
     const scaledDifficulty =
-      (1 +
-        (difficulty - 1) * GAME_ENGINE.SPAWN_DIFFICULTY_SCALE * intensityMultiplier) *
+      (1 + (difficulty - 1) * ENEMY_SPAWN.DIFFICULTY_SCALE * intensityMultiplier) *
       spawnRateMultiplier;
 
     // Determine current population limit
@@ -205,7 +204,7 @@ export class SpawnSystem implements ISpawnSystem {
     const frameTargetMs = 16.66; // 60 FPS baseline
     const probPerFrame =
       whaleConfig.spawnChance *
-      SPAWN.WHALE_PROBABILITY_MODIFIER *
+      ENEMY_SPAWN.WHALE_PROBABILITY_MODIFIER *
       (deltaTime / frameTargetMs);
 
     if (
@@ -247,7 +246,7 @@ export class SpawnSystem implements ISpawnSystem {
     const { x, y } = this.getRandomSpawnPosition(width, height);
 
     // Decision Logic: Thematic vs Variant
-    if (Math.random() < SPAWN.THEMATIC_SPAWN_CHANCE) {
+    if (Math.random() < ENEMY_SPAWN.THEMATIC_CHANCE) {
       // Thematic Spawning: Aligns with LONG/SHORT and Profit/Loss states
       const isBearMarket =
         (position === MarketPosition.LONG && pnl < 0) ||
@@ -268,9 +267,9 @@ export class SpawnSystem implements ISpawnSystem {
       const roll = Math.random();
       let enemyType: EnemyId;
 
-      if (roll < SPAWN.RANDOM_FUD_THRESHOLD) {
+      if (roll < ENEMY_SPAWN.RANDOM_FUD_THRESHOLD) {
         enemyType = 'fud';
-      } else if (roll < SPAWN.RANDOM_LIQUIDATOR_THRESHOLD) {
+      } else if (roll < ENEMY_SPAWN.RANDOM_LIQUIDATOR_THRESHOLD) {
         enemyType = 'liquidator';
       } else {
         enemyType = 'pumpdump';
@@ -299,7 +298,10 @@ export class SpawnSystem implements ISpawnSystem {
     height: number
   ): { x: number; y: number } {
     const edge = Math.floor(Math.random() * 4);
-    const safeOffset = Math.max(GAME_ENGINE.SPAWN_OFFSET, SPAWN.MIN_SAFE_SPAWN_OFFSET);
+    const safeOffset = Math.max(
+      ENEMY_SPAWN.SPAWN_DISTANCE,
+      ENEMY_SPAWN.MIN_SAFE_OFFSET
+    );
 
     let x = 0,
       y = 0;
@@ -341,9 +343,9 @@ export class SpawnSystem implements ISpawnSystem {
     } catch {
       // Return safe defaults if store is inaccessible
       return {
-        baseInterval: GAME_ENGINE.SPAWN_TIMER_BASE,
-        maxEnemies: SPAWN.MAX_DEFAULT_ENEMIES,
-        waveIntensity: SPAWN.WAVE_INTENSITY_OFFSET,
+        baseInterval: ENEMY_SPAWN.BASE_INTERVAL,
+        maxEnemies: ENEMY_SPAWN.MAX_ENEMIES,
+        waveIntensity: ENEMY_SPAWN.WAVE_INTENSITY_OFFSET,
       };
     }
   }
