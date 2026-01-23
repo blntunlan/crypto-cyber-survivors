@@ -44,10 +44,10 @@ export const POOL = {
  * Difficulty Limits
  */
 export const DIFFICULTY = {
-  SPAWN_RATE_MAX: 10.0,
-  ENEMY_SPEED_MAX: 5.0,
-  ENEMY_DAMAGE_MAX: 500,
-  SPAWN_RATE_MIN: 0.2, // Safety floor
+  SPAWN_RATE_MAX: 35.0,
+  ENEMY_SPEED_MAX: 4.0,
+  ENEMY_DAMAGE_MAX: 8.0,
+  SPAWN_RATE_MIN: 0.5, // Safety floor matching min in config
 };
 
 export const COMBAT = {

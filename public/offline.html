@@ -170,17 +170,17 @@
       if (navigator.onLine) {
         document.querySelector('.status').innerHTML =
           '<strong>Status:</strong> Connection available, reloading...';
-        
+
         // Only attempt auto-reload once every 5 seconds to avoid battery/cpu drain and loop
         if (!window.name.includes('reloaded_')) {
           window.name = 'reloaded_' + Date.now();
           setTimeout(() => window.location.reload(), 2000);
         } else {
-           const lastReload = parseInt(window.name.split('_')[1]);
-           if (Date.now() - lastReload > 10000) {
-              window.name = 'reloaded_' + Date.now();
-              window.location.reload();
-           }
+          const lastReload = parseInt(window.name.split('_')[1]);
+          if (Date.now() - lastReload > 10000) {
+            window.name = 'reloaded_' + Date.now();
+            window.location.reload();
+          }
         }
       }
     </script>

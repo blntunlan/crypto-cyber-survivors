@@ -83,7 +83,7 @@ export const AnalyticsDashboard: React.FC = () => {
 
       // Fetch session stats
       const { data: sessionData } = await supabase
-        .from('analytics_sessions')
+        .from('v_analytics_sessions')
         .select('*')
         .limit(7);
       if (sessionData) {
@@ -92,7 +92,7 @@ export const AnalyticsDashboard: React.FC = () => {
 
       // Fetch top errors
       const { data: errorData } = await supabase
-        .from('analytics_top_errors')
+        .from('v_analytics_top_errors')
         .select('*')
         .limit(10);
       if (errorData) {
@@ -101,7 +101,7 @@ export const AnalyticsDashboard: React.FC = () => {
 
       // Fetch device stats
       const { data: deviceData } = await supabase
-        .from('analytics_performance_by_device')
+        .from('v_analytics_performance_by_device')
         .select('*')
         .limit(10);
       if (deviceData) {

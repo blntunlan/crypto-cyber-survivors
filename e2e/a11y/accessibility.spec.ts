@@ -11,6 +11,7 @@ test.describe('Accessibility (A11y) Checks', () => {
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
     });
     await page.reload();
 
@@ -48,6 +49,7 @@ test.describe('Accessibility (A11y) Checks', () => {
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({

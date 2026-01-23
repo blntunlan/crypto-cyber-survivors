@@ -156,7 +156,8 @@ export class MarketService {
   private resumeConnections(): void {
     this.wasClosedIntentionally = false;
     this.connectBinance();
-    this.connectCoinbase();
+    // Re-activates primary source. Fallback (Coinbase) will be
+    // triggered automatically if Binance fails to connect.
   }
 
   /**

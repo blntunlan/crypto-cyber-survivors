@@ -1,5 +1,5 @@
 /**
- * Service Worker for Crypto Cyber Survivors PWA
+ * Service Worker for Crypto Survivors PWA
  *
  * Provides:
  * - Static asset caching for offline play

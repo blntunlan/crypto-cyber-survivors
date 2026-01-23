@@ -115,7 +115,8 @@ describe('GameStateManager', () => {
         startParams.entryPrice,
         startParams.leverage,
         startParams.pair,
-        'mock-session-id'
+        'mock-session-id',
+        'mock-secret'
       );
 
       // Should emit gameInitialized

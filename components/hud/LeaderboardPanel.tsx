@@ -59,7 +59,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
     }
 
     try {
-      const { data, error } = await supabase.from('leaderboard').select('*').limit(10);
+      const { data, error } = await supabase
+        .from('v_leaderboard')
+        .select('*')
+        .limit(10);
 
       if (error) {
         // Fallback to empty if table doesn't exist yet

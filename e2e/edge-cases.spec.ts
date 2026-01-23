@@ -14,6 +14,7 @@ test.describe('Edge Cases', () => {
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
     });
     await page.reload();
   });

@@ -376,6 +376,51 @@ describe('MarketService', () => {
           pair: 'BTC',
         })
       );
+      marketService.destroy();
+    });
+  });
+
+  describe('Edge Case & Resilience', () => {
+    it('should handle Total Market Blackout (Both feeds down)', async () => {
+      marketService.connect();
+      await vi.runAllTimersAsync();
+
+      // Reset mocks before blackout
+      onStatusChange.mockClear();
+
+      // Kill Binance
+      mockSockets[0]!.onclose?.();
+      await vi.advanceTimersByTimeAsync(100); // Trigger immediate fallback
+
+      // Kill Coinbase
+      if (mockSockets[1]) {
+        mockSockets[1]!.onclose?.();
+      }
+
+      // Should be in offline mode (nothing connected and no price received yet)
+      expect(marketService.isConnected()).toBe(false);
+      expect(marketService.isOfflineMode()).toBe(true);
+
+      // Should return fallback price
+      expect(marketService.getPrice()).toBeGreaterThan(0);
+    });
+
+    it('should survive Rapid Reconnect Storm (Flapping connection)', async () => {
+      marketService.connect();
+      await vi.runAllTimersAsync();
+
+      // Simulate rapid connection/disconnection cycles
+      for (let i = 0; i < 5; i++) {
+        const lastSocket = mockSockets[mockSockets.length - 1]!;
+        lastSocket.onopen?.(); // Connect
+        lastSocket.onclose?.(); // Disconnect immediately
+        // DO NOT run timers fully here, just a small bit to ensure processing
+        await vi.advanceTimersByTimeAsync(50);
+      }
+
+      // Should be in a reconnecting or disconnected state, not connected
+      const status = marketService.getStatus();
+      expect(status.binance).not.toBe('connected');
     });
   });
 

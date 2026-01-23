@@ -255,6 +255,17 @@ export class SynthEngine {
   }
 
   /**
+   * Reset engine state for testing purposes.
+   */
+  resetForTesting(): void {
+    this.lastPlayTime.clear();
+    this.stopAll();
+    this.isMuted = false;
+    this.volume = 1.0;
+    this.categoryVolumes = { ...DEFAULT_CATEGORY_VOLUMES };
+  }
+
+  /**
    * Fully dispose of the AudioContext.
    * Used for cleanup or when resetting the audio system.
    */

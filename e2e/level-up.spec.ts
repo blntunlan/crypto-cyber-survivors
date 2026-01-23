@@ -7,6 +7,7 @@ test.describe('Level Up Flow', () => {
 
     await page.goto('/');
     await page.evaluate(() => {
+      localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({

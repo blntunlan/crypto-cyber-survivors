@@ -21,6 +21,7 @@ export class GameSessionService {
   private static currentSessionId: string | null = null;
   private static currentSessionSecret: string | null = null;
   private static isStarting = false;
+  private static isSubmitting = false;
 
   /**
    * Start a new validated session on the server.
@@ -87,6 +88,85 @@ export class GameSessionService {
       return null;
     } finally {
       this.isStarting = false;
+    }
+  }
+
+  /**
+   * Submit session results for verification and reward processing.
+   * This is the "Data Bridge" that closes the loop between game and DB.
+   */
+  static async submitSession(results: {
+    level: number;
+    kills: number;
+    survivalTimeMs: number;
+    exitPrice: number;
+    pnlPercent: number;
+    endReason: string;
+    replayData?: any;
+    performance?: any;
+  }): Promise<{ success: boolean; reward?: number; error?: string }> {
+    if (!this.currentSessionId || !this.currentSessionSecret) {
+      Logger.warn('[GameSession] Cannot submit: No active session found');
+      return { success: false, error: 'NO_ACTIVE_SESSION' };
+    }
+
+    if (this.isSubmitting) {
+      Logger.warn('[GameSession] Result submission already in progress');
+      return { success: false, error: 'SUBMISSION_IN_PROGRESS' };
+    }
+
+    this.isSubmitting = true;
+
+    try {
+      if (!isSupabaseConfigured() || !supabase) {
+        throw new Error('Supabase not configured');
+      }
+
+      Logger.info(
+        `[GameSession] Submitting results for session: ${this.currentSessionId}`
+      );
+
+      const { data, error } = await supabase.functions.invoke('submit-score', {
+        body: {
+          sessionId: this.currentSessionId,
+          sessionSecret: this.currentSessionSecret,
+          results: {
+            ...results,
+            // Ensure numbers are sanitized
+            level: Math.floor(results.level),
+            kills: Math.floor(results.kills),
+            survivalTimeMs: Math.floor(results.survivalTimeMs),
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      Logger.info('[GameSession] Results submitted and verified successfully', data);
+
+      // Clear session after successful submission
+      this.clearSession();
+
+      return {
+        success: true,
+        reward: data.rewardAmount,
+      };
+    } catch (error) {
+      Logger.error('[GameSession] Failed to submit session results', error);
+
+      // In DEV mode, we simulate success to allow UI testing
+      if (import.meta.env.DEV) {
+        Logger.warn('[GameSession] DEV mode: Simulating successful submission');
+        this.clearSession();
+        return { success: true, reward: 0 };
+      }
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      };
+    } finally {
+      this.isSubmitting = false;
     }
   }
 

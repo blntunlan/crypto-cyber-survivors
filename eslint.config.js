@@ -24,6 +24,8 @@ export default tseslint.config(
       '.agents/**',
       '.windsurf/**',
       'supabase/functions/**', // Deno environment - different runtime
+      'railway-market-server/**',
+      'scripts/**',
     ],
   },
 

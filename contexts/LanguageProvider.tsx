@@ -1,20 +1,20 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { LanguageContext } from './LanguageContextDefinition';
-import { type Language } from './LanguageConstants';
+import { SUPPORTED_LANGUAGES, type Language } from './LanguageConstants';
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Helper to determine initial language
   const getInitialLanguage = (): Language => {
     // 1. Priority: User's saved preference
     const saved = localStorage.getItem('game_lang') as Language | null;
-    if (saved && ['en', 'tr', 'hi', 'vi', 'es', 'pt'].includes(saved)) {
+    if (saved && SUPPORTED_LANGUAGES.includes(saved)) {
       return saved;
     }
 
     // 2. Priority: Browser/Device language
     try {
       const browserLang = navigator.language.split('-')[0] as Language; // 'tr-TR' -> 'tr'
-      if (['en', 'tr', 'hi', 'vi', 'es', 'pt'].includes(browserLang)) {
+      if (SUPPORTED_LANGUAGES.includes(browserLang)) {
         return browserLang;
       }
     } catch {

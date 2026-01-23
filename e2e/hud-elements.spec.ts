@@ -15,6 +15,7 @@ test.describe('HUD Elements E2E', () => {
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({

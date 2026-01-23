@@ -103,9 +103,34 @@ describe('AudioService', () => {
       audio.playCrit();
       audio.playLevelUp();
       audio.playDeath();
+      audio.playGem();
+      audio.playDash();
+      audio.playHeartbeat();
+      audio.playWhoosh();
+      audio.playCombo(2);
+      audio.playWhaleArrival();
+      audio.playButton();
+      audio.playSelectionTick();
+      audio.playKeystroke();
+      audio.playToggle();
+      audio.playAchievementGlint();
+      audio.playPairSelect();
+
       expect(GameSounds.playCrit).toHaveBeenCalled();
       expect(GameSounds.playLevelUp).toHaveBeenCalled();
       expect(GameSounds.playDeath).toHaveBeenCalled();
+      expect(GameSounds.playGem).toHaveBeenCalled();
+      expect(GameSounds.playDash).toHaveBeenCalled();
+      expect(GameSounds.playHeartbeat).toHaveBeenCalled();
+      expect(GameSounds.playWhoosh).toHaveBeenCalled();
+      expect(GameSounds.playCombo).toHaveBeenCalledWith(2);
+      expect(GameSounds.playWhaleArrival).toHaveBeenCalled();
+      expect(GameSounds.playButton).toHaveBeenCalled();
+      expect(GameSounds.playSelectionTick).toHaveBeenCalled();
+      expect(GameSounds.playKeystroke).toHaveBeenCalled();
+      expect(GameSounds.playToggle).toHaveBeenCalled();
+      expect(GameSounds.playAchievementGlint).toHaveBeenCalled();
+      expect(GameSounds.playPairSelect).toHaveBeenCalled();
     });
   });
 

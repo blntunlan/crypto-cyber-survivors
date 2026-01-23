@@ -8,6 +8,7 @@ test.describe('Cycle Complete Flow', () => {
 
     // Set user to skip nickname entry
     await page.evaluate(() => {
+      localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({

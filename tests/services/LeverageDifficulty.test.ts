@@ -11,9 +11,9 @@ describe('Leverage-based Difficulty Scaling', () => {
     DifficultyManager.startGame(1);
     const output = DifficultyManager.calculate(0, 0.02, 1, 100);
 
-    // Leverage 1x: { spawn: 0.7, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 }
+    // Leverage 1x: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 }
     expect(output.factors.leverageDamage).toBe(0.8);
-    expect(output.factors.leverageSpawn).toBe(0.7);
+    expect(output.factors.leverageSpawn).toBe(0.8);
     expect(output.factors.leverageSpeed).toBe(0.8);
   });
 
@@ -21,9 +21,9 @@ describe('Leverage-based Difficulty Scaling', () => {
     DifficultyManager.startGame(100);
     const output = DifficultyManager.calculate(0, 0.02, 1, 100);
 
-    // Leverage 100x: { spawn: 2.5, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 5.0 }
+    // Leverage 100x: { spawn: 6.0, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 5.0 }
     expect(output.factors.leverageDamage).toBe(3.0);
-    expect(output.factors.leverageSpawn).toBe(2.5);
+    expect(output.factors.leverageSpawn).toBe(6.0);
     expect(output.factors.leverageSpeed).toBe(2.0);
   });
 
@@ -35,8 +35,8 @@ describe('Leverage-based Difficulty Scaling', () => {
     DifficultyManager.startGame(100);
     const spawn100x = DifficultyManager.calculate(0, 0.02, 1, 100).spawnRate;
 
-    // 100x should have more spawn than 1x (3.0 / 0.7 = 4.28x)
-    expect(spawn100x).toBeGreaterThan(spawn1x * 3);
+    // 100x should have more spawn than 1x (4.5 / 0.6 = 7.5x)
+    expect(spawn100x).toBeGreaterThan(spawn1x * 7);
   });
 
   it('should scale enemyDamage correctly with leverage', () => {

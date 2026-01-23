@@ -72,8 +72,17 @@ class CloudflareServiceClass {
   private currentSessionId: string | null = null;
   private sessionStartTime: number = 0;
 
+  private workerUrls = {
+    PRICE_ORACLE:
+      (import.meta.env.VITE_CF_PRICE_ORACLE_URL as string | undefined) ?? '',
+    SESSION_VALIDATOR:
+      (import.meta.env.VITE_CF_SESSION_VALIDATOR_URL as string | undefined) ?? '',
+  };
+
   constructor() {
-    this.enabled = !!(WORKER_URLS.PRICE_ORACLE && WORKER_URLS.SESSION_VALIDATOR);
+    this.enabled = !!(
+      this.workerUrls.PRICE_ORACLE && this.workerUrls.SESSION_VALIDATOR
+    );
     if (!this.enabled) {
       Logger.warn(
         '[CloudflareService] Workers not configured. Set VITE_CF_PRICE_ORACLE_URL and VITE_CF_SESSION_VALIDATOR_URL'
@@ -99,7 +108,7 @@ class CloudflareServiceClass {
     if (!this.enabled) return [];
 
     try {
-      const response = await fetch(`${WORKER_URLS.PRICE_ORACLE}/prices`);
+      const response = await fetch(`${this.workerUrls.PRICE_ORACLE}/prices`);
       if (!response.ok) {
         throw new Error(`Price oracle error: ${response.status}`);
       }
@@ -129,7 +138,7 @@ class CloudflareServiceClass {
     }
 
     try {
-      const url = new URL(`${WORKER_URLS.PRICE_ORACLE}/verify`);
+      const url = new URL(`${this.workerUrls.PRICE_ORACLE}/verify`);
       url.searchParams.set('pair', pair);
       url.searchParams.set('price', String(price));
       url.searchParams.set('timestamp', String(timestamp));
@@ -150,7 +159,7 @@ class CloudflareServiceClass {
     if (!this.enabled) return false;
 
     try {
-      const response = await fetch(`${WORKER_URLS.PRICE_ORACLE}/fetch`);
+      const response = await fetch(`${this.workerUrls.PRICE_ORACLE}/fetch`);
       const result = await response.json();
       return result.success === true;
     } catch (error) {
@@ -181,7 +190,7 @@ class CloudflareServiceClass {
     }
 
     try {
-      const response = await fetch(`${WORKER_URLS.SESSION_VALIDATOR}/start`, {
+      const response = await fetch(`${this.workerUrls.SESSION_VALIDATOR}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId, cryptoPair }),
@@ -232,7 +241,7 @@ class CloudflareServiceClass {
     }
 
     try {
-      const response = await fetch(`${WORKER_URLS.SESSION_VALIDATOR}/end`, {
+      const response = await fetch(`${this.workerUrls.SESSION_VALIDATOR}/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fullSessionData),
@@ -274,7 +283,7 @@ class CloudflareServiceClass {
 
     try {
       const response = await fetch(
-        `${WORKER_URLS.SESSION_VALIDATOR}/status?sessionId=${sessionId}`
+        `${this.workerUrls.SESSION_VALIDATOR}/status?sessionId=${sessionId}`
       );
       return await response.json();
     } catch (error) {

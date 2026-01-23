@@ -87,7 +87,8 @@ export class MetricsServiceClass {
     entryPrice: number,
     leverage: number,
     pair: CryptoPair,
-    serverSessionId?: string
+    serverSessionId?: string,
+    serverSigningKey?: string
   ): string {
     if (!this.config.enabled) {
       return '';
@@ -99,6 +100,7 @@ export class MetricsServiceClass {
     this.state = {
       sessionId,
       serverSessionId, // Store server-side ID for syncing
+      serverSigningKey, // Store secret key for results signing
       sessionStartTime: now,
       isActive: true,
       lastUpdateTime: now,

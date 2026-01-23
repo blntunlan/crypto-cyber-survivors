@@ -79,7 +79,11 @@ serve(async (req: Request) => {
       level,
       sessionId,
       signature,
+      survivalTimeMs, // Client's claimed duration
     } = data;
+
+    const serverNow = Date.now();
+    const effectiveEndTime = serverNow;
 
     // 1. Session exists?
     const { data: session } = await supabase
@@ -117,7 +121,11 @@ serve(async (req: Request) => {
       }
     }
 
-    const duration = (endTime - vStart) / 1000;
+    // 2. Validate Duration using server-side timestamps
+    const duration = session
+      ? (effectiveEndTime - vStart) / 1000
+      : survivalTimeMs / 1000;
+
     if (duration < 5)
       return new Response(JSON.stringify({ error: 'Session too short' }), {
         headers: cors,
@@ -153,11 +161,11 @@ serve(async (req: Request) => {
     await supabase.from('game_sessions').upsert(
       {
         player_id: player.id,
-        user_id: player.id,
         session_id: sessionId,
         start_time: new Date(vStart).toISOString(),
-        end_time: new Date(endTime).toISOString(),
+        end_time: new Date(effectiveEndTime).toISOString(),
         survival_seconds: Math.floor(duration),
+        survival_time_ms: Math.floor(duration * 1000),
         crypto_pair: pair,
         position_chosen: position,
         leverage,

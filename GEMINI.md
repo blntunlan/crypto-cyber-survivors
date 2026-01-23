@@ -1,4 +1,4 @@
-# 🎮 Crypto Cyber Survivors - Claude Proje Bağlam Dosyası
+# 🎮 Crypto Survivors - Claude Proje Bağlam Dosyası
 
 > Bu dosya Claude'un projeyi daha iyi anlaması için otomatik olarak okunur.
 > Son Güncelleme: 2026-01-20
@@ -8,6 +8,8 @@
 Crypto-themed vampire survivors oyunu. React 19 + TypeScript + Vite + Zustand ile geliştirilmiş.
 Gerçek zamanlı BTC/USD fiyat verilerini Binance & Coinbase WebSocket (Price) ve Supabase Realtime (Indicators) üzerinden alır. Windows üzerinden geliştirdiğim için && kullanma ; kullan.
 Büyük diller (ES, PT, HI, VI) eklenmiş durumdadır.
+
+**DB Optimization:** Migration 026 added JSONB support for cheat logs, fixed transaction constraints for achievements, and implemented BRIN indexes for performance.
 
 **QA & Testing:** Professional testing lifecycle (Level 0-8) active. Vitest + MSW for integration, Playwright for E2E. Mandatory pre-commit tests via Husky + lint-staged.
 

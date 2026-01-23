@@ -166,7 +166,8 @@ class GameStateManagerClass {
       entryPrice,
       leverage,
       pair,
-      serverSession.sessionId
+      serverSession.sessionId,
+      serverSession.sessionSecret
     );
 
     // 3. Start Event Recording (Signed Replay)

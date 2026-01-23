@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "name": "Crypto Cyber Survivors API Documentation",
+  "name": "Crypto Survivors API Documentation",
   "entryPoints": ["services", "stores", "hooks", "types", "components"],
   "entryPointStrategy": "expand",
   "out": "docs/api",

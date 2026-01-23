@@ -31,7 +31,7 @@ class LoggerClass {
   private errorListeners: Set<ErrorListener> = new Set();
 
   private constructor() {
-    this.isDev = import.meta?.env?.DEV ?? false;
+    this.isDev = import.meta.env.DEV;
   }
 
   static getInstance(): LoggerClass {

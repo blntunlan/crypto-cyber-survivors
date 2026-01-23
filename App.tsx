@@ -27,6 +27,7 @@ import { MetricsService } from './services/MetricsService';
 import { GameMode, type CycleCompleteData } from './types/gameMode';
 import { CoinService } from './services/CoinService';
 import { GameStateManager } from './services/GameStateManager';
+import { GameSessionService } from './services/auth/GameSessionService';
 import { MilestoneService } from './services/MilestoneService';
 import { DifficultyManager } from './services/DifficultyManager';
 import { GameStateMachine } from './services/GameStateMachine';
@@ -396,7 +397,7 @@ const App: React.FC = () => {
       tracker.stop();
       const perfStats = tracker.getStats();
 
-      MetricsService.endSession(reason, {
+      const metrics = MetricsService.endSession(reason, {
         price: marketData.price,
         pnl: marketData.pnl,
         level: playerRef.current.level,
@@ -433,8 +434,46 @@ const App: React.FC = () => {
               : 'Unknown',
         pixelRatio: window.devicePixelRatio,
       });
+
+      // --- THE DATA BRIDGE: Submit results to sever for verification and rewards ---
+      if (metrics) {
+        void (async () => {
+          const submission = await GameSessionService.submitSession({
+            level: playerRef.current.level,
+            kills: runStats.totalKills,
+            survivalTimeMs: DifficultyManager.getTotalElapsedSeconds() * 1000,
+            exitPrice: marketData.price,
+            pnlPercent: marketData.pnl,
+            endReason: reason,
+            replayData: metrics.replayData,
+            performance: metrics.performance,
+          });
+
+          if (submission.success) {
+            Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
+            // Success: Update UI or show reward animation
+            if (submission.reward && submission.reward > 0) {
+              await CoinService.creditCoins(submission.reward, 'achievement');
+            }
+          } else {
+            Logger.warn(
+              '[App] Session verification failed or pending',
+              submission.error
+            );
+          }
+        })();
+      }
     },
-    [marketData, playerRef, position, entryPrice, leverage, runStats.totalKills]
+    [
+      marketData,
+      playerRef,
+      position,
+      entryPrice,
+      leverage,
+      runStats.totalKills,
+      setFinalPnl,
+      setFinalSurvivalTime,
+    ]
   );
 
   // Handle liquidation (ends game if effective PnL hits -100%)

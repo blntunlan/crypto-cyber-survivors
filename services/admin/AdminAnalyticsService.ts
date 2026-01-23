@@ -41,7 +41,7 @@ class AdminAnalyticsService {
     try {
       const { supabase } = await import('../Supabase');
       if (!supabase) return [];
-      const { data, error } = await supabase.from('error_summary').select('*');
+      const { data, error } = await supabase.from('v_error_summary').select('*');
 
       if (error) throw error;
       return (data as ErrorOccurence[] | null) ?? [];

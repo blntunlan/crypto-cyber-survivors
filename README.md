@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎮 Crypto Cyber Survivors
+# 🎮 Crypto Survivors
 
 **Real-Time Market-Driven Vampire Survivors Game**
 
@@ -111,7 +111,7 @@ npm run docs         # Generate TypeDoc API documentation
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CRYPTO CYBER SURVIVORS                          │
+│                                CRYPTO SURVIVORS                              │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │

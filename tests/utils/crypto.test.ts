@@ -73,24 +73,19 @@ describe('crypto utilities', () => {
     it('should create signable payload with critical fields', () => {
       const data = {
         sessionId: 'session-123',
-        serverSessionId: 'server-456',
-        player: {
-          score: 1000,
-          kills: 50,
-          survivalTimeMs: 120000,
-        },
-        bitcoin: {
-          pnlAtDeath: 15.5,
-        },
+        optimisticReward: 1000,
+        kills: 50,
+        survivalTimeMs: 120000,
+        claimedPnL: 15.5,
         extraField: 'should be ignored',
       };
 
-      const result = createSignablePayload(data);
+      const result = createSignablePayload(data as any);
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
         sessionId: 'session-123',
-        serverSessionId: 'server-456',
+        serverSessionId: 'session-123',
         score: 1000,
         kills: 50,
         pnl: 15.5,
@@ -101,12 +96,12 @@ describe('crypto utilities', () => {
     it('should handle missing fields with defaults', () => {
       const data = {};
 
-      const result = createSignablePayload(data);
+      const result = createSignablePayload(data as any);
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
-        sessionId: undefined,
-        serverSessionId: undefined,
+        sessionId: '',
+        serverSessionId: '',
         score: 0,
         kills: 0,
         pnl: 0,
@@ -116,20 +111,16 @@ describe('crypto utilities', () => {
 
     it('should handle partial data', () => {
       const data = {
-        player: {
-          score: 500,
-        },
-        bitcoin: {
-          pnlAtDeath: -10.2,
-        },
+        optimisticReward: 500,
+        claimedPnL: -10.2,
       };
 
-      const result = createSignablePayload(data);
+      const result = createSignablePayload(data as any);
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
-        sessionId: undefined,
-        serverSessionId: undefined,
+        sessionId: '',
+        serverSessionId: '',
         score: 500,
         kills: 0,
         pnl: -10.2,
@@ -139,12 +130,10 @@ describe('crypto utilities', () => {
 
     it('should convert survival time to seconds', () => {
       const data = {
-        player: {
-          survivalTimeMs: 61500, // 61.5 seconds
-        },
+        survivalTimeMs: 61500, // 61.5 seconds
       };
 
-      const result = createSignablePayload(data);
+      const result = createSignablePayload(data as any);
       const parsed = JSON.parse(result);
 
       expect(parsed.duration).toBe(61); // Floor to seconds

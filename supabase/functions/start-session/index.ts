@@ -55,15 +55,13 @@ serve(async (req: Request) => {
     }
 
     // 2. Create Session with Secret
-    const startTime = new Date();
-    const sessionSecret = crypto.randomUUID(); // Secret for signing events
+    // We let Postgres handle start_time and session_timestamp via DEFAULT NOW()
+    const sessionSecret = crypto.randomUUID();
 
     const { data: session, error: sessionError } = await supabaseClient
       .from('game_sessions')
       .insert({
         player_id: player.id,
-        start_time: startTime.toISOString(),
-        session_timestamp: startTime.toISOString(),
         crypto_pair: pair,
         position_chosen: position,
         leverage: leverage,

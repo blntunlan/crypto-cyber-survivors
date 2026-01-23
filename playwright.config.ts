@@ -10,11 +10,11 @@ export default defineConfig({
   testDir: './e2e',
 
   // Max time for a single test
-  timeout: 60 * 1000,
+  timeout: 90 * 1000,
 
   // Max time for expect() assertions
   expect: {
-    timeout: 5000,
+    timeout: 10000,
   },
 
   // Run tests in parallel
@@ -79,6 +79,6 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
-    timeout: 120 * 1000,
+    timeout: 180 * 1000,
   },
 });

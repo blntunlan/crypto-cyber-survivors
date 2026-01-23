@@ -35,22 +35,14 @@ export async function signPayload(payload: string, secret: string): Promise<stri
  * Minimal sanity check before transmission.
  */
 export function createSignablePayload(data: Record<string, unknown>): string {
-  // Sort keys to ensure deterministic string representation if needed,
-  // but for MVP we will just use a specific order of critical fields.
-  interface Signable {
-    sessionId?: string;
-    serverSessionId?: string;
-    player?: { score?: number; kills?: number; survivalTimeMs?: number };
-    bitcoin?: { pnlAtDeath?: number };
-  }
-  const d = data as Signable;
+  // Use fields that match VerificationData and Supabase's createPayload
   const criticalFields = {
-    sessionId: d.sessionId,
-    serverSessionId: d.serverSessionId,
-    score: d.player?.score ?? 0,
-    kills: d.player?.kills ?? 0,
-    pnl: d.bitcoin?.pnlAtDeath ?? 0,
-    duration: Math.floor((d.player?.survivalTimeMs ?? 0) / 1000),
+    sessionId: String(data.sessionId ?? ''),
+    serverSessionId: String(data.sessionId ?? ''), // Supabase expects serverSessionId too
+    score: Number(data.optimisticReward ?? 0),
+    kills: Number(data.kills ?? 0),
+    pnl: Number(data.claimedPnL ?? 0),
+    duration: Math.floor(Number(data.survivalTimeMs ?? 0) / 1000),
   };
 
   return JSON.stringify(criticalFields);

@@ -7,13 +7,13 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: ({
       children,
-      initial,
-      animate,
-      exit,
-      variants,
-      whileHover,
-      whileTap,
-      transition,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      variants: _variants,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
+      transition: _transition,
       ...props
     }: any) => <div {...props}>{children}</div>,
   },

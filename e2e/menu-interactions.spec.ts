@@ -16,6 +16,8 @@ test.describe('Menu Interactions and Theme Switching', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
       // Set a valid user session for the main menu to bypass nickname entry
       localStorage.setItem(
         'crypto_survivors_user',

@@ -24,10 +24,10 @@
       name="keywords"
       content="crypto, game, bitcoin, survivors, trading, web3, btc"
     />
-    <meta name="author" content="Crypto Cyber Survivors Team" />
+    <meta name="author" content="Crypto Survivors Team" />
 
     <!-- Open Graph -->
-    <meta property="og:title" content="Crypto Cyber Survivors" />
+    <meta property="og:title" content="Crypto Survivors" />
     <meta
       property="og:description"
       content="Real-time market-driven vampire survivors game. Survive the crypto chaos!"
@@ -37,15 +37,14 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Crypto Cyber Survivors" />
+    <meta name="twitter:title" content="Crypto Survivors" />
     <meta
       name="twitter:description"
       content="Real-time market-driven vampire survivors game"
     />
 
-    <title>Crypto Cyber Survivors</title>
+    <title>Crypto Survivors</title>
     <link rel="canonical" href="https://crypto-survivors.com/" />
-
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -82,36 +81,37 @@
     <script>
       if ('serviceWorker' in navigator) {
         // Option to disable SW for E2E testing
-        const swDisabled = localStorage.getItem('disable_sw') === 'true' || 
-                          window.location.search.includes('no-sw=true');
-        
+        const swDisabled =
+          localStorage.getItem('disable_sw') === 'true' ||
+          window.location.search.includes('no-sw=true');
+
         if (!swDisabled) {
           window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/sw.js')
-            .then(registration => {
-              console.log('[App] Service Worker registered:', registration.scope);
+            navigator.serviceWorker
+              .register('/sw.js')
+              .then(registration => {
+                console.log('[App] Service Worker registered:', registration.scope);
 
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (
-                      newWorker.state === 'installed' &&
-                      navigator.serviceWorker.controller
-                    ) {
-                      // New version available
-                      console.log('[App] New version available!');
-                      // You could show a toast here: "New version available, refresh to update"
-                    }
-                  });
-                }
+                // Check for updates
+                registration.addEventListener('updatefound', () => {
+                  const newWorker = registration.installing;
+                  if (newWorker) {
+                    newWorker.addEventListener('statechange', () => {
+                      if (
+                        newWorker.state === 'installed' &&
+                        navigator.serviceWorker.controller
+                      ) {
+                        // New version available
+                        console.log('[App] New version available!');
+                        // You could show a toast here: "New version available, refresh to update"
+                      }
+                    });
+                  }
+                });
+              })
+              .catch(error => {
+                console.warn('[App] Service Worker registration failed:', error);
               });
-            })
-            .catch(error => {
-              console.warn('[App] Service Worker registration failed:', error);
-            });
           });
         } else {
           // If SW is disabled but exists, unregister it

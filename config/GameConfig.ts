@@ -54,8 +54,8 @@ export const DIFFICULTY_CONFIG = {
 
   /** Clamp limits for engine outputs */
   LIMITS: {
-    total: { min: 0.5, max: 10.0 },
-    spawnRate: { min: 0.5, max: 8.0 },
+    total: { min: 0.5, max: 20.0 }, // Increased from 10.0
+    spawnRate: { min: 0.5, max: 35.0 }, // Dramatically increased from 8.0 to allow high leverage chaos
     enemySpeed: { min: 0.5, max: 4.0 },
     enemyHP: { min: 0.5, max: 5.0 },
     enemyDamage: { min: 0.8, max: 8.0 },
@@ -69,7 +69,7 @@ export const DIFFICULTY_CONFIG = {
   BASE_ADMIN_DIVISOR: 5,
 
   /** Output scaling */
-  SPAWN_RATE_TOTAL_MULTIPLIER: 1.6,
+  SPAWN_RATE_TOTAL_MULTIPLIER: 3.2,
 };
 
 /**
@@ -80,13 +80,13 @@ export const LEVERAGE_TIERS: Record<
   number,
   { spawn: number; speed: number; hp: number; damage: number; xpReq: number }
 > = {
-  1: { spawn: 0.7, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 },
-  2: { spawn: 0.8, speed: 0.85, hp: 0.9, damage: 0.9, xpReq: 1.1 },
-  5: { spawn: 1.0, speed: 1.0, hp: 1.0, damage: 1.0, xpReq: 1.25 },
-  10: { spawn: 1.2, speed: 1.1, hp: 1.1, damage: 1.15, xpReq: 1.5 },
-  25: { spawn: 1.5, speed: 1.25, hp: 1.2, damage: 1.4, xpReq: 2.0 },
-  50: { spawn: 2.0, speed: 1.4, hp: 1.4, damage: 1.8, xpReq: 3.0 },
-  100: { spawn: 2.5, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 5.0 },
+  1: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 },
+  2: { spawn: 1.0, speed: 0.85, hp: 0.9, damage: 0.9, xpReq: 1.1 },
+  5: { spawn: 1.4, speed: 1.0, hp: 1.0, damage: 1.0, xpReq: 1.25 }, // Increased spawn
+  10: { spawn: 2.0, speed: 1.1, hp: 1.1, damage: 1.15, xpReq: 1.5 }, // Increased spawn
+  25: { spawn: 3.0, speed: 1.25, hp: 1.2, damage: 1.4, xpReq: 2.0 }, // Increased spawn
+  50: { spawn: 4.0, speed: 1.4, hp: 1.4, damage: 1.8, xpReq: 3.0 }, // Significantly increased spawn
+  100: { spawn: 6.0, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 5.0 }, // Chaos mode spawn
 };
 
 // =============================================================================
