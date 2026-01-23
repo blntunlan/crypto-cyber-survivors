@@ -23,6 +23,8 @@
     "docs:clean": "rimraf docs/api",
     "prepare": "husky",
     "railway:link": "railway link",
+    "railway:deploy": "railway deploy",
+    "railway:market:deploy": "cd railway-market-server && railway deploy",
     "supabase:gen": "supabase gen types typescript --project-id dqaggcizordsijpnfteo > types/supabase.ts",
     "supabase:push": "supabase db push",
     "deploy": "git push origin main"

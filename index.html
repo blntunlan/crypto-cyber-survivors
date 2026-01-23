@@ -44,6 +44,8 @@
     />
 
     <title>Crypto Cyber Survivors</title>
+    <link rel="canonical" href="https://crypto-survivors.com/" />
+
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
@@ -79,7 +81,12 @@
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        // Option to disable SW for E2E testing
+        const swDisabled = localStorage.getItem('disable_sw') === 'true' || 
+                          window.location.search.includes('no-sw=true');
+        
+        if (!swDisabled) {
+          window.addEventListener('load', () => {
           navigator.serviceWorker
             .register('/sw.js')
             .then(registration => {
@@ -105,7 +112,16 @@
             .catch(error => {
               console.warn('[App] Service Worker registration failed:', error);
             });
-        });
+          });
+        } else {
+          // If SW is disabled but exists, unregister it
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (const registration of registrations) {
+              registration.unregister();
+              console.log('[App] Service Worker unregistered');
+            }
+          });
+        }
       }
     </script>
   </body>

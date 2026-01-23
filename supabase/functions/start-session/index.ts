@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 // Allowed origins for CORS - restrict in production
 const ALLOWED_ORIGINS = [
+  'https://crypto-survivors.com',
   'https://crypto-survivors.up.railway.app',
   'https://crypto-cyber-survivors-production.up.railway.app',
   'http://localhost:3000',
