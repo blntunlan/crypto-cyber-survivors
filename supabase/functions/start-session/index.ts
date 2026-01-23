@@ -40,7 +40,7 @@ serve(async (req: Request) => {
 
     const { userId, pair, leverage, position } = await req.json();
 
-    // 1. Get Player ID
+    // 1. Get Player ID (Strict case-sensitive)
     const { data: player, error: playerError } = await supabaseClient
       .from('players')
       .select('id')
@@ -48,20 +48,21 @@ serve(async (req: Request) => {
       .single();
 
     if (playerError || !player) {
-      return new Response(JSON.stringify({ error: 'Player not found' }), {
+      return new Response(JSON.stringify({ error: `Player not found: ${userId}` }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // 2. Create Session with Secret
-    // We let Postgres handle start_time and session_timestamp via DEFAULT NOW()
     const sessionSecret = crypto.randomUUID();
+    const clientSessionId = crypto.randomUUID(); // Fallback internal handle
 
     const { data: session, error: sessionError } = await supabaseClient
       .from('game_sessions')
       .insert({
         player_id: player.id,
+        session_id: clientSessionId,
         crypto_pair: pair,
         position_chosen: position,
         leverage: leverage,

@@ -43,10 +43,11 @@ export class GameSessionService {
     }
 
     this.isStarting = true;
+    Logger.info(`[GameSession] Starting server session for ${nickname} (${pair})...`);
 
     try {
       if (!isSupabaseConfigured() || !supabase) {
-        throw new Error('Supabase not configured');
+        throw new Error('Supabase not configured on this client');
       }
 
       const { data, error } = await supabase.functions.invoke('start-session', {
@@ -59,7 +60,13 @@ export class GameSessionService {
       });
 
       if (error) {
+        Logger.error('[GameSession] start-session function returned error:', error);
         throw error;
+      }
+
+      if (!data?.sessionId) {
+        Logger.error('[GameSession] start-session returned empty data:', data);
+        throw new Error('Invalid response from start-session');
       }
 
       this.currentSessionId = data.sessionId;
@@ -73,6 +80,7 @@ export class GameSessionService {
 
       // Fallback for local development or connection issues
       if (import.meta.env.DEV) {
+        Logger.warn('[GameSession] DEV mode fallback active');
         const fallbackId = `local-${Date.now()}`;
         const fallbackSecret = `secret-${Math.random().toString(36).slice(2)}`;
         this.currentSessionId = fallbackId;
@@ -93,14 +101,17 @@ export class GameSessionService {
 
   /**
    * Submit session results for verification and reward processing.
-   * This is the "Data Bridge" that closes the loop between game and DB.
    */
   static async submitSession(results: {
     level: number;
     kills: number;
     survivalTimeMs: number;
+    entryPrice: number;
     exitPrice: number;
     pnlPercent: number;
+    pair: CryptoPair;
+    position: MarketPosition;
+    leverage: number;
     endReason: string;
     replayData?: any;
     performance?: any;
@@ -122,41 +133,45 @@ export class GameSessionService {
         throw new Error('Supabase not configured');
       }
 
+      const nickname = UserSessionService.getNickname();
+
       Logger.info(
-        `[GameSession] Submitting results for session: ${this.currentSessionId}`
+        `[GameSession] Submitting results to verify-game for session: ${this.currentSessionId}`
       );
 
-      const { data, error } = await supabase.functions.invoke('submit-score', {
+      const { data, error } = await supabase.functions.invoke('verify-game', {
         body: {
+          userId: nickname,
           sessionId: this.currentSessionId,
-          sessionSecret: this.currentSessionSecret,
-          results: {
-            ...results,
-            // Ensure numbers are sanitized
-            level: Math.floor(results.level),
-            kills: Math.floor(results.kills),
-            survivalTimeMs: Math.floor(results.survivalTimeMs),
-          },
+          signature: this.currentSessionSecret, // In verification, secret/signature is used
+          pair: results.pair,
+          position: results.position,
+          leverage: results.leverage,
+          claimedEntryPrice: results.entryPrice,
+          claimedExitPrice: results.exitPrice,
+          claimedPnL: results.pnlPercent,
+          kills: results.kills,
+          level: results.level,
+          survivalTimeMs: results.survivalTimeMs,
+          performance: results.performance,
         },
       });
 
       if (error) throw error;
 
-      Logger.info('[GameSession] Results submitted and verified successfully', data);
+      Logger.info('[GameSession] Results verified successfully', data);
 
-      // Clear session after successful submission
       this.clearSession();
 
       return {
         success: true,
-        reward: data.rewardAmount,
+        reward: data.reward,
       };
     } catch (error) {
       Logger.error('[GameSession] Failed to submit session results', error);
 
-      // In DEV mode, we simulate success to allow UI testing
       if (import.meta.env.DEV) {
-        Logger.warn('[GameSession] DEV mode: Simulating successful submission');
+        Logger.warn('[GameSession] DEV mode fallback: Simulating success');
         this.clearSession();
         return { success: true, reward: 0 };
       }

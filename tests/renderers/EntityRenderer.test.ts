@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EntityRenderer } from '../../services/renderers/EntityRenderer';
 import { GameStatus } from '../../types';
 import { BuffGemSpawner } from '../../services/spawners/BuffGemSpawner';
+import { ThemeService } from '../../services/ThemeService';
 
 // Mock services
 vi.mock('../../services/ScreenService', () => ({
@@ -414,6 +415,79 @@ describe('EntityRenderer', () => {
         0,
         Math.PI * 2
       );
+    });
+
+    it('should draw retro player with details', () => {
+      // Fallback for ThemeService mock in this test file
+      (ThemeService.isRetro as any).mockReturnValue(true);
+
+      (renderer as any).drawPlayer(mockCtx, mockPlayer, mockState, true);
+
+      expect(mockCtx.strokeRect).toHaveBeenCalled();
+      expect(mockCtx.fillRect).toHaveBeenCalledTimes(3); // Body + 2 Eyes
+    });
+
+    it('should show hurt effect for player', () => {
+      mockPlayer.invulnerabilityTimer = 500;
+
+      // Cyberpunk
+      (ThemeService.isRetro as any).mockReturnValue(false);
+      (renderer as any).drawPlayer(mockCtx, mockPlayer, mockState, true);
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith('#FFFFFF');
+
+      // Retro
+      (ThemeService.isRetro as any).mockReturnValue(true);
+      (renderer as any).drawPlayer(mockCtx, mockPlayer, mockState, true);
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith('#FFFFFF');
+    });
+  });
+
+  describe('applyEnemySpawnTransform', () => {
+    it('should handle all spawn phases', () => {
+      const enemy = {
+        x: 100,
+        y: 100,
+        radius: 10,
+        color: '#ff0000',
+        spawnTimer: 0.9, // Phase 1 (t = 0.1)
+      };
+
+      // Phase 1
+      (renderer as any).applyEnemySpawnTransform(mockCtx, enemy);
+      expect(mockCtx.scale).toHaveBeenCalled();
+
+      // Phase 2
+      enemy.spawnTimer = 0.5; // (t = 0.5)
+      (renderer as any).applyEnemySpawnTransform(mockCtx, enemy);
+      expect(mockCtx.scale).toHaveBeenCalled();
+
+      // Phase 3 / Damping
+      enemy.spawnTimer = 0.1; // (t = 0.9)
+      (renderer as any).applyEnemySpawnTransform(mockCtx, enemy);
+      expect(mockCtx.scale).toHaveBeenCalled();
+    });
+  });
+
+  describe('gem blinking', () => {
+    it('should blink gems near expiry', () => {
+      const gem = {
+        x: 100,
+        y: 100,
+        radius: 5,
+        color: '#00ff00',
+        active: true,
+        elapsedLifetime: 9500, // Very close to expiry
+      };
+
+      mockPool.activeGems = [gem];
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      expect(mockCtx.globalAlpha).toBeDefined();
     });
   });
 });

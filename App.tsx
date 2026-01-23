@@ -442,8 +442,12 @@ const App: React.FC = () => {
             level: playerRef.current.level,
             kills: runStats.totalKills,
             survivalTimeMs: DifficultyManager.getTotalElapsedSeconds() * 1000,
+            entryPrice: entryPrice, // Added missing
             exitPrice: marketData.price,
             pnlPercent: marketData.pnl,
+            pair: selectedPair, // Added missing
+            position: position, // Added missing
+            leverage: leverage, // Added missing
             endReason: reason,
             replayData: metrics.replayData,
             performance: metrics.performance,
@@ -470,6 +474,7 @@ const App: React.FC = () => {
       position,
       entryPrice,
       leverage,
+      selectedPair,
       runStats.totalKills,
       setFinalPnl,
       setFinalSurvivalTime,

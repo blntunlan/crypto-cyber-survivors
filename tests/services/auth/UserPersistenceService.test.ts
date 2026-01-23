@@ -122,5 +122,46 @@ describe('UserPersistenceService', () => {
       const user = await initPromise;
       expect(user).toBeNull();
     });
+
+    it('should handle localStorage write errors', () => {
+      const setItemSpy = vi
+        .spyOn(window.localStorage, 'setItem')
+        .mockImplementation(() => {
+          throw new Error('Quota exceeded');
+        });
+      const user = { playerId: 'err', nickname: 'Err' } as any;
+      UserPersistenceService.saveUser(user);
+      expect(setItemSpy).toHaveBeenCalled();
+      setItemSpy.mockRestore();
+    });
+
+    it('should handle cookies with invalid Base64', async () => {
+      document.cookie = `${COOKIE_NAME}=not-base64!!!; path=/`;
+      const initPromise = UserPersistenceService.initialize();
+      await vi.advanceTimersByTimeAsync(200);
+      const user = await initPromise;
+      expect(user).toBeNull();
+    });
+
+    it('should handle clearing storage even if localStorage throws', () => {
+      const removeSpy = vi
+        .spyOn(window.localStorage, 'removeItem')
+        .mockImplementation(() => {
+          throw new Error('Storage disabled');
+        });
+      UserPersistenceService.clear();
+      expect(removeSpy).toHaveBeenCalled();
+      removeSpy.mockRestore();
+    });
+
+    it('should handle multiple concurrent initializations', async () => {
+      const p1 = UserPersistenceService.initialize();
+      const p2 = UserPersistenceService.initialize();
+      // Since initialize is async, it returns a new promise that wraps the inner one.
+      await vi.advanceTimersByTimeAsync(200);
+      const [res1, res2] = await Promise.all([p1, p2]);
+      expect(res1).toBeNull();
+      expect(res2).toBeNull();
+    });
   });
 });

@@ -120,27 +120,32 @@ export const GameUI: React.FC<GameUIProps> = memo(
     const priceColorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-      // Clear previous timeout before setting new one
-      if (priceColorTimeoutRef.current) {
-        clearTimeout(priceColorTimeoutRef.current);
+      // Logic: Only update state if color OR pulse status actually needs to change.
+      // This prevents the flickering described as "rewriting from scratch"
+      // when the pulse class was being removed and re-added rapidly.
+
+      const isRising = marketData.price > lastPrice;
+      const isFalling = marketData.price < lastPrice;
+
+      if (isRising) {
+        setPriceColor('text-green-400 animate-pulse');
+
+        // Debounce removal of pulse
+        if (priceColorTimeoutRef.current) clearTimeout(priceColorTimeoutRef.current);
+        priceColorTimeoutRef.current = setTimeout(() => {
+          setPriceColor('text-green-400');
+        }, 1000); // Longer duration for stability
+      } else if (isFalling) {
+        setPriceColor('text-red-400 animate-pulse');
+
+        if (priceColorTimeoutRef.current) clearTimeout(priceColorTimeoutRef.current);
+        priceColorTimeoutRef.current = setTimeout(() => {
+          setPriceColor('text-red-400');
+        }, 1000);
       }
 
-      if (marketData.price > lastPrice) {
-        setPriceColor('text-green-400 animate-pulse');
-        priceColorTimeoutRef.current = setTimeout(
-          () => setPriceColor('text-green-400'),
-          300
-        );
-      } else if (marketData.price < lastPrice) {
-        setPriceColor('text-red-400 animate-pulse');
-        priceColorTimeoutRef.current = setTimeout(
-          () => setPriceColor('text-red-400'),
-          300
-        );
-      }
       setLastPrice(marketData.price);
 
-      // Cleanup on unmount
       return () => {
         if (priceColorTimeoutRef.current) {
           clearTimeout(priceColorTimeoutRef.current);

@@ -21,6 +21,54 @@ interface LiveFeedProps {
   priceColor: string;
 }
 
+/**
+ * Sub-component for static/slow-updating info rows to prevent redundant re-renders
+ * and maintain layout stability.
+ */
+const InfoRow = memo(
+  ({
+    label,
+    value,
+    isPrice = true,
+    decimals = 2,
+    colorClass = 'text-slate-100',
+    isRetro = false,
+    animate = false,
+  }: {
+    label: string;
+    value: number | string;
+    isPrice?: boolean;
+    decimals?: number;
+    colorClass?: string;
+    isRetro?: boolean;
+    animate?: boolean;
+  }) => {
+    const displayValue =
+      typeof value === 'number'
+        ? isPrice
+          ? `$${value.toLocaleString(undefined, {
+              minimumFractionDigits: decimals,
+              maximumFractionDigits: decimals,
+            })}`
+          : `x${value.toFixed(2)}`
+        : value;
+
+    return (
+      <div className="flex justify-between items-center text-[11px] uppercase tracking-widest font-bold">
+        <span className="text-slate-400">{label}</span>
+        <span
+          className={`${colorClass} tabular-nums ${isRetro ? 'font-retro-text' : ''} ${animate ? 'animate-pulse' : ''}`}
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {displayValue}
+        </span>
+      </div>
+    );
+  }
+);
+
+InfoRow.displayName = 'InfoRow';
+
 const DesktopLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
 > = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
@@ -31,7 +79,7 @@ const DesktopLiveFeed: React.FC<
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
-    <div className="bg-transparent p-1.5 flex flex-col gap-0 min-w-[200px]">
+    <div className="bg-transparent p-1.5 flex flex-col gap-0 min-w-[220px] transition-[width] duration-300">
       <div className="flex items-center justify-between mb-2">
         <div
           className={`text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
@@ -53,7 +101,7 @@ const DesktopLiveFeed: React.FC<
       <div className="flex flex-col">
         <div
           className={`font-black tracking-tighter transition-colors duration-300 ${priceColor} text-3xl leading-none ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-          style={{ fontVariantNumeric: 'tabular-nums' }}
+          style={{ fontVariantNumeric: 'tabular-nums', minWidth: '180px' }}
         >
           $
           {smoothValues.price.toLocaleString(undefined, {
@@ -66,7 +114,9 @@ const DesktopLiveFeed: React.FC<
             className={`text-sm font-black flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
             style={{ color: pnlHex }}
           >
-            <span>{(smoothValues.pnl * 100).toFixed(2)}%</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {(smoothValues.pnl * 100).toFixed(2)}%
+            </span>
             <span className="text-[10px] opacity-70 tracking-widest uppercase">
               {marketData.effectivePnl >= 0
                 ? t('hud.profit_short')
@@ -75,7 +125,7 @@ const DesktopLiveFeed: React.FC<
           </div>
           <div
             className={`text-xs font-black tabular-nums ${isRetro ? 'font-retro-text' : 'font-mono'}`}
-            style={{ color: pnlHex }}
+            style={{ color: pnlHex, fontVariantNumeric: 'tabular-nums' }}
           >
             {smoothValues.pnl >= 0 ? '+' : ''}$
             {(smoothValues.pnl * 1000).toLocaleString(undefined, {
@@ -86,40 +136,37 @@ const DesktopLiveFeed: React.FC<
         </div>
       </div>
 
-      <div className="mt-3 flex flex-col gap-1.5 pt-2">
-        <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-widest font-bold">
-          <span>{t('hud.entry')}</span>
-          <span className="text-slate-100">
-            $
-            {entryPrice.toLocaleString(undefined, {
-              maximumFractionDigits: pairConfig.decimals,
-            })}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase tracking-widest font-bold">
-          <span>{t('hud.volatility')}</span>
-          <span className="text-slate-100">x{smoothValues.difficulty.toFixed(2)}</span>
-        </div>
+      <div className="mt-3 flex flex-col gap-1.5 pt-2 border-t border-slate-800/30">
+        <InfoRow
+          label={t('hud.entry')}
+          value={entryPrice}
+          decimals={pairConfig.decimals}
+          isRetro={isRetro}
+        />
+
+        <InfoRow
+          label={t('hud.volatility')}
+          value={smoothValues.difficulty}
+          isPrice={false}
+          isRetro={isRetro}
+        />
 
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
-            <div className="flex justify-between items-center text-[11px] uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50 font-bold">
-              <span className="text-slate-400">{t('hud.liquidation')}</span>
-              <span
-                className={
-                  marketData.effectivePnl <= -0.7
-                    ? 'text-red-500 font-bold animate-pulse'
-                    : marketData.effectivePnl <= -0.4
-                      ? 'text-orange-400'
-                      : 'text-slate-200'
-                }
-              >
-                $
-                {marketData.liquidationPrice.toLocaleString(undefined, {
-                  maximumFractionDigits: pairConfig.decimals,
-                })}
-              </span>
-            </div>
+            <InfoRow
+              label={t('hud.liquidation')}
+              value={marketData.liquidationPrice}
+              decimals={pairConfig.decimals}
+              isRetro={isRetro}
+              colorClass={
+                marketData.effectivePnl <= -0.7
+                  ? 'text-red-500 font-bold'
+                  : marketData.effectivePnl <= -0.4
+                    ? 'text-orange-400'
+                    : 'text-slate-200'
+              }
+              animate={marketData.effectivePnl <= -0.7}
+            />
           )}
 
         {serverState && (
@@ -129,13 +176,14 @@ const DesktopLiveFeed: React.FC<
                 RSI <span className="text-[7px] opacity-50">({serverState.pair})</span>
               </span>
               <span
-                className={
+                className={`tabular-nums ${
                   serverState.rsi >= 70
                     ? 'text-red-400 font-bold'
                     : serverState.rsi <= 30
                       ? 'text-green-400 font-bold'
                       : 'text-slate-200'
-                }
+                }`}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
               >
                 {serverState.rsi.toFixed(1)}
               </span>
@@ -152,12 +200,6 @@ const DesktopLiveFeed: React.FC<
   );
 };
 
-/**
- * Mobile LiveFeed - Ultra Compact Design
- * - Row 1: LIVE indicator + Pair/Leverage (small)
- * - Row 2: Price (prominent) + PnL badge
- * - Row 3: Horizontal pill bar with Entry, LIQ, VOL, RSI
- */
 const MobileLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
 > = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
@@ -187,7 +229,7 @@ const MobileLiveFeed: React.FC<
   };
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-0.5 min-w-[140px]">
       {/* Row 1: Status header */}
       <div className="flex items-center justify-between">
         <div
@@ -218,6 +260,7 @@ const MobileLiveFeed: React.FC<
           style={{
             fontSize: rfs(isSmallDevice ? 18 : 22),
             fontVariantNumeric: 'tabular-nums',
+            minWidth: '100px',
           }}
         >
           $
@@ -232,6 +275,7 @@ const MobileLiveFeed: React.FC<
             backgroundColor: `${pnlHex}22`,
             color: pnlHex,
             fontSize: rfs(isSmallDevice ? 10 : 12),
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {(smoothValues.pnl * 100).toFixed(2)}%
@@ -244,32 +288,37 @@ const MobileLiveFeed: React.FC<
         style={{ fontSize: rfs(isSmallDevice ? 9 : 10) }}
       >
         {/* Entry pill */}
-        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap">
-          {t('hud.entry_short')} ${Math.floor(entryPrice).toLocaleString()}
+        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap tabular-nums">
+          {t('hud.entry_short')} $
+          {entryPrice.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })}
         </div>
 
         {/* Liquidation pill */}
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
             <div
-              className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap ${getLiqColor()}`}
+              className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap tabular-nums ${getLiqColor()}`}
             >
               LIQ: $
               {marketData.liquidationPrice.toLocaleString(undefined, {
+                minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
               })}
             </div>
           )}
 
         {/* Volatility pill */}
-        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap">
+        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap tabular-nums">
           {t('hud.volatility_short')} X{smoothValues.difficulty.toFixed(1)}
         </div>
 
         {/* RSI pill */}
         {serverState && (
           <div
-            className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap ${getRsiColor()}`}
+            className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap tabular-nums ${getRsiColor()}`}
           >
             RSI {Math.round(serverState.rsi)}
           </div>

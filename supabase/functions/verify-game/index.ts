@@ -88,8 +88,8 @@ serve(async (req: Request) => {
     // 1. Session exists?
     const { data: session } = await supabase
       .from('game_sessions')
-      .select('start_time, is_verified, signing_key')
-      .eq('session_id', sessionId)
+      .select('id, start_time, is_verified, signing_key, session_secret')
+      .or(`session_id.eq.${sessionId},id.eq.${sessionId}`)
       .maybeSingle();
     let vStart = startTime;
     if (session) {

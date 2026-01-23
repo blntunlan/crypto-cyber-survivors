@@ -92,14 +92,30 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       try {
-        // Check if nickname exists (case-insensitive)
+        const { PlayerIdentityService } =
+          await import('../services/auth/PlayerIdentityService');
+        const identityHash = await PlayerIdentityService.generatePlayerHash(nickname);
+
+        // Check if nickname exists (strict case-sensitive)
         const { data: existingPlayer } = await supabase
           .from('players')
-          .select('id')
-          .ilike('display_name', nickname)
-          .single();
+          .select('id, auth_id, identity_hash')
+          .eq('display_name', nickname)
+          .maybeSingle();
 
         if (existingPlayer) {
+          // IDENTITY VERIFICATION: Check if the stored hash matches current device
+          const storedHash = existingPlayer.identity_hash ?? existingPlayer.auth_id;
+          if (storedHash && storedHash !== identityHash) {
+            Logger.warn(
+              `[UserContext] Identity violation for ${nickname}: Hash mismatch`
+            );
+            return {
+              success: false,
+              error: 'Nickname tied to another device. Access denied.',
+            };
+          }
+
           // Login as existing player
           const now = Date.now();
           const newUser: StoredUser = {
@@ -111,19 +127,35 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           UserPersistenceService.saveUser(newUser);
           setUser(newUser);
 
-          // Update last seen timestamp
-          await supabase.rpc('update_player_last_seen', {
-            p_player_id: existingPlayer.id,
-          });
+          const { DeviceProfiler } =
+            await import('../services/analytics/DeviceProfiler');
+          const fingerprint = DeviceProfiler.getFingerprint();
+
+          // Update last seen timestamp and ensure identity data is stored/updated
+          await supabase
+            .from('players')
+            .update({
+              last_seen_at: new Date(now).toISOString(),
+              identity_hash: identityHash, // Sync to new column
+              auth_id: identityHash, // Keep in legacy for now
+              last_device_fingerprint: fingerprint,
+            })
+            .eq('id', existingPlayer.id);
 
           return { success: true };
         }
 
-        // Create new player
+        const { DeviceProfiler } = await import('../services/analytics/DeviceProfiler');
+        const fingerprint = DeviceProfiler.getFingerprint();
+
+        // Create new player with device binding
         const { data: newPlayer, error } = await supabase
           .from('players')
           .insert({
             display_name: nickname,
+            identity_hash: identityHash,
+            auth_id: identityHash,
+            last_device_fingerprint: fingerprint,
             total_sessions: 1,
           })
           .select()
@@ -131,7 +163,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         if (error) {
           if (error.code === '23505') {
-            return { success: false, error: 'Nickname already taken' };
+            return {
+              success: false,
+              error: 'Nickname already taken (Internal Conflict)',
+            };
           }
           throw error;
         }
@@ -149,10 +184,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return { success: true };
         }
 
-        return { success: false, error: 'Failed to create player' };
+        return { success: false, error: 'Failed to create player identity' };
       } catch (error) {
-        Logger.error('[UserContext] Registration error', error);
-        return { success: false, error: 'Connection error. Please try again.' };
+        Logger.error('[UserContext] Identity/Registration error', error);
+        return {
+          success: false,
+          error: 'Identity verification failed. Please try again.',
+        };
       }
     },
     []
