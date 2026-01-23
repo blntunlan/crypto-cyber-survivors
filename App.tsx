@@ -74,6 +74,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { PWAInstallPrompt } from './components/ui/PWAInstallPrompt';
 import { TutorialOverlay } from './components/screens/TutorialOverlay';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Optimization: Keep heavy admin/debug components lazy
 const AnalyticsDashboard = React.lazy(() =>
@@ -765,6 +766,9 @@ const App: React.FC = () => {
 
             {/* PWA Install Prompt - Shows when app is installable */}
             {gameStatus === GameStatus.MENU && <PWAInstallPrompt />}
+
+            {/* Vercel Speed Insights */}
+            <SpeedInsights />
           </div>
         </LazyMotionProvider>
       </ThemeProvider>
