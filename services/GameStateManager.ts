@@ -11,6 +11,9 @@ import { EventBus } from './EventBus';
 import { DifficultyManager } from './DifficultyManager';
 import { ComboSystem } from './ComboSystem';
 import { MetricsService } from './MetricsService';
+import { GameSessionService } from './auth/GameSessionService';
+import { EventRecorderService } from './EventRecorderService';
+import { UserSessionService } from './auth/UserSessionService';
 
 // ============================================================================
 // INITIAL STATE CONSTANTS
@@ -148,7 +151,6 @@ class GameStateManagerClass {
     this.resetAll(leverage);
 
     // 1. Start server session to get secret and ID
-    const { GameSessionService } = await import('./auth/GameSessionService');
     const serverSession = await GameSessionService.startSession(
       pair,
       leverage,
@@ -171,9 +173,6 @@ class GameStateManagerClass {
     );
 
     // 3. Start Event Recording (Signed Replay)
-    const { EventRecorderService } = await import('./EventRecorderService');
-    const { UserSessionService } = await import('./auth/UserSessionService');
-
     EventRecorderService.startSession(
       {
         sessionId: serverSession.sessionId,

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { priceAnalyzer } from '../../../services/admin/PriceAnalyzerService';
-import { Logger } from '../../../services/Logger';
 
 // Mock Logger
 vi.mock('../../../services/Logger', () => ({

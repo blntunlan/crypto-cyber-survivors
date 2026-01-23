@@ -1,16 +1,18 @@
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type Player } from '../../types';
+import { type Player, type Enemy } from '../../types';
 import { ParticleConfigService } from '../ParticleConfigService';
 import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
 import { type PerformanceConfig } from '../../types/DeviceProfile';
-import { GAME_ENGINE } from '../../constants';
+import { GAME_ENGINE, SEPARATION } from '../../constants';
 import { type IMovementSystem } from '../interfaces/IPhysicsSubsystems';
+import { enemyGrid } from '../SpatialGrid';
 
 /**
  * MovementSystem - Handles positional updates for all physics-enabled entities.
  *
  * This system is responsible for:
  * - Enemy movement toward player via behaviors
+ * - Enemy separation steering (prevents clumping)
  * - Bullet trajectory updates with trail effects
  * - Particle lifetime and motion
  * - Floating text ascent and fade-out
@@ -18,6 +20,9 @@ import { type IMovementSystem } from '../interfaces/IPhysicsSubsystems';
  * - Enemy death animations (scaling progress)
  */
 export class MovementSystem implements IMovementSystem {
+  /** Frame counter for throttled separation updates */
+  private frameCounter: number = 0;
+
   /**
    * Main update entry point for all moving entities.
    *
@@ -35,6 +40,9 @@ export class MovementSystem implements IMovementSystem {
     player: Player
   ): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
+
+    // Increment frame counter for throttled updates
+    this.frameCounter++;
 
     this.updateEnemies(pool, dtFactor, player, width, height);
     this.updateBullets(pool, dtFactor, width, height, perfConfig);
@@ -54,6 +62,9 @@ export class MovementSystem implements IMovementSystem {
     width: number,
     height: number
   ): void {
+    // Check if this is a separation frame (throttled for performance)
+    const shouldApplySeparation = this.frameCounter % SEPARATION.THROTTLE_FRAMES === 0;
+
     pool.activeEnemies.forEach(e => {
       if (e.isDying) {
         return;
@@ -69,6 +80,11 @@ export class MovementSystem implements IMovementSystem {
 
       // Execute AI behavior move logic
       e.behavior.move(e, player.x, player.y, dtFactor);
+
+      // Apply separation steering to prevent clumping (throttled)
+      if (shouldApplySeparation && e.hasEnteredScreen) {
+        this.applySeparation(e);
+      }
 
       if (!e.hasEnteredScreen) {
         // Mark as entered screen when any part of the enemy is visible
@@ -200,5 +216,85 @@ export class MovementSystem implements IMovementSystem {
         }
       }
     });
+  }
+
+  /**
+   * Apply separation steering force to prevent enemy clumping.
+   *
+   * Uses Boids "separation" algorithm: each enemy is gently pushed away
+   * from nearby neighbors that are within their combined radii.
+   *
+   * Performance: Uses SpatialGrid.forEachNearby for O(1) cell lookups,
+   * and is called only every THROTTLE_FRAMES frames.
+   *
+   * @param enemy - The enemy to apply separation to
+   */
+  private applySeparation(enemy: Enemy): void {
+    let sepX = 0;
+    let sepY = 0;
+    let neighborCount = 0;
+
+    // Use zero-allocation iterator for nearby enemies
+    enemyGrid.forEachNearby(enemy.x, enemy.y, neighbor => {
+      // Skip self and dying enemies
+      if (neighbor === enemy || neighbor.isDying || !neighbor.active) {
+        return;
+      }
+
+      const dx = enemy.x - neighbor.x;
+      const dy = enemy.y - neighbor.y;
+      const distSq = dx * dx + dy * dy;
+
+      // Skip if too far (optimization)
+      if (distSq > SEPARATION.SKIP_DIST_SQ) {
+        return;
+      }
+
+      // Minimum distance = combined radii + buffer
+      const minDist = enemy.radius + neighbor.radius + SEPARATION.BUFFER_PX;
+      const minDistSq = minDist * minDist;
+
+      // Only apply force if overlapping or very close
+      if (distSq < minDistSq) {
+        let dist = Math.sqrt(distSq);
+        let dxForce = dx;
+        let dyForce = dy;
+
+        // Zero distance fallback: push in a random direction
+        // This is critical to break clumping when enemies are at exact same coordinates
+        if (dist < 0.01) {
+          const angle = Math.random() * Math.PI * 2;
+          dxForce = Math.cos(angle);
+          dyForce = Math.sin(angle);
+          dist = 1.0; // Use a virtual distance of 1px for force calculation
+        }
+
+        const overlap = minDist - dist;
+
+        // Soft falloff: closer = stronger push
+        const force = (overlap / minDist) * SEPARATION.STRENGTH;
+
+        // Accumulate separation vector (direction away from neighbor)
+        sepX += (dxForce / dist) * force;
+        sepY += (dyForce / dist) * force;
+        neighborCount++;
+      }
+    });
+
+    // Apply accumulated separation force
+    if (neighborCount > 0) {
+      // Clamp force to prevent jittering in dense swarms
+      const clampedX = Math.max(
+        -SEPARATION.MAX_FORCE,
+        Math.min(SEPARATION.MAX_FORCE, sepX)
+      );
+      const clampedY = Math.max(
+        -SEPARATION.MAX_FORCE,
+        Math.min(SEPARATION.MAX_FORCE, sepY)
+      );
+
+      enemy.x += clampedX;
+      enemy.y += clampedY;
+    }
   }
 }

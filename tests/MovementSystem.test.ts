@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MovementSystem } from '../services/physics/MovementSystem';
+import { enemyGrid } from '../services/SpatialGrid';
 import { PoolManager } from '../services/PoolManager';
 import {
   ChaseStrategy,
@@ -149,7 +150,11 @@ describe('MovementSystem', () => {
     pool = new PoolManager();
     movementSystem = new MovementSystem();
     // Seed random for deterministic tests where needed
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    let randVal = 0.5;
+    vi.spyOn(Math, 'random').mockImplementation(() => {
+      randVal = (randVal + 0.13) % 1.0;
+      return randVal;
+    });
   });
 
   afterEach(() => {
@@ -586,5 +591,191 @@ describe('Strategy Factory', () => {
       const strategy = createMarketMovementStrategy('circle');
       expect(strategy.name).toBe('circle');
     });
+  });
+});
+
+describe('Enemy Separation Steering', () => {
+  let pool: PoolManager;
+  let movementSystem: MovementSystem;
+
+  beforeEach(() => {
+    pool = new PoolManager();
+    movementSystem = new MovementSystem();
+    let randVal = 0.5;
+    vi.spyOn(Math, 'random').mockImplementation(() => {
+      randVal = (randVal + 0.13) % 1.0;
+      return randVal;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const updateGrid = () => {
+    enemyGrid.clear();
+    pool.activeEnemies.forEach(e => enemyGrid.insert(e));
+  };
+
+  it('should push overlapping enemies apart', () => {
+    // Two enemies at exact same position - should be pushed apart
+    const enemy1 = createMockEnemy({
+      x: 100,
+      y: 100,
+      radius: 15,
+      hasEnteredScreen: true,
+    });
+    const enemy2 = createMockEnemy({
+      x: 100,
+      y: 100,
+      radius: 15,
+      hasEnteredScreen: true,
+    });
+
+    pool.activeEnemies.push(enemy1, enemy2);
+
+    // Run update multiple times to trigger separation (it's throttled)
+    for (let i = 0; i < 10; i++) {
+      updateGrid();
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+    }
+
+    // Enemies should have moved apart
+    const dx = enemy2.x - enemy1.x;
+    const dy = enemy2.y - enemy1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // After separation, distance should be greater than 0
+    expect(distance).toBeGreaterThan(0);
+  });
+
+  it('should not affect enemies that are far apart', () => {
+    // Two enemies far apart - should not affect each other
+    const enemy1 = createMockEnemy({
+      x: 100,
+      y: 100,
+      radius: 15,
+      hasEnteredScreen: true,
+    });
+    const enemy2 = createMockEnemy({
+      x: 500,
+      y: 500,
+      radius: 15,
+      hasEnteredScreen: true,
+    });
+
+    pool.activeEnemies.push(enemy1, enemy2);
+
+    // Store initial positions (after behavior movement)
+    const player = createMockPlayer({ x: 300, y: 300 });
+
+    // Run one update to apply behavior
+    movementSystem.update(pool, 1.0, 800, 600, player);
+    const enemy1XAfter1 = enemy1.x;
+    const enemy2XAfter1 = enemy2.x;
+
+    // Run more updates
+    for (let i = 0; i < 5; i++) {
+      updateGrid();
+      movementSystem.update(pool, 1.0, 800, 600, player);
+    }
+
+    // Both enemies should only move towards player, not be affected by separation
+    // (since they're far apart)
+    expect(enemy1.x).toBeGreaterThan(enemy1XAfter1); // Moved towards player
+    expect(enemy2.x).toBeLessThan(enemy2XAfter1); // Moved towards player (from right)
+  });
+
+  it('should not apply separation to dying enemies', () => {
+    const enemy1 = createMockEnemy({
+      x: 100,
+      y: 100,
+      radius: 15,
+      hasEnteredScreen: true,
+      isDying: true,
+    });
+    const enemy2 = createMockEnemy({
+      x: 100,
+      y: 100,
+      radius: 15,
+      hasEnteredScreen: true,
+    });
+
+    pool.activeEnemies.push(enemy1, enemy2);
+
+    for (let i = 0; i < 6; i++) {
+      updateGrid();
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+    }
+
+    // Dying enemy should not have moved due to separation
+    // (only death animation progress should change)
+    expect(enemy1.x).toBe(100);
+    expect(enemy1.y).toBe(100);
+  });
+
+  it('should not apply separation to enemies that have not entered screen', () => {
+    const enemy1 = createMockEnemy({
+      x: -100,
+      y: -100,
+      radius: 15,
+      hasEnteredScreen: false,
+    });
+    const enemy2 = createMockEnemy({
+      x: -100,
+      y: -100,
+      radius: 15,
+      hasEnteredScreen: false,
+    });
+
+    pool.activeEnemies.push(enemy1, enemy2);
+
+    for (let i = 0; i < 6; i++) {
+      updateGrid();
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+    }
+
+    // Both enemies should only be affected by behavior movement, not separation
+    // (since hasEnteredScreen is false, separation is skipped)
+    // They'll move towards player but separation won't apply
+    const dx = enemy2.x - enemy1.x;
+    const dy = enemy2.y - enemy1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Distance should be 0 since both move identically towards player
+    expect(distance).toBe(0);
+  });
+
+  it('should handle multiple overlapping enemies in a group', () => {
+    // Create a cluster of enemies at the same position
+    const enemies = [];
+    for (let i = 0; i < 5; i++) {
+      enemies.push(
+        createMockEnemy({
+          // Add tiny offsets to break perfect symmetry even with mocked random
+          x: 200 + i * 0.1,
+          y: 200 + i * 0.1,
+          radius: 15,
+          hasEnteredScreen: true,
+        })
+      );
+    }
+
+    pool.activeEnemies.push(...enemies);
+
+    // Run many updates to spread them out
+    for (let i = 0; i < 100; i++) {
+      updateGrid();
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+    }
+
+    // Check that enemies have spread out
+    const uniquePositions = new Set<string>();
+    enemies.forEach(e => {
+      uniquePositions.add(`${e.x.toFixed(2)},${e.y.toFixed(2)}`);
+    });
+
+    // Should have more than 1 unique position after spreading
+    expect(uniquePositions.size).toBeGreaterThan(1);
   });
 });

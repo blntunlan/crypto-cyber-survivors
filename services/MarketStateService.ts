@@ -133,7 +133,7 @@ class MarketStateServiceClass {
         this.states.set(pair, mappedState);
       });
       this.lastUpdate = Date.now();
-      Logger.info(`[MarketState] Fetched ${data?.length ?? 0} pairs`);
+      Logger.info(`[MarketState] Fetched ${data.length} pairs`);
     } catch (error) {
       Logger.error('[MarketState] Fetch failed:', error);
     }

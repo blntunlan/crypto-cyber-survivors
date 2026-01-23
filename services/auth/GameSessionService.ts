@@ -50,18 +50,30 @@ export class GameSessionService {
         throw new Error('Supabase not configured on this client');
       }
 
+      const payload = {
+        userId: nickname,
+        pair,
+        leverage,
+        position,
+      };
+
+      Logger.info('[GameSession] STARTING SESSION WITH', payload);
+
       const { data, error } = await supabase.functions.invoke('start-session', {
-        body: {
-          userId: nickname,
-          pair,
-          leverage,
-          position,
-        },
+        body: payload,
       });
 
       if (error) {
-        Logger.error('[GameSession] start-session function returned error:', error);
-        throw error;
+        let errorMsg = 'Unknown Error';
+        try {
+          const body = await error.context.json();
+          errorMsg = (body.error ?? body.message ?? JSON.stringify(body)) as string;
+        } catch {
+          errorMsg = error.message;
+        }
+
+        Logger.error(`[GameSession] start-session failed: ${errorMsg}`, error);
+        throw new Error(errorMsg);
       }
 
       if (!data?.sessionId) {
@@ -113,8 +125,8 @@ export class GameSessionService {
     position: MarketPosition;
     leverage: number;
     endReason: string;
-    replayData?: any;
-    performance?: any;
+    replayData?: unknown;
+    performance?: unknown;
   }): Promise<{ success: boolean; reward?: number; error?: string }> {
     if (!this.currentSessionId || !this.currentSessionSecret) {
       Logger.warn('[GameSession] Cannot submit: No active session found');

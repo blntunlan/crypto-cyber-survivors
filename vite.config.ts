@@ -30,10 +30,10 @@ export default defineConfig(({ mode }) => {
       terserOptions: isProduction
         ? {
             compress: {
-              // Remove console.log and console.debug in production
-              drop_console: true,
-              drop_debugger: true,
-              pure_funcs: ['console.log', 'console.debug', 'console.info'],
+              // Temporarily disabled for debugging game start 400 error
+              drop_console: false,
+              drop_debugger: false,
+              pure_funcs: [],
               // Dead code elimination
               dead_code: true,
               // Reduce attack surface

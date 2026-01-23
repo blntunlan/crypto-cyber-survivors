@@ -11,13 +11,6 @@
 
 import { Logger } from './Logger';
 
-/** Cloudflare Worker URLs - Update these with your actual worker URLs */
-const WORKER_URLS = {
-  PRICE_ORACLE: (import.meta.env.VITE_CF_PRICE_ORACLE_URL as string | undefined) ?? '',
-  SESSION_VALIDATOR:
-    (import.meta.env.VITE_CF_SESSION_VALIDATOR_URL as string | undefined) ?? '',
-};
-
 /** Price data from the oracle */
 export interface PriceData {
   pair: string;

@@ -35,6 +35,9 @@ import { ImagePreloader } from './services/ImagePreloader';
 import { Logger } from './services/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
 import { ExperienceService } from './services/ExperienceService';
+import { TimeService } from './services/TimeService';
+import { PerformanceTracker } from './services/analytics/PerformanceTracker';
+import { DeviceProfiler } from './services/analytics/DeviceProfiler';
 
 // Custom hooks
 import { useDevice } from './hooks/useDevice';
@@ -75,6 +78,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { PWAInstallPrompt } from './components/ui/PWAInstallPrompt';
 import { TutorialOverlay } from './components/screens/TutorialOverlay';
+import { MarketAnnouncer } from './components/hud/MarketAnnouncer';
 
 // Optimization: Keep heavy admin/debug components lazy
 const AnalyticsDashboard = React.lazy(() =>
@@ -205,6 +209,17 @@ const App: React.FC = () => {
   // Tutorial system for new users
   const tutorial = useTutorial();
 
+  // Global Error to Notification Bridge
+  useEffect(() => {
+    return Logger.onError((message, error) => {
+      EventBus.emit('gameNotification', {
+        title: 'System Error',
+        message: message || String(error),
+        type: 'error',
+      });
+    });
+  }, []);
+
   // ========================================
   // Player & Market Hooks
   // ========================================
@@ -320,9 +335,7 @@ const App: React.FC = () => {
       );
       setUiStats({ ...playerRef.current });
 
-      // Competitive Mode: Increase max delta time to allow real-time catch-up when returning from background/alt-tab.
-      // Casual Mode: Keep a small cap to prevent physics explosions from frame drops.
-      const { TimeService } = await import('./services/TimeService');
+      // Update time cap - Static import now ensures this works without chunk loading risk
       TimeService.setMaxDeltaTime(gameMode === GameMode.COMPETITIVE ? 10000 : 50);
 
       GameStateMachine.transition(GameStatus.PLAYING);
@@ -389,10 +402,6 @@ const App: React.FC = () => {
       GameStateMachine.transition(GameStatus.GAMEOVER);
 
       // Stop performance tracking and get results
-      const { PerformanceTracker } =
-        await import('./services/analytics/PerformanceTracker');
-      const { DeviceProfiler } = await import('./services/analytics/DeviceProfiler');
-
       const tracker = PerformanceTracker.getInstance();
       tracker.stop();
       const perfStats = tracker.getStats();
@@ -438,32 +447,35 @@ const App: React.FC = () => {
       // --- THE DATA BRIDGE: Submit results to sever for verification and rewards ---
       if (metrics) {
         void (async () => {
-          const submission = await GameSessionService.submitSession({
-            level: playerRef.current.level,
-            kills: runStats.totalKills,
-            survivalTimeMs: DifficultyManager.getTotalElapsedSeconds() * 1000,
-            entryPrice: entryPrice, // Added missing
-            exitPrice: marketData.price,
-            pnlPercent: marketData.pnl,
-            pair: selectedPair, // Added missing
-            position: position, // Added missing
-            leverage: leverage, // Added missing
-            endReason: reason,
-            replayData: metrics.replayData,
-            performance: metrics.performance,
-          });
+          try {
+            const submission = await GameSessionService.submitSession({
+              level: playerRef.current.level,
+              kills: runStats.totalKills,
+              survivalTimeMs: DifficultyManager.getTotalElapsedSeconds() * 1000,
+              entryPrice: entryPrice,
+              exitPrice: marketData.price,
+              pnlPercent: marketData.pnl,
+              pair: selectedPair,
+              position: position,
+              leverage: leverage,
+              endReason: reason,
+              replayData: metrics.replayData,
+              performance: metrics.performance,
+            });
 
-          if (submission.success) {
-            Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
-            // Success: Update UI or show reward animation
-            if (submission.reward && submission.reward > 0) {
-              await CoinService.creditCoins(submission.reward, 'achievement');
+            if (submission.success) {
+              Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
+              if (submission.reward && submission.reward > 0) {
+                await CoinService.creditCoins(submission.reward, 'achievement');
+              }
+            } else {
+              Logger.warn(
+                '[App] Session verification failed or pending',
+                submission.error
+              );
             }
-          } else {
-            Logger.warn(
-              '[App] Session verification failed or pending',
-              submission.error
-            );
+          } catch (err) {
+            Logger.error('[App] Critical error during session submission:', err);
           }
         })();
       }
@@ -604,6 +616,9 @@ const App: React.FC = () => {
             className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
           >
             <ErrorBoundary>
+              {/* Global Notification system (always mounted) */}
+              <MarketAnnouncer />
+
               <React.Suspense fallback={<FallbackLoader />}>
                 {/* Game UI Overlay */}
 

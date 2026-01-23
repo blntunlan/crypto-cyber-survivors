@@ -13,7 +13,7 @@ test.describe('PWA Functionality', () => {
     await page.goto('/');
 
     // Check if service worker is registered
-    const isRegistered = await page.evaluate(async () => {
+    await page.evaluate(async () => {
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         return registrations.length > 0;

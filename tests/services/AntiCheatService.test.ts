@@ -165,7 +165,6 @@ describe('AntiCheatService', () => {
       // Simulate abnormally fast frames (short delta time)
       // Normal frame @ 60fps is ~16.6ms
       // We simulate 5ms frames (impossible naturally)
-      const now = performance.now();
 
       // Inject fake samples directly if possible, or mock performance.now
       // Since private speedHackSamples is hard to reach without casting,

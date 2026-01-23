@@ -55,12 +55,42 @@ export const MarketAnnouncer: React.FC = () => {
       }
     };
 
+    const handleNotification = (data: {
+      title: string;
+      message: string;
+      type?: 'error' | 'success' | 'info' | 'warning';
+    }) => {
+      addAlert({
+        type: 'VOLATILITY', // Reuse volatility style for generic notifications
+        title: data.title,
+        message: data.message,
+        color:
+          data.type === 'error'
+            ? '#f87171'
+            : data.type === 'success'
+              ? '#4ade80'
+              : data.type === 'warning'
+                ? '#fbbf24'
+                : '#60a5fa',
+        icon:
+          data.type === 'error'
+            ? '❌'
+            : data.type === 'success'
+              ? '✅'
+              : data.type === 'warning'
+                ? '⚠️'
+                : 'ℹ️',
+      });
+    };
+
     const unsubRSI = EventBus.on('rsiStateChanged', handleRSI);
     const unsubWhale = EventBus.on('whaleTierChanged', handleWhale);
+    const unsubNotify = EventBus.on('gameNotification', handleNotification);
 
     return () => {
       unsubRSI();
       unsubWhale();
+      unsubNotify();
     };
   }, [t]);
 

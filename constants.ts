@@ -379,6 +379,24 @@ export const GAME_ENGINE = {
 };
 
 /**
+ * Enemy Separation Steering Constants
+ * Prevents enemies from overlapping/clumping by applying soft repulsion forces.
+ * Uses SpatialGrid for O(1) neighbor lookups.
+ */
+export const SEPARATION = {
+  /** How often to apply separation (every N frames). Higher = less CPU, slightly less smooth. */
+  THROTTLE_FRAMES: 3,
+  /** Force multiplier for separation. 0.3-0.6 is ideal for smooth movement. */
+  STRENGTH: 0.45,
+  /** Extra buffer distance beyond combined radii to start repelling. */
+  BUFFER_PX: 4,
+  /** Maximum separation force per axis to prevent jittering. */
+  MAX_FORCE: 3.0,
+  /** Skip separation for enemies above this distance squared (optimization). */
+  SKIP_DIST_SQ: 10000, // 100px squared
+} as const;
+
+/**
  * Player Stats and Caps
  */
 export const PLAYER_STATS = {

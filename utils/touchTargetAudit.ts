@@ -71,7 +71,7 @@ export function auditTouchTargets(): TouchTargetIssue[] {
         ? `.${el.className.toString().split(' ').slice(0, 2).join('.')}`
         : '';
       const tag = el.tagName.toLowerCase();
-      const text = el.textContent?.trim().slice(0, 20) ?? '';
+      const text = (el.textContent || '').trim().slice(0, 20);
       const ariaLabel = el.getAttribute('aria-label') ?? '';
 
       const identifier = id || ariaLabel || text || classes || `<${tag}>`;
