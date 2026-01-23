@@ -346,17 +346,13 @@ export class CollisionSystem implements ICollisionSystem {
     dtFactor: number,
     particleMultiplier: number
   ): void {
-    // Get nearby bullets in batch to reduce iterator overhead
-    const nearbyBullets: Bullet[] = [];
+    // Iterate nearby bullets directly to avoid array allocation
     this.ctx.bulletGrid.forEachNearby(enemy.x, enemy.y, bullet => {
-      if (!enemy.active || !bullet.active) {
+      // Early exit if either entity is inactive or enemy is already dying
+      if (!enemy.active || enemy.isDying || !bullet.active) {
         return;
       }
-      nearbyBullets.push(bullet);
-    });
 
-    // Process collected bullets with optimized distance checks
-    for (const bullet of nearbyBullets) {
       const dx = enemy.x - bullet.x;
       const dy = enemy.y - bullet.y;
       const distSq = dx * dx + dy * dy;
@@ -376,7 +372,7 @@ export class CollisionSystem implements ICollisionSystem {
           particleMultiplier
         );
       }
-    }
+    });
   }
 
   /**
