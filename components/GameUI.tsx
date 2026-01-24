@@ -20,7 +20,6 @@ import {
   LiveFeed,
   AccountHealthPremium,
   BuffIndicator,
-  MarketAnnouncer,
   WaveTimer,
   LiquidationWarningOverlay,
   CycleDecisionScreen,
@@ -230,7 +229,6 @@ export const GameUI: React.FC<GameUIProps> = memo(
             <LiveFeed
               marketData={marketData}
               entryPrice={entryPrice}
-              smoothValues={smoothValues}
               priceColor={priceColor}
             />
             {/* Buff Indicator - Below LiveFeed */}
@@ -250,12 +248,9 @@ export const GameUI: React.FC<GameUIProps> = memo(
             className="flex flex-col items-end gap-3 hud-element-right"
             style={{ maxWidth: isMobile ? '40%' : undefined }}
           >
-            <KernelStatus player={player} smoothValues={smoothValues} />
+            <KernelStatus player={player} />
           </div>
         </div>
-
-        {/* Market Events Announcer */}
-        <MarketAnnouncer />
 
         {/* Account Health (Bottom) - Adaptive Component */}
         <AccountHealthPremium

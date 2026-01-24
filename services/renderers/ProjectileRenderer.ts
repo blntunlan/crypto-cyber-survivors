@@ -4,6 +4,7 @@ import { type GameState, type Player, type Bullet } from '../../types';
 import { createViewportBounds, isCircleVisible } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
 import { GAME_ENGINE } from '../../constants';
+import { gradientCache } from '../../utils/GradientCache';
 
 /**
  * ProjectileRenderer - Visualizes player bullets and projectiles.
@@ -220,10 +221,18 @@ export class ProjectileRenderer implements IRenderer {
     } else {
       // --- NORMAL: "Smooth Tracer" Design ---
       // Transparent Tail
-      const gradient = ctx.createLinearGradient(-length / 2, 0, length / 2, 0);
-      gradient.addColorStop(0, 'transparent');
-      gradient.addColorStop(0.5, `${b.color}80`);
-      gradient.addColorStop(1, b.color);
+      const gradient = gradientCache.getLinearGradient(
+        ctx,
+        -length / 2,
+        0,
+        length / 2,
+        0,
+        [
+          { offset: 0, color: 'transparent' },
+          { offset: 0.5, color: `${b.color}80` },
+          { offset: 1, color: b.color },
+        ]
+      );
 
       ctx.lineWidth = width * 1.5;
       ctx.strokeStyle = gradient;

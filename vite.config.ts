@@ -26,14 +26,15 @@ export default defineConfig(({ mode }) => {
     // ==========================================================================
     build: {
       minify: isProduction ? 'terser' : false,
-      sourcemap: isProduction ? false : true,
+      sourcemap: true,
       terserOptions: isProduction
         ? {
             compress: {
-              // Temporarily disabled for debugging game start 400 error
-              drop_console: false,
-              drop_debugger: false,
-              pure_funcs: [],
+              drop_console: isProduction,
+              drop_debugger: isProduction,
+              pure_funcs: isProduction
+                ? ['console.log', 'console.debug', 'console.info']
+                : [],
               // Dead code elimination
               dead_code: true,
               // Reduce attack surface

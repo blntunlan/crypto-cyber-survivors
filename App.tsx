@@ -40,6 +40,8 @@ import { PerformanceTracker } from './services/analytics/PerformanceTracker';
 import { DeviceProfiler } from './services/analytics/DeviceProfiler';
 
 // Custom hooks
+import { ErrorRecoveryService } from './services/ErrorRecoveryService';
+import { MarketEventManager } from './services/MarketEventManager';
 import { useDevice } from './hooks/useDevice';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
@@ -78,7 +80,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { PWAInstallPrompt } from './components/ui/PWAInstallPrompt';
 import { TutorialOverlay } from './components/screens/TutorialOverlay';
-import { MarketAnnouncer } from './components/hud/MarketAnnouncer';
+import { NotificationSystem } from './components/hud';
 
 // Optimization: Keep heavy admin/debug components lazy
 const AnalyticsDashboard = React.lazy(() =>
@@ -208,6 +210,12 @@ const App: React.FC = () => {
 
   // Tutorial system for new users
   const tutorial = useTutorial();
+
+  // Initialize Global Services
+  useEffect(() => {
+    void ErrorRecoveryService;
+    void MarketEventManager;
+  }, []);
 
   // Global Error to Notification Bridge
   useEffect(() => {
@@ -617,7 +625,7 @@ const App: React.FC = () => {
           >
             <ErrorBoundary>
               {/* Global Notification system (always mounted) */}
-              <MarketAnnouncer />
+              <NotificationSystem />
 
               <React.Suspense fallback={<FallbackLoader />}>
                 {/* Game UI Overlay */}

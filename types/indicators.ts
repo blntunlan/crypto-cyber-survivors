@@ -38,10 +38,10 @@ export interface RSIConfig {
 
 /**
  * Default RSI configuration
- * Period 14 = 14 seconds with 1-second candles (standard RSI)
+ * Period 7 = 7 seconds with 1-second candles (Faster response)
  */
 export const DEFAULT_RSI_CONFIG: RSIConfig = {
-  period: 14,
+  period: 7,
   oversoldEnter: 30,
   oversoldExit: 35,
   overboughtEnter: 70,

@@ -104,6 +104,10 @@ export interface Enemy extends Entity {
   damageBufferIsCrit?: boolean;
   damageBufferIsSuperCrit?: boolean;
   damageBufferCritCount?: number; // Number of crits in this stack
+  // RSI-based metadata
+  visualStyle?: 'friendly' | 'neutral' | 'aggressive';
+  dropBuffChance?: number;
+  dropDebuffChance?: number;
 }
 
 export interface Bullet extends Entity {

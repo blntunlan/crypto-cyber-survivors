@@ -52,7 +52,6 @@ vi.mock('../../components/hud', () => ({
   LiveFeed: () => <div data-testid="live-feed" />,
   AccountHealthPremium: () => <div data-testid="account-health" />,
   BuffIndicator: () => <div data-testid="buff-indicator" />,
-  MarketAnnouncer: () => <div data-testid="market-announcer" />,
   LiquidationWarningOverlay: () => <div data-testid="liquidation-warning" />,
   CycleDecisionScreen: () => <div data-testid="cycle-decision-screen" />,
   LeaderboardPanel: () => <div data-testid="leaderboard-panel" />,

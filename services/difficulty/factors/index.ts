@@ -9,3 +9,4 @@ export * from './RSIFactor';
 export * from './VolumeFactor';
 export * from './ATRFactor';
 export * from './NearDeathFactor';
+export * from './PerformanceFactor';

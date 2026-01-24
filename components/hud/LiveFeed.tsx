@@ -9,15 +9,11 @@ import { EventBus } from '../../services/EventBus';
 import { type MarketStateData } from '../../types/events';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { LiveTicker } from '../themed/LiveTicker';
 
 interface LiveFeedProps {
   marketData: MarketData;
   entryPrice: number;
-  smoothValues: {
-    price: number;
-    pnl: number;
-    difficulty: number;
-  };
   priceColor: string;
 }
 
@@ -69,9 +65,44 @@ const InfoRow = memo(
 
 InfoRow.displayName = 'InfoRow';
 
+/**
+ * Live version of InfoRow that uses direct DOM updates for performance.
+ */
+const LiveInfoRow = memo(
+  ({
+    label,
+    valueKey,
+    id,
+    formatter,
+    colorClass = 'text-slate-100',
+    isRetro = false,
+  }: {
+    label: string;
+    valueKey: string;
+    id: string;
+    formatter: (val: number) => string;
+    colorClass?: string;
+    isRetro?: boolean;
+  }) => {
+    return (
+      <div className="flex justify-between items-center text-[11px] uppercase tracking-widest font-bold">
+        <span className="text-slate-400">{label}</span>
+        <LiveTicker
+          id={id}
+          valueKey={valueKey}
+          formatter={formatter}
+          className={`${colorClass} tabular-nums ${isRetro ? 'font-retro-text' : ''}`}
+        />
+      </div>
+    );
+  }
+);
+
+LiveInfoRow.displayName = 'LiveInfoRow';
+
 const DesktopLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
-> = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
+> = ({ marketData, entryPrice, priceColor, serverState }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
 
@@ -104,19 +135,28 @@ const DesktopLiveFeed: React.FC<
           style={{ fontVariantNumeric: 'tabular-nums', minWidth: '180px' }}
         >
           $
-          {smoothValues.price.toLocaleString(undefined, {
-            minimumFractionDigits: pairConfig.decimals,
-            maximumFractionDigits: pairConfig.decimals,
-          })}
+          <LiveTicker
+            id={`${pairConfig.id}-price`}
+            valueKey="price"
+            formatter={(val: number) =>
+              val.toLocaleString(undefined, {
+                minimumFractionDigits: pairConfig.decimals,
+                maximumFractionDigits: pairConfig.decimals,
+              })
+            }
+          />
         </div>
         <div className="flex items-center justify-between mt-1">
           <div
             className={`text-sm font-black flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
             style={{ color: pnlHex }}
           >
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {(smoothValues.pnl * 100).toFixed(2)}%
-            </span>
+            <LiveTicker
+              id="pnl-pct-ticker"
+              valueKey="pnl"
+              formatter={(val: number) => `${(val * 100).toFixed(2)}%`}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            />
             <span className="text-[10px] opacity-70 tracking-widest uppercase">
               {marketData.effectivePnl >= 0
                 ? t('hud.profit_short')
@@ -127,11 +167,16 @@ const DesktopLiveFeed: React.FC<
             className={`text-xs font-black tabular-nums ${isRetro ? 'font-retro-text' : 'font-mono'}`}
             style={{ color: pnlHex, fontVariantNumeric: 'tabular-nums' }}
           >
-            {smoothValues.pnl >= 0 ? '+' : ''}$
-            {(smoothValues.pnl * 1000).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            <LiveTicker
+              id="pnl-usd-ticker"
+              valueKey="pnl"
+              formatter={(val: number) =>
+                `${val >= 0 ? '+' : ''}$${(val * 1000).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`
+              }
+            />
           </div>
         </div>
       </div>
@@ -144,11 +189,12 @@ const DesktopLiveFeed: React.FC<
           isRetro={isRetro}
         />
 
-        <InfoRow
+        <LiveInfoRow
+          id="vol-ticker"
           label={t('hud.volatility')}
-          value={smoothValues.difficulty}
-          isPrice={false}
+          valueKey="difficulty"
           isRetro={isRetro}
+          formatter={(val: number) => `x${val.toFixed(2)}`}
         />
 
         {marketData.liquidationPrice !== undefined &&
@@ -202,7 +248,7 @@ const DesktopLiveFeed: React.FC<
 
 const MobileLiveFeed: React.FC<
   LiveFeedProps & { serverState: MarketStateData | null }
-> = ({ marketData, entryPrice, smoothValues, priceColor, serverState }) => {
+> = ({ marketData, entryPrice, priceColor, serverState }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
   const { rfs, isSmallDevice } = useResponsiveUI();
@@ -264,10 +310,16 @@ const MobileLiveFeed: React.FC<
           }}
         >
           $
-          {smoothValues.price.toLocaleString(undefined, {
-            minimumFractionDigits: displayDecimals,
-            maximumFractionDigits: displayDecimals,
-          })}
+          <LiveTicker
+            id={`${pairConfig.id}-price-mobile`}
+            valueKey="price"
+            formatter={(val: number) =>
+              val.toLocaleString(undefined, {
+                minimumFractionDigits: displayDecimals,
+                maximumFractionDigits: displayDecimals,
+              })
+            }
+          />
         </div>
         <div
           className="font-black px-1.5 py-0.5 rounded leading-none w-fit"
@@ -278,7 +330,11 @@ const MobileLiveFeed: React.FC<
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {(smoothValues.pnl * 100).toFixed(2)}%
+          <LiveTicker
+            id="pnl-pct-mobile"
+            valueKey="pnl"
+            formatter={(val: number) => `${(val * 100).toFixed(2)}%`}
+          />
         </div>
       </div>
 
@@ -312,7 +368,12 @@ const MobileLiveFeed: React.FC<
 
         {/* Volatility pill */}
         <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap tabular-nums">
-          {t('hud.volatility_short')} X{smoothValues.difficulty.toFixed(1)}
+          {t('hud.volatility_short')} X
+          <LiveTicker
+            id="vol-mobile"
+            valueKey="difficulty"
+            formatter={(val: number) => val.toFixed(1)}
+          />
         </div>
 
         {/* RSI pill */}

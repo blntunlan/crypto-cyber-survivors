@@ -84,7 +84,10 @@ export type GameEvent =
   | 'bossWaveStart'
   | 'bossWaveEnd'
   | 'cycleDecisionScreen'
-  | 'cycleDecisionMade';
+  | 'cycleDecisionMade'
+  | 'hudValuesUpdated'
+  | 'marketReconnectRequest'
+  | 'gameMarketEvent';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -257,6 +260,7 @@ export interface WhaleTierChangedEvent {
 export interface RSIStateChangedEvent {
   state: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   rsi: number;
+  pair?: string;
 }
 
 /** Market state updated event data (full state) */
@@ -523,6 +527,18 @@ export interface EventDataMap {
   bossWaveEnd: { cycleNumber: number };
   cycleDecisionScreen: { cycleNumber: number; options: string[] };
   cycleDecisionMade: { decision: 'CONTINUE' | 'CASH_OUT'; cycleNumber: number };
+  hudValuesUpdated: Record<string, number>;
+  marketReconnectRequest: { pair?: string };
+  gameMarketEvent: {
+    type:
+      | 'VOLUME_SPIKE'
+      | 'PRICE_BREAKOUT'
+      | 'WHALE_ALERT'
+      | 'CONSOLIDATION'
+      | 'FLASH_CRASH';
+    intensity: number;
+    durationMs: number;
+  };
 }
 
 export interface NotificationEvent {

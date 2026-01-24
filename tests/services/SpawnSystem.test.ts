@@ -3,20 +3,21 @@ import { SpawnSystem } from '../../services/SpawnSystem';
 import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { MarketPosition } from '../../types';
 
-// Mock MarketStateService
-vi.mock('../../services/MarketStateService', () => ({
-  MarketStateService: {
+vi.mock('../../services/indicators/MarketIndicatorService', () => ({
+  marketIndicatorService: {
     getState: vi.fn(),
   },
 }));
 
 // Import after mock
-import { MarketStateService as marketStateService } from '../../services/MarketStateService';
+import { marketIndicatorService } from '../../services/indicators/MarketIndicatorService';
 
 vi.mock('../../services/Logger', () => ({
   Logger: {
     debug: vi.fn(),
     info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -55,9 +56,10 @@ describe('SpawnSystem', () => {
     vi.clearAllMocks();
     spawnSystem = new SpawnSystem();
     (mockPool as any).activeEnemies = [];
-    (marketStateService.getState as any).mockReturnValue({
+    (marketIndicatorService.getState as any).mockReturnValue({
       whaleTier: 0,
       rsiState: 'NEUTRAL',
+      spawnRateMultiplier: 1.0,
     });
   });
 
@@ -85,7 +87,11 @@ describe('SpawnSystem', () => {
   });
 
   it('should spawn whales if whaleTier > 0', () => {
-    (marketStateService.getState as any).mockReturnValue({ whaleTier: 1 });
+    (marketIndicatorService.getState as any).mockReturnValue({
+      whaleTier: 1,
+      rsiState: 'NEUTRAL',
+      spawnRateMultiplier: 1.0,
+    });
     // This is probabilistic, so mock Math.random to ensure it spawns
     vi.spyOn(Math, 'random').mockReturnValue(0.001); // < config.spawnChance (0.2 * 0.01 = 0.002)
 
@@ -113,7 +119,7 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(String),
       'bear',
-      expect.any(String), // pair
+      undefined,
       expect.any(Number), // damageMultiplier
       expect.any(Number) // speedMultiplier
     );
@@ -126,7 +132,7 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(String),
       'bull',
-      expect.any(String), // pair
+      undefined,
       expect.any(Number), // damageMultiplier
       expect.any(Number) // speedMultiplier
     );
@@ -149,8 +155,8 @@ describe('SpawnSystem', () => {
       expect.any(Number),
       expect.any(Number),
       expect.any(String),
-      'pumpdump',
-      expect.any(String), // pair
+      'fud', // 0.8 is < 0.85
+      undefined,
       expect.any(Number), // damageMultiplier
       expect.any(Number) // speedMultiplier
     );

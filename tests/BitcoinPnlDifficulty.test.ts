@@ -178,8 +178,8 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
       const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 0.8);
 
-      // Should be relatively easy
-      expect(difficulty.total).toBeLessThan(1.7);
+      // Should be relatively easy (compared to losses) but climax phase adds base pressure
+      expect(difficulty.total).toBeLessThan(2.3);
     });
 
     it('Scenario: SHORT position, BTC pumps 3% with 10x leverage', () => {

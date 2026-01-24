@@ -4,15 +4,15 @@ import { type PoolManager } from '../services/PoolManager';
 import { MarketPosition } from '../types';
 import { GAME_ENGINE } from '../constants';
 
-// Mock MarketStateService
-vi.mock('../services/MarketStateService', () => ({
-  MarketStateService: {
+// Mock MarketIndicatorService
+vi.mock('../services/indicators/MarketIndicatorService', () => ({
+  marketIndicatorService: {
     getState: vi.fn(),
   },
 }));
 
 // Import after mock
-import { MarketStateService as marketStateService } from '../services/MarketStateService';
+import { marketIndicatorService } from '../services/indicators/MarketIndicatorService';
 
 vi.mock('../stores/admin/configStore', () => ({
   useAdminConfigStore: {
@@ -37,6 +37,12 @@ describe('SpawnSystem', () => {
       getEnemy: vi.fn(),
       activeEnemies: [], // Mock active enemies array for limit check
     };
+    vi.mocked(marketIndicatorService.getState).mockReturnValue({
+      spawnRateMultiplier: 1.0,
+      whaleTier: 0,
+      rsiState: 'NEUTRAL',
+      isInitialized: true,
+    } as any);
     spawnSystem = new SpawnSystem();
     spawnSystem.reset();
   });
@@ -148,7 +154,6 @@ describe('SpawnSystem', () => {
 
   describe('Market and Whale Spawn Logic', () => {
     beforeEach(() => {
-      vi.mocked(marketStateService.getState).mockReturnValue(undefined);
       vi.spyOn(Math, 'random').mockReturnValue(0.5); // Default neutral random
     });
 
@@ -194,7 +199,7 @@ describe('SpawnSystem', () => {
     });
 
     it('should spawn whale when whaleTier > 0 and random hits', () => {
-      vi.mocked(marketStateService.getState).mockReturnValue({
+      vi.mocked(marketIndicatorService.getState).mockReturnValue({
         whaleTier: 2, // WHALE
       } as any);
 
@@ -216,7 +221,7 @@ describe('SpawnSystem', () => {
     });
 
     it('should not spawn whale when random misses', () => {
-      vi.mocked(marketStateService.getState).mockReturnValue({
+      vi.mocked(marketIndicatorService.getState).mockReturnValue({
         whaleTier: 2,
       } as any);
 

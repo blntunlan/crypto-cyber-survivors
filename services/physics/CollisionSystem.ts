@@ -346,23 +346,22 @@ export class CollisionSystem implements ICollisionSystem {
     dtFactor: number,
     particleMultiplier: number
   ): void {
-    // Get nearby bullets in batch to reduce iterator overhead
-    const nearbyBullets: Bullet[] = [];
-    this.ctx.bulletGrid.forEachNearby(enemy.x, enemy.y, bullet => {
-      if (!enemy.active || !bullet.active) {
-        return;
-      }
-      nearbyBullets.push(bullet);
-    });
+    const ex = enemy.x;
+    const ey = enemy.y;
+    const er = enemy.radius;
 
-    // Process collected bullets with optimized distance checks
-    for (const bullet of nearbyBullets) {
-      const dx = enemy.x - bullet.x;
-      const dy = enemy.y - bullet.y;
+    // Zero-allocation path using the grid's forEachNearby iterator
+    this.ctx.bulletGrid.forEachNearby(ex, ey, bullet => {
+      // 1. Double-check activity status for both participants
+      if (!enemy.active || !bullet.active) return;
+
+      // 2. Squared distance calculation (dx*dx + dy*dy)
+      const dx = ex - bullet.x;
+      const dy = ey - bullet.y;
       const distSq = dx * dx + dy * dy;
 
-      // FIX: Correct circle-circle collision: distSq < (r1 + r2)^2
-      const combinedRadius = enemy.radius + bullet.radius;
+      // 3. Combined radius squared for O(1) intersection check
+      const combinedRadius = er + bullet.radius;
       const combinedRadiusSq = combinedRadius * combinedRadius;
 
       if (distSq < combinedRadiusSq) {
@@ -376,7 +375,7 @@ export class CollisionSystem implements ICollisionSystem {
           particleMultiplier
         );
       }
-    }
+    });
   }
 
   /**

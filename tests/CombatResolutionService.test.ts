@@ -9,6 +9,7 @@ import { DifficultyManager } from '../services/DifficultyManager';
 vi.mock('../services/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
+    on: vi.fn(() => vi.fn()),
   },
 }));
 

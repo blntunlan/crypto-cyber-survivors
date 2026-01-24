@@ -330,6 +330,25 @@ class BuffGemSpawnerClass {
   }
 
   /**
+   * Force spawn a gem at a specific position (for RSI drops or debugging)
+   */
+  forceSpawnAt(
+    x: number,
+    y: number,
+    category: 'positive' | 'negative' | 'any' = 'any'
+  ): BuffGem | null {
+    let types = POSITIVE_BUFF_TYPES;
+    if (category === 'negative') types = NEGATIVE_BUFF_TYPES;
+    else if (category === 'any')
+      types = [...POSITIVE_BUFF_TYPES, ...NEGATIVE_BUFF_TYPES];
+
+    const type = this.selectWeightedBuffType(types);
+    if (!type) return null;
+
+    return this.spawnGem(type, x, y);
+  }
+
+  /**
    * Force spawn a gem (for testing/debugging)
    */
   forceSpawn(buffType?: BuffGemType): BuffGem | null {

@@ -63,6 +63,11 @@ export function getDefaultInputs(): DifficultyInputs {
     killStreak: 0,
     timeSinceLastKill: -1,
 
+    // Performance (ADS)
+    accuracy: 1.0,
+    damageTakenFrequency: 0,
+    performanceScore: 1.0,
+
     // History
     pnlHistory: [],
   };

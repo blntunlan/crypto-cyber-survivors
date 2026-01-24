@@ -295,10 +295,17 @@ export const useMarketData = (
 
     service.connect();
 
+    // Listen for manual reconnect requests (from ErrorRecoveryService)
+    const unsubReconnect = EventBus.on('marketReconnectRequest', () => {
+      Logger.info(`[useMarketData] Reconnect requested for ${expectedPair}`);
+      service.reconnect();
+    });
+
     return () => {
       // CRITICAL: Set cancelled flag BEFORE destroying service
       // This ensures any pending callbacks are ignored
       isCancelled = true;
+      unsubReconnect();
       Logger.info(`[useMarketData] Destroying MarketService for ${expectedPair}`);
       service.destroy(); // Use destroy() instead of disconnect() for complete cleanup
     };

@@ -51,6 +51,11 @@ export interface DifficultyInputs {
   killStreak: number;
   timeSinceLastKill: number; // ms, -1 if no kills yet
 
+  // Performance (ADS)
+  accuracy: number; // 0.0 to 1.0
+  damageTakenFrequency: number; // units per minute or similar
+  performanceScore: number; // 0.0 to 1.0 (calculated ADS)
+
   // History
   pnlHistory: number[]; // buffer of leveraged PnL values
 }
@@ -77,12 +82,14 @@ export interface DifficultyContextState {
     rsi: number;
     volume: number;
     atr: number;
+    performance: number; // New ADS factor
   };
   aggregates: {
     core: number; // cycle × pnl × level × wave
     modifier: number; // liquidation × streak × nearDeath × shock
     market: number; // rsi × volume × atr
-    total: number; // clamp(core × modifier × market, 1.0, 10.0)
+    performance: number; // Impact of player skill
+    total: number; // clamp(core × modifier × market * performance, 1.0, 20.0)
   };
   inputs: {
     leverage: number;

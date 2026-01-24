@@ -34,6 +34,7 @@ import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
 import { haptic } from '../services/HapticService';
 import { MarketStateService } from '../services/MarketStateService';
+import { marketIndicatorService } from '../services/indicators/MarketIndicatorService';
 import { Logger } from '../services/Logger';
 import { EventBus } from '../services/EventBus';
 import { EngineRegistry } from '../services/EngineRegistry';
@@ -419,8 +420,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update Speed Lines
         speedLineSpawner.current.update(p, s, player, width, height, time);
 
-        // REMOVED: marketIndicatorService.update(...) - handled by realtime service now
-        // Indicators flow directly to SpawnSystem via marketStateService
+        // Update local market indicators for responsive gameplay effects
+        // This calculates RSI(7), Volume Normalization and ATR-based spawn rates
+        const currentMarketData = marketDataRef.current;
+        marketIndicatorService.update(
+          currentMarketData.price,
+          currentMarketData.volume,
+          position,
+          pair
+        );
 
         // Update metrics system
         const wavePhase = DifficultyManager.getWavePhase();

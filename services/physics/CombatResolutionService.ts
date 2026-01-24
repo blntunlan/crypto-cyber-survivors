@@ -7,6 +7,7 @@ import { COLORS, COMBAT_CONFIG, ECONOMY_CONFIG, PLAYER_STATS } from '../../confi
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { Logger } from '../Logger';
 import { ThemeService } from '../ThemeService';
+import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 
 /**
  * CombatResolutionService - Logic engine for processing combat outcomes.
@@ -52,6 +53,25 @@ export class CombatResolutionService {
     this.spawnDeathParticles(pool, enemy, isSuperCrit);
     this.spawnGemForEnemy(pool, enemy, player);
     this.processLifesteal(player, enemy);
+    this.spawnRSIBuffForEnemy(enemy);
+  }
+
+  /**
+   * Spawns RSI-based buff/debuff gems based on enemy metadata.
+   */
+  private static spawnRSIBuffForEnemy(enemy: Enemy): void {
+    const { dropBuffChance = 0, dropDebuffChance = 0 } = enemy;
+
+    // Roll for Buff
+    if (dropBuffChance > 0 && Math.random() < dropBuffChance) {
+      BuffGemSpawner.forceSpawnAt(enemy.x, enemy.y, 'positive');
+      return; // Prioritize positive buff
+    }
+
+    // Roll for Debuff
+    if (dropDebuffChance > 0 && Math.random() < dropDebuffChance) {
+      BuffGemSpawner.forceSpawnAt(enemy.x, enemy.y, 'negative');
+    }
   }
 
   /**

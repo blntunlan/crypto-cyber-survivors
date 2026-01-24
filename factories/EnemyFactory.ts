@@ -13,6 +13,7 @@ import {
   createMovementStrategy,
   createMarketMovementStrategy,
 } from '../strategies/EnemyBehaviors';
+import { type RSIEnemyModifier, NEUTRAL_ENEMY_MODIFIER } from '../types/indicators';
 
 /**
  * Enemy configuration blueprint (now matches Registry)
@@ -55,7 +56,9 @@ export class EnemyFactory {
    * @param y Spawn Y position
    * @param difficulty Current difficulty level
    * @param position Player's market position (LONG/SHORT)
-   * @param aggroMultiplier RSI-based difficulty modifier (>1 = harder, <1 = easier)
+   * @param rsiModifier Full RSI-based behavior modifier
+   * @param damageMultiplier Global damage multiplier
+   * @param target Existing enemy object for pooling
    */
   createEnemy(
     type: string,
@@ -63,14 +66,14 @@ export class EnemyFactory {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    aggroMultiplier: number = 1.0,
+    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER,
     damageMultiplier: number = 1.0,
     target?: GameEnemy
   ): GameEnemy {
     const config = (ENEMY_DEFINITIONS[type as EnemyId] ??
       ENEMY_DEFINITIONS['bear']) as EnemyConfig;
 
-    // ... (color logic remains the same)
+    // Determine visual color based on position and market sentiment
     let color = config.color;
 
     const preserveIdentity = type === 'fud' || type === 'whale';
@@ -93,13 +96,20 @@ export class EnemyFactory {
       color = position === MarketPosition.LONG ? COLORS.SHORT : COLORS.LONG;
     }
 
-    const modifiedSpeed = config.baseSpeed * aggroMultiplier;
+    // Apply RSI visual style overrides if applicable
+    if (rsiModifier.visualStyle === 'friendly' && !preserveIdentity) {
+      // Add a subtle glow or shift towards green/cyan
+    } else if (rsiModifier.visualStyle === 'aggressive' && !preserveIdentity) {
+      // Add a subtle shift towards deep red
+    }
 
+    // Combine multipliers: Difficulty * RSI Mod * Global Mod
+    const modifiedSpeed = config.baseSpeed * rsiModifier.speedMultiplier;
+
+    // Choose movement strategy based on RSI pattern
     let behavior: MovementStrategy;
-    if (aggroMultiplier >= 1.3) {
-      behavior = createMarketMovementStrategy('zigzag');
-    } else if (aggroMultiplier <= 0.8) {
-      behavior = createMarketMovementStrategy('straight');
+    if (rsiModifier.movementPattern !== 'chase') {
+      behavior = createMarketMovementStrategy(rsiModifier.movementPattern);
     } else {
       behavior = createMovementStrategy(type);
     }
@@ -111,9 +121,16 @@ export class EnemyFactory {
     enemyObj.y = y;
     enemyObj.type = config.type as EnemyId;
     enemyObj.radius = config.radius;
-    enemyObj.health = config.baseHealth * (1 + (difficulty - 1) * 0.2);
-    enemyObj.maxHealth = config.baseHealth * (1 + (difficulty - 1) * 0.2);
-    enemyObj.damage = config.baseDamage * damageMultiplier;
+
+    // Health scaled by difficulty AND RSI modifier
+    const healthScale = (1 + (difficulty - 1) * 0.2) * rsiModifier.healthMultiplier;
+    enemyObj.health = config.baseHealth * healthScale;
+    enemyObj.maxHealth = enemyObj.health;
+
+    // Damage scaled by RSI modifier AND global damage multiplier
+    enemyObj.damage =
+      config.baseDamage * rsiModifier.damageMultiplier * damageMultiplier;
+
     enemyObj.speed = modifiedSpeed;
     enemyObj.color = color;
     enemyObj.behavior = behavior;
@@ -129,6 +146,11 @@ export class EnemyFactory {
     enemyObj.damageBufferCritCount = 0;
     enemyObj.valueMultiplier = 1.0;
 
+    // Pass RSI metadata to enemy for drop logic in CombatSystem
+    enemyObj.visualStyle = rsiModifier.visualStyle;
+    enemyObj.dropBuffChance = rsiModifier.dropBuffChance;
+    enemyObj.dropDebuffChance = rsiModifier.dropDebuffChance;
+
     return enemyObj;
   }
 
@@ -140,7 +162,7 @@ export class EnemyFactory {
     y: number,
     difficulty: number,
     position: MarketPosition,
-    aggroMultiplier: number = 1.0,
+    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER,
     damageMultiplier: number = 1.0
   ): GameEnemy {
     const roll = Math.random() * this.totalWeight;
@@ -155,7 +177,7 @@ export class EnemyFactory {
           y,
           difficulty,
           position,
-          aggroMultiplier,
+          rsiModifier,
           damageMultiplier
         );
       }
@@ -167,7 +189,7 @@ export class EnemyFactory {
       y,
       difficulty,
       position,
-      aggroMultiplier,
+      rsiModifier,
       damageMultiplier
     );
   }

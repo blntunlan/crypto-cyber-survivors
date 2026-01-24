@@ -2,15 +2,14 @@ import { MarketPosition, type CryptoPair } from '../types';
 import { type IPoolManager } from './interfaces/IPoolManager';
 import { ENEMY_SPAWN } from '../config';
 import { useAdminConfigStore } from '../stores/admin/configStore';
-import {
-  MarketStateService as marketStateService,
-  type MarketState,
-} from './MarketStateService';
+import { marketIndicatorService } from './indicators/MarketIndicatorService';
 import { WHALE_TIER_CONFIGS } from '../types/indicators';
 import { Logger } from './Logger';
 import { type SpawnDebugState, getDebugTimestamp } from '../types/DebugState';
 import { type ISpawnSystem } from './interfaces/ISpawnSystem';
 import { type EnemyId } from '../config/EnemyRegistry';
+import { EventBus } from './EventBus';
+import { type GameMarketEvent } from './MarketEventManager';
 
 /**
  * SpawnSystem Class
@@ -22,8 +21,22 @@ import { type EnemyId } from '../config/EnemyRegistry';
 export class SpawnSystem implements ISpawnSystem {
   private spawnTimer: number = 0;
   private whaleCooldownTimer: number = 0;
+  private activeEvents: Map<GameMarketEvent, { intensity: number; expiry: number }> =
+    new Map();
 
-  constructor() {}
+  constructor() {
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners(): void {
+    EventBus.on('gameMarketEvent', data => {
+      this.activeEvents.set(data.type, {
+        intensity: data.intensity,
+        expiry: Date.now() + data.durationMs,
+      });
+      Logger.info(`[SpawnSystem] Active Event Received: ${data.type}`);
+    });
+  }
 
   /**
    * Main update loop for the spawning logic.
@@ -48,13 +61,13 @@ export class SpawnSystem implements ISpawnSystem {
     pool: IPoolManager,
     pnl: number = 0,
     maxEnemiesOverride?: number,
-    spawnRateMultiplier: number = 1,
-    pair: CryptoPair = 'BTC',
+    _spawnRateMultiplier: number = 1,
+    _pair: CryptoPair = 'BTC',
     damageMultiplier: number = 1.0,
     speedMultiplier: number = 1.0
   ): number {
     const config = this.getSpawnConfig();
-    const marketState = marketStateService.getState(`${pair}-USD`);
+    const marketState = marketIndicatorService.getState();
 
     this.spawnTimer += deltaTime;
     this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
@@ -67,15 +80,26 @@ export class SpawnSystem implements ISpawnSystem {
     // Multiplier from server (ATR/Trend based) generally scales the entire difficulty
     const scaledDifficulty =
       (1 + (difficulty - 1) * ENEMY_SPAWN.DIFFICULTY_SCALE * intensityMultiplier) *
-      spawnRateMultiplier;
+      marketState.spawnRateMultiplier;
 
     // Determine current population limit
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
 
+    // 0. Cleanup Expired Events
+    const now = Date.now();
+    for (const [type, data] of this.activeEvents.entries()) {
+      if (now > data.expiry) this.activeEvents.delete(type);
+    }
+
     // 1. High-Tier Content: Large "Whale" Spawning (Indicator-based)
-    if (marketState && marketState.whaleTier > 0) {
+    // WHALE_ALERT event forces a whale spawn or increases chance
+    const whaleAlert = this.activeEvents.get('WHALE_ALERT');
+    if (marketState.whaleTier > 0 || whaleAlert) {
+      const effectiveTier = whaleAlert
+        ? Math.max(marketState.whaleTier, 2)
+        : marketState.whaleTier;
       this.handleWhaleSpawning(
-        marketState,
+        effectiveTier,
         pool,
         difficulty,
         position,
@@ -84,14 +108,15 @@ export class SpawnSystem implements ISpawnSystem {
         maxEnemies,
         deltaTime,
         damageMultiplier,
-        speedMultiplier
+        speedMultiplier,
+        whaleAlert?.intensity ?? 0
       );
     }
 
     // 1.5. Momentum Content: RSI-based Specialized Spawning
-    if (marketState && marketState.rsiState !== 'NEUTRAL') {
+    if (marketState.rsiState !== 'NEUTRAL') {
       this.handleRSISpawning(
-        marketState,
+        marketState.rsiState,
         pool,
         difficulty,
         position,
@@ -99,14 +124,19 @@ export class SpawnSystem implements ISpawnSystem {
         height,
         maxEnemies,
         deltaTime,
-        pair,
         damageMultiplier,
         speedMultiplier
       );
     }
 
     // 2. Standard Content: Regular Enemy Generation (Burst Capable)
-    const spawnThreshold = config.baseInterval / scaledDifficulty;
+    let eventSpawnMultiplier = 1.0;
+    if (this.activeEvents.has('VOLUME_SPIKE')) eventSpawnMultiplier += 0.5;
+    if (this.activeEvents.has('FLASH_CRASH')) eventSpawnMultiplier += 1.0;
+    if (this.activeEvents.has('CONSOLIDATION')) eventSpawnMultiplier -= 0.3;
+
+    const spawnThreshold =
+      config.baseInterval / (scaledDifficulty * eventSpawnMultiplier);
 
     // Use 'while' to allow multiple spawns per frame if we are behind (Burst/Catch-up)
     // Limit burst to 5 per frame to prevent freezing
@@ -120,8 +150,9 @@ export class SpawnSystem implements ISpawnSystem {
           pnl,
           width,
           height,
-          pair,
-          damageMultiplier
+          damageMultiplier,
+          speedMultiplier,
+          marketState.rsiState
         );
       }
       this.spawnTimer -= spawnThreshold;
@@ -143,7 +174,7 @@ export class SpawnSystem implements ISpawnSystem {
    * @private
    */
   private handleRSISpawning(
-    marketState: MarketState,
+    rsiState: string,
     pool: IPoolManager,
     difficulty: number,
     position: MarketPosition,
@@ -151,7 +182,6 @@ export class SpawnSystem implements ISpawnSystem {
     height: number,
     maxEnemies: number,
     deltaTime: number,
-    pair: CryptoPair,
     damageMultiplier: number = 1.0,
     speedMultiplier: number = 1.0
   ): void {
@@ -168,11 +198,11 @@ export class SpawnSystem implements ISpawnSystem {
         difficulty,
         position,
         'rsi',
-        pair,
+        undefined,
         damageMultiplier,
         speedMultiplier
       );
-      Logger.debug(`[SpawnSystem] RSI Extreme Spawn: ${marketState.rsiState}`);
+      Logger.debug(`[SpawnSystem] RSI Extreme Spawn: ${rsiState}`);
     }
   }
 
@@ -182,7 +212,7 @@ export class SpawnSystem implements ISpawnSystem {
    * @private
    */
   private handleWhaleSpawning(
-    marketState: MarketState,
+    whaleTier: number,
     pool: IPoolManager,
     difficulty: number,
     position: MarketPosition,
@@ -191,13 +221,17 @@ export class SpawnSystem implements ISpawnSystem {
     maxEnemies: number,
     deltaTime: number,
     damageMultiplier: number = 1.0,
-    speedMultiplier: number = 1.0
+    speedMultiplier: number = 1.0,
+    eventIntensity: number = 0
   ): void {
     const whaleConfig =
-      WHALE_TIER_CONFIGS[marketState.whaleTier as keyof typeof WHALE_TIER_CONFIGS];
+      WHALE_TIER_CONFIGS[whaleTier as keyof typeof WHALE_TIER_CONFIGS];
     if (!whaleConfig) {
       return;
     }
+
+    // Boost probability during Whale Alert event
+    const eventBoost = eventIntensity > 0 ? 5.0 : 1.0;
 
     // Probability is dampened per frame and normalized by deltaTime to prevent spawning spikes
     // from persistent server data, ensuring consistency across different frame rates.
@@ -205,6 +239,7 @@ export class SpawnSystem implements ISpawnSystem {
     const probPerFrame =
       whaleConfig.spawnChance *
       ENEMY_SPAWN.WHALE_PROBABILITY_MODIFIER *
+      eventBoost *
       (deltaTime / frameTargetMs);
 
     if (
@@ -218,11 +253,11 @@ export class SpawnSystem implements ISpawnSystem {
         y,
         difficulty,
         position,
-        marketState.whaleTier,
+        whaleTier,
         damageMultiplier,
         speedMultiplier
       );
-      Logger.debug(`[SpawnSystem] Spawned whale tier ${marketState.whaleTier}`);
+      Logger.debug(`[SpawnSystem] Spawned whale tier ${whaleTier}`);
       this.whaleCooldownTimer = 20000; // 20s cooldown hardcoded for now
     }
   }
@@ -239,53 +274,53 @@ export class SpawnSystem implements ISpawnSystem {
     pnl: number,
     width: number,
     height: number,
-    pair: CryptoPair,
     damageMultiplier: number = 1.0,
-    speedMultiplier: number = 1.0
+    speedMultiplier: number = 1.0,
+    rsiState: string = 'NEUTRAL'
   ): void {
     const { x, y } = this.getRandomSpawnPosition(width, height);
 
-    // Decision Logic: Thematic vs Variant
-    if (Math.random() < ENEMY_SPAWN.THEMATIC_CHANCE) {
-      // Thematic Spawning: Aligns with LONG/SHORT and Profit/Loss states
-      const isBearMarket =
-        (position === MarketPosition.LONG && pnl < 0) ||
-        (position === MarketPosition.SHORT && pnl > 0);
-      const enemyType: EnemyId = isBearMarket ? 'bear' : 'bull';
-      pool.getEnemy(
-        x,
-        y,
-        difficulty,
-        position,
-        enemyType,
-        pair,
-        damageMultiplier,
-        speedMultiplier
-      );
-    } else {
-      // Variant Spawning: Randomly select from secondary enemy archetypes
-      const roll = Math.random();
-      let enemyType: EnemyId;
+    // Contextual Spawning Logic (Layer 3)
+    const roll = Math.random();
+    let enemyType: EnemyId = 'bear';
 
-      if (roll < ENEMY_SPAWN.RANDOM_FUD_THRESHOLD) {
-        enemyType = 'fud';
-      } else if (roll < ENEMY_SPAWN.RANDOM_LIQUIDATOR_THRESHOLD) {
-        enemyType = 'liquidator';
-      } else {
-        enemyType = 'pumpdump';
-      }
-
-      pool.getEnemy(
-        x,
-        y,
-        difficulty,
-        position,
-        enemyType,
-        pair,
-        damageMultiplier,
-        speedMultiplier
-      );
+    // 1. Check for Flash Crash (Panic Mode)
+    if (this.activeEvents.has('FLASH_CRASH')) {
+      enemyType = roll < 0.7 ? 'liquidator' : 'fud';
     }
+    // 2. Bearish Market Sentiment
+    else if (rsiState === 'OVERSOLD' || (position === MarketPosition.LONG && pnl < 0)) {
+      if (roll < 0.6) enemyType = 'bear';
+      else if (roll < 0.8) enemyType = 'fud';
+      else enemyType = 'liquidator';
+    }
+    // 3. Bullish Market Sentiment
+    else if (
+      rsiState === 'OVERBOUGHT' ||
+      (position === MarketPosition.SHORT && pnl < 0)
+    ) {
+      if (roll < 0.6) enemyType = 'bull';
+      else if (roll < 0.8) enemyType = 'pumpdump';
+      else enemyType = 'rsi';
+    }
+    // 4. Default / Mixed
+    else {
+      if (roll < 0.4) enemyType = 'bear';
+      else if (roll < 0.7) enemyType = 'bull';
+      else if (roll < 0.85) enemyType = 'fud';
+      else enemyType = 'pumpdump';
+    }
+
+    pool.getEnemy(
+      x,
+      y,
+      difficulty,
+      position,
+      enemyType,
+      undefined,
+      damageMultiplier,
+      speedMultiplier
+    );
   }
 
   /**

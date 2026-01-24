@@ -45,6 +45,7 @@ export class MarketIndicatorService {
   private rsiCalculator: RSICalculator;
   private volumeAnalyzer: VolumeAnalyzer;
   private state: MarketIndicatorState;
+  private activePair: CryptoPair = 'BTC';
 
   private constructor() {
     this.rsiCalculator = createRSICalculator();
@@ -58,6 +59,14 @@ export class MarketIndicatorService {
     EventBus.on('marketStateUpdated', serverState => {
       // If we are getting server-side updates, use them to sync our indicators
       // This ensures client and server are always in agreement (Anti-Cheat)
+
+      // FILTER: Only process updates for the pair currently being traded in the game session
+      // serverState.pair is "BTC-USD", "ETH-USD", etc.
+      const normalizedServerPair = serverState.pair.split('-')[0] as CryptoPair;
+      if (normalizedServerPair !== this.activePair) {
+        return;
+      }
+
       const previousRsiState = this.state.rsiState;
       const previousWhaleTier = this.state.whaleTier;
 
@@ -79,6 +88,7 @@ export class MarketIndicatorService {
         EventBus.emit('rsiStateChanged', {
           state: serverState.rsiState,
           rsi: serverState.rsi,
+          pair: serverState.pair,
         });
       }
 
@@ -121,6 +131,7 @@ export class MarketIndicatorService {
     position: MarketPosition,
     pair: CryptoPair = 'BTC'
   ): MarketIndicatorState {
+    this.activePair = pair;
     const now = Date.now();
 
     // Update RSI

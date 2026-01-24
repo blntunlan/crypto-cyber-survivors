@@ -8,6 +8,7 @@ import {
 } from './CullingUtils';
 import { ThemeService } from '../ThemeService';
 import { GAME_ENGINE } from '../../constants';
+import { gradientCache } from '../../utils/GradientCache';
 
 /**
  * EffectRenderer - Handles transient visual overlays and particle systems.
@@ -111,16 +112,19 @@ export class EffectRenderer implements IRenderer {
           ctx.strokeRect(0, 0, width, height);
         } else {
           // Cyberpunk: Smooth radial gradient
-          const gradient = ctx.createRadialGradient(
+          const gradient = gradientCache.getRadialGradient(
+            ctx,
             width / 2,
             height / 2,
             height * 0.4,
             width / 2,
             height / 2,
-            height * 0.9
+            height * 0.9,
+            [
+              { offset: 0, color: 'rgba(0,0,0,0)' },
+              { offset: 1, color: 'rgba(0,0,0,1)' },
+            ]
           );
-          gradient.addColorStop(0, 'rgba(0,0,0,0)');
-          gradient.addColorStop(1, `rgba(0,0,0,1)`);
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, width, height);
         }
@@ -140,17 +144,20 @@ export class EffectRenderer implements IRenderer {
         ctx.fillRect(0, 0, width, height);
       } else {
         // Cyberpunk: Blue Ripple (Radial Gradient)
-        const gradient = ctx.createRadialGradient(
+        const gradient = gradientCache.getRadialGradient(
+          ctx,
           width / 2,
           height / 2,
           0,
           width / 2,
           height / 2,
-          Math.max(width, height)
+          Math.max(width, height),
+          [
+            { offset: 0, color: 'rgba(56, 189, 248, 0)' },
+            { offset: 0.5, color: 'rgba(56, 189, 248, 0.5)' },
+            { offset: 1, color: 'rgba(56, 189, 248, 0)' },
+          ]
         );
-        gradient.addColorStop(0, 'rgba(56, 189, 248, 0)');
-        gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.5)'); // Cyan-400
-        gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
       }
@@ -176,17 +183,19 @@ export class EffectRenderer implements IRenderer {
     const maxDim = Math.max(width, height);
 
     // Gradient from transparent center to colored edges
-    const gradient = ctx.createRadialGradient(
+    const gradient = gradientCache.getRadialGradient(
+      ctx,
       width / 2,
       height / 2,
       minDim * GAME_ENGINE.CRIT_FLASH_RADIUS_FACTOR,
       width / 2,
       height / 2,
-      maxDim
+      maxDim,
+      [
+        { offset: 0, color: 'transparent' },
+        { offset: 1, color: state.critFlashColor },
+      ]
     );
-
-    gradient.addColorStop(0, 'transparent');
-    gradient.addColorStop(1, state.critFlashColor);
 
     ctx.globalAlpha = state.critFlash;
     ctx.fillStyle = gradient;

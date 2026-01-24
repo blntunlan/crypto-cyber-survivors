@@ -11,6 +11,7 @@ import {
   calculateVolumeFactor,
   calculateATRFactor,
   calculateNearDeathFactor,
+  calculatePerformanceFactor,
 } from './factors';
 import {
   type DifficultyInputs,
@@ -39,6 +40,12 @@ class DifficultyContextManager {
   private isDirty = true;
   private lastCycleCount: number = 0;
   private lastPhase: WavePhase | null = null;
+
+  // Real-time performance counters
+  private bulletsFiredInWindow = 0;
+  private hitsInWindow = 0;
+  private damageTakenInWindow = 0;
+  private lastPerformanceUpdate = 0;
 
   private constructor() {
     this.inputs = getDefaultInputs();
@@ -96,7 +103,18 @@ class DifficultyContextManager {
 
     // Combat Events
     EventBus.on('enemyKilled', () => {
-      // DifficultyManager currently tracks killStreak, we should migrate that logic here or sync it
+      this.hitsInWindow++;
+      this.markDirty();
+    });
+
+    EventBus.on('bulletFired', () => {
+      this.bulletsFiredInWindow++;
+      this.markDirty();
+    });
+
+    EventBus.on('playerHit', () => {
+      this.damageTakenInWindow++;
+      this.markDirty();
     });
 
     // Game Flow
@@ -157,6 +175,31 @@ class DifficultyContextManager {
    */
   private recalculate(): DifficultyContextState {
     const { inputs } = this;
+    const now = Date.now();
+
+    // 0. Update Activity-based Inputs (Accuracy & Damage Frequency)
+    if (this.lastPerformanceUpdate === 0) this.lastPerformanceUpdate = now;
+    const dtSeconds = (now - this.lastPerformanceUpdate) / 1000;
+
+    if (dtSeconds >= 5) {
+      // Accuracy calc
+      if (this.bulletsFiredInWindow > 0) {
+        const currentAcc = this.hitsInWindow / this.bulletsFiredInWindow;
+        // Smooth accuracy (EMA)
+        inputs.accuracy = inputs.accuracy * 0.7 + currentAcc * 0.3;
+      }
+
+      // Damage frequency (HPM - Hits Per Minute)
+      const currentHPM = (this.damageTakenInWindow / dtSeconds) * 60;
+      inputs.damageTakenFrequency =
+        inputs.damageTakenFrequency * 0.5 + currentHPM * 0.5;
+
+      // Reset window
+      this.bulletsFiredInWindow = 0;
+      this.hitsInWindow = 0;
+      this.damageTakenInWindow = 0;
+      this.lastPerformanceUpdate = now;
+    }
 
     // 1. Calculate Individual Factors (Layer 2)
     const cycle = calculateCycleFactor({
@@ -205,11 +248,18 @@ class DifficultyContextManager {
     });
     const atr = calculateATRFactor({ atrPercent: inputs.atrPercent });
 
+    const performance = calculatePerformanceFactor({
+      accuracy: inputs.accuracy,
+      damageTakenFrequency: inputs.damageTakenFrequency,
+      atrPercent: inputs.atrPercent,
+      leverage: inputs.leverage,
+    });
+
     const core = cycle * pnl * level * wave.factor;
     const modifier = liquidation.factor * streak * nearDeath * shock.factor;
     const market = rsi * volume * atr;
 
-    const totalRaw = core * modifier * market;
+    const totalRaw = core * modifier * market * performance;
     const total = Number.isNaN(totalRaw)
       ? 1.0
       : clamp(
@@ -234,11 +284,13 @@ class DifficultyContextManager {
         rsi,
         volume,
         atr,
+        performance,
       },
       aggregates: {
         core,
         modifier,
         market,
+        performance,
         total,
       },
       inputs: {

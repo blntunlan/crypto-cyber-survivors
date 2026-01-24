@@ -12,6 +12,7 @@ import {
 import { ThemeService } from '../ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
+import { gradientCache } from '../../utils/GradientCache';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -621,16 +622,19 @@ export class EntityRenderer implements IRenderer {
       // C. Radial Field Glow
       if (shadowsEnabled) {
         ctx.globalAlpha = opac * 0.3;
-        const gradient = ctx.createRadialGradient(
+        const gradient = gradientCache.getRadialGradient(
+          ctx,
           player.x,
           player.y,
           player.radius,
           player.x,
           player.y,
-          haloRadius + 10
+          haloRadius + 10,
+          [
+            { offset: 0, color: `${pColor}80` },
+            { offset: 1, color: `${pColor}00` },
+          ]
         );
-        gradient.addColorStop(0, `${pColor}80`);
-        gradient.addColorStop(1, `${pColor}00`);
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(
@@ -705,17 +709,20 @@ export class EntityRenderer implements IRenderer {
     // 2. Radial Glow Field (Enhanced visibility backdrop)
     ctx.save();
     const glowRadius = player.radius * 2.5;
-    const gradient = ctx.createRadialGradient(
+    const gradient = gradientCache.getRadialGradient(
+      ctx,
       px,
       py,
       player.radius * 0.5,
       px,
       py,
-      glowRadius
+      glowRadius,
+      [
+        { offset: 0, color: `${player.color}40` },
+        { offset: 0.5, color: `${player.color}20` },
+        { offset: 1, color: `${player.color}00` },
+      ]
     );
-    gradient.addColorStop(0, `${player.color}40`); // 25% alpha at center
-    gradient.addColorStop(0.5, `${player.color}20`); // 12% alpha mid
-    gradient.addColorStop(1, `${player.color}00`); // Transparent at edge
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(px, py, glowRadius, 0, Math.PI * 2);

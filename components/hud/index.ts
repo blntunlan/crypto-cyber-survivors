@@ -17,6 +17,6 @@ export { KernelStatus } from './KernelStatus';
 export { LiveFeed } from './LiveFeed';
 export { AccountHealthPremium } from './AccountHealthPremium';
 export { BuffIndicator } from './BuffIndicator';
-export { MarketAnnouncer } from './MarketAnnouncer';
+export { NotificationSystem } from './NotificationSystem';
 export { LiquidationWarningOverlay } from './LiquidationWarningOverlay';
 export { CycleDecisionScreen } from './CycleDecisionScreen';

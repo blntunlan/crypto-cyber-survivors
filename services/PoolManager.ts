@@ -12,7 +12,7 @@ import { enemyFactory, type GameEnemy } from '../factories/EnemyFactory';
 import { Logger } from './Logger';
 import { WHALE_TIER_CONFIGS, type WhaleTier } from '../types/indicators';
 import { type IPoolManager } from './interfaces/IPoolManager';
-import { MarketStateService as marketStateService } from './MarketStateService';
+import { marketIndicatorService } from './indicators/MarketIndicatorService';
 import { audio } from './audio';
 import { type EnemyId } from '../config/EnemyRegistry';
 import { POOL } from '../constants';
@@ -334,14 +334,12 @@ export class PoolManager implements IPoolManager {
     difficulty: number,
     position: MarketPosition,
     enemyType?: EnemyId,
-    pair?: CryptoPair,
+    _pair?: CryptoPair,
     damageMultiplier: number = 1.0,
     speedMultiplier: number = 1.0
   ): GameEnemy {
-    const currentPair = pair ?? 'BTC';
     const currentEnemyType = enemyType ?? 'bear';
-    const aggroMultiplier =
-      marketStateService.getState(`${currentPair}-USD`)?.enemyAggroMultiplier ?? 1.0;
+    const rsiModifier = marketIndicatorService.getEnemyModifier();
 
     return this.enemies.get(
       () =>
@@ -351,7 +349,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          aggroMultiplier * speedMultiplier,
+          rsiModifier,
           damageMultiplier
         ),
       obj => {
@@ -361,10 +359,12 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          aggroMultiplier * speedMultiplier,
+          rsiModifier,
           damageMultiplier,
           obj
         );
+        // Apply extra speed multiplier if provided (e.g. from global effects)
+        obj.speed *= speedMultiplier;
       }
     );
   }
@@ -382,6 +382,7 @@ export class PoolManager implements IPoolManager {
     speedMultiplier: number = 1.0
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
+    const rsiModifier = marketIndicatorService.getEnemyModifier();
     audio.playWhaleArrival();
 
     return this.enemies.get(
@@ -392,7 +393,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          1.0 * speedMultiplier,
+          rsiModifier,
           damageMultiplier
         );
         if (tierConfig) {
@@ -401,6 +402,7 @@ export class PoolManager implements IPoolManager {
           e.maxHealth = e.health;
           e.valueMultiplier = tierConfig.valueMultiplier;
         }
+        e.speed *= speedMultiplier;
         return e;
       },
       obj => {
@@ -411,7 +413,7 @@ export class PoolManager implements IPoolManager {
           y,
           difficulty,
           position,
-          1.0 * speedMultiplier,
+          rsiModifier,
           damageMultiplier,
           obj
         );
@@ -422,6 +424,7 @@ export class PoolManager implements IPoolManager {
           obj.maxHealth = obj.health;
           obj.valueMultiplier = tierConfig.valueMultiplier;
         }
+        obj.speed *= speedMultiplier;
       }
     );
   }

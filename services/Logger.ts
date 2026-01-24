@@ -32,6 +32,19 @@ class LoggerClass {
 
   private constructor() {
     this.isDev = import.meta.env.DEV;
+    this.setupGlobalHandlers();
+  }
+
+  private setupGlobalHandlers(): void {
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener('error', event => {
+      this.error('Unhandled UI Error', event.error ?? event.message);
+    });
+
+    window.addEventListener('unhandledrejection', event => {
+      this.error('Unhandled Promise Rejection', event.reason);
+    });
   }
 
   static getInstance(): LoggerClass {

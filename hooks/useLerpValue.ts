@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { lerp } from '../utils/math';
+import { EventBus } from '../services/EventBus';
 
 interface UseLerpValueOptions {
   /** Interpolation speed (0-1). Higher = faster. Default: 0.1 */
@@ -165,6 +166,11 @@ export const useLerpValues = <T extends Record<string, number>>(
             >];
           }
         }
+
+        // Performance Optimization: Emit event for direct DOM updates
+        // This allows components to use refs instead of re-rendering
+        EventBus.emit('hudValuesUpdated', roundedValues as Record<string, number>);
+
         setDisplayValues(roundedValues);
       }
 

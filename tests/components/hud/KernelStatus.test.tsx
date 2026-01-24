@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '../../test-utils';
 import { KernelStatus } from '../../../components/hud/KernelStatus';
 import { screenService } from '../../../services/ScreenService';
+import { EventBus } from '../../../services/EventBus';
 
 // Mock ScreenService
 vi.mock('../../../services/ScreenService', () => ({
@@ -19,19 +20,6 @@ describe('KernelStatus Component', () => {
     nextLevelExp: 100,
   } as any;
 
-  const mockSmoothValues = {
-    exp: 50,
-    baseDamage: 10,
-    speed: 5,
-    fireRate: 1,
-    luck: 0,
-    lifesteal: 0,
-    critChance: 0.1,
-    magnet: 1,
-    armor: 0,
-    area: 1,
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -41,7 +29,7 @@ describe('KernelStatus Component', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(false);
 
-      render(<KernelStatus player={mockPlayer} smoothValues={mockSmoothValues} />);
+      render(<KernelStatus player={mockPlayer} />);
 
       expect(screen.getByText(/hud\.kernel_status/i)).toBeInTheDocument();
       expect(screen.getByText(/hud\.level_short.*5/i)).toBeInTheDocument();
@@ -50,7 +38,7 @@ describe('KernelStatus Component', () => {
     it('should render stat rows for visible stats', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(false);
-      render(<KernelStatus player={mockPlayer} smoothValues={mockSmoothValues} />);
+      render(<KernelStatus player={mockPlayer} />);
 
       // Check for common stats defined in StatRegistry (using translation keys)
       expect(screen.getByText(/hud\.stat\.baseDamage/i)).toBeInTheDocument();
@@ -63,7 +51,7 @@ describe('KernelStatus Component', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(true);
 
-      render(<KernelStatus player={mockPlayer} smoothValues={mockSmoothValues} />);
+      render(<KernelStatus player={mockPlayer} />);
 
       // Mobile view only shows Level number and short tag, no stats grid
       expect(screen.getByText('5')).toBeInTheDocument();
@@ -76,11 +64,11 @@ describe('KernelStatus Component', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(false);
       const { container } = render(
-        <KernelStatus
-          player={{ ...mockPlayer, exp: 75, nextLevelExp: 100 }}
-          smoothValues={{ ...mockSmoothValues, exp: 75 }}
-        />
+        <KernelStatus player={{ ...mockPlayer, exp: 75, nextLevelExp: 100 }} />
       );
+
+      // Trigger XP bar update
+      EventBus.emit('hudValuesUpdated', { exp: 75 });
 
       const xpBarFill = container.querySelector('.bg-blue-500');
       expect(xpBarFill).toHaveStyle('width: 75%');
