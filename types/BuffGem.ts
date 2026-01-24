@@ -29,6 +29,9 @@ export interface BuffGem {
   elapsedLifetime: number; // Time active in ms (pausable)
   lifetime: number; // Max lifetime in ms
   pulsePhase: number; // Animation phase
+  vx?: number;
+  vy?: number;
+  velocityInitiated?: boolean;
 }
 
 // BuffGem configurations

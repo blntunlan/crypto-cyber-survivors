@@ -46,11 +46,13 @@ export class MarketIndicatorService {
   private volumeAnalyzer: VolumeAnalyzer;
   private state: MarketIndicatorState;
   private activePair: CryptoPair = 'BTC';
+  private lastResetTime: number = 0;
 
   private constructor() {
     this.rsiCalculator = createRSICalculator();
     this.volumeAnalyzer = createVolumeAnalyzer();
     this.state = getDefaultMarketIndicatorState();
+    this.lastResetTime = Date.now();
 
     // Subscribe to game reset
     EventBus.on('gameReset', () => this.reset());
@@ -82,6 +84,13 @@ export class MarketIndicatorService {
         lastUpdateTime: Date.now(),
         isInitialized: true,
       };
+
+      // GRACE PERIOD: Don't emit state-change events for the first 2s after reset
+      // This prevents "shocks" and "flashes" right as the game starts if market is already extreme
+      const timeSinceReset = Date.now() - this.lastResetTime;
+      if (timeSinceReset < 2000) {
+        return;
+      }
 
       // Emit granular events if states changed
       if (serverState.rsiState !== previousRsiState) {
@@ -199,8 +208,27 @@ export class MarketIndicatorService {
       currentPosition: position,
     };
 
-    // Emit event for UI/other systems
-    this.emitStateChangedEvent(position);
+    // Emit event for UI/other systems (with 2s grace period to allow indicators to settle)
+    const timeSinceReset = Date.now() - this.lastResetTime;
+    if (timeSinceReset >= 2000) {
+      this.emitStateChangedEvent(position);
+
+      // Emit specific events if states changed after grace period
+      if (rsiState !== previousRsiState) {
+        EventBus.emit('rsiStateChanged', {
+          state: rsiState,
+          rsi,
+          pair,
+        });
+      }
+
+      if (whaleTier !== this.state.whaleTier && whaleTier !== WhaleTier.NONE) {
+        EventBus.emit('whaleTierChanged', {
+          tier: whaleTier,
+          percentile: this.state.normalizedVolume,
+        });
+      }
+    }
 
     return this.state;
   }
@@ -304,6 +332,7 @@ export class MarketIndicatorService {
     this.rsiCalculator.reset();
     this.volumeAnalyzer.reset();
     this.state = getDefaultMarketIndicatorState();
+    this.lastResetTime = Date.now();
 
     Logger.debug('[MarketIndicatorService] Reset');
   }

@@ -58,7 +58,7 @@ class DifficultyManagerClass {
   // Track state for legacy compatibility & local combat logic
   private killStreak: number = 0;
   private lastKillStreakTime: number = 0;
-  private lastShockTime: number = -10; // Allow first shock immediately
+  private lastShockTime: number = 0; // Prevent shock triggers for the first 10 seconds
   private latestOutput: DifficultyOutput | null = null;
 
   private constructor() {
@@ -190,22 +190,36 @@ class DifficultyManagerClass {
 
     this.latestOutput = output;
 
-    // 5. Emit Events (Cooldown 10s)
-    if (f.shock.triggered) {
+    // 5. Emit Events (Cooldown 10s + 5s Session Grace Period)
+    const isGracePeriod = TimeService.getGameTimeSeconds() < 5;
+
+    if (f.shock.triggered && !isGracePeriod) {
       const now = TimeService.getGameTimeSeconds();
       if (now - this.lastShockTime >= 10) {
         this.lastShockTime = now;
         const dir = getShockDirection(inp.pnlHistory);
+
+        // Scale shock intensity and duration based on leverage (1x = 100%, 100x = ~200%)
+        const leverageImpact = 1 + Math.log10(inp.leverage) * 0.5;
+        const baseIntensity = Math.min(1.0, (f.shock.factor - 1.0) / 1.0);
+
         const payload = {
-          intensity: Math.min(1.0, (f.shock.factor - 1.0) / 1.0),
+          intensity: Math.min(2.0, baseIntensity * leverageImpact),
           direction: dir === 'none' ? 'down' : dir,
+          isHighLeverage: inp.leverage >= 25,
         };
+
         EventBus.emit('volatilityShock', payload);
         EventBus.emit('shockDetected', payload);
+
+        // Increase global shake based on leverage during shocks
+        if (inp.leverage >= 50) {
+          EventBus.emit('hitStop', { duration: 100, isCrit: true }); // Brief pause for impact
+        }
       }
     }
 
-    if (f.liquidation.warningLevel !== 'NONE') {
+    if (f.liquidation.warningLevel !== 'NONE' && !isGracePeriod) {
       EventBus.emit('liquidationWarning', {
         level: f.liquidation.warningLevel,
         distance: (1.0 - (f.liquidation.factor - 1.0) / 1.0) * 100, // Roughly map factor to distance %
@@ -218,7 +232,11 @@ class DifficultyManagerClass {
   public getXpMultiplier(): number {
     const leverage = difficultyContext.getContext().inputs.leverage;
     if (leverage <= 1) return 1.0;
-    return 1 + Math.log10(leverage) * 0.5;
+    // Power-law scaling for impact: sqrt(L) gives a nice diminishing return that still feels massive
+    // 100x = 1 + (10 - 1) * 0.8 = 8.2x XP
+    // 10x = 1 + (3.16 - 1) * 0.8 = 2.7x XP
+    const multiplier = 1 + (Math.sqrt(leverage) - 1) * 0.8;
+    return Math.min(multiplier, 12.0); // Extreme upper bound for 100x+ scenarios
   }
 
   public getLatestOutput(): DifficultyOutput | null {
@@ -313,7 +331,7 @@ class DifficultyManagerClass {
   reset(): void {
     this.killStreak = 0;
     this.lastKillStreakTime = 0;
-    this.lastShockTime = -10;
+    this.lastShockTime = -20; // Ensure it can fire after grace period
     this.latestOutput = null;
     difficultyContext.reset();
     Logger.info('[DifficultyManager] V2 State reset');

@@ -300,7 +300,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
             </div>
 
             <ThemedText variant="body" className="text-slate-600 text-[9px]">
-              Crypto Cyber Survivors
+              Crypto Survivors
             </ThemedText>
           </footer>
         </ThemedPanel>

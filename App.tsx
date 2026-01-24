@@ -48,7 +48,6 @@ import { usePlayerState } from './hooks/usePlayerState';
 import { useWindowDimensions } from './hooks/useWindowDimensions';
 import { useGameStatus } from './hooks/useGameStatus';
 import { useRunStats } from './hooks/useRunStats';
-import { useSessionTiming } from './hooks/useSessionTiming';
 import { useCheatManager } from './hooks/useCheatManager';
 import { useAppInitialization } from './hooks/useAppInitialization';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
@@ -145,7 +144,7 @@ const App: React.FC = () => {
   const dimensions = useWindowDimensions();
   const { gameStatus, handlePauseToggle } = useGameStatus();
   const { runStats, resetRunStats } = useRunStats();
-  const { sessionStartTime } = useSessionTiming(gameStatus);
+  // removed useSessionTiming as TimeService is the source of truth now
 
   // Cloudflare session validation (anti-cheat) - starts session on PLAYING, resets on MENU
   const playerId = UserSessionService.getPlayerId() || 'anonymous';
@@ -664,7 +663,6 @@ const App: React.FC = () => {
                     onLevelUp={handleLevelUp}
                     updatePlayerStats={setUiStats}
                     playerRef={playerRef}
-                    sessionStartTime={sessionStartTime}
                     width={dimensions.width}
                     height={dimensions.height}
                   />
@@ -771,7 +769,6 @@ const App: React.FC = () => {
                 {gameStatus === GameStatus.PAUSED && (
                   <React.Suspense fallback={<UIFallback />}>
                     <PauseMenu
-                      sessionStartTime={sessionStartTime}
                       runStats={runStats}
                       onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
                       onRestart={resetGame}

@@ -5,9 +5,9 @@ import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { IconSettings, IconVolume, IconVolumeMuted } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { TimeService } from '../../services/TimeService';
 
 interface PauseMenuProps {
-  sessionStartTime: number;
   runStats: {
     totalKills: number;
     maxStreak: number;
@@ -26,7 +26,6 @@ interface PauseMenuProps {
 }
 
 export const PauseMenu: React.FC<PauseMenuProps> = ({
-  sessionStartTime,
   runStats,
   onResume,
   onRestart,
@@ -41,9 +40,9 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
   const isRetro = useIsRetro();
   const { t } = useLanguage();
 
-  const duration = Date.now() - sessionStartTime;
-  const minutes = Math.floor(duration / 60000);
-  const seconds = Math.floor((duration % 60000) / 1000);
+  const totalSeconds = TimeService.getGameTimeSeconds();
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
 
   // Calculate pause budget percentage
   const pausePercentage =

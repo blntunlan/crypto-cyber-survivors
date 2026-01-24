@@ -9,6 +9,7 @@ import {
 import { ThemeService } from '../ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
+import { TimeService } from '../TimeService';
 
 /**
  * EffectRenderer - Handles transient visual overlays and particle systems.
@@ -70,11 +71,11 @@ export class EffectRenderer implements IRenderer {
     height: number,
     state: GameState
   ): void {
+    ctx.save();
     const isRetro = ThemeService.isRetro();
 
     // RSI Tints - Position Aware
     if (state.rsiVisualState !== 'NEUTRAL') {
-      ctx.save();
       // Optimization: Default blending is much faster than 'overlay'
 
       // Determine favorability
@@ -83,26 +84,56 @@ export class EffectRenderer implements IRenderer {
 
       const isFavorable = (isLong && isOversold) || (!isLong && !isOversold);
 
-      // Retro uses solid blocks or scanline-friendly tints
-      const opacity = isRetro ? 0.1 : 0.15;
-      // Favorable: Emerald/Cyan tint. Unfavorable: Red/Orange tint.
-      ctx.fillStyle = isFavorable ? '#10b981' : '#ef4444';
+      // Session Fade-in: Prevent harsh flashes on start
+      const timeInGame = TimeService.getGameTimeSeconds();
+      const sessionFadeIn = Math.min(1, timeInGame / 2.0); // 2 second fade
+
+      // Retro uses subtle overlays; Modern uses a soft monitor glow / vignette
+      const baseOpacity = isRetro ? 0.08 : 0.12;
+      const opacity = baseOpacity * sessionFadeIn;
+
       ctx.globalAlpha = opacity;
 
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
+      if (isRetro) {
+        // Simple fill for retro but with lower opacity
+        ctx.fillStyle = isFavorable ? '#10b981' : '#ef4444';
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        // Cyberpunk: Use a radial vignette for a "monitor glow" feel
+        // This keeps the center clear while coloring the edges
+        const gradient = gradientCache.getRadialGradient(
+          ctx,
+          width / 2,
+          height / 2,
+          height * 0.3,
+          width / 2,
+          height / 2,
+          Math.max(width, height) * 0.8,
+          [
+            { offset: 0, color: 'rgba(0,0,0,0)' },
+            {
+              offset: 1,
+              color: isFavorable ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)',
+            },
+          ]
+        );
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+      }
     }
 
     // Volatility Pulse (ATR)
     // Pulse the vignette opacity based on ATR and time
     // RETRO OPTIMIZATION: Use sharp rectangular vignette instead of radial gradient
     if (state.atrPercent > 0.5) {
+      const timeInGame = TimeService.getGameTimeSeconds();
+      const sessionFadeIn = Math.min(1, timeInGame / 3.0); // 3 second slow fade for volatility
+
       const pulse = (Math.sin(state.lastFireTime * 0.005) + 1) * 0.5; // 0 to 1 oscillating
       // Higher ATR = Stronger pulse base
-      const intensity = Math.min(0.3, (state.atrPercent / 5) * pulse);
+      const intensity = Math.min(0.3, (state.atrPercent / 5) * pulse) * sessionFadeIn;
 
       if (intensity > 0.05) {
-        ctx.save();
         ctx.globalAlpha = intensity;
 
         if (isRetro) {
@@ -128,14 +159,12 @@ export class EffectRenderer implements IRenderer {
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, width, height);
         }
-        ctx.restore();
       }
     }
 
     // Whale Splash Effect
     if (state.whaleEventTimer > 0) {
       const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
-      ctx.save();
       ctx.globalAlpha = intensity * 0.2;
 
       if (isRetro) {
@@ -161,8 +190,10 @@ export class EffectRenderer implements IRenderer {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
       }
-      ctx.restore();
     }
+
+    ctx.globalAlpha = 1; // Reset globalAlpha before restoring
+    ctx.restore();
   }
 
   /**

@@ -256,7 +256,8 @@ export class CollisionSystem implements ICollisionSystem {
     const dy = player.y - enemy.y;
     const distSq = dx * dx + dy * dy;
     const combinedRadiusSq =
-      (player.radius + enemy.radius) * (player.radius + enemy.radius);
+      (GAME_ENGINE.PLAYER_HIT_BOX_RADIUS + enemy.radius) *
+      (GAME_ENGINE.PLAYER_HIT_BOX_RADIUS + enemy.radius);
 
     // Radius-based collision check using squared distance
     if (distSq < combinedRadiusSq) {

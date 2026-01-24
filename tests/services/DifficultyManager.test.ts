@@ -83,6 +83,9 @@ describe('DifficultyManager', () => {
       // @ts-expect-error:  ensure cooldown is not active
       DifficultyManager.lastShockTime = -100000;
 
+      // Advance past grace period (5s)
+      TimeService.setGameTime(10000);
+
       // Sudden large 20% drop (threshold is 0.5%)
       // Need 6 points for shock detection in V2
       for (let i = 0; i < 3; i++) DifficultyManager.calculate(0, 0.02, 1, 1);

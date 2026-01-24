@@ -12,6 +12,7 @@ import { EventBus } from './EventBus';
 import { Logger } from './Logger';
 import { type MarketPosition } from '../types';
 import { type CryptoPair } from '../types/crypto';
+import { TimeService } from './TimeService';
 import { EventRecorderService } from './EventRecorderService';
 import { InputLogger } from './InputLogger';
 import { getMetricsConfig, type MetricsConfig } from '../config/MetricsConfig';
@@ -226,9 +227,8 @@ export class MetricsServiceClass {
       return null;
     }
 
-    const now = Date.now();
-    const survivalTime = now - this.state.sessionStartTime;
-    const survivalTimeMs = survivalTime;
+    const survivalTimeMs = TimeService.getGameTime();
+    const survivalTime = survivalTimeMs;
 
     // 1. Get Replay Data
     const replayResult = EventRecorderService.endSession({

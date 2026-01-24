@@ -103,7 +103,7 @@ export class CollectionSystem implements ICollectionSystem {
         const magnetRange = this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet;
         const rangeSq = magnetRange * magnetRange;
 
-        if (distSq < rangeSq) {
+        if (distSq < rangeSq && gem.elapsedLifetime > GAME_ENGINE.GEM_MAGNET_DELAY) {
           gem.magnetized = true;
           const popAngle = Math.random() * Math.PI * 2;
           const popSpeed =
@@ -173,7 +173,21 @@ export class CollectionSystem implements ICollectionSystem {
       const magnetRange =
         (this.ctx.constants.GEM_MAGNET_BASE_RANGE + effectiveMagnet) *
         GAME_ENGINE.BUFF_GEM_MAGNET_FACTOR;
-      if (distSq < magnetRange * magnetRange) {
+      if (
+        distSq < magnetRange * magnetRange &&
+        gem.elapsedLifetime > GAME_ENGINE.GEM_MAGNET_DELAY
+      ) {
+        // Buff Gem Magnet Pop (Visual only, no separate magnetized flag needed for now)
+        if (!gem.velocityInitiated) {
+          const popAngle = Math.random() * Math.PI * 2;
+          const popSpeed =
+            GAME_ENGINE.GEM_POP_SPEED_MIN +
+            Math.random() * GAME_ENGINE.GEM_POP_SPEED_VAR;
+          gem.vx = Math.cos(popAngle) * popSpeed;
+          gem.vy = Math.sin(popAngle) * popSpeed;
+          gem.velocityInitiated = true;
+        }
+
         const dist = Math.sqrt(distSq);
         const pull =
           lerp(
@@ -181,8 +195,16 @@ export class CollectionSystem implements ICollectionSystem {
             GAME_ENGINE.BUFF_GEM_PULL_MIN,
             dist / magnetRange
           ) * dtFactor;
-        gem.x += (dx / dist) * pull;
-        gem.y += (dy / dist) * pull;
+
+        // Apply smoother pull with steering for buff gems too
+        const tx = (dx / dist) * pull;
+        const ty = (dy / dist) * pull;
+
+        gem.vx = lerp(gem.vx ?? 0, tx, 0.1 * dtFactor);
+        gem.vy = lerp(gem.vy ?? 0, ty, 0.1 * dtFactor);
+
+        gem.x += gem.vx * dtFactor;
+        gem.y += gem.vy * dtFactor;
       }
 
       const pickupDist = player.radius + gem.radius;

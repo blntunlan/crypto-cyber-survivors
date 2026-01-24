@@ -339,8 +339,9 @@ class BuffGemSpawnerClass {
   ): BuffGem | null {
     let types = POSITIVE_BUFF_TYPES;
     if (category === 'negative') types = NEGATIVE_BUFF_TYPES;
-    else if (category === 'any')
+    else if (category === 'any') {
       types = [...POSITIVE_BUFF_TYPES, ...NEGATIVE_BUFF_TYPES];
+    }
 
     const type = this.selectWeightedBuffType(types);
     if (!type) return null;

@@ -474,6 +474,7 @@ describe('PhysicsSystem', () => {
           vx: 0,
           vy: 0,
           magnetized: false,
+          elapsedLifetime: 1000,
         },
       ];
 

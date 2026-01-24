@@ -137,6 +137,9 @@ export const NotificationSystem: React.FC = () => {
       intensity: number;
       durationMs: number;
     }) => {
+      // Only show these frequent market micro-events in DEV mode to avoid spamming players
+      if (!import.meta.env.DEV) return;
+
       const configs = {
         VOLUME_SPIKE: {
           title: t('hud.announcer.volume_spike') || 'Volume Spike',
@@ -182,12 +185,14 @@ export const NotificationSystem: React.FC = () => {
     const unsubWhale = EventBus.on('whaleTierChanged', handleWhale);
     const unsubNotify = EventBus.on('gameNotification', handleNotification);
     const unsubMarketEvent = EventBus.on('gameMarketEvent', handleMarketEvent);
+    const unsubReset = EventBus.on('gameReset', () => setNotifications([]));
 
     return () => {
       unsubRSI();
       unsubWhale();
       unsubNotify();
       unsubMarketEvent();
+      unsubReset();
     };
   }, [t, addNotification]);
 

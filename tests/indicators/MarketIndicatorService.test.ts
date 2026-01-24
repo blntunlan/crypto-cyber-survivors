@@ -4,7 +4,7 @@
  * Integration tests for the market indicator orchestrator.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createMarketIndicatorService } from '../../services/indicators/MarketIndicatorService';
 import { type MarketPosition } from '../../types';
 import { WhaleTier } from '../../types/indicators';
@@ -255,12 +255,23 @@ describe('MarketIndicatorService', () => {
   });
 
   describe('Event Emission', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should emit marketStateChanged event on update', async () => {
       const mockHandler = vi.fn();
 
       // Dynamic import to get EventBus
       const { EventBus } = await import('../../services/EventBus');
       const unsub = EventBus.on('marketStateChanged', mockHandler);
+
+      // Advance time to bypass grace period
+      vi.advanceTimersByTime(3000);
 
       // Update
       service.update(100, 1000, 'LONG' as MarketPosition);

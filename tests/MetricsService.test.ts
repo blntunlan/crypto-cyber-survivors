@@ -9,6 +9,7 @@ import { MetricsService } from '../services/MetricsService';
 import { MarketPosition } from '../types';
 import { GameEndReason } from '../types/metrics';
 import { EventBus } from '../services/EventBus';
+import { TimeService } from '../services/TimeService';
 
 describe('MetricsService', () => {
   beforeEach(() => {
@@ -433,9 +434,12 @@ describe('MetricsService', () => {
 
   describe('Survival Time Calculation', () => {
     it('should calculate survival time correctly', () => {
+      // Set an explicit start time
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
+      // Advance time by 30 seconds explicitly
       vi.advanceTimersByTime(30000); // 30 seconds
+      TimeService.setGameTime(30000); // Sync game time
 
       const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
@@ -494,8 +498,10 @@ describe('MetricsService', () => {
 
       // Populate with diverse sessions
       // Short/Easy session
+      TimeService.setGameTime(0);
       MetricsService.startSession(MarketPosition.LONG, 50000, 5, 'BTC');
       vi.advanceTimersByTime(30000); // 30s
+      TimeService.setGameTime(30000);
       MetricsService.update(16.67, 0.05, 1.5, 100, 5, 0, 0, 'buildup', 0.01);
       MetricsService.trackKill('bear', 0);
       MetricsService.endSession(
@@ -508,8 +514,10 @@ describe('MetricsService', () => {
       );
 
       // Long/Hard session
+      TimeService.setGameTime(0);
       MetricsService.startSession(MarketPosition.SHORT, 60000, 20, 'BTC');
       vi.advanceTimersByTime(600000); // 10m
+      TimeService.setGameTime(600000);
       MetricsService.update(16.67, -0.15, 7.0, 100, 5, 0, 0, 'buildup', 0.01);
       MetricsService.trackKill('bear', 0);
       MetricsService.trackKill('whale', 0);
@@ -524,9 +532,11 @@ describe('MetricsService', () => {
         })
       );
 
-      // Winning session (simulated by non-death reason if applicable, or just high stats)
+      // Winning session
+      TimeService.setGameTime(0);
       MetricsService.startSession(MarketPosition.LONG, 40000, 10, 'BTC');
       vi.advanceTimersByTime(900000); // 15m
+      TimeService.setGameTime(900000);
       MetricsService.update(16.67, 0.2, 5.0, 100, 5, 0, 0, 'buildup', 0.01);
       MetricsService.endSession(
         GameEndReason.DEATH,

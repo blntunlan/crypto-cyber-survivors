@@ -54,7 +54,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (value && typeof value === 'object' && k in value) {
         value = (value as Record<string, unknown>)[k];
       } else {
-        return key; // Fallback to key name if not found
+        return key; // Return key as fallback
       }
     }
 

@@ -43,7 +43,6 @@ interface GameHUDProps {
   width?: number;
   height?: number;
   player?: Player;
-  sessionStartTime?: number;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({

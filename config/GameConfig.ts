@@ -81,12 +81,12 @@ export const LEVERAGE_TIERS: Record<
   { spawn: number; speed: number; hp: number; damage: number; xpReq: number }
 > = {
   1: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 },
-  2: { spawn: 1.0, speed: 0.85, hp: 0.9, damage: 0.9, xpReq: 1.1 },
-  5: { spawn: 1.4, speed: 1.0, hp: 1.0, damage: 1.0, xpReq: 1.25 }, // Increased spawn
-  10: { spawn: 2.0, speed: 1.1, hp: 1.1, damage: 1.15, xpReq: 1.5 }, // Increased spawn
-  25: { spawn: 3.0, speed: 1.25, hp: 1.2, damage: 1.4, xpReq: 2.0 }, // Increased spawn
-  50: { spawn: 4.0, speed: 1.4, hp: 1.4, damage: 1.8, xpReq: 3.0 }, // Significantly increased spawn
-  100: { spawn: 6.0, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 5.0 }, // Chaos mode spawn
+  2: { spawn: 1.0, speed: 0.85, hp: 0.9, damage: 0.9, xpReq: 1.0 },
+  5: { spawn: 1.4, speed: 1.0, hp: 1.0, damage: 1.0, xpReq: 1.0 },
+  10: { spawn: 2.0, speed: 1.1, hp: 1.1, damage: 1.15, xpReq: 1.0 },
+  25: { spawn: 3.0, speed: 1.25, hp: 1.2, damage: 1.4, xpReq: 1.0 },
+  50: { spawn: 4.0, speed: 1.4, hp: 1.4, damage: 1.8, xpReq: 1.0 },
+  100: { spawn: 6.0, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 1.0 },
 };
 
 // =============================================================================

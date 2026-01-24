@@ -62,11 +62,13 @@ class ErrorRecoveryServiceClass {
     if (GameStateMachine.getState() === GameStatus.PLAYING) {
       GameStateMachine.transition(GameStatus.PAUSED);
 
-      EventBus.emit('gameNotification', {
-        title: 'Network Lag',
-        message: 'Market connection lost. Game paused for security.',
-        type: 'warning',
-      });
+      if (import.meta.env.DEV) {
+        EventBus.emit('gameNotification', {
+          title: 'Network Lag',
+          message: 'Market connection lost. Game paused for security.',
+          type: 'warning',
+        });
+      }
     }
 
     void this.attemptReconnect('market_service', async () => {
@@ -102,11 +104,13 @@ class ErrorRecoveryServiceClass {
       Logger.error(
         `[Recovery] Max retries reached for ${id}. Manual intervention required.`
       );
-      EventBus.emit('gameNotification', {
-        title: 'Critical Error',
-        message: 'Connection could not be restored. Please refresh.',
-        type: 'error',
-      });
+      if (import.meta.env.DEV) {
+        EventBus.emit('gameNotification', {
+          title: 'Critical Error',
+          message: 'Connection could not be restored. Please refresh.',
+          type: 'error',
+        });
+      }
       return;
     }
 
@@ -126,11 +130,13 @@ class ErrorRecoveryServiceClass {
           strategy.currentRetries = 0;
           this.strategies.set(id, strategy);
 
-          EventBus.emit('gameNotification', {
-            title: 'Restored',
-            message: 'Connection re-established.',
-            type: 'success',
-          });
+          if (import.meta.env.DEV) {
+            EventBus.emit('gameNotification', {
+              title: 'Restored',
+              message: 'Connection re-established.',
+              type: 'success',
+            });
+          }
         } else {
           void this.attemptReconnect(id, action);
         }
@@ -140,20 +146,24 @@ class ErrorRecoveryServiceClass {
 
   private handleOffline(): void {
     Logger.warn('[Recovery] Browser went offline');
-    EventBus.emit('gameNotification', {
-      title: 'Offline',
-      message: 'You are currently offline. Some features may be disabled.',
-      type: 'error',
-    });
+    if (import.meta.env.DEV) {
+      EventBus.emit('gameNotification', {
+        title: 'Offline',
+        message: 'You are currently offline. Some features may be disabled.',
+        type: 'error',
+      });
+    }
   }
 
   private handleOnline(): void {
     Logger.info('[Recovery] Browser back online');
-    EventBus.emit('gameNotification', {
-      title: 'Online',
-      message: 'Connection restored. Syncing data...',
-      type: 'success',
-    });
+    if (import.meta.env.DEV) {
+      EventBus.emit('gameNotification', {
+        title: 'Online',
+        message: 'Connection restored. Syncing data...',
+        type: 'success',
+      });
+    }
 
     // Trigger reconnections
     this.handleMarketFailure();

@@ -122,7 +122,11 @@ const DesktopLiveFeed: React.FC<
         </div>
 
         <div className="flex items-center gap-2 text-[10px] font-feed text-white">
-          <span className="opacity-40">{marketData.leverage}X</span>
+          <span
+            className={`px-1 rounded ${marketData.leverage >= 50 ? 'bg-amber-500 text-black font-black animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/10 opacity-60'}`}
+          >
+            {marketData.leverage >= 50 ? 'DEGEN' : ''} {marketData.leverage}X
+          </span>
           <span style={{ color: pairConfig.color }} className="font-black">
             {pairConfig.id}
           </span>
@@ -170,12 +174,14 @@ const DesktopLiveFeed: React.FC<
             <LiveTicker
               id="pnl-usd-ticker"
               valueKey="pnl"
-              formatter={(val: number) =>
-                `${val >= 0 ? '+' : ''}$${(val * 1000).toLocaleString(undefined, {
+              formatter={(val: number) => {
+                const amount = val * 1000;
+                const formatted = Math.abs(amount).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })}`
-              }
+                });
+                return `${amount >= 0 ? '+' : '-'}$${formatted}`;
+              }}
             />
           </div>
         </div>
@@ -294,7 +300,11 @@ const MobileLiveFeed: React.FC<
           >
             {pairConfig.id}
           </span>
-          <span className="text-slate-500" style={{ fontSize: rfs(8) }}>
+          <span
+            className={`px-1 rounded font-black ${marketData.leverage >= 50 ? 'bg-amber-500 text-black animate-pulse' : 'text-slate-500'}`}
+            style={{ fontSize: rfs(8) }}
+          >
+            {marketData.leverage >= 50 ? 'DEGEN ' : ''}
             {marketData.leverage}X
           </span>
         </div>
@@ -333,7 +343,9 @@ const MobileLiveFeed: React.FC<
           <LiveTicker
             id="pnl-pct-mobile"
             valueKey="pnl"
-            formatter={(val: number) => `${(val * 100).toFixed(2)}%`}
+            formatter={(val: number) =>
+              `${val >= 0 ? '+' : ''}${(val * 100).toFixed(2)}%`
+            }
           />
         </div>
       </div>

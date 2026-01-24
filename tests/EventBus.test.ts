@@ -29,10 +29,14 @@ describe('EventBus', () => {
   // Clean up after each test to prevent test pollution
   beforeEach(() => {
     EventBus.clear();
+    EventBus.clearTraceLog();
+    EventBus.disableTracing();
   });
 
   afterEach(() => {
     EventBus.clear();
+    EventBus.clearTraceLog();
+    EventBus.disableTracing();
     vi.restoreAllMocks();
   });
 
@@ -570,6 +574,89 @@ describe('EventBus', () => {
       EventBus.emit('enemyKilled', { x: 0, y: 0 });
 
       expect(callOrder).toEqual([1, 2, 3]);
+    });
+  });
+  // =====================
+  // SECTION: Tracing API
+  // =====================
+  describe('tracing API', () => {
+    it('should enable and disable tracing', () => {
+      expect(EventBus.isTracing()).toBe(false);
+
+      EventBus.enableTracing();
+      expect(EventBus.isTracing()).toBe(true);
+
+      EventBus.disableTracing();
+      expect(EventBus.isTracing()).toBe(false);
+    });
+
+    it('should log events when tracing is enabled', () => {
+      EventBus.clearTraceLog();
+      EventBus.enableTracing();
+      EventBus.subscribe('enemyKilled', vi.fn());
+
+      const data = { x: 10, y: 20 };
+      EventBus.emit('enemyKilled', data);
+
+      const logs = EventBus.getTraceLog();
+      expect(logs.length).toBe(1);
+
+      if (logs[0]) {
+        expect(logs[0]).toMatchObject({
+          event: 'enemyKilled',
+          data,
+          listenerCount: 1,
+        });
+        expect(logs[0].timestamp).toBeDefined();
+      }
+    });
+
+    it('should not log events when tracing is disabled', () => {
+      EventBus.disableTracing();
+      EventBus.subscribe('enemyKilled', vi.fn());
+
+      EventBus.emit('enemyKilled', { x: 0, y: 0 });
+
+      expect(EventBus.getTraceLog()).toHaveLength(0);
+    });
+
+    it('should limit trace log size', () => {
+      EventBus.enableTracing();
+      // Implementation has MAX_TRACE_LOG = 100
+      for (let i = 0; i < 110; i++) {
+        EventBus.emit('gameReset', {});
+      }
+
+      const logs = EventBus.getTraceLog();
+      expect(logs.length).toBeLessThanOrEqual(100);
+      expect(logs.length).toBe(100);
+    });
+
+    it('should clear trace log', () => {
+      EventBus.enableTracing();
+      EventBus.emit('gameReset', {});
+      expect(EventBus.getTraceLog()).not.toHaveLength(0);
+
+      EventBus.clearTraceLog();
+      expect(EventBus.getTraceLog()).toHaveLength(0);
+    });
+
+    it('should provide debug state', () => {
+      EventBus.enableTracing();
+      EventBus.subscribe('enemyKilled', vi.fn());
+      EventBus.emit('enemyKilled', { x: 0, y: 0 });
+
+      const debugState = EventBus.getDebugState();
+
+      expect(debugState).toMatchObject({
+        systemName: 'EventBus',
+        isTracingEnabled: true,
+        eventListenerCounts: expect.objectContaining({
+          enemyKilled: 1,
+        }),
+      });
+      expect(debugState.recentEmits).toHaveLength(1);
+      expect(debugState.totalEvents).toBeGreaterThan(0);
     });
   });
 });

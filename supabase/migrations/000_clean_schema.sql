@@ -1,5 +1,5 @@
 -- ============================================
--- CRYPTO CYBER SURVIVORS - CLEAN SCHEMA
+-- CRYPTO SURVIVORS - CLEAN SCHEMA
 -- Supabase Database Setup (Fresh Start)
 -- ============================================
 -- RUN THIS IN SUPABASE SQL EDITOR

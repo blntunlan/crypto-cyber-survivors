@@ -78,14 +78,14 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
       expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(1.0);
     });
 
-    it('should provide ~1.5x XP multiplier for 10x leverage', () => {
+    it('should provide ~2.7x XP multiplier for 10x leverage', () => {
       DifficultyManager.startGame(10);
-      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(1.5);
+      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(2.73, 2);
     });
 
-    it('should provide 2.0x XP multiplier for 100x leverage', () => {
+    it('should provide ~8.2x XP multiplier for 100x leverage', () => {
       DifficultyManager.startGame(100);
-      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(2.0);
+      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(8.2);
     });
   });
 
@@ -98,14 +98,30 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
         DifficultyManager.calculate(0.0, 0, 1, 1.0);
       }
 
-      // Advance 1s and jump PnL by 1% (threshold is 0.5%)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(1);
+      // Advance to 10s (past 5s grace period) and jump PnL by 1% (threshold is 0.5%)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(10);
       DifficultyManager.calculate(0.1, 0, 1, 1.0);
 
       expect(emitSpy).toHaveBeenCalledWith('volatilityShock', expect.anything());
     });
 
-    it('should obey shockwave cooldown (10s)', () => {
+    it('should suppress shock events during the first 5 seconds (Grace Period)', () => {
+      const emitSpy = vi.spyOn(EventBus, 'emit');
+
+      // Start at 0, fill history
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      for (let i = 0; i < 5; i++) {
+        DifficultyManager.calculate(0.0, 0, 1, 1.0);
+      }
+
+      // Large jump at 2s (within grace period)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(2);
+      DifficultyManager.calculate(0.2, 0, 1, 1.0);
+
+      expect(emitSpy).not.toHaveBeenCalledWith('volatilityShock', expect.anything());
+    });
+
+    it('should obey shockwave cooldown (10s) after grace period', () => {
       const emitSpy = vi.spyOn(EventBus, 'emit');
 
       // Establish baseline at 0 with 5 zeroes
@@ -114,19 +130,19 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
         DifficultyManager.calculate(0.0, 0, 1, 1.0);
       }
 
-      // Shock 1
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(1);
+      // Shock 1 (at 6s, just after grace period)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(6);
       DifficultyManager.calculate(0.1, 0, 1, 1.0);
       expect(emitSpy).toHaveBeenCalledWith('volatilityShock', expect.anything());
       emitSpy.mockClear();
 
-      // Immediate shock 2 (within 10s)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(5);
+      // Immediate shock 2 (within 10s cooldown)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(10);
       DifficultyManager.calculate(0.2, 0, 1, 1.0);
       expect(emitSpy).not.toHaveBeenCalledWith('volatilityShock', expect.anything());
 
-      // After cooldown
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(12);
+      // After cooldown (10s + 6s = 16s)
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(17);
       DifficultyManager.calculate(0.3, 0, 1, 1.0);
       expect(emitSpy).toHaveBeenCalledWith('volatilityShock', expect.anything());
     });

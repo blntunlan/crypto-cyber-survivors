@@ -10,6 +10,12 @@ vi.mock('../../services/ThemeService', () => ({
   },
 }));
 
+vi.mock('../../services/TimeService', () => ({
+  TimeService: {
+    getGameTimeSeconds: vi.fn(() => 100),
+  },
+}));
+
 describe('EffectRenderer', () => {
   let renderer: EffectRenderer;
   let mockCtx: any;
@@ -222,6 +228,7 @@ describe('EffectRenderer', () => {
 
   describe('drawMarketAmbiance', () => {
     it('should draw RSI tint', () => {
+      (ThemeService.isRetro as any).mockReturnValue(true);
       mockState.rsiVisualState = 'OVERSOLD';
       mockState.marketPosition = 'LONG'; // Favorable
 
@@ -232,6 +239,7 @@ describe('EffectRenderer', () => {
     });
 
     it('should draw unfavorable RSI tint', () => {
+      (ThemeService.isRetro as any).mockReturnValue(true);
       mockState.rsiVisualState = 'OVERSOLD';
       mockState.marketPosition = 'SHORT'; // Unfavorable
 
@@ -241,12 +249,13 @@ describe('EffectRenderer', () => {
     });
 
     it('should draw volatility pulse', () => {
+      (ThemeService.isRetro as any).mockReturnValue(true);
       mockState.atrPercent = 5.0; // High ATR
       mockState.lastFireTime = 314; // sin(314 * 0.005) approx sin(1.57) approx 1
 
       (renderer as any).drawMarketAmbiance(mockCtx, 800, 600, mockState);
 
-      expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+      expect(mockCtx.strokeRect).toHaveBeenCalled();
     });
 
     it('should draw whale event splash', () => {

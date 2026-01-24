@@ -62,6 +62,7 @@ describe('CollectionSystem', () => {
         value: 10,
         active: true,
         magnetized: false,
+        elapsedLifetime: 500,
       } as any;
       (mockPool as any).activeGems = [gem];
       (mockContext.stats.getMagnet as any).mockReturnValue(100);
@@ -123,6 +124,10 @@ describe('CollectionSystem', () => {
         radius: 5,
         active: true,
         decoratorClass: 'test-class',
+        elapsedLifetime: 500,
+        velocityInitiated: true,
+        vx: 0,
+        vy: 0,
       } as any;
       (mockContext.buffGems.getActiveGems as any).mockReturnValue([buffGem]);
 

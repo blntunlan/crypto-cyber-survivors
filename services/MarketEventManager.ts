@@ -31,6 +31,14 @@ class MarketEventManagerClass {
 
   private constructor() {
     EventBus.on('marketStateUpdated', (state: MarketState) => this.analyze(state));
+    EventBus.on('gameReset', () => this.reset());
+  }
+
+  private reset(): void {
+    this.lastPrice = 0;
+    this.lastWhaleTier = 0;
+    this.eventCooldowns.clear();
+    Logger.info('[MarketEventManager] State reset');
   }
 
   public static getInstance(): MarketEventManagerClass {

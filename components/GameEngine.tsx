@@ -56,7 +56,6 @@ interface GameEngineProps {
   onLevelUp: () => void;
   updatePlayerStats: (player: Player) => void;
   playerRef: React.RefObject<Player>;
-  sessionStartTime: number;
   width: number;
   height: number;
 }
@@ -70,7 +69,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   onLevelUp,
   updatePlayerStats,
   playerRef,
-  sessionStartTime,
   width,
   height,
 }) => {
@@ -829,7 +827,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         status={status}
         enemies={pool.current.activeEnemies}
         player={playerRef.current!}
-        sessionStartTime={sessionStartTime}
         width={width}
         height={height}
       />
@@ -858,7 +855,6 @@ export const GameEngineShared = memo(
     prev.height === next.height &&
     prev.position === next.position &&
     prev.pair === next.pair &&
-    prev.sessionStartTime === next.sessionStartTime &&
     prev.playerRef === next.playerRef
 );
 

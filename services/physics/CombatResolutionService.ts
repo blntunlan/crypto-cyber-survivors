@@ -7,7 +7,8 @@ import { COLORS, COMBAT_CONFIG, ECONOMY_CONFIG, PLAYER_STATS } from '../../confi
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { Logger } from '../Logger';
 import { ThemeService } from '../ThemeService';
-import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
+// import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
+import { difficultyContext } from '../difficulty/DifficultyContext';
 
 /**
  * CombatResolutionService - Logic engine for processing combat outcomes.
@@ -53,12 +54,14 @@ export class CombatResolutionService {
     this.spawnDeathParticles(pool, enemy, isSuperCrit);
     this.spawnGemForEnemy(pool, enemy, player);
     this.processLifesteal(player, enemy);
-    this.spawnRSIBuffForEnemy(enemy);
+    // this.spawnRSIBuffForEnemy(enemy); // Removed as per user request (random spawn only)
   }
 
   /**
    * Spawns RSI-based buff/debuff gems based on enemy metadata.
+   * @deprecated Removed from death logic, keeping method in case needed later or just comment it out.
    */
+  /*
   private static spawnRSIBuffForEnemy(enemy: Enemy): void {
     const { dropBuffChance = 0, dropDebuffChance = 0 } = enemy;
 
@@ -73,6 +76,7 @@ export class CombatResolutionService {
       BuffGemSpawner.forceSpawnAt(enemy.x, enemy.y, 'negative');
     }
   }
+  */
 
   /**
    * Applies a directional shockwave that displaces all enemies.
@@ -201,6 +205,8 @@ export class CombatResolutionService {
     player: Player
   ): void {
     const { GEMS, LUCK } = ECONOMY_CONFIG;
+    const context = difficultyContext.getContext();
+    const leverage = context.inputs.leverage;
 
     // Stat Resolution with systemic caps
     const rawLuck = BuffManager.isInitialized()
@@ -228,16 +234,37 @@ export class CombatResolutionService {
     );
 
     // Primary Gem Spawn
+    const lerpSize =
+      leverage >= 50 ? GEMS.RARE_SIZE : isRare ? GEMS.RARE_SIZE : GEMS.NORMAL_SIZE;
+
     pool.getGem(
       enemy.x,
       enemy.y,
       finalValue,
-      isRare ? GEMS.RARE_SIZE : GEMS.NORMAL_SIZE,
+      lerpSize,
       isRare ? COLORS.RARE_GEM : COLORS.GEM,
       isRare
     );
 
-    // 3. Bonus Gem Logic (Luck Proc)
+    // 3. Leverage "Jackpot" Visuals (High-stakes feedback)
+    if (leverage >= 25) {
+      const jackpotCount = Math.floor(Math.sqrt(leverage));
+      for (let i = 0; i < jackpotCount; i++) {
+        const vx = (Math.random() - 0.5) * 150;
+        const vy = (Math.random() - 0.5) * 150;
+        // Cyan/Gold high-speed particles for money feel
+        pool.getParticle(
+          enemy.x,
+          enemy.y,
+          vx,
+          vy,
+          i % 2 === 0 ? '#00FFFF' : '#FFD700',
+          true
+        );
+      }
+    }
+
+    // 4. Bonus Gem Logic (Luck Proc)
     const bonusGemChance = Math.min(
       LUCK.MAX_BONUS_GEM_CHANCE,
       luck * LUCK.BONUS_GEM_CHANCE_PER_LUCK

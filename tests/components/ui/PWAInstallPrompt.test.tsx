@@ -16,6 +16,24 @@ vi.mock('../../../hooks/usePWAInstall', () => ({
   }),
 }));
 
+// Mock Language Context
+vi.mock('../../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => {
+      const map: Record<string, string> = {
+        'pwa.installTitle': 'Install App',
+        'pwa.installDescription': 'Add to home screen for the best experience',
+        'pwa.install': 'Install',
+        'pwa.notNow': 'Not now',
+        'common.close': 'Close',
+      };
+      return map[key] || key;
+    },
+    language: 'en',
+  }),
+  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe('PWAInstallPrompt', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,7 +63,9 @@ describe('PWAInstallPrompt', () => {
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
 
     // Check for new text content that might be missing or causing issues
-    expect(screen.getByText('pwa.installTitle')).toBeInTheDocument();
-    expect(screen.getByText('pwa.installDescription')).toBeInTheDocument();
+    expect(screen.getByText('Install App')).toBeInTheDocument();
+    expect(
+      screen.getByText('Add to home screen for the best experience')
+    ).toBeInTheDocument();
   });
 });
