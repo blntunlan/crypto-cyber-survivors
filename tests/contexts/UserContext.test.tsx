@@ -123,7 +123,7 @@ describe('UserContext', () => {
 
     it('should load user from localStorage on mount', async () => {
       const mockUser = {
-        playerId: 'stored-player-id',
+        playerId: '550e8400-e29b-41d4-a716-446655440000',
         nickname: 'StoredUser',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),
@@ -139,7 +139,9 @@ describe('UserContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('authenticated').textContent).toBe('true');
         expect(screen.getByTestId('nickname').textContent).toBe('StoredUser');
-        expect(screen.getByTestId('playerId').textContent).toBe('stored-player-id');
+        expect(screen.getByTestId('playerId').textContent).toBe(
+          '550e8400-e29b-41d4-a716-446655440000'
+        );
       });
     });
   });

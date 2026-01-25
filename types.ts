@@ -215,6 +215,7 @@ export interface GameState {
   // Market Visuals
   rsiVisualState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   whaleEventTimer: number; // For whale spawn splash/shake effect
+  targetBg: { r: number; g: number; b: number }; // Reusable object for background color updates
   interactableSpawnTimer?: number; // Timer for lootbox generation
 
   // Market Indicators for Visuals

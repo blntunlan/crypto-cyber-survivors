@@ -29,8 +29,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   const { t } = useLanguage();
   const { progress, recordGameEnd } = useGameStore();
 
+  const hasRecordedRef = React.useRef(false);
+
   // Record this game to progress on mount
   React.useEffect(() => {
+    if (hasRecordedRef.current) return;
+    hasRecordedRef.current = true;
+
     const score = Math.floor(
       kills * 10 + survivalTime + (finalPnl > 0 ? finalPnl * 1000 : 0)
     );

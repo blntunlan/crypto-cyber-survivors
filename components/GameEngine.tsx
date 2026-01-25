@@ -32,7 +32,6 @@ import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/AudioService';
-import { haptic } from '../services/HapticService';
 import { MarketStateService } from '../services/MarketStateService';
 import { marketIndicatorService } from '../services/indicators/MarketIndicatorService';
 import { Logger } from '../services/Logger';
@@ -75,11 +74,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
 
-  // Use lazy initialization for heavy systems
-  const pool = useLazyRef(() => new PoolManager());
+  // Use singleton instances for heavy systems (Architectural Compliance)
+  const pool = useRef(PoolManager.getInstance());
   const renderer = useLazyRef(() => new GameRenderer());
-  const combatSystem = useLazyRef(() => new CombatSystem());
-  const physicsSystem = useLazyRef(() => new PhysicsSystem());
+  const combatSystem = useRef(CombatSystem.getInstance());
+  const physicsSystem = useRef(PhysicsSystem.getInstance());
   const spawnSystemRef = useLazyRef(() => new SpawnSystem());
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
 
@@ -137,6 +136,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // Market Visuals
     rsiVisualState: 'NEUTRAL',
     whaleEventTimer: 0,
+    targetBg: { r: 2, g: 6, b: 23 }, // Reusable object for background color updates
 
     // Lootbox Spawn Timer
     interactableSpawnTimer: 0,
@@ -189,7 +189,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     EngineRegistry.setPhysicsSystem(physicsSystem.current);
     EngineRegistry.setSpawnSystem(spawnSystemRef.current);
     EngineRegistry.setAudioService(audio);
-  }, [combatSystem, physicsSystem, pool, spawnSystemRef]);
+  }, [spawnSystemRef]); // Singletons aren't going to change, and spawnSystemRef is stable
 
   // ========================================
   // Custom Hooks for Setup, Events & Status
@@ -253,26 +253,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     return unsubscribe;
   }, []);
-
-  // Level Up Stack Logic (Sequential Level Ups)
-  // When returning to PLAYING state (e.g. after a level up selection),
-  // check if we have enough XP for ANOTHER level.
-  useEffect(() => {
-    if (status === GameStatus.PLAYING) {
-      const p = playerRef.current;
-      // If we still have enough XP for next level, trigger another level up sequence
-      if (p.exp >= p.nextLevelExp) {
-        Logger.info(
-          '[GameEngine] Pending level up detected (Stacking), queuing next level up...'
-        );
-        // Set a small freeze timer to allow one frame of update/draw before locking again
-        // This ensures the game loop catches the state change cleanly
-        state.current.levelUpFreeze = GAME_ENGINE.PENDING_LEVEL_UP_FREEZE_MS;
-        EventBus.emit('levelUpStart', {});
-        haptic.vibrate('success');
-      }
-    }
-  }, [status, playerRef]);
 
   // Listen for high-frequency market updates directly to avoid React re-render overhead
   useEffect(() => {
@@ -644,30 +624,31 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Only update background every 3 frames to optimize performance
         s.bgUpdateFrameCounter = (s.bgUpdateFrameCounter + 1) % 3;
         if (s.bgUpdateFrameCounter === 0) {
-          const targetBg =
-            marketDataRef.current.pnl >= 0
-              ? {
-                  r: minVal,
-                  g: lerp(minVal + 4, 45, Math.min(1, marketDataRef.current.pnl * 20)),
-                  b: minVal + 8,
-                }
-              : {
-                  r: lerp(
-                    minVal,
-                    45,
-                    Math.min(
-                      1,
-                      Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
-                    )
-                  ),
-                  g: minVal,
-                  b: minVal,
-                };
+          if (marketDataRef.current.pnl >= 0) {
+            s.targetBg.r = minVal;
+            s.targetBg.g = lerp(
+              minVal + 4,
+              45,
+              Math.min(1, marketDataRef.current.pnl * 20)
+            );
+            s.targetBg.b = minVal + 8;
+          } else {
+            s.targetBg.r = lerp(
+              minVal,
+              45,
+              Math.min(
+                1,
+                Math.abs(marketDataRef.current.pnl) * GAME_ENGINE.PNL_VISUAL_SCALE
+              )
+            );
+            s.targetBg.g = minVal;
+            s.targetBg.b = minVal;
+          }
 
           const bgLerpFactor = 1 - Math.pow(GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
-          s.currentBg.r = lerp(s.currentBg.r, targetBg.r, bgLerpFactor);
-          s.currentBg.g = lerp(s.currentBg.g, targetBg.g, bgLerpFactor);
-          s.currentBg.b = lerp(s.currentBg.b, targetBg.b, bgLerpFactor);
+          s.currentBg.r = lerp(s.currentBg.r, s.targetBg.r, bgLerpFactor);
+          s.currentBg.g = lerp(s.currentBg.g, s.targetBg.g, bgLerpFactor);
+          s.currentBg.b = lerp(s.currentBg.b, s.targetBg.b, bgLerpFactor);
         }
 
         // Combat System - Auto Fire (only targets on-screen enemies)

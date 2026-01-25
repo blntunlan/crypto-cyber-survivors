@@ -15,10 +15,11 @@ import {
  * PhysicsSystem - Orchestrates all physical simulations and interactions.
  */
 export class PhysicsSystem implements IPhysicsSystem {
+  private static instance: PhysicsSystem | null = null;
   private movementSystem: IMovementSystem;
   private collisionSystem: ICollisionSystem;
   private collectionSystem: ICollectionSystem;
-  constructor(
+  private constructor(
     movement: IMovementSystem = new MovementSystem(),
     collision: ICollisionSystem = new CollisionSystem(),
     collection: ICollectionSystem = new CollectionSystem()
@@ -26,6 +27,13 @@ export class PhysicsSystem implements IPhysicsSystem {
     this.movementSystem = movement;
     this.collisionSystem = collision;
     this.collectionSystem = collection;
+  }
+
+  /**
+   * Get the singleton instance of PhysicsSystem
+   */
+  public static getInstance(): PhysicsSystem {
+    return (PhysicsSystem.instance ??= new PhysicsSystem());
   }
 
   /**

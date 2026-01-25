@@ -236,7 +236,12 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
                     finalCard={card}
                     reelIndex={index}
                     stopOrder={stopOrder[index] ?? index}
-                    onSelect={onSelect}
+                    onSelect={c => {
+                      if (!hasSelectedRef.current) {
+                        hasSelectedRef.current = true;
+                        onSelect(c);
+                      }
+                    }}
                     onStopped={handleReelStopped}
                     isSelected={allStopped && selectedIndex === index}
                   />

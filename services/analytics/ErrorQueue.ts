@@ -9,33 +9,8 @@
  * @module Extracted from ErrorTracker.ts for better modularity
  */
 
-import {
-  type ErrorReport,
-  type QueuedError,
-  type ErrorSeverity,
-  type ErrorCategory,
-  ERROR_CONSTANTS,
-} from './ErrorTypes';
+import { type ErrorReport, type QueuedError, ERROR_CONSTANTS } from './ErrorTypes';
 import { Logger } from '../Logger';
-
-// =============================================================================
-// HELPER: Simple hash for fingerprints
-// =============================================================================
-
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(36);
-}
-
-function createFingerprint(type: string, message: string): string {
-  const input = `${type}|${message.substring(0, 100)}`;
-  return simpleHash(input);
-}
 
 // =============================================================================
 // ERROR QUEUE CLASS
@@ -117,19 +92,10 @@ export class ErrorQueue {
 
   private saveToStorage(): void {
     try {
-      const simplified = this.queue.map(item => ({
-        r: {
-          t: item.report.errorType,
-          m: item.report.errorMessage.substring(0, 100),
-          s: item.report.severity,
-          c: item.report.category,
-          ts: item.report.reportedAt,
-        },
-        rc: item.retryCount,
-      }));
-      localStorage.setItem(ERROR_CONSTANTS.STORAGE_KEY, JSON.stringify(simplified));
-    } catch {
-      // Ignore storage errors
+      const items = this.queue.slice(0, ERROR_CONSTANTS.MAX_QUEUE_SIZE);
+      localStorage.setItem(ERROR_CONSTANTS.STORAGE_KEY, JSON.stringify(items));
+    } catch (e) {
+      Logger.warn('[ErrorQueue] Storage failed:', e);
     }
   }
 
@@ -137,26 +103,14 @@ export class ErrorQueue {
     try {
       const stored = localStorage.getItem(ERROR_CONSTANTS.STORAGE_KEY);
       if (stored) {
-        const items = JSON.parse(stored) as Array<{
-          r: { t: string; m: string; s: ErrorSeverity; c: ErrorCategory; ts: string };
-          rc: number;
-        }>;
-
+        const items = JSON.parse(stored) as QueuedError[];
         this.queue = items.map(item => ({
+          ...item,
           report: {
-            errorType: item.r.t,
-            errorMessage: item.r.m,
-            category: item.r.c,
-            severity: item.r.s,
-            fingerprint: createFingerprint(item.r.t, item.r.m),
-            userAgent: navigator.userAgent,
-            url: window.location.href,
-            viewport: { width: window.innerWidth, height: window.innerHeight },
-            reportedAt: item.r.ts,
-            breadcrumbs: [],
-            tags: ['restored'],
+            ...item.report,
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            tags: [...(item.report.tags || []), 'restored'],
           },
-          retryCount: item.rc,
         }));
 
         localStorage.removeItem(ERROR_CONSTANTS.STORAGE_KEY);

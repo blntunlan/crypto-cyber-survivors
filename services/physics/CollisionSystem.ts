@@ -159,11 +159,8 @@ export class CollisionSystem implements ICollisionSystem {
         }
 
         // Batch collision check - get nearby bullets once
-        const nearbyBullets = this.ctx.bulletGrid.getNearby(obj.x, obj.y);
-        if (nearbyBullets.length === 0) return;
-
-        for (const bullet of nearbyBullets) {
-          if (!bullet.active) continue;
+        this.ctx.bulletGrid.forEachNearby(obj.x, obj.y, bullet => {
+          if (!bullet.active) return;
 
           const dx = obj.x - bullet.x;
           const dy = obj.y - bullet.y;
@@ -219,10 +216,9 @@ export class CollisionSystem implements ICollisionSystem {
                   rewardColor
                 ).life = 1.0;
               }
-              break; // Exit bullet loop since object is destroyed
             }
           }
-        }
+        });
       });
     }
   }

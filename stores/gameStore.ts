@@ -198,10 +198,10 @@ const DEFAULT_PROGRESS: PlayerProgress = {
   achievementsUnlocked: [],
 };
 
-import { nanoid } from 'nanoid';
+// No nanoid needed
 
 const createNewSession = (): SessionInfo => ({
-  sessionId: nanoid(),
+  sessionId: crypto.randomUUID(),
   startTime: Date.now(),
   gamesThisSession: 0,
 });

@@ -104,6 +104,13 @@ export class UserPersistenceService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.playerId && parsed?.nickname) {
+          // DATABASE INTEGRITY: Reject non-UUID player IDs (migration for legacy nanoids)
+          if (!this.isUUID(parsed.playerId)) {
+            Logger.warn(
+              '[UserPersistence] Corrupt non-UUID playerId detected in storage, ignoring'
+            );
+            return null;
+          }
           return parsed as StoredUser;
         }
       }
@@ -136,6 +143,10 @@ export class UserPersistenceService {
           const content = c.substring(name.length, c.length);
           const parsed = JSON.parse(atob(content)); // Decode Base64
           if (parsed?.playerId && parsed?.nickname) {
+            // DATABASE INTEGRITY: Reject non-UUID player IDs
+            if (!this.isUUID(parsed.playerId)) {
+              return null;
+            }
             return parsed as StoredUser;
           }
         }
@@ -161,5 +172,15 @@ export class UserPersistenceService {
     } catch (e) {
       Logger.debug('[UserPersistence] Cookie sync failed', e);
     }
+  }
+
+  /**
+   * Simple UUID validation regex
+   */
+  private static isUUID(str?: string | null): boolean {
+    if (!str) return false;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
   }
 }

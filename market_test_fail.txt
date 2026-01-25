@@ -1,0 +1,38 @@
+﻿
+> crypto-survivors@1.0.0 test
+> vitest run tests/services/MarketService.test.ts --reporter=verbose
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould connect to Binance primary source[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould parse Binance kline messages[32m 2[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould fallback to Coinbase if Binance fails[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould parse Coinbase ticker messages[32m 2[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould handle invalid JSON from sources[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould handle failed schema parsing[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould handle wsFactory throwing error[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mConnection Logic[2m > [22mshould ignore Coinbase subscription messages[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mPair Validation[2m > [22mshould ignore Binance messages from wrong pair[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mPair Validation[2m > [22mshould process Binance messages from correct pair[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mPair Validation[2m > [22mshould ignore Coinbase messages from wrong pair[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mPair Validation[2m > [22mshould process Coinbase messages from correct pair[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mEdge Case & Resilience[2m > [22mshould handle Total Market Blackout (Both feeds down)[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mEdge Case & Resilience[2m > [22mshould survive Rapid Reconnect Storm (Flapping connection)[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mState Management[2m > [22mshould return correct status[32m 0[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mState Management[2m > [22mshould handle offline mode with fallback prices[32m 0[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mState Management[2m > [22mshould not be in offline mode after receiving prices[32m 0[2mms[22m[39m
+ [31m├ù[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mReconnection & Failover[2m > [22mshould implement exponential backoff on Binance close[32m 3[2mms[22m[39m
+[31m   ÔåÆ expected 5 to be 4 // Object.is equality[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mReconnection & Failover[2m > [22mshould pause connections when tab is hidden[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mReconnection & Failover[2m > [22mshould implement exponential backoff on Coinbase close[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mReconnection & Failover[2m > [22mshould force reconnect[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mReconnection & Failover[2m > [22mshould resume connections when tab becomes visible[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mCleanup[2m > [22mshould clear timers and sockets on disconnect[32m 0[2mms[22m[39m
+ [32mÔ£ô[39m tests/services/MarketService.test.ts[2m > [22mMarketService[2m > [22mCleanup[2m > [22mshould remove event listeners on destroy[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m23 passed[39m[22m[90m (24)[39m
+[2m   Start at [22m 01:11:31
+[2m   Duration [22m 1.00s[2m (transform 103ms, setup 213ms, import 105ms, tests 30ms, environment 523ms)[22m
+

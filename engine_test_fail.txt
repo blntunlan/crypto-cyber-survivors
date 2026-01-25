@@ -1,0 +1,22 @@
+﻿
+> crypto-survivors@1.0.0 test
+> vitest run tests/components/GameEngine.test.tsx --reporter=verbose
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [31m├ù[39m tests/components/GameEngine.test.tsx[2m > [22mGameEngine[2m > [22mrenders canvas and HUD[32m 14[2mms[22m[39m
+[31m   ÔåÆ __vite_ssr_import_5__.PoolManager.getInstance is not a function[39m
+ [31m├ù[39m tests/components/GameEngine.test.tsx[2m > [22mGameEngine[2m > [22mrenders mobile controls on mobile device[32m 2[2mms[22m[39m
+[31m   ÔåÆ __vite_ssr_import_5__.PoolManager.getInstance is not a function[39m
+ [31m├ù[39m tests/components/GameEngine.test.tsx[2m > [22mGameEngine[2m > [22minitializes and cleans up market state[32m 2[2mms[22m[39m
+[31m   ÔåÆ __vite_ssr_import_5__.PoolManager.getInstance is not a function[39m
+ [31m├ù[39m tests/components/GameEngine.test.tsx[2m > [22mGameEngine[2m > [22mresponds to RSI and Whale events[32m 2[2mms[22m[39m
+[31m   ÔåÆ __vite_ssr_import_5__.PoolManager.getInstance is not a function[39m
+ [32mÔ£ô[39m tests/components/GameEngine.test.tsx[2m > [22mGameEngine[2m > [22mtriggers heartbeat on low HP[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m4 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (5)[39m
+[2m   Start at [22m 01:13:10
+[2m   Duration [22m 1.36s[2m (transform 385ms, setup 214ms, import 479ms, tests 22ms, environment 511ms)[22m
+

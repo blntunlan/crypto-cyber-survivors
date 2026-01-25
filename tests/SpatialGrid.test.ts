@@ -32,6 +32,19 @@ function createTestEntity(
   return { id, x, y, active };
 }
 
+/**
+ * Helper to use forEachNearby instead of deprecated getNearby
+ */
+function getNearbyHelper<T extends { x: number; y: number; active: boolean }>(
+  grid: SpatialGrid<T>,
+  x: number,
+  y: number
+): T[] {
+  const result: T[] = [];
+  grid.forEachNearby(x, y, entity => result.push(entity));
+  return result;
+}
+
 describe('SpatialGrid', () => {
   let grid: SpatialGrid<TestEntity>;
 
@@ -49,7 +62,7 @@ describe('SpatialGrid', () => {
       const entity = createTestEntity('e1', 50, 50);
 
       defaultGrid.insert(entity);
-      const nearby = defaultGrid.getNearby(50, 50);
+      const nearby = getNearbyHelper(defaultGrid, 50, 50);
 
       expect(nearby).toContain(entity);
     });
@@ -59,13 +72,13 @@ describe('SpatialGrid', () => {
       const entity = createTestEntity('e1', 150, 150);
 
       customGrid.insert(entity);
-      const nearby = customGrid.getNearby(150, 150);
+      const nearby = getNearbyHelper(customGrid, 150, 150);
 
       expect(nearby).toContain(entity);
     });
 
     it('should start with empty grid', () => {
-      const nearby = grid.getNearby(0, 0);
+      const nearby = getNearbyHelper(grid, 0, 0);
       expect(nearby).toHaveLength(0);
     });
   });
@@ -85,8 +98,8 @@ describe('SpatialGrid', () => {
       grid.clear();
 
       // Assert
-      expect(grid.getNearby(50, 50)).toHaveLength(0);
-      expect(grid.getNearby(150, 150)).toHaveLength(0);
+      expect(getNearbyHelper(grid, 50, 50)).toHaveLength(0);
+      expect(getNearbyHelper(grid, 150, 150)).toHaveLength(0);
     });
 
     it('should allow new insertions after clear', () => {
@@ -97,7 +110,7 @@ describe('SpatialGrid', () => {
       const entity2 = createTestEntity('e2', 60, 60);
       grid.insert(entity2);
 
-      const nearby = grid.getNearby(60, 60);
+      const nearby = getNearbyHelper(grid, 60, 60);
       expect(nearby).toHaveLength(1);
       expect(nearby).toContain(entity2);
     });
@@ -118,7 +131,7 @@ describe('SpatialGrid', () => {
 
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toContain(entity);
       });
 
@@ -127,7 +140,7 @@ describe('SpatialGrid', () => {
 
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toHaveLength(0);
       });
 
@@ -140,7 +153,7 @@ describe('SpatialGrid', () => {
         grid.insert(entity2);
         grid.insert(entity3);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toHaveLength(3);
         expect(nearby).toContain(entity1);
         expect(nearby).toContain(entity2);
@@ -157,7 +170,7 @@ describe('SpatialGrid', () => {
         grid.insert(entity3);
 
         // Query near entity3, shouldn't find entity1 (too far)
-        const nearby = grid.getNearby(250, 250);
+        const nearby = getNearbyHelper(grid, 250, 250);
         expect(nearby).toContain(entity3);
         expect(nearby).not.toContain(entity1);
       });
@@ -168,7 +181,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('origin', 0, 0);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(0, 0);
+        const nearby = getNearbyHelper(grid, 0, 0);
         expect(nearby).toContain(entity);
       });
 
@@ -176,7 +189,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('e1', 99, 99);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toContain(entity);
       });
 
@@ -185,7 +198,7 @@ describe('SpatialGrid', () => {
         grid.insert(entity);
 
         // Entity in (1,1) should be found from (150,150) query
-        const nearby = grid.getNearby(150, 150);
+        const nearby = getNearbyHelper(grid, 150, 150);
         expect(nearby).toContain(entity);
       });
 
@@ -197,7 +210,7 @@ describe('SpatialGrid', () => {
         grid.insert(entity2);
 
         // Query from cell (0,0) should find both (adjacent cells)
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toContain(entity1);
         expect(nearby).toContain(entity2); // In adjacent cell
       });
@@ -208,7 +221,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('e1', -50, 50);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(-50, 50);
+        const nearby = getNearbyHelper(grid, -50, 50);
         expect(nearby).toContain(entity);
       });
 
@@ -216,7 +229,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('e1', 50, -50);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, -50);
+        const nearby = getNearbyHelper(grid, 50, -50);
         expect(nearby).toContain(entity);
       });
 
@@ -224,7 +237,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('e1', -150, -150);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(-150, -150);
+        const nearby = getNearbyHelper(grid, -150, -150);
         expect(nearby).toContain(entity);
       });
 
@@ -235,7 +248,7 @@ describe('SpatialGrid', () => {
         grid.insert(negEntity);
         grid.insert(posEntity);
 
-        const nearbyNeg = grid.getNearby(-50, -50);
+        const nearbyNeg = getNearbyHelper(grid, -50, -50);
         expect(nearbyNeg).toContain(negEntity);
         expect(nearbyNeg).not.toContain(posEntity);
       });
@@ -255,7 +268,7 @@ describe('SpatialGrid', () => {
 
       grid.insertAll(entities);
 
-      const nearby = grid.getNearby(20, 20);
+      const nearby = getNearbyHelper(grid, 20, 20);
       expect(nearby).toHaveLength(3);
     });
 
@@ -268,7 +281,7 @@ describe('SpatialGrid', () => {
 
       grid.insertAll(entities);
 
-      const nearby = grid.getNearby(20, 20);
+      const nearby = getNearbyHelper(grid, 20, 20);
       expect(nearby).toHaveLength(2);
       expect(nearby.find(e => e.id === 'inactive')).toBeUndefined();
     });
@@ -276,7 +289,7 @@ describe('SpatialGrid', () => {
     it('should handle empty array', () => {
       grid.insertAll([]);
 
-      const nearby = grid.getNearby(0, 0);
+      const nearby = getNearbyHelper(grid, 0, 0);
       expect(nearby).toHaveLength(0);
     });
 
@@ -290,7 +303,7 @@ describe('SpatialGrid', () => {
       grid.insertAll(entities);
 
       // Query from (0,0) should only find e1 and e2 (adjacent)
-      const nearbyOrigin = grid.getNearby(50, 50);
+      const nearbyOrigin = getNearbyHelper(grid, 50, 50);
       expect(nearbyOrigin).toContain(entities[0]);
       expect(nearbyOrigin).toContain(entities[1]); // Adjacent cell
       expect(nearbyOrigin).not.toContain(entities[2]); // Too far
@@ -306,7 +319,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('same', 50, 50);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(60, 60);
+        const nearby = getNearbyHelper(grid, 60, 60);
         expect(nearby).toContain(entity);
       });
 
@@ -314,7 +327,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('right', 150, 50); // Cell (1,0)
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50); // Query from (0,0)
+        const nearby = getNearbyHelper(grid, 50, 50); // Query from (0,0)
         expect(nearby).toContain(entity);
       });
 
@@ -322,7 +335,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('below', 50, 150); // Cell (0,1)
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toContain(entity);
       });
 
@@ -330,7 +343,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('diagonal', 150, 150); // Cell (1,1)
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toContain(entity);
       });
 
@@ -351,7 +364,7 @@ describe('SpatialGrid', () => {
         grid.insertAll(entities);
 
         // Query from center (1,1)
-        const nearby = grid.getNearby(150, 150);
+        const nearby = getNearbyHelper(grid, 150, 150);
         expect(nearby).toHaveLength(9);
         entities.forEach(e => {
           expect(nearby).toContain(e);
@@ -362,14 +375,14 @@ describe('SpatialGrid', () => {
         const farEntity = createTestEntity('far', 350, 350); // Cell (3,3)
         grid.insert(farEntity);
 
-        const nearby = grid.getNearby(50, 50); // Cell (0,0)
+        const nearby = getNearbyHelper(grid, 50, 50); // Cell (0,0)
         expect(nearby).not.toContain(farEntity);
       });
     });
 
     describe('empty results', () => {
       it('should return empty array when no entities', () => {
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toEqual([]);
       });
 
@@ -377,7 +390,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('far', 500, 500);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(0, 0);
+        const nearby = getNearbyHelper(grid, 0, 0);
         expect(nearby).toHaveLength(0);
       });
     });
@@ -387,7 +400,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('e1', 50, 50);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(0, 0);
+        const nearby = getNearbyHelper(grid, 0, 0);
         expect(nearby).toContain(entity);
       });
 
@@ -395,7 +408,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('e1', 50, 50);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(50, 50);
+        const nearby = getNearbyHelper(grid, 50, 50);
         expect(nearby).toContain(entity);
       });
 
@@ -403,7 +416,7 @@ describe('SpatialGrid', () => {
         const entity = createTestEntity('neg', -50, -50);
         grid.insert(entity);
 
-        const nearby = grid.getNearby(-50, -50);
+        const nearby = getNearbyHelper(grid, -50, -50);
         expect(nearby).toContain(entity);
       });
     });
@@ -417,7 +430,7 @@ describe('SpatialGrid', () => {
       const entity = createTestEntity('large', 10000, 10000);
       grid.insert(entity);
 
-      const nearby = grid.getNearby(10000, 10000);
+      const nearby = getNearbyHelper(grid, 10000, 10000);
       expect(nearby).toContain(entity);
     });
 
@@ -425,7 +438,7 @@ describe('SpatialGrid', () => {
       const entity = createTestEntity('float', 50.5, 75.25);
       grid.insert(entity);
 
-      const nearby = grid.getNearby(50.5, 75.25);
+      const nearby = getNearbyHelper(grid, 50.5, 75.25);
       expect(nearby).toContain(entity);
     });
 
@@ -438,7 +451,7 @@ describe('SpatialGrid', () => {
       zeroGrid.insert(entity1);
       zeroGrid.insert(entity2);
 
-      const nearby = zeroGrid.getNearby(0.5, 0.5);
+      const nearby = getNearbyHelper(zeroGrid, 0.5, 0.5);
       expect(nearby).toContain(entity1);
       expect(nearby).toContain(entity2);
     });
@@ -452,7 +465,7 @@ describe('SpatialGrid', () => {
       largeGrid.insert(entity2);
 
       // Both in same cell, so should be found
-      const nearby = largeGrid.getNearby(500, 500);
+      const nearby = getNearbyHelper(largeGrid, 500, 500);
       expect(nearby).toContain(entity1);
       expect(nearby).toContain(entity2);
     });
@@ -463,7 +476,7 @@ describe('SpatialGrid', () => {
 
       entity.x = 999; // Mutate after insertion
 
-      const nearby = grid.getNearby(50, 50);
+      const nearby = getNearbyHelper(grid, 50, 50);
       expect(nearby).toHaveLength(1);
       expect(nearby[0]!.x).toBe(999); // Should reflect mutation
     });
@@ -499,7 +512,7 @@ describe('SpatialGrid', () => {
 
       const start = performance.now();
       for (let i = 0; i < 100; i++) {
-        grid.getNearby(Math.random() * 5000, Math.random() * 5000);
+        getNearbyHelper(grid, Math.random() * 5000, Math.random() * 5000);
       }
       const queryTime = performance.now() - start;
 

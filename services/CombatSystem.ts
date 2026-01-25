@@ -8,6 +8,7 @@ import { ParticleConfigService } from './ParticleConfigService';
 import { CheatManager } from './CheatManager';
 import { createViewportBounds, isCircleVisible } from './renderers/CullingUtils';
 import { BuffManager } from './patterns/decorators/BuffManager';
+import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from './interfaces/ICombatSystem';
 import { type IPlayerStats } from './patterns/decorators/IPlayerStats';
 
@@ -30,6 +31,7 @@ interface NearestEnemy {
  * Uses a predictive model for aiming at moving targets to improve projectile hit rate.
  */
 export class CombatSystem implements ICombatSystem {
+  private static instance: CombatSystem | null = null;
   private audio: IAudioService;
 
   /**
@@ -37,8 +39,15 @@ export class CombatSystem implements ICombatSystem {
    *
    * @param audioService - Service responsible for playing combat sounds.
    */
-  constructor(audioService: IAudioService = defaultAudio) {
+  private constructor(audioService: IAudioService = defaultAudio) {
     this.audio = audioService;
+  }
+
+  /**
+   * Get the singleton instance of CombatSystem
+   */
+  public static getInstance(): CombatSystem {
+    return (CombatSystem.instance ??= new CombatSystem());
   }
 
   /**
@@ -111,23 +120,19 @@ export class CombatSystem implements ICombatSystem {
     let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
       null;
 
-    // Direct iteration over all active enemies.
-    const enemies = pool.activeEnemies;
-    for (let i = 0; i < enemies.length; i++) {
-      const enemy = enemies[i]!;
-
+    // Architectural Optimization: Use SpatialGrid for nearby enemy search
+    // We check a 3x3 grid around the player (approx 450x450 area)
+    enemyGrid.forEachNearby(player.x, player.y, enemy => {
       // Skip dead or dying enemies
       if (enemy.isDying || !enemy.active) {
-        continue;
+        return;
       }
 
       // Optimized viewport check - only calculate if bounds exist
-      // This ensures we only target "rendered" or visible enemies
       if (viewportBounds) {
         const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-        // Strict visibility check: ensuring the enemy is actually within the play area
         if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
-          continue;
+          return;
         }
       }
 
@@ -136,22 +141,49 @@ export class CombatSystem implements ICombatSystem {
       const dy = enemy.y - player.y;
       const distSq = dx * dx + dy * dy;
 
-      // Update best candidate if this enemy is closer than the previous best
+      // Update best candidate
       if (!bestCandidate || distSq < bestCandidate.distSq) {
         bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
       }
+    });
+
+    // Fallback: If no enemies found in immediate grid, we could optionally scan all active enemies,
+    // but usually SpatialGrid is sufficient for "nearest" within range.
+    // However, for survivors-like, some weapons target globally.
+    // If bestCandidate is still null, we do a full scan as fallback.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!bestCandidate) {
+      const enemies = pool.activeEnemies;
+      for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i]!;
+        if (enemy.isDying || !enemy.active) continue;
+
+        // Optimized viewport check in fallback scan
+        if (viewportBounds) {
+          const enemyRadius =
+            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
+            continue;
+          }
+        }
+
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const distSq = dx * dx + dy * dy;
+        if (!bestCandidate || distSq < bestCandidate.distSq) {
+          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+        }
+      }
     }
 
-    if (bestCandidate) {
-      return {
-        x: bestCandidate.x,
-        y: bestCandidate.y,
-        dist: Math.sqrt(bestCandidate.distSq), // Only one square root per fire cycle
-        speed: bestCandidate.speed,
-      };
-    }
-
-    return null;
+    return bestCandidate
+      ? {
+          x: bestCandidate.x,
+          y: bestCandidate.y,
+          dist: Math.sqrt(bestCandidate.distSq),
+          speed: bestCandidate.speed,
+        }
+      : null;
   }
 
   /**

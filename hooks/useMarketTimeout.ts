@@ -40,11 +40,13 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
       }
 
       // Still report error for analytics
-      void import('../services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
-        void ErrorReporter.report(
-          new Error('Market data timeout - live feed disconnected'),
-          'network', // Use valid category 'network'
-          {
+      void import('../services/analytics/ErrorTracker').then(({ ErrorTracker }) => {
+        void ErrorTracker.getInstance().captureError({
+          errorType: 'MarketTimeout',
+          errorMessage: 'Market data timeout - live feed disconnected',
+          category: 'network',
+          severity: 'medium',
+          context: {
             pair: data.pair,
             disconnectedDuration: data.disconnectedDuration,
             lastPriceTime: data.lastPriceTime,
@@ -52,8 +54,8 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
             survivalTime: DifficultyManager.getTotalElapsedSeconds(),
             wasInGame:
               currentState === GameStatus.PLAYING || currentState === GameStatus.PAUSED,
-          }
-        );
+          },
+        });
       });
     });
 

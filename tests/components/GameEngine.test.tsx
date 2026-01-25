@@ -7,14 +7,16 @@ import { EventBus } from '../../services/EventBus';
 import { Logger } from '../../services/Logger';
 
 // Mock Services
-vi.mock('../../services/PoolManager', () => ({
-  PoolManager: class {
+vi.mock('../../services/PoolManager', () => {
+  class MockPoolManager {
     activeEnemies = [];
     cleanup = vi.fn();
     preWarm = vi.fn();
     initialize = vi.fn();
-  },
-}));
+    static getInstance = vi.fn(() => new MockPoolManager());
+  }
+  return { PoolManager: MockPoolManager };
+});
 
 vi.mock('../../services/GameRenderer', () => ({
   GameRenderer: class {
@@ -23,18 +25,22 @@ vi.mock('../../services/GameRenderer', () => ({
   },
 }));
 
-vi.mock('../../services/CombatSystem', () => ({
-  CombatSystem: class {
+vi.mock('../../services/CombatSystem', () => {
+  class MockCombatSystem {
     processAutoFire = vi.fn();
-  },
-}));
+    static getInstance = vi.fn(() => new MockCombatSystem());
+  }
+  return { CombatSystem: MockCombatSystem };
+});
 
-vi.mock('../../services/PhysicsSystem', () => ({
-  PhysicsSystem: class {
+vi.mock('../../services/PhysicsSystem', () => {
+  class MockPhysicsSystem {
     updateEntities = vi.fn();
     handleCollisions = vi.fn();
-  },
-}));
+    static getInstance = vi.fn(() => new MockPhysicsSystem());
+  }
+  return { PhysicsSystem: MockPhysicsSystem };
+});
 
 vi.mock('../../services/SpawnSystem', () => ({
   SpawnSystem: class {

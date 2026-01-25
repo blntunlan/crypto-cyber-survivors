@@ -136,6 +136,7 @@ class ObjectPool<T extends { active: boolean; poolIndex?: number }> {
  * Implements IPoolManager to provide a type-safe interface for game systems.
  */
 export class PoolManager implements IPoolManager {
+  private static instance: PoolManager | null = null;
   private enemies: ObjectPool<GameEnemy>;
   private bullets: ObjectPool<Bullet>;
   private gems: ObjectPool<Gem>;
@@ -144,7 +145,7 @@ export class PoolManager implements IPoolManager {
   private speedLines: ObjectPool<SpeedLine>;
   private interactables: ObjectPool<Interactable>;
 
-  constructor() {
+  private constructor() {
     this.enemies = new ObjectPool<GameEnemy>(POOL.MAX_ACTIVE.ENEMIES);
     this.bullets = new ObjectPool<Bullet>(POOL.MAX_ACTIVE.BULLETS);
     this.gems = new ObjectPool<Gem>(POOL.MAX_ACTIVE.GEMS);
@@ -153,6 +154,13 @@ export class PoolManager implements IPoolManager {
     this.speedLines = new ObjectPool<SpeedLine>(POOL.MAX_ACTIVE.SPEED_LINES);
     // Use a conservative limit for interactables as they are sparse
     this.interactables = new ObjectPool<Interactable>(50);
+  }
+
+  /**
+   * Get the singleton instance of PoolManager
+   */
+  public static getInstance(): PoolManager {
+    return (PoolManager.instance ??= new PoolManager());
   }
 
   // Active list accessors for high-performance iterations in physics and rendering systems

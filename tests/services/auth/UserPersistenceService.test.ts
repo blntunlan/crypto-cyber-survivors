@@ -22,7 +22,7 @@ describe('UserPersistenceService', () => {
 
   describe('Initialization Logic', () => {
     const mockUser = {
-      playerId: 'test-id',
+      playerId: '550e8400-e29b-41d4-a716-446655440000',
       nickname: 'TestUser',
       hasNickname: true,
       isAnonymous: false,
@@ -36,13 +36,15 @@ describe('UserPersistenceService', () => {
 
       const user = await UserPersistenceService.initialize();
       expect(user?.nickname).toBe('TestUser');
-      expect(UserPersistenceService.getStoredUser()?.playerId).toBe('test-id');
+      expect(UserPersistenceService.getStoredUser()?.playerId).toBe(
+        '550e8400-e29b-41d4-a716-446655440000'
+      );
     });
 
     it('should fallback to Cookie if localStorage is empty', async () => {
       // Create Base64 cookie content like the service does
       const minimalUser = {
-        playerId: 'cookie-id',
+        playerId: '550e8400-e29b-41d4-a716-446655440009',
         nickname: 'CookieUser',
         createdAt: 1000,
         lastSeenAt: 2000,
@@ -53,7 +55,9 @@ describe('UserPersistenceService', () => {
       const user = await UserPersistenceService.initialize();
       expect(user?.nickname).toBe('CookieUser');
       // Should have synced back to localStorage
-      expect(localStorage.getItem(STORAGE_KEY)).toContain('cookie-id');
+      expect(localStorage.getItem(STORAGE_KEY)).toContain(
+        '550e8400-e29b-41d4-a716-446655440009'
+      );
     });
 
     it('should retry localStorage after 150ms (Safari fix)', async () => {
@@ -75,7 +79,7 @@ describe('UserPersistenceService', () => {
 
   describe('Data Management', () => {
     const testUser = {
-      playerId: 'save-test',
+      playerId: '550e8400-e29b-41d4-a716-446655440010',
       nickname: 'Saver',
       hasNickname: true,
       isAnonymous: false,
@@ -87,7 +91,9 @@ describe('UserPersistenceService', () => {
     it('should save user to both storage and cookie', () => {
       UserPersistenceService.saveUser(testUser);
 
-      expect(localStorage.getItem(STORAGE_KEY)).toContain('save-test');
+      expect(localStorage.getItem(STORAGE_KEY)).toContain(
+        '550e8400-e29b-41d4-a716-446655440010'
+      );
       expect(document.cookie).toContain(COOKIE_NAME);
       expect(UserPersistenceService.getStoredUser()?.nickname).toBe('Saver');
     });
@@ -129,7 +135,10 @@ describe('UserPersistenceService', () => {
         .mockImplementation(() => {
           throw new Error('Quota exceeded');
         });
-      const user = { playerId: 'err', nickname: 'Err' } as any;
+      const user = {
+        playerId: '550e8400-e29b-41d4-a716-446655440011',
+        nickname: 'Err',
+      } as any;
       UserPersistenceService.saveUser(user);
       expect(setItemSpy).toHaveBeenCalled();
       setItemSpy.mockRestore();

@@ -61,6 +61,8 @@ export class MarketService {
   private coinbaseSocket: WebSocket | null = null;
   private onDataCallback: (update: MarketUpdate) => void;
   private wasClosedIntentionally: boolean = false;
+  private binanceWasClosedIntentionally: boolean = false;
+  private coinbaseWasClosedIntentionally: boolean = false;
   private wsFactory: WebSocketFactory;
 
   // Connection state tracking
@@ -239,12 +241,20 @@ export class MarketService {
     try {
       this.updateState('binance', 'connecting');
       const wsUrl = getBinanceWsUrl(this.pair);
+      this.binanceWasClosedIntentionally = false;
       this.binanceSocket = this.wsFactory(wsUrl);
 
       this.binanceSocket.onopen = () => {
         Logger.info('[Market] Binance connected');
         this.updateState('binance', 'connected');
         this.binanceReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
+        // If Binance connects, we can safely disconnect the fallback if it was active
+        if (this.coinbaseState === 'connected' || this.coinbaseState === 'connecting') {
+          Logger.info(
+            '[Market] Primary feed (Binance) recovered, disconnecting fallback (Coinbase)'
+          );
+          this.disconnectCoinbase();
+        }
       };
 
       this.binanceSocket.onmessage = event => {
@@ -277,17 +287,28 @@ export class MarketService {
       };
 
       this.binanceSocket.onclose = () => {
-        if (!this.wasClosedIntentionally) {
+        if (!this.wasClosedIntentionally && !this.binanceWasClosedIntentionally) {
           this.updateState('binance', 'reconnecting');
           this.scheduleReconnect('binance');
           this.activateFallback();
         } else {
           this.updateState('binance', 'disconnected');
+          // If we close intentionally (e.g. destroy or hide), also close fallback
+          if (this.wasClosedIntentionally) {
+            this.disconnectCoinbase();
+          }
         }
       };
 
       this.binanceSocket.onerror = error => {
         Logger.warn('[Market] Binance WebSocket error', error);
+        // Explicitly close on error to ensure onclose/reconnect triggers
+        if (
+          this.binanceSocket?.readyState === WebSocket.OPEN ||
+          this.binanceSocket?.readyState === WebSocket.CONNECTING
+        ) {
+          this.binanceSocket.close();
+        }
         this.activateFallback();
       };
     } catch (e) {
@@ -322,6 +343,7 @@ export class MarketService {
 
     try {
       this.updateState('coinbase', 'connecting');
+      this.coinbaseWasClosedIntentionally = false;
       this.coinbaseSocket = this.wsFactory(COINBASE_WS_URL);
 
       this.coinbaseSocket.onopen = () => {
@@ -370,7 +392,7 @@ export class MarketService {
       };
 
       this.coinbaseSocket.onclose = () => {
-        if (!this.wasClosedIntentionally) {
+        if (!this.wasClosedIntentionally && !this.coinbaseWasClosedIntentionally) {
           this.updateState('coinbase', 'reconnecting');
           this.scheduleReconnect('coinbase');
         } else {
@@ -432,6 +454,26 @@ export class MarketService {
   }
 
   /**
+   * Explicitly closes Coinbase fallback connection.
+   *
+   * @private
+   */
+  private disconnectCoinbase(): void {
+    this.coinbaseWasClosedIntentionally = true;
+    if (this.coinbaseReconnectTimer) {
+      clearTimeout(this.coinbaseReconnectTimer);
+      this.coinbaseReconnectTimer = null;
+    }
+
+    if (this.coinbaseSocket) {
+      this.coinbaseSocket.close();
+      this.coinbaseSocket = null;
+    }
+
+    this.updateState('coinbase', 'disconnected');
+  }
+
+  /**
    * Explicitly closes all open WebSocket connections and cancels pending retries.
    */
   public disconnect(): void {
@@ -441,23 +483,15 @@ export class MarketService {
       clearTimeout(this.binanceReconnectTimer);
       this.binanceReconnectTimer = null;
     }
-    if (this.coinbaseReconnectTimer) {
-      clearTimeout(this.coinbaseReconnectTimer);
-      this.coinbaseReconnectTimer = null;
-    }
 
     if (this.binanceSocket) {
       this.binanceSocket.close();
       this.binanceSocket = null;
     }
-    if (this.coinbaseSocket) {
-      this.coinbaseSocket.close();
-      this.coinbaseSocket = null;
-    }
+
+    this.disconnectCoinbase();
 
     this.updateState('binance', 'disconnected');
-    this.updateState('coinbase', 'disconnected');
-
     Logger.info('[Market] Disconnected from all feeds');
   }
 

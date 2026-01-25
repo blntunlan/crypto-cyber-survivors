@@ -79,7 +79,8 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   }
 
   /**
-   * Get all entities in the same cell and neighboring cells
+   * Get all entities in the same cell and neighboring cells.
+   * @deprecated Use forEachNearby() for zero-allocation iteration in hot loops.
    */
   public getNearby(x: number, y: number): T[] {
     const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;

@@ -46,9 +46,6 @@ export function useAppInitialization(): UseAppInitializationResult {
       // 1. Initialize core analytics services
       void import('../services/analytics/ErrorTracker');
       void import('../services/analytics/PlayerTracker');
-      void import('../services/analytics/ErrorReporter').then(({ ErrorReporter }) => {
-        ErrorReporter.init();
-      });
 
       // 2. Sync device profile
       void import('../services/analytics/DeviceProfiler').then(({ DeviceProfiler }) => {

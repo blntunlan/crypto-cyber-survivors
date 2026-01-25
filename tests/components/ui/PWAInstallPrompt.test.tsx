@@ -27,7 +27,7 @@ vi.mock('../../../contexts/LanguageContext', () => ({
         'pwa.notNow': 'Not now',
         'common.close': 'Close',
       };
-      return map[key] || key;
+      return map[key] ?? key;
     },
     language: 'en',
   }),

@@ -77,7 +77,7 @@ describe('UserSessionService', () => {
 
     it('should return stored user from localStorage', async () => {
       const mockUser: StoredUser = {
-        playerId: 'test-id',
+        playerId: '550e8400-e29b-41d4-a716-446655440002',
         nickname: 'Tester',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),
@@ -92,8 +92,10 @@ describe('UserSessionService', () => {
 
   describe('getPlayerId', () => {
     it('should return stored player ID if user exists', () => {
-      UserSessionService.saveUser('stored-id', 'Tester');
-      expect(UserSessionService.getPlayerId()).toBe('stored-id');
+      UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440003', 'Tester');
+      expect(UserSessionService.getPlayerId()).toBe(
+        '550e8400-e29b-41d4-a716-446655440003'
+      );
     });
 
     it('should return anon-ID if no user exists', () => {
@@ -104,10 +106,10 @@ describe('UserSessionService', () => {
 
   describe('saveUser', () => {
     it('should save user to localStorage and cache', () => {
-      UserSessionService.saveUser('save-id', 'Saver');
+      UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440004', 'Saver');
 
       const stored = JSON.parse(localStorage.getItem('crypto_survivors_user')!);
-      expect(stored.playerId).toBe('save-id');
+      expect(stored.playerId).toBe('550e8400-e29b-41d4-a716-446655440004');
       expect(stored.nickname).toBe('Saver');
       expect(UserSessionService.getNickname()).toBe('Saver');
     });
@@ -119,7 +121,7 @@ describe('UserSessionService', () => {
       mockSupabase.single.mockResolvedValueOnce({ data: null, error: null });
       // 2. insert returns player
       mockSupabase.single.mockResolvedValueOnce({
-        data: { id: 'new-id', display_name: 'NewPlayer' },
+        data: { id: '550e8400-e29b-41d4-a716-446655440005', display_name: 'NewPlayer' },
         error: null,
       });
 
@@ -132,17 +134,22 @@ describe('UserSessionService', () => {
     });
 
     it('should login as existing player if nickname exists', async () => {
-      const existingPlayer = { id: 'existing-id', nickname: 'oldie' };
+      const existingPlayer = {
+        id: '550e8400-e29b-41d4-a716-446655440006',
+        nickname: 'oldie',
+      };
       mockSupabase.single.mockResolvedValueOnce({ data: existingPlayer, error: null });
       mockSupabase.rpc.mockResolvedValue({ error: null });
 
       const result = await UserSessionService.registerNickname('Oldie');
 
       expect(mockSupabase.rpc).toHaveBeenCalledWith('update_player_last_seen', {
-        p_player_id: 'existing-id',
+        p_player_id: '550e8400-e29b-41d4-a716-446655440006',
       });
       expect(result.success).toBe(true);
-      expect(UserSessionService.getPlayerId()).toBe('existing-id');
+      expect(UserSessionService.getPlayerId()).toBe(
+        '550e8400-e29b-41d4-a716-446655440006'
+      );
     });
 
     it('should handle conflict (23505 error code)', async () => {
@@ -160,7 +167,7 @@ describe('UserSessionService', () => {
 
   describe('updateLastSeen', () => {
     it('should update timestamp in localStorage and Supabase', async () => {
-      UserSessionService.saveUser('sync-id', 'Syncer');
+      UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440007', 'Syncer');
       mockSupabase.rpc.mockResolvedValue({ error: null });
       const oldTime = UserSessionService.getStoredUser()?.lastSeenAt ?? 0;
 
@@ -170,14 +177,14 @@ describe('UserSessionService', () => {
       const newUser = UserSessionService.getStoredUser();
       expect(newUser?.lastSeenAt).toBeGreaterThan(oldTime);
       expect(mockSupabase.rpc).toHaveBeenCalledWith('update_player_last_seen', {
-        p_player_id: 'sync-id',
+        p_player_id: '550e8400-e29b-41d4-a716-446655440007',
       });
     });
   });
 
   describe('clearUser', () => {
     it('should clear all session data', () => {
-      UserSessionService.saveUser('clear-id', 'Clearer');
+      UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440008', 'Clearer');
       UserSessionService.clearUser();
 
       expect(UserSessionService.getStoredUser()).toBeNull();
