@@ -10,6 +10,8 @@ import { Logger } from '../../services/Logger';
 vi.mock('../../services/PoolManager', () => {
   class MockPoolManager {
     activeEnemies = [];
+    activeBullets = [];
+    activeParticles = [];
     cleanup = vi.fn();
     preWarm = vi.fn();
     initialize = vi.fn();
@@ -103,6 +105,7 @@ vi.mock('../../services/ComboSystem', () => ({
 vi.mock('../../services/TimeService', () => ({
   TimeService: {
     update: vi.fn(() => 16.67),
+    getGameTimeSeconds: vi.fn(() => 0),
   },
 }));
 vi.mock('../../services/FPSMonitor', () => ({
@@ -110,6 +113,10 @@ vi.mock('../../services/FPSMonitor', () => ({
     tick: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
+    recordPhysics: vi.fn(),
+    recordRender: vi.fn(),
+    recordUpdate: vi.fn(),
+    updateInternalCounts: vi.fn(),
   },
 }));
 vi.mock('../../services/DeviceBenchmarkService', () => ({
@@ -137,6 +144,13 @@ vi.mock('../../services/MarketStateService', () => ({
   MarketStateService: {
     init: vi.fn().mockResolvedValue({}),
     cleanup: vi.fn(),
+    fetchMarketHistory: vi.fn().mockResolvedValue([]),
+  },
+}));
+vi.mock('../../services/indicators/MarketIndicatorService', () => ({
+  marketIndicatorService: {
+    warmup: vi.fn().mockResolvedValue({}),
+    update: vi.fn(),
   },
 }));
 vi.mock('../../services/EngineRegistry', () => ({
@@ -274,11 +288,11 @@ describe('GameEngine', () => {
     expect(screen.getByTestId('mobile-controls')).toBeInTheDocument();
   });
 
-  it('initializes and cleans up market state', () => {
+  it('initializes and cleans up market state', async () => {
     const { unmount } = render(<GameEngine {...mockProps} />);
 
-    // Check initialization
-    expect(MarketStateService.init).toHaveBeenCalled();
+    // Check initialization (Wait for async flow)
+    await vi.waitFor(() => expect(MarketStateService.init).toHaveBeenCalled());
 
     // Check cleanup
     unmount();

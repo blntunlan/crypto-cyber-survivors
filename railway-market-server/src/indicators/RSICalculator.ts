@@ -1,8 +1,10 @@
 /**
  * RSI Calculator with Hysteresis (Server-Side)
  *
- * Period: 7 candles
+ * Deterministic implementation synced with client.
+ * Period: 14 candles
  * Thresholds: 30/70 with 5-point hysteresis
+ * Sliding Window: 300 elements
  */
 export class RSICalculator {
   private prices: number[] = [];
@@ -13,16 +15,24 @@ export class RSICalculator {
   private prevAvgGain: number | null = null;
   private prevAvgLoss: number | null = null;
 
+  // Constants synced with client SYNC_CONFIG
+  private readonly MAX_HISTORY_SIZE = 300;
+  private readonly PRECISION = 6;
+
   constructor(period: number = 14) {
     this.period = period;
   }
 
   update(price: number): { rsi: number; state: string } {
+    if (!Number.isFinite(price) || price <= 0) {
+      return { rsi: this.currentRSI, state: this.currentState };
+    }
+
     // Add price to history
     this.prices.push(price);
 
-    // Limit history size but keep enough for initial calc (period + 1)
-    if (this.prevAvgGain !== null && this.prices.length > this.period + 10) {
+    // Sliding Window
+    if (this.prices.length > this.MAX_HISTORY_SIZE) {
       this.prices.shift();
     }
 
@@ -31,66 +41,54 @@ export class RSICalculator {
       return { rsi: this.currentRSI, state: this.currentState };
     }
 
-    // Calculate change from last update
-    // Note: update is called after pushing new price but prices array has the new price at the end
-    // If we just pushed the price, prices.length-1 is current, prices.length-2 is prev.
-    // However, in the very first run (length == period+1), we might need to calc SMA first.
+    const currentPrice = this.prices[this.prices.length - 1]!;
+    const previousPrice = this.prices[this.prices.length - 2]!;
+    const change = currentPrice - previousPrice;
 
-    // Check if initialized (prevAvg set)
+    const currentGain = change > 0 ? change : 0;
+    const currentLoss = change < 0 ? -change : 0;
+
+    // Initialize with SMA if not set
     if (this.prevAvgGain === null || this.prevAvgLoss === null) {
-      // First time: Calculate SMA
       let gains = 0;
       let losses = 0;
 
-      // Use the last 'period' changes
-      // History has period + 1 prices -> period changes.
-      // Iterate from index 1 to the end
-      // But wait, if prices has accumulated more history (which shouldn't happen much given logic), take last period.
-
-      const startIndex = this.prices.length - this.period;
-
-      for (let i = startIndex; i < this.prices.length; i++) {
-        const change = this.prices[i]! - this.prices[i - 1]!;
-        if (change > 0) gains += change;
-        else losses -= change; // change is negative, so subtract it to add positive loss
+      // Calculate initial SMA from first 'period' changes
+      for (let i = 1; i < this.prices.length; i++) {
+        const c = this.prices[i]! - this.prices[i - 1]!;
+        if (c > 0) gains += c;
+        else losses -= c;
       }
 
       this.prevAvgGain = gains / this.period;
       this.prevAvgLoss = losses / this.period;
     } else {
       // Wilder's Smoothing
-      // Get latest change
-      const currentPrice = this.prices[this.prices.length - 1]!;
-      const previousPrice = this.prices[this.prices.length - 2]!;
-      const change = currentPrice - previousPrice;
-
-      const currentGain = change > 0 ? change : 0;
-      const currentLoss = change < 0 ? -change : 0;
-
       this.prevAvgGain =
         (this.prevAvgGain * (this.period - 1) + currentGain) / this.period;
       this.prevAvgLoss =
         (this.prevAvgLoss * (this.period - 1) + currentLoss) / this.period;
     }
 
-    // Prevent extreme decay: if both averages are near-zero, reset to fresh SMA
-    // This prevents RSI from getting stuck at 0 or 100 due to floating-point decay
-    const MIN_AVG_THRESHOLD = 1e-12; // High precision
+    // Precision handling and extreme decay reset
+    const MIN_AVG_THRESHOLD = 1e-12;
     if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      // Both have decayed too much - reset to recalculate fresh SMA next update
       this.prevAvgGain = null;
       this.prevAvgLoss = null;
-      return { rsi: 50, state: 'NEUTRAL' };
-    }
-
-    // Calculate RSI
-    if (this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      this.currentRSI = this.prevAvgGain < MIN_AVG_THRESHOLD ? 50 : 100;
-    } else if (this.prevAvgGain < MIN_AVG_THRESHOLD) {
-      this.currentRSI = 0;
+      this.currentRSI = 50;
     } else {
-      const rs = this.prevAvgGain / this.prevAvgLoss;
-      this.currentRSI = 100 - 100 / (1 + rs);
+      // Calculate RSI
+      let rsi: number;
+      if (this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+        rsi = this.prevAvgGain < MIN_AVG_THRESHOLD ? 50 : 100;
+      } else if (this.prevAvgGain < MIN_AVG_THRESHOLD) {
+        rsi = 0;
+      } else {
+        const rs = this.prevAvgGain / this.prevAvgLoss;
+        rsi = 100 - 100 / (1 + rs);
+      }
+
+      this.currentRSI = Number(Math.max(0, Math.min(100, rsi)).toFixed(this.PRECISION));
     }
 
     // Update state with hysteresis

@@ -10,6 +10,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { nanoid } from 'nanoid';
 import {
   type MobileControlSettings,
   DEFAULT_MOBILE_SETTINGS,
@@ -198,10 +199,12 @@ const DEFAULT_PROGRESS: PlayerProgress = {
   achievementsUnlocked: [],
 };
 
-// No nanoid needed
+// ============================================
+// Session Helper
+// ============================================
 
 const createNewSession = (): SessionInfo => ({
-  sessionId: crypto.randomUUID(),
+  sessionId: nanoid(),
   startTime: Date.now(),
   gamesThisSession: 0,
 });

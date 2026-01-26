@@ -1,7 +1,7 @@
 /**
  * RSI Calculator - Relative Strength Index
  *
- * Calculates RSI(7) for faster response to market changes.
+ * Calculates RSI(14) by default for standard market signals.
  * Includes hysteresis to prevent state flickering at thresholds.
  *
  * RSI States:
@@ -21,6 +21,7 @@ import {
   type RSIConfig,
   DEFAULT_RSI_CONFIG,
   getRSIStateWithHysteresis,
+  SYNC_CONFIG,
 } from '../../types/indicators';
 import { EventBus } from '../EventBus';
 
@@ -57,16 +58,16 @@ export class RSICalculator {
     // Add to history
     this.priceHistory.push(price);
 
-    // Calculate RSI if we have enough data
+    // Limit history size to fixed sliding window (SYNC_CONFIG.MAX_HISTORY_SIZE)
+    // This ensures consistency between client and server
+    if (this.priceHistory.length > SYNC_CONFIG.MAX_HISTORY_SIZE) {
+      this.priceHistory.shift();
+    }
+
+    // Calculate RSI if we have enough data (at least period + 1)
     if (this.priceHistory.length > this.config.period) {
       this.currentRSI = this.calculateRSI();
       this.updateState();
-    }
-
-    // Limit history size to prevent memory bloat
-    const maxHistorySize = this.config.period * 10;
-    if (this.priceHistory.length > maxHistorySize) {
-      this.priceHistory = this.priceHistory.slice(-maxHistorySize);
     }
 
     return this.currentRSI;
@@ -141,8 +142,6 @@ export class RSICalculator {
       return 50; // Neutral
     }
 
-    // Calculate change from last update
-    // Note: calculateRSI is called after pushing new price
     const currentPrice = this.priceHistory[historyLength - 1];
     const prevPrice = this.priceHistory[historyLength - 2];
 
@@ -151,30 +150,22 @@ export class RSICalculator {
     }
 
     const change = currentPrice - prevPrice;
-
-    let currentGain = 0;
-    let currentLoss = 0;
-
-    if (change > 0) {
-      currentGain = change;
-    } else {
-      currentLoss = Math.abs(change);
-    }
+    const currentGain = change > 0 ? change : 0;
+    const currentLoss = change < 0 ? Math.abs(change) : 0;
 
     // Initialize with SMA if not set
     if (this.prevAvgGain === null || this.prevAvgLoss === null) {
       let sumGain = 0;
       let sumLoss = 0;
 
-      // Calculate initial SMA from the first 'period' changes
-      // We look back 'period' steps
-      const startIndex = historyLength - period;
-
-      for (let i = startIndex; i < historyLength; i++) {
-        const pCurr = this.priceHistory[i];
-        const pPrev = this.priceHistory[i - 1];
-        if (pCurr !== undefined && pPrev !== undefined) {
-          const c = pCurr - pPrev;
+      // Start calculating change from index 1 up to historyLength
+      // We use the first 'period' changes to seed the smoothing
+      // If we have period+1 prices, we have 'period' number of changes.
+      for (let i = 1; i < historyLength; i++) {
+        const p1 = this.priceHistory[i];
+        const p0 = this.priceHistory[i - 1];
+        if (p1 !== undefined && p0 !== undefined) {
+          const c = p1 - p0;
           if (c > 0) sumGain += c;
           else sumLoss += Math.abs(c);
         }
@@ -188,34 +179,27 @@ export class RSICalculator {
       this.prevAvgLoss = (this.prevAvgLoss * (period - 1) + currentLoss) / period;
     }
 
-    // Prevent extreme decay: if both averages are near-zero, reset to fresh SMA
-    // This prevents RSI from getting stuck at 0 or 100 due to floating-point decay
-    const MIN_AVG_THRESHOLD = 1e-12; // Much smaller threshold for higher precision
+    // Precision handling
+    const MIN_AVG_THRESHOLD = 1e-12;
     if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      // Both have decayed too much - reset to recalculate fresh SMA next update
       this.prevAvgGain = null;
       this.prevAvgLoss = null;
       return 50;
     }
 
-    // Edge cases - use threshold instead of exact 0 check
-    if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      return 50;
-    }
-    if (this.prevAvgLoss < MIN_AVG_THRESHOLD) return 100;
-    if (this.prevAvgGain < MIN_AVG_THRESHOLD) return 0;
-
-    // Calculate RS and RSI
-    const rs = this.prevAvgGain / this.prevAvgLoss;
-    const rsi = 100 - 100 / (1 + rs);
-
-    // Validate result
-    if (!Number.isFinite(rsi)) {
-      return 50;
+    let rsi: number;
+    if (this.prevAvgLoss < MIN_AVG_THRESHOLD) {
+      rsi = this.prevAvgGain < MIN_AVG_THRESHOLD ? 50 : 100;
+    } else if (this.prevAvgGain < MIN_AVG_THRESHOLD) {
+      rsi = 0;
+    } else {
+      const rs = this.prevAvgGain / this.prevAvgLoss;
+      rsi = 100 - 100 / (1 + rs);
     }
 
-    // Clamp to valid range
-    return Math.max(0, Math.min(100, rsi));
+    // Clamp and fix precision for determinism
+    const clampedRsi = Math.max(0, Math.min(100, rsi));
+    return Number(clampedRsi.toFixed(SYNC_CONFIG.PRECISION));
   }
 
   /**

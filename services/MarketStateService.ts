@@ -143,6 +143,71 @@ class MarketStateServiceClass {
     return this.states.get(pair);
   }
 
+  /**
+   * Fetch market history for a specific pair with Gap-Filling
+   */
+  async fetchMarketHistory(
+    pair: string,
+    limit: number = 300
+  ): Promise<Array<{ price: number; volume: number; timestamp: number }>> {
+    if (!supabase) return [];
+
+    try {
+      // Sort in descending order to get latest 'limit' logs, then reverse to get chronological
+      const { data, error } = await supabase
+        .from('price_logs')
+        .select('price, volume, timestamp')
+        .eq('pair', pair)
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      if (data.length === 0) return [];
+
+      const rawLogs = data.reverse();
+      const filledLogs: Array<{ price: number; volume: number; timestamp: number }> =
+        [];
+
+      let lastLog: { price: number; volume: number; timestamp: number } | null = null;
+
+      for (const log of rawLogs) {
+        const currentPrice = Number(log.price);
+        const currentVolume = Number(log.volume);
+        const currentTs = new Date(log.timestamp).getTime();
+
+        if (lastLog) {
+          const timeDiff = currentTs - lastLog.timestamp;
+
+          // Gap-Filling: If gap > 1.5s, fill with last known data at 1s intervals
+          if (timeDiff > 1500) {
+            const gapsToFill = Math.floor(timeDiff / 1000) - 1;
+            for (let i = 1; i <= gapsToFill; i++) {
+              filledLogs.push({
+                price: lastLog.price,
+                volume: lastLog.volume,
+                timestamp: lastLog.timestamp + i * 1000,
+              });
+            }
+          }
+        }
+
+        const currentLog = {
+          price: currentPrice,
+          volume: currentVolume,
+          timestamp: currentTs,
+        };
+        filledLogs.push(currentLog);
+        lastLog = currentLog;
+      }
+
+      // Ensure we have at most 'limit' logs in the exact chronological window
+      return filledLogs.slice(-limit);
+    } catch (error) {
+      Logger.error(`[MarketState] History fetch failed for ${pair}:`, error);
+      return [];
+    }
+  }
+
   getAllStates(): MarketState[] {
     return Array.from(this.states.values());
   }

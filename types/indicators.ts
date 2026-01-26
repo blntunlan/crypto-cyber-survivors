@@ -38,14 +38,26 @@ export interface RSIConfig {
 
 /**
  * Default RSI configuration
- * Period 7 = 7 seconds with 1-second candles (Faster response)
+ * Period 14 (Standard for TradingView and Market Indicators)
  */
 export const DEFAULT_RSI_CONFIG: RSIConfig = {
-  period: 7,
+  period: 14,
   oversoldEnter: 30,
   oversoldExit: 35,
   overboughtEnter: 70,
   overboughtExit: 65,
+};
+
+/**
+ * Synchronization Configuration for Determinism
+ */
+export const SYNC_CONFIG = {
+  /** Maximum number of history points to keep in memory for indicators */
+  MAX_HISTORY_SIZE: 300, // 5 minutes of 1s candles
+  /** Indicator output precision for sync validation */
+  PRECISION: 6,
+  /** ATR calculation period */
+  ATR_PERIOD: 14,
 };
 
 // =============================================================================

@@ -402,6 +402,7 @@ export type CheatType =
   | 'CONSOLE_MANIPULATION'
   | 'CODE_INJECTION'
   | 'NETWORK_MANIPULATION'
+  | 'INDICATOR_DESYNC'
   | 'UNKNOWN';
 
 /** Cheat detected event data */

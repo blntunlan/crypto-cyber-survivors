@@ -127,6 +127,15 @@ class LoggerClass {
   }
 
   /**
+   * Security - Anti-cheat and audit messages
+   */
+  security(message: string, data?: unknown): void {
+    const entry = this.createEntry('warn', `[SECURITY] ${message}`, data);
+    this.store(entry);
+    console.warn(`🛡️ ${this.formatMessage(entry)}`, data);
+  }
+
+  /**
    * Error - Error messages
    */
   error(message: string, error?: unknown, data?: Record<string, unknown>): void {

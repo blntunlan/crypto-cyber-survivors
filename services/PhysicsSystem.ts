@@ -36,6 +36,10 @@ export class PhysicsSystem implements IPhysicsSystem {
     return (PhysicsSystem.instance ??= new PhysicsSystem());
   }
 
+  public static resetInstance(): void {
+    PhysicsSystem.instance = null;
+  }
+
   /**
    * Update positions and lifetimes for all moving entities.
    */

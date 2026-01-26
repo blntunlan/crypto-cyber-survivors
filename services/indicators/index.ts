@@ -6,6 +6,7 @@
 
 // Calculators
 export { RSICalculator, getRSICalculator, createRSICalculator } from './RSICalculator';
+export { ATRCalculator } from './ATRCalculator';
 export {
   VolumeAnalyzer,
   getVolumeAnalyzer,

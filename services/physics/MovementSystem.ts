@@ -83,7 +83,7 @@ export class MovementSystem implements IMovementSystem {
 
       // Apply separation steering to prevent clumping (throttled)
       if (shouldApplySeparation && e.hasEnteredScreen) {
-        this.applySeparation(e);
+        this.applySeparation(e, player);
       }
 
       if (!e.hasEnteredScreen) {
@@ -229,12 +229,41 @@ export class MovementSystem implements IMovementSystem {
    *
    * @param enemy - The enemy to apply separation to
    */
-  private applySeparation(enemy: Enemy): void {
+  private applySeparation(enemy: Enemy, player: Player): void {
     let sepX = 0;
     let sepY = 0;
     let neighborCount = 0;
 
-    // Use zero-allocation iterator for nearby enemies
+    // 1. Separation from Player (prevents enemies from stacking at player's center)
+    const pdx = enemy.x - player.x;
+    const pdy = enemy.y - player.y;
+    const pdistSq = pdx * pdx + pdy * pdy;
+
+    // player hit box radius is tight (9px), but we use a larger visual radius for separation
+    const minPlayerDist = (player.radius || 12) + enemy.radius + SEPARATION.BUFFER_PX;
+    const minPlayerDistSq = minPlayerDist * minPlayerDist;
+
+    if (pdistSq < minPlayerDistSq) {
+      let pdist = Math.sqrt(pdistSq);
+      let fx = pdx;
+      let fy = pdy;
+
+      if (pdist < 0.01) {
+        const angle = Math.random() * Math.PI * 2;
+        fx = Math.cos(angle);
+        fy = Math.sin(angle);
+        pdist = 1.0;
+      }
+
+      const pOverlap = minPlayerDist - pdist;
+      const pForce = (pOverlap / minPlayerDist) * SEPARATION.STRENGTH * 1.5; // Slightly stronger push from player
+
+      sepX += (fx / pdist) * pForce;
+      sepY += (fy / pdist) * pForce;
+      neighborCount++;
+    }
+
+    // 2. Separation from other Enemies
     enemyGrid.forEachNearby(enemy.x, enemy.y, neighbor => {
       // Skip self and dying enemies
       if (neighbor === enemy || neighbor.isDying || !neighbor.active) {

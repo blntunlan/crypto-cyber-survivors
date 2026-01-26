@@ -163,6 +163,13 @@ export class PoolManager implements IPoolManager {
     return (PoolManager.instance ??= new PoolManager());
   }
 
+  /**
+   * Resets the singleton instance (primarily for testing)
+   */
+  public static resetInstance(): void {
+    PoolManager.instance = null;
+  }
+
   // Active list accessors for high-performance iterations in physics and rendering systems
   get activeEnemies() {
     return this.enemies.active;

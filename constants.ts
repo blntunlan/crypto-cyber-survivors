@@ -224,10 +224,10 @@ export const GAME_ENGINE = {
   PARTICLE_LIFETIME_BASE: 1.0,
   PARTICLE_SPEED_RANDOM: 6,
   VFX_LIFETIME_MULT: 1.0,
-  PARTICLE_DAMPING: 0.98,
+  PARTICLE_DAMPING: 0.96,
   EFFECT_TRIM_THRESHOLD: 0.05,
   SHAKE_CENTER_OFFSET: 0.5,
-  PARTICLE_LIFE_DECAY: 0.05,
+  PARTICLE_LIFE_DECAY: 0.03,
   GEM_PARTICLE_LIFE_DEFAULT: 1.0,
 
   // Near Miss Visuals
@@ -386,13 +386,13 @@ export const GAME_ENGINE = {
  */
 export const SEPARATION = {
   /** How often to apply separation (every N frames). Higher = less CPU, slightly less smooth. */
-  THROTTLE_FRAMES: 3,
+  THROTTLE_FRAMES: 1,
   /** Force multiplier for separation. 0.3-0.6 is ideal for smooth movement. */
-  STRENGTH: 0.45,
+  STRENGTH: 2.5,
   /** Extra buffer distance beyond combined radii to start repelling. */
   BUFFER_PX: 4,
   /** Maximum separation force per axis to prevent jittering. */
-  MAX_FORCE: 3.0,
+  MAX_FORCE: 5.0,
   /** Skip separation for enemies above this distance squared (optimization). */
   SKIP_DIST_SQ: 10000, // 100px squared
 } as const;

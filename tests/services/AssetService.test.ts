@@ -50,12 +50,17 @@ describe('AssetService', () => {
     const service = AssetService.getInstance();
 
     global.Image = class {
+      private _src: string = '';
       onload: (() => void) | null = null;
       onerror: ((e: any) => void) | null = null;
       set src(val: string) {
+        this._src = val;
         setTimeout(() => {
           if (this.onerror) this.onerror(new Error('Failed'));
         }, 0);
+      }
+      get src() {
+        return this._src;
       }
     } as any;
 

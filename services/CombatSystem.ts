@@ -50,6 +50,10 @@ export class CombatSystem implements ICombatSystem {
     return (CombatSystem.instance ??= new CombatSystem());
   }
 
+  public static resetInstance(): void {
+    CombatSystem.instance = null;
+  }
+
   /**
    * Process main auto-fire logic for the player.
    * Finds the most suitable target within viewport and launches projectiles.

@@ -135,13 +135,41 @@ describe('PhysicsSystem Edge Cases', () => {
       isGameOverTriggered: false,
       shake: 0,
       critFlash: 0,
+      critFlashColor: '#FF0000',
+      lastFireTime: 0,
+      fireTimer: 0,
+      spawnTimer: 0,
+      dashTrail: [],
+      dashTrailAccumulator: 0,
+      bgCandles: [],
+      currentBg: { r: 15, g: 23, b: 42 },
+      lastTime: 0,
+      bgUpdateFrameCounter: 0,
       levelUpFreeze: 0,
-      damageIndicators: [],
+      lastHeartbeatTime: 0,
+      doubleDashQueued: false,
+      doubleDashUsed: false,
+      dashHaloOpacity: 0,
+      hitStopTimer: 0,
+      playerScaleX: 1,
+      playerScaleY: 1,
+      playerRotation: 0,
+      nearMissTimer: 0,
       nearMissCooldown: 0,
+      rsiVisualState: 'NEUTRAL',
+      whaleEventTimer: 0,
+      targetBg: { r: 15, g: 23, b: 42 },
+      interactableSpawnTimer: 0,
+      atrPercent: 0,
+      spawnRateMultiplier: 1,
+      marketPosition: 0, // Using 0 for LONG if MarketPosition is enum
+      isMoving: false,
+      lastMoveX: 0,
+      damageIndicators: [],
     } as any;
 
     mockOnGameOver = vi.fn();
-    physicsSystem = new PhysicsSystem();
+    physicsSystem = PhysicsSystem.getInstance();
   });
 
   describe('Extreme Delta Time (dtFactor)', () => {

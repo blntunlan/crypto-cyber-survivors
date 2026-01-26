@@ -63,7 +63,6 @@ describe('UI Consistency Sync', () => {
     it('PauseMenu should have the same frame styling as MainMenu', () => {
       const { container } = render(
         <PauseMenu
-          sessionStartTime={Date.now()}
           runStats={mockRunStats}
           onResume={() => {}}
           onRestart={() => {}}
@@ -130,7 +129,6 @@ describe('UI Consistency Sync', () => {
     it('PauseMenu should use Slot Black for its inner card backgrounds', () => {
       const { container } = render(
         <PauseMenu
-          sessionStartTime={Date.now()}
           runStats={mockRunStats}
           onResume={() => {}}
           onRestart={() => {}}

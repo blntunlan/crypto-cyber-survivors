@@ -61,7 +61,7 @@ describe('NotificationSystem', () => {
     const handler = eventHandlers['gameNotification'];
 
     await act(async () => {
-      handler({
+      handler?.({
         title: 'Test Notification',
         message: 'This is a test message',
         type: 'success',
@@ -78,7 +78,7 @@ describe('NotificationSystem', () => {
     const handler = eventHandlers['rsiStateChanged'];
 
     await act(async () => {
-      handler({ state: 'OVERSOLD', rsi: 25.5 });
+      handler?.({ state: 'OVERSOLD', rsi: 25.5 });
     });
 
     // In test environment, it might show the i18n key or a mock translation
@@ -94,7 +94,7 @@ describe('NotificationSystem', () => {
     const handler = eventHandlers['whaleTierChanged'];
 
     await act(async () => {
-      handler({ tier: 2 }); // MEGA whale
+      handler?.({ tier: 2 }); // MEGA whale
     });
 
     // Should find the title with whale in it
@@ -107,7 +107,7 @@ describe('NotificationSystem', () => {
     const handler = eventHandlers['gameNotification'];
 
     await act(async () => {
-      handler({
+      handler?.({
         title: 'Temporary',
         message: 'Bye bye',
         duration: 1000,
@@ -129,7 +129,7 @@ describe('NotificationSystem', () => {
     const handler = eventHandlers['gameNotification'];
 
     await act(async () => {
-      handler({
+      handler?.({
         title: 'Closable',
         message: 'Click me',
       });
@@ -153,8 +153,8 @@ describe('NotificationSystem', () => {
     const handler = eventHandlers['gameNotification'];
 
     await act(async () => {
-      handler({ title: 'First', message: '1' });
-      handler({ title: 'Second', message: '2' });
+      handler?.({ title: 'First', message: '1' });
+      handler?.({ title: 'Second', message: '2' });
     });
 
     expect(screen.getByText('First')).toBeInTheDocument();

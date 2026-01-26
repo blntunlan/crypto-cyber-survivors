@@ -89,6 +89,20 @@ export class CollisionSystem implements ICollisionSystem {
         return;
       }
 
+      // Decrement Hit Flash Timer
+      if (enemy.damageBufferTimer && enemy.damageBufferTimer > 0) {
+        enemy.damageBufferTimer = Math.max(0, enemy.damageBufferTimer - 1 * dtFactor);
+
+        // Fix: Ensure we flush any remaining buffer when the timer expires
+        if (
+          enemy.damageBufferTimer === 0 &&
+          enemy.damageBuffer &&
+          enemy.damageBuffer > 0
+        ) {
+          this.flushDamageBuffer(pool, enemy);
+        }
+      }
+
       // 1. Boundary Check (Culling)
       if (this.isOffScreen(enemy, width, height)) {
         enemy.active = false;
@@ -124,7 +138,7 @@ export class CollisionSystem implements ICollisionSystem {
       }
 
       // 5. Interaction Checks
-      this.checkPlayerEnemyCollision(pool, player, enemy, state, onGameOver);
+      this.checkPlayerEnemyCollision(pool, player, enemy, state, dtFactor, onGameOver);
       this.processBulletCollisions(
         pool,
         enemy,
@@ -246,6 +260,7 @@ export class CollisionSystem implements ICollisionSystem {
     player: Player,
     enemy: Enemy,
     state: GameState,
+    dtFactor: number,
     onGameOver: () => void
   ): void {
     const dx = player.x - enemy.x;
@@ -300,6 +315,9 @@ export class CollisionSystem implements ICollisionSystem {
 
         // Set I-Frames after taking damage
         player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION;
+
+        // Apply knockback to the enemy that hit the player (separates it from player)
+        this.applyKnockback(enemy, { x: player.x, y: player.y }, dtFactor);
 
         // Add damage direction indicator (throttled to once every 200ms)
         /*
@@ -430,11 +448,20 @@ export class CollisionSystem implements ICollisionSystem {
   /**
    * Pushes enemy away from the point of impact.
    */
-  private applyKnockback(enemy: Enemy, bullet: Bullet, dtFactor: number): void {
+  private applyKnockback(
+    enemy: Enemy,
+    source: { x: number; y: number },
+    dtFactor: number
+  ): void {
+    const dx = enemy.x - source.x;
+    const dy = enemy.y - source.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return; // Avoid division by zero if source and enemy are at the same spot
+
     const strength = GAME_ENGINE.KNOCKBACK_STRENGHT;
-    // Normalize relative velocity to apply consistent push force
-    enemy.x += (bullet.vx / this.ctx.constants.BULLET_SPEED) * strength * dtFactor;
-    enemy.y += (bullet.vy / this.ctx.constants.BULLET_SPEED) * strength * dtFactor;
+    // Normalize direction vector and apply force
+    enemy.x += (dx / dist) * strength * dtFactor;
+    enemy.y += (dy / dist) * strength * dtFactor;
   }
 
   /**
@@ -496,7 +523,8 @@ export class CollisionSystem implements ICollisionSystem {
         : GAME_ENGINE.DAMAGE_TEXT_SIZE_NORMAL;
 
     // Dynamic scale based on stack intensity
-    const stackWeight = Math.min(0.5, enemy.damageBuffer / (enemy.maxHealth * 0.5));
+    const maxH = enemy.maxHealth || 100;
+    const stackWeight = Math.min(0.5, enemy.damageBuffer / (maxH * 0.5));
     const finalSize = size * (1 + stackWeight);
 
     const text = StatService.formatCompact(enemy.damageBuffer);
@@ -525,7 +553,7 @@ export class CollisionSystem implements ICollisionSystem {
 
     // Reset buffer
     enemy.damageBuffer = 0;
-    enemy.damageBufferTimer = 0;
+    enemy.damageBufferTimer = 20; // 20 frames of "white" flash time (approx 330ms)
     enemy.damageBufferIsCrit = false;
     enemy.damageBufferIsSuperCrit = false;
     enemy.damageBufferCritCount = 0;

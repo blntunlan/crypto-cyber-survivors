@@ -361,7 +361,7 @@ describe('CollisionSystem', () => {
       expect(bullet.active).toBe(false);
     });
 
-    it('should show damage numbers immediately (buffering disabled)', () => {
+    it('should buffer damage numbers and not show them immediately', () => {
       const enemy = {
         x: 100,
         y: 100,
@@ -369,6 +369,8 @@ describe('CollisionSystem', () => {
         active: true,
         health: 100,
         damageBuffer: 0,
+        damageBufferTimer: 0,
+        maxHealth: 100,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [enemy];
@@ -389,9 +391,8 @@ describe('CollisionSystem', () => {
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
-      // Implementation now uses immediate flush (stacking disabled)
+      // Should call getFloatingText immediately (stacking disabled)
       expect(mockPool.getFloatingText).toHaveBeenCalled();
-      // Buffer should be cleared after flush
       expect(enemy.damageBuffer).toBe(0);
     });
 
@@ -508,7 +509,7 @@ describe('CollisionSystem', () => {
       expect(mockState.critFlash).toBeGreaterThan(0);
       expect(mockPool.getParticle).toHaveBeenCalled();
 
-      // With immediate flush (stacking disabled), floating text is shown right away
+      // Floating text should be immediate (stacking disabled)
       expect(mockPool.getFloatingText).toHaveBeenCalled();
     });
   });

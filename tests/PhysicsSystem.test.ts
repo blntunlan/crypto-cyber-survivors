@@ -112,6 +112,8 @@ describe('PhysicsSystem', () => {
     nearMissCooldown: 0,
     rsiVisualState: 'NEUTRAL',
     whaleEventTimer: 0,
+    targetBg: { r: 2, g: 6, b: 23 },
+    interactableSpawnTimer: 0,
     atrPercent: 0,
     spawnRateMultiplier: 1,
     marketPosition: MarketPosition.LONG,
@@ -123,7 +125,7 @@ describe('PhysicsSystem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    physicsSystem = new PhysicsSystem();
+    physicsSystem = PhysicsSystem.getInstance();
 
     // Reset mutable mockState properties between tests
     mockState.isDashing = false;

@@ -177,6 +177,18 @@ class AntiCheatServiceClass {
   }
 
   /**
+   * Report an indicator discrepancy (e.g. RSI mismatch with server)
+   */
+  reportDiscrepancy(type: string, details: string, severity: number = 3): void {
+    this.onCheatWarning('INDICATOR_DESYNC', `${type}: ${details}`);
+
+    // If severity is high, escalate directly
+    if (severity > 5) {
+      this.onCheatDetected('INDICATOR_DESYNC', details, severity);
+    }
+  }
+
+  /**
    * Cleanup and stop all detections
    */
   destroy(): void {

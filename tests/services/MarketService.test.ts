@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  MarketService,
-  type MarketUpdate,
-  type ConnectionStatus,
-} from '../../services/MarketService';
+import { MarketService, type MarketUpdate } from '../../services/MarketService';
 import { Logger } from '../../services/Logger';
 
 // Mock Logger
@@ -42,7 +38,7 @@ class MockWebSocket {
 
 describe('MarketService', () => {
   let onData: (update: MarketUpdate) => void;
-  let onStatusChange: (status: ConnectionStatus) => void;
+  let onStatusChange: any;
   let marketService: MarketService;
   let mockSockets: MockWebSocket[] = [];
 

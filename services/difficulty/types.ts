@@ -56,6 +56,13 @@ export interface DifficultyInputs {
   damageTakenFrequency: number; // units per minute or similar
   performanceScore: number; // 0.0 to 1.0 (calculated ADS)
 
+  // --- Neural / AI Metrics ---
+  dps: number; // Current Damage Per Second dealt
+  enemyHealthPool: number; // Total HP of active enemies
+  screenDensity: number; // Normalized 0-1 (activeEnemies / limit)
+  upgradeEfficiency: number; // CoinsSpent / TotalCoins (0-1)
+  movementEntropy: number; // 0-1 (how much player avoids patterns)
+
   // History
   pnlHistory: number[]; // buffer of leveraged PnL values
 }

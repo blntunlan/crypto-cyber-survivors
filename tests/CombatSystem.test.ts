@@ -35,7 +35,7 @@ describe('CombatSystem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    combatSystem = new CombatSystem();
+    combatSystem = CombatSystem.getInstance();
 
     // Default mock stats
     vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
@@ -112,6 +112,8 @@ describe('CombatSystem', () => {
       nearMissCooldown: 0,
       rsiVisualState: 'NEUTRAL',
       whaleEventTimer: 0,
+      targetBg: { r: 15, g: 23, b: 42 },
+      interactableSpawnTimer: 0,
       atrPercent: 1,
       spawnRateMultiplier: 1,
       marketPosition: MarketPosition.LONG,

@@ -127,7 +127,7 @@ export const COMBAT_CONFIG = {
   DEATH_PARTICLES: {
     NORMAL_COUNT: 10,
     SUPER_CRIT_COUNT: 30,
-    VELOCITY_RANGE: 6,
+    VELOCITY_RANGE: 5,
   },
 
   // Fallbacks & Audio

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '../test-utils';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
-import React from 'react';
 
 // Mock framer-motion
 vi.mock('framer-motion', () => {

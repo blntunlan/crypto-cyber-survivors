@@ -29,14 +29,15 @@ import {
   WHALE_TIER_CONFIGS,
 } from '../../types/indicators';
 import { createRSICalculator, type RSICalculator } from './RSICalculator';
+import { ATRCalculator } from './ATRCalculator';
 import {
   createVolumeAnalyzer,
   type VolumeAnalyzer,
   type WhaleSpawnResult,
 } from './VolumeAnalyzer';
-import { priceAnalyzer } from '../admin/PriceAnalyzerService';
 import { EventBus } from '../EventBus';
 import { Logger } from '../Logger';
+import { AntiCheatService } from '../AntiCheatService';
 import type { CryptoPair } from '../../types/crypto';
 
 export class MarketIndicatorService {
@@ -44,6 +45,7 @@ export class MarketIndicatorService {
 
   private rsiCalculator: RSICalculator;
   private volumeAnalyzer: VolumeAnalyzer;
+  private atrCalculator: ATRCalculator;
   private state: MarketIndicatorState;
   private activePair: CryptoPair = 'BTC';
   private lastResetTime: number = 0;
@@ -51,6 +53,7 @@ export class MarketIndicatorService {
   private constructor() {
     this.rsiCalculator = createRSICalculator();
     this.volumeAnalyzer = createVolumeAnalyzer();
+    this.atrCalculator = new ATRCalculator();
     this.state = getDefaultMarketIndicatorState();
     this.lastResetTime = Date.now();
 
@@ -110,6 +113,23 @@ export class MarketIndicatorService {
 
       // Re-calculate derived favorable state
       this.emitStateChangedEvent(this.state.currentPosition);
+
+      // AUDIT: Check for indicator discrepancy (Anti-Cheat)
+      const rsiDiff = Math.abs(this.state.rsi - serverState.rsi);
+      if (this.rsiCalculator.isInitialized() && rsiDiff > 0.5) {
+        Logger.security('RSI DISCREPANCY DETECTED', {
+          server: serverState.rsi,
+          client: this.state.rsi,
+          diff: rsiDiff,
+          pair: normalizedServerPair,
+        });
+
+        AntiCheatService.reportDiscrepancy(
+          'RSI_MISMATCH',
+          `Client RSI (${this.state.rsi}) significantly deviated from Server (${serverState.rsi}) by ${rsiDiff.toFixed(2)}`,
+          rsiDiff > 2 ? 6 : 3
+        );
+      }
     });
 
     Logger.debug(
@@ -127,12 +147,10 @@ export class MarketIndicatorService {
   /**
    * Update indicators with new market data
    *
-   * Call this on every price update from MarketService.
-   *
    * @param price Current price
-   * @param volume Current volume (optional, 0 if not available)
-   * @param position Player's market position (LONG/SHORT)
-   * @param pair The crypto pair being traded (default: BTC)
+   * @param volume Current volume
+   * @param position Player's market position
+   * @param pair The crypto pair being traded
    */
   update(
     price: number,
@@ -140,35 +158,65 @@ export class MarketIndicatorService {
     position: MarketPosition,
     pair: CryptoPair = 'BTC'
   ): MarketIndicatorState {
+    return this.updateInternal(price, volume, position, pair, false);
+  }
+
+  /**
+   * Warmup indicators using historical data (Silent mode)
+   *
+   * @param history Chronological list of past price/volume data
+   * @param position Player's selected position
+   */
+  async warmup(
+    history: Array<{ price: number; volume: number; timestamp: number }>,
+    position: MarketPosition
+  ): Promise<void> {
+    if (history.length === 0) return;
+
+    Logger.info(
+      `[MarketIndicatorService] Warming up with ${history.length} data points...`
+    );
+
+    // Reset current state to ensure clean warmup
+    this.reset();
+
+    // Process each historical point silently
+    for (const point of history) {
+      this.updateInternal(point.price, point.volume, position, this.activePair, true);
+    }
+
+    Logger.info(
+      `[MarketIndicatorService] Warmup complete. RSI: ${this.state.rsi}, State: ${this.state.rsiState}`
+    );
+  }
+
+  /**
+   * Internal common update logic
+   */
+  private updateInternal(
+    price: number,
+    volume: number,
+    position: MarketPosition,
+    pair: CryptoPair,
+    isWarmup: boolean = false
+  ): MarketIndicatorState {
     this.activePair = pair;
     const now = Date.now();
+
+    // Snapshot current state for change detection
+    const previousRsiState = this.state.rsiState;
+    const previousWhaleTier = this.state.whaleTier;
 
     // Update RSI
     const rsi = this.rsiCalculator.update(price);
     const rsiState = this.rsiCalculator.getState();
-    const previousRsiState = this.state.rsiState;
 
     // Update Volume
     const normalizedVolume = this.volumeAnalyzer.update(volume);
     const whaleTier = this.volumeAnalyzer.getWhaleTier();
 
-    // Log whale tier changes for debugging
-    if (whaleTier !== this.state.whaleTier && whaleTier !== WhaleTier.NONE) {
-      Logger.info(
-        `[MarketIndicatorService] Whale tier changed: ${this.state.whaleTier} → ${whaleTier}`,
-        {
-          rawVolume: volume,
-          normalizedVolume: normalizedVolume.toFixed(3),
-          historyLength: this.volumeAnalyzer.getHistoryLength(),
-        }
-      );
-    }
-
-    // Get ATR from PriceAnalyzerService (already calculated for admin dashboard)
-    const priceAnalysis = priceAnalyzer.getAnalysis(pair);
-    const atr = priceAnalysis?.atr ?? 0;
-    const currentPrice = priceAnalysis?.currentPrice ?? price;
-    const atrPercent = currentPrice > 0 ? (atr / currentPrice) * 100 : 0;
+    // Calculate ATR locally for perfect sync
+    const { atr, atrPercent } = this.atrCalculator.update(price, price, price);
 
     // Calculate spawn rate multiplier from ATR
     const spawnRateMultiplier = getSpawnRateFromATR(atrPercent);
@@ -182,31 +230,43 @@ export class MarketIndicatorService {
 
     // Update state
     this.state = {
-      // Volume
       normalizedVolume,
       whaleTier,
       canSpawnWhale,
       lastWhaleSpawnTime: this.state.lastWhaleSpawnTime,
-
-      // RSI
       rsi,
       rsiState,
       previousRsiState,
-
-      // ATR
       atr,
       atrPercent,
       spawnRateMultiplier,
-
-      // Enemy
       enemyModifier,
-
-      // Meta
       isInitialized:
-        this.rsiCalculator.isInitialized() || this.volumeAnalyzer.isInitialized(),
+        this.rsiCalculator.isInitialized() ||
+        this.volumeAnalyzer.isInitialized() ||
+        this.atrCalculator.isInitialized(),
       lastUpdateTime: now,
       currentPosition: position,
     };
+
+    // If warmup, skip all events and side effects
+    if (isWarmup) {
+      return this.state;
+    }
+
+    // --- LIVE ONLY LOGIC ---
+
+    // Log whale tier changes for debugging
+    if (whaleTier !== previousWhaleTier && whaleTier !== WhaleTier.NONE) {
+      Logger.info(
+        `[MarketIndicatorService] Whale tier changed: ${previousWhaleTier} → ${whaleTier}`,
+        {
+          rawVolume: volume,
+          normalizedVolume: normalizedVolume.toFixed(3),
+          historyLength: this.volumeAnalyzer.getHistoryLength(),
+        }
+      );
+    }
 
     // Emit event for UI/other systems (with 2s grace period to allow indicators to settle)
     const timeSinceReset = Date.now() - this.lastResetTime;
@@ -331,6 +391,7 @@ export class MarketIndicatorService {
   reset(): void {
     this.rsiCalculator.reset();
     this.volumeAnalyzer.reset();
+    this.atrCalculator.reset();
     this.state = getDefaultMarketIndicatorState();
     this.lastResetTime = Date.now();
 

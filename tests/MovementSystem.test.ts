@@ -147,7 +147,7 @@ describe('MovementSystem', () => {
   let movementSystem: MovementSystem;
 
   beforeEach(() => {
-    pool = new PoolManager();
+    pool = PoolManager.getInstance();
     movementSystem = new MovementSystem();
     // Seed random for deterministic tests where needed
     let randVal = 0.5;
@@ -599,7 +599,7 @@ describe('Enemy Separation Steering', () => {
   let movementSystem: MovementSystem;
 
   beforeEach(() => {
-    pool = new PoolManager();
+    pool = PoolManager.getInstance();
     movementSystem = new MovementSystem();
     let randVal = 0.5;
     vi.spyOn(Math, 'random').mockImplementation(() => {

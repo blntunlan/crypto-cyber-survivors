@@ -197,24 +197,14 @@ NFT Standard: Metaplex
 
 ### 4.2 ⬜ Launch Strategy
 
-```
-Week 1: Soft Launch
-- Invite-only beta
-- Collect feedback
-- Fix critical bugs
-
-Week 2: Public Launch
-- Open access
-- First leaderboard season
-- Social media push
-
-Week 3+: Growth
-- Content updates (new cards, enemies)
-- Community events
-- Partnerships
-```
+| Hafta | Aşama / Odak | Aktiviteler |
+|:---|:---|:---|
+| **Hafta 1** | **Soft Launch** | Davetli beta, geri bildirim toplama, kritik hata düzeltmeleri |
+| **Hafta 2** | **Public Launch** | Genel erişim, ilk leaderboard sezonu, sosyal medya tanıtımı |
+| **Hafta 3+** | **Growth** | İçerik güncellemeleri (yeni kartlar/düşmanlar), topluluk etkinlikleri, ortaklıklar |
 
 ### 4.3 ⬜ Post-Launch Roadmap
+
 
 | Feature | Priority | Timeline |
 |---------|----------|----------|

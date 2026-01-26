@@ -254,33 +254,14 @@
 
 ## 🎯 Önerilen Sprint Planı
 
-### Sprint 1 (Bu Hafta) - Güvenlik Temeli
-- [x] SEC-001: Lint fixes ✅
-- [x] UI-008: Localization (6 dil) ✅
-- [x] Test coverage düzeltmeleri (1479 test) ✅
-- [x] Market data flow fixes ✅
-- [x] Performance optimizations ✅
-- [ ] SEC-001: Session signing
-- [ ] SEC-002: Replay hash validation
-- [ ] PWA-001: manifest.json
-- [ ] PWA-002: App icons
-
-### Sprint 2 (Gelecek Hafta) - PWA & Anti-Cheat
-- [ ] PWA-003: Service worker
-- [ ] SEC-004: Client obfuscation
-- [ ] SEC-005: DevTools detection
-- [ ] UI-001: Tutorial screens
-
-### Sprint 3 - Gameplay Expansion
-- [ ] GAME-001: Boss system
-- [ ] GAME-002: Boss UI
-- [ ] GAME-004: New enemies
-
-### Sprint 4 - Polish & Launch Prep
-- [ ] PERF-001: Lighthouse audit
-- [ ] DOC-001: API docs update
-- [ ] DEV-001: CI/CD pipeline
+| Sprint | Odak | Görevler | Durum |
+|:---|:---|:---|:---|
+| **Sprint 1** | **Güvenlik Temeli** | Lint fixes, Localization (6 dil), Test coverage fixes, Market data synchronization, Performance optimizations, Session signing (SEC-001), Replay hash validation (SEC-002), manifest.json (PWA-001), App icons (PWA-002) | 🔶 Devam Ediyor |
+| **Sprint 2** | **PWA & Anti-Cheat** | Service worker (PWA-003), Client obfuscation (SEC-004), DevTools detection (SEC-005), Tutorial screens (UI-001) | ⬜ Planlandı |
+| **Sprint 3** | **Gameplay Expansion** | Boss system (GAME-001), Boss UI (GAME-002), New enemies (GAME-004) | ⬜ Planlandı |
+| **Sprint 4** | **Polish & Launch Prep** | Lighthouse audit (PERF-001), API docs update (DOC-001), CI/CD pipeline (DEV-001) | ⬜ Planlandı |
 
 ---
+
 
 > 💡 Bu döküman sürekli güncellenir. Her tamamlanan task için [x] işareti ekleyin.

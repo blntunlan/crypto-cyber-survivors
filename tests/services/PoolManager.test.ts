@@ -13,7 +13,8 @@ describe('PoolManager', () => {
   let pool: PoolManager;
 
   beforeEach(() => {
-    pool = new PoolManager();
+    pool = PoolManager.getInstance();
+    pool.clearAll();
   });
 
   describe('preWarm', () => {

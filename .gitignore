@@ -56,8 +56,9 @@ railway-market-server/.env.local
 railway-market-server/.env.*.local
 
 # AI Assistant files (contain project-specific context)
-.agent/
+
 .claude/
+.gemini/
 conductor/
 
 # Session logs and debugging

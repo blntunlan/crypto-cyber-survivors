@@ -19,13 +19,19 @@ describe('SpeedLineSpawner', () => {
   beforeEach(() => {
     vi.mocked(screenService.isMobile).mockReturnValue(false);
     spawner = new SpeedLineSpawner();
-    pool = new PoolManager();
-    // Mock pool.getSpeedLine
+    PoolManager.resetInstance();
+    pool = PoolManager.getInstance();
+    // Use vi.fn() directly on the instance for this test
     pool.getSpeedLine = vi.fn().mockReturnValue({
+      active: true,
+      x: 0,
+      y: 0,
+      radius: 0,
+      color: '',
       vx: 0,
       vy: 0,
       decay: 0,
-    });
+    } as any);
 
     state = {
       isDashing: false,

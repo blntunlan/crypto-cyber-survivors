@@ -67,6 +67,11 @@ export function getDefaultInputs(): DifficultyInputs {
     accuracy: 1.0,
     damageTakenFrequency: 0,
     performanceScore: 1.0,
+    dps: 0,
+    enemyHealthPool: 0,
+    screenDensity: 0,
+    upgradeEfficiency: 0.5,
+    movementEntropy: 0.5,
 
     // History
     pnlHistory: [],

@@ -242,13 +242,12 @@ describe('RSICalculator', () => {
 
     it('should limit history size to prevent memory bloat', () => {
       // Add many price points
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 400; i++) {
         calculator.update(100 + (i % 10));
       }
 
-      // History should be capped at period * 10 = 70
-      const maxExpectedHistory = DEFAULT_RSI_CONFIG.period * 10;
-      expect(calculator.getHistoryLength()).toBeLessThanOrEqual(maxExpectedHistory);
+      // History should be capped at SYNC_CONFIG.MAX_HISTORY_SIZE = 300
+      expect(calculator.getHistoryLength()).toBe(300);
     });
   });
 

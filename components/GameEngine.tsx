@@ -208,13 +208,27 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Market State Initialization (Server-Side Indicators)
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
-      MarketStateService.init()
-        .then(() => {
-          Logger.info('[GameEngine] Market state initialized');
-        })
-        .catch(err => {
-          Logger.error('[GameEngine] Failed to initialize market state:', err);
-        });
+      // Integrated Warmup Flow: Snapshot -> Warmup -> Realtime Stream
+      const initFlow = async () => {
+        try {
+          Logger.info('[GameEngine] Starting market sync flow...');
+
+          // 1. Fetch historical data (Snapshot)
+          const history = await MarketStateService.fetchMarketHistory(pair, 300);
+
+          // 2. Warm up indicators (Deterministic Initial State)
+          await marketIndicatorService.warmup(history, position);
+
+          // 3. Initialize Realtime subscription
+          await MarketStateService.init();
+
+          Logger.info('[GameEngine] Market state perfect sync complete');
+        } catch (err) {
+          Logger.error('[GameEngine] Market sync flow failed:', err);
+        }
+      };
+
+      void initFlow();
 
       // Market Events for Visual Effects
       const handleRSIChange = (data: {

@@ -45,15 +45,6 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/gameplay.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Gameplay Screenshot"
-    }
-  ],
   "shortcuts": [
     {
       "name": "Play Now",
