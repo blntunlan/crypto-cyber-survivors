@@ -31,20 +31,20 @@ export class ErrorReporter {
 
       const { error } = await this.client.from('error_reports').insert({
         error_type: type,
-        error_message: message,
+        message: message,
         stack_trace: stack,
         severity,
         category: 'server',
-        url: this.serviceName,
-        user_agent: `Node.js ${process.version}`,
-        context: {
+        page_url: this.serviceName,
+        browser_info: `Node.js ${process.version}`,
+        context_data: {
           ...context,
           server: this.serviceName,
           uptime: process.uptime(),
           memory: process.memoryUsage(),
         },
         status: 'new',
-        reported_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
       });
 
       if (error) {

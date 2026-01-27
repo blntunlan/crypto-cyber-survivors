@@ -25,6 +25,7 @@
 import { Logger } from '../Logger';
 import { supabase, isSupabaseConfigured } from '../Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
+import { type Database, type Json } from '../../types/supabase';
 
 // Import from extracted modules
 import {
@@ -171,7 +172,7 @@ export class ErrorTracker {
       userAgent: navigator.userAgent,
       url: window.location.href,
       viewport: { width: window.innerWidth, height: window.innerHeight },
-      playerId: UserSessionService.getPlayerId(),
+      profileId: UserSessionService.getProfileId(),
       sessionId: getSessionId(),
       deviceFingerprint: getDeviceFingerprint(),
       nickname: UserSessionService.getNickname() ?? undefined,
@@ -545,19 +546,19 @@ export class ErrorTracker {
 
     try {
       const { error } = await supabase.from('error_reports').insert({
-        player_id: ErrorTracker.isUUID(report.playerId) ? report.playerId : null,
+        profile_id: ErrorTracker.isUUID(report.profileId) ? report.profileId : null,
         session_id: ErrorTracker.isUUID(report.sessionId) ? report.sessionId : null,
         error_type: report.errorType,
-        error_message: report.errorMessage,
+        message: report.errorMessage,
         stack_trace: report.stackTrace,
-        user_agent: report.userAgent,
-        browser_info: report.userAgent, // Sync with browser_info column
-        page_url: report.url, // Sync with page_url column
+        browser_info: report.userAgent,
+        page_url: report.url,
         device_fingerprint: report.deviceFingerprint,
         severity: report.severity,
         category: report.category,
         fingerprint: report.fingerprint,
-        context: {
+
+        context_data: {
           ...report.context,
           viewport: report.viewport,
           nickname: report.nickname,
@@ -565,10 +566,10 @@ export class ErrorTracker {
           breadcrumbs: report.breadcrumbs.slice(-10),
           tags: report.tags,
           sessionDurationMs: report.sessionDurationMs,
-        },
-        reported_at: report.reportedAt,
+        } as unknown as Json,
+        created_at: report.reportedAt,
         status: 'new',
-      });
+      } as Database['public']['Tables']['error_reports']['Insert']);
       Logger.debug(`[ErrorTracker] sendError response:`, {
         error,
         status: error?.code,

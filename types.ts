@@ -101,6 +101,7 @@ export interface Enemy extends Entity {
   // Damage buffering for stacked numbers
   damageBuffer?: number;
   damageBufferTimer?: number;
+  hitFlashTimer?: number;
   damageBufferIsCrit?: boolean;
   damageBufferIsSuperCrit?: boolean;
   damageBufferCritCount?: number; // Number of crits in this stack
@@ -108,6 +109,9 @@ export interface Enemy extends Entity {
   visualStyle?: 'friendly' | 'neutral' | 'aggressive';
   dropBuffChance?: number;
   dropDebuffChance?: number;
+  // Gatekeeper specifics
+  orbitPoint?: { x: number; y: number };
+  orbitAngle?: number;
 }
 
 export interface Bullet extends Entity {
@@ -216,7 +220,7 @@ export interface GameState {
   rsiVisualState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   whaleEventTimer: number; // For whale spawn splash/shake effect
   targetBg: { r: number; g: number; b: number }; // Reusable object for background color updates
-  interactableSpawnTimer?: number; // Timer for lootbox generation
+  interactableSpawnTimer: number; // Timer for lootbox generation
 
   // Market Indicators for Visuals
   atrPercent: number; // Current volatility (0-100+)
@@ -240,9 +244,9 @@ export interface Achievement {
   isActive: boolean;
 }
 
-export interface PlayerAchievement {
+export interface ProfileAchievement {
   id: string; // UUID of the record
-  playerId: string;
+  profileId: string;
   achievementId: string;
   unlockedAt: string; // ISO Date
   formattedDate?: string; // Helper for UI

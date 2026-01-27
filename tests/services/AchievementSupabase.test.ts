@@ -19,7 +19,7 @@ vi.mock('../../services/Supabase', () => ({
 
 vi.mock('../../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn(() => 'test-player-id'),
+    getProfileId: vi.fn(() => 'test-profile-id'),
   },
 }));
 
@@ -96,7 +96,7 @@ describe('AchievementService Supabase Integration', () => {
 
   describe('getMyUnlocks', () => {
     it('should return empty array for anonymous players', async () => {
-      (UserSessionService.getPlayerId as any).mockReturnValueOnce('anon-12345');
+      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon-12345');
       const result = await service.getMyUnlocks();
       expect(result).toEqual([]);
     });
@@ -111,7 +111,7 @@ describe('AchievementService Supabase Integration', () => {
       const mockUnlocks = [
         {
           id: 'u1',
-          player_id: 'test-player-id',
+          profile_id: 'test-profile-id',
           achievement_id: 'a1',
           unlocked_at: '2026-01-21T12:00:00Z',
         },

@@ -14,7 +14,7 @@ vi.mock('../../services/Supabase', () => ({
 // Mock UserSessionService
 vi.mock('../../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn(() => 'real-player-123'),
+    getProfileId: vi.fn(() => '00000000-0000-0000-0000-000000000001'),
   },
 }));
 
@@ -33,10 +33,15 @@ describe('ShopService Supabase Integration', () => {
           order: vi.fn().mockResolvedValue({
             data: [
               {
-                id: 'item-1',
+                id: '00000000-0000-0000-0000-000000000002',
                 name: 'Cool Skin',
-                cost_gold: 100,
+                description: 'A very cool skin',
                 category: 'cosmetic',
+                cost_gold: 100,
+                effect_type: 'none',
+                effect_value: 0,
+                max_purchases: 1,
+                icon_key: 'item1',
               },
             ],
             error: null,
@@ -47,8 +52,7 @@ describe('ShopService Supabase Integration', () => {
 
     const items = await service.getItems();
     expect(items).toHaveLength(1);
-    expect(items).toHaveLength(1);
-    expect(items![0]!.id).toBe('item-1');
+    expect(items![0]!.id).toBe('00000000-0000-0000-0000-000000000002');
     expect(items![0]!.costGold).toBe(100);
   });
 
@@ -59,11 +63,11 @@ describe('ShopService Supabase Integration', () => {
       error: null,
     });
 
-    const result = await service.purchaseItem('item-1');
+    const result = await service.purchaseItem('00000000-0000-0000-0000-000000000002');
 
     expect(supabase!.rpc).toHaveBeenCalledWith('purchase_item', {
-      p_player_id: 'real-player-123',
-      p_item_id: 'item-1',
+      p_profile_id: '00000000-0000-0000-0000-000000000001',
+      p_item_id: '00000000-0000-0000-0000-000000000002',
     });
     expect(result.success).toBe(true);
     expect(result.newBalance).toBe(50);
@@ -76,7 +80,7 @@ describe('ShopService Supabase Integration', () => {
       error: null,
     });
 
-    const result = await service.purchaseItem('item-1');
+    const result = await service.purchaseItem('00000000-0000-0000-0000-000000000002');
     expect(result.success).toBe(false);
     expect(result.error).toBe('Insufficient funds');
   });

@@ -26,15 +26,15 @@ export class UserSessionService {
   }
 
   /**
-   * Get the player ID for metrics tracking.
+   * Get the profile ID for metrics tracking.
    * If no user is stored, returns a temporary anonymous ID.
    */
-  static getPlayerId(): string {
+  static getProfileId(): string {
     const user = this.getStoredUser();
-    if (user) return user.playerId;
+    if (user) return user.profileId;
 
     // Return a temporary ID if not logged in (for pre-login metrics)
-    return 'anon-' + nanoid(10);
+    return 'anon_' + nanoid(10);
   }
 
   /**
@@ -48,17 +48,17 @@ export class UserSessionService {
   /**
    * Save a new user to storage after successful registration/login.
    */
-  static saveUser(playerId: string, nickname: string): void {
+  static saveUser(profileId: string, nickname: string): void {
     const now = Date.now();
     const user: StoredUser = {
-      playerId,
+      profileId,
       nickname,
       createdAt: now,
       lastSeenAt: now,
     };
 
     UserPersistenceService.saveUser(user);
-    Logger.info(`[UserSession] User saved: ${nickname} (${playerId})`);
+    Logger.info(`[UserSession] User saved: ${nickname} (${profileId})`);
   }
 
   /**
@@ -76,31 +76,33 @@ export class UserSessionService {
       window.location.hostname === '127.0.0.1'
     ) {
       Logger.warn('[UserSession] Local environment detected, using local-only mode');
-      const mockPlayerId = '00000000-0000-4000-a000-000000000000';
-      this.saveUser(mockPlayerId, nickname);
+      const mockProfileId = '00000000-0000-4000-a000-000000000000';
+      this.saveUser(mockProfileId, nickname);
       return { success: true };
     }
 
     try {
-      const { data: existingPlayer } = await supabase
-        .from('players')
+      const { data: existingProfile } = await supabase
+        .from('profiles')
         .select('id')
         .ilike('display_name', nickname)
         .single();
 
-      if (existingPlayer) {
-        this.saveUser(existingPlayer.id, nickname);
-        await supabase.rpc('update_player_last_seen', {
-          p_player_id: existingPlayer.id,
-        });
+      if (existingProfile) {
+        this.saveUser(existingProfile.id, nickname);
+        // Update last seen directly
+        await supabase
+          .from('profiles')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', existingProfile.id);
         return { success: true };
       }
 
-      const { data: newPlayer, error } = await supabase
-        .from('players')
+      const { data: newProfile, error } = await supabase
+        .from('profiles')
         .insert({
           display_name: nickname,
-          total_sessions: 1,
+          is_tester: true, // Auto-mark as tester in development/beta
         })
         .select()
         .single();
@@ -112,12 +114,8 @@ export class UserSessionService {
         throw error;
       }
 
-      if (newPlayer) {
-        this.saveUser(newPlayer.id, nickname);
-        return { success: true };
-      }
-
-      return { success: false, error: 'Failed to create player' };
+      this.saveUser(newProfile.id, nickname);
+      return { success: true };
     } catch (error) {
       Logger.error('[UserSession] Registration error', error);
       return { success: false, error: 'Connection error. Please try again.' };
@@ -142,9 +140,10 @@ export class UserSessionService {
         window.location.hostname !== 'localhost' &&
         window.location.hostname !== '127.0.0.1'
       ) {
-        void supabase.rpc('update_player_last_seen', {
-          p_player_id: user.playerId,
-        });
+        void supabase
+          .from('profiles')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', user.profileId);
       }
     }
   }

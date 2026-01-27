@@ -45,14 +45,12 @@ export class SupabaseService {
     volume: number;
     timestamp: Date;
   }): Promise<void> {
-    const { error } = await this.client.from('price_logs').insert({
+    const { error } = await this.client.from('price_history').insert({
       pair: data.pair,
       price: data.price,
-      high: data.high,
-      low: data.low,
       volume: data.volume,
       timestamp: data.timestamp.toISOString(),
-      source: 'binance',
+      metadata: { high: data.high, low: data.low },
     });
 
     if (error) {
@@ -62,7 +60,7 @@ export class SupabaseService {
           type: 'SupabaseInsertError',
           message: error.message,
           severity: 'high',
-          context: { table: 'price_logs', data },
+          context: { table: 'price_history', data },
         });
         throw error;
       }
@@ -113,7 +111,8 @@ export class SupabaseService {
 
   async checkHealth(): Promise<boolean> {
     try {
-      const { error } = await this.client.from('price_logs').select('id').limit(1);
+      // Use price_history instead of deprecated price_logs
+      const { error } = await this.client.from('price_history').select('pair').limit(1);
 
       return !error;
     } catch {

@@ -286,6 +286,22 @@ export const AGGRESSIVE_ENEMY_MODIFIER: RSIEnemyModifier = {
 };
 
 // =============================================================================
+// MACD (Moving Average Convergence Divergence)
+// =============================================================================
+
+/**
+ * MACD Calculation results
+ */
+export interface MACDResult {
+  /** MACD Line (EMA Fast - EMA Slow) */
+  macd: number;
+  /** Signal Line (EMA of MACD Line) */
+  signal: number;
+  /** Histogram (MACD - Signal) */
+  histogram: number;
+}
+
+// =============================================================================
 // MARKET INDICATOR STATE
 // =============================================================================
 
@@ -311,6 +327,10 @@ export interface MarketIndicatorState {
   rsiState: RSIState;
   /** Previous RSI state (for transition detection) */
   previousRsiState: RSIState;
+
+  // MACD indicators
+  /** MACD calculation results */
+  macd: MACDResult;
 
   // ATR indicators
   /** ATR absolute value */
@@ -345,6 +365,7 @@ export function getDefaultMarketIndicatorState(): MarketIndicatorState {
     rsi: 50,
     rsiState: 'NEUTRAL',
     previousRsiState: 'NEUTRAL',
+    macd: { macd: 0, signal: 0, histogram: 0 },
     atr: 0,
     atrPercent: 0,
     spawnRateMultiplier: 1.0,

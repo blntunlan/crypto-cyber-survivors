@@ -65,8 +65,7 @@ describe('SpawnSystem Edge Cases', () => {
 
   it('should handle very high difficulty scaling', () => {
     // Difficulty 100
-    // scaledDifficulty = 1 + (99) * 0.5 * 1.0 = 50.5
-    // threshold = 1000 / 50.5 ~= 19.802 ms
+    // spawnThreshold = 1000 / 100 = 10 ms
     const result = spawnSystem.update(
       100,
       100,
@@ -77,11 +76,10 @@ describe('SpawnSystem Edge Cases', () => {
     );
     expect(mockPool.getEnemy).toHaveBeenCalled();
 
-    // Burst will trigger multiple spawns
-    // 100 / 19.802 ~= 5.05 spawns
-    // Burst cap is 5
-    // Consumed = 5 * 19.802 = 99.01
-    // Remaining = 100 - 99.01 = 0.99
-    expect(result).toBeCloseTo(0.99, 0.1);
+    // Burst will trigger 5 spawns (100 / 10 = 10, but capped at 5)
+    // Consumed = 5 * 10 = 50
+    // Remaining = 100 - 50 = 50
+    // Guard logic: if (timer > threshold) timer = threshold -> 50 > 10 ? 10 : 50
+    expect(result).toBe(10);
   });
 });

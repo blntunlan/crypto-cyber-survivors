@@ -14,7 +14,7 @@
  * - useMarketTimeout: Market data timeout handling
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { MarketPosition, GameStatus, type LeverageOption } from './types';
 import { type CryptoPair } from './types/crypto';
 import { type Card } from './services/cards/types';
@@ -38,6 +38,9 @@ import { ExperienceService } from './services/ExperienceService';
 import { TimeService } from './services/TimeService';
 import { PerformanceTracker } from './services/analytics/PerformanceTracker';
 import { DeviceProfiler } from './services/analytics/DeviceProfiler';
+import { WalletService } from './services/WalletService';
+import { ComboSystem } from './services/ComboSystem';
+import { SupabaseCoinProvider } from './services/SupabaseCoinProvider';
 
 // Custom hooks
 import { ErrorRecoveryService } from './services/ErrorRecoveryService';
@@ -147,9 +150,9 @@ const App: React.FC = () => {
   // removed useSessionTiming as TimeService is the source of truth now
 
   // Cloudflare session validation (anti-cheat) - starts session on PLAYING, resets on MENU
-  const playerId = UserSessionService.getPlayerId() || 'anonymous';
+  const profileId = UserSessionService.getProfileId() || 'anonymous';
   // Hook manages session lifecycle via side effects
-  useCloudflareSession(gameStatus, playerId, 'BTCUSDT');
+  useCloudflareSession(gameStatus, profileId, 'BTCUSDT');
 
   // Local state for gameMode - needed before usePauseBudget
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
@@ -199,6 +202,8 @@ const App: React.FC = () => {
   const [hubScreen, setHubScreen] = useState<
     'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear'
   >('hub');
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const isGameOverProcessing = useRef(false);
 
   // ========================================
   // Initialization & Utility Hooks (refactored from inline useEffects)
@@ -210,8 +215,19 @@ const App: React.FC = () => {
   // Tutorial system for new users
   const tutorial = useTutorial();
 
+  // Fetch balance when in menu
+  useEffect(() => {
+    if (gameStatus === GameStatus.MENU && isInitialized) {
+      void (async () => {
+        const balance = await WalletService.getInstance().getBalance();
+        setWalletBalance(balance);
+      })();
+    }
+  }, [gameStatus, isInitialized]);
+
   // Initialize Global Services
   useEffect(() => {
+    CoinService.setProvider(new SupabaseCoinProvider());
     void ErrorRecoveryService;
     void MarketEventManager;
   }, []);
@@ -262,6 +278,11 @@ const App: React.FC = () => {
           void playerTracker.refresh();
         }
       );
+
+      // Trigger initial balance fetch
+      void WalletService.getInstance()
+        .getBalance()
+        .then(b => setWalletBalance(b));
     },
     [setNeedsNickname]
   );
@@ -293,6 +314,12 @@ const App: React.FC = () => {
     setFinalPnl(0);
     resetRunStats();
     resetPlayer();
+    isGameOverProcessing.current = false;
+
+    // Refresh balance after returning to menu
+    void WalletService.getInstance()
+      .getBalance()
+      .then(b => setWalletBalance(b));
   }, [resetPlayer, resetRunStats]);
 
   /**
@@ -313,6 +340,7 @@ const App: React.FC = () => {
       resetPlayer();
       setLeverage(selectedLeverage);
       CoinService.resetSession();
+      ComboSystem.startGame();
 
       const success = await GameStateManager.initializeNewGame(
         choice,
@@ -404,6 +432,9 @@ const App: React.FC = () => {
    */
   const handleGameOver = useCallback(
     async (reason: GameEndReason = GameEndReason.DEATH) => {
+      if (isGameOverProcessing.current) return;
+      isGameOverProcessing.current = true;
+
       setFinalPnl(marketData.effectivePnl);
       setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
       GameStateMachine.transition(GameStatus.GAMEOVER);
@@ -545,7 +576,7 @@ const App: React.FC = () => {
         kills: cycleData.totalKills,
         level: cycleData.level,
         pnl: cycleData.effectivePnl,
-        maxStreak: 0,
+        maxStreak: ComboSystem.getMaxStreak(),
       });
       await CoinService.creditCoins(calc.total, 'cycle_complete');
       void handleGameOver(GameEndReason.DEATH); // Reusing death as generic session end
@@ -687,7 +718,7 @@ const App: React.FC = () => {
                     <React.Suspense fallback={<UIFallback />}>
                       <HubMenu
                         nickname={UserSessionService.getNickname() ?? 'Survivor'}
-                        coins={0} // TODO: Connect to EconomyService
+                        coins={walletBalance}
                         onNavigate={screen => {
                           if (screen === 'gear') {
                             setShowSettings(true);

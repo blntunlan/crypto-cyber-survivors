@@ -37,6 +37,16 @@ interface LeaderboardEntry {
   rank?: number;
 }
 
+interface VLeaderboardEntry {
+  display_name: string | null;
+  profile_id: string | null;
+  high_score: number | null;
+  max_survival_time: number | null;
+  avatar_url?: string | null;
+  total_kills?: number | null;
+  total_sessions?: number | null;
+}
+
 interface LeaderboardPanelProps {
   isVisible?: boolean;
 }
@@ -71,21 +81,17 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
         setLastUpdated(new Date());
       } else {
         // Map data using fallbacks for both OLD and NEW view schemas
-        const rankedEntries = data
+        const rankedEntries = (data as VLeaderboardEntry[])
           .map((entry, index) => {
-            const name = (
-              entry.display_name ??
-              entry.player_name ??
-              'Anonymous'
-            ).trim();
+            const name = (entry.display_name ?? 'Anonymous').trim();
             return {
-              ...entry,
-              id: entry.id ?? entry.player_id ?? `entry-${index}`,
+              id: entry.profile_id ?? `entry-${index}`,
               player_name: name,
-              score: entry.score ?? entry.high_score ?? 0,
-              survival_time_ms: entry.survival_time_ms ?? entry.total_playtime_ms ?? 0,
-              rank: entry.rank ?? index + 1,
-            };
+              score: entry.high_score ?? 0,
+              survival_time_ms: entry.max_survival_time ?? 0,
+              created_at: new Date().toISOString(), // View might not have this, default to now
+              rank: index + 1,
+            } as LeaderboardEntry;
           })
           // Filter out anonymous/empty names
           .filter(entry => entry.player_name !== '');
@@ -95,7 +101,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
         Logger.debug('[Leaderboard] Fetched', {
           count: rankedEntries.length,
           source:
-            data.length > 0 && 'display_name' in data[0] ? 'new_view' : 'old_view',
+            data.length > 0 && data[0] && 'display_name' in data[0]
+              ? 'new_view'
+              : 'old_view',
         });
       }
     } catch (err) {

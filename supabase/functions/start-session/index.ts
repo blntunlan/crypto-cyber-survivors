@@ -41,15 +41,15 @@ serve(async (req: Request) => {
 
     const { userId, pair, leverage, position } = await req.json();
 
-    // 1. Get Player ID (Strict case-sensitive)
-    const { data: player, error: playerError } = await supabaseClient
-      .from('players')
+    // 1. Get Profile ID
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
       .select('id')
       .eq('display_name', userId)
       .single();
 
-    if (playerError || !player) {
-      return new Response(JSON.stringify({ error: `Player not found: ${userId}` }), {
+    if (profileError || !profile) {
+      return new Response(JSON.stringify({ error: `Profile not found: ${userId}` }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -57,20 +57,19 @@ serve(async (req: Request) => {
 
     // 2. Create Session with Secret
     const sessionSecret = crypto.randomUUID();
-    const clientSessionId = crypto.randomUUID(); // Fallback internal handle
+    const clientSessionId = crypto.randomUUID();
 
     const { data: session, error: sessionError } = await supabaseClient
-      .from('game_sessions')
+      .from('sessions')
       .insert({
-        player_id: player.id,
-        session_id: clientSessionId,
+        profile_id: profile.id,
+        id: clientSessionId, // Using id as the primary key from client request
         crypto_pair: pair,
         position_chosen: position,
-        leverage: leverage,
         is_verified: false,
         session_secret: sessionSecret,
       })
-      .select('id, start_time')
+      .select('id, created_at')
       .single();
 
     if (sessionError) {

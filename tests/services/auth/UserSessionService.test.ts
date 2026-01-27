@@ -4,7 +4,7 @@ import { UserPersistenceService } from '../../../services/auth/UserPersistenceSe
 
 // Mock types
 interface StoredUser {
-  playerId: string;
+  profileId: string;
   nickname: string;
   createdAt: number;
   lastSeenAt: number;
@@ -77,7 +77,7 @@ describe('UserSessionService', () => {
 
     it('should return stored user from localStorage', async () => {
       const mockUser: StoredUser = {
-        playerId: '550e8400-e29b-41d4-a716-446655440002',
+        profileId: '550e8400-e29b-41d4-a716-446655440002',
         nickname: 'Tester',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),
@@ -90,17 +90,17 @@ describe('UserSessionService', () => {
     });
   });
 
-  describe('getPlayerId', () => {
-    it('should return stored player ID if user exists', () => {
+  describe('getProfileId', () => {
+    it('should return stored profile ID if user exists', () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440003', 'Tester');
-      expect(UserSessionService.getPlayerId()).toBe(
+      expect(UserSessionService.getProfileId()).toBe(
         '550e8400-e29b-41d4-a716-446655440003'
       );
     });
 
     it('should return anon-ID if no user exists', () => {
-      const id = UserSessionService.getPlayerId();
-      expect(id).toMatch(/^anon-/);
+      const id = UserSessionService.getProfileId();
+      expect(id).toMatch(/^anon_/);
     });
   });
 
@@ -109,14 +109,14 @@ describe('UserSessionService', () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440004', 'Saver');
 
       const stored = JSON.parse(localStorage.getItem('crypto_survivors_user')!);
-      expect(stored.playerId).toBe('550e8400-e29b-41d4-a716-446655440004');
+      expect(stored.profileId).toBe('550e8400-e29b-41d4-a716-446655440004');
       expect(stored.nickname).toBe('Saver');
       expect(UserSessionService.getNickname()).toBe('Saver');
     });
   });
 
   describe('registerNickname', () => {
-    it('should register new player in Supabase', async () => {
+    it('should register new profile in Supabase', async () => {
       // 1. check exists -> null
       mockSupabase.single.mockResolvedValueOnce({ data: null, error: null });
       // 2. insert returns player
@@ -127,27 +127,27 @@ describe('UserSessionService', () => {
 
       const result = await UserSessionService.registerNickname('NewPlayer');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('players');
+      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       expect(mockSupabase.insert).toHaveBeenCalled();
       expect(result.success).toBe(true);
       expect(UserSessionService.getNickname()).toBe('NewPlayer');
     });
 
-    it('should login as existing player if nickname exists', async () => {
-      const existingPlayer = {
+    it('should login as existing profile if nickname exists', async () => {
+      const existingProfile = {
         id: '550e8400-e29b-41d4-a716-446655440006',
-        nickname: 'oldie',
+        display_name: 'oldie',
       };
-      mockSupabase.single.mockResolvedValueOnce({ data: existingPlayer, error: null });
-      mockSupabase.rpc.mockResolvedValue({ error: null });
+      mockSupabase.single.mockResolvedValueOnce({ data: existingProfile, error: null });
 
       const result = await UserSessionService.registerNickname('Oldie');
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_player_last_seen', {
-        p_player_id: '550e8400-e29b-41d4-a716-446655440006',
+      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockSupabase.update).toHaveBeenCalledWith({
+        last_seen_at: expect.any(String),
       });
       expect(result.success).toBe(true);
-      expect(UserSessionService.getPlayerId()).toBe(
+      expect(UserSessionService.getProfileId()).toBe(
         '550e8400-e29b-41d4-a716-446655440006'
       );
     });
@@ -168,7 +168,6 @@ describe('UserSessionService', () => {
   describe('updateLastSeen', () => {
     it('should update timestamp in localStorage and Supabase', async () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440007', 'Syncer');
-      mockSupabase.rpc.mockResolvedValue({ error: null });
       const oldTime = UserSessionService.getStoredUser()?.lastSeenAt ?? 0;
 
       await new Promise(r => setTimeout(r, 10));
@@ -176,8 +175,9 @@ describe('UserSessionService', () => {
 
       const newUser = UserSessionService.getStoredUser();
       expect(newUser?.lastSeenAt).toBeGreaterThan(oldTime);
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_player_last_seen', {
-        p_player_id: '550e8400-e29b-41d4-a716-446655440007',
+      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockSupabase.update).toHaveBeenCalledWith({
+        last_seen_at: expect.any(String),
       });
     });
   });

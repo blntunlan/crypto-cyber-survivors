@@ -72,7 +72,23 @@ export class GameSessionService {
           errorMsg = error.message;
         }
 
+        // Handle specific 'Player not found' error - common during initial setup or dev
+        if (errorMsg.includes('Player not found')) {
+          if (import.meta.env.DEV) {
+            Logger.warn(
+              `[GameSession] Player '${nickname}' not found on server yet. Using local fallback.`
+            );
+            return this.triggerDevFallback();
+          }
+        }
+
         Logger.error(`[GameSession] start-session failed: ${errorMsg}`, error);
+
+        // Handle specific 'Player not found' error - common during initial setup or dev
+        if (errorMsg.includes('Player not found') && import.meta.env.DEV) {
+          return this.triggerDevFallback();
+        }
+
         throw new Error(errorMsg);
       }
 
@@ -92,23 +108,30 @@ export class GameSessionService {
 
       // Fallback for local development or connection issues
       if (import.meta.env.DEV) {
-        Logger.warn('[GameSession] DEV mode fallback active');
-        const fallbackId = `local-${Date.now()}`;
-        const fallbackSecret = `secret-${Math.random().toString(36).slice(2)}`;
-        this.currentSessionId = fallbackId;
-        this.currentSessionSecret = fallbackSecret;
-
-        return {
-          sessionId: fallbackId,
-          startTime: new Date().toISOString(),
-          sessionSecret: fallbackSecret,
-        };
+        return this.triggerDevFallback();
       }
 
       return null;
     } finally {
       this.isStarting = false;
     }
+  }
+
+  /**
+   * Triggers a local session fallback for development mode.
+   */
+  private static triggerDevFallback(): ServerSessionResponse {
+    Logger.warn('[GameSession] DEV mode fallback active');
+    const fallbackId = `local-${Date.now()}`;
+    const fallbackSecret = `secret-${Math.random().toString(36).slice(2)}`;
+    this.currentSessionId = fallbackId;
+    this.currentSessionSecret = fallbackSecret;
+
+    return {
+      sessionId: fallbackId,
+      startTime: new Date().toISOString(),
+      sessionSecret: fallbackSecret,
+    };
   }
 
   /**

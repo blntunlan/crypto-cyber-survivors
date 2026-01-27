@@ -391,9 +391,10 @@ describe('CollisionSystem', () => {
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
-      // Should call getFloatingText immediately (stacking disabled)
-      expect(mockPool.getFloatingText).toHaveBeenCalled();
-      expect(enemy.damageBuffer).toBe(0);
+      // Should NOT call getFloatingText immediately (accumulation window active)
+      expect(mockPool.getFloatingText).not.toHaveBeenCalled();
+      expect(enemy.damageBuffer).toBe(10);
+      expect(enemy.damageBufferTimer).toBe(20);
     });
 
     it('should emit hitStop event on critical collision', () => {
@@ -509,8 +510,9 @@ describe('CollisionSystem', () => {
       expect(mockState.critFlash).toBeGreaterThan(0);
       expect(mockPool.getParticle).toHaveBeenCalled();
 
-      // Floating text should be immediate (stacking disabled)
-      expect(mockPool.getFloatingText).toHaveBeenCalled();
+      // Floating text should NOT be immediate (accumulation window active)
+      expect(mockPool.getFloatingText).not.toHaveBeenCalled();
+      expect(enemy.damageBuffer).toBe(10);
     });
   });
 });

@@ -14,7 +14,7 @@ vi.mock('../../../services/Logger', () => ({
 
 vi.mock('../../../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn().mockReturnValue('test-player-id'),
+    getProfileId: vi.fn().mockReturnValue('550e8400-e29b-41d4-a716-446655440001'),
     getNickname: vi.fn().mockReturnValue('Tester'),
   },
 }));
@@ -59,7 +59,8 @@ describe('ErrorTracker', () => {
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           error_type: 'TestError',
-          error_message: 'Something went wrong',
+          message: 'Something went wrong',
+          profile_id: '550e8400-e29b-41d4-a716-446655440001',
         })
       );
     });
@@ -152,7 +153,7 @@ describe('ErrorTracker', () => {
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           error_type: 'ConsoleError',
-          error_message: 'Console Failure',
+          message: 'Console Failure',
         })
       );
     });

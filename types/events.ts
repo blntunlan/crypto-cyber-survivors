@@ -87,7 +87,10 @@ export type GameEvent =
   | 'cycleDecisionMade'
   | 'hudValuesUpdated'
   | 'marketReconnectRequest'
-  | 'gameMarketEvent';
+  | 'gameMarketEvent'
+  | 'portalOpened'
+  | 'portalClosed'
+  | 'portalExtraction';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -333,7 +336,7 @@ import { type InventoryItemType } from './inventory';
 
 /** Lootbox earned event data */
 export interface LootboxEarnedEvent {
-  playerId: string;
+  profileId: string;
   boxType: LootboxType;
   rarity: LootboxRarity;
   source: LootboxSource;
@@ -540,6 +543,9 @@ export interface EventDataMap {
     intensity: number;
     durationMs: number;
   };
+  portalOpened: { x: number; y: number; type: 'TAKE_PROFIT' | 'STOP_LOSS' };
+  portalClosed: EmptyEvent;
+  portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
 }
 
 export interface NotificationEvent {
@@ -563,7 +569,7 @@ export type EventCallback<K extends GameEvent> = (data: EventDataMap[K]) => void
 /** Session successfully synced to Supabase */
 export interface SessionSyncedEvent {
   sessionId: string;
-  playerId: string;
+  profileId: string;
 }
 
 /** Session sync failed after retries */

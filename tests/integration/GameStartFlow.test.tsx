@@ -46,7 +46,7 @@ vi.mock('../../services/auth/GameSessionService', () => ({
 vi.mock('../../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getNickname: vi.fn().mockReturnValue('TestUser'),
-    getPlayerId: vi.fn().mockReturnValue('test-player-id'),
+    getProfileId: vi.fn().mockReturnValue('test-profile-id'),
     register: vi.fn(),
   },
 }));

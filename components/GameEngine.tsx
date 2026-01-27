@@ -15,6 +15,7 @@ import { GameRenderer } from '../services/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
 import { MetricsService } from '../services/MetricsService';
 import { DifficultyManager } from '../services/DifficultyManager';
+import { AIDirector } from '../services/difficulty/AIDirector';
 import { ComboSystem } from '../services/ComboSystem';
 import { TimeService } from '../services/TimeService';
 import { getHUDLayout } from '../config/UILayout';
@@ -38,6 +39,7 @@ import { Logger } from '../services/Logger';
 import { EventBus } from '../services/EventBus';
 import { EngineRegistry } from '../services/EngineRegistry';
 import { difficultyContext } from '../services/difficulty';
+import { portalSystem } from '../services/PortalSystem';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -258,6 +260,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return undefined;
   }, [status, pair, position, state]);
 
+  // AIDirector Activation
+  useEffect(() => {
+    if (status === GameStatus.PLAYING) {
+      AIDirector.setEnabled(true);
+    } else {
+      AIDirector.setEnabled(false);
+    }
+    return () => AIDirector.setEnabled(false);
+  }, [status]);
+
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
     const unsubscribe = EventBus.on('hitStop', data => {
@@ -397,6 +409,50 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update difficulty waves in real-time
         DifficultyManager.updateWaveTimer(deltaTime);
         difficultyContext.updateTime(TimeService.getGameTimeSeconds());
+
+        // Update AI Director (Brain) with Player Power Specs
+        AIDirector.setPlayerStats(
+          player.baseDamage,
+          player.fireRate,
+          player.projectiles,
+          ComboSystem.getKillStreak()
+        );
+        AIDirector.update(time);
+
+        // Update Portal System
+        portalSystem.update(deltaTime, width, height);
+
+        // Update Gatekeeper Orbit positions & Knockback
+        const portal = portalSystem.getState();
+        if (portal.isActive) {
+          p.activeEnemies.forEach(enemy => {
+            if (enemy.type === 'gatekeeper' && enemy.orbitPoint) {
+              const e = enemy;
+              const orbitSpeed = 0.02 * dtFactor;
+              e.orbitAngle = (e.orbitAngle ?? 0) + orbitSpeed;
+              enemy.x = e.orbitPoint.x + Math.cos(e.orbitAngle) * 80;
+              enemy.y = e.orbitPoint.y + Math.sin(e.orbitAngle) * 80;
+
+              // Knockback player if touching
+              const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+              if (dist < player.radius + enemy.radius) {
+                const kx = (player.x - enemy.x) / dist;
+                const ky = (player.y - enemy.y) / dist;
+                player.x += kx * 5 * dtFactor;
+                player.y += ky * 5 * dtFactor;
+              }
+            }
+          });
+
+          // Portal Collision Check (Extraction)
+          const pDist = Math.hypot(player.x - portal.x, player.y - portal.y);
+          if (pDist < player.radius + portal.radius * 0.4) {
+            const rewards = portalSystem.calculateFinalRewards();
+            portalSystem.closePortal();
+            EventBus.emit('portalExtraction', rewards);
+            onGameOver(); // Exit run
+          }
+        }
 
         // Update combo system
         ComboSystem.update();
@@ -697,7 +753,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
 
         // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---
-        s.interactableSpawnTimer = (s.interactableSpawnTimer ?? 0) + deltaTime;
+        s.interactableSpawnTimer = s.interactableSpawnTimer + deltaTime;
         if (s.interactableSpawnTimer > 20000) {
           // Every 20 seconds
           s.interactableSpawnTimer = 0;

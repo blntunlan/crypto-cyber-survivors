@@ -107,16 +107,32 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
    * Significantly reduces GC pressure compared to getNearby().
    */
   public forEachNearby(x: number, y: number, callback: (entity: T) => void): void {
+    this.forEachInRange(x, y, 1, callback);
+  }
+
+  /**
+   * Zero-allocation iterator for entities within a specified cell range.
+   * @param x Center X coordinate
+   * @param y Center Y coordinate
+   * @param radius Number of neighboring cells to check (1 = 3x3, 2 = 5x5, etc.)
+   * @param callback Function to call for each entity
+   */
+  public forEachInRange(
+    x: number,
+    y: number,
+    radius: number,
+    callback: (entity: T) => void
+  ): void {
     const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
     const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
 
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
         const key = ((cellX + dx) << 16) | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
-          // Standard for loop is faster than forEach for hot paths
-          for (let i = 0; i < cell.length; i++) {
+          const len = cell.length;
+          for (let i = 0; i < len; i++) {
             callback(cell[i]!);
           }
         }

@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { type Database } from '../types/supabase';
 
 import { Logger } from './Logger';
 
@@ -10,6 +11,10 @@ const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isConfigured) {
   Logger.warn('[Supabase] Missing credentials. Backend features will be disabled.');
+} else {
+  if (import.meta.env.DEV) {
+    Logger.info(`[Supabase] Connected to project: ${supabaseUrl}`);
+  }
 }
 
 /**
@@ -17,13 +22,8 @@ if (!isConfigured) {
  * Will be null if credentials are not configured.
  * Always check with `isSupabaseConfigured()` before using.
  */
-// Generate types with: npm run supabase:gen
-// Then import { Database } from '../types/supabase';
-// For now, using 'any' to avoid build break until first generation.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const supabase: SupabaseClient<any> | null = isConfigured
-  ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    createClient<any>(supabaseUrl!, supabaseAnonKey!)
+export const supabase: SupabaseClient<Database> | null = isConfigured
+  ? createClient<Database>(supabaseUrl!, supabaseAnonKey!)
   : null;
 
 /**

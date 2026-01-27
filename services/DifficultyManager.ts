@@ -9,6 +9,7 @@ import { Logger } from './Logger';
 import { difficultyContext } from './difficulty/DifficultyContext';
 import { clamp } from './difficulty/utils';
 import { getShockDirection } from './difficulty/factors';
+import { AIDirector } from './difficulty/AIDirector';
 
 /**
  * Interface representing the various factors contributing to the final difficulty.
@@ -150,14 +151,23 @@ class DifficultyManagerClass {
     );
     const scale = inp.leverageScale;
 
+    // 4.5. Apply AI Modifiers (Neuro-Dynamic Layer)
+    const ai = AIDirector.getOutputs();
+
+    // AI Multipliers
+    const aiSpawnMult = 0.5 + ai.spawnDensity * 1.5;
+    const aiSpeedMult = 0.8 + ai.enemySpeedMod * 0.6;
+    const aiDamageMult = 1.0 + ai.aggression * 0.8;
+
+    // Apply modifiers and THEN clamp to final limits
     const output: DifficultyOutput = {
       spawnRate: clamp(
-        total * scale.spawn * D_CONFIG.SPAWN_RATE_TOTAL_MULTIPLIER,
+        total * scale.spawn * D_CONFIG.SPAWN_RATE_TOTAL_MULTIPLIER * aiSpawnMult,
         D_CONFIG.LIMITS.spawnRate.min,
         D_CONFIG.LIMITS.spawnRate.max
       ),
       enemySpeed: clamp(
-        f.pnl * f.atr * f.wave * scale.speed,
+        f.pnl * f.atr * f.wave * scale.speed * aiSpeedMult,
         D_CONFIG.LIMITS.enemySpeed.min,
         D_CONFIG.LIMITS.enemySpeed.max
       ),
@@ -167,13 +177,13 @@ class DifficultyManagerClass {
         D_CONFIG.LIMITS.enemyHP.max
       ),
       enemyDamage: clamp(
-        f.cycle * f.pnl * scale.damage,
+        f.cycle * f.pnl * scale.damage * aiDamageMult,
         D_CONFIG.LIMITS.enemyDamage.min,
         D_CONFIG.LIMITS.enemyDamage.max
       ),
       total,
       factors: {
-        baseTime: f.cycle, // V2 uses cycle as base time factor
+        baseTime: f.cycle,
         pnlEffect: f.pnl,
         volatility: f.atr,
         levelFactor: f.level,
@@ -187,6 +197,10 @@ class DifficultyManagerClass {
         leverageSpeed: scale.speed,
       },
     };
+
+    // Recalculate total difficulty metric for UI (Using a more stable average)
+    const finalTotal = (output.total + output.total * aiSpawnMult) / 2;
+    output.total = clamp(finalTotal, D_CONFIG.LIMITS.total.min, maxDifficulty);
 
     this.latestOutput = output;
 

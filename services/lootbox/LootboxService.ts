@@ -25,7 +25,7 @@ import {
 class LootboxServiceClass {
   // In-memory storage (will be synced with Supabase later)
   private playerLootboxes: Map<string, PlayerLootbox[]> = new Map();
-  private currentPlayerId: string | null = null;
+  private currentProfileId: string | null = null;
   private sessionFlags: Set<string> = new Set();
 
   constructor() {
@@ -36,21 +36,21 @@ class LootboxServiceClass {
   /**
    * Sets the current player context for storing boxes.
    *
-   * @param playerId Unique identifier for the player
+   * @param profileId Unique identifier for the player
    */
-  public setPlayer(playerId: string): void {
-    this.currentPlayerId = playerId;
-    if (!this.playerLootboxes.has(playerId)) {
-      this.playerLootboxes.set(playerId, []);
+  public setPlayer(profileId: string): void {
+    this.currentProfileId = profileId;
+    if (!this.playerLootboxes.has(profileId)) {
+      this.playerLootboxes.set(profileId, []);
     }
-    Logger.info(`[LootboxService] Player set: ${playerId}`);
+    Logger.info(`[LootboxService] Player set: ${profileId}`);
   }
 
   /**
    * Returns the ID of the currently active player.
    */
-  public getCurrentPlayerId(): string | null {
-    return this.currentPlayerId;
+  public getCurrentProfileId(): string | null {
+    return this.currentProfileId;
   }
 
   /**
@@ -64,7 +64,7 @@ class LootboxServiceClass {
     boxType: LootboxType,
     source: LootboxSource
   ): PlayerLootbox | null {
-    if (!this.currentPlayerId) {
+    if (!this.currentProfileId) {
       Logger.warn('[LootboxService] No player set, cannot earn lootbox');
       return null;
     }
@@ -73,7 +73,7 @@ class LootboxServiceClass {
 
     const lootbox: PlayerLootbox = {
       id: this.generateId(),
-      playerId: this.currentPlayerId,
+      profileId: this.currentProfileId,
       boxType,
       rarity: config.rarity,
       obtainedAt: new Date(),
@@ -81,13 +81,13 @@ class LootboxServiceClass {
       source,
     };
 
-    const playerBoxes = this.playerLootboxes.get(this.currentPlayerId) ?? [];
+    const playerBoxes = this.playerLootboxes.get(this.currentProfileId) ?? [];
     playerBoxes.push(lootbox);
-    this.playerLootboxes.set(this.currentPlayerId, playerBoxes);
+    this.playerLootboxes.set(this.currentProfileId, playerBoxes);
 
     // Emit event with type safety
     EventBus.emit('lootboxEarned', {
-      playerId: this.currentPlayerId,
+      profileId: this.currentProfileId,
       boxType,
       rarity: config.rarity,
       source,
@@ -110,7 +110,7 @@ class LootboxServiceClass {
 
     let boxType: LootboxType;
     if (cycleNumber >= 5) {
-      boxType = config[5];
+      boxType = (config as Record<number, LootboxType>)[5] ?? 'mining_crate';
     } else if (cycleNumber === 3) {
       boxType = config[3];
     } else if (cycleNumber === 2) {
@@ -159,7 +159,10 @@ class LootboxServiceClass {
         }
 
         this.setSessionFlag(key);
-        return this.earnLootbox(config[milestone], 'kill_streak');
+        return this.earnLootbox(
+          (config as Record<number, LootboxType>)[milestone] ?? 'mining_crate',
+          'kill_streak'
+        );
       }
     }
 
@@ -172,12 +175,12 @@ class LootboxServiceClass {
    * @param lootboxId Unique ID of the box to open
    */
   public async openLootbox(lootboxId: string): Promise<LootboxOpenResult | null> {
-    if (!this.currentPlayerId) {
+    if (!this.currentProfileId) {
       Logger.warn('[LootboxService] No player set');
       return null;
     }
 
-    const playerBoxes = this.playerLootboxes.get(this.currentPlayerId);
+    const playerBoxes = this.playerLootboxes.get(this.currentProfileId);
     if (!playerBoxes) {
       return null;
     }
@@ -244,10 +247,10 @@ class LootboxServiceClass {
    * Returns a list of all currently unopened lootboxes for the player.
    */
   public getUnopenedLootboxes(): PlayerLootbox[] {
-    if (!this.currentPlayerId) {
+    if (!this.currentProfileId) {
       return [];
     }
-    const playerBoxes = this.playerLootboxes.get(this.currentPlayerId) ?? [];
+    const playerBoxes = this.playerLootboxes.get(this.currentProfileId) ?? [];
     return playerBoxes.filter(box => !box.opened);
   }
 
@@ -345,7 +348,7 @@ class LootboxServiceClass {
   public resetForTesting(): void {
     this.playerLootboxes.clear();
     this.sessionFlags.clear();
-    this.currentPlayerId = null;
+    this.currentProfileId = null;
   }
 
   /**
@@ -353,7 +356,7 @@ class LootboxServiceClass {
    */
   public getDebugState(): object {
     return {
-      currentPlayerId: this.currentPlayerId,
+      currentProfileId: this.currentProfileId,
       totalLootboxes: this.getUnopenedLootboxes().length,
       counts: this.getUnopenedCounts(),
       sessionFlags: Array.from(this.sessionFlags),

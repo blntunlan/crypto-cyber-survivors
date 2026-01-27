@@ -24,7 +24,7 @@ describe('Registration Flow (Integration with MSW)', () => {
     const storedUser = UserSessionService.getStoredUser();
     expect(storedUser).not.toBeNull();
     expect(storedUser?.nickname).toBe(nickname);
-    expect(storedUser?.playerId).toBe('new-uuid');
+    expect(storedUser?.profileId).toBe('new-uuid');
   });
 
   it('should recognize and login an existing user', async () => {
@@ -36,7 +36,7 @@ describe('Registration Flow (Integration with MSW)', () => {
 
     const storedUser = UserSessionService.getStoredUser();
     expect(storedUser?.nickname).toBe(nickname);
-    expect(storedUser?.playerId).toBe('existing-uuid');
+    expect(storedUser?.profileId).toBe('existing-uuid');
   });
 
   it('should handle registration failures gracefully', async () => {

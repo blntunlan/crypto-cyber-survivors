@@ -126,6 +126,7 @@ export class MetricsStorage {
 
     // Check if analytics is enabled via environment variable
     // Set VITE_ENABLE_ANALYTICS=false in .env.local to disable during development
+
     const analyticsEnabled = import.meta.env.VITE_ENABLE_ANALYTICS !== 'false';
 
     if (!analyticsEnabled) {
@@ -134,13 +135,13 @@ export class MetricsStorage {
     }
 
     try {
-      const playerId = UserSessionService.getPlayerId();
+      const profileId = UserSessionService.getProfileId();
       const nickname = UserSessionService.getNickname();
-      const isAnonymous = playerId.startsWith('anon-');
+      const isAnonymous = profileId.startsWith('anon-');
 
       // Log detailed state for debugging
       Logger.info('[MetricsStorage] Attempting sync with player state', {
-        playerId: isAnonymous ? 'anonymous' : playerId.substring(0, 8) + '...',
+        profileId: isAnonymous ? 'anonymous' : profileId.substring(0, 8) + '...',
         hasNickname: !!nickname,
         isAnonymous,
         sessionId: session.sessionId,
@@ -148,43 +149,40 @@ export class MetricsStorage {
         totalKills: session.player.totalKills,
       });
 
-      // Session data to save
+      // Session data to save (mapped to 'sessions' table schema)
       const sessionData = {
-        player_id: isAnonymous ? null : playerId,
-        session_timestamp: new Date(session.sessionTimestamp).toISOString(),
-        survival_time_ms: session.player.survivalTimeMs,
-        end_reason: session.gameEndReason,
-        max_level: session.player.maxLevel,
-        total_kills: session.player.totalKills,
+        profile_id: isAnonymous ? null : profileId,
         crypto_pair: session.pair,
         position_chosen: session.bitcoin.positionChosen,
         leverage: session.bitcoin.leverage,
         entry_price: session.bitcoin.priceAtStart,
         exit_price: session.bitcoin.priceAtEnd,
-        pnl_percent: session.bitcoin.pnlAtDeath,
-        claimed_entry_price: session.bitcoin.priceAtStart,
-        claimed_exit_price: session.bitcoin.priceAtEnd,
-        claimed_pnl: session.bitcoin.pnlAtDeath,
-        device_fingerprint: session.performance?.deviceFingerprint,
-        is_suspicious: session.verification?.isSuspicious ?? false,
-        suspicion_reason: session.verification?.suspicionReason,
-        session_id: session.sessionId,
-        end_time: new Date().toISOString(),
+        survival_seconds: Math.floor(session.player.survivalTimeMs / 1000),
+        kills: session.player.totalKills,
+        created_at: new Date(session.sessionTimestamp).toISOString(),
+        id:
+          session.serverSessionId && !session.serverSessionId.startsWith('local-')
+            ? session.serverSessionId
+            : session.sessionId,
       };
 
       let gameSession: { id: string } | null = null;
       let sessionError: Error | null = null;
 
-      // If we have a serverSessionId, UPDATE the existing record
-      if (session.serverSessionId) {
+      // If we have a VALID serverSessionId (UUID format), UPDATE the existing record
+      // local- prefixed IDs are not UUIDs and will cause a 400 Bad Request
+      const isServerUuid =
+        session.serverSessionId && !session.serverSessionId.startsWith('local-');
+
+      if (isServerUuid) {
         Logger.debug('[MetricsStorage] Updating existing server session', {
-          serverSessionId: session.serverSessionId,
+          serverSessionId: session.serverSessionId as string,
         });
 
         const { data, error } = await supabase
-          .from('game_sessions')
+          .from('sessions')
           .update(sessionData)
-          .eq('id', session.serverSessionId)
+          .eq('id', session.serverSessionId ?? '')
           .select('id')
           .single();
 
@@ -203,7 +201,7 @@ export class MetricsStorage {
       // If no serverSessionId OR update failed, try INSERT
       if (!gameSession) {
         const { data, error } = await supabase
-          .from('game_sessions')
+          .from('sessions')
           .insert(sessionData)
           .select('id')
           .single();
@@ -220,7 +218,7 @@ export class MetricsStorage {
             '[MetricsStorage] Duplicate session detected - replay attack blocked',
             {
               sessionId: session.sessionId,
-              playerId,
+              profileId,
             }
           );
           return; // Silently ignore duplicate
@@ -267,29 +265,33 @@ export class MetricsStorage {
       // Emit success event
       EventBus.emit('sessionSynced', {
         sessionId: actualSessionId,
-        playerId,
+        profileId,
       });
 
       // 2. Insert performance metrics (if available)
       if (session.performance && actualSessionId) {
         const { error: perfError } = await supabase.from('performance_metrics').insert({
           session_id: actualSessionId,
+          profile_id: isAnonymous ? null : profileId,
           avg_fps: session.performance.avgFps,
           min_fps: session.performance.minFps,
           max_fps: session.performance.maxFps ?? session.performance.avgFps,
-          fps_samples: session.performance.fpsSamples ?? 1,
           frame_drops: session.performance.frameDrops ?? 0,
-          memory_used_mb: session.performance.memoryUsedMb,
-          memory_peak_mb: session.performance.memoryPeakMb,
-          enemy_count_max: session.performance.enemyCountMax,
-          fps_1_percentile: session.performance.fps_1_percentile,
-          avg_frame_time_ms: session.performance.avg_frame_time_ms,
-          max_frame_time_ms: session.performance.max_frame_time_ms,
-          enemy_count_avg: session.performance.enemy_count_avg,
-          bullet_count_avg: session.performance.bullet_count_avg,
-          particle_count_avg: session.performance.particle_count_avg,
-          optimization_profile: session.performance.optimizationProfile,
-          device_fingerprint: session.performance.deviceFingerprint,
+          device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
+          metadata: {
+            fps_samples: session.performance.fpsSamples ?? 1,
+            memory_used_mb: session.performance.memoryUsedMb,
+            memory_peak_mb: session.performance.memoryPeakMb,
+            enemy_count_max: session.performance.enemyCountMax,
+            fps_1_percentile: session.performance.fps_1_percentile,
+            avg_frame_time_ms: session.performance.avg_frame_time_ms,
+            max_frame_time_ms: session.performance.max_frame_time_ms,
+            enemy_count_avg: session.performance.enemy_count_avg,
+            bullet_count_avg: session.performance.bullet_count_avg,
+            particle_count_avg: session.performance.particle_count_avg,
+            optimization_profile: session.performance.optimizationProfile,
+            device_fingerprint: session.performance.deviceFingerprint,
+          },
         });
 
         if (perfError) {

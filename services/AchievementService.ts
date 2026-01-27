@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from './Supabase';
 import { Logger } from './Logger';
 import { UserSessionService } from './auth/UserSessionService';
-import { type Achievement, type PlayerAchievement } from '../types';
+import { type Achievement, type ProfileAchievement } from '../types';
 
 interface DBAchievement {
   id: string;
@@ -45,7 +45,7 @@ export class AchievementService {
       return [];
     }
 
-    return (data as unknown as DBAchievement[]).map(item => ({
+    return (data as DBAchievement[]).map(item => ({
       id: item.id,
       name: item.name,
       description: item.description,
@@ -65,36 +65,38 @@ export class AchievementService {
   /**
    * Fetch unlocked achievements for the current player
    */
-  async getMyUnlocks(): Promise<PlayerAchievement[]> {
-    const playerId = UserSessionService.getPlayerId();
-    if (playerId.startsWith('anon-')) return [];
+  async getMyUnlocks(): Promise<ProfileAchievement[]> {
+    const profileId = UserSessionService.getProfileId();
+    if (profileId.startsWith('anon-')) return [];
 
     if (!isSupabaseConfigured() || supabase === null) return [];
 
     const { data, error } = await supabase
-      .from('player_achievements')
+      .from('profile_achievements')
       .select('*')
-      .eq('player_id', playerId);
+      .eq('profile_id', profileId);
 
     if (error) {
       Logger.error('[AchievementService] Failed to fetch unlocks', error);
       return [];
     }
 
-    return data.map(
-      (item: {
-        id: string;
-        player_id: string;
-        achievement_id: string;
-        unlocked_at: string;
-      }) => ({
-        id: item.id,
-        playerId: item.player_id,
-        achievementId: item.achievement_id,
-        unlockedAt: item.unlocked_at,
-        formattedDate: new Date(item.unlocked_at).toLocaleDateString(),
-      })
-    );
+    interface ProfileAchievementRow {
+      id: string;
+      profile_id: string | null;
+      achievement_id: string | null;
+      unlocked_at: string | null;
+    }
+
+    return (data as ProfileAchievementRow[]).map(item => ({
+      id: item.id,
+      profileId: item.profile_id ?? '',
+      achievementId: item.achievement_id ?? '',
+      unlockedAt: item.unlocked_at ?? '',
+      formattedDate: item.unlocked_at
+        ? new Date(item.unlocked_at).toLocaleDateString()
+        : '',
+    }));
   }
 
   /**

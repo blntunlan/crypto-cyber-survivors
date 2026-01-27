@@ -22,11 +22,8 @@ describe('UserPersistenceService', () => {
 
   describe('Initialization Logic', () => {
     const mockUser = {
-      playerId: '550e8400-e29b-41d4-a716-446655440000',
+      profileId: '550e8400-e29b-41d4-a716-446655440000',
       nickname: 'TestUser',
-      hasNickname: true,
-      isAnonymous: false,
-      lastLogin: new Date().toISOString(),
       createdAt: Date.now(),
       lastSeenAt: Date.now(),
     };
@@ -36,7 +33,7 @@ describe('UserPersistenceService', () => {
 
       const user = await UserPersistenceService.initialize();
       expect(user?.nickname).toBe('TestUser');
-      expect(UserPersistenceService.getStoredUser()?.playerId).toBe(
+      expect(UserPersistenceService.getStoredUser()?.profileId).toBe(
         '550e8400-e29b-41d4-a716-446655440000'
       );
     });
@@ -44,7 +41,7 @@ describe('UserPersistenceService', () => {
     it('should fallback to Cookie if localStorage is empty', async () => {
       // Create Base64 cookie content like the service does
       const minimalUser = {
-        playerId: '550e8400-e29b-41d4-a716-446655440009',
+        profileId: '550e8400-e29b-41d4-a716-446655440009',
         nickname: 'CookieUser',
         createdAt: 1000,
         lastSeenAt: 2000,
@@ -79,11 +76,8 @@ describe('UserPersistenceService', () => {
 
   describe('Data Management', () => {
     const testUser = {
-      playerId: '550e8400-e29b-41d4-a716-446655440010',
+      profileId: '550e8400-e29b-41d4-a716-446655440010',
       nickname: 'Saver',
-      hasNickname: true,
-      isAnonymous: false,
-      lastLogin: new Date().toISOString(),
       createdAt: Date.now(),
       lastSeenAt: Date.now(),
     };
@@ -136,7 +130,7 @@ describe('UserPersistenceService', () => {
           throw new Error('Quota exceeded');
         });
       const user = {
-        playerId: '550e8400-e29b-41d4-a716-446655440011',
+        profileId: '550e8400-e29b-41d4-a716-446655440011',
         nickname: 'Err',
       } as any;
       UserPersistenceService.saveUser(user);

@@ -44,7 +44,7 @@ export class PlayerTracker {
       return;
     }
 
-    const playerId = UserSessionService.getPlayerId();
+    const profileId = UserSessionService.getProfileId();
     const nickname = UserSessionService.getNickname();
 
     if (!nickname) {
@@ -53,7 +53,7 @@ export class PlayerTracker {
     }
 
     // Skip anonymous players
-    if (playerId.startsWith('anon-')) {
+    if (profileId.startsWith('anon-')) {
       Logger.debug('[PlayerTracker] Anonymous player, skipping registration');
       return;
     }
@@ -61,9 +61,9 @@ export class PlayerTracker {
     try {
       // Check if player exists
       const { data: existing, error: fetchError } = await supabase
-        .from('players')
+        .from('profiles')
         .select('*')
-        .eq('id', playerId)
+        .eq('id', profileId)
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -75,12 +75,12 @@ export class PlayerTracker {
         const newTotalSessions = (existing.total_sessions ?? 0) + 1;
 
         const { error: updateError } = await supabase
-          .from('players')
+          .from('profiles')
           .update({
             total_sessions: newTotalSessions,
             last_seen_at: new Date().toISOString(),
           })
-          .eq('id', playerId);
+          .eq('id', profileId);
 
         if (updateError) throw updateError;
 
@@ -97,9 +97,9 @@ export class PlayerTracker {
       } else {
         // Create new player
         const { data: newPlayer, error: insertError } = await supabase
-          .from('players')
+          .from('profiles')
           .insert({
-            id: playerId,
+            id: profileId,
             display_name: nickname,
             created_at: new Date().toISOString(),
             last_seen_at: new Date().toISOString(),
@@ -144,7 +144,7 @@ export class PlayerTracker {
 
         try {
           await supabase
-            .from('players')
+            .from('profiles')
             .update({ last_seen_at: new Date().toISOString() })
             .eq('id', this.currentPlayer.id);
 
@@ -190,7 +190,7 @@ export class PlayerTracker {
 
     try {
       const { error } = await supabase
-        .from('players')
+        .from('profiles')
         .update({ high_score: newScore })
         .eq('id', this.currentPlayer.id);
 

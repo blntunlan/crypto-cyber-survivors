@@ -223,7 +223,7 @@ export const LOOTBOX_DROP_RATES: Record<LootboxRarity, DropRateConfig> = {
 
 export interface PlayerLootbox {
   id: string;
-  playerId: string;
+  profileId: string;
   boxType: LootboxType;
   rarity: LootboxRarity;
   obtainedAt: Date;

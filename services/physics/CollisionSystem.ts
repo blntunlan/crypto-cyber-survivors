@@ -89,18 +89,9 @@ export class CollisionSystem implements ICollisionSystem {
         return;
       }
 
-      // Decrement Hit Flash Timer
-      if (enemy.damageBufferTimer && enemy.damageBufferTimer > 0) {
-        enemy.damageBufferTimer = Math.max(0, enemy.damageBufferTimer - 1 * dtFactor);
-
-        // Fix: Ensure we flush any remaining buffer when the timer expires
-        if (
-          enemy.damageBufferTimer === 0 &&
-          enemy.damageBuffer &&
-          enemy.damageBuffer > 0
-        ) {
-          this.flushDamageBuffer(pool, enemy);
-        }
+      // Decrement Hit Flash Timer (Controls visual red/white flash)
+      if (enemy.hitFlashTimer && enemy.hitFlashTimer > 0) {
+        enemy.hitFlashTimer = Math.max(0, enemy.hitFlashTimer - 1 * dtFactor);
       }
 
       // 1. Boundary Check (Culling)
@@ -125,7 +116,7 @@ export class CollisionSystem implements ICollisionSystem {
         enemy.spawnTimer -= GAME_ENGINE.COLLISION_SPAWN_TIMER_DEC * dtFactor;
       }
 
-      // 4. Damage Buffer Decay (Batched for performance)
+      // 4. Damage Buffer Decay (Controls accumulation window)
       if (
         updateDamageThisFrame &&
         enemy.damageBufferTimer !== undefined &&
@@ -413,7 +404,7 @@ export class CollisionSystem implements ICollisionSystem {
     this.spawnImpactParticles(pool, bullet, particleMultiplier);
     this.applyKnockback(enemy, bullet, dtFactor);
     this.triggerCritEffects(bullet, state);
-    this.bufferDamage(enemy, bullet, pool);
+    this.bufferDamage(enemy, bullet);
 
     // Hit Stop Effect (Only on Crits/Super Crits to maintain flow)
     if (bullet.isCrit || bullet.isSuperCrit) {
@@ -480,8 +471,9 @@ export class CollisionSystem implements ICollisionSystem {
   /**
    * Accumulates damage onto an enemy to show a combined number later.
    */
-  private bufferDamage(enemy: Enemy, bullet: Bullet, pool: IPoolManager): void {
+  private bufferDamage(enemy: Enemy, bullet: Bullet): void {
     enemy.damageBuffer = (enemy.damageBuffer ?? 0) + bullet.damage;
+    enemy.damageBufferTimer = 20; // Reset accumulation window (approx 333ms)
 
     // Preserve the highest crit tier for the coloring
     if (bullet.isSuperCrit) {
@@ -494,8 +486,8 @@ export class CollisionSystem implements ICollisionSystem {
       enemy.damageBufferCritCount = (enemy.damageBufferCritCount ?? 0) + 1;
     }
 
-    // Immediate flush - show damage per hit (stacking disabled)
-    this.flushDamageBuffer(pool, enemy);
+    // Optional: Immediate flush can still be done if needed,
+    // but the timer in update() will now handle it properly.
   }
 
   /**
@@ -553,7 +545,8 @@ export class CollisionSystem implements ICollisionSystem {
 
     // Reset buffer
     enemy.damageBuffer = 0;
-    enemy.damageBufferTimer = 20; // 20 frames of "white" flash time (approx 330ms)
+    enemy.damageBufferTimer = 0;
+    enemy.hitFlashTimer = 20; // 20 frames of "white" flash time (approx 330ms)
     enemy.damageBufferIsCrit = false;
     enemy.damageBufferIsSuperCrit = false;
     enemy.damageBufferCritCount = 0;

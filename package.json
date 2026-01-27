@@ -25,8 +25,9 @@
     "railway:link": "railway link",
     "railway:deploy": "railway deploy",
     "railway:market:deploy": "cd railway-market-server && railway deploy",
-    "supabase:gen": "npx supabase gen types typescript --project-id dqaggcizordsijpnfteo > types/supabase.ts",
+    "supabase:gen": "npx supabase gen types typescript --project-id dnhfsmvwqjxoextwbebj > types/supabase.ts",
     "supabase:push": "npx supabase db push",
+    "security:check": "grep -rE 'api_key|secret|password|token|private_key' . --exclude-dir={node_modules,dist,.git} --exclude={package-lock.json,.env.example}",
     "deploy": "git push origin main"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "serve": "14.2.5",
+    "synaptic": "^1.1.4",
     "zod": "4.2.1",
     "zustand": "5.0.9"
   },

@@ -1,4 +1,5 @@
 import type { MarketPosition } from '../../types';
+import type { MACDResult } from '../../types/indicators';
 
 /** Wave phase names */
 export type WavePhase =
@@ -65,6 +66,15 @@ export interface DifficultyInputs {
 
   // History
   pnlHistory: number[]; // buffer of leveraged PnL values
+
+  // --- Neural Network Sensors (V2) ---
+  macd: MACDResult;
+  stress: {
+    score: number; // 0-1, Composite score
+    damageRate: number; // 5-sec window damage
+    dashUsage: number; // dashes per minute
+    nearDeathDuration: number; // seconds spent < 20% HP
+  };
 }
 
 /** State container for difficulty context */
@@ -98,10 +108,8 @@ export interface DifficultyContextState {
     performance: number; // Impact of player skill
     total: number; // clamp(core × modifier × market * performance, 1.0, 20.0)
   };
-  inputs: {
-    leverage: number;
+  inputs: DifficultyInputs & {
     leverageScale: LeverageScale;
-    pnlHistory: number[];
   };
 }
 

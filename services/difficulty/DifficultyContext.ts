@@ -3,7 +3,6 @@ import {
   calculateCycleFactor,
   calculatePnLFactor,
   calculateLevelFactor,
-  calculateWaveFactor,
   calculateLiquidationFactor,
   calculateStreakFactor,
   calculateShockFactor,
@@ -12,7 +11,9 @@ import {
   calculateATRFactor,
   calculateNearDeathFactor,
   calculatePerformanceFactor,
+  calculateWaveFactor,
 } from './factors';
+import { calculateStressScore } from './factors/stress';
 import {
   type DifficultyInputs,
   type DifficultyContextState,
@@ -22,6 +23,7 @@ import {
 import { DIFFICULTY_CONFIG, getLeverageScale } from './constants';
 import { clamp, getDefaultInputs } from './utils';
 import type { MarketPosition } from '../../types';
+import { marketIndicatorService } from '../indicators/MarketIndicatorService';
 
 /**
  * DifficultyContextManager - Orchestrator for the Layered Difficulty System (V2)
@@ -45,7 +47,11 @@ class DifficultyContextManager {
   private bulletsFiredInWindow = 0;
   private hitsInWindow = 0;
   private damageTakenInWindow = 0;
+  private dashUsageInWindow = 0;
   private lastPerformanceUpdate = 0;
+
+  // Sensor Data Buffers
+  private nearDeathStartTime: number = 0; // Timestamp when player fell below 20% HP
 
   private constructor() {
     this.inputs = getDefaultInputs();
@@ -74,7 +80,7 @@ class DifficultyContextManager {
       this.inputs.rsi = data.rsi;
       this.inputs.rsiState = data.rsiState;
       this.inputs.normalizedVolume = data.normalizedVolume;
-      this.inputs.atrPercent = data.spawnRateMultiplier; // Use it as a proxy for volatility intensity for now or sync from state updated
+      this.inputs.atrPercent = data.spawnRateMultiplier; // Use it as a proxy for volatility intensity for now
       this.markDirty();
     });
 
@@ -91,14 +97,18 @@ class DifficultyContextManager {
       this.markDirty();
     });
 
-    EventBus.on('playerHit', _data => {
-      // Calculation of hpPercent is done at consumer or we can track it here
-      // For simplicity, we might emit playerHealthChange from Player service
+    EventBus.on('playerHit', () => {
+      this.damageTakenInWindow++;
+      this.markDirty();
+    });
+
+    EventBus.on('playerDash', () => {
+      this.dashUsageInWindow++;
+      this.markDirty();
     });
 
     EventBus.on('playerHealthChange', _data => {
-      // Custom event for granular HP tracking
-      // this.inputs.hpPercent = data.hpPercent; // We don't have hpPercent in inputs yet, let's add it if needed or use it in calculator params
+      // Future granular HP tracking
     });
 
     // Combat Events
@@ -109,11 +119,6 @@ class DifficultyContextManager {
 
     EventBus.on('bulletFired', () => {
       this.bulletsFiredInWindow++;
-      this.markDirty();
-    });
-
-    EventBus.on('playerHit', () => {
-      this.damageTakenInWindow++;
       this.markDirty();
     });
 
@@ -177,29 +182,64 @@ class DifficultyContextManager {
     const { inputs } = this;
     const now = Date.now();
 
-    // 0. Update Activity-based Inputs (Accuracy & Damage Frequency)
+    // 0. Update Activity-based Inputs (Sensors)
     if (this.lastPerformanceUpdate === 0) this.lastPerformanceUpdate = now;
     const dtSeconds = (now - this.lastPerformanceUpdate) / 1000;
 
-    if (dtSeconds >= 5) {
-      // Accuracy calc
-      if (this.bulletsFiredInWindow > 0) {
-        const currentAcc = this.hitsInWindow / this.bulletsFiredInWindow;
-        // Smooth accuracy (EMA)
-        inputs.accuracy = inputs.accuracy * 0.7 + currentAcc * 0.3;
+    if (dtSeconds >= 0.2) {
+      // 200ms Sensor Loop
+
+      // Accuracy calc (only if window > 5s effectively, but we do sliding average)
+      if (dtSeconds >= 5) {
+        if (this.bulletsFiredInWindow > 0) {
+          const currentAcc = this.hitsInWindow / this.bulletsFiredInWindow;
+          // Smooth accuracy (EMA)
+          inputs.accuracy = inputs.accuracy * 0.7 + currentAcc * 0.3;
+        }
       }
 
-      // Damage frequency (HPM - Hits Per Minute)
+      // Damage frequency (HPM - Hits Per Minute) - Normalized to per-second contribution for smoothness
+      // We scale it up to minute-rate for the formula
       const currentHPM = (this.damageTakenInWindow / dtSeconds) * 60;
       inputs.damageTakenFrequency =
-        inputs.damageTakenFrequency * 0.5 + currentHPM * 0.5;
+        inputs.damageTakenFrequency * 0.8 + currentHPM * 0.2; // faster reaction
 
-      // Reset window
+      // Dash Usage (Dashes Per Minute)
+      const currentDPM = (this.dashUsageInWindow / dtSeconds) * 60;
+      inputs.stress.dashUsage = inputs.stress.dashUsage * 0.8 + currentDPM * 0.2;
+
+      // Reset window counters
       this.bulletsFiredInWindow = 0;
       this.hitsInWindow = 0;
       this.damageTakenInWindow = 0;
+      this.dashUsageInWindow = 0;
       this.lastPerformanceUpdate = now;
     }
+
+    // 0.5 Update Sensors (MACD & Stress)
+
+    // MACD - Pull from centralized MarketIndicatorService
+    const marketState = marketIndicatorService.getState();
+    inputs.macd = marketState.macd;
+
+    // Stress - Near Death Duration Tracking
+    // We assume hpPercent is updated via updateInputs from GameEngine or Events
+    const isNearDeath = inputs.hpPercent < 0.2;
+    if (isNearDeath) {
+      if (this.nearDeathStartTime === 0) this.nearDeathStartTime = now;
+      inputs.stress.nearDeathDuration = (now - this.nearDeathStartTime) / 1000;
+    } else {
+      this.nearDeathStartTime = 0;
+      inputs.stress.nearDeathDuration = 0;
+    }
+
+    // Update Stress Score
+    inputs.stress.damageRate = inputs.damageTakenFrequency;
+    inputs.stress.score = calculateStressScore({
+      damageTakenFrequency: inputs.stress.damageRate,
+      dashUsageFrequency: inputs.stress.dashUsage,
+      nearDeathDuration: inputs.stress.nearDeathDuration,
+    });
 
     // 1. Calculate Individual Factors (Layer 2)
     const cycle = calculateCycleFactor({
@@ -214,10 +254,21 @@ class DifficultyContextManager {
       level: inputs.level,
       leverage: inputs.leverage,
     });
-    const wave = calculateWaveFactor({
+
+    // Base rhythm comes from the Wave system (Phases like breather, peak, etc.)
+    const waveData = calculateWaveFactor({
       elapsedSeconds: inputs.elapsedSeconds,
       cycleDuration: inputs.cycleDuration,
     });
+
+    // We keep a small linear time ramp (5% every minute) for long-term pressure
+    const timeRamp = 1.0 + (inputs.elapsedSeconds / 60) * 0.05;
+
+    // Harmonize the Wave factor with the Time Ramp
+    const wave = {
+      factor: waveData.factor * timeRamp,
+      phase: waveData.phase as WavePhase,
+    };
 
     const liquidation = calculateLiquidationFactor({
       currentPrice: inputs.currentPrice,
@@ -255,7 +306,8 @@ class DifficultyContextManager {
       leverage: inputs.leverage,
     });
 
-    const core = cycle * pnl * level * wave.factor;
+    // Core is now just Time * PnL * Level
+    const core = timeRamp * pnl * level;
     const modifier = liquidation.factor * streak * nearDeath * shock.factor;
     const market = rsi * volume * atr;
 
@@ -294,9 +346,8 @@ class DifficultyContextManager {
         total,
       },
       inputs: {
-        leverage: inputs.leverage,
+        ...inputs,
         leverageScale,
-        pnlHistory: [...inputs.pnlHistory],
       },
     };
 
@@ -361,6 +412,7 @@ class DifficultyContextManager {
 
   public reset() {
     this.inputs = getDefaultInputs();
+    this.resetHistory();
     this.markDirty();
   }
 
@@ -380,6 +432,10 @@ class DifficultyContextManager {
 
   private resetHistory() {
     this.inputs.pnlHistory = [];
+    this.bulletsFiredInWindow = 0;
+    this.hitsInWindow = 0;
+    this.damageTakenInWindow = 0;
+    this.dashUsageInWindow = 0;
   }
 
   /**

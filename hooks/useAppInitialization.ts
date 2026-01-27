@@ -62,8 +62,36 @@ export function useAppInitialization(): UseAppInitializationResult {
 
       // 5. Check if player needs to set a nickname (robustly)
       const user = await UserPersistenceService.initialize();
+
       if (!user) {
         setNeedsNicknameWithLog(true);
+      } else {
+        // VERIFY AGAINST DATABASE (The Core Renaissance Sync)
+        try {
+          const { supabase, isSupabaseConfigured } =
+            await import('../services/Supabase');
+          if (
+            isSupabaseConfigured() &&
+            supabase &&
+            window.location.hostname !== 'localhost'
+          ) {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', user.playerId)
+              .maybeSingle();
+
+            if (error || !data) {
+              Logger.warn(
+                `[useAppInitialization] User ${user.nickname} not in new DB. Forcing nickname entry.`
+              );
+              UserPersistenceService.clear();
+              setNeedsNicknameWithLog(true);
+            }
+          }
+        } catch (err) {
+          Logger.error('[useAppInitialization] DB verification failed', err);
+        }
       }
 
       setIsInitialized(true);

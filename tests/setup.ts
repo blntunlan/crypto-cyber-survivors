@@ -145,7 +145,7 @@ vi.stubGlobal('import.meta', {
     DEV: true,
     PROD: false,
     MODE: 'test',
-    VITE_SUPABASE_URL: 'https://dqaggcizordsijpnfteo.supabase.co',
+    VITE_SUPABASE_URL: 'https://dnhfsmvwqjxoextwbebj.supabase.co',
     VITE_SUPABASE_ANON_KEY: 'mock-key',
   },
 });

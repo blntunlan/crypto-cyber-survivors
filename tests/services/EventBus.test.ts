@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventBus } from '../../services/EventBus';
+import { Logger } from '../../services/Logger';
+
+vi.mock('../../services/Logger', () => ({
+  Logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
 
 describe('EventBus', () => {
   beforeEach(() => {
@@ -46,17 +56,13 @@ describe('EventBus', () => {
   });
 
   it('should handle errors in listeners without crashing', () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
     EventBus.on('gameReset', () => {
       throw new Error('Test Error');
     });
 
     // This should not throw
     expect(() => EventBus.emit('gameReset', {} as any)).not.toThrow();
-    expect(consoleSpy).toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
+    expect(Logger.error).toHaveBeenCalled();
   });
 
   it('should support tracing', () => {

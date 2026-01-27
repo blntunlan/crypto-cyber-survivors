@@ -57,7 +57,7 @@ export interface ErrorReport {
   viewport: { width: number; height: number };
 
   // User context
-  playerId?: string;
+  profileId?: string;
   sessionId?: string;
   deviceFingerprint?: string;
   nickname?: string;

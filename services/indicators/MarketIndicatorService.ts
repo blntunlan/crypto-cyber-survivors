@@ -29,6 +29,7 @@ import {
   WHALE_TIER_CONFIGS,
 } from '../../types/indicators';
 import { createRSICalculator, type RSICalculator } from './RSICalculator';
+import { createMACDCalculator, type MACDCalculator } from './MACDCalculator';
 import { ATRCalculator } from './ATRCalculator';
 import {
   createVolumeAnalyzer,
@@ -44,6 +45,7 @@ export class MarketIndicatorService {
   private static instance: MarketIndicatorService | null = null;
 
   private rsiCalculator: RSICalculator;
+  private macdCalculator: MACDCalculator;
   private volumeAnalyzer: VolumeAnalyzer;
   private atrCalculator: ATRCalculator;
   private state: MarketIndicatorState;
@@ -52,6 +54,7 @@ export class MarketIndicatorService {
 
   private constructor() {
     this.rsiCalculator = createRSICalculator();
+    this.macdCalculator = createMACDCalculator();
     this.volumeAnalyzer = createVolumeAnalyzer();
     this.atrCalculator = new ATRCalculator();
     this.state = getDefaultMarketIndicatorState();
@@ -215,6 +218,9 @@ export class MarketIndicatorService {
     const normalizedVolume = this.volumeAnalyzer.update(volume);
     const whaleTier = this.volumeAnalyzer.getWhaleTier();
 
+    // Update MACD
+    const macdResult = this.macdCalculator.update(price);
+
     // Calculate ATR locally for perfect sync
     const { atr, atrPercent } = this.atrCalculator.update(price, price, price);
 
@@ -237,6 +243,7 @@ export class MarketIndicatorService {
       rsi,
       rsiState,
       previousRsiState,
+      macd: macdResult,
       atr,
       atrPercent,
       spawnRateMultiplier,
@@ -244,7 +251,8 @@ export class MarketIndicatorService {
       isInitialized:
         this.rsiCalculator.isInitialized() ||
         this.volumeAnalyzer.isInitialized() ||
-        this.atrCalculator.isInitialized(),
+        this.atrCalculator.isInitialized() ||
+        this.macdCalculator.isInitialized(),
       lastUpdateTime: now,
       currentPosition: position,
     };
@@ -390,6 +398,7 @@ export class MarketIndicatorService {
    */
   reset(): void {
     this.rsiCalculator.reset();
+    this.macdCalculator.reset();
     this.volumeAnalyzer.reset();
     this.atrCalculator.reset();
     this.state = getDefaultMarketIndicatorState();

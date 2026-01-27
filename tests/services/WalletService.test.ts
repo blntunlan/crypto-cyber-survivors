@@ -6,7 +6,7 @@ import { supabase } from '../../services/Supabase';
 // Mock Dependencies
 vi.mock('../../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn(),
+    getProfileId: vi.fn(),
   },
 }));
 
@@ -29,13 +29,15 @@ describe('WalletService', () => {
 
   describe('getBalance', () => {
     it('should return 0 for anonymous players', async () => {
-      vi.mocked(UserSessionService.getPlayerId).mockReturnValue('anon-123');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon-123');
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(0);
     });
 
     it('should return gold_balance from Supabase', async () => {
-      vi.mocked(UserSessionService.getPlayerId).mockReturnValue('real-id');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue(
+        '00000000-0000-0000-0000-000000000001'
+      );
       (supabase!.from as any)()
         .select()
         .eq()
@@ -49,7 +51,9 @@ describe('WalletService', () => {
     });
 
     it('should return 0 on error', async () => {
-      vi.mocked(UserSessionService.getPlayerId).mockReturnValue('real-id');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue(
+        '00000000-0000-0000-0000-000000000001'
+      );
       (supabase!.from as any)()
         .select()
         .eq()
@@ -65,19 +69,22 @@ describe('WalletService', () => {
 
   describe('getHistory', () => {
     it('should return empty list for anonymous players', async () => {
-      vi.mocked(UserSessionService.getPlayerId).mockReturnValue('anon-123');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon-123');
       const history = await WalletService.getInstance().getHistory();
       expect(history).toEqual([]);
     });
 
     it('should map DB transactions to WalletTransactions', async () => {
-      vi.mocked(UserSessionService.getPlayerId).mockReturnValue('real-id');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue(
+        '00000000-0000-0000-0000-000000000001'
+      );
       const mockData = [
         {
-          id: '1',
+          id: '00000000-0000-0000-0000-000000000002',
           amount: 50,
           balance_after: 100,
-          type: 'LOOT',
+          transaction_type: 'LOOT',
+          currency: 'GOLD',
           created_at: '2024-01-01',
         },
       ];
@@ -88,10 +95,11 @@ describe('WalletService', () => {
 
       const history = await WalletService.getInstance().getHistory();
       expect(history[0]).toEqual({
-        id: '1',
+        id: '00000000-0000-0000-0000-000000000002',
         amount: 50,
         balanceAfter: 100,
         type: 'LOOT',
+        currency: 'GOLD',
         createdAt: '2024-01-01',
       });
     });

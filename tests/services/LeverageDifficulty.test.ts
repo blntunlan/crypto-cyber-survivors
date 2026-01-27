@@ -35,8 +35,9 @@ describe('Leverage-based Difficulty Scaling', () => {
     DifficultyManager.startGame(100);
     const spawn100x = DifficultyManager.calculate(0, 0.02, 1, 100).spawnRate;
 
-    // 100x should have more spawn than 1x (4.5 / 0.6 = 7.5x)
-    expect(spawn100x).toBeGreaterThan(spawn1x * 7);
+    // 100x should have more spawn than 1x, but capped at max
+    expect(spawn100x).toBeGreaterThan(spawn1x);
+    expect(spawn100x).toBe(DIFFICULTY.SPAWN_RATE_MAX);
   });
 
   it('should scale enemyDamage correctly with leverage', () => {

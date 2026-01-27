@@ -357,7 +357,7 @@ export class EntityRenderer implements IRenderer {
 
     // 1. Check if we need complex transforms (spawning or hit rotation)
     const isSpawning = e.spawnTimer !== undefined && e.spawnTimer > 0;
-    const isHit = e.damageBufferTimer !== undefined && e.damageBufferTimer > 0;
+    const isHit = e.hitFlashTimer !== undefined && e.hitFlashTimer > 0;
 
     if (isRetro) {
       if (isSpawning) {

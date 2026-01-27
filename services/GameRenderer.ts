@@ -10,7 +10,7 @@ import { ThemeService } from './ThemeService';
 import { type GraphicsConfig } from './renderers/types';
 import { type IGameRenderer } from './interfaces/IGameRenderer';
 import { GAME_ENGINE } from '../constants';
-// import { TimeService } from './TimeService';
+import { portalSystem } from './PortalSystem';
 
 /**
  * GameRenderer - Main Canvas Orchestrator
@@ -119,6 +119,58 @@ export class GameRenderer implements IGameRenderer {
       }
     }
 
+    this.drawPortal(ctx, state);
+
+    ctx.restore();
+  }
+
+  private drawPortal(ctx: CanvasRenderingContext2D, _state: GameState): void {
+    const portal = portalSystem.getState();
+    if (!portal.isActive) return;
+
+    const { x, y, radius, type } = portal;
+    const time = Date.now() / 1000;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // 1. Outer Swirls
+    const layers = 3;
+    for (let i = 0; i < layers; i++) {
+      const rot = time * (1.5 + i) * (type === 'TAKE_PROFIT' ? 1 : -1);
+      ctx.beginPath();
+      ctx.rotate(rot);
+      const gradient = ctx.createRadialGradient(
+        0,
+        0,
+        radius * 0.2,
+        0,
+        0,
+        radius * (1 + i * 0.2)
+      );
+
+      if (type === 'TAKE_PROFIT') {
+        gradient.addColorStop(0, 'rgba(0, 255, 136, 0.8)');
+        gradient.addColorStop(1, 'rgba(0, 255, 136, 0)');
+      } else {
+        gradient.addColorStop(0, 'rgba(255, 68, 68, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 68, 68, 0)');
+      }
+
+      ctx.fillStyle = gradient;
+      ctx.arc(0, 0, radius * (1 + i * 0.2), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 2. Black Hole Center
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#000000';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = type === 'TAKE_PROFIT' ? '#00FF88' : '#FF4444';
+    ctx.fill();
+
+    // 3. Extraction Progress Text (Optional/Visual)
     ctx.restore();
   }
 

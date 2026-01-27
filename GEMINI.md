@@ -1,17 +1,19 @@
 # 🎮 Crypto Survivors - Claude Proje Bağlam Dosyası
 
 > Bu dosya Claude'un projeyi daha iyi anlaması için otomatik olarak okunur.
-> Son Güncelleme: 2026-01-20
+> Son Güncelleme: 2026-01-26
 
 ## 📋 Proje Özeti
 
 Crypto-themed vampire survivors oyunu. React 19 + TypeScript + Vite + Zustand ile geliştirilmiş.
 Gerçek zamanlı BTC/USD fiyat verilerini Binance & Coinbase WebSocket (Price) ve Supabase Realtime (Indicators) üzerinden alır. Windows üzerinden geliştirdiğim için && kullanma ; kullan.
-Büyük diller (ES, PT, HI, VI) eklenmiş durumdadır.
+**Difficulty System V2 (Layered Architecture)**, **Tutorial System**, **Neural AIDirector** (Synaptic tabanlı) ve **Cloudflare Anti-Cheat** entegre edilmiştir.
+**Casual/Competitive oyun modları**, PWA desteği ve tam kapsamlı tutorial akışı mevcuttur.
+Büyük diller (ES, PT, HI, VI, ZH, RU) tam desteklidir.
 
 **DB Optimization:** Migration 026 added JSONB support for cheat logs, fixed transaction constraints for achievements, and implemented BRIN indexes for performance.
 
-**QA & Testing:** Professional testing lifecycle (Level 0-8) active. Vitest + MSW for integration, Playwright for E2E. Mandatory pre-commit tests via Husky + lint-staged.
+**QA & Testing:** Professional testing lifecycle (Level 0-8) active. Vitest + MSW for integration, Playwright for E2E. Mandatory pre-commit tests via Husky + lint-staged. Coverage global %70+, kritik servisler %80+.
 
 ## 🛠️ Sık Kullanılan Komutlar
 
@@ -42,153 +44,89 @@ npm run format           # Prettier ile formatla
 ```
 crypto-cyber-survivors/
 ├── App.tsx                    # Ana uygulama bileşeni
-├── components/                # React bileşenleri
-│   ├── GameEngine.tsx        # Canvas render loop
-│   ├── GameHUD.tsx           # Oyun içi UI overlay (Legacy)
+├── components/                # React bileşenleri (View Layer Only)
+│   ├── GameEngine.tsx        # Canvas render loop (No React State Updates in Loop!)
 │   ├── GameUI.tsx            # Responsive React HUD (Main)
-│   ├── hub/                  # Hub/Menu bileşenleri
-│   ├── hud/                  # Yeni modüler HUD bileşenleri
-│   ├── screens/              # Oyun ekranları (Main, Hub, Settings, etc.)
-│   ├── themed/               # Temalı ortak bileşenler
-│   ├── admin/                # Admin dashboard panelleri
-│   └── mobile/               # Touch kontrolleri
-├── config/                    # Oyun konfigürasyonları (Enemy, Player, Game)
-├── contexts/                  # React Context'ler (Theme, User, Language)
-├── services/                  # Singleton servisler
-│   ├── MarketService.ts      # Binance/Coinbase WebSocket & Fallback logic
-│   ├── PhysicsSystem.ts      # Collision detection
-│   ├── DifficultyManager.ts  # Market-based difficulty management
-│   ├── EventBus.ts           # Type-safe event system
-│   ├── PoolManager.ts        # O(1) Object pooling & pre-warming
-│   ├── CardSystem.ts         # Upgrade/Card logic
-│   ├── CombatSystem.ts       # Damage & Combat logic
-│   ├── AntiCheatService.ts   # Client-side verification & protection
-│   ├── analytics/            # Global metrics & session management
-│   ├── renderers/            # Canvas/Sprite IRenderer implementations
-│   ├── metrics/              # Performance & data analysis subsystem
-│   ├── indicators/           # Market indicators (ATR, EMA, etc.)
-│   └── auth/                 # Authentication & Session services
-├── stores/                    # Zustand state management
-│   ├── gameStore.ts          # Oyun state'i
-│   └── admin/                # Admin panel state
-├── hooks/                     # Custom React hooks (useMarket, useGame, etc.)
-├── types/                     # TypeScript tanımları & Supabase types
-├── utils/                     # Yardımcı fonksiyonlar ve araçlar
-├── strategies/                # Oyun strateji pattern'leri
-├── factories/                 # Nesne üretim factory'leri
-├── schemas/                   # Validasyon şemaları
-├── tests/                     # Vitest unit & integration testleri
-├── e2e/                       # Playwright E2E testleri
-├── docs/                      # Proje dökümantasyonu ve roadmap
-├── supabase/                  # Migrations (achievements, wallet, shop, etc.)
-└── railway-market-server/     # Price logger backend
+│   └── ...
+├── config/                    # Oyun konfigürasyonları (Magic Numbers Yasak)
+├── services/                  # Singleton Services (Logic Layer)
+│   ├── DifficultyManager.ts  # Consumer of V2 System
+│   ├── difficulty/           # V2 Layered Architecture (Inputs -> Context -> Director)
+│   ├── EventBus.ts           # System communication (Decoupled)
+│   ├── PoolManager.ts        # O(1) Object pooling (Mandatory for Entities)
+│   ├── renderers/            # Canvas/Sprite implementations
+│   └── ...
+├── stores/                    # Zustand state management (Shared State)
+├── hooks/                     # Custom React hooks
+├── types/                     # TypeScript Definitions
+├── tests/                     # Vitest unit & integration tests
+├── e2e/                       # Playwright E2E tests
+└── docs/                      # Documentation
 ```
 
-## 🎯 Kodlama Standartları
+## 🎯 Kodlama ve Mimari Standartları
 
-### TypeScript
-- **Type hints zorunlu**: Tüm fonksiyon parametreleri ve dönüş değerleri tiplendirilmeli
-- **snake_case değil, camelCase**: Değişken ve fonksiyonlar için `camelCase` kullan
-- **PascalCase**: Sınıflar, interface'ler ve type'lar için
-- **Strict mode**: `tsconfig.json` strict modda
-- **No `any`**: Her zaman spesifik tipler kullan
+### 1. Performans Yasaları (Performance is Law)
+- **GC-Free Loop:** Oyun döngüsü (Game Loop) içinde bellek tahsisi (new Object, Array map/filter) **YASAKTIR**.
+- **Object Pooling:** Mermi, Düşman, Particle üretirken ASLA `new Entity()` kullanma. Mutlaka `PoolManager.spawn()` kullan.
+- **Spatial Hashing:** Çarpışma ve mesafe kontrolleri için O(N^2) döngüler yasak. `SpatialGrid` kullan.
+- **Referanslar:** Her frame değişen veriler (Position, Velocity) için React State değil, `useRef` veya `Singleton Service` kullan.
 
-### Performans ve Optimizasyon
-- **O(N) Döngülerinden Kaçın**: Oyun (update/render) döngüsü içinde aktif dizi taramalarından kaçın.
-- **SpatialGrid Kullanımı**: Mesafe bazlı aramalar (en yakın düşman, çarpışma) için mutlaka `SpatialGrid` kullan.
-- **Object Pooling (O(1))**: Objeleri havuza geri bırakırken `poolIndex` kullanarak O(1) serbest bırakma ve "Swap-and-Pop" ile O(1) geri dönüşüm uygula.
-- **Hafıza Yönetimi**: Sıcak (hot) döngülerde nesne (object/array) oluşturmaktan kaçın (GC pressure azalt).
+### 2. Mimari Desenler (Architectural Patterns)
+- **Singleton Services:** `CombatSystem`, `DifficultyManager` gibi core sistemler Singleton olmalıdır.
+- **EventBus İletişimi:** Servisler birbirini doğrudan çağırmamalı, `EventBus.emit()` ile haberleşmelidir.
+- **Katmanlı Zorluk (Difficulty V2):**
+  1. **Inputs:** `DifficultyContext.updateInputs()`
+  2. **Analysis:** `DifficultyContext` faktörleri toplar.
+  3. **Directing:** `AIDirector` nöral/sinaptik modifikasyon uygular.
+  4. **Output:** `DifficultyManager` oyun parametrelerine map eder.
 
-### React Patterns
-- **Fonksiyonel bileşenler**: Class component kullanma
-- **Custom hooks**: Tekrarlayan mantık için `use*` hook'ları çıkar
-- **Zustand**: Global state için Redux yerine Zustand kullan
-- **Framer Motion**: Animasyonlar için
+### 3. State Yönetimi
+- **Zustand:** Yüksek frekanslı global state için (örn: UI güncellemeleri).
+- **React Context:** Sadece statik/düşük frekanslı state için (Theme, Language, User).
+- **Service State:** Oyun mantığı state'i servislerin içinde tutulur (`GameStore` değil).
 
-### Servis Mimarisi
-- **Singleton pattern**: Tüm servisler singleton olarak export edilir
-- **EventBus**: Servisler arası iletişim için `EventBus.emit()` kullan
-- **gameReset event**: Yeni oyun başladığında state sıfırlamak için subscribe ol
+### 4. TypeScript Kuralları
+- **Strict Mode:** `any` yasak. Type Guard'lar ve Generics kullan.
+- **Adlandırma:** Variable/Function -> `camelCase`, Class/Component -> `PascalCase`, Constant -> `UPPER_SNAKE_CASE`.
 
-### Unit & Integration (Vitest + MSW)
-- Test dosyaları: `tests/` klasöründe veya `*.test.ts` uzantılı
-- **MSW**: API ve network çağrıları için MSW kullanımı zorunludur.
-- Mock'lar: `vi.mock()` kullan (logic için), `MSW` kullan (network için).
-- Coverage: Yeni özellikler için min %80 coverage koru.
-
-### Playwright E2E
-- Spec dosyaları: `e2e/` klasöründe
-- Headless modda çalışır (CI/CD uyumlu)
-
-## ⚠️ Önemli Kurallar
+## ⚠️ Önemli Kurallar (Do's & Don'ts)
 
 ### YAPMAMALISIN
-1. ❌ `dist/`, `node_modules/`, `.git/` klasörlerini değiştirme
-2. ❌ `eval()` veya `exec()` kullanma
-3. ❌ Hardcoded API key veya secret commit etme
-4. ❌ `.env*` dosyalarını commit etme
-5. ❌ `console.log` bırakma - `Logger` servisini kullan
-6. ❌ Global değişkenler kullanma - Zustand store veya singleton servis kullan
-7. ❌ **Testi olmayan kod pushlama** - QA Lifecycle (Level 0-8) takip edilmeli.
+1. ❌ `GameEngine` render döngüsü içinde `useState` güncellemesi yapma (React Render Cycle'ı bozar).
+2. ❌ Servisler içinde UI kodu (React Component) barındırma.
+3. ❌ `.env*` veya API Key commit etme.
+4. ❌ `Logger` çağrılarını silme (Anti-Cheat analizi için kritiktir).
+5. ❌ Test yazmadan "feature" ekleme.
 
 ### YAPMALISIN
-1. ✅ Her public method için JSDoc yaz
-2. ✅ Yeni özellikler için test yaz (min 80% coverage)
-3. ✅ Commit mesajları conventional format: `feat:`, `fix:`, `docs:`, `test:`
-4. ✅ Lint hatası bırakma: `npm run lint` başarılı olmalı
-5. ✅ `gameReset` event'ine subscribe olarak state temizliği yap (Örn: Lucky Star buff fix sonrası)
-6. ✅ **MSW Handlers**: Yeni API endpoint'leri için handler ekle.
+1. ✅ Yeni bir Entity eklerken `PoolManager`'a kaydet.
+2. ✅ Logic değişiklikleri için Unit Test (Vitest), akış değişiklikleri için E2E (Playwright) yaz.
+3. ✅ Network isteklerini (API) test ederken MSW ile mockla.
+4. ✅ Commit mesajlarında conventional commits kullan (`feat:`, `fix:`, `perf:`).
 
-## 🔌 Entegrasyonlar
+## 🔌 Entegrasyonlar & Debug
 
-### Supabase
-- **Project ID**: `dqaggcizordsijpnfteo`
-- **Tables**: `players`, `game_sessions`, `player_wallets`, `achievements`, `shop_items`, `player_inventory`, `price_logs`
-- **Functions**: `verify-game`, `submit-score`, `handle-purchase`
-- **Security**: Row Level Security (RLS) her zaman aktif olmalı
+### Supabase & Auth
+- **Tables**: `players`, `game_sessions`, `achievements`. RLS aktif.
+- **Functions**: `verify-game` (Anti-Cheat on-submit validation).
 
-### Railway
-- **Frontend**: Railway üzerinden static web hosting
-- **Price Logger**: `railway-market-server` backend servisi
-
-### WebSocket Feeds
-- **Binance**: `wss://stream.binance.com:9443/ws/btcusdt@trade`
-- **Coinbase**: Fallback feed
-
-## 🔍 Debug Araçları
-
-- **Admin Dashboard**: `Ctrl+Shift+A` ile aç
-- **Cheat Manager**: Development modda aktif (F1 veya menu üzerinden)
-- **FPS/Metrics Monitor**: Canvas üzerinde detaylı performans verisi
-- **Logger**: Detaylı loglama (Info, Warn, Error, Security)
+### Debug Araçları
+- **Admin Dashboard**: `Ctrl+Shift+A` (Metrics, Console, State).
+- **Cheat Manager**: Development modda `F1`.
+- **Logger**: `Logger.info()`, `Logger.warn()` kullan. `console.log` bırakma.
 
 ## 📝 Workflow'lar
-
-Mevcut workflow'lar `.agent/workflows/` klasöründe:
-
-- `/code-review` - Kapsamlı kod ve mimari incelemesi
-- `/pre-push-prep` - Test, lint, build ve commit hazırlığı
-- `/qa-lifestyle-workflow` - **Master QA & Test döngüsü (Level 0-8)**
-- `/deploySon` - Tam kapsamlı deployment süreci
-- `/fix-bug` - Hata ayıklama ve düzeltme standartları
-- `/code-doc-sync` - Kod ve dökümantasyon senkronizasyonu (Manual)
-
-## 📚 Önemli Kaynaklar
-
-- `docs/ARCHITECTURE.md`: Detaylı sistem mimarisi
-- `docs/MASTER_ROADMAP.md`: Proje ilerleme durumu
-- `docs/ANTI_CHEAT_REWARD_SYSTEM.md`: Güvenlik ve ödül mantığı
-- `docs/TODO_COMPREHENSIVE.md`: Bekleyen görevler listesi
+Detaylı süreçler `.agent/workflows/` altında:
+- `/qa-lifestyle-workflow` (Level 0-8 Test Döngüsü)
+- `/deploySon` (Deployment)
+- `/performance-testing` (Benchmark)
 
 ## 🚀 Deployment
-
 ```bash
-# Değişiklikleri pushlayarak otomatik deploy'u tetikle
-git add .
-git commit -m "feat: your changes"
-npm run deploy  # git push origin main komutunu çalıştırır
+git add . && git commit -m "feat: description"
+npm run deploy # git push origin main
 ```
 
 ---
-
-*Bu dosya projenin temel bağlamını içerir. Claude her oturumda bunu okuyarak proje kurallarına uyar.*
+*Bu dosya proje kurallarının TEK gerçeğidir.*

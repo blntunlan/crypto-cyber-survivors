@@ -100,6 +100,9 @@ vi.mock('../../services/DifficultyManager', () => ({
 vi.mock('../../services/ComboSystem', () => ({
   ComboSystem: {
     update: vi.fn(),
+    getKillStreak: vi.fn(() => 0),
+    getXpMultiplier: vi.fn(() => 1),
+    getState: vi.fn(() => ({})),
   },
 }));
 vi.mock('../../services/TimeService', () => ({
@@ -151,6 +154,32 @@ vi.mock('../../services/indicators/MarketIndicatorService', () => ({
   marketIndicatorService: {
     warmup: vi.fn().mockResolvedValue({}),
     update: vi.fn(),
+    getState: vi.fn(() => ({
+      rsiState: 'NEUTRAL',
+      whaleTier: 0,
+      spawnRateMultiplier: 1.0,
+      isInitialized: true,
+      rsi: 50,
+      normalizedVolume: 0.5,
+      canSpawnWhale: false,
+      lastWhaleSpawnTime: 0,
+      previousRsiState: 'NEUTRAL',
+      macd: { macd: 0, signal: 0, histogram: 0 },
+      atr: 0,
+      atrPercent: 0,
+      enemyModifier: {
+        aggroMultiplier: 1.0,
+        speedMultiplier: 1.0,
+        damageMultiplier: 1.0,
+        healthMultiplier: 1.0,
+        dropBuffChance: 0.25,
+        dropDebuffChance: 0.25,
+        movementPattern: 'chase',
+        visualStyle: 'neutral',
+      },
+      lastUpdateTime: 0,
+      currentPosition: 'LONG',
+    })),
   },
 }));
 vi.mock('../../services/EngineRegistry', () => ({

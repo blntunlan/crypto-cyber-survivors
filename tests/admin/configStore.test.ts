@@ -2,8 +2,18 @@
  * Admin Config Store - Unit Tests
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAdminConfigStore } from '../../stores/admin/configStore';
+
+// Mock Logger to prevent console contamination during error testing
+vi.mock('../../services/Logger', () => ({
+  Logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 
 describe('AdminConfigStore', () => {
   beforeEach(() => {

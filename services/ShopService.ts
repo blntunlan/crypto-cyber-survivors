@@ -72,13 +72,13 @@ export class ShopService {
    */
   async getInventory(): Promise<string[]> {
     if (!isSupabaseConfigured() || supabase === null) return [];
-    const playerId = UserSessionService.getPlayerId();
-    if (playerId.startsWith('anon-')) return [];
+    const profileId = UserSessionService.getProfileId();
+    if (profileId.startsWith('anon-')) return [];
 
     const { data, error } = await supabase
-      .from('player_inventory')
+      .from('profile_inventory')
       .select('item_id')
-      .eq('player_id', playerId);
+      .eq('profile_id', profileId);
 
     if (error) {
       Logger.error('[ShopService] Failed to fetch inventory', error);
@@ -94,8 +94,8 @@ export class ShopService {
   async purchaseItem(
     itemId: string
   ): Promise<{ success: boolean; error?: string; newBalance?: number }> {
-    const playerId = UserSessionService.getPlayerId();
-    if (playerId.startsWith('anon-')) {
+    const profileId = UserSessionService.getProfileId();
+    if (profileId.startsWith('anon-')) {
       return { success: false, error: 'Must be logged in to purchase' };
     }
 
@@ -105,7 +105,7 @@ export class ShopService {
 
     try {
       const { data, error } = await supabase.rpc('purchase_item', {
-        p_player_id: playerId,
+        p_profile_id: profileId,
         p_item_id: itemId,
       });
 

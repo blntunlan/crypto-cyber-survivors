@@ -103,11 +103,11 @@ export class UserPersistenceService {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed?.playerId && parsed?.nickname) {
+        if (parsed?.profileId && parsed?.nickname) {
           // DATABASE INTEGRITY: Reject non-UUID player IDs (migration for legacy nanoids)
-          if (!this.isUUID(parsed.playerId)) {
+          if (!this.isUUID(parsed.profileId)) {
             Logger.warn(
-              '[UserPersistence] Corrupt non-UUID playerId detected in storage, ignoring'
+              '[UserPersistence] Corrupt non-UUID profileId detected in storage, ignoring'
             );
             return null;
           }
@@ -142,9 +142,9 @@ export class UserPersistenceService {
         if (c.indexOf(name) === 0) {
           const content = c.substring(name.length, c.length);
           const parsed = JSON.parse(atob(content)); // Decode Base64
-          if (parsed?.playerId && parsed?.nickname) {
+          if (parsed?.profileId && parsed?.nickname) {
             // DATABASE INTEGRITY: Reject non-UUID player IDs
-            if (!this.isUUID(parsed.playerId)) {
+            if (!this.isUUID(parsed.profileId)) {
               return null;
             }
             return parsed as StoredUser;
@@ -160,7 +160,7 @@ export class UserPersistenceService {
   private static syncToCookie(user: StoredUser): void {
     try {
       const identityMinimal = {
-        playerId: user.playerId,
+        profileId: user.profileId,
         nickname: user.nickname,
       };
       const content = btoa(JSON.stringify(identityMinimal)); // Encode to Base64 to avoid semi-colon issues

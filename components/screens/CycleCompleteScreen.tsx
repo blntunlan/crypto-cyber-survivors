@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { CoinService, type CoinCalculation } from '../../services/CoinService';
+import { ComboSystem } from '../../services/ComboSystem';
 import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { audio } from '../../services/AudioService';
@@ -56,7 +57,7 @@ export function CycleCompleteScreen({
       kills: data.totalKills,
       level: data.level,
       pnl: data.effectivePnl,
-      maxStreak: 0, // TODO: Pass from game state
+      maxStreak: ComboSystem.getMaxStreak(),
     });
     setCoinCalculation(calc);
 

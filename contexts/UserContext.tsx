@@ -15,8 +15,8 @@ export interface UserContextType {
   isAuthenticated: boolean;
   /** Whether initial loading is in progress */
   isLoading: boolean;
-  /** Player ID (returns anon-ID if not authenticated) */
-  playerId: string;
+  /** Profile ID (returns anon-ID if not authenticated) */
+  profileId: string;
   /** User's nickname or null */
   nickname: string | null;
   /** Register/login with a nickname */
@@ -46,14 +46,50 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from storage on mount using robust service
+  // Load user from storage on mount and VERIFY against Database
   useEffect(() => {
     let mounted = true;
 
     const init = async () => {
       const storedUser = await UserPersistenceService.initialize();
+
+      if (storedUser) {
+        try {
+          const { supabase, isSupabaseConfigured } =
+            await import('../services/Supabase');
+
+          if (
+            isSupabaseConfigured() &&
+            supabase &&
+            window.location.hostname !== 'localhost'
+          ) {
+            // Verify if profile still exists in the NEW database
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', storedUser.profileId)
+              .maybeSingle();
+
+            if (error || !data) {
+              Logger.warn(
+                `[UserContext] Stored user ${storedUser.nickname} not found in new DB. Clearing session.`
+              );
+              UserPersistenceService.clear();
+              if (mounted) setUser(null);
+            } else {
+              if (mounted) setUser(storedUser);
+            }
+          } else {
+            // Local mode or Supabase not ready, trust storage
+            if (mounted) setUser(storedUser);
+          }
+        } catch (err) {
+          Logger.error('[UserContext] Failed to verify session', err);
+          if (mounted) setUser(storedUser); // Fallback to storage on connection error
+        }
+      }
+
       if (mounted) {
-        setUser(storedUser);
         setIsLoading(false);
       }
     };
@@ -81,7 +117,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const mockPlayerId = '00000000-0000-4000-a000-000000000000';
         const now = Date.now();
         const newUser: StoredUser = {
-          playerId: mockPlayerId,
+          profileId: mockPlayerId,
           nickname,
           createdAt: now,
           lastSeenAt: now,
@@ -97,15 +133,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const identityHash = await PlayerIdentityService.generatePlayerHash(nickname);
 
         // Check if nickname exists (strict case-sensitive)
-        const { data: existingPlayer } = await supabase
-          .from('players')
-          .select('id, auth_id, identity_hash')
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id, metadata')
           .eq('display_name', nickname)
           .maybeSingle();
 
-        if (existingPlayer) {
+        if (existingProfile) {
           // IDENTITY VERIFICATION: Check if the stored hash matches current device
-          const storedHash = existingPlayer.identity_hash ?? existingPlayer.auth_id;
+          // In the new schema, identity metadata is stored in the metadata JSONB
+          const metadata =
+            (existingProfile.metadata as Record<string, unknown> | null) ?? {};
+          const storedHash = metadata.identity_hash as string | undefined;
+
           if (storedHash && storedHash !== identityHash) {
             Logger.warn(
               `[UserContext] Identity violation for ${nickname}: Hash mismatch`
@@ -119,7 +159,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           // Login as existing player
           const now = Date.now();
           const newUser: StoredUser = {
-            playerId: existingPlayer.id,
+            profileId: existingProfile.id,
             nickname,
             createdAt: now,
             lastSeenAt: now,
@@ -131,16 +171,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             await import('../services/analytics/DeviceProfiler');
           const fingerprint = DeviceProfiler.getFingerprint();
 
-          // Update last seen timestamp and ensure identity data is stored/updated
+          // Update profile
           await supabase
-            .from('players')
+            .from('profiles')
             .update({
               last_seen_at: new Date(now).toISOString(),
-              identity_hash: identityHash, // Sync to new column
-              auth_id: identityHash, // Keep in legacy for now
-              last_device_fingerprint: fingerprint,
+              metadata: {
+                ...metadata,
+                identity_hash: identityHash,
+                last_device_fingerprint: fingerprint,
+              },
             })
-            .eq('id', existingPlayer.id);
+            .eq('id', existingProfile.id);
 
           return { success: true };
         }
@@ -148,15 +190,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const { DeviceProfiler } = await import('../services/analytics/DeviceProfiler');
         const fingerprint = DeviceProfiler.getFingerprint();
 
-        // Create new player with device binding
-        const { data: newPlayer, error } = await supabase
-          .from('players')
+        // Create new profile with device binding
+        const { data: newProfile, error } = await supabase
+          .from('profiles')
           .insert({
             display_name: nickname,
-            identity_hash: identityHash,
-            auth_id: identityHash,
-            last_device_fingerprint: fingerprint,
-            total_sessions: 1,
+            is_tester: true,
+            metadata: {
+              identity_hash: identityHash,
+              last_device_fingerprint: fingerprint,
+            },
+            created_at: new Date().toISOString(), // Add created_at
+            last_seen_at: new Date().toISOString(), // Add last_seen_at
           })
           .select()
           .single();
@@ -171,20 +216,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           throw error;
         }
 
-        if (newPlayer) {
-          const now = Date.now();
-          const createdUser: StoredUser = {
-            playerId: newPlayer.id,
-            nickname,
-            createdAt: now,
-            lastSeenAt: now,
-          };
-          UserPersistenceService.saveUser(createdUser);
-          setUser(createdUser);
-          return { success: true };
-        }
+        const now = Date.now();
+        const createdUser: StoredUser = {
+          profileId: newProfile.id,
+          nickname,
+          createdAt: now,
+          lastSeenAt: now,
+        };
+        UserPersistenceService.saveUser(createdUser);
+        setUser(createdUser);
+        return { success: true };
 
-        return { success: false, error: 'Failed to create player identity' };
+        return { success: false, error: 'Failed to create player profile' };
       } catch (error) {
         Logger.error('[UserContext] Identity/Registration error', error);
         return {
@@ -222,9 +265,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         window.location.hostname !== '127.0.0.1'
       ) {
         void supabase
-          .from('players')
+          .from('profiles')
           .update({ last_seen_at: new Date(now).toISOString() })
-          .eq('id', user.playerId);
+          .eq('id', user.profileId);
       }
     } catch (error) {
       Logger.error('[UserContext] Failed to update lastSeenAt', error);
@@ -237,7 +280,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       user,
       isAuthenticated: user !== null,
       isLoading,
-      playerId: user?.playerId ?? `anon-${nanoid(10)}`,
+      profileId: user?.profileId ?? `anon_${nanoid(10)}`,
       nickname: user?.nickname ?? null,
       login,
       logout,

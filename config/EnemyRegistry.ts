@@ -116,6 +116,19 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     isOppositeColor: false,
     description: 'The ultimate entropy provider. Appears only at the peak of cycles.',
   },
+  gatekeeper: {
+    id: 'gatekeeper',
+    type: 'gatekeeper',
+    radius: 20,
+    baseHealth: 150,
+    baseSpeed: 1.0,
+    baseDamage: 15,
+    color: '#FFD700', // Gold / CEX Sentinel color
+    spawnWeight: 0, // AI Trigger only
+    isOppositeColor: false,
+    description:
+      'Portal Sentinels that protect the extraction point. High knockback force.',
+  },
 };
 
 export type EnemyId = keyof typeof ENEMY_DEFINITIONS;

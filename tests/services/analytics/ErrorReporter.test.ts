@@ -13,7 +13,7 @@ vi.mock('../../../services/Logger', () => ({
 
 vi.mock('../../../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn().mockReturnValue('test-player-id'),
+    getProfileId: vi.fn().mockReturnValue('550e8400-e29b-41d4-a716-446655440001'),
   },
 }));
 
@@ -63,10 +63,12 @@ describe('ErrorReporter', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('error_reports');
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          error_message: 'Test Error',
+          message: 'Test Error',
           error_type: 'runtime',
-          player_id: 'test-player-id',
-          device_fingerprint: 'test-fp',
+          profile_id: '550e8400-e29b-41d4-a716-446655440001',
+          device_info: expect.objectContaining({
+            fingerprint: 'test-fp',
+          }),
         })
       );
     });
@@ -103,10 +105,6 @@ describe('ErrorReporter', () => {
           error_type: 'runtime',
         })
       );
-
-      // Severity is not directly in the DB insert but used in the report object passed to Logger
-      // Let's verify Logger output
-      // Wait, let's actually test inferSeverity logic indirectly or via exported enum usage if possible
     });
   });
 

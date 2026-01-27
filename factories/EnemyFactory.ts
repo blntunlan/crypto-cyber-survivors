@@ -141,6 +141,7 @@ export class EnemyFactory {
     enemyObj.hasTriggeredNearMiss = false;
     enemyObj.damageBuffer = 0;
     enemyObj.damageBufferTimer = 0;
+    enemyObj.hitFlashTimer = 0;
     enemyObj.damageBufferIsCrit = false;
     enemyObj.damageBufferIsSuperCrit = false;
     enemyObj.damageBufferCritCount = 0;

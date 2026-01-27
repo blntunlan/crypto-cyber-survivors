@@ -4,17 +4,17 @@ import { EventBus } from '../../../services/EventBus';
 import { dropCalculator } from '../../../services/lootbox/LootboxDropCalculator';
 
 describe('LootboxService', () => {
-  const TEST_PLAYER_ID = 'player_123';
+  const TEST_PROFILE_ID = 'player_123';
 
   beforeEach(() => {
     EventBus.clear();
     LootboxService.resetForTesting();
-    LootboxService.setPlayer(TEST_PLAYER_ID);
+    LootboxService.setPlayer(TEST_PROFILE_ID);
   });
 
   describe('Player Context', () => {
     it('should set and get the current player ID', () => {
-      expect(LootboxService.getCurrentPlayerId()).toBe(TEST_PLAYER_ID);
+      expect(LootboxService.getCurrentProfileId()).toBe(TEST_PROFILE_ID);
     });
   });
 
@@ -23,7 +23,7 @@ describe('LootboxService', () => {
       const box = LootboxService.earnLootbox('mining_crate', 'achievement');
       expect(box).not.toBeNull();
       expect(box?.boxType).toBe('mining_crate');
-      expect(box?.playerId).toBe(TEST_PLAYER_ID);
+      expect(box?.profileId).toBe(TEST_PROFILE_ID);
       expect(box?.opened).toBe(false);
       expect(LootboxService.getTotalUnopenedCount()).toBe(1);
     });
@@ -35,7 +35,7 @@ describe('LootboxService', () => {
       expect(emitSpy).toHaveBeenCalledWith(
         'lootboxEarned',
         expect.objectContaining({
-          playerId: TEST_PLAYER_ID,
+          profileId: TEST_PROFILE_ID,
           boxType: 'gas_box',
           rarity: 'rare',
           source: 'cycle_complete',

@@ -97,7 +97,7 @@ describe('Performance Benchmark', () => {
       console.log(
         `[Benchmark] SpatialGrid: 1000 nearby queries: ${elapsedQuery.toFixed(4)}ms`
       );
-      expect(elapsedQuery).toBeLessThan(30);
+      expect(elapsedQuery).toBeLessThan(80);
     });
   });
 

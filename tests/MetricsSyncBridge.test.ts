@@ -74,13 +74,12 @@ describe('MetricsSyncBridge Integration', () => {
     // @ts-expect-error:  testing private/internal sync logic via addSession
     await storage.syncToSupabase(mockSession);
 
-    // 1. Verify game_sessions insert
-    const sessionCall = mockInsert.mock.calls.find(call => call[0] === 'game_sessions');
+    // 1. Verify sessions insert
+    const sessionCall = mockInsert.mock.calls.find(call => call[0] === 'sessions');
     expect(sessionCall).toBeDefined();
     expect(sessionCall?.[1]).toMatchObject({
-      is_suspicious: true,
-      suspicion_reason: 'Impossible PnL movement',
-      device_fingerprint: 'device-123',
+      crypto_pair: 'BTC',
+      position_chosen: MarketPosition.LONG,
     });
 
     // 2. Verify performance_metrics insert
@@ -88,13 +87,14 @@ describe('MetricsSyncBridge Integration', () => {
       call => call[0] === 'performance_metrics'
     );
     expect(perfCall).toBeDefined();
-    expect(perfCall?.[1]).toMatchObject({
+    expect(perfCall?.[1].metadata).toMatchObject({
       fps_1_percentile: 25,
       avg_frame_time_ms: 16.6,
       max_frame_time_ms: 40,
       enemy_count_avg: 15,
       bullet_count_avg: 5,
       particle_count_avg: 100,
+      device_fingerprint: 'device-123',
     });
 
     // 3. Verify device_profiles upsert

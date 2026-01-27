@@ -9,6 +9,19 @@ vi.mock('../../services/TimeService', () => ({
   },
 }));
 
+vi.mock('../../services/difficulty/AIDirector', () => ({
+  AIDirector: {
+    getOutputs: vi.fn(() => ({
+      spawnDensity: 1 / 3, // Result: 0.5 + (1/3 * 1.5) = 1.0 (Neutral)
+      enemySpeedMod: 0.5,
+      aggression: 0.5,
+    })),
+    update: vi.fn(),
+    setPlayerStats: vi.fn(),
+    setEnabled: vi.fn(),
+  },
+}));
+
 describe('DifficultyManager Edge Cases', () => {
   beforeEach(() => {
     DifficultyManager.startGame();

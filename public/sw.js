@@ -90,6 +90,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Skip non-http/https schemes (e.g., chrome-extension://)
+  if (!request.url.startsWith('http')) {
+    return;
+  }
+
   // Skip WebSocket and API requests
   if (SKIP_CACHE_PATTERNS.some(pattern => pattern.test(url.href))) {
     return;

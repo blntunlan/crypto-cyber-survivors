@@ -31,6 +31,7 @@ vi.mock('../services/CoinService', () => ({
     resetSession: vi.fn(),
     calculateCycleReward: vi.fn(),
     creditCoins: vi.fn(),
+    setProvider: vi.fn(),
   },
 }));
 
@@ -79,7 +80,7 @@ vi.mock('../services/Logger', () => ({
 vi.mock('../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getNickname: vi.fn(() => 'TestUser'),
-    getPlayerId: vi.fn(() => 'test-player-id'),
+    getProfileId: vi.fn(() => 'test-profile-id'),
   },
 }));
 

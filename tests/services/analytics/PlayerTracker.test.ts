@@ -27,13 +27,13 @@ const { mockSupabase } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../services/Supabase', () => ({
-  supabase: mockSupabase,
+  supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('../../../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn().mockReturnValue('test-player-id'),
+    getProfileId: vi.fn().mockReturnValue('test-profile-id'),
     getNickname: vi.fn().mockReturnValue('test-nickname'),
   },
 }));
@@ -49,7 +49,7 @@ describe('PlayerTracker', () => {
     // Default setup for successful fetch
     mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
     mockSupabase.single.mockResolvedValue({
-      data: { id: 'test-id', display_name: 'test' },
+      data: { id: 'test-profile-id', display_name: 'test' },
       error: null,
     });
   });
@@ -72,7 +72,7 @@ describe('PlayerTracker', () => {
       mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
       mockSupabase.single.mockResolvedValueOnce({
         data: {
-          id: 'test-player-id',
+          id: 'test-profile-id',
           display_name: 'test-nickname',
           created_at: new Date().toISOString(),
           last_seen_at: new Date().toISOString(),
@@ -86,7 +86,7 @@ describe('PlayerTracker', () => {
       await waitForInit(tracker);
 
       // Assert
-      expect(mockSupabase.from).toHaveBeenCalledWith('players');
+      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       expect(mockSupabase.insert).toHaveBeenCalled();
       expect(tracker.getCurrentPlayer()).not.toBeNull();
       expect(tracker.getCurrentPlayer()?.displayName).toBe('test-nickname');
@@ -95,7 +95,7 @@ describe('PlayerTracker', () => {
     it('should update existing player on initialization', async () => {
       // Arrange
       const existingPlayer = {
-        id: 'test-player-id',
+        id: 'test-profile-id',
         display_name: 'test-nickname',
         created_at: '2023-01-01',
         last_seen_at: '2023-01-01',
@@ -138,7 +138,7 @@ describe('PlayerTracker', () => {
 
     it('should skip initialization for anonymous players', async () => {
       // Arrange
-      (UserSessionService.getPlayerId as any).mockReturnValueOnce('anon-12345');
+      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon-12345');
 
       // Act
       const tracker = PlayerTracker.getInstance();
@@ -170,14 +170,9 @@ describe('PlayerTracker', () => {
       PlayerTracker.getInstance();
 
       // Advance timers to allow the async init (the void initializePlayer()) to proceed
-      // Since it's async but no timers are explicitly used inside initializePlayer
-      // except the one we just mocked with setInterval later.
-      // We need to run pending promises.
       vi.runAllTicks();
 
       // Wait for the async work
-      // In fake timer mode, we can't easily "wait" for microtasks with real setTimeout
-      // but vi.advanceTimersByTime(0) or runAllTicks usually works.
       await vi.advanceTimersByTimeAsync(0);
 
       // Advance time by 5 minutes
@@ -241,7 +236,7 @@ describe('PlayerTracker', () => {
     it('should update high score if new score is higher', async () => {
       // Arrange
       const existingPlayer = {
-        id: 'test-player-id',
+        id: 'test-profile-id',
         display_name: 'test-nickname',
         created_at: '2023-01-01',
         last_seen_at: '2023-01-01',
@@ -276,7 +271,7 @@ describe('PlayerTracker', () => {
     it('should not update high score if new score is lower', async () => {
       // Arrange
       const existingPlayer = {
-        id: 'test-player-id',
+        id: 'test-profile-id',
         display_name: 'test-nickname',
         created_at: '2023-01-01',
         last_seen_at: '2023-01-01',
@@ -309,7 +304,7 @@ describe('PlayerTracker', () => {
       );
     });
 
-    it('should return 0 if no player is initialized', async () => {
+    it('should return 0 si no player is initialized', async () => {
       // Arrange
       (isSupabaseConfigured as any).mockReturnValue(false);
       const tracker = PlayerTracker.getInstance();

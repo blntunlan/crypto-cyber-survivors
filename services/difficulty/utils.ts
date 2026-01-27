@@ -75,5 +75,18 @@ export function getDefaultInputs(): DifficultyInputs {
 
     // History
     pnlHistory: [],
+
+    // Sensors V2
+    macd: {
+      histogram: 0,
+      signal: 0,
+      value: 0,
+    },
+    stress: {
+      score: 0,
+      damageRate: 0,
+      dashUsage: 0,
+      nearDeathDuration: 0,
+    },
   };
 }

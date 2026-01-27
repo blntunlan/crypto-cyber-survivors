@@ -305,6 +305,59 @@ export class PerformanceTracker {
   }
 
   /**
+   * Sync performance metrics to Supabase.
+   */
+  async syncToSupabase(sessionId?: string): Promise<void> {
+    const stats = this.getStats();
+    const snapshot = this.getSnapshot();
+
+    const { supabase, isSupabaseConfigured } = await import('../Supabase');
+    const { UserSessionService } = await import('../auth/UserSessionService');
+    const { DeviceProfiler } = await import('./DeviceProfiler');
+
+    if (isSupabaseConfigured() && supabase) {
+      const profileId = UserSessionService.getProfileId();
+      const device = DeviceProfiler.getProfile();
+
+      try {
+        // Define extended navigator for non-standard properties
+        interface ExtendedNavigator extends Navigator {
+          deviceMemory?: number;
+        }
+        const extendedNav = navigator as ExtendedNavigator;
+
+        await supabase.from('performance_metrics').insert({
+          profile_id: profileId.startsWith('anon-') ? null : profileId,
+          session_id: sessionId ?? null,
+          device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
+          device_model: navigator.platform,
+          os_info: navigator.userAgent,
+          memory_gb: extendedNav.deviceMemory ?? null,
+          cpu_cores: navigator.hardwareConcurrency || null,
+          avg_fps: stats.avgFps,
+          min_fps: stats.minFps,
+          max_fps: stats.maxFps,
+          frame_drops:
+            stats.sampleCount > 0
+              ? Math.floor((60 - stats.avgFps) * stats.sampleCount)
+              : 0,
+          resolution: `${window.innerWidth}x${window.innerHeight}`,
+          gpu_info: device.gpu,
+          metadata: {
+            memoryUsedMB: snapshot.memoryUsedMB,
+            onePercentLow: stats.onePercentLow,
+            avgFrameTime: stats.avgFrameTime,
+          },
+        });
+        Logger.info('[PerformanceTracker] Metrics synced to Supabase');
+      } catch (error) {
+        Logger.warn('[PerformanceTracker] Failed to sync metrics', error);
+      }
+    }
+  }
+
+  /**
    * Get total elapsed time since start (ms).
    */
   getElapsedTime(): number {

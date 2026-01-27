@@ -90,7 +90,7 @@ vi.stubEnv('VITE_ENABLE_ANALYTICS', 'true');
 // Mock UserSessionService
 vi.mock('../services/auth/UserSessionService', () => ({
   UserSessionService: {
-    getPlayerId: vi.fn(() => 'test-player-id'),
+    getProfileId: vi.fn(() => 'test-profile-id'),
   },
 }));
 

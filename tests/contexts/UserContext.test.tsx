@@ -46,7 +46,7 @@ const TestConsumer: React.FC<{
       <span data-testid="authenticated">{ctx.isAuthenticated.toString()}</span>
       <span data-testid="loading">{ctx.isLoading.toString()}</span>
       <span data-testid="nickname">{ctx.nickname ?? 'null'}</span>
-      <span data-testid="playerId">{ctx.playerId}</span>
+      <span data-testid="profileId">{ctx.profileId}</span>
       <button data-testid="login" onClick={() => void ctx.login('TestNick')}>
         Login
       </button>
@@ -117,13 +117,13 @@ describe('UserContext', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('playerId').textContent).toMatch(/^anon-/);
+        expect(screen.getByTestId('profileId').textContent).toMatch(/^anon_/);
       });
     });
 
     it('should load user from localStorage on mount', async () => {
       const mockUser = {
-        playerId: '550e8400-e29b-41d4-a716-446655440000',
+        profileId: '550e8400-e29b-41d4-a716-446655440000',
         nickname: 'StoredUser',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),
@@ -139,7 +139,7 @@ describe('UserContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('authenticated').textContent).toBe('true');
         expect(screen.getByTestId('nickname').textContent).toBe('StoredUser');
-        expect(screen.getByTestId('playerId').textContent).toBe(
+        expect(screen.getByTestId('profileId').textContent).toBe(
           '550e8400-e29b-41d4-a716-446655440000'
         );
       });
@@ -177,7 +177,7 @@ describe('UserContext', () => {
     it('should clear user on logout', async () => {
       // Pre-populate storage
       const mockUser = {
-        playerId: 'logout-test-id',
+        profileId: '550e8400-e29b-41d4-a716-446655440010', // Must be UUID
         nickname: 'LogoutUser',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),

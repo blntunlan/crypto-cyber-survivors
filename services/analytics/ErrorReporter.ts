@@ -1,6 +1,7 @@
 import { Logger } from '../Logger';
 import { DeviceProfiler } from './DeviceProfiler';
 import { UserSessionService } from '../auth/UserSessionService';
+import { type Database, type Json } from '../../types/supabase';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -17,7 +18,7 @@ export interface ErrorReport {
   category: string;
   context?: Record<string, unknown>;
   timestamp: number;
-  playerId: string;
+  profileId: string;
   fingerprint: string;
 }
 
@@ -35,7 +36,7 @@ export class ErrorReporter {
   ): Promise<void> {
     const message = error instanceof Error ? error.message : error;
     const stack = error instanceof Error ? error.stack : undefined;
-    const playerId = UserSessionService.getPlayerId();
+    const profileId = UserSessionService.getProfileId();
     const fingerprint = DeviceProfiler.getFingerprint();
 
     const hash = `${type}:${message}`.substring(0, 100);
@@ -62,7 +63,7 @@ export class ErrorReporter {
         gpu: profile.gpu,
       },
       timestamp: Date.now(),
-      playerId,
+      profileId,
       fingerprint,
     };
 
@@ -73,19 +74,29 @@ export class ErrorReporter {
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('error_reports').insert({
-          player_id: playerId.startsWith('anon-') ? null : playerId,
+          profile_id: profileId.startsWith('anon-') ? null : profileId,
           error_type: type,
-          error_message: message,
+          message: message,
           stack_trace: stack,
-          user_agent: profile.userAgent,
-          url: window.location.href,
-          device_fingerprint: fingerprint,
           severity: report.severity,
-          category: report.category,
-          fingerprint: report.fingerprint,
-          context: report.context,
+          device_info: {
+            fingerprint,
+            userAgent: profile.userAgent,
+            resolution: `${profile.screenWidth}x${profile.screenHeight}`,
+            gpu: profile.gpu,
+            language: navigator.language,
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
+            platform: navigator.platform,
+          },
+          context_data: {
+            ...context,
+            url: window.location.href,
+            gameState:
+              (window as unknown as { GAME_STATE?: string }).GAME_STATE ?? 'UNKNOWN',
+          } as unknown as Json,
+          created_at: new Date(report.timestamp).toISOString(),
           status: 'new',
-        });
+        } as Database['public']['Tables']['error_reports']['Insert']);
       } catch (err) {
         // Fail silently to avoid infinite error loops
         console.error('[ErrorReporter] Failed to sync error to Supabase', err);

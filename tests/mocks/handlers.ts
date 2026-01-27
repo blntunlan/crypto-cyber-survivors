@@ -9,8 +9,8 @@ export const handlers = [
     });
   }),
 
-  // Players Table - Select (Check existing)
-  http.get('*/rest/v1/players', ({ request }) => {
+  // Profiles Table - Select (Check existing)
+  http.get('*/rest/v1/profiles', ({ request }) => {
     const url = new URL(request.url);
     const displayName = url.searchParams.get('display_name');
 
@@ -18,12 +18,12 @@ export const handlers = [
       return HttpResponse.json({ id: 'existing-uuid', display_name: 'existing_user' });
     }
 
-    // Return 406 or empty for .single() when not found
+    // Return null for 406
     return new HttpResponse(null, { status: 406 });
   }),
 
-  // Players Table - Insert (Register)
-  http.post('*/rest/v1/players', async ({ request }) => {
+  // Profiles Table - Insert (Register)
+  http.post('*/rest/v1/profiles', async ({ request }) => {
     const body = (await request.json()) as any;
     return HttpResponse.json({
       id: 'new-uuid',

@@ -125,8 +125,8 @@ export class CombatSystem implements ICombatSystem {
       null;
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
-    // We check a 3x3 grid around the player (approx 450x450 area)
-    enemyGrid.forEachNearby(player.x, player.y, enemy => {
+    // Step 1: Check 3x3 grid (immediate surroundings)
+    enemyGrid.forEachInRange(player.x, player.y, 1, enemy => {
       // Skip dead or dying enemies
       if (enemy.isDying || !enemy.active) {
         return;
@@ -140,21 +140,39 @@ export class CombatSystem implements ICombatSystem {
         }
       }
 
-      // Use squared distance to avoid Math.sqrt() in the hot loop
       const dx = enemy.x - player.x;
       const dy = enemy.y - player.y;
       const distSq = dx * dx + dy * dy;
 
-      // Update best candidate
       if (!bestCandidate || distSq < bestCandidate.distSq) {
         bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
       }
     });
 
-    // Fallback: If no enemies found in immediate grid, we could optionally scan all active enemies,
-    // but usually SpatialGrid is sufficient for "nearest" within range.
-    // However, for survivors-like, some weapons target globally.
-    // If bestCandidate is still null, we do a full scan as fallback.
+    // Step 2: If nothing found, check 7x7 grid (extended surroundings)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!bestCandidate) {
+      enemyGrid.forEachInRange(player.x, player.y, 3, enemy => {
+        if (enemy.isDying || !enemy.active) return;
+
+        if (viewportBounds) {
+          const enemyRadius =
+            enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
+          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) return;
+        }
+
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const distSq = dx * dx + dy * dy;
+
+        if (!bestCandidate || distSq < bestCandidate.distSq) {
+          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+        }
+      });
+    }
+
+    // Fallback: If no enemies found in extended grid, scan all active enemies.
+    // This handles edge cases where enemies are at the very edges of wide viewports.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!bestCandidate) {
       const enemies = pool.activeEnemies;

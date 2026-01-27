@@ -224,9 +224,11 @@ class VerificationQueueService {
 
     const { data } = request;
     const isReplayEnabled = !!data.replayData && !!data.metadata;
+
+    // We will use the existing endpoint structure
     const functionName = isReplayEnabled ? 'verify-replay' : 'verify-game';
 
-    // Prepare body based on function
+    // Prepare body based on new session schema
     const body = isReplayEnabled
       ? {
           sessionId: data.sessionId,
@@ -235,11 +237,23 @@ class VerificationQueueService {
           claimedStats: {
             kills: data.kills,
             level: data.level,
-            survivalTimeMs: data.survivalTimeMs,
+            survivalSeconds: Math.floor(data.survivalTimeMs / 1000),
             pnlPercent: data.claimedPnL,
           },
         }
-      : data;
+      : {
+          profileId: data.userId, // UserSessionService.getPlayerId()
+          sessionId: data.sessionId,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          pair: data.pair,
+          position: data.position,
+          kills: data.kills,
+          level: data.level,
+          survivalSeconds: Math.floor(data.survivalTimeMs / 1000),
+          claimedPnL: data.claimedPnL,
+          signature: data.signature,
+        };
 
     const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
       method: 'POST',

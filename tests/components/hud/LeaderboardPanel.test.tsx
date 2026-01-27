@@ -67,18 +67,18 @@ vi.mock('../../../services/Logger', () => ({
 describe('LeaderboardPanel', () => {
   const mockEntries = [
     {
-      id: '1',
-      player_name: 'Player1',
-      score: 10000,
-      survival_time_ms: 300000,
-      created_at: '2023-01-01',
+      profile_id: '1',
+      display_name: 'Player1',
+      high_score: 10000,
+      max_survival_time: 300000,
+      total_sessions: 10,
     },
     {
-      id: '2',
-      player_name: 'Player2',
-      score: 5000,
-      survival_time_ms: 150000,
-      created_at: '2023-01-01',
+      profile_id: '2',
+      display_name: 'Player2',
+      high_score: 5000,
+      max_survival_time: 150000,
+      total_sessions: 5,
     },
   ];
 

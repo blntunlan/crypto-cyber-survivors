@@ -3,16 +3,15 @@ import { Logger } from './Logger';
 import { UserSessionService } from './auth/UserSessionService';
 
 /**
- * DB types matching coin_transactions table schema
+ * DB types matching ledger table schema
  */
-interface DBTransaction {
+interface DBLedgerRow {
   id: string;
   amount: number;
   balance_after: number;
-  type: string; // Column is 'type' in coin_transactions, not 'transaction_type'
+  transaction_type: string;
   reference_id: string | null;
-  reference_type: string | null;
-  description: string | null;
+  currency: string;
   created_at: string;
 }
 
@@ -22,8 +21,7 @@ export interface WalletTransaction {
   balanceAfter: number;
   type: string;
   referenceId?: string;
-  referenceType?: string;
-  description?: string;
+  currency: string;
   createdAt: string;
 }
 
@@ -39,18 +37,18 @@ export class WalletService {
 
   /**
    * Get current confirmed gold balance.
-   * Uses players.gold_balance as the source of truth (set by migration 013).
+   * Uses virtual_accounts.gold_balance as the source of truth.
    */
   async getBalance(): Promise<number> {
-    const playerId = UserSessionService.getPlayerId();
-    if (playerId.startsWith('anon-')) return 0;
+    const profileId = UserSessionService.getProfileId();
+    if (profileId.startsWith('anon-')) return 0;
 
     if (!isSupabaseConfigured() || supabase === null) return 0;
 
     const { data, error } = await supabase
-      .from('players')
+      .from('virtual_accounts')
       .select('gold_balance')
-      .eq('id', playerId)
+      .eq('profile_id', profileId)
       .single();
 
     if (error) {
@@ -62,22 +60,21 @@ export class WalletService {
   }
 
   /**
-   * Fetch transaction history for audit/UI.
-   * Queries coin_transactions table (audit trail).
+   * Fetch transaction history from ledger.
    */
   async getHistory(limit = 20): Promise<WalletTransaction[]> {
-    const playerId = UserSessionService.getPlayerId();
-    if (playerId.startsWith('anon-')) return [];
+    const profileId = UserSessionService.getProfileId();
+    if (profileId.startsWith('anon-')) return [];
 
     if (!isSupabaseConfigured() || supabase === null) return [];
 
-    // Query coin_transactions table for transaction history
+    // Query ledger table for transaction history
     const { data, error } = await supabase
-      .from('coin_transactions')
+      .from('ledger')
       .select(
-        'id, amount, balance_after, type, reference_id, reference_type, description, created_at'
+        'id, amount, balance_after, transaction_type, reference_id, currency, created_at'
       )
-      .eq('player_id', playerId)
+      .eq('profile_id', profileId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -86,15 +83,14 @@ export class WalletService {
       return [];
     }
 
-    return (data as DBTransaction[]).map(tx => ({
-      id: tx.id,
-      amount: tx.amount,
-      balanceAfter: tx.balance_after,
-      type: tx.type,
-      referenceId: tx.reference_id ?? undefined,
-      referenceType: tx.reference_type ?? undefined,
-      description: tx.description ?? undefined,
-      createdAt: tx.created_at,
+    return (data as DBLedgerRow[]).map(entry => ({
+      id: entry.id,
+      amount: entry.amount,
+      balanceAfter: entry.balance_after,
+      type: entry.transaction_type,
+      referenceId: entry.reference_id ?? undefined,
+      currency: entry.currency,
+      createdAt: entry.created_at,
     }));
   }
 }
