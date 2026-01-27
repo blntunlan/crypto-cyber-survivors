@@ -137,7 +137,7 @@ export class MetricsStorage {
     try {
       const profileId = UserSessionService.getProfileId();
       const nickname = UserSessionService.getNickname();
-      const isAnonymous = profileId.startsWith('anon-');
+      const isAnonymous = profileId.startsWith('anon_');
 
       // Log detailed state for debugging
       Logger.info('[MetricsStorage] Attempting sync with player state', {
@@ -307,10 +307,9 @@ export class MetricsStorage {
           {
             fingerprint: session.performance.deviceFingerprint,
             browser: session.performance.browser,
-            browser_version: session.performance.browserVersion,
-            os: session.performance.os,
-            pixel_ratio: session.performance.pixelRatio,
-            gpu_renderer: session.performance.gpuRenderer,
+            device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',
+            screen_width: window.innerWidth,
+            screen_height: window.innerHeight,
             last_seen_at: new Date().toISOString(),
           },
           { onConflict: 'fingerprint' }

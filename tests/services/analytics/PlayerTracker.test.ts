@@ -138,7 +138,7 @@ describe('PlayerTracker', () => {
 
     it('should skip initialization for anonymous players', async () => {
       // Arrange
-      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon-12345');
+      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon_12345');
 
       // Act
       const tracker = PlayerTracker.getInstance();

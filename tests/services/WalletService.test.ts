@@ -32,7 +32,7 @@ describe('WalletService', () => {
 
   describe('getBalance', () => {
     it('should return 0 for anonymous players', async () => {
-      vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon-123');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon_123');
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(0);
     });
@@ -66,7 +66,7 @@ describe('WalletService', () => {
 
   describe('getHistory', () => {
     it('should return empty list for anonymous players', async () => {
-      vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon-123');
+      vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon_123');
       const history = await WalletService.getInstance().getHistory();
       expect(history).toEqual([]);
     });

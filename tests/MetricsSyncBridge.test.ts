@@ -105,9 +105,9 @@ describe('MetricsSyncBridge Integration', () => {
     expect(deviceCall?.[1]).toMatchObject({
       fingerprint: 'device-123',
       browser: 'Chrome',
-      os: 'Windows',
-      pixel_ratio: 2,
-      gpu_renderer: 'RTX 4090',
+      device_type: expect.stringMatching(/desktop|mobile/),
+      screen_width: expect.any(Number),
+      screen_height: expect.any(Number),
     });
   });
 });

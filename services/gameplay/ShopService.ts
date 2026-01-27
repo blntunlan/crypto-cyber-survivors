@@ -73,7 +73,7 @@ export class ShopService {
   async getInventory(): Promise<string[]> {
     if (!isSupabaseConfigured() || supabase === null) return [];
     const profileId = UserSessionService.getProfileId();
-    if (profileId.startsWith('anon-')) return [];
+    if (profileId.startsWith('anon_')) return [];
 
     const { data, error } = await supabase
       .from('profile_inventory')
@@ -95,7 +95,7 @@ export class ShopService {
     itemId: string
   ): Promise<{ success: boolean; error?: string; newBalance?: number }> {
     const profileId = UserSessionService.getProfileId();
-    if (profileId.startsWith('anon-')) {
+    if (profileId.startsWith('anon_')) {
       return { success: false, error: 'Must be logged in to purchase' };
     }
 

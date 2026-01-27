@@ -41,7 +41,7 @@ export class WalletService {
    */
   async getBalance(): Promise<number> {
     const profileId = UserSessionService.getProfileId();
-    if (profileId.startsWith('anon-')) return 0;
+    if (profileId.startsWith('anon_')) return 0;
 
     if (!isSupabaseConfigured() || supabase === null) return 0;
 
@@ -64,7 +64,7 @@ export class WalletService {
    */
   async getHistory(limit = 20): Promise<WalletTransaction[]> {
     const profileId = UserSessionService.getProfileId();
-    if (profileId.startsWith('anon-')) return [];
+    if (profileId.startsWith('anon_')) return [];
 
     if (!isSupabaseConfigured() || supabase === null) return [];
 

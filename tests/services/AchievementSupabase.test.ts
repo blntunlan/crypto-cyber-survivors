@@ -96,7 +96,7 @@ describe('AchievementService Supabase Integration', () => {
 
   describe('getMyUnlocks', () => {
     it('should return empty array for anonymous players', async () => {
-      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon-12345');
+      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon_12345');
       const result = await service.getMyUnlocks();
       expect(result).toEqual([]);
     });

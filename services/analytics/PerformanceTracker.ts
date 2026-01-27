@@ -327,7 +327,7 @@ export class PerformanceTracker {
         const extendedNav = navigator as ExtendedNavigator;
 
         await supabase.from('performance_metrics').insert({
-          profile_id: profileId.startsWith('anon-') ? null : profileId,
+          profile_id: profileId.startsWith('anon_') ? null : profileId,
           session_id: sessionId ?? null,
           device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
           // eslint-disable-next-line @typescript-eslint/no-deprecated

@@ -6,7 +6,7 @@ import { Logger } from '../system/Logger';
 import { PoolManager } from '../combat/PoolManager';
 
 // Robust way to access Architect from different build environments (Vite/Node/CJS/ESM)
- 
+
 const Architect =
   (SynapticLib as any).Architect ?? (SynapticLib as any).default?.Architect;
 

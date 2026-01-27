@@ -74,7 +74,7 @@ export class ErrorReporter {
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('error_reports').insert({
-          profile_id: profileId.startsWith('anon-') ? null : profileId,
+          profile_id: profileId.startsWith('anon_') ? null : profileId,
           error_type: type,
           message: message,
           stack_trace: stack,

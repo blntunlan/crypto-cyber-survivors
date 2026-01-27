@@ -67,7 +67,7 @@ export class AchievementService {
    */
   async getMyUnlocks(): Promise<ProfileAchievement[]> {
     const profileId = UserSessionService.getProfileId();
-    if (profileId.startsWith('anon-')) return [];
+    if (profileId.startsWith('anon_')) return [];
 
     if (!isSupabaseConfigured() || supabase === null) return [];
 

@@ -19,7 +19,7 @@ export class SupabaseCoinProvider implements ICoinProvider {
    */
   async getBalance(): Promise<number> {
     const profileId = UserSessionService.getProfileId();
-    if (!profileId || profileId.startsWith('anon-')) return 0;
+    if (!profileId || profileId.startsWith('anon_')) return 0;
 
     if (!isSupabaseConfigured() || supabase === null) return 0;
 
@@ -46,7 +46,7 @@ export class SupabaseCoinProvider implements ICoinProvider {
     metadata?: Record<string, unknown>
   ): Promise<boolean> {
     const profileId = UserSessionService.getProfileId();
-    if (!profileId || profileId.startsWith('anon-')) {
+    if (!profileId || profileId.startsWith('anon_')) {
       Logger.warn('[SupabaseCoinProvider] Cannot credit: anonymous user');
       return false;
     }
@@ -59,7 +59,8 @@ export class SupabaseCoinProvider implements ICoinProvider {
         p_amount: Math.floor(amount),
         p_transaction_type: source,
         p_reference_id: (metadata?.referenceId as string | undefined) ?? undefined,
-        p_metadata: (metadata ?? {}) as Record<string, unknown>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        p_metadata: (metadata ?? {}) as any,
       });
 
       if (error) throw error;

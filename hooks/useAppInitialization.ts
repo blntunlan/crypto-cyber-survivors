@@ -56,9 +56,11 @@ export function useAppInitialization(): UseAppInitializationResult {
       void DeviceBenchmarkService.runBenchmark();
 
       // 4. Initialize market state realtime feed
-      void import('../services/market/MarketStateService').then(({ MarketStateService }) => {
-        void MarketStateService.init();
-      });
+      void import('../services/market/MarketStateService').then(
+        ({ MarketStateService }) => {
+          void MarketStateService.init();
+        }
+      );
 
       // 5. Check if player needs to set a nickname (robustly)
       const user = await UserPersistenceService.initialize();
@@ -78,7 +80,7 @@ export function useAppInitialization(): UseAppInitializationResult {
             const { data, error } = await supabase
               .from('profiles')
               .select('id')
-              .eq('id', user.playerId)
+              .eq('id', user.profileId)
               .maybeSingle();
 
             if (error || !data) {

@@ -53,7 +53,7 @@ export class PlayerTracker {
     }
 
     // Skip anonymous players
-    if (profileId.startsWith('anon-')) {
+    if (profileId.startsWith('anon_')) {
       Logger.debug('[PlayerTracker] Anonymous player, skipping registration');
       return;
     }
@@ -87,8 +87,8 @@ export class PlayerTracker {
         this.currentPlayer = {
           id: existing.id,
           displayName: existing.display_name,
-          createdAt: existing.created_at,
-          lastSeenAt: existing.last_seen_at,
+          createdAt: existing.created_at ?? new Date().toISOString(),
+          lastSeenAt: existing.last_seen_at ?? new Date().toISOString(),
           totalSessions: newTotalSessions,
           highScore: existing.high_score ?? 0,
         };
@@ -113,8 +113,8 @@ export class PlayerTracker {
         this.currentPlayer = {
           id: newPlayer.id,
           displayName: newPlayer.display_name,
-          createdAt: newPlayer.created_at,
-          lastSeenAt: newPlayer.last_seen_at,
+          createdAt: newPlayer.created_at ?? new Date().toISOString(),
+          lastSeenAt: newPlayer.last_seen_at ?? new Date().toISOString(),
           totalSessions: 1,
           highScore: 0,
         };

@@ -41,7 +41,7 @@ describe('SupabaseCoinProvider', () => {
       error: null,
     });
 
-    vi.mocked(supabase.from).mockReturnValue({
+    vi.mocked(supabase!.from).mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           single: mockSingle,
@@ -51,29 +51,29 @@ describe('SupabaseCoinProvider', () => {
 
     const balance = await provider.getBalance();
     expect(balance).toBe(500);
-    expect(supabase.from).toHaveBeenCalledWith('virtual_accounts');
+    expect(supabase!.from).toHaveBeenCalledWith('virtual_accounts');
   });
 
   it('should return 0 for anonymous players', async () => {
-    vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon-123');
+    vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon_123');
     const balance = await provider.getBalance();
     expect(balance).toBe(0);
-    expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase!.from).not.toHaveBeenCalled();
   });
 
   it('should credit coins via RPC', async () => {
     vi.mocked(UserSessionService.getProfileId).mockReturnValue(
       '550e8400-e29b-41d4-a716-446655440001'
     );
-    vi.mocked(supabase.rpc).mockResolvedValue({
+    vi.mocked(supabase!.rpc).mockResolvedValue({
       data: { success: true, new_balance: 100 },
       error: null,
-    });
+    } as any);
 
     const success = await provider.credit(50, 'achievement', { referenceId: 'ach-1' });
 
     expect(success).toBe(true);
-    expect(supabase.rpc).toHaveBeenCalledWith('credit_coins', {
+    expect(supabase!.rpc).toHaveBeenCalledWith('credit_coins', {
       p_profile_id: '550e8400-e29b-41d4-a716-446655440001',
       p_amount: 50,
       p_transaction_type: 'achievement',
