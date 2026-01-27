@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WalletService } from '../../services/WalletService';
+import { WalletService } from '../../services/gameplay/WalletService';
 import { UserSessionService } from '../../services/auth/UserSessionService';
-import { supabase } from '../../services/Supabase';
 
 // Mock Dependencies
 vi.mock('../../services/auth/UserSessionService', () => ({
@@ -10,14 +9,18 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
-vi.mock('../../services/Supabase', () => ({
+// Helper to mock fully chained Supabase calls
+const mockSupabaseChain = {
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  order: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  single: vi.fn(),
+};
+
+vi.mock('../../services/core/Supabase', () => ({
   supabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn(),
+    from: vi.fn(() => mockSupabaseChain),
   },
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
@@ -38,13 +41,10 @@ describe('WalletService', () => {
       vi.mocked(UserSessionService.getProfileId).mockReturnValue(
         '00000000-0000-0000-0000-000000000001'
       );
-      (supabase!.from as any)()
-        .select()
-        .eq()
-        .single.mockResolvedValue({
-          data: { gold_balance: 150 },
-          error: null,
-        });
+      mockSupabaseChain.single.mockResolvedValue({
+        data: { gold_balance: 150 },
+        error: null,
+      });
 
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(150);
@@ -54,13 +54,10 @@ describe('WalletService', () => {
       vi.mocked(UserSessionService.getProfileId).mockReturnValue(
         '00000000-0000-0000-0000-000000000001'
       );
-      (supabase!.from as any)()
-        .select()
-        .eq()
-        .single.mockResolvedValue({
-          data: null,
-          error: { message: 'DB Error' },
-        });
+      mockSupabaseChain.single.mockResolvedValue({
+        data: null,
+        error: { message: 'DB Error' },
+      });
 
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(0);
@@ -88,7 +85,7 @@ describe('WalletService', () => {
           created_at: '2024-01-01',
         },
       ];
-      (supabase!.from as any)().select().eq().order().limit.mockResolvedValue({
+      mockSupabaseChain.limit.mockResolvedValue({
         data: mockData,
         error: null,
       });

@@ -6,9 +6,9 @@
  */
 
 import { useEffect } from 'react';
-import { CheatManager } from '../services/CheatManager';
+import { CheatManager } from '../services/system/CheatManager';
 import { GameStatus } from '../types';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 
 export interface CheatHandlers {
   onLevelUp: () => void;

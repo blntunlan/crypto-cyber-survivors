@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ShopService } from '../../services/ShopService';
-import { supabase } from '../../services/Supabase';
+import { ShopService } from '../../services/gameplay/ShopService';
+import { supabase } from '../../services/core/Supabase';
 
 // Mock Supabase
-vi.mock('../../services/Supabase', () => ({
+vi.mock('../../services/core/Supabase', () => ({
   supabase: {
     from: vi.fn(),
     rpc: vi.fn(),

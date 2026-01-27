@@ -1,12 +1,12 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGameEvents } from '../../hooks/useGameEvents';
-import { EventBus } from '../../services/EventBus';
-import { audio } from '../../services/AudioService';
+import { EventBus } from '../../services/core/EventBus';
+import { audio } from '../../services/audio';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
 
 // Mock dependencies
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     subscribe: vi.fn((_event, _callback) => {
       // Simulate immediate callback trigger for threating if needed, but usually we emit event manually.
@@ -18,7 +18,7 @@ vi.mock('../../services/EventBus', () => ({
   },
 }));
 
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playHit: vi.fn(),
   },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { StatService } from '../../services/StatService';
+import { StatService } from '../../services/gameplay/StatService';
 
 describe('StatService', () => {
   describe('format()', () => {

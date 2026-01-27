@@ -7,7 +7,11 @@
 
 import { type Card, type CardTier, TIER_ORDER } from './types';
 import { TIER_CONFIG, getTierConfig, getAllTiers } from './tierConfig';
-import { ALL_CARDS } from './cardDefinitions';
+import { ALL_CARDS, ALL_CARDS_FLAT } from './cardDefinitions';
+
+export { type Card, type CardTier, TIER_ORDER };
+export { TIER_CONFIG, getTierConfig, getAllTiers };
+export { ALL_CARDS, ALL_CARDS_FLAT };
 
 /**
  * CardSystem singleton class

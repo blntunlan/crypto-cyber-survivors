@@ -1,6 +1,6 @@
-import type { PoolManager } from '../PoolManager';
+import type { PoolManager } from '../combat/PoolManager';
 import type { Player, GameState } from '../../types';
-import { screenService } from '../ScreenService';
+import { screenService } from '../system/ScreenService';
 
 export class SpeedLineSpawner {
   private lastSpawnTime = 0;

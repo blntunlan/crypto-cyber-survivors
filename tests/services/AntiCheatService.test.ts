@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AntiCheatService } from '../../services/AntiCheatService';
-import { EventBus } from '../../services/EventBus';
-import { supabase } from '../../services/Supabase';
+import { AntiCheatService } from '../../services/system/AntiCheatService';
+import { EventBus } from '../../services/core/EventBus';
+import { supabase } from '../../services/core/Supabase';
 
 // Mock Supabase
-vi.mock('../../services/Supabase', () => ({
+vi.mock('../../services/core/Supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
       insert: vi.fn().mockResolvedValue({ error: null }),

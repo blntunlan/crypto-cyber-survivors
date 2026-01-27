@@ -10,7 +10,7 @@ test.describe('Memory Leak Detection', () => {
       window.localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: 'mem-test-id',
+          profileId: 'mem-test-id',
           nickname: 'MemTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),

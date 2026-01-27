@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'; // 📦 [Import Cost]: 32.4KB (gzipped: 
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { GameMode } from '../../types/gameMode';
 

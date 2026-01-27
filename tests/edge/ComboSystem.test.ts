@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ComboSystem } from '../../services/ComboSystem';
-import { TimeService } from '../../services/TimeService';
-import { EventBus } from '../../services/EventBus';
+import { ComboSystem } from '../../services/combat/ComboSystem';
+import { TimeService } from '../../services/core/TimeService';
+import { EventBus } from '../../services/core/EventBus';
 
 // Mock dependencies
-vi.mock('../../services/TimeService', () => ({
+vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     getGameTime: vi.fn().mockReturnValue(0),
   },

@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAdminConfigStore } from '../../stores/admin/configStore';
 
 // Mock Logger to prevent console contamination during error testing
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     error: vi.fn(),
     info: vi.fn(),

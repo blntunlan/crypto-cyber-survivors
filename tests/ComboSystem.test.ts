@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { ComboSystem } from '../services/ComboSystem';
-import { TimeService } from '../services/TimeService';
-import { EventBus } from '../services/EventBus';
+import { ComboSystem } from '../services/combat/ComboSystem';
+import { TimeService } from '../services/core/TimeService';
+import { EventBus } from '../services/core/EventBus';
 
 describe('ComboSystem', () => {
   let mockTime = 1000;

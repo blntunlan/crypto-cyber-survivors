@@ -22,8 +22,8 @@
  * @refactored Split from 733-line monolith into focused modules
  */
 
-import { Logger } from '../Logger';
-import { supabase, isSupabaseConfigured } from '../Supabase';
+import { Logger } from '../system/Logger';
+import { supabase, isSupabaseConfigured } from '../core/Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
 import { type Database, type Json } from '../../types/supabase';
 

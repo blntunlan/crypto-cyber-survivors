@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MarketStateService } from '../services/MarketStateService';
-import { EventBus } from '../services/EventBus';
-import { Logger } from '../services/Logger';
+import { MarketStateService } from '../services/market/MarketStateService';
+import { EventBus } from '../services/core/EventBus';
+import { Logger } from '../services/system/Logger';
 
 describe('MarketStateService Coverage Optimization', () => {
   beforeEach(() => {

@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import { SecurityUtils } from '../auth/SecurityUtils';
 
 export interface DeviceProfile {
   fingerprint: string;
@@ -73,14 +74,11 @@ export class DeviceProfiler {
    * Sync profile to Supabase.
    */
   static async syncToSupabase(): Promise<void> {
-    const { supabase, isSupabaseConfigured } = await import('../Supabase');
+    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
     if (!isSupabaseConfigured() || !supabase) return;
 
-    // Skip sync on localhost
-    if (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
-    ) {
+    // Skip sync on local environments
+    if (SecurityUtils.isLocalEnvironment()) {
       return;
     }
 

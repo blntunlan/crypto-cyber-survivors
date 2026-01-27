@@ -5,12 +5,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PhysicsSystem } from '../services/PhysicsSystem';
+import { PhysicsSystem } from '../services/combat/PhysicsSystem';
 import { type Player, type GameState, MarketPosition } from '../types';
-import { type PoolManager } from '../services/PoolManager';
+import { type PoolManager } from '../services/combat/PoolManager';
 
 // Mock dependencies
-vi.mock('../services/AudioService', () => ({
+vi.mock('../services/audio', () => ({
   audio: {
     playHit: vi.fn(),
     playCrit: vi.fn(),
@@ -18,26 +18,26 @@ vi.mock('../services/AudioService', () => ({
   },
 }));
 
-vi.mock('../services/CheatManager', () => ({
+vi.mock('../services/system/CheatManager', () => ({
   CheatManager: {
     isGodMode: vi.fn(() => false),
   },
 }));
 
-vi.mock('../services/DifficultyManager', () => ({
+vi.mock('../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     recordKill: vi.fn(),
     getXpMultiplier: vi.fn(() => 1),
   },
 }));
 
-vi.mock('../services/ComboSystem', () => ({
+vi.mock('../services/combat/ComboSystem', () => ({
   ComboSystem: {
     getXpMultiplier: vi.fn(() => 1),
   },
 }));
 
-vi.mock('../services/EventBus', () => ({
+vi.mock('../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(() => vi.fn()), // Returns unsubscribe function
@@ -55,7 +55,7 @@ vi.mock('../services/patterns/decorators/BuffManager', () => ({
 
 // Mock SpatialGrid - forEachNearby will iterate over inserted bullets
 const mockBullets: any[] = [];
-vi.mock('../services/SpatialGrid', () => ({
+vi.mock('../services/combat/SpatialGrid', () => ({
   bulletGrid: {
     clear: vi.fn(() => {
       mockBullets.length = 0;

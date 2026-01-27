@@ -3,9 +3,9 @@ import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BuffIndicator } from '../../../components/hud/BuffIndicator';
 import { BuffManager } from '../../../services/patterns/decorators/BuffManager';
-import { EventBus } from '../../../services/EventBus';
+import { EventBus } from '../../../services/core/EventBus';
 import { GameStatus } from '../../../types';
-import { screenService } from '../../../services/ScreenService';
+import { screenService } from '../../../services/system/ScreenService';
 
 // Mocks
 vi.mock('../../../services/patterns/decorators/BuffManager', () => ({
@@ -15,7 +15,7 @@ vi.mock('../../../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 
-vi.mock('../../../services/EventBus', () => ({
+vi.mock('../../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(),
     emit: vi.fn(),
@@ -32,7 +32,7 @@ vi.mock('../../../contexts/LanguageContext', () => ({
   }),
 }));
 
-vi.mock('../../../services/ScreenService', () => ({
+vi.mock('../../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(),
     onChange: vi.fn(() => vi.fn()),

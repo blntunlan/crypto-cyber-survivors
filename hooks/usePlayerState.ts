@@ -8,7 +8,7 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { type Player, MarketPosition } from '../types';
 import { COLORS } from '../constants';
-import { PLAYER_DEFAULTS } from '../services/GameStateManager';
+import { PLAYER_DEFAULTS } from '../services/core/GameStateManager';
 
 /**
  * Create a fresh player object with initial values

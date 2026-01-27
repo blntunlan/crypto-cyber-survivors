@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
-import { PoolManager } from '../services/PoolManager';
-import { screenService } from '../services/ScreenService';
+import { PoolManager } from '../services/combat/PoolManager';
+import { screenService } from '../services/system/ScreenService';
+import { type GameState, type Player, type SpeedLine } from '../types';
 
 // Mock ScreenService
-vi.mock('../services/ScreenService', () => ({
+vi.mock('../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(() => false),
   },
@@ -13,8 +14,8 @@ vi.mock('../services/ScreenService', () => ({
 describe('SpeedLineSpawner', () => {
   let spawner: SpeedLineSpawner;
   let pool: PoolManager;
-  let state: any;
-  let player: any;
+  let state: GameState;
+  let player: Player;
 
   beforeEach(() => {
     vi.mocked(screenService.isMobile).mockReturnValue(false);
@@ -28,19 +29,19 @@ describe('SpeedLineSpawner', () => {
       y: 0,
       radius: 0,
       color: '',
-      vx: 0,
-      vy: 0,
+      vx: 10, // Non-zero for velocity test
+      vy: 10,
       decay: 0,
-    } as any);
+    } as unknown as SpeedLine);
 
     state = {
       isDashing: false,
-    };
+    } as unknown as GameState;
 
     player = {
       x: 100,
       y: 100,
-    };
+    } as unknown as Player;
   });
 
   it('should not spawn lines if not dashing', () => {
@@ -95,7 +96,7 @@ describe('SpeedLineSpawner', () => {
     state.isDashing = true;
     spawner.update(pool, state, player, 800, 600, 1000);
 
-    const callArgs = (pool.getSpeedLine as any).mock.calls[0];
+    const callArgs = vi.mocked(pool.getSpeedLine).mock.calls[0]!;
     const spawnX = callArgs[0];
     const spawnY = callArgs[1];
 
@@ -108,12 +109,12 @@ describe('SpeedLineSpawner', () => {
     state.isDashing = true;
     spawner.update(pool, state, player, 800, 600, 1000);
 
-    const callArgs = (pool.getSpeedLine as any).mock.calls[0];
+    const callArgs = vi.mocked(pool.getSpeedLine).mock.calls[0]!;
     const spawnX = callArgs[0];
     const spawnY = callArgs[1];
     const angle = callArgs[4];
 
-    const line = (pool.getSpeedLine as any).mock.results[0].value;
+    const line = vi.mocked(pool.getSpeedLine).mock.results[0]!.value;
 
     // Angle should point roughly from (spawnX, spawnY) to (player.x, player.y)
     const expectedAngle = Math.atan2(player.y - spawnY, player.x - spawnX);

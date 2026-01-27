@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { usePlayerState } from '../../hooks/usePlayerState';
-import { PLAYER_DEFAULTS } from '../../services/GameStateManager';
+import { PLAYER_DEFAULTS } from '../../services/core/GameStateManager';
 import { MarketPosition } from '../../types';
 
 describe('usePlayerState', () => {

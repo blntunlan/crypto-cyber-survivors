@@ -1,4 +1,4 @@
-import { type Card } from '../../../services/CardSystem';
+import { type Card } from '../../../services/cards/CardSystem';
 import { type ErrorInfo } from 'react';
 
 export interface LevelUpScreenProps {

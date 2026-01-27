@@ -7,7 +7,7 @@
 import { render, screen, fireEvent } from '../../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HubMenu } from '../../../components/hub/HubMenu';
-import { audio } from '../../../services/AudioService';
+import { audio } from '../../../services/audio';
 
 // Mock LanguageContext
 vi.mock('../../../contexts/LanguageContext', () => ({
@@ -34,7 +34,7 @@ vi.mock('../../../services/inventory', () => ({
   },
 }));
 
-vi.mock('../../../services/AudioService', () => ({
+vi.mock('../../../services/audio', () => ({
   audio: {
     playButton: vi.fn(),
     playSelectionTick: vi.fn(),

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { useUser } from '../../contexts/useUser';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { User, Shield, Zap, ChevronRight, AlertCircle } from 'lucide-react';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedInput } from '../themed/ThemedInput';

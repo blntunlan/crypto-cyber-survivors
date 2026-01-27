@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { GameStatus } from '../types';
-import { GameStateMachine } from '../services/GameStateMachine';
+import { GameStateMachine } from '../services/core/GameStateMachine';
 
 export interface UseGameStatusReturn {
   gameStatus: GameStatus;

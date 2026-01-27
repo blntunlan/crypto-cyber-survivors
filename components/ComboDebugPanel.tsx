@@ -6,8 +6,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ComboSystem, COMBO_MILESTONES } from '../services/ComboSystem';
-import { EventBus } from '../services/EventBus';
+import { ComboSystem, COMBO_MILESTONES } from '../services/combat/ComboSystem';
+import { EventBus } from '../services/core/EventBus';
 
 export const ComboDebugPanel: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

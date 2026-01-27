@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import './hud-animations.css';

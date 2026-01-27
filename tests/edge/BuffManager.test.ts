@@ -5,7 +5,7 @@ import {
   RageModeDecorator,
   DiamondHandsDecorator,
 } from '../../services/patterns/decorators';
-import { TimeService } from '../../services/TimeService';
+import { TimeService } from '../../services/core/TimeService';
 
 /**
  * Helper to advance both Vitest timers and TimeService simultaneously.

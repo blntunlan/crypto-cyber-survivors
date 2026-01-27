@@ -5,11 +5,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { MetricsService } from '../services/MetricsService';
+import { MetricsService } from '../services/core/MetricsService';
 import { MarketPosition } from '../types';
 import { GameEndReason } from '../types/metrics';
-import { EventBus } from '../services/EventBus';
-import { TimeService } from '../services/TimeService';
+import { EventBus } from '../services/core/EventBus';
+import { TimeService } from '../services/core/TimeService';
 
 describe('MetricsService', () => {
   beforeEach(() => {

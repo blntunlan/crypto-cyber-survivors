@@ -13,7 +13,7 @@ import {
   type CategoryVolumes,
 } from './types';
 import { COOLDOWN_MS, DEFAULT_CATEGORY_VOLUMES } from './constants';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 
 declare global {
   interface Window {

@@ -12,7 +12,7 @@ test.describe('Cycle Complete Flow', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: '00000000-0000-4000-a000-000000000000',
+          profileId: '00000000-0000-4000-a000-000000000000',
           nickname: 'CycleTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),

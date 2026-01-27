@@ -17,7 +17,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { HubMenuButton, type HubButtonId } from './HubMenuButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';

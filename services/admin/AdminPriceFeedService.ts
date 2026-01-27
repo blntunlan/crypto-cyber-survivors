@@ -8,9 +8,9 @@
  * This runs only in development mode to conserve resources.
  */
 
-import { MarketService, type MarketUpdate } from '../MarketService';
+import { MarketService, type MarketUpdate } from '../market/MarketService';
 import { priceAnalyzer } from './PriceAnalyzerService';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 import type { CryptoPair } from '../../types/crypto';
 
 class AdminPriceFeedServiceClass {

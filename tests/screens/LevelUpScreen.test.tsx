@@ -44,7 +44,7 @@ vi.mock('framer-motion', () => {
 });
 
 // Mock audio service - include all methods used by LevelUpScreen and SlotReel
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playSlotTick: vi.fn(),
     playReelStop: vi.fn(),
@@ -58,7 +58,7 @@ vi.mock('../../services/AudioService', () => ({
 }));
 
 import { LevelUpScreen } from '../../components/screens/LevelUpScreen';
-import { type Card } from '../../services/CardSystem';
+import { type Card } from '../../services/cards/CardSystem';
 
 describe('LevelUpScreen', () => {
   const mockChoices: Card[] = [

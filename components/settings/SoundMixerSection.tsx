@@ -11,7 +11,7 @@
  */
 
 import { memo, useEffect } from 'react';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
 import { useIsRetro } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';

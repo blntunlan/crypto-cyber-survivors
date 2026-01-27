@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MetricsStorage } from '../services/metrics/MetricsStorage';
+import { MetricsStorage } from '../services/core/metrics/MetricsStorage';
 import {
   type SessionMetrics,
   GameEndReason,
@@ -49,7 +49,7 @@ const mockSupabaseSelect = vi.fn();
 const mockSupabaseUpdate = vi.fn();
 let supabaseConfigured = false;
 
-vi.mock('../services/Supabase', () => ({
+vi.mock('../services/core/Supabase', () => ({
   get supabase() {
     if (!supabaseConfigured) return null;
     return {
@@ -75,7 +75,7 @@ vi.mock('../services/Supabase', () => ({
 }));
 
 // Mock Logger
-vi.mock('../services/Logger', () => ({
+vi.mock('../services/system/Logger', () => ({
   Logger: {
     debug: vi.fn(),
     info: vi.fn(),

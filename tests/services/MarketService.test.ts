@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MarketService, type MarketUpdate } from '../../services/MarketService';
-import { Logger } from '../../services/Logger';
+import { MarketService, type MarketUpdate } from '../../services/market/MarketService';
+import { Logger } from '../../services/system/Logger';
 
 // Mock Logger
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     debug: vi.fn(),
     info: vi.fn(),

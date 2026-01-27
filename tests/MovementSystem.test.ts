@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MovementSystem } from '../services/physics/MovementSystem';
-import { enemyGrid } from '../services/SpatialGrid';
-import { PoolManager } from '../services/PoolManager';
+import { MovementSystem } from '../services/combat/physics/MovementSystem';
+import { enemyGrid } from '../services/combat/SpatialGrid';
+import { PoolManager } from '../services/combat/PoolManager';
 import {
   ChaseStrategy,
   StraightStrategy,
@@ -24,7 +24,7 @@ import type { Player, Bullet, Particle, FloatingText } from '../types';
 import type { GameEnemy } from '../factories/EnemyFactory';
 
 // Mock DeviceBenchmarkService
-vi.mock('../services/DeviceBenchmarkService', () => ({
+vi.mock('../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: () => ({
       particleMultiplier: 1.0,
@@ -35,7 +35,7 @@ vi.mock('../services/DeviceBenchmarkService', () => ({
 }));
 
 // Mock ParticleConfigService
-vi.mock('../services/ParticleConfigService', () => ({
+vi.mock('../services/system/ParticleConfigService', () => ({
   ParticleConfigService: {
     trail: {
       spawnChance: 0.3,

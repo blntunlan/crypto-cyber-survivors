@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { adminAnalytics } from '../../../services/admin/AdminAnalyticsService';
-import { Logger } from '../../../services/Logger';
+import { Logger } from '../../../services/system/Logger';
 
 // Mock Logger
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     error: vi.fn(),
   },
@@ -18,7 +18,7 @@ const mockSupabase = {
   eq: vi.fn().mockReturnThis(),
 };
 
-vi.mock('../../../services/Supabase', () => ({
+vi.mock('../../../services/core/Supabase', () => ({
   supabase: mockSupabase,
 }));
 

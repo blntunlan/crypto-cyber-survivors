@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useState } from 'react';
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 
 interface LevelUpFlashProps {
   intensity: number;

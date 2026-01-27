@@ -80,7 +80,7 @@ describe('crypto utilities', () => {
         extraField: 'should be ignored',
       };
 
-      const result = createSignablePayload(data as any);
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
@@ -96,7 +96,7 @@ describe('crypto utilities', () => {
     it('should handle missing fields with defaults', () => {
       const data = {};
 
-      const result = createSignablePayload(data as any);
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
@@ -115,7 +115,7 @@ describe('crypto utilities', () => {
         claimedPnL: -10.2,
       };
 
-      const result = createSignablePayload(data as any);
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
       const parsed = JSON.parse(result);
 
       expect(parsed).toEqual({
@@ -133,7 +133,7 @@ describe('crypto utilities', () => {
         survivalTimeMs: 61500, // 61.5 seconds
       };
 
-      const result = createSignablePayload(data as any);
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
       const parsed = JSON.parse(result);
 
       expect(parsed.duration).toBe(61); // Floor to seconds

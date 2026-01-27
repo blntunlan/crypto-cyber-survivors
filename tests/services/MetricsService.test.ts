@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MetricsService } from '../../services/MetricsService';
-import { Logger } from '../../services/Logger';
+import { MetricsService } from '../../services/core/MetricsService';
+import { Logger } from '../../services/system/Logger';
 import { MarketPosition } from '../../types';
 import { GameEndReason } from '../../types/metrics';
 
 // Mock dependencies
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(() => vi.fn()),
     emit: vi.fn(),
   },
 }));
 
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     warn: vi.fn(),

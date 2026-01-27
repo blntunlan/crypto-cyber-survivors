@@ -10,8 +10,8 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
-import { Logger } from '../services/Logger';
+import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
+import { Logger } from '../services/system/Logger';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 
 interface UseAppInitializationResult {
@@ -56,7 +56,7 @@ export function useAppInitialization(): UseAppInitializationResult {
       void DeviceBenchmarkService.runBenchmark();
 
       // 4. Initialize market state realtime feed
-      void import('../services/MarketStateService').then(({ MarketStateService }) => {
+      void import('../services/market/MarketStateService').then(({ MarketStateService }) => {
         void MarketStateService.init();
       });
 
@@ -69,7 +69,7 @@ export function useAppInitialization(): UseAppInitializationResult {
         // VERIFY AGAINST DATABASE (The Core Renaissance Sync)
         try {
           const { supabase, isSupabaseConfigured } =
-            await import('../services/Supabase');
+            await import('../services/core/Supabase');
           if (
             isSupabaseConfigured() &&
             supabase &&

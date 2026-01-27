@@ -5,8 +5,8 @@
  * and ending it to verify the results and replay data.
  */
 
-import { supabase, isSupabaseConfigured } from '../Supabase';
-import { Logger } from '../Logger';
+import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { Logger } from '../system/Logger';
 import { UserSessionService } from './UserSessionService';
 import { type MarketPosition } from '../../types';
 import { type CryptoPair } from '../../types/crypto';

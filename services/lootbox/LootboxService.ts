@@ -5,8 +5,8 @@
  * Integrates with InventoryService for item storage.
  */
 
-import { EventBus } from '../EventBus';
-import { Logger } from '../Logger';
+import { EventBus } from '../core/EventBus';
+import { Logger } from '../system/Logger';
 import { dropCalculator } from './LootboxDropCalculator';
 import {
   type LootboxType,

@@ -13,7 +13,7 @@ import {
   type CardTier,
   ALL_CARDS_FLAT,
   type Card,
-} from '../services/CardSystem';
+} from '../services/cards/CardSystem';
 import { applyCardEffect } from '../services/cards/CardApplicator';
 
 describe('CardSystem', () => {

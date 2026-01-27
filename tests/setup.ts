@@ -37,7 +37,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   translate: vi.fn(),
   scale: vi.fn(),
   rotate: vi.fn(),
-})) as any;
+})) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
 // Mock LocalStorage
 const localStorageMock = (() => {

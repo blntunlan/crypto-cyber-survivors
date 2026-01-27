@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS } from '../../../constants';
-import { audio } from '../../../services/AudioService';
+import { audio } from '../../../services/audio';
 import { type LevelUpScreenProps } from './types';
 import { containerVariants, titleVariants } from './constants';
 import { LevelUpErrorBoundary } from './LevelUpErrorBoundary';

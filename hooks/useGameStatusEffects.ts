@@ -10,7 +10,7 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import { GameStatus, type Player } from '../types';
-import { type PoolManager } from '../services/PoolManager';
+import { type PoolManager } from '../services/combat/PoolManager';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import type { GameState } from '../types';

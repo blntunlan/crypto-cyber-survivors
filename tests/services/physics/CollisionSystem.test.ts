@@ -1,26 +1,26 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { CollisionSystem } from '../../../services/physics/CollisionSystem';
+import { CollisionSystem } from '../../../services/combat/physics/CollisionSystem';
 import { type IPhysicsContext } from '../../../services/physics/PhysicsTypes';
 import { type Player, type GameState, type Bullet } from '../../../types';
-import { EventBus } from '../../../services/EventBus';
-import { CombatResolutionService } from '../../../services/physics/CombatResolutionService';
+import { EventBus } from '../../../services/core/EventBus';
+import { CombatResolutionService } from '../../../services/combat/physics/CombatResolutionService';
 import { DeviceProfile } from '../../../types/DeviceProfile';
 
 // Mock Dependencies
-vi.mock('../../../services/EventBus', () => ({
+vi.mock('../../../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(),
   },
 }));
 
-vi.mock('../../../services/physics/CombatResolutionService', () => ({
+vi.mock('../../../services/combat/physics/CombatResolutionService', () => ({
   CombatResolutionService: {
     handleEnemyDeath: vi.fn(),
   },
 }));
 
-vi.mock('../../../services/ThemeService', () => ({
+vi.mock('../../../services/system/ThemeService', () => ({
   ThemeService: {
     isRetro: vi.fn(() => false),
   },
@@ -394,7 +394,7 @@ describe('CollisionSystem', () => {
       // Should NOT call getFloatingText immediately (accumulation window active)
       expect(mockPool.getFloatingText).not.toHaveBeenCalled();
       expect(enemy.damageBuffer).toBe(10);
-      expect(enemy.damageBufferTimer).toBe(20);
+      expect(enemy.damageBufferTimer).toBe(1.5);
     });
 
     it('should emit hitStop event on critical collision', () => {

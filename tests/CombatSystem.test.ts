@@ -5,12 +5,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CombatSystem } from '../services/CombatSystem';
+import { CombatSystem } from '../services/combat/CombatSystem';
 import { type Player, type GameState, MarketPosition } from '../types';
-import { type PoolManager } from '../services/PoolManager';
+import { type PoolManager } from '../services/combat/PoolManager';
 
 // Mock audio service
-vi.mock('../services/AudioService', () => ({
+vi.mock('../services/audio', () => ({
   audio: {
     playShoot: vi.fn(),
     playCrit: vi.fn(),

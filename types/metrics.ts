@@ -238,6 +238,9 @@ export interface MetricsState {
   sessionStartTime: number;
   isActive: boolean;
   pair: CryptoPair;
+  position: MarketPosition;
+  entryPrice: number;
+  leverage: number;
 
   // Real-time accumulators
   lastUpdateTime: number;

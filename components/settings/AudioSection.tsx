@@ -5,7 +5,7 @@
  */
 
 import React, { memo } from 'react';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
 
 import { IconVolume, IconVolumeMuted } from '../icons/CardIcons';

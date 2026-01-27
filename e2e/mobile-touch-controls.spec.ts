@@ -32,7 +32,7 @@ async function setupMobileSession(
     localStorage.setItem(
       'crypto_survivors_user',
       JSON.stringify({
-        playerId: '00000000-0000-4000-a000-000000000000',
+        profileId: '00000000-0000-4000-a000-000000000000',
         nickname: 'MobileTester',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),
@@ -371,7 +371,7 @@ test.describe('Mobile Settings', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: '00000000-0000-4000-a000-000000000000',
+          profileId: '00000000-0000-4000-a000-000000000000',
           nickname: 'MobileTester',
           createdAt: Date.now(),
           lastSeenAt: Date.now(),
@@ -601,7 +601,7 @@ test.describe('Edge Cases - Session State', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: '00000000-0000-4000-a000-000000000000',
+          profileId: '00000000-0000-4000-a000-000000000000',
           nickname: 'ExpiredUser',
           createdAt: Date.now(),
           lastSeenAt: Date.now() - 1000,

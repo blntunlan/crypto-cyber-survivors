@@ -7,11 +7,11 @@
 import { render, act } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
 
 // Mock audio service
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     setVolume: vi.fn(),
     getMuted: vi.fn().mockReturnValue(false),

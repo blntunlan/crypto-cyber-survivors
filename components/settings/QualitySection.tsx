@@ -5,7 +5,7 @@
  */
 
 import { memo, useState, useEffect } from 'react';
-import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
+import { DeviceBenchmarkService } from '../../services/system/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { IconCpu } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { type Card } from '../../../services/CardSystem';
+import { type Card } from '../../../services/cards/CardSystem';
 import {
   IconMarketChart,
   IconAlphaEye,

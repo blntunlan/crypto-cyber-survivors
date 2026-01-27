@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SpawnSystem } from '../../services/SpawnSystem';
-import { type IPoolManager } from '../../services/interfaces/IPoolManager';
+import { SpawnSystem } from '../../services/combat/SpawnSystem';
+import { type IPoolManager } from '../../services/combat/interfaces/IPoolManager';
 import { MarketPosition } from '../../types';
 
 vi.mock('../../services/indicators/MarketIndicatorService', () => ({
@@ -12,7 +12,7 @@ vi.mock('../../services/indicators/MarketIndicatorService', () => ({
 // Import after mock
 import { marketIndicatorService } from '../../services/indicators/MarketIndicatorService';
 
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     debug: vi.fn(),
     info: vi.fn(),

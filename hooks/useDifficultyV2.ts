@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 import { difficultyContext } from '../services/difficulty';
 import type {
   DifficultyContextState,

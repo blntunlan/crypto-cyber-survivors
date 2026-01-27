@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DifficultyManager } from '../services/DifficultyManager';
-import { TimeService } from '../services/TimeService';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { TimeService } from '../services/core/TimeService';
 
 // Mock TimeService
-vi.mock('../services/TimeService', () => ({
+vi.mock('../services/core/TimeService', () => ({
   TimeService: {
     getGameTimeSeconds: vi.fn().mockReturnValue(0),
   },

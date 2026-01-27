@@ -8,7 +8,7 @@ const { callbackRef } = vi.hoisted(() => ({
   callbackRef: { current: null as any },
 }));
 
-vi.mock('../../services/marketService', () => {
+vi.mock('../../services/market/MarketService', () => {
   return {
     MarketService: class MockMarketService {
       constructor(config: any) {

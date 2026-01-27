@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ErrorReporter } from '../../../services/analytics/ErrorReporter';
 
 // Mock Dependencies
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -39,7 +39,7 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/Supabase', () => ({
+vi.mock('../../../services/core/Supabase', () => ({
   supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));

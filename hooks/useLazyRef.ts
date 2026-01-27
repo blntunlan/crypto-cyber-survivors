@@ -6,10 +6,10 @@ import { useRef, type RefObject } from 'react';
  * reconstruction on every render (which happens with useRef(new Class())).
  */
 export function useLazyRef<T>(factory: () => T): RefObject<T> {
-  const ref = useRef<T>(null!);
+  const ref = useRef<T>(null as unknown as T);
   if (ref.current === null) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (ref as any).current = factory();
+    // Cast to an internal writable type to initialize the readonly ref
+    (ref as { current: T }).current = factory();
   }
   return ref;
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '../../test-utils';
 import { NotificationSystem } from '../../../components/hud/NotificationSystem';
-import { EventBus } from '../../../services/EventBus';
+import { EventBus } from '../../../services/core/EventBus';
 
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
@@ -12,7 +12,7 @@ vi.mock('framer-motion', () => ({
 }));
 
 // Mock EventBus
-vi.mock('../../../services/EventBus', () => ({
+vi.mock('../../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(),
     emit: vi.fn(),
@@ -20,7 +20,7 @@ vi.mock('../../../services/EventBus', () => ({
 }));
 
 // Mock Logger
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     error: vi.fn(),

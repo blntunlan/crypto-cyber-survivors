@@ -1,5 +1,5 @@
-import { type EventBus } from '../services/EventBus';
-import { type ComboSystem } from '../services/ComboSystem';
+import { type EventBus } from '../services/core/EventBus';
+import { type ComboSystem } from '../services/combat/ComboSystem';
 
 declare global {
   interface Window {

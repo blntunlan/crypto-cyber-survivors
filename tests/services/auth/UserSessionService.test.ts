@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { UserPersistenceService } from '../../../services/auth/UserPersistenceService';
 
 // Mock types
@@ -26,13 +27,13 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/Supabase', () => ({
-  supabase: mockSupabase as any,
+vi.mock('../../../services/core/Supabase', () => ({
+  supabase: mockSupabase as unknown as SupabaseClient,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 // Mock Logger
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     error: vi.fn(),

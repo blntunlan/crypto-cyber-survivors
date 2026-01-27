@@ -1,4 +1,4 @@
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 
 export interface MarketHealth {
   status: 'healthy' | 'stale' | 'no_data';
@@ -25,7 +25,7 @@ class AdminAnalyticsService {
 
   async getMarketHealth(): Promise<MarketHealth | null> {
     try {
-      const { supabase } = await import('../Supabase');
+      const { supabase } = await import('../core/Supabase');
       if (!supabase) return null;
       const { data, error } = await supabase.rpc('get_market_health_status');
 
@@ -39,7 +39,7 @@ class AdminAnalyticsService {
 
   async getErrorSummary(): Promise<ErrorOccurence[]> {
     try {
-      const { supabase } = await import('../Supabase');
+      const { supabase } = await import('../core/Supabase');
       if (!supabase) return [];
       const { data, error } = await supabase.from('v_error_summary').select('*');
 
@@ -53,7 +53,7 @@ class AdminAnalyticsService {
 
   async resolveError(errorType: string): Promise<boolean> {
     try {
-      const { supabase } = await import('../Supabase');
+      const { supabase } = await import('../core/Supabase');
       if (!supabase) return false;
       const { error } = await supabase
         .from('error_reports')

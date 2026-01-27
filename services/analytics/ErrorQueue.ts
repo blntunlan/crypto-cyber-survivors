@@ -10,7 +10,7 @@
  */
 
 import { type ErrorReport, type QueuedError, ERROR_CONSTANTS } from './ErrorTypes';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 
 // =============================================================================
 // ERROR QUEUE CLASS

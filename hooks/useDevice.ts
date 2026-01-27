@@ -16,7 +16,7 @@ import {
   type DeviceInfo,
   type Platform,
   type ScreenInfo,
-} from '../services/ScreenService';
+} from '../services/system/ScreenService';
 
 /**
  * Full device information hook

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PlayerTracker } from '../../../services/analytics/PlayerTracker';
 
 // Mock dependencies
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -26,7 +26,7 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/Supabase', () => ({
+vi.mock('../../../services/core/Supabase', () => ({
   supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
@@ -38,7 +38,7 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
   },
 }));
 
-import { isSupabaseConfigured } from '../../../services/Supabase';
+import { isSupabaseConfigured } from '../../../services/core/Supabase';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
 
 describe('PlayerTracker', () => {

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GameStateMachine } from '../../services/GameStateMachine';
+import { GameStateMachine } from '../../services/core/GameStateMachine';
 import { GameStatus } from '../../types';
-import { TimeService } from '../../services/TimeService';
-import { EventBus } from '../../services/EventBus';
+import { TimeService } from '../../services/core/TimeService';
+import { EventBus } from '../../services/core/EventBus';
 
 // Mock dependencies
-vi.mock('../../services/TimeService', () => ({
+vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     start: vi.fn(),
     pause: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('../../services/TimeService', () => ({
   },
 }));
 
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(), // If needed for constructor subscription

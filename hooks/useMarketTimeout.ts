@@ -7,11 +7,11 @@
 
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
-import { EventBus } from '../services/EventBus';
-import { Logger } from '../services/Logger';
-import { GameStateMachine } from '../services/GameStateMachine';
+import { EventBus } from '../services/core/EventBus';
+import { Logger } from '../services/system/Logger';
+import { GameStateMachine } from '../services/core/GameStateMachine';
 import { GameStatus, type Player } from '../types';
-import { DifficultyManager } from '../services/DifficultyManager';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 
 interface UseMarketTimeoutParams {
   /** Player reference */

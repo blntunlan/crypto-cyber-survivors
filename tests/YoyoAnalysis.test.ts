@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
-import { DifficultyManager } from '../services/DifficultyManager';
-import { TimeService } from '../services/TimeService';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { TimeService } from '../services/core/TimeService';
 
 /**
  * 5-Minute Cycle Yoyo Analysis

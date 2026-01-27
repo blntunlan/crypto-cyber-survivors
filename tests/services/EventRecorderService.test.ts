@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventRecorderService } from '../../services/EventRecorderService';
-import { EventBus } from '../../services/EventBus';
+import { EventRecorderService } from '../../services/core/EventRecorderService';
+import { EventBus } from '../../services/core/EventBus';
 import { ReplayEventType } from '../../types/replay';
 
 describe('EventRecorderService', () => {

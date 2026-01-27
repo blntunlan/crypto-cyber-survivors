@@ -11,7 +11,7 @@ import { GameUI } from '../../components/GameUI';
 import { GameStatus, MarketPosition } from '../../types';
 
 // Mock dependencies
-vi.mock('../../services/ScreenService', () => ({
+vi.mock('../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(() => true),
   },
@@ -30,7 +30,7 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(() => vi.fn()),
     emit: vi.fn(),

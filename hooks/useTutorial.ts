@@ -10,7 +10,7 @@ import {
   TUTORIAL_TOTAL_STEPS,
   type TutorialStep,
 } from '../config/TutorialConfig';
-import { Logger } from '../services/Logger';
+import { Logger } from '../services/system/Logger';
 
 interface TutorialState {
   /** Whether user has completed the tutorial */

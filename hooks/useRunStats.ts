@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { EventBus } from '../services/EventBus';
-import { ComboSystem } from '../services/ComboSystem';
+import { EventBus } from '../services/core/EventBus';
+import { ComboSystem } from '../services/combat/ComboSystem';
 
 export interface RunStats {
   totalKills: number;

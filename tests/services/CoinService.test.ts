@@ -3,8 +3,8 @@ import {
   CoinService,
   CoinCalculator,
   MockCoinProvider,
-} from '../../services/CoinService';
-import { EventBus } from '../../services/EventBus';
+} from '../../services/gameplay/CoinService';
+import { EventBus } from '../../services/core/EventBus';
 
 describe('CoinService System', () => {
   describe('CoinCalculator', () => {

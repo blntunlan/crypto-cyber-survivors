@@ -11,7 +11,7 @@
  * - Memory limits → circular buffers prevent unbounded growth
  */
 
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 
 export interface PerformanceSnapshot {
   timestamp: number;
@@ -311,7 +311,7 @@ export class PerformanceTracker {
     const stats = this.getStats();
     const snapshot = this.getSnapshot();
 
-    const { supabase, isSupabaseConfigured } = await import('../Supabase');
+    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
     const { UserSessionService } = await import('../auth/UserSessionService');
     const { DeviceProfiler } = await import('./DeviceProfiler');
 

@@ -1,17 +1,23 @@
-import * as synapticModule from 'synaptic';
+import * as SynapticLib from 'synaptic';
 import { marketIndicatorService } from '../indicators/MarketIndicatorService';
 import { calculateMACDFactor } from './factors/macd';
 import { difficultyContext } from './DifficultyContext';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
+import { PoolManager } from '../combat/PoolManager';
 
-// Robust way to access Architect from different build environments
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const synaptic = (synapticModule as Record<string, any>).default ?? synapticModule;
-const { Architect } = synaptic;
+// Robust way to access Architect from different build environments (Vite/Node/CJS/ESM)
+ 
+const Architect =
+  (SynapticLib as any).Architect ?? (SynapticLib as any).default?.Architect;
 
 /**
  * AI Director Inputs (Sensors)
  * Normalized to 0.0 - 1.0 range
+ *
+ * V2 Updates:
+ * - Removed: WavePhase (Scripted logic removed)
+ * - Added: dashPressure (How much player is spamming dash)
+ * - Added: crowdControlScore (Are gems piling up? Is player zoned out?)
  */
 export interface DirectorInputs {
   rsi: number;
@@ -21,6 +27,8 @@ export interface DirectorInputs {
   stress: number;
   playerDPS: number;
   killEfficiency: number;
+  dashPressure: number; // New: 0 (Chill) - 1 (Spamming Panic)
+  zoningScore: number; // New: 0 (Clear Field) - 1 (Overwhelmed/Cannot Loot)
 }
 
 /**
@@ -51,6 +59,7 @@ class AIDirectorClass {
     fireRate: 5,
     bulletCount: 1,
     recentKills: 0,
+    dashCooldownPercent: 0, // 0 = Ready, 1 = Full Cooldown
   };
 
   private constructor() {
@@ -66,18 +75,26 @@ class AIDirectorClass {
   }
 
   private initNetwork() {
-    // 7 Inputs -> 5 Hidden -> 3 Outputs
-    this.net = new Architect.Perceptron(7, 5, 3);
-    Logger.info('[AIDirector] Neural Network Initialized');
+    // 9 Inputs -> 6 Hidden -> 3 Outputs
+    // Expanded inputs for deeper tactical awareness
+    this.net = new Architect.Perceptron(9, 6, 3);
+    Logger.info('[AIDirector] Neural Network Initialized (9-6-3 Architecture)');
   }
 
   public setPlayerStats(
     damage: number,
     fireRate: number,
     bulletCount: number,
-    recentKills: number
+    recentKills: number,
+    dashCooldownPercent: number
   ) {
-    this.playerStats = { damage, fireRate, bulletCount, recentKills };
+    this.playerStats = {
+      damage,
+      fireRate,
+      bulletCount,
+      recentKills,
+      dashCooldownPercent,
+    };
   }
 
   public update(time: number) {
@@ -97,6 +114,12 @@ class AIDirectorClass {
     const playerDPS = Math.min(1, rawPower / 2500);
     const killEfficiency = Math.min(1, this.playerStats.recentKills / 30);
 
+    // Context Analysis: Crowd Control / Zoning Factor
+    // Check how many uncollected gems are on the field.
+    // High count = Player is killing but cannot safely move (Zoned out).
+    const activeGems = PoolManager.getInstance().activeGems.length;
+    const zoningScore = Math.min(1, activeGems / 150); // 150 gems = Full panic/screen clog
+
     // MACD factor is already normalized -1 to 1, shift to 0 to 1 for Neural Net
     const macdInput = (calculateMACDFactor() + 1) / 2;
 
@@ -112,6 +135,8 @@ class AIDirectorClass {
       stress: 1 - Math.min(100, Math.max(0, ctx.inputs.hpPercent)) / 100,
       playerDPS,
       killEfficiency,
+      dashPressure: this.playerStats.dashCooldownPercent,
+      zoningScore,
     };
 
     const out = this.net.activate([
@@ -122,6 +147,8 @@ class AIDirectorClass {
       inputs.stress,
       inputs.playerDPS,
       inputs.killEfficiency,
+      inputs.dashPressure,
+      inputs.zoningScore,
     ]);
 
     this.currentOutputs = {
@@ -132,6 +159,7 @@ class AIDirectorClass {
 
     // Logging for debug
     if (Math.random() < 0.05) {
+      Logger.debug('[AIDirector] Inputs:', inputs);
       Logger.debug('[AIDirector] Decision:', this.currentOutputs);
     }
   }

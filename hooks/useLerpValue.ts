@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { lerp } from '../utils/math';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 
 interface UseLerpValueOptions {
   /** Interpolation speed (0-1). Higher = faster. Default: 0.1 */

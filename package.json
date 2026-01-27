@@ -28,7 +28,8 @@
     "supabase:gen": "npx supabase gen types typescript --project-id dnhfsmvwqjxoextwbebj > types/supabase.ts",
     "supabase:push": "npx supabase db push",
     "security:check": "grep -rE 'api_key|secret|password|token|private_key' . --exclude-dir={node_modules,dist,.git} --exclude={package-lock.json,.env.example}",
-    "deploy": "git push origin main"
+    "deploy": "git push origin main",
+    "train:ai": "tsx simulation/evolution/Trainer.ts --watch"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.89.0",
@@ -52,7 +53,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@types/howler": "^2.2.12",
-    "@types/node": "^22.19.3",
+    "@types/node": "^22.19.7",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
@@ -73,6 +74,8 @@
     "rimraf": "^6.1.2",
     "tailwindcss": "^3.4.19",
     "terser": "^5.46.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typedoc": "^0.28.15",
     "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.8.3",
@@ -87,7 +90,7 @@
     "*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write",
-      "vitest related --run --passWithNoTests"
+      "vitest related --run"
     ],
     "*.{json,css,md}": [
       "prettier --write"

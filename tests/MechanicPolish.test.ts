@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { CollectionSystem } from '../services/physics/CollectionSystem';
+import { CollectionSystem } from '../services/combat/physics/CollectionSystem';
 import { type Player, type GameState } from '../types';
 import { type Gem } from '../types';
 import { type BuffGem } from '../types/BuffGem';
 
 // Mock dependencies
-vi.mock('../services/AudioService', () => ({
+vi.mock('../services/audio', () => ({
   audio: { playGem: vi.fn(), playHit: vi.fn(), playCrit: vi.fn() },
 }));
 
-vi.mock('../services/EventBus', () => ({
+vi.mock('../services/core/EventBus', () => ({
   EventBus: { emit: vi.fn(), on: vi.fn(() => vi.fn()) },
 }));
 

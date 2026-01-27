@@ -14,7 +14,7 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/Supabase', () => ({
+vi.mock('../../../services/core/Supabase', () => ({
   supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));

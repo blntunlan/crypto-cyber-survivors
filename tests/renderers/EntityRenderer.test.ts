@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EntityRenderer } from '../../services/renderers/EntityRenderer';
 import { GameStatus } from '../../types';
 import { BuffGemSpawner } from '../../services/spawners/BuffGemSpawner';
-import { ThemeService } from '../../services/ThemeService';
+import { ThemeService } from '../../services/system/ThemeService';
 
 // Mock services
-vi.mock('../../services/ScreenService', () => ({
+vi.mock('../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(() => false),
   },
 }));
 
-vi.mock('../../services/DeviceBenchmarkService', () => ({
+vi.mock('../../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn(() => ({
       shadowsEnabled: true,
@@ -26,7 +26,7 @@ vi.mock('../../services/spawners/BuffGemSpawner', () => ({
   },
 }));
 
-vi.mock('../../services/ThemeService', () => ({
+vi.mock('../../services/system/ThemeService', () => ({
   ThemeService: {
     isRetro: vi.fn(() => false),
     getConfig: vi.fn(() => ({

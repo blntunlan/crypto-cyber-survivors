@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { BinanceService } from './services/binanceService';
 import { SupabaseService } from './services/supabaseService';
-import { PriceLogger } from './services/priceLogger';
+import { PriceLogger } from './services/system/priceLogger';
 import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';

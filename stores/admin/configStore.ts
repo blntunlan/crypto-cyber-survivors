@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Logger } from '../../services/Logger';
+import { Logger } from '../../services/system/Logger';
 import type {
   GameConfig,
   DifficultyConfig,

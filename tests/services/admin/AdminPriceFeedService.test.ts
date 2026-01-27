@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { adminPriceFeed } from '../../../services/admin/AdminPriceFeedService';
-import { MarketService } from '../../../services/MarketService';
-import { Logger } from '../../../services/Logger';
+import { MarketService } from '../../../services/market/MarketService';
+import { Logger } from '../../../services/system/Logger';
 
 // Mock Dependencies
 const mockMarketServiceInstance = {
@@ -10,13 +10,13 @@ const mockMarketServiceInstance = {
   isConnected: vi.fn().mockReturnValue(true),
 };
 
-vi.mock('../../../services/MarketService', () => ({
+vi.mock('../../../services/market/MarketService', () => ({
   MarketService: vi.fn().mockImplementation(function () {
     return mockMarketServiceInstance;
   }),
 }));
 
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     debug: vi.fn(),

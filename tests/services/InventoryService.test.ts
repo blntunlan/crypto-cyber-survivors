@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InventoryService } from '../../services/inventory/InventoryService';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 import { CONSUMABLE_DEFINITIONS } from '../../types/inventory';
 
 describe('InventoryService', () => {

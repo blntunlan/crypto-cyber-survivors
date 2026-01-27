@@ -22,9 +22,9 @@ import {
   ChevronDown,
   RefreshCw,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../../services/Supabase';
+import { supabase, isSupabaseConfigured } from '../../services/core/Supabase';
 import { UserSessionService } from '../../services/auth/UserSessionService';
-import { Logger } from '../../services/Logger';
+import { Logger } from '../../services/system/Logger';
 import { COLORS } from '../../config/Colors';
 
 interface LeaderboardEntry {

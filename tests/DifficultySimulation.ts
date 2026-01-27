@@ -1,5 +1,5 @@
-import { DifficultyManager } from '../services/DifficultyManager';
-import { TimeService } from '../services/TimeService';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { TimeService } from '../services/core/TimeService';
 
 /**
  * Difficulty Simulator - Matematiksel Model Analiz Aracı

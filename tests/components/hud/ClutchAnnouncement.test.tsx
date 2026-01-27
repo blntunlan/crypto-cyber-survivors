@@ -1,11 +1,11 @@
 import { render, screen } from '../../test-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ClutchAnnouncement } from '../../../components/hud/ClutchAnnouncement';
-import { screenService } from '../../../services/ScreenService';
+import { screenService } from '../../../services/system/ScreenService';
 import { useIsRetro } from '../../../contexts/useTheme';
 
 // Mock services and hooks
-vi.mock('../../../services/ScreenService', () => ({
+vi.mock('../../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(),
   },

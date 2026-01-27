@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { haptic } from '../../services/HapticService';
+import { haptic } from '../../services/system/HapticService';
 
 describe('HapticService', () => {
   let vibrateMock: ReturnType<typeof vi.fn>;

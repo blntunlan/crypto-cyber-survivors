@@ -8,13 +8,13 @@
 
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
-import { EventBus } from '../services/EventBus';
-import { audio } from '../services/AudioService';
+import { EventBus } from '../services/core/EventBus';
+import { audio } from '../services/audio';
 import { COLORS } from '../constants';
-import { type PoolManager } from '../services/PoolManager';
+import { type PoolManager } from '../services/combat/PoolManager';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
-import { GAME_STATE_DEFAULTS } from '../services/GameStateManager';
+import { GAME_STATE_DEFAULTS } from '../services/core/GameStateManager';
 import type { GameState, Candle } from '../types';
 
 interface UseGameEventsParams {
@@ -64,9 +64,7 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
   // Listen for healing events (Lifesteal)
   useEffect(() => {
     const unsub = EventBus.subscribe('playerHealed', data => {
-      // Data is typed as any in EventBus implementation usually, but we know the shape
-      // { amount: number, x: number, y: number, source: string }
-      const { amount, x, y } = data as { amount: number; x: number; y: number };
+      const { amount, x, y } = data;
 
       pool.current.getFloatingText(
         x,
@@ -85,7 +83,7 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
       const { intensity } = data;
 
       // 1. Affect the physics/entities
-      void import('../services/physics/CombatResolutionService').then(
+      void import('../services/combat/physics/CombatResolutionService').then(
         ({ CombatResolutionService }) => {
           CombatResolutionService.triggerShockwave(pool.current, intensity);
         }

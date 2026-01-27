@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CollectionSystem } from '../../../services/physics/CollectionSystem';
+import { CollectionSystem } from '../../../services/combat/physics/CollectionSystem';
 import { type IPhysicsContext } from '../../../services/physics/PhysicsTypes';
-import { type IPoolManager } from '../../../services/interfaces/IPoolManager';
+import { type IPoolManager } from '../../../services/combat/interfaces/IPoolManager';
 import { type Player, type GameState, type Gem } from '../../../types';
-import { EventBus } from '../../../services/EventBus';
+import { EventBus } from '../../../services/core/EventBus';
 import { BuffManager } from '../../../services/patterns/decorators/BuffManager';
 
 describe('CollectionSystem', () => {

@@ -6,16 +6,16 @@
 import { render, fireEvent, screen, act } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
-import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
-import { screenService } from '../../services/ScreenService';
+import { DeviceBenchmarkService } from '../../services/system/DeviceBenchmarkService';
+import { screenService } from '../../services/system/ScreenService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 
 // --- Mocks ---
 
 // Mock AudioService
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     setVolume: vi.fn(),
     getMuted: vi.fn().mockReturnValue(false),
@@ -49,7 +49,7 @@ vi.mock('../../hooks/useDevice', () => ({
 }));
 
 // Mock DeviceBenchmarkService
-vi.mock('../../services/DeviceBenchmarkService', () => ({
+vi.mock('../../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn().mockReturnValue({ profile: 'HIGH' }),
     setManualProfile: vi.fn(),

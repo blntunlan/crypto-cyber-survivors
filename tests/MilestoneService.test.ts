@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MilestoneService } from '../services/MilestoneService';
+import { MilestoneService } from '../services/gameplay/MilestoneService';
 
 describe('MilestoneService', () => {
   beforeEach(() => {

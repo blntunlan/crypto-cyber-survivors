@@ -9,9 +9,9 @@
 
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
-import { FPSMonitor } from '../services/FPSMonitor';
-import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
-import { type PoolManager } from '../services/PoolManager';
+import { FPSMonitor } from '../services/system/FPSMonitor';
+import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
+import { type PoolManager } from '../services/combat/PoolManager';
 import { generateBackgroundCandles } from '../utils/backgroundCandles';
 import type { GameState } from '../types';
 

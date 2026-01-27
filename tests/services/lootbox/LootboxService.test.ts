@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LootboxService } from '../../../services/lootbox/LootboxService';
-import { EventBus } from '../../../services/EventBus';
+import { EventBus } from '../../../services/core/EventBus';
 import { dropCalculator } from '../../../services/lootbox/LootboxDropCalculator';
 
 describe('LootboxService', () => {

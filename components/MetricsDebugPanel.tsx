@@ -6,11 +6,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { MetricsService } from '../services/MetricsService';
+import { MetricsService } from '../services/core/MetricsService';
 import {
   DifficultyManager,
   type DifficultyOutput,
-} from '../services/DifficultyManager';
+} from '../services/gameplay/DifficultyManager';
 import { shouldShowDebugPanel } from '../config/MetricsConfig';
 
 interface MetricsDebugPanelProps {

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CloudflareService } from '../../services/CloudflareService';
-import { Logger } from '../../services/Logger';
+import { CloudflareService } from '../../services/system/CloudflareService';
+import { Logger } from '../../services/system/Logger';
 
 // Mock Logger
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     warn: vi.fn(),
     error: vi.fn(),

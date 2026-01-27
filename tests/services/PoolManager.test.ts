@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PoolManager } from '../../services/PoolManager';
+import { PoolManager } from '../../services/combat/PoolManager';
 import { MarketPosition } from '../../types';
 import { WhaleTier } from '../../types/indicators';
 

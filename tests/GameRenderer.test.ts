@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GameRenderer } from '../services/GameRenderer';
+import { GameRenderer } from '../services/renderers/GameRenderer';
 import { GameStatus, MarketPosition, type GameState } from '../types';
-import { type IPoolManager } from '../services/interfaces/IPoolManager';
+import { type IPoolManager } from '../services/combat/interfaces/IPoolManager';
 
 describe('GameRenderer', () => {
   let renderer: GameRenderer;

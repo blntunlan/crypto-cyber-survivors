@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EffectRenderer } from '../../services/renderers/EffectRenderer';
 import { GameStatus } from '../../types';
-import { ThemeService } from '../../services/ThemeService';
+import { ThemeService } from '../../services/system/ThemeService';
 
 // Mock services
-vi.mock('../../services/ThemeService', () => ({
+vi.mock('../../services/system/ThemeService', () => ({
   ThemeService: {
     isRetro: vi.fn(() => false),
   },
 }));
 
-vi.mock('../../services/TimeService', () => ({
+vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     getGameTimeSeconds: vi.fn(() => 100),
   },

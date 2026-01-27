@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EventBus } from '../../services/EventBus';
-import { Logger } from '../../services/Logger';
+import { EventBus } from '../../services/core/EventBus';
+import { Logger } from '../../services/system/Logger';
 
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     error: vi.fn(),
     info: vi.fn(),

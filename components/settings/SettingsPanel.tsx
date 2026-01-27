@@ -1,9 +1,9 @@
 import React from 'react';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import { useGameStore, selectAudio } from '../../stores/gameStore';
 import { useDevice } from '../../hooks/useDevice';
-import { screenService } from '../../services/ScreenService';
-import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
+import { screenService } from '../../services/system/ScreenService';
+import { DeviceBenchmarkService } from '../../services/system/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { useIsRetro, useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';

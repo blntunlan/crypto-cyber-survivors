@@ -36,9 +36,9 @@ import {
   type VolumeAnalyzer,
   type WhaleSpawnResult,
 } from './VolumeAnalyzer';
-import { EventBus } from '../EventBus';
-import { Logger } from '../Logger';
-import { AntiCheatService } from '../AntiCheatService';
+import { EventBus } from '../core/EventBus';
+import { Logger } from '../system/Logger';
+import { AntiCheatService } from '../system/AntiCheatService';
 import type { CryptoPair } from '../../types/crypto';
 
 export class MarketIndicatorService {

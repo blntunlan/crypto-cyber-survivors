@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { priceAnalyzer } from '../../../services/admin/PriceAnalyzerService';
 
 // Mock Logger
-vi.mock('../../../services/Logger', () => ({
+vi.mock('../../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -18,7 +18,7 @@ const mockSupabase = {
   order: vi.fn().mockReturnThis(),
 };
 
-vi.mock('../../../services/Supabase', () => ({
+vi.mock('../../../services/core/Supabase', () => ({
   supabase: mockSupabase,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));

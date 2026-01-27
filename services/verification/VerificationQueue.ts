@@ -5,8 +5,8 @@
  * for game session verification requests.
  */
 
-import { Logger } from '../Logger';
-import { EventBus, type GameEvent } from '../EventBus';
+import { Logger } from '../system/Logger';
+import { EventBus, type GameEvent } from '../core/EventBus';
 import { signPayload, createSignablePayload } from '../../utils/crypto';
 
 const STORAGE_KEY = 'verification_queue';

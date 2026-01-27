@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DebugService } from '../services/DebugService';
+import { DebugService } from '../services/system/DebugService';
 describe('DebugService', () => {
   beforeEach(() => {
     DebugService.clearLogs();

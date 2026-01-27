@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 
 export interface ToggleButtonProps {
   label: string;

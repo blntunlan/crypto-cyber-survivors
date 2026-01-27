@@ -12,7 +12,7 @@ import type {
   TrendDirection,
   PriceSource,
 } from '../../types/admin';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 
 // =============================================================================
 // CONFIGURATION
@@ -89,7 +89,7 @@ export class PriceAnalyzerService {
 
     try {
       // Dynamic import to avoid circular dependencies
-      const { supabase, isSupabaseConfigured } = await import('../Supabase');
+      const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
 
       if (!isSupabaseConfigured() || !supabase) {
         Logger.info('[PriceAnalyzer] Supabase not configured, skipping history load');

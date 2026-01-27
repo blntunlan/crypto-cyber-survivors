@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { MarketService, type MarketUpdate } from '../../services/MarketService';
+import { MarketService, type MarketUpdate } from '../../services/market/MarketService';
 
 // Helper to create mock WebSocket factory
 const createMockWsFactory = (config: {

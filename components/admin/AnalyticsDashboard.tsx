@@ -18,7 +18,7 @@ import {
   Monitor,
   Gamepad2,
 } from 'lucide-react';
-import { Logger } from '../../services/Logger';
+import { Logger } from '../../services/system/Logger';
 
 interface DashboardSummary {
   total_players: number;
@@ -67,7 +67,7 @@ export const AnalyticsDashboard: React.FC = () => {
     setLoading(true);
     try {
       const { supabase, isSupabaseConfigured } =
-        await import('../../services/Supabase');
+        await import('../../services/core/Supabase');
 
       if (!isSupabaseConfigured() || !supabase) {
         Logger.warn('[AnalyticsDashboard] Supabase not configured');

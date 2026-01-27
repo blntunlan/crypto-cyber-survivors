@@ -6,13 +6,13 @@ import {
   type Player,
   type LeverageOption,
 } from '../types';
-import { MarketService, type MarketUpdate } from '../services/MarketService';
-import { MarketCalculator, type ATRContext } from '../services/MarketCalculator';
-import { DifficultyManager } from '../services/DifficultyManager';
+import { MarketService, type MarketUpdate } from '../services/market/MarketService';
+import { MarketCalculator, type ATRContext } from '../services/market/MarketCalculator';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { MAX_CHART_POINTS } from '../constants';
 import { type CryptoPair } from '../types/crypto';
-import { EventBus } from '../services/EventBus';
-import { Logger } from '../services/Logger';
+import { EventBus } from '../services/core/EventBus';
+import { Logger } from '../services/system/Logger';
 import { priceAnalyzer } from '../services/admin/PriceAnalyzerService';
 import { type MarketStateData } from '../types/events';
 

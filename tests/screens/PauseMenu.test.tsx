@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PauseMenu } from '../../components/screens/PauseMenu';
-import { TimeService } from '../../services/TimeService';
+import { TimeService } from '../../services/core/TimeService';
 
 // Mock TimeService
-vi.mock('../../services/TimeService', () => ({
+vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     getGameTimeSeconds: vi.fn(),
   },

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ThemeService } from '../services/ThemeService';
+import { ThemeService } from '../services/system/ThemeService';
 
 describe('Theme System Synchronization', () => {
   beforeEach(() => {

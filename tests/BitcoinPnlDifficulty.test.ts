@@ -8,11 +8,11 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DifficultyManager } from '../services/DifficultyManager';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { MarketPosition } from '../types';
-import { TimeService } from '../services/TimeService';
+import { TimeService } from '../services/core/TimeService';
 
-vi.mock('../services/TimeService', () => ({
+vi.mock('../services/core/TimeService', () => ({
   TimeService: {
     getGameTimeSeconds: vi.fn().mockReturnValue(0),
   },

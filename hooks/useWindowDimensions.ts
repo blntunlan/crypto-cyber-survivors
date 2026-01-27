@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { screenService } from '../services/ScreenService';
+import { screenService } from '../services/system/ScreenService';
 
 /**
  * HUD insets for player movement bounds

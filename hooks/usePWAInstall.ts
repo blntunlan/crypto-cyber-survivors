@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Logger } from '../services/Logger';
+import { Logger } from '../services/system/Logger';
 
 /** BeforeInstallPromptEvent interface for TypeScript */
 interface BeforeInstallPromptEvent extends Event {

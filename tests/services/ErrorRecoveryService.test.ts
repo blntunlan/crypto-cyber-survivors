@@ -1,26 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ErrorRecoveryService } from '../../services/ErrorRecoveryService';
-import { EventBus } from '../../services/EventBus';
-import { GameStateMachine } from '../../services/GameStateMachine';
+import { ErrorRecoveryService } from '../../services/core/ErrorRecoveryService';
+import { EventBus } from '../../services/core/EventBus';
+import { GameStateMachine } from '../../services/core/GameStateMachine';
 import { GameStatus } from '../../types';
-import { Logger } from '../../services/Logger';
+import { Logger } from '../../services/system/Logger';
 
 // Mocks
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(),
     emit: vi.fn(),
   },
 }));
 
-vi.mock('../../services/GameStateMachine', () => ({
+vi.mock('../../services/core/GameStateMachine', () => ({
   GameStateMachine: {
     getState: vi.fn(),
     transition: vi.fn(),
   },
 }));
 
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     warn: vi.fn(),

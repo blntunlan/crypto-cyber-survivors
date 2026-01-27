@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ExperienceService } from '../../services/ExperienceService';
+import { ExperienceService } from '../../services/gameplay/ExperienceService';
 import { EXPERIENCE_CONFIG } from '../../config/ExperienceConfig';
 
 describe('ExperienceService', () => {

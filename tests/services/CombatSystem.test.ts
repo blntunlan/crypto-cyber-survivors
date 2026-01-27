@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CombatSystem } from '../../services/CombatSystem';
-import { type IPoolManager } from '../../services/interfaces/IPoolManager';
-import { type Player, type GameState, type Enemy } from '../../types';
+import { CombatSystem } from '../../services/combat/CombatSystem';
+import { type IPlayerStats } from '../../services/patterns/decorators/IPlayerStats';
+import { type Player, type GameState } from '../../types';
+import { type GameEnemy } from '../../factories/EnemyFactory';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
-import { CheatManager } from '../../services/CheatManager';
+import { CheatManager } from '../../services/system/CheatManager';
 import { COLORS, COMBAT } from '../../constants';
 
 // Mock dependencies
@@ -19,21 +20,21 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 
-vi.mock('../../services/CheatManager', () => ({
+vi.mock('../../services/system/CheatManager', () => ({
   CheatManager: {
     isForcedCrit: vi.fn(() => false),
     isForcedSuperCrit: vi.fn(() => false),
   },
 }));
 
-vi.mock('../../services/ScreenService', () => ({
+vi.mock('../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(() => false),
   },
 }));
 
 // Mock Audio
-const mockAudio: any = {
+const mockAudio = {
   playShoot: vi.fn(),
   playHit: vi.fn(),
   playCrit: vi.fn(),
@@ -48,8 +49,8 @@ const mockAudio: any = {
 };
 
 // Mock Pool Manager
-const mockPool: IPoolManager = {
-  activeEnemies: [],
+const mockPool = {
+  activeEnemies: [] as GameEnemy[],
   activeBullets: [],
   activeGems: [],
   activeParticles: [],
@@ -97,7 +98,7 @@ const mockPlayer: Player = {
   projectiles: 1,
   magnetRadius: 100,
   radius: 10,
-} as any;
+} as unknown as Player;
 
 const mockGameState: GameState = {
   fireTimer: 0,
@@ -108,16 +109,19 @@ const mockGameState: GameState = {
   wave: 1,
   enemiesKilled: 0,
   gameTime: 0,
-} as any;
+} as unknown as GameState;
 
 describe('CombatSystem', () => {
   let combatSystem: CombatSystem;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    combatSystem = new CombatSystem(mockAudio);
+    // Access private constructor via unknown cast to allow injection of mockAudio
+    combatSystem = new (CombatSystem as unknown as new (
+      audio: typeof mockAudio
+    ) => CombatSystem)(mockAudio);
     // Reset defaults
-    (mockPool as any).activeEnemies = [];
+    mockPool.activeEnemies = [];
     mockGameState.fireTimer = 0;
     mockPlayer.critChance = 0.1;
     mockPlayer.baseDamage = 10;
@@ -128,13 +132,13 @@ describe('CombatSystem', () => {
     vi.mocked(CheatManager.isForcedSuperCrit).mockReturnValue(false);
 
     // Reset BuffManager
-    (BuffManager.isInitialized as any).mockReturnValue(false);
+    vi.mocked(BuffManager.isInitialized).mockReturnValue(false);
   });
 
   describe('Cooldown Management', () => {
     it('should fire bullets when cooldown is complete', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
 
       // Pass time > fireRate (400)
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
@@ -146,7 +150,7 @@ describe('CombatSystem', () => {
 
     it('should not fire if cooldown is incomplete', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
 
       // Pass time < fireRate
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 100, 800, 600);
@@ -157,17 +161,17 @@ describe('CombatSystem', () => {
 
     it('should respect capped fire rate', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
       // Mock super fast fire rate stats
-      (BuffManager.isInitialized as any).mockReturnValue(true);
-      (BuffManager.getDecoratedStats as any).mockReturnValue({
+      vi.mocked(BuffManager.isInitialized).mockReturnValue(true);
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
         getFireRate: () => 10, // insanely fast, should be capped at 50
         getProjectiles: () => 1,
         getLuck: () => 0,
         getCritChance: () => 0,
         getDamage: () => 10,
         getArea: () => 1,
-      });
+      } as unknown as IPlayerStats);
 
       // Pass time = 60ms (should fire if capped at 50)
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 60, 800, 600);
@@ -184,7 +188,7 @@ describe('CombatSystem', () => {
     it('should target nearest enemy', () => {
       const enemyNear = createEnemy(50, 0);
       const enemyFar = createEnemy(200, 0);
-      (mockPool as any).activeEnemies = [enemyFar, enemyNear];
+      mockPool.activeEnemies = [enemyFar, enemyNear];
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
@@ -203,7 +207,7 @@ describe('CombatSystem', () => {
       const enemy = createEnemy(100, 0);
       enemy.speed = 5;
       enemy.active = true;
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
@@ -222,7 +226,7 @@ describe('CombatSystem', () => {
 
     it('should ignore off-screen enemies', () => {
       const enemyFar = createEnemy(2000, 0); // x=2000 is mocked as invisible
-      (mockPool as any).activeEnemies = [enemyFar];
+      mockPool.activeEnemies = [enemyFar];
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
@@ -233,7 +237,7 @@ describe('CombatSystem', () => {
   describe('Damage & Crits', () => {
     it('should handle normal damage', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
       mockPlayer.critChance = 0; // No crit
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
@@ -250,7 +254,7 @@ describe('CombatSystem', () => {
 
     it('should handle critical hits', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
 
       // Force crit via probability
       vi.spyOn(Math, 'random').mockReturnValue(0.05); // < 0.1 (critChance)
@@ -269,7 +273,7 @@ describe('CombatSystem', () => {
 
     it('should handle super crits via CheatManager', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
 
       vi.mocked(CheatManager.isForcedSuperCrit).mockReturnValue(true);
 
@@ -288,7 +292,7 @@ describe('CombatSystem', () => {
   describe('Projectile Spawning', () => {
     it('should spawn multiple projectiles with spread', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
 
       // 3 Projectiles
       mockPlayer.projectiles = 3;
@@ -318,7 +322,7 @@ describe('CombatSystem', () => {
 
     it('should scale projectile size based on area stat', () => {
       const enemy = createEnemy(100, 0);
-      (mockPool as any).activeEnemies = [enemy];
+      mockPool.activeEnemies = [enemy];
       mockPlayer.area = 2.0;
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
@@ -334,7 +338,7 @@ describe('CombatSystem', () => {
   });
 });
 
-function createEnemy(x: number, y: number): Enemy {
+function createEnemy(x: number, y: number): GameEnemy {
   return {
     x,
     y,
@@ -347,5 +351,6 @@ function createEnemy(x: number, y: number): Enemy {
     damage: 1,
     xpValue: 1,
     id: Math.random(),
-  } as any;
+    behavior: 'basic',
+  } as unknown as GameEnemy;
 }

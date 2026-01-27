@@ -5,10 +5,11 @@
  * provides accessors for player information across the application.
  */
 
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 import { type StoredUser } from './types';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from './UserPersistenceService';
+import { SecurityUtils } from './SecurityUtils';
 
 export class UserSessionService {
   /**
@@ -67,14 +68,9 @@ export class UserSessionService {
   static async registerNickname(
     nickname: string
   ): Promise<{ success: boolean; error?: string }> {
-    const { supabase, isSupabaseConfigured } = await import('../Supabase');
+    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
 
-    if (
-      !isSupabaseConfigured() ||
-      !supabase ||
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1'
-    ) {
+    if (!isSupabaseConfigured() || !supabase || SecurityUtils.isLocalEnvironment()) {
       Logger.warn('[UserSession] Local environment detected, using local-only mode');
       const mockProfileId = '00000000-0000-4000-a000-000000000000';
       this.saveUser(mockProfileId, nickname);
@@ -133,13 +129,8 @@ export class UserSessionService {
 
       UserPersistenceService.saveUser(updatedUser);
 
-      const { supabase, isSupabaseConfigured } = await import('../Supabase');
-      if (
-        isSupabaseConfigured() &&
-        supabase &&
-        window.location.hostname !== 'localhost' &&
-        window.location.hostname !== '127.0.0.1'
-      ) {
+      const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
+      if (isSupabaseConfigured() && supabase && !SecurityUtils.isLocalEnvironment()) {
         void supabase
           .from('profiles')
           .update({ last_seen_at: new Date().toISOString() })

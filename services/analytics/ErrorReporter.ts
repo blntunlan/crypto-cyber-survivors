@@ -1,4 +1,4 @@
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 import { DeviceProfiler } from './DeviceProfiler';
 import { UserSessionService } from '../auth/UserSessionService';
 import { type Database, type Json } from '../../types/supabase';
@@ -70,7 +70,7 @@ export class ErrorReporter {
     Logger.error(`[ErrorReporter] Reporting ${type}: ${message}`, report);
 
     // Sync to Supabase
-    const { supabase, isSupabaseConfigured } = await import('../Supabase');
+    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
     if (isSupabaseConfigured() && supabase) {
       try {
         await supabase.from('error_reports').insert({

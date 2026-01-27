@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 
 interface LiveTickerProps {
   id: string;

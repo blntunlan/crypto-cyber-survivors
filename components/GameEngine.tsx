@@ -10,36 +10,36 @@ import {
 import { type CryptoPair } from '../types/crypto';
 import { COLORS, GAME_ENGINE } from '../constants';
 import { PLAYER_STATS } from '../config/PlayerConfig';
-import { PoolManager } from '../services/PoolManager';
-import { GameRenderer } from '../services/GameRenderer';
+import { PoolManager } from '../services/combat/PoolManager';
+import { GameRenderer } from '../services/renderers/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
-import { MetricsService } from '../services/MetricsService';
-import { DifficultyManager } from '../services/DifficultyManager';
+import { MetricsService } from '../services/core/MetricsService';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { AIDirector } from '../services/difficulty/AIDirector';
-import { ComboSystem } from '../services/ComboSystem';
-import { TimeService } from '../services/TimeService';
+import { ComboSystem } from '../services/combat/ComboSystem';
+import { TimeService } from '../services/core/TimeService';
 import { getHUDLayout } from '../config/UILayout';
 import { useGameStore, selectGraphics } from '../stores/gameStore';
-import { PhysicsSystem } from '../services/PhysicsSystem';
-import { SpawnSystem } from '../services/SpawnSystem';
-import { CombatSystem } from '../services/CombatSystem';
+import { PhysicsSystem } from '../services/combat/PhysicsSystem';
+import { SpawnSystem } from '../services/combat/SpawnSystem';
+import { CombatSystem } from '../services/combat/CombatSystem';
 import { GameHUD } from './GameHUD';
 import { MobileControls } from './mobile';
 import { useDevice } from '../hooks/useDevice';
-import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
-import { FPSMonitor } from '../services/FPSMonitor';
+import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
+import { FPSMonitor } from '../services/system/FPSMonitor';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
-import { audio } from '../services/AudioService';
-import { MarketStateService } from '../services/MarketStateService';
+import { audio } from '../services/audio';
+import { MarketStateService } from '../services/market/MarketStateService';
 import { marketIndicatorService } from '../services/indicators/MarketIndicatorService';
-import { Logger } from '../services/Logger';
-import { EventBus } from '../services/EventBus';
-import { EngineRegistry } from '../services/EngineRegistry';
+import { Logger } from '../services/system/Logger';
+import { EventBus } from '../services/core/EventBus';
+import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty';
-import { portalSystem } from '../services/PortalSystem';
+import { portalSystem } from '../services/gameplay/PortalSystem';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -415,7 +415,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           player.baseDamage,
           player.fireRate,
           player.projectiles,
-          ComboSystem.getKillStreak()
+          ComboSystem.getKillStreak(),
+          // Calculate Dash Pressure (0 = Ready, >0 = Cooldown/Panic)
+          s.dashCooldownTimer > 0 ? s.dashCooldownTimer / GAME_ENGINE.DASH_COOLDOWN : 0
         );
         AIDirector.update(time);
 

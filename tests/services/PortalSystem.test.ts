@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { portalSystem } from '../../services/PortalSystem';
-import { EventBus } from '../../services/EventBus';
-import { TimeService } from '../../services/TimeService';
+import { portalSystem } from '../../services/gameplay/PortalSystem';
+import { EventBus } from '../../services/core/EventBus';
+import { TimeService } from '../../services/core/TimeService';
 import { difficultyContext } from '../../services/difficulty/DifficultyContext';
 
 // Mocks
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(),
     emit: vi.fn(),
   },
 }));
 
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     debug: vi.fn(),

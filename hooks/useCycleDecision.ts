@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 
 export type CycleDecision = 'CONTINUE' | 'CASH_OUT';
 

@@ -8,8 +8,8 @@
  * - Supabase integration
  */
 
-import { Logger } from '../Logger';
-import { supabase, isSupabaseConfigured } from '../Supabase';
+import { Logger } from '../system/Logger';
+import { supabase, isSupabaseConfigured } from '../core/Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
 
 interface PlayerData {

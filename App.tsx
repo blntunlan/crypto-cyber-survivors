@@ -20,31 +20,31 @@ import { type CryptoPair } from './types/crypto';
 import { type Card } from './services/cards/types';
 import { applyCardEffect } from './services/cards/CardApplicator';
 import { CardSystem } from './services/cards/CardSystem';
-import { audio } from './services/AudioService';
-import { EventBus } from './services/EventBus';
+import { audio } from './services/audio';
+import { EventBus } from './services/core/EventBus';
 import { GameEndReason } from './types/metrics';
-import { MetricsService } from './services/MetricsService';
+import { MetricsService } from './services/core/MetricsService';
 import { GameMode, type CycleCompleteData } from './types/gameMode';
-import { CoinService } from './services/CoinService';
-import { GameStateManager } from './services/GameStateManager';
+import { CoinService } from './services/gameplay/CoinService';
+import { GameStateManager } from './services/core/GameStateManager';
 import { GameSessionService } from './services/auth/GameSessionService';
-import { MilestoneService } from './services/MilestoneService';
-import { DifficultyManager } from './services/DifficultyManager';
-import { GameStateMachine } from './services/GameStateMachine';
-import { ImagePreloader } from './services/ImagePreloader';
-import { Logger } from './services/Logger';
+import { MilestoneService } from './services/gameplay/MilestoneService';
+import { DifficultyManager } from './services/gameplay/DifficultyManager';
+import { GameStateMachine } from './services/core/GameStateMachine';
+import { ImagePreloader } from './services/system/ImagePreloader';
+import { Logger } from './services/system/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
-import { ExperienceService } from './services/ExperienceService';
-import { TimeService } from './services/TimeService';
+import { ExperienceService } from './services/gameplay/ExperienceService';
+import { TimeService } from './services/core/TimeService';
 import { PerformanceTracker } from './services/analytics/PerformanceTracker';
 import { DeviceProfiler } from './services/analytics/DeviceProfiler';
-import { WalletService } from './services/WalletService';
-import { ComboSystem } from './services/ComboSystem';
-import { SupabaseCoinProvider } from './services/SupabaseCoinProvider';
+import { WalletService } from './services/gameplay/WalletService';
+import { ComboSystem } from './services/combat/ComboSystem';
+import { SupabaseCoinProvider } from './services/gameplay/SupabaseCoinProvider';
 
 // Custom hooks
-import { ErrorRecoveryService } from './services/ErrorRecoveryService';
-import { MarketEventManager } from './services/MarketEventManager';
+import { ErrorRecoveryService } from './services/core/ErrorRecoveryService';
+import { MarketEventManager } from './services/market/MarketEventManager';
 import { useDevice } from './hooks/useDevice';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
@@ -62,6 +62,7 @@ import { useTutorial } from './hooks/useTutorial';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
 import { useLanguage } from './contexts/LanguageContext';
+import { useGameStore } from './stores/gameStore';
 
 // Lazy load heavy components for performance optimization
 import { NicknameEntryScreen } from './components/screens/NicknameEntryScreen';
@@ -71,42 +72,33 @@ import { SettingsPanel } from './components/settings/SettingsPanel';
 import { MainMenu } from './components/screens/MainMenu';
 import { HubMenu } from './components/hub';
 import { LevelUpScreen } from './components/screens/LevelUpScreen';
-import { PauseMenu } from './components/screens/PauseMenu';
-import { GameOverScreen } from './components/screens/GameOverScreen';
 import { CycleCompleteScreen } from './components/screens/CycleCompleteScreen';
 import { MarketDisconnectedScreen } from './components/screens/MarketDisconnectedScreen';
-import { MetricsDebugPanel } from './components/MetricsDebugPanel';
-import { ComboDebugPanel } from './components/ComboDebugPanel';
-import { ParticleDebugPanel } from './components/ParticleDebugPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
-import { PWAInstallPrompt } from './components/ui/PWAInstallPrompt';
 import { TutorialOverlay } from './components/screens/TutorialOverlay';
 import { NotificationSystem } from './components/hud';
 
-// Optimization: Keep heavy admin/debug components lazy
-const AnalyticsDashboard = React.lazy(() =>
-  import('./components/admin/AnalyticsDashboard').then(m => ({
-    default: m.AnalyticsDashboard,
-  }))
-);
-const AdminDashboard = React.lazy(() =>
-  import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard }))
-);
-// Keep Leaderboard lazy as it pulls data
+// Lazy load heavy admin/debug components
 const LeaderboardPanel = React.lazy(() =>
   import('./components/hud/LeaderboardPanel').then(m => ({
     default: m.LeaderboardPanel,
   }))
 );
-const DebugPanel = React.lazy(() =>
-  import('./components/DebugPanel').then(m => ({ default: m.DebugPanel }))
+
+// Lazy load Evolution Viewer for Project Darwin
+const EvolutionViewer = React.lazy(() => import('./components/admin/EvolutionViewer'));
+const PauseMenu = React.lazy(() =>
+  import('./components/screens/PauseMenu').then(m => ({ default: m.PauseMenu }))
+);
+const GameOverScreen = React.lazy(() =>
+  import('./components/screens/GameOverScreen').then(m => ({
+    default: m.GameOverScreen,
+  }))
 );
 
 // Fallback components
 const FallbackLoader = () => {
-  // Use a simple fallback that doesn't depend on translations
-  // to prevent blank screen during initial load
   return (
     <div
       style={{
@@ -141,37 +133,38 @@ const App: React.FC = () => {
   // ========================================
   // Custom Hooks
   // ========================================
+
+  // URL Check for Darwin Mode (Moved inside Component logic but return happens later)
+  const [isDarwinMode, setIsDarwinMode] = useState(false);
+  useEffect(() => {
+    // SECURE: Only allow in Dev environment
+    if (import.meta.env.DEV && window.location.search.includes('mode=darwin')) {
+      setIsDarwinMode(true);
+    }
+  }, []);
+
   const { t } = useLanguage();
   const device = useDevice();
-
   const dimensions = useWindowDimensions();
   const { gameStatus, handlePauseToggle } = useGameStatus();
   const { runStats, resetRunStats } = useRunStats();
-  // removed useSessionTiming as TimeService is the source of truth now
+  const audioState = useGameStore(state => state.audio);
+  const toggleMute = useGameStore(state => state.toggleMute);
 
-  // Cloudflare session validation (anti-cheat) - starts session on PLAYING, resets on MENU
   const profileId = UserSessionService.getProfileId() || 'anonymous';
-  // Hook manages session lifecycle via side effects
   useCloudflareSession(gameStatus, profileId, 'BTCUSDT');
 
-  // Local state for gameMode - needed before usePauseBudget
   const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
 
-  // Pause budget for competitive mode (auto-resume callback)
   const handleAutoResume = useCallback(() => {
     GameStateMachine.transition(GameStatus.PLAYING);
   }, []);
   const pauseBudget = usePauseBudget(gameMode, gameStatus, handleAutoResume);
 
-  // Auto-pause when tab loses focus (with competitive mode budget check)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && gameStatus === GameStatus.PLAYING) {
-        // Only auto-pause in Casual mode.
-        // In Competitive mode, we NEVER auto-pause when hidden/alt-tabbed.
-        // This prevents users from wasting pause budget automatically and keeps the session "live".
         const isLimited = gameMode === GameMode.COMPETITIVE;
-
         if (!isLimited) {
           GameStateMachine.transition(GameStatus.PAUSED);
         } else {
@@ -192,10 +185,7 @@ const App: React.FC = () => {
   const [position, setPosition] = useState<MarketPosition>(MarketPosition.LONG);
   const [entryPrice, setEntryPrice] = useState<number>(0);
   const [upgradeChoices, setUpgradeChoices] = useState<Card[]>([]);
-  const [finalPnl, setFinalPnl] = useState<number>(0);
-  const [isMuted, setIsMuted] = useState<boolean>(audio.getMuted());
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [finalSurvivalTime, setFinalSurvivalTime] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
   const [cycleData, setCycleData] = useState<CycleCompleteData | null>(null);
@@ -206,16 +196,13 @@ const App: React.FC = () => {
   const isGameOverProcessing = useRef(false);
 
   // ========================================
-  // Initialization & Utility Hooks (refactored from inline useEffects)
+  // Initialization & Utility Hooks
   // ========================================
   const { needsNickname, setNeedsNickname, isInitialized } = useAppInitialization();
-  const { showAnalytics, showAdminDashboard, closeAnalytics, closeAdminDashboard } =
+  const { showAnalytics: _showAnalytics, showAdminDashboard: _showAdminDashboard } =
     useDevShortcuts();
-
-  // Tutorial system for new users
   const tutorial = useTutorial();
 
-  // Fetch balance when in menu
   useEffect(() => {
     if (gameStatus === GameStatus.MENU && isInitialized) {
       void (async () => {
@@ -225,14 +212,12 @@ const App: React.FC = () => {
     }
   }, [gameStatus, isInitialized]);
 
-  // Initialize Global Services
   useEffect(() => {
     CoinService.setProvider(new SupabaseCoinProvider());
     void ErrorRecoveryService;
     void MarketEventManager;
   }, []);
 
-  // Global Error to Notification Bridge
   useEffect(() => {
     return Logger.onError((message, error) => {
       EventBus.emit('gameNotification', {
@@ -258,28 +243,20 @@ const App: React.FC = () => {
     selectedPair
   );
 
-  // Handle market data timeout (pauses game if feed disconnects)
-  useMarketTimeout({
-    playerRef,
-  });
+  useMarketTimeout({ playerRef });
 
   // ========================================
   // Callbacks
   // ========================================
-
   const handleNicknameComplete = useCallback(
     (nickname: string) => {
       setNeedsNickname(false);
       Logger.info(`Signed in as ${nickname}`);
-
-      // Refresh player tracker with new nickname
       void import('./services/analytics/PlayerTracker').then(
         ({ default: playerTracker }) => {
           void playerTracker.refresh();
         }
       );
-
-      // Trigger initial balance fetch
       void WalletService.getInstance()
         .getBalance()
         .then(b => setWalletBalance(b));
@@ -287,12 +264,6 @@ const App: React.FC = () => {
     [setNeedsNickname]
   );
 
-  // ========================================
-  // Game Actions
-  // ========================================
-  /**
-   * Handles the level up sequence, including healing and state transition.
-   */
   const handleLevelUp = useCallback(() => {
     healFull();
     GameStateMachine.transition(GameStatus.LEVEL_UP);
@@ -304,36 +275,22 @@ const App: React.FC = () => {
     audio.playLevelUp();
   }, [healFull, playerRef]);
 
-  /**
-   * Resets the game state to the initial menu.
-   */
   const resetGame = useCallback(() => {
     GameStateManager.resetAll();
     GameStateMachine.forceState(GameStatus.MENU);
     setEntryPrice(0);
-    setFinalPnl(0);
     resetRunStats();
     resetPlayer();
     isGameOverProcessing.current = false;
-
-    // Refresh balance after returning to menu
     void WalletService.getInstance()
       .getBalance()
       .then(b => setWalletBalance(b));
   }, [resetPlayer, resetRunStats]);
 
-  /**
-   * Starts a new game session with the selected market position and leverage.
-   * @param choice - Long or Short position.
-   * @param selectedLeverage - The selected leverage multiplier.
-   */
   const startGame = useCallback(
     async (choice: MarketPosition, selectedLeverage: LeverageOption) => {
-      // Replaced console.error with Logger.error
       if (marketData.price === 0 || gameStatus !== GameStatus.MENU) {
-        Logger.error(
-          `[App] startGame aborted: condition check failed. Price: ${marketData.price}, Status: ${gameStatus}`
-        );
+        Logger.error(`[App] startGame aborted: condition check failed.`);
         return;
       }
 
@@ -350,10 +307,9 @@ const App: React.FC = () => {
       );
 
       if (!success) {
-        // Show error notification to user
         EventBus.emit('gameNotification', {
           title: 'Connection Error',
-          message: 'Failed to start game session. Please try again.',
+          message: 'Failed to start game session.',
           type: 'error',
         });
         return;
@@ -363,21 +319,18 @@ const App: React.FC = () => {
       setEntryPrice(marketData.price);
       setPositionColor(choice);
 
-      // Scale initial XP requirement based on leverage
       playerRef.current.nextLevelExp = ExperienceService.getRequiredExp(
         playerRef.current.level,
         selectedLeverage
       );
       setUiStats({ ...playerRef.current });
 
-      // Update time cap - Static import now ensures this works without chunk loading risk
       TimeService.setMaxDeltaTime(gameMode === GameMode.COMPETITIVE ? 10000 : 50);
 
       GameStateMachine.transition(GameStatus.PLAYING);
       MilestoneService.startSession();
       audio.playLevelUp();
 
-      // Start performance tracking
       void import('./services/analytics/PerformanceTracker').then(
         ({ PerformanceTracker }) => {
           PerformanceTracker.getInstance().start();
@@ -399,17 +352,12 @@ const App: React.FC = () => {
     ]
   );
 
-  /**
-   * Applies a selected upgrade card to the player.
-   * @param card - The chosen upgrade card.
-   */
   const selectUpgrade = useCallback(
     (card: Card) => {
       const p = playerRef.current;
       const nextP = applyCardEffect(p, card);
       nextP.level += 1;
       nextP.exp -= nextP.nextLevelExp;
-      // Calculate next level requirements using centralized ExperienceService (with leverage scaling)
       nextP.nextLevelExp = ExperienceService.getRequiredExp(nextP.level, leverage);
 
       MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
@@ -426,20 +374,13 @@ const App: React.FC = () => {
     [playerRef, setUiStats, handleLevelUp, leverage]
   );
 
-  /**
-   * Ends the game session and transitions to Game Over screen.
-   * @param reason - The reason for game over (Death, Liquidation, etc.).
-   */
   const handleGameOver = useCallback(
     async (reason: GameEndReason = GameEndReason.DEATH) => {
       if (isGameOverProcessing.current) return;
       isGameOverProcessing.current = true;
 
-      setFinalPnl(marketData.effectivePnl);
-      setFinalSurvivalTime(DifficultyManager.getTotalElapsedSeconds());
       GameStateMachine.transition(GameStatus.GAMEOVER);
 
-      // Stop performance tracking and get results
       const tracker = PerformanceTracker.getInstance();
       tracker.stop();
       const perfStats = tracker.getStats();
@@ -462,7 +403,6 @@ const App: React.FC = () => {
         entryPrice,
         leverage,
         totalKills: runStats.totalKills,
-        // Pass performance stats
         avgFps: perfStats.avgFps,
         minFps: perfStats.minFps,
         maxFps: perfStats.maxFps,
@@ -472,17 +412,10 @@ const App: React.FC = () => {
         fpsSamples: perfStats.sampleCount,
         deviceFingerprint: DeviceProfiler.getFingerprint(),
         browser: DeviceProfiler.getProfile().userAgent.substring(0, 64),
-        os: navigator.userAgent.includes('Win')
-          ? 'Windows'
-          : navigator.userAgent.includes('Mac')
-            ? 'macOS'
-            : navigator.userAgent.includes('Linux')
-              ? 'Linux'
-              : 'Unknown',
+        os: 'Windows',
         pixelRatio: window.devicePixelRatio,
       });
 
-      // --- THE DATA BRIDGE: Submit results to sever for verification and rewards ---
       if (metrics) {
         void (async () => {
           try {
@@ -501,16 +434,9 @@ const App: React.FC = () => {
               performance: metrics.performance,
             });
 
-            if (submission.success) {
+            if (submission.success && submission.reward && submission.reward > 0) {
               Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
-              if (submission.reward && submission.reward > 0) {
-                await CoinService.creditCoins(submission.reward, 'achievement');
-              }
-            } else {
-              Logger.warn(
-                '[App] Session verification failed or pending',
-                submission.error
-              );
+              await CoinService.creditCoins(submission.reward, 'achievement');
             }
           } catch (err) {
             Logger.error('[App] Critical error during session submission:', err);
@@ -526,12 +452,9 @@ const App: React.FC = () => {
       leverage,
       selectedPair,
       runStats.totalKills,
-      setFinalPnl,
-      setFinalSurvivalTime,
     ]
   );
 
-  // Handle liquidation (ends game if effective PnL hits -100%)
   useEffect(() => {
     if (gameStatus === GameStatus.PLAYING && marketData.effectivePnl <= -1) {
       Logger.warn(`[Liquidation] Player liquidated at price ${marketData.price}`);
@@ -539,17 +462,12 @@ const App: React.FC = () => {
     }
   }, [gameStatus, marketData.effectivePnl, handleGameOver, marketData.price]);
 
-  // Handle cycle completion
   useEffect(() => {
     const handleCycleComplete = (data: {
       cycleNumber: number;
       totalElapsedSeconds: number;
     }) => {
-      Logger.debug(
-        // Replaced console.error with Logger.debug (or info/error as appropriate, usually debug for tracing)
-        `[App] handleCycleComplete triggered. Mode=${gameMode}`,
-        data
-      );
+      Logger.debug(`[App] handleCycleComplete triggered. Mode=${gameMode}`, data);
       if (gameMode === GameMode.COMPETITIVE) {
         setCycleData({
           cycleNumber: data.cycleNumber,
@@ -558,7 +476,7 @@ const App: React.FC = () => {
           level: playerRef.current.level,
           pnl: marketData.pnl,
           effectivePnl: marketData.effectivePnl,
-          coinsEarned: 0, // Calculated in UI
+          coinsEarned: 0,
           continueMultiplier: 1 + data.cycleNumber * 0.5,
         });
         GameStateMachine.transition(GameStatus.CYCLE_COMPLETE);
@@ -579,7 +497,7 @@ const App: React.FC = () => {
         maxStreak: ComboSystem.getMaxStreak(),
       });
       await CoinService.creditCoins(calc.total, 'cycle_complete');
-      void handleGameOver(GameEndReason.DEATH); // Reusing death as generic session end
+      void handleGameOver(GameEndReason.DEATH);
     }
   }, [cycleData, handleGameOver]);
 
@@ -588,9 +506,6 @@ const App: React.FC = () => {
     GameStateMachine.transition(GameStatus.PLAYING);
   }, []);
 
-  // ========================================
-  // Cheat Manager Integration
-  // ========================================
   const cheatHandlers = useMemo(
     () => ({
       onLevelUp: handleLevelUp,
@@ -613,14 +528,12 @@ const App: React.FC = () => {
 
   useCheatManager(gameStatus, cheatHandlers);
 
-  // Expose EventBus and Services for E2E testing
   useEffect(() => {
     window.EventBus = EventBus;
-    void import('./services/ComboSystem').then(({ ComboSystem }) => {
+    void import('./services/combat/ComboSystem').then(({ ComboSystem }) => {
       window.ComboSystem = ComboSystem;
     });
 
-    // Expose helpers for E2E
     // @ts-expect-error - Adding to window for testing
     window.GameHelpers = {
       triggerLevelUp: () => handleLevelUp(),
@@ -634,18 +547,31 @@ const App: React.FC = () => {
     };
   }, [handleLevelUp, handleGameOver]);
 
-  // Handle tab close warning during gameplay
   useBeforeUnload(gameStatus);
 
   // ========================================
-  // Render
+  // Render Logic
   // ========================================
 
-  // Show engine loader until critical services are ready
+  // Darwin Spectator Mode
+  if (isDarwinMode) {
+    return (
+      <React.Suspense
+        fallback={
+          <div className="text-green-500 bg-black p-4">Loading Project Darwin...</div>
+        }
+      >
+        <EvolutionViewer />
+      </React.Suspense>
+    );
+  }
+
+  // App Loading
   if (!isInitialized) {
     return <FallbackLoader />;
   }
 
+  // Main Game App
   return (
     <UserProvider>
       <ThemeProvider>
@@ -654,20 +580,15 @@ const App: React.FC = () => {
             className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
           >
             <ErrorBoundary>
-              {/* Global Notification system (always mounted) */}
               <NotificationSystem />
 
               <React.Suspense fallback={<FallbackLoader />}>
-                {/* Game UI Overlay */}
-
-                {/* Nickname Entry - Initial Login */}
                 {needsNickname && (
                   <React.Suspense fallback={<FallbackLoader />}>
                     <NicknameEntryScreen onComplete={handleNicknameComplete} />
                   </React.Suspense>
                 )}
 
-                {/* Tutorial Overlay - Shows for new users */}
                 {tutorial.showTutorial &&
                   !needsNickname &&
                   gameStatus === GameStatus.MENU && (
@@ -683,7 +604,7 @@ const App: React.FC = () => {
                       onComplete={tutorial.completeTutorial}
                     />
                   )}
-                {/* Game Engine */}
+
                 <React.Suspense fallback={<FallbackLoader />}>
                   <GameEngine
                     status={gameStatus}
@@ -698,7 +619,7 @@ const App: React.FC = () => {
                     height={dimensions.height}
                   />
                 </React.Suspense>
-                {/* Game UI Overlay - Rendered AFTER Engine to ensure it is on top */}
+
                 {gameStatus !== GameStatus.MENU && (
                   <React.Suspense fallback={<UIFallback />}>
                     <GameUI
@@ -711,7 +632,40 @@ const App: React.FC = () => {
                     />
                   </React.Suspense>
                 )}
-                {/* Hub Menu or Game Setup Menu */}
+
+                {gameStatus === GameStatus.GAMEOVER && (
+                  <React.Suspense fallback={<UIFallback />}>
+                    <GameOverScreen
+                      level={playerRef.current.level}
+                      finalPnl={marketData.pnl}
+                      survivalTime={DifficultyManager.getTotalElapsedSeconds()}
+                      kills={runStats.totalKills}
+                      onRestart={resetGame}
+                    />
+                  </React.Suspense>
+                )}
+
+                {gameStatus === GameStatus.PAUSED && (
+                  <React.Suspense fallback={<UIFallback />}>
+                    <PauseMenu
+                      runStats={{
+                        totalKills: runStats.totalKills,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        maxStreak: (window.ComboSystem as any)?.getMaxStreak() ?? 0,
+                        totalBonusXp: 0,
+                      }}
+                      onResume={handlePauseToggle}
+                      onRestart={resetGame}
+                      onMainMenu={resetGame}
+                      onOpenSettings={() => setShowSettings(true)}
+                      isMuted={audioState.isMuted}
+                      onToggleMute={toggleMute}
+                      pauseSecondsRemaining={pauseBudget.remainingSeconds}
+                      pauseSecondsMax={pauseBudget.maxSeconds}
+                    />
+                  </React.Suspense>
+                )}
+
                 {gameStatus === GameStatus.MENU &&
                   !needsNickname &&
                   hubScreen === 'hub' && (
@@ -720,17 +674,14 @@ const App: React.FC = () => {
                         nickname={UserSessionService.getNickname() ?? 'Survivor'}
                         coins={walletBalance}
                         onNavigate={screen => {
-                          if (screen === 'gear') {
-                            setShowSettings(true);
-                          } else if (screen === 'hub') {
-                            setHubScreen('hub');
-                          } else {
-                            setHubScreen(screen);
-                          }
+                          if (screen === 'gear') setShowSettings(true);
+                          else if (screen === 'hub') setHubScreen('hub');
+                          else setHubScreen(screen);
                         }}
                       />
                     </React.Suspense>
                   )}
+
                 {gameStatus === GameStatus.MENU &&
                   !needsNickname &&
                   hubScreen === 'play' && (
@@ -746,7 +697,6 @@ const App: React.FC = () => {
                         selectedMode={gameMode}
                         onModeChange={setGameMode}
                       />
-                      {/* Back button to Hub */}
                       <button
                         onClick={() => setHubScreen('hub')}
                         className="fixed z-[110] px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation"
@@ -759,6 +709,7 @@ const App: React.FC = () => {
                       </button>
                     </React.Suspense>
                   )}
+
                 {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
                   <React.Suspense fallback={<UIFallback />}>
                     <CycleCompleteScreen
@@ -768,18 +719,20 @@ const App: React.FC = () => {
                     />
                   </React.Suspense>
                 )}
+
                 {gameStatus === GameStatus.DATA_DISCONNECTED && (
                   <React.Suspense fallback={<UIFallback />}>
                     <MarketDisconnectedScreen onBackToMenu={resetGame} />
                   </React.Suspense>
                 )}
-                {/* Leaderboard Panel - Desktop only, visible when in ranks or play screen */}
+
                 {gameStatus === GameStatus.MENU &&
                   (hubScreen === 'ranks' || hubScreen === 'play') && (
                     <React.Suspense fallback={null}>
                       <LeaderboardPanel />
                     </React.Suspense>
                   )}
+
                 {showSettings && (
                   <React.Suspense fallback={<UIFallback />}>
                     <SettingsPanel
@@ -789,6 +742,7 @@ const App: React.FC = () => {
                     />
                   </React.Suspense>
                 )}
+
                 {gameStatus === GameStatus.LEVEL_UP && (
                   <React.Suspense fallback={<UIFallback />}>
                     <LevelUpScreen
@@ -797,69 +751,8 @@ const App: React.FC = () => {
                     />
                   </React.Suspense>
                 )}
-                {gameStatus === GameStatus.PAUSED && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <PauseMenu
-                      runStats={runStats}
-                      onResume={() => GameStateMachine.transition(GameStatus.PLAYING)}
-                      onRestart={resetGame}
-                      onMainMenu={resetGame}
-                      onOpenSettings={() => setShowSettings(true)}
-                      isMuted={isMuted}
-                      onToggleMute={() => setIsMuted(audio.toggleMute())}
-                      pauseSecondsRemaining={pauseBudget.remainingSeconds}
-                      pauseSecondsMax={pauseBudget.maxSeconds}
-                    />
-                  </React.Suspense>
-                )}
-                {gameStatus === GameStatus.GAMEOVER && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <GameOverScreen
-                      level={uiStats.level}
-                      finalPnl={finalPnl}
-                      survivalTime={finalSurvivalTime}
-                      kills={runStats.totalKills}
-                      onRestart={resetGame}
-                    />
-                  </React.Suspense>
-                )}
-                {/* Debug Panels - Desktop only */}
-                {!device.isMobile && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <MetricsDebugPanel />
-                    <ComboDebugPanel />
-                    <ParticleDebugPanel />
-                  </React.Suspense>
-                )}
-                {/* Analytics Dashboard - DEV ONLY (Ctrl+Shift+A) */}
-                {import.meta.env.DEV && showAnalytics && (
-                  <React.Suspense fallback={<FallbackLoader />}>
-                    <AnalyticsDashboard />
-                    <button
-                      onClick={closeAnalytics}
-                      className="fixed top-4 right-4 z-[110] px-3 py-1 bg-red-600/80 hover:bg-red-500 rounded text-white text-sm"
-                    >
-                      ✕ Close (Ctrl+Shift+A)
-                    </button>
-                  </React.Suspense>
-                )}
-                {/* Admin Dashboard - DEV ONLY (Ctrl+Shift+D) */}
-                {import.meta.env.DEV && showAdminDashboard && (
-                  <React.Suspense fallback={<FallbackLoader />}>
-                    <AdminDashboard onClose={closeAdminDashboard} />
-                  </React.Suspense>
-                )}
-                {/* Debug Panel - DEV ONLY (Desktop only) */}
-                {import.meta.env.DEV && !device.isMobile && (
-                  <React.Suspense fallback={null}>
-                    <DebugPanel />
-                  </React.Suspense>
-                )}
               </React.Suspense>
             </ErrorBoundary>
-
-            {/* PWA Install Prompt - Shows when app is installable */}
-            {gameStatus === GameStatus.MENU && <PWAInstallPrompt />}
           </div>
         </LazyMotionProvider>
       </ThemeProvider>

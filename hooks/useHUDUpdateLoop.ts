@@ -13,9 +13,9 @@
 
 import { useEffect, useRef, type RefObject } from 'react';
 import { GameStatus, type Player } from '../types';
-import { ComboSystem, COMBO_MILESTONES } from '../services/ComboSystem';
-import { MilestoneService } from '../services/MilestoneService';
-import { DifficultyManager } from '../services/DifficultyManager';
+import { ComboSystem, COMBO_MILESTONES } from '../services/combat/ComboSystem';
+import { MilestoneService } from '../services/gameplay/MilestoneService';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface HUDLayoutOffset {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { spawnSystem } from '../../services/SpawnSystem';
+import { spawnSystem } from '../../services/combat/SpawnSystem';
 import { MarketPosition } from '../../types';
 
 // Mock config store

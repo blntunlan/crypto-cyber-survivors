@@ -11,8 +11,8 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EventBus } from '../../services/EventBus';
-import { DifficultyManager } from '../../services/DifficultyManager';
+import { EventBus } from '../../services/core/EventBus';
+import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { calculateCycleFactor } from '../../services/difficulty/factors';
 

@@ -7,12 +7,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 import { GameStatus } from '../../types';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 
 interface ActiveEffect {
   id: string;

@@ -6,13 +6,13 @@ import {
   GameStatus,
 } from '../types';
 import { useLerpValues } from '../hooks/useLerpValue';
-import { screenService } from '../services/ScreenService';
+import { screenService } from '../services/system/ScreenService';
 import { useGameStore } from '../stores/gameStore';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 import { useLanguage } from '../contexts/LanguageContext';
 
-import { Logger } from '../services/Logger';
+import { Logger } from '../services/system/Logger';
 import { Z_LAYERS } from '../constants/ZIndex';
 
 import {
@@ -22,7 +22,6 @@ import {
   BuffIndicator,
   WaveTimer,
   LiquidationWarningOverlay,
-  CycleDecisionScreen,
 } from './hud';
 import { useDifficultyV2 } from '../hooks/useDifficultyV2';
 
@@ -261,9 +260,6 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
         {/* Liquidation Warning Overlay */}
         <LiquidationWarningOverlay fovReduction={fovReduction} />
-
-        {/* Cycle Decision Screen - End of cycle Continue/Cash Out */}
-        {status === GameStatus.PLAYING && <CycleDecisionScreen />}
       </div>
     );
   }

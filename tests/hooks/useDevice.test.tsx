@@ -1,10 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDevice } from '../../hooks/useDevice';
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 
 // Mock ScreenService
-vi.mock('../../services/ScreenService', async importOriginal => {
+vi.mock('../../services/system/ScreenService', async importOriginal => {
   const actual = await importOriginal<Record<string, any>>();
   return {
     ...actual,

@@ -1,8 +1,9 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { type StoredUser } from '../services/auth/types';
-import { Logger } from '../services/Logger';
+import { Logger } from '../services/system/Logger';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
+import { SecurityUtils } from '../services/auth/SecurityUtils';
 
 // ============================================================================
 // Types
@@ -56,12 +57,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       if (storedUser) {
         try {
           const { supabase, isSupabaseConfigured } =
-            await import('../services/Supabase');
+            await import('../services/core/Supabase');
 
           if (
             isSupabaseConfigured() &&
             supabase &&
-            window.location.hostname !== 'localhost'
+            !SecurityUtils.isLocalEnvironment()
           ) {
             // Verify if profile still exists in the NEW database
             const { data, error } = await supabase
@@ -104,15 +105,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // Login / Register
   const login = useCallback(
     async (nickname: string): Promise<{ success: boolean; error?: string }> => {
-      const { supabase, isSupabaseConfigured } = await import('../services/Supabase');
+      const { supabase, isSupabaseConfigured } =
+        await import('../services/core/Supabase');
 
-      // Local-only mode for development
-      if (
-        !isSupabaseConfigured() ||
-        !supabase ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1'
-      ) {
+      // Local-only mode for development (LAN, localhost, etc.)
+      if (!isSupabaseConfigured() || !supabase || SecurityUtils.isLocalEnvironment()) {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
         const mockPlayerId = '00000000-0000-4000-a000-000000000000';
         const now = Date.now();
@@ -229,10 +226,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         return { success: false, error: 'Failed to create player profile' };
       } catch (error) {
-        Logger.error('[UserContext] Identity/Registration error', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        Logger.error(`[UserContext] Identity/Registration error: ${errorMsg}`, error);
         return {
           success: false,
-          error: 'Identity verification failed. Please try again.',
+          error: errorMsg.includes('fetch')
+            ? 'Connection to server failed. Check your internet.'
+            : 'Identity verification failed. Please try again.',
         };
       }
     },
@@ -257,13 +257,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     // Async sync to Supabase
     try {
-      const { supabase, isSupabaseConfigured } = await import('../services/Supabase');
-      if (
-        isSupabaseConfigured() &&
-        supabase &&
-        window.location.hostname !== 'localhost' &&
-        window.location.hostname !== '127.0.0.1'
-      ) {
+      const { supabase, isSupabaseConfigured } =
+        await import('../services/core/Supabase');
+      if (isSupabaseConfigured() && supabase && !SecurityUtils.isLocalEnvironment()) {
         void supabase
           .from('profiles')
           .update({ last_seen_at: new Date(now).toISOString() })

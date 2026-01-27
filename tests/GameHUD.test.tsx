@@ -2,11 +2,11 @@ import { render, screen, act } from './test-utils';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GameHUD } from '../components/GameHUD';
 import { GameStatus, type Player } from '../types';
-import { EventBus } from '../services/EventBus';
-import { ComboSystem } from '../services/ComboSystem';
+import { EventBus } from '../services/core/EventBus';
+import { ComboSystem } from '../services/combat/ComboSystem';
 
 // Mock ComboSystem
-vi.mock('../services/ComboSystem', () => ({
+vi.mock('../services/combat/ComboSystem', () => ({
   ComboSystem: {
     getComboTimeRemaining: vi.fn(() => 1.0),
     getNextMilestone: vi.fn(() => ({
@@ -22,7 +22,7 @@ vi.mock('../services/ComboSystem', () => ({
 }));
 
 // Mock audioService
-vi.mock('../services/AudioService', () => ({
+vi.mock('../services/audio', () => ({
   audio: {
     playComboMilestone: vi.fn(),
   },

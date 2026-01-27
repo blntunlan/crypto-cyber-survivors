@@ -20,7 +20,7 @@ test.describe('Localization (i18n) System', () => {
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
-          playerId: '00000000-0000-4000-a000-000000000000',
+          profileId: '00000000-0000-4000-a000-000000000000',
           nickname: 'LocTester',
           createdAt: Date.now(),
         })

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DifficultyManager } from '../../services/DifficultyManager';
+import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { DIFFICULTY } from '../../constants';
 
 describe('Leverage-based Difficulty Scaling', () => {

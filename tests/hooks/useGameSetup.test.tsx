@@ -1,17 +1,17 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGameSetup } from '../../hooks/useGameSetup';
-import { FPSMonitor } from '../../services/FPSMonitor';
+import { FPSMonitor } from '../../services/system/FPSMonitor';
 
 // Mock dependencies
-vi.mock('../../services/FPSMonitor', () => ({
+vi.mock('../../services/system/FPSMonitor', () => ({
   FPSMonitor: {
     start: vi.fn(),
     stop: vi.fn(),
   },
 }));
 
-vi.mock('../../services/DeviceBenchmarkService', () => ({
+vi.mock('../../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn().mockReturnValue({
       particleMultiplier: 1.0,

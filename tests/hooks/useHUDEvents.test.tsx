@@ -1,25 +1,25 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useHUDEvents } from '../../hooks/useHUDEvents';
-import { EventBus } from '../../services/EventBus';
-import { audio } from '../../services/AudioService';
+import { EventBus } from '../../services/core/EventBus';
+import { audio } from '../../services/audio';
 import { GameStatus } from '../../types';
 
 // Mock dependencies
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(() => vi.fn()),
     emit: vi.fn(),
   },
 }));
 
-vi.mock('../../services/ComboSystem', () => ({
+vi.mock('../../services/combat/ComboSystem', () => ({
   ComboSystem: {
     getMaxStreak: vi.fn().mockReturnValue(10),
   },
 }));
 
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playComboMilestone: vi.fn(),
   },

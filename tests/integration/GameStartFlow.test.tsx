@@ -24,7 +24,7 @@ vi.mock('../../contexts/LanguageContext', () => ({
 }));
 
 // Mock dependencies
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playLevelUp: vi.fn(),
     playButton: vi.fn(),
@@ -77,7 +77,7 @@ vi.mock('../../hooks/useMarketData', () => ({
   }),
 }));
 
-vi.mock('../../services/MarketStateService', () => ({
+vi.mock('../../services/market/MarketStateService', () => ({
   MarketStateService: {
     init: vi.fn().mockResolvedValue(undefined),
     cleanup: vi.fn(),

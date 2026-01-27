@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { DifficultyManager } from '../../../services/DifficultyManager';
-import { TimeService } from '../../../services/TimeService';
-import { EventBus } from '../../../services/EventBus';
+import { DifficultyManager } from '../../../services/gameplay/DifficultyManager';
+import { TimeService } from '../../../services/core/TimeService';
+import { EventBus } from '../../../services/core/EventBus';
 
 describe('DifficultyManager V2 - Streak Integration', () => {
   beforeEach(() => {

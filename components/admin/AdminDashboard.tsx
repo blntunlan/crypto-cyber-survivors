@@ -31,7 +31,7 @@ import {
   type ErrorOccurence,
 } from '../../services/admin/AdminAnalyticsService';
 import type { CryptoPair, PriceAnalysis, TrendDirection } from '../../types/admin';
-import { FPSMonitor } from '../../services/FPSMonitor';
+import { FPSMonitor } from '../../services/system/FPSMonitor';
 import { DifficultyV2Monitor } from './DifficultyV2Monitor';
 
 // =============================================================================

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 
 interface DashButtonProps {
   /** Called when dash is triggered (press start) */

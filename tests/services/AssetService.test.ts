@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AssetService } from '../../services/AssetService';
-import { Logger } from '../../services/Logger';
+import { AssetService } from '../../services/system/AssetService';
+import { Logger } from '../../services/system/Logger';
 
 // Mock Logger
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     warn: vi.fn(),
     info: vi.fn(),

@@ -12,9 +12,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { EventBus } from '../services/EventBus';
-import { ComboSystem } from '../services/ComboSystem';
-import { audio } from '../services/AudioService';
+import { EventBus } from '../services/core/EventBus';
+import { ComboSystem } from '../services/combat/ComboSystem';
+import { audio } from '../services/audio';
 import { COLORS } from '../constants';
 import { type Player, GameStatus } from '../types';
 

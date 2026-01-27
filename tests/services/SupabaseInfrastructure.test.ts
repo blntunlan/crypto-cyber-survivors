@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isSupabaseConfigured, supabase } from '../../services/Supabase';
-import { Logger } from '../../services/Logger';
+import { isSupabaseConfigured, supabase } from '../../services/core/Supabase';
+import { Logger } from '../../services/system/Logger';
 
 describe('Supabase Infrastructure', () => {
   it('should report configuration status correctly', () => {

@@ -9,7 +9,7 @@
  */
 
 import { type StoredUser } from './types';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
 
 const STORAGE_KEY = 'crypto_survivors_user';
 const COOKIE_NAME = 'cs_identity';

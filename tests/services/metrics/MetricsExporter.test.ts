@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MetricsExporter } from '../../../services/metrics/MetricsExporter';
+import { MetricsExporter } from '../../../services/core/metrics/MetricsExporter';
 import { MarketPosition } from '../../../types';
 import {
   type SessionMetrics,

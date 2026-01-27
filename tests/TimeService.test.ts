@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { TimeService } from '../services/TimeService';
+import { TimeService } from '../services/core/TimeService';
 
 describe('TimeService', () => {
   beforeEach(() => {

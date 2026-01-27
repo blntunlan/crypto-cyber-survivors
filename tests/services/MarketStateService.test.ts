@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { MarketStateService } from '../../services/MarketStateService';
-import { EventBus } from '../../services/EventBus';
-import { supabase } from '../../services/Supabase';
+import { MarketStateService } from '../../services/market/MarketStateService';
+import { EventBus } from '../../services/core/EventBus';
+import { supabase } from '../../services/core/Supabase';
 
 // Mock Supabase
 const mockChannel = {
@@ -10,7 +10,7 @@ const mockChannel = {
   unsubscribe: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../../services/Supabase', () => {
+vi.mock('../../services/core/Supabase', () => {
   return {
     supabase: {
       from: vi.fn(), // Will be mocked per test
@@ -22,7 +22,7 @@ vi.mock('../../services/Supabase', () => {
 });
 
 // Mock EventBus
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(),

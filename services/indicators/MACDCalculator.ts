@@ -15,7 +15,7 @@
  */
 
 import { SYNC_CONFIG, type MACDResult } from '../../types/indicators';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../core/EventBus';
 
 export interface MACDConfig {
   fastPeriod: number;

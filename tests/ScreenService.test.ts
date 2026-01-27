@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screenService } from '../services/ScreenService';
+import { screenService } from '../services/system/ScreenService';
 
 describe('ScreenService', () => {
   const originalUserAgent = navigator.userAgent;

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SupabaseCoinProvider } from '../../services/SupabaseCoinProvider';
-import { supabase } from '../../services/Supabase';
+import { SupabaseCoinProvider } from '../../services/gameplay/SupabaseCoinProvider';
+import { supabase } from '../../services/core/Supabase';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 
-vi.mock('../../services/Supabase', () => ({
+vi.mock('../../services/core/Supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn(() => ({

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { type Card, TIER_CONFIG, ALL_CARDS_FLAT } from '../../../services/CardSystem';
-import { audio } from '../../../services/AudioService';
+import { type Card, TIER_CONFIG, ALL_CARDS_FLAT } from '../../../services/cards/CardSystem';
+import { audio } from '../../../services/audio';
 import { type SlotReelProps } from './types';
 import { SLOT_CONFIG } from './constants';
 import { CardIcon } from './CardIcon';

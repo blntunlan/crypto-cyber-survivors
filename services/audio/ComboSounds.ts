@@ -13,7 +13,7 @@
 
 import { synthEngine } from './SynthEngine';
 import { type ComboMilestoneSound } from './types';
-import { ThemeService } from '../ThemeService';
+import { ThemeService } from '../system/ThemeService';
 import { SOUND_CATEGORY_MAP } from './constants';
 
 /**

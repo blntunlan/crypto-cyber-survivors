@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';

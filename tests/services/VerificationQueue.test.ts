@@ -48,7 +48,7 @@ Object.defineProperty(global, 'crypto', {
 });
 
 // Mock import.meta.env
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     debug: vi.fn(),
     info: vi.fn(),
@@ -57,7 +57,7 @@ vi.mock('../../services/Logger', () => ({
   },
 }));
 
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(() => () => {}),

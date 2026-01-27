@@ -15,7 +15,7 @@ import React, { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { type ThemeName, type ThemeConfig } from '../types/theme';
 import { cyberpunkTheme, retro16bitTheme } from '../config/themes';
 import { ThemeContext, type ThemeContextType } from './themeContextDef';
-import { ThemeService } from '../services/ThemeService';
+import { ThemeService } from '../services/system/ThemeService';
 
 const STORAGE_KEY = 'crypto-survivor-theme';
 

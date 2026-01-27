@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DifficultyManager } from '../../services/DifficultyManager';
+import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { difficultyContext } from '../../services/difficulty/DifficultyContext';
-import { TimeService } from '../../services/TimeService';
+import { TimeService } from '../../services/core/TimeService';
 // LEVERAGE_TIERS imported but not used, causing lint error. Casing also corrected.
 // import { LEVERAGE_TIERS } from '../../config/GameConfig';
 

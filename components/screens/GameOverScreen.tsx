@@ -7,7 +7,7 @@ import { useThemeSize } from '../../hooks/useThemeSize';
 import { useIsRetro } from '../../contexts/useTheme';
 import { IconTrophy } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 
 interface GameOverScreenProps {
   level: number;

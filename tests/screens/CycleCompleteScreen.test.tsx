@@ -19,7 +19,7 @@ vi.mock('../../hooks/useThemeSize', () => ({
   }),
 }));
 
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playLevelUp: vi.fn(),
     playButton: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('../../services/AudioService', () => ({
 }));
 
 // Mock CoinService
-vi.mock('../../services/CoinService', () => ({
+vi.mock('../../services/gameplay/CoinService', () => ({
   CoinService: {
     calculateCycleReward: vi.fn().mockReturnValue({
       total: 1000,

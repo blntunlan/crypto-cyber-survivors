@@ -1,14 +1,14 @@
 import React, { memo, useEffect, useState } from 'react';
 import { type Player } from '../../types';
 import { COLORS } from '../../constants';
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 import { STAT_DEFINITIONS, type StatKey } from '../../config/StatRegistry';
-import { StatService } from '../../services/StatService';
+import { StatService } from '../../services/gameplay/StatService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { LiveTicker } from '../themed/LiveTicker';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 import { useRef } from 'react';
 
 interface KernelStatusProps {

@@ -1,15 +1,15 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Enemy } from '../../types';
-import { screenService } from '../ScreenService';
-import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
+import { screenService } from '../system/ScreenService';
+import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import {
   createViewportBounds,
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
-import { ThemeService } from '../ThemeService';
+import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';

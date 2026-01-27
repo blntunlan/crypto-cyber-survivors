@@ -8,14 +8,14 @@ import { render, screen, fireEvent, waitFor } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NicknameEntryScreen } from '../../components/screens/NicknameEntryScreen';
 import { useUser } from '../../contexts/useUser';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 
 // Mock dependencies
 vi.mock('../../contexts/useUser', () => ({
   useUser: vi.fn(),
 }));
 
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playLevelUp: vi.fn(),
     playHit: vi.fn(),

@@ -44,7 +44,7 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/supabase', () => ({
+vi.mock('../../../services/core/Supabase', () => ({
   supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
@@ -56,12 +56,22 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
   },
 }));
 
+// Mock Theme
+const mockUseTheme = vi.fn().mockReturnValue({ isRetro: false });
+vi.mock('../../../contexts/useTheme', () => ({
+  useTheme: () => mockUseTheme(),
+}));
+
+// Mock Language
+vi.mock('../../../contexts/LanguageContext', () => ({
+  useLanguage: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 // Mock Logger
-vi.mock('../../../services/Logger', () => ({
-  Logger: {
-    debug: vi.fn(),
-    error: vi.fn(),
-  },
+vi.mock('../../../services/system/Logger', () => ({
+  Logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 describe('LeaderboardPanel', () => {
@@ -172,5 +182,45 @@ describe('LeaderboardPanel', () => {
   it('should not render when isVisible is false', () => {
     const { container } = render(<LeaderboardPanel isVisible={false} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  it('should render in retro mode', async () => {
+    mockUseTheme.mockReturnValue({ isRetro: true });
+
+    render(<LeaderboardPanel isVisible={true} />);
+
+    // In retro mode, it should still show the entries
+    await waitFor(() => {
+      expect(screen.getByText('Player1')).toBeInTheDocument();
+    });
+
+    // Retro mode uses specific classes/styles (e.g., retro-player-highlight)
+    // We can't easily check styles in JSDOM, but we can check if it rendered without crashing
+    expect(screen.getByText('10,000')).toBeInTheDocument();
+
+    // Reset mock for other tests
+    mockUseTheme.mockReturnValue({ isRetro: false });
+  });
+
+  it('should handle anonymous players correctly', async () => {
+    const anonymousEntries = [
+      {
+        profile_id: 'anon-1',
+        display_name: null,
+        high_score: 100,
+        max_survival_time: 10000,
+      },
+    ];
+    (mockSupabase.limit as any).mockResolvedValueOnce({
+      data: anonymousEntries,
+      error: null,
+    });
+
+    render(<LeaderboardPanel isVisible={true} />);
+
+    await waitFor(() => {
+      // Should show "Anonymous" for null names
+      expect(screen.getByText('Anonymous')).toBeInTheDocument();
+    });
   });
 });

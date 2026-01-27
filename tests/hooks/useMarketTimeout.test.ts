@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useMarketTimeout } from '../../hooks/useMarketTimeout';
-import { EventBus } from '../../services/EventBus';
-import { GameStateMachine } from '../../services/GameStateMachine';
+import { EventBus } from '../../services/core/EventBus';
+import { GameStateMachine } from '../../services/core/GameStateMachine';
 import { GameStatus } from '../../types';
 
-vi.mock('../../services/EventBus');
-vi.mock('../../services/GameStateMachine');
-vi.mock('../../services/Logger');
+vi.mock('../../services/core/EventBus');
+vi.mock('../../services/core/GameStateMachine');
+vi.mock('../../services/system/Logger');
 vi.mock('../../services/analytics/ErrorReporter', () => ({
   ErrorReporter: {
     report: vi.fn(),
@@ -15,7 +15,7 @@ vi.mock('../../services/analytics/ErrorReporter', () => ({
 }));
 
 // Mock DifficultyManager
-vi.mock('../../services/DifficultyManager', () => ({
+vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getTotalElapsedSeconds: vi.fn().mockReturnValue(100),
   },

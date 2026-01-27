@@ -23,7 +23,7 @@ import {
   getRSIStateWithHysteresis,
   SYNC_CONFIG,
 } from '../../types/indicators';
-import { EventBus } from '../EventBus';
+import { EventBus } from '../core/EventBus';
 
 export class RSICalculator {
   private priceHistory: number[] = [];

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MetricsCompiler } from '../../../services/metrics/MetricsCompiler';
+import { MetricsCompiler } from '../../../services/core/metrics/MetricsCompiler';
 import { MarketPosition } from '../../../types';
 import {
   type MetricsState,

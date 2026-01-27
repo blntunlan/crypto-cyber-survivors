@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FPSMonitor } from '../services/FPSMonitor';
-import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
+import { FPSMonitor } from '../services/system/FPSMonitor';
+import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
 import { DeviceProfile } from '../types/DeviceProfile';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 
 // Mock dependencies
-vi.mock('../services/DeviceBenchmarkService', () => ({
+vi.mock('../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn(),
     setManualProfile: vi.fn(),

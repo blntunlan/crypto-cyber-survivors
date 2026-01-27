@@ -267,7 +267,7 @@ describe('MarketIndicatorService', () => {
       const mockHandler = vi.fn();
 
       // Dynamic import to get EventBus
-      const { EventBus } = await import('../../services/EventBus');
+      const { EventBus } = await import('../../services/core/EventBus');
       const unsub = EventBus.on('marketStateChanged', mockHandler);
 
       // Advance time to bypass grace period

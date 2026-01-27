@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 import type {
   EnemyKilledEvent,
   GemCollectedEvent,

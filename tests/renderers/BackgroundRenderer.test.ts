@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BackgroundRenderer } from '../../services/renderers/BackgroundRenderer';
 import { GameStatus } from '../../types';
 
-import { ThemeService } from '../../services/ThemeService';
+import { ThemeService } from '../../services/system/ThemeService';
 
 // Mock services
-vi.mock('../../services/ScreenService', () => ({
+vi.mock('../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(() => false),
   },
 }));
 
-vi.mock('../../services/DeviceBenchmarkService', () => ({
+vi.mock('../../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn(() => ({
       shadowsEnabled: true,
@@ -20,7 +20,7 @@ vi.mock('../../services/DeviceBenchmarkService', () => ({
   },
 }));
 
-vi.mock('../../services/ThemeService', () => ({
+vi.mock('../../services/system/ThemeService', () => ({
   ThemeService: {
     isRetro: vi.fn(() => false),
   },

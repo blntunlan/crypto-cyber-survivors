@@ -2,16 +2,20 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameEngine } from '../../components/GameEngine';
 import { GameStatus, MarketPosition, type LeverageOption } from '../../types';
-import { MarketStateService } from '../../services/MarketStateService';
-import { EventBus } from '../../services/EventBus';
-import { Logger } from '../../services/Logger';
+import { MarketStateService } from '../../services/market/MarketStateService';
+import { EventBus } from '../../services/core/EventBus';
+import { Logger } from '../../services/system/Logger';
 
 // Mock Services
-vi.mock('../../services/PoolManager', () => {
+vi.mock('../../services/combat/PoolManager', () => {
   class MockPoolManager {
     activeEnemies = [];
     activeBullets = [];
+    activeGems = [];
     activeParticles = [];
+    activeFloatingTexts = [];
+    activeSpeedLines = [];
+    activeInteractables = [];
     cleanup = vi.fn();
     preWarm = vi.fn();
     initialize = vi.fn();
@@ -20,14 +24,14 @@ vi.mock('../../services/PoolManager', () => {
   return { PoolManager: MockPoolManager };
 });
 
-vi.mock('../../services/GameRenderer', () => ({
+vi.mock('../../services/renderers/GameRenderer', () => ({
   GameRenderer: class {
     render = vi.fn();
     updateBackgroundCandles = vi.fn();
   },
 }));
 
-vi.mock('../../services/CombatSystem', () => {
+vi.mock('../../services/combat/CombatSystem', () => {
   class MockCombatSystem {
     processAutoFire = vi.fn();
     static getInstance = vi.fn(() => new MockCombatSystem());
@@ -35,7 +39,7 @@ vi.mock('../../services/CombatSystem', () => {
   return { CombatSystem: MockCombatSystem };
 });
 
-vi.mock('../../services/PhysicsSystem', () => {
+vi.mock('../../services/combat/PhysicsSystem', () => {
   class MockPhysicsSystem {
     updateEntities = vi.fn();
     handleCollisions = vi.fn();
@@ -44,7 +48,7 @@ vi.mock('../../services/PhysicsSystem', () => {
   return { PhysicsSystem: MockPhysicsSystem };
 });
 
-vi.mock('../../services/SpawnSystem', () => ({
+vi.mock('../../services/combat/SpawnSystem', () => ({
   SpawnSystem: class {
     update = vi.fn();
   },
@@ -62,14 +66,14 @@ vi.mock('../../services/spawners/BuffGemSpawner', () => ({
     updateDimensions: vi.fn(),
   },
 }));
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playHeartbeat: vi.fn(),
     playDash: vi.fn(),
     playWhoosh: vi.fn(),
   },
 }));
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -77,7 +81,7 @@ vi.mock('../../services/Logger', () => ({
     warn: vi.fn(),
   },
 }));
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(() => vi.fn()),
     subscribe: vi.fn(() => vi.fn()), // Alias or preferred method
@@ -85,19 +89,19 @@ vi.mock('../../services/EventBus', () => ({
     off: vi.fn(),
   },
 }));
-vi.mock('../../services/MetricsService', () => ({
+vi.mock('../../services/core/MetricsService', () => ({
   MetricsService: {
     update: vi.fn(),
   },
 }));
-vi.mock('../../services/DifficultyManager', () => ({
+vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getWaveMultiplier: vi.fn(() => 1),
     updateWaveTimer: vi.fn(),
     getWavePhase: vi.fn(() => 'calm'),
   },
 }));
-vi.mock('../../services/ComboSystem', () => ({
+vi.mock('../../services/combat/ComboSystem', () => ({
   ComboSystem: {
     update: vi.fn(),
     getKillStreak: vi.fn(() => 0),
@@ -105,13 +109,13 @@ vi.mock('../../services/ComboSystem', () => ({
     getState: vi.fn(() => ({})),
   },
 }));
-vi.mock('../../services/TimeService', () => ({
+vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     update: vi.fn(() => 16.67),
     getGameTimeSeconds: vi.fn(() => 0),
   },
 }));
-vi.mock('../../services/FPSMonitor', () => ({
+vi.mock('../../services/system/FPSMonitor', () => ({
   FPSMonitor: {
     tick: vi.fn(),
     start: vi.fn(),
@@ -122,7 +126,7 @@ vi.mock('../../services/FPSMonitor', () => ({
     updateInternalCounts: vi.fn(),
   },
 }));
-vi.mock('../../services/DeviceBenchmarkService', () => ({
+vi.mock('../../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn(() => ({ maxEnemies: 100 })),
     subscribe: vi.fn(() => vi.fn()),
@@ -143,7 +147,7 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
     })),
   },
 }));
-vi.mock('../../services/MarketStateService', () => ({
+vi.mock('../../services/market/MarketStateService', () => ({
   MarketStateService: {
     init: vi.fn().mockResolvedValue({}),
     cleanup: vi.fn(),
@@ -182,7 +186,7 @@ vi.mock('../../services/indicators/MarketIndicatorService', () => ({
     })),
   },
 }));
-vi.mock('../../services/EngineRegistry', () => ({
+vi.mock('../../services/core/EngineRegistry', () => ({
   EngineRegistry: {
     setPoolManager: vi.fn(),
     setCombatSystem: vi.fn(),

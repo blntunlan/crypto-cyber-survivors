@@ -10,11 +10,11 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
-import { CoinService, type CoinCalculation } from '../../services/CoinService';
-import { ComboSystem } from '../../services/ComboSystem';
+import { CoinService, type CoinCalculation } from '../../services/gameplay/CoinService';
+import { ComboSystem } from '../../services/combat/ComboSystem';
 import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
-import { audio } from '../../services/AudioService';
+import { audio } from '../../services/audio';
 import {
   IconSkull,
   IconTrendUp,
@@ -25,7 +25,7 @@ import {
   IconMonitor,
 } from '../icons/CardIcons';
 import { type CycleCompleteData } from '../../types/gameMode';
-import { Logger } from '../../services/Logger';
+import { Logger } from '../../services/system/Logger';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface CycleCompleteScreenProps {

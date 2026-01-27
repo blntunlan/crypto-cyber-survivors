@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '../../test-utils';
 import { KernelStatus } from '../../../components/hud/KernelStatus';
-import { screenService } from '../../../services/ScreenService';
-import { EventBus } from '../../../services/EventBus';
+import { screenService } from '../../../services/system/ScreenService';
+import { EventBus } from '../../../services/core/EventBus';
 
 // Mock ScreenService
-vi.mock('../../../services/ScreenService', () => ({
+vi.mock('../../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(() => false),
     onChange: vi.fn(() => vi.fn()),

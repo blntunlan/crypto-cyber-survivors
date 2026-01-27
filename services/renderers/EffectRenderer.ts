@@ -6,10 +6,10 @@ import {
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
-import { ThemeService } from '../ThemeService';
+import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
-import { TimeService } from '../TimeService';
+import { TimeService } from '../core/TimeService';
 
 /**
  * EffectRenderer - Handles transient visual overlays and particle systems.

@@ -18,7 +18,7 @@ import {
   WeakenedDecorator,
 } from '../services/patterns/decorators';
 import { type Player } from '../types';
-import { TimeService } from '../services/TimeService';
+import { TimeService } from '../services/core/TimeService';
 
 /**
  * Helper to advance time in tests by accumulating it in TimeService.

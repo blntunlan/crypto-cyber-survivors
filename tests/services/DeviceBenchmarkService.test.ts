@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
+import { DeviceBenchmarkService } from '../../services/system/DeviceBenchmarkService';
 import { BenchmarkStatus, DeviceProfile } from '../../types/DeviceProfile';
 
 describe('DeviceBenchmarkService', () => {

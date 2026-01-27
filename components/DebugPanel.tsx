@@ -6,8 +6,8 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/useTheme';
 import { Z_LAYERS } from '../constants/ZIndex';
-import { DeviceBenchmarkService } from '../services/DeviceBenchmarkService';
-import { EventBus } from '../services/EventBus';
+import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
+import { EventBus } from '../services/core/EventBus';
 
 interface DebugInfo {
   manualProfile?: string | null;

@@ -6,7 +6,7 @@
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Logger } from '../services/Logger';
+import { Logger } from '../services/system/Logger';
 
 interface Props {
   children: ReactNode;

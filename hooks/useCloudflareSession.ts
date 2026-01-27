@@ -15,8 +15,8 @@ import { GameStatus } from '../types';
 import {
   CloudflareService,
   type SessionValidationResult,
-} from '../services/CloudflareService';
-import { Logger } from '../services/Logger';
+} from '../services/system/CloudflareService';
+import { Logger } from '../services/system/Logger';
 
 export interface UseCloudflareSessionReturn {
   /** Whether Cloudflare integration is enabled */

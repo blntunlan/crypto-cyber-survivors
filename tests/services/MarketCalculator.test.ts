@@ -5,7 +5,7 @@ import {
   type LiquidationInput,
   type ATRInput,
   type ATRContext,
-} from '../../services/MarketCalculator';
+} from '../../services/market/MarketCalculator';
 import { MarketPosition } from '../../types';
 
 describe('MarketCalculator', () => {

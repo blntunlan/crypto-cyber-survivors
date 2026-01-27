@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CombatResolutionService } from '../services/physics/CombatResolutionService';
+import { CombatResolutionService } from '../services/combat/physics/CombatResolutionService';
 import { type Enemy, type Player } from '../types';
-import { EventBus } from '../services/EventBus';
+import { EventBus } from '../services/core/EventBus';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
-import { DifficultyManager } from '../services/DifficultyManager';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 
 // Mock dependencies
-vi.mock('../services/EventBus', () => ({
+vi.mock('../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(() => vi.fn()),
@@ -23,13 +23,13 @@ vi.mock('../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 
-vi.mock('../services/DeviceBenchmarkService', () => ({
+vi.mock('../services/system/DeviceBenchmarkService', () => ({
   DeviceBenchmarkService: {
     getPerformanceConfig: vi.fn(() => ({ particleMultiplier: 1 })),
   },
 }));
 
-vi.mock('../services/DifficultyManager', () => ({
+vi.mock('../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     recordKill: vi.fn(),
     getXpMultiplier: vi.fn(() => 1.0),

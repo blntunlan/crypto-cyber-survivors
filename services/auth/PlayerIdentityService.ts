@@ -1,5 +1,6 @@
 import { DeviceProfiler } from '../analytics/DeviceProfiler';
-import { Logger } from '../Logger';
+import { Logger } from '../system/Logger';
+import { SecurityUtils } from './SecurityUtils';
 
 /**
  * PlayerIdentityService - Generates unique identifiers for players using device data.
@@ -17,6 +18,9 @@ export class PlayerIdentityService {
     const data = `${nickname.trim()}:${fingerprint}`;
 
     try {
+      if (!SecurityUtils.isSecureContext()) {
+        throw new Error('Non-secure context');
+      }
       const msgUint8 = new TextEncoder().encode(data);
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -25,9 +29,9 @@ export class PlayerIdentityService {
       Logger.debug(`[Identity] Generated player hash for ${nickname}`);
       return hashHex;
     } catch (error) {
-      Logger.error(
-        '[Identity] Hash generation failed, falling back to basic encoding',
-        error
+      Logger.warn(
+        '[Identity] Hash generation using SubtleCrypto unavailable, falling back to basic encoding',
+        { reason: error instanceof Error ? error.message : 'Unknown' }
       );
       // Fallback if SubtleCrypto is unavailable (e.g. non-secure context)
       return btoa(data).substring(0, 32);

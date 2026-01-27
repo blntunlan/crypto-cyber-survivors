@@ -4,39 +4,39 @@ import {
   PLAYER_DEFAULTS,
   GAME_STATE_DEFAULTS,
   RUN_STATS_DEFAULTS,
-} from '../../services/GameStateManager';
-import { EventBus } from '../../services/EventBus';
-import { DifficultyManager } from '../../services/DifficultyManager';
-import { ComboSystem } from '../../services/ComboSystem';
-import { MetricsService } from '../../services/MetricsService';
+} from '../../services/core/GameStateManager';
+import { EventBus } from '../../services/core/EventBus';
+import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
+import { ComboSystem } from '../../services/combat/ComboSystem';
+import { MetricsService } from '../../services/core/MetricsService';
 import { MarketPosition } from '../../types';
 
 // Mock dependencies
-vi.mock('../../services/EventBus', () => ({
+vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
   },
 }));
 
-vi.mock('../../services/DifficultyManager', () => ({
+vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     startGame: vi.fn(),
   },
 }));
 
-vi.mock('../../services/ComboSystem', () => ({
+vi.mock('../../services/combat/ComboSystem', () => ({
   ComboSystem: {
     startGame: vi.fn(),
   },
 }));
 
-vi.mock('../../services/MetricsService', () => ({
+vi.mock('../../services/core/MetricsService', () => ({
   MetricsService: {
     startSession: vi.fn(),
   },
 }));
 
-vi.mock('../../services/Logger', () => ({
+vi.mock('../../services/system/Logger', () => ({
   Logger: {
     warn: vi.fn(),
     error: vi.fn(),
@@ -58,7 +58,7 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
-vi.mock('../../services/EventRecorderService', () => ({
+vi.mock('../../services/core/EventRecorderService', () => ({
   EventRecorderService: {
     startSession: vi.fn(),
   },

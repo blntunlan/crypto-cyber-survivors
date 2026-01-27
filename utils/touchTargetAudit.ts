@@ -8,7 +8,7 @@
  *   window.auditTouchTargets()
  */
 
-import { Logger } from '../services/Logger';
+import { Logger } from '../services/system/Logger';
 
 interface TouchTargetIssue {
   element: string;

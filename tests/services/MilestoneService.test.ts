@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MilestoneServiceClass } from '../../services/MilestoneService';
-import { EventBus } from '../../services/EventBus';
+import { MilestoneServiceClass } from '../../services/gameplay/MilestoneService';
+import { EventBus } from '../../services/core/EventBus';
 
 describe('MilestoneService', () => {
   let service: MilestoneServiceClass;

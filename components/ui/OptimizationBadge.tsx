@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { DeviceBenchmarkService } from '../../services/DeviceBenchmarkService';
+import { DeviceBenchmarkService } from '../../services/system/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import type { useThemeSize } from '../../hooks/useThemeSize';
 

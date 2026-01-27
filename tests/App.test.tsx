@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../App';
 
 // Mock Services
-vi.mock('../services/AudioService', () => ({
+vi.mock('../services/audio', () => ({
   audio: {
     getMuted: vi.fn(() => false),
     toggleMute: vi.fn(),
@@ -12,21 +12,21 @@ vi.mock('../services/AudioService', () => ({
   },
 }));
 
-vi.mock('../services/EventBus', () => ({
+vi.mock('../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(() => vi.fn()),
   },
 }));
 
-vi.mock('../services/MetricsService', () => ({
+vi.mock('../services/core/MetricsService', () => ({
   MetricsService: {
     trackLevelUp: vi.fn(),
     endSession: vi.fn(),
   },
 }));
 
-vi.mock('../services/CoinService', () => ({
+vi.mock('../services/gameplay/CoinService', () => ({
   CoinService: {
     resetSession: vi.fn(),
     calculateCycleReward: vi.fn(),
@@ -35,39 +35,39 @@ vi.mock('../services/CoinService', () => ({
   },
 }));
 
-vi.mock('../services/GameStateManager', () => ({
+vi.mock('../services/core/GameStateManager', () => ({
   GameStateManager: {
     resetAll: vi.fn(),
     initializeNewGame: vi.fn(),
   },
 }));
 
-vi.mock('../services/MilestoneService', () => ({
+vi.mock('../services/gameplay/MilestoneService', () => ({
   MilestoneService: {
     startSession: vi.fn(),
   },
 }));
 
-vi.mock('../services/DifficultyManager', () => ({
+vi.mock('../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getTotalElapsedSeconds: vi.fn(() => 0),
   },
 }));
 
-vi.mock('../services/GameStateMachine', () => ({
+vi.mock('../services/core/GameStateMachine', () => ({
   GameStateMachine: {
     transition: vi.fn(),
     forceState: vi.fn(),
   },
 }));
 
-vi.mock('../services/ImagePreloader', () => ({
+vi.mock('../services/system/ImagePreloader', () => ({
   ImagePreloader: {
     preloadAll: vi.fn(),
   },
 }));
 
-vi.mock('../services/Logger', () => ({
+vi.mock('../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
     warn: vi.fn(),

@@ -20,8 +20,8 @@ import {
   SlowDecorator,
   VulnerableDecorator,
 } from '../patterns/decorators';
-import { Logger } from '../Logger';
-import { EventBus } from '../EventBus';
+import { Logger } from '../system/Logger';
+import { EventBus } from '../core/EventBus';
 
 // Map buff types to decorator classes
 const BUFF_DECORATORS: Record<BuffGemType, DecoratorConstructor> = {

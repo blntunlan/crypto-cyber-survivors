@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GameStateMachine } from '../services/GameStateMachine';
+import { GameStateMachine } from '../services/core/GameStateMachine';
 import { GameStatus } from '../types';
 
 describe('GameStateMachine', () => {

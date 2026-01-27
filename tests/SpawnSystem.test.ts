@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SpawnSystem } from '../services/SpawnSystem';
-import { type PoolManager } from '../services/PoolManager';
+import { SpawnSystem } from '../services/combat/SpawnSystem';
+import { type PoolManager } from '../services/combat/PoolManager';
+import { type GameEnemy } from '../factories/EnemyFactory';
+import { type MarketIndicatorState } from '../types/indicators';
 import { MarketPosition } from '../types';
 
 // Mock MarketIndicatorService
@@ -28,21 +30,25 @@ vi.mock('../stores/admin/configStore', () => ({
 }));
 
 describe('SpawnSystem', () => {
-  let mockPool: any;
+  let mockPool: Partial<PoolManager>;
   let spawnSystem: SpawnSystem;
 
   beforeEach(() => {
     mockPool = {
       getEnemy: vi.fn(),
-      activeEnemies: [], // Mock active enemies array for limit check
+      getWhaleEnemy: vi.fn(),
+      activeEnemies: [] as GameEnemy[], // Mock active enemies array for limit check
     };
+
     vi.mocked(marketIndicatorService.getState).mockReturnValue({
       spawnRateMultiplier: 1.0,
       whaleTier: 0,
       rsiState: 'NEUTRAL',
       isInitialized: true,
-    } as any);
-    spawnSystem = new SpawnSystem();
+    } as unknown as MarketIndicatorState);
+    // Access private constructor for testing
+     
+    spawnSystem = new (SpawnSystem as any)();
     spawnSystem.reset();
   });
 
@@ -78,7 +84,8 @@ describe('SpawnSystem', () => {
 
     expect(result).toBeCloseTo(10, 1);
     expect(mockPool.getEnemy).toHaveBeenCalled();
-    const callArgs = mockPool.getEnemy.mock.calls[0];
+    const callArgs = vi.mocked(mockPool.getEnemy!).mock.calls[0];
+    if (!callArgs) throw new Error('No calls to getEnemy');
     expect(callArgs[2]).toBe(difficulty);
     expect(callArgs[3]).toBe(MarketPosition.LONG);
   });
@@ -129,7 +136,8 @@ describe('SpawnSystem', () => {
     );
 
     expect(mockPool.getEnemy).toHaveBeenCalled();
-    const args = mockPool.getEnemy.mock.calls[0];
+    const args = vi.mocked(mockPool.getEnemy!).mock.calls[0];
+    if (!args) throw new Error('No calls to getEnemy');
     const x = args[0];
     const y = args[1];
 
@@ -148,7 +156,7 @@ describe('SpawnSystem', () => {
     });
 
     it('should respect max enemies limit', () => {
-      mockPool.activeEnemies = new Array(150);
+      (mockPool as any).activeEnemies = new Array(150) as GameEnemy[];
       spawnSystem.update(
         5000,
         1,
@@ -165,7 +173,7 @@ describe('SpawnSystem', () => {
     it('should spawn whale when whaleTier > 0 and random hits', () => {
       vi.mocked(marketIndicatorService.getState).mockReturnValue({
         whaleTier: 2,
-      } as any);
+      } as unknown as MarketIndicatorState);
 
       vi.spyOn(Math, 'random').mockReturnValue(0.00001);
       mockPool.getWhaleEnemy = vi.fn();

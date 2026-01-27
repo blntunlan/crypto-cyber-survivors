@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ImagePreloader } from '../services/ImagePreloader';
+import { ImagePreloader } from '../services/system/ImagePreloader';
 
 // Mock CardSystem
-vi.mock('../services/CardSystem', () => ({
+vi.mock('../services/cards/CardSystem', () => ({
   ALL_CARDS_FLAT: [
     { icon: '/assets/card1.png' },
     { icon: '/assets/card2.png' },

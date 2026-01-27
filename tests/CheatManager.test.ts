@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { CheatManager } from '../services/CheatManager';
+import { CheatManager } from '../services/system/CheatManager';
 
 describe('CheatManager', () => {
   const mockCallbacks = {

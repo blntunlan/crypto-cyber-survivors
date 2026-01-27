@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { audio } from '../services/AudioService';
+import { audio } from '../services/audio';
 
 interface UseMenuNavOptions {
   itemsCount: number;

@@ -27,8 +27,8 @@ import {
   getWhaleTierFromVolume,
 } from '../../types/indicators';
 import { WhaleTier as WhaleTierEnum } from '../../types/indicators';
-import { EventBus } from '../EventBus';
-import { Logger } from '../Logger';
+import { EventBus } from '../core/EventBus';
+import { Logger } from '../system/Logger';
 
 export interface WhaleSpawnResult {
   shouldSpawn: boolean;

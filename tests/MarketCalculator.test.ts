@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MarketCalculator } from '../services/MarketCalculator';
+import { MarketCalculator } from '../services/market/MarketCalculator';
 import { MarketPosition, type LeverageOption } from '../types';
 
 describe('MarketCalculator', () => {

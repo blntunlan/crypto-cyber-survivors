@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SpatialGrid, bulletGrid, enemyGrid } from '../services/SpatialGrid';
+import { SpatialGrid, bulletGrid, enemyGrid } from '../services/combat/SpatialGrid';
 
 /**
  * SpatialGrid Unit Tests

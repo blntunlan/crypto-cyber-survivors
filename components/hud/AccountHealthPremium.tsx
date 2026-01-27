@@ -1,9 +1,9 @@
 import React, { memo, useEffect, useState } from 'react';
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
-import { DifficultyManager } from '../../services/DifficultyManager';
+import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { COLORS } from '../../constants';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 import { type WavePhase } from '../../types/metrics';
 
 import { useIsRetro } from '../../contexts/useTheme';

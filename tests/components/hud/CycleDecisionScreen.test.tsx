@@ -7,10 +7,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '../../test-utils';
 import { CycleDecisionScreen } from '../../../components/hud/CycleDecisionScreen';
-import { EventBus } from '../../../services/EventBus';
+import { EventBus } from '../../../services/core/EventBus';
 
 // Mock modules
-vi.mock('../../../services/DifficultyManager', () => ({
+vi.mock('../../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getLatestOutput: vi.fn(() => ({ total: 2.5 })),
   },

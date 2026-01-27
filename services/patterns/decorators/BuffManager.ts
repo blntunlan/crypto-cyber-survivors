@@ -20,9 +20,9 @@ import { type Player } from '../../../types';
 import { type IPlayerStats } from './IPlayerStats';
 import { PlayerStatsAdapter } from './PlayerStatsAdapter';
 import { type StatDecorator, type DecoratorConstructor } from './BaseDecorator';
-import { EventBus } from '../../EventBus';
-import { Logger } from '../../Logger';
-import { TimeService } from '../../TimeService';
+import { EventBus } from '../../core/EventBus';
+import { Logger } from '../../system/Logger';
+import { TimeService } from '../../core/TimeService';
 
 /** Constant for permanent effects */
 const PERMANENT_DURATION = -1;

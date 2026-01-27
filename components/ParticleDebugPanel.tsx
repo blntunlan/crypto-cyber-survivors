@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ParticleConfigService } from '../services/ParticleConfigService';
+import { ParticleConfigService } from '../services/system/ParticleConfigService';
 
 export const ParticleDebugPanel: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

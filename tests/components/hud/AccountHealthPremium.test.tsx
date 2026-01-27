@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { AccountHealthPremium } from '../../../components/hud/AccountHealthPremium';
-import { screenService } from '../../../services/ScreenService';
-import { DifficultyManager } from '../../../services/DifficultyManager';
-import { EventBus } from '../../../services/EventBus';
+import { screenService } from '../../../services/system/ScreenService';
+import { DifficultyManager } from '../../../services/gameplay/DifficultyManager';
+import { EventBus } from '../../../services/core/EventBus';
 
 // Mocks
-vi.mock('../../../services/ScreenService', () => ({
+vi.mock('../../../services/system/ScreenService', () => ({
   screenService: {
     isMobile: vi.fn(),
     onChange: vi.fn(() => vi.fn()),
@@ -23,13 +23,13 @@ vi.mock('../../../hooks/useResponsiveUI', () => ({
   }),
 }));
 
-vi.mock('../../../services/DifficultyManager', () => ({
+vi.mock('../../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getWavePhase: vi.fn(),
   },
 }));
 
-vi.mock('../../../services/EventBus', () => ({
+vi.mock('../../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(),
   },

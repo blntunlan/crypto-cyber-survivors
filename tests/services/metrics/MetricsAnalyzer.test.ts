@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MetricsAnalyzer } from '../../../services/metrics/MetricsAnalyzer';
+import { MetricsAnalyzer } from '../../../services/core/metrics/MetricsAnalyzer';
 import { MarketPosition } from '../../../types';
 import {
   type SessionMetrics,

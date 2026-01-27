@@ -4,7 +4,7 @@ import { MainMenu } from '../../components/screens/MainMenu';
 import { GameMode } from '../../types/gameMode';
 
 // Mock audio
-vi.mock('../../services/AudioService', () => ({
+vi.mock('../../services/audio', () => ({
   audio: {
     playSelectionTick: vi.fn(),
     playPairSelect: vi.fn(),

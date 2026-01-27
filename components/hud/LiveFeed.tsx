@@ -3,9 +3,9 @@ import { type MarketData } from '../../types';
 import { COLORS } from '../../constants';
 // Import crypto config
 import { CRYPTO_PAIRS } from '../../types/crypto';
-import { screenService } from '../../services/ScreenService';
+import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 import { type MarketStateData } from '../../types/events';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';

@@ -1,5 +1,5 @@
 import { type AudioPreset } from '../services/audio/types';
-import { ThemeService } from '../services/ThemeService';
+import { ThemeService } from '../services/system/ThemeService';
 
 /**
  * AUDIO_PRESETS - Central registry for synthesized sound configurations.

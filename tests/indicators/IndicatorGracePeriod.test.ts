@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createMarketIndicatorService } from '../../services/indicators/MarketIndicatorService';
 import { MarketPosition } from '../../types';
-import { EventBus } from '../../services/EventBus';
+import { EventBus } from '../../services/core/EventBus';
 
 describe('Market Indicator Grace Period', () => {
   let service: ReturnType<typeof createMarketIndicatorService>;

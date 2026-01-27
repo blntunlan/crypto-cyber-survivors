@@ -5,7 +5,7 @@ import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { IconSettings, IconVolume, IconVolumeMuted } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { TimeService } from '../../services/TimeService';
+import { TimeService } from '../../services/core/TimeService';
 
 interface PauseMenuProps {
   runStats: {

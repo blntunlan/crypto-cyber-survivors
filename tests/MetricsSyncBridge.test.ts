@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MetricsStorage } from '../services/metrics/MetricsStorage';
+import { MetricsStorage } from '../services/core/metrics/MetricsStorage';
 import { GameEndReason } from '../types/metrics';
 import { MarketPosition } from '../types';
 
@@ -12,7 +12,7 @@ const mockInsert = vi.fn().mockReturnValue({
 
 const mockUpsert = vi.fn().mockResolvedValue({ error: null });
 
-vi.mock('../services/Supabase', () => ({
+vi.mock('../services/core/Supabase', () => ({
   supabase: {
     from: (table: string) => ({
       insert: (data: any) => mockInsert(table, data),

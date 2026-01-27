@@ -1,9 +1,9 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Candle } from '../../types';
-import { screenService } from '../ScreenService';
-import { DeviceBenchmarkService } from '../DeviceBenchmarkService';
-import { ThemeService } from '../ThemeService';
+import { screenService } from '../system/ScreenService';
+import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
+import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 
 /**
