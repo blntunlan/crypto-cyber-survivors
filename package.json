@@ -87,7 +87,7 @@
     "*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write",
-      "vitest related --run"
+      "vitest related --run --passWithNoTests"
     ],
     "*.{json,css,md}": [
       "prettier --write"
