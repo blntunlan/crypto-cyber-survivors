@@ -7,9 +7,13 @@
 
 import '@testing-library/jest-dom';
 import { vi, beforeAll, afterEach, afterAll } from 'vitest';
-import { server } from './mocks/server';
+import { setupServer } from 'msw/node';
+import { handlers } from './mocks/handlers';
 
 // MSW Setup
+const server = setupServer(...handlers);
+
+// Use vitest hooks
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

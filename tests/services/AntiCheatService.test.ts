@@ -10,6 +10,7 @@ vi.mock('../../services/core/Supabase', () => ({
       insert: vi.fn().mockResolvedValue({ error: null }),
     })),
   },
+  isSupabaseConfigured: vi.fn(() => true),
 }));
 
 describe('AntiCheatService', () => {
@@ -130,8 +131,10 @@ describe('AntiCheatService', () => {
       // @ts-expect-error:  trigger detection
       AntiCheatService.onCheatDetected('DEBUGGER_DETECTED', 'details', 10);
 
-      expect(fromMock).toHaveBeenCalledWith('cheat_attempts');
-      expect(insertMock).toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(fromMock).toHaveBeenCalledWith('cheat_attempts');
+        expect(insertMock).toHaveBeenCalled();
+      });
     });
   });
 

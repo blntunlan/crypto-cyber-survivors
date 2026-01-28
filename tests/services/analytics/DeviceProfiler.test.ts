@@ -6,22 +6,24 @@ vi.mock('nanoid', () => ({
   nanoid: () => 'mocked-id',
 }));
 
-// Mock Supabase
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn().mockReturnThis(),
-    upsert: vi.fn(),
-  },
+// Mock Supabase - properly structured to return chainable methods
+const mockUpsert = vi.fn();
+const mockFrom = vi.fn(() => ({
+  upsert: mockUpsert,
 }));
 
 vi.mock('../../../services/core/Supabase', () => ({
-  supabase: mockSupabase as any,
+  supabase: {
+    from: mockFrom,
+  },
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 describe('DeviceProfiler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFrom.mockClear();
+    mockUpsert.mockClear();
     localStorage.clear();
 
     // Mock navigator and screen properties
@@ -82,12 +84,12 @@ describe('DeviceProfiler', () => {
 
   describe('syncToSupabase', () => {
     it('should upsert profile to Supabase', async () => {
-      mockSupabase.upsert.mockResolvedValue({ error: null });
+      mockUpsert.mockResolvedValue({ error: null });
 
       await DeviceProfiler.syncToSupabase();
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('device_profiles');
-      expect(mockSupabase.upsert).toHaveBeenCalledWith(
+      expect(mockFrom).toHaveBeenCalledWith('device_profiles');
+      expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
           fingerprint: 'df-mocked-id',
           screen_width: 1920,
@@ -104,16 +106,16 @@ describe('DeviceProfiler', () => {
       });
 
       await DeviceProfiler.syncToSupabase();
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockFrom).not.toHaveBeenCalled();
     });
 
     it('should identify as mobile if width < 768', async () => {
       Object.defineProperty(window, 'innerWidth', { value: 500, configurable: true });
-      mockSupabase.upsert.mockResolvedValue({ error: null });
+      mockUpsert.mockResolvedValue({ error: null });
 
       await DeviceProfiler.syncToSupabase();
 
-      expect(mockSupabase.upsert).toHaveBeenCalledWith(
+      expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
           device_type: 'mobile',
         }),

@@ -395,14 +395,29 @@ class AntiCheatServiceClass {
         Logger.warn('[AntiCheat] Supabase not initialized, cannot report cheat');
         return;
       }
-      await supabase.from('cheat_attempts').insert({
-        cheat_type: data.type,
-        details: data.details,
-        fingerprint: data.fingerprint,
-        severity: data.severity,
-        user_agent: navigator.userAgent,
-        timestamp: new Date(data.timestamp).toISOString(),
-      });
+
+      // Skip if Supabase is not configured (supabase is null)
+      // This check prevents runtime errors when credentials are missing
+      const { isSupabaseConfigured } = await import('../core/Supabase');
+      if (!isSupabaseConfigured()) {
+        Logger.debug('[AntiCheat] Supabase not configured, skipping cheat report');
+        return;
+      }
+
+      // Report to cheat_attempts table
+      const { error } = await supabase.from('cheat_attempts').insert([
+        {
+          cheat_type: data.type,
+          details: data.details,
+          fingerprint: data.fingerprint,
+          severity: data.severity,
+          timestamp: new Date(data.timestamp).toISOString(),
+        },
+      ]);
+
+      if (error) throw error;
+
+      Logger.debug('[AntiCheat] Cheat report sent successfully');
     } catch (error) {
       Logger.error('[AntiCheat] Failed to report cheat:', error);
     }
