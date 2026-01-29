@@ -10,10 +10,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isConfigured) {
-  Logger.warn('[Supabase] Missing credentials. Backend features will be disabled.');
+  Logger.warn(
+    '[Supabase] Missing credentials! Backend features are DISABLED. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+  );
 } else {
   if (import.meta.env.DEV) {
-    Logger.info(`[Supabase] Connected to project: ${supabaseUrl}`);
+    Logger.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
   }
 }
 
@@ -23,7 +25,12 @@ if (!isConfigured) {
  * Always check with `isSupabaseConfigured()` before using.
  */
 export const supabase: SupabaseClient<Database> | null = isConfigured
-  ? createClient<Database>(supabaseUrl!, supabaseAnonKey!)
+  ? createClient<Database>(supabaseUrl!, supabaseAnonKey!, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
   : null;
 
 /**

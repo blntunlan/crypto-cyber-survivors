@@ -96,6 +96,7 @@ vi.mock('../../components/GameUI', () => ({
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
@@ -114,6 +115,16 @@ describe('Game Entry Flow', () => {
           </GameProvider>
         </LanguageProvider>
       );
+    });
+
+    // Should show LandingPage first
+    await waitFor(() => {
+      expect(screen.getByText(/HIGH STAKES/i)).toBeInTheDocument();
+    });
+
+    const launchBtn = screen.getByText(/EXECUTE ENGINE/i);
+    await act(async () => {
+      fireEvent.click(launchBtn);
     });
 
     // Current state should be Hub Menu - WAIT for it to load

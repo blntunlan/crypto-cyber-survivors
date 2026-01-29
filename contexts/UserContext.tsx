@@ -130,11 +130,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const identityHash = await PlayerIdentityService.generatePlayerHash(nickname);
 
         // Check if nickname exists (strict case-sensitive)
-        const { data: existingProfile } = await supabase
+        const { data: existingProfile, error: fetchError } = await supabase
           .from('profiles')
           .select('id, metadata')
           .eq('display_name', nickname)
           .maybeSingle();
+
+        if (fetchError) {
+          Logger.error(
+            '[UserContext] Failed to check for existing profile',
+            fetchError
+          );
+          throw fetchError;
+        }
 
         if (existingProfile) {
           // IDENTITY VERIFICATION: Check if the stored hash matches current device
@@ -223,16 +231,40 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         UserPersistenceService.saveUser(createdUser);
         setUser(createdUser);
         return { success: true };
+      } catch (error: unknown) {
+        // Detailed error extraction for better debugging
+        let errorMsg = 'Unknown error';
+        let detail = '';
 
-        return { success: false, error: 'Failed to create player profile' };
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        Logger.error(`[UserContext] Identity/Registration error: ${errorMsg}`, error);
+        const anyError = error as any;
+
+        if (error instanceof Error) {
+          errorMsg = error.message;
+        } else if (typeof error === 'object' && error !== null) {
+          errorMsg =
+            anyError.message ??
+            anyError.details ??
+            anyError.hint ??
+            JSON.stringify(error);
+          detail = anyError.code ? `[Code: ${anyError.code}]` : '';
+        } else {
+          errorMsg = String(error);
+        }
+
+        Logger.error(
+          `[UserContext] Identity/Registration error: ${errorMsg} ${detail}`,
+          error,
+          {
+            nickname,
+            context: 'login/register',
+          }
+        );
+
         return {
           success: false,
           error: errorMsg.includes('fetch')
             ? 'Connection to server failed. Check your internet.'
-            : 'Identity verification failed. Please try again.',
+            : `Identity verification failed: ${errorMsg}`,
         };
       }
     },

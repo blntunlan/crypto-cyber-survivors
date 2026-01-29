@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../App';
 
@@ -213,18 +213,21 @@ vi.mock('../components/screens/GameOverScreen', () => ({
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
-  it('renders without crashing and shows HubMenu initially', async () => {
-    // We need to use 'render' from testing-library, NOT custom render because App has its own Providers
+  it('renders without crashing and shows LandingPage initially', async () => {
     render(<App />);
 
-    // Fallback might show up first
-    await waitFor(() => {
-      expect(screen.queryByText(/LOADING ENGINE/i)).not.toBeInTheDocument();
-    });
+    // Should show LandingPage initially
+    expect(screen.getByText(/HIGH STAKES/i)).toBeInTheDocument();
+
+    const launchBtn = screen.getByText(/EXECUTE ENGINE/i);
+    fireEvent.click(launchBtn);
 
     // Should show HubMenu since status is MENU and not needsNickname
-    expect(screen.getByText('HubMenu')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('HubMenu')).toBeInTheDocument();
+    });
   });
 });

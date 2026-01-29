@@ -78,6 +78,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { TutorialOverlay } from './components/screens/TutorialOverlay';
 import { NotificationSystem } from './components/hud';
+import { LandingPage } from './components/screens/LandingPage';
+import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
 
 // Lazy load heavy admin/debug components
 const LeaderboardPanel = React.lazy(() =>
@@ -202,6 +204,20 @@ const App: React.FC = () => {
   const { showAnalytics: _showAnalytics, showAdminDashboard: _showAdminDashboard } =
     useDevShortcuts();
   const tutorial = useTutorial();
+
+  // Landing & Legal State
+  const [showLanding, setShowLanding] = useState(() => {
+    // If we're in the middle of a game or returning session, don't show landing
+    if (localStorage.getItem('has_seen_landing') === 'true') return false;
+    return true;
+  });
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+
+  const handleLaunchGame = useCallback(() => {
+    setShowLanding(false);
+    localStorage.setItem('has_seen_landing', 'true');
+  }, []);
 
   useEffect(() => {
     if (gameStatus === GameStatus.MENU && isInitialized) {
@@ -577,181 +593,195 @@ const App: React.FC = () => {
       <ThemeProvider>
         <LazyMotionProvider>
           <div
-            className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
+            className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING || showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
           >
             <ErrorBoundary>
-              <NotificationSystem />
+              {showLanding ? (
+                <LandingPage
+                  onLaunch={handleLaunchGame}
+                  onViewPrivacy={() => setShowPrivacy(true)}
+                  onViewTerms={() => setShowTerms(true)}
+                />
+              ) : (
+                <>
+                  <NotificationSystem />
 
-              <React.Suspense fallback={<FallbackLoader />}>
-                {needsNickname && (
                   <React.Suspense fallback={<FallbackLoader />}>
-                    <NicknameEntryScreen onComplete={handleNicknameComplete} />
-                  </React.Suspense>
-                )}
+                    {needsNickname && (
+                      <React.Suspense fallback={<FallbackLoader />}>
+                        <NicknameEntryScreen onComplete={handleNicknameComplete} />
+                      </React.Suspense>
+                    )}
 
-                {tutorial.showTutorial &&
-                  !needsNickname &&
-                  gameStatus === GameStatus.MENU && (
-                    <TutorialOverlay
-                      step={tutorial.currentStep}
-                      stepIndex={tutorial.currentStepIndex}
-                      totalSteps={tutorial.totalSteps}
-                      isFirstStep={tutorial.isFirstStep}
-                      isLastStep={tutorial.isLastStep}
-                      onNext={tutorial.nextStep}
-                      onPrev={tutorial.prevStep}
-                      onSkip={tutorial.skipTutorial}
-                      onComplete={tutorial.completeTutorial}
-                    />
-                  )}
+                    {tutorial.showTutorial &&
+                      !needsNickname &&
+                      gameStatus === GameStatus.MENU && (
+                        <TutorialOverlay
+                          step={tutorial.currentStep}
+                          stepIndex={tutorial.currentStepIndex}
+                          totalSteps={tutorial.totalSteps}
+                          isFirstStep={tutorial.isFirstStep}
+                          isLastStep={tutorial.isLastStep}
+                          onNext={tutorial.nextStep}
+                          onPrev={tutorial.prevStep}
+                          onSkip={tutorial.skipTutorial}
+                          onComplete={tutorial.completeTutorial}
+                        />
+                      )}
 
-                <React.Suspense fallback={<FallbackLoader />}>
-                  <GameEngine
-                    status={gameStatus}
-                    position={position}
-                    pair={selectedPair}
-                    marketData={marketData}
-                    onGameOver={() => void handleGameOver()}
-                    onLevelUp={handleLevelUp}
-                    updatePlayerStats={setUiStats}
-                    playerRef={playerRef}
-                    width={dimensions.width}
-                    height={dimensions.height}
-                  />
-                </React.Suspense>
-
-                {gameStatus !== GameStatus.MENU && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <GameUI
-                      position={position}
-                      entryPrice={entryPrice}
-                      marketData={marketData}
-                      player={uiStats}
-                      onTogglePause={handlePauseToggle}
-                      status={gameStatus}
-                    />
-                  </React.Suspense>
-                )}
-
-                {gameStatus === GameStatus.GAMEOVER && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <GameOverScreen
-                      level={playerRef.current.level}
-                      finalPnl={marketData.pnl}
-                      survivalTime={DifficultyManager.getTotalElapsedSeconds()}
-                      kills={runStats.totalKills}
-                      onRestart={resetGame}
-                    />
-                  </React.Suspense>
-                )}
-
-                {gameStatus === GameStatus.PAUSED && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <PauseMenu
-                      runStats={{
-                        totalKills: runStats.totalKills,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        maxStreak: (window.ComboSystem as any)?.getMaxStreak() ?? 0,
-                        totalBonusXp: 0,
-                      }}
-                      onResume={handlePauseToggle}
-                      onRestart={resetGame}
-                      onMainMenu={resetGame}
-                      onOpenSettings={() => setShowSettings(true)}
-                      isMuted={audioState.isMuted}
-                      onToggleMute={toggleMute}
-                      pauseSecondsRemaining={pauseBudget.remainingSeconds}
-                      pauseSecondsMax={pauseBudget.maxSeconds}
-                    />
-                  </React.Suspense>
-                )}
-
-                {gameStatus === GameStatus.MENU &&
-                  !needsNickname &&
-                  hubScreen === 'hub' && (
-                    <React.Suspense fallback={<UIFallback />}>
-                      <HubMenu
-                        nickname={UserSessionService.getNickname() ?? 'Survivor'}
-                        coins={walletBalance}
-                        onNavigate={screen => {
-                          if (screen === 'gear') setShowSettings(true);
-                          else if (screen === 'hub') setHubScreen('hub');
-                          else setHubScreen(screen);
-                        }}
+                    <React.Suspense fallback={<FallbackLoader />}>
+                      <GameEngine
+                        status={gameStatus}
+                        position={position}
+                        pair={selectedPair}
+                        marketData={marketData}
+                        onGameOver={() => void handleGameOver()}
+                        onLevelUp={handleLevelUp}
+                        updatePlayerStats={setUiStats}
+                        playerRef={playerRef}
+                        width={dimensions.width}
+                        height={dimensions.height}
                       />
                     </React.Suspense>
-                  )}
 
-                {gameStatus === GameStatus.MENU &&
-                  !needsNickname &&
-                  hubScreen === 'play' && (
-                    <React.Suspense fallback={<UIFallback />}>
-                      <MainMenu
-                        price={marketData.price}
-                        onStart={(c, l) => {
-                          void startGame(c, l);
-                        }}
-                        onOpenSettings={() => setShowSettings(true)}
-                        selectedPair={selectedPair}
-                        onPairChange={setSelectedPair}
-                        selectedMode={gameMode}
-                        onModeChange={setGameMode}
-                      />
-                      <button
-                        onClick={() => setHubScreen('hub')}
-                        className="fixed z-[110] px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation"
-                        style={{
-                          top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
-                          left: `calc(${device.isMobile ? '1rem' : '1rem'} + env(safe-area-inset-left, 0px))`,
-                        }}
-                      >
-                        ← {!device.isMobile && ` ${t('common.back_to_hub')}`}
-                      </button>
-                    </React.Suspense>
-                  )}
+                    {gameStatus !== GameStatus.MENU && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <GameUI
+                          position={position}
+                          entryPrice={entryPrice}
+                          marketData={marketData}
+                          player={uiStats}
+                          onTogglePause={handlePauseToggle}
+                          status={gameStatus}
+                        />
+                      </React.Suspense>
+                    )}
 
-                {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <CycleCompleteScreen
-                      data={cycleData}
-                      onCashOut={handleCashOut}
-                      onContinue={handleContinue}
-                    />
+                    {gameStatus === GameStatus.GAMEOVER && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <GameOverScreen
+                          level={playerRef.current.level}
+                          finalPnl={marketData.pnl}
+                          survivalTime={DifficultyManager.getTotalElapsedSeconds()}
+                          kills={runStats.totalKills}
+                          onRestart={resetGame}
+                        />
+                      </React.Suspense>
+                    )}
+
+                    {gameStatus === GameStatus.PAUSED && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <PauseMenu
+                          runStats={{
+                            totalKills: runStats.totalKills,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            maxStreak: (window.ComboSystem as any)?.getMaxStreak() ?? 0,
+                            totalBonusXp: 0,
+                          }}
+                          onResume={handlePauseToggle}
+                          onRestart={resetGame}
+                          onMainMenu={resetGame}
+                          onOpenSettings={() => setShowSettings(true)}
+                          isMuted={audioState.isMuted}
+                          onToggleMute={toggleMute}
+                          pauseSecondsRemaining={pauseBudget.remainingSeconds}
+                          pauseSecondsMax={pauseBudget.maxSeconds}
+                        />
+                      </React.Suspense>
+                    )}
+
+                    {gameStatus === GameStatus.MENU &&
+                      !needsNickname &&
+                      hubScreen === 'hub' && (
+                        <React.Suspense fallback={<UIFallback />}>
+                          <HubMenu
+                            nickname={UserSessionService.getNickname() ?? 'Survivor'}
+                            coins={walletBalance}
+                            onNavigate={screen => {
+                              if (screen === 'gear') setShowSettings(true);
+                              else if (screen === 'hub') setHubScreen('hub');
+                              else setHubScreen(screen);
+                            }}
+                          />
+                        </React.Suspense>
+                      )}
+
+                    {gameStatus === GameStatus.MENU &&
+                      !needsNickname &&
+                      hubScreen === 'play' && (
+                        <React.Suspense fallback={<UIFallback />}>
+                          <MainMenu
+                            price={marketData.price}
+                            onStart={(c, l) => {
+                              void startGame(c, l);
+                            }}
+                            onOpenSettings={() => setShowSettings(true)}
+                            selectedPair={selectedPair}
+                            onPairChange={setSelectedPair}
+                            selectedMode={gameMode}
+                            onModeChange={setGameMode}
+                          />
+                          <button
+                            onClick={() => setHubScreen('hub')}
+                            className="fixed z-[110] px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation"
+                            style={{
+                              top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
+                              left: `calc(${device.isMobile ? '1rem' : '1rem'} + env(safe-area-inset-left, 0px))`,
+                            }}
+                          >
+                            ← {!device.isMobile && ` ${t('common.back_to_hub')}`}
+                          </button>
+                        </React.Suspense>
+                      )}
+
+                    {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <CycleCompleteScreen
+                          data={cycleData}
+                          onCashOut={handleCashOut}
+                          onContinue={handleContinue}
+                        />
+                      </React.Suspense>
+                    )}
+
+                    {gameStatus === GameStatus.DATA_DISCONNECTED && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <MarketDisconnectedScreen onBackToMenu={resetGame} />
+                      </React.Suspense>
+                    )}
+
+                    {gameStatus === GameStatus.MENU &&
+                      (hubScreen === 'ranks' || hubScreen === 'play') && (
+                        <React.Suspense fallback={null}>
+                          <LeaderboardPanel />
+                        </React.Suspense>
+                      )}
+
+                    {showSettings && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <SettingsPanel
+                          onClose={() => setShowSettings(false)}
+                          isInGame={gameStatus !== GameStatus.MENU}
+                          onReplayTutorial={tutorial.startTutorial}
+                        />
+                      </React.Suspense>
+                    )}
+
+                    {gameStatus === GameStatus.LEVEL_UP && (
+                      <React.Suspense fallback={<UIFallback />}>
+                        <LevelUpScreen
+                          upgradeChoices={upgradeChoices}
+                          onSelect={selectUpgrade}
+                        />
+                      </React.Suspense>
+                    )}
                   </React.Suspense>
-                )}
+                </>
+              )}
 
-                {gameStatus === GameStatus.DATA_DISCONNECTED && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <MarketDisconnectedScreen onBackToMenu={resetGame} />
-                  </React.Suspense>
-                )}
-
-                {gameStatus === GameStatus.MENU &&
-                  (hubScreen === 'ranks' || hubScreen === 'play') && (
-                    <React.Suspense fallback={null}>
-                      <LeaderboardPanel />
-                    </React.Suspense>
-                  )}
-
-                {showSettings && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <SettingsPanel
-                      onClose={() => setShowSettings(false)}
-                      isInGame={gameStatus !== GameStatus.MENU}
-                      onReplayTutorial={tutorial.startTutorial}
-                    />
-                  </React.Suspense>
-                )}
-
-                {gameStatus === GameStatus.LEVEL_UP && (
-                  <React.Suspense fallback={<UIFallback />}>
-                    <LevelUpScreen
-                      upgradeChoices={upgradeChoices}
-                      onSelect={selectUpgrade}
-                    />
-                  </React.Suspense>
-                )}
-              </React.Suspense>
+              {/* Legal Modals */}
+              {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
+              {showTerms && <TermsOfService onClose={() => setShowTerms(false)} />}
             </ErrorBoundary>
           </div>
         </LazyMotionProvider>
