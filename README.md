@@ -13,7 +13,7 @@
 [![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-[🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#️-architecture) • [📦 Project Structure](#-project-structure) • [🎮 How to Play](#-how-to-play)
+[🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#️-architecture) • [🤝 Contributing](CONTRIBUTING.md) • [📦 Project Structure](#-project-structure) • [🎮 How to Play](#-how-to-play)
 
 </div>
 
