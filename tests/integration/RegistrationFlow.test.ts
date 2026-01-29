@@ -1,5 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UserSessionService } from '../../services/auth/UserSessionService';
+import { createClient } from '@supabase/supabase-js';
+
+// Mock Supabase to bypass configuration checks and allow MSW to intercept requests
+vi.mock('../../services/core/Supabase', () => ({
+  supabase: createClient('https://mock.supabase.co', 'mock-key', {
+    auth: { persistSession: false },
+  }),
+  isSupabaseConfigured: () => true,
+}));
 
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
