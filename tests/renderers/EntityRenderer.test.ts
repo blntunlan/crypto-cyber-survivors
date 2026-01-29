@@ -63,6 +63,7 @@ describe('EntityRenderer', () => {
       rotate: vi.fn(),
       scale: vi.fn(),
       beginPath: vi.fn(),
+      moveTo: vi.fn(), // Added for batching optimization
       arc: vi.fn(),
       ellipse: vi.fn(),
       fill: vi.fn(),
@@ -282,7 +283,7 @@ describe('EntityRenderer', () => {
           radius: 5,
           color: '#00ff00',
           active: true,
-          elapsedLifetime: 9000, // Near 10000 limit
+          elapsedLifetime: 9000, // Near 10000 limit or 5000 depending on config. With 5000 it is way over.
         },
       ];
 
@@ -294,6 +295,114 @@ describe('EntityRenderer', () => {
       });
 
       expect(mockCtx.globalAlpha).toBeLessThan(1.0);
+    });
+  });
+
+  describe('drawGems optimizations', () => {
+    it('should batch simple gems of same color', () => {
+      mockPool.activeGems = [
+        {
+          x: 100,
+          y: 100,
+          radius: 5,
+          color: '#00ff00',
+          active: true,
+          isRare: false,
+          elapsedLifetime: 100,
+        },
+        {
+          x: 120,
+          y: 120,
+          radius: 5,
+          color: '#00ff00',
+          active: true,
+          isRare: false,
+          elapsedLifetime: 100,
+        },
+        {
+          x: 140,
+          y: 140,
+          radius: 5,
+          color: '#00ff00',
+          active: true,
+          isRare: false,
+          elapsedLifetime: 100,
+        },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      // 1 fill for the batch
+      expect(mockCtx.fill).toHaveBeenCalledTimes(1);
+      // 1 save for the batch group
+      expect(mockCtx.save).toHaveBeenCalledTimes(1);
+      // Verify moveTo is called for each gem to prevent connecting lines
+      expect(mockCtx.moveTo).toHaveBeenCalledTimes(3);
+    });
+
+    it('should batch simple gems of different colors separately', () => {
+      mockPool.activeGems = [
+        { x: 100, y: 100, radius: 5, color: '#00ff00', active: true, isRare: false, elapsedLifetime: 0 },
+        { x: 120, y: 120, radius: 5, color: '#ff0000', active: true, isRare: false, elapsedLifetime: 0 },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      // 1 fill per color
+      expect(mockCtx.fill).toHaveBeenCalledTimes(2);
+      expect(mockCtx.save).toHaveBeenCalledTimes(1); // 1 save for the whole batch block
+    });
+
+    it('should render complex gems individually', () => {
+      mockPool.activeGems = [
+        // Rare gem (complex)
+        { x: 100, y: 100, radius: 5, color: '#00ff00', active: true, isRare: true },
+        // Fading gem (complex) (Lifetime 5000, so 4500 is fading)
+        { x: 120, y: 120, radius: 5, color: '#00ff00', active: true, isRare: false, elapsedLifetime: 4500 },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      expect(mockCtx.fill).toHaveBeenCalledTimes(2);
+      expect(mockCtx.save).toHaveBeenCalledTimes(2); // 1 save per complex gem
+    });
+
+    it('should handle mixed simple and complex gems', () => {
+      mockPool.activeGems = [
+        // Simple
+        { x: 100, y: 100, radius: 5, color: '#00ff00', active: true, isRare: false, elapsedLifetime: 0 },
+        // Simple
+        { x: 110, y: 110, radius: 5, color: '#00ff00', active: true, isRare: false, elapsedLifetime: 0 },
+        // Complex
+        { x: 120, y: 120, radius: 5, color: '#00ff00', active: true, isRare: true },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      // 1 fill for batch + 1 fill for complex
+      expect(mockCtx.fill).toHaveBeenCalledTimes(2);
+      // 1 save for batch block + 1 save for complex gem
+      expect(mockCtx.save).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -476,7 +585,7 @@ describe('EntityRenderer', () => {
         radius: 5,
         color: '#00ff00',
         active: true,
-        elapsedLifetime: 9500, // Very close to expiry
+        elapsedLifetime: 4800, // Very close to expiry
       };
 
       mockPool.activeGems = [gem];
