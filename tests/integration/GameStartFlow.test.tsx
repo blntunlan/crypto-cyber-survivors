@@ -93,6 +93,23 @@ vi.mock('../../components/GameUI', () => ({
   GameUI: () => <div data-testid="game-ui">Game UI Running</div>,
 }));
 
+vi.mock('../../components/screens/LandingPage', () => ({
+  LandingPage: ({ onLaunch }: { onLaunch: () => void }) => (
+    <div>
+      <h1>HIGH STAKES</h1>
+      <button onClick={onLaunch}>EXECUTE ENGINE</button>
+    </div>
+  ),
+}));
+
+vi.mock('../../services/gameplay/WalletService', () => ({
+  WalletService: {
+    getInstance: vi.fn(() => ({
+      getBalance: vi.fn().mockResolvedValue(100),
+    })),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -593,7 +593,7 @@ const App: React.FC = () => {
       <ThemeProvider>
         <LazyMotionProvider>
           <div
-            className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING || showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
+            className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING && !showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
           >
             <ErrorBoundary>
               {showLanding ? (
@@ -702,6 +702,7 @@ const App: React.FC = () => {
                               else if (screen === 'hub') setHubScreen('hub');
                               else setHubScreen(screen);
                             }}
+                            onBack={() => setShowLanding(true)}
                           />
                         </React.Suspense>
                       )}
@@ -780,8 +781,24 @@ const App: React.FC = () => {
               )}
 
               {/* Legal Modals */}
-              {showPrivacy && <PrivacyPolicy onClose={() => setShowPrivacy(false)} />}
-              {showTerms && <TermsOfService onClose={() => setShowTerms(false)} />}
+              {showPrivacy && (
+                <PrivacyPolicy
+                  onClose={() => setShowPrivacy(false)}
+                  onViewTerms={() => {
+                    setShowPrivacy(false);
+                    setShowTerms(true);
+                  }}
+                />
+              )}
+              {showTerms && (
+                <TermsOfService
+                  onClose={() => setShowTerms(false)}
+                  onViewPrivacy={() => {
+                    setShowTerms(false);
+                    setShowPrivacy(true);
+                  }}
+                />
+              )}
             </ErrorBoundary>
           </div>
         </LazyMotionProvider>

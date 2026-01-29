@@ -41,6 +41,8 @@ interface HubMenuProps {
   nickname: string;
   coins: number;
   onNavigate: (screen: HubScreen) => void;
+  /** Return to Landing Page */
+  onBack?: () => void;
 }
 
 interface HubButtonConfig {
@@ -54,7 +56,12 @@ interface HubButtonConfig {
   disabled?: boolean;
 }
 
-export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate }) => {
+export const HubMenu: React.FC<HubMenuProps> = ({
+  nickname,
+  coins,
+  onNavigate,
+  onBack,
+}) => {
   const { isRetro } = useTheme();
   const { t } = useLanguage();
   const sizes = useThemeSize();
@@ -278,7 +285,32 @@ export const HubMenu: React.FC<HubMenuProps> = ({ nickname, coins, onNavigate })
       `}
     >
       {/* Container */}
-      <div className="w-full max-w-lg space-y-4 sm:space-y-6">
+      <div className="w-full max-w-lg space-y-4 sm:space-y-6 relative">
+        {/* Back Button (Top Left) */}
+        {onBack && (
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={onBack}
+            className={`
+              fixed z-[110] px-3 py-2 border backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation
+              text-sm font-cyber uppercase tracking-wider
+              ${
+                isRetro
+                  ? 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-white rounded-none'
+                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl'
+              }
+            `}
+            style={{
+              top: 'calc(1.5rem + env(safe-area-inset-top, 0px))',
+              left: 'calc(1rem + env(safe-area-inset-left, 0px))',
+            }}
+            title="Return to Landing"
+          >
+            ← {t('common.project_info') || 'PROJECT INFO'}
+          </motion.button>
+        )}
+
         {/* Title */}
         <motion.header
           className="space-y-3 sm:space-y-5 text-center"

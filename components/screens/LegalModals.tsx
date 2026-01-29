@@ -24,7 +24,7 @@ const LegalModal: React.FC<ModalProps> = ({ onClose, title, children }) => (
           <X className="w-6 h-6" />
         </button>
       </div>
-      <div className="p-8 overflow-y-auto custom-scrollbar text-slate-300 leading-relaxed font-sans prose prose-invert max-w-none">
+      <div className="p-8 overflow-y-auto allow-scroll custom-scrollbar text-slate-300 leading-relaxed font-sans prose prose-invert max-w-none">
         {children}
       </div>
       <div className="p-6 border-t border-white/5 bg-white/[0.02] text-center">
@@ -39,7 +39,10 @@ const LegalModal: React.FC<ModalProps> = ({ onClose, title, children }) => (
   </div>
 );
 
-export const PrivacyPolicy: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+export const PrivacyPolicy: React.FC<{
+  onClose: () => void;
+  onViewTerms?: () => void;
+}> = ({ onClose, onViewTerms }) => (
   <LegalModal onClose={onClose} title="Privacy Policy">
     <h1>Privacy Policy</h1>
     <p>Last Updated: January 29, 2026</p>
@@ -82,12 +85,26 @@ export const PrivacyPolicy: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       Infrastructure with Row Level Security (RLS) policies.
     </p>
 
-    <h2>5. Cookies</h2>
-    <p>We use local storage only for session persistence and settings management.</p>
+    <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+        Need more info?
+      </p>
+      {onViewTerms && (
+        <button
+          onClick={onViewTerms}
+          className="text-xs font-bold text-cyan-400 hover:text-white transition-colors uppercase tracking-[0.2em]"
+        >
+          View Terms of Service →
+        </button>
+      )}
+    </div>
   </LegalModal>
 );
 
-export const TermsOfService: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+export const TermsOfService: React.FC<{
+  onClose: () => void;
+  onViewPrivacy?: () => void;
+}> = ({ onClose, onViewPrivacy }) => (
   <LegalModal onClose={onClose} title="Terms of Service">
     <h1>Terms of Service</h1>
     <p>Last Updated: January 29, 2026</p>
@@ -118,10 +135,18 @@ export const TermsOfService: React.FC<{ onClose: () => void }> = ({ onClose }) =
       Survivors team, unless otherwise stated (e.g., MIT licensed components).
     </p>
 
-    <h2>5. Disclaimer</h2>
-    <p>
-      The game is provided "as is". We are not responsible for any issues arising from
-      market data volatility or connection failures.
-    </p>
+    <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+        Questions about privacy?
+      </p>
+      {onViewPrivacy && (
+        <button
+          onClick={onViewPrivacy}
+          className="text-xs font-bold text-cyan-400 hover:text-white transition-colors uppercase tracking-[0.2em]"
+        >
+          View Privacy Policy →
+        </button>
+      )}
+    </div>
   </LegalModal>
 );

@@ -84,6 +84,14 @@ vi.mock('../services/auth/UserSessionService', () => ({
   },
 }));
 
+vi.mock('../services/gameplay/WalletService', () => ({
+  WalletService: {
+    getInstance: vi.fn(() => ({
+      getBalance: vi.fn().mockResolvedValue(100),
+    })),
+  },
+}));
+
 // Mock Hooks
 vi.mock('../hooks/useDevice', () => ({
   useDevice: () => ({ isMobile: false }),
@@ -210,6 +218,15 @@ vi.mock('../components/screens/GameOverScreen', () => ({
   GameOverScreen: () => <div>GameOverScreen</div>,
 }));
 
+vi.mock('../components/screens/LandingPage', () => ({
+  LandingPage: ({ onLaunch }: { onLaunch: () => void }) => (
+    <div>
+      <h1>HIGH STAKES</h1>
+      <button onClick={onLaunch}>EXECUTE ENGINE</button>
+    </div>
+  ),
+}));
+
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -220,7 +237,7 @@ describe('App', () => {
     render(<App />);
 
     // Should show LandingPage initially
-    expect(screen.getByText(/HIGH STAKES/i)).toBeInTheDocument();
+    expect(await screen.findByText(/HIGH STAKES/i)).toBeInTheDocument();
 
     const launchBtn = screen.getByText(/EXECUTE ENGINE/i);
     fireEvent.click(launchBtn);
