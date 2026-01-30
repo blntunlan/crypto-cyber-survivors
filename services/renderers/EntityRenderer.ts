@@ -11,7 +11,7 @@ import {
 } from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
-import { ECONOMY_CONFIG } from '../../config';
+import { ECONOMY_CONFIG, COLORS } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';
 
 /**
@@ -129,25 +129,58 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
+    const fadeStartThreshold = 0.3;
+
+    // --- PASS 1: Batch Standard Gems ---
+    // Optimization: Group standard, opaque gems into a single draw call
+    ctx.save();
+    ctx.fillStyle = COLORS.GEM;
+    if (shadowsEnabled) {
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.beginPath();
+    let hasBatchItems = false;
+
     pool.activeGems.forEach(g => {
-      if (!g.active) {
-        return;
-      }
+      if (!g.active) return;
+      if (!isCircleVisible(g.x, g.y, g.radius, bounds)) return;
 
-      if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
-        return;
-      }
-
-      // Calculate fade-out alpha based on lifetime
       const elapsed = g.elapsedLifetime ?? 0;
-      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
       const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+      const isFading = remainingRatio < fadeStartThreshold;
 
-      // Start fading when 30% of lifetime remains
-      const fadeStartThreshold = 0.3;
+      // Standard = Not rare, not fading, standard gold color
+      const isStandard = !g.isRare && !isFading && g.color === COLORS.GEM;
+
+      if (isStandard) {
+        ctx.moveTo(Math.round(g.x) + g.radius, Math.round(g.y));
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+        hasBatchItems = true;
+      }
+    });
+
+    if (hasBatchItems) {
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // --- PASS 2: Individual Complex Gems ---
+    // Draw rare, fading, or non-standard color gems individually
+    pool.activeGems.forEach(g => {
+      if (!g.active) return;
+      if (!isCircleVisible(g.x, g.y, g.radius, bounds)) return;
+
+      const elapsed = g.elapsedLifetime ?? 0;
+      const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+      const isFading = remainingRatio < fadeStartThreshold;
+      const isStandard = !g.isRare && !isFading && g.color === COLORS.GEM;
+
+      if (isStandard) return; // Already drawn in batch
+
       let alpha = 1.0;
-
-      if (remainingRatio < fadeStartThreshold) {
+      if (isFading) {
         alpha = remainingRatio / fadeStartThreshold;
         // Add a "blinking" effect when very close to expiry
         if (remainingRatio < 0.1) {

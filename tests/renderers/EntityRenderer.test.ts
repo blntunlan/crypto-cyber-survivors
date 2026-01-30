@@ -3,6 +3,7 @@ import { EntityRenderer } from '../../services/renderers/EntityRenderer';
 import { GameStatus } from '../../types';
 import { BuffGemSpawner } from '../../services/spawners/BuffGemSpawner';
 import { ThemeService } from '../../services/system/ThemeService';
+import { COLORS } from '../../config';
 
 // Mock services
 vi.mock('../../services/system/ScreenService', () => ({
@@ -63,6 +64,7 @@ describe('EntityRenderer', () => {
       rotate: vi.fn(),
       scale: vi.fn(),
       beginPath: vi.fn(),
+      moveTo: vi.fn(),
       arc: vi.fn(),
       ellipse: vi.fn(),
       fill: vi.fn(),
@@ -294,6 +296,41 @@ describe('EntityRenderer', () => {
       });
 
       expect(mockCtx.globalAlpha).toBeLessThan(1.0);
+    });
+
+    it('should batch standard gems into single draw call', () => {
+      mockPool.activeGems = [
+        {
+          x: 100,
+          y: 100,
+          radius: 5,
+          color: COLORS.GEM,
+          active: true,
+          isRare: false,
+          elapsedLifetime: 0,
+        },
+        {
+          x: 120,
+          y: 120,
+          radius: 5,
+          color: COLORS.GEM,
+          active: true,
+          isRare: false,
+          elapsedLifetime: 0,
+        },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      // Should only fill once for the batch
+      expect(mockCtx.fill).toHaveBeenCalledTimes(1);
+      // Should only save state once for the batch
+      expect(mockCtx.save).toHaveBeenCalledTimes(1);
     });
   });
 
