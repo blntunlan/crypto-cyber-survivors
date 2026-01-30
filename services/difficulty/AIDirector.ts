@@ -167,9 +167,11 @@ class AIDirectorClass {
 
     // Determine trend from RSI
     let trendValue = 0.5; // sideways
-    if (market.rsi > 60)
+    if (market.rsi > 60) {
       trendValue = 1.0; // bull
-    else if (market.rsi < 40) trendValue = 0.0; // bear
+    } else if (market.rsi < 40) {
+      trendValue = 0.0; // bear
+    }
 
     const inputs: DirectorInputs = {
       rsi: market.rsi / 100,
