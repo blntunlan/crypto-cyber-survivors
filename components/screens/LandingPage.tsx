@@ -26,6 +26,12 @@ import {
   Activity,
   Menu,
   X,
+  Check,
+  ChevronDown,
+  Rocket,
+  Gamepad2,
+  Trophy,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from '../../contexts/useTheme';
 
@@ -42,6 +48,64 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const { isRetro, toggleTheme, isTransitioning } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  // FAQ Data
+  const faqItems = [
+    {
+      question: 'What makes Crypto Survivors different from other games?',
+      answer:
+        'Real-time BTC/USD price feeds directly influence gameplay difficulty. Market volatility creates unique challenges every session.',
+    },
+    {
+      question: 'Is this a play-to-earn or crypto wallet game?',
+      answer:
+        'No. This is a skill-based arcade game. No real money, no wallets, no blockchain transactions required.',
+    },
+    {
+      question: 'What are Casual and Competitive modes?',
+      answer:
+        'Casual mode offers relaxed difficulty for learning. Competitive mode features global leaderboards and anti-cheat validation.',
+    },
+    {
+      question: 'Does the game work offline?',
+      answer:
+        'Limited offline mode available via PWA. Full features require internet for live market data.',
+    },
+    {
+      question: 'What platforms are supported?',
+      answer:
+        'Web browser (desktop & mobile), PWA installable. Native apps planned for future releases.',
+    },
+  ];
+
+  // Roadmap Data
+  const roadmapItems = [
+    {
+      phase: 'Q1 2026',
+      title: 'Foundation',
+      status: 'completed',
+      items: ['Core gameplay loop', '60 FPS Canvas engine', 'Supabase integration'],
+    },
+    {
+      phase: 'Q2 2026',
+      title: 'Live Markets',
+      status: 'current',
+      items: ['Binance/Coinbase WSS', 'Neural AI Director', 'Anti-cheat system'],
+    },
+    {
+      phase: 'Q3 2026',
+      title: 'Social',
+      status: 'upcoming',
+      items: ['Global leaderboards', 'Replay sharing', 'Achievement badges'],
+    },
+    {
+      phase: 'Q4 2026',
+      title: 'Expansion',
+      status: 'upcoming',
+      items: ['Multi-crypto support', 'Daily challenges', 'Seasonal events'],
+    },
+  ];
 
   return (
     <motion.div
@@ -524,7 +588,250 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </section>
-      {/* --- 05. FOOTER & LEGAL --- */}
+      {/* --- 05. FEATURE COMPARISON --- */}
+      <section className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6 border-t border-[#b22222]/10">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-12 sm:mb-16 text-center">
+            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+              Choose Your Path
+            </h2>
+            <div
+              className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+            >
+              Game Modes
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Casual Mode */}
+            <div
+              className={`p-6 sm:p-8 border-2 transition-all duration-300 ${
+                isRetro
+                  ? 'border-[#d6b85c]/30 bg-[#d6b85c]/5 shadow-[6px_6px_0px_rgba(214,184,92,0.1)]'
+                  : 'border-[#d6b85c]/20 bg-gradient-to-br from-[#d6b85c]/10 to-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <Gamepad2 className="w-8 h-8 text-[#d6b85c]" />
+                <h3
+                  className={`text-xl sm:text-2xl font-black uppercase italic text-[#d6b85c] ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                >
+                  Casual
+                </h3>
+              </div>
+              <p className="text-slate-400 text-sm font-mono mb-6">
+                Perfect for learning mechanics and enjoying relaxed gameplay.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  'Forgiving difficulty curve',
+                  'Practice without pressure',
+                  'All features unlocked',
+                  'Local progress saving',
+                  'Offline mode available',
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 text-sm text-slate-300"
+                  >
+                    <Check className="w-4 h-4 text-[#d6b85c] flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Competitive Mode */}
+            <div
+              className={`p-6 sm:p-8 border-2 transition-all duration-300 relative overflow-hidden ${
+                isRetro
+                  ? 'border-[#b22222]/30 bg-[#b22222]/5 shadow-[6px_6px_0px_rgba(178,34,34,0.1)]'
+                  : 'border-[#b22222]/20 bg-gradient-to-br from-[#b22222]/10 to-transparent'
+              }`}
+            >
+              <div className="absolute top-4 right-4 px-2 py-1 bg-[#b22222] text-[9px] font-black uppercase tracking-wider">
+                Pro
+              </div>
+              <div className="flex items-center gap-3 mb-6">
+                <Trophy className="w-8 h-8 text-[#b22222]" />
+                <h3
+                  className={`text-xl sm:text-2xl font-black uppercase italic text-[#b22222] ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                >
+                  Competitive
+                </h3>
+              </div>
+              <p className="text-slate-400 text-sm font-mono mb-6">
+                Prove your skills on the global stage with verified runs.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  'Global leaderboards',
+                  'Anti-cheat validation',
+                  'Replay recording',
+                  'Achievement tracking',
+                  'Seasonal rankings',
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 text-sm text-slate-300"
+                  >
+                    <Check className="w-4 h-4 text-[#b22222] flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* --- 06. ROADMAP --- */}
+      <section className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6 border-t border-[#b22222]/10 bg-[#b22222]/[0.02]">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 sm:mb-16 text-center">
+            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+              Development Timeline
+            </h2>
+            <div
+              className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+            >
+              Roadmap
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {roadmapItems.map((phase, i) => (
+              <div
+                key={i}
+                className={`p-5 sm:p-6 border transition-all duration-300 relative ${
+                  phase.status === 'current'
+                    ? isRetro
+                      ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]'
+                      : 'border-[#d6b85c]/50 bg-[#d6b85c]/5 shadow-[0_0_20px_rgba(214,184,92,0.1)]'
+                    : phase.status === 'completed'
+                      ? 'border-green-500/30 bg-green-500/5'
+                      : 'border-white/10 bg-white/5'
+                }`}
+              >
+                {phase.status === 'current' && (
+                  <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-[#d6b85c] text-black text-[8px] font-black uppercase">
+                    Active
+                  </div>
+                )}
+                <div
+                  className={`text-[10px] font-black tracking-widest mb-2 ${
+                    phase.status === 'current'
+                      ? 'text-[#d6b85c]'
+                      : phase.status === 'completed'
+                        ? 'text-green-500'
+                        : 'text-slate-500'
+                  }`}
+                >
+                  {phase.phase}
+                </div>
+                <h3
+                  className={`text-lg font-bold mb-4 italic ${
+                    phase.status === 'current'
+                      ? 'text-[#d6b85c]'
+                      : phase.status === 'completed'
+                        ? 'text-green-400'
+                        : 'text-white'
+                  } ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                >
+                  {phase.title}
+                </h3>
+                <ul className="space-y-2">
+                  {phase.items.map((item, j) => (
+                    <li
+                      key={j}
+                      className={`text-[11px] font-mono flex items-start gap-2 ${
+                        phase.status === 'completed'
+                          ? 'text-slate-500 line-through'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {phase.status === 'completed' ? (
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
+                      ) : phase.status === 'current' ? (
+                        <Sparkles className="w-3 h-3 text-[#d6b85c] flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <Rocket className="w-3 h-3 text-slate-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- 07. FAQ ACCORDION --- */}
+      <section className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6 border-t border-[#b22222]/10">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-12 sm:mb-16 text-center">
+            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+              Common Questions
+            </h2>
+            <div
+              className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+            >
+              FAQ
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {faqItems.map((faq, i) => (
+              <div
+                key={i}
+                className={`border transition-all duration-300 ${
+                  openFaqIndex === i
+                    ? isRetro
+                      ? 'border-[#d6b85c]/50 bg-[#d6b85c]/5 shadow-[4px_4px_0px_rgba(214,184,92,0.1)]'
+                      : 'border-[#d6b85c]/30 bg-[#d6b85c]/5'
+                    : 'border-white/10 bg-white/5 hover:border-white/20'
+                }`}
+              >
+                <button
+                  onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                  className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                >
+                  <span
+                    className={`text-sm sm:text-base font-bold ${openFaqIndex === i ? 'text-[#d6b85c]' : 'text-white'}`}
+                  >
+                    {faq.question}
+                  </span>
+                  <ChevronDown
+                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${
+                      openFaqIndex === i
+                        ? 'rotate-180 text-[#d6b85c]'
+                        : 'text-slate-500'
+                    }`}
+                  />
+                </button>
+                <AnimatePresence>
+                  {openFaqIndex === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm text-slate-400 font-mono leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- 08. FOOTER & LEGAL --- */}
       <footer className="relative z-10 py-12 sm:py-16 lg:py-20 px-4 sm:px-6 border-t border-[#b22222]/20 bg-black">
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-start md:items-center gap-8 sm:gap-12">
           {/* Logo & Trademark */}
@@ -541,9 +848,56 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 SURVIVORS
               </span>
             </div>
-            <p className="text-[10px] text-slate-600 font-mono max-w-xs uppercase tracking-widest">
+            <p className="text-[10px] text-slate-600 font-mono max-w-xs uppercase tracking-widest mb-4">
               Solo indie developer project. <br />© 2026 CSYNC PROTOCOL.
             </p>
+            {/* Social Links */}
+            <div className="flex gap-3">
+              {/* Discord - TODO: Replace with real link */}
+              <a
+                href="#"
+                onClick={e => {
+                  e.preventDefault();
+                  alert('Discord link coming soon!');
+                }}
+                className={`p-2 border transition-all duration-300 hover:scale-110 ${
+                  isRetro
+                    ? 'border-[#5865F2]/30 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
+                    : 'border-white/10 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
+                }`}
+                aria-label="Discord (Coming Soon)"
+              >
+                <svg
+                  className="w-4 h-4 text-[#5865F2]"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+                </svg>
+              </a>
+              {/* Twitter/X - TODO: Replace with real link */}
+              <a
+                href="#"
+                onClick={e => {
+                  e.preventDefault();
+                  alert('Twitter/X link coming soon!');
+                }}
+                className={`p-2 border transition-all duration-300 hover:scale-110 ${
+                  isRetro
+                    ? 'border-white/30 hover:border-white hover:bg-white/10'
+                    : 'border-white/10 hover:border-white hover:bg-white/10'
+                }`}
+                aria-label="Twitter/X (Coming Soon)"
+              >
+                <svg
+                  className="w-4 h-4 text-white"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+            </div>
           </div>
 
           {/* Regulatory Navigation */}

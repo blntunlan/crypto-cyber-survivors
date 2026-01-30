@@ -29,6 +29,7 @@ export default tseslint.config(
       'railway-market-server/**',
       'scripts/**',
       'e2e/**', // Playwright tests - separate environment
+      'remotion-video/**',
     ],
   },
 
