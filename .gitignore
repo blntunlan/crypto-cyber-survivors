@@ -105,8 +105,13 @@ Desktop.ini
 *.sqlite3
 *.db
 
+# Vitest cache
+.vitest
+
+# TypeScript build info
+*.tsbuildinfo
+
 # Package manager lock files (optional - uncomment if needed)
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
-

@@ -1,6 +1,45 @@
+# Dependencies (Railway installs fresh)
 node_modules
+
+# Version control
 .git
+
+# AI Assistant folders
 .agent
+.agents
+.claude
+.gemini
+.windsurf
+.cursor
+.continue
+
+# Build outputs (Railway builds fresh)
 dist
 build
+coverage
+
+# Test files (not needed in production)
+tests
+e2e
+playwright-report
+test-results
+*.test.ts
+*.test.tsx
+*.spec.ts
+
+# Development files
+.vscode
+.idea
+*.local
+
+# Separate server (has its own Railway service)
 railway-market-server
+
+# Documentation source
+docs
+
+# Simulation/Training (dev only)
+simulation
+
+# Remotion project
+remotion-video

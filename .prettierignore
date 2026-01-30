@@ -1,4 +1,37 @@
+# Build outputs
 dist
+build
+
+# Dependencies
 node_modules
+
+# Documentation (auto-generated)
+docs/api
 *.md
+
+# Test outputs
+coverage
+playwright-report
+test-results
+
+# AI Assistant folders
 .agent
+.agents
+.claude
+.gemini
+.windsurf
+.cursor
+.continue
+
+# Separate projects
+remotion-video
+railway-market-server
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+
+# Public assets (binary files)
+public/assets
+public/icons
+public/screenshots
