@@ -35,6 +35,9 @@ test-results
 # Separate server (has its own Railway service)
 railway-market-server
 
+# Supabase Edge Functions (Deno - deployed separately via Supabase CLI)
+supabase/functions
+
 # Documentation source
 docs
 
