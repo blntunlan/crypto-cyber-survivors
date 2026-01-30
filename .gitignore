@@ -56,10 +56,20 @@ railway-market-server/.env.local
 railway-market-server/.env.*.local
 
 # AI Assistant files (contain project-specific context)
-
+.agent/
+.agents/
 .claude/
 .gemini/
+.windsurf/
+.cursor/
+.continue/
 conductor/
+
+# Remotion video project (separate project)
+remotion-video/
+
+# Discord setup utility (run separately)
+setup_discord.py
 
 # Session logs and debugging
 sessionlog/
