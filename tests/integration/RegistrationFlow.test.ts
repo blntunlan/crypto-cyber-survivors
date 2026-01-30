@@ -1,9 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UserSessionService } from '../../services/auth/UserSessionService';
-import { SecurityUtils } from '../../services/auth/SecurityUtils';
 
-// Mock SecurityUtils to simulate non-local environment
-vi.spyOn(SecurityUtils, 'isLocalEnvironment').mockReturnValue(false);
+// Mock SecurityUtils module to simulate non-local environment
+vi.mock('../../services/auth/SecurityUtils', () => ({
+  SecurityUtils: {
+    isLocalEnvironment: vi.fn(() => false),
+    generateSecurityHash: vi.fn(() => 'mock-hash'),
+    isValidHash: vi.fn(() => true),
+  },
+}));
 
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
