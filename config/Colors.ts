@@ -41,12 +41,20 @@ export const COLORS = {
   DUMP_ORANGE: '#FF3D00',
   JACKPOT_YELLOW: '#FFD600',
 
-  // Theme Specific
+  // Theme Specific - Cyberpunk
   PRIMARY_CYBER: '#c800ff',
   SECONDARY_CYBER: '#00ccff',
   ACCENT_CYBER: '#ffff00',
   BG_CYBER: '#050505',
-  BG_RETRO: '#000033',
+
+  // Theme Specific - Retro 16-bit (Casino Arcade Neon)
+  BG_RETRO: '#0a0a12', // Deep arcade black
+  PRIMARY_RETRO: '#00BFFF', // Electric blue
+  SECONDARY_RETRO: '#FFD600', // Jackpot yellow
+  ACCENT_RETRO: '#39FF14', // Neon green
+  SURFACE_RETRO: '#39FF14', // Neon green borders
+  DANGER_RETRO: '#B22222', // Casino red
+  WARNING_RETRO: '#FF6600', // Neon orange
 } as const;
 
 // Type export for color keys

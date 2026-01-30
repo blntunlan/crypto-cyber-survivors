@@ -88,6 +88,10 @@ export class MarketService {
   // Visibility change handler reference (stored for proper event cleanup)
   private visibilityHandler: (() => void) | null = null;
 
+  // Grace period timer for delayed pause (prevents rapid reconnects)
+  private pauseGraceTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly PAUSE_GRACE_PERIOD_MS = 30_000; // 30 seconds before pausing
+
   constructor(config: MarketServiceConfig) {
     this.pair = config.pair;
     this.config = CRYPTO_PAIRS[config.pair];
@@ -119,11 +123,31 @@ export class MarketService {
 
     this.visibilityHandler = () => {
       if (document.hidden) {
-        Logger.info('[Market] Tab hidden, pausing connections');
-        this.pauseConnections();
+        // Start grace period timer instead of immediately pausing
+        if (!this.pauseGraceTimer) {
+          Logger.info('[Market] Tab hidden, will pause in 30s if still hidden');
+          this.pauseGraceTimer = setTimeout(() => {
+            if (document.hidden) {
+              Logger.info('[Market] Grace period expired, pausing connections');
+              this.pauseConnections();
+            }
+            this.pauseGraceTimer = null;
+          }, MarketService.PAUSE_GRACE_PERIOD_MS);
+        }
       } else {
-        Logger.info('[Market] Tab visible, resuming connections');
-        this.resumeConnections();
+        // Cancel grace period timer if tab becomes visible
+        if (this.pauseGraceTimer) {
+          clearTimeout(this.pauseGraceTimer);
+          this.pauseGraceTimer = null;
+          Logger.info('[Market] Tab visible, cancelled pause timer');
+        } else if (
+          this.binanceState === 'disconnected' &&
+          this.coinbaseState === 'disconnected'
+        ) {
+          // Only resume if connections were actually paused
+          Logger.info('[Market] Tab visible, resuming connections');
+          this.resumeConnections();
+        }
       }
     };
 
@@ -478,6 +502,12 @@ export class MarketService {
    */
   public disconnect(): void {
     this.wasClosedIntentionally = true;
+
+    // Clear grace period timer
+    if (this.pauseGraceTimer) {
+      clearTimeout(this.pauseGraceTimer);
+      this.pauseGraceTimer = null;
+    }
 
     if (this.binanceReconnectTimer) {
       clearTimeout(this.binanceReconnectTimer);

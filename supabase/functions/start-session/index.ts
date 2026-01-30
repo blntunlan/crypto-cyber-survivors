@@ -8,9 +8,11 @@ const ALLOWED_ORIGINS = [
   'https://crypto-survivors.up.railway.app',
   'https://crypto-cyber-survivors-production.up.railway.app',
   'http://localhost:3000',
+  'http://localhost:5173', // Vite default dev port
   'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
   'http://192.168.1.8:3000',
-  'https://crypto-cyber-survivors.vercel.app', // Added common vercel deploy
+  'https://crypto-cyber-survivors.vercel.app',
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {

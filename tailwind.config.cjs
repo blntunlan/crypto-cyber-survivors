@@ -7,14 +7,19 @@ module.exports = {
         // CYBERPUNK THEME
         cyber: ['Orbitron', 'sans-serif'],
         // RETRO THEME
-        'retro-pixel': ['"Press Start 2P"', 'cursive'],
+        'retro-pixel': ['"Pixelify Sans"', 'cursive'],
+        'retro-display': ['"Bruno Ace"', 'sans-serif'],
+        'retro-title': ['VT323', 'monospace'],
+        'retro-body': ['"Chakra Petch"', 'sans-serif'],
+        'retro-numbers': ['"Space Mono"', 'monospace'],
+        'retro-mono': ['"IBM Plex Mono"', 'monospace'],
         'retro-jersey': ['"Jersey 20"', 'sans-serif'],
         'retro-text': ['VT323', 'monospace'],
         // UTILITIES
         heading: ['Orbitron', 'sans-serif'],
-        display: ['"Press Start 2P"', 'cursive'], // Keeping for backward compatibility
+        display: ['"Pixelify Sans"', 'cursive'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
-        stats: ['"Exo 2"', 'sans-serif'],
+        stats: ['"Space Mono"', 'monospace'],
         tech: ['"Share Tech Mono"', 'monospace'],
         feed: ['Oxanium', 'sans-serif'],
         debug: ['"JetBrains Mono"', 'monospace'],

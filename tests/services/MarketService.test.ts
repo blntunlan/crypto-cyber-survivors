@@ -499,6 +499,11 @@ describe('MarketService', () => {
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
 
+      // With grace period, connection should NOT be closed immediately
+      expect(mockSockets[0]!.close).not.toHaveBeenCalled();
+
+      // After 30 seconds grace period, it should close
+      await vi.advanceTimersByTimeAsync(30_000);
       expect(mockSockets[0]!.close).toHaveBeenCalled();
       expect(marketService.getStatus().binance).toBe('disconnected');
     });
@@ -548,7 +553,10 @@ describe('MarketService', () => {
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
       document.dispatchEvent(new Event('visibilitychange'));
 
-      // Clear mockSockets to start fresh for resonance
+      // Wait for grace period to actually pause
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      // Clear mockSockets to start fresh for resume
       mockSockets = [];
 
       // Visible
@@ -558,6 +566,26 @@ describe('MarketService', () => {
       // Should connect to both binance and coinbase on resume
       expect(mockSockets.length).toBeGreaterThanOrEqual(1);
       expect(mockSockets.some(ws => ws.url.includes('binance.com'))).toBe(true);
+    });
+
+    it('should cancel grace period when tab becomes visible quickly', async () => {
+      marketService.connect();
+      await vi.runAllTimersAsync();
+
+      // Hide tab
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // Wait only 5 seconds (less than 30s grace period)
+      await vi.advanceTimersByTimeAsync(5000);
+
+      // Show tab before grace period expires
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // Connection should NOT have been closed
+      expect(mockSockets[0]!.close).not.toHaveBeenCalled();
+      expect(marketService.getStatus().binance).toBe('connected');
     });
   });
 

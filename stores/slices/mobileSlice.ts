@@ -15,11 +15,11 @@ export interface MobileSlice extends MobileActions {
   mobile: MobileControlSettings;
 }
 
-export const createMobileSlice: StateCreator<MobileSlice> = (set) => ({
+export const createMobileSlice: StateCreator<MobileSlice> = set => ({
   mobile: DEFAULT_MOBILE_SETTINGS,
 
   setMobileSetting: (key, value) =>
-    set((state) => ({
+    set(state => ({
       mobile: { ...state.mobile, [key]: value },
     })),
 });

@@ -42,11 +42,11 @@ export interface ProgressSlice extends ProgressActions {
   progress: PlayerProgress;
 }
 
-export const createProgressSlice: StateCreator<ProgressSlice> = (set) => ({
+export const createProgressSlice: StateCreator<ProgressSlice> = set => ({
   progress: DEFAULT_PROGRESS,
 
   recordGameEnd: (score, level, survivalTime, kills) =>
-    set((state) => ({
+    set(state => ({
       progress: {
         ...state.progress,
         totalGamesPlayed: state.progress.totalGamesPlayed + 1,
@@ -59,8 +59,8 @@ export const createProgressSlice: StateCreator<ProgressSlice> = (set) => ({
       },
     })),
 
-  addCardCollected: (cardId) =>
-    set((state) => {
+  addCardCollected: cardId =>
+    set(state => {
       if (state.progress.cardsCollected.includes(cardId)) {
         return state;
       }
@@ -72,18 +72,15 @@ export const createProgressSlice: StateCreator<ProgressSlice> = (set) => ({
       };
     }),
 
-  unlockAchievement: (achievementId) =>
-    set((state) => {
+  unlockAchievement: achievementId =>
+    set(state => {
       if (state.progress.achievementsUnlocked.includes(achievementId)) {
         return state;
       }
       return {
         progress: {
           ...state.progress,
-          achievementsUnlocked: [
-            ...state.progress.achievementsUnlocked,
-            achievementId,
-          ],
+          achievementsUnlocked: [...state.progress.achievementsUnlocked, achievementId],
         },
       };
     }),

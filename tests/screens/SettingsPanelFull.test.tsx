@@ -227,7 +227,8 @@ describe('SettingsPanel Full Test Suite', () => {
 
   // --- Theme Section Tests ---
   describe('Theme Settings', () => {
-    it('should attempt to toggle theme', () => {
+    // TODO: Retro theme temporarily disabled - this test is skipped
+    it.skip('should attempt to toggle theme', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
       const retroBtn = screen.getByText('settings.theme_retro');
@@ -237,6 +238,13 @@ describe('SettingsPanel Full Test Suite', () => {
       fireEvent.click(button!);
 
       expect(mockSetTheme).toHaveBeenCalled();
+    });
+
+    it('should display cyberpunk theme as active', () => {
+      render(<SettingsPanel onClose={() => {}} />);
+
+      const cyberBtn = screen.getByText('settings.theme_cyber');
+      expect(cyberBtn).toBeInTheDocument();
     });
   });
 

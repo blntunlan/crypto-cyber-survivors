@@ -24,6 +24,7 @@ export default tseslint.config(
       '.agent/**',
       '.agents/**',
       '.windsurf/**',
+      '.github/skills/**', // Skill templates - not part of main project
       'supabase/functions/**', // Deno environment - different runtime
       'railway-market-server/**',
       'scripts/**',

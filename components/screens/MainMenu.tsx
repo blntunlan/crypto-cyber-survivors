@@ -190,7 +190,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      className={`absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-3 pb-[calc(0.75rem+var(--sab))] landscape:py-2 landscape:px-[calc(0.75rem+var(--sal))] sm:justify-center sm:p-6 sm:pb-6 allow-scroll ${isRetro ? 'bg-black/90' : 'bg-slate-950/60 backdrop-blur-sm'}`}
+      className={`absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-3 pb-[calc(0.75rem+var(--sab))] landscape:py-2 landscape:px-[calc(0.75rem+var(--sal))] sm:justify-center sm:p-6 sm:pb-6 allow-scroll ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/60 backdrop-blur-sm'}`}
     >
       <div className="max-w-xl w-full text-center space-y-4 py-2 sm:space-y-8 sm:py-0 landscape:space-y-2">
         <motion.header
@@ -200,14 +200,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1
-            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'} ${sizes.title} tracking-tight text-white leading-relaxed ${!isRetro ? 'sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]' : ''}`}
+            className={`${isRetro ? 'font-retro-pixel text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]' : 'font-cyber cyber-sway-text'} ${sizes.title} tracking-tight leading-relaxed ${!isRetro ? 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]' : ''}`}
           >
             {t('common.menu.title')}
             <br />
             <span
-              style={{ color: pairConfig.color }}
+              style={{ color: isRetro ? COLORS.ELECTRIC_BLUE : pairConfig.color }}
               className={
-                !isRetro ? 'sm:drop-shadow-[0_0_20px_var(--tw-shadow-color)]' : ''
+                isRetro
+                  ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]'
+                  : 'sm:drop-shadow-[0_0_20px_var(--tw-shadow-color)]'
               }
             >
               {t('common.menu.subtitle')}
@@ -216,7 +218,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           <div className="flex flex-col items-center gap-2">
             <p
-              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
+              className={`${isRetro ? 'font-retro-pixel text-[10px] text-[#39FF14]' : 'font-cyber text-slate-500'} font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
             >
               {t('common.menu.sentiment_engine')}
             </p>
@@ -239,17 +241,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <div className="space-y-2 mb-2 sm:mb-4">
             <div className="flex items-center gap-2 mb-1">
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
               />
               <span
                 className={`text-[9px] sm:text-[10px] uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-[0.15em] sm:tracking-[0.2em] font-bold`}
-                style={{ color: COLORS.WHALE }}
+                style={{ color: isRetro ? COLORS.NEON_GREEN : COLORS.WHALE }}
               >
                 {t('common.menu.game_mode')}
               </span>
 
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
               />
             </div>
             <div className="flex gap-2">
@@ -269,7 +271,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                     className={`flex-1 min-h-[48px] p-2.5 sm:p-3 transition-all duration-300 text-left relative group overflow-hidden touch-manipulation active:scale-[0.98]
                       ${
                         isRetro
-                          ? 'rounded-none border-2 border-zinc-700 hover:border-zinc-500 bg-zinc-900 font-primary'
+                          ? 'rounded-none border-2 border-[#39FF14]/40 hover:border-[#39FF14] bg-[#0a0a12]/80 font-primary'
                           : 'rounded-xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
                       } 
                       ${isActive ? 'scale-[1.02] z-10' : 'bg-white/5 opacity-40 hover:opacity-100 sm:hover:scale-[1.01]'}`}
@@ -343,17 +345,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <div className="space-y-2 mb-2 sm:mb-4">
             <div className="flex items-center gap-2 mb-1">
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#FFD600]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
               />
               <span
                 className={`text-[9px] sm:text-[10px] uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-[0.15em] sm:tracking-[0.2em] font-bold`}
-                style={{ color: COLORS.CASINO_GOLD }}
+                style={{ color: isRetro ? COLORS.JACKPOT_YELLOW : COLORS.CASINO_GOLD }}
               >
                 {t('common.menu.select_asset')}
               </span>
 
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-zinc-700' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#FFD600]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
               />
             </div>
             <CryptoSelector
@@ -380,7 +382,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <div className="space-y-2 mb-2 sm:mb-4">
             <div className="flex items-center justify-between px-1 mb-1">
               <span
-                className={`text-[9px] sm:text-[8px] uppercase font-display tracking-[0.15em] sm:tracking-[0.2em] font-bold text-slate-500 ${isRetro ? 'font-retro-pixel' : ''}`}
+                className={`text-[9px] sm:text-[8px] uppercase font-display tracking-[0.15em] sm:tracking-[0.2em] font-bold ${isRetro ? 'font-retro-pixel text-[#DCDCDC]' : 'text-slate-500'}`}
               >
                 {t('common.menu.leverage')}
               </span>
@@ -400,7 +402,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </div>
 
             <div
-              className={`flex gap-1.5 justify-center flex-wrap py-2 px-2 transition-all duration-500 ${isRetro ? 'rounded-none border-2 border-zinc-700 bg-zinc-900' : 'rounded-xl'}`}
+              className={`flex gap-1.5 justify-center flex-wrap py-2 px-2 transition-all duration-500 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-xl'}`}
               style={{
                 backgroundColor: !isRetro
                   ? `${getLeverageColorHex(selectedLeverage)}05`
@@ -460,26 +462,26 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <button
               onClick={() => void onStart(MarketPosition.LONG, selectedLeverage)}
               disabled={price === 0}
-              className={`flex flex-col items-center min-h-[72px] p-3 sm:p-5 landscape:p-2 landscape:min-h-[56px] bg-green-500/10 transition-all duration-200 group touch-manipulation active:scale-95 
-                ${isRetro ? 'rounded-none border-2 border-zinc-700 hover:border-green-400 font-retro-pixel' : 'rounded-xl hover:bg-green-500/20 sm:hover:shadow-[0_0_30px_rgba(34,197,94,0.25)] border border-transparent sm:hover:border-green-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'}
+              className={`flex flex-col items-center min-h-[72px] p-3 sm:p-5 landscape:p-2 landscape:min-h-[56px] transition-all duration-200 group touch-manipulation active:scale-95 
+                ${isRetro ? 'rounded-none border-2 border-[#39FF14]/60 hover:border-[#39FF14] bg-[#39FF14]/10 font-retro-pixel' : 'rounded-xl bg-green-500/10 hover:bg-green-500/20 sm:hover:shadow-[0_0_30px_rgba(34,197,94,0.25)] border border-transparent sm:hover:border-green-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'}
                 ${
                   price === 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                } ${activeRow === 3 && actionCol === 0 ? `scale-105 bg-green-500/20 ${isRetro ? 'ring-0 !border-green-300 border-[3px] shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'ring-1 ring-white shadow-[0_0_25px_rgba(34,197,94,0.5)]'}` : ''}`}
+                } ${activeRow === 3 && actionCol === 0 ? `scale-105 ${isRetro ? 'ring-0 !border-[#39FF14] border-[3px] shadow-[4px_4px_0px_rgba(57,255,20,0.4)] bg-[#39FF14]/20' : 'bg-green-500/20 ring-1 ring-white shadow-[0_0_25px_rgba(34,197,94,0.5)]'}` : ''}`}
             >
               <div className="mb-1 sm:mb-2 group-hover:scale-110 sm:group-hover:drop-shadow-[0_0_12px_rgba(74,222,128,0.6)] transition-all duration-200">
                 <IconTrendUp
                   className="w-8 h-8 sm:w-10 sm:h-10 landscape:w-7 landscape:h-7"
-                  color={isRetro ? '#ffd600' : '#4ade80'}
+                  color={isRetro ? COLORS.NEON_GREEN : '#4ade80'}
                 />
               </div>
               <span
-                className={`text-green-500 text-xs sm:text-sm uppercase tracking-tight sm:group-hover:text-green-400 transition-colors ${isRetro ? 'font-retro-pixel' : 'font-display'}`}
+                className={`text-xs sm:text-sm uppercase tracking-tight sm:group-hover:text-green-400 transition-colors ${isRetro ? 'font-retro-pixel text-[#39FF14]' : 'font-cyber text-green-500'}`}
               >
                 {t('common.long')}
               </span>
 
               <span
-                className={`text-[11px] sm:text-xs text-green-500/70 mt-0.5 font-medium sm:group-hover:text-green-400/80 transition-colors ${isRetro ? 'font-retro-pixel' : ''}`}
+                className={`text-[11px] sm:text-xs mt-0.5 font-medium transition-colors ${isRetro ? 'font-retro-pixel text-[#39FF14]/70 group-hover:text-[#39FF14]' : 'text-green-500/70 sm:group-hover:text-green-400/80'}`}
               >
                 {selectedLeverage}x
               </span>
@@ -487,26 +489,26 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <button
               onClick={() => void onStart(MarketPosition.SHORT, selectedLeverage)}
               disabled={price === 0}
-              className={`flex flex-col items-center min-h-[72px] p-3 sm:p-5 landscape:p-2 landscape:min-h-[56px] bg-red-500/10 transition-all duration-200 group touch-manipulation active:scale-95 
-                ${isRetro ? 'rounded-none border-2 border-zinc-700 hover:border-red-400 font-retro-pixel' : 'rounded-xl hover:bg-red-500/20 sm:hover:shadow-[0_0_30px_rgba(239,68,68,0.25)] border border-transparent sm:hover:border-red-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'}
+              className={`flex flex-col items-center min-h-[72px] p-3 sm:p-5 landscape:p-2 landscape:min-h-[56px] transition-all duration-200 group touch-manipulation active:scale-95 
+                ${isRetro ? 'rounded-none border-2 border-[#B22222]/60 hover:border-[#FF3D00] bg-[#B22222]/10 font-retro-pixel' : 'rounded-xl bg-red-500/10 hover:bg-red-500/20 sm:hover:shadow-[0_0_30px_rgba(239,68,68,0.25)] border border-transparent sm:hover:border-red-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'}
                 ${
                   price === 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''
-                } ${activeRow === 3 && actionCol === 1 ? `scale-105 bg-red-500/20 ${isRetro ? 'ring-0 !border-red-300 border-[3px] shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'ring-1 ring-white shadow-[0_0_25px_rgba(239,68,68,0.5)]'}` : ''}`}
+                } ${activeRow === 3 && actionCol === 1 ? `scale-105 ${isRetro ? 'ring-0 !border-[#FF3D00] border-[3px] shadow-[4px_4px_0px_rgba(178,34,34,0.4)] bg-[#B22222]/20' : 'bg-red-500/20 ring-1 ring-white shadow-[0_0_25px_rgba(239,68,68,0.5)]'}` : ''}`}
             >
               <div className="mb-1 sm:mb-2 group-hover:scale-110 sm:group-hover:drop-shadow-[0_0_12px_rgba(248,113,113,0.6)] transition-all duration-200">
                 <IconTrendDown
                   className="w-8 h-8 sm:w-10 sm:h-10 landscape:w-7 landscape:h-7"
-                  color={isRetro ? '#ffd600' : '#f87171'}
+                  color={isRetro ? COLORS.CASINO_RED : '#f87171'}
                 />
               </div>
               <span
-                className={`text-red-500 text-xs sm:text-sm uppercase tracking-tight sm:group-hover:text-red-400 transition-colors ${isRetro ? 'font-retro-pixel' : 'font-display'}`}
+                className={`text-xs sm:text-sm uppercase tracking-tight transition-colors ${isRetro ? 'font-retro-pixel text-[#FF3D00] group-hover:text-[#FF3D00]' : 'font-cyber text-red-500 sm:group-hover:text-red-400'}`}
               >
                 {t('common.short')}
               </span>
 
               <span
-                className={`text-[11px] sm:text-xs text-red-500/70 mt-0.5 font-medium sm:group-hover:text-red-400/80 transition-colors ${isRetro ? 'font-retro-pixel' : ''}`}
+                className={`text-[11px] sm:text-xs mt-0.5 font-medium transition-colors ${isRetro ? 'font-retro-pixel text-[#FF3D00]/70 group-hover:text-[#FF3D00]' : 'text-red-500/70 sm:group-hover:text-red-400/80'}`}
               >
                 {selectedLeverage}x
               </span>
@@ -520,14 +522,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               ${!isRetro ? 'sm:hover:shadow-[0_0_20px_rgba(148,163,184,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900' : ''}
               ${
                 activeRow === 4
-                  ? `scale-[1.02] !bg-slate-700 !text-white ${isRetro ? '!border-white' : 'ring-1 ring-white shadow-[0_0_15px_rgba(255,255,255,0.1)]'}`
+                  ? `scale-[1.02] ${isRetro ? '!bg-[#39FF14]/20 !text-[#39FF14] !border-[#39FF14]' : '!bg-slate-700 !text-white ring-1 ring-white shadow-[0_0_15px_rgba(255,255,255,0.1)]'}`
                   : ''
               }`}
           >
             {t('common.settings')}
           </ThemedButton>
           <div
-            className={`pt-1 sm:pt-2 text-slate-500 uppercase tracking-wider sm:tracking-widest ${isRetro ? 'font-retro-pixel text-[10px] landscape:text-[9px]' : 'font-display text-[9px] sm:text-[10px]'}`}
+            className={`pt-1 sm:pt-2 uppercase tracking-wider sm:tracking-widest ${isRetro ? 'font-retro-pixel text-[10px] landscape:text-[9px] text-[#7558A4]' : 'font-display text-[9px] sm:text-[10px] text-slate-500'}`}
           >
             {t('common.menu.controls_hint')}
           </div>

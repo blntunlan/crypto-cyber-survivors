@@ -20,7 +20,11 @@
  * EventBus.enableTracing();
  */
 
-import { type GameEvent, type EventDataMap, type EventCallback } from '../../types/events';
+import {
+  type GameEvent,
+  type EventDataMap,
+  type EventCallback,
+} from '../../types/events';
 import { Logger } from '../system/Logger';
 
 // Re-export types for convenience

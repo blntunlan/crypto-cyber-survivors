@@ -90,7 +90,8 @@ export type GameEvent =
   | 'gameMarketEvent'
   | 'portalOpened'
   | 'portalClosed'
-  | 'portalExtraction';
+  | 'portalExtraction'
+  | 'gameplayValidation';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -445,6 +446,43 @@ export interface IntegrityCheckFailedEvent {
 }
 
 // =============================================================================
+// GAMEPLAY VALIDATION EVENTS
+// =============================================================================
+
+/** Validation issue severity */
+export type ValidationSeverity = 'warning' | 'error' | 'critical';
+
+/** Validation category */
+export type ValidationCategory =
+  | 'player'
+  | 'market'
+  | 'enemy'
+  | 'gem'
+  | 'ui'
+  | 'state'
+  | 'performance';
+
+/** Individual validation issue */
+export interface ValidationIssue {
+  id: string;
+  category: ValidationCategory;
+  severity: ValidationSeverity;
+  message: string;
+  field?: string;
+  expected?: unknown;
+  actual?: unknown;
+  autoFixed: boolean;
+  timestamp: number;
+}
+
+/** Gameplay validation event data */
+export interface GameplayValidationEvent {
+  issues: ValidationIssue[];
+  fixedCount: number;
+  timestamp: number;
+}
+
+// =============================================================================
 // EVENT DATA MAP
 // =============================================================================
 
@@ -546,6 +584,8 @@ export interface EventDataMap {
   portalOpened: { x: number; y: number; type: 'TAKE_PROFIT' | 'STOP_LOSS' };
   portalClosed: EmptyEvent;
   portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
+  // Gameplay validation events
+  gameplayValidation: GameplayValidationEvent;
 }
 
 export interface NotificationEvent {

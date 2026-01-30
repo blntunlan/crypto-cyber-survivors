@@ -60,14 +60,8 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [themeName, setThemeName] = useState<ThemeName>(() => {
-    if (typeof window === 'undefined') return 'cyberpunk';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'cyberpunk' || saved === 'retro-16bit') {
-      return saved;
-    }
-    return 'cyberpunk';
-  });
+  // TODO: Retro theme temporarily disabled - always start with cyberpunk
+  const [themeName, setThemeName] = useState<ThemeName>('cyberpunk');
 
   const theme = themes[themeName];
   const isRetro = themeName === 'retro-16bit';
@@ -92,12 +86,16 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     return () => clearTimeout(timer);
   }, [themeName, theme]);
 
-  const setTheme = useCallback((name: ThemeName) => {
-    setThemeName(name);
+  // TODO: Retro theme temporarily disabled - always use cyberpunk
+  // Remove this block when retro theme is ready for production
+  const setTheme = useCallback((_name: ThemeName) => {
+    // Temporarily force cyberpunk theme
+    setThemeName('cyberpunk');
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeName(prev => (prev === 'cyberpunk' ? 'retro-16bit' : 'cyberpunk'));
+    // Temporarily disabled - retro theme not ready
+    // setThemeName(prev => (prev === 'cyberpunk' ? 'retro-16bit' : 'cyberpunk'));
   }, []);
 
   const value: ThemeContextType = {

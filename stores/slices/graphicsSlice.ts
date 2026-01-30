@@ -35,16 +35,16 @@ export interface GraphicsSlice extends GraphicsActions {
   graphics: GraphicsSettings;
 }
 
-export const createGraphicsSlice: StateCreator<GraphicsSlice> = (set) => ({
+export const createGraphicsSlice: StateCreator<GraphicsSlice> = set => ({
   graphics: DEFAULT_GRAPHICS,
 
   toggleParticles: () =>
-    set((state) => ({
+    set(state => ({
       graphics: { ...state.graphics, showParticles: !state.graphics.showParticles },
     })),
 
   toggleScreenShake: () =>
-    set((state) => ({
+    set(state => ({
       graphics: {
         ...state.graphics,
         showScreenShake: !state.graphics.showScreenShake,
@@ -52,7 +52,7 @@ export const createGraphicsSlice: StateCreator<GraphicsSlice> = (set) => ({
     })),
 
   toggleDamageNumbers: () =>
-    set((state) => ({
+    set(state => ({
       graphics: {
         ...state.graphics,
         showDamageNumbers: !state.graphics.showDamageNumbers,
@@ -60,12 +60,12 @@ export const createGraphicsSlice: StateCreator<GraphicsSlice> = (set) => ({
     })),
 
   toggleReducedMotion: () =>
-    set((state) => ({
+    set(state => ({
       graphics: { ...state.graphics, reducedMotion: !state.graphics.reducedMotion },
     })),
 
-  setHudScale: (scale) =>
-    set((state) => ({
+  setHudScale: scale =>
+    set(state => ({
       graphics: {
         ...state.graphics,
         hudScale: Math.max(0.5, Math.min(2.0, scale)),
@@ -73,12 +73,12 @@ export const createGraphicsSlice: StateCreator<GraphicsSlice> = (set) => ({
     })),
 
   toggleFPS: () =>
-    set((state) => ({
+    set(state => ({
       graphics: { ...state.graphics, showFPS: !state.graphics.showFPS },
     })),
 
   setGraphicsSetting: (key, value) =>
-    set((state) => ({
+    set(state => ({
       graphics: { ...state.graphics, [key]: value },
     })),
 });

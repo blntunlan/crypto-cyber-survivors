@@ -70,7 +70,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
         <div
           className={`w-full h-2 mb-3 relative ${
             isRetro
-              ? 'bg-zinc-800 rounded-none border-2 border-black'
+              ? 'bg-[#0a0a12] rounded-none border-2 border-[#39FF14]/40'
               : 'bg-black/20 rounded-sm border border-white/5 overflow-hidden'
           }`}
         >
@@ -94,8 +94,10 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
         <div className="flex items-baseline justify-center gap-2">
           <span
             id="combo-streak-count"
-            className={`${isRetro ? 'font-display' : 'font-cyber'} text-2xl font-black italic tracking-tighter text-white tabular-nums ${
-              isRetro ? 'not-italic' : 'drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]'
+            className={`${isRetro ? 'font-display' : 'font-cyber'} text-2xl font-black italic tracking-tighter tabular-nums ${
+              isRetro
+                ? 'not-italic text-[#FFD600]'
+                : 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]'
             }`}
             style={{
               textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : undefined,
@@ -105,7 +107,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
           </span>
           <span
             className={`font-cyber text-[8px] font-black uppercase tracking-widest ${
-              isRetro ? 'text-white' : 'text-cyan-400'
+              isRetro ? 'text-[#39FF14]' : 'text-cyan-400'
             }`}
             style={{
               textShadow: isRetro ? 'none' : '0 0 8px rgba(34, 211, 238, 0.5)',

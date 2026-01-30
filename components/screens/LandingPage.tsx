@@ -74,12 +74,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           className="flex flex-col hover:opacity-80 transition-all duration-300 pr-4 lg:pr-24 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
         >
           <span
-            className={`text-xl sm:text-2xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+            className={`text-xl sm:text-2xl font-black tracking-tight uppercase italic text-[#d6b85c] leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
           >
             CRYPTO
           </span>
           <span
-            className={`text-xl sm:text-2xl font-black tracking-tight uppercase font-display italic text-white -mt-1 leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+            className={`text-xl sm:text-2xl font-black tracking-tight uppercase italic text-white -mt-1 leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
           >
             SURVIVORS
           </span>
@@ -275,7 +275,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               SYSTEM STATUS: STANDBY_MODE (BETA_v1.0)
             </div>
 
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter mb-6 sm:mb-8 leading-[0.95] font-display italic">
+            <h1
+              className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter mb-6 sm:mb-8 leading-[0.95] italic ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+            >
               HIGH STAKES <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white">
                 VOLATILITY
@@ -376,7 +378,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
               Engineering Manifesto
             </h2>
-            <div className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black font-display uppercase italic text-white flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4">
+            <div
+              className={`text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase italic text-white flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4 ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+            >
               <span>Solo Indie</span>
               <span className="w-8 h-px bg-[#b22222] hidden md:block" />
               <span className="text-[#b22222]">Enterprise Standards</span>
@@ -425,7 +429,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="text-[10px] font-black text-[#b22222] mb-3 sm:mb-4 font-mono tracking-widest">
                   {card.tag}
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 font-display italic tracking-wide group-hover:text-[#d6b85c] transition-all duration-300">
+                <h3
+                  className={`text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 italic tracking-wide group-hover:text-[#d6b85c] transition-all duration-300 ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                >
                   {card.title}
                 </h3>
                 <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed font-mono min-h-[48px]">
@@ -443,7 +449,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Descriptive Content */}
             <div>
               <Terminal className="text-[#d6b85c] mb-6 sm:mb-8 w-10 h-10 sm:w-12 sm:h-12" />
-              <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-6 sm:mb-8 font-display italic uppercase">
+              <h3
+                className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-6 sm:mb-8 italic uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+              >
                 Ultra-Innovative Architecture
               </h3>
               <p className="text-slate-400 mb-6 sm:mb-8 font-mono text-sm leading-relaxed">
@@ -523,12 +531,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div>
             <div className="flex flex-col mb-4 sm:mb-6">
               <span
-                className={`text-lg sm:text-xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+                className={`text-lg sm:text-xl font-black tracking-tight uppercase italic text-[#d6b85c] leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
               >
                 CRYPTO
               </span>
               <span
-                className={`text-lg sm:text-xl font-black tracking-tight uppercase font-display italic text-white -mt-1 leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+                className={`text-lg sm:text-xl font-black tracking-tight uppercase italic text-white -mt-1 leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
               >
                 SURVIVORS
               </span>

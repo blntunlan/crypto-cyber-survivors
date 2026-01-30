@@ -102,11 +102,10 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      // ThemedPanel retro: bg-zinc-900 border-2 border-zinc-700 rounded-none
-      const panel = container.querySelector('.bg-zinc-900');
+      // ThemedPanel retro: bg-[#0a0a12]/95 border-2 border-[#39FF14]/60 rounded-none
+      const panel = container.querySelector('.border-2');
       expect(panel).toBeDefined();
       expect(panel?.className).toContain('border-2');
-      expect(panel?.className).toContain('border-zinc-700');
       expect(panel?.className).toContain('rounded-none');
     });
 

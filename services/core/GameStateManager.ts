@@ -151,57 +151,66 @@ class GameStateManagerClass {
     this.resetAll(leverage);
 
     // 1. Start server session to get secret and ID
-    const serverSession = await GameSessionService.startSession(
-      pair,
-      leverage,
-      position
-    );
+    try {
+      const serverSession = await GameSessionService.startSession(
+        pair,
+        leverage,
+        position
+      );
 
-    if (!serverSession) {
-      Logger.error('[GameStateManager] Failed to initialize server session');
+      if (!serverSession) {
+        Logger.error('[GameStateManager] Failed to initialize server session');
+        return false;
+      }
+
+      // 2. Start metrics tracking for this session
+      MetricsService.startSession(
+        position,
+        entryPrice,
+        leverage,
+        pair,
+        serverSession.sessionId,
+        serverSession.sessionSecret
+      );
+
+      // 3. Start Event Recording (Signed Replay)
+      EventRecorderService.startSession(
+        {
+          sessionId: serverSession.sessionId,
+          pair,
+          position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
+          leverage,
+          entryPrice,
+          playerNickname: UserSessionService.getNickname() ?? 'Anonymous',
+        },
+        serverSession.sessionSecret
+      );
+
+      // Emit game initialized event
+      EventBus.emit('gameInitialized', {
+        position,
+        entryPrice,
+        leverage,
+        pair,
+        sessionId: serverSession.sessionId,
+      });
+
+      // Emit gameStart event for DifficultyContext V2
+      EventBus.emit('gameStart', {
+        leverage,
+        position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
+        entryPrice,
+      });
+
+      return true;
+    } catch (error) {
+      // Re-throw PROFILE_NOT_FOUND so App.tsx can handle redirect
+      if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND') {
+        throw error;
+      }
+      Logger.error('[GameStateManager] Error initializing game', error);
       return false;
     }
-
-    // 2. Start metrics tracking for this session
-    MetricsService.startSession(
-      position,
-      entryPrice,
-      leverage,
-      pair,
-      serverSession.sessionId,
-      serverSession.sessionSecret
-    );
-
-    // 3. Start Event Recording (Signed Replay)
-    EventRecorderService.startSession(
-      {
-        sessionId: serverSession.sessionId,
-        pair,
-        position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
-        leverage,
-        entryPrice,
-        playerNickname: UserSessionService.getNickname() ?? 'Anonymous',
-      },
-      serverSession.sessionSecret
-    );
-
-    // Emit game initialized event
-    EventBus.emit('gameInitialized', {
-      position,
-      entryPrice,
-      leverage,
-      pair,
-      sessionId: serverSession.sessionId,
-    });
-
-    // Emit gameStart event for DifficultyContext V2
-    EventBus.emit('gameStart', {
-      leverage,
-      position: position === MarketPosition.LONG ? 'LONG' : 'SHORT',
-      entryPrice,
-    });
-
-    return true;
   }
 
   /**

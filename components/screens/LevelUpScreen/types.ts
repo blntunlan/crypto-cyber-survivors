@@ -1,9 +1,12 @@
 import { type Card } from '../../../services/cards/CardSystem';
 import { type ErrorInfo } from 'react';
+import { type GameMode } from '../../../types/gameMode';
 
 export interface LevelUpScreenProps {
   upgradeChoices: Card[];
   onSelect: (card: Card) => void;
+  /** Game mode for competitive time limits */
+  gameMode?: GameMode;
 }
 
 export interface SlotReelProps {

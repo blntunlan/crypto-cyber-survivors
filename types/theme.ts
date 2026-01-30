@@ -45,6 +45,10 @@ export interface ThemeFonts {
   mono: string;
   /** Damage numbers, combo counter */
   numbers: string;
+  /** Pixel-style text (optional) */
+  pixel?: string;
+  /** Headings, section titles (optional) */
+  title?: string;
 }
 
 export interface ThemeEffects {

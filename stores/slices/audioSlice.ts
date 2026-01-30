@@ -30,31 +30,31 @@ export interface AudioSlice extends AudioActions {
   audio: AudioSettings;
 }
 
-export const createAudioSlice: StateCreator<AudioSlice> = (set) => ({
+export const createAudioSlice: StateCreator<AudioSlice> = set => ({
   audio: DEFAULT_AUDIO,
 
-  setMasterVolume: (volume) =>
-    set((state) => ({
+  setMasterVolume: volume =>
+    set(state => ({
       audio: { ...state.audio, masterVolume: Math.max(0, Math.min(1, volume)) },
     })),
 
-  setSfxVolume: (volume) =>
-    set((state) => ({
+  setSfxVolume: volume =>
+    set(state => ({
       audio: { ...state.audio, sfxVolume: Math.max(0, Math.min(1, volume)) },
     })),
 
-  setMusicVolume: (volume) =>
-    set((state) => ({
+  setMusicVolume: volume =>
+    set(state => ({
       audio: { ...state.audio, musicVolume: Math.max(0, Math.min(1, volume)) },
     })),
 
   toggleMute: () =>
-    set((state) => ({
+    set(state => ({
       audio: { ...state.audio, isMuted: !state.audio.isMuted },
     })),
 
   setCategoryVolume: (category, volume) =>
-    set((state) => ({
+    set(state => ({
       audio: {
         ...state.audio,
         categoryVolumes: {

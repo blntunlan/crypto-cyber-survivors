@@ -26,7 +26,7 @@ export interface GameplaySlice extends GameplayActions {
   lastPlayedVersion: string;
 }
 
-export const createGameplaySlice: StateCreator<GameplaySlice> = (set) => ({
+export const createGameplaySlice: StateCreator<GameplaySlice> = set => ({
   gameplay: DEFAULT_GAMEPLAY,
   hasSeenTutorial: false,
   lastPlayedVersion: '0.0.0',
@@ -37,7 +37,7 @@ export const createGameplaySlice: StateCreator<GameplaySlice> = (set) => ({
     }),
 
   setGameplaySetting: (key, value) =>
-    set((state) => ({
+    set(state => ({
       gameplay: { ...state.gameplay, [key]: value },
     })),
 });

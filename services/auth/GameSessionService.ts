@@ -72,22 +72,28 @@ export class GameSessionService {
           errorMsg = error.message;
         }
 
-        // Handle specific 'Player not found' error - common during initial setup or dev
-        if (errorMsg.includes('Player not found')) {
+        // Handle specific 'Profile/Player not found' error - common during initial setup or dev
+        const isProfileNotFound =
+          errorMsg.includes('Profile not found') ||
+          errorMsg.includes('Player not found');
+
+        if (isProfileNotFound) {
           if (import.meta.env.DEV) {
             Logger.warn(
               `[GameSession] Player '${nickname}' not found on server yet. Using local fallback.`
             );
             return this.triggerDevFallback();
+          } else {
+            // Production: Clear invalid session and redirect to nickname screen
+            Logger.error(
+              `[GameSession] Profile '${nickname}' not found in production. Clearing session.`
+            );
+            UserSessionService.clearUser();
+            throw new Error('PROFILE_NOT_FOUND');
           }
         }
 
         Logger.error(`[GameSession] start-session failed: ${errorMsg}`, error);
-
-        // Handle specific 'Player not found' error - common during initial setup or dev
-        if (errorMsg.includes('Player not found') && import.meta.env.DEV) {
-          return this.triggerDevFallback();
-        }
 
         throw new Error(errorMsg);
       }

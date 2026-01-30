@@ -19,10 +19,7 @@ export const PredictiveTargeting = {
    * Predicts where a target will be when a projectile arrives.
    * Optimized with quadratic formula for high-speed intercepts.
    */
-  calculateIntercept(
-    origin: Point,
-    target: TargetData
-  ): Point {
+  calculateIntercept(origin: Point, target: TargetData): Point {
     const distSafe = target.dist || 1;
     const bulletSpeed = COMBAT_CONFIG.BULLET_SPEED;
 
@@ -87,5 +84,5 @@ export const PredictiveTargeting = {
       x: target.x + enemyVx * interceptTime,
       y: target.y + enemyVy * interceptTime,
     };
-  }
+  },
 };

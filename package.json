@@ -28,6 +28,8 @@
     "railway:market:deploy": "cd railway-market-server ; railway deploy",
     "supabase:gen": "npx supabase gen types typescript --project-id dnhfsmvwqjxoextwbebj > types/supabase.ts",
     "supabase:push": "npx supabase db push",
+    "supabase:functions:deploy": "npx supabase functions deploy --project-ref dnhfsmvwqjxoextwbebj",
+    "supabase:functions:serve": "npx supabase functions serve --no-verify-jwt",
     "security:check": "grep -rE 'api_key|secret|password|token|private_key' . --exclude-dir={node_modules,dist,.git} --exclude={package-lock.json,.env.example}",
     "deploy": "git push origin main",
     "train:ai": "tsx simulation/evolution/Trainer.ts --watch"

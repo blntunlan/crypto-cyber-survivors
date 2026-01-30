@@ -150,7 +150,12 @@ export class MetricsStorage {
       });
 
       // Session data to save (mapped to 'sessions' table schema)
-      const sessionData = {
+      // Note: Only include 'id' if we have a valid server UUID
+      // Local session IDs are NOT UUIDs and will cause a 400 error
+      const hasValidServerUuid =
+        session.serverSessionId && !session.serverSessionId.startsWith('local-');
+
+      const sessionData: Record<string, unknown> = {
         profile_id: isAnonymous ? null : profileId,
         crypto_pair: session.pair,
         position_chosen: session.bitcoin.positionChosen,
@@ -160,21 +165,19 @@ export class MetricsStorage {
         survival_seconds: Math.floor(session.player.survivalTimeMs / 1000),
         kills: session.player.totalKills,
         created_at: new Date(session.sessionTimestamp).toISOString(),
-        id:
-          session.serverSessionId && !session.serverSessionId.startsWith('local-')
-            ? session.serverSessionId
-            : session.sessionId,
       };
+
+      // Only set explicit ID if we have a valid server-generated UUID
+      if (hasValidServerUuid) {
+        sessionData.id = session.serverSessionId;
+      }
 
       let gameSession: { id: string } | null = null;
       let sessionError: Error | null = null;
 
       // If we have a VALID serverSessionId (UUID format), UPDATE the existing record
       // local- prefixed IDs are not UUIDs and will cause a 400 Bad Request
-      const isServerUuid =
-        session.serverSessionId && !session.serverSessionId.startsWith('local-');
-
-      if (isServerUuid) {
+      if (hasValidServerUuid) {
         Logger.debug('[MetricsStorage] Updating existing server session', {
           serverSessionId: session.serverSessionId as string,
         });

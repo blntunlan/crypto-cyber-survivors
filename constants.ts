@@ -19,6 +19,18 @@ export const METRICS = {
 };
 
 /**
+ * Competitive Mode Anti-Abuse Limits
+ */
+export const COMPETITIVE_LIMITS = {
+  /** Max seconds for pause/alt-tab (already in usePauseBudget) */
+  MAX_PAUSE_SECONDS: 10,
+  /** Max seconds to stay on level-up screen before auto-select */
+  MAX_LEVEL_UP_SECONDS: 10,
+  /** Grace period before tab-hidden triggers pause budget drain (ms) */
+  TAB_HIDDEN_GRACE_MS: 1000,
+} as const;
+
+/**
  * Object Pool Configuration
  */
 export const POOL = {

@@ -1,5 +1,41 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /sw.js
+
+# Block WordPress/CMS attack paths
+Disallow: /wp-admin/
+Disallow: /wp-content/
+Disallow: /wp-includes/
+Disallow: /wordpress/
+Disallow: /wp-login.php
+Disallow: /xmlrpc.php
+Disallow: /phpmyadmin/
+Disallow: /administrator/
+
+# Crawl-delay for polite bots
+Crawl-delay: 1
 
 # Sitemaps
 Sitemap: https://crypto-survivors.com/sitemap.xml
+
+# Google specific
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+# Bing specific  
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Social Media Bots (for link previews)
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /

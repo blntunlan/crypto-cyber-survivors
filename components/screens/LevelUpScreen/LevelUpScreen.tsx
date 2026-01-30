@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { COLORS } from '../../../constants';
+import { COLORS, COMPETITIVE_LIMITS } from '../../../constants';
 import { audio } from '../../../services/audio';
 import { type LevelUpScreenProps } from './types';
 import { containerVariants, titleVariants } from './constants';
@@ -16,10 +16,13 @@ import {
   IconBolt,
 } from '../../../components/icons/CardIcons';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { GameMode } from '../../../types/gameMode';
+import { Logger } from '../../../services/system/Logger';
 
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   upgradeChoices,
   onSelect,
+  gameMode,
 }) => {
   const sizes = useThemeSize();
   const { t } = useLanguage();
@@ -32,6 +35,12 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selectedIndexRef = useRef(0);
   const hasSelectedRef = useRef(false);
+
+  // Competitive mode auto-select timer
+  const [timeRemaining, setTimeRemaining] = useState<number>(
+    COMPETITIVE_LIMITS.MAX_LEVEL_UP_SECONDS
+  );
+  const isCompetitive = gameMode === GameMode.COMPETITIVE;
 
   // Sync ref with state for use in stable event listener
   useEffect(() => {
@@ -47,6 +56,32 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   const handleReelStopped = useCallback(() => {
     setStoppedCount(prev => prev + 1);
   }, []);
+
+  // Competitive mode: Auto-select timer (10 seconds max)
+  useEffect(() => {
+    if (!isCompetitive || !allStopped || hasSelectedRef.current) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Time's up - auto-select first card
+          if (!hasSelectedRef.current && upgradeChoices.length > 0) {
+            hasSelectedRef.current = true;
+            Logger.info('[LevelUp] Competitive auto-select triggered (timeout)');
+            const autoCard =
+              upgradeChoices[selectedIndexRef.current] ?? upgradeChoices[0];
+            if (autoCard) {
+              onSelect(autoCard);
+            }
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isCompetitive, allStopped, upgradeChoices, onSelect]);
 
   // Play win fanfare when all reels stopped
   useEffect(() => {
@@ -111,10 +146,13 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   // Get status text
   const renderStatusText = () => {
     if (allStopped) {
+      // Show timer in competitive mode
+      const timerText = isCompetitive ? ` (${timeRemaining}s)` : '';
       return (
         <span className="flex items-center justify-center gap-2">
           <IconSparkles className="w-3.5 h-3.5" color={COLORS.NEON_GREEN} />
           {t('levelup.choose_upgrade')}
+          {timerText}
         </span>
       );
     }

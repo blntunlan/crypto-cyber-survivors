@@ -1,0 +1,20 @@
+# Block WordPress attack attempts
+/wp-admin/*  /404.html  404
+/wp-content/*  /404.html  404
+/wp-includes/*  /404.html  404
+/wp-login.php  /404.html  404
+/wp-config.php  /404.html  404
+/wordpress/*  /404.html  404
+/xmlrpc.php  /404.html  404
+/.env  /404.html  404
+/.git/*  /404.html  404
+
+# Block common vulnerability scanners
+/phpmyadmin/*  /404.html  404
+/phpMyAdmin/*  /404.html  404
+/admin.php  /404.html  404
+/administrator/*  /404.html  404
+/.well-known/security.txt  /404.html  404
+
+# SPA fallback - must be last
+/*  /index.html  200

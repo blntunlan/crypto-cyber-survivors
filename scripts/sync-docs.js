@@ -20,11 +20,8 @@ function copyRecursiveSync(src, dest) {
     if (!fs.existsSync(dest)) {
       fs.mkdirSync(dest, { recursive: true });
     }
-    fs.readdirSync(src).forEach((childItemName) => {
-      copyRecursiveSync(
-        path.join(src, childItemName),
-        path.join(dest, childItemName)
-      );
+    fs.readdirSync(src).forEach(childItemName => {
+      copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
     });
   } else {
     // Check if destination exists and is same
@@ -41,7 +38,7 @@ function copyRecursiveSync(src, dest) {
 console.log('--- STARTING DOC SYNC ---');
 try {
   copyRecursiveSync(SRC_DIR, DEST_DIR);
-  
+
   // Also sync root README.md
   const readmeSrc = path.resolve(__dirname, '../README.md');
   const readmeDest = path.resolve(__dirname, '../public/README.md');

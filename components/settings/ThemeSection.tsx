@@ -3,20 +3,21 @@
  *
  * Allows users to switch between Cyberpunk and 16-bit Retro themes.
  * Supports keyboard navigation with separate focus for each theme.
+ *
+ * TODO: Retro theme temporarily disabled - will be enabled in future release
  */
 
 import { memo } from 'react';
 import { useTheme } from '../../contexts/useTheme';
-import { IconCyberpunk, IconRetro, IconSparkles } from '../icons/CardIcons';
+import { IconCyberpunk, IconSparkles } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export const ThemeSection = memo(
   ({ focusedItem = null }: { focusedItem?: 'cyberpunk' | 'retro-16bit' | null }) => {
-    const { themeName, setTheme } = useTheme();
+    const { themeName } = useTheme();
     const { t } = useLanguage();
 
     const isCyberpunk = themeName === 'cyberpunk';
-    const isRetro = themeName === 'retro-16bit';
 
     return (
       <section className="space-y-3 md:space-y-4">
@@ -26,13 +27,13 @@ export const ThemeSection = memo(
         </h3>
 
         <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-2 transition-all">
-          {/* Cyberpunk Button */}
+          {/* Cyberpunk Button - Currently the only active theme */}
           <button
-            onClick={() => setTheme('cyberpunk')}
-            className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between ${
+            disabled
+            className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between cursor-default ${
               isCyberpunk
                 ? 'bg-cyan-600/20 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'
+                : 'bg-white/5 text-slate-500 border-white/5'
             } ${focusedItem === 'cyberpunk' ? 'ring-2 ring-white scale-[1.02] bg-white/10' : ''}`}
           >
             <div className="flex items-center gap-3">
@@ -47,7 +48,7 @@ export const ThemeSection = memo(
             {isCyberpunk && <span className="text-[9px] animate-pulse">ACTIVE</span>}
           </button>
 
-          {/* Retro Button */}
+          {/* Retro Button - Temporarily disabled
           <button
             onClick={() => setTheme('retro-16bit')}
             className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between ${
@@ -64,6 +65,12 @@ export const ThemeSection = memo(
             </div>
             {isRetro && <span className="text-[9px] animate-pulse">ACTIVE</span>}
           </button>
+          */}
+
+          {/* Coming Soon indicator */}
+          <div className="text-[9px] text-slate-600 text-center pt-1">
+            More themes coming soon...
+          </div>
         </div>
       </section>
     );

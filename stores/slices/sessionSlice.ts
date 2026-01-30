@@ -22,7 +22,7 @@ export interface SessionSlice extends SessionActions {
   session: SessionInfo;
 }
 
-export const createSessionSlice: StateCreator<SessionSlice> = (set) => ({
+export const createSessionSlice: StateCreator<SessionSlice> = set => ({
   session: createNewSession(),
 
   startNewSession: () =>
@@ -31,7 +31,7 @@ export const createSessionSlice: StateCreator<SessionSlice> = (set) => ({
     }),
 
   incrementGamesPlayed: () =>
-    set((state) => ({
+    set(state => ({
       session: {
         ...state.session,
         gamesThisSession: state.session.gamesThisSession + 1,

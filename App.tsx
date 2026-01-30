@@ -164,23 +164,40 @@ const App: React.FC = () => {
   }, []);
   const pauseBudget = usePauseBudget(gameMode, gameStatus, handleAutoResume);
 
+  // Track tab hidden state for competitive mode abuse prevention
+  const tabHiddenSinceRef = useRef<number | null>(null);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && gameStatus === GameStatus.PLAYING) {
-        const isLimited = gameMode === GameMode.COMPETITIVE;
-        if (!isLimited) {
-          GameStateMachine.transition(GameStatus.PAUSED);
-        } else {
-          Logger.info(
-            '[App] Competitive mode active - skipping auto-pause while hidden'
-          );
+      const isCompetitive = gameMode === GameMode.COMPETITIVE;
+
+      if (document.hidden) {
+        // Tab became hidden
+        if (gameStatus === GameStatus.PLAYING) {
+          if (isCompetitive) {
+            // Competitive: Auto-pause to consume pause budget (anti-abuse)
+            tabHiddenSinceRef.current = Date.now();
+            Logger.info(
+              '[App] Competitive mode: Tab hidden, auto-pausing to use pause budget'
+            );
+            GameStateMachine.transition(GameStatus.PAUSED);
+          } else {
+            // Casual: Normal pause
+            GameStateMachine.transition(GameStatus.PAUSED);
+          }
+        } else if (gameStatus === GameStatus.LEVEL_UP && isCompetitive) {
+          // Competitive: Level-up screen counts against timer while hidden
+          Logger.info('[App] Competitive mode: Tab hidden during level-up');
         }
+      } else {
+        // Tab became visible
+        tabHiddenSinceRef.current = null;
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () =>
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [gameStatus, gameMode, pauseBudget.remainingSeconds]);
+  }, [gameStatus, gameMode]);
 
   // ========================================
   // Local State
@@ -331,12 +348,28 @@ const App: React.FC = () => {
       CoinService.resetSession();
       ComboSystem.startGame();
 
-      const success = await GameStateManager.initializeNewGame(
-        choice,
-        marketData.price,
-        selectedLeverage,
-        selectedPair
-      );
+      let success: boolean;
+      try {
+        success = await GameStateManager.initializeNewGame(
+          choice,
+          marketData.price,
+          selectedLeverage,
+          selectedPair
+        );
+      } catch (error) {
+        // Profile not found in production - redirect to nickname screen
+        if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND') {
+          EventBus.emit('gameNotification', {
+            title: 'Session Expired',
+            message: 'Please enter your nickname again.',
+            type: 'warning',
+          });
+          // Force re-render to show nickname screen (user cleared in GameSessionService)
+          window.location.reload();
+          return;
+        }
+        success = false;
+      }
 
       if (!success) {
         EventBus.emit('gameNotification', {
@@ -789,6 +822,7 @@ const App: React.FC = () => {
                         <LevelUpScreen
                           upgradeChoices={upgradeChoices}
                           onSelect={selectUpgrade}
+                          gameMode={gameMode}
                         />
                       </React.Suspense>
                     )}

@@ -47,7 +47,7 @@ describe('SpawnSystem', () => {
       isInitialized: true,
     } as unknown as MarketIndicatorState);
     // Access private constructor for testing
-     
+
     spawnSystem = new (SpawnSystem as any)();
     spawnSystem.reset();
   });

@@ -475,6 +475,9 @@ export class CollisionSystem implements ICollisionSystem {
     enemy.damageBuffer = (enemy.damageBuffer ?? 0) + bullet.damage;
     enemy.damageBufferTimer = 1.5; // Reduced from 20 to 1.5 for faster feedback (~400ms)
 
+    // Trigger hit flash immediately on each hit for visual feedback
+    enemy.hitFlashTimer = 8; // ~130ms flash per hit (shorter than flush's 20 frames)
+
     // Preserve the highest crit tier for the coloring
     if (bullet.isSuperCrit) {
       enemy.damageBufferIsSuperCrit = true;
