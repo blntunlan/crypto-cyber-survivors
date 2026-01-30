@@ -14,6 +14,7 @@ vi.mock('../../services/core/EventBus', () => ({
 
 vi.mock('../../services/system/Logger', () => ({
   Logger: {
+    debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),

@@ -1,5 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UserSessionService } from '../../services/auth/UserSessionService';
+import { SecurityUtils } from '../../services/auth/SecurityUtils';
+
+// Mock SecurityUtils to simulate non-local environment
+vi.spyOn(SecurityUtils, 'isLocalEnvironment').mockReturnValue(false);
 
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
