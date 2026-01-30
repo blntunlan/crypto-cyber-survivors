@@ -25,7 +25,7 @@
     "prepare": "husky",
     "railway:link": "railway link",
     "railway:deploy": "railway deploy",
-    "railway:market:deploy": "cd railway-market-server && railway deploy",
+    "railway:market:deploy": "cd railway-market-server ; railway deploy",
     "supabase:gen": "npx supabase gen types typescript --project-id dnhfsmvwqjxoextwbebj > types/supabase.ts",
     "supabase:push": "npx supabase db push",
     "security:check": "grep -rE 'api_key|secret|password|token|private_key' . --exclude-dir={node_modules,dist,.git} --exclude={package-lock.json,.env.example}",

@@ -70,7 +70,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-slate-950 px-6 font-mono overflow-hidden"
+      className="fixed inset-0 flex items-start sm:items-center justify-center bg-slate-950 px-4 sm:px-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-mono overflow-y-auto"
       style={{ zIndex: 3300 }}
     >
       {/* Background Effects - Cyan/Neon Theme */}
@@ -111,36 +111,40 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-md relative"
+        className="w-full max-w-md relative my-auto py-6 sm:py-0"
       >
-        {/* Decorative corner elements - Cyan theme */}
+        {/* Decorative corner elements - Cyan theme, enhanced for desktop */}
         {!isRetro && (
           <>
-            <div className="absolute -top-3 -left-3 w-10 h-10 border-t-2 border-l-2 border-cyan-500/60 rounded-tl-lg" />
-            <div className="absolute -top-3 -right-3 w-10 h-10 border-t-2 border-r-2 border-cyan-500/60 rounded-tr-lg" />
-            <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-2 border-l-2 border-cyan-500/60 rounded-bl-lg" />
-            <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-2 border-r-2 border-cyan-500/60 rounded-br-lg" />
+            <div className="absolute -top-3 -left-3 w-10 h-10 sm:w-12 sm:h-12 border-t-2 border-l-2 border-cyan-500/60 sm:border-cyan-400/70 rounded-tl-lg sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="absolute -top-3 -right-3 w-10 h-10 sm:w-12 sm:h-12 border-t-2 border-r-2 border-cyan-500/60 sm:border-cyan-400/70 rounded-tr-lg sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="absolute -bottom-3 -left-3 w-10 h-10 sm:w-12 sm:h-12 border-b-2 border-l-2 border-cyan-500/60 sm:border-cyan-400/70 rounded-bl-lg sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="absolute -bottom-3 -right-3 w-10 h-10 sm:w-12 sm:h-12 border-b-2 border-r-2 border-cyan-500/60 sm:border-cyan-400/70 rounded-br-lg sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
           </>
         )}
 
-        <ThemedPanel className="p-8 relative overflow-hidden transition-all">
-          {/* Animated top border */}
+        <ThemedPanel className="p-5 sm:p-8 relative overflow-hidden transition-all">
+          {/* Animated top border - pulsing on desktop */}
           {!isRetro && (
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+            <motion.div
+              className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
           )}
 
-          {/* Glow effect behind */}
+          {/* Glow effect behind - enhanced on desktop */}
           {!isRetro && (
-            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 rounded-xl blur-xl opacity-50" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 rounded-xl blur-xl opacity-50 sm:opacity-60" />
           )}
 
-          <header className="text-center space-y-3 mb-8 relative">
+          <header className="text-center space-y-2 sm:space-y-3 mb-6 sm:mb-8 relative">
             {/* Icon with glow */}
             <motion.div
-              className={`inline-flex p-4 ${isRetro ? 'border-2 border-cyan-500 bg-zinc-800 rounded-none' : 'rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/10 border border-cyan-500/30 relative'}`}
+              className={`inline-flex p-4 ${isRetro ? 'border-2 border-cyan-400 bg-zinc-900 rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/10 border border-cyan-500/30 relative'}`}
               animate={{
                 boxShadow: isRetro
-                  ? 'none'
+                  ? undefined
                   : [
                       '0 0 20px rgba(34,211,238,0.2)',
                       '0 0 40px rgba(34,211,238,0.3)',
@@ -154,11 +158,15 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
 
             <ThemedText
               variant="h1"
-              className={`text-2xl font-black tracking-tight text-white uppercase ${isRetro ? '' : 'italic'}`}
+              className={`text-2xl font-black tracking-tight uppercase ${isRetro ? 'text-white' : 'text-white italic'}`}
             >
               {t('common.nickname_screen.title_identify')}{' '}
               <span
-                className={`text-transparent bg-clip-text ${isRetro ? 'bg-cyan-500' : 'bg-gradient-to-r from-[var(--color-primary)] to-white'}`}
+                className={
+                  isRetro
+                    ? 'text-cyan-400'
+                    : 'text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] to-white'
+                }
               >
                 {t('common.nickname_screen.title_survivor')}
               </span>
@@ -176,7 +184,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
             onSubmit={event => {
               void handleSubmit(event);
             }}
-            className="space-y-6 relative"
+            className="space-y-4 sm:space-y-6 relative"
           >
             <div className="space-y-3">
               <div className="flex justify-between items-center px-1">
@@ -197,27 +205,34 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               </div>
 
               <div className="relative group">
+                {/* Desktop cyberpunk focus glow */}
+                {!isRetro && (
+                  <div className="hidden sm:block absolute -inset-0.5 bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 rounded-lg opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm pointer-events-none" />
+                )}
                 <ThemedInput
                   id="nickname-input"
                   aria-label="Enter your nickname"
                   autoFocus
                   type="text"
+                  inputMode="text"
+                  enterKeyHint="go"
                   value={nickname}
                   onChange={e => {
                     setNickname(e.target.value);
                     if (error) setError(null);
                     audio.playKeystroke();
                   }}
-                  className={`w-full px-5 py-4 transition-all tracking-wide placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-cyan-500/30 ${
+                  className={`w-full px-4 sm:px-5 py-3 sm:py-4 min-h-[48px] text-base transition-all duration-200 tracking-wide placeholder:font-normal focus:outline-none focus:ring-2 ${
                     error
                       ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                      : `text-white focus:border-cyan-500/50 group-hover:border-slate-600`
+                      : `text-white focus:ring-cyan-500/40 focus:border-cyan-500/60 ${!isRetro ? 'sm:hover:border-cyan-500/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
                   } ${!isRetro ? 'font-semibold' : ''}`}
                   placeholder={t('common.nickname_screen.placeholder')}
                   maxLength={16}
                   disabled={isSubmitting}
                   autoComplete="off"
                   autoCapitalize="off"
+                  autoCorrect="off"
                   spellCheck={false}
                 />
 
@@ -230,7 +245,9 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                     scale: nickname.length >= 3 ? 1 : 0.5,
                   }}
                 >
-                  <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+                  <Zap
+                    className={`w-5 h-5 text-yellow-400 fill-yellow-400 ${isRetro ? '' : 'drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`}
+                  />
                 </motion.div>
               </div>
 
@@ -252,21 +269,27 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               type="submit"
               intent="primary"
               disabled={isSubmitting || nickname.length < 3}
-              className={`w-full relative py-4 flex items-center justify-center gap-2 font-bold text-sm tracking-wide overflow-hidden ${
+              className={`w-full relative py-3 sm:py-4 min-h-[48px] flex items-center justify-center gap-2 font-bold text-sm sm:text-base tracking-wide overflow-hidden touch-manipulation group transition-all duration-200 ${
                 nickname.length < 3
                   ? 'bg-slate-800/50 !text-slate-500 cursor-not-allowed border-slate-700/50'
-                  : ''
+                  : !isRetro
+                    ? 'sm:hover:scale-[1.02] sm:hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] sm:active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900'
+                    : ''
               }`}
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div
+                    className={`w-4 h-4 border-2 border-white/30 border-t-white animate-spin ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+                  />
                   <span>{t('common.nickname_screen.connecting')}</span>
                 </div>
               ) : (
                 <>
                   <span>{t('common.nickname_screen.enter_arena')}</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight
+                    className={`w-4 h-4 transition-transform duration-200 ${!isRetro ? 'group-hover:translate-x-1' : ''}`}
+                  />
                 </>
               )}
 
@@ -287,7 +310,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
             </ThemedButton>
           </form>
 
-          <footer className="mt-8 pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium">
+          <footer className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-700/30 flex justify-between items-center text-[9px] text-slate-500 font-medium">
             <div className="flex items-center gap-2">
               <motion.div
                 className={`w-2 h-2 bg-green-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
@@ -305,31 +328,30 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
           </footer>
         </ThemedPanel>
 
-        {/* Info hints */}
-        <div className="mt-6 flex gap-3 justify-center">
-          {/* These small pills can be ThemedPanels or just separate styled divs, let's keep them somewhat consistent but they are tiny */}
+        {/* Info hints - enhanced hover on desktop */}
+        <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3 justify-center px-2">
           <div
-            className={`flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 ${isRetro ? 'rounded-none' : 'rounded-full backdrop-blur-sm'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 transition-all duration-200 ${isRetro ? 'bg-zinc-900 border-2 border-zinc-700 rounded-none shadow-[2px_2px_0px_rgba(0,0,0,0.8)]' : 'bg-slate-900/60 border border-slate-700/30 rounded-full backdrop-blur-sm sm:hover:border-cyan-500/40 sm:hover:bg-slate-900/80'}`}
           >
             <div
-              className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+              className={`w-1.5 h-1.5 bg-cyan-400 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
             />
             <ThemedText
               variant="body"
-              className="text-[9px] text-slate-400 font-medium"
+              className={`text-[9px] font-medium ${isRetro ? 'text-zinc-300' : 'text-slate-400'}`}
             >
               {t('common.nickname_screen.char_limit')}
             </ThemedText>
           </div>
           <div
-            className={`flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-700/30 ${isRetro ? 'rounded-none' : 'rounded-full backdrop-blur-sm'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 transition-all duration-200 ${isRetro ? 'bg-zinc-900 border-2 border-zinc-700 rounded-none shadow-[2px_2px_0px_rgba(0,0,0,0.8)]' : 'bg-slate-900/60 border border-slate-700/30 rounded-full backdrop-blur-sm sm:hover:border-cyan-500/40 sm:hover:bg-slate-900/80'}`}
           >
             <div
-              className={`w-1.5 h-1.5 bg-cyan-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+              className={`w-1.5 h-1.5 bg-cyan-400 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
             />
             <ThemedText
               variant="body"
-              className="text-[9px] text-slate-400 font-medium"
+              className={`text-[9px] font-medium ${isRetro ? 'text-zinc-300' : 'text-slate-400'}`}
             >
               {t('common.nickname_screen.chars_allowed')}
             </ThemedText>

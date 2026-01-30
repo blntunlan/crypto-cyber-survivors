@@ -85,10 +85,6 @@ export class DeviceProfiler {
     const profile = this.getProfile();
 
     try {
-      // Skip if Supabase is not configured
-      if (!supabase) {
-        return;
-      }
       await supabase.from('device_profiles').upsert(
         {
           fingerprint: profile.fingerprint,

@@ -236,7 +236,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         let errorMsg = 'Unknown error';
         let detail = '';
 
-        const anyError = error as any;
+        const anyError = error as Record<string, unknown>;
 
         if (error instanceof Error) {
           errorMsg = error.message;

@@ -45,10 +45,13 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       bg-white/5 backdrop-blur-xl
       border border-white/10
       rounded-2xl
-      transition-all duration-300
-      hover:bg-white/10 hover:border-white/20
+      transition-all duration-300 ease-out
+      hover:bg-white/10 hover:border-white/30
       hover:shadow-[var(--hub-shadow-hover)]
       active:scale-[0.98]
+      lg:hover:scale-[1.03] lg:hover:bg-white/15
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+      focus-visible:ring-[var(--hub-accent)]
     `,
     selected: `
       bg-white/10
@@ -56,28 +59,28 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       shadow-[var(--hub-shadow-selected)]
       scale-[1.02]
     `,
-    disabled: 'opacity-50 cursor-not-allowed grayscale',
+    disabled:
+      'opacity-50 cursor-not-allowed grayscale hover:scale-100 lg:hover:scale-100',
   };
 
-  // Retro 16-bit styles
+  // Retro 16-bit styles - sharp pixel-perfect edges, no blur
   const retroStyles = {
     base: `
       relative
       bg-zinc-900
       border-2 border-zinc-700
       rounded-none
-      transition-all duration-150
-      hover:border-zinc-500
+      transition-all duration-100
+      hover:border-zinc-500 hover:bg-zinc-850
       active:translate-x-[2px] active:translate-y-[2px]
-      shadow-[4px_4px_0px_rgba(0,0,0,0.5)]
-      active:shadow-[2px_2px_0px_rgba(0,0,0,0.5)]
+      shadow-[4px_4px_0px_rgba(0,0,0,0.6)]
+      active:shadow-[2px_2px_0px_rgba(0,0,0,0.6)]
     `,
     selected: `
-      border-[${COLORS.JACKPOT_YELLOW}]
       bg-zinc-800
       shadow-[4px_4px_0px_rgba(0,0,0,0.8)]
     `,
-    disabled: 'opacity-50 cursor-not-allowed',
+    disabled: 'opacity-60 cursor-not-allowed saturate-50',
   };
 
   const styles = isRetro ? retroStyles : cyberStyles;
@@ -85,8 +88,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   // Define dynamic CSS variables
   const dynamicVars = {
     '--hub-accent': accentColor,
-    '--hub-shadow-hover': `0 0 30px -5px ${accentColor}40`,
-    '--hub-shadow-selected': `0 0 40px -5px ${accentColor}60`,
+    '--hub-shadow-hover': `0 0 30px -5px ${accentColor}50, 0 4px 20px -4px rgba(0,0,0,0.3)`,
+    '--hub-shadow-selected': `0 0 40px -5px ${accentColor}70, 0 0 60px -10px ${accentColor}40`,
   } as React.CSSProperties;
 
   return (
@@ -98,7 +101,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       className={`
         flex flex-col items-center justify-center
         p-4 sm:p-6 lg:p-8
-        min-h-[100px] sm:min-h-[140px]
+        min-h-[110px] sm:min-h-[140px]
         w-full
         touch-manipulation
         ${styles.base}
@@ -107,19 +110,25 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       `}
       style={{
         ...dynamicVars,
-        borderColor: isSelected ? accentColor : undefined,
+        borderColor: isSelected
+          ? isRetro
+            ? COLORS.JACKPOT_YELLOW
+            : accentColor
+          : undefined,
         boxShadow:
           isSelected && !isRetro
             ? `0 0 40px -5px ${accentColor}60, inset 0 0 20px ${accentColor}10`
-            : undefined,
+            : isSelected && isRetro
+              ? '4px 4px 0px rgba(0,0,0,0.8)'
+              : undefined,
       }}
     >
       {/* Cyberpunk: Gradient overlay on hover */}
       {!isRetro && (
         <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none"
           style={{
-            background: `linear-gradient(135deg, ${accentColor}10 0%, transparent 50%)`,
+            background: `linear-gradient(135deg, ${accentColor}15 0%, transparent 60%), radial-gradient(ellipse at bottom, ${accentColor}08 0%, transparent 70%)`,
           }}
         />
       )}
@@ -195,8 +204,11 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {!isRetro && isSelected && (
         <motion.div
           layoutId="hub-selected-bar"
-          className="absolute bottom-0 left-0 right-0 h-1"
-          style={{ backgroundColor: accentColor }}
+          className="absolute bottom-0 left-0 right-0 h-1 lg:h-1.5"
+          style={{
+            backgroundColor: accentColor,
+            boxShadow: `0 0 12px 2px ${accentColor}80`,
+          }}
         />
       )}
 

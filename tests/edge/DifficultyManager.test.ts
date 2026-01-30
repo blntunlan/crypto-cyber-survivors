@@ -6,19 +6,50 @@ import { TimeService } from '../../services/core/TimeService';
 vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     getGameTimeSeconds: vi.fn().mockReturnValue(0),
+    getGameTime: vi.fn().mockReturnValue(0),
   },
 }));
 
-vi.mock('../../services/difficulty/AIDirector', () => ({
-  AIDirector: {
-    getOutputs: vi.fn(() => ({
-      spawnDensity: 1 / 3, // Result: 0.5 + (1/3 * 1.5) = 1.0 (Neutral)
-      enemySpeedMod: 0.5,
-      aggression: 0.5,
-    })),
+// Mock GameMasterBrain (replaces AIDirector)
+vi.mock('../../services/difficulty/GameMasterBrain', () => ({
+  GameMasterBrain: {
     update: vi.fn(),
-    setPlayerStats: vi.fn(),
-    setEnabled: vi.fn(),
+    getOutputs: vi.fn(() => ({
+      spawnRate: 1.0,
+      enemySpeed: 1.0,
+      enemyHP: 1.0,
+      enemyDamage: 1.0,
+      gemDropRate: 1.0,
+      xpMultiplier: 1.0,
+      whaleType: 0,
+      eventIntensity: 0.3,
+      aggression: 0.4,
+      chaos: 0.3,
+      mercyWindow: 0.2,
+      pressureRamp: 0.5,
+    })),
+  },
+}));
+
+vi.mock('../../services/indicators/MarketIndicatorService', () => ({
+  marketIndicatorService: {
+    getState: vi.fn(() => ({
+      rsi: 50,
+      atrPercent: 0.02,
+      normalizedVolume: 0.5,
+    })),
+  },
+}));
+
+vi.mock('../../services/difficulty/factors/macd', () => ({
+  calculateMACDFactor: vi.fn(() => 0),
+}));
+
+vi.mock('../../services/combat/PoolManager', () => ({
+  PoolManager: {
+    getInstance: vi.fn(() => ({
+      activeGems: [],
+    })),
   },
 }));
 

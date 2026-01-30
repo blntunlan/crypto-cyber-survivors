@@ -12,7 +12,10 @@
       "items": [
         { "text": "General Architecture", "link": "/docs/ARCHITECTURE" },
         { "text": "Database Schema", "link": "/docs/DATABASE_SCHEMA" },
-        { "text": "Security & Anti-Cheat", "link": "/docs/services/SECURITY_ARCHITECTURE" }
+        {
+          "text": "Security & Anti-Cheat",
+          "link": "/docs/services/SECURITY_ARCHITECTURE"
+        }
       ]
     },
     {
@@ -30,7 +33,10 @@
         { "text": "Market Engine", "link": "/docs/services/MarketService" },
         { "text": "Neural AI Director", "link": "/docs/services/AIDirector" },
         { "text": "Difficulty Manager", "link": "/docs/services/DifficultyManager" },
-        { "text": "Darwin (AI Training)", "link": "/docs/services/AI_TRAINING_WORKFLOW" }
+        {
+          "text": "Darwin (AI Training)",
+          "link": "/docs/services/AI_TRAINING_WORKFLOW"
+        }
       ]
     }
   ]

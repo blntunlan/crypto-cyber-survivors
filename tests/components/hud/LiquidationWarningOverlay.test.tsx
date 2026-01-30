@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act } from '../../test-utils';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { LiquidationWarningOverlay } from '../../../components/hud/LiquidationWarningOverlay';
 import { useLiquidationWarning } from '../../../hooks/useDifficultyV2';

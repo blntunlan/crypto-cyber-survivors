@@ -74,7 +74,10 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   public insertAll(entities: T[]): void {
     const len = entities.length;
     for (let i = 0; i < len; i++) {
-      this.insert(entities[i]!);
+      const entity = entities[i];
+      if (entity !== undefined) {
+        this.insert(entity);
+      }
     }
   }
 

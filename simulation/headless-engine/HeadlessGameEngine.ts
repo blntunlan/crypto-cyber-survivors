@@ -2,7 +2,7 @@
  * HeadlessGameEngine (Self-Contained)
  *
  * Optimized for Node.js AI Training without project dependencies.
- * Removes complex service imports to fix ESM resolution issues.
+ * Supports market data integration for realistic game difficulty.
  */
 
 // --- Types ---
@@ -28,6 +28,14 @@ interface Gem extends Entity {
   value: number;
 }
 
+// Market state for difficulty scaling
+export interface MarketInputs {
+  rsi: number; // 0-100
+  atrPercent: number; // Volatility %
+  normalizedVolume: number; // 0-1
+  trend: 'bull' | 'bear' | 'sideways';
+}
+
 export class HeadlessGameEngine {
   // Config
   width = 1920;
@@ -40,6 +48,19 @@ export class HeadlessGameEngine {
 
   spawnTimer = 0;
   time = 0;
+
+  // Market state (affects difficulty)
+  marketState: MarketInputs = {
+    rsi: 50,
+    atrPercent: 0.1,
+    normalizedVolume: 0.5,
+    trend: 'sideways',
+  };
+
+  // Difficulty multipliers from market
+  spawnRateMultiplier = 1.0;
+  enemySpeedMultiplier = 1.0;
+  enemyHpMultiplier = 1.0;
 
   // Player
   player = {
@@ -58,7 +79,18 @@ export class HeadlessGameEngine {
     exp: 0,
     nextLevelExp: 100,
     isDead: false,
-    stats: { kills: 0, damageTaken: 0, totalDamageDealt: 0, gemsCollected: 0 },
+    stats: {
+      kills: 0,
+      damageTaken: 0,
+      totalDamageDealt: 0,
+      gemsCollected: 0,
+      survivalTime: 0,
+      // Market-aware stats
+      killsInBullMarket: 0,
+      killsInBearMarket: 0,
+      survivalInHighVolatility: 0,
+      whaleEncounters: 0,
+    },
   };
 
   constructor() {
@@ -66,6 +98,32 @@ export class HeadlessGameEngine {
     this.activeEnemies = [];
     this.activeBullets = [];
     this.activeGems = [];
+  }
+
+  // --- Market Integration ---
+  public updateMarketState(market: MarketInputs) {
+    this.marketState = market;
+
+    // Calculate difficulty multipliers from market conditions
+    // High ATR (volatility) = more enemies, faster
+    this.spawnRateMultiplier = 0.8 + market.atrPercent * 2;
+
+    // RSI affects enemy speed (extreme RSI = faster enemies)
+    const rsiDeviation = Math.abs(market.rsi - 50) / 50;
+    this.enemySpeedMultiplier = 1.0 + rsiDeviation * 0.3;
+
+    // High volume = stronger enemies (whale activity)
+    this.enemyHpMultiplier = 1.0 + market.normalizedVolume * 0.5;
+
+    // Track high volatility survival
+    if (market.atrPercent > 0.3) {
+      this.player.stats.survivalInHighVolatility += 1 / 60; // Per frame at 60fps
+    }
+
+    // Whale encounters
+    if (market.normalizedVolume > 0.8) {
+      this.player.stats.whaleEncounters++;
+    }
   }
 
   // --- AI Interface ---
@@ -112,7 +170,7 @@ export class HeadlessGameEngine {
 
     // 2. Nearest Gem
     let nearestGemDist = maxDist;
-     
+
     let gemX = 0,
       gemY = 0;
     for (const g of this.activeGems) {
@@ -130,6 +188,18 @@ export class HeadlessGameEngine {
     // 3. Stats
     inputs.push(this.player.hp / this.player.maxHp);
     inputs.push(this.player.exp / this.player.nextLevelExp);
+
+    // 4. Market Inputs (normalized 0-1)
+    inputs.push(this.marketState.rsi / 100);
+    inputs.push(Math.min(1, this.marketState.atrPercent / 0.5)); // 0.5% ATR = max
+    inputs.push(this.marketState.normalizedVolume);
+    inputs.push(
+      this.marketState.trend === 'bull'
+        ? 1
+        : this.marketState.trend === 'bear'
+          ? 0
+          : 0.5
+    );
 
     return inputs;
   }
@@ -153,6 +223,7 @@ export class HeadlessGameEngine {
   public step(dt: number) {
     if (this.player.isDead) return;
     this.time += dt;
+    this.player.stats.survivalTime = this.time;
 
     // Player Move
     this.player.x += this.player.vx * dt;
@@ -166,11 +237,12 @@ export class HeadlessGameEngine {
       this.player.lastFireTime = Date.now();
     }
 
-    // Spawn Logic
-    this.spawnTimer += dt;
+    // Spawn Logic (market-driven)
+    this.spawnTimer += dt * this.spawnRateMultiplier;
     if (this.spawnTimer > 1.0) {
-      // Every 1 sec
-      if (this.activeEnemies.length < 50) this.spawnEnemy();
+      // Every 1 sec (adjusted by market)
+      const maxEnemies = Math.floor(50 * this.spawnRateMultiplier);
+      if (this.activeEnemies.length < maxEnemies) this.spawnEnemy();
       this.spawnTimer = 0;
     }
 
@@ -209,16 +281,44 @@ export class HeadlessGameEngine {
       y = Math.random() * this.height;
     }
 
+    // Determine enemy type based on market conditions
+    let enemyType = 'basic';
+    let hpBonus = 0;
+    let speedBonus = 0;
+
+    // Whale spawn in high volume
+    if (this.marketState.normalizedVolume > 0.7 && Math.random() < 0.1) {
+      enemyType = 'whale';
+      hpBonus = 100;
+      speedBonus = -20; // Whales are slower but tankier
+    }
+    // Bear enemies in bear market
+    else if (this.marketState.trend === 'bear' && Math.random() < 0.3) {
+      enemyType = 'bear';
+      hpBonus = 20;
+      speedBonus = 30;
+    }
+    // Bull enemies in bull market
+    else if (this.marketState.trend === 'bull' && Math.random() < 0.3) {
+      enemyType = 'bull';
+      hpBonus = 10;
+      speedBonus = 50;
+    }
+
+    const baseHp = 50 * this.enemyHpMultiplier + hpBonus;
+    const baseSpeed =
+      (100 + this.player.level * 10) * this.enemySpeedMultiplier + speedBonus;
+
     this.activeEnemies.push({
       x,
       y,
       active: true,
-      radius: 20,
-      hp: 50,
-      maxHp: 50,
-      speed: 100 + this.player.level * 10,
-      type: 'basic',
-      baseDamage: 10,
+      radius: enemyType === 'whale' ? 35 : 20,
+      hp: baseHp,
+      maxHp: baseHp,
+      speed: baseSpeed,
+      type: enemyType,
+      baseDamage: enemyType === 'whale' ? 25 : 10,
     });
   }
 
@@ -267,12 +367,22 @@ export class HeadlessGameEngine {
           if (e.hp <= 0) {
             e.active = false;
             this.player.stats.kills++;
+
+            // Track market-specific kills
+            if (this.marketState.trend === 'bull') {
+              this.player.stats.killsInBullMarket++;
+            } else if (this.marketState.trend === 'bear') {
+              this.player.stats.killsInBearMarket++;
+            }
+
+            // Whale kills give more XP
+            const gemValue = e.type === 'whale' ? 50 : 10;
             this.activeGems.push({
               x: e.x,
               y: e.y,
               active: true,
-              radius: 8,
-              value: 10,
+              radius: e.type === 'whale' ? 12 : 8,
+              value: gemValue,
             });
           }
           break;

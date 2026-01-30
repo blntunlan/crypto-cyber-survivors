@@ -9,7 +9,10 @@ import { Logger } from '../system/Logger';
 import { difficultyContext } from '../difficulty/DifficultyContext';
 import { clamp } from '../difficulty/utils';
 import { getShockDirection } from '../difficulty/factors';
-import { AIDirector } from '../difficulty/AIDirector';
+import { GameMasterBrain, type GameMasterInputs } from '../difficulty/GameMasterBrain';
+import { marketIndicatorService } from '../indicators/MarketIndicatorService';
+import { calculateMACDFactor } from '../difficulty/factors/macd';
+import { PoolManager } from '../combat/PoolManager';
 
 /**
  * Interface representing the various factors contributing to the final difficulty.
@@ -151,33 +154,59 @@ class DifficultyManagerClass {
     );
     const scale = inp.leverageScale;
 
-    // 4.5. Apply AI Modifiers (Neuro-Dynamic Layer)
-    const ai = AIDirector.getOutputs();
+    // 4.5. Update GameMaster Brain with current state
+    const market = marketIndicatorService.getState();
+    const macdFactor = (calculateMACDFactor() + 1) / 2; // Normalize to 0-1
 
-    // AI Multipliers
-    const aiSpawnMult = 0.5 + ai.spawnDensity * 1.5;
-    const aiSpeedMult = 0.8 + ai.enemySpeedMod * 0.6;
-    const aiDamageMult = 1.0 + ai.aggression * 0.8;
+    // Determine trend from RSI
+    let trendValue = 0.5;
+    if (market.rsi > 60) trendValue = 1.0;
+    else if (market.rsi < 40) trendValue = 0.0;
 
-    // Apply modifiers and THEN clamp to final limits
+    // Calculate player stats for brain
+    const activeGems = PoolManager.getInstance().activeGems.length;
+    const zoningScore = Math.min(1, activeGems / 150);
+    const killEfficiency = Math.min(1, this.killStreak / 30);
+
+    const brainInputs: GameMasterInputs = {
+      rsi: market.rsi / 100,
+      macd: macdFactor,
+      volatility: Math.min(1, market.atrPercent * 2),
+      volume: market.normalizedVolume,
+      trend: trendValue,
+      pnl: clamp(inp.pnlHistory[inp.pnlHistory.length - 1] ?? 0, -1, 1),
+      stress: 1 - Math.min(100, Math.max(0, inp.hpPercent)) / 100,
+      playerDPS: 0.5, // Will be set externally
+      killEfficiency,
+      elapsedTime: inp.elapsedSeconds / 900, // 15 min normalized
+      level: level / 30,
+      luckStat: 0.1, // Base luck, can be updated
+      zoningScore,
+      leverage: inp.leverage / 100,
+    };
+
+    GameMasterBrain.update(brainInputs, TimeService.getGameTime());
+    const gm = GameMasterBrain.getOutputs();
+
+    // Apply GameMaster Brain outputs directly
     const output: DifficultyOutput = {
       spawnRate: clamp(
-        total * scale.spawn * D_CONFIG.SPAWN_RATE_TOTAL_MULTIPLIER * aiSpawnMult,
+        total * scale.spawn * gm.spawnRate,
         D_CONFIG.LIMITS.spawnRate.min,
         D_CONFIG.LIMITS.spawnRate.max
       ),
       enemySpeed: clamp(
-        f.pnl * f.atr * f.wave * scale.speed * aiSpeedMult,
+        f.pnl * f.atr * scale.speed * gm.enemySpeed,
         D_CONFIG.LIMITS.enemySpeed.min,
         D_CONFIG.LIMITS.enemySpeed.max
       ),
       enemyHealth: clamp(
-        f.cycle * f.level * scale.hp,
+        f.cycle * f.level * scale.hp * gm.enemyHP,
         D_CONFIG.LIMITS.enemyHP.min,
         D_CONFIG.LIMITS.enemyHP.max
       ),
       enemyDamage: clamp(
-        f.cycle * f.pnl * scale.damage * aiDamageMult,
+        f.cycle * f.pnl * scale.damage * gm.enemyDamage,
         D_CONFIG.LIMITS.enemyDamage.min,
         D_CONFIG.LIMITS.enemyDamage.max
       ),
@@ -198,8 +227,8 @@ class DifficultyManagerClass {
       },
     };
 
-    // Recalculate total difficulty metric for UI (Using a more stable average)
-    const finalTotal = (output.total + output.total * aiSpawnMult) / 2;
+    // Recalculate total difficulty metric for UI (Using GameMaster brain output)
+    const finalTotal = (output.total + output.total * gm.spawnRate) / 2;
     output.total = clamp(finalTotal, D_CONFIG.LIMITS.total.min, maxDifficulty);
 
     this.latestOutput = output;

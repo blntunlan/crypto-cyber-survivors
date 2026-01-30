@@ -283,13 +283,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         absolute inset-0 z-[100]
         flex flex-col items-center justify-start
         p-4 sm:p-6 lg:p-8
-        overflow-y-auto
-        allow-scroll
-        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/80 backdrop-blur-sm'}
+        overflow-y-auto scroll-smooth
+        allow-scroll overscroll-contain
+        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/80 backdrop-blur-md lg:backdrop-blur-xl'}
       `}
     >
-      {/* Container */}
-      <div className="w-full max-w-lg space-y-4 sm:space-y-6 relative">
+      {/* Container - pt-14 creates safe space below fixed back button on mobile */}
+      <div className="w-full max-w-lg lg:max-w-xl space-y-3 sm:space-y-6 lg:space-y-8 pt-12 sm:pt-0 relative">
         {/* Back Button (Top Left) */}
         {onBack && (
           <motion.button
@@ -297,12 +297,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             animate={{ opacity: 1, x: 0 }}
             onClick={onBack}
             className={`
-              fixed z-[110] px-3 py-2 border backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation
-              text-sm font-cyber uppercase tracking-wider
+              fixed z-[110] min-h-[44px] min-w-[44px] px-3 py-2.5 lg:px-4 lg:py-2.5 border transition-all duration-200 shadow-lg active:scale-95 touch-manipulation
+              text-xs sm:text-sm lg:text-base uppercase tracking-wider
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
               ${
                 isRetro
-                  ? 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-white rounded-none'
-                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl'
+                  ? 'bg-zinc-800 border-2 border-zinc-600 text-zinc-400 hover:text-white hover:border-zinc-400 rounded-none font-retro-pixel shadow-[3px_3px_0px_rgba(0,0,0,0.6)]'
+                  : 'bg-white/10 hover:bg-white/20 hover:border-white/40 border-white/20 text-white rounded-xl backdrop-blur-sm font-cyber hover:shadow-[0_0_20px_rgba(0,255,255,0.15)]'
               }
             `}
             style={{
@@ -363,7 +364,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-3 sm:gap-4"
+          className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-5"
         >
           {buttons.map((btn, index) => (
             <motion.div
@@ -399,11 +400,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           transition={{ delay: 0.5 }}
           className={`
             text-center
-            py-2
+            py-2 lg:py-3
             ${
               isRetro
                 ? 'font-retro-pixel text-[8px] border-t-2 border-b-2 border-zinc-700'
-                : 'font-cyber text-xs'
+                : 'font-cyber text-xs lg:text-sm'
             }
             text-slate-500
             uppercase tracking-widest

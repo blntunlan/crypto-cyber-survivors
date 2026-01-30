@@ -14,9 +14,19 @@
  * - Transition: 300ms cubic-bezier (Professional "Snap")
  */
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Zap, Cpu, Play, ArrowRight, Terminal, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Shield,
+  Zap,
+  Cpu,
+  Play,
+  ArrowRight,
+  Terminal,
+  Activity,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useTheme } from '../../contexts/useTheme';
 
 interface LandingPageProps {
@@ -31,6 +41,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewTerms,
 }) => {
   const { isRetro, toggleTheme, isTransitioning } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <motion.div
@@ -55,34 +66,43 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* --- 01. NAVIGATION LAYER --- */}
       <nav
         id="top"
-        className="relative z-50 flex items-center justify-between px-10 py-8 mx-auto max-w-7xl"
+        className="relative z-50 flex items-center justify-between px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8 mx-auto max-w-7xl"
       >
         {/* Branding Sub-module */}
         <a
           href="#top"
-          className="flex flex-col hover:opacity-80 transition-opacity pr-12 lg:pr-24"
+          className="flex flex-col hover:opacity-80 transition-all duration-300 pr-4 lg:pr-24 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
         >
           <span
-            className={`text-2xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+            className={`text-xl sm:text-2xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
           >
             CRYPTO
           </span>
           <span
-            className={`text-2xl font-black tracking-tight uppercase font-display italic text-white -mt-1 leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+            className={`text-xl sm:text-2xl font-black tracking-tight uppercase font-display italic text-white -mt-1 leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
           >
             SURVIVORS
           </span>
         </a>
 
-        {/* Global Nav Menu */}
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="lg:hidden p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+          aria-label="Open menu"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
+        {/* Desktop Nav Menu */}
         <div className="hidden lg:flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] font-mono">
           {/* Theme Switch Protocol Button */}
           <div
-            className={`relative group/nav border ${isRetro ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]' : 'border-[#d6b85c]/30 bg-black/40'} hover:border-[#d6b85c] transition-all`}
+            className={`relative group/nav border ${isRetro ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]' : 'border-[#d6b85c]/30 bg-black/40'} hover:border-[#d6b85c] transition-all duration-300`}
           >
             <button
               onClick={toggleTheme}
-              className="px-4 py-2 text-[#d6b85c] hover:text-white transition-colors flex items-center gap-2"
+              className="px-4 py-3 min-h-[44px] text-[#d6b85c] hover:text-white transition-all duration-300 flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
             >
               <Zap className={`w-3 h-3 ${isTransitioning ? 'animate-spin' : ''}`} />
               {isRetro ? 'PROTOCOL: CYBER' : 'PROTOCOL: RETRO'}
@@ -91,42 +111,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* Standard Nav Links */}
           <div
-            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all active:scale-95`}
+            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
           >
             <a
               href="#engine"
-              className="block px-4 py-2 text-slate-400 hover:text-white transition-colors"
+              className="block px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
               01. Engine
             </a>
           </div>
           <div
-            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all active:scale-95`}
+            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
           >
             <a
               href="#pipeline"
-              className="block px-4 py-2 text-slate-400 hover:text-white transition-colors"
+              className="block px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
               02. Pipeline
             </a>
           </div>
           <div
-            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all active:scale-95`}
+            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
           >
             <a
               href="#dev"
-              className="block px-4 py-2 text-slate-400 hover:text-white transition-colors"
+              className="block px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
               03. Solo Dev
             </a>
           </div>
           <div
-            className={`relative group/nav border ${isRetro ? 'border-zinc-500 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-white/20 hover:border-white/40 bg-white/5'} transition-all font-bold active:scale-95`}
+            className={`relative group/nav border ${isRetro ? 'border-zinc-500 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-white/20 hover:border-white/40 bg-white/5'} transition-all duration-300 font-bold active:scale-95`}
           >
             <button
               id="docs-nav-link"
               onClick={() => (window.location.hash = '#docs')}
-              className="px-4 py-2 text-slate-400 hover:text-white transition-colors uppercase"
+              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 uppercase focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
               04. Documentation
             </button>
@@ -135,7 +155,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Primary Action */}
           <button
             onClick={onLaunch}
-            className={`px-6 py-2 bg-[#d6b85c] text-black font-black hover:bg-white transition-all active:scale-95 border border-[#d6b85c] ${
+            className={`px-6 py-3 min-h-[44px] bg-[#d6b85c] text-black font-black hover:bg-white transition-all duration-300 active:scale-95 border border-[#d6b85c] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none ${
               isRetro
                 ? 'shadow-[4px_4px_0px_rgba(214,184,92,0.4)]'
                 : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
@@ -145,9 +165,105 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
         </div>
       </nav>
+
+      {/* --- MOBILE MENU DRAWER --- */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <motion.nav
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
+              className="absolute right-0 top-0 h-full w-[280px] bg-[#020617] border-l border-[#b22222]/20 p-6 flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="absolute top-4 right-4 p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                aria-label="Close menu"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Mobile Menu Items */}
+              <div className="mt-16 flex flex-col gap-2 text-sm font-black uppercase tracking-widest font-mono">
+                <button
+                  onClick={toggleTheme}
+                  className={`w-full p-4 min-h-[48px] text-left border transition-all duration-300 ${
+                    isRetro
+                      ? 'border-[#d6b85c] bg-[#d6b85c]/10 text-[#d6b85c]'
+                      : 'border-[#d6b85c]/30 bg-black/40 text-[#d6b85c]'
+                  } focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center gap-3`}
+                >
+                  <Zap className={`w-4 h-4 ${isTransitioning ? 'animate-spin' : ''}`} />
+                  {isRetro ? 'PROTOCOL: CYBER' : 'PROTOCOL: RETRO'}
+                </button>
+
+                <a
+                  href="#engine"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                >
+                  01. Engine
+                </a>
+
+                <a
+                  href="#pipeline"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                >
+                  02. Pipeline
+                </a>
+
+                <a
+                  href="#dev"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                >
+                  03. Solo Dev
+                </a>
+
+                <button
+                  onClick={() => {
+                    window.location.hash = '#docs';
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                >
+                  04. Documentation
+                </button>
+              </div>
+
+              {/* Mobile CTA */}
+              <button
+                onClick={() => {
+                  onLaunch();
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`mt-auto w-full p-4 min-h-[48px] bg-[#d6b85c] text-black font-black text-center hover:bg-white transition-all duration-300 active:scale-95 border border-[#d6b85c] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none ${
+                  isRetro
+                    ? 'shadow-[4px_4px_0px_rgba(214,184,92,0.4)]'
+                    : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
+                }`}
+              >
+                EXECUTE ENGINE
+              </button>
+            </motion.nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* --- 02. HERO & CTA STACK --- */}
-      <header className="relative z-10 px-6 pt-24 pb-32 mx-auto max-w-7xl">
-        <div className="flex flex-col lg:flex-row gap-16 items-center">
+      <header className="relative z-10 px-4 sm:px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 mx-auto max-w-7xl">
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center">
           {/* Main Messaging Sub-module */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -155,18 +271,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             transition={{ duration: 0.8 }}
             className="flex-1"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 rounded bg-[#b22222]/10 border-l-4 border-[#b22222] text-[#b22222] text-xs font-black tracking-widest uppercase font-mono">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 sm:mb-8 rounded bg-[#b22222]/10 border-l-4 border-[#b22222] text-[#b22222] text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono">
               SYSTEM STATUS: STANDBY_MODE (BETA_v1.0)
             </div>
 
-            <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter mb-8 leading-[0.9] md:leading-[0.8] font-display italic">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter mb-6 sm:mb-8 leading-[0.95] font-display italic">
               HIGH STAKES <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white">
                 VOLATILITY
               </span>
             </h1>
 
-            <p className="max-w-xl text-sm sm:text-base md:text-lg text-slate-400 mb-12 leading-relaxed font-mono">
+            <p className="max-w-xl text-sm sm:text-base md:text-lg text-slate-400 mb-8 sm:mb-12 leading-relaxed font-mono">
               Crafting a <span className="text-[#d6b85c]">systematic bridge</span>{' '}
               between live financial markets and rogue-lite hyper-casual gameplay.
             </p>
@@ -174,17 +290,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               <button
                 onClick={onLaunch}
-                className="group relative w-full sm:w-auto px-10 py-5 bg-[#d6b85c] text-black font-black text-xl sm:text-2xl hover:bg-[#ffd600] transition-all hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] flex items-center justify-center gap-3 active:scale-95 overflow-hidden"
+                className="group relative w-full sm:w-auto px-6 sm:px-10 py-4 sm:py-5 min-h-[48px] bg-[#d6b85c] text-black font-black text-lg sm:text-xl md:text-2xl hover:bg-[#ffd600] transition-all duration-300 hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] flex items-center justify-center gap-3 active:scale-95 overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
               >
                 <div className="absolute inset-x-0 h-[2px] bg-white opacity-20 -top-full group-hover:top-full transition-all duration-700" />
-                <Play className="w-6 h-6 fill-current" />
+                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
                 START SURVIVAL
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-300" />
               </button>
               <a
                 href="https://github.com/blntunlan/crypto-cyber-survivors"
                 target="_blank"
-                className={`w-full sm:w-auto px-8 py-5 border transition-all flex items-center justify-center gap-3 font-bold text-xs tracking-widest uppercase text-slate-300
+                rel="noopener noreferrer"
+                className={`w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 min-h-[48px] border transition-all duration-300 flex items-center justify-center gap-3 font-bold text-xs tracking-widest uppercase text-slate-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none
                   ${isRetro ? 'border-white/20 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)] hover:bg-white/10' : 'border-[#b22222]/30 hover:bg-[#b22222]/10'}
                 `}
               >
@@ -252,14 +369,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* --- 03. ENGINEERING EXCELLENCE SHOWCASE --- */}
       <section
         id="engine"
-        className="relative z-10 py-32 border-y border-[#b22222]/10 bg-[#b22222]/[0.02]"
+        className="relative z-10 py-20 sm:py-24 lg:py-32 border-y border-[#b22222]/10 bg-[#b22222]/[0.02]"
       >
-        <div className="px-6 mx-auto max-w-7xl">
-          <div className="mb-20 text-center">
+        <div className="px-4 sm:px-6 mx-auto max-w-7xl">
+          <div className="mb-12 sm:mb-16 lg:mb-20 text-center">
             <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
               Engineering Manifesto
             </h2>
-            <div className="text-4xl md:text-6xl font-black font-display uppercase italic text-white flex flex-col md:flex-row items-center justify-center gap-4">
+            <div className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black font-display uppercase italic text-white flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4">
               <span>Solo Indie</span>
               <span className="w-8 h-px bg-[#b22222] hidden md:block" />
               <span className="text-[#b22222]">Enterprise Standards</span>
@@ -267,7 +384,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Grid Layout Sub-module */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
               {
                 tag: 'MEMORY',
@@ -297,7 +414,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div
                 key={i}
                 id={card.tag === 'BACKEND' ? 'pipeline' : undefined}
-                className={`group p-6 border transition-all active:scale-[0.98]
+                className={`group p-4 sm:p-6 border transition-all duration-300 active:scale-[0.98] focus-within:ring-2 focus-within:ring-[#d6b85c]
                   ${
                     isRetro
                       ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)] hover:border-[#d6b85c]/40'
@@ -305,13 +422,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   }
                 `}
               >
-                <div className="text-[10px] font-black text-[#b22222] mb-4 font-mono tracking-widest">
+                <div className="text-[10px] font-black text-[#b22222] mb-3 sm:mb-4 font-mono tracking-widest">
                   {card.tag}
                 </div>
-                <h3 className="text-xl font-bold text-white mb-4 font-display italic tracking-wide group-hover:text-[#d6b85c] transition-colors">
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 font-display italic tracking-wide group-hover:text-[#d6b85c] transition-all duration-300">
                   {card.title}
                 </h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-mono min-h-[48px]">
+                <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed font-mono min-h-[48px]">
                   {card.desc}
                 </p>
               </div>
@@ -320,21 +437,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
       {/* --- 04. SOLO DEV ARCHITECTURE FLOW --- */}
-      <section id="dev" className="relative z-10 py-32 px-6">
+      <section id="dev" className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-20 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             {/* Descriptive Content */}
             <div>
-              <Terminal className="text-[#d6b85c] mb-8 w-12 h-12" />
-              <h3 className="text-4xl md:text-5xl font-black mb-8 font-display italic uppercase">
+              <Terminal className="text-[#d6b85c] mb-6 sm:mb-8 w-10 h-10 sm:w-12 sm:h-12" />
+              <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-6 sm:mb-8 font-display italic uppercase">
                 Ultra-Innovative Architecture
               </h3>
-              <p className="text-slate-400 mb-8 font-mono text-sm leading-relaxed">
+              <p className="text-slate-400 mb-6 sm:mb-8 font-mono text-sm leading-relaxed">
                 As a solo indie developer, my requirement was simple: build a system
                 that manages itself.
               </p>
 
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-2 sm:gap-4">
                 {[
                   'React 19',
                   'TSX Engine',
@@ -344,7 +461,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 ].map(tag => (
                   <span
                     key={tag}
-                    className="px-3 py-1 bg-white/5 border border-white/10 text-[10px] uppercase font-bold text-slate-500 tracking-tighter"
+                    className="px-2 sm:px-3 py-1 bg-white/5 border border-white/10 text-[9px] sm:text-[10px] uppercase font-bold text-slate-500 tracking-tighter"
                   >
                     {tag}
                   </span>
@@ -353,13 +470,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             {/* Visual Logic Diagram Sub-module */}
-            <div className="p-8 border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 font-mono text-[10px] text-[#d6b85c]/50">
+            <div className="p-6 sm:p-8 border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-3 sm:p-4 font-mono text-[10px] text-[#d6b85c]/50">
                 INTERNAL_PROTOCOL_LOG
               </div>
               <div className="space-y-4 relative z-10">
-                <div className="flex gap-4 items-start">
-                  <div className="w-1 h-12 bg-[#b22222]" />
+                <div className="flex gap-3 sm:gap-4 items-start">
+                  <div className="w-1 h-12 bg-[#b22222] flex-shrink-0" />
                   <div>
                     <div className="text-xs font-black text-white uppercase italic">
                       Systemic Balance
@@ -369,8 +486,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-4 items-start">
-                  <div className="w-1 h-12 bg-[#d6b85c]" />
+                <div className="flex gap-3 sm:gap-4 items-start">
+                  <div className="w-1 h-12 bg-[#d6b85c] flex-shrink-0" />
                   <div>
                     <div className="text-xs font-black text-white uppercase italic">
                       Real-Time Integrity
@@ -380,8 +497,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-4 items-start">
-                  <div className="w-1 h-12 bg-white" />
+                <div className="flex gap-3 sm:gap-4 items-start">
+                  <div className="w-1 h-12 bg-white flex-shrink-0" />
                   <div>
                     <div className="text-xs font-black text-white uppercase italic">
                       60 FPS Native
@@ -400,18 +517,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
       {/* --- 05. FOOTER & LEGAL --- */}
-      <footer className="relative z-10 py-20 px-6 border-t border-[#b22222]/20 bg-black">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
+      <footer className="relative z-10 py-12 sm:py-16 lg:py-20 px-4 sm:px-6 border-t border-[#b22222]/20 bg-black">
+        <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-start md:items-center gap-8 sm:gap-12">
           {/* Logo & Trademark */}
           <div>
-            <div className="flex flex-col mb-6">
+            <div className="flex flex-col mb-4 sm:mb-6">
               <span
-                className={`text-xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+                className={`text-lg sm:text-xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
               >
                 CRYPTO
               </span>
               <span
-                className={`text-xl font-black tracking-tight uppercase font-display italic text-white -mt-1 leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
+                className={`text-lg sm:text-xl font-black tracking-tight uppercase font-display italic text-white -mt-1 leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
               >
                 SURVIVORS
               </span>
@@ -422,31 +539,46 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Regulatory Navigation */}
-          <div className="flex flex-wrap gap-8 text-[10px] font-black uppercase tracking-[0.2em] font-mono text-slate-500">
+          <div className="flex flex-wrap gap-3 sm:gap-4 lg:gap-8 text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] font-mono text-slate-500">
             <div
-              className={`relative group/nav border ${isRetro ? 'border-[#b22222]/30 shadow-[4px_4px_0px_rgba(178,34,34,0.1)]' : 'border-[#b22222]/30'} hover:border-[#b22222] transition-colors px-4 py-2 active:scale-95`}
+              className={`relative group/nav border ${isRetro ? 'border-[#b22222]/30 shadow-[4px_4px_0px_rgba(178,34,34,0.1)]' : 'border-[#b22222]/30'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
             >
               <button
                 onClick={onLaunch}
-                className="hover:text-[#d6b85c] transition-colors"
+                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
               >
                 Access_Terminal
               </button>
             </div>
             <div
-              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-colors px-4 py-2 active:scale-95`}
+              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-all duration-300 active:scale-95`}
             >
-              <button onClick={onViewPrivacy}>Privacy_Doc</button>
+              <button
+                onClick={onViewPrivacy}
+                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
+              >
+                Privacy_Doc
+              </button>
             </div>
             <div
-              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-colors px-4 py-2 active:scale-95`}
+              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-all duration-300 active:scale-95`}
             >
-              <button onClick={onViewTerms}>Terms_Doc</button>
+              <button
+                onClick={onViewTerms}
+                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
+              >
+                Terms_Doc
+              </button>
             </div>
             <div
-              className={`relative group/nav border border-[#b22222]/20 hover:border-[#b22222] transition-colors px-4 py-2 active:scale-95`}
+              className={`relative group/nav border border-[#b22222]/20 hover:border-[#b22222] transition-all duration-300 active:scale-95`}
             >
-              <a href="mailto:info@crypto-survivors.com">Contact_Channel</a>
+              <a
+                href="mailto:info@crypto-survivors.com"
+                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
+              >
+                Contact_Channel
+              </a>
             </div>
           </div>
         </div>
@@ -460,8 +592,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           if (topEl) topEl.scrollIntoView({ behavior: 'smooth' });
           else window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`fixed bottom-8 right-8 z-[60] px-4 py-3 border backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation
-          text-sm font-black uppercase tracking-wider
+        className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[60] px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] min-w-[44px] border backdrop-blur-sm transition-all duration-300 shadow-lg active:scale-95 touch-manipulation
+          text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center
+          focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none
           ${
             isRetro
               ? 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-white rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
@@ -469,6 +602,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           }
         `}
         title="Back to Top"
+        style={{ bottom: 'calc(1rem + var(--sab, 0px))', right: '1rem' }}
       >
         ↑ TOP
       </motion.button>

@@ -91,6 +91,9 @@ export class CollectionSystem implements ICollectionSystem {
         gem.vy ??= 0;
 
         const dist = Math.sqrt(distSq);
+        if (dist < 0.001) {
+          return;
+        }
         const tx = (dx / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
         const ty = (dy / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
 

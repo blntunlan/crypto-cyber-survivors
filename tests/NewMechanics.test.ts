@@ -7,6 +7,50 @@ import { EventBus } from '../services/core/EventBus';
 vi.mock('../services/core/TimeService', () => ({
   TimeService: {
     getGameTimeSeconds: vi.fn().mockReturnValue(0),
+    getGameTime: vi.fn().mockReturnValue(0),
+  },
+}));
+
+// Mock GameMasterBrain
+vi.mock('../services/difficulty/GameMasterBrain', () => ({
+  GameMasterBrain: {
+    update: vi.fn(),
+    getOutputs: vi.fn(() => ({
+      spawnRate: 1.0,
+      enemySpeed: 1.0,
+      enemyHP: 1.0,
+      enemyDamage: 1.0,
+      gemDropRate: 1.0,
+      xpMultiplier: 1.0,
+      whaleType: 0,
+      eventIntensity: 0.3,
+      aggression: 0.4,
+      chaos: 0.3,
+      mercyWindow: 0.2,
+      pressureRamp: 0.5,
+    })),
+  },
+}));
+
+vi.mock('../services/indicators/MarketIndicatorService', () => ({
+  marketIndicatorService: {
+    getState: vi.fn(() => ({
+      rsi: 50,
+      atrPercent: 0.02,
+      normalizedVolume: 0.5,
+    })),
+  },
+}));
+
+vi.mock('../services/difficulty/factors/macd', () => ({
+  calculateMACDFactor: vi.fn(() => 0),
+}));
+
+vi.mock('../services/combat/PoolManager', () => ({
+  PoolManager: {
+    getInstance: vi.fn(() => ({
+      activeGems: [],
+    })),
   },
 }));
 

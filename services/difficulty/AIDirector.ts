@@ -5,30 +5,37 @@ import { difficultyContext } from './DifficultyContext';
 import { Logger } from '../system/Logger';
 import { PoolManager } from '../combat/PoolManager';
 
-// Robust way to access Architect from different build environments (Vite/Node/CJS/ESM)
+// Robust way to access Architect/Network from different build environments (Vite/Node/CJS/ESM)
+const SynapticModule = SynapticLib as Record<string, unknown>;
+const SynapticDefault = SynapticModule.default as Record<string, unknown> | undefined;
+const Architect = SynapticModule.Architect ?? SynapticDefault?.Architect;
+const NetworkLib = SynapticModule.Network ?? SynapticDefault?.Network;
 
-const Architect =
-  (SynapticLib as any).Architect ?? (SynapticLib as any).default?.Architect;
+// Pre-trained brain data (embedded or loaded)
+// This can be replaced with dynamic loading from brain-FINAL.json
+const PRETRAINED_BRAIN: unknown = null;
 
 /**
  * AI Director Inputs (Sensors)
  * Normalized to 0.0 - 1.0 range
  *
- * V2 Updates:
- * - Removed: WavePhase (Scripted logic removed)
- * - Added: dashPressure (How much player is spamming dash)
- * - Added: crowdControlScore (Are gems piling up? Is player zoned out?)
+ * V3 Updates:
+ * - Aligned with Project Darwin training inputs
+ * - Market-aware difficulty scaling
  */
 export interface DirectorInputs {
-  rsi: number;
-  macd: number;
-  volatility: number;
-  pnl: number;
-  stress: number;
-  playerDPS: number;
-  killEfficiency: number;
-  dashPressure: number; // New: 0 (Chill) - 1 (Spamming Panic)
-  zoningScore: number; // New: 0 (Clear Field) - 1 (Overwhelmed/Cannot Loot)
+  // Market Inputs (from MarketIndicatorService)
+  rsi: number; // RSI / 100
+  macd: number; // MACD factor normalized 0-1
+  volatility: number; // ATR% normalized
+  volume: number; // Normalized volume 0-1
+  trend: number; // 0 = bear, 0.5 = sideways, 1 = bull
+
+  // Player State Inputs
+  stress: number; // 1 - HP%
+  playerDPS: number; // Normalized damage output
+  killEfficiency: number; // Recent kills normalized
+  zoningScore: number; // Gem pile-up (overwhelmed indicator)
 }
 
 /**
@@ -47,6 +54,7 @@ class AIDirectorClass {
   private enabled: boolean = false;
   private lastUpdate: number = 0;
   private readonly BRAIN_UPDATE_INTERVAL = 1000;
+  private brainLoaded: boolean = false;
 
   private currentOutputs: DirectorOutputs = {
     spawnDensity: 0.5,
@@ -59,7 +67,7 @@ class AIDirectorClass {
     fireRate: 5,
     bulletCount: 1,
     recentKills: 0,
-    dashCooldownPercent: 0, // 0 = Ready, 1 = Full Cooldown
+    dashCooldownPercent: 0,
   };
 
   private constructor() {
@@ -74,11 +82,47 @@ class AIDirectorClass {
     this.enabled = enabled;
   }
 
+  /**
+   * Load pre-trained brain from JSON
+   */
+  public loadBrain(brainJson: unknown): boolean {
+    try {
+      this.net = NetworkLib.fromJSON(brainJson);
+      this.brainLoaded = true;
+      Logger.info('[AIDirector] Pre-trained brain loaded successfully');
+      return true;
+    } catch (error) {
+      Logger.warn('[AIDirector] Failed to load brain, using random network', error);
+      this.initNetwork();
+      return false;
+    }
+  }
+
+  /**
+   * Check if using pre-trained brain
+   */
+  public isUsingTrainedBrain(): boolean {
+    return this.brainLoaded;
+  }
+
   private initNetwork() {
-    // 9 Inputs -> 6 Hidden -> 3 Outputs
-    // Expanded inputs for deeper tactical awareness
+    // Try to load pre-trained brain first
+    if (PRETRAINED_BRAIN) {
+      try {
+        this.net = NetworkLib.fromJSON(PRETRAINED_BRAIN);
+        this.brainLoaded = true;
+        Logger.info('[AIDirector] Loaded embedded pre-trained brain');
+        return;
+      } catch {
+        Logger.warn('[AIDirector] Failed to load embedded brain');
+      }
+    }
+
+    // Fallback: Create new random network
+    // 9 Inputs -> 6 Hidden -> 3 Outputs (Director architecture)
     this.net = new Architect.Perceptron(9, 6, 3);
-    Logger.info('[AIDirector] Neural Network Initialized (9-6-3 Architecture)');
+    this.brainLoaded = false;
+    Logger.info('[AIDirector] Neural Network Initialized (9-6-3 Random)');
   }
 
   public setPlayerStats(
@@ -115,27 +159,27 @@ class AIDirectorClass {
     const killEfficiency = Math.min(1, this.playerStats.recentKills / 30);
 
     // Context Analysis: Crowd Control / Zoning Factor
-    // Check how many uncollected gems are on the field.
-    // High count = Player is killing but cannot safely move (Zoned out).
     const activeGems = PoolManager.getInstance().activeGems.length;
-    const zoningScore = Math.min(1, activeGems / 150); // 150 gems = Full panic/screen clog
+    const zoningScore = Math.min(1, activeGems / 150);
 
-    // MACD factor is already normalized -1 to 1, shift to 0 to 1 for Neural Net
+    // MACD factor normalized 0 to 1
     const macdInput = (calculateMACDFactor() + 1) / 2;
+
+    // Determine trend from RSI
+    let trendValue = 0.5; // sideways
+    if (market.rsi > 60)
+      trendValue = 1.0; // bull
+    else if (market.rsi < 40) trendValue = 0.0; // bear
 
     const inputs: DirectorInputs = {
       rsi: market.rsi / 100,
       macd: macdInput,
-      // volatility: market.atrPercent is a percentage (e.g. 1.0 for 1%)
-      // 1.0% is quite high volatility for crypto in 1s. Usually 0.01-0.2%.
-      // Let's normalize so 0.5% is "max" intensity (1.0)
       volatility: Math.min(1, market.atrPercent * 2),
-      pnl: Math.max(-1, Math.min(1, ctx.inputs.pnlPercent)),
-      // ctx.inputs.hpPercent is 0-100
+      volume: market.normalizedVolume,
+      trend: trendValue,
       stress: 1 - Math.min(100, Math.max(0, ctx.inputs.hpPercent)) / 100,
       playerDPS,
       killEfficiency,
-      dashPressure: this.playerStats.dashCooldownPercent,
       zoningScore,
     };
 
@@ -143,11 +187,11 @@ class AIDirectorClass {
       inputs.rsi,
       inputs.macd,
       inputs.volatility,
-      inputs.pnl,
+      inputs.volume,
+      inputs.trend,
       inputs.stress,
       inputs.playerDPS,
       inputs.killEfficiency,
-      inputs.dashPressure,
       inputs.zoningScore,
     ]);
 

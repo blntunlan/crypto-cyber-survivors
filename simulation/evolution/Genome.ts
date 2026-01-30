@@ -20,8 +20,14 @@ export class Genome {
     if (brain) {
       this.brain = brain;
     } else {
-      // 9 Inputs, 6 Hidden, 3 Outputs
-      this.brain = new Architect.Perceptron(9, 6, 3);
+      // 16 Inputs:
+      //   8 raycast distances
+      //   2 gem direction (x, y)
+      //   2 player stats (hp, xp)
+      //   4 market inputs (rsi, atr, volume, trend)
+      // 12 Hidden neurons (increased for market complexity)
+      // 3 Outputs (moveX, moveY, reserved)
+      this.brain = new Architect.Perceptron(16, 12, 3);
     }
 
     this.difficulty = difficulty ?? {

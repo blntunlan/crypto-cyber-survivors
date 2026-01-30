@@ -26,6 +26,10 @@ class DarwinTrainer {
   private bestGenome: Genome | null = null;
   private wss: WebSocketServer | null = null;
 
+  // Training statistics
+  private scenarioStats: Map<string, { count: number; avgFitness: number }> = new Map();
+  private generationHistory: { gen: number; best: number; avg: number }[] = [];
+
   constructor(enableWatchFrom: boolean) {
     if (enableWatchFrom) {
       this.setupWebSocket();
@@ -63,8 +67,14 @@ class DarwinTrainer {
       this.bestGenome = best ?? null;
 
       if (best) {
+        // Calculate average fitness
+        const avgFitness =
+          this.population.reduce((sum, g) => sum + g.fitness, 0) /
+          this.population.length;
+        this.generationHistory.push({ gen, best: best.fitness, avg: avgFitness });
+
         console.log(
-          `   🏆 Best Fitness: ${best.fitness.toFixed(0)} (Time: ${duration}ms)`
+          `   🏆 Best Fitness: ${best.fitness.toFixed(0)} | Avg: ${avgFitness.toFixed(0)} (Time: ${duration}ms)`
         );
 
         if (this.wss) {
@@ -72,6 +82,7 @@ class DarwinTrainer {
             type: 'GENERATION_UPDATE',
             generation: gen,
             bestFitness: best.fitness,
+            avgFitness,
             bestGenome: best.toJSON(),
           });
           this.wss.clients.forEach(c => c.send(payload));
@@ -83,6 +94,28 @@ class DarwinTrainer {
     }
 
     console.log(`\n🎉 Training Complete!`);
+
+    // Print final statistics
+    if (this.generationHistory.length > 0) {
+      const first = this.generationHistory[0];
+      const last = this.generationHistory[this.generationHistory.length - 1];
+      console.log(`\n📊 Training Statistics:`);
+      console.log(
+        `   Initial Best: ${first.best.toFixed(0)} → Final Best: ${last.best.toFixed(0)}`
+      );
+      console.log(
+        `   Improvement: ${(((last.best - first.best) / first.best) * 100).toFixed(1)}%`
+      );
+
+      // Scenario breakdown
+      console.log(`\n🎭 Scenario Performance:`);
+      for (const [scenario, stats] of this.scenarioStats) {
+        console.log(
+          `   ${scenario}: Avg Fitness ${stats.avgFitness.toFixed(0)} (${stats.count} runs)`
+        );
+      }
+    }
+
     this.saveCheckpoint('FINAL');
     process.exit(0);
   }
@@ -118,6 +151,20 @@ class DarwinTrainer {
           }
         } else if (typeof msg.fitness === 'number') {
           genome.fitness = msg.fitness;
+
+          // Track scenario statistics
+          if (msg.scenario && typeof msg.scenario === 'string') {
+            const existing = this.scenarioStats.get(msg.scenario) ?? {
+              count: 0,
+              avgFitness: 0,
+            };
+            existing.avgFitness =
+              (existing.avgFitness * existing.count + msg.fitness) /
+              (existing.count + 1);
+            existing.count++;
+            this.scenarioStats.set(msg.scenario, existing);
+          }
+
           resolve();
         }
       });

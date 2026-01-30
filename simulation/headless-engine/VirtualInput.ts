@@ -1,6 +1,11 @@
 export class VirtualInput {
   private keys: Set<string> = new Set();
 
+  // Reset state (for test isolation)
+  reset() {
+    this.keys.clear();
+  }
+
   // Simulates pressing a key
   press(key: string) {
     this.keys.add(key);
