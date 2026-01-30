@@ -89,9 +89,9 @@ export class CleanupCron {
       const maxIterations = 100; // Safety limit
 
       do {
-        // Get IDs to delete (batch)
+        // Get IDs to delete (batch) - Updated to price_history
         const { data: toDelete, error: selectError } = await supabase
-          .from('price_logs')
+          .from('price_history')
           .select('id')
           .lt('timestamp', cutoffISO)
           .limit(BATCH_SIZE);
@@ -106,9 +106,9 @@ export class CleanupCron {
 
         const ids = toDelete.map(row => row.id);
 
-        // Delete batch
+        // Delete batch - Updated to price_history
         const { error: deleteError } = await supabase
-          .from('price_logs')
+          .from('price_history')
           .delete()
           .in('id', ids);
 

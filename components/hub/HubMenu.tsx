@@ -274,7 +274,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   const equippedSkin = InventoryService.getEquippedSkin();
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
       className={`
         absolute inset-0 z-[100]
         flex flex-col items-center justify-start
@@ -408,6 +412,6 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };

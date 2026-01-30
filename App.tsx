@@ -79,6 +79,7 @@ import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { TutorialOverlay } from './components/screens/TutorialOverlay';
 import { NotificationSystem } from './components/hud';
 import { LandingPage } from './components/screens/LandingPage';
+import { DocScreen } from './components/screens/DocScreen';
 import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
 
 // Lazy load heavy admin/debug components
@@ -213,6 +214,21 @@ const App: React.FC = () => {
   });
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
+
+  // Handle Hash Navigation for Docs
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#docs') {
+        setShowDocs(true);
+      } else {
+        setShowDocs(false);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Check on initial load
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const handleLaunchGame = useCallback(() => {
     setShowLanding(false);
@@ -796,6 +812,14 @@ const App: React.FC = () => {
                   onViewPrivacy={() => {
                     setShowTerms(false);
                     setShowPrivacy(true);
+                  }}
+                />
+              )}
+              {showDocs && (
+                <DocScreen
+                  onClose={() => {
+                    setShowDocs(false);
+                    window.location.hash = '';
                   }}
                 />
               )}

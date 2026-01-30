@@ -23,6 +23,8 @@ export default defineConfig({
   // Fail the build on CI if test.only was left
   forbidOnly: !!process.env.CI,
 
+  globalSetup: './e2e/global-setup',
+
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
@@ -36,6 +38,8 @@ export default defineConfig({
   use: {
     // Base URL for all tests
     baseURL: 'http://localhost:3000?no-sw=true',
+
+    storageState: 'e2e/storage-state.json',
 
     // Collect trace on failure
     trace: 'on-first-retry',

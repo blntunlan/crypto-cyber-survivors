@@ -1,3 +1,19 @@
+/**
+ * LandingPage.tsx - Corporate Showcase & Engine Entry
+ *
+ * DESIGN MANIFESTO:
+ * 1. Aesthetic: "Casino-Cyber Mix" (High-stakes luxury meets gritty cyberpunk architecture).
+ * 2. Branding: Professional red accents (#b22222) vs Elite gold accents (#d6b85c).
+ * 3. Typography: Orbitron for display (Headings) + Monospace for technical data.
+ * 4. Architecture: Config-driven sections, pure CSS animations for landing-specific FX.
+ *
+ * DESIGN TOKENS:
+ * - Primary Gold: #d6b85c (Trust, Reward, Rarity)
+ * - Primary Red: #b22222 (Danger, High-Stakes, Action)
+ * - Dark BG: #020617 (Deep Obsidian)
+ * - Transition: 300ms cubic-bezier (Professional "Snap")
+ */
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Zap, Cpu, Play, ArrowRight, Terminal, Activity } from 'lucide-react';
@@ -14,25 +30,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewPrivacy,
   onViewTerms,
 }) => {
-  const { isRetro } = useTheme();
+  const { isRetro, toggleTheme, isTransitioning } = useTheme();
+
   return (
-    <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-[#d6b85c]/30 overflow-x-hidden allow-scroll">
-      {/* Background Effects - Casino Cyber Mix */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-[#020617] text-white font-sans selection:bg-[#d6b85c]/30 overflow-x-hidden allow-scroll"
+    >
+      {/* --- 00. BACKGROUND ARCHITECTURE --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {/* Ambient Glows */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#d6b85c]/5 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#b22222]/5 blur-[120px] rounded-full" />
+
+        {/* Texture Overlays */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.05]" />
 
-        {/* Animated Scanlines */}
+        {/* Dynamic Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent h-[2px] w-full animate-scanline" />
       </div>
-
-      {/* Navigation */}
+      {/* --- 01. NAVIGATION LAYER --- */}
       <nav
         id="top"
-        className="relative z-50 flex items-center justify-between px-6 py-8 mx-auto max-w-7xl"
+        className="relative z-50 flex items-center justify-between px-10 py-8 mx-auto max-w-7xl"
       >
-        <a href="#top" className="flex flex-col hover:opacity-80 transition-opacity">
+        {/* Branding Sub-module */}
+        <a
+          href="#top"
+          className="flex flex-col hover:opacity-80 transition-opacity pr-12 lg:pr-24"
+        >
           <span
             className={`text-2xl font-black tracking-tight uppercase font-display italic text-[#d6b85c] leading-tight ${!isRetro ? 'cyber-sway-text' : ''}`}
           >
@@ -45,46 +74,81 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </span>
         </a>
 
-        <div className="hidden md:flex items-center gap-10 text-[10px] font-black uppercase tracking-[0.2em] font-mono">
-          <div className="relative group/nav">
-            <div className="absolute -top-4 left-0 right-0 h-[2px] bg-[#b22222] shadow-[0_0_10px_rgba(178,34,34,0.5)]" />
+        {/* Global Nav Menu */}
+        <div className="hidden lg:flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] font-mono">
+          {/* Theme Switch Protocol Button */}
+          <div
+            className={`relative group/nav border ${isRetro ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]' : 'border-[#d6b85c]/30 bg-black/40'} hover:border-[#d6b85c] transition-all`}
+          >
+            <button
+              onClick={toggleTheme}
+              className="px-4 py-2 text-[#d6b85c] hover:text-white transition-colors flex items-center gap-2"
+            >
+              <Zap className={`w-3 h-3 ${isTransitioning ? 'animate-spin' : ''}`} />
+              {isRetro ? 'PROTOCOL: CYBER' : 'PROTOCOL: RETRO'}
+            </button>
+          </div>
+
+          {/* Standard Nav Links */}
+          <div
+            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all active:scale-95`}
+          >
             <a
               href="#engine"
-              className="text-slate-400 hover:text-white transition-colors"
+              className="block px-4 py-2 text-slate-400 hover:text-white transition-colors"
             >
               01. Engine
             </a>
           </div>
-          <div className="relative group/nav">
-            <div className="absolute -top-4 left-0 right-0 h-[2px] bg-[#b22222] shadow-[0_0_10px_rgba(178,34,34,0.5)]" />
+          <div
+            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all active:scale-95`}
+          >
             <a
               href="#pipeline"
-              className="text-slate-400 hover:text-white transition-colors"
+              className="block px-4 py-2 text-slate-400 hover:text-white transition-colors"
             >
-              02. Data Pipeline
+              02. Pipeline
             </a>
           </div>
-          <div className="relative group/nav">
-            <div className="absolute -top-4 left-0 right-0 h-[2px] bg-[#b22222] shadow-[0_0_10px_rgba(178,34,34,0.5)]" />
+          <div
+            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all active:scale-95`}
+          >
             <a
               href="#dev"
-              className="text-slate-400 hover:text-white transition-colors"
+              className="block px-4 py-2 text-slate-400 hover:text-white transition-colors"
             >
               03. Solo Dev
             </a>
           </div>
+          <div
+            className={`relative group/nav border ${isRetro ? 'border-zinc-500 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-white/20 hover:border-white/40 bg-white/5'} transition-all font-bold active:scale-95`}
+          >
+            <button
+              id="docs-nav-link"
+              onClick={() => (window.location.hash = '#docs')}
+              className="px-4 py-2 text-slate-400 hover:text-white transition-colors uppercase"
+            >
+              04. Documentation
+            </button>
+          </div>
+
+          {/* Primary Action */}
           <button
             onClick={onLaunch}
-            className="px-8 py-3 bg-[#d6b85c] text-black font-black rounded-sm hover:bg-white transition-all active:scale-95 shadow-[0_0_20px_rgba(214,184,92,0.3)]"
+            className={`px-6 py-2 bg-[#d6b85c] text-black font-black hover:bg-white transition-all active:scale-95 border border-[#d6b85c] ${
+              isRetro
+                ? 'shadow-[4px_4px_0px_rgba(214,184,92,0.4)]'
+                : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
+            }`}
           >
             EXECUTE ENGINE
           </button>
         </div>
       </nav>
-
-      {/* Hero Section */}
+      {/* --- 02. HERO & CTA STACK --- */}
       <header className="relative z-10 px-6 pt-24 pb-32 mx-auto max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-16 items-center">
+          {/* Main Messaging Sub-module */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -95,23 +159,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               SYSTEM STATUS: STANDBY_MODE (BETA_v1.0)
             </div>
 
-            <h1 className="text-7xl md:text-9xl font-black tracking-tighter mb-8 leading-[0.8] font-display italic">
+            <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter mb-8 leading-[0.9] md:leading-[0.8] font-display italic">
               HIGH STAKES <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white">
                 VOLATILITY
               </span>
             </h1>
 
-            <p className="max-w-xl text-lg text-slate-400 mb-12 leading-relaxed font-mono">
+            <p className="max-w-xl text-sm sm:text-base md:text-lg text-slate-400 mb-12 leading-relaxed font-mono">
               Crafting a <span className="text-[#d6b85c]">systematic bridge</span>{' '}
-              between live financial markets and rogue-lite hyper-casual gameplay. A
-              solo-indie endeavor pushing the limits of React-based game engineering.
+              between live financial markets and rogue-lite hyper-casual gameplay.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
               <button
                 onClick={onLaunch}
-                className="group relative px-10 py-5 bg-[#d6b85c] text-black font-black text-2xl hover:bg-[#ffd600] transition-all hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] flex items-center gap-3 active:scale-95 overflow-hidden"
+                className="group relative w-full sm:w-auto px-10 py-5 bg-[#d6b85c] text-black font-black text-xl sm:text-2xl hover:bg-[#ffd600] transition-all hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] flex items-center justify-center gap-3 active:scale-95 overflow-hidden"
               >
                 <div className="absolute inset-x-0 h-[2px] bg-white opacity-20 -top-full group-hover:top-full transition-all duration-700" />
                 <Play className="w-6 h-6 fill-current" />
@@ -121,7 +184,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <a
                 href="https://github.com/blntunlan/crypto-cyber-survivors"
                 target="_blank"
-                className="px-8 py-5 border border-[#b22222]/30 hover:bg-[#b22222]/10 transition-all flex items-center gap-3 font-bold text-xs tracking-widest uppercase text-slate-300"
+                className={`w-full sm:w-auto px-8 py-5 border transition-all flex items-center justify-center gap-3 font-bold text-xs tracking-widest uppercase text-slate-300
+                  ${isRetro ? 'border-white/20 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)] hover:bg-white/10' : 'border-[#b22222]/30 hover:bg-[#b22222]/10'}
+                `}
               >
                 <svg
                   className="w-5 h-5 flex-shrink-0"
@@ -135,7 +200,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </motion.div>
 
-          {/* Technical Terminal Visual */}
+          {/* Technical Terminal Sub-module */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -166,9 +231,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="text-green-400">
                   {'>>'} CONNECTION_ESTABLISHED: LATENCY 8ms
                 </div>
-                <div className="text-white">
-                  {'>>'} AI_DIRECTOR.LOAD_WEIGHTS(SYNAPTIC_NET)
-                </div>
                 <div className="text-[#d6b85c] font-bold">
                   {'>>'} STATUS: READY_FOR_DEPLOYMENT
                 </div>
@@ -187,8 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
         </div>
       </header>
-
-      {/* Engineering Excellence Section */}
+      {/* --- 03. ENGINEERING EXCELLENCE SHOWCASE --- */}
       <section
         id="engine"
         className="relative z-10 py-32 border-y border-[#b22222]/10 bg-[#b22222]/[0.02]"
@@ -205,37 +266,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
+          {/* Grid Layout Sub-module */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
                 tag: 'MEMORY',
                 title: 'O(1) POOLING',
-                desc: 'Zero-allocation game loop using advanced object pooling to prevent GC spikes in high-frequency rendering.',
+                desc: 'Zero-allocation game loop using advanced object pooling to prevent GC spikes.',
                 icon: Cpu,
               },
               {
                 tag: 'PHYSICS',
                 title: 'SPATIAL GRID',
-                desc: 'Custom Spatial Hashing for collision detection, ensuring O(N) complexity even with 500+ active entities.',
+                desc: 'Custom Spatial Hashing for collision detection, ensuring O(N) complexity.',
                 icon: Shield,
               },
               {
                 tag: 'STATE',
                 title: 'DECOUPLED ZUSTAND',
-                desc: 'Atomic state management with manual subscription control for React-safe 60FPS UI synchronization.',
+                desc: 'Atomic state management with manual subscription control for 60FPS sync.',
                 icon: Activity,
               },
               {
                 tag: 'BACKEND',
                 title: 'SECURE PIPELINE',
-                desc: 'Supabase RLS coupled with Google App Engine microservices for bulletproof anti-cheat validation.',
+                desc: 'Supabase RLS coupled with Edge Functions for bulletproof validation.',
                 icon: Shield,
               },
             ].map((card, i) => (
               <div
                 key={i}
                 id={card.tag === 'BACKEND' ? 'pipeline' : undefined}
-                className="group p-6 border border-white/5 bg-white/5 hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5 transition-all"
+                className={`group p-6 border transition-all active:scale-[0.98]
+                  ${
+                    isRetro
+                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)] hover:border-[#d6b85c]/40'
+                      : 'border-white/5 bg-white/5 hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5 hover:scale-[1.02]'
+                  }
+                `}
               >
                 <div className="text-[10px] font-black text-[#b22222] mb-4 font-mono tracking-widest">
                   {card.tag}
@@ -243,7 +311,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <h3 className="text-xl font-bold text-white mb-4 font-display italic tracking-wide group-hover:text-[#d6b85c] transition-colors">
                   {card.title}
                 </h3>
-                <p className="text-xs text-slate-500 leading-relaxed font-mono">
+                <p className="text-xs text-slate-500 leading-relaxed font-mono min-h-[48px]">
                   {card.desc}
                 </p>
               </div>
@@ -251,34 +319,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Solo Dev Logic Flow */}
+      {/* --- 04. SOLO DEV ARCHITECTURE FLOW --- */}
       <section id="dev" className="relative z-10 py-32 px-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
+            {/* Descriptive Content */}
             <div>
               <Terminal className="text-[#d6b85c] mb-8 w-12 h-12" />
               <h3 className="text-4xl md:text-5xl font-black mb-8 font-display italic uppercase">
-                Ultra-Innovative <br />
-                Architecture
+                Ultra-Innovative Architecture
               </h3>
               <p className="text-slate-400 mb-8 font-mono text-sm leading-relaxed">
                 As a solo indie developer, my requirement was simple: build a system
-                that manages itself. The{' '}
-                <span className="text-[#d6b85c] font-bold">Neural AIDirector</span>{' '}
-                monitors your performance, while the
-                <span className="text-[#b22222] font-bold">Market Bridge</span> adjusts
-                enemy stats based on BTC volatility. No manual balance adjustments—just
-                systemic intelligence.
+                that manages itself.
               </p>
 
               <div className="flex flex-wrap gap-4">
                 {[
                   'React 19',
                   'TSX Engine',
-                  'Node.js',
                   'Supabase',
-                  'Google Cloud',
                   'Framer Motion',
                   'Synaptic AI',
                 ].map(tag => (
@@ -292,6 +352,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
+            {/* Visual Logic Diagram Sub-module */}
             <div className="p-8 border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 font-mono text-[10px] text-[#d6b85c]/50">
                 INTERNAL_PROTOCOL_LOG
@@ -315,8 +376,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       Real-Time Integrity
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">
-                      WSS feed failover ensures zero game interruption during market
-                      spikes.
+                      WSS feed failover ensures zero game interruption.
                     </div>
                   </div>
                 </div>
@@ -327,12 +387,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       60 FPS Native
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">
-                      Canvas-optimized rendering pipeline bypasses React DOM overhead.
+                      Canvas-optimized rendering pipeline bypasses DOM overhead.
                     </div>
                   </div>
                 </div>
               </div>
-              {/* Decorative Corner */}
               <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#d6b85c]/20 clip-path-poly flex items-center justify-center">
                 <Zap className="w-3 h-3 text-[#d6b85c]" />
               </div>
@@ -340,10 +399,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Footer / Legal */}
+      {/* --- 05. FOOTER & LEGAL --- */}
       <footer className="relative z-10 py-20 px-6 border-t border-[#b22222]/20 bg-black">
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-start md:items-center gap-12">
+          {/* Logo & Trademark */}
           <div>
             <div className="flex flex-col mb-6">
               <span
@@ -362,9 +421,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
 
+          {/* Regulatory Navigation */}
           <div className="flex flex-wrap gap-8 text-[10px] font-black uppercase tracking-[0.2em] font-mono text-slate-500">
-            <div className="relative group/nav">
-              <div className="absolute -top-4 left-0 right-0 h-[2px] bg-[#b22222] shadow-[0_0_10px_rgba(178,34,34,0.5)]" />
+            <div
+              className={`relative group/nav border ${isRetro ? 'border-[#b22222]/30 shadow-[4px_4px_0px_rgba(178,34,34,0.1)]' : 'border-[#b22222]/30'} hover:border-[#b22222] transition-colors px-4 py-2 active:scale-95`}
+            >
               <button
                 onClick={onLaunch}
                 className="hover:text-[#d6b85c] transition-colors"
@@ -372,68 +433,52 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Access_Terminal
               </button>
             </div>
-            <button
-              onClick={onViewPrivacy}
-              className="hover:text-[#d6b85c] transition-colors"
+            <div
+              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-colors px-4 py-2 active:scale-95`}
             >
-              Privacy_Doc
-            </button>
-            <button
-              onClick={onViewTerms}
-              className="hover:text-[#d6b85c] transition-colors"
+              <button onClick={onViewPrivacy}>Privacy_Doc</button>
+            </div>
+            <div
+              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-colors px-4 py-2 active:scale-95`}
             >
-              Terms_Doc
-            </button>
-            <a
-              href="mailto:info@crypto-survivors.com"
-              className="hover:text-[#b22222] transition-colors"
+              <button onClick={onViewTerms}>Terms_Doc</button>
+            </div>
+            <div
+              className={`relative group/nav border border-[#b22222]/20 hover:border-[#b22222] transition-colors px-4 py-2 active:scale-95`}
             >
-              Contact_Channel
-            </a>
+              <a href="mailto:info@crypto-survivors.com">Contact_Channel</a>
+            </div>
           </div>
         </div>
       </footer>
-
-      {/* Floating Back to Top Button */}
+      {/* Utilities: Back to Top */}
       <motion.button
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         onClick={() => {
           const topEl = document.getElementById('top');
-          if (topEl) {
-            topEl.scrollIntoView({ behavior: 'smooth' });
-          } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+          if (topEl) topEl.scrollIntoView({ behavior: 'smooth' });
+          else window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`
-          fixed bottom-8 right-8 z-[60] px-4 py-3 border backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation
-          text-sm font-cyber uppercase tracking-wider
+        className={`fixed bottom-8 right-8 z-[60] px-4 py-3 border backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation
+          text-sm font-black uppercase tracking-wider
           ${
             isRetro
-              ? 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-white rounded-none'
-              : 'bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl'
+              ? 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-white rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+              : 'bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]'
           }
         `}
         title="Back to Top"
       >
         ↑ TOP
       </motion.button>
-
-      {/* Global Style Injection for unique animations */}
+      {/* --- 06. GLOBAL STYLE INJECTIONS --- */}
       <style>{`
-        @keyframes scanline {
-          0% { top: -10%; }
-          100% { top: 110%; }
-        }
-        .animate-scanline {
-          animation: scanline 8s linear infinite;
-        }
-        .clip-path-poly {
-          clip-path: polygon(100% 0, 100% 100%, 0 100%);
-        }
+        @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
+        .animate-scanline { animation: scanline 8s linear infinite; }
+        .clip-path-poly { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
         .font-display { font-family: 'Orbitron', sans-serif; }
       `}</style>
-    </div>
+    </motion.div>
   );
 };

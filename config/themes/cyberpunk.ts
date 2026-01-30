@@ -15,9 +15,9 @@ export const cyberpunkTheme: ThemeConfig = {
   displayName: 'Cyberpunk',
 
   colors: {
-    primary: '#00ffff', // Cyan
-    secondary: '#ff00ff', // Magenta
-    accent: '#ffff00', // Yellow
+    primary: '#d6b85c', // Casino Gold
+    secondary: '#b22222', // Casino Red
+    accent: '#00ffff', // Cyan accent
     background: '#0a0a0f', // Deep dark
     surface: 'rgba(20, 20, 40, 0.85)',
     text: '#ffffff',
@@ -28,11 +28,11 @@ export const cyberpunkTheme: ThemeConfig = {
     // Game-specific
     health: '#ff4444',
     xp: '#00ffff',
-    combo: '#ffff00',
+    combo: '#d6b85c',
   },
 
   fonts: {
-    display: '"Audiowide", system-ui, sans-serif',
+    display: '"Orbitron", system-ui, sans-serif',
     primary: '"Chakra Petch", sans-serif',
     secondary: '"Michroma", sans-serif',
     mono: '"Quantico", monospace',

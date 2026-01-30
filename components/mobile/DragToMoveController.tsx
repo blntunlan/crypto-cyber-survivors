@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { DRAG_THRESHOLDS } from '../../types/MobileSettings';
 import { Z_LAYERS } from '../../constants/ZIndex';
+import { useTheme } from '../../contexts/useTheme';
 
 interface DragState {
   active: boolean;
@@ -30,6 +31,12 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
   sensitivity = 1.0,
   scale = 1.0,
 }) => {
+  const { theme } = useTheme();
+  const accentColor = theme.colors.primary;
+  const accentColorRgb = theme.colors.primary.startsWith('#')
+    ? hexToRgb(theme.colors.primary)
+    : '34, 211, 238';
+
   // 1. Logic State (Ref) - Zero Latency
   const dragRef = useRef<DragState>({
     active: false,
@@ -230,7 +237,7 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
               y1={dragRef.current.startY}
               x2={uiState.currentX}
               y2={uiState.currentY}
-              stroke={`rgba(34, 211, 238, ${0.3 + uiState.speed * 0.5})`}
+              stroke={`rgba(${accentColorRgb}, ${0.3 + uiState.speed * 0.5})`}
               strokeWidth={2 + uiState.speed * 2}
               strokeLinecap="round"
             />
@@ -241,17 +248,28 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
             style={{
               left: uiState.currentX,
               top: uiState.currentY,
-              background: `radial-gradient(circle, rgba(34, 211, 238, ${0.3 + uiState.speed * 0.4}) 0%, transparent 70%)`,
+              background: `radial-gradient(circle, rgba(${accentColorRgb}, ${0.3 + uiState.speed * 0.4}) 0%, transparent 70%)`,
             }}
           />
         </>
       )}
 
       {secondTouchActive && (
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl text-cyan-400/80 pointer-events-none z-[1003] animate-pulse">
+        <div
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl pointer-events-none z-[1003] animate-pulse"
+          style={{ color: accentColor }}
+        >
           ⚡
         </div>
       )}
     </div>
   );
 };
+
+// Helper to convert hex to rgb string
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+    : '255, 255, 255';
+}

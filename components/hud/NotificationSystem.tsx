@@ -101,6 +101,12 @@ export const NotificationSystem: React.FC = () => {
       duration?: number;
     }) => {
       const type = data.type ?? 'info';
+
+      // Only show error and warning popups in development to avoid spamming production users
+      // with technical system errors. Market events are already handled below.
+      if (!import.meta.env.DEV && (type === 'error' || type === 'warning')) {
+        return;
+      }
       const colors = {
         error: '#f87171',
         success: '#4ade80',

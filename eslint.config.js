@@ -27,6 +27,7 @@ export default tseslint.config(
       'supabase/functions/**', // Deno environment - different runtime
       'railway-market-server/**',
       'scripts/**',
+      'e2e/**', // Playwright tests - separate environment
     ],
   },
 

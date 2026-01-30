@@ -7,6 +7,8 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { EventBus } from '../../services/core/EventBus';
+import { useTheme } from '../../contexts/useTheme';
+import { Zap } from 'lucide-react';
 
 interface DashButtonProps {
   /** Called when dash is triggered (press start) */
@@ -31,11 +33,16 @@ export const DashButton: React.FC<DashButtonProps> = ({
   hapticFeedback = true,
   disabled = false,
 }) => {
+  const { theme, isRetro } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [totalCooldownDuration, setTotalCooldownDuration] = useState(cooldownMs);
 
   const isReady = cooldownRemaining <= 0 && !disabled;
+  const accentColor = theme.colors.primary;
+  const accentColorRgb = theme.colors.primary.startsWith('#')
+    ? hexToRgb(theme.colors.primary)
+    : '34, 211, 238';
 
   // Cooldown timer
   useEffect(() => {
@@ -94,17 +101,17 @@ export const DashButton: React.FC<DashButtonProps> = ({
     position: 'relative',
     width: size,
     height: size,
-    borderRadius: '50%',
+    borderRadius: isRetro ? '0' : '50%',
     background: isPressed
-      ? 'radial-gradient(circle, rgba(34, 211, 238, 0.8) 0%, rgba(34, 211, 238, 0.4) 100%)'
+      ? `radial-gradient(circle, rgba(${accentColorRgb}, 0.8) 0%, rgba(${accentColorRgb}, 0.4) 100%)`
       : isReady
         ? 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%)'
         : 'radial-gradient(circle, rgba(100, 100, 100, 0.3) 0%, rgba(100, 100, 100, 0.1) 100%)',
-    border: `3px solid ${isReady ? 'rgba(34, 211, 238, 0.6)' : 'rgba(100, 100, 100, 0.4)'}`,
+    border: `${isRetro ? '4px' : '3px'} solid ${isReady ? accentColor : 'rgba(100, 100, 100, 0.4)'}`,
     boxShadow: isPressed
-      ? '0 0 30px rgba(34, 211, 238, 0.6), inset 0 0 20px rgba(34, 211, 238, 0.3)'
+      ? `0 0 30px rgba(${accentColorRgb}, 0.6), inset 0 0 20px rgba(${accentColorRgb}, 0.3)`
       : isReady
-        ? '0 0 15px rgba(34, 211, 238, 0.3)'
+        ? `0 0 15px rgba(${accentColorRgb}, 0.3)`
         : 'none',
     display: 'flex',
     justifyContent: 'center',
@@ -117,10 +124,12 @@ export const DashButton: React.FC<DashButtonProps> = ({
   };
 
   const iconStyle: React.CSSProperties = {
-    fontSize: size * 0.35,
-    color: isReady ? '#22d3ee' : 'rgba(255, 255, 255, 0.4)',
+    width: size * 0.5,
+    height: size * 0.5,
+    color: isReady ? (isRetro ? '#ffffff' : accentColor) : 'rgba(255, 255, 255, 0.4)',
     pointerEvents: 'none',
     zIndex: 1,
+    fill: isPressed ? 'currentColor' : 'none',
   };
 
   const cooldownOverlayStyle: React.CSSProperties = {
@@ -136,14 +145,17 @@ export const DashButton: React.FC<DashButtonProps> = ({
 
   const labelStyle: React.CSSProperties = {
     position: 'absolute',
-    bottom: -20,
+    bottom: isRetro ? 4 : 8,
     left: '50%',
     transform: 'translateX(-50%)',
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: isRetro ? 8 : 10,
+    color: isReady ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
+    fontFamily: isRetro ? '"Pixelify Sans", cursive' : 'inherit',
+    fontWeight: 'bold',
     letterSpacing: 1,
     whiteSpace: 'nowrap',
+    zIndex: 2,
   };
 
   return (
@@ -154,8 +166,16 @@ export const DashButton: React.FC<DashButtonProps> = ({
       onTouchCancel={handleTouchEnd}
     >
       {cooldownRemaining > 0 && <div style={cooldownOverlayStyle} />}
-      <span style={iconStyle}>⚡</span>
+      <Zap style={iconStyle} />
       <span style={labelStyle}>DASH</span>
     </div>
   );
 };
+
+// Helper to convert hex to rgb string
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+    : '255, 255, 255';
+}

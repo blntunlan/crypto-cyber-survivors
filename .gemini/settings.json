@@ -4,5 +4,12 @@
       "url": "https://mcp.supabase.com/mcp",
       "type": "http"
     }
+  },
+  "skills": {
+    "disabled": [
+      "supabase-db-engineer",
+      "chrome-devtools",
+      "test-autofix"
+    ]
   }
 }

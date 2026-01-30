@@ -1,0 +1,37 @@
+{
+  "sidebar": [
+    {
+      "text": "Getting Started",
+      "items": [
+        { "text": "System Overview", "link": "/docs/SYSTEM_OVERVIEW" },
+        { "text": "Documentation Hub", "link": "/docs/DOCUMENTATION_HUB" }
+      ]
+    },
+    {
+      "text": "Technical Architecture",
+      "items": [
+        { "text": "General Architecture", "link": "/docs/ARCHITECTURE" },
+        { "text": "Database Schema", "link": "/docs/DATABASE_SCHEMA" },
+        { "text": "Security & Anti-Cheat", "link": "/docs/services/SECURITY_ARCHITECTURE" }
+      ]
+    },
+    {
+      "text": "Game Systems",
+      "items": [
+        { "text": "Character System", "link": "/docs/PLAYER_CHARACTER_SYSTEM" },
+        { "text": "Enemy System", "link": "/docs/ENEMY_SYSTEM" },
+        { "text": "Stat System", "link": "/docs/STAT_SYSTEM" },
+        { "text": "Lootbox & Inventory", "link": "/docs/LOOTBOX_SYSTEM" }
+      ]
+    },
+    {
+      "text": "AI & Data Engines",
+      "items": [
+        { "text": "Market Engine", "link": "/docs/services/MarketService" },
+        { "text": "Neural AI Director", "link": "/docs/services/AIDirector" },
+        { "text": "Difficulty Manager", "link": "/docs/services/DifficultyManager" },
+        { "text": "Darwin (AI Training)", "link": "/docs/services/AI_TRAINING_WORKFLOW" }
+      ]
+    }
+  ]
+}

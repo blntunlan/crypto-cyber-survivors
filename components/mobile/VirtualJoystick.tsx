@@ -7,6 +7,7 @@
 
 import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { JOYSTICK_SIZES, type JoystickSize } from '../../types/MobileSettings';
+import { useTheme } from '../../contexts/useTheme';
 
 interface JoystickState {
   active: boolean;
@@ -40,6 +41,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
   disabled = false,
   scale = 1,
 }) => {
+  const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<JoystickState>({
     active: false,
@@ -54,6 +56,11 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
   const joystickSize = baseSize * scale;
   const thumbSize = joystickSize * 0.4;
   const maxDistance = (joystickSize - thumbSize) / 2;
+
+  const accentColor = theme.colors.primary;
+  const accentColorRgb = theme.colors.primary.startsWith('#')
+    ? hexToRgb(theme.colors.primary)
+    : '34, 211, 238'; // Fallback
 
   // Calculate thumb position relative to center
   const getThumbOffset = useCallback(() => {
@@ -189,10 +196,11 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
     height: joystickSize,
     borderRadius: '50%',
     background: 'rgba(255, 255, 255, 0.1)',
-    border: '2px solid rgba(255, 255, 255, 0.2)',
+    border: `2px solid ${state.active ? accentColor : 'rgba(255, 255, 255, 0.2)'}`,
     touchAction: 'none',
     userSelect: 'none',
     opacity: disabled ? 0.5 : 1,
+    transition: 'border-color 0.2s ease',
   };
 
   const thumbStyle: React.CSSProperties = {
@@ -201,10 +209,10 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
     height: thumbSize,
     borderRadius: '50%',
     background: state.active
-      ? 'radial-gradient(circle, rgba(34, 211, 238, 0.9) 0%, rgba(34, 211, 238, 0.5) 100%)'
+      ? `radial-gradient(circle, rgba(${accentColorRgb}, 0.9) 0%, rgba(${accentColorRgb}, 0.5) 100%)`
       : 'radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%)',
     boxShadow: state.active
-      ? '0 0 20px rgba(34, 211, 238, 0.5)'
+      ? `0 0 20px rgba(${accentColorRgb}, 0.5)`
       : '0 0 10px rgba(255, 255, 255, 0.2)',
     left: '50%',
     top: '50%',
@@ -226,3 +234,15 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
     </div>
   );
 };
+
+// Helper to convert hex to rgb string
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return '255, 255, 255';
+
+  const r = result[1] ?? '255';
+  const g = result[2] ?? '255';
+  const b = result[3] ?? '255';
+
+  return `${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}`;
+}

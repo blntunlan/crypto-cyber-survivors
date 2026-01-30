@@ -248,7 +248,7 @@ const StatItem: React.FC<StatItemProps & { isRetro?: boolean }> = ({
     </p>
     <p
       className={`${sizes.heading} font-black ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
-      style={{ color }}
+      style={{ color: isRetro && color === '#ffffff' ? '#ffffff' : color }}
     >
       {value}
     </p>

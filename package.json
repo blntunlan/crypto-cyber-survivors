@@ -4,8 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --open",
-    "build": "vite build",
+    "dev": "node scripts/sync-docs.js ; vite --open",
+    "build": "node scripts/sync-docs.js ; vite build",
+    "docs:sync": "node scripts/sync-docs.js",
     "start": "serve -s dist -l $PORT",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -87,12 +88,15 @@
     "node": ">=22.0.0"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
+    "!(public|coverage|dist|node_modules|playwright-report|test-results)/**/*.{ts,tsx}": [
+      "eslint --fix --no-warn-ignored",
       "prettier --write",
       "vitest related --run"
     ],
-    "*.{json,css,md}": [
+    "!(public|coverage|dist|node_modules|playwright-report|test-results)/**/*.{json,css}": [
+      "prettier --write"
+    ],
+    "!(public|coverage|dist|node_modules|playwright-report|test-results)/**/*.md": [
       "prettier --write"
     ]
   }

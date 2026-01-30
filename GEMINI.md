@@ -1,54 +1,45 @@
-# 🎮 Crypto Survivors - Claude Proje Bağlam Dosyası
+# 🎮 Crypto Survivors - Claude Project Context File
 
-> Bu dosya Claude'un projeyi daha iyi anlaması için otomatik olarak okunur.
-> Son Güncelleme: 2026-01-26
+> This file is automatically read for Claude to better understand the project.
+> Last Update: 2026-01-31
 
-## 📋 Proje Özeti
+## 📋 Project Summary
 
-Crypto-themed vampire survivors oyunu. React 19 + TypeScript + Vite + Zustand ile geliştirilmiş.
-Gerçek zamanlı BTC/USD fiyat verilerini Binance & Coinbase WebSocket (Price) ve Supabase Realtime (Indicators) üzerinden alır. Windows üzerinden geliştirdiğim için && kullanma ; kullan.
-**Difficulty System V2 (Layered Architecture)**, **Tutorial System**, **Neural AIDirector** (Synaptic tabanlı) ve **Cloudflare Anti-Cheat** entegre edilmiştir.
-**Casual/Competitive oyun modları**, PWA desteği ve tam kapsamlı tutorial akışı mevcuttur.
-Büyük diller (ES, PT, HI, VI, ZH, RU) tam desteklidir.
+Crypto-themed vampire survivors game. Developed with React 19 + TypeScript + Vite + Zustand.
+It receives real-time BTC/USD price data via Binance & Coinbase WebSocket (Price) and Supabase Realtime (Indicators). Since I am developing on Windows, avoid using `&&`, use `;`.
+**Difficulty System V2 (Layered Architecture)**, **Tutorial System**, **Neural AIDirector** (Synaptic based) and **Cloudflare Anti-Cheat** are integrated.
+**Casual/Competitive game modes**, PWA support and full tutorial flow are available.
+Major languages (ES, PT, HI, VI, ZH, RU) are fully supported.
 
 **DB Optimization:** Migration 026 added JSONB support for cheat logs, fixed transaction constraints for achievements, and implemented BRIN indexes for performance.
 
-**QA & Testing:** Professional testing lifecycle (Level 0-8) active. Vitest + MSW for integration, Playwright for E2E. Mandatory pre-commit tests via Husky + lint-staged. Coverage global %70+, kritik servisler %80+.
-
-## 🛠️ Sık Kullanılan Komutlar
+## 🛠️ Frequently Used Commands
 
 ```bash
-# Geliştirme
-npm run dev              # Dev server başlat (port 3000)
+# Development
+npm run dev              # Start dev server (port 3000)
 npm run build            # Production build
-npm run docs             # TypeDoc dökümantasyonu oluştur
+npm run docs             # Generate TypeDoc documentation
 
-# Veritabanı
-npm run supabase:gen     # Supabase type'larını güncelle
+# Database
+npm run supabase:gen     # Update Supabase types
 
-# Test
-npm run test             # Vitest unit testlerini çalıştır
-npm run test:watch       # Watch modunda test
-npm run test:coverage    # Coverage raporu
-npm run test:e2e         # Playwright E2E testleri
-npm run test:e2e:ui      # Playwright UI mode
-
-# Kod Kalitesi
-npm run lint             # ESLint kontrol
-npm run lint:fix         # ESLint hataları düzelt
-npm run format           # Prettier ile formatla
+# Code Quality
+npm run lint             # ESLint check
+npm run lint:fix         # Fix ESLint errors
+npm run format           # Format with Prettier
 ```
 
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 crypto-cyber-survivors/
-├── App.tsx                    # Ana uygulama bileşeni
-├── components/                # React bileşenleri (View Layer Only)
+├── App.tsx                    # Main application component
+├── components/                # React components (View Layer Only)
 │   ├── GameEngine.tsx        # Canvas render loop (No React State Updates in Loop!)
 │   ├── GameUI.tsx            # Responsive React HUD (Main)
 │   └── ...
-├── config/                    # Oyun konfigürasyonları (Magic Numbers Yasak)
+├── config/                    # Game configurations (Magic Numbers Forbidden)
 ├── services/                  # Singleton Services (Logic Layer)
 │   ├── DifficultyManager.ts  # Consumer of V2 System
 │   ├── difficulty/           # V2 Layered Architecture (Inputs -> Context -> Director)
@@ -64,63 +55,61 @@ crypto-cyber-survivors/
 └── docs/                      # Documentation
 ```
 
-## 🎯 Kodlama ve Mimari Standartları
+## 🎯 Coding and Architectural Standards
 
-### 1. Performans Yasaları (Performance is Law)
-- **GC-Free Loop:** Oyun döngüsü (Game Loop) içinde bellek tahsisi (new Object, Array map/filter) **YASAKTIR**.
-- **Object Pooling:** Mermi, Düşman, Particle üretirken ASLA `new Entity()` kullanma. Mutlaka `PoolManager.spawn()` kullan.
-- **Spatial Hashing:** Çarpışma ve mesafe kontrolleri için O(N^2) döngüler yasak. `SpatialGrid` kullan.
-- **Referanslar:** Her frame değişen veriler (Position, Velocity) için React State değil, `useRef` veya `Singleton Service` kullan.
+### 1. Performance Laws (Performance is Law)
+- **GC-Free Loop:** Memory allocation (new Object, Array map/filter) inside the Game Loop is **FORBIDDEN**.
+- **Object Pooling:** NVER use `new Entity()` when spawning Bullet, Customer, Particle. MUST use `PoolManager.spawn()`.
+- **Spatial Hashing:** O(N^2) loops for collision and distance checks are forbidden. Use `SpatialGrid`.
+- **References:** Use `useRef` or `Singleton Service` for data changing every frame (Position, Velocity), NOT React State.
 
-### 2. Mimari Desenler (Architectural Patterns)
-- **Singleton Services:** `CombatSystem`, `DifficultyManager` gibi core sistemler Singleton olmalıdır.
-- **EventBus İletişimi:** Servisler birbirini doğrudan çağırmamalı, `EventBus.emit()` ile haberleşmelidir.
-- **Katmanlı Zorluk (Difficulty V2):**
+### 2. Architectural Patterns
+- **Singleton Services:** Core systems like `CombatSystem`, `DifficultyManager` must be Singleton.
+- **EventBus Communication:** Services should not call each other directly, communicate via `EventBus.emit()`.
+- **Layered Difficulty (Difficulty V2):**
   1. **Inputs:** `DifficultyContext.updateInputs()`
-  2. **Analysis:** `DifficultyContext` faktörleri toplar.
-  3. **Directing:** `AIDirector` nöral/sinaptik modifikasyon uygular.
-  4. **Output:** `DifficultyManager` oyun parametrelerine map eder.
+  2. **Analysis:** `DifficultyContext` aggregates factors.
+  3. **Directing:** `AIDirector` applies neural/synaptic modification.
+  4. **Output:** `DifficultyManager` maps to game parameters.
 
-### 3. State Yönetimi
-- **Zustand:** Yüksek frekanslı global state için (örn: UI güncellemeleri).
-- **React Context:** Sadece statik/düşük frekanslı state için (Theme, Language, User).
-- **Service State:** Oyun mantığı state'i servislerin içinde tutulur (`GameStore` değil).
+### 3. State Management
+- **Zustand:** For high-frequency global state (e.g., UI updates).
+- **React Context:** Only for static/low-frequency state (Theme, Language, User).
+- **Service State:** Game logic state is kept inside services (not `GameStore`).
 
-### 4. TypeScript Kuralları
-- **Strict Mode:** `any` yasak. Type Guard'lar ve Generics kullan.
-- **Adlandırma:** Variable/Function -> `camelCase`, Class/Component -> `PascalCase`, Constant -> `UPPER_SNAKE_CASE`.
+### 4. TypeScript Rules
+- **Strict Mode:** `any` is forbidden. Use Type Guards and Generics.
+- **Naming:** Variable/Function -> `camelCase`, Class/Component -> `PascalCase`, Constant -> `UPPER_SNAKE_CASE`.
 
-## ⚠️ Önemli Kurallar (Do's & Don'ts)
+## ⚠️ Important Rules (Do's & Don'ts)
 
-### YAPMAMALISIN
-1. ❌ `GameEngine` render döngüsü içinde `useState` güncellemesi yapma (React Render Cycle'ı bozar).
-2. ❌ Servisler içinde UI kodu (React Component) barındırma.
-3. ❌ `.env*` veya API Key commit etme.
-4. ❌ `Logger` çağrılarını silme (Anti-Cheat analizi için kritiktir).
-5. ❌ Test yazmadan "feature" ekleme.
+### You Should NOT
+1. ❌ Perform `useState` updates inside `GameEngine` render loop (Breaks React Render Cycle).
+2. ❌ Host UI code (React Component) inside Services.
+3. ❌ Commit `.env*` or API Keys.
+4. ❌ Delete `Logger` calls (Critical for Anti-Cheat analysis).
+5. ❌ Add a "feature" without writing tests.
 
-### YAPMALISIN
-1. ✅ Yeni bir Entity eklerken `PoolManager`'a kaydet.
-2. ✅ Logic değişiklikleri için Unit Test (Vitest), akış değişiklikleri için E2E (Playwright) yaz.
-3. ✅ Network isteklerini (API) test ederken MSW ile mockla.
-4. ✅ Commit mesajlarında conventional commits kullan (`feat:`, `fix:`, `perf:`).
+### You SHOULD
+1. ✅ Register new Entities to `PoolManager` when adding them.
+2. ✅ Mock with MSW when testing Network requests (API).
+3. ✅ Use conventional commits in commit messages (`feat:`, `fix:`, `perf:`).
 
-## 🔌 Entegrasyonlar & Debug
+## 🔌 Integrations & Debug
 
 ### Supabase & Auth
-- **Tables**: `players`, `game_sessions`, `achievements`. RLS aktif.
+- **Tables**: `players`, `game_sessions`, `achievements`. RLS active.
 - **Functions**: `verify-game` (Anti-Cheat on-submit validation).
 
-### Debug Araçları
+### Debug Tools
 - **Admin Dashboard**: `Ctrl+Shift+A` (Metrics, Console, State).
-- **Cheat Manager**: Development modda `F1`.
-- **Logger**: `Logger.info()`, `Logger.warn()` kullan. `console.log` bırakma.
+- **Cheat Manager**: `F1` in Development mode.
+- **Logger**: Use `Logger.info()`, `Logger.warn()`. Do not leave `console.log`.
+- **documentation-system**: Capability to manage project documentation, generate API docs, and maintain documentation standards.
 
-## 📝 Workflow'lar
-Detaylı süreçler `.agent/workflows/` altında:
-- `/qa-lifestyle-workflow` (Level 0-8 Test Döngüsü)
+## 📝 Workflows
+Detailed processes under `.agent/workflows/`:
 - `/deploySon` (Deployment)
-- `/performance-testing` (Benchmark)
 
 ## 🚀 Deployment
 ```bash
@@ -129,4 +118,4 @@ npm run deploy # git push origin main
 ```
 
 ---
-*Bu dosya proje kurallarının TEK gerçeğidir.*
+*This file is the SINGLE source of truth for project rules.*
