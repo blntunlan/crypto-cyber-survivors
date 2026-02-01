@@ -286,65 +286,69 @@ class DifficultyManagerClass {
     return this.latestOutput;
   }
 
+  /**
+   * @deprecated AI Director V2: Wave phases removed - always returns 'active'
+   */
   getWavePhase(): WavePhase {
-    return difficultyContext.getContext().factors.wavePhase as WavePhase;
+    return 'active'; // AI Director V2: Always active
   }
 
   getKillStreak(): number {
     return this.killStreak;
   }
 
+  /**
+   * @deprecated AI Director V2: Wave cycles removed
+   */
   getCycleNumber(): number {
     const totalSeconds = TimeService.getGameTimeSeconds();
     return Math.floor(totalSeconds / 300) + 1;
   }
 
+  /**
+   * @deprecated AI Director V2: Wave cycles removed
+   */
   getCycleProgress(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
     const cycleElapsed = totalElapsed % WAVE_CONFIG.TOTAL_DURATION;
     return cycleElapsed / WAVE_CONFIG.TOTAL_DURATION;
   }
 
+  /**
+   * @deprecated AI Director V2: Wave phases removed - always returns 0
+   */
   getTimeRemainingInPhase(): number {
-    const phase = this.getWavePhase();
-    const totalElapsed = TimeService.getGameTimeSeconds();
-    const timeInCycle = totalElapsed % 300;
-
-    let accumulated = 0;
-    for (const p of WAVE_CONFIG.PHASE_ORDER) {
-      const phaseConfig = WAVE_CONFIG.PHASES.find(pc => pc.name === p);
-      const d = phaseConfig?.duration ?? 0;
-      if (p === phase) {
-        return Math.max(0, d - (timeInCycle - accumulated));
-      }
-      accumulated += d;
-    }
-    return 0;
+    return 0; // AI Director V2: No phases
   }
 
+  /**
+   * @deprecated AI Director V2: Wave phases removed - always returns 1.0
+   */
   getWaveMultiplier(): number {
-    const phase = this.getWavePhase();
-    const phaseConfig = WAVE_CONFIG.PHASES.find(pc => pc.name === phase);
-    return phaseConfig?.multiplier ?? 1.0;
+    return 1.0; // AI Director V2: No wave multiplier
   }
 
+  /**
+   * @deprecated AI Director V2: Wave cycles removed
+   */
   getTimeRemainingInCycle(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
     const cycleElapsed = totalElapsed % WAVE_CONFIG.TOTAL_DURATION;
     return WAVE_CONFIG.TOTAL_DURATION - cycleElapsed;
   }
 
+  /**
+   * @deprecated AI Director V2: Wave cycles removed - always returns false
+   */
   isCycleComplete(): boolean {
-    const phase = this.getWavePhase();
-    return phase === 'resolution' && this.getTimeRemainingInPhase() < 0.1;
+    return false; // AI Director V2: No wave cycles
   }
 
   getDebugState(): DifficultyDebugState {
-    const ctx = difficultyContext.getContext();
     return {
       systemName: 'DifficultyManager',
       timestamp: getDebugTimestamp(),
-      wavePhase: ctx.factors.wavePhase as WavePhase,
+      wavePhase: 'active' as WavePhase, // AI Director V2: Always active
       waveTimer: 0, // Simplified
       killStreak: this.killStreak,
       totalElapsedSeconds: TimeService.getGameTimeSeconds(),
