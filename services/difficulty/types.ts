@@ -1,15 +1,21 @@
 import type { MarketPosition } from '../../types';
 import type { MACDResult } from '../../types/indicators';
 
-/** Wave phase names */
+/**
+ * Wave phase names
+ * @deprecated Wave phases have been removed in AI Director V2.
+ * Difficulty is now driven by market conditions and player flow state.
+ * Keeping this type for legacy compatibility.
+ */
 export type WavePhase =
-  | 'warmup'
-  | 'buildup'
-  | 'firstPeak'
-  | 'breather'
-  | 'escalation'
-  | 'climax'
-  | 'resolution';
+  | 'active' // New: Single active phase (V2)
+  | 'warmup' // @deprecated
+  | 'buildup' // @deprecated
+  | 'firstPeak' // @deprecated
+  | 'breather' // @deprecated
+  | 'escalation' // @deprecated
+  | 'climax' // @deprecated
+  | 'resolution'; // @deprecated
 
 /** Liquidation warning levels */
 export type LiquidationWarning = 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';

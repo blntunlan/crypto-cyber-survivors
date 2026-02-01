@@ -11,7 +11,6 @@
     "level_label": "स्तर",
     "loading_engine": "इंजन लोड हो रहा है...",
     "back_to_hub": "हब पर वापस",
-
     "paused": "रुका हुआ",
     "resume": "जारी रखें",
     "restart": "फिर से शुरू करें",
@@ -40,7 +39,6 @@
     },
     "long": "LONG",
     "short": "SHORT",
-
     "nickname_screen": {
       "title_identify": "पहचानें",
       "title_survivor": "सर्वाइवर",
@@ -136,6 +134,7 @@
       "magnet": "चुंबक"
     },
     "phases": {
+      "active": "सक्रिय",
       "warmup": "वार्मअप",
       "buildup": "बिल्डअप",
       "firstPeak": "पहला शिखर",

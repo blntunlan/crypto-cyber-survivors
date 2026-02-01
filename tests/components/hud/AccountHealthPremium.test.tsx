@@ -3,8 +3,6 @@ import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { AccountHealthPremium } from '../../../components/hud/AccountHealthPremium';
 import { screenService } from '../../../services/system/ScreenService';
-import { DifficultyManager } from '../../../services/gameplay/DifficultyManager';
-import { EventBus } from '../../../services/core/EventBus';
 
 // Mocks
 vi.mock('../../../services/system/ScreenService', () => ({
@@ -23,17 +21,8 @@ vi.mock('../../../hooks/useResponsiveUI', () => ({
   }),
 }));
 
-vi.mock('../../../services/gameplay/DifficultyManager', () => ({
-  DifficultyManager: {
-    getWavePhase: vi.fn(),
-  },
-}));
-
-vi.mock('../../../services/core/EventBus', () => ({
-  EventBus: {
-    on: vi.fn(),
-  },
-}));
+// NOTE: DifficultyManager.getWavePhase mock removed in AI Director V2
+// Wave phases deprecated - difficulty now market-driven
 
 vi.mock('../../../contexts/useTheme', () => ({
   useIsRetro: vi.fn(),
@@ -47,8 +36,6 @@ describe('AccountHealthPremium', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (screenService.isMobile as any).mockReturnValue(false);
-    (DifficultyManager.getWavePhase as any).mockReturnValue('warmup');
-    (EventBus.on as any).mockReturnValue(vi.fn());
   });
 
   const defaultProps = {
@@ -104,24 +91,16 @@ describe('AccountHealthPremium', () => {
     });
   });
 
-  it('should update wave phase via EventBus', () => {
-    let phaseChangeCallback: (data: { phase: string }) => void;
-    (EventBus.on as any).mockImplementation((event: string, cb: any) => {
-      if (event === 'wavePhaseChange') phaseChangeCallback = cb;
-      return vi.fn();
-    });
+  // NOTE: Wave phase tests removed in AI Director V2
+  // Wave phases deprecated - difficulty now market-driven
+  // The UI now always shows "active" phase with cyan color
 
+  it('should display static "active" phase (AI Director V2)', () => {
     render(<AccountHealthPremium {...defaultProps} />);
 
-    // Initial
-    expect(screen.getByText('hud.phases.warmup')).toBeInTheDocument();
-
-    // Trigger update
-    act(() => {
-      phaseChangeCallback({ phase: 'climax' });
-    });
-
-    expect(screen.getByText('hud.phases.climax')).toBeInTheDocument();
+    // Should show "active" phase with cyan color
+    expect(screen.getByText('hud.phases.active')).toBeInTheDocument();
+    expect(screen.getByText('hud.phases.active')).toHaveClass('text-cyan-400');
   });
 
   it('should handle screen resize events', () => {
@@ -148,27 +127,8 @@ describe('AccountHealthPremium', () => {
     expect(screen.queryByText('hud.system_phase')).not.toBeInTheDocument();
   });
 
-  describe('Wave Phase Colors', () => {
-    it('should apply correct color for warmup', () => {
-      (DifficultyManager.getWavePhase as any).mockReturnValue('warmup');
-      render(<AccountHealthPremium {...defaultProps} />);
-      expect(screen.getByText('hud.phases.warmup')).toHaveClass('text-cyan-400');
-    });
-
-    it('should apply correct color for climax', () => {
-      (DifficultyManager.getWavePhase as any).mockReturnValue('climax');
-      render(<AccountHealthPremium {...defaultProps} />);
-      expect(screen.getByText('hud.phases.climax')).toHaveClass('text-red-500');
-    });
-
-    it('should apply default color for unknown phase', () => {
-      (DifficultyManager.getWavePhase as any).mockReturnValue('unknown_phase');
-      render(<AccountHealthPremium {...defaultProps} />);
-      expect(screen.getByText('hud.phases.unknown_phase')).toHaveClass(
-        'text-slate-400'
-      );
-    });
-  });
+  // NOTE: Wave Phase Colors tests removed in AI Director V2
+  // Wave phases deprecated - now always shows "active" phase with cyan color
 
   it('should apply critical pulse animation when HP is low', () => {
     render(<AccountHealthPremium {...defaultProps} hpPercent={10} />);

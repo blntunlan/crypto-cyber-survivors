@@ -1,13 +1,15 @@
-import { type WavePhase, type LeverageScale } from './types';
+import { type LeverageScale } from './types';
 import {
-  WAVE_CONFIG,
   DIFFICULTY_CONFIG as GLOBAL_DIFFICULTY_CONFIG,
   LEVERAGE_TIERS as TIERS,
 } from '../../config';
 
 export const DIFFICULTY_CONFIG = {
-  /** Cycle duration (seconds) */
-  cycleDuration: WAVE_CONFIG.TOTAL_DURATION,
+  /**
+   * Default cycle duration (seconds) - Used for time-based calculations
+   * Note: Wave phases have been removed in AI Director V2
+   */
+  cycleDuration: 300, // 5 minutes default
 
   /** PnL history buffer size */
   pnlHistorySize: GLOBAL_DIFFICULTY_CONFIG.PNL_HISTORY_SIZE,
@@ -25,14 +27,17 @@ export const DIFFICULTY_CONFIG = {
 export const LEVERAGE_TIERS: Record<number, LeverageScale> = TIERS;
 
 /**
- * Wave phase definitions
- * Mapping for V2 system
+ * @deprecated Wave phases have been removed in AI Director V2.
+ * Difficulty is now driven by market conditions and player flow state.
+ * Keeping this for legacy compatibility - will be removed in future version.
  */
 export const WAVE_PHASES: Array<{
-  name: WavePhase;
+  name: string;
   duration: number;
   multiplier: number;
-}> = WAVE_CONFIG.PHASES;
+}> = [
+  { name: 'active', duration: 300, multiplier: 1.0 }, // Single "active" phase
+];
 
 /**
  * Get nearest leverage tier

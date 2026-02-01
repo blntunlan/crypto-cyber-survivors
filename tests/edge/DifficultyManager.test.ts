@@ -104,28 +104,27 @@ describe('DifficultyManager Edge Cases', () => {
     });
   });
 
-  describe('Wave Transition Edge Cases', () => {
-    it('should handle large time jumps spanning multiple phases', () => {
+  describe('Wave Transition Edge Cases (DEPRECATED - AI Director V2)', () => {
+    it('should always return active phase regardless of time jumps', () => {
       // Reset with time 0
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
       DifficultyManager.startGame();
 
-      // Cycle duration is 300s in V2.
-      // Jump to 310s: 310 % 300 = 10s into cycle 2, which is in warmup (0-25s)
+      // AI Director V2: Always returns 'active' regardless of time
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
-      DifficultyManager.calculate(0, 0, 1, 1.0); // Triggers sync
-      expect(DifficultyManager.getWavePhase()).toBe('warmup');
+      DifficultyManager.calculate(0, 0, 1, 1.0);
+      expect(DifficultyManager.getWavePhase()).toBe('active');
     });
 
-    it('should handle very small time increments without phase skip', () => {
+    it('should always return active phase for small time increments', () => {
       // Reset with time 0
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
       DifficultyManager.startGame();
 
-      // Small time increments (0.1 seconds total) - should still be warmup
+      // Small time increments - should still be active
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0.1);
       DifficultyManager.calculate(0, 0, 1, 1.0);
-      expect(DifficultyManager.getWavePhase()).toBe('warmup');
+      expect(DifficultyManager.getWavePhase()).toBe('active');
     });
   });
 

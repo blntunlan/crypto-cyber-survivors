@@ -48,11 +48,13 @@ vi.mock('../../services/combat/PhysicsSystem', () => {
   return { PhysicsSystem: MockPhysicsSystem };
 });
 
-vi.mock('../../services/combat/SpawnSystem', () => ({
-  SpawnSystem: class {
+vi.mock('../../services/combat/SpawnSystem', () => {
+  class MockSpawnSystem {
     update = vi.fn();
-  },
-}));
+    static getInstance = vi.fn(() => new MockSpawnSystem());
+  }
+  return { SpawnSystem: MockSpawnSystem };
+});
 
 vi.mock('../../services/spawners/SpeedLineSpawner', () => ({
   SpeedLineSpawner: class {

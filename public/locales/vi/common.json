@@ -11,7 +11,6 @@
     "level_label": "Cấp độ",
     "loading_engine": "ĐANG TẢI ENGINE...",
     "back_to_hub": "Quay lại Hub",
-
     "paused": "Đã tạm dừng",
     "resume": "Tiếp tục",
     "restart": "Chơi lại",
@@ -40,7 +39,6 @@
     },
     "long": "LONG",
     "short": "SHORT",
-
     "nickname_screen": {
       "title_identify": "Xác minh",
       "title_survivor": "Người sống sót",
@@ -136,6 +134,7 @@
       "magnet": "Nam châm"
     },
     "phases": {
+      "active": "Hoạt động",
       "warmup": "Khởi động",
       "buildup": "Tích lũy",
       "firstPeak": "Đỉnh đầu",

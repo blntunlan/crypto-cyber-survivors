@@ -11,7 +11,6 @@
     "level_label": "Уровень",
     "loading_engine": "ЗАГРУЗКА ДВИЖКА...",
     "back_to_hub": "В Хаб",
-
     "paused": "Пауза",
     "resume": "Продолжить",
     "restart": "Заново",
@@ -40,7 +39,6 @@
     },
     "long": "ЛОНГ",
     "short": "ШОРТ",
-
     "nickname_screen": {
       "title_identify": "Идентификация",
       "title_survivor": "Выживший",
@@ -136,6 +134,7 @@
       "magnet": "Магнит"
     },
     "phases": {
+      "active": "Активный",
       "warmup": "Разминка",
       "buildup": "Накопление",
       "firstPeak": "Первый пик",

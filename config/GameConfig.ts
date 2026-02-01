@@ -2,39 +2,35 @@
  * GameConfig - Game Timing and Wave Settings
  *
  * Configuration for game flow, waves, and timing.
+ *
+ * NOTE: Wave phases have been REMOVED in AI Director V2.
+ * Difficulty is now driven by market conditions and player flow state.
+ * @see docs/AI_DIRECTOR_V2_DESIGN.md
  */
 
 import { type WavePhase } from '../services/difficulty/types';
 export type { WavePhase };
 
 // =============================================================================
-// WAVE SYSTEM (5-minute cycle = 300 seconds)
+// WAVE SYSTEM - DEPRECATED (AI Director V2)
 // =============================================================================
 
+/**
+ * @deprecated Wave phases have been removed in AI Director V2.
+ * Keeping for legacy compatibility - will be removed in future version.
+ */
 export const WAVE_CONFIG = {
-  // Ordered phases for the difficulty cycle
-  PHASES: [
-    { name: 'warmup', duration: 25, multiplier: 0.3 },
-    { name: 'buildup', duration: 60, multiplier: 0.5 },
-    { name: 'firstPeak', duration: 30, multiplier: 1.3 },
-    { name: 'breather', duration: 45, multiplier: 0.6 },
-    { name: 'escalation', duration: 60, multiplier: 1.15 },
-    { name: 'climax', duration: 45, multiplier: 1.5 },
-    { name: 'resolution', duration: 35, multiplier: 0.5 },
-  ] as Array<{ name: WavePhase; duration: number; multiplier: number }>,
+  // Single "active" phase - wave rhythm now comes from market
+  PHASES: [{ name: 'active', duration: 300, multiplier: 1.0 }] as Array<{
+    name: WavePhase;
+    duration: number;
+    multiplier: number;
+  }>,
 
-  // Phase order for cycling (keys only)
-  PHASE_ORDER: [
-    'warmup',
-    'buildup',
-    'firstPeak',
-    'breather',
-    'escalation',
-    'climax',
-    'resolution',
-  ] as WavePhase[],
+  // Phase order - deprecated
+  PHASE_ORDER: ['active'] as WavePhase[],
 
-  // Total cycle duration (calculated: 300s = 5 minutes)
+  // Total cycle duration (5 minutes default)
   TOTAL_DURATION: 300,
 };
 

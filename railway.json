@@ -3,16 +3,25 @@
   "build": {
     "builder": "NIXPACKS",
     "nixpacksPlan": {
-      "providers": ["node"],
+      "providers": [
+        "node"
+      ],
       "phases": {
         "setup": {
-          "nixPkgs": ["nodejs_22", "npm"]
+          "nixPkgs": [
+            "nodejs_22",
+            "npm"
+          ]
         },
         "install": {
-          "cmds": ["npm ci"]
+          "cmds": [
+            "npm ci"
+          ]
         },
         "build": {
-          "cmds": ["npm run build"]
+          "cmds": [
+            "npm run build"
+          ]
         }
       }
     }

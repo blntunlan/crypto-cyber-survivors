@@ -13,7 +13,6 @@
     "loading_engine": "MOTOR YÜKLENİYOR...",
     "back_to_hub": "Hub'a Dön",
     "project_info": "Proje Bilgisi",
-
     "paused": "Durduruldu",
     "resume": "Devam Et",
     "restart": "Yeniden Başlat",
@@ -27,7 +26,6 @@
     "menu": {
       "title": "CRYPTO",
       "subtitle": "SURVIVORS",
-
       "sentiment_engine": "Piyasa Duyarlılık Motoru",
       "game_mode": "Oyun Modu",
       "select_asset": "Varlık Seç",
@@ -43,7 +41,6 @@
     },
     "long": "LONG",
     "short": "SHORT",
-
     "nickname_screen": {
       "title_identify": "Survivor'ı",
       "title_survivor": "Tanımla",
@@ -143,6 +140,7 @@
       "magnet": "MNYET"
     },
     "phases": {
+      "active": "Aktif",
       "warmup": "Isınma",
       "buildup": "Birikme",
       "firstPeak": "İlk Zirve",
@@ -234,7 +232,6 @@
     "nav_help_retro": "[WASD] HAREKET   [ENTER] SEÇ",
     "nav_help_modern": "hareket için wasd • seçmek için enter"
   },
-
   "levelup": {
     "title": "SEVİYE ATLADI",
     "choose_upgrade": "Yükseltmenizi seçin! (W/S + Space)",

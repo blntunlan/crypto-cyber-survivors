@@ -1,10 +1,7 @@
 import React, { memo, useEffect, useState } from 'react';
 import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
-import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { COLORS } from '../../constants';
-import { EventBus } from '../../services/core/EventBus';
-import { type WavePhase } from '../../types/metrics';
 
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -18,6 +15,9 @@ interface AccountHealthProps {
 /**
  * Premium version of Account Health
  * Styled like a high-end trading terminal / Cyberpunk HUD
+ *
+ * NOTE: Wave phase display removed in AI Director V2
+ * Difficulty now driven by market conditions
  */
 const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> = ({
   hpPercent,
@@ -30,17 +30,8 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   const { rs, rfs, isSmallDevice, bottomSafeZone } = useResponsiveUI();
 
   const isRetro = useIsRetro();
-  const [wavePhase, setWavePhase] = useState(DifficultyManager.getWavePhase());
+  // Wave phase tracking removed - AI Director V2
 
-  useEffect(() => {
-    // Sync on mount
-    setWavePhase(DifficultyManager.getWavePhase());
-
-    const unsubscribe = EventBus.on('wavePhaseChange', (data: { phase: WavePhase }) => {
-      setWavePhase(data.phase);
-    });
-    return unsubscribe;
-  }, []);
   const getStatusConfig = () => {
     if (hpPercent > 75) {
       return {
@@ -106,11 +97,12 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
               {t('hud.system_phase')}
             </span>
 
+            {/* AI Director V2: Simplified "ACTIVE" status */}
             <span
-              className={`font-black uppercase italic ${getWaveColorText(wavePhase)}`}
+              className="font-black uppercase italic text-cyan-400"
               style={{ fontSize: '16px' }}
             >
-              {t(`hud.phases.${wavePhase}`)}
+              {t('hud.phases.active')}
             </span>
           </div>
 
@@ -233,35 +225,8 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   );
 };
 
-const getWaveColorText = (phase: string) => {
-  switch (phase) {
-    case 'warmup':
-      return 'text-cyan-400';
-    case 'buildup':
-      return 'text-amber-300';
-    case 'firstPeak':
-      return 'text-orange-500';
-    case 'breather':
-      return 'text-green-400';
-    case 'escalation':
-      return 'text-yellow-500';
-    case 'climax':
-      return 'text-red-500';
-    case 'resolution':
-      return 'text-purple-400';
-    // Legacy phases (backwards compat)
-    case 'calm':
-      return 'text-cyan-400';
-    case 'building':
-      return 'text-amber-300';
-    case 'intense':
-      return 'text-orange-500';
-    case 'peak':
-      return 'text-red-500';
-    default:
-      return 'text-slate-400';
-  }
-};
+// NOTE: getWaveColorText removed in AI Director V2
+// Wave phases deprecated - difficulty now market-driven
 
 export const AccountHealthPremium: React.FC<AccountHealthProps> = memo(props => {
   const [isMobile, setIsMobile] = useState(screenService.isMobile());

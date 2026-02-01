@@ -165,7 +165,12 @@ export function useHUDEvents(
 
     const unsubAchievement = EventBus.on(
       'milestoneAchieved',
-      (data: { name: string; icon: string; color: string }) => {
+      (data: { name: string; icon: string; color: string; type: string }) => {
+        // Only show market-related milestones (e.g. Volatility Shock) in development mode
+        if (data.type === 'market' && !import.meta.env.DEV) {
+          return;
+        }
+
         if (achievementTimeoutRef.current) clearTimeout(achievementTimeoutRef.current);
         setAchievement({ name: data.name, icon: data.icon, color: data.color });
         achievementTimeoutRef.current = setTimeout(() => setAchievement(null), 3500);

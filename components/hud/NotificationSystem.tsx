@@ -45,6 +45,9 @@ export const NotificationSystem: React.FC = () => {
   useEffect(() => {
     // Handle Market RSI Events
     const handleRSI = (data: { state: string; rsi: number }) => {
+      // Only show market sentiment changes in development mode
+      if (!import.meta.env.DEV) return;
+
       const now = Date.now();
       if (now - lastRSINotificationTime.current < RSI_NOTIFICATION_COOLDOWN) {
         return;
@@ -73,6 +76,9 @@ export const NotificationSystem: React.FC = () => {
 
     // Handle Whale Events
     const handleWhale = (data: { tier: number }) => {
+      // Only show whale detection notifications in development mode
+      if (!import.meta.env.DEV) return;
+
       const now = Date.now();
       if (now - lastWhaleNotificationTime.current < WHALE_NOTIFICATION_COOLDOWN) {
         return;

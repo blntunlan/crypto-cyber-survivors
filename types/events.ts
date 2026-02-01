@@ -49,6 +49,7 @@ export type GameEvent =
   | 'verification:failed'
   | 'verification:retrying'
   | 'volatilityShock'
+  /** @deprecated AI Director V2: Wave phases removed */
   | 'wavePhaseChange'
   | 'cycleComplete'
   | 'gameMarketUpdate'
@@ -81,7 +82,9 @@ export type GameEvent =
   | 'difficultyUpdated'
   | 'shockDetected'
   | 'liquidationWarning'
+  /** @deprecated AI Director V2: Boss wave events deprecated */
   | 'bossWaveStart'
+  /** @deprecated AI Director V2: Boss wave events deprecated */
   | 'bossWaveEnd'
   | 'cycleDecisionScreen'
   | 'cycleDecisionMade'
@@ -91,7 +94,11 @@ export type GameEvent =
   | 'portalOpened'
   | 'portalClosed'
   | 'portalExtraction'
-  | 'gameplayValidation';
+  | 'gameplayValidation'
+  // Supabase health events
+  | 'supabaseHealthCheck'
+  | 'supabaseConnectionLost'
+  | 'supabaseConnectionRestored';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -531,6 +538,7 @@ export interface EventDataMap {
   'verification:failed': Record<string, unknown>;
   'verification:retrying': Record<string, unknown>;
   volatilityShock: { intensity: number; direction: 'up' | 'down' };
+  /** @deprecated AI Director V2: Wave phases removed - event no longer emitted */
   wavePhaseChange: { phase: WavePhase; oldPhase: WavePhase };
   cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
   gameMarketUpdate: MarketData;
@@ -565,7 +573,9 @@ export interface EventDataMap {
     level: 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';
     distance: number;
   };
+  /** @deprecated AI Director V2: Boss wave events deprecated */
   bossWaveStart: { cycleNumber: number };
+  /** @deprecated AI Director V2: Boss wave events deprecated */
   bossWaveEnd: { cycleNumber: number };
   cycleDecisionScreen: { cycleNumber: number; options: string[] };
   cycleDecisionMade: { decision: 'CONTINUE' | 'CASH_OUT'; cycleNumber: number };
@@ -586,6 +596,10 @@ export interface EventDataMap {
   portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
   // Gameplay validation events
   gameplayValidation: GameplayValidationEvent;
+  // Supabase health events
+  supabaseHealthCheck: SupabaseHealthCheckEvent;
+  supabaseConnectionLost: { error: string; timestamp: string };
+  supabaseConnectionRestored: { latencyMs: number; timestamp: string };
 }
 
 export interface NotificationEvent {
@@ -617,4 +631,11 @@ export interface SessionSyncFailedEvent {
   sessionId: string;
   error: string;
   retryCount: number;
+}
+
+/** Supabase health check result event */
+export interface SupabaseHealthCheckEvent {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  latencyMs: number;
+  recommendations: string[];
 }

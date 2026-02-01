@@ -11,7 +11,7 @@ import {
   calculateATRFactor,
   calculateNearDeathFactor,
   calculatePerformanceFactor,
-  calculateWaveFactor,
+  // Wave factor removed - AI Director V2 uses market-driven difficulty
 } from './factors';
 import { calculateStressScore } from './factors/stress';
 import {
@@ -41,7 +41,7 @@ class DifficultyContextManager {
   private inputs: DifficultyInputs;
   private isDirty = true;
   private lastCycleCount: number = 0;
-  private lastPhase: WavePhase | null = null;
+  // Wave phase tracking removed - AI Director V2
 
   // Real-time performance counters
   private bulletsFiredInWindow = 0;
@@ -255,19 +255,15 @@ class DifficultyContextManager {
       leverage: inputs.leverage,
     });
 
-    // Base rhythm comes from the Wave system (Phases like breather, peak, etc.)
-    const waveData = calculateWaveFactor({
-      elapsedSeconds: inputs.elapsedSeconds,
-      cycleDuration: inputs.cycleDuration,
-    });
-
-    // We keep a small linear time ramp (5% every minute) for long-term pressure
+    // Wave system REMOVED - AI Director V2 uses market-driven difficulty
+    // Keeping a simple time ramp for long-term pressure (5% every minute)
     const timeRamp = 1.0 + (inputs.elapsedSeconds / 60) * 0.05;
 
-    // Harmonize the Wave factor with the Time Ramp
+    // Market-based difficulty will be handled by UnifiedDirector
+    // For now, use a neutral wave factor of 1.0
     const wave = {
-      factor: waveData.factor * timeRamp,
-      phase: waveData.phase as WavePhase,
+      factor: timeRamp,
+      phase: 'active' as WavePhase, // Single "active" phase
     };
 
     const liquidation = calculateLiquidationFactor({
@@ -363,23 +359,8 @@ class DifficultyContextManager {
       this.lastCycleCount = currentCycle;
     }
 
-    // 2. Wave Phase Change Detection
-    if (this.lastPhase !== wave.phase) {
-      if (this.lastPhase) {
-        EventBus.emit('wavePhaseChange', {
-          phase: wave.phase,
-          oldPhase: this.lastPhase,
-        });
-
-        // Specific phase triggers
-        if (wave.phase === 'climax') {
-          EventBus.emit('bossWaveStart', { cycleNumber: currentCycle + 1 });
-        } else if (this.lastPhase === 'climax') {
-          EventBus.emit('bossWaveEnd', { cycleNumber: currentCycle + 1 });
-        }
-      }
-      this.lastPhase = wave.phase;
-    }
+    // Wave Phase Change Detection - REMOVED in AI Director V2
+    // Market-driven events will be handled by UnifiedDirector
 
     // 3. Emit detailed update for debug/UI systems
     if (this.isDirty) {
@@ -449,7 +430,7 @@ class DifficultyContextManager {
 
     return {
       total: agg.total,
-      wavePhase: f.wavePhase,
+      wavePhase: f.wavePhase, // Always 'active' in V2
       liquidationWarning: f.liquidation.warningLevel,
       fovReduction: f.liquidation.fovReduction,
       shockActive: f.shock.triggered,
@@ -458,8 +439,9 @@ class DifficultyContextManager {
         limits.spawnRate.min,
         limits.spawnRate.max
       ),
+      // Wave factor removed from enemySpeed calculation
       enemySpeed: clamp(
-        f.pnl * f.atr * f.wave * scale.speed,
+        f.pnl * f.atr * scale.speed,
         limits.enemySpeed.min,
         limits.enemySpeed.max
       ),

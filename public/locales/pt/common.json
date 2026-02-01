@@ -11,7 +11,6 @@
     "level_label": "Nível",
     "loading_engine": "CARREGANDO MOTOR...",
     "back_to_hub": "Voltar ao Hub",
-
     "paused": "Pausado",
     "resume": "Retomar",
     "restart": "Reiniciar",
@@ -40,7 +39,6 @@
     },
     "long": "LONG",
     "short": "SHORT",
-
     "nickname_screen": {
       "title_identify": "Identificar",
       "title_survivor": "Sobrevivente",
@@ -136,6 +134,7 @@
       "magnet": "Ímã"
     },
     "phases": {
+      "active": "Ativo",
       "warmup": "Aquecimento",
       "buildup": "Acúmulo",
       "firstPeak": "Primeiro Pico",

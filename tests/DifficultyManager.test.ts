@@ -113,38 +113,39 @@ describe('DifficultyManager', () => {
     expect(nearDeath).toBeLessThan(healthy);
   });
 
-  it('should cycle wave phases', () => {
+  // NOTE: AI Director V2 - Wave phases removed
+  // These tests updated to expect always 'active' phase
+  it('should always return active phase (AI Director V2)', () => {
     // Reset with time 0
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
     DifficultyManager.startGame();
-    expect(DifficultyManager.getWavePhase()).toBe('warmup');
+    expect(DifficultyManager.getWavePhase()).toBe('active');
 
-    // Warmup phase lasts 25s - advance to 30s
+    // Time advances - should still be 'active'
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(30);
-    DifficultyManager.calculate(0, 0, 1, 1.0); // Triggers sync
-    expect(DifficultyManager.getWavePhase()).toBe('buildup');
+    DifficultyManager.calculate(0, 0, 1, 1.0);
+    expect(DifficultyManager.getWavePhase()).toBe('active');
 
-    // Buildup phase lasts 60s - advance to 90s (25+60=85)
+    // More time advances - should still be 'active'
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(90);
     DifficultyManager.calculate(0, 0, 1, 1.0);
-    expect(DifficultyManager.getWavePhase()).toBe('firstPeak');
+    expect(DifficultyManager.getWavePhase()).toBe('active');
 
-    // FirstPeak phase lasts 30s - advance to 120s (85+30=115)
+    // Even more time - should still be 'active'
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(120);
     DifficultyManager.calculate(0, 0, 1, 1.0);
-    expect(DifficultyManager.getWavePhase()).toBe('breather');
+    expect(DifficultyManager.getWavePhase()).toBe('active');
   });
 
-  it('should handle large time jumps (skipping phases)', () => {
+  it('should handle large time jumps (AI Director V2)', () => {
     // Reset with time 0
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
     DifficultyManager.startGame();
 
-    // Cycle duration is 300s in V2.
-    // After 310s: 310 % 300 = 10s into cycle 2, which is in warmup (0-25s)
+    // Large time jump - should still be 'active'
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
-    DifficultyManager.calculate(0, 0, 1, 1.0); // Triggers sync
-    expect(DifficultyManager.getWavePhase()).toBe('warmup');
+    DifficultyManager.calculate(0, 0, 1, 1.0);
+    expect(DifficultyManager.getWavePhase()).toBe('active');
   });
 
   describe('Kill Streak Logic', () => {

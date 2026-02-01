@@ -46,19 +46,17 @@ describe('DifficultyManager', () => {
     });
   });
 
-  describe('Wave System', () => {
-    it('should transition through phases correctly', () => {
-      const phaseChanges: string[] = [];
-      EventBus.on('wavePhaseChange', (data: any) => phaseChanges.push(data.phase));
+  describe('Wave System (DEPRECATED - AI Director V2)', () => {
+    it('should always return "active" phase (deprecated)', () => {
+      // AI Director V2: Wave phases removed
+      // getWavePhase should always return 'active'
+      expect(DifficultyManager.getWavePhase()).toBe('active');
 
-      expect(DifficultyManager.getWavePhase()).toBe('warmup');
-
-      // Warmup is 25s. Jump to 30s to be safely in buildup.
+      // Even after time change, should still be 'active'
       TimeService.setGameTime(30000);
       DifficultyManager.updateWaveTimer(0);
 
-      expect(DifficultyManager.getWavePhase()).toBe('buildup');
-      expect(phaseChanges).toContain('buildup');
+      expect(DifficultyManager.getWavePhase()).toBe('active');
     });
   });
 

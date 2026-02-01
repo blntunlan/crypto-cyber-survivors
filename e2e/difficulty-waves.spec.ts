@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Difficulty & Wave Phases', () => {
+/**
+ * @deprecated AI Director V2: Wave system removed
+ *
+ * These tests now verify that the system shows a static "Active" phase
+ * instead of cycling through wave phases. The difficulty is now driven
+ * by market conditions rather than time-based waves.
+ */
+test.describe('Difficulty System (AI Director V2)', () => {
   test.beforeEach(async ({ page }) => {
     // Capture console logs
     page.on('console', msg => {
@@ -28,55 +35,44 @@ test.describe('Difficulty & Wave Phases', () => {
     await playHubBtn.click();
   });
 
-  test('should transition through wave phases', async ({ page }) => {
+  test('should display static "Active" phase (AI Director V2)', async ({ page }) => {
     // Start game
     await page.getByRole('button', { name: /LONG/i }).click();
 
-    // Specific locator for the wave phase text
+    // Specific locator for the phase text
     const phaseValue = page.locator('span.font-black.uppercase.italic').first();
 
-    // Initial check
-    await expect(phaseValue).toHaveText(/warmup/i);
+    // Should always show "Active" regardless of time
+    await expect(phaseValue).toHaveText(/active/i);
 
-    // Jump to buildup (45s+)
-    console.log('Jumping to 50s (buildup)...');
+    // Jump forward in time - should still show "Active"
+    console.log('Jumping to 50s...');
     await page.evaluate(() => window.gameDebug.timeJump(50));
-    await expect(phaseValue).toHaveText(/buildup/i);
+    await expect(phaseValue).toHaveText(/active/i);
 
-    // Jump to breather (105s buildup + 30s firstPeak = 135s+)
-    console.log('Jumping to 150s (breather)...');
+    // Jump to 150s - should still show "Active"
+    console.log('Jumping to 150s...');
     await page.evaluate(() => window.gameDebug.timeJump(150));
-    await expect(phaseValue).toHaveText(/breather/i);
+    await expect(phaseValue).toHaveText(/active/i);
 
-    // Jump to climax (240s+)
-    console.log('Jumping to 250s (climax)...');
+    // Jump to 250s - should still show "Active"
+    console.log('Jumping to 250s...');
     await page.evaluate(() => window.gameDebug.timeJump(250));
-    await page.waitForTimeout(500); // Allow one frame for state sync
-    await expect(phaseValue).toHaveText(/climax/i);
-    await expect(page.locator('.text-red-500').first()).toBeVisible();
-
-    // Jump to resolution (285s+)
-    console.log('Jumping to 290s (resolution)...');
-    await page.evaluate(() => window.gameDebug.timeJump(290));
-    await expect(phaseValue).toHaveText(/resolution/i);
-
-    // Jump to next cycle warmup (305s+)
-    console.log('Jumping to 310s (next cycle warmup)...');
-    await page.evaluate(() => window.gameDebug.timeJump(310));
-    await expect(phaseValue).toHaveText(/warmup/i);
+    await page.waitForTimeout(500);
+    await expect(phaseValue).toHaveText(/active/i);
   });
 
-  test('should show correct color for different phases', async ({ page }) => {
+  test('should show cyan color for Active phase', async ({ page }) => {
     await page.getByRole('button', { name: /LONG/i }).click();
 
     const phaseValue = page.locator('span.font-black.uppercase.italic').first();
 
-    // Warmup should be cyan (text-cyan-400)
+    // Active phase should always be cyan (text-cyan-400)
     await expect(phaseValue).toHaveClass(/text-cyan-400/);
 
-    // Climax should be red (text-red-500)
+    // Even after time jump, should remain cyan
     await page.evaluate(() => window.gameDebug.timeJump(250));
     await page.waitForTimeout(500);
-    await expect(phaseValue).toHaveClass(/text-red-500/);
+    await expect(phaseValue).toHaveClass(/text-cyan-400/);
   });
 });

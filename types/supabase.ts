@@ -272,6 +272,8 @@ export type Database = {
           atr_percent: number | null;
           enemy_aggro_multiplier_long: number | null;
           enemy_aggro_multiplier_short: number | null;
+          high: number | null;
+          low: number | null;
           normalized_volume: number | null;
           pair: string;
           price: number;
@@ -280,7 +282,13 @@ export type Database = {
           spawn_rate_multiplier: number | null;
           updated_at: string | null;
           volume: number | null;
+          volume_history_count: number | null;
+          volume_history_max: number | null;
+          volume_history_min: number | null;
+          volume_mean: number | null;
           volume_percentile: number | null;
+          volume_std_dev: number | null;
+          volume_z_score: number | null;
           whale_tier: number | null;
         };
         Insert: {
@@ -288,6 +296,8 @@ export type Database = {
           atr_percent?: number | null;
           enemy_aggro_multiplier_long?: number | null;
           enemy_aggro_multiplier_short?: number | null;
+          high?: number | null;
+          low?: number | null;
           normalized_volume?: number | null;
           pair: string;
           price: number;
@@ -296,7 +306,13 @@ export type Database = {
           spawn_rate_multiplier?: number | null;
           updated_at?: string | null;
           volume?: number | null;
+          volume_history_count?: number | null;
+          volume_history_max?: number | null;
+          volume_history_min?: number | null;
+          volume_mean?: number | null;
           volume_percentile?: number | null;
+          volume_std_dev?: number | null;
+          volume_z_score?: number | null;
           whale_tier?: number | null;
         };
         Update: {
@@ -304,6 +320,8 @@ export type Database = {
           atr_percent?: number | null;
           enemy_aggro_multiplier_long?: number | null;
           enemy_aggro_multiplier_short?: number | null;
+          high?: number | null;
+          low?: number | null;
           normalized_volume?: number | null;
           pair?: string;
           price?: number;
@@ -312,7 +330,13 @@ export type Database = {
           spawn_rate_multiplier?: number | null;
           updated_at?: string | null;
           volume?: number | null;
+          volume_history_count?: number | null;
+          volume_history_max?: number | null;
+          volume_history_min?: number | null;
+          volume_mean?: number | null;
           volume_percentile?: number | null;
+          volume_std_dev?: number | null;
+          volume_z_score?: number | null;
           whale_tier?: number | null;
         };
         Relationships: [];
@@ -391,6 +415,7 @@ export type Database = {
       };
       price_history: {
         Row: {
+          id: number;
           metadata: Json | null;
           pair: string;
           price: number;
@@ -398,6 +423,7 @@ export type Database = {
           volume: number | null;
         };
         Insert: {
+          id?: number;
           metadata?: Json | null;
           pair: string;
           price: number;
@@ -405,6 +431,7 @@ export type Database = {
           volume?: number | null;
         };
         Update: {
+          id?: number;
           metadata?: Json | null;
           pair?: string;
           price?: number;
@@ -577,6 +604,24 @@ export type Database = {
           total_sessions?: number | null;
           updated_at?: string | null;
           xp?: number | null;
+        };
+        Relationships: [];
+      };
+      schema_versions: {
+        Row: {
+          applied_at: string | null;
+          description: string | null;
+          version: string;
+        };
+        Insert: {
+          applied_at?: string | null;
+          description?: string | null;
+          version: string;
+        };
+        Update: {
+          applied_at?: string | null;
+          description?: string | null;
+          version?: string;
         };
         Relationships: [];
       };

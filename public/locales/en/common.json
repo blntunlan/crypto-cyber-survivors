@@ -13,7 +13,6 @@
     "loading_engine": "LOADING ENGINE...",
     "back_to_hub": "Back to Hub",
     "project_info": "Project Info",
-
     "paused": "Paused",
     "resume": "Resume",
     "restart": "Restart",
@@ -42,7 +41,6 @@
     },
     "long": "LONG",
     "short": "SHORT",
-
     "nickname_screen": {
       "title_identify": "Identify",
       "title_survivor": "Survivor",
@@ -142,6 +140,7 @@
       "magnet": "Magnet"
     },
     "phases": {
+      "active": "Active",
       "warmup": "Warmup",
       "buildup": "Buildup",
       "firstPeak": "First Peak",
@@ -233,7 +232,6 @@
     "nav_help_retro": "[WASD] MOVE   [ENTER] SELECT",
     "nav_help_modern": "wasd to navigate • enter to select"
   },
-
   "levelup": {
     "title": "LEVEL UP",
     "choose_upgrade": "Choose your upgrade! (W/S + Space)",

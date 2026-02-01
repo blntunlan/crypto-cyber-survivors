@@ -13,8 +13,10 @@ const DEST_DIR = path.resolve(__dirname, '../public/docs');
  */
 function copyRecursiveSync(src, dest) {
   const exists = fs.existsSync(src);
-  const stats = exists && fs.statSync(src);
-  const isDirectory = exists && stats.isDirectory();
+  if (!exists) return;
+  
+  const stats = fs.statSync(src);
+  const isDirectory = stats.isDirectory();
 
   if (isDirectory) {
     if (!fs.existsSync(dest)) {

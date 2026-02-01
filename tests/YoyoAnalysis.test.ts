@@ -5,10 +5,14 @@ import { TimeService } from '../services/core/TimeService';
 /**
  * 5-Minute Cycle Yoyo Analysis
  * Bu test, 5 dakikalık bir run boyunca zorluğun nasıl dalgalandığını analiz eder.
+ *
+ * NOTE: AI Director V2 - Wave phases deprecated
+ * Phase will always show 'active' now. Difficulty driven by market conditions.
  */
-describe('5-Minute Cycle Yoyo Analysis', () => {
+describe('5-Minute Cycle Yoyo Analysis (AI Director V2)', () => {
   it('should simulate a 5-minute run with PnL fluctuations', () => {
-    console.log('\n=== 5-MINUTE RUN SIMULATION (YOYO ANALYSIS) ===\n');
+    console.log('\n=== 5-MINUTE RUN SIMULATION (AI DIRECTOR V2) ===\n');
+    console.log('NOTE: Wave phases deprecated - always shows "active"');
     console.log(
       String('Time').padEnd(10),
       String('Phase').padEnd(15),

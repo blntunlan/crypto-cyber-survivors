@@ -4,8 +4,11 @@
  * Provides access to the new modular difficulty system with
  * real-time updates via EventBus subscriptions.
  *
+ * NOTE: AI Director V2 - Wave phases deprecated
+ * Difficulty now driven by market conditions, not time-based waves
+ *
  * @example
- * const { context, output, wavePhase, liquidationWarning } = useDifficultyV2();
+ * const { context, output, liquidationWarning } = useDifficultyV2();
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -23,7 +26,10 @@ interface DifficultyV2State {
   context: DifficultyContextState | null;
   /** Calculated difficulty outputs for game systems */
   output: DifficultyOutputV2 | null;
-  /** Current wave phase */
+  /**
+   * @deprecated AI Director V2: Wave phases removed - always returns 'active'
+   * Current wave phase
+   */
   wavePhase: WavePhase;
   /** Liquidation warning level */
   liquidationWarning: LiquidationWarning;
@@ -45,7 +51,7 @@ export function useDifficultyV2(updateInterval: number = 100): DifficultyV2State
   const [state, setState] = useState<DifficultyV2State>({
     context: null,
     output: null,
-    wavePhase: 'warmup',
+    wavePhase: 'active', // AI Director V2: Always 'active'
     liquidationWarning: 'NONE',
     fovReduction: 0,
     shockActive: false,
@@ -95,20 +101,19 @@ export function useDifficultyV2(updateInterval: number = 100): DifficultyV2State
 }
 
 /**
- * Hook for wave phase change events
+ * @deprecated AI Director V2: Wave phases removed
+ * Hook for wave phase change events - No longer emits events
+ * Keep for backwards compatibility, but callback never fires
  */
 export function useWavePhaseChange(
-  onPhaseChange: (phase: WavePhase, oldPhase: WavePhase) => void
+  _onPhaseChange: (phase: WavePhase, oldPhase: WavePhase) => void
 ): void {
+  // AI Director V2: Wave phase events deprecated
+  // This hook is kept for backwards compatibility but does nothing
   useEffect(() => {
-    const unsubscribe = EventBus.on(
-      'wavePhaseChange',
-      (data: { phase: WavePhase; oldPhase: WavePhase }) => {
-        onPhaseChange(data.phase, data.oldPhase);
-      }
-    );
-    return unsubscribe;
-  }, [onPhaseChange]);
+    // No-op: wavePhaseChange event no longer emitted
+    return () => {};
+  }, []);
 }
 
 /**

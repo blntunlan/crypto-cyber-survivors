@@ -21,6 +21,7 @@ import { audio } from '../../services/audio';
 import { HubMenuButton, type HubButtonId } from './HubMenuButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';
+import { useDevice } from '../../hooks/useDevice';
 import { OptimizationBadge } from '../ui/OptimizationBadge';
 
 import { HubPlayerCard } from './HubPlayerCard';
@@ -65,6 +66,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   const { isRetro } = useTheme();
   const { t } = useLanguage();
   const sizes = useThemeSize();
+  const device = useDevice();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [lootboxCount, setLootboxCount] = useState(0);
@@ -297,8 +299,8 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             animate={{ opacity: 1, x: 0 }}
             onClick={onBack}
             className={`
-              fixed z-[110] min-h-[44px] min-w-[44px] px-3 py-2.5 lg:px-4 lg:py-2.5 border transition-all duration-200 shadow-lg active:scale-95 touch-manipulation
-              text-xs sm:text-sm lg:text-base uppercase tracking-wider
+              fixed z-[110] px-3 py-2 border transition-all duration-200 shadow-lg active:scale-95 touch-manipulation
+              text-sm uppercase tracking-wider
               focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
               ${
                 isRetro
@@ -307,12 +309,12 @@ export const HubMenu: React.FC<HubMenuProps> = ({
               }
             `}
             style={{
-              top: 'calc(1.5rem + env(safe-area-inset-top, 0px))',
-              left: 'calc(1rem + env(safe-area-inset-left, 0px))',
+              top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
+              left: `calc(1rem + env(safe-area-inset-left, 0px))`,
             }}
             title="Return to Landing"
           >
-            ← {t('common.project_info') || 'PROJECT INFO'}
+            ← {!device.isMobile && ` ${t('common.project_info') || 'PROJECT INFO'}`}
           </motion.button>
         )}
 

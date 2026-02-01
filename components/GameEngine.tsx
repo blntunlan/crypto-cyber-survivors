@@ -81,7 +81,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const renderer = useLazyRef(() => new GameRenderer());
   const combatSystem = useRef(CombatSystem.getInstance());
   const physicsSystem = useRef(PhysicsSystem.getInstance());
-  const spawnSystemRef = useLazyRef(() => new SpawnSystem());
+  const spawnSystemRef = useLazyRef(() => SpawnSystem.getInstance());
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
 
   const {
@@ -432,8 +432,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               const e = enemy;
               const orbitSpeed = 0.02 * dtFactor;
               e.orbitAngle = (e.orbitAngle ?? 0) + orbitSpeed;
-              enemy.x = e.orbitPoint.x + Math.cos(e.orbitAngle) * 80;
-              enemy.y = e.orbitPoint.y + Math.sin(e.orbitAngle) * 80;
+              enemy.x = e.orbitPoint!.x + Math.cos(e.orbitAngle) * 80;
+              enemy.y = e.orbitPoint!.y + Math.sin(e.orbitAngle) * 80;
 
               // Knockback player if touching
               const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
@@ -773,10 +773,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
           // Spawn effect
           Logger.info(`[GameEngine] Spawning Interactable at ${rx}, ${ry}`);
-          EventBus.emit('gameNotification', {
-            title: 'SUPPLY DROP',
-            message: 'A loot crate appeared!',
-          });
+
+          // Only show supply drop notifications in development mode
+          if (import.meta.env.DEV) {
+            EventBus.emit('gameNotification', {
+              title: 'SUPPLY DROP',
+              message: 'A loot crate appeared!',
+            });
+          }
           audio.playLevelUp(); // Cue for supply drop
         }
 

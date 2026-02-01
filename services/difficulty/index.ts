@@ -3,7 +3,10 @@
  *
  * Modular, layered difficulty system with pure function calculators.
  *
- * @see docs/DIFFICULTY_SYSTEM_V2.md
+ * NOTE: Wave phases have been REMOVED in AI Director V2.
+ * Difficulty is now driven by market conditions and player flow state.
+ *
+ * @see docs/AI_DIRECTOR_V2_DESIGN.md
  *
  * @example
  * // Using the context (recommended)
@@ -25,7 +28,7 @@ export type {
   DifficultyInputs,
   DifficultyContextState,
   DifficultyOutputV2,
-  WavePhase,
+  WavePhase, // @deprecated - kept for legacy compatibility
   LiquidationWarning,
   LeverageScale,
 } from './types';
@@ -34,7 +37,7 @@ export type {
 export {
   DIFFICULTY_CONFIG,
   LEVERAGE_TIERS,
-  WAVE_PHASES,
+  WAVE_PHASES, // @deprecated - kept for legacy compatibility
   getNearestLeverageTier,
   getLeverageScale,
 } from './constants';
@@ -55,12 +58,12 @@ export {
   // Level
   calculateLevelFactor,
   getLevelCapForLeverage,
-  // Wave
-  calculateWaveFactor,
-  getPhaseConfig,
-  isInBossWave,
-  isInResolutionPhase,
-  getPhaseTimeline,
+  // Wave - DEPRECATED (kept for legacy compatibility)
+  // calculateWaveFactor,
+  // getPhaseConfig,
+  // isInBossWave,
+  // isInResolutionPhase,
+  // getPhaseTimeline,
   // Liquidation
   calculateLiquidationFactor,
   getLiquidationDistance,

@@ -11,7 +11,6 @@
     "level_label": "等级",
     "loading_engine": "引擎加载中...",
     "back_to_hub": "返回大厅",
-
     "paused": "暂停",
     "resume": "继续",
     "restart": "重新开始",
@@ -40,7 +39,6 @@
     },
     "long": "做多 (LONG)",
     "short": "做空 (SHORT)",
-
     "nickname_screen": {
       "title_identify": "身份识别",
       "title_survivor": "幸存者",
@@ -136,6 +134,7 @@
       "magnet": "磁铁"
     },
     "phases": {
+      "active": "活跃",
       "warmup": "热身",
       "buildup": "积累",
       "firstPeak": "第一波峰",

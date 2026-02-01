@@ -1,5 +1,9 @@
 /**
  * Wave Factor Calculator Tests
+ *
+ * @deprecated AI Director V2: Wave system removed
+ * These tests verify the deprecated stub functions return expected values
+ * for backwards compatibility.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,109 +15,63 @@ import {
   getPhaseTimeline,
 } from '../../../services/difficulty/factors/WaveFactor';
 
-describe('WaveFactor', () => {
+describe('WaveFactor (DEPRECATED - AI Director V2)', () => {
   const cycleDuration = 300;
 
   describe('calculateWaveFactor', () => {
-    it('should return warmup phase at cycle start', () => {
+    it('should always return "active" phase (deprecated)', () => {
       const result = calculateWaveFactor({ elapsedSeconds: 0, cycleDuration });
-      expect(result.phase).toBe('warmup');
-      expect(result.factor).toBe(0.3);
+      expect(result.phase).toBe('active');
+      expect(result.factor).toBe(1.0);
     });
 
-    it('should return buildup phase after warmup', () => {
-      const result = calculateWaveFactor({ elapsedSeconds: 30, cycleDuration });
-      expect(result.phase).toBe('buildup');
-      expect(result.factor).toBe(0.5);
-    });
+    it('should return consistent values regardless of time', () => {
+      const result1 = calculateWaveFactor({ elapsedSeconds: 0, cycleDuration });
+      const result2 = calculateWaveFactor({ elapsedSeconds: 150, cycleDuration });
+      const result3 = calculateWaveFactor({ elapsedSeconds: 300, cycleDuration });
 
-    it('should return firstPeak phase', () => {
-      // warmup: 25s, buildup: 60s => firstPeak starts at 85s
-      const result = calculateWaveFactor({ elapsedSeconds: 90, cycleDuration });
-      expect(result.phase).toBe('firstPeak');
-      expect(result.factor).toBe(1.3);
-    });
-
-    it('should return climax phase (boss wave)', () => {
-      // warmup: 25, buildup: 60, firstPeak: 30, breather: 45, escalation: 60 = 220
-      // climax starts at 220s
-      const result = calculateWaveFactor({ elapsedSeconds: 230, cycleDuration });
-      expect(result.phase).toBe('climax');
-      expect(result.factor).toBe(1.5);
-    });
-
-    it('should return resolution phase at cycle end', () => {
-      // resolution starts at 265s (220 + 45 climax)
-      const result = calculateWaveFactor({ elapsedSeconds: 280, cycleDuration });
-      expect(result.phase).toBe('resolution');
-      expect(result.factor).toBe(0.5);
-    });
-
-    it('should wrap around for multiple cycles', () => {
-      // Second cycle, warmup phase
-      const result = calculateWaveFactor({ elapsedSeconds: 310, cycleDuration });
-      expect(result.phase).toBe('warmup');
-    });
-
-    it('should calculate phase progress correctly', () => {
-      // Warmup is 25s, at 12.5s we should be ~50% through
-      const result = calculateWaveFactor({ elapsedSeconds: 12.5, cycleDuration });
-      expect(result.phaseProgress).toBeCloseTo(0.5, 1);
+      expect(result1.phase).toBe(result2.phase);
+      expect(result2.phase).toBe(result3.phase);
+      expect(result1.factor).toBe(result2.factor);
     });
   });
 
   describe('getPhaseConfig', () => {
-    it('should return correct phase config', () => {
-      const warmup = getPhaseConfig('warmup');
-      expect(warmup!.duration).toBe(25);
-      expect(warmup!.multiplier).toBe(0.3);
-
-      const climax = getPhaseConfig('climax');
-      expect(climax!.duration).toBe(45);
-      expect(climax!.multiplier).toBe(1.5);
+    it('should return "active" phase config (deprecated)', () => {
+      const config = getPhaseConfig('warmup');
+      expect(config.name).toBe('active');
+      expect(config.multiplier).toBe(1.0);
     });
   });
 
   describe('isInBossWave', () => {
-    it('should return true during climax phase', () => {
-      expect(isInBossWave(230)).toBe(true);
-    });
-
-    it('should return false during other phases', () => {
+    it('should always return false (deprecated)', () => {
       expect(isInBossWave(0)).toBe(false);
-      expect(isInBossWave(100)).toBe(false);
+      expect(isInBossWave(230)).toBe(false);
+      expect(isInBossWave(500)).toBe(false);
     });
   });
 
   describe('isInResolutionPhase', () => {
-    it('should return true during resolution phase', () => {
-      expect(isInResolutionPhase(280)).toBe(true);
-    });
-
-    it('should return false during other phases', () => {
+    it('should always return false (deprecated)', () => {
       expect(isInResolutionPhase(0)).toBe(false);
-      expect(isInResolutionPhase(100)).toBe(false);
+      expect(isInResolutionPhase(280)).toBe(false);
+      expect(isInResolutionPhase(500)).toBe(false);
     });
   });
 
   describe('getPhaseTimeline', () => {
-    it('should return all 7 phases', () => {
+    it('should return single "active" phase (deprecated)', () => {
       const timeline = getPhaseTimeline();
-      expect(timeline).toHaveLength(7);
+      expect(timeline).toHaveLength(1);
+      expect(timeline[0]!.phase).toBe('active');
     });
 
-    it('should have correct start and end times', () => {
-      const timeline = getPhaseTimeline();
-      expect(timeline[0]).toBeDefined();
-      expect(timeline[0]!.phase).toBe('warmup');
+    it('should have correct timeline structure', () => {
+      const timeline = getPhaseTimeline(600);
       expect(timeline[0]!.startTime).toBe(0);
-      expect(timeline[0]!.endTime).toBe(25);
-
-      // Last phase should end at 300
-      const lastPhase = timeline[timeline.length - 1];
-      expect(lastPhase).toBeDefined();
-      expect(lastPhase!.phase).toBe('resolution');
-      expect(lastPhase!.endTime).toBe(300);
+      expect(timeline[0]!.endTime).toBe(600);
+      expect(timeline[0]!.multiplier).toBe(1.0);
     });
   });
 });
