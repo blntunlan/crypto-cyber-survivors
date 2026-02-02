@@ -46,9 +46,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem('game_lang', lang);
   };
 
-  const t = (key: string, params?: Record<string, string | number>): any => {
+  const t = (
+    key: string,
+    params?: Record<string, string | number>
+  ): string | string[] => {
     const keys = key.split('.');
-    let value: any = translations;
+    let value: unknown = translations;
 
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
