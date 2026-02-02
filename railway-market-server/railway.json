@@ -6,7 +6,7 @@
       "providers": ["node"],
       "phases": {
         "setup": {
-          "nixPkgs": ["nodejs_22"]
+          "nixPkgs": ["nodejs_20"]
         },
         "install": {
           "cmds": ["npm ci"]
