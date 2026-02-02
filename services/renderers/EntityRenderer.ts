@@ -1,6 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player, type Enemy } from '../../types';
+import { type GameState, type Player, type Enemy, type Gem } from '../../types';
 import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
@@ -26,6 +26,7 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private gemBatches: Map<string, Gem[]> = new Map();
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -129,6 +130,9 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    // Reset batches
+    this.gemBatches.forEach(batch => (batch.length = 0));
+
     pool.activeGems.forEach(g => {
       if (!g.active) {
         return;
@@ -146,29 +150,57 @@ export class EntityRenderer implements IRenderer {
       // Start fading when 30% of lifetime remains
       const fadeStartThreshold = 0.3;
       let alpha = 1.0;
+      let isBlinking = false;
 
       if (remainingRatio < fadeStartThreshold) {
         alpha = remainingRatio / fadeStartThreshold;
         // Add a "blinking" effect when very close to expiry
         if (remainingRatio < 0.1) {
           alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+          isBlinking = true;
         }
       }
 
-      ctx.save();
-      ctx.globalAlpha = alpha;
+      // If gem needs complex effects (transparency, shadows, blinking), render immediately (slow path)
+      if (alpha < 0.99 || (g.isRare && shadowsEnabled) || isBlinking) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
 
-      if (g.isRare && shadowsEnabled) {
-        ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
-        ctx.shadowColor = g.color;
+        if (g.isRare && shadowsEnabled) {
+          ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
+          ctx.shadowColor = g.color;
+        }
+
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      } else {
+        // Simple path: Batch by color
+        let batch = this.gemBatches.get(g.color);
+        if (!batch) {
+          batch = [];
+          this.gemBatches.set(g.color, batch);
+        }
+        batch.push(g);
       }
+    });
 
-      ctx.fillStyle = g.color;
+    // Render batches
+    this.gemBatches.forEach((batch, color) => {
+      if (batch.length === 0) return;
+
+      ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+      for (let i = 0; i < batch.length; i++) {
+        const g = batch[i];
+        // Move to start of arc to avoid connecting lines
+        ctx.moveTo(Math.round(g.x) + g.radius, Math.round(g.y));
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+      }
       ctx.fill();
-
-      ctx.restore();
     });
   }
 
