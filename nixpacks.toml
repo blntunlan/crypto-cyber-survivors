@@ -1,0 +1,14 @@
+# Force Node.js provider for Railway deployment
+# This prevents auto-detection from picking Deno
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
