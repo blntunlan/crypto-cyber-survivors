@@ -73,7 +73,7 @@ describe('MarketService', () => {
       expect(mockSockets.length).toBe(1);
       expect(mockSockets[0]!.url).toContain('binance.com');
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
       expect(onStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({
           binance: 'connected',
@@ -83,7 +83,7 @@ describe('MarketService', () => {
 
     it('should parse Binance kline messages', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       const klineMessage = {
         e: 'kline',
@@ -123,7 +123,7 @@ describe('MarketService', () => {
 
     it('should fallback to Coinbase if Binance fails', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Simulate Binance error
       mockSockets[0]!.onerror?.(new Error('Connection failed'));
@@ -131,7 +131,7 @@ describe('MarketService', () => {
       expect(mockSockets.length).toBe(2);
       expect(mockSockets[1]!.url).toContain('coinbase.com');
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
       expect(onStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({
           coinbase: 'connected',
@@ -141,11 +141,11 @@ describe('MarketService', () => {
 
     it('should parse Coinbase ticker messages', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Fail Binance to get to Coinbase
       mockSockets[0]!.onerror?.(new Error('Fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       const coinbaseMessage = {
         type: 'ticker',
@@ -165,7 +165,7 @@ describe('MarketService', () => {
 
     it('should handle invalid JSON from sources', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Invalid JSON for Binance
       mockSockets[0]!.onmessage?.({ data: 'invalid-json' });
@@ -176,7 +176,7 @@ describe('MarketService', () => {
 
       // Fail Binance to get to Coinbase
       mockSockets[0]!.onerror?.(new Error('Fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Invalid JSON for Coinbase
       mockSockets[1]!.onmessage?.({ data: 'invalid-json' });
@@ -188,13 +188,13 @@ describe('MarketService', () => {
 
     it('should handle failed schema parsing', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Unknown message type for Binance
       mockSockets[0]!.onmessage?.({ data: JSON.stringify({ type: 'unknown' }) });
 
       mockSockets[0]!.onerror?.(new Error('Fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
       mockSockets[1]!.onmessage?.({ data: JSON.stringify({ type: 'unknown' }) });
     });
 
@@ -218,9 +218,9 @@ describe('MarketService', () => {
 
     it('should ignore Coinbase subscription messages', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
       mockSockets[0]!.onerror?.(new Error('Fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       const subMsg = { type: 'subscriptions', channels: [] };
       // Should not call onData
@@ -240,7 +240,7 @@ describe('MarketService', () => {
       });
 
       solMarketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Send BTC message (wrong pair) to SOL service
       const btcMessage = {
@@ -286,7 +286,7 @@ describe('MarketService', () => {
       });
 
       solMarketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Send SOL message (correct pair)
       const solMessage = {
@@ -326,11 +326,11 @@ describe('MarketService', () => {
 
     it('should ignore Coinbase messages from wrong pair', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Fail Binance to get Coinbase
       mockSockets[0]!.onerror?.(new Error('Fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Send ETH message to BTC service (wrong pair)
       const ethMessage = {
@@ -350,11 +350,11 @@ describe('MarketService', () => {
 
     it('should process Coinbase messages from correct pair', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Fail Binance to get Coinbase
       mockSockets[0]!.onerror?.(new Error('Fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Send BTC message (correct pair)
       const btcMessage = {
@@ -379,7 +379,7 @@ describe('MarketService', () => {
   describe('Edge Case & Resilience', () => {
     it('should handle Total Market Blackout (Both feeds down)', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Reset mocks before blackout
       onStatusChange.mockClear();
@@ -403,7 +403,7 @@ describe('MarketService', () => {
 
     it('should survive Rapid Reconnect Storm (Flapping connection)', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Simulate rapid connection/disconnection cycles
       for (let i = 0; i < 5; i++) {
@@ -423,7 +423,7 @@ describe('MarketService', () => {
   describe('State Management', () => {
     it('should return correct status', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       const status = marketService.getStatus();
       expect(status.binance).toBe('connected');
@@ -437,7 +437,7 @@ describe('MarketService', () => {
 
     it('should not be in offline mode after receiving prices', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       mockSockets[0]!.onmessage?.({
         data: JSON.stringify({
@@ -468,7 +468,7 @@ describe('MarketService', () => {
   describe('Reconnection & Failover', () => {
     it('should implement exponential backoff on Binance close', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // First close - should reconnect in 1000ms
       mockSockets[0]!.onclose?.();
@@ -493,7 +493,7 @@ describe('MarketService', () => {
 
     it('should pause connections when tab is hidden', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Mock document.hidden
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
@@ -510,11 +510,11 @@ describe('MarketService', () => {
 
     it('should implement exponential backoff on Coinbase close', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Force Coinbase to connect
       mockSockets[0]!.onerror?.(new Error('Binance fail'));
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Now close Coinbase
       mockSockets[1]!.onclose?.();
@@ -532,7 +532,7 @@ describe('MarketService', () => {
 
     it('should force reconnect', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       const disconnectSpy = vi.spyOn(marketService, 'disconnect');
       marketService.reconnect();
@@ -547,7 +547,7 @@ describe('MarketService', () => {
 
     it('should resume connections when tab becomes visible', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Hide
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
@@ -570,7 +570,7 @@ describe('MarketService', () => {
 
     it('should cancel grace period when tab becomes visible quickly', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(100);
 
       // Hide tab
       Object.defineProperty(document, 'hidden', { value: true, configurable: true });
@@ -592,7 +592,8 @@ describe('MarketService', () => {
   describe('Cleanup', () => {
     it('should clear timers and sockets on disconnect', async () => {
       marketService.connect();
-      await vi.runAllTimersAsync();
+      // Only advance enough for socket connection, not indefinitely
+      await vi.advanceTimersByTimeAsync(100);
 
       marketService.disconnect();
       expect(mockSockets[0]!.close).toHaveBeenCalled();
@@ -606,8 +607,9 @@ describe('MarketService', () => {
       expect(mockSockets.length).toBe(currentCount); // No new sockets
     });
 
-    it('should remove event listeners on destroy', () => {
+    it('should remove event listeners on destroy', async () => {
       marketService.connect(); // This sets up the visibility handler
+      await vi.advanceTimersByTimeAsync(100); // Let connection establish
       const removeSpy = vi.spyOn(document, 'removeEventListener');
       marketService.destroy();
       expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));

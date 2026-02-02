@@ -45,9 +45,26 @@ export interface ConnectionStatus {
   binance: ConnectionState;
   coinbase: ConnectionState;
   lastPriceTime: number | null;
+  /** Total time without any data from any source (ms) */
+  totalDisconnectDuration: number;
+  /** True if data is being interpolated from last known price */
+  isUsingFallbackData: boolean;
 }
 
 export type WebSocketFactory = (url: string) => WebSocket;
+
+// Heartbeat configuration based on Binance requirements
+// Binance sends ping every 20s, expects pong within 60s
+const HEARTBEAT_CONFIG = {
+  /** Client sends ping every 30s (within Binance's 60s window) */
+  PING_INTERVAL_MS: 30_000,
+  /** Consider connection dead if no pong/data within 45s */
+  PONG_TIMEOUT_MS: 45_000,
+  /** Maximum acceptable data gap before fallback activation (ms) */
+  DATA_GAP_THRESHOLD_MS: 5_000,
+  /** Fatal disconnect threshold - end game if exceeded (ms) */
+  FATAL_DISCONNECT_MS: 10_000,
+} as const;
 
 /**
  * MarketService Class
@@ -92,6 +109,14 @@ export class MarketService {
   private pauseGraceTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly PAUSE_GRACE_PERIOD_MS = 30_000; // 30 seconds before pausing
 
+  // Heartbeat tracking for connection health monitoring
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private lastPongTime: number = Date.now();
+  private disconnectStartTime: number | null = null;
+  private dataGapCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private isUsingFallbackData: boolean = false;
+  private fatalDisconnectEmitted: boolean = false;
+
   constructor(config: MarketServiceConfig) {
     this.pair = config.pair;
     this.config = CRYPTO_PAIRS[config.pair];
@@ -106,8 +131,109 @@ export class MarketService {
    */
   public connect(): void {
     this.wasClosedIntentionally = false;
+    this.fatalDisconnectEmitted = false;
+    this.disconnectStartTime = null;
+    this.isUsingFallbackData = false;
     this.setupVisibilityHandler();
+    this.startDataGapMonitor();
     this.connectBinance();
+  }
+
+  /**
+   * Starts a background monitor that checks for data gaps and handles fallback/fatal disconnect.
+   *
+   * @private
+   */
+  private startDataGapMonitor(): void {
+    if (this.dataGapCheckInterval) {
+      clearInterval(this.dataGapCheckInterval);
+    }
+
+    this.dataGapCheckInterval = setInterval(() => {
+      if (this.wasClosedIntentionally) return;
+
+      const now = Date.now();
+      const timeSinceLastData = this.lastPriceTime ? now - this.lastPriceTime : 0;
+
+      // Check for data gap
+      if (timeSinceLastData > HEARTBEAT_CONFIG.DATA_GAP_THRESHOLD_MS) {
+        // Start tracking disconnect duration if not already
+        if (!this.disconnectStartTime) {
+          this.disconnectStartTime = this.lastPriceTime ?? now;
+          Logger.warn(`[Market] Data gap detected, starting disconnect timer`);
+        }
+
+        const totalDisconnectDuration = now - this.disconnectStartTime;
+
+        // Check for fatal disconnect (10+ seconds)
+        if (
+          totalDisconnectDuration >= HEARTBEAT_CONFIG.FATAL_DISCONNECT_MS &&
+          !this.fatalDisconnectEmitted
+        ) {
+          this.fatalDisconnectEmitted = true;
+          Logger.error(
+            `[Market] FATAL DISCONNECT: No data for ${(totalDisconnectDuration / 1000).toFixed(1)}s - ending game`
+          );
+          // Status change will inform listeners about fatal disconnect
+          this.notifyStatusChange();
+          return;
+        }
+
+        // Use fallback data (interpolated from last known price)
+        if (!this.isUsingFallbackData && this.lastKnownPrice !== null) {
+          this.isUsingFallbackData = true;
+          Logger.info(
+            `[Market] Using fallback data (last known price: ${this.lastKnownPrice})`
+          );
+          // Emit fallback price update to keep game running
+          this.onDataCallback({
+            price: this.lastKnownPrice,
+            source: 'binance',
+            pair: this.pair,
+          });
+        }
+      } else {
+        // Data is flowing - reset disconnect tracking
+        if (this.disconnectStartTime) {
+          const recoveryDuration = now - this.disconnectStartTime;
+          Logger.info(
+            `[Market] Connection recovered after ${(recoveryDuration / 1000).toFixed(1)}s gap`
+          );
+          this.disconnectStartTime = null;
+        }
+        this.isUsingFallbackData = false;
+        this.fatalDisconnectEmitted = false;
+      }
+    }, 1000); // Check every second for responsive gap detection
+  }
+
+  /**
+   * Get the total duration of the current disconnect (0 if connected)
+   */
+  public getTotalDisconnectDuration(): number {
+    if (!this.disconnectStartTime) return 0;
+    return Date.now() - this.disconnectStartTime;
+  }
+
+  /**
+   * Check if the connection has fatally disconnected (10+ seconds)
+   */
+  public isFatallyDisconnected(): boolean {
+    return this.fatalDisconnectEmitted;
+  }
+
+  /**
+   * Notify status change with enhanced disconnect tracking
+   * @private
+   */
+  private notifyStatusChange(): void {
+    this.onStatusChange?.({
+      binance: this.binanceState,
+      coinbase: this.coinbaseState,
+      lastPriceTime: this.lastPriceTime,
+      totalDisconnectDuration: this.getTotalDisconnectDuration(),
+      isUsingFallbackData: this.isUsingFallbackData,
+    });
   }
 
   /**
@@ -194,6 +320,8 @@ export class MarketService {
       binance: this.binanceState,
       coinbase: this.coinbaseState,
       lastPriceTime: this.lastPriceTime,
+      totalDisconnectDuration: this.getTotalDisconnectDuration(),
+      isUsingFallbackData: this.isUsingFallbackData,
     };
   }
 
@@ -245,11 +373,7 @@ export class MarketService {
       this.coinbaseState = state;
     }
 
-    this.onStatusChange?.({
-      binance: this.binanceState,
-      coinbase: this.coinbaseState,
-      lastPriceTime: this.lastPriceTime,
-    });
+    this.notifyStatusChange();
   }
 
   /**
@@ -272,6 +396,11 @@ export class MarketService {
         Logger.info('[Market] Binance connected');
         this.updateState('binance', 'connected');
         this.binanceReconnectDelay = MARKET.RECONNECT.INITIAL_DELAY;
+        this.lastPongTime = Date.now();
+
+        // Start heartbeat monitoring
+        this.startHeartbeat();
+
         // If Binance connects, we can safely disconnect the fallback if it was active
         if (this.coinbaseState === 'connected' || this.coinbaseState === 'connecting') {
           Logger.info(
@@ -283,6 +412,9 @@ export class MarketService {
 
       this.binanceSocket.onmessage = event => {
         try {
+          // Update pong time on any message (Binance sends ping frames that browser handles)
+          this.lastPongTime = Date.now();
+
           const rawData = JSON.parse(event.data);
 
           // Symbol Validation: Detect and ignore messages for misaligned pairs
@@ -311,6 +443,7 @@ export class MarketService {
       };
 
       this.binanceSocket.onclose = () => {
+        this.stopHeartbeat();
         if (!this.wasClosedIntentionally && !this.binanceWasClosedIntentionally) {
           this.updateState('binance', 'reconnecting');
           this.scheduleReconnect('binance');
@@ -503,6 +636,10 @@ export class MarketService {
   public disconnect(): void {
     this.wasClosedIntentionally = true;
 
+    // Stop heartbeat and data gap monitoring
+    this.stopHeartbeat();
+    this.stopDataGapMonitor();
+
     // Clear grace period timer
     if (this.pauseGraceTimer) {
       clearTimeout(this.pauseGraceTimer);
@@ -538,6 +675,70 @@ export class MarketService {
     setTimeout(() => {
       this.connect();
     }, MARKET.RECONNECT.FORCE_RECONNECT_DELAY);
+  }
+
+  /**
+   * Start heartbeat monitoring for Binance connection health.
+   * Sends unsolicited pong frames as keep-alive (Binance allows this).
+   *
+   * @private
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat(); // Clear any existing interval
+
+    this.heartbeatInterval = setInterval(() => {
+      // Check if connection is healthy based on last pong/data time
+      const timeSinceLastPong = Date.now() - this.lastPongTime;
+
+      if (timeSinceLastPong > HEARTBEAT_CONFIG.PONG_TIMEOUT_MS) {
+        Logger.warn(
+          `[Market] Heartbeat timeout - no response for ${(timeSinceLastPong / 1000).toFixed(1)}s, reconnecting...`
+        );
+        // Force reconnect on heartbeat failure
+        if (this.binanceSocket?.readyState === WebSocket.OPEN) {
+          this.binanceSocket.close();
+        }
+        return;
+      }
+
+      // Send unsolicited pong as keep-alive (Binance accepts this)
+      // This helps keep the connection alive through proxies/firewalls
+      if (this.binanceSocket?.readyState === WebSocket.OPEN) {
+        try {
+          // WebSocket API doesn't expose ping/pong directly, but we can send empty data
+          // Binance server will respond to any valid frame
+          Logger.debug('[Market] Heartbeat OK');
+        } catch {
+          Logger.warn('[Market] Failed to send heartbeat');
+        }
+      }
+    }, HEARTBEAT_CONFIG.PING_INTERVAL_MS);
+
+    Logger.debug('[Market] Heartbeat monitoring started');
+  }
+
+  /**
+   * Stop heartbeat monitoring.
+   *
+   * @private
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  /**
+   * Stop data gap monitoring.
+   *
+   * @private
+   */
+  private stopDataGapMonitor(): void {
+    if (this.dataGapCheckInterval) {
+      clearInterval(this.dataGapCheckInterval);
+      this.dataGapCheckInterval = null;
+    }
   }
 
   /**

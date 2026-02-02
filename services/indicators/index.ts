@@ -13,12 +13,21 @@ export {
   createVolumeAnalyzer,
 } from './VolumeAnalyzer';
 
-// Orchestrator
+// Orchestrator (Legacy)
 export {
   MarketIndicatorService,
   marketIndicatorService,
   createMarketIndicatorService,
 } from './MarketIndicatorService';
+
+// AI Director V2: Client-Side Indicators
+export {
+  ClientIndicatorService,
+  createClientIndicatorService,
+  CLIENT_INDICATOR_CONFIG,
+  type ClientIndicatorState,
+  getDefaultClientIndicatorState,
+} from './ClientIndicatorService';
 
 // Re-export types for convenience
 export type { WhaleSpawnResult } from './VolumeAnalyzer';

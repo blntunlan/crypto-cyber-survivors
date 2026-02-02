@@ -19,8 +19,10 @@ import { type MarketStateData } from '../types/events';
 // ATR_PERIOD is now managed by MarketCalculator
 
 // Market data timeout configuration
-const MARKET_DATA_TIMEOUT_MS = 30000; // 30 seconds without data = timeout
-const TIMEOUT_CHECK_INTERVAL_MS = 5000; // Check every 5 seconds
+// CRITICAL: 10 seconds = fatal disconnect (game ends)
+// Under 10 seconds = game continues with fallback data
+const MARKET_DATA_TIMEOUT_MS = 10_000; // 10 seconds without data = timeout
+const TIMEOUT_CHECK_INTERVAL_MS = 1_000; // Check every 1 second for responsive detection
 
 export const useMarketData = (
   gameStatus: GameStatus,

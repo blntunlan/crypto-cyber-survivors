@@ -1,17 +1,21 @@
 /**
  * useMarketTimeout - Market Data Timeout Handler Hook
  *
- * Ends the game if live market feed disconnects for too long.
- * Reports the error for analytics and tracks in metrics.
+ * Handles market data disconnections with smart threshold logic:
+ * - Under 10 seconds: Game pauses with DATA_DISCONNECTED state
+ * - Over 10 seconds: Game ends gracefully with error tracking
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import { EventBus } from '../services/core/EventBus';
 import { Logger } from '../services/system/Logger';
 import { GameStateMachine } from '../services/core/GameStateMachine';
 import { GameStatus, type Player } from '../types';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+
+// Fatal disconnect threshold - game ends if disconnected for this long
+const FATAL_DISCONNECT_THRESHOLD_MS = 10_000; // 10 seconds
 
 interface UseMarketTimeoutParams {
   /** Player reference */
@@ -20,26 +24,76 @@ interface UseMarketTimeoutParams {
 
 /**
  * Hook to handle market data timeout events
- * Ends the game if market feed is disconnected too long
+ *
+ * Logic:
+ * - disconnectedDuration < 10s → DATA_DISCONNECTED (pause, allow recovery)
+ * - disconnectedDuration >= 10s → GAMEOVER with disconnect reason
  */
 export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
+  const gameEndedByDisconnectRef = useRef(false);
+
   useEffect(() => {
     const unsubscribe = EventBus.on('marketDataTimeout', data => {
       const currentState = GameStateMachine.getState();
 
-      // Transition to DATA_DISCONNECTED instead of ending game immediately
-      // STRICT: Only do this if we are in PLAYING mode.
-      // If we are in MENU, PAUSED, GAMEOVER, etc., we ignore the timeout.
-
+      // Only handle if we are in PLAYING or already DATA_DISCONNECTED
       if (
-        currentState !== GameStatus.DATA_DISCONNECTED &&
-        currentState === GameStatus.PLAYING
+        currentState !== GameStatus.PLAYING &&
+        currentState !== GameStatus.DATA_DISCONNECTED
       ) {
-        Logger.warn(`[App] Market data timeout - current state: ${currentState}`);
+        return;
+      }
+
+      const disconnectDuration = data.disconnectedDuration;
+
+      // FATAL DISCONNECT: 10+ seconds → End game
+      if (disconnectDuration >= FATAL_DISCONNECT_THRESHOLD_MS) {
+        if (!gameEndedByDisconnectRef.current) {
+          gameEndedByDisconnectRef.current = true;
+          Logger.error(
+            `[Market] FATAL DISCONNECT: ${(disconnectDuration / 1000).toFixed(1)}s - ending game`
+          );
+
+          // Emit game over event with disconnect reason
+          EventBus.emit('gameOver', {
+            finalLevel: playerRef.current.level,
+            finalPnl: playerRef.current.pnl ?? 0,
+            reason: 'DISCONNECT',
+          });
+
+          // Transition to GAMEOVER state
+          GameStateMachine.transition(GameStatus.GAMEOVER);
+        }
+
+        // Report fatal error for analytics
+        void import('../services/analytics/ErrorTracker').then(({ ErrorTracker }) => {
+          void ErrorTracker.getInstance().captureError({
+            errorType: 'FatalMarketDisconnect',
+            errorMessage: `Game ended due to market feed disconnect (${(disconnectDuration / 1000).toFixed(1)}s)`,
+            category: 'network',
+            severity: 'high',
+            context: {
+              pair: data.pair,
+              disconnectedDuration: disconnectDuration,
+              lastPriceTime: data.lastPriceTime,
+              playerLevel: playerRef.current.level,
+              playerScore: playerRef.current.score,
+              survivalTime: DifficultyManager.getTotalElapsedSeconds(),
+            },
+          });
+        });
+        return;
+      }
+
+      // RECOVERABLE DISCONNECT: Under 10s → Pause game
+      if (currentState === GameStatus.PLAYING) {
+        Logger.warn(
+          `[Market] Data gap detected (${(disconnectDuration / 1000).toFixed(1)}s) - pausing game`
+        );
         GameStateMachine.transition(GameStatus.DATA_DISCONNECTED);
       }
 
-      // Still report error for analytics
+      // Report warning for analytics
       void import('../services/analytics/ErrorTracker').then(({ ErrorTracker }) => {
         void ErrorTracker.getInstance().captureError({
           errorType: 'MarketTimeout',
@@ -48,25 +102,26 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
           severity: 'medium',
           context: {
             pair: data.pair,
-            disconnectedDuration: data.disconnectedDuration,
+            disconnectedDuration: disconnectDuration,
             lastPriceTime: data.lastPriceTime,
             playerLevel: playerRef.current.level,
             survivalTime: DifficultyManager.getTotalElapsedSeconds(),
-            wasInGame:
-              currentState === GameStatus.PLAYING || currentState === GameStatus.PAUSED,
+            wasInGame: currentState === GameStatus.PLAYING,
           },
         });
       });
     });
 
     const subRecovered = EventBus.on('marketDataRecovered', () => {
-      if (GameStateMachine.getState() === GameStatus.DATA_DISCONNECTED) {
-        Logger.info(
-          `[App] Market data recovered - returning to MENU (automatic resume disabled for safety)`
-        );
-        // We go back to MENU for now to be safe, since forcing PLAYING might break things
-        // if they weren't in a game.
-        GameStateMachine.transition(GameStatus.MENU);
+      const currentState = GameStateMachine.getState();
+
+      // Reset disconnect tracking
+      gameEndedByDisconnectRef.current = false;
+
+      if (currentState === GameStatus.DATA_DISCONNECTED) {
+        Logger.info('[Market] Data recovered - resuming game');
+        // Resume the game automatically since disconnect was recoverable
+        GameStateMachine.transition(GameStatus.PLAYING);
       }
     });
 

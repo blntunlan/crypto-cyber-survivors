@@ -23,7 +23,7 @@ vi.mock('../../services/gameplay/DifficultyManager', () => ({
 
 describe('useMarketTimeout', () => {
   const mockPlayerRef = {
-    current: { level: 1 },
+    current: { level: 1, pnl: 0 },
   } as any;
 
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('useMarketTimeout', () => {
     (EventBus.on as any).mockReturnValue(() => {});
   });
 
-  it('should transition to DATA_DISCONNECTED when processing timeout event in PLAYING state', () => {
+  it('should transition to DATA_DISCONNECTED when disconnect is under 10 seconds', () => {
     vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
     renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
 
@@ -41,11 +41,41 @@ describe('useMarketTimeout', () => {
 
     expect(timeoutHandler).toBeDefined();
 
-    timeoutHandler({ pair: 'BTC', disconnectedDuration: 35000 });
+    // Under 10 seconds - should pause, not end game
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 5000,
+      lastPriceTime: Date.now() - 5000,
+    });
 
     expect(GameStateMachine.transition).toHaveBeenCalledWith(
       GameStatus.DATA_DISCONNECTED
     );
+  });
+
+  it('should transition to GAMEOVER when disconnect is 10+ seconds (fatal)', () => {
+    vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
+    renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
+
+    const calls = (EventBus.on as any).mock.calls;
+    const timeoutHandler = calls.find((c: any) => c[0] === 'marketDataTimeout')?.[1];
+
+    expect(timeoutHandler).toBeDefined();
+
+    // 10+ seconds - fatal disconnect, game should end
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 15000,
+      lastPriceTime: Date.now() - 15000,
+    });
+
+    expect(EventBus.emit).toHaveBeenCalledWith(
+      'gameOver',
+      expect.objectContaining({
+        reason: 'DISCONNECT',
+      })
+    );
+    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 
   it('should NOT transition when processing timeout event in MENU state', () => {
@@ -55,7 +85,11 @@ describe('useMarketTimeout', () => {
     const calls = (EventBus.on as any).mock.calls;
     const timeoutHandler = calls.find((c: any) => c[0] === 'marketDataTimeout')?.[1];
 
-    timeoutHandler({ pair: 'BTC', disconnectedDuration: 35000 });
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 35000,
+      lastPriceTime: Date.now() - 35000,
+    });
 
     expect(GameStateMachine.transition).not.toHaveBeenCalled();
   });
@@ -67,8 +101,30 @@ describe('useMarketTimeout', () => {
     const calls = (EventBus.on as any).mock.calls;
     const timeoutHandler = calls.find((c: any) => c[0] === 'marketDataTimeout')?.[1];
 
-    timeoutHandler({ pair: 'BTC', disconnectedDuration: 35000 });
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 35000,
+      lastPriceTime: Date.now() - 35000,
+    });
 
     expect(GameStateMachine.transition).not.toHaveBeenCalled();
+  });
+
+  it('should resume game on marketDataRecovered when in DATA_DISCONNECTED state', () => {
+    vi.spyOn(GameStateMachine, 'getState').mockReturnValue(
+      GameStatus.DATA_DISCONNECTED
+    );
+    renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
+
+    const calls = (EventBus.on as any).mock.calls;
+    const recoveredHandler = calls.find(
+      (c: any) => c[0] === 'marketDataRecovered'
+    )?.[1];
+
+    expect(recoveredHandler).toBeDefined();
+
+    recoveredHandler({ pair: 'BTC' });
+
+    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
   });
 });

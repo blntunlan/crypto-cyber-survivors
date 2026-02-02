@@ -9,7 +9,9 @@ export type MarketState = MarketStateUpdatedEvent;
 
 type RsiState = 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
 
-const STALE_THRESHOLD_MS = 15000; // 15 seconds - reduced from 30s per user feedback
+// CRITICAL: 10 seconds = fatal disconnect threshold
+// This aligns with HEARTBEAT_CONFIG.FATAL_DISCONNECT_MS in MarketService
+const STALE_THRESHOLD_MS = 10_000; // 10 seconds - game ends if exceeded
 
 class MarketStateServiceClass {
   private static instance: MarketStateServiceClass | null = null;
