@@ -9,7 +9,17 @@
  * @see docs/AI_DIRECTOR_V2_DESIGN.md
  *
  * @example
- * // Using the context (recommended)
+ * // Using the UnifiedDirector (recommended for AI Director V2)
+ * import { UnifiedDirector } from './services/difficulty';
+ * const outputs = UnifiedDirector.getOutputs();
+ *
+ * @example
+ * // Using the FlowStateManager for player state
+ * import { FlowStateManager } from './services/difficulty';
+ * const analysis = FlowStateManager.update(playerHP);
+ *
+ * @example
+ * // Using the legacy context
  * import { difficultyContext } from './services/difficulty';
  * const ctx = difficultyContext.getContext();
  * const spawnRate = ctx.aggregates.core * ctx.inputs.leverageScale.spawn;
@@ -20,7 +30,26 @@
  * const pnl = calculatePnLFactor({ pnlPercent: -0.05, leverage: 10 });
  */
 
-// Main context
+// AI Director V2 - Unified Brain
+export {
+  UnifiedDirector,
+  UNIFIED_DIRECTOR_CONFIG,
+  type UnifiedInputs,
+  type UnifiedOutputs,
+} from './UnifiedDirector';
+
+// AI Director V2 - Flow State Manager
+export {
+  FlowStateManager,
+  createFlowStateManager,
+  FLOW_STATE_CONFIG,
+  type FlowState,
+  type PlayerMetrics,
+  type FlowStateAnalysis,
+  type FlowStateCorrections,
+} from './FlowStateManager';
+
+// Main context (legacy)
 export { difficultyContext } from './DifficultyContext';
 
 // Types

@@ -13,6 +13,7 @@ import { GameMasterBrain, type GameMasterInputs } from '../difficulty/GameMaster
 import { marketIndicatorService } from '../indicators/MarketIndicatorService';
 import { calculateMACDFactor } from '../difficulty/factors/macd';
 import { PoolManager } from '../combat/PoolManager';
+import { DirectorAdapter } from '../difficulty/DirectorAdapter';
 
 /**
  * Interface representing the various factors contributing to the final difficulty.
@@ -231,7 +232,13 @@ class DifficultyManagerClass {
     const finalTotal = (output.total + output.total * gm.spawnRate) / 2;
     output.total = clamp(finalTotal, D_CONFIG.LIMITS.total.min, maxDifficulty);
 
-    this.latestOutput = output;
+    // === AI Director V2 Integration ===
+    // Update player HP in DirectorAdapter
+    DirectorAdapter.updatePlayerHP(inp.hpPercent * 100, 100);
+    // Apply Director V2 blending (returns blended output)
+    const finalOutput = DirectorAdapter.process(output);
+
+    this.latestOutput = finalOutput;
 
     // 5. Emit Events (Cooldown 10s + 5s Session Grace Period)
     const isGracePeriod = TimeService.getGameTimeSeconds() < 5;
