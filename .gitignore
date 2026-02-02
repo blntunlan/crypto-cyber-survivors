@@ -60,6 +60,7 @@ railway-market-server/.env.*.local
 .agents/
 .claude/
 .gemini/
+.gemini_security/
 .windsurf/
 .cursor/
 .continue/
@@ -75,6 +76,7 @@ setup_discord.py
 sessionlog/
 Logtarayıcı/
 *.session.json
+crypto-survivors.com-Coverage-*/
 
 # Husky generated files
 .husky/_
