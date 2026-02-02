@@ -2,6 +2,6 @@
  * Hub Module - Public exports
  */
 
-export { HubMenu, type HubScreen } from './HubMenu';
-export { HubMenuButton, type HubButtonId } from './HubMenuButton';
-export { HubPlayerCard } from './HubPlayerCard';
+export { HubMenu, type HubScreen } from './HubMenu.tsx';
+export { HubMenuButton, type HubButtonId } from './HubMenuButton.tsx';
+export { HubPlayerCard } from './HubPlayerCard.tsx';

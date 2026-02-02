@@ -18,13 +18,13 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
 import { audio } from '../../services/audio';
-import { HubMenuButton, type HubButtonId } from './HubMenuButton';
+import { HubMenuButton, type HubButtonId } from './HubMenuButton.tsx';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useDevice } from '../../hooks/useDevice';
 import { OptimizationBadge } from '../ui/OptimizationBadge';
 
-import { HubPlayerCard } from './HubPlayerCard';
+import { HubPlayerCard } from './HubPlayerCard.tsx';
 import { LootboxService } from '../../services/lootbox';
 import { InventoryService } from '../../services/inventory';
 import {
@@ -34,7 +34,7 @@ import {
   HubIconSkins,
   HubIconRanks,
   HubIconGear,
-} from './HubIcons';
+} from './HubIcons.tsx';
 
 export type HubScreen = 'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear';
 

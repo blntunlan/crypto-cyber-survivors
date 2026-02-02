@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://crypto-survivors.com/</loc>
-    <lastmod>2026-01-30</lastmod>
+    <lastmod>2026-02-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/?lang=es"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/?lang=pt"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/?lang=zh"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/?lang=hi"/>
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/?lang=vi"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/"/>
   </url>
 </urlset>

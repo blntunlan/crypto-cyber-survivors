@@ -4,19 +4,19 @@
  * All HUD sub-components for the game overlay
  */
 
-export { WaveTimer } from './WaveTimer';
-export { FPSCounter } from './FPSCounter';
-export { ClutchAnnouncement } from './ClutchAnnouncement';
-export { LevelUpFlash } from './LevelUpFlash';
-export { NearDeathGlow } from './NearDeathGlow';
-export { EnemyPointers } from './EnemyPointers';
-export { AchievementPopup } from './AchievementPopup';
-export { MilestoneAnnouncer } from './MilestoneAnnouncer';
-export { ComboPanel } from './ComboPanel';
-export { KernelStatus } from './KernelStatus';
-export { LiveFeed } from './LiveFeed';
-export { AccountHealthPremium } from './AccountHealthPremium';
-export { BuffIndicator } from './BuffIndicator';
-export { NotificationSystem } from './NotificationSystem';
-export { LiquidationWarningOverlay } from './LiquidationWarningOverlay';
-export { CycleDecisionScreen } from './CycleDecisionScreen';
+export { WaveTimer } from './WaveTimer.tsx';
+export { FPSCounter } from './FPSCounter.tsx';
+export { ClutchAnnouncement } from './ClutchAnnouncement.tsx';
+export { LevelUpFlash } from './LevelUpFlash.tsx';
+export { NearDeathGlow } from './NearDeathGlow.tsx';
+export { EnemyPointers } from './EnemyPointers.tsx';
+export { AchievementPopup } from './AchievementPopup.tsx';
+export { MilestoneAnnouncer } from './MilestoneAnnouncer.tsx';
+export { ComboPanel } from './ComboPanel.tsx';
+export { KernelStatus } from './KernelStatus.tsx';
+export { LiveFeed } from './LiveFeed.tsx';
+export { AccountHealthPremium } from './AccountHealthPremium.tsx';
+export { BuffIndicator } from './BuffIndicator.tsx';
+export { NotificationSystem } from './NotificationSystem.tsx';
+export { LiquidationWarningOverlay } from './LiquidationWarningOverlay.tsx';
+export { CycleDecisionScreen } from './CycleDecisionScreen.tsx';

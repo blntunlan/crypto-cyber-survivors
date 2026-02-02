@@ -33,6 +33,7 @@ import {
   Trophy,
   Sparkles,
 } from 'lucide-react';
+import { useLanguage } from '../../contexts/useLanguage';
 import { useTheme } from '../../contexts/useTheme';
 
 interface LandingPageProps {
@@ -46,64 +47,45 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewPrivacy,
   onViewTerms,
 }) => {
+  const { t } = useLanguage();
   const { isRetro, toggleTheme, isTransitioning } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-  // FAQ Data
+  // FAQ Data from Translations
   const faqItems = [
-    {
-      question: 'What makes Crypto Survivors different from other games?',
-      answer:
-        'Real-time BTC/USD price feeds directly influence gameplay difficulty. Market volatility creates unique challenges every session.',
-    },
-    {
-      question: 'Is this a play-to-earn or crypto wallet game?',
-      answer:
-        'No. This is a skill-based arcade game. No real money, no wallets, no blockchain transactions required.',
-    },
-    {
-      question: 'What are Casual and Competitive modes?',
-      answer:
-        'Casual mode offers relaxed difficulty for learning. Competitive mode features global leaderboards and anti-cheat validation.',
-    },
-    {
-      question: 'Does the game work offline?',
-      answer:
-        'Limited offline mode available via PWA. Full features require internet for live market data.',
-    },
-    {
-      question: 'What platforms are supported?',
-      answer:
-        'Web browser (desktop & mobile), PWA installable. Native apps planned for future releases.',
-    },
+    { question: t('landing.faq.q1'), answer: t('landing.faq.a1') },
+    { question: t('landing.faq.q2'), answer: t('landing.faq.a2') },
+    { question: t('landing.faq.q3'), answer: t('landing.faq.a3') },
+    { question: t('landing.faq.q4'), answer: t('landing.faq.a4') },
+    { question: t('landing.faq.q5'), answer: t('landing.faq.a5') },
   ];
 
-  // Roadmap Data
+  // Roadmap Data from Translations
   const roadmapItems = [
     {
-      phase: 'Q1 2026',
-      title: 'Foundation',
+      phase: t('landing.roadmap.phase1'),
+      title: t('landing.roadmap.phase1_title'),
       status: 'completed',
-      items: ['Core gameplay loop', '60 FPS Canvas engine', 'Supabase integration'],
+      items: t('landing.roadmap.phase1_items'),
     },
     {
-      phase: 'Q2 2026',
-      title: 'Live Markets',
+      phase: t('landing.roadmap.phase2'),
+      title: t('landing.roadmap.phase2_title'),
       status: 'current',
-      items: ['Binance/Coinbase WSS', 'Neural AI Director', 'Anti-cheat system'],
+      items: t('landing.roadmap.phase2_items'),
     },
     {
-      phase: 'Q3 2026',
-      title: 'Social',
+      phase: t('landing.roadmap.phase3'),
+      title: t('landing.roadmap.phase3_title'),
       status: 'upcoming',
-      items: ['Global leaderboards', 'Replay sharing', 'Achievement badges'],
+      items: t('landing.roadmap.phase3_items'),
     },
     {
-      phase: 'Q4 2026',
-      title: 'Expansion',
+      phase: t('landing.roadmap.phase4'),
+      title: t('landing.roadmap.phase4_title'),
       status: 'upcoming',
-      items: ['Multi-crypto support', 'Daily challenges', 'Seasonal events'],
+      items: t('landing.roadmap.phase4_items'),
     },
   ];
 
@@ -169,7 +151,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="px-4 py-3 min-h-[44px] text-[#d6b85c] hover:text-white transition-all duration-300 flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
             >
               <Zap className={`w-3 h-3 ${isTransitioning ? 'animate-spin' : ''}`} />
-              {isRetro ? 'PROTOCOL: CYBER' : 'PROTOCOL: RETRO'}
+              {isRetro
+                ? t('landing.nav.protocol_cyber')
+                : t('landing.nav.protocol_retro')}
             </button>
           </div>
 
@@ -179,9 +163,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           >
             <a
               href="#engine"
-              className="block px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
+              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
-              01. Engine
+              {t('landing.nav.engine')}
             </a>
           </div>
           <div
@@ -189,9 +173,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           >
             <a
               href="#pipeline"
-              className="block px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
+              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
-              02. Pipeline
+              {t('landing.nav.pipeline')}
             </a>
           </div>
           <div
@@ -199,9 +183,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           >
             <a
               href="#dev"
-              className="block px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
+              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
-              03. Solo Dev
+              {t('landing.nav.dev')}
             </a>
           </div>
           <div
@@ -212,7 +196,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={() => (window.location.hash = '#docs')}
               className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 uppercase focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
             >
-              04. Documentation
+              {t('landing.nav.docs')}
             </button>
           </div>
 
@@ -225,7 +209,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
             }`}
           >
-            EXECUTE ENGINE
+            {t('landing.nav.execute')}
           </button>
         </div>
       </nav>
@@ -277,7 +261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
                 >
-                  01. Engine
+                  {t('landing.nav.engine')}
                 </a>
 
                 <a
@@ -285,7 +269,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
                 >
-                  02. Pipeline
+                  {t('landing.nav.pipeline')}
                 </a>
 
                 <a
@@ -293,7 +277,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
                 >
-                  03. Solo Dev
+                  {t('landing.nav.dev')}
                 </a>
 
                 <button
@@ -303,7 +287,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   }}
                   className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
                 >
-                  04. Documentation
+                  {t('landing.nav.docs')}
                 </button>
               </div>
 
@@ -319,7 +303,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
                 }`}
               >
-                EXECUTE ENGINE
+                {t('landing.nav.execute')}
               </button>
             </motion.nav>
           </motion.div>
@@ -336,21 +320,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             className="flex-1"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 sm:mb-8 rounded bg-[#b22222]/10 border-l-4 border-[#b22222] text-[#b22222] text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono">
-              SYSTEM STATUS: STANDBY_MODE (BETA_v1.0)
+              {t('landing.hero.status')}
             </div>
 
             <h1
               className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter mb-6 sm:mb-8 leading-[0.95] italic ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              HIGH STAKES <br />
+              <span className="text-xs sm:text-sm block font-mono text-[#d6b85c] not-italic tracking-[0.5em] mb-4">
+                CRYPTO SURVIVORS
+              </span>
+              {t('landing.hero.title_top')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white">
-                VOLATILITY
+                {t('landing.hero.title_highlight')}
               </span>
             </h1>
 
             <p className="max-w-xl text-sm sm:text-base md:text-lg text-slate-400 mb-8 sm:mb-12 leading-relaxed font-mono">
-              Crafting a <span className="text-[#d6b85c]">systematic bridge</span>{' '}
-              between live financial markets and rogue-lite hyper-casual gameplay.
+              {t('landing.hero.description')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
@@ -360,7 +346,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 <div className="absolute inset-x-0 h-[2px] bg-white opacity-20 -top-full group-hover:top-full transition-all duration-700" />
                 <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
-                START SURVIVAL
+                {t('landing.hero.start')}
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-300" />
               </button>
               <a
@@ -378,7 +364,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 >
                   <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
                 </svg>
-                Inspect Protocol
+                {t('landing.hero.inspect')}
               </a>
             </div>
           </motion.div>
@@ -440,14 +426,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="px-4 sm:px-6 mx-auto max-w-7xl">
           <div className="mb-12 sm:mb-16 lg:mb-20 text-center">
             <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
-              Engineering Manifesto
+              {t('landing.manifesto.title')}
             </h2>
             <div
               className={`text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase italic text-white flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4 ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              <span>Solo Indie</span>
+              <span>{t('landing.manifesto.solo')}</span>
               <span className="w-8 h-px bg-[#b22222] hidden md:block" />
-              <span className="text-[#b22222]">Enterprise Standards</span>
+              <span className="text-[#b22222]">
+                {t('landing.manifesto.enterprise')}
+              </span>
             </div>
           </div>
 
@@ -455,27 +443,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
               {
-                tag: 'MEMORY',
-                title: 'O(1) POOLING',
-                desc: 'Zero-allocation game loop using advanced object pooling to prevent GC spikes.',
+                tag: t('landing.features.tag_memory'),
+                title: t('landing.features.title_memory'),
+                desc: t('landing.features.desc_memory'),
                 icon: Cpu,
               },
               {
-                tag: 'PHYSICS',
-                title: 'SPATIAL GRID',
-                desc: 'Custom Spatial Hashing for collision detection, ensuring O(N) complexity.',
+                tag: t('landing.features.tag_physics'),
+                title: t('landing.features.title_physics'),
+                desc: t('landing.features.desc_physics'),
                 icon: Shield,
               },
               {
-                tag: 'STATE',
-                title: 'DECOUPLED ZUSTAND',
-                desc: 'Atomic state management with manual subscription control for 60FPS sync.',
+                tag: t('landing.features.tag_state'),
+                title: t('landing.features.title_state'),
+                desc: t('landing.features.desc_state'),
                 icon: Activity,
               },
               {
-                tag: 'BACKEND',
-                title: 'SECURE PIPELINE',
-                desc: 'Supabase RLS coupled with Edge Functions for bulletproof validation.',
+                tag: t('landing.features.tag_backend'),
+                title: t('landing.features.title_backend'),
+                desc: t('landing.features.desc_backend'),
                 icon: Shield,
               },
             ].map((card, i) => (
@@ -516,11 +504,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <h3
                 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-6 sm:mb-8 italic uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
               >
-                Ultra-Innovative Architecture
+                {t('landing.architecture.title')}
               </h3>
               <p className="text-slate-400 mb-6 sm:mb-8 font-mono text-sm leading-relaxed">
-                As a solo indie developer, my requirement was simple: build a system
-                that manages itself.
+                {t('landing.architecture.description')}
               </p>
 
               <div className="flex flex-wrap gap-2 sm:gap-4">
@@ -551,10 +538,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-1 h-12 bg-[#b22222] flex-shrink-0" />
                   <div>
                     <div className="text-xs font-black text-white uppercase italic">
-                      Systemic Balance
+                      {t('landing.architecture.balance_title')}
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">
-                      Difficulty scales automatically with Leverage (1x-100x).
+                      {t('landing.architecture.balance_desc')}
                     </div>
                   </div>
                 </div>
@@ -562,10 +549,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-1 h-12 bg-[#d6b85c] flex-shrink-0" />
                   <div>
                     <div className="text-xs font-black text-white uppercase italic">
-                      Real-Time Integrity
+                      {t('landing.architecture.integrity_title')}
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">
-                      WSS feed failover ensures zero game interruption.
+                      {t('landing.architecture.integrity_desc')}
                     </div>
                   </div>
                 </div>
@@ -573,10 +560,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="w-1 h-12 bg-white flex-shrink-0" />
                   <div>
                     <div className="text-xs font-black text-white uppercase italic">
-                      60 FPS Native
+                      {t('landing.architecture.performance_title')}
                     </div>
                     <div className="text-[10px] text-slate-500 font-mono">
-                      Canvas-optimized rendering pipeline bypasses DOM overhead.
+                      {t('landing.architecture.performance_desc')}
                     </div>
                   </div>
                 </div>
@@ -593,12 +580,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 sm:mb-16 text-center">
             <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
-              Choose Your Path
+              {t('landing.modes.title')}
             </h2>
             <div
               className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              Game Modes
+              {t('landing.modes.subtitle')}
             </div>
           </div>
 
@@ -616,20 +603,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <h3
                   className={`text-xl sm:text-2xl font-black uppercase italic text-[#d6b85c] ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
                 >
-                  Casual
+                  {t('landing.modes.casual_title')}
                 </h3>
               </div>
               <p className="text-slate-400 text-sm font-mono mb-6">
-                Perfect for learning mechanics and enjoying relaxed gameplay.
+                {t('landing.modes.casual_desc')}
               </p>
               <ul className="space-y-3">
-                {[
-                  'Forgiving difficulty curve',
-                  'Practice without pressure',
-                  'All features unlocked',
-                  'Local progress saving',
-                  'Offline mode available',
-                ].map((item, i) => (
+                {(t('landing.modes.casual_items') as string[]).map((item, i) => (
                   <li
                     key={i}
                     className="flex items-center gap-3 text-sm text-slate-300"
@@ -649,28 +630,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   : 'border-[#b22222]/20 bg-gradient-to-br from-[#b22222]/10 to-transparent'
               }`}
             >
-              <div className="absolute top-4 right-4 px-2 py-1 bg-[#b22222] text-[9px] font-black uppercase tracking-wider">
-                Pro
+              <div className="absolute top-4 right-4 px-2 py-1 bg-[#b22222] text-[8px] sm:text-[9px] font-black uppercase tracking-wider">
+                {t('landing.modes.comp_pro_tag')}
               </div>
               <div className="flex items-center gap-3 mb-6">
                 <Trophy className="w-8 h-8 text-[#b22222]" />
                 <h3
                   className={`text-xl sm:text-2xl font-black uppercase italic text-[#b22222] ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
                 >
-                  Competitive
+                  {t('landing.modes.comp_title')}
                 </h3>
               </div>
               <p className="text-slate-400 text-sm font-mono mb-6">
-                Prove your skills on the global stage with verified runs.
+                {t('landing.modes.comp_desc')}
               </p>
               <ul className="space-y-3">
-                {[
-                  'Global leaderboards',
-                  'Anti-cheat validation',
-                  'Replay recording',
-                  'Achievement tracking',
-                  'Seasonal rankings',
-                ].map((item, i) => (
+                {(t('landing.modes.comp_items') as string[]).map((item, i) => (
                   <li
                     key={i}
                     className="flex items-center gap-3 text-sm text-slate-300"
@@ -690,12 +665,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 sm:mb-16 text-center">
             <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
-              Development Timeline
+              {t('landing.roadmap.title')}
             </h2>
             <div
               className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              Roadmap
+              {t('landing.roadmap.subtitle')}
             </div>
           </div>
 
@@ -715,7 +690,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 {phase.status === 'current' && (
                   <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-[#d6b85c] text-black text-[8px] font-black uppercase">
-                    Active
+                    {t('landing.roadmap.active_tag')}
                   </div>
                 )}
                 <div
@@ -741,7 +716,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {phase.title}
                 </h3>
                 <ul className="space-y-2">
-                  {phase.items.map((item, j) => (
+                  {phase.items.map((item: string, j: number) => (
                     <li
                       key={j}
                       className={`text-[11px] font-mono flex items-start gap-2 ${
@@ -772,12 +747,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="mx-auto max-w-3xl">
           <div className="mb-12 sm:mb-16 text-center">
             <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
-              Common Questions
+              {t('landing.faq.title')}
             </h2>
             <div
               className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              FAQ
+              {t('landing.faq.subtitle')}
             </div>
           </div>
 
@@ -849,7 +824,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </span>
             </div>
             <p className="text-[10px] text-slate-600 font-mono max-w-xs uppercase tracking-widest mb-4">
-              Solo indie developer project. <br />© 2026 CSYNC PROTOCOL.
+              {t('landing.footer.trademark')}
             </p>
             {/* Social Links */}
             <div className="flex gap-3">
@@ -865,7 +840,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     ? 'border-[#5865F2]/30 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
                     : 'border-white/10 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
                 }`}
-                aria-label="Discord (Coming Soon)"
+                aria-label={t('landing.footer.discord_soon')}
               >
                 <svg
                   className="w-4 h-4 text-[#5865F2]"
@@ -887,7 +862,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     ? 'border-white/30 hover:border-white hover:bg-white/10'
                     : 'border-white/10 hover:border-white hover:bg-white/10'
                 }`}
-                aria-label="Twitter/X (Coming Soon)"
+                aria-label={t('landing.footer.twitter_soon')}
               >
                 <svg
                   className="w-4 h-4 text-white"
@@ -909,7 +884,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 onClick={onLaunch}
                 className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
               >
-                Access_Terminal
+                {t('landing.footer.access')}
               </button>
             </div>
             <div
@@ -919,7 +894,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 onClick={onViewPrivacy}
                 className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
               >
-                Privacy_Doc
+                {t('landing.footer.privacy')}
               </button>
             </div>
             <div
@@ -929,7 +904,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 onClick={onViewTerms}
                 className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
               >
-                Terms_Doc
+                {t('landing.footer.terms')}
               </button>
             </div>
             <div
@@ -939,7 +914,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 href="mailto:info@crypto-survivors.com"
                 className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
               >
-                Contact_Channel
+                {t('landing.footer.contact')}
               </a>
             </div>
           </div>
@@ -963,10 +938,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               : 'bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]'
           }
         `}
-        title="Back to Top"
+        title={t('landing.footer.back_to_top')}
         style={{ bottom: 'calc(1rem + var(--sab, 0px))', right: '1rem' }}
       >
-        ↑ TOP
+        ↑ {t('landing.footer.top')}
       </motion.button>
       {/* --- 06. GLOBAL STYLE INJECTIONS --- */}
       <style>{`

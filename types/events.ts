@@ -132,8 +132,8 @@ export interface LevelUpCompleteEvent {
 export interface GameOverEvent {
   finalLevel: number;
   finalPnl: number;
-  /** Reason for game over: 'DEATH' (default), 'CASH_OUT', 'TIMEOUT' */
-  reason?: 'DEATH' | 'CASH_OUT' | 'TIMEOUT';
+  /** Reason for game over: 'DEATH' (default), 'CASH_OUT', 'TIMEOUT', 'DISCONNECT' */
+  reason?: 'DEATH' | 'CASH_OUT' | 'TIMEOUT' | 'DISCONNECT';
 }
 
 /** Critical hit event data */
@@ -282,6 +282,34 @@ export interface MarketDataTimeoutEvent {
   lastPriceTime: number | null;
   disconnectedDuration: number; // ms
   pair: string;
+}
+
+/** Client-side indicators updated event (AI Director V2) */
+export interface ClientIndicatorsUpdatedEvent {
+  /** Current RSI value (0-100) */
+  rsi: number;
+  /** RSI state: OVERSOLD | NEUTRAL | OVERBOUGHT */
+  rsiState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  /** ATR as percentage of price */
+  atrPercent: number;
+  /** Normalized volume (0-1) */
+  normalizedVolume: number;
+  /** Price change % in last 60s */
+  priceChangePercent: number;
+  /** Trend strength (0-1) */
+  trendStrength: number;
+}
+
+/** Flow state changed event (AI Director V2) */
+export interface FlowStateChangedEvent {
+  /** Previous flow state */
+  previousState: 'bored' | 'flow' | 'stressed';
+  /** New flow state */
+  newState: 'bored' | 'flow' | 'stressed';
+  /** Current engagement score (0-1) */
+  engagementScore: number;
+  /** Current frustration score (0-1) */
+  frustrationScore: number;
 }
 
 /** Market state changed event data (indicator system) */
@@ -525,6 +553,8 @@ export interface EventDataMap {
   marketDataTimeout: MarketDataTimeoutEvent;
   // Deprecated: marketStateChanged: MarketStateChangedEvent;
   marketStateChanged: MarketStateChangedEvent;
+  clientIndicatorsUpdated: ClientIndicatorsUpdatedEvent;
+  flowStateChanged: FlowStateChangedEvent;
   whaleSpawned: WhaleSpawnedEvent;
   whaleTierChanged: WhaleTierChangedEvent;
   rsiStateChanged: RSIStateChangedEvent;
@@ -591,9 +621,63 @@ export interface EventDataMap {
     intensity: number;
     durationMs: number;
   };
-  portalOpened: { x: number; y: number; type: 'TAKE_PROFIT' | 'STOP_LOSS' };
+  portalOpened: {
+    x: number;
+    y: number;
+    type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
+    portalNumber: number;
+    reason: string;
+    isForced: boolean;
+  };
   portalClosed: EmptyEvent;
+  portalEntered: {
+    type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
+    portalNumber: number;
+    coinsEarned: number;
+    gameTimeMs: number;
+  };
+  portalRejected: {
+    type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
+    portalNumber: number;
+    rejectionCount: number;
+    penaltyApplied: boolean;
+  };
+  portalMissed: {
+    type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
+    portalNumber: number;
+    reason: 'timeout' | 'rejected';
+  };
   portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
+
+  // Market Event Mapper V2 events
+  screenShake: { intensity: number; duration: number };
+  visualOverlay: {
+    effect: 'none' | 'red_flash' | 'green_pulse' | 'blue_calm' | 'purple_chaos';
+    intensity: number;
+    durationMs: number;
+  };
+  spawnBoss: { type: string; tier: number };
+  playerModifierApplied: {
+    source: string;
+    speedMultiplier: number;
+    damageMultiplier: number;
+    defenseMultiplier: number;
+    durationMs: number;
+  };
+  playerModifierRemoved: { source: string };
+  marketFlowInfluence: {
+    stressChange: number;
+    engagementChange: number;
+    source: string;
+  };
+  marketEventActive: {
+    type: string;
+    intensity: number;
+    spawnModifier: number;
+    eliteModifier: number;
+  };
+  marketEventExpired: { type: string };
+
   // Gameplay validation events
   gameplayValidation: GameplayValidationEvent;
   // Supabase health events
