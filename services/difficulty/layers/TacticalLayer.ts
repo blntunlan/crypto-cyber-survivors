@@ -359,10 +359,11 @@ class TacticalLayerClass {
     else if (indicators.rsi <= 30) parts.push('Oversold');
 
     // Volatility description
-    if (indicators.atrPercent >= TACTICAL_CONFIG.ATR_EXTREME)
+    if (indicators.atrPercent >= TACTICAL_CONFIG.ATR_EXTREME) {
       parts.push('Extreme Volatility');
-    else if (indicators.atrPercent >= TACTICAL_CONFIG.ATR_HIGH)
+    } else if (indicators.atrPercent >= TACTICAL_CONFIG.ATR_HIGH) {
       parts.push('High Volatility');
+    }
 
     // Volume description
     if (indicators.normalizedVolume >= 0.9) parts.push('Volume Spike');
