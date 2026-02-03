@@ -450,16 +450,28 @@
       "active_tag": "Aktif",
       "phase1": "2026 Q1",
       "phase1_title": "Temel",
-      "phase1_items": ["Temel oynanış döngüsü", "60 FPS Canvas motoru", "Supabase entegrasyonu"],
+      "phase1_items": [
+        "Temel oynanış döngüsü",
+        "60 FPS Canvas motoru",
+        "Supabase entegrasyonu"
+      ],
       "phase2": "2026 Q2",
       "phase2_title": "Canlı Piyasalar",
-      "phase2_items": ["Binance/Coinbase WSS", "Sinaptik Yapay Zeka Direktörü", "Anti-cheat sistemi"],
+      "phase2_items": [
+        "Binance/Coinbase WSS",
+        "Sinaptik Yapay Zeka Direktörü",
+        "Anti-cheat sistemi"
+      ],
       "phase3": "2026 Q3",
       "phase3_title": "Sosyal",
       "phase3_items": ["Dünya sıralamaları", "Tekrar paylaşımı", "Başarım rozetleri"],
       "phase4": "2026 Q4",
       "phase4_title": "Genişleme",
-      "phase4_items": ["Çoklu kripto desteği", "Günlük görevler", "Sezonluk etkinlikler"]
+      "phase4_items": [
+        "Çoklu kripto desteği",
+        "Günlük görevler",
+        "Sezonluk etkinlikler"
+      ]
     },
     "faq": {
       "title": "Sıkça Sorulan Sorular",

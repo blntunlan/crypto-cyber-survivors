@@ -414,16 +414,32 @@
       "active_tag": "Đang hoạt động",
       "phase1": "Q1 2026",
       "phase1_title": "Nền tảng",
-      "phase1_items": ["Vòng lặp cốt lõi", "Động cơ Canvas 60 FPS", "Tích hợp Supabase"],
+      "phase1_items": [
+        "Vòng lặp cốt lõi",
+        "Động cơ Canvas 60 FPS",
+        "Tích hợp Supabase"
+      ],
       "phase2": "Q2 2026",
       "phase2_title": "Thị trường trực tiếp",
-      "phase2_items": ["Binance/Coinbase WSS", "Giám đốc AI thần kinh", "Hệ thống chống gian lận"],
+      "phase2_items": [
+        "Binance/Coinbase WSS",
+        "Giám đốc AI thần kinh",
+        "Hệ thống chống gian lận"
+      ],
       "phase3": "Q3 2026",
       "phase3_title": "Xã hội",
-      "phase3_items": ["Bảng xếp hạng toàn cầu", "Chia sẻ phát lại", "Huy hiệu thành tích"],
+      "phase3_items": [
+        "Bảng xếp hạng toàn cầu",
+        "Chia sẻ phát lại",
+        "Huy hiệu thành tích"
+      ],
       "phase4": "Q4 2026",
       "phase4_title": "Mở rộng",
-      "phase4_items": ["Hỗ trợ đa tiền điện tử", "Thử thách hàng ngày", "Sự kiện theo mùa"]
+      "phase4_items": [
+        "Hỗ trợ đa tiền điện tử",
+        "Thử thách hàng ngày",
+        "Sự kiện theo mùa"
+      ]
     },
     "faq": {
       "title": "Câu hỏi thường gặp",

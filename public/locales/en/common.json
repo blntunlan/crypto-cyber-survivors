@@ -450,10 +450,18 @@
       "active_tag": "Active",
       "phase1": "Q1 2026",
       "phase1_title": "Foundation",
-      "phase1_items": ["Core gameplay loop", "60 FPS Canvas engine", "Supabase integration"],
+      "phase1_items": [
+        "Core gameplay loop",
+        "60 FPS Canvas engine",
+        "Supabase integration"
+      ],
       "phase2": "Q2 2026",
       "phase2_title": "Live Markets",
-      "phase2_items": ["Binance/Coinbase WSS", "Neural AI Director", "Anti-cheat system"],
+      "phase2_items": [
+        "Binance/Coinbase WSS",
+        "Neural AI Director",
+        "Anti-cheat system"
+      ],
       "phase3": "Q3 2026",
       "phase3_title": "Social",
       "phase3_items": ["Global leaderboards", "Replay sharing", "Achievement badges"],
