@@ -11,7 +11,7 @@ import { screenService } from '../../services/system/ScreenService';
 const DesktopGlow: React.FC = () => (
   <div
     id="near-death-glow"
-    className="absolute inset-0 pointer-events-none shadow-[inset_0_0_150px_rgba(239,68,68,0.8)] z-[101]"
+    className="pointer-events-none absolute inset-0 z-[101] shadow-[inset_0_0_150px_rgba(239,68,68,0.8)]"
     style={{ opacity: 0, transition: 'opacity 0.2s ease-out' }}
   />
 );
@@ -19,7 +19,7 @@ const DesktopGlow: React.FC = () => (
 const MobileGlow: React.FC = () => (
   <div
     id="near-death-glow"
-    className="absolute inset-0 pointer-events-none shadow-[inset_0_0_80px_rgba(239,68,68,1.0)] z-[101]"
+    className="pointer-events-none absolute inset-0 z-[101] shadow-[inset_0_0_80px_rgba(239,68,68,1.0)]"
     style={{ opacity: 0, transition: 'opacity 0.2s ease-out' }}
   />
 );

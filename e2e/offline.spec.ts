@@ -5,6 +5,7 @@ test.describe('Offline Behavior', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -33,7 +34,7 @@ test.describe('Offline Behavior', () => {
     await longBtn.click();
 
     // Confirm in-game
-    await expect(page.locator('text=/LVL|LEVEL/i').first()).toBeVisible({
+    await expect(page.locator('text=/LV|LVL|LEVEL/i').first()).toBeVisible({
       timeout: 10000,
     });
 

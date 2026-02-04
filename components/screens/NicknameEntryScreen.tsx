@@ -36,12 +36,41 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   // Environment check - nickname login only available in development
   const isDevelopment = import.meta.env.DEV;
 
+  // Magic Link state
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+
   // Check if Phantom is installed
   const isPhantomInstalled = PhantomAuthService.isPhantomInstalled();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle Magic Link
+  const handleMagicLink = useCallback(async () => {
+    if (!magicLinkEmail?.includes('@')) {
+      setError('Please enter a valid email address');
+      audio.playHit();
+      return;
+    }
+
+    setAuthLoading('magiclink');
+    setError(null);
+    audio.playKeystroke();
+
+    const result = await SupabaseAuthService.sendMagicLink(magicLinkEmail);
+
+    setAuthLoading(null);
+
+    if (result.success) {
+      setMagicLinkSent(true);
+      audio.playLevelUp();
+    } else {
+      setError(result.error ?? 'Failed to send magic link');
+      audio.playHit();
+    }
+  }, [magicLinkEmail]);
 
   // OAuth providers config with Lucide icons
   const oauthProviders: {
@@ -452,63 +481,135 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
             <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
-              {isDevelopment ? 'veya hesapla giriş' : 'giriş yöntemi seçin'}
+              {isDevelopment ? 'or sign in with' : 'sign in method'}
             </span>
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
           </div>
 
-          {/* OAuth Buttons Grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {oauthProviders.map(provider => (
+          {/* Magic Link Email - Production Only */}
+          {!isDevelopment && !magicLinkSent && (
+            <div className="mb-4 space-y-3">
+              <div className="flex items-center gap-2 px-1">
+                <label
+                  htmlFor="email-input"
+                  className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
+                >
+                  📧 Email Magic Link
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  id="email-input"
+                  type="email"
+                  value={magicLinkEmail}
+                  onChange={e => setMagicLinkEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="flex-1 rounded-lg border border-slate-700/50 bg-slate-800/60 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-1 focus:ring-cyan-500/30"
+                />
+                <button
+                  onClick={() => void handleMagicLink()}
+                  disabled={authLoading === 'magiclink'}
+                  className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-400 transition-all hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {authLoading === 'magiclink' ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-400" />
+                  ) : (
+                    'Send'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Magic Link Success */}
+          {magicLinkSent && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-center"
+            >
+              <div className="mb-2 text-2xl">✉️</div>
+              <p className="text-sm font-medium text-green-400">Check your email!</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Click the link in the email to sign in
+              </p>
               <button
-                key={provider.id}
-                onClick={() => void handleOAuthSignIn(provider.id)}
-                disabled={authLoading !== null}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                  authLoading === provider.id
-                    ? 'cursor-wait opacity-70'
-                    : authLoading !== null
-                      ? 'cursor-not-allowed opacity-40'
-                      : 'hover:scale-[1.02] hover:border-cyan-500/50 active:scale-[0.98]'
-                } ${isRetro ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-slate-700/50 bg-slate-800/60 text-white/90 backdrop-blur-sm'}`}
+                onClick={() => setMagicLinkSent(false)}
+                className="mt-3 text-xs text-cyan-400 underline hover:text-cyan-300"
               >
-                {provider.icon}
-                <span className="hidden sm:inline">{provider.name}</span>
-                {authLoading === provider.id && (
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                )}
+                Try different email
               </button>
-            ))}
-          </div>
+            </motion.div>
+          )}
+
+          {/* OAuth Divider */}
+          {!isDevelopment && !magicLinkSent && (
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-700/30" />
+              <span className="text-[9px] uppercase tracking-wider text-slate-600">
+                or
+              </span>
+              <div className="h-px flex-1 bg-slate-700/30" />
+            </div>
+          )}
+
+          {/* OAuth Buttons Grid */}
+          {!magicLinkSent && (
+            <div className="grid grid-cols-2 gap-2">
+              {oauthProviders.map(provider => (
+                <button
+                  key={provider.id}
+                  onClick={() => void handleOAuthSignIn(provider.id)}
+                  disabled={authLoading !== null}
+                  aria-label={provider.name}
+                  className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                    authLoading === provider.id
+                      ? 'cursor-wait opacity-70'
+                      : authLoading !== null
+                        ? 'cursor-not-allowed opacity-40'
+                        : 'hover:scale-[1.02] hover:border-cyan-500/50 active:scale-[0.98]'
+                  } ${isRetro ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-slate-700/50 bg-slate-800/60 text-white/90 backdrop-blur-sm'}`}
+                >
+                  {provider.icon}
+                  <span className="hidden sm:inline">{provider.name}</span>
+                  {authLoading === provider.id && (
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Phantom Wallet Button */}
-          <button
-            onClick={() => {
-              if (isPhantomInstalled) {
-                void handleWalletConnect();
-              } else {
-                PhantomAuthService.openPhantomDownload();
-              }
-            }}
-            disabled={authLoading !== null}
-            className={`mt-3 flex w-full items-center justify-center gap-2.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
-              authLoading === 'phantom'
-                ? 'cursor-wait opacity-70'
-                : authLoading !== null
-                  ? 'cursor-not-allowed opacity-40'
-                  : 'hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(153,69,255,0.3)] active:scale-[0.98]'
-            } ${isRetro ? 'border-2 border-purple-600 bg-purple-800 text-white' : 'border border-purple-400/30 bg-gradient-to-r from-purple-600 to-purple-500 text-white'}`}
-          >
-            <Ghost className="h-5 w-5" />
-            <span>
-              {isPhantomInstalled
-                ? 'Phantom Wallet ile Bağlan'
-                : 'Phantom Wallet Yükle'}
-            </span>
-            {authLoading === 'phantom' && (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            )}
-          </button>
+          {!magicLinkSent && (
+            <button
+              onClick={() => {
+                if (isPhantomInstalled) {
+                  void handleWalletConnect();
+                } else {
+                  PhantomAuthService.openPhantomDownload();
+                }
+              }}
+              disabled={authLoading !== null}
+              className={`mt-3 flex w-full items-center justify-center gap-2.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                authLoading === 'phantom'
+                  ? 'cursor-wait opacity-70'
+                  : authLoading !== null
+                    ? 'cursor-not-allowed opacity-40'
+                    : 'hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(153,69,255,0.3)] active:scale-[0.98]'
+              } ${isRetro ? 'border-2 border-purple-600 bg-purple-800 text-white' : 'border border-purple-400/30 bg-gradient-to-r from-purple-600 to-purple-500 text-white'}`}
+            >
+              <Ghost className="h-5 w-5" />
+              <span>
+                {isPhantomInstalled
+                  ? 'Connect Phantom Wallet'
+                  : 'Install Phantom Wallet'}
+              </span>
+              {authLoading === 'phantom' && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              )}
+            </button>
+          )}
 
           <footer className="mt-6 flex items-center justify-between border-t border-slate-700/30 pt-4 text-[9px] font-medium text-slate-500 sm:mt-8 sm:pt-6">
             <div className="flex items-center gap-2">

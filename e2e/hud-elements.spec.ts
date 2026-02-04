@@ -10,12 +10,12 @@ import { test, expect } from '@playwright/test';
 test.describe('HUD Elements E2E', () => {
   test.beforeEach(async ({ context, page }) => {
     // 1. Clear state and skip nickname entry
-    await page.goto('/?no-sw=true');
     await context.clearCookies();
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -26,9 +26,11 @@ test.describe('HUD Elements E2E', () => {
         })
       );
     });
+
+    await page.goto('/?no-sw=true');
+
     // Wait for the app to be ready
     await expect(page.locator('#root')).toBeAttached();
-    await page.reload();
 
     // Verify Nickname is visible on Hub Menu BEFORE navigating away
     await expect(page.locator('text=HUDTester')).toBeVisible({ timeout: 15 * 1000 });
@@ -39,15 +41,18 @@ test.describe('HUD Elements E2E', () => {
     await hubPlayBtn.click();
 
     // 4. Start game from Main Menu (using "Long" button)
-    const mainMenuLongBtn = page.locator('button', { hasText: /Long/i });
+    const mainMenuLongBtn = page.locator('button', { hasText: /Long/i }).first();
     await expect(mainMenuLongBtn).toBeVisible({ timeout: 15000 });
-    await mainMenuLongBtn.click({ force: true });
+
+    // Wait for price to load (button enabled)
+    await expect(mainMenuLongBtn).toBeEnabled({ timeout: 30000 });
+    await mainMenuLongBtn.click();
 
     // Give it a moment to start
     await page.waitForTimeout(2000);
 
     // 5. Confirm we are in-game
-    await expect(page.locator('text=/LVL|LEVEL/i').first()).toBeVisible({
+    await expect(page.locator('text=/LV|LVL|LEVEL/i').first()).toBeVisible({
       timeout: 15000,
     });
   });
@@ -57,11 +62,16 @@ test.describe('HUD Elements E2E', () => {
     await expect(page.locator('#game-ui-overlay')).toBeAttached({ timeout: 10 * 1000 });
 
     // Verify sub-components via stable text markers
-    // LiveFeed: shows "Live Feed" and "ENT" (Entry)
-    await expect(page.locator('text=/Live Feed/i')).toBeVisible();
+    // LiveFeed: shows "Live Feed" (Desktop only) and "ENT" (Entry)
+    const isMobile = page.viewportSize()?.width && page.viewportSize()!.width < 768;
+    if (!isMobile) {
+      await expect(page.locator('text=/Live Feed/i')).toBeVisible();
+    }
     await expect(page.locator('text=/ENT/i')).toBeVisible();
-    // KernelStatus: shows stat labels from registry
-    await expect(page.locator('text=/DMG/i').first()).toBeVisible();
+    // KernelStatus: shows stat labels from registry (Desktop only)
+    if (!isMobile) {
+      await expect(page.locator('text=/DMG/i').first()).toBeVisible();
+    }
   });
 
   test('should verify Combo Panel on feedback trigger', async ({ page }) => {

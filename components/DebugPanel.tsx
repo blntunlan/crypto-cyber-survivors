@@ -63,7 +63,7 @@ export const DebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-4 right-4 bg-red-600 text-white px-3 py-2 text-xs font-bold shadow-lg ${isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'}`}
+        className={`fixed bottom-4 right-4 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg ${isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'}`}
         style={{ touchAction: 'manipulation', zIndex: Z_LAYERS.DEBUG_PANEL }}
       >
         🐛 DEBUG
@@ -73,32 +73,32 @@ export const DebugPanel: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/90 p-4 overflow-auto"
+      className="fixed inset-0 overflow-auto bg-black/90 p-4"
       style={{ zIndex: Z_LAYERS.DEBUG_PANEL }}
     >
       <div
-        className={`bg-slate-900 border-2 border-green-500 p-4 text-white font-mono text-xs ${isRetro ? 'rounded-none' : 'rounded-lg'}`}
+        className={`border-2 border-green-500 bg-slate-900 p-4 font-mono text-xs text-white ${isRetro ? 'rounded-none' : 'rounded-lg'}`}
       >
-        <div className="flex justify-between items-center mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-green-400">🐛 Debug Panel</h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="bg-red-600 px-3 py-1 rounded text-white font-bold"
+            className="rounded bg-red-600 px-3 py-1 font-bold text-white"
           >
             ✕
           </button>
         </div>
 
         <div className="space-y-3">
-          <div className="border border-green-500/30 rounded p-2">
-            <div className="text-green-400 font-bold mb-1">
+          <div className="rounded border border-green-500/30 p-2">
+            <div className="mb-1 font-bold text-green-400">
               Manual Profile (localStorage)
             </div>
             <div className="text-white">{debugInfo.manualProfile ?? '❌ NULL'}</div>
           </div>
 
-          <div className="border border-cyan-500/30 rounded p-2">
-            <div className="text-cyan-400 font-bold mb-1">
+          <div className="rounded border border-cyan-500/30 p-2">
+            <div className="mb-1 font-bold text-cyan-400">
               🎯 Manual Mode Flag (Memory)
             </div>
             <div
@@ -108,13 +108,13 @@ export const DebugPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="border border-blue-500/30 rounded p-2">
-            <div className="text-blue-400 font-bold mb-1">Benchmark Cache</div>
+          <div className="rounded border border-blue-500/30 p-2">
+            <div className="mb-1 font-bold text-blue-400">Benchmark Cache</div>
             <div className="text-white">{debugInfo.benchmarkCache}</div>
           </div>
 
-          <div className="border border-yellow-500/30 rounded p-2">
-            <div className="text-yellow-400 font-bold mb-1">Benchmark State</div>
+          <div className="rounded border border-yellow-500/30 p-2">
+            <div className="mb-1 font-bold text-yellow-400">Benchmark State</div>
             <div className="text-white">
               Status: {debugInfo.state?.status}
               <br />
@@ -122,8 +122,8 @@ export const DebugPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="border border-purple-500/30 rounded p-2">
-            <div className="text-purple-400 font-bold mb-1">Active Config</div>
+          <div className="rounded border border-purple-500/30 p-2">
+            <div className="mb-1 font-bold text-purple-400">Active Config</div>
             <div className="text-white">Profile: {debugInfo.config?.profile}</div>
           </div>
 
@@ -134,11 +134,11 @@ export const DebugPanel: React.FC = () => {
           !debugInfo.manualProfile.startsWith('MEDIUM') &&
           !debugInfo.manualProfile.startsWith('LOW') ? null : debugInfo.manualProfile &&
             debugInfo.config?.profile !== debugInfo.manualProfile ? (
-            <div className="border border-red-500 rounded p-2 bg-red-900/20">
-              <div className="text-red-400 font-bold mb-1">
+            <div className="rounded border border-red-500 bg-red-900/20 p-2">
+              <div className="mb-1 font-bold text-red-400">
                 ⚠️ localStorage MISMATCH!
               </div>
-              <div className="text-red-300 text-[10px]">
+              <div className="text-[10px] text-red-300">
                 Stored: {debugInfo.manualProfile}
                 <br />
                 Active: {debugInfo.config?.profile}
@@ -146,17 +146,17 @@ export const DebugPanel: React.FC = () => {
             </div>
           ) : null}
 
-          <div className="text-slate-500 text-[10px]">
+          <div className="text-[10px] text-slate-500">
             Updated: {debugInfo.timestamp}
           </div>
 
-          <div className="border-t border-slate-700 pt-3 mt-3 space-y-2">
+          <div className="mt-3 space-y-2 border-t border-slate-700 pt-3">
             <button
               onClick={() => {
                 localStorage.removeItem('ccs_manual_perf_profile');
                 alert('Manual profile cleared!');
               }}
-              className="w-full bg-orange-600 px-3 py-2 rounded text-white font-bold"
+              className="w-full rounded bg-orange-600 px-3 py-2 font-bold text-white"
             >
               Clear Manual Profile
             </button>
@@ -166,7 +166,7 @@ export const DebugPanel: React.FC = () => {
                 localStorage.clear();
                 alert('All localStorage cleared! Reload page.');
               }}
-              className="w-full bg-red-600 px-3 py-2 rounded text-white font-bold"
+              className="w-full rounded bg-red-600 px-3 py-2 font-bold text-white"
             >
               Clear ALL localStorage
             </button>
@@ -176,7 +176,7 @@ export const DebugPanel: React.FC = () => {
                 void DeviceBenchmarkService.runBenchmark(true);
                 alert('Force benchmark running...');
               }}
-              className="w-full bg-blue-600 px-3 py-2 rounded text-white font-bold"
+              className="w-full rounded bg-blue-600 px-3 py-2 font-bold text-white"
             >
               Force Benchmark
             </button>
@@ -190,7 +190,7 @@ export const DebugPanel: React.FC = () => {
                 });
                 setIsOpen(false);
               }}
-              className="w-full bg-green-600 px-3 py-2 rounded text-white font-bold"
+              className="w-full rounded bg-green-600 px-3 py-2 font-bold text-white"
             >
               Force Cycle Complete
             </button>

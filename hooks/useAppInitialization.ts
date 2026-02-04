@@ -6,7 +6,9 @@
  * - Player tracking initialization
  * - Device profiling and sync
  * - Device benchmarking
- * - Nickname check using robust UserPersistenceService
+ * - Authentication check:
+ *   - DEV: Skip login entirely, use anonymous session
+ *   - PROD: Require authentication (OAuth/Magic Link)
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -15,7 +17,7 @@ import { Logger } from '../services/system/Logger';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 
 interface UseAppInitializationResult {
-  /** Whether the user needs to set a nickname */
+  /** Whether the user needs to authenticate (PROD only) */
   needsNickname: boolean;
   /** Set needsNickname state */
   setNeedsNickname: (value: boolean) => void;
@@ -62,37 +64,69 @@ export function useAppInitialization(): UseAppInitializationResult {
         }
       );
 
-      // 5. Check if player needs to set a nickname (robustly)
-      const user = await UserPersistenceService.initialize();
+      // 5. Check authentication based on environment
+      const isDev = import.meta.env.DEV;
 
-      if (!user) {
-        setNeedsNicknameWithLog(true);
+      if (isDev) {
+        // DEV MODE: Check for existing user
+        Logger.info('[useAppInitialization] DEV MODE: Checking authentication');
+
+        const user = await UserPersistenceService.initialize();
+        if (user) {
+          setNeedsNicknameWithLog(false);
+        } else {
+          setNeedsNicknameWithLog(true);
+        }
       } else {
-        // VERIFY AGAINST DATABASE (The Core Renaissance Sync)
-        try {
-          const { supabase, isSupabaseConfigured } =
-            await import('../services/core/Supabase');
-          if (
-            isSupabaseConfigured() &&
-            supabase &&
-            window.location.hostname !== 'localhost'
-          ) {
-            const { data, error } = await supabase
+        // PRODUCTION MODE: Require authentication
+        Logger.info('[useAppInitialization] PROD MODE: Checking authentication');
+
+        // Check for authenticated Supabase session
+        const { supabase, isSupabaseConfigured } =
+          await import('../services/core/Supabase');
+
+        if (isSupabaseConfigured() && supabase) {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session?.user) {
+            // User is authenticated
+            Logger.info(
+              `[useAppInitialization] User authenticated: ${session.user.email}`
+            );
+
+            // Ensure profile exists
+            const { data: profile } = await supabase
               .from('profiles')
-              .select('id')
-              .eq('id', user.profileId)
+              .select('id, display_name')
+              .eq('auth_user_id', session.user.id)
               .maybeSingle();
 
-            if (error || !data) {
-              Logger.warn(
-                `[useAppInitialization] User ${user.nickname} not in new DB. Forcing nickname entry.`
+            if (profile) {
+              // Profile exists, sync with local storage
+              await UserPersistenceService.createOrUpdateUser(
+                profile.display_name || session.user.email?.split('@')[0] || 'Player',
+                false
               );
-              UserPersistenceService.clear();
+              setNeedsNicknameWithLog(false);
+            } else {
+              // No profile yet - need to create one (show auth screen)
               setNeedsNicknameWithLog(true);
             }
+          } else {
+            // Not authenticated - show auth screen
+            Logger.info(
+              '[useAppInitialization] No session found, requiring authentication'
+            );
+            setNeedsNicknameWithLog(true);
           }
-        } catch (err) {
-          Logger.error('[useAppInitialization] DB verification failed', err);
+        } else {
+          // Supabase not configured - fallback to dev mode
+          Logger.warn(
+            '[useAppInitialization] Supabase not configured, falling back to dev mode'
+          );
+          setNeedsNicknameWithLog(false);
         }
       }
 

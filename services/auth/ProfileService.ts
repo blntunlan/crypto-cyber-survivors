@@ -12,7 +12,11 @@ import { Logger } from '../system/Logger';
 
 export interface PlayerProfile {
   id: string;
+  authUserId?: string;
   displayName: string;
+  username?: string;
+  email?: string;
+  emailVerified?: boolean;
   avatarUrl?: string;
   highScore: number;
   level: number;
@@ -42,9 +46,7 @@ export class ProfileService {
   private constructor() {}
 
   static getInstance(): ProfileService {
-    if (!ProfileService.instance) {
-      ProfileService.instance = new ProfileService();
-    }
+    ProfileService.instance ??= new ProfileService();
     return ProfileService.instance;
   }
 
@@ -68,11 +70,11 @@ export class ProfileService {
         return { isValid: false, error: 'Not authenticated' };
       }
 
-      // Check if profile exists using the id from auth
+      // Check if profile exists using auth_user_id (modern auth flow)
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('auth_user_id', user.id)
         .maybeSingle();
 
       if (fetchError) {
@@ -87,7 +89,7 @@ export class ProfileService {
         await supabase
           .from('profiles')
           .update({ last_seen_at: new Date().toISOString() })
-          .eq('id', existingProfile.id);
+          .eq('auth_user_id', user.id);
 
         this.isInitialized = true;
         Logger.info(
@@ -106,6 +108,9 @@ export class ProfileService {
           userId: user.id,
           displayName: suggestedNickname,
           avatarUrl: user.user_metadata?.avatar_url as string | undefined,
+          email: user.email ?? undefined,
+          emailVerified: !!user.email_confirmed_at,
+          authProvider: user.app_metadata?.provider ?? 'email',
         });
 
         if (createResult.isValid) {
@@ -133,6 +138,9 @@ export class ProfileService {
     userId: string;
     displayName: string;
     avatarUrl?: string;
+    email?: string;
+    emailVerified?: boolean;
+    authProvider?: string;
   }): Promise<ProfileValidationResult> {
     if (!supabase) {
       return { isValid: false, error: 'Backend not configured' };
@@ -150,13 +158,17 @@ export class ProfileService {
         return { isValid: false, error: 'Nickname already taken' };
       }
 
-      // Create profile
+      // Create profile with auth_user_id and OAuth data
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
         .insert({
-          id: params.userId,
+          // id is auto-generated UUID
+          auth_user_id: params.userId,
           display_name: params.displayName,
           avatar_url: params.avatarUrl,
+          email: params.email,
+          email_verified: params.emailVerified ?? false,
+          primary_auth_provider: params.authProvider ?? 'email',
           last_seen_at: new Date().toISOString(),
         })
         .select()
@@ -279,6 +291,75 @@ export class ProfileService {
   }
 
   /**
+   * Link a legacy nickname profile to an authenticated user
+   * This allows existing anonymous players to "upgrade" their account
+   */
+  async linkLegacyProfile(legacyProfileId: string): Promise<ProfileValidationResult> {
+    if (!supabase) {
+      return { isValid: false, error: 'Backend not configured' };
+    }
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return { isValid: false, error: 'Not authenticated' };
+      }
+
+      // Check if user already has a linked profile
+      const { data: existingLink } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      if (existingLink) {
+        return { isValid: false, error: 'Account already has a linked profile' };
+      }
+
+      // Get the legacy profile
+      const { data: legacyProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', legacyProfileId)
+        .is('auth_user_id', null)
+        .maybeSingle();
+
+      if (fetchError || !legacyProfile) {
+        return { isValid: false, error: 'Legacy profile not found or already linked' };
+      }
+
+      // Link the profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          auth_user_id: user.id,
+          email: user.email,
+          email_verified: !!user.email_confirmed_at,
+          primary_auth_provider: user.app_metadata?.provider ?? 'email',
+          avatar_url: legacyProfile.avatar_url || user.user_metadata?.avatar_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', legacyProfileId);
+
+      if (updateError) {
+        Logger.error('[ProfileService] Link legacy profile error:', updateError);
+        return { isValid: false, error: 'Failed to link profile' };
+      }
+
+      // Refresh profile
+      const result = await this.initialize();
+      Logger.info('[ProfileService] Legacy profile linked:', legacyProfileId);
+      return result;
+    } catch (error) {
+      Logger.error('[ProfileService] Link legacy profile error:', error);
+      return { isValid: false, error: 'Profile linking failed' };
+    }
+  }
+
+  /**
    * Clear profile (on logout)
    */
   clearProfile(): void {
@@ -329,7 +410,11 @@ export class ProfileService {
   private mapToPlayerProfile(
     dbProfile: {
       id: string;
+      auth_user_id?: string | null;
       display_name: string;
+      username?: string | null;
+      email?: string | null;
+      email_verified?: boolean | null;
       avatar_url?: string | null;
       high_score?: number | null;
       level?: number | null;
@@ -339,6 +424,7 @@ export class ProfileService {
       total_sessions?: number | null;
       created_at?: string | null;
       last_seen_at?: string | null;
+      primary_auth_provider?: string | null;
     },
     user: {
       id: string;
@@ -346,10 +432,15 @@ export class ProfileService {
       user_metadata?: { wallet_address?: string };
     }
   ): PlayerProfile {
-    const authProvider = this.extractAuthProvider(user);
+    const authProvider =
+      dbProfile.primary_auth_provider ?? this.extractAuthProvider(user);
     return {
       id: dbProfile.id,
+      authUserId: dbProfile.auth_user_id ?? undefined,
       displayName: dbProfile.display_name,
+      username: dbProfile.username ?? undefined,
+      email: dbProfile.email ?? undefined,
+      emailVerified: dbProfile.email_verified ?? false,
       avatarUrl: dbProfile.avatar_url ?? undefined,
       highScore: dbProfile.high_score ?? 0,
       level: dbProfile.level ?? 1,
@@ -360,7 +451,7 @@ export class ProfileService {
       createdAt: dbProfile.created_at ?? new Date().toISOString(),
       lastSeenAt: dbProfile.last_seen_at ?? new Date().toISOString(),
       authProvider,
-      isVerified: authProvider !== 'anonymous',
+      isVerified: authProvider !== 'anonymous' && authProvider !== 'nickname',
     };
   }
 

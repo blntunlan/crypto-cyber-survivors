@@ -40,6 +40,13 @@ test.describe('Difficulty System (AI Director V2)', () => {
     await page.getByRole('button', { name: /LONG/i }).click();
 
     // Specific locator for the phase text
+    // Note: This is hidden on mobile in AccountHealthPremium.tsx
+    const isMobile = page.viewportSize()?.width && page.viewportSize()!.width < 768;
+    if (isMobile) {
+      console.log('Skipping phase text check on mobile');
+      return;
+    }
+
     const phaseValue = page.locator('span.font-black.uppercase.italic').first();
 
     // Should always show "Active" regardless of time
@@ -64,6 +71,13 @@ test.describe('Difficulty System (AI Director V2)', () => {
 
   test('should show cyan color for Active phase', async ({ page }) => {
     await page.getByRole('button', { name: /LONG/i }).click();
+
+    // Note: This is hidden on mobile in AccountHealthPremium.tsx
+    const isMobile = page.viewportSize()?.width && page.viewportSize()!.width < 768;
+    if (isMobile) {
+      console.log('Skipping color check on mobile');
+      return;
+    }
 
     const phaseValue = page.locator('span.font-black.uppercase.italic').first();
 

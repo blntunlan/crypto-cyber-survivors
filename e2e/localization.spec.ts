@@ -28,6 +28,7 @@ test.describe('Localization (i18n) System', () => {
       // Aggressive Tutorial Bypass
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
     });
     // Reload to apply
     await page.reload();
@@ -41,7 +42,7 @@ test.describe('Localization (i18n) System', () => {
     // Enter Hub -> Click Play to get to Main Menu
     const playHubBtn = page.getByRole('button', { name: 'PLAY' });
     await expect(playHubBtn).toBeVisible({ timeout: 15000 });
-    await playHubBtn.click({ force: true });
+    await playHubBtn.click();
 
     // Wait for ANY main menu element to confirm load
     await expect(

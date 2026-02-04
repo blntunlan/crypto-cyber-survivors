@@ -138,13 +138,13 @@ export const AnalyticsDashboard: React.FC = () => {
     color?: string;
   }> = React.memo(({ icon, label, value, subValue, color = 'cyan' }) => (
     <div
-      className={`bg-slate-800/50 border border-${color}-500/30 rounded-lg p-4 transition-all duration-300`}
+      className={`border- border bg-slate-800/50${color}-500/30 rounded-lg p-4 transition-all duration-300`}
     >
       <div className="flex items-center gap-3">
         <div className={`text-${color}-400`}>{icon}</div>
         <div>
-          <p className="text-xs text-slate-400 uppercase tracking-wider">{label}</p>
-          <p className={`text-2xl font-bold text-${color}-300`}>{value}</p>
+          <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
+          <p className={`text- text-2xl font-bold${color}-300`}>{value}</p>
           {subValue && <p className="text-xs text-slate-500">{subValue}</p>}
         </div>
       </div>
@@ -153,9 +153,9 @@ export const AnalyticsDashboard: React.FC = () => {
 
   if (loading && !summary) {
     return (
-      <div className="fixed inset-0 bg-slate-950 flex items-center justify-center z-[100]">
-        <div className="text-cyan-400 animate-pulse flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin" />
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+        <div className="flex animate-pulse items-center gap-2 text-cyan-400">
+          <RefreshCw className="h-5 w-5 animate-spin" />
           Loading Analytics...
         </div>
       </div>
@@ -163,12 +163,12 @@ export const AnalyticsDashboard: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950 overflow-auto z-[100] p-4 md:p-8">
+    <div className="fixed inset-0 z-[100] overflow-auto bg-slate-950 p-4 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-cyan-400 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-cyan-400">
+            <BarChart3 className="h-6 w-6" />
             Analytics Dashboard
           </h1>
           {lastUpdate && (
@@ -180,37 +180,37 @@ export const AnalyticsDashboard: React.FC = () => {
         <button
           onClick={() => void fetchData()}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600/20 border border-cyan-500/30 rounded-lg text-cyan-400 hover:bg-cyan-600/30 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-600/20 px-4 py-2 text-cyan-400 transition-colors hover:bg-cyan-600/30 disabled:opacity-50"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard
-            icon={<Users className="w-5 h-5" />}
+            icon={<Users className="h-5 w-5" />}
             label="Total Players"
             value={summary.total_players}
             subValue={`${summary.active_players_24h} active today`}
           />
           <StatCard
-            icon={<Activity className="w-5 h-5" />}
+            icon={<Activity className="h-5 w-5" />}
             label="Sessions Today"
             value={summary.sessions_today}
             subValue={`${summary.total_sessions} total`}
             color="green"
           />
           <StatCard
-            icon={<Clock className="w-5 h-5" />}
+            icon={<Clock className="h-5 w-5" />}
             label="Avg Session"
             value={formatTime(summary.avg_session_time_seconds || 0)}
             color="yellow"
           />
           <StatCard
-            icon={<AlertTriangle className="w-5 h-5" />}
+            icon={<AlertTriangle className="h-5 w-5" />}
             label="Errors (24h)"
             value={summary.total_errors_24h}
             subValue={`${summary.error_rate}% error rate`}
@@ -220,11 +220,11 @@ export const AnalyticsDashboard: React.FC = () => {
       )}
 
       {/* Charts Row */}
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
+      <div className="mb-6 grid gap-6 md:grid-cols-2">
         {/* Session Trends */}
-        <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-green-400" />
+        <div className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-300">
+            <TrendingUp className="h-4 w-4 text-green-400" />
             Session Trends (Last 7 Days)
           </h3>
           <div className="space-y-2">
@@ -243,15 +243,15 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             ))}
             {sessions.length === 0 && (
-              <p className="text-slate-500 text-center py-4">No session data yet</p>
+              <p className="py-4 text-center text-slate-500">No session data yet</p>
             )}
           </div>
         </div>
 
         {/* Device Performance */}
-        <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-            <Gamepad2 className="w-4 h-4 text-purple-400" />
+        <div className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-300">
+            <Gamepad2 className="h-4 w-4 text-purple-400" />
             Performance by Device
           </h3>
           <div className="space-y-2">
@@ -259,11 +259,11 @@ export const AnalyticsDashboard: React.FC = () => {
               <div key={i} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   {device.device_type === 'mobile' ? (
-                    <Smartphone className="w-4 h-4 text-slate-500" />
+                    <Smartphone className="h-4 w-4 text-slate-500" />
                   ) : (
-                    <Monitor className="w-4 h-4 text-slate-500" />
+                    <Monitor className="h-4 w-4 text-slate-500" />
                   )}
-                  <span className="text-slate-400 capitalize">
+                  <span className="capitalize text-slate-400">
                     {device.device_type}
                   </span>
                   <span className="text-xs text-slate-600">
@@ -281,22 +281,22 @@ export const AnalyticsDashboard: React.FC = () => {
               </div>
             ))}
             {devices.length === 0 && (
-              <p className="text-slate-500 text-center py-4">No device data yet</p>
+              <p className="py-4 text-center text-slate-500">No device data yet</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Error Reports */}
-      <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-red-400" />
+      <div className="rounded-lg border border-slate-700 bg-slate-800/30 p-4">
+        <h3 className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-300">
+          <AlertTriangle className="h-4 w-4 text-red-400" />
           Recent Errors
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-700">
+              <tr className="border-b border-slate-700 text-left text-slate-500">
                 <th className="pb-2">Type</th>
                 <th className="pb-2">Message</th>
                 <th className="pb-2">Count</th>
@@ -309,7 +309,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 <tr key={i} className="border-b border-slate-800">
                   <td className="py-2 text-yellow-400">{error.error_type}</td>
                   <td
-                    className="py-2 text-slate-300 max-w-xs truncate"
+                    className="max-w-xs truncate py-2 text-slate-300"
                     title={error.error_message}
                   >
                     {error.error_message.substring(0, 50)}...
@@ -337,7 +337,7 @@ export const AnalyticsDashboard: React.FC = () => {
       <div className="mt-6 flex gap-4">
         <button
           onClick={() => (window.location.href = '/')}
-          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
+          className="rounded-lg bg-slate-700 px-4 py-2 text-slate-300 transition-colors hover:bg-slate-600"
         >
           ← Back to Game
         </button>

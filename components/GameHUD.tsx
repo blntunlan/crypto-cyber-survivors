@@ -89,7 +89,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
   return (
     <div
-      className="absolute inset-0 pointer-events-none overflow-hidden select-none"
+      className="pointer-events-none absolute inset-0 select-none overflow-hidden"
       style={
         {
           zIndex: 100, // Z_LAYERS.HUD

@@ -61,7 +61,7 @@
 |----|------|------------|--------|
 | PWA-004 | ~~Install prompt UI~~ | `components/ui/PWAInstallPrompt.tsx` | ✅ Completed |
 | PWA-005 | ~~Offline fallback page~~ | `public/offline.html` | ✅ Completed |
-| PWA-006 | Background sync (score queue) | Service Worker | 3 hours |
+| PWA-006 | Background sync (score queue) | Service Worker | 🔶 In Progress |
 
 ---
 

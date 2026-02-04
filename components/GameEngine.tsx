@@ -878,7 +878,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   }, [update]);
 
   return (
-    <div className="relative w-full h-full cursor-none">
+    <div className="relative h-full w-full cursor-none">
       <canvas ref={canvasRef} width={width} height={height} className="block" />
       <GameHUD
         status={status}

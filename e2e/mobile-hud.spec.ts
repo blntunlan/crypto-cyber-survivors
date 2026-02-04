@@ -19,6 +19,7 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem('has_seen_landing', 'true');
     localStorage.setItem('tutorial-completed', 'true');
+    localStorage.setItem('has_seen_landing', 'true');
   });
 });
 

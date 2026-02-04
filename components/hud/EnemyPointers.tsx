@@ -19,7 +19,7 @@ const DesktopPointer: React.FC = () => (
     fill="currentColor"
     stroke="white"
     strokeWidth="1.5"
-    className="w-full h-full drop-shadow-[0_0_4px_rgba(0,0,0,0.6)]"
+    className="h-full w-full drop-shadow-[0_0_4px_rgba(0,0,0,0.6)]"
   >
     <path d="M12 4L6 18L12 16L18 18L12 4Z" />
   </svg>
@@ -31,7 +31,7 @@ const MobilePointer: React.FC = () => (
     fill="currentColor"
     stroke="white"
     strokeWidth="1.5"
-    className="w-full h-full drop-shadow-[0_0_4px_rgba(0,0,0,0.6)]"
+    className="h-full w-full drop-shadow-[0_0_4px_rgba(0,0,0,0.6)]"
   >
     <path d="M12 4L6 18L12 16L18 18L12 4Z" />
   </svg>
@@ -59,7 +59,7 @@ export const EnemyPointers: React.FC<EnemyPointersProps> = memo(({ containerRef 
       {[...Array(10)].map((_, i) => (
         <div
           key={i}
-          className={`absolute top-0 left-0 flex items-center justify-center transition-opacity duration-200`}
+          className={`absolute left-0 top-0 flex items-center justify-center transition-opacity duration-200`}
           style={{
             opacity: 0,
             willChange: 'transform, opacity',

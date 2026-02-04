@@ -97,6 +97,13 @@ export class GameSessionService {
 
         Logger.error(`[GameSession] start-session failed: ${errorMsg}`, error);
 
+        if (import.meta.env.DEV) {
+          Logger.warn(
+            '[GameSession] DEV mode: Falling back to local session after error'
+          );
+          return this.triggerDevFallback();
+        }
+
         throw new Error(errorMsg);
       }
 

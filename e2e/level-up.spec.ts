@@ -8,6 +8,7 @@ test.describe('Level Up Flow', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -35,8 +36,8 @@ test.describe('Level Up Flow', () => {
     await playButton.click();
 
     // Verify HUD elements appear to confirm we are in-game
-    // Use a more generic selector that matches the wave phase text (WARMUP, etc)
-    const phaseText = page.locator('text=/WARMUP|BUILDUP/i').first();
+    // Use a more generic selector that matches the wave phase text (ACTIVE)
+    const phaseText = page.locator('text=/ACTIVE/i').first();
     await expect(phaseText).toBeVisible({ timeout: 10000 });
 
     // Trigger Level Up directly via exposed helper
@@ -78,7 +79,7 @@ test.describe('Level Up Flow', () => {
     await playButton.click();
 
     // Verify game started
-    const phaseText = page.locator('text=/WARMUP|BUILDUP/i').first();
+    const phaseText = page.locator('text=/ACTIVE/i').first();
     await expect(phaseText).toBeVisible({ timeout: 10000 });
 
     // Trigger Level Up
@@ -103,6 +104,6 @@ test.describe('Level Up Flow', () => {
     await expect(page.getByText(/LEVEL UP/i)).not.toBeVisible();
 
     // HUD should still be visible (game resumed)
-    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible();
+    await expect(page.locator('text=/LV|LVL|LEVEL/i').first()).toBeVisible();
   });
 });

@@ -19,9 +19,9 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
   return (
-    <div className="bg-transparent p-3 flex flex-col gap-2 min-w-[220px] text-right">
+    <div className="flex min-w-[220px] flex-col gap-2 bg-transparent p-3 text-right">
       <div
-        className={`text-[9px] uppercase font-black tracking-[0.2em] mb-1 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+        className={`mb-1 text-[9px] font-black uppercase tracking-[0.2em] ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
         style={{ color: COLORS.ELECTRIC_BLUE }}
       >
         {t('hud.kernel_status')}
@@ -29,19 +29,19 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
 
       <div className="flex flex-col gap-0.5">
         <div
-          className={`text-3xl font-black italic text-white leading-none tracking-tighter ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+          className={`text-3xl font-black italic leading-none tracking-tighter text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
         >
           {t('hud.level_short')} {player.level}
         </div>
 
         <div
-          className={`w-full h-2 bg-slate-800 overflow-hidden mt-1 ${isRetro ? 'rounded-none border-2 border-slate-700' : 'rounded-full'}`}
+          className={`mt-1 h-2 w-full overflow-hidden bg-slate-800 ${isRetro ? 'rounded-none border-2 border-slate-700' : 'rounded-full'}`}
         >
           <XpBar nextLevelExp={player.nextLevelExp} isRetro={isRetro} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-y-1 gap-x-4 pt-2">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-2">
         {Object.values(STAT_DEFINITIONS).map(stat => {
           if (!stat.showInKernel) return null;
 
@@ -68,7 +68,7 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
   // Minimal mobile UI: Only Level + XP bar, no stat grid
   return (
     <div
-      className="bg-transparent flex flex-col text-right"
+      className="flex flex-col bg-transparent text-right"
       style={{
         padding: isSmallDevice ? rs(4) : rs(6),
         gap: isSmallDevice ? rs(2) : rs(4),
@@ -81,14 +81,14 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
         style={{ gap: isSmallDevice ? rs(2) : rs(4) }}
       >
         <div
-          className="uppercase font-black tracking-wider text-blue-400/70"
+          className="font-black uppercase tracking-wider text-blue-400/70"
           style={{ fontSize: rfs(10) }}
         >
           {t('hud.level_short').substring(0, 2)}
         </div>
 
         <div
-          className={`font-black text-white leading-none tracking-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+          className={`font-black leading-none tracking-tight text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
           style={{ fontSize: rfs(isSmallDevice ? 18 : 24) }}
         >
           {player.level}
@@ -97,7 +97,7 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
 
       {/* Thin XP Bar */}
       <div
-        className={`w-full bg-slate-800/40 overflow-hidden ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
+        className={`w-full overflow-hidden bg-slate-800/40 ${isRetro ? 'rounded-none border border-slate-700' : 'rounded-full'}`}
         style={{ height: isSmallDevice ? rs(2) : rs(3) }}
       >
         <XpBar nextLevelExp={player.nextLevelExp} isRetro={isRetro} />
@@ -112,8 +112,8 @@ const StatRow: React.FC<{
   formatter: (val: number) => string;
   color?: string;
 }> = ({ label, valueKey, formatter, color = 'text-slate-100' }) => (
-  <div className="flex justify-between items-center text-[9px]">
-    <span className="text-slate-500 uppercase font-bold">{label}</span>
+  <div className="flex items-center justify-between text-[9px]">
+    <span className="font-bold uppercase text-slate-500">{label}</span>
     <LiveTicker
       id={`stat-${valueKey}`}
       valueKey={valueKey}

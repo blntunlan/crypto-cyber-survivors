@@ -23,7 +23,7 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute bottom-44 left-1/2 z-[115] bg-transparent p-3 min-w-[150px] transition-all duration-300 ease-out flex flex-col items-center pointer-events-none"
+      className="pointer-events-none absolute bottom-44 left-1/2 z-[115] flex min-w-[150px] flex-col items-center bg-transparent p-3 transition-all duration-300 ease-out"
       style={{
         opacity: 0,
         transform: 'translateX(-50%) translateY(20px)',
@@ -31,13 +31,13 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
       }}
     >
       <div
-        className={`flex gap-3 mb-2 text-[8px] font-black uppercase tracking-widest ${isRetro ? 'font-display' : 'font-cyber'}`}
+        className={`mb-2 flex gap-3 text-[8px] font-black uppercase tracking-widest ${isRetro ? 'font-display' : 'font-cyber'}`}
       >
         <div
           className={`flex items-center gap-1.5 px-2.5 py-1 ${
             isRetro
-              ? 'border-2 rounded-none bg-black'
-              : 'border-l-2 border-l-yellow-400 rounded-sm'
+              ? 'rounded-none border-2 bg-black'
+              : 'rounded-sm border-l-2 border-l-yellow-400'
           }`}
           style={{
             borderColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
@@ -46,14 +46,14 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
           }}
         >
           <span className="opacity-70">{t('hud.best')}</span>
-          <span className="tabular-nums font-black">{maxStreak}</span>
+          <span className="font-black tabular-nums">{maxStreak}</span>
         </div>
 
         <div
           className={`flex items-center gap-1.5 px-2.5 py-1 ${
             isRetro
-              ? 'border-2 rounded-none bg-black'
-              : 'border-l-2 border-l-cyan-400 rounded-sm'
+              ? 'rounded-none border-2 bg-black'
+              : 'rounded-sm border-l-2 border-l-cyan-400'
           }`}
           style={{
             borderColor: isRetro ? COLORS.NEON_GREEN : undefined,
@@ -62,16 +62,16 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
           }}
         >
           <span className="opacity-70">{t('hud.bonus')}</span>
-          <span className="tabular-nums font-black">+{Math.round(totalBonusXp)}</span>
+          <span className="font-black tabular-nums">+{Math.round(totalBonusXp)}</span>
         </div>
       </div>
 
       <div className="w-full">
         <div
-          className={`w-full h-2 mb-3 relative ${
+          className={`relative mb-3 h-2 w-full ${
             isRetro
-              ? 'bg-[#0a0a12] rounded-none border-2 border-[#39FF14]/40'
-              : 'bg-black/20 rounded-sm border border-white/5 overflow-hidden'
+              ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]'
+              : 'overflow-hidden rounded-sm border border-white/5 bg-black/20'
           }`}
         >
           <div
@@ -87,14 +87,14 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
             }}
           />
           {!isRetro && (
-            <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.05)_2px,rgba(255,255,255,0.05)_4px)] pointer-events-none" />
+            <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.05)_2px,rgba(255,255,255,0.05)_4px)]" />
           )}
         </div>
 
         <div className="flex items-baseline justify-center gap-2">
           <span
             id="combo-streak-count"
-            className={`${isRetro ? 'font-display' : 'font-cyber'} text-2xl font-black italic tracking-tighter tabular-nums ${
+            className={`${isRetro ? 'font-display' : 'font-cyber'} text-2xl font-black italic tabular-nums tracking-tighter ${
               isRetro
                 ? 'not-italic text-[#FFD600]'
                 : 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]'
@@ -119,10 +119,10 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
 
         <div
           id="combo-multiplier-badge"
-          className={`mt-2 px-3 py-1 font-black italic tracking-tighter text-center text-[10px] ${
+          className={`mt-2 px-3 py-1 text-center text-[10px] font-black italic tracking-tighter ${
             isRetro
               ? 'rounded-none border-2 border-white bg-black not-italic'
-              : 'text-white rounded-sm skew-x-[-12deg]'
+              : 'skew-x-[-12deg] rounded-sm text-white'
           }`}
           style={{
             color: isRetro ? COLORS.JACKPOT_YELLOW : '#ffffff',
@@ -149,7 +149,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute left-1/2 z-[115] transition-all duration-200 ease-out flex flex-col items-center pointer-events-none"
+      className="pointer-events-none absolute left-1/2 z-[115] flex flex-col items-center transition-all duration-200 ease-out"
       style={{
         bottom: rs(160),
         minWidth: rs(150),
@@ -159,14 +159,14 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
       }}
     >
       <div
-        className={`flex mb-3 font-black uppercase tracking-tight ${isRetro ? 'font-display' : 'font-cyber'}`}
+        className={`mb-3 flex font-black uppercase tracking-tight ${isRetro ? 'font-display' : 'font-cyber'}`}
         style={{ gap: rs(8), fontSize: rfs(9) }}
       >
         <div
           className={`flex items-center gap-1.5 px-2 py-1 ${
             isRetro
-              ? 'border-2 rounded-none bg-black'
-              : 'border-l-2 border-l-yellow-400 rounded-sm'
+              ? 'rounded-none border-2 bg-black'
+              : 'rounded-sm border-l-2 border-l-yellow-400'
           }`}
           style={{
             borderColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
@@ -180,8 +180,8 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
         <div
           className={`flex items-center gap-1.5 px-2 py-1 ${
             isRetro
-              ? 'border-2 rounded-none bg-black'
-              : 'border-l-2 border-l-cyan-400 rounded-sm'
+              ? 'rounded-none border-2 bg-black'
+              : 'rounded-sm border-l-2 border-l-cyan-400'
           }`}
           style={{
             borderColor: isRetro ? COLORS.NEON_GREEN : undefined,
@@ -195,10 +195,10 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
 
       <div className="w-full" style={{ paddingLeft: rs(4), paddingRight: rs(4) }}>
         <div
-          className={`w-full h-2.5 mb-2.5 relative overflow-hidden ${
+          className={`relative mb-2.5 h-2.5 w-full overflow-hidden ${
             isRetro
-              ? 'bg-black border-2 border-white'
-              : 'bg-black/40 border border-white/5 rounded-sm'
+              ? 'border-2 border-white bg-black'
+              : 'rounded-sm border border-white/5 bg-black/40'
           }`}
         >
           <div
@@ -214,7 +214,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
             }}
           />
           {!isRetro && (
-            <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.05)_2px,rgba(255,255,255,0.05)_4px)] pointer-events-none" />
+            <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.05)_2px,rgba(255,255,255,0.05)_4px)]" />
           )}
         </div>
 
@@ -226,7 +226,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
         >
           <span
             id="combo-streak-count"
-            className={`${isRetro ? 'font-display' : 'font-cyber'} font-black italic tracking-tighter text-white tabular-nums leading-none ${
+            className={`${isRetro ? 'font-display' : 'font-cyber'} font-black italic tabular-nums leading-none tracking-tighter text-white ${
               isRetro ? 'not-italic' : ''
             }`}
             style={{
@@ -250,10 +250,10 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
 
         <div
           id="combo-multiplier-badge"
-          className={`mt-2 font-black italic text-center ${
+          className={`mt-2 text-center font-black italic ${
             isRetro
               ? 'font-display not-italic'
-              : 'font-cyber text-white rounded-sm skew-x-[-12deg]'
+              : 'skew-x-[-12deg] rounded-sm font-cyber text-white'
           }`}
           style={{
             fontSize: rfs(14),

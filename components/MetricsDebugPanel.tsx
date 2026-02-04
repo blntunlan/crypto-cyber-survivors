@@ -99,9 +99,9 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
       {/* Toggle Button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="absolute bottom-0 right-0 bg-purple-900/90 text-white px-3 py-2 rounded-lg
-                   border border-purple-500/50 hover:bg-purple-800 transition-colors
-                   flex items-center gap-2 shadow-lg"
+        className="absolute bottom-0 right-0 flex items-center gap-2 rounded-lg border
+                   border-purple-500/50 bg-purple-900/90 px-3 py-2
+                   text-white shadow-lg transition-colors hover:bg-purple-800"
       >
         📊 {sessionCount} Sessions
         <span className="text-[10px]">{isExpanded ? '▼' : '▲'}</span>
@@ -110,26 +110,26 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
       {/* Expanded Panel */}
       {isExpanded && (
         <div
-          className="absolute bottom-12 right-0 w-80 bg-slate-900/95 rounded-lg border border-purple-500/30
-                     shadow-2xl backdrop-blur-sm overflow-hidden"
+          className="absolute bottom-12 right-0 w-80 overflow-hidden rounded-lg border border-purple-500/30
+                     bg-slate-900/95 shadow-2xl backdrop-blur-sm"
         >
           {/* Header */}
-          <div className="bg-purple-900/50 px-4 py-2 border-b border-purple-500/30">
-            <h3 className="text-purple-300 font-bold">📊 Metrics Debug Panel</h3>
+          <div className="border-b border-purple-500/30 bg-purple-900/50 px-4 py-2">
+            <h3 className="font-bold text-purple-300">📊 Metrics Debug Panel</h3>
           </div>
 
           {/* Content */}
-          <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+          <div className="max-h-96 space-y-3 overflow-y-auto p-4">
             {/* Current Session */}
-            <div className="bg-slate-800/50 rounded p-2">
-              <div className="text-slate-400 text-[10px] mb-1">CURRENT SESSION</div>
+            <div className="rounded bg-slate-800/50 p-2">
+              <div className="mb-1 text-[10px] text-slate-400">CURRENT SESSION</div>
               <div className="text-green-400">{currentState}</div>
             </div>
 
             {/* Real-time Difficulty Factors */}
             {difficultyData && (
-              <div className="bg-slate-800/50 rounded p-2 border border-orange-500/20">
-                <div className="text-orange-400 text-[10px] mb-2 font-bold flex justify-between">
+              <div className="rounded border border-orange-500/20 bg-slate-800/50 p-2">
+                <div className="mb-2 flex justify-between text-[10px] font-bold text-orange-400">
                   <span>LIVE DIFFICULTY FACTORS</span>
                   <span>v{difficultyData.total.toFixed(2)}</span>
                 </div>
@@ -160,7 +160,7 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1 text-[8px]">
+                <div className="mt-2 space-y-1 border-t border-slate-700/50 pt-2 text-[8px]">
                   <div className="flex justify-between">
                     <span className="text-slate-500">PnL Effect:</span>
                     <span
@@ -208,24 +208,24 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
             )}
 
             {/* Session Count */}
-            <div className="bg-slate-800/50 rounded p-2">
-              <div className="text-slate-400 text-[10px] mb-1">STORED SESSIONS</div>
-              <div className="text-cyan-400 text-lg font-bold">{sessionCount}</div>
+            <div className="rounded bg-slate-800/50 p-2">
+              <div className="mb-1 text-[10px] text-slate-400">STORED SESSIONS</div>
+              <div className="text-lg font-bold text-cyan-400">{sessionCount}</div>
             </div>
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleExportJSON}
-                className="flex-1 bg-blue-600/80 hover:bg-blue-500 text-white px-3 py-2 rounded
-                         text-[10px] transition-colors"
+                className="flex-1 rounded bg-blue-600/80 px-3 py-2 text-[10px] text-white
+                         transition-colors hover:bg-blue-500"
               >
                 📥 Export JSON
               </button>
               <button
                 onClick={handleExportCSV}
-                className="flex-1 bg-green-600/80 hover:bg-green-500 text-white px-3 py-2 rounded
-                         text-[10px] transition-colors"
+                className="flex-1 rounded bg-green-600/80 px-3 py-2 text-[10px] text-white
+                         transition-colors hover:bg-green-500"
               >
                 📥 Export CSV
               </button>
@@ -234,15 +234,15 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleShowInsights}
-                className="flex-1 bg-purple-600/80 hover:bg-purple-500 text-white px-3 py-2 rounded
-                         text-[10px] transition-colors"
+                className="flex-1 rounded bg-purple-600/80 px-3 py-2 text-[10px] text-white
+                         transition-colors hover:bg-purple-500"
               >
                 💡 Show Insights
               </button>
               <button
                 onClick={handleClearSessions}
-                className="flex-1 bg-red-600/80 hover:bg-red-500 text-white px-3 py-2 rounded
-                         text-[10px] transition-colors"
+                className="flex-1 rounded bg-red-600/80 px-3 py-2 text-[10px] text-white
+                         transition-colors hover:bg-red-500"
               >
                 🗑️ Clear All
               </button>
@@ -250,8 +250,8 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
 
             {/* Insights Display */}
             {insights && (
-              <div className="bg-slate-800/50 rounded p-2">
-                <div className="text-slate-400 text-[10px] mb-1 flex justify-between">
+              <div className="rounded bg-slate-800/50 p-2">
+                <div className="mb-1 flex justify-between text-[10px] text-slate-400">
                   <span>INSIGHTS</span>
                   <button
                     onClick={() => setInsights(null)}
@@ -260,7 +260,7 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                     ✕
                   </button>
                 </div>
-                <pre className="text-[9px] text-slate-300 overflow-x-auto max-h-48 whitespace-pre-wrap">
+                <pre className="max-h-48 overflow-x-auto whitespace-pre-wrap text-[9px] text-slate-300">
                   {insights}
                 </pre>
               </div>
@@ -268,9 +268,9 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
 
             {/* Quick Stats from Last Session */}
             {sessionCount > 0 && (
-              <div className="bg-slate-800/50 rounded p-2">
-                <div className="text-slate-400 text-[10px] mb-1">LAST SESSION</div>
-                <div className="text-[10px] space-y-1">
+              <div className="rounded bg-slate-800/50 p-2">
+                <div className="mb-1 text-[10px] text-slate-400">LAST SESSION</div>
+                <div className="space-y-1 text-[10px]">
                   {(() => {
                     const sessions = MetricsService.getSessions();
                     const last = sessions[sessions.length - 1];

@@ -18,7 +18,7 @@ const DesktopFPS: React.FC = () => {
     >
       <div
         id="fps-counter"
-        className="px-2 py-1 rounded text-[10px] font-stats font-bold bg-green-500/80 text-white shadow-lg"
+        className="rounded bg-green-500/80 px-2 py-1 font-stats text-[10px] font-bold text-white shadow-lg"
       >
         {t('hud.fps_formatted', { val: '--' })}
       </div>
@@ -35,7 +35,7 @@ const MobileFPS: React.FC = () => {
     >
       <div
         id="fps-counter"
-        className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white"
+        className="rounded bg-green-500/60 px-1.5 py-0.5 font-stats text-[8px] font-bold text-white"
       >
         {t('hud.fps_formatted', { val: '--' })}
       </div>

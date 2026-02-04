@@ -9,6 +9,7 @@ test.describe('Cycle Complete Flow', () => {
     // Set user to skip nickname entry
     await page.evaluate(() => {
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -100,6 +101,6 @@ test.describe('Cycle Complete Flow', () => {
     await expect(page.locator('text=CYCLE 1 COMPLETE')).toBeHidden({ timeout: 2000 });
 
     // HUD should be visible again
-    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible();
+    await expect(page.locator('text=/LV|LVL|LEVEL/i').first()).toBeVisible();
   });
 });

@@ -96,6 +96,40 @@ export class UserPersistenceService {
     }
   }
 
+  /**
+   * Creates a new user or updates the existing one.
+   * If isDev is true, generates a deterministic UUID if one doesn't exist.
+   * Otherwise uses existing ID or creates a new one.
+   */
+  static async createOrUpdateUser(
+    nickname: string,
+    isDev: boolean = false
+  ): Promise<StoredUser> {
+    const now = Date.now();
+    let user = this.cachedUser;
+
+    if (!user) {
+      // Create new user
+      user = {
+        profileId: isDev ? '00000000-0000-0000-0000-000000000000' : crypto.randomUUID(),
+        nickname,
+        createdAt: now,
+        lastSeenAt: now,
+      };
+    } else {
+      // Update existing user
+      user = {
+        ...user,
+        nickname,
+        lastSeenAt: now,
+      };
+    }
+
+    this.saveUser(user);
+    Logger.info(`[UserPersistence] User ${isDev ? 'DEV ' : ''}saved: ${nickname}`);
+    return user;
+  }
+
   // --- Internals ---
 
   private static loadFromLocalStorage(): StoredUser | null {

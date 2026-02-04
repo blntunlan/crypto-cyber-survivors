@@ -52,12 +52,12 @@ export const CardIcon = React.memo(
           <LucideIcon
             size={iconSize}
             color={color}
-            className={`${iconSizeClass} relative z-10 drop-shadow-[0_0_8px_${color}]`}
+            className={`${iconSizeClass} drop-shadow-[0_0_8px_ relative z-10${color}]`}
           />
         );
       }
       // Fallback if Lucide icon not found
-      return <span className="text-4xl relative z-10">💎</span>;
+      return <span className="relative z-10 text-4xl">💎</span>;
     }
 
     switch (card.icon) {
@@ -96,7 +96,7 @@ export const CardIcon = React.memo(
         return <IconBanano {...iconProps} color="#FBDD11" />;
       default:
         // Emoji fallback
-        return <span className="text-4xl md:text-5xl relative z-10">{card.icon}</span>;
+        return <span className="relative z-10 text-4xl md:text-5xl">{card.icon}</span>;
     }
   }
 );

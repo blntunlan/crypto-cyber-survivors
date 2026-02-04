@@ -49,7 +49,7 @@ test.describe('Performance Metrics', () => {
 
     // 4. Verify Game Started
     // Wait for the game phase text or HUD to appear
-    await expect(page.locator('text=/WARMUP|BUILDUP/i').first()).toBeVisible({
+    await expect(page.locator('text=/ACTIVE/i').first()).toBeVisible({
       timeout: 15000,
     });
 
@@ -154,7 +154,7 @@ test.describe('Performance Metrics', () => {
     await longButton.click();
 
     // Wait for game to stabilize
-    await expect(page.locator('text=/WARMUP|BUILDUP/i').first()).toBeVisible({
+    await expect(page.locator('text=/ACTIVE/i').first()).toBeVisible({
       timeout: 15000,
     });
 

@@ -16,7 +16,13 @@ import {
 } from '../../services/auth/SupabaseAuthService';
 import { PhantomAuthService } from '../../services/auth/PhantomAuthService';
 
-type AuthMode = 'signIn' | 'signUp' | 'forgotPassword' | 'magicLink';
+type AuthMode =
+  | 'signIn'
+  | 'signUp'
+  | 'forgotPassword'
+  | 'magicLink'
+  | 'otpEmail'
+  | 'otpVerify';
 
 interface LoginScreenProps {
   onSuccess?: () => void;
@@ -50,6 +56,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
 
   // Check if Phantom is installed
   const isPhantomInstalled = PhantomAuthService.isPhantomInstalled();
@@ -173,6 +181,52 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     }
   }, [email]);
 
+  // Handle OTP send
+  const handleOtpSend = useCallback(async () => {
+    if (!email) {
+      setError('Email adresi gereklidir');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await SupabaseAuthService.sendOtpCode(email);
+
+    setIsLoading(false);
+
+    if (result.success) {
+      setOtpEmail(email);
+      setOtpCode('');
+      setMode('otpVerify');
+      setSuccessMessage('6 haneli kod email adresinize gönderildi.');
+    } else {
+      setError(result.error ?? 'Kod gönderilemedi');
+    }
+  }, [email]);
+
+  // Handle OTP verify
+  const handleOtpVerify = useCallback(async () => {
+    if (otpCode?.length !== 6) {
+      setError('Lütfen 6 haneli kodu girin');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await SupabaseAuthService.verifyOtpCode(otpEmail, otpCode);
+
+    setIsLoading(false);
+
+    if (result.success) {
+      setSuccessMessage('Giriş başarılı!');
+      setTimeout(() => onSuccess?.(), 500);
+    } else {
+      setError(result.error ?? 'Kod doğrulanamadı');
+    }
+  }, [otpCode, otpEmail, onSuccess]);
+
   // Handle OAuth sign in
   const handleOAuthSignIn = useCallback(async (provider: AuthProvider) => {
     setIsLoading(true);
@@ -205,9 +259,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         case 'magicLink':
           void handleMagicLink();
           break;
+        case 'otpEmail':
+          void handleOtpSend();
+          break;
+        case 'otpVerify':
+          void handleOtpVerify();
+          break;
       }
     },
-    [mode, handleSignIn, handleSignUp, handleForgotPassword, handleMagicLink]
+    [
+      mode,
+      handleSignIn,
+      handleSignUp,
+      handleForgotPassword,
+      handleMagicLink,
+      handleOtpSend,
+      handleOtpVerify,
+    ]
   );
 
   // Reset messages when changing mode
@@ -215,6 +283,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setMode(newMode);
     setError(null);
     setSuccessMessage(null);
+    if (newMode !== 'otpVerify') {
+      setOtpCode('');
+    }
   };
 
   return (
@@ -259,6 +330,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {mode === 'signUp' && 'Hesap Oluştur'}
             {mode === 'forgotPassword' && 'Şifre Sıfırla'}
             {mode === 'magicLink' && 'Şifresiz Giriş'}
+            {mode === 'otpEmail' && 'Kod ile Giriş'}
+            {mode === 'otpVerify' && 'Kodu Doğrula'}
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
             {mode === 'signIn' && 'Hesabınıza giriş yapın'}
@@ -266,6 +339,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {mode === 'forgotPassword' &&
               'Email adresinize şifre sıfırlama linki göndereceğiz'}
             {mode === 'magicLink' && 'Email adresinize giriş linki göndereceğiz'}
+            {mode === 'otpEmail' && 'Email adresinize 6 haneli kod göndereceğiz'}
+            {mode === 'otpVerify' && `${otpEmail} adresine gönderilen kodu girin`}
           </p>
         </div>
 
@@ -470,41 +545,108 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </div>
           )}
 
-          {/* Email */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontSize: '0.875rem',
-                color: 'rgba(255, 255, 255, 0.7)',
-              }}
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                background: 'rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '0.5rem',
-                color: '#fff',
-                fontSize: '1rem',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
-              onFocus={e => (e.currentTarget.style.borderColor = '#f7931a')}
-              onBlur={e =>
-                (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)')
-              }
-            />
-          </div>
+          {/* Email (hide on OTP verify) */}
+          {mode !== 'otpVerify' && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontSize: '0.875rem',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                }}
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = '#f7931a')}
+                onBlur={e =>
+                  (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)')
+                }
+              />
+            </div>
+          )}
+
+          {/* OTP Code Input */}
+          {mode === 'otpVerify' && (
+            <div style={{ marginBottom: '1rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontSize: '0.875rem',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                }}
+              >
+                6 Haneli Kod
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={otpCode}
+                onChange={e =>
+                  setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                placeholder="123456"
+                maxLength={6}
+                required
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '0.5rem',
+                  color: '#fff',
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.5rem',
+                  textAlign: 'center',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = '#f7931a')}
+                onBlur={e =>
+                  (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)')
+                }
+              />
+              <button
+                type="button"
+                onClick={() => void handleOtpSend()}
+                disabled={isLoading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '0.75rem',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  marginTop: '0.5rem',
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'center',
+                }}
+              >
+                Kod gelmedi mi? Tekrar gönder
+              </button>
+            </div>
+          )}
 
           {/* Password (not for forgotPassword/magicLink) */}
           {(mode === 'signIn' || mode === 'signUp') && (
@@ -579,7 +721,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 ? 'Giriş Yap'
                 : mode === 'signUp'
                   ? 'Kayıt Ol'
-                  : 'Gönder'}
+                  : mode === 'otpEmail'
+                    ? 'Kod Gönder'
+                    : mode === 'otpVerify'
+                      ? 'Doğrula'
+                      : 'Gönder'}
           </button>
         </form>
 
@@ -617,6 +763,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               >
                 Şifresiz giriş (Magic Link)
               </button>
+              <button
+                onClick={() => changeMode('otpEmail')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                  marginBottom: '0.5rem',
+                  display: 'block',
+                  width: '100%',
+                }}
+              >
+                Email ile kod gönder
+              </button>
               <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                 Hesabınız yok mu?{' '}
                 <button
@@ -653,7 +814,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </p>
           )}
 
-          {(mode === 'forgotPassword' || mode === 'magicLink') && (
+          {(mode === 'forgotPassword' ||
+            mode === 'magicLink' ||
+            mode === 'otpEmail' ||
+            mode === 'otpVerify') && (
             <button
               onClick={() => changeMode('signIn')}
               style={{

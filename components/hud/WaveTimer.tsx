@@ -18,13 +18,13 @@ const DesktopWaveTimer: React.FC = () => {
   const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center">
-      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mb-1">
+      <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">
         {t('hud.survival_time')}
       </div>
 
       <div
         id="wave-timer-text"
-        className="text-4xl font-black italic tracking-tighter text-white drop-shadow-lg tabular-nums"
+        className="text-4xl font-black italic tabular-nums tracking-tighter text-white drop-shadow-lg"
       >
         0:00
       </div>
@@ -42,7 +42,7 @@ const MobileWaveTimer: React.FC = () => {
       {/* Hide label on very narrow screens to save space */}
       {!isVeryNarrow && (
         <div
-          className={`text-slate-500/80 font-black uppercase tracking-[0.2em] ${isRetro ? 'font-retro-text' : ''}`}
+          className={`font-black uppercase tracking-[0.2em] text-slate-500/80 ${isRetro ? 'font-retro-text' : ''}`}
           style={{ fontSize: isRetro ? rfs(10) : rfs(11) }}
         >
           {t('hud.survival')}
@@ -50,7 +50,7 @@ const MobileWaveTimer: React.FC = () => {
       )}
       <div
         id="wave-timer-text"
-        className={`font-black italic tracking-tighter text-white drop-shadow-lg tabular-nums leading-none ${isRetro ? 'font-retro-pixel' : ''}`}
+        className={`font-black italic tabular-nums leading-none tracking-tighter text-white drop-shadow-lg ${isRetro ? 'font-retro-pixel' : ''}`}
         style={{ fontSize: isRetro ? rfs(22) : rfs(26) }}
       >
         0:00

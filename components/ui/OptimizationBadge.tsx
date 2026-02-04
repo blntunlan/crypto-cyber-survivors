@@ -32,8 +32,8 @@ export const OptimizationBadge: React.FC<OptimizationBadgeProps> = ({ sizes }) =
 
   return (
     <div
-      className={`px-3 py-1 border ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)} 
-        ${isRetro ? 'rounded-none border-2 border-zinc-700 font-primary' : 'rounded-full'}`}
+      className={`border px-3 py-1 ${sizes.tiny} font-bold uppercase tracking-wider ${getColor(profile)} 
+        ${isRetro ? 'font-primary rounded-none border-2 border-zinc-700' : 'rounded-full'}`}
     >
       {t('common.menu.optimized')}: {profile}
     </div>

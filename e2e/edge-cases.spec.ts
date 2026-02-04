@@ -16,6 +16,7 @@ test.describe('Edge Cases', () => {
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
     });
     await page.reload();
   });

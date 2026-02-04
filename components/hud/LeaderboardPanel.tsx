@@ -12,6 +12,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedText } from '../themed/ThemedText';
+import { UserAvatar } from '../ui/UserAvatar';
 import {
   Trophy,
   Crown,
@@ -26,6 +27,7 @@ import { supabase, isSupabaseConfigured } from '../../services/core/Supabase';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/system/Logger';
 import { COLORS } from '../../config/Colors';
+import type { AuthProvider } from '../../services/auth/SupabaseAuthService';
 
 interface LeaderboardEntry {
   id: string;
@@ -35,6 +37,8 @@ interface LeaderboardEntry {
   created_at: string;
   crypto_pair?: string;
   rank?: number;
+  avatar_url?: string | null;
+  auth_provider?: AuthProvider | 'email' | 'nickname' | null;
 }
 
 interface VLeaderboardEntry {
@@ -43,6 +47,7 @@ interface VLeaderboardEntry {
   high_score: number | null;
   max_survival_time: number | null;
   avatar_url?: string | null;
+  primary_auth_provider?: string | null;
   total_kills?: number | null;
   total_sessions?: number | null;
 }
@@ -89,8 +94,14 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
               player_name: name,
               score: entry.high_score ?? 0,
               survival_time_ms: entry.max_survival_time ?? 0,
-              created_at: new Date().toISOString(), // View might not have this, default to now
+              created_at: new Date().toISOString(),
               rank: index + 1,
+              avatar_url: entry.avatar_url,
+              auth_provider: entry.primary_auth_provider as
+                | AuthProvider
+                | 'email'
+                | 'nickname'
+                | null,
             } as LeaderboardEntry;
           })
           // Filter out anonymous/empty names
@@ -153,7 +164,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
       const style = getRetroRankStyle();
       return (
         <div
-          className="flex items-center justify-center w-6 h-6 border-2"
+          className="flex h-6 w-6 items-center justify-center border-2"
           style={{ borderColor: style.borderColor }}
         >
           <ThemedText
@@ -170,36 +181,36 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
     switch (rank) {
       case 1:
         return (
-          <div className="relative group">
-            <div className="absolute inset-0 bg-yellow-400 blur-[4px] opacity-30 animate-pulse rounded-full" />
+          <div className="group relative">
+            <div className="absolute inset-0 animate-pulse rounded-full bg-yellow-400 opacity-30 blur-[4px]" />
             <div
-              className={`flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-600 shadow-[0_0_10px_rgba(250,204,21,0.5)] border border-yellow-200/50 relative z-10`}
+              className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full border border-yellow-200/50 bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-600 shadow-[0_0_10px_rgba(250,204,21,0.5)]`}
             >
-              <Crown className="w-4 h-4 text-yellow-900 drop-shadow-sm" />
+              <Crown className="h-4 w-4 text-yellow-900 drop-shadow-sm" />
             </div>
           </div>
         );
       case 2:
         return (
           <div className="relative">
-            <div className="absolute inset-0 bg-slate-300 blur-[3px] opacity-20 rounded-full" />
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-slate-200 to-slate-400 shadow-[0_0_8px_rgba(203,213,225,0.3)] border border-slate-100/30 relative z-10">
-              <Medal className="w-4 h-4 text-slate-700" />
+            <div className="absolute inset-0 rounded-full bg-slate-300 opacity-20 blur-[3px]" />
+            <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full border border-slate-100/30 bg-gradient-to-br from-slate-200 to-slate-400 shadow-[0_0_8px_rgba(203,213,225,0.3)]">
+              <Medal className="h-4 w-4 text-slate-700" />
             </div>
           </div>
         );
       case 3:
         return (
           <div className="relative">
-            <div className="absolute inset-0 bg-amber-600 blur-[3px] opacity-20 rounded-full" />
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 shadow-[0_0_8px_rgba(180,83,9,0.3)] border border-amber-400/30 relative z-10">
-              <Medal className="w-4 h-4 text-amber-100" />
+            <div className="absolute inset-0 rounded-full bg-amber-600 opacity-20 blur-[3px]" />
+            <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full border border-amber-400/30 bg-gradient-to-br from-amber-500 to-amber-700 shadow-[0_0_8px_rgba(180,83,9,0.3)]">
+              <Medal className="h-4 w-4 text-amber-100" />
             </div>
           </div>
         );
       default:
         return (
-          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white/5 border border-white/10 group-hover:border-cyan-500/30 transition-colors">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md border border-white/10 bg-white/5 transition-colors group-hover:border-cyan-500/30">
             <ThemedText variant="mono" className="text-[10px] font-bold text-slate-400">
               {rank}
             </ThemedText>
@@ -212,47 +223,47 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
 
   return (
     <motion.div
-      className={`fixed right-4 top-20 z-[100] w-72 hidden lg:block`}
+      className={`fixed right-4 top-20 z-[100] hidden w-72 lg:block`}
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: 0.5 }}
     >
       {/* Header - Glassmorphism */}
       <ThemedPanel
-        className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-b-none border-b-0 hover:bg-slate-900/50 transition-all relative overflow-hidden group"
+        className="group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-b-none border-b-0 px-4 py-3 transition-all hover:bg-slate-900/50"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         {!isRetro && (
-          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-yellow-400 to-transparent opacity-50" />
+          <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-yellow-400 to-transparent opacity-50" />
         )}
-        <div className="flex items-center gap-2 relative z-10">
+        <div className="relative z-10 flex items-center gap-2">
           <Trophy
-            className={`w-4 h-4 ${isRetro ? 'text-yellow-400' : 'text-yellow-400 animate-pulse'}`}
+            className={`h-4 w-4 ${isRetro ? 'text-yellow-400' : 'animate-pulse text-yellow-400'}`}
           />
           <ThemedText
             variant="h2"
-            className="text-[11px] font-black text-white uppercase tracking-[0.2em]"
+            className="text-[11px] font-black uppercase tracking-[0.2em] text-white"
           >
             {t('hud.leaderboard_title')}
           </ThemedText>
         </div>
-        <div className="flex items-center gap-2 relative z-10">
+        <div className="relative z-10 flex items-center gap-2">
           <button
             onClick={e => {
               e.stopPropagation();
               void fetchLeaderboard();
             }}
-            className="p-1 hover:bg-white/10 rounded transition-colors group/refresh"
+            className="group/refresh rounded p-1 transition-colors hover:bg-white/10"
             title={t('hud.refresh_pool')}
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 text-slate-400 group-hover/refresh:text-cyan-400 transition-colors ${loading ? 'animate-spin' : ''}`}
+              className={`h-3.5 w-3.5 text-slate-400 transition-colors group-hover/refresh:text-cyan-400 ${loading ? 'animate-spin' : ''}`}
             />
           </button>
           {isCollapsed ? (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="h-4 w-4 text-slate-400" />
           ) : (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
+            <ChevronUp className="h-4 w-4 text-slate-400" />
           )}
         </div>
       </ThemedPanel>
@@ -267,10 +278,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
             transition={{ duration: 0.2 }}
           >
             {/* ThemedPanel wrapper for correct styling of the list container */}
-            <ThemedPanel className="rounded-t-none border-t-0 overflow-hidden !shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative">
+            <ThemedPanel className="relative overflow-hidden rounded-t-none border-t-0 !shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
               {!isRetro && (
                 <div
-                  className="absolute inset-0 pointer-events-none opacity-[0.03]"
+                  className="pointer-events-none absolute inset-0 opacity-[0.03]"
                   style={{
                     backgroundImage: `repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 2px)`,
                     backgroundSize: '100% 2px',
@@ -279,15 +290,15 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
               )}
               {loading && entries.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-6 h-6 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-500" />
                 </div>
               ) : entries.length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <TrendingUp className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                <div className="px-4 py-8 text-center">
+                  <TrendingUp className="mx-auto mb-2 h-8 w-8 text-slate-600" />
                   <ThemedText className="text-sm text-slate-500">
                     {t('hud.no_scores')}
                   </ThemedText>
-                  <ThemedText className="text-xs text-slate-600 mt-1">
+                  <ThemedText className="mt-1 text-xs text-slate-600">
                     {t('hud.claim_top')}
                   </ThemedText>
                 </div>
@@ -302,26 +313,35 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`flex items-center gap-3 px-4 py-3 transition-all relative group/item ${
+                        className={`group/item relative flex items-center gap-3 px-4 py-3 transition-all ${
                           isCurrentPlayer
                             ? isRetro
                               ? 'retro-player-highlight border-l-4'
-                              : 'bg-cyan-500/10 border-l-2 border-cyan-400 shadow-[inset_10px_0_20px_rgba(34,211,238,0.05)]'
+                              : 'border-l-2 border-cyan-400 bg-cyan-500/10 shadow-[inset_10px_0_20px_rgba(34,211,238,0.05)]'
                             : 'hover:bg-white/[0.03]'
                         }`}
                       >
                         {!isRetro && isCurrentPlayer && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent pointer-events-none" />
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent" />
                         )}
                         {/* Rank */}
                         {getRankDisplay(entry.rank!)}
 
+                        {/* Avatar */}
+                        <UserAvatar
+                          avatarUrl={entry.avatar_url}
+                          displayName={entry.player_name}
+                          size="sm"
+                          provider={entry.auth_provider}
+                          showProviderBadge={!isRetro}
+                        />
+
                         {/* Player Info */}
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <ThemedText
                               variant={isRetro ? 'body' : 'h2'}
-                              className={`text-sm font-semibold truncate ${
+                              className={`truncate text-sm font-semibold ${
                                 isCurrentPlayer
                                   ? isRetro
                                     ? 'text-yellow-400'
@@ -333,16 +353,16 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                             </ThemedText>
                             {isCurrentPlayer && (
                               <span
-                                className={`text-[9px] px-1.5 py-0.5 ${isRetro ? 'bg-yellow-500/20 text-yellow-500 font-display' : 'bg-cyan-500/20 text-cyan-400 rounded uppercase font-bold'}`}
+                                className={`px-1.5 py-0.5 text-[9px] ${isRetro ? 'bg-yellow-500/20 font-display text-yellow-500' : 'rounded bg-cyan-500/20 font-bold uppercase text-cyan-400'}`}
                               >
                                 {t('hud.you')}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <div className="mt-0.5 flex items-center gap-2">
                             {entry.crypto_pair && (
                               <span
-                                className={`text-[9px] px-1.5 py-0.5 font-black uppercase ${isRetro ? 'border border-current' : 'rounded-sm tracking-wider'}`}
+                                className={`px-1.5 py-0.5 text-[9px] font-black uppercase ${isRetro ? 'border border-current' : 'rounded-sm tracking-wider'}`}
                                 style={{
                                   backgroundColor: isRetro
                                     ? 'transparent'
@@ -369,8 +389,8 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                                 {entry.crypto_pair}
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
+                            <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                              <Clock className="h-3 w-3" />
                               {formatTime(entry.survival_time_ms)}
                             </span>
                           </div>
@@ -396,7 +416,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                           </ThemedText>
                           <ThemedText
                             variant="mono"
-                            className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter"
+                            className="text-[9px] font-bold uppercase tracking-tighter text-slate-500"
                           >
                             {t('hud.points')}
                           </ThemedText>
@@ -409,7 +429,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
 
               {/* Footer */}
               {lastUpdated && (
-                <div className="px-4 py-2 border-t border-slate-800/50 text-[8px] text-slate-600 text-center uppercase tracking-widest font-mono">
+                <div className="border-t border-slate-800/50 px-4 py-2 text-center font-mono text-[8px] uppercase tracking-widest text-slate-600">
                   &lt; {t('hud.sync_complete')}: {lastUpdated.toLocaleTimeString()} &gt;
                 </div>
               )}

@@ -225,10 +225,13 @@ const App: React.FC = () => {
     useDevShortcuts();
   const tutorial = useTutorial();
 
-  // Landing & Legal State
+  // Landing & Legal State - Landing page doesn't require auth
   const [showLanding, setShowLanding] = useState(() => {
-    // If we're in the middle of a game or returning session, don't show landing
+    // Check auth callback path - don't show landing during OAuth redirect
+    if (window.location.pathname === '/auth/callback') return false;
+    // If user has seen landing and is authenticated, skip landing
     if (localStorage.getItem('has_seen_landing') === 'true') return false;
+    // Otherwise always show landing first (no auth required)
     return true;
   });
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -272,9 +275,17 @@ const App: React.FC = () => {
   }, []);
 
   const handleLaunchGame = useCallback(() => {
-    setShowLanding(false);
-    localStorage.setItem('has_seen_landing', 'true');
-  }, []);
+    // Check if user is authenticated before proceeding
+    if (needsNickname) {
+      // User needs to authenticate - hide landing but show auth screen
+      setShowLanding(false);
+      // Don't set has_seen_landing yet - will be set after successful auth
+    } else {
+      // User is authenticated - proceed to hub
+      setShowLanding(false);
+      localStorage.setItem('has_seen_landing', 'true');
+    }
+  }, [needsNickname]);
 
   useEffect(() => {
     if (gameStatus === GameStatus.MENU && isInitialized) {
@@ -325,6 +336,8 @@ const App: React.FC = () => {
   const handleNicknameComplete = useCallback(
     (nickname: string) => {
       setNeedsNickname(false);
+      localStorage.setItem('has_seen_landing', 'true');
+      setHubScreen('hub'); // Go to hub after auth
       Logger.info(`Signed in as ${nickname}`);
       void import('./services/analytics/PlayerTracker').then(
         ({ default: playerTracker }) => {
@@ -648,7 +661,7 @@ const App: React.FC = () => {
     return (
       <React.Suspense
         fallback={
-          <div className="text-green-500 bg-black p-4">Loading Project Darwin...</div>
+          <div className="bg-black p-4 text-green-500">Loading Project Darwin...</div>
         }
       >
         <EvolutionViewer />
@@ -667,15 +680,16 @@ const App: React.FC = () => {
       <ThemeProvider>
         <LazyMotionProvider>
           <div
-            className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING && !showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
+            className={`relative h-screen w-full ${gameStatus === GameStatus.PLAYING && !showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
           >
             <ErrorBoundary>
               {/* Auth Callback Handler - Priority Route */}
               {showAuthCallback ? (
                 <AuthCallback
-                  onSuccess={() => {
+                  onSuccess={needsProfile => {
                     setShowAuthCallback(false);
                     setShowLanding(false);
+                    setNeedsNickname(needsProfile); // Set based on profile status from OAuth
                     localStorage.setItem('has_seen_landing', 'true');
                     window.history.replaceState(null, '', '/');
                   }}
@@ -819,7 +833,7 @@ const App: React.FC = () => {
                           />
                           <button
                             onClick={() => setHubScreen('hub')}
-                            className="fixed z-[110] h-10 px-4 flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#d6b85c]/40 text-slate-400 hover:text-white text-xs font-semibold uppercase tracking-widest font-mono transition-all duration-300 backdrop-blur-sm active:scale-95 touch-manipulation focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                            className="fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
                             style={{
                               top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
                               left: `calc(1rem + env(safe-area-inset-left, 0px))`,

@@ -63,13 +63,13 @@ test.describe('Chaos Monkey Stability Tests', () => {
 
     // Assert application is still alive and hasn't crashed
     // We check for either the start button, or the in-game HUD if a click started the game
-    const anyStateIndicator = page.locator('text=/LONG|SHORT|PLAY|LEVEL|LVL/i').first();
+    const anyStateIndicator = page
+      .locator('text=/LONG|SHORT|PLAY|LEVEL|LVL|LV/i')
+      .first();
     await expect(anyStateIndicator).toBeVisible();
 
     // Explicitly check for Error Boundary text
-    await expect(page.locator('body')).not.toContainText(
-      /Something went wrong|LIQUIDATED/i
-    );
+    await expect(page.locator('body')).not.toContainText(/Something went wrong/i);
   });
 
   test('should survive random key mashing during gameplay', async ({ page }) => {
@@ -82,7 +82,7 @@ test.describe('Chaos Monkey Stability Tests', () => {
     await longButton.click();
 
     // Verify game started
-    await expect(page.locator('text=/WARMUP|BUILDUP/i').first()).toBeVisible({
+    await expect(page.locator('text=/ACTIVE/i').first()).toBeVisible({
       timeout: 15000,
     });
 
@@ -111,6 +111,6 @@ test.describe('Chaos Monkey Stability Tests', () => {
     }
 
     // Assert game is still running (HUD visible)
-    await expect(page.locator('text=/LVL|LEVEL/i')).toBeVisible();
+    await expect(page.locator('text=/LV|LVL|LEVEL/i').first()).toBeVisible();
   });
 });

@@ -64,6 +64,7 @@ export type Database = {
           first_seen_at: string | null;
           hardware_concurrency: number | null;
           last_seen_at: string | null;
+          profile_id: string | null;
           recommended_profile: string | null;
           screen_height: number | null;
           screen_width: number | null;
@@ -78,6 +79,7 @@ export type Database = {
           first_seen_at?: string | null;
           hardware_concurrency?: number | null;
           last_seen_at?: string | null;
+          profile_id?: string | null;
           recommended_profile?: string | null;
           screen_height?: number | null;
           screen_width?: number | null;
@@ -92,11 +94,27 @@ export type Database = {
           first_seen_at?: string | null;
           hardware_concurrency?: number | null;
           last_seen_at?: string | null;
+          profile_id?: string | null;
           recommended_profile?: string | null;
           screen_height?: number | null;
           screen_width?: number | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'device_profiles_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'device_profiles_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'v_leaderboard';
+            referencedColumns: ['profile_id'];
+          },
+        ];
       };
       error_reports: {
         Row: {
@@ -467,6 +485,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      price_ohlc_1m: {
+        Row: {
+          bucket: string;
+          close: number;
+          high: number;
+          id: number;
+          low: number;
+          open: number;
+          pair: string;
+          volume: number | null;
+        };
+        Insert: {
+          bucket: string;
+          close: number;
+          high: number;
+          id?: number;
+          low: number;
+          open: number;
+          pair: string;
+          volume?: number | null;
+        };
+        Update: {
+          bucket?: string;
+          close?: number;
+          high?: number;
+          id?: number;
+          low?: number;
+          open?: number;
+          pair?: string;
+          volume?: number | null;
+        };
+        Relationships: [];
+      };
       profile_achievements: {
         Row: {
           achievement_id: string | null;
@@ -561,9 +612,12 @@ export type Database = {
       };
       profiles: {
         Row: {
+          auth_user_id: string | null;
           avatar_url: string | null;
           created_at: string | null;
           display_name: string;
+          email: string | null;
+          email_verified: boolean | null;
           high_score: number | null;
           id: string;
           is_banned: boolean | null;
@@ -571,14 +625,20 @@ export type Database = {
           last_seen_at: string | null;
           level: number | null;
           metadata: Json | null;
+          primary_auth_provider: string | null;
           total_sessions: number | null;
           updated_at: string | null;
+          username: string | null;
+          wallet_address: string | null;
           xp: number | null;
         };
         Insert: {
+          auth_user_id?: string | null;
           avatar_url?: string | null;
           created_at?: string | null;
           display_name: string;
+          email?: string | null;
+          email_verified?: boolean | null;
           high_score?: number | null;
           id?: string;
           is_banned?: boolean | null;
@@ -586,14 +646,20 @@ export type Database = {
           last_seen_at?: string | null;
           level?: number | null;
           metadata?: Json | null;
+          primary_auth_provider?: string | null;
           total_sessions?: number | null;
           updated_at?: string | null;
+          username?: string | null;
+          wallet_address?: string | null;
           xp?: number | null;
         };
         Update: {
+          auth_user_id?: string | null;
           avatar_url?: string | null;
           created_at?: string | null;
           display_name?: string;
+          email?: string | null;
+          email_verified?: boolean | null;
           high_score?: number | null;
           id?: string;
           is_banned?: boolean | null;
@@ -601,8 +667,11 @@ export type Database = {
           last_seen_at?: string | null;
           level?: number | null;
           metadata?: Json | null;
+          primary_auth_provider?: string | null;
           total_sessions?: number | null;
           updated_at?: string | null;
+          username?: string | null;
+          wallet_address?: string | null;
           xp?: number | null;
         };
         Relationships: [];
@@ -828,6 +897,7 @@ export type Database = {
           display_name: string | null;
           high_score: number | null;
           max_survival_time: number | null;
+          primary_auth_provider: string | null;
           profile_id: string | null;
           total_kills: number | null;
           total_sessions: number | null;
@@ -836,6 +906,7 @@ export type Database = {
       };
     };
     Functions: {
+      aggregate_price_to_ohlc: { Args: never; Returns: undefined };
       credit_coins: {
         Args: {
           p_amount: number;
@@ -858,10 +929,41 @@ export type Database = {
           total_sessions: number;
         }[];
       };
+      get_my_profile: {
+        Args: never;
+        Returns: {
+          auth_user_id: string | null;
+          avatar_url: string | null;
+          created_at: string | null;
+          display_name: string;
+          email: string | null;
+          email_verified: boolean | null;
+          high_score: number | null;
+          id: string;
+          is_banned: boolean | null;
+          is_tester: boolean | null;
+          last_seen_at: string | null;
+          level: number | null;
+          metadata: Json | null;
+          primary_auth_provider: string | null;
+          total_sessions: number | null;
+          updated_at: string | null;
+          username: string | null;
+          wallet_address: string | null;
+          xp: number | null;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'profiles';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       purchase_item: {
         Args: { p_item_id: string; p_profile_id: string };
         Returns: Json;
       };
+      update_my_username: { Args: { new_username: string }; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;

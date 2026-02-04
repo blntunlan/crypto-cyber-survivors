@@ -50,7 +50,7 @@ const InfoRow = memo(
         : value;
 
     return (
-      <div className="flex justify-between items-center text-[11px] uppercase tracking-widest font-bold">
+      <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
         <span className="text-slate-400">{label}</span>
         <span
           className={`${colorClass} tabular-nums ${isRetro ? 'font-retro-text' : ''} ${animate ? 'animate-pulse' : ''}`}
@@ -85,7 +85,7 @@ const LiveInfoRow = memo(
     isRetro?: boolean;
   }) => {
     return (
-      <div className="flex justify-between items-center text-[11px] uppercase tracking-widest font-bold">
+      <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
         <span className="text-slate-400">{label}</span>
         <LiveTicker
           id={id}
@@ -110,20 +110,20 @@ const DesktopLiveFeed: React.FC<
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
 
   return (
-    <div className="bg-transparent p-1.5 flex flex-col gap-0 min-w-[220px] transition-[width] duration-300">
-      <div className="flex items-center justify-between mb-2">
+    <div className="flex min-w-[220px] flex-col gap-0 bg-transparent p-1.5 transition-[width] duration-300">
+      <div className="mb-2 flex items-center justify-between">
         <div
-          className={`text-[10px] text-slate-400 uppercase font-bold tracking-[0.2em] flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+          className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'animate-pulse'}`}
+            className={`h-1.5 w-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'} ${isRetro ? '' : 'animate-pulse'}`}
           ></span>
           {t('hud.live_feed')}
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] font-feed text-white">
+        <div className="flex items-center gap-2 font-feed text-[10px] text-white">
           <span
-            className={`px-1 rounded ${marketData.leverage >= 50 ? 'bg-amber-500 text-black font-black animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/10 opacity-60'}`}
+            className={`rounded px-1 ${marketData.leverage >= 50 ? 'animate-pulse bg-amber-500 font-black text-black shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/10 opacity-60'}`}
           >
             {marketData.leverage >= 50 ? 'DEGEN' : ''} {marketData.leverage}X
           </span>
@@ -150,9 +150,9 @@ const DesktopLiveFeed: React.FC<
             }
           />
         </div>
-        <div className="flex items-center justify-between mt-1">
+        <div className="mt-1 flex items-center justify-between">
           <div
-            className={`text-sm font-black flex items-center gap-2 ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+            className={`flex items-center gap-2 text-sm font-black ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
             style={{ color: pnlHex }}
           >
             <LiveTicker
@@ -161,7 +161,7 @@ const DesktopLiveFeed: React.FC<
               formatter={(val: number) => `${(val * 100).toFixed(2)}%`}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             />
-            <span className="text-[10px] opacity-70 tracking-widest uppercase">
+            <span className="text-[10px] uppercase tracking-widest opacity-70">
               {marketData.effectivePnl >= 0
                 ? t('hud.profit_short')
                 : t('hud.loss_short')}
@@ -187,7 +187,7 @@ const DesktopLiveFeed: React.FC<
         </div>
       </div>
 
-      <div className="mt-3 flex flex-col gap-1.5 pt-2 border-t border-slate-800/30">
+      <div className="mt-3 flex flex-col gap-1.5 border-t border-slate-800/30 pt-2">
         <InfoRow
           label={t('hud.entry')}
           value={entryPrice}
@@ -223,16 +223,16 @@ const DesktopLiveFeed: React.FC<
 
         {serverState && (
           <>
-            <div className="flex justify-between items-center text-[9px] text-slate-400 uppercase tracking-widest mt-1 pt-1 border-t border-slate-800/50">
+            <div className="mt-1 flex items-center justify-between border-t border-slate-800/50 pt-1 text-[9px] uppercase tracking-widest text-slate-400">
               <span className="flex items-center gap-1">
                 RSI <span className="text-[7px] opacity-50">({serverState.pair})</span>
               </span>
               <span
                 className={`tabular-nums ${
                   serverState.rsi >= 70
-                    ? 'text-red-400 font-bold'
+                    ? 'font-bold text-red-400'
                     : serverState.rsi <= 30
-                      ? 'text-green-400 font-bold'
+                      ? 'font-bold text-green-400'
                       : 'text-slate-200'
                 }`}
                 style={{ fontVariantNumeric: 'tabular-nums' }}
@@ -241,7 +241,7 @@ const DesktopLiveFeed: React.FC<
               </span>
             </div>
             {serverState.whaleTier > 0 && (
-              <div className="mt-1 text-center text-[9px] text-amber-400 font-black tracking-widest animate-pulse border border-amber-400/30 rounded bg-amber-400/10 px-1 py-0.5 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
+              <div className="mt-1 animate-pulse rounded border border-amber-400/30 bg-amber-400/10 px-1 py-0.5 text-center text-[9px] font-black tracking-widest text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
                 ⚠️ {t('hud.whale_detected')} (T{serverState.whaleTier})
               </div>
             )}
@@ -281,15 +281,15 @@ const MobileLiveFeed: React.FC<
   };
 
   return (
-    <div className="flex flex-col gap-0.5 min-w-[140px]">
+    <div className="flex min-w-[140px] flex-col gap-0.5">
       {/* Row 1: Status header */}
       <div className="flex items-center justify-between">
         <div
-          className="text-slate-500 uppercase font-black tracking-widest flex items-center gap-1"
+          className="flex items-center gap-1 font-black uppercase tracking-widest text-slate-500"
           style={{ fontSize: rfs(9) }}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+            className={`h-1.5 w-1.5 rounded-full ${marketData.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
           />
           LIVE
         </div>
@@ -301,7 +301,7 @@ const MobileLiveFeed: React.FC<
             {pairConfig.id}
           </span>
           <span
-            className={`px-1 rounded font-black ${marketData.leverage >= 50 ? 'bg-amber-500 text-black animate-pulse' : 'text-slate-500'}`}
+            className={`rounded px-1 font-black ${marketData.leverage >= 50 ? 'animate-pulse bg-amber-500 text-black' : 'text-slate-500'}`}
             style={{ fontSize: rfs(8) }}
           >
             {marketData.leverage >= 50 ? 'DEGEN ' : ''}
@@ -332,7 +332,7 @@ const MobileLiveFeed: React.FC<
           />
         </div>
         <div
-          className="font-black px-1.5 py-0.5 rounded leading-none w-fit"
+          className="w-fit rounded px-1.5 py-0.5 font-black leading-none"
           style={{
             backgroundColor: `${pnlHex}22`,
             color: pnlHex,
@@ -352,11 +352,11 @@ const MobileLiveFeed: React.FC<
 
       {/* Row 3: Compact indicator pills - All in one row */}
       <div
-        className="flex items-center gap-1 mt-1 flex-wrap"
+        className="mt-1 flex flex-wrap items-center gap-1"
         style={{ fontSize: rfs(isSmallDevice ? 9 : 10) }}
       >
         {/* Entry pill */}
-        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap tabular-nums">
+        <div className="whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
           {t('hud.entry_short')} $
           {entryPrice.toLocaleString(undefined, {
             minimumFractionDigits: 0,
@@ -368,7 +368,7 @@ const MobileLiveFeed: React.FC<
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
             <div
-              className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap tabular-nums ${getLiqColor()}`}
+              className={`whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getLiqColor()}`}
             >
               LIQ: $
               {marketData.liquidationPrice.toLocaleString(undefined, {
@@ -379,7 +379,7 @@ const MobileLiveFeed: React.FC<
           )}
 
         {/* Volatility pill */}
-        <div className="bg-white/5 px-1.5 py-0.5 rounded text-slate-300 font-mono font-bold whitespace-nowrap tabular-nums">
+        <div className="whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
           {t('hud.volatility_short')} X
           <LiveTicker
             id="vol-mobile"
@@ -391,7 +391,7 @@ const MobileLiveFeed: React.FC<
         {/* RSI pill */}
         {serverState && (
           <div
-            className={`bg-white/5 px-1.5 py-0.5 rounded font-mono font-bold whitespace-nowrap tabular-nums ${getRsiColor()}`}
+            className={`whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums ${getRsiColor()}`}
           >
             RSI {Math.round(serverState.rsi)}
           </div>
@@ -399,7 +399,7 @@ const MobileLiveFeed: React.FC<
 
         {/* Whale indicator */}
         {serverState && serverState.whaleTier > 0 && (
-          <div className="bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-400 font-bold animate-pulse">
+          <div className="animate-pulse rounded bg-amber-500/20 px-1.5 py-0.5 font-bold text-amber-400">
             🐋 T{serverState.whaleTier}
           </div>
         )}

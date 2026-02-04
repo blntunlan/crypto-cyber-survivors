@@ -227,11 +227,11 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
         <>
           {/* Start point */}
           <div
-            className="fixed w-10 h-10 -ml-5 -mt-5 rounded-full border-2 border-white/30 pointer-events-none z-[1001]"
+            className="pointer-events-none fixed z-[1001] -ml-5 -mt-5 h-10 w-10 rounded-full border-2 border-white/30"
             style={{ left: uiState.startX, top: dragRef.current.startY }}
           />
           {/* Direction line */}
-          <svg className="fixed inset-0 w-full h-full pointer-events-none z-[1000]">
+          <svg className="pointer-events-none fixed inset-0 z-[1000] h-full w-full">
             <line
               x1={uiState.startX}
               y1={dragRef.current.startY}
@@ -244,7 +244,7 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
           </svg>
           {/* Glow at finger */}
           <div
-            className="fixed w-12 h-12 -ml-6 -mt-6 rounded-full pointer-events-none z-[1001]"
+            className="pointer-events-none fixed z-[1001] -ml-6 -mt-6 h-12 w-12 rounded-full"
             style={{
               left: uiState.currentX,
               top: uiState.currentY,
@@ -256,7 +256,7 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
 
       {secondTouchActive && (
         <div
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl pointer-events-none z-[1003] animate-pulse"
+          className="pointer-events-none fixed left-1/2 top-1/2 z-[1003] -translate-x-1/2 -translate-y-1/2 animate-pulse text-5xl"
           style={{ color: accentColor }}
         >
           ⚡

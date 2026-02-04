@@ -24,8 +24,8 @@ export function ThemeToggle({
     <button
       onClick={toggleTheme}
       className={`
-        flex items-center gap-2 px-4 py-2
-        border-2 rounded-lg
+        flex items-center gap-2 rounded-lg border-2
+        px-4 py-2
         transition-all duration-200
         hover:scale-105 active:scale-95
         ${className}
@@ -61,9 +61,9 @@ export function ThemeToggleCompact(): React.JSX.Element {
   return (
     <button
       onClick={toggleTheme}
-      className="w-10 h-10 flex items-center justify-center text-xl rounded-lg
-                 border-2 border-cyan-500/50 bg-cyan-500/10
-                 hover:bg-cyan-500/20 active:scale-95 transition-all"
+      className="flex h-10 w-10 items-center justify-center rounded-lg border-2
+                 border-cyan-500/50 bg-cyan-500/10 text-xl
+                 transition-all hover:bg-cyan-500/20 active:scale-95"
       aria-label={`Switch to ${themeName === 'cyberpunk' ? '16-bit Retro' : 'Cyberpunk'} theme`}
     >
       {themeName === 'cyberpunk' ? '🎮' : '🌃'}

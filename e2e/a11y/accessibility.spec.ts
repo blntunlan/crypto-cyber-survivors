@@ -6,14 +6,14 @@ test.describe('Accessibility (A11y) Checks', () => {
     context,
     page,
   }) => {
-    await page.goto('/?no-sw=true');
     await context.clearCookies();
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
     });
-    await page.reload();
+    await page.goto('/?no-sw=true');
 
     // Scan Nickname Screen
     // The nickname screen is the first thing shown
@@ -44,12 +44,12 @@ test.describe('Accessibility (A11y) Checks', () => {
     page,
   }) => {
     // Navigate to Main Menu
-    await page.goto('/?no-sw=true');
     await context.clearCookies();
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -60,7 +60,7 @@ test.describe('Accessibility (A11y) Checks', () => {
         })
       );
     });
-    await page.reload();
+    await page.goto('/?no-sw=true');
 
     // 2. Handle Hub Menu (Click PLAY)
     const playHubBtn = page.getByRole('button', { name: 'PLAY' });

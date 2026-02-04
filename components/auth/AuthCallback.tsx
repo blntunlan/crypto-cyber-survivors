@@ -14,7 +14,7 @@ import { SupabaseAuthService } from '../../services/auth/SupabaseAuthService';
 import { Logger } from '../../services/system/Logger';
 
 interface AuthCallbackProps {
-  onSuccess?: () => void;
+  onSuccess?: (needsNickname: boolean) => void;
   onError?: (error: string) => void;
 }
 
@@ -129,12 +129,9 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess, onError }
               return;
             }
 
-            onSuccess?.();
+            onSuccess?.(profileResult.needsNickname ?? false);
 
-            // Redirect to home after short delay
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 1500);
+            // Note: App.tsx handles routing via state, no page reload needed
           } else {
             throw new Error('Session verification failed');
           }
@@ -177,11 +174,9 @@ export const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess, onError }
                 'Login successful! Redirecting...'
               )
             );
-            onSuccess?.();
+            onSuccess?.(profileResult.needsNickname ?? false);
 
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 1500);
+            // Note: App.tsx handles routing via state, no page reload needed
           } else {
             // No session found - might be an error or expired callback
             Logger.warn('[AuthCallback] No session found after OAuth callback');

@@ -85,39 +85,39 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-[#020617] text-slate-300 font-mono flex flex-col md:flex-row overflow-hidden border-t-2 border-[#b22222]/50 shadow-[0_-10px_50px_rgba(178,34,34,0.2)]"
+      className="fixed inset-0 z-[100] flex flex-col overflow-hidden border-t-2 border-[#b22222]/50 bg-[#020617] font-mono text-slate-300 shadow-[0_-10px_50px_rgba(178,34,34,0.2)] md:flex-row"
     >
       {/* Sidebar - Navigation */}
-      <div className="w-full md:w-80 border-r border-[#b22222]/20 flex flex-col bg-black/40 backdrop-blur-xl">
-        <div className="p-6 border-b border-[#b22222]/20 flex items-center justify-between">
+      <div className="flex w-full flex-col border-r border-[#b22222]/20 bg-black/40 backdrop-blur-xl md:w-80">
+        <div className="flex items-center justify-between border-b border-[#b22222]/20 p-6">
           <div className="flex items-center gap-3">
-            <Database className="text-[#d6b85c] w-5 h-5" />
+            <Database className="h-5 w-5 text-[#d6b85c]" />
             <span className="font-display font-black tracking-tighter text-white">
               DOCS_V2.0
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors md:hidden"
+            className="rounded-full p-2 transition-colors hover:bg-white/5 md:hidden"
           >
-            <Power className="w-5 h-5" />
+            <Power className="h-5 w-5" />
           </button>
         </div>
 
         <div className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder="Search Protocol..."
-              className="w-full bg-white/5 border border-white/10 rounded-sm py-2 pl-10 pr-4 text-xs focus:ring-1 focus:ring-[#d6b85c] focus:outline-none transition-all"
+              className="w-full rounded-sm border border-white/10 bg-white/5 py-2 pl-10 pr-4 text-xs transition-all focus:outline-none focus:ring-1 focus:ring-[#d6b85c]"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+        <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto p-6">
           {navigation?.sidebar.map((section, idx) => (
             <div key={idx} className="space-y-3">
               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#b22222] opacity-80">
@@ -128,16 +128,16 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
                   <button
                     key={itemIdx}
                     onClick={() => handleDocSelect(item.link)}
-                    className={`w-full text-left px-3 py-2 rounded-sm text-xs transition-all flex items-center justify-between group
+                    className={`group flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-xs transition-all
                       ${
                         selectedDoc === item.link
-                          ? 'bg-[#d6b85c]/10 text-white border-l-2 border-[#d6b85c]'
-                          : 'text-slate-500 hover:text-slate-100 hover:bg-white/5'
+                          ? 'border-l-2 border-[#d6b85c] bg-[#d6b85c]/10 text-white'
+                          : 'text-slate-500 hover:bg-white/5 hover:text-slate-100'
                       }`}
                   >
                     <span>{item.text}</span>
                     {selectedDoc === item.link && (
-                      <ChevronRight className="w-3 h-3 text-[#d6b85c]" />
+                      <ChevronRight className="h-3 w-3 text-[#d6b85c]" />
                     )}
                   </button>
                 ))}
@@ -146,7 +146,7 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
           ))}
         </div>
 
-        <div className="p-6 border-t border-[#b22222]/20 bg-black/20 text-[10px] space-y-2">
+        <div className="space-y-2 border-t border-[#b22222]/20 bg-black/20 p-6 text-[10px]">
           <div className="flex items-center justify-between">
             <span className="text-slate-600">CONNECTION:</span>
             <span className="text-green-500">ENCRYPTED</span>
@@ -159,29 +159,29 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed opacity-[0.98]">
+      <div className="relative flex flex-1 flex-col bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed opacity-[0.98]">
         {/* Header toolbar */}
-        <div className="h-16 border-b border-[#b22222]/20 flex items-center justify-between px-8 bg-black/20 backdrop-blur-md">
-          <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-widest text-[#d6b85c]">
-            <Terminal className="w-4 h-4" />
+        <div className="flex h-16 items-center justify-between border-b border-[#b22222]/20 bg-black/20 px-8 backdrop-blur-md">
+          <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-widest text-[#d6b85c]">
+            <Terminal className="h-4 w-4" />
             <span>{selectedDoc}</span>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-white/5 rounded-sm transition-colors group">
-              <Share2 className="w-4 h-4 text-slate-500 group-hover:text-white" />
+            <button className="group rounded-sm p-2 transition-colors hover:bg-white/5">
+              <Share2 className="h-4 w-4 text-slate-500 group-hover:text-white" />
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-[#b22222]/20 hover:bg-[#b22222]/40 text-[#b22222] font-black text-xs uppercase tracking-widest border border-[#b22222]/30 transition-all flex items-center gap-2"
+              className="flex items-center gap-2 border border-[#b22222]/30 bg-[#b22222]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#b22222] transition-all hover:bg-[#b22222]/40"
             >
-              <Power className="w-4 h-4" />
+              <Power className="h-4 w-4" />
               EXIT_TERMINAL
             </button>
           </div>
         </div>
 
         {/* Markdown Renderer Area */}
-        <div className="flex-1 overflow-y-auto p-8 md:p-16 custom-scrollbar scroll-smooth">
+        <div className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth p-8 md:p-16">
           <AnimatePresence mode="wait">
             {loading ? (
               <motion.div
@@ -189,9 +189,9 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full flex flex-col items-center justify-center space-y-4"
+                className="flex h-full flex-col items-center justify-center space-y-4"
               >
-                <div className="w-12 h-12 border-2 border-slate-800 border-t-[#d6b85c] rounded-full animate-spin" />
+                <div className="h-12 w-12 animate-spin rounded-full border-2 border-slate-800 border-t-[#d6b85c]" />
                 <span className="text-xs uppercase tracking-widest text-slate-500">
                   Decrypting Protocol Content...
                 </span>
@@ -202,7 +202,7 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="max-w-4xl mx-auto space-y-8 pb-32"
+                className="mx-auto max-w-4xl space-y-8 pb-32"
               >
                 {/* Custom Markdown Renderer Components */}
                 {renderDocContent(content, handleDocSelect)}
@@ -212,8 +212,8 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
         </div>
 
         {/* Scrabble/Scanline Overlays */}
-        <div className="absolute inset-x-0 h-[1px] bg-[#d6b85c]/10 top-0 pointer-events-none" />
-        <div className="absolute inset-x-0 h-[1px] bg-[#b22222]/10 bottom-0 pointer-events-none" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-[#d6b85c]/10" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[1px] bg-[#b22222]/10" />
       </div>
 
       <style>{`
@@ -235,21 +235,21 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
 // Helper to render code blocks
 function renderCodeBlock(code: string, language?: string) {
   return (
-    <div key={Math.random()} className="my-6 group relative">
-      <div className="absolute -top-3 left-4 px-2 py-0.5 bg-[#b22222] text-[8px] font-black text-white uppercase tracking-widest z-10">
+    <div key={Math.random()} className="group relative my-6">
+      <div className="absolute -top-3 left-4 z-10 bg-[#b22222] px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-white">
         {language ?? 'TERMINAL'}
       </div>
-      <pre className="p-6 bg-black border border-[#b22222]/20 rounded-sm overflow-x-auto custom-scrollbar shadow-2xl">
-        <code className="text-xs text-slate-300 leading-relaxed font-mono block">
+      <pre className="custom-scrollbar overflow-x-auto rounded-sm border border-[#b22222]/20 bg-black p-6 shadow-2xl">
+        <code className="block font-mono text-xs leading-relaxed text-slate-300">
           {code}
         </code>
       </pre>
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           onClick={() => {
             void navigator.clipboard.writeText(code);
           }}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-sm text-[10px] text-slate-500 hover:text-white transition-all uppercase font-black"
+          className="rounded-sm bg-white/5 p-2 text-[10px] font-black uppercase text-slate-500 transition-all hover:bg-white/10 hover:text-white"
         >
           Copy
         </button>
@@ -310,7 +310,7 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
                   window.open(url, '_blank');
                 }
               }}
-              className="text-[#d6b85c] hover:underline transition-all font-bold"
+              className="font-bold text-[#d6b85c] transition-all hover:underline"
             >
               {label}
             </button>
@@ -325,7 +325,7 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
           parts.push(
             <IconComponent
               key={match.index}
-              className="inline-block w-4 h-4 mx-1 align-text-bottom"
+              className="mx-1 inline-block h-4 w-4 align-text-bottom"
               color="currentColor"
             />
           );
@@ -370,7 +370,7 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
       elements.push(
         <h1
           key={i}
-          className="text-4xl md:text-6xl font-black font-display text-white uppercase italic tracking-tighter mb-12 border-b-2 border-[#b22222] pb-6"
+          className="mb-12 border-b-2 border-[#b22222] pb-6 font-display text-4xl font-black uppercase italic tracking-tighter text-white md:text-6xl"
         >
           {parseInline(line.replace('# ', ''))}
         </h1>
@@ -382,9 +382,9 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
       elements.push(
         <h2
           key={i}
-          className="text-xl md:text-2xl font-black font-display text-[#d6b85c] uppercase tracking-wider mb-6 mt-16 flex items-center gap-3"
+          className="mb-6 mt-16 flex items-center gap-3 font-display text-xl font-black uppercase tracking-wider text-[#d6b85c] md:text-2xl"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="h-5 w-5" />
           {parseInline(line.replace('## ', ''))}
         </h2>
       );
@@ -400,10 +400,10 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
         elements.push(
           <div
             key={i}
-            className="p-4 bg-[#b22222]/10 border-l-4 border-[#b22222] flex items-center gap-4 mb-8"
+            className="mb-8 flex items-center gap-4 border-l-4 border-[#b22222] bg-[#b22222]/10 p-4"
           >
-            <IconShield className="w-6 h-6" color="#b22222" />
-            <div className="text-xs font-mono uppercase tracking-widest text-[#b22222]">
+            <IconShield className="h-6 w-6" color="#b22222" />
+            <div className="font-mono text-xs uppercase tracking-widest text-[#b22222]">
               {parseInline(text)}
             </div>
           </div>
@@ -412,7 +412,7 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
         elements.push(
           <blockquote
             key={i}
-            className="border-l-2 border-slate-700 pl-4 py-1 text-slate-500 italic mb-4"
+            className="mb-4 border-l-2 border-slate-700 py-1 pl-4 italic text-slate-500"
           >
             {parseInline(text)}
           </blockquote>
@@ -424,8 +424,8 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
     if (line.startsWith('- ')) {
       const cleanLine = line.replace('- ', '');
       elements.push(
-        <div key={i} className="flex gap-3 mb-2 group">
-          <div className="w-1.5 h-1.5 mt-1.5 bg-[#d6b85c]/40 group-hover:bg-[#d6b85c] transition-colors flex-shrink-0" />
+        <div key={i} className="group mb-2 flex gap-3">
+          <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 bg-[#d6b85c]/40 transition-colors group-hover:bg-[#d6b85c]" />
           <div className="text-sm leading-relaxed text-slate-400">
             {parseInline(cleanLine)}
           </div>
@@ -443,7 +443,7 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
       elements.push(
         <div
           key={i}
-          className="grid grid-cols-4 gap-4 p-3 border-b border-white/5 hover:bg-white/5 transition-all text-xs"
+          className="grid grid-cols-4 gap-4 border-b border-white/5 p-3 text-xs transition-all hover:bg-white/5"
         >
           {cols.map((col, ci) => (
             <span
@@ -464,7 +464,7 @@ function renderDocContent(content: string, onLinkClick: (link: string) => void) 
     }
 
     elements.push(
-      <p key={i} className="text-sm leading-relaxed text-slate-400 mb-4">
+      <p key={i} className="mb-4 text-sm leading-relaxed text-slate-400">
         {parseInline(line)}
       </p>
     );

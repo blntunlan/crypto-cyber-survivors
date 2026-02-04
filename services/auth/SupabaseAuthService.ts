@@ -386,6 +386,71 @@ class SupabaseAuthServiceClass {
     }
   }
 
+  /**
+   * Send OTP code to email (same as magic link but expects code verification)
+   */
+  async sendOtpCode(email: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return { success: false, error: 'Auth service not configured' };
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        Logger.error('[SupabaseAuth] Send OTP error:', error);
+        return { success: false, error: this.mapAuthError(error.message) };
+      }
+
+      Logger.info('[SupabaseAuth] OTP code sent');
+      return { success: true };
+    } catch (err) {
+      Logger.error('[SupabaseAuth] Send OTP exception:', err);
+      return { success: false, error: 'Failed to send OTP code' };
+    }
+  }
+
+  /**
+   * Verify OTP code and create session
+   */
+  async verifyOtpCode(email: string, token: string): Promise<AuthResult> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return { success: false, error: 'Auth service not configured' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email',
+      });
+
+      if (error) {
+        Logger.error('[SupabaseAuth] Verify OTP error:', error);
+        return { success: false, error: this.mapAuthError(error.message) };
+      }
+
+      if (data.session && data.user) {
+        Logger.info('[SupabaseAuth] OTP verification successful');
+        return {
+          success: true,
+          user: data.user,
+          session: data.session,
+        };
+      }
+
+      return { success: false, error: 'Invalid or expired OTP code' };
+    } catch (err) {
+      Logger.error('[SupabaseAuth] Verify OTP exception:', err);
+      return { success: false, error: 'Failed to verify OTP code' };
+    }
+  }
+
   // ============================================
   // Password Reset
   // ============================================
@@ -604,6 +669,105 @@ class SupabaseAuthServiceClass {
       return { success: true };
     } catch (err) {
       Logger.error('[SupabaseAuth] Update profile exception:', err);
+      return { success: false, error: 'Failed to update profile' };
+    }
+  }
+
+  /**
+   * Alias for getProfile - used by ProfileSettings component
+   */
+  async getCurrentProfile(): Promise<ProfileData | null> {
+    return this.getProfile();
+  }
+
+  /**
+   * Get list of linked OAuth providers for current user
+   */
+  async getLinkedProviders(): Promise<AuthProvider[]> {
+    if (!isSupabaseConfigured() || !supabase) return [];
+
+    try {
+      const user = await this.getUser();
+      if (!user) return [];
+
+      // Get identities from Supabase auth
+      const identities = user.identities ?? [];
+
+      // Map to AuthProvider type
+      const providers: AuthProvider[] = identities
+        .map(identity => identity.provider as AuthProvider)
+        .filter(provider =>
+          [
+            'email',
+            'twitter',
+            'google',
+            'discord',
+            'github',
+            'apple',
+            'twitch',
+          ].includes(provider)
+        );
+
+      return providers;
+    } catch (err) {
+      Logger.error('[SupabaseAuth] Get linked providers error:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Unlink an OAuth provider from current user
+   * Note: Supabase doesn't directly support unlinking, so this is limited
+   */
+  async unlinkProvider(
+    _provider: AuthProvider
+  ): Promise<{ success: boolean; error?: string }> {
+    // Supabase doesn't have a direct unlink API
+    // This would require a custom Edge Function
+    Logger.warn('[SupabaseAuth] Unlink provider not fully implemented yet');
+    return {
+      success: false,
+      error: 'Provider unlinking requires backend implementation',
+    };
+  }
+
+  /**
+   * Update profile with linked profile data after OAuth callback
+   */
+  async updateProfileWithAuth(
+    updates: Partial<ProfileData>
+  ): Promise<{ success: boolean; profile?: ProfileData; error?: string }> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return { success: false, error: 'Auth service not configured' };
+    }
+
+    try {
+      const user = await this.getUser();
+      if (!user) {
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      const updateData: Record<string, unknown> = {};
+      if (updates.displayName) updateData.display_name = updates.displayName;
+      if (updates.avatarUrl) updateData.avatar_url = updates.avatarUrl;
+      if (updates.username) updateData.username = updates.username;
+      updateData.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('auth_user_id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      const profile = this.mapProfileData(data as Record<string, unknown>);
+      return { success: true, profile };
+    } catch (err) {
+      Logger.error('[SupabaseAuth] Update profile with auth error:', err);
       return { success: false, error: 'Failed to update profile' };
     }
   }
