@@ -102,6 +102,9 @@
     "components/**/*.tsx": [
       "npx ts-node scripts/ui-consistency-audit.ts --ci"
     ],
+    "railway-market-server/src/**/*.ts": [
+      "bash -c 'cd railway-market-server && npm run typecheck'"
+    ],
     "!(public|coverage|dist|node_modules|playwright-report|test-results|remotion-video|.agent|.agents)/**/*.{json,css}": [
       "prettier --write"
     ],

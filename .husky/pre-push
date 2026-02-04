@@ -1,0 +1,38 @@
+# Pre-push hook: Validate railway-market-server before pushing
+# This prevents broken deployments
+
+echo "🚀 Pre-push validation..."
+
+# Check if railway-market-server files were changed
+CHANGED_FILES=$(git diff --cached --name-only HEAD~1 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
+
+if echo "$CHANGED_FILES" | grep -q "^railway-market-server/"; then
+  echo "📦 Railway Market Server changes detected, running validation..."
+  
+  cd railway-market-server
+  
+  # Install dependencies if needed
+  if [ ! -d "node_modules" ]; then
+    echo "📥 Installing dependencies..."
+    npm ci --silent
+  fi
+  
+  # Run type check
+  echo "🔍 Type checking..."
+  npm run typecheck || {
+    echo "❌ TypeScript errors found! Fix them before pushing."
+    exit 1
+  }
+  
+  # Run build
+  echo "🔨 Building..."
+  npm run build || {
+    echo "❌ Build failed! Fix errors before pushing."
+    exit 1
+  }
+  
+  echo "✅ Railway Market Server validation passed!"
+  cd ..
+fi
+
+echo "✅ Pre-push checks complete!"
