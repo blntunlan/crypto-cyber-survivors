@@ -17,29 +17,47 @@ const PORT = process.env.PORT || 3000;
 const DIST_DIR = join(process.cwd(), 'dist');
 
 // =============================================================================
-// SECURITY: Blocked Paths (WordPress vulnerability scanners, etc.)
+// SECURITY: Blocked Paths (WordPress vulnerability scanners, bots, etc.)
 // =============================================================================
 const BLOCKED_PATHS = [
-  '/wp-admin',
-  '/wp-login.php',
-  '/wp-content',
-  '/wp-includes',
-  '/wordpress',
-  '/xmlrpc.php',
-  '/wlwmanifest.xml',
-  '/.env',
-  '/.git',
-  '/config.php',
-  '/admin.php',
-  '/shell',
-  '/backup',
-  '/phpmyadmin',
-  '/pma',
-  '/myadmin',
-  '/mysql',
-  '/db',
-  '/sql',
-  '/database',
+  // WordPress
+  '/wp-admin', '/wp-login.php', '/wp-content', '/wp-includes', '/wordpress',
+  '/xmlrpc.php', '/wlwmanifest.xml', '/wp-config', '/wp-json',
+  // Environment/Config files
+  '/.env', '/.git', '/.svn', '/.htaccess', '/.htpasswd',
+  '/config.php', '/config.json', '/config.yml', '/configuration.php',
+  '/settings.php', '/settings.json', '/web.config',
+  // Admin panels
+  '/admin.php', '/admin/', '/administrator/', '/panel/', '/cpanel/',
+  '/webadmin/', '/sysadmin/', '/manage/', '/manager/',
+  // Shell/Backdoors
+  '/shell', '/c99', '/r57', '/b374k', '/alfa', '/cmd', '/eval',
+  '/exec', '/backdoor', '/webshell', '/upload.php',
+  // Database
+  '/phpmyadmin', '/pma', '/myadmin', '/mysql', '/db', '/sql', '/database',
+  '/adminer', '/dbadmin', '/sqladmin',
+  // Backups
+  '/backup', '/backups', '/bak', '/old', '/temp', '/tmp', '/cache',
+  '/dump', '/export', '/import',
+  // API probing
+  '/api/v1', '/api/v2', '/graphql', '/rest/', '/soap/',
+  // Common CMS
+  '/joomla', '/drupal', '/magento', '/prestashop', '/opencart',
+  // Source maps (production)
+  '.map',
+  // Debug endpoints
+  '/debug', '/trace', '/test', '/phpinfo', '/info.php',
+  // Actuator endpoints (Spring Boot)
+  '/actuator', '/jolokia', '/metrics',
+];
+
+// Blocked file extensions (source code, configs)
+const BLOCKED_EXTENSIONS = [
+  '.php', '.asp', '.aspx', '.jsp', '.cgi', '.pl',
+  '.py', '.rb', '.sh', '.bash', '.ps1',
+  '.bak', '.old', '.orig', '.swp', '.swo',
+  '.sql', '.sqlite', '.db', '.mdb',
+  '.log', '.ini', '.conf', '.cfg',
 ];
 
 // =============================================================================
@@ -98,38 +116,47 @@ const MIME_TYPES = {
 };
 
 // =============================================================================
-// SECURITY HEADERS
+// SECURITY HEADERS (Hardened)
 // =============================================================================
 function getSecurityHeaders(isAsset = false) {
   const headers = {
-    // Prevent clickjacking
-    'X-Frame-Options': 'SAMEORIGIN',
+    // Prevent clickjacking (DENY is stricter than SAMEORIGIN)
+    'X-Frame-Options': 'DENY',
     // Prevent MIME type sniffing
     'X-Content-Type-Options': 'nosniff',
     // Enable XSS filter
     'X-XSS-Protection': '1; mode=block',
     // Referrer policy
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    // Permissions policy (disable unnecessary features)
-    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=()',
-    // HSTS (enable HTTPS)
-    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+    // Permissions policy (comprehensive list)
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=()',
+    // HSTS (2 years with preload)
+    'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+    // Prevent DNS prefetch to third parties
+    'X-DNS-Prefetch-Control': 'off',
+    // Cross-Origin policies
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    // Hide server info
+    'X-Powered-By': '',
+    'Server': '',
   };
 
-  // Add CSP for HTML pages only
+  // Add CSP for HTML pages only (stricter - no unsafe-eval)
   if (!isAsset) {
     headers['Content-Security-Policy'] = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+      "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' wss: https: ws:",
+      "connect-src 'self' wss://stream.binance.com wss://ws-feed.exchange.coinbase.com https://*.supabase.co https://*.workers.dev",
       "media-src 'self' blob: data:",
       "worker-src 'self' blob:",
-      "frame-ancestors 'self'",
+      "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
+      "upgrade-insecure-requests",
     ].join('; ');
   }
 
@@ -220,17 +247,24 @@ function handleRequest(req, res) {
     normalizedPath.includes(blocked.toLowerCase())
   );
 
+  // Check for blocked file extensions
+  const ext = normalizedPath.slice(normalizedPath.lastIndexOf('.'));
+  const isBlockedExt = BLOCKED_EXTENSIONS.includes(ext);
+
   // Rate limiting check
-  if (isRateLimited(ip, isBlockedPath)) {
+  if (isRateLimited(ip, isBlockedPath || isBlockedExt)) {
     logRequest(ip, req.method, urlPath, 429, Date.now() - startTime);
     sendResponse(res, 429, 'Too Many Requests');
     return;
   }
 
-  // Block malicious paths with 418 (I'm a teapot) - confuses bots
-  if (isBlockedPath) {
-    logRequest(ip, req.method, urlPath, 418, Date.now() - startTime);
-    sendResponse(res, 418, "I'm a teapot 🫖");
+  // Block malicious paths with random delay (confuses timing attacks)
+  if (isBlockedPath || isBlockedExt) {
+    const delay = Math.floor(Math.random() * 500) + 100; // 100-600ms random delay
+    setTimeout(() => {
+      logRequest(ip, req.method, urlPath, 418, Date.now() - startTime);
+      sendResponse(res, 418, "I'm a teapot 🫖");
+    }, delay);
     return;
   }
 

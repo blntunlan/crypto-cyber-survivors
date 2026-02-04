@@ -1,8 +1,10 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /a/
 Disallow: /*.json$
 Disallow: /sw.js
+Disallow: /health
 
 # Block WordPress/CMS attack paths
 Disallow: /wp-admin/
@@ -13,9 +15,15 @@ Disallow: /wp-login.php
 Disallow: /xmlrpc.php
 Disallow: /phpmyadmin/
 Disallow: /administrator/
+Disallow: /admin/
+Disallow: /backup/
+Disallow: /.env
+Disallow: /.git/
+Disallow: /config/
+Disallow: /debug/
 
 # Crawl-delay for polite bots
-Crawl-delay: 1
+Crawl-delay: 2
 
 # Sitemaps
 Sitemap: https://crypto-survivors.com/sitemap.xml

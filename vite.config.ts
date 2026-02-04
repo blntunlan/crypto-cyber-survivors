@@ -22,7 +22,14 @@ export default defineConfig(({ mode }) => {
     // ==========================================================================
     build: {
       minify: isProduction ? 'terser' : false,
-      sourcemap: true,
+      // SECURITY: Never expose source maps in production
+      // - true: generates .map files (dev only)
+      // - 'hidden': generates .map for error tracking but no reference in JS
+      // - false: no source maps at all
+      sourcemap: isProduction ? false : true,
+      // Obfuscate asset directory name in production
+      // /assets/ → /a/ (shorter, less obvious)
+      assetsDir: isProduction ? 'a' : 'assets',
       terserOptions: isProduction
         ? {
             compress: {
@@ -53,10 +60,12 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           // Obfuscate chunk names (harder to identify critical files)
-          chunkFileNames: isProduction ? 'assets/[hash].js' : 'assets/[name]-[hash].js',
-          entryFileNames: isProduction ? 'assets/[hash].js' : 'assets/[name]-[hash].js',
+          // Production: /a/Xk9mN2pQ.js (minimal exposure)
+          // Development: /assets/GameEngine-abc123.js (readable for debugging)
+          chunkFileNames: isProduction ? 'a/[hash].js' : 'assets/[name]-[hash].js',
+          entryFileNames: isProduction ? 'a/[hash].js' : 'assets/[name]-[hash].js',
           assetFileNames: isProduction
-            ? 'assets/[hash].[ext]'
+            ? 'a/[hash].[ext]'
             : 'assets/[name]-[hash].[ext]',
           manualChunks: {
             'vendor-react': ['react', 'react-dom'],

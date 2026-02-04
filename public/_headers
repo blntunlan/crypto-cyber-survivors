@@ -1,11 +1,11 @@
 # =============================================================================
-# Crypto Survivors - Security Headers
+# Crypto Survivors - Security Headers (Hardened)
 # These headers are applied to all responses from Cloudflare/Railway
 # =============================================================================
 
 /*
   # Prevent clickjacking attacks
-  X-Frame-Options: SAMEORIGIN
+  X-Frame-Options: DENY
   
   # Prevent MIME type sniffing
   X-Content-Type-Options: nosniff
@@ -16,20 +16,33 @@
   # Control referrer information
   Referrer-Policy: strict-origin-when-cross-origin
   
-  # Disable unnecessary browser features
-  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  # Disable unnecessary browser features (comprehensive)
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), autoplay=(self), encrypted-media=(self), fullscreen=(self)
   
-  # Enable HTTPS (HSTS)
-  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  # Enable HTTPS (HSTS) - 2 years with preload
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  
+  # Prevent DNS prefetch to third parties
+  X-DNS-Prefetch-Control: off
+  
+  # Cross-Origin policies
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: same-origin
 
-# HTML pages - more restrictive CSP
+# HTML pages - strict CSP (no unsafe-eval in production)
 /*.html
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' wss: https: ws:; media-src 'self' blob: data:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' wss://stream.binance.com wss://ws-feed.exchange.coinbase.com https://*.supabase.co https://*.workers.dev; media-src 'self' blob: data:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
 
 /
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' wss: https: ws:; media-src 'self' blob: data:; worker-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' wss://stream.binance.com wss://ws-feed.exchange.coinbase.com https://*.supabase.co https://*.workers.dev; media-src 'self' blob: data:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
 
-# Static assets - aggressive caching
+# Obfuscated static assets - aggressive caching, no CORS
+/a/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# Legacy assets path (redirect to /a/)
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
