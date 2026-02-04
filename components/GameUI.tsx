@@ -157,7 +157,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
     return (
       <div
         id="game-ui-overlay"
-        className="fixed top-0 left-0 w-full pointer-events-none flex flex-col gap-2 font-mono"
+        className="pointer-events-none fixed left-0 top-0 flex w-full flex-col gap-2 font-mono"
         style={{
           zIndex: Z_LAYERS.HUD,
           // Mobile: Use safe-area-inset-top + extra padding for notch/status bar
@@ -170,22 +170,22 @@ export const GameUI: React.FC<GameUIProps> = memo(
         }}
       >
         {/* ROW 1: TOP ALIGNED ELEMENTS (Timer & Pause) */}
-        <div className="flex justify-between items-center w-full relative min-h-[44px]">
+        <div className="relative flex min-h-[44px] w-full items-center justify-between">
           {/* Spacer to balance the layout for desktop, on mobile we use absolute center for timer */}
           <div className="flex-1"></div>
 
           {/* Survival Time - Centered */}
           <div
-            className={`${isMobile ? 'absolute left-1/2 -translate-x-1/2' : 'flex-1 flex justify-center'}`}
+            className={`${isMobile ? 'absolute left-1/2 -translate-x-1/2' : 'flex flex-1 justify-center'}`}
           >
             <WaveTimer />
           </div>
 
           {/* Pause Button - Aligned Right */}
-          <div className="flex-1 flex justify-end">
+          <div className="flex flex-1 justify-end">
             {status === GameStatus.PLAYING && onTogglePause && (
               <div
-                className="pointer-events-auto p-2 -m-2 z-[3005] relative"
+                className="pointer-events-auto relative z-[3005] -m-2 p-2"
                 style={{
                   touchAction: 'none',
                   WebkitUserSelect: 'none',
@@ -199,7 +199,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
                     Logger.info('[GameUI] Pause button pressed (PointerDown)');
                     onTogglePause();
                   }}
-                  className="pointer-events-auto bg-slate-900/80 backdrop-blur-xl border border-white/20 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white active:scale-75 active:bg-slate-700 transition-all shadow-2xl ring-1 ring-white/10"
+                  className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-sm border border-white/20 bg-slate-900/80 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-xl transition-all active:scale-75 active:bg-slate-700 md:h-14 md:w-14"
                   style={{
                     cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
@@ -208,9 +208,9 @@ export const GameUI: React.FC<GameUIProps> = memo(
                   title={t('hud.pause_title')}
                   aria-label={t('hud.pause_aria')}
                 >
-                  <div className="flex gap-1.5 pointer-events-none">
-                    <div className="w-1.5 h-6 bg-white rounded-full shadow-sm"></div>
-                    <div className="w-1.5 h-6 bg-white rounded-full shadow-sm"></div>
+                  <div className="pointer-events-none flex gap-1.5">
+                    <div className="h-6 w-1.5 rounded-full bg-white shadow-sm"></div>
+                    <div className="h-6 w-1.5 rounded-full bg-white shadow-sm"></div>
                   </div>
                 </button>
               </div>
@@ -219,10 +219,10 @@ export const GameUI: React.FC<GameUIProps> = memo(
         </div>
 
         {/* ROW 2: HUD CORE (Live Feed & Kernel Status) */}
-        <div className="flex justify-between items-start w-full mt-2">
+        <div className="mt-2 flex w-full items-start justify-between">
           {/* Left Panel: Live Feed */}
           <div
-            className="flex flex-col gap-2 hud-element-left"
+            className="hud-element-left flex flex-col gap-2"
             style={{ maxWidth: isMobile ? '55%' : undefined }}
           >
             <LiveFeed
@@ -234,7 +234,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
             {status === GameStatus.PLAYING && <BuffIndicator status={status} />}
             {/* Mobile FPS Counter - Below LiveFeed */}
             {isMobile && showFPS && (
-              <div className="px-1.5 py-0.5 rounded text-[8px] font-stats font-bold bg-green-500/60 text-white w-fit">
+              <div className="w-fit rounded bg-green-500/60 px-1.5 py-0.5 font-stats text-[8px] font-bold text-white">
                 <span id="fps-counter-mobile">
                   {t('hud.fps_formatted', { val: '--' })}
                 </span>
@@ -244,7 +244,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
 
           {/* Right Panel: Enhanced Stats / Level */}
           <div
-            className="flex flex-col items-end gap-3 hud-element-right"
+            className="hud-element-right flex flex-col items-end gap-3"
             style={{ maxWidth: isMobile ? '40%' : undefined }}
           >
             <KernelStatus player={player} />

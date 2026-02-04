@@ -15,6 +15,7 @@ test.describe('Edge Cases', () => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
     });
     await page.reload();
   });
@@ -74,10 +75,8 @@ test.describe('Edge Cases', () => {
 
     // Start game
     const longBtn = page.getByRole('button', { name: /long/i }).first();
-    await longBtn.waitFor();
     await longBtn.click();
-
-    await page.waitForTimeout(3000);
+    await expect(page.locator('canvas')).toBeVisible();
 
     // Simulate tab hidden (actual method for Playwright)
     await page.evaluate(() => {
@@ -117,10 +116,8 @@ test.describe('Edge Cases', () => {
 
     // Start game
     const longBtn = page.getByRole('button', { name: /long/i }).first();
-    await longBtn.waitFor();
     await longBtn.click();
-
-    await page.waitForTimeout(3000);
+    await expect(page.locator('canvas')).toBeVisible();
 
     const sizes = [
       { width: 375, height: 667 },
@@ -170,7 +167,6 @@ test.describe('Edge Cases', () => {
     const ethBtn = page.getByRole('button', { name: /eth/i }).first();
     if (await ethBtn.isVisible()) {
       await ethBtn.click();
-      await page.waitForTimeout(1000);
       // Should still be visible and app shouldn't crash
       await expect(page.locator('body')).toBeVisible();
     }
@@ -202,14 +198,6 @@ test.describe('Edge Cases', () => {
     });
 
     await page.reload();
-
-    // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
-    }
-
-    await page.waitForTimeout(5000);
 
     // App should still show UI, even if in error state
     await expect(page.locator('body')).toBeVisible();

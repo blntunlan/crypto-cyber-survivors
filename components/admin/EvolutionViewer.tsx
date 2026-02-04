@@ -131,30 +131,30 @@ export default function EvolutionViewer() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-green-500 font-mono p-8">
-      <h1 className="text-3xl font-bold mb-4 tracking-wider flex items-center gap-4">
+    <div className="min-h-screen bg-black p-8 font-mono text-green-500">
+      <h1 className="mb-4 flex items-center gap-4 text-3xl font-bold tracking-wider">
         PROJECT DARWIN
-        <span className="text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded border border-green-800">
+        <span className="rounded border border-green-800 bg-green-900/30 px-2 py-1 text-xs text-green-400">
           DEV MODE
         </span>
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Visualizer (Brain / Map) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-gray-950 border border-green-900/50 p-1 aspect-video relative overflow-hidden ring-1 ring-green-900/50 shadow-2xl shadow-green-900/20 rounded-xl">
+        <div className="space-y-4 lg:col-span-2">
+          <div className="relative aspect-video overflow-hidden rounded-sm border border-green-900/50 bg-gray-950 p-1 shadow-2xl shadow-green-900/20 ring-1 ring-green-900/50">
             <canvas
               ref={canvasRef}
               width={800}
               height={450}
-              className="w-full h-full object-contain"
+              className="h-full w-full object-contain"
             />
-            <div className="absolute top-4 left-4 text-xs bg-black/80 backdrop-blur border border-green-900/50 p-2 rounded text-green-400">
+            <div className="absolute left-4 top-4 rounded border border-green-900/50 bg-black/80 p-2 text-xs text-green-400 backdrop-blur">
               STATUS:{' '}
               <span
                 className={
                   status.includes('Connected')
-                    ? 'text-emerald-400 animate-pulse'
+                    ? 'animate-pulse text-emerald-400'
                     : 'text-red-500'
                 }
               >
@@ -166,28 +166,28 @@ export default function EvolutionViewer() {
 
         {/* Stats Panel */}
         <div className="space-y-4">
-          <div className="bg-gray-950 border border-green-900/50 p-6 shadow-lg rounded-xl">
-            <h2 className="text-xl border-b border-green-800 pb-2 mb-4 text-green-400 font-bold">
+          <div className="rounded-sm border border-green-900/50 bg-gray-950 p-6 shadow-lg">
+            <h2 className="mb-4 border-b border-green-800 pb-2 text-xl font-bold text-green-400">
               Training Metrics
             </h2>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-green-900/10 p-4 rounded border border-green-900/30">
-                <div className="text-xs text-gray-400 uppercase mb-1">Generation</div>
+            <div className="mb-6 grid grid-cols-2 gap-4">
+              <div className="rounded border border-green-900/30 bg-green-900/10 p-4">
+                <div className="mb-1 text-xs uppercase text-gray-400">Generation</div>
                 <div className="text-4xl font-bold text-white">{generation}</div>
               </div>
-              <div className="bg-green-900/10 p-4 rounded border border-green-900/30">
-                <div className="text-xs text-gray-400 uppercase mb-1">High Score</div>
+              <div className="rounded border border-green-900/30 bg-green-900/10 p-4">
+                <div className="mb-1 text-xs uppercase text-gray-400">High Score</div>
                 <div className="text-4xl font-bold text-emerald-400">
                   {Math.floor(bestFitness)}
                 </div>
               </div>
             </div>
 
-            <div className="h-64 bg-black/40 rounded border border-green-900/30 p-2 font-mono text-xs overflow-y-auto custom-scrollbar">
+            <div className="custom-scrollbar h-64 overflow-y-auto rounded border border-green-900/30 bg-black/40 p-2 font-mono text-xs">
               {logs.map((log, i) => (
-                <div key={i} className="mb-1 opacity-80 border-b border-white/5 pb-1">
-                  <span className="text-green-700 mr-2">
+                <div key={i} className="mb-1 border-b border-white/5 pb-1 opacity-80">
+                  <span className="mr-2 text-green-700">
                     [{new Date().toLocaleTimeString()}]
                   </span>
                   {log}

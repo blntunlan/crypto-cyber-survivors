@@ -81,6 +81,8 @@ import { NotificationSystem } from './components/hud';
 import { LandingPage } from './components/screens/LandingPage';
 import { DocScreen } from './components/screens/DocScreen';
 import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
+import { AuthCallback } from './components/auth';
+import { SupabaseAuthService } from './services/auth/SupabaseAuthService';
 
 // Lazy load heavy admin/debug components
 const LeaderboardPanel = React.lazy(() =>
@@ -232,19 +234,41 @@ const App: React.FC = () => {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
+  const [showAuthCallback, setShowAuthCallback] = useState(false);
 
-  // Handle Hash Navigation for Docs
+  // Handle Hash and Path Navigation for Docs and Legal
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleNavigation = () => {
+      // Check Hash for #docs
       if (window.location.hash === '#docs') {
         setShowDocs(true);
       } else {
         setShowDocs(false);
       }
+
+      // Check Pathname for /privacy, /terms, /docs, and /auth/callback
+      const path = window.location.pathname;
+      if (path === '/privacy') {
+        setShowPrivacy(true);
+      } else if (path === '/terms') {
+        setShowTerms(true);
+      } else if (path === '/docs') {
+        setShowDocs(true);
+      } else if (path === '/auth/callback') {
+        setShowAuthCallback(true);
+      } else {
+        setShowAuthCallback(false);
+      }
     };
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Check on initial load
-    return () => window.removeEventListener('hashchange', handleHashChange);
+
+    window.addEventListener('hashchange', handleNavigation);
+    window.addEventListener('popstate', handleNavigation); // Handle back/forward and pushState
+    handleNavigation(); // Check on initial load
+
+    return () => {
+      window.removeEventListener('hashchange', handleNavigation);
+      window.removeEventListener('popstate', handleNavigation);
+    };
   }, []);
 
   const handleLaunchGame = useCallback(() => {
@@ -263,6 +287,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     CoinService.setProvider(new SupabaseCoinProvider());
+    SupabaseAuthService.initialize();
     void ErrorRecoveryService;
     void MarketEventManager;
   }, []);
@@ -645,11 +670,32 @@ const App: React.FC = () => {
             className={`relative w-full h-screen ${gameStatus === GameStatus.PLAYING && !showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
           >
             <ErrorBoundary>
-              {showLanding ? (
+              {/* Auth Callback Handler - Priority Route */}
+              {showAuthCallback ? (
+                <AuthCallback
+                  onSuccess={() => {
+                    setShowAuthCallback(false);
+                    setShowLanding(false);
+                    localStorage.setItem('has_seen_landing', 'true');
+                    window.history.replaceState(null, '', '/');
+                  }}
+                  onError={error => {
+                    Logger.error('[App] Auth callback error:', { error });
+                    setShowAuthCallback(false);
+                    window.history.replaceState(null, '', '/');
+                  }}
+                />
+              ) : showLanding ? (
                 <LandingPage
                   onLaunch={handleLaunchGame}
-                  onViewPrivacy={() => setShowPrivacy(true)}
-                  onViewTerms={() => setShowTerms(true)}
+                  onViewPrivacy={() => {
+                    setShowPrivacy(true);
+                    window.history.pushState(null, '', '/privacy');
+                  }}
+                  onViewTerms={() => {
+                    setShowTerms(true);
+                    window.history.pushState(null, '', '/terms');
+                  }}
                 />
               ) : (
                 <>
@@ -773,13 +819,13 @@ const App: React.FC = () => {
                           />
                           <button
                             onClick={() => setHubScreen('hub')}
-                            className="fixed z-[110] px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-cyber uppercase tracking-wider backdrop-blur-sm transition-all shadow-lg active:scale-95 touch-manipulation"
+                            className="fixed z-[110] h-10 px-4 flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#d6b85c]/40 text-slate-400 hover:text-white text-xs font-semibold uppercase tracking-widest font-mono transition-all duration-300 backdrop-blur-sm active:scale-95 touch-manipulation focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
                             style={{
                               top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
-                              left: `calc(${device.isMobile ? '1rem' : '1rem'} + env(safe-area-inset-left, 0px))`,
+                              left: `calc(1rem + env(safe-area-inset-left, 0px))`,
                             }}
                           >
-                            ← {!device.isMobile && ` ${t('common.back_to_hub')}`}
+                            ← {!device.isMobile && 'HUB'}
                           </button>
                         </React.Suspense>
                       )}
@@ -833,19 +879,31 @@ const App: React.FC = () => {
               {/* Legal Modals */}
               {showPrivacy && (
                 <PrivacyPolicy
-                  onClose={() => setShowPrivacy(false)}
+                  onClose={() => {
+                    setShowPrivacy(false);
+                    if (window.location.pathname === '/privacy') {
+                      window.history.pushState(null, '', '/');
+                    }
+                  }}
                   onViewTerms={() => {
                     setShowPrivacy(false);
                     setShowTerms(true);
+                    window.history.pushState(null, '', '/terms');
                   }}
                 />
               )}
               {showTerms && (
                 <TermsOfService
-                  onClose={() => setShowTerms(false)}
+                  onClose={() => {
+                    setShowTerms(false);
+                    if (window.location.pathname === '/terms') {
+                      window.history.pushState(null, '', '/');
+                    }
+                  }}
                   onViewPrivacy={() => {
                     setShowTerms(false);
                     setShowPrivacy(true);
+                    window.history.pushState(null, '', '/privacy');
                   }}
                 />
               )}
@@ -854,6 +912,9 @@ const App: React.FC = () => {
                   onClose={() => {
                     setShowDocs(false);
                     window.location.hash = '';
+                    if (window.location.pathname === '/docs') {
+                      window.history.pushState(null, '', '/');
+                    }
                   }}
                 />
               )}

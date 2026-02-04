@@ -10,6 +10,7 @@ test.describe('Tutorial Flow', () => {
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       // Intentionally NOT setting tutorial-completed
 
       // We DO set the user to bypass nickname entry if we want to focus on tutorial content,

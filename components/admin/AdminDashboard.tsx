@@ -142,7 +142,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="h-full flex flex-col">
+      <div className="flex h-full flex-col">
         {/* Header */}
         <header className="flex-shrink-0 border-b border-slate-800 bg-slate-900/80">
           <div className="flex items-center justify-between px-6 py-4">
@@ -150,7 +150,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <Sliders className="text-cyan-400" size={24} />
               <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
               {isDirty && (
-                <span className="px-2 py-0.5 text-xs font-medium text-amber-400 bg-amber-400/10 rounded">
+                <span className="rounded bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-400">
                   Unsaved Changes
                 </span>
               )}
@@ -160,7 +160,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               {/* Action buttons */}
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
                 title="Export Config"
               >
                 <Download size={16} />
@@ -169,7 +169,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
               <button
                 onClick={handleImport}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
                 title="Import Config"
               >
                 <Upload size={16} />
@@ -178,7 +178,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
               <button
                 onClick={resetToDefaults}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
                 title="Reset to Defaults"
               >
                 <RotateCcw size={16} />
@@ -188,21 +188,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <button
                 onClick={saveConfig}
                 disabled={!isDirty}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   isDirty
                     ? 'bg-cyan-500 text-white hover:bg-cyan-600'
-                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    : 'cursor-not-allowed bg-slate-700 text-slate-400'
                 }`}
               >
                 <Save size={16} />
                 Save
               </button>
 
-              <div className="w-px h-8 bg-slate-700 mx-2" />
+              <div className="mx-2 h-8 w-px bg-slate-700" />
 
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                 title="Close (Esc)"
               >
                 <X size={20} />
@@ -211,15 +211,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </div>
 
           {/* Tabs */}
-          <nav className="flex px-6 gap-1">
+          <nav className="flex gap-1 px-6">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'text-cyan-400 border-cyan-400'
-                    : 'text-slate-400 border-transparent hover:text-white hover:border-slate-600'
+                    ? 'border-cyan-400 text-cyan-400'
+                    : 'border-transparent text-slate-400 hover:border-slate-600 hover:text-white'
                 }`}
               >
                 {tab.icon}
@@ -335,7 +335,7 @@ const PricePanel: React.FC = () => {
         <h2 className="text-lg font-semibold text-white">Price Analysis</h2>
         <div className="flex items-center gap-2">
           <span
-            className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}
+            className={`h-2 w-2 rounded-full ${isConnected ? 'animate-pulse bg-green-500' : 'bg-red-500'}`}
           />
           <span className="text-sm text-slate-400">
             {isConnected ? 'Live Data' : 'Waiting for data...'}
@@ -352,9 +352,9 @@ const PricePanel: React.FC = () => {
           return (
             <div
               key={pair}
-              className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 hover:border-slate-600 transition-colors"
+              className="rounded-sm border border-slate-700 bg-slate-800/50 p-6 transition-colors hover:border-slate-600"
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-400">{pair}/USDT</span>
                 {analysis && (
                   <span className={`text-lg ${getTrendColor(analysis.trend)}`}>
@@ -363,7 +363,7 @@ const PricePanel: React.FC = () => {
                 )}
               </div>
 
-              <div className="text-2xl font-bold text-white mb-2">
+              <div className="mb-2 text-2xl font-bold text-white">
                 {analysis ? `$${formatPrice(analysis.currentPrice)}` : '$--,---'}
               </div>
 
@@ -376,11 +376,11 @@ const PricePanel: React.FC = () => {
 
                   {/* Volatility Bar */}
                   <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                    <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
                       <span>Volatility</span>
                       <span>{(analysis.volatility * 100).toFixed(0)}%</span>
                     </div>
-                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
                       <div
                         className={`h-full transition-all duration-500 ${
                           analysis.volatility > 0.7
@@ -396,11 +396,11 @@ const PricePanel: React.FC = () => {
 
                   {/* Trend Strength */}
                   <div className="mt-2">
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                    <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
                       <span>Trend: {analysis.trend}</span>
                       <span>{(analysis.trendStrength * 100).toFixed(0)}%</span>
                     </div>
-                    <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-700">
                       <div
                         className={`h-full transition-all duration-500 ${getTrendColor(analysis.trend).replace('text-', 'bg-')}`}
                         style={{ width: `${analysis.trendStrength * 100}%` }}
@@ -409,7 +409,7 @@ const PricePanel: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-slate-500 animate-pulse">
+                <div className="animate-pulse text-sm text-slate-500">
                   Connecting...
                 </div>
               )}
@@ -419,17 +419,17 @@ const PricePanel: React.FC = () => {
       </div>
 
       {/* Detailed Analysis Table */}
-      <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+      <div className="overflow-hidden rounded-sm border border-slate-700 bg-slate-800/50">
         <table className="w-full text-sm">
           <thead className="bg-slate-900/50">
             <tr className="text-slate-400">
-              <th className="text-left px-4 py-3 font-medium">Pair</th>
-              <th className="text-right px-4 py-3 font-medium">5m</th>
-              <th className="text-right px-4 py-3 font-medium">10m</th>
-              <th className="text-right px-4 py-3 font-medium">30m</th>
-              <th className="text-right px-4 py-3 font-medium">1h</th>
-              <th className="text-right px-4 py-3 font-medium">ATR</th>
-              <th className="text-center px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 text-left font-medium">Pair</th>
+              <th className="px-4 py-3 text-right font-medium">5m</th>
+              <th className="px-4 py-3 text-right font-medium">10m</th>
+              <th className="px-4 py-3 text-right font-medium">30m</th>
+              <th className="px-4 py-3 text-right font-medium">1h</th>
+              <th className="px-4 py-3 text-right font-medium">ATR</th>
+              <th className="px-4 py-3 text-center font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -467,16 +467,16 @@ const PricePanel: React.FC = () => {
                   <td className="px-4 py-3 text-center">
                     {a ? (
                       a.isStale ? (
-                        <span className="px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded">
+                        <span className="rounded bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-400">
                           Stale
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded">
+                        <span className="rounded bg-green-500/20 px-2 py-0.5 text-xs text-green-400">
                           Live
                         </span>
                       )
                     ) : (
-                      <span className="px-2 py-0.5 text-xs bg-slate-500/20 text-slate-400 rounded">
+                      <span className="rounded bg-slate-500/20 px-2 py-0.5 text-xs text-slate-400">
                         --
                       </span>
                     )}
@@ -489,10 +489,10 @@ const PricePanel: React.FC = () => {
       </div>
 
       {/* Info Note */}
-      <div className="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-        <span className="text-blue-400 text-lg">ℹ️</span>
+      <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+        <span className="text-lg text-blue-400">ℹ️</span>
         <div className="text-sm text-blue-300">
-          <p className="font-medium mb-1">Price data integration</p>
+          <p className="mb-1 font-medium">Price data integration</p>
           <p className="text-blue-400/80">
             Connect the game's MarketService to PriceAnalyzerService for live updates.
             Currently showing cached/simulated data if available.
@@ -513,8 +513,8 @@ const DifficultyPanel: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-6">
         {/* Base Difficulty */}
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Base Difficulty
           </label>
           <input
@@ -525,16 +525,16 @@ const DifficultyPanel: React.FC = () => {
             onChange={e => updateDifficulty({ base: parseInt(e.target.value) })}
             className="w-full"
           />
-          <div className="flex justify-between text-sm text-slate-500 mt-2">
+          <div className="mt-2 flex justify-between text-sm text-slate-500">
             <span>Easy (1)</span>
-            <span className="text-cyan-400 font-medium">{difficulty.base}</span>
+            <span className="font-medium text-cyan-400">{difficulty.base}</span>
             <span>Hard (10)</span>
           </div>
         </div>
 
         {/* Volatility Multiplier */}
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Volatility Multiplier
           </label>
           <input
@@ -548,9 +548,9 @@ const DifficultyPanel: React.FC = () => {
             }
             className="w-full"
           />
-          <div className="flex justify-between text-sm text-slate-500 mt-2">
+          <div className="mt-2 flex justify-between text-sm text-slate-500">
             <span>0.5x</span>
-            <span className="text-cyan-400 font-medium">
+            <span className="font-medium text-cyan-400">
               {difficulty.volatilityMultiplier.toFixed(1)}x
             </span>
             <span>2.0x</span>
@@ -558,8 +558,8 @@ const DifficultyPanel: React.FC = () => {
         </div>
 
         {/* Max Difficulty */}
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Max Difficulty Cap
           </label>
           <input
@@ -570,13 +570,13 @@ const DifficultyPanel: React.FC = () => {
             onChange={e =>
               updateDifficulty({ maxDifficulty: parseInt(e.target.value) })
             }
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white"
           />
         </div>
 
         {/* Curve */}
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Difficulty Curve
           </label>
           <select
@@ -586,7 +586,7 @@ const DifficultyPanel: React.FC = () => {
                 curve: e.target.value as 'linear' | 'exponential' | 'logarithmic',
               })
             }
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white"
           >
             <option value="linear">Linear</option>
             <option value="exponential">Exponential</option>
@@ -595,8 +595,8 @@ const DifficultyPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-        <h3 className="text-md font-bold text-cyan-400 mb-4 uppercase tracking-wider">
+      <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+        <h3 className="text-md mb-4 font-bold uppercase tracking-wider text-cyan-400">
           Live System Monitor (V2)
         </h3>
         <DifficultyV2Monitor />
@@ -614,8 +614,8 @@ const SpawnPanel: React.FC = () => {
       <h2 className="text-lg font-semibold text-white">Spawn Configuration</h2>
 
       <div className="grid grid-cols-2 gap-6">
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Base Spawn Interval (ms)
           </label>
           <input
@@ -625,12 +625,12 @@ const SpawnPanel: React.FC = () => {
             step="100"
             value={spawn.baseInterval}
             onChange={e => updateSpawn({ baseInterval: parseInt(e.target.value) })}
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white"
           />
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Max Enemies
           </label>
           <input
@@ -639,12 +639,12 @@ const SpawnPanel: React.FC = () => {
             max="200"
             value={spawn.maxEnemies}
             onChange={e => updateSpawn({ maxEnemies: parseInt(e.target.value) })}
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white"
           />
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Wave Intensity
           </label>
           <input
@@ -656,13 +656,13 @@ const SpawnPanel: React.FC = () => {
             onChange={e => updateSpawn({ waveIntensity: parseFloat(e.target.value) })}
             className="w-full"
           />
-          <div className="text-center text-sm text-cyan-400 mt-2">
+          <div className="mt-2 text-center text-sm text-cyan-400">
             {(spawn.waveIntensity * 100).toFixed(0)}%
           </div>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Boss Spawn Time (seconds)
           </label>
           <input
@@ -673,7 +673,7 @@ const SpawnPanel: React.FC = () => {
             onChange={e =>
               updateSpawn({ bossSpawnTime: parseInt(e.target.value) * 1000 })
             }
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white"
           />
         </div>
       </div>
@@ -690,8 +690,8 @@ const ItemsPanel: React.FC = () => {
       <h2 className="text-lg font-semibold text-white">Items & Drop Rates</h2>
 
       <div className="grid grid-cols-3 gap-6">
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Gem Drop Rate
           </label>
           <input
@@ -703,13 +703,13 @@ const ItemsPanel: React.FC = () => {
             onChange={e => updateItems({ gemDropRate: parseFloat(e.target.value) })}
             className="w-full"
           />
-          <div className="text-center text-sm text-cyan-400 mt-2">
+          <div className="mt-2 text-center text-sm text-cyan-400">
             {(items.gemDropRate * 100).toFixed(0)}%
           </div>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Health Drop Rate
           </label>
           <input
@@ -721,13 +721,13 @@ const ItemsPanel: React.FC = () => {
             onChange={e => updateItems({ healthDropRate: parseFloat(e.target.value) })}
             className="w-full"
           />
-          <div className="text-center text-sm text-green-400 mt-2">
+          <div className="mt-2 text-center text-sm text-green-400">
             {(items.healthDropRate * 100).toFixed(0)}%
           </div>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Power-up Drop Rate
           </label>
           <input
@@ -739,7 +739,7 @@ const ItemsPanel: React.FC = () => {
             onChange={e => updateItems({ powerUpDropRate: parseFloat(e.target.value) })}
             className="w-full"
           />
-          <div className="text-center text-sm text-purple-400 mt-2">
+          <div className="mt-2 text-center text-sm text-purple-400">
             {(items.powerUpDropRate * 100).toFixed(0)}%
           </div>
         </div>
@@ -757,8 +757,8 @@ const VisualsPanel: React.FC = () => {
       <h2 className="text-lg font-semibold text-white">Visual Settings</h2>
 
       <div className="grid grid-cols-2 gap-6">
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Theme</label>
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">Theme</label>
           <select
             value={visuals.theme}
             onChange={e =>
@@ -766,7 +766,7 @@ const VisualsPanel: React.FC = () => {
                 theme: e.target.value as 'btc' | 'eth' | 'sol' | 'custom',
               })
             }
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-white"
           >
             <option value="btc">Bitcoin (Orange)</option>
             <option value="eth">Ethereum (Purple)</option>
@@ -775,8 +775,8 @@ const VisualsPanel: React.FC = () => {
           </select>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="block text-sm font-medium text-slate-300 mb-3">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="mb-3 block text-sm font-medium text-slate-300">
             Particle Density
           </label>
           <input
@@ -790,30 +790,30 @@ const VisualsPanel: React.FC = () => {
             }
             className="w-full"
           />
-          <div className="text-center text-sm text-cyan-400 mt-2">
+          <div className="mt-2 text-center text-sm text-cyan-400">
             {(visuals.particleDensity * 100).toFixed(0)}%
           </div>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="flex items-center gap-3 cursor-pointer">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="flex cursor-pointer items-center gap-3">
             <input
               type="checkbox"
               checked={visuals.screenShake}
               onChange={e => updateVisuals({ screenShake: e.target.checked })}
-              className="w-5 h-5 rounded bg-slate-700 border-slate-600"
+              className="h-5 w-5 rounded border-slate-600 bg-slate-700"
             />
             <span className="text-sm font-medium text-slate-300">Screen Shake</span>
           </label>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-          <label className="flex items-center gap-3 cursor-pointer">
+        <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-6">
+          <label className="flex cursor-pointer items-center gap-3">
             <input
               type="checkbox"
               checked={visuals.glowEffects}
               onChange={e => updateVisuals({ glowEffects: e.target.checked })}
-              className="w-5 h-5 rounded bg-slate-700 border-slate-600"
+              className="h-5 w-5 rounded border-slate-600 bg-slate-700"
             />
             <span className="text-sm font-medium text-slate-300">Glow Effects</span>
           </label>
@@ -874,8 +874,8 @@ const AnalyticsPanel: React.FC = () => {
 
   if (isLoading && !health) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-cyan-400 animate-pulse font-mono">
+      <div className="flex h-64 items-center justify-center">
+        <div className="animate-pulse font-mono text-cyan-400">
           LOADING ANALYTICS...
         </div>
       </div>
@@ -892,31 +892,31 @@ const AnalyticsPanel: React.FC = () => {
     <div className="space-y-8">
       {/* Performance Metrics Section */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
             <Activity size={20} className="text-green-400" />
             Real-Time Engine Metrics
           </h2>
-          <div className="text-xs text-slate-500 font-mono">
+          <div className="font-mono text-xs text-slate-500">
             Tick Budget: 16.6ms (60 FPS)
           </div>
         </div>
 
         <div className="grid grid-cols-5 gap-4">
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-            <div className="text-xs text-slate-500 mb-1">FPS</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">FPS</div>
             <div
-              className={`text-2xl font-bold font-mono ${perfStats.fps > 55 ? 'text-green-400' : 'text-yellow-400'}`}
+              className={`font-mono text-2xl font-bold ${perfStats.fps > 55 ? 'text-green-400' : 'text-yellow-400'}`}
             >
               {perfStats.fps.toFixed(1)}
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-            <div className="text-xs text-slate-500 mb-1">Game Logic (Update)</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Game Logic (Update)</div>
             <div className="flex items-baseline gap-2">
               <span
-                className={`text-xl font-bold font-mono ${perfStats.updateAvg > 10 ? 'text-red-400' : 'text-cyan-400'}`}
+                className={`font-mono text-xl font-bold ${perfStats.updateAvg > 10 ? 'text-red-400' : 'text-cyan-400'}`}
               >
                 {perfStats.updateAvg.toFixed(2)}ms
               </span>
@@ -926,37 +926,37 @@ const AnalyticsPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-            <div className="text-xs text-slate-500 mb-1">Physics System</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Physics System</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold font-mono text-cyan-400">
+              <span className="font-mono text-xl font-bold text-cyan-400">
                 {perfStats.physicsAvg.toFixed(2)}ms
               </span>
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-            <div className="text-xs text-slate-500 mb-1">Entities (E/B/P)</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Entities (E/B/P)</div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold font-mono text-cyan-400">
+              <span className="font-mono text-lg font-bold text-cyan-400">
                 {perfStats.activeEnemies}
               </span>
               <span className="text-slate-600">/</span>
-              <span className="text-lg font-bold font-mono text-yellow-400">
+              <span className="font-mono text-lg font-bold text-yellow-400">
                 {perfStats.activeBullets}
               </span>
               <span className="text-slate-600">/</span>
-              <span className="text-lg font-bold font-mono text-purple-400">
+              <span className="font-mono text-lg font-bold text-purple-400">
                 {perfStats.activeParticles}
               </span>
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-            <div className="text-xs text-slate-500 mb-1">Renderer (Draw)</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Renderer (Draw)</div>
             <div className="flex items-baseline gap-2">
               <span
-                className={`text-xl font-bold font-mono ${perfStats.renderAvg > 8 ? 'text-yellow-400' : 'text-purple-400'}`}
+                className={`font-mono text-xl font-bold ${perfStats.renderAvg > 8 ? 'text-yellow-400' : 'text-purple-400'}`}
               >
                 {perfStats.renderAvg.toFixed(2)}ms
               </span>
@@ -969,8 +969,8 @@ const AnalyticsPanel: React.FC = () => {
       </section>
       {/* Market Health Section */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
             <Activity size={20} className="text-cyan-400" />
             Market System Health
           </h2>
@@ -978,17 +978,17 @@ const AnalyticsPanel: React.FC = () => {
             onClick={() => {
               void fetchData();
             }}
-            className="text-xs text-slate-500 hover:text-white transition-colors"
+            className="text-xs text-slate-500 transition-colors hover:text-white"
           >
             Refresh Now
           </button>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
-            <div className="text-sm text-slate-500 mb-1">Status</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-5">
+            <div className="mb-1 text-sm text-slate-500">Status</div>
             <div
-              className={`text-xl font-bold flex items-center gap-2 ${
+              className={`flex items-center gap-2 text-xl font-bold ${
                 currentHealth.status === 'healthy'
                   ? 'text-green-400'
                   : currentHealth.status === 'stale'
@@ -997,7 +997,7 @@ const AnalyticsPanel: React.FC = () => {
               }`}
             >
               <div
-                className={`w-3 h-3 rounded-full ${
+                className={`h-3 w-3 rounded-full ${
                   currentHealth.status === 'healthy'
                     ? 'bg-green-500'
                     : currentHealth.status === 'stale'
@@ -1009,8 +1009,8 @@ const AnalyticsPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
-            <div className="text-sm text-slate-500 mb-1">Last Data Ping</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-5">
+            <div className="mb-1 text-sm text-slate-500">Last Data Ping</div>
             <div className="text-xl font-bold text-white">
               {currentHealth.last_ping
                 ? new Date(currentHealth.last_ping).toLocaleTimeString()
@@ -1018,8 +1018,8 @@ const AnalyticsPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
-            <div className="text-sm text-slate-500 mb-1">Latency</div>
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-5">
+            <div className="mb-1 text-sm text-slate-500">Latency</div>
             <div className="text-xl font-bold text-white">
               {currentHealth.delay_seconds !== null
                 ? `${currentHealth.delay_seconds}s`
@@ -1031,15 +1031,15 @@ const AnalyticsPanel: React.FC = () => {
 
       {/* Error Reports Section */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
             <ShieldAlert size={20} className="text-red-400" />
             Top Active Errors
           </h2>
         </div>
 
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-          <table className="w-full text-sm text-left">
+        <div className="overflow-hidden rounded-sm border border-slate-700 bg-slate-800/50">
+          <table className="w-full text-left text-sm">
             <thead className="bg-slate-900/50 text-slate-400">
               <tr>
                 <th className="px-4 py-3">Error Type / Category</th>
@@ -1054,7 +1054,7 @@ const AnalyticsPanel: React.FC = () => {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-8 text-center text-slate-500 italic"
+                    className="px-4 py-8 text-center italic text-slate-500"
                   >
                     No active errors reported. Everything is running smoothly!
                   </td>
@@ -1063,17 +1063,17 @@ const AnalyticsPanel: React.FC = () => {
                 errors.map(err => (
                   <tr
                     key={err.error_type}
-                    className="hover:bg-slate-700/20 transition-colors"
+                    className="transition-colors hover:bg-slate-700/20"
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-white">{err.error_type}</div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider">
+                      <div className="text-xs uppercase tracking-wider text-slate-500">
                         {err.category}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
                           err.severity === 'critical'
                             ? 'bg-red-500 text-white'
                             : err.severity === 'high'
@@ -1097,7 +1097,7 @@ const AnalyticsPanel: React.FC = () => {
                         onClick={() => {
                           handleResolve(err.error_type);
                         }}
-                        className="px-3 py-1 bg-green-500/10 hover:bg-green-500 text-green-400 hover:text-white border border-green-500/20 rounded-lg text-xs transition-all"
+                        className="rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs text-green-400 transition-all hover:bg-green-500 hover:text-white"
                       >
                         Resolve All
                       </button>
@@ -1111,10 +1111,10 @@ const AnalyticsPanel: React.FC = () => {
       </section>
 
       {/* Monitoring Info */}
-      <div className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl flex gap-3">
-        <Terminal size={20} className="text-slate-500 mt-1" />
-        <div className="text-xs text-slate-500 space-y-1">
-          <p className="text-slate-400 font-medium">Monitoring System Status</p>
+      <div className="flex gap-3 rounded-sm border border-slate-800 bg-slate-900/50 p-4">
+        <Terminal size={20} className="mt-1 text-slate-500" />
+        <div className="space-y-1 text-xs text-slate-500">
+          <p className="font-medium text-slate-400">Monitoring System Status</p>
           <p>
             Railway Market Server is pushing data to Supabase. Edge Functions are
             verifying gameplay.

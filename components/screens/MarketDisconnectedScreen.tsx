@@ -18,7 +18,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
 
   return (
     <motion.div
-      className={`fixed inset-0 flex flex-col items-center justify-center text-center p-4 overflow-y-auto ${
+      className={`fixed inset-0 flex flex-col items-center justify-center overflow-y-auto p-4 text-center ${
         isRetro ? 'bg-black/95' : 'bg-slate-950/90 backdrop-blur-md'
       }`}
       style={{ zIndex: 2200 }}
@@ -27,14 +27,14 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
       transition={{ duration: 0.5 }}
     >
       <div
-        className={`max-w-2xl w-full p-8 md:p-12 transition-all relative overflow-hidden ${
+        className={`relative w-full max-w-2xl overflow-hidden p-8 transition-all md:p-12 ${
           isRetro
-            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none shadow-[8px_8px_0_rgba(0,0,0,0.5)]'
-            : 'bg-slate-900/60 border border-[var(--color-primary)]/30 rounded-3xl shadow-[0_0_80px_rgba(0,255,255,0.15)] cyber-glass'
+            ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900 shadow-[8px_8px_0_rgba(0,0,0,0.5)]'
+            : 'border-[var(--color-primary)]/30 cyber-glass rounded-sm border bg-slate-900/60 shadow-[0_0_80px_rgba(0,255,255,0.15)]'
         }`}
       >
         {!isRetro && (
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent opacity-50" />
+          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent opacity-50" />
         )}
 
         {/* Warning Icon */}
@@ -47,8 +47,8 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         >
           <div
-            className={`w-20 h-20 md:w-24 md:h-24 flex items-center justify-center mx-auto ${
-              isRetro ? 'border-4 rounded-none' : 'border-2 rounded-2xl md:rounded-3xl'
+            className={`mx-auto flex h-20 w-20 items-center justify-center md:h-24 md:w-24 ${
+              isRetro ? 'rounded-none border-4' : 'rounded-sm border-2 md:rounded-sm'
             }`}
             style={{
               borderColor: COLORS.JACKPOT_YELLOW,
@@ -57,7 +57,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
             }}
           >
             <span
-              className={`text-4xl md:text-5xl font-black ${isRetro ? '' : 'cyber-glitch-text'}`}
+              className={`text-4xl font-black md:text-5xl ${isRetro ? '' : 'cyber-glitch-text'}`}
               style={{ color: COLORS.JACKPOT_YELLOW }}
             >
               !
@@ -67,7 +67,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
 
         {/* Disconnected Title */}
         <motion.h2
-          className={`font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white italic tracking-tighter mb-6 uppercase leading-[0.9] flex flex-wrap justify-center items-center gap-x-2 md:gap-x-4 ${
+          className={`mb-6 flex flex-wrap items-center justify-center gap-x-2 font-display text-2xl font-black uppercase italic leading-[0.9] tracking-tighter text-white sm:text-4xl md:gap-x-4 md:text-5xl lg:text-6xl ${
             !isRetro ? 'cyber-glitch-text' : ''
           }`}
           animate={{ y: 0, opacity: 1 }}
@@ -86,7 +86,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
         </motion.h2>
 
         <motion.div
-          className="max-w-md mx-auto space-y-8"
+          className="mx-auto max-w-md space-y-8"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -94,7 +94,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
           <p
             className={`${sizes.body} ${
               isRetro ? 'text-zinc-400' : 'text-slate-400'
-            } font-mono tracking-wider leading-relaxed opacity-80`}
+            } font-mono leading-relaxed tracking-wider opacity-80`}
           >
             {t('market.disconnected_desc')}
           </p>
@@ -104,7 +104,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
               {[0, 0.2, 0.4].map((delay, i) => (
                 <motion.div
                   key={i}
-                  className={`w-2 h-2 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+                  className={`h-2 w-2 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
                   style={{
                     backgroundColor: COLORS.JACKPOT_YELLOW,
                     boxShadow: isRetro ? 'none' : `0 0 10px ${COLORS.JACKPOT_YELLOW}`,
@@ -118,7 +118,7 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
               ))}
             </div>
             <p
-              className={`font-display ${sizes.tiny} uppercase font-black tracking-[0.3em]`}
+              className={`font-display ${sizes.tiny} font-black uppercase tracking-[0.3em]`}
               style={{
                 color: COLORS.JACKPOT_YELLOW,
                 textShadow: isRetro ? 'none' : `0 0 10px ${COLORS.JACKPOT_YELLOW}40`,
@@ -131,16 +131,16 @@ export const MarketDisconnectedScreen: React.FC<MarketDisconnectedScreenProps> =
           {/* Fallback Action */}
           <motion.button
             onClick={onBackToMenu}
-            className={`mt-10 px-10 py-4 font-display ${sizes.tiny} font-black uppercase tracking-[0.25em] transition-all relative group overflow-hidden ${
+            className={`mt-10 px-10 py-4 font-display ${sizes.tiny} group relative overflow-hidden font-black uppercase tracking-[0.25em] transition-all ${
               isRetro
-                ? 'bg-zinc-800 border-4 border-zinc-700 text-zinc-500 hover:text-white hover:border-white rounded-none'
-                : 'bg-slate-900/80 border border-white/10 text-white/40 hover:text-white hover:border-[var(--color-primary)]/50 rounded-xl md:rounded-2xl'
+                ? 'rounded-none border-4 border-zinc-700 bg-zinc-800 text-zinc-500 hover:border-white hover:text-white'
+                : 'hover:border-[var(--color-primary)]/50 rounded-sm border border-white/10 bg-slate-900/80 text-white/40 hover:text-white md:rounded-sm'
             }`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             {!isRetro && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--color-primary)]/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+              <div className="via-[var(--color-primary)]/5 absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent to-transparent transition-transform duration-700 group-hover:translate-x-[100%]" />
             )}
             <span className="relative z-10">{t('market.exit_terminal')}</span>
           </motion.button>

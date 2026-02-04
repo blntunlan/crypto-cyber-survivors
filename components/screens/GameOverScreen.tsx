@@ -62,7 +62,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
   return (
     <motion.div
-      className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-4 overflow-y-auto allow-scroll"
+      className="allow-scroll fixed inset-0 flex flex-col items-center justify-center overflow-y-auto bg-slate-950 p-4 text-center"
       style={{ zIndex: Z_LAYERS.GAME_OVER }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -70,7 +70,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     >
       {/* Glitch Title */}
       <motion.h2
-        className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.title} md:text-8xl font-black text-white italic tracking-tighter mb-4 my-auto relative`}
+        className={`${isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber'} ${sizes.title} relative my-auto mb-4 font-black italic tracking-tighter text-white md:text-8xl`}
         initial={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
         animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{
@@ -96,10 +96,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
       {/* Stats Card */}
       <motion.div
-        className={`transition-all max-w-md w-full mb-auto p-6 md:p-10 space-y-6 ${
+        className={`mb-auto w-full max-w-md space-y-6 p-6 transition-all md:p-10 ${
           isRetro
-            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
+            : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -108,14 +108,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         {/* New High Score Badge */}
         {isNewHighScore && (
           <motion.div
-            className="text-center py-2 px-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg flex items-center justify-center gap-2"
+            className="flex items-center justify-center gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-4 py-2 text-center"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
           >
-            <IconTrophy className="w-4 h-4" color={isRetro ? '#ffd600' : '#eab308'} />
+            <IconTrophy className="h-4 w-4" color={isRetro ? '#ffd600' : '#eab308'} />
             <span
-              className={`text-yellow-500 font-black ${sizes.small} uppercase tracking-widest`}
+              className={`font-black text-yellow-500 ${sizes.small} uppercase tracking-widest`}
             >
               {t('common.game_over_screen.new_high_score')}
             </span>
@@ -158,13 +158,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
         {/* Career Stats */}
         <motion.div
-          className="pt-4 border-t border-white/10"
+          className="border-t border-white/10 pt-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
           <p
-            className={`${sizes.tiny} font-black text-slate-500 uppercase tracking-widest mb-3`}
+            className={`${sizes.tiny} mb-3 font-black uppercase tracking-widest text-slate-500`}
           >
             {t('common.game_over_screen.career_stats')}
           </p>
@@ -175,7 +175,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                 {progress.totalGamesPlayed}
               </p>
 
-              <p className={`${sizes.tiny} text-slate-500 uppercase`}>
+              <p className={`${sizes.tiny} uppercase text-slate-500`}>
                 {t('common.game_over_screen.games')}
               </p>
             </div>
@@ -185,7 +185,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                 {progress.totalKills}
               </p>
 
-              <p className={`${sizes.tiny} text-slate-500 uppercase`}>
+              <p className={`${sizes.tiny} uppercase text-slate-500`}>
                 {t('common.game_over_screen.total_kills')}
               </p>
             </div>
@@ -195,7 +195,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                 L{progress.highestLevel}
               </p>
 
-              <p className={`${sizes.tiny} text-slate-500 uppercase`}>
+              <p className={`${sizes.tiny} uppercase text-slate-500`}>
                 {t('common.game_over_screen.best_level')}
               </p>
             </div>
@@ -205,7 +205,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         {/* Restart Button */}
         <motion.button
           onClick={onRestart}
-          className={`w-full ${sizes.buttonLg} bg-white text-black font-black uppercase tracking-[0.2em] rounded-lg hover:bg-yellow-500 transition-all`}
+          className={`w-full ${sizes.buttonLg} rounded-lg bg-white font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-yellow-500`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}

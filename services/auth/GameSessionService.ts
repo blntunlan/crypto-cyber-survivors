@@ -11,6 +11,8 @@ import { UserSessionService } from './UserSessionService';
 import { type MarketPosition } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
 
+import { signPayload } from '../../utils/crypto';
+
 export interface ServerSessionResponse {
   sessionId: string;
   startTime: string;
@@ -174,31 +176,48 @@ export class GameSessionService {
         throw new Error('Supabase not configured');
       }
 
-      const nickname = UserSessionService.getNickname();
-
       Logger.info(
-        `[GameSession] Submitting results to verify-game for session: ${this.currentSessionId}`
+        `[GameSession] Submitting results to verify-game-v2 for session: ${this.currentSessionId}`
       );
 
-      const { data, error } = await supabase.functions.invoke('verify-game', {
+      // Prepare payload to match server requirements
+      const payload = {
+        sessionId: this.currentSessionId,
+        pair: results.pair,
+        position: results.position,
+        leverage: results.leverage,
+        claimedEntryPrice: results.entryPrice,
+        claimedExitPrice: results.exitPrice,
+        claimedPnL: results.pnlPercent,
+        kills: results.kills,
+        level: results.level,
+        survivalSeconds: Math.floor(results.survivalTimeMs / 1000),
+      };
+
+      // Generate HMAC signature
+      const signature = await signPayload(
+        JSON.stringify(payload),
+        this.currentSessionSecret
+      );
+
+      const { data, error } = await supabase.functions.invoke('verify-game-v2', {
         body: {
-          userId: nickname,
           sessionId: this.currentSessionId,
-          signature: this.currentSessionSecret, // In verification, secret/signature is used
-          pair: results.pair,
-          position: results.position,
-          leverage: results.leverage,
-          claimedEntryPrice: results.entryPrice,
-          claimedExitPrice: results.exitPrice,
-          claimedPnL: results.pnlPercent,
-          kills: results.kills,
-          level: results.level,
-          survivalTimeMs: results.survivalTimeMs,
-          performance: results.performance,
+          signature,
+          payload,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        let errorMsg = 'Verification failed';
+        try {
+          const body = await error.context.json();
+          errorMsg = body.error || body.message || error.message;
+        } catch {
+          errorMsg = error.message;
+        }
+        throw new Error(errorMsg);
+      }
 
       Logger.info('[GameSession] Results verified successfully', data);
 

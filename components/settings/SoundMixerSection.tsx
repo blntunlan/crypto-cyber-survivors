@@ -88,16 +88,16 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
 
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-        <IconSettings className="w-3.5 h-3.5" color="#64748b" />
+      <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+        <IconSettings className="h-3.5 w-3.5" color="#64748b" />
         <span>{t('settings.mixer')}</span>
       </h3>
 
       <div
         className={`space-y-2 p-3 md:p-4 ${
           isRetro
-            ? 'bg-zinc-800 border-2 border-zinc-600 rounded-none'
-            : 'bg-white/5 rounded-xl border border-white/5'
+            ? 'rounded-none border-2 border-zinc-600 bg-zinc-800'
+            : 'rounded-sm border border-white/5 bg-white/5'
         }`}
       >
         {CATEGORIES.map(category => {
@@ -109,24 +109,24 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
             <div
               key={category}
               className={`py-2 transition-all ${
-                isFocused ? 'ring-2 ring-white rounded-lg px-2 -mx-2 bg-white/5' : ''
+                isFocused ? '-mx-2 rounded-lg bg-white/5 px-2 ring-2 ring-white' : ''
               }`}
             >
-              <div className="flex justify-between items-center mb-1">
+              <div className="mb-1 flex items-center justify-between">
                 <span
-                  className={`text-[10px] md:text-xs font-bold uppercase flex items-center gap-1.5 ${
+                  className={`flex items-center gap-1.5 text-[10px] font-bold uppercase md:text-xs ${
                     isRetro ? 'text-white' : 'text-slate-300'
                   }`}
                 >
                   <config.Icon
-                    className="w-3 h-3 md:w-3.5 md:h-3.5"
+                    className="h-3 w-3 md:h-3.5 md:w-3.5"
                     color={isRetro ? COLORS.JACKPOT_YELLOW : 'currentColor'}
                   />
                   <span>{t(`settings.cat_${category}`)}</span>
                 </span>
 
                 <span
-                  className={`text-[9px] md:text-[10px] font-tech tabular-nums ${
+                  className={`font-tech text-[9px] tabular-nums md:text-[10px] ${
                     isRetro ? 'text-zinc-400' : 'text-slate-500'
                   }`}
                 >
@@ -140,17 +140,17 @@ export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionPro
                 step="0.01"
                 value={volume}
                 onChange={e => handleVolumeChange(category, parseFloat(e.target.value))}
-                className={`w-full h-1 rounded-lg appearance-none cursor-pointer transition-all ${
+                className={`h-1 w-full cursor-pointer appearance-none rounded-lg transition-all ${
                   isRetro
                     ? 'bg-zinc-700 accent-[var(--color-primary)]'
                     : 'bg-slate-700 accent-cyan-500'
-                } ${isFocused ? 'ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : ''}`}
+                } ${isFocused ? 'shadow-[0_0_10px_rgba(255,255,255,0.3)] ring-2 ring-white' : ''}`}
                 style={{
                   accentColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined,
                 }}
               />
               <p
-                className={`text-[8px] mt-0.5 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
+                className={`mt-0.5 text-[8px] ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
               >
                 {t(`settings.desc_${category}`)}
               </p>

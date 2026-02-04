@@ -7,7 +7,6 @@
   },
   "skills": {
     "disabled": [
-      "supabase-db-engineer",
       "chrome-devtools",
       "test-autofix"
     ]

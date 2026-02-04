@@ -12,44 +12,44 @@ export const ControlsSection: React.FC = () => {
   const { t } = useLanguage();
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-        <IconZap className="w-3.5 h-3.5" color="#64748b" />
+      <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+        <IconZap className="h-3.5 w-3.5" color="#64748b" />
         <span>{t('settings.controls')}</span>
       </h3>
 
-      <div className="grid grid-cols-2 gap-2 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
+      <div className="grid grid-cols-2 gap-2 rounded-sm border border-white/5 bg-white/5 p-3 md:p-4">
         <div className="flex flex-col">
-          <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">
+          <span className="text-[8px] font-bold uppercase text-slate-500 md:text-[10px]">
             {t('settings.move')}
           </span>
 
-          <span className="text-xs md:text-sm font-bold text-white font-tech leading-tight">
+          <span className="font-tech text-xs font-bold leading-tight text-white md:text-sm">
             WASD / ARROWS
           </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">
+          <span className="text-[8px] font-bold uppercase text-slate-500 md:text-[10px]">
             {t('settings.dash')}
           </span>
 
-          <span className="text-xs md:text-sm font-bold text-white font-tech leading-tight">
+          <span className="font-tech text-xs font-bold leading-tight text-white md:text-sm">
             SPACE
           </span>
         </div>
-        <div className="flex flex-col mt-1 md:mt-2">
-          <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">
+        <div className="mt-1 flex flex-col md:mt-2">
+          <span className="text-[8px] font-bold uppercase text-slate-500 md:text-[10px]">
             {t('settings.pause')}
           </span>
 
-          <span className="text-xs md:text-sm font-bold text-white font-tech leading-tight">
+          <span className="font-tech text-xs font-bold leading-tight text-white md:text-sm">
             ESC / P
           </span>
         </div>
-        <div className="flex flex-col mt-1 md:mt-2">
-          <span className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase">
+        <div className="mt-1 flex flex-col md:mt-2">
+          <span className="text-[8px] font-bold uppercase text-slate-500 md:text-[10px]">
             {t('settings.auto_fire')}
           </span>
-          <span className="text-[8px] md:text-[10px] font-bold text-yellow-500/80 uppercase">
+          <span className="text-[8px] font-bold uppercase text-yellow-500/80 md:text-[10px]">
             {t('settings.always_on')}
           </span>
         </div>

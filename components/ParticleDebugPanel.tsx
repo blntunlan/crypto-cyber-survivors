@@ -44,8 +44,8 @@ export const ParticleDebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-[30rem] z-[9999] bg-slate-800 text-slate-400 p-2 rounded-lg 
-                   border border-slate-700 hover:bg-slate-700 transition-colors text-[10px]"
+        className="fixed bottom-4 right-[30rem] z-[9999] rounded-lg border border-slate-700 bg-slate-800 
+                   p-2 text-[10px] text-slate-400 transition-colors hover:bg-slate-700"
       >
         ✨ PARTICLE DBG (ALT+P)
       </button>
@@ -67,8 +67,8 @@ export const ParticleDebugPanel: React.FC = () => {
     value: number;
     onChange: (v: number) => void;
   }) => (
-    <div className="flex flex-col gap-1 mb-2">
-      <div className="flex justify-between text-[9px] uppercase font-bold tracking-wider">
+    <div className="mb-2 flex flex-col gap-1">
+      <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
         <span className="text-slate-500">{label}</span>
         <span className="text-amber-400">{value.toFixed(3)}</span>
       </div>
@@ -79,26 +79,26 @@ export const ParticleDebugPanel: React.FC = () => {
         step={step}
         value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-slate-800 accent-amber-500"
       />
     </div>
   );
 
   return (
-    <div className="fixed bottom-20 right-4 w-72 bg-slate-900/90 border border-amber-500/40 rounded-xl p-4 z-[9999] shadow-[0_0_30px_rgba(245,158,11,0.15)] backdrop-blur-md">
-      <div className="flex justify-between items-center mb-4">
+    <div className="fixed bottom-20 right-4 z-[9999] w-72 rounded-sm border border-amber-500/40 bg-slate-900/90 p-4 shadow-[0_0_30px_rgba(245,158,11,0.15)] backdrop-blur-md">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></div>
-          <h3 className="text-cyan-400 font-bold uppercase tracking-wider text-[10px]">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></div>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
             Particle Tuner
           </h3>
         </div>
         <button
           onClick={() => setIsVisible(false)}
-          className="text-slate-500 hover:text-white transition-colors"
+          className="text-slate-500 transition-colors hover:text-white"
         >
           <svg
-            className="w-4 h-4"
+            className="h-4 w-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -113,10 +113,10 @@ export const ParticleDebugPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="custom-scrollbar max-h-[60vh] space-y-6 overflow-y-auto pr-2">
         {/* Trail Config */}
         <section>
-          <div className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] mb-3 border-b border-slate-800 pb-1">
+          <div className="mb-3 border-b border-slate-800 pb-1 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
             Trail (Mermi İzi)
           </div>
           <Slider
@@ -155,7 +155,7 @@ export const ParticleDebugPanel: React.FC = () => {
 
         {/* Impact Config */}
         <section>
-          <div className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] mb-3 border-b border-slate-800 pb-1">
+          <div className="mb-3 border-b border-slate-800 pb-1 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
             Impact (Vuruş)
           </div>
           <Slider
@@ -186,7 +186,7 @@ export const ParticleDebugPanel: React.FC = () => {
 
         {/* Collect Config */}
         <section>
-          <div className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] mb-3 border-b border-slate-800 pb-1">
+          <div className="mb-3 border-b border-slate-800 pb-1 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
             Collect (Gem Toplama)
           </div>
           <Slider
@@ -217,7 +217,7 @@ export const ParticleDebugPanel: React.FC = () => {
 
         {/* Bullet Config */}
         <section>
-          <div className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] mb-3 border-b border-slate-800 pb-1">
+          <div className="mb-3 border-b border-slate-800 pb-1 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
             Bullets (Mermiler)
           </div>
           <Slider
@@ -250,7 +250,7 @@ export const ParticleDebugPanel: React.FC = () => {
 
         <button
           onClick={handleReset}
-          className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg border border-slate-700 transition-all active:scale-[0.98] text-[10px] font-bold"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 text-[10px] font-bold text-slate-300 transition-all hover:bg-slate-700 active:scale-[0.98]"
         >
           🔄 RESET TO DEFAULTS
         </button>

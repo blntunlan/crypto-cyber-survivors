@@ -27,6 +27,7 @@ test.describe('Localization (i18n) System', () => {
       );
       // Aggressive Tutorial Bypass
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
     });
     // Reload to apply
     await page.reload();

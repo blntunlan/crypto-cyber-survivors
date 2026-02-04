@@ -212,7 +212,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
         >
           {/* Ambient glow */}
           <div
-            className="absolute inset-0 pointer-events-none"
+            className="pointer-events-none absolute inset-0"
             style={{
               background:
                 'radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
@@ -224,24 +224,24 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-            className="relative w-full max-w-lg mx-4"
+            className="relative mx-4 w-full max-w-lg"
           >
             {/* Main Card */}
-            <div className="bg-slate-900/95 border border-purple-500/30 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="overflow-hidden rounded-sm border border-purple-500/30 bg-slate-900/95 shadow-2xl">
               {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600/20 to-cyan-600/20 border-b border-purple-500/20 px-6 py-4">
+              <div className="border-b border-purple-500/20 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-black text-white tracking-tight">
+                    <h2 className="text-2xl font-black tracking-tight text-white">
                       {getText('hud.cycle_complete')}
                     </h2>
-                    <p className="text-purple-300 text-sm mt-1">
+                    <p className="mt-1 text-sm text-purple-300">
                       Cycle {state.cycleNumber} {getText('hud.finished')}
                     </p>
                   </div>
                   {/* Timer */}
                   <div className="text-right">
-                    <div className="text-3xl font-mono font-bold text-cyan-400">
+                    <div className="font-mono text-3xl font-bold text-cyan-400">
                       {state.timeRemaining}s
                     </div>
                     <p className="text-xs text-slate-400">
@@ -252,23 +252,23 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 p-6 border-b border-slate-800">
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                  <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">
+              <div className="grid grid-cols-2 gap-4 border-b border-slate-800 p-6">
+                <div className="rounded-sm border border-slate-700/50 bg-slate-800/50 p-4">
+                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">
                     {getText('hud.current_difficulty')}
                   </p>
                   <p className="text-2xl font-bold text-white">
                     {state.currentDifficulty.toFixed(2)}x
                   </p>
                 </div>
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-orange-500/30">
-                  <p className="text-xs text-orange-400 uppercase tracking-wider mb-1">
+                <div className="rounded-sm border border-orange-500/30 bg-slate-800/50 p-4">
+                  <p className="mb-1 text-xs uppercase tracking-wider text-orange-400">
                     {getText('hud.next_difficulty')}
                   </p>
                   <p className="text-2xl font-bold text-orange-400">
                     {state.nextDifficulty.toFixed(2)}x
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="mt-1 text-xs text-slate-500">
                     +
                     {(
                       (state.nextDifficulty / Math.max(state.currentDifficulty, 0.01) -
@@ -281,7 +281,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
               </div>
 
               {/* Decision Buttons */}
-              <div className="p-6 space-y-4">
+              <div className="space-y-4 p-6">
                 {/* Continue Button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -289,11 +289,11 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
                   onClick={handleContinue}
                   disabled={selectedOption !== null}
                   className={`
-                    w-full py-4 px-6 rounded-xl font-bold text-lg transition-all
+                    w-full rounded-sm px-6 py-4 text-lg font-bold transition-all
                     ${
                       selectedOption === 'continue'
                         ? 'bg-green-600 text-white'
-                        : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg shadow-green-600/30'
+                        : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-600/30 hover:from-green-500 hover:to-emerald-500'
                     }
                     ${selectedOption === 'cashout' ? 'opacity-50' : ''}
                     disabled:cursor-not-allowed
@@ -317,11 +317,11 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
                   onClick={handleCashOut}
                   disabled={selectedOption !== null}
                   className={`
-                    w-full py-4 px-6 rounded-xl font-bold text-lg transition-all
+                    w-full rounded-sm px-6 py-4 text-lg font-bold transition-all
                     ${
                       selectedOption === 'cashout'
                         ? 'bg-amber-600 text-white'
-                        : 'bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white shadow-lg shadow-amber-600/30'
+                        : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-lg shadow-amber-600/30 hover:from-amber-500 hover:to-yellow-500'
                     }
                     ${selectedOption === 'continue' ? 'opacity-50' : ''}
                     disabled:cursor-not-allowed

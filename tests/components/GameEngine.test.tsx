@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { render } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameEngine } from '../../components/GameEngine';
 import { GameStatus, MarketPosition, type LeverageOption } from '../../types';

@@ -150,7 +150,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
       const timerText = isCompetitive ? ` (${timeRemaining}s)` : '';
       return (
         <span className="flex items-center justify-center gap-2">
-          <IconSparkles className="w-3.5 h-3.5" color={COLORS.NEON_GREEN} />
+          <IconSparkles className="h-3.5 w-3.5" color={COLORS.NEON_GREEN} />
           {t('levelup.choose_upgrade')}
           {timerText}
         </span>
@@ -159,7 +159,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     if (stoppedCount === 0) {
       return (
         <span className="flex items-center justify-center gap-2">
-          <IconSlot className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
+          <IconSlot className="h-3.5 w-3.5" color={COLORS.ELECTRIC_BLUE} />
           {t('levelup.spinning')}
         </span>
       );
@@ -167,14 +167,14 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     if (stoppedCount === 1) {
       return (
         <span className="flex items-center justify-center gap-2">
-          <IconTarget className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
+          <IconTarget className="h-3.5 w-3.5" color={COLORS.ELECTRIC_BLUE} />
           {t('levelup.almost_there')}
         </span>
       );
     }
     return (
       <span className="flex items-center justify-center gap-2">
-        <IconBolt className="w-3.5 h-3.5" color={COLORS.ELECTRIC_BLUE} />
+        <IconBolt className="h-3.5 w-3.5" color={COLORS.ELECTRIC_BLUE} />
         {t('levelup.last_one')}
       </span>
     );
@@ -202,22 +202,22 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className={`fixed inset-0 z-[2000] flex items-center justify-center p-4 overflow-y-auto allow-scroll ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
+          className={`allow-scroll fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="max-w-4xl w-full my-auto"
+            className="my-auto w-full max-w-4xl"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
           >
             {/* Title */}
-            <motion.div className="text-center mb-4 md:mb-10" variants={titleVariants}>
+            <motion.div className="mb-4 text-center md:mb-10" variants={titleVariants}>
               <motion.h3
-                className={`${isRetro ? 'font-retro-jersey text-5xl md:text-8xl' : 'font-cyber cyber-glitch-text font-black italic tracking-tighter'} ${sizes.title} text-white`}
+                className={`${isRetro ? 'font-retro-jersey text-5xl md:text-8xl' : 'cyber-glitch-text font-cyber font-black italic tracking-tighter'} ${sizes.title} text-white`}
                 animate={{
                   textShadow: allStopped
                     ? isRetro
@@ -250,7 +250,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
               </motion.h3>
 
               <motion.p
-                className={`font-bold uppercase ${sizes.tiny} mt-1 md:mt-2 min-h-[1.5em]`}
+                className={`font-bold uppercase ${sizes.tiny} mt-1 min-h-[1.5em] md:mt-2`}
                 style={{ color: allStopped ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE }}
                 animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 0.8, repeat: Infinity }}
@@ -261,10 +261,10 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
 
             {/* Slot Reels - Vertical Layout for Web */}
             <div
-              className={`max-w-2xl mx-auto p-4 md:p-8 transition-all ${
+              className={`mx-auto max-w-2xl p-4 transition-all md:p-8 ${
                 isRetro
-                  ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-                  : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+                  ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
+                  : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
               }`}
             >
               <div className="flex flex-col gap-3 md:gap-4">

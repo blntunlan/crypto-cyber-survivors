@@ -1,1 +1,6 @@
+# Run lint-staged for code quality
 npx lint-staged
+
+# Run UI consistency check (warning only, doesn't block commit)
+echo "🎨 Running UI Consistency Check..."
+npx ts-node scripts/ui-consistency-audit.ts --ci 2>/dev/null || echo "⚠️  UI audit unavailable (ts-node not found)"

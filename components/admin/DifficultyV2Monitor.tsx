@@ -7,8 +7,8 @@ export const DifficultyV2Monitor: React.FC = () => {
 
   if (!context) {
     return (
-      <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800 animate-pulse">
-        <p className="text-slate-500 text-sm">Initializing Difficulty System V2...</p>
+      <div className="animate-pulse rounded-sm border border-slate-800 bg-slate-900/50 p-4">
+        <p className="text-sm text-slate-500">Initializing Difficulty System V2...</p>
       </div>
     );
   }
@@ -24,11 +24,11 @@ export const DifficultyV2Monitor: React.FC = () => {
     value: number | string;
     color?: string;
   }) => (
-    <div className="flex justify-between items-center py-1.5 border-b border-slate-800/50 last:border-0">
-      <span className="text-xs text-slate-400 capitalize">
+    <div className="flex items-center justify-between border-b border-slate-800/50 py-1.5 last:border-0">
+      <span className="text-xs capitalize text-slate-400">
         {label.replace(/([A-Z])/g, ' $1')}
       </span>
-      <span className={`text-xs font-mono font-bold ${color}`}>
+      <span className={`font-mono text-xs font-bold ${color}`}>
         {typeof value === 'number' ? value.toFixed(3) : value}
       </span>
     </div>
@@ -45,7 +45,7 @@ export const DifficultyV2Monitor: React.FC = () => {
   }) => {
     const percentage = Math.min(100, (value / max) * 100);
     return (
-      <div className="h-1 bg-slate-800 rounded-full overflow-hidden mt-1">
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-800">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
@@ -59,24 +59,24 @@ export const DifficultyV2Monitor: React.FC = () => {
     <div className="space-y-6">
       {/* Header Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-cyan-500/30 p-4 rounded-xl">
-          <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider mb-1">
+        <div className="rounded-sm border border-cyan-500/30 bg-slate-900 p-4">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
             Total Difficulty
           </p>
           <p className="text-2xl font-black text-white">{total.toFixed(2)}x</p>
           <ProgressBar value={total} max={10} color="bg-cyan-500" />
         </div>
-        <div className="bg-slate-900 border border-purple-500/30 p-4 rounded-xl">
-          <p className="text-[10px] text-purple-400 font-bold uppercase tracking-wider mb-1">
+        <div className="rounded-sm border border-purple-500/30 bg-slate-900 p-4">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">
             Wave Phase
           </p>
-          <p className="text-lg font-bold text-white capitalize">{wavePhase}</p>
-          <div className="text-[10px] text-purple-300/50 mt-1">
+          <p className="text-lg font-bold capitalize text-white">{wavePhase}</p>
+          <div className="mt-1 text-[10px] text-purple-300/50">
             Agg Core: {aggregates.core.toFixed(2)}x
           </div>
         </div>
-        <div className="bg-slate-900 border border-orange-500/30 p-4 rounded-xl">
-          <p className="text-[10px] text-orange-400 font-bold uppercase tracking-wider mb-1">
+        <div className="rounded-sm border border-orange-500/30 bg-slate-900 p-4">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-orange-400">
             Risk Modifier
           </p>
           <p className="text-2xl font-black text-white">
@@ -88,16 +88,16 @@ export const DifficultyV2Monitor: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-6">
         {/* Core Factors */}
-        <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
+        <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
+          <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
             Core Progression
           </h4>
           <FactorRow label="Cycle" value={factors.cycle} />
           <FactorRow label="Level" value={factors.level} />
           <FactorRow label="Wave Mult" value={factors.wave} />
           <FactorRow label="Base PnL" value={factors.pnl} />
-          <div className="mt-4 pt-4 border-t border-slate-800">
+          <div className="mt-4 border-t border-slate-800 pt-4">
             <FactorRow
               label="Aggregated Core"
               value={aggregates.core}
@@ -107,9 +107,9 @@ export const DifficultyV2Monitor: React.FC = () => {
         </div>
 
         {/* Dynamic Modifiers */}
-        <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-500" />
+        <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
+          <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-orange-500" />
             Dynamic Modifiers
           </h4>
           <FactorRow label="Liquidation" value={factors.liquidation.factor} />
@@ -128,7 +128,7 @@ export const DifficultyV2Monitor: React.FC = () => {
                 : 'text-slate-500'
             }
           />
-          <div className="mt-4 pt-4 border-t border-slate-800">
+          <div className="mt-4 border-t border-slate-800 pt-4">
             <FactorRow
               label="Aggregated Mod"
               value={aggregates.modifier}
@@ -138,15 +138,15 @@ export const DifficultyV2Monitor: React.FC = () => {
         </div>
 
         {/* Market Indicators */}
-        <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
+        <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
+          <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
             Market Indicators
           </h4>
           <FactorRow label="RSI Factor" value={factors.rsi} />
           <FactorRow label="Volume Intensity" value={factors.volume} />
           <FactorRow label="ATR Volatility" value={factors.atr} />
-          <div className="mt-4 pt-4 border-t border-slate-800">
+          <div className="mt-4 border-t border-slate-800 pt-4">
             <FactorRow
               label="Aggregated Market"
               value={aggregates.market}
@@ -156,9 +156,9 @@ export const DifficultyV2Monitor: React.FC = () => {
         </div>
 
         {/* Scaling Details */}
-        <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-purple-500" />
+        <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
+          <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-purple-500" />
             Leverage Scaling
           </h4>
           <FactorRow label="Current Leverage" value={context.inputs.leverage + 'x'} />

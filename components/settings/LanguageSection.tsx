@@ -28,13 +28,13 @@ export const LanguageSection = memo(({ focusedItem = null }: LanguageSectionProp
 
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-        <IconSettings className="w-3.5 h-3.5" color="#64748b" />
+      <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+        <IconSettings className="h-3.5 w-3.5" color="#64748b" />
         <span>{t('settings.language')}</span>
       </h3>
 
-      <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-2 transition-all">
-        <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+      <div className="space-y-2 rounded-sm border border-white/5 bg-white/5 p-3 transition-all md:p-4">
+        <div className="custom-scrollbar flex max-h-[300px] flex-col gap-2 overflow-y-auto pr-1">
           {languages.map(lang => {
             const isSelected = language === lang.code;
             const isFocused = focusedItem === lang.code;
@@ -43,23 +43,23 @@ export const LanguageSection = memo(({ focusedItem = null }: LanguageSectionProp
               <button
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between group ${
+                className={`group flex w-full items-center justify-between rounded-lg border px-4 py-2.5 text-[11px] font-black uppercase transition-all ${
                   isSelected
-                    ? 'bg-blue-600/20 text-blue-400 border-blue-500/50 shadow-[0_0_10px_rgba(37,99,235,0.2)]'
-                    : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'
-                } ${isFocused ? 'ring-2 ring-white scale-[1.02] bg-white/10' : ''}`}
+                    ? 'border-blue-500/50 bg-blue-600/20 text-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.2)]'
+                    : 'border-white/5 bg-white/5 text-slate-500 hover:bg-white/10'
+                } ${isFocused ? 'scale-[1.02] bg-white/10 ring-2 ring-white' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    className={`h-1.5 w-1.5 rounded-full transition-all ${
                       isSelected
-                        ? 'bg-blue-400 animate-pulse'
+                        ? 'animate-pulse bg-blue-400'
                         : 'bg-white/10 group-hover:bg-white/30'
                     }`}
                   />
                   <span className={isSelected ? 'text-white' : ''}>{lang.label}</span>
                 </div>
-                {isSelected && <span className="text-[9px] animate-pulse">ACTIVE</span>}
+                {isSelected && <span className="animate-pulse text-[9px]">ACTIVE</span>}
               </button>
             );
           })}

@@ -282,51 +282,42 @@ export const HubMenu: React.FC<HubMenuProps> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
       className={`
-        absolute inset-0 z-[100]
-        flex flex-col items-center justify-start
-        p-4 sm:p-6 lg:p-8
-        overflow-y-auto scroll-smooth
-        allow-scroll overscroll-contain
+        allow-scroll absolute inset-0
+        z-[100] flex flex-col items-center
+        justify-start overflow-y-auto overscroll-contain
+        scroll-smooth p-4
+        sm:p-6 lg:p-8
         ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/80 backdrop-blur-md lg:backdrop-blur-xl'}
       `}
     >
       {/* Container - pt-14 creates safe space below fixed back button on mobile */}
-      <div className="w-full max-w-lg lg:max-w-xl space-y-3 sm:space-y-6 lg:space-y-8 pt-12 sm:pt-0 relative">
+      <div className="relative w-full max-w-lg space-y-3 pt-12 sm:space-y-6 sm:pt-0 lg:max-w-xl lg:space-y-8">
         {/* Back Button (Top Left) */}
         {onBack && (
           <motion.button
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={onBack}
-            className={`
-              fixed z-[110] px-3 py-2 border transition-all duration-200 shadow-lg active:scale-95 touch-manipulation
-              text-sm uppercase tracking-wider
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
-              ${
-                isRetro
-                  ? 'bg-zinc-800 border-2 border-zinc-600 text-zinc-400 hover:text-white hover:border-zinc-400 rounded-none font-retro-pixel shadow-[3px_3px_0px_rgba(0,0,0,0.6)]'
-                  : 'bg-white/10 hover:bg-white/20 hover:border-white/40 border-white/20 text-white rounded-xl backdrop-blur-sm font-cyber hover:shadow-[0_0_20px_rgba(0,255,255,0.15)]'
-              }
-            `}
+            className="fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
             style={{
               top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
               left: `calc(1rem + env(safe-area-inset-left, 0px))`,
             }}
             title="Return to Landing"
           >
-            ← {!device.isMobile && ` ${t('common.project_info') || 'PROJECT INFO'}`}
+            ← {!device.isMobile && 'BİLGİ'}
           </motion.button>
         )}
 
         {/* Title */}
         <motion.header
-          className="space-y-3 sm:space-y-5 text-center"
+          className="space-y-3 text-center sm:space-y-5"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1
-            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'} ${sizes.title} tracking-tight text-white leading-relaxed`}
+            className={`${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'} ${sizes.title} leading-relaxed tracking-tight text-white`}
           >
             {t('common.menu.title')}
             <br />
@@ -337,7 +328,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
           <div className="flex flex-col items-center gap-2">
             <p
-              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} text-slate-500 font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
+              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} font-medium uppercase tracking-[0.2em] text-slate-500 ${sizes.tiny}`}
             >
               HUB TERMINAL
             </p>
@@ -401,15 +392,15 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
           className={`
-            text-center
-            py-2 lg:py-3
+            py-2
+            text-center lg:py-3
             ${
               isRetro
-                ? 'font-retro-pixel text-[8px] border-t-2 border-b-2 border-zinc-700'
+                ? 'border-b-2 border-t-2 border-zinc-700 font-retro-pixel text-[8px]'
                 : 'font-cyber text-xs lg:text-sm'
             }
-            text-slate-500
-            uppercase tracking-widest
+            uppercase
+            tracking-widest text-slate-500
           `}
         >
           {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}

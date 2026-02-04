@@ -14,52 +14,43 @@ const VIEWPORTS = {
   galaxyA01: { width: 569, height: 320, name: 'Galaxy A01 (Very Small)' },
 };
 
+test.beforeEach(async ({ page }) => {
+  await page.goto('/?no-sw=true');
+  await page.evaluate(() => {
+    localStorage.setItem('has_seen_landing', 'true');
+    localStorage.setItem('tutorial-completed', 'true');
+  });
+});
+
 /**
  * Helper to navigate through identity/hub to start a game
  */
 async function navigateToGame(page: Page): Promise<boolean> {
   try {
     // Wait for initial load
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    await page.waitForLoadState('domcontentloaded');
 
     // Handle identity screen if present
     const nicknameInput = page.locator('input[type="text"]').first();
-    if (await nicknameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await nicknameInput.isVisible({ timeout: 5000 }).catch(() => false)) {
       await nicknameInput.fill('E2ETest');
-      // Look for any continue/start button
-      const continueBtn = page
-        .locator('button')
-        .filter({ hasText: /continue|start|submit/i })
-        .first();
-      if (await continueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await continueBtn.click();
-        await page.waitForTimeout(1000);
-      }
+      await page.keyboard.press('Enter');
     }
 
-    // Wait for hub or game
-    await page.waitForTimeout(2000);
+    // Hub Menu -> Play
+    const playBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
+    await expect(playBtn).toBeVisible({ timeout: 10000 });
+    await playBtn.click();
 
-    // Try to find and click play button
-    const playBtn = page
-      .locator('button')
-      .filter({ hasText: /play|start/i })
-      .first();
-    if (await playBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await playBtn.click();
-      await page.waitForTimeout(1000);
-    }
-
-    // Handle position selection if present
-    const longBtn = page.locator('button').filter({ hasText: /long/i }).first();
-    if (await longBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await longBtn.click();
-      await page.waitForTimeout(1000);
-    }
+    // Main Menu -> Start Game
+    const longBtn = page.getByRole('button', { name: /long/i }).first();
+    await expect(longBtn).toBeVisible({ timeout: 10000 });
+    await longBtn.click();
 
     // Check if game UI overlay is now visible
     const gameUI = page.locator('#game-ui-overlay');
-    return await gameUI.isVisible({ timeout: 5000 }).catch(() => false);
+    await expect(gameUI).toBeVisible({ timeout: 10000 });
+    return true;
   } catch {
     return false;
   }
@@ -171,7 +162,8 @@ test.describe('Mobile HUD Layout', () => {
         // No console errors during basic load
         const errors: string[] = [];
         page.on('pageerror', err => errors.push(err.message));
-        await page.waitForTimeout(2000);
+        await expect(page).toHaveTitle(/Crypto|Survivors/i, { timeout: 10000 });
+        await page.waitForLoadState('domcontentloaded');
 
         const criticalErrors = errors.filter(
           e =>

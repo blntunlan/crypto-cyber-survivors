@@ -44,7 +44,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       relative overflow-hidden
       bg-white/5 backdrop-blur-xl
       border border-white/10
-      rounded-2xl
+      rounded-sm
       transition-all duration-300 ease-out
       hover:bg-white/10 hover:border-white/30
       hover:shadow-[var(--hub-shadow-hover)]
@@ -99,11 +99,11 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       whileHover={!isRetro ? { scale: 1.02 } : undefined}
       whileTap={!isRetro ? { scale: 0.98 } : undefined}
       className={`
-        flex flex-col items-center justify-center
-        p-4 sm:p-6 lg:p-8
-        min-h-[110px] sm:min-h-[140px]
-        w-full
-        touch-manipulation
+        flex min-h-[110px] w-full touch-manipulation
+        flex-col items-center justify-center
+        p-4 sm:min-h-[140px]
+        sm:p-6
+        lg:p-8
         ${styles.base}
         ${isSelected ? styles.selected : ''}
         ${disabled ? styles.disabled : ''}
@@ -126,7 +126,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Cyberpunk: Gradient overlay on hover */}
       {!isRetro && (
         <div
-          className="absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none"
+          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
           style={{
             background: `linear-gradient(135deg, ${accentColor}15 0%, transparent 60%), radial-gradient(ellipse at bottom, ${accentColor}08 0%, transparent 70%)`,
           }}
@@ -137,9 +137,9 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {badge !== undefined && badge > 0 && (
         <div
           className={`
-            absolute top-2 right-2
+            absolute right-2 top-2
             px-2 py-0.5
-            text-[10px] sm:text-xs font-black
+            text-[10px] font-black sm:text-xs
             ${
               isRetro
                 ? 'border-2 border-zinc-900 font-retro-pixel text-[8px]'
@@ -161,9 +161,9 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Icon */}
       <div
         className={`
-          text-3xl sm:text-4xl lg:text-5xl
-          mb-2 sm:mb-3
-          ${isRetro ? '' : 'filter drop-shadow-lg'}
+          mb-2 text-3xl sm:mb-3
+          sm:text-4xl lg:text-5xl
+          ${isRetro ? '' : 'drop-shadow-lg filter'}
         `}
         style={{
           textShadow: !isRetro ? `0 0 20px ${accentColor}60` : undefined,
@@ -175,8 +175,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Title */}
       <div
         className={`
-          text-xs sm:text-sm lg:text-base
-          font-black uppercase tracking-wider
+          text-xs font-black uppercase
+          tracking-wider sm:text-sm lg:text-base
           ${isRetro ? 'font-retro-pixel text-[8px] sm:text-[10px]' : 'font-cyber'}
         `}
         style={{
@@ -190,8 +190,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {subtitle && (
         <div
           className={`
-            text-[10px] sm:text-xs
-            mt-1
+            mt-1 text-[10px]
+            sm:text-xs
             ${isRetro ? 'font-retro-pixel text-[7px]' : 'font-cyber'}
             text-slate-400
           `}
@@ -215,7 +215,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Retro: Selection indicator */}
       {isRetro && isSelected && (
         <div
-          className="absolute left-2 top-1/2 -translate-y-1/2 text-lg font-retro-pixel"
+          className="absolute left-2 top-1/2 -translate-y-1/2 font-retro-pixel text-lg"
           style={{ color: COLORS.JACKPOT_YELLOW }}
         >
           ▶

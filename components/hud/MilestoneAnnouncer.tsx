@@ -26,14 +26,14 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
 
   return (
     <div
-      className="fixed left-1/2 -translate-x-1/2 z-[125] flex flex-col items-center pointer-events-none"
+      className="pointer-events-none fixed left-1/2 z-[125] flex -translate-x-1/2 flex-col items-center"
       style={{
         top: 'calc(14rem + env(safe-area-inset-top, 0px))',
         animation: 'milestoneIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
       }}
     >
       <div
-        className="text-6xl font-black italic uppercase tracking-tighter text-center whitespace-nowrap"
+        className="whitespace-nowrap text-center text-6xl font-black uppercase italic tracking-tighter"
         style={{
           color: 'white',
           textShadow: isRetro ? '6px 6px 0 #000' : `3px 3px 0 #000, 0 0 15px ${color}`,
@@ -44,10 +44,10 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
 
       <div className="relative mt-3 flex items-center justify-center">
         <div
-          className={`relative px-8 py-2 border-4 font-black italic flex items-center justify-center overflow-visible ${
+          className={`relative flex items-center justify-center overflow-visible border-4 px-8 py-2 font-black italic ${
             isRetro
-              ? 'rounded-none border-white border-double shadow-[4px_4px_0_#000]'
-              : 'rounded-xl border-yellow-500/50 backdrop-blur-md'
+              ? 'rounded-none border-double border-white shadow-[4px_4px_0_#000]'
+              : 'rounded-sm border-yellow-500/50 backdrop-blur-md'
           }`}
           style={{
             color: COLORS.JACKPOT_YELLOW,
@@ -59,20 +59,20 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
           {/* Retro Corner Accents */}
           {isRetro && (
             <>
-              <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-400" />
-              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-yellow-400" />
+              <div className="absolute -left-1 -top-1 h-2 w-2 bg-yellow-400" />
+              <div className="absolute -bottom-1 -right-1 h-2 w-2 bg-yellow-400" />
             </>
           )}
 
           <span
-            className={`relative z-10 tracking-widest text-xl ${isRetro ? '' : ''}`}
+            className={`relative z-10 text-xl tracking-widest ${isRetro ? '' : ''}`}
           >
             {t('hud.xp_multiplier_up')}
           </span>
 
           {!isRetro && (
             <div
-              className="absolute top-1/2 left-1/2 -z-10"
+              className="absolute left-1/2 top-1/2 -z-10"
               style={{
                 width: '130%',
                 height: '240%',
@@ -106,7 +106,7 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
     <AnimatePresence>
       {show && text && (
         <motion.div
-          className="fixed left-1/2 -translate-x-1/2 z-[125] flex flex-col items-center pointer-events-none"
+          className="pointer-events-none fixed left-1/2 z-[125] flex -translate-x-1/2 flex-col items-center"
           initial={{ opacity: 0, y: -20, scale: 0.8, x: '-50%' }}
           animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
           exit={{ opacity: 0, scale: 0.9, y: 10 }}
@@ -117,7 +117,7 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
           }}
         >
           <motion.div
-            className="font-black italic uppercase tracking-tighter text-center"
+            className="text-center font-black uppercase italic tracking-tighter"
             style={{
               color: 'white',
               textShadow: isRetro
@@ -136,10 +136,10 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
             transition={{ delay: 0.1 }}
           >
             <div
-              className={`relative font-black italic flex items-center justify-center ${
+              className={`relative flex items-center justify-center font-black italic ${
                 isRetro
                   ? 'rounded-none border-4 border-white shadow-[4px_4px_0_#000]'
-                  : 'border-2 rounded-lg backdrop-blur-sm'
+                  : 'rounded-lg border-2 backdrop-blur-sm'
               }`}
               style={{
                 color: COLORS.JACKPOT_YELLOW,
@@ -156,7 +156,7 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
 
               {/* Decorative elements for retro */}
               {isRetro && (
-                <div className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-400" />
+                <div className="absolute -left-1 -top-1 h-2 w-2 bg-yellow-400" />
               )}
 
               {/* Simplified glow for mobile perf - hidden in retro */}

@@ -137,8 +137,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     <motion.button
       onClick={() => isStopped && onSelect(finalCard)}
       disabled={!isStopped}
-      className={`group flex flex-row items-center text-left p-3 md:p-5 w-full relative overflow-hidden min-h-[100px] md:min-h-[140px]
-        ${isRetro ? 'rounded-none' : 'rounded-xl md:rounded-2xl'}
+      className={`group relative flex min-h-[100px] w-full flex-row items-center overflow-hidden p-3 text-left md:min-h-[140px] md:p-5
+        ${isRetro ? 'rounded-none' : 'rounded-sm md:rounded-sm'}
         ${isStopped ? 'cursor-pointer' : 'cursor-wait'} 
         ${isSelected && isStopped ? 'z-10' : 'z-0'}
       `}
@@ -182,19 +182,19 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="absolute left-1 top-1/2 -translate-y-1/2 flex items-center"
+          className="absolute left-1 top-1/2 flex -translate-y-1/2 items-center"
         >
           <div
-            className={`w-1.5 h-12 ${isRetro ? 'bg-yellow-400' : 'bg-white rounded-full blur-[1px]'}`}
+            className={`h-12 w-1.5 ${isRetro ? 'bg-yellow-400' : 'rounded-full bg-white blur-[1px]'}`}
           />
         </motion.div>
       )}
 
       {/* Left: Icon & Badge */}
-      <div className="flex flex-col items-center justify-center mr-4 md:mr-8 shrink-0 w-20 md:w-28 pl-2">
+      <div className="mr-4 flex w-20 shrink-0 flex-col items-center justify-center pl-2 md:mr-8 md:w-28">
         {/* Tier Badge */}
         <motion.div
-          className={`${sizes.tiny} font-black uppercase tracking-widest mb-1 md:mb-2 text-center`}
+          className={`${sizes.tiny} mb-1 text-center font-black uppercase tracking-widest md:mb-2`}
           style={{ color: tierConfig.color }}
           animate={{
             opacity: isSpinning ? [0.5, 1, 0.5] : 1,
@@ -210,7 +210,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
         </motion.div>
 
         {/* Spinning Icon Container */}
-        <div className="text-3xl md:text-5xl flex items-center justify-center w-14 h-14 md:w-20 md:h-20 relative">
+        <div className="relative flex h-14 w-14 items-center justify-center text-3xl md:h-20 md:w-20 md:text-5xl">
           <motion.div
             className={`absolute inset-0 ${isRetro ? '' : 'rounded-full blur-xl'}`}
             style={{ backgroundColor: isRetro ? 'transparent' : tierConfig.color }}
@@ -281,9 +281,9 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       </div>
 
       {/* Middle/Right: Info */}
-      <div className="flex-1 flex flex-col justify-center">
+      <div className="flex flex-1 flex-col justify-center">
         <motion.div
-          className={`${sizes.heading} ${isRetro ? 'font-retro-jersey text-3xl md:text-5xl' : 'font-black tracking-tight'} uppercase leading-tight mb-1 ${isSpinning ? 'truncate whitespace-nowrap' : 'whitespace-normal'}`}
+          className={`${sizes.heading} ${isRetro ? 'font-retro-jersey text-3xl md:text-5xl' : 'font-black tracking-tight'} mb-1 uppercase leading-tight ${isSpinning ? 'truncate whitespace-nowrap' : 'whitespace-normal'}`}
           style={{
             color: isSelected ? '#ffffff' : tierConfig.color,
             textShadow: isRetro
@@ -318,7 +318,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       </div>
 
       {/* Far Right: Status/Instruction */}
-      <div className="ml-4 shrink-0 hidden md:block pr-4">
+      <div className="ml-4 hidden shrink-0 pr-4 md:block">
         {isStopped ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
@@ -333,21 +333,21 @@ export const SlotReel: React.FC<SlotReelProps> = ({
               color: isSelected ? '#000000' : '#ffffff',
             }}
             transition={{ duration: 0.5, repeat: isSelected ? Infinity : 0 }}
-            className={`px-4 py-1.5 border border-white/20 text-xs font-black uppercase tracking-tighter ${isRetro ? 'rounded-none' : 'rounded-lg shadow-xl'}`}
+            className={`border border-white/20 px-4 py-1.5 text-xs font-black uppercase tracking-tighter ${isRetro ? 'rounded-none' : 'rounded-lg shadow-xl'}`}
           >
             {isSelected ? '★ Select' : 'Select'}
           </motion.div>
         ) : (
-          <div className="w-8 h-8 flex items-center justify-center">
+          <div className="flex h-8 w-8 items-center justify-center">
             <div
-              className={`w-1 h-4 bg-white/20 animate-pulse mx-0.5 ${isRetro ? '' : 'rounded-full'}`}
+              className={`mx-0.5 h-4 w-1 animate-pulse bg-white/20 ${isRetro ? '' : 'rounded-full'}`}
             />
             <div
-              className={`w-1 h-6 bg-white/40 animate-pulse mx-0.5 ${isRetro ? '' : 'rounded-full'}`}
+              className={`mx-0.5 h-6 w-1 animate-pulse bg-white/40 ${isRetro ? '' : 'rounded-full'}`}
               style={{ animationDelay: '0.1s' }}
             />
             <div
-              className={`w-1 h-4 bg-white/20 animate-pulse mx-0.5 ${isRetro ? '' : 'rounded-full'}`}
+              className={`mx-0.5 h-4 w-1 animate-pulse bg-white/20 ${isRetro ? '' : 'rounded-full'}`}
               style={{ animationDelay: '0.2s' }}
             />
           </div>
@@ -357,7 +357,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       {/* Retro Highlight Overlay */}
       {isSelected && isStopped && isRetro && (
         <motion.div
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0"
           animate={{ opacity: [0, 0.1, 0] }}
           transition={{ duration: 0.2, repeat: Infinity }}
           style={{ backgroundColor: '#ffffff' }}

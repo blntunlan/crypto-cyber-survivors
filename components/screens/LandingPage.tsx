@@ -14,8 +14,8 @@
  * - Transition: 300ms cubic-bezier (Professional "Snap")
  */
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useInView, animate } from 'framer-motion';
 import {
   Shield,
   Zap,
@@ -32,9 +32,76 @@ import {
   Gamepad2,
   Trophy,
   Sparkles,
+  Star,
+  Quote,
+  Users,
 } from 'lucide-react';
-import { useLanguage } from '../../contexts/useLanguage';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/useTheme';
+
+// =============================================================================
+// ANIMATION VARIANTS
+// =============================================================================
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+  },
+};
+
+// =============================================================================
+// ANIMATED COUNTER COMPONENT
+// =============================================================================
+
+interface AnimatedCounterProps {
+  from: number;
+  to: number;
+  duration?: number;
+  suffix?: string;
+  prefix?: string;
+}
+
+const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
+  from,
+  to,
+  duration = 2,
+  suffix = '',
+  prefix = '',
+}) => {
+  const nodeRef = useRef<HTMLSpanElement>(null);
+  const inView = useInView(nodeRef, { once: true, margin: '-100px' });
+
+  useEffect(() => {
+    if (!inView || !nodeRef.current) return;
+
+    const controls = animate(from, to, {
+      duration,
+      ease: 'easeOut',
+      onUpdate: value => {
+        if (nodeRef.current) {
+          nodeRef.current.textContent = `${prefix}${Math.floor(value).toLocaleString()}${suffix}`;
+        }
+      },
+    });
+
+    return () => controls.stop();
+  }, [inView, from, to, duration, suffix, prefix]);
+
+  return (
+    <span ref={nodeRef}>
+      {prefix}
+      {from}
+      {suffix}
+    </span>
+  );
+};
 
 interface LandingPageProps {
   onLaunch: () => void;
@@ -48,7 +115,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewTerms,
 }) => {
   const { t } = useLanguage();
-  const { isRetro, toggleTheme, isTransitioning } = useTheme();
+  const { isRetro } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
@@ -67,25 +134,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       phase: t('landing.roadmap.phase1'),
       title: t('landing.roadmap.phase1_title'),
       status: 'completed',
-      items: t('landing.roadmap.phase1_items'),
+      items: Array.isArray(t('landing.roadmap.phase1_items'))
+        ? (t('landing.roadmap.phase1_items') as string[])
+        : [],
     },
     {
       phase: t('landing.roadmap.phase2'),
       title: t('landing.roadmap.phase2_title'),
       status: 'current',
-      items: t('landing.roadmap.phase2_items'),
+      items: Array.isArray(t('landing.roadmap.phase2_items'))
+        ? (t('landing.roadmap.phase2_items') as string[])
+        : [],
     },
     {
       phase: t('landing.roadmap.phase3'),
       title: t('landing.roadmap.phase3_title'),
       status: 'upcoming',
-      items: t('landing.roadmap.phase3_items'),
+      items: Array.isArray(t('landing.roadmap.phase3_items'))
+        ? (t('landing.roadmap.phase3_items') as string[])
+        : [],
     },
     {
       phase: t('landing.roadmap.phase4'),
       title: t('landing.roadmap.phase4_title'),
       status: 'upcoming',
-      items: t('landing.roadmap.phase4_items'),
+      items: Array.isArray(t('landing.roadmap.phase4_items'))
+        ? (t('landing.roadmap.phase4_items') as string[])
+        : [],
     },
   ];
 
@@ -95,37 +170,37 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="min-h-screen bg-[#020617] text-white font-sans selection:bg-[#d6b85c]/30 overflow-x-hidden allow-scroll"
+      className="allow-scroll min-h-screen overflow-x-hidden bg-[#020617] font-sans text-white selection:bg-[#d6b85c]/30"
     >
       {/* --- 00. BACKGROUND ARCHITECTURE --- */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
         {/* Ambient Glows */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#d6b85c]/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#b22222]/5 blur-[120px] rounded-full" />
+        <div className="absolute left-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-[#d6b85c]/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-[#b22222]/5 blur-[120px]" />
 
         {/* Texture Overlays */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.05]" />
 
         {/* Dynamic Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent h-[2px] w-full animate-scanline" />
+        <div className="animate-scanline absolute inset-0 h-[2px] w-full bg-gradient-to-b from-transparent via-blue-500/5 to-transparent" />
       </div>
       {/* --- 01. NAVIGATION LAYER --- */}
       <nav
         id="top"
-        className="relative z-50 flex items-center justify-between px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8 mx-auto max-w-7xl"
+        className="relative z-50 mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8"
       >
         {/* Branding Sub-module */}
         <a
           href="#top"
-          className="flex flex-col hover:opacity-80 transition-all duration-300 pr-4 lg:pr-24 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:pr-24"
         >
           <span
-            className={`text-xl sm:text-2xl font-black tracking-tight uppercase italic text-[#d6b85c] leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
+            className={`text-xl font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
           >
             CRYPTO
           </span>
           <span
-            className={`text-xl sm:text-2xl font-black tracking-tight uppercase italic text-white -mt-1 leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
+            className={`-mt-1 text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
           >
             SURVIVORS
           </span>
@@ -134,82 +209,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="lg:hidden p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center p-3 text-white transition-all duration-300 hover:text-[#d6b85c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:hidden"
           aria-label="Open menu"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="h-6 w-6" />
         </button>
 
         {/* Desktop Nav Menu */}
-        <div className="hidden lg:flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] font-mono">
-          {/* Theme Switch Protocol Button */}
-          <div
-            className={`relative group/nav border ${isRetro ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]' : 'border-[#d6b85c]/30 bg-black/40'} hover:border-[#d6b85c] transition-all duration-300`}
+        <div className="hidden items-center gap-3 font-mono text-xs font-semibold uppercase tracking-widest lg:flex">
+          {/* Navigation Links */}
+          <a
+            href="#engine"
+            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
           >
-            <button
-              onClick={toggleTheme}
-              className="px-4 py-3 min-h-[44px] text-[#d6b85c] hover:text-white transition-all duration-300 flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
-            >
-              <Zap className={`w-3 h-3 ${isTransitioning ? 'animate-spin' : ''}`} />
-              {isRetro
-                ? t('landing.nav.protocol_cyber')
-                : t('landing.nav.protocol_retro')}
-            </button>
-          </div>
+            MOTOR
+          </a>
+          <a
+            href="#pipeline"
+            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+          >
+            VERİ
+          </a>
+          <a
+            href="#dev"
+            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+          >
+            GELİŞTİRİCİ
+          </a>
+          <button
+            id="docs-nav-link"
+            onClick={() => (window.location.hash = '#docs')}
+            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+          >
+            DÖKÜMAN
+          </button>
 
-          {/* Standard Nav Links */}
-          <div
-            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
-          >
-            <a
-              href="#engine"
-              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-            >
-              {t('landing.nav.engine')}
-            </a>
-          </div>
-          <div
-            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
-          >
-            <a
-              href="#pipeline"
-              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-            >
-              {t('landing.nav.pipeline')}
-            </a>
-          </div>
-          <div
-            className={`relative group/nav border ${isRetro ? 'border-white/40 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-[#b22222]/30 bg-black/20'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
-          >
-            <a
-              href="#dev"
-              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-            >
-              {t('landing.nav.dev')}
-            </a>
-          </div>
-          <div
-            className={`relative group/nav border ${isRetro ? 'border-zinc-500 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)]' : 'border-white/20 hover:border-white/40 bg-white/5'} transition-all duration-300 font-bold active:scale-95`}
-          >
-            <button
-              id="docs-nav-link"
-              onClick={() => (window.location.hash = '#docs')}
-              className="px-4 py-3 min-h-[44px] text-slate-400 hover:text-white transition-all duration-300 uppercase focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-            >
-              {t('landing.nav.docs')}
-            </button>
-          </div>
-
-          {/* Primary Action */}
+          {/* Primary CTA */}
           <button
             onClick={onLaunch}
-            className={`px-6 py-3 min-h-[44px] bg-[#d6b85c] text-black font-black hover:bg-white transition-all duration-300 active:scale-95 border border-[#d6b85c] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none ${
-              isRetro
-                ? 'shadow-[4px_4px_0px_rgba(214,184,92,0.4)]'
-                : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
-            }`}
+            className="ml-2 h-11 bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-8 font-black text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            {t('landing.nav.execute')}
+            BAŞLAT
           </button>
         </div>
       </nav>
@@ -222,7 +262,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] lg:hidden"
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <motion.nav
@@ -230,36 +270,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-              className="absolute right-0 top-0 h-full w-[280px] bg-[#020617] border-l border-[#b22222]/20 p-6 flex flex-col"
+              className="absolute right-0 top-0 flex h-full w-[280px] flex-col border-l border-[#b22222]/20 bg-[#020617] p-6"
               onClick={e => e.stopPropagation()}
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="absolute top-4 right-4 p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                className="absolute right-4 top-4 flex min-h-[44px] min-w-[44px] items-center justify-center p-3 text-white transition-all duration-300 hover:text-[#d6b85c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 aria-label="Close menu"
               >
-                <X className="w-6 h-6" />
+                <X className="h-6 w-6" />
               </button>
 
               {/* Mobile Menu Items */}
-              <div className="mt-16 flex flex-col gap-2 text-sm font-black uppercase tracking-widest font-mono">
-                <button
-                  onClick={toggleTheme}
-                  className={`w-full p-4 min-h-[48px] text-left border transition-all duration-300 ${
-                    isRetro
-                      ? 'border-[#d6b85c] bg-[#d6b85c]/10 text-[#d6b85c]'
-                      : 'border-[#d6b85c]/30 bg-black/40 text-[#d6b85c]'
-                  } focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center gap-3`}
-                >
-                  <Zap className={`w-4 h-4 ${isTransitioning ? 'animate-spin' : ''}`} />
-                  {isRetro ? 'PROTOCOL: CYBER' : 'PROTOCOL: RETRO'}
-                </button>
-
+              <div className="mt-16 flex flex-col gap-2 font-mono text-sm font-black uppercase tracking-widest">
                 <a
                   href="#engine"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
                   {t('landing.nav.engine')}
                 </a>
@@ -267,7 +295,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <a
                   href="#pipeline"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
                   {t('landing.nav.pipeline')}
                 </a>
@@ -275,7 +303,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <a
                   href="#dev"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
                   {t('landing.nav.dev')}
                 </a>
@@ -285,7 +313,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     window.location.hash = '#docs';
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full p-4 min-h-[48px] text-left border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
                   {t('landing.nav.docs')}
                 </button>
@@ -297,7 +325,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onLaunch();
                   setIsMobileMenuOpen(false);
                 }}
-                className={`mt-auto w-full p-4 min-h-[48px] bg-[#d6b85c] text-black font-black text-center hover:bg-white transition-all duration-300 active:scale-95 border border-[#d6b85c] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none ${
+                className={`mt-auto min-h-[48px] w-full border border-[#d6b85c] bg-[#d6b85c] p-4 text-center font-black text-black transition-all duration-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 ${
                   isRetro
                     ? 'shadow-[4px_4px_0px_rgba(214,184,92,0.4)]'
                     : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
@@ -310,8 +338,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         )}
       </AnimatePresence>
       {/* --- 02. HERO & CTA STACK --- */}
-      <header className="relative z-10 px-4 sm:px-6 pt-16 sm:pt-24 pb-24 sm:pb-32 mx-auto max-w-7xl">
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center">
+      <header className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 sm:pb-32 sm:pt-24">
+        <div className="flex flex-col items-center gap-12 lg:flex-row lg:gap-16">
           {/* Main Messaging Sub-module */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -319,46 +347,46 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             transition={{ duration: 0.8 }}
             className="flex-1"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 sm:mb-8 rounded bg-[#b22222]/10 border-l-4 border-[#b22222] text-[#b22222] text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono">
+            <div className="mb-6 inline-flex items-center gap-2 rounded border-l-4 border-[#b22222] bg-[#b22222]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[#b22222] sm:mb-8 sm:text-xs">
               {t('landing.hero.status')}
             </div>
 
             <h1
-              className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter mb-6 sm:mb-8 leading-[0.95] italic ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+              className={`mb-6 text-3xl font-black italic leading-[0.95] tracking-tighter sm:mb-8 sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              <span className="text-xs sm:text-sm block font-mono text-[#d6b85c] not-italic tracking-[0.5em] mb-4">
+              <span className="mb-4 block font-mono text-xs not-italic tracking-[0.5em] text-[#d6b85c] sm:text-sm">
                 CRYPTO SURVIVORS
               </span>
               {t('landing.hero.title_top')} <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white">
+              <span className="bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white bg-clip-text text-transparent">
                 {t('landing.hero.title_highlight')}
               </span>
             </h1>
 
-            <p className="max-w-xl text-sm sm:text-base md:text-lg text-slate-400 mb-8 sm:mb-12 leading-relaxed font-mono">
+            <p className="mb-8 max-w-xl font-mono text-sm leading-relaxed text-slate-400 sm:mb-12 sm:text-base md:text-lg">
               {t('landing.hero.description')}
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row">
               <button
                 onClick={onLaunch}
-                className="group relative w-full sm:w-auto px-6 sm:px-10 py-4 sm:py-5 min-h-[48px] bg-[#d6b85c] text-black font-black text-lg sm:text-xl md:text-2xl hover:bg-[#ffd600] transition-all duration-300 hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] flex items-center justify-center gap-3 active:scale-95 overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                className="group relative flex min-h-[48px] w-full items-center justify-center gap-3 overflow-hidden bg-[#d6b85c] px-6 py-4 text-lg font-black text-black transition-all duration-300 hover:bg-[#ffd600] hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:w-auto sm:px-10 sm:py-5 sm:text-xl md:text-2xl"
               >
-                <div className="absolute inset-x-0 h-[2px] bg-white opacity-20 -top-full group-hover:top-full transition-all duration-700" />
-                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
+                <div className="absolute inset-x-0 -top-full h-[2px] bg-white opacity-20 transition-all duration-700 group-hover:top-full" />
+                <Play className="h-5 w-5 fill-current sm:h-6 sm:w-6" />
                 {t('landing.hero.start')}
-                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 sm:h-5 sm:w-5" />
               </button>
               <a
                 href="https://github.com/blntunlan/crypto-cyber-survivors"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 min-h-[48px] border transition-all duration-300 flex items-center justify-center gap-3 font-bold text-xs tracking-widest uppercase text-slate-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none
+                className={`flex min-h-[48px] w-full items-center justify-center gap-3 border px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-300 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] sm:w-auto sm:px-8 sm:py-5
                   ${isRetro ? 'border-white/20 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)] hover:bg-white/10' : 'border-[#b22222]/30 hover:bg-[#b22222]/10'}
                 `}
               >
                 <svg
-                  className="w-5 h-5 flex-shrink-0"
+                  className="h-5 w-5 flex-shrink-0"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -374,21 +402,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
-            className="flex-1 w-full max-w-lg lg:max-w-none"
+            className="w-full max-w-lg flex-1 lg:max-w-none"
           >
-            <div className="relative p-6 rounded-sm bg-black border-2 border-[#b22222]/30 shadow-[0_0_50px_rgba(178,34,34,0.1)] font-mono text-sm leading-snug">
-              <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#b22222]/20">
+            <div className="relative rounded-sm border-2 border-[#b22222]/30 bg-black p-6 font-mono text-sm leading-snug shadow-[0_0_50px_rgba(178,34,34,0.1)]">
+              <div className="mb-4 flex items-center justify-between border-b border-[#b22222]/20 pb-2">
                 <div className="flex gap-2">
-                  <div className="w-2 h-2 bg-[#b22222]" />
-                  <div className="w-2 h-2 bg-[#d6b85c]" />
-                  <div className="w-2 h-2 bg-white/30" />
+                  <div className="h-2 w-2 bg-[#b22222]" />
+                  <div className="h-2 w-2 bg-[#d6b85c]" />
+                  <div className="h-2 w-2 bg-white/30" />
                 </div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest">
+                <div className="text-[10px] uppercase tracking-widest text-slate-500">
                   Core_Memory_Alloc: OK
                 </div>
               </div>
               <div className="space-y-1 text-xs">
-                <div className="text-[#00ffff] tracking-tighter">
+                <div className="tracking-tighter text-[#00ffff]">
                   [{new Date().toISOString()}] INITIALIZING_SUBSYSTEMS...
                 </div>
                 <div className="text-white">
@@ -400,11 +428,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="text-green-400">
                   {'>>'} CONNECTION_ESTABLISHED: LATENCY 8ms
                 </div>
-                <div className="text-[#d6b85c] font-bold">
+                <div className="font-bold text-[#d6b85c]">
                   {'>>'} STATUS: READY_FOR_DEPLOYMENT
                 </div>
-                <div className="mt-4 pt-4 border-t border-[#b22222]/10 flex items-center gap-4">
-                  <div className="flex-1 h-1 bg-white/5 overflow-hidden">
+                <div className="mt-4 flex items-center gap-4 border-t border-[#b22222]/10 pt-4">
+                  <div className="h-1 flex-1 overflow-hidden bg-white/5">
                     <motion.div
                       className="h-full bg-[#d6b85c]"
                       animate={{ width: ['0%', '100%', '0%'] }}
@@ -418,29 +446,116 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </motion.div>
         </div>
       </header>
+
+      {/* --- STATS COUNTER SECTION --- */}
+      <section className="relative z-10 border-b border-[#b22222]/10 bg-gradient-to-b from-transparent to-[#b22222]/[0.02] py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={staggerContainer}
+            className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4"
+          >
+            {[
+              {
+                value: 2100,
+                suffix: '+',
+                label: 'Tests Passing',
+                icon: Check,
+                color: '#22c55e',
+              },
+              {
+                value: 42,
+                suffix: '+',
+                label: 'Singleton Services',
+                icon: Cpu,
+                color: '#d6b85c',
+              },
+              {
+                value: 60,
+                suffix: ' FPS',
+                label: 'Target Performance',
+                icon: Zap,
+                color: '#00ffff',
+              },
+              {
+                value: 90,
+                suffix: '+',
+                label: 'Event Types',
+                icon: Activity,
+                color: '#b22222',
+              },
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                className={`group relative border p-6 transition-all duration-500 hover:scale-105 sm:p-8
+                  ${
+                    isRetro
+                      ? 'border-white/20 bg-black/40 shadow-[4px_4px_0px_rgba(255,255,255,0.1)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.2)]'
+                      : 'border-[#b22222]/20 bg-black/60 hover:border-[#d6b85c]/40'
+                  }`}
+              >
+                <div className="absolute right-4 top-4 opacity-20 transition-opacity group-hover:opacity-40">
+                  <stat.icon className="h-8 w-8" style={{ color: stat.color }} />
+                </div>
+                <div className="mb-2 text-3xl font-black text-white sm:text-4xl lg:text-5xl">
+                  <AnimatedCounter
+                    from={0}
+                    to={stat.value}
+                    suffix={stat.suffix}
+                    duration={2.5}
+                  />
+                </div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400 sm:text-sm">
+                  {stat.label}
+                </div>
+                <div
+                  className="absolute bottom-0 left-0 h-1 w-0 transition-all duration-500 group-hover:w-full"
+                  style={{ background: stat.color }}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* --- 03. ENGINEERING EXCELLENCE SHOWCASE --- */}
       <section
         id="engine"
-        className="relative z-10 py-20 sm:py-24 lg:py-32 border-y border-[#b22222]/10 bg-[#b22222]/[0.02]"
+        className="relative z-10 border-y border-[#b22222]/10 bg-[#b22222]/[0.02] py-20 sm:py-24 lg:py-32"
       >
-        <div className="px-4 sm:px-6 mx-auto max-w-7xl">
-          <div className="mb-12 sm:mb-16 lg:mb-20 text-center">
-            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={fadeInUp}
+            className="mb-12 text-center sm:mb-16 lg:mb-20"
+          >
+            <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.manifesto.title')}
             </h2>
             <div
-              className={`text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase italic text-white flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-4 ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+              className={`flex flex-col items-center justify-center gap-2 text-2xl font-black uppercase italic text-white sm:gap-4 sm:text-4xl md:flex-row md:text-5xl lg:text-6xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
               <span>{t('landing.manifesto.solo')}</span>
-              <span className="w-8 h-px bg-[#b22222] hidden md:block" />
+              <span className="hidden h-px w-8 bg-[#b22222] md:block" />
               <span className="text-[#b22222]">
                 {t('landing.manifesto.enterprise')}
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Grid Layout Sub-module */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={staggerContainer}
+            className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4"
+          >
             {[
               {
                 tag: t('landing.features.tag_memory'),
@@ -467,46 +582,52 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 icon: Shield,
               },
             ].map((card, i) => (
-              <div
+              <motion.div
                 key={i}
+                variants={fadeInUp}
                 id={card.tag === 'BACKEND' ? 'pipeline' : undefined}
-                className={`group p-4 sm:p-6 border transition-all duration-300 active:scale-[0.98] focus-within:ring-2 focus-within:ring-[#d6b85c]
+                className={`group border p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-[#d6b85c] active:scale-[0.98] sm:p-6
                   ${
                     isRetro
-                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)] hover:border-[#d6b85c]/40'
-                      : 'border-white/5 bg-white/5 hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5 hover:scale-[1.02]'
+                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:border-[#d6b85c]/40 hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)]'
+                      : 'border-white/5 bg-white/5 hover:scale-[1.02] hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5'
                   }
                 `}
               >
-                <div className="text-[10px] font-black text-[#b22222] mb-3 sm:mb-4 font-mono tracking-widest">
+                <div className="mb-3 font-mono text-[10px] font-black tracking-widest text-[#b22222] sm:mb-4">
                   {card.tag}
                 </div>
                 <h3
-                  className={`text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 italic tracking-wide group-hover:text-[#d6b85c] transition-all duration-300 ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                  className={`mb-3 text-lg font-bold italic tracking-wide text-white transition-all duration-300 group-hover:text-[#d6b85c] sm:mb-4 sm:text-xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
                 >
                   {card.title}
                 </h3>
-                <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed font-mono min-h-[48px]">
+                <p className="min-h-[48px] font-mono text-[11px] leading-relaxed text-slate-500 sm:text-xs">
                   {card.desc}
                 </p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
       {/* --- 04. SOLO DEV ARCHITECTURE FLOW --- */}
-      <section id="dev" className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6">
+      <section id="dev" className="relative z-10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
             {/* Descriptive Content */}
-            <div>
-              <Terminal className="text-[#d6b85c] mb-6 sm:mb-8 w-10 h-10 sm:w-12 sm:h-12" />
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-100px' }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            >
+              <Terminal className="mb-6 h-10 w-10 text-[#d6b85c] sm:mb-8 sm:h-12 sm:w-12" />
               <h3
-                className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black mb-6 sm:mb-8 italic uppercase ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                className={`mb-6 text-2xl font-black uppercase italic sm:mb-8 sm:text-3xl md:text-4xl lg:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
               >
                 {t('landing.architecture.title')}
               </h3>
-              <p className="text-slate-400 mb-6 sm:mb-8 font-mono text-sm leading-relaxed">
+              <p className="mb-6 font-mono text-sm leading-relaxed text-slate-400 sm:mb-8">
                 {t('landing.architecture.description')}
               </p>
 
@@ -520,165 +641,203 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 ].map(tag => (
                   <span
                     key={tag}
-                    className="px-2 sm:px-3 py-1 bg-white/5 border border-white/10 text-[9px] sm:text-[10px] uppercase font-bold text-slate-500 tracking-tighter"
+                    className="border border-white/10 bg-white/5 px-2 py-1 text-[9px] font-bold uppercase tracking-tighter text-slate-500 sm:px-3 sm:text-[10px]"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* Visual Logic Diagram Sub-module */}
-            <div className="p-6 sm:p-8 border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 sm:p-4 font-mono text-[10px] text-[#d6b85c]/50">
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: '-100px' }}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
+              className="group relative overflow-hidden border-2 border-[#d6b85c]/20 bg-[#d6b85c]/5 p-6 sm:p-8"
+            >
+              <div className="absolute right-0 top-0 p-3 font-mono text-[10px] text-[#d6b85c]/50 sm:p-4">
                 INTERNAL_PROTOCOL_LOG
               </div>
-              <div className="space-y-4 relative z-10">
-                <div className="flex gap-3 sm:gap-4 items-start">
-                  <div className="w-1 h-12 bg-[#b22222] flex-shrink-0" />
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="h-12 w-1 flex-shrink-0 bg-[#b22222]" />
                   <div>
-                    <div className="text-xs font-black text-white uppercase italic">
+                    <div className="text-xs font-black uppercase italic text-white">
                       {t('landing.architecture.balance_title')}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="font-mono text-[10px] text-slate-500">
                       {t('landing.architecture.balance_desc')}
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3 sm:gap-4 items-start">
-                  <div className="w-1 h-12 bg-[#d6b85c] flex-shrink-0" />
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="h-12 w-1 flex-shrink-0 bg-[#d6b85c]" />
                   <div>
-                    <div className="text-xs font-black text-white uppercase italic">
+                    <div className="text-xs font-black uppercase italic text-white">
                       {t('landing.architecture.integrity_title')}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="font-mono text-[10px] text-slate-500">
                       {t('landing.architecture.integrity_desc')}
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3 sm:gap-4 items-start">
-                  <div className="w-1 h-12 bg-white flex-shrink-0" />
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="h-12 w-1 flex-shrink-0 bg-white" />
                   <div>
-                    <div className="text-xs font-black text-white uppercase italic">
+                    <div className="text-xs font-black uppercase italic text-white">
                       {t('landing.architecture.performance_title')}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="font-mono text-[10px] text-slate-500">
                       {t('landing.architecture.performance_desc')}
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#d6b85c]/20 clip-path-poly flex items-center justify-center">
-                <Zap className="w-3 h-3 text-[#d6b85c]" />
+              <div className="clip-path-poly absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center bg-[#d6b85c]/20">
+                <Zap className="h-3 w-3 text-[#d6b85c]" />
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
       {/* --- 05. FEATURE COMPARISON --- */}
-      <section className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6 border-t border-[#b22222]/10">
+      <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-5xl">
-          <div className="mb-12 sm:mb-16 text-center">
-            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={fadeInUp}
+            className="mb-12 text-center sm:mb-16"
+          >
+            <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.modes.title')}
             </h2>
             <div
-              className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
               {t('landing.modes.subtitle')}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={staggerContainer}
+            className="grid gap-4 sm:gap-6 md:grid-cols-2"
+          >
             {/* Casual Mode */}
-            <div
-              className={`p-6 sm:p-8 border-2 transition-all duration-300 ${
+            <motion.div
+              variants={fadeInUp}
+              whileHover={{ scale: 1.02 }}
+              className={`border-2 p-6 transition-all duration-300 sm:p-8 ${
                 isRetro
                   ? 'border-[#d6b85c]/30 bg-[#d6b85c]/5 shadow-[6px_6px_0px_rgba(214,184,92,0.1)]'
                   : 'border-[#d6b85c]/20 bg-gradient-to-br from-[#d6b85c]/10 to-transparent'
               }`}
             >
-              <div className="flex items-center gap-3 mb-6">
-                <Gamepad2 className="w-8 h-8 text-[#d6b85c]" />
+              <div className="mb-6 flex items-center gap-3">
+                <Gamepad2 className="h-8 w-8 text-[#d6b85c]" />
                 <h3
-                  className={`text-xl sm:text-2xl font-black uppercase italic text-[#d6b85c] ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                  className={`text-xl font-black uppercase italic text-[#d6b85c] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
                 >
                   {t('landing.modes.casual_title')}
                 </h3>
               </div>
-              <p className="text-slate-400 text-sm font-mono mb-6">
+              <p className="mb-6 font-mono text-sm text-slate-400">
                 {t('landing.modes.casual_desc')}
               </p>
               <ul className="space-y-3">
-                {(t('landing.modes.casual_items') as string[]).map((item, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center gap-3 text-sm text-slate-300"
-                  >
-                    <Check className="w-4 h-4 text-[#d6b85c] flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
+                {Array.isArray(t('landing.modes.casual_items')) &&
+                  (t('landing.modes.casual_items') as string[]).map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center gap-3 text-sm text-slate-300"
+                    >
+                      <Check className="h-4 w-4 flex-shrink-0 text-[#d6b85c]" />
+                      {item}
+                    </li>
+                  ))}
               </ul>
-            </div>
+            </motion.div>
 
             {/* Competitive Mode */}
-            <div
-              className={`p-6 sm:p-8 border-2 transition-all duration-300 relative overflow-hidden ${
+            <motion.div
+              variants={fadeInUp}
+              whileHover={{ scale: 1.02 }}
+              className={`relative overflow-hidden border-2 p-6 transition-all duration-300 sm:p-8 ${
                 isRetro
                   ? 'border-[#b22222]/30 bg-[#b22222]/5 shadow-[6px_6px_0px_rgba(178,34,34,0.1)]'
                   : 'border-[#b22222]/20 bg-gradient-to-br from-[#b22222]/10 to-transparent'
               }`}
             >
-              <div className="absolute top-4 right-4 px-2 py-1 bg-[#b22222] text-[8px] sm:text-[9px] font-black uppercase tracking-wider">
+              <div className="absolute right-4 top-4 bg-[#b22222] px-2 py-1 text-[8px] font-black uppercase tracking-wider sm:text-[9px]">
                 {t('landing.modes.comp_pro_tag')}
               </div>
-              <div className="flex items-center gap-3 mb-6">
-                <Trophy className="w-8 h-8 text-[#b22222]" />
+              <div className="mb-6 flex items-center gap-3">
+                <Trophy className="h-8 w-8 text-[#b22222]" />
                 <h3
-                  className={`text-xl sm:text-2xl font-black uppercase italic text-[#b22222] ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                  className={`text-xl font-black uppercase italic text-[#b22222] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
                 >
                   {t('landing.modes.comp_title')}
                 </h3>
               </div>
-              <p className="text-slate-400 text-sm font-mono mb-6">
+              <p className="mb-6 font-mono text-sm text-slate-400">
                 {t('landing.modes.comp_desc')}
               </p>
               <ul className="space-y-3">
-                {(t('landing.modes.comp_items') as string[]).map((item, i) => (
-                  <li
-                    key={i}
-                    className="flex items-center gap-3 text-sm text-slate-300"
-                  >
-                    <Check className="w-4 h-4 text-[#b22222] flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
+                {Array.isArray(t('landing.modes.comp_items')) &&
+                  (t('landing.modes.comp_items') as string[]).map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center gap-3 text-sm text-slate-300"
+                    >
+                      <Check className="h-4 w-4 flex-shrink-0 text-[#b22222]" />
+                      {item}
+                    </li>
+                  ))}
               </ul>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* --- 06. ROADMAP --- */}
-      <section className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6 border-t border-[#b22222]/10 bg-[#b22222]/[0.02]">
+      <section className="relative z-10 border-t border-[#b22222]/10 bg-[#b22222]/[0.02] px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-12 sm:mb-16 text-center">
-            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={fadeInUp}
+            className="mb-12 text-center sm:mb-16"
+          >
+            <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.roadmap.title')}
             </h2>
             <div
-              className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
               {t('landing.roadmap.subtitle')}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={staggerContainer}
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          >
             {roadmapItems.map((phase, i) => (
-              <div
+              <motion.div
                 key={i}
-                className={`p-5 sm:p-6 border transition-all duration-300 relative ${
+                variants={fadeInUp}
+                whileHover={{ y: -5 }}
+                className={`relative border p-5 transition-all duration-300 sm:p-6 ${
                   phase.status === 'current'
                     ? isRetro
                       ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]'
@@ -689,12 +848,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 }`}
               >
                 {phase.status === 'current' && (
-                  <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-[#d6b85c] text-black text-[8px] font-black uppercase">
+                  <div className="absolute -right-2 -top-2 bg-[#d6b85c] px-2 py-0.5 text-[8px] font-black uppercase text-black">
                     {t('landing.roadmap.active_tag')}
                   </div>
                 )}
                 <div
-                  className={`text-[10px] font-black tracking-widest mb-2 ${
+                  className={`mb-2 text-[10px] font-black tracking-widest ${
                     phase.status === 'current'
                       ? 'text-[#d6b85c]'
                       : phase.status === 'completed'
@@ -705,7 +864,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {phase.phase}
                 </div>
                 <h3
-                  className={`text-lg font-bold mb-4 italic ${
+                  className={`mb-4 text-lg font-bold italic ${
                     phase.status === 'current'
                       ? 'text-[#d6b85c]'
                       : phase.status === 'completed'
@@ -719,47 +878,147 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {phase.items.map((item: string, j: number) => (
                     <li
                       key={j}
-                      className={`text-[11px] font-mono flex items-start gap-2 ${
+                      className={`flex items-start gap-2 font-mono text-[11px] ${
                         phase.status === 'completed'
                           ? 'text-slate-500 line-through'
                           : 'text-slate-400'
                       }`}
                     >
                       {phase.status === 'completed' ? (
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-green-500" />
                       ) : phase.status === 'current' ? (
-                        <Sparkles className="w-3 h-3 text-[#d6b85c] flex-shrink-0 mt-0.5" />
+                        <Sparkles className="mt-0.5 h-3 w-3 flex-shrink-0 text-[#d6b85c]" />
                       ) : (
-                        <Rocket className="w-3 h-3 text-slate-600 flex-shrink-0 mt-0.5" />
+                        <Rocket className="mt-0.5 h-3 w-3 flex-shrink-0 text-slate-600" />
                       )}
                       {item}
                     </li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* --- SOCIAL PROOF / TESTIMONIALS --- */}
+      <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
+        <div className="mx-auto max-w-7xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={fadeInUp}
+            className="mb-12 text-center sm:mb-16"
+          >
+            <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
+              COMMUNITY
+            </h2>
+            <div
+              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+            >
+              WHAT PLAYERS SAY
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={staggerContainer}
+            className="grid gap-6 md:grid-cols-3"
+          >
+            {[
+              {
+                quote:
+                  'bro i was mass liquidated last week but somehow this game made it fun?? lmao bears go brrrr 🐻',
+                author: 'degen_marc',
+                role: '200+ hours',
+                rating: 5,
+              },
+              {
+                quote:
+                  'ok ngl the btc price sync is actually sick. played during the dip and it felt like chaos mode haha',
+                author: 'satoshi_wannabe',
+                role: 'beta tester',
+                rating: 4,
+              },
+              {
+                quote:
+                  'runs smooth af on my old phone, didnt expect that tbh. also the bear/bull mechanic is lowkey addicting',
+                author: 'xKr1pt0x',
+                role: 'mobile player',
+                rating: 5,
+              },
+            ].map((testimonial, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                whileHover={{ y: -5 }}
+                className={`group relative border p-6 transition-all duration-300 sm:p-8
+                  ${
+                    isRetro
+                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.1)]'
+                      : 'border-white/10 bg-white/5 hover:border-[#d6b85c]/30'
+                  }`}
+              >
+                <Quote className="absolute right-4 top-4 h-8 w-8 text-[#d6b85c]/20" />
+                <div className="mb-4 flex gap-1">
+                  {Array.from({ length: testimonial.rating }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-[#d6b85c] text-[#d6b85c]" />
+                  ))}
+                </div>
+                <p className="mb-6 font-mono text-sm leading-relaxed text-slate-300">
+                  "{testimonial.quote}"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222]">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">
+                      {testimonial.author}
+                    </div>
+                    <div className="text-xs text-slate-500">{testimonial.role}</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
       {/* --- 07. FAQ ACCORDION --- */}
-      <section className="relative z-10 py-20 sm:py-24 lg:py-32 px-4 sm:px-6 border-t border-[#b22222]/10">
+      <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-3xl">
-          <div className="mb-12 sm:mb-16 text-center">
-            <h2 className="text-xs font-black tracking-[0.4em] uppercase text-[#d6b85c] mb-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={fadeInUp}
+            className="mb-12 text-center sm:mb-16"
+          >
+            <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.faq.title')}
             </h2>
             <div
-              className={`text-2xl sm:text-4xl md:text-5xl font-black uppercase italic text-white ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
               {t('landing.faq.subtitle')}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="space-y-3">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={staggerContainer}
+            className="space-y-3"
+          >
             {faqItems.map((faq, i) => (
-              <div
+              <motion.div
                 key={i}
+                variants={fadeInUp}
                 className={`border transition-all duration-300 ${
                   openFaqIndex === i
                     ? isRetro
@@ -770,15 +1029,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 <button
                   onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
-                  className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none"
+                  className="flex w-full items-center justify-between gap-4 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] sm:p-5"
                 >
                   <span
-                    className={`text-sm sm:text-base font-bold ${openFaqIndex === i ? 'text-[#d6b85c]' : 'text-white'}`}
+                    className={`text-sm font-bold sm:text-base ${openFaqIndex === i ? 'text-[#d6b85c]' : 'text-white'}`}
                   >
                     {faq.question}
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${
+                    className={`h-5 w-5 flex-shrink-0 transition-transform duration-300 ${
                       openFaqIndex === i
                         ? 'rotate-180 text-[#d6b85c]'
                         : 'text-slate-500'
@@ -794,36 +1053,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <p className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm text-slate-400 font-mono leading-relaxed">
+                      <p className="px-4 pb-4 font-mono text-sm leading-relaxed text-slate-400 sm:px-5 sm:pb-5">
                         {faq.answer}
                       </p>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* --- 08. FOOTER & LEGAL --- */}
-      <footer className="relative z-10 py-12 sm:py-16 lg:py-20 px-4 sm:px-6 border-t border-[#b22222]/20 bg-black">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row justify-between items-start md:items-center gap-8 sm:gap-12">
+      <footer className="relative z-10 border-t border-[#b22222]/20 bg-black px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 sm:gap-12 md:flex-row md:items-center">
           {/* Logo & Trademark */}
           <div>
-            <div className="flex flex-col mb-4 sm:mb-6">
+            <div className="mb-4 flex flex-col sm:mb-6">
               <span
-                className={`text-lg sm:text-xl font-black tracking-tight uppercase italic text-[#d6b85c] leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
+                className={`text-lg font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
               >
                 CRYPTO
               </span>
               <span
-                className={`text-lg sm:text-xl font-black tracking-tight uppercase italic text-white -mt-1 leading-tight ${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-sway-text'}`}
+                className={`-mt-1 text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
               >
                 SURVIVORS
               </span>
             </div>
-            <p className="text-[10px] text-slate-600 font-mono max-w-xs uppercase tracking-widest mb-4">
+            <p className="mb-4 max-w-xs font-mono text-[10px] uppercase tracking-widest text-slate-600">
               {t('landing.footer.trademark')}
             </p>
             {/* Social Links */}
@@ -835,7 +1094,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   e.preventDefault();
                   alert('Discord link coming soon!');
                 }}
-                className={`p-2 border transition-all duration-300 hover:scale-110 ${
+                className={`border p-2 transition-all duration-300 hover:scale-110 ${
                   isRetro
                     ? 'border-[#5865F2]/30 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
                     : 'border-white/10 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
@@ -843,7 +1102,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 aria-label={t('landing.footer.discord_soon')}
               >
                 <svg
-                  className="w-4 h-4 text-[#5865F2]"
+                  className="h-4 w-4 text-[#5865F2]"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -857,7 +1116,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   e.preventDefault();
                   alert('Twitter/X link coming soon!');
                 }}
-                className={`p-2 border transition-all duration-300 hover:scale-110 ${
+                className={`border p-2 transition-all duration-300 hover:scale-110 ${
                   isRetro
                     ? 'border-white/30 hover:border-white hover:bg-white/10'
                     : 'border-white/10 hover:border-white hover:bg-white/10'
@@ -865,7 +1124,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 aria-label={t('landing.footer.twitter_soon')}
               >
                 <svg
-                  className="w-4 h-4 text-white"
+                  className="h-4 w-4 text-white"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -876,47 +1135,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Regulatory Navigation */}
-          <div className="flex flex-wrap gap-3 sm:gap-4 lg:gap-8 text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] font-mono text-slate-500">
-            <div
-              className={`relative group/nav border ${isRetro ? 'border-[#b22222]/30 shadow-[4px_4px_0px_rgba(178,34,34,0.1)]' : 'border-[#b22222]/30'} hover:border-[#b22222] transition-all duration-300 active:scale-95`}
+          <div className="flex flex-wrap gap-2 font-mono text-xs font-semibold uppercase tracking-widest">
+            <button
+              onClick={onLaunch}
+              className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
             >
-              <button
-                onClick={onLaunch}
-                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-[#d6b85c] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-              >
-                {t('landing.footer.access')}
-              </button>
-            </div>
-            <div
-              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-all duration-300 active:scale-95`}
+              {t('landing.footer.access')}
+            </button>
+            <button
+              onClick={onViewPrivacy}
+              className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
             >
-              <button
-                onClick={onViewPrivacy}
-                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-              >
-                {t('landing.footer.privacy')}
-              </button>
-            </div>
-            <div
-              className={`relative group/nav border ${isRetro ? 'border-white/10 shadow-[4px_4px_0px_rgba(255,255,255,0.05)]' : 'border-white/10'} hover:border-white transition-all duration-300 active:scale-95`}
+              {t('landing.footer.privacy')}
+            </button>
+            <button
+              onClick={onViewTerms}
+              className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
             >
-              <button
-                onClick={onViewTerms}
-                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-              >
-                {t('landing.footer.terms')}
-              </button>
-            </div>
-            <div
-              className={`relative group/nav border border-[#b22222]/20 hover:border-[#b22222] transition-all duration-300 active:scale-95`}
+              {t('landing.footer.terms')}
+            </button>
+            <a
+              href="mailto:info@crypto-survivors.com"
+              className="flex h-10 items-center justify-center border border-white/10 bg-white/5 px-5 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
             >
-              <a
-                href="mailto:info@crypto-survivors.com"
-                className="px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] hover:text-[#b22222] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none flex items-center"
-              >
-                {t('landing.footer.contact')}
-              </a>
-            </div>
+              {t('landing.footer.contact')}
+            </a>
           </div>
         </div>
       </footer>
@@ -929,19 +1172,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           if (topEl) topEl.scrollIntoView({ behavior: 'smooth' });
           else window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[60] px-3 sm:px-4 py-2 sm:py-3 min-h-[44px] min-w-[44px] border backdrop-blur-sm transition-all duration-300 shadow-lg active:scale-95 touch-manipulation
-          text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center
-          focus-visible:ring-2 focus-visible:ring-[#d6b85c] focus-visible:outline-none
-          ${
-            isRetro
-              ? 'bg-zinc-800 border-zinc-600 text-zinc-400 hover:text-white rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
-              : 'bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-          }
-        `}
+        className="fixed z-[60] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
         title={t('landing.footer.back_to_top')}
-        style={{ bottom: 'calc(1rem + var(--sab, 0px))', right: '1rem' }}
+        style={{
+          bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+          right: '1rem',
+        }}
       >
-        ↑ {t('landing.footer.top')}
+        ↑ YUKARI
       </motion.button>
       {/* --- 06. GLOBAL STYLE INJECTIONS --- */}
       <style>{`

@@ -62,9 +62,11 @@ describe('NicknameEntryScreen', () => {
     fireEvent.change(input, { target: { value: 'a b' } });
     fireEvent.click(submitBtn);
 
-    expect(
-      await screen.findByText(/Only letters, numbers, and underscores/i)
-    ).toBeInTheDocument();
+    const errorElements = await screen.findAllByText(
+      /Only letters, numbers, and underscores/i
+    );
+    expect(errorElements.length).toBeGreaterThan(0);
+    expect(errorElements[0]).toBeInTheDocument();
     expect(audio.playHit).toHaveBeenCalled();
   });
 
@@ -101,7 +103,9 @@ describe('NicknameEntryScreen', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Nickname taken/i)).toBeInTheDocument();
+      const errorElements = screen.getAllByText(/Nickname taken/i);
+      expect(errorElements.length).toBeGreaterThan(0);
+      expect(errorElements[0]).toBeInTheDocument();
       expect(audio.playHit).toHaveBeenCalled();
     });
   });

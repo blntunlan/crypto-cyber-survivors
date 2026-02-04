@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import tailwindcss from 'eslint-plugin-tailwindcss';
 
 import globals from 'globals';
 
@@ -54,8 +55,14 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      tailwindcss: tailwindcss,
     },
     rules: {
+      // ========== TAILWIND CSS UI CONSISTENCY ==========
+      'tailwindcss/classnames-order': 'warn', // Consistent class ordering
+      'tailwindcss/no-custom-classname': 'off', // Allow custom classes (font-cyber, etc.)
+      'tailwindcss/no-contradicting-classname': 'error', // Prevent conflicting classes
+
       // ========== REACT ==========
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
@@ -137,6 +144,7 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
         ...globals.serviceworker,
+        ...globals.node,
       },
     },
   }

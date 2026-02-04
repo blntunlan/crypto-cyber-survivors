@@ -21,31 +21,31 @@ export const ThemeSection = memo(
 
     return (
       <section className="space-y-3 md:space-y-4">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-          <IconSparkles className="w-3.5 h-3.5" color="#64748b" />
+        <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+          <IconSparkles className="h-3.5 w-3.5" color="#64748b" />
           <span>{t('settings.theme')}</span>
         </h3>
 
-        <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-2 transition-all">
+        <div className="space-y-2 rounded-sm border border-white/5 bg-white/5 p-3 transition-all md:p-4">
           {/* Cyberpunk Button - Currently the only active theme */}
           <button
             disabled
-            className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between cursor-default ${
+            className={`flex w-full cursor-default items-center justify-between rounded-lg border px-4 py-2.5 text-[11px] font-black uppercase transition-all ${
               isCyberpunk
-                ? 'bg-cyan-600/20 text-cyan-400 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                : 'bg-white/5 text-slate-500 border-white/5'
-            } ${focusedItem === 'cyberpunk' ? 'ring-2 ring-white scale-[1.02] bg-white/10' : ''}`}
+                ? 'border-cyan-500/50 bg-cyan-600/20 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                : 'border-white/5 bg-white/5 text-slate-500'
+            } ${focusedItem === 'cyberpunk' ? 'scale-[1.02] bg-white/10 ring-2 ring-white' : ''}`}
           >
             <div className="flex items-center gap-3">
               <IconCyberpunk
-                className="w-4 h-4"
+                className="h-4 w-4"
                 color={isCyberpunk ? '#22d3ee' : '#64748b'}
               />
               <span className={isCyberpunk ? 'text-white' : ''}>
                 {t('settings.theme_cyber')}
               </span>
             </div>
-            {isCyberpunk && <span className="text-[9px] animate-pulse">ACTIVE</span>}
+            {isCyberpunk && <span className="animate-pulse text-[9px]">ACTIVE</span>}
           </button>
 
           {/* Retro Button - Temporarily disabled
@@ -68,7 +68,7 @@ export const ThemeSection = memo(
           */}
 
           {/* Coming Soon indicator */}
-          <div className="text-[9px] text-slate-600 text-center pt-1">
+          <div className="pt-1 text-center text-[9px] text-slate-600">
             More themes coming soon...
           </div>
         </div>

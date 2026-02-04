@@ -37,26 +37,26 @@ export const MobileSection = memo(
 
     return (
       <section className="space-y-3 md:space-y-4">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-          <IconSmartphone className="w-3.5 h-3.5" color="#64748b" />
+        <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+          <IconSmartphone className="h-3.5 w-3.5" color="#64748b" />
           <span>{t('settings.mobile')}</span>
         </h3>
 
-        <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
+        <div className="space-y-3 rounded-sm border border-white/5 bg-white/5 p-3 md:space-y-4 md:p-4">
           {/* Control Type Selection */}
           <div className="space-y-2">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               {t('settings.control_type')}
             </span>
 
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setMobileSetting('controlType', 'drag' as ControlType)}
-                className={`py-2 rounded-lg text-xs font-bold uppercase transition-all border ${
+                className={`rounded-lg border py-2 text-xs font-bold uppercase transition-all ${
                   mobile.controlType === 'drag'
-                    ? 'bg-yellow-500 text-black border-yellow-400 font-black'
-                    : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
-                } ${focusedItem === 'control-drag' ? 'ring-2 ring-white scale-105 z-10' : ''}`}
+                    ? 'border-yellow-400 bg-yellow-500 font-black text-black'
+                    : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'
+                } ${focusedItem === 'control-drag' ? 'z-10 scale-105 ring-2 ring-white' : ''}`}
               >
                 {t('settings.control_drag')}
               </button>
@@ -65,11 +65,11 @@ export const MobileSection = memo(
                 onClick={() =>
                   setMobileSetting('controlType', 'joystick' as ControlType)
                 }
-                className={`py-2 rounded-lg text-xs font-bold uppercase transition-all border ${
+                className={`rounded-lg border py-2 text-xs font-bold uppercase transition-all ${
                   mobile.controlType === 'joystick'
-                    ? 'bg-yellow-500 text-black border-yellow-400 font-black'
-                    : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
-                } ${focusedItem === 'control-joystick' ? 'ring-2 ring-white scale-105 z-10' : ''}`}
+                    ? 'border-yellow-400 bg-yellow-500 font-black text-black'
+                    : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'
+                } ${focusedItem === 'control-joystick' ? 'z-10 scale-105 ring-2 ring-white' : ''}`}
               >
                 {t('settings.control_joystick')}
               </button>
@@ -80,7 +80,7 @@ export const MobileSection = memo(
           {mobile.controlType === 'joystick' && (
             <>
               <div className="space-y-2">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {t('settings.joystick_size')}
                 </span>
 
@@ -89,11 +89,11 @@ export const MobileSection = memo(
                     <button
                       key={size}
                       onClick={() => setMobileSetting('joystickSize', size)}
-                      className={`py-2 rounded-lg text-[10px] font-bold uppercase transition-all border ${
+                      className={`rounded-lg border py-2 text-[10px] font-bold uppercase transition-all ${
                         mobile.joystickSize === size
-                          ? 'bg-yellow-500 text-black border-yellow-400 font-black'
-                          : 'bg-white/5 text-slate-400 border-white/5'
-                      } ${focusedItem === `size-${size}` ? 'ring-2 ring-white scale-105 z-10' : ''}`}
+                          ? 'border-yellow-400 bg-yellow-500 font-black text-black'
+                          : 'border-white/5 bg-white/5 text-slate-400'
+                      } ${focusedItem === `size-${size}` ? 'z-10 scale-105 ring-2 ring-white' : ''}`}
                     >
                       {t(`settings.size_${size}`)}
                     </button>
@@ -101,7 +101,7 @@ export const MobileSection = memo(
                 </div>
               </div>
               <div className="space-y-2">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   {t('settings.joystick_side')}
                 </span>
 
@@ -110,11 +110,11 @@ export const MobileSection = memo(
                     <button
                       key={pos}
                       onClick={() => setMobileSetting('joystickPosition', pos)}
-                      className={`py-2 rounded-lg text-[10px] font-bold uppercase transition-all border ${
+                      className={`rounded-lg border py-2 text-[10px] font-bold uppercase transition-all ${
                         mobile.joystickPosition === pos
-                          ? 'bg-yellow-500 text-black border-yellow-400 font-black'
-                          : 'bg-white/5 text-slate-400 border-white/5'
-                      } ${focusedItem === `side-${pos}` ? 'ring-2 ring-white scale-105 z-10' : ''}`}
+                          ? 'border-yellow-400 bg-yellow-500 font-black text-black'
+                          : 'border-white/5 bg-white/5 text-slate-400'
+                      } ${focusedItem === `side-${pos}` ? 'z-10 scale-105 ring-2 ring-white' : ''}`}
                     >
                       {t(`settings.side_${pos}`)}
                     </button>

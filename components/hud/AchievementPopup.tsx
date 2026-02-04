@@ -17,13 +17,13 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
 
   return (
     <div
-      className="absolute top-80 right-4 z-[140] pointer-events-none"
+      className="pointer-events-none absolute right-4 top-80 z-[140]"
       style={{
         animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
       }}
     >
       <div
-        className={`flex items-center gap-3 px-5 py-3 ${isRetro ? 'border-4 rounded-none' : 'border-2 rounded-xl shadow-lg'}`}
+        className={`flex items-center gap-3 px-5 py-3 ${isRetro ? 'rounded-none border-4' : 'rounded-sm border-2 shadow-lg'}`}
         style={{
           backgroundColor: 'rgba(15, 23, 42, 0.9)',
           borderColor: achievement.color,
@@ -61,7 +61,7 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
 
   return (
     <div
-      className="absolute right-4 z-[140] pointer-events-none"
+      className="pointer-events-none absolute right-4 z-[140]"
       style={{
         animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         top: `calc(${rs(220)}px + env(safe-area-inset-top, 0px))`,
@@ -90,7 +90,7 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
           </span>
 
           <span
-            className="font-black italic tracking-tight text-white leading-none mt-0.5 truncate"
+            className="mt-0.5 truncate font-black italic leading-none tracking-tight text-white"
             style={{ fontSize: rfs(12) }}
           >
             {achievement.name}

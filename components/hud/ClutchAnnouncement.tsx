@@ -12,13 +12,13 @@ interface ClutchAnnouncementProps {
 const DesktopClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
   const { t } = useLanguage();
   return (
-    <div className="absolute top-[20%] left-1/2 -translate-x-1/2 z-[130] pointer-events-none">
+    <div className="pointer-events-none absolute left-1/2 top-[20%] z-[130] -translate-x-1/2">
       <div className="animate-bounce-short">
         <div
-          className={`relative text-white font-black italic text-6xl skew-x-[-15deg] tracking-tighter px-10 py-4 ${
+          className={`relative skew-x-[-15deg] px-10 py-4 text-6xl font-black italic tracking-tighter text-white ${
             isRetro
-              ? 'border-4 rounded-none shadow-[8px_8px_0_#000]'
-              : 'bg-gradient-to-r from-red-600 to-orange-600 shadow-[0_0_20px_rgba(255,0,0,0.6)] border-4 border-yellow-400 rounded-xl'
+              ? 'rounded-none border-4 shadow-[8px_8px_0_#000]'
+              : 'rounded-sm border-4 border-yellow-400 bg-gradient-to-r from-red-600 to-orange-600 shadow-[0_0_20px_rgba(255,0,0,0.6)]'
           }`}
           style={{
             backgroundColor: isRetro ? COLORS.CASINO_RED : undefined,
@@ -35,13 +35,13 @@ const DesktopClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
           {/* Decorative elements */}
           {isRetro ? (
             <>
-              <div className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-black" />
-              <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-black" />
+              <div className="absolute -left-2 -top-2 h-4 w-4 border-2 border-black bg-white" />
+              <div className="absolute -bottom-2 -right-2 h-4 w-4 border-2 border-black bg-white" />
             </>
           ) : (
             <>
-              <div className="absolute -top-2 -left-2 w-4 h-4 bg-yellow-400 border-2 border-black rounded-full" />
-              <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-yellow-400 border-2 border-black rounded-full" />
+              <div className="absolute -left-2 -top-2 h-4 w-4 rounded-full border-2 border-black bg-yellow-400" />
+              <div className="absolute -bottom-2 -right-2 h-4 w-4 rounded-full border-2 border-black bg-yellow-400" />
             </>
           )}
         </div>
@@ -56,14 +56,14 @@ const MobileClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
 
   return (
     <div
-      className="absolute left-1/2 -translate-x-1/2 z-[130] pointer-events-none flex flex-col items-center gap-1"
+      className="pointer-events-none absolute left-1/2 z-[130] flex -translate-x-1/2 flex-col items-center gap-1"
       style={{ top: '25%' }}
     >
       <div
-        className={`text-white font-black italic skew-x-[-12deg] tracking-tight animate-pulse transition-all ${
+        className={`skew-x-[-12deg] animate-pulse font-black italic tracking-tight text-white transition-all ${
           isRetro
-            ? 'border-white rounded-none'
-            : 'bg-gradient-to-r from-red-600 via-orange-500 to-red-600 shadow-[0_0_15px_rgba(255,100,0,0.5)] border-yellow-300 rounded-lg'
+            ? 'rounded-none border-white'
+            : 'rounded-lg border-yellow-300 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 shadow-[0_0_15px_rgba(255,100,0,0.5)]'
         }`}
         style={{
           backgroundColor: isRetro ? COLORS.CASINO_RED : undefined,
@@ -81,7 +81,7 @@ const MobileClutch: React.FC<{ isRetro: boolean }> = ({ isRetro }) => {
       </div>
 
       <div
-        className={`${isRetro ? 'bg-black text-white' : 'bg-black/80 text-yellow-300'} font-bold uppercase tracking-widest skew-x-[-12deg] px-2 shadow-[2px_2px_0_#000]`}
+        className={`${isRetro ? 'bg-black text-white' : 'bg-black/80 text-yellow-300'} skew-x-[-12deg] px-2 font-bold uppercase tracking-widest shadow-[2px_2px_0_#000]`}
         style={{
           fontSize: rfs(10),
           color: isRetro ? COLORS.JACKPOT_YELLOW : undefined,

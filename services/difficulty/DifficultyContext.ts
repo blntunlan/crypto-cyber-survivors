@@ -158,9 +158,15 @@ class DifficultyContextManager {
    */
   public getContext(): DifficultyContextState {
     if (this.isDirty) {
+      this.isDirty = false; // Set false BEFORE calculation to stop recursion if triggered
       this.state = this.recalculate();
       this.output = this.calculateFinalOutput(this.state);
-      this.isDirty = false;
+
+      // Emit update only after state is fully ready and isDirty is false
+      EventBus.emit(
+        'difficultyUpdated',
+        this.state as unknown as Record<string, unknown>
+      );
     }
     return this.state;
   }
@@ -363,12 +369,7 @@ class DifficultyContextManager {
     // Market-driven events will be handled by UnifiedDirector
 
     // 3. Emit detailed update for debug/UI systems
-    if (this.isDirty) {
-      EventBus.emit(
-        'difficultyUpdated',
-        newState as unknown as Record<string, unknown>
-      );
-    }
+    // State-based Event Emission moved to getContext/getDifficultyOutput to prevent recursion
 
     return newState;
   }

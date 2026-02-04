@@ -29,6 +29,8 @@ export class PriceLogger {
   private watchdogTimer: NodeJS.Timeout | null = null;
   private readonly STALE_THRESHOLD = 15000; // 15 seconds
   private readonly RECOVERY_INTERVAL = 60000; // Try recovering every minute
+  private readonly LOG_INTERVAL = 10000; // 10 seconds throttle per pair
+  private lastLogTimes: Map<string, number> = new Map();
 
   private constructor() {
     this.binance = BinanceService.getInstance();
@@ -127,23 +129,31 @@ export class PriceLogger {
 
   private async handleKlineData(data: KlineData): Promise<void> {
     try {
-      // Log to Supabase with retry
-      await withRetry(
-        () =>
-          this.supabase.insertPriceLog({
-            pair: data.pair,
-            price: data.close,
-            high: data.high,
-            low: data.low,
-            volume: data.volume,
-            timestamp: data.timestamp,
-          }),
-        {
-          maxRetries: 3,
-          delayMs: 1000,
-          backoff: true,
-        }
-      );
+      const now = Date.now();
+      const lastLog = this.lastLogTimes.get(data.pair) || 0;
+
+      // Only log to Supabase if interval passed
+      if (now - lastLog >= this.LOG_INTERVAL) {
+        // Log to Supabase with retry
+        await withRetry(
+          () =>
+            this.supabase.insertPriceLog({
+              pair: data.pair,
+              price: data.close,
+              high: data.high,
+              low: data.low,
+              volume: data.volume,
+              timestamp: data.timestamp,
+            }),
+          {
+            maxRetries: 3,
+            delayMs: 1000,
+            backoff: true,
+          }
+        );
+        this.lastLogTimes.set(data.pair, now);
+      }
+
 
       // Update real-time indicators
       // No retry needed here as it's fire-and-forget for real-time state

@@ -59,32 +59,32 @@ export const QualitySection = memo(
 
     return (
       <section className="space-y-3 md:space-y-4">
-        <div className="flex justify-between items-end">
-          <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <IconCpu className="w-3.5 h-3.5" color="#64748b" />
+        <div className="flex items-end justify-between">
+          <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+            <IconCpu className="h-3.5 w-3.5" color="#64748b" />
             <span>{t('settings.quality')}</span>
           </h3>
 
           {isAuto && (
-            <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-green-500">
               ● {t('settings.quality_auto_active')}
             </span>
           )}
         </div>
 
-        <div className="bg-white/5 p-3 md:p-4 rounded-xl border border-white/5 space-y-4 transition-all">
+        <div className="space-y-4 rounded-sm border border-white/5 bg-white/5 p-3 transition-all md:p-4">
           <div className="flex flex-col gap-2">
             {/* Auto Toggle */}
             <button
               onClick={handleAutoClick}
-              className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between ${
+              className={`flex w-full items-center justify-between rounded-lg border px-4 py-2.5 text-[11px] font-black uppercase transition-all ${
                 isAuto
-                  ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.3)]'
-                  : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
-              } ${focusedItem === 'auto' ? 'ring-2 ring-white scale-[1.02] bg-blue-500' : ''}`}
+                  ? 'border-blue-400 bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]'
+                  : 'border-white/5 bg-white/5 text-slate-400 hover:bg-white/10'
+              } ${focusedItem === 'auto' ? 'scale-[1.02] bg-blue-500 ring-2 ring-white' : ''}`}
             >
               <span>{t('settings.quality_auto')}</span>
-              {isAuto && <span className="text-[9px] animate-pulse">ACTIVE</span>}
+              {isAuto && <span className="animate-pulse text-[9px]">ACTIVE</span>}
             </button>
 
             {/* Manual Profiles Grid/List */}
@@ -97,11 +97,11 @@ export const QualitySection = memo(
                   <button
                     key={profile}
                     onClick={() => handleProfileChange(profile)}
-                    className={`w-full py-2.5 px-4 rounded-lg text-[11px] font-black uppercase transition-all border flex items-center justify-between ${
+                    className={`flex w-full items-center justify-between rounded-lg border px-4 py-2.5 text-[11px] font-black uppercase transition-all ${
                       isSelected
                         ? getProfileColor(profile) + ' shadow-[0_0_10px_currentColor]'
-                        : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'
-                    } ${isFocused ? 'ring-2 ring-white scale-[1.02] bg-white/10' : ''}`}
+                        : 'border-white/5 bg-white/5 text-slate-500 hover:bg-white/10'
+                    } ${isFocused ? 'scale-[1.02] bg-white/10 ring-2 ring-white' : ''}`}
                   >
                     <span>{t(`settings.quality_${profile.toLowerCase()}`)}</span>
                     {isSelected && <span className="text-[9px]">SELECTED</span>}
@@ -111,7 +111,7 @@ export const QualitySection = memo(
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-400 font-tech text-center border-t border-white/5 pt-3">
+          <div className="border-t border-white/5 pt-3 text-center font-tech text-[10px] text-slate-400">
             {currentProfile === DeviceProfile.ULTRA && t('settings.quality_desc_ultra')}
             {currentProfile === DeviceProfile.HIGH && t('settings.quality_desc_high')}
             {currentProfile === DeviceProfile.MEDIUM &&

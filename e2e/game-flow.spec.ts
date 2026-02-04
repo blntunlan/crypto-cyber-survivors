@@ -22,6 +22,7 @@ test.describe('Game Flow', () => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
     });
     // Wait for the app to be ready (look for root but not necessarily content yet)
     await expect(page.locator('#root')).toBeAttached();

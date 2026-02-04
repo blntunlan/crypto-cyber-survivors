@@ -414,13 +414,25 @@
       "active_tag": "Ativo",
       "phase1": "Q1 2026",
       "phase1_title": "Fundação",
-      "phase1_items": ["Loop de jogo principal", "Motor Canvas 60 FPS", "Integração Supabase"],
+      "phase1_items": [
+        "Loop de jogo principal",
+        "Motor Canvas 60 FPS",
+        "Integração Supabase"
+      ],
       "phase2": "Q2 2026",
       "phase2_title": "Mercados ao Vivo",
-      "phase2_items": ["WSS Binance/Coinbase", "Diretor de IA Neural", "Sistema Anti-cheat"],
+      "phase2_items": [
+        "WSS Binance/Coinbase",
+        "Diretor de IA Neural",
+        "Sistema Anti-cheat"
+      ],
       "phase3": "Q3 2026",
       "phase3_title": "Social",
-      "phase3_items": ["Rankings globais", "Compartilhamento de replays", "Medalhas de conquista"],
+      "phase3_items": [
+        "Rankings globais",
+        "Compartilhamento de replays",
+        "Medalhas de conquista"
+      ],
       "phase4": "Q4 2026",
       "phase4_title": "Expansão",
       "phase4_items": ["Suporte multi-cripto", "Desafios diários", "Eventos sazonais"]

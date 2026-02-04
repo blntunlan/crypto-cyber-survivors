@@ -29,7 +29,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   // Limit workers
-  workers: 1,
+  workers: process.env.CI ? 1 : '50%',
 
   // Reporter
   reporter: [['html', { open: 'never' }], ['list']],
@@ -80,7 +80,7 @@ export default defineConfig({
 
   // Run local dev server before starting tests
   webServer: {
-    command: 'npm run dev',
+    command: 'npx vite',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 180 * 1000,

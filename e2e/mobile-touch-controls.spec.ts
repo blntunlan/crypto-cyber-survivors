@@ -28,6 +28,7 @@ async function setupMobileSession(
   await page.setViewportSize(viewport);
   await page.goto('/');
   await page.evaluate(() => {
+    localStorage.setItem('has_seen_landing', 'true');
     localStorage.setItem('tutorial-completed', 'true');
     localStorage.setItem(
       'crypto_survivors_user',
@@ -43,10 +44,11 @@ async function setupMobileSession(
 
   // Handle Hub Menu (Click PLAY)
   const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-  await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+  await expect(playHubBtn).toBeVisible();
   await playHubBtn.click();
 
-  await page.waitForTimeout(1000);
+  // Wait for the UI to transition instead of hard timeout
+  await expect(page.locator('canvas')).toBeVisible();
 }
 
 // Helper to start a game
@@ -68,7 +70,8 @@ async function startGame(page: Page) {
     ) {
       if (await button.isVisible()) {
         await button.tap().catch(() => button.click());
-        await page.waitForTimeout(2000);
+        // Wait for game initialization
+        await expect(page.locator('[data-testid="hud-container"]')).toBeVisible();
         return true;
       }
     }
@@ -92,14 +95,19 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
     const gameStarted = await startGame(page);
 
     if (gameStarted) {
-      // Wait for game to fully load
-      await page.waitForTimeout(3000);
-
       // Check for mobile controls container (virtual joystick or drag area)
-      const hasJoystick = await page
-        .locator('[data-testid="virtual-joystick"]')
-        .isVisible()
-        .catch(() => false);
+      const joystick = page.locator('[data-testid="virtual-joystick"]');
+      const dragArea = page.locator('[data-testid="drag-controller"]');
+      const mobileControls = page.locator('[data-testid="mobile-controls"]');
+
+      // Use waitFor instead of timeout
+      await Promise.race([
+        joystick.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+        dragArea.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+        mobileControls.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+      ]);
+
+      const hasJoystick = await joystick.isVisible();
       const hasDragArea = await page
         .locator('[data-testid="drag-controller"]')
         .isVisible()
@@ -123,12 +131,8 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
   });
 
   test('should respond to touch tap on screen', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
-    // Simulate tap on center of screen
     const viewport = MOBILE_DEVICES.iPhoneSE;
     await page.touchscreen.tap(viewport.width / 2, viewport.height / 2);
-    await page.waitForTimeout(500);
 
     // Page should remain stable
     await expect(page.locator('body')).toBeVisible();
@@ -138,8 +142,6 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
     const gameStarted = await startGame(page);
 
     if (gameStarted) {
-      await page.waitForTimeout(2000);
-
       // Simulate joystick drag (left side of screen)
       const viewport = MOBILE_DEVICES.iPhoneSE;
       const joystickArea = {
@@ -149,7 +151,6 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
 
       // Touch and drag
       await page.touchscreen.tap(joystickArea.x, joystickArea.y);
-      await page.waitForTimeout(100);
 
       // Page should remain functional
       await expect(page.locator('body')).toBeVisible();
@@ -157,8 +158,6 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
   });
 
   test('should not have horizontal scroll', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
     const viewportWidth = await page.evaluate(() => window.innerWidth);
 
@@ -167,8 +166,6 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
   });
 
   test('should scale UI elements appropriately', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
     // Check that text is readable (not too small)
     const fontSize = await page.evaluate(() => {
       const body = document.body;
@@ -423,7 +420,6 @@ test.describe('Orientation Handling', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await setupMobileSession(page, { width: 375, height: 667 });
 
-    await page.waitForTimeout(2000);
     await expect(page.locator('body')).toBeVisible();
 
     // Portrait should work properly
@@ -437,7 +433,6 @@ test.describe('Orientation Handling', () => {
     await page.setViewportSize({ width: 667, height: 375 });
     await setupMobileSession(page, { width: 667, height: 375 });
 
-    await page.waitForTimeout(2000);
     await expect(page.locator('body')).toBeVisible();
 
     // Landscape should work properly
@@ -477,7 +472,6 @@ test.describe('Edge Cases - Touch Boundaries', () => {
 
     for (const corner of corners) {
       await page.touchscreen.tap(corner.x, corner.y);
-      await page.waitForTimeout(100);
     }
 
     // Page should remain stable
@@ -498,20 +492,15 @@ test.describe('Edge Cases - Touch Boundaries', () => {
 
     for (const edge of edges) {
       await page.touchscreen.tap(edge.x, edge.y);
-      await page.waitForTimeout(100);
     }
 
     await expect(page.locator('body')).toBeVisible();
   });
 
   test('should handle touch with floating point coordinates', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
     // Test with floating point coordinates
     await page.touchscreen.tap(187.5, 333.7);
-    await page.waitForTimeout(100);
     await page.touchscreen.tap(100.123, 200.456);
-    await page.waitForTimeout(100);
 
     await expect(page.locator('body')).toBeVisible();
   });
@@ -532,8 +521,6 @@ test.describe('Edge Cases - Rapid Input', () => {
     const gameStarted = await startGame(page);
 
     if (gameStarted) {
-      await page.waitForTimeout(1000);
-
       // Simulate very rapid tapping (10 taps in 500ms)
       const startTime = Date.now();
       let tapCount = 0;
@@ -551,14 +538,9 @@ test.describe('Edge Cases - Rapid Input', () => {
   });
 
   test('should handle double-tap correctly', async ({ page }) => {
-    await page.waitForTimeout(2000);
-
     // Double tap simulation
     await page.touchscreen.tap(187, 333);
-    await page.waitForTimeout(50); // Very short delay for double-tap
     await page.touchscreen.tap(187, 333);
-
-    await page.waitForTimeout(500);
 
     // Should not cause unintended zoom or behavior
     await expect(page.locator('body')).toBeVisible();
@@ -617,8 +599,6 @@ test.describe('Edge Cases - Session State', () => {
       await playHubButton.click();
     }
 
-    await page.waitForTimeout(2000);
-
     // App should handle this gracefully (either show login or auto-refresh)
     await expect(page.locator('body')).toBeVisible();
   });
@@ -640,8 +620,6 @@ test.describe('Edge Cases - Session State', () => {
       await playHubButton.click();
     }
 
-    await page.waitForTimeout(2000);
-
     // Should show nickname entry screen
     await expect(page.locator('body')).toBeVisible();
   });
@@ -662,8 +640,6 @@ test.describe('Edge Cases - Session State', () => {
     if (await playHubButton.isVisible({ timeout: 5000 })) {
       await playHubButton.click();
     }
-
-    await page.waitForTimeout(2000);
 
     // App should recover gracefully
     await expect(page.locator('body')).toBeVisible();

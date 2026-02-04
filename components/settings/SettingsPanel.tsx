@@ -281,7 +281,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center p-4 md:p-6 overflow-y-auto allow-scroll ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
+      className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 md:p-6 ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
       style={{
         zIndex: Z_LAYERS.SETTINGS_PANEL,
         paddingTop: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
@@ -289,16 +289,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       }}
     >
       <div
-        className={`max-w-md w-full p-4 md:p-8 flex flex-col max-h-full transition-all ${
+        className={`flex max-h-full w-full max-w-md flex-col p-4 transition-all md:p-8 ${
           isRetro
-            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
+            : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
       >
         {/* Header */}
-        <header className="text-center mb-4 md:mb-8 shrink-0">
+        <header className="mb-4 shrink-0 text-center md:mb-8">
           <h2
-            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} text-2xl md:text-3xl font-black text-white italic tracking-tighter uppercase`}
+            className={`${isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber'} text-2xl font-black uppercase italic tracking-tighter text-white md:text-3xl`}
             style={{
               textShadow: isRetro ? `4px 4px 0px ${COLORS.SLOT_BLACK}` : 'none',
             }}
@@ -307,7 +307,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </h2>
 
           <div
-            className={`h-1 mx-auto mt-2 ${isRetro ? 'w-24' : 'w-12 bg-[var(--color-primary)] rounded-full opacity-50'}`}
+            className={`mx-auto mt-2 h-1 ${isRetro ? 'w-24' : 'w-12 rounded-full bg-[var(--color-primary)] opacity-50'}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           />
         </header>
@@ -315,7 +315,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         {/* Settings Sections */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 min-h-0 space-y-4 md:space-y-6 overflow-y-auto pr-2 custom-scrollbar touch-pan-y allow-scroll"
+          className="custom-scrollbar allow-scroll min-h-0 flex-1 touch-pan-y space-y-4 overflow-y-auto pr-2 md:space-y-6"
         >
           {!isInGame && (
             <div
@@ -486,7 +486,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         {/* Footer Buttons */}
-        <div className="flex gap-3 pt-4 md:pt-6 shrink-0 mt-auto">
+        <div className="mt-auto flex shrink-0 gap-3 pt-4 md:pt-6">
           {/* Replay Tutorial - Only show when not in game */}
           {!isInGame && onReplayTutorial && (
             <button
@@ -494,10 +494,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 onReplayTutorial();
                 onClose();
               }}
-              className={`flex-1 py-3 font-black uppercase text-[10px] tracking-widest transition-all border ${
+              className={`flex-1 border py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
                 isRetro
-                  ? 'bg-cyan-800 text-white border-cyan-900 rounded-none border-b-2 active:translate-y-0.5'
-                  : 'bg-cyan-900/50 text-cyan-400 rounded-xl hover:bg-cyan-800/50 hover:text-cyan-300 border-cyan-700/50 shadow-sm'
+                  ? 'rounded-none border-b-2 border-cyan-900 bg-cyan-800 text-white active:translate-y-0.5'
+                  : 'rounded-sm border-cyan-700/50 bg-cyan-900/50 text-cyan-400 shadow-sm hover:bg-cyan-800/50 hover:text-cyan-300'
               }`}
               title={t('tutorial.replay')}
             >
@@ -510,11 +510,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               if (el) focusableRefs.current.set(RESET_INDEX, el);
             }}
             onClick={resetSettings}
-            className={`flex-1 py-3 font-black uppercase text-[10px] tracking-widest transition-all border ${
+            className={`flex-1 border py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
               isRetro
-                ? 'bg-zinc-700 text-white border-zinc-900 rounded-none border-b-2 active:translate-y-0.5'
-                : 'bg-slate-800 text-slate-400 rounded-xl hover:bg-slate-700 hover:text-white border-slate-700 shadow-sm'
-            } ${focusedIndex === RESET_INDEX ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'ring-2 ring-white scale-105 bg-slate-700 text-white') : ''}`}
+                ? 'rounded-none border-b-2 border-zinc-900 bg-zinc-700 text-white active:translate-y-0.5'
+                : 'rounded-sm border-slate-700 bg-slate-800 text-slate-400 shadow-sm hover:bg-slate-700 hover:text-white'
+            } ${focusedIndex === RESET_INDEX ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'scale-105 bg-slate-700 text-white ring-2 ring-white') : ''}`}
           >
             {t('settings.reset')}
           </button>
@@ -524,11 +524,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               if (el) focusableRefs.current.set(CLOSE_INDEX, el);
             }}
             onClick={onClose}
-            className={`flex-[2] py-3 font-black uppercase tracking-[0.2em] text-sm transition-all ${
+            className={`flex-[2] py-3 text-sm font-black uppercase tracking-[0.2em] transition-all ${
               isRetro
-                ? 'text-black rounded-none border-b-4 border-yellow-700 active:translate-y-1 active:border-b-0'
-                : 'bg-white text-black rounded-xl hover:bg-yellow-500 shadow-lg shadow-white/5'
-            } ${focusedIndex === CLOSE_INDEX ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'bg-yellow-500 scale-[1.02] shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
+                ? 'rounded-none border-b-4 border-yellow-700 text-black active:translate-y-1 active:border-b-0'
+                : 'rounded-sm bg-white text-black shadow-lg shadow-white/5 hover:bg-yellow-500'
+            } ${focusedIndex === CLOSE_INDEX ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'scale-[1.02] bg-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           >
             {t('settings.close')}
@@ -536,7 +536,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         </div>
 
         <p
-          className={`text-center text-[8px] font-bold uppercase tracking-[0.5em] mt-3 shrink-0 ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
+          className={`mt-3 shrink-0 text-center text-[8px] font-bold uppercase tracking-[0.5em] ${isRetro ? 'text-zinc-500' : 'text-slate-600'}`}
         >
           {t('settings.auto_save')}
         </p>

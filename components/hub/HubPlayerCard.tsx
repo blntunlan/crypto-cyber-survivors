@@ -48,13 +48,13 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
   return (
     <div
       className={`
-        w-full
-        p-3 sm:p-4
-        flex items-center gap-3 sm:gap-4
+        flex
+        w-full items-center
+        gap-3 p-3 sm:gap-4 sm:p-4
         ${
           isRetro
-            ? 'bg-zinc-900 border-2 border-zinc-700 rounded-none shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
-            : 'bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl'
+            ? 'rounded-none border-2 border-zinc-700 bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+            : 'rounded-sm border border-white/10 bg-white/5 backdrop-blur-xl'
         }
       `}
     >
@@ -64,13 +64,13 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
         whileTap={onAvatarClick && !isRetro ? { scale: 0.95 } : undefined}
         className={`
           relative
-          w-14 h-14 sm:w-16 sm:h-16
-          flex items-center justify-center
-          text-2xl sm:text-3xl
+          flex h-14 w-14 items-center
+          justify-center text-2xl sm:h-16
+          sm:w-16 sm:text-3xl
           ${
             isRetro
-              ? 'bg-zinc-800 border-2 border-zinc-600 rounded-none'
-              : 'bg-gradient-to-br from-white/10 to-white/5 rounded-xl border border-white/20'
+              ? 'rounded-none border-2 border-zinc-600 bg-zinc-800'
+              : 'rounded-sm border border-white/20 bg-gradient-to-br from-white/10 to-white/5'
           }
           ${onAvatarClick ? 'cursor-pointer' : 'cursor-default'}
         `}
@@ -87,7 +87,7 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
         <div
           className={`
             absolute bottom-0 right-0
-            w-3 h-3
+            h-3 w-3
             ${isRetro ? 'border border-zinc-900' : 'rounded-full'}
           `}
           style={{ backgroundColor: COLORS.PUMP_GREEN }}
@@ -95,13 +95,13 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
       </motion.div>
 
       {/* Player Info */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {/* Nickname */}
         <div
           className={`
-            text-sm sm:text-base
+            truncate text-sm
             font-black uppercase tracking-wide
-            truncate
+            sm:text-base
             ${isRetro ? 'font-retro-pixel text-[10px] sm:text-xs' : 'font-cyber'}
           `}
           style={{ color: skinDef.color }}
@@ -112,9 +112,9 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
         {/* Skin name */}
         <div
           className={`
-            text-[10px] sm:text-xs
+            truncate text-[10px]
             text-slate-400
-            truncate
+            sm:text-xs
             ${isRetro ? 'font-retro-pixel text-[7px]' : ''}
           `}
         >
@@ -131,15 +131,15 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
             px-2 py-1
             ${
               isRetro
-                ? 'bg-zinc-800 border border-zinc-600 rounded-none'
-                : 'bg-white/5 rounded-lg border border-white/10'
+                ? 'rounded-none border border-zinc-600 bg-zinc-800'
+                : 'rounded-lg border border-white/10 bg-white/5'
             }
           `}
         >
           <span className="text-sm">🪙</span>
           <span
             className={`
-              text-xs sm:text-sm font-black
+              text-xs font-black sm:text-sm
               ${isRetro ? 'font-retro-pixel text-[8px]' : 'font-numbers'}
             `}
             style={{ color: COLORS.JACKPOT_YELLOW }}

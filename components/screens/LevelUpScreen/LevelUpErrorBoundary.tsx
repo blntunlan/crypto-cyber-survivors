@@ -28,31 +28,31 @@ export class LevelUpErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-red-900/90 p-4">
-          <div className="max-w-2xl w-full bg-black/80 border-2 border-red-500 rounded-xl p-6 text-white font-debug text-sm overflow-auto max-h-[80vh]">
-            <h2 className="text-2xl font-bold text-red-500 mb-4">
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-sm border-2 border-red-500 bg-black/80 p-6 font-debug text-sm text-white">
+            <h2 className="mb-4 text-2xl font-bold text-red-500">
               ⚠️ LevelUpScreen Error
             </h2>
             <div className="mb-4">
-              <p className="text-yellow-400 font-bold">Error:</p>
-              <pre className="bg-gray-900 p-2 rounded mt-1 overflow-x-auto">
+              <p className="font-bold text-yellow-400">Error:</p>
+              <pre className="mt-1 overflow-x-auto rounded bg-gray-900 p-2">
                 {this.state.error?.message}
               </pre>
             </div>
             <div className="mb-4">
-              <p className="text-yellow-400 font-bold">Stack:</p>
-              <pre className="bg-gray-900 p-2 rounded mt-1 overflow-x-auto text-xs">
+              <p className="font-bold text-yellow-400">Stack:</p>
+              <pre className="mt-1 overflow-x-auto rounded bg-gray-900 p-2 text-xs">
                 {this.state.error?.stack}
               </pre>
             </div>
             <div className="mb-4">
-              <p className="text-yellow-400 font-bold">Debug Info:</p>
-              <pre className="bg-gray-900 p-2 rounded mt-1 overflow-x-auto text-xs">
+              <p className="font-bold text-yellow-400">Debug Info:</p>
+              <pre className="mt-1 overflow-x-auto rounded bg-gray-900 p-2 text-xs">
                 {this.props.debugInfo}
               </pre>
             </div>
             <div>
-              <p className="text-yellow-400 font-bold">Component Stack:</p>
-              <pre className="bg-gray-900 p-2 rounded mt-1 overflow-x-auto text-xs">
+              <p className="font-bold text-yellow-400">Component Stack:</p>
+              <pre className="mt-1 overflow-x-auto rounded bg-gray-900 p-2 text-xs">
                 {this.state.errorInfo?.componentStack}
               </pre>
             </div>

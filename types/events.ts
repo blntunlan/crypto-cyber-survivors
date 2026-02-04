@@ -98,7 +98,12 @@ export type GameEvent =
   // Supabase health events
   | 'supabaseHealthCheck'
   | 'supabaseConnectionLost'
-  | 'supabaseConnectionRestored';
+  | 'supabaseConnectionRestored'
+  // Twitter auth events
+  | 'twitterLoginSuccess'
+  | 'twitterUnlinked'
+  // Supabase auth events
+  | 'authStateChanged';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -684,6 +689,11 @@ export interface EventDataMap {
   supabaseHealthCheck: SupabaseHealthCheckEvent;
   supabaseConnectionLost: { error: string; timestamp: string };
   supabaseConnectionRestored: { latencyMs: number; timestamp: string };
+  // Twitter auth events
+  twitterLoginSuccess: { username: string; displayName: string };
+  twitterUnlinked: Record<string, never>;
+  // Supabase auth state change event
+  authStateChanged: AuthStateChangedEvent;
 }
 
 export interface NotificationEvent {
@@ -722,4 +732,17 @@ export interface SupabaseHealthCheckEvent {
   status: 'healthy' | 'degraded' | 'unhealthy';
   latencyMs: number;
   recommendations: string[];
+}
+
+/** Auth state changed event (Supabase Auth) */
+export interface AuthStateChangedEvent {
+  type:
+    | 'signIn'
+    | 'signOut'
+    | 'signUp'
+    | 'tokenRefreshed'
+    | 'userUpdated'
+    | 'passwordRecovery';
+  user: unknown | null;
+  session?: unknown | null;
 }

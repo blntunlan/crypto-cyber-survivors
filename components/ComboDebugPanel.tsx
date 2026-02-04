@@ -82,8 +82,8 @@ export const ComboDebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-80 z-[9999] bg-slate-800 text-slate-400 p-2 rounded-lg 
-                           border border-slate-700 hover:bg-slate-700 transition-colors text-[10px]"
+        className="fixed bottom-4 right-80 z-[9999] rounded-lg border border-slate-700 bg-slate-800 
+                           p-2 text-[10px] text-slate-400 transition-colors hover:bg-slate-700"
       >
         ⚡ COMBO DBG (ALT+C)
       </button>
@@ -91,20 +91,20 @@ export const ComboDebugPanel: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-20 right-4 w-72 bg-slate-900/90 border border-amber-500/40 rounded-xl p-4 z-[9999] shadow-[0_0_30px_rgba(245,158,11,0.15)] backdrop-blur-md">
-      <div className="flex justify-between items-center mb-4">
+    <div className="fixed bottom-20 right-4 z-[9999] w-72 rounded-sm border border-amber-500/40 bg-slate-900/90 p-4 shadow-[0_0_30px_rgba(245,158,11,0.15)] backdrop-blur-md">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]"></div>
-          <h3 className="text-amber-500 font-bold uppercase tracking-wider text-[10px]">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]"></div>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
             Combo Debugger
           </h3>
         </div>
         <button
           onClick={() => setIsVisible(false)}
-          className="text-slate-500 hover:text-white transition-colors"
+          className="text-slate-500 transition-colors hover:text-white"
         >
           <svg
-            className="w-4 h-4"
+            className="h-4 w-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -121,46 +121,46 @@ export const ComboDebugPanel: React.FC = () => {
 
       <div className="space-y-4">
         {/* Stats Card */}
-        <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800/50 shadow-inner">
-          <div className="flex justify-between items-end mb-1">
-            <span className="text-slate-500 text-[9px] uppercase font-bold">
+        <div className="rounded-lg border border-slate-800/50 bg-slate-950/50 p-3 shadow-inner">
+          <div className="mb-1 flex items-end justify-between">
+            <span className="text-[9px] font-bold uppercase text-slate-500">
               Current Streak
             </span>
-            <span className="text-white font-black text-xl leading-none">
+            <span className="text-xl font-black leading-none text-white">
               {state.killStreak}
             </span>
           </div>
 
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-slate-500 text-[9px] uppercase font-bold">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase text-slate-500">
               Multiplier
             </span>
-            <span className="text-amber-400 font-bold">
+            <span className="font-bold text-amber-400">
               {state.comboMultiplier.toFixed(1)}x
             </span>
           </div>
 
           {/* Timer Bar */}
-          <div className="relative h-2 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner border border-slate-700/50">
+          <div className="relative h-2 w-full overflow-hidden rounded-full border border-slate-700/50 bg-slate-800 shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-100 ease-linear shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+              className="h-full bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)] transition-all duration-100 ease-linear"
               style={{ width: `${timeRemaining * 100}%` }}
             />
             {/* Pulse effect when low time */}
             {timeRemaining < 0.3 && (
-              <div className="absolute inset-0 bg-red-500/20 animate-pulse"></div>
+              <div className="absolute inset-0 animate-pulse bg-red-500/20"></div>
             )}
           </div>
 
-          <div className="flex justify-between mt-2 text-[9px]">
+          <div className="mt-2 flex justify-between text-[9px]">
             <span className="text-slate-500">Bonus XP:</span>
-            <span className="text-green-400 font-bold">+{state.totalBonusXp}</span>
+            <span className="font-bold text-green-400">+{state.totalBonusXp}</span>
           </div>
         </div>
 
         {/* Simulation Controls */}
         <div className="space-y-2">
-          <div className="text-[9px] text-slate-500 uppercase font-bold tracking-widest pl-1">
+          <div className="pl-1 text-[9px] font-bold uppercase tracking-widest text-slate-500">
             Simulation
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -168,7 +168,7 @@ export const ComboDebugPanel: React.FC = () => {
               <button
                 key={n}
                 onClick={() => simulateKill(n)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-lg border border-slate-700 transition-all active:scale-95 text-[10px] font-bold"
+                className="rounded-lg border border-slate-700 bg-slate-800 py-2 text-[10px] font-bold text-slate-200 transition-all hover:bg-slate-700 active:scale-95"
               >
                 +{n} Kill
               </button>
@@ -177,7 +177,7 @@ export const ComboDebugPanel: React.FC = () => {
 
           <button
             onClick={goToNextMilestone}
-            className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 py-2 rounded-lg border border-amber-500/30 transition-all active:scale-[0.98] text-[10px] font-bold shadow-[0_0_15px_rgba(245,158,11,0.05)]"
+            className="w-full rounded-lg border border-amber-500/30 bg-amber-500/10 py-2 text-[10px] font-bold text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.05)] transition-all hover:bg-amber-500/20 active:scale-[0.98]"
           >
             ⚡ Trigger Next Milestone
           </button>
@@ -186,13 +186,13 @@ export const ComboDebugPanel: React.FC = () => {
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => simulateGem(false)}
-            className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 py-2 rounded-lg border border-blue-500/20 transition-all active:scale-95 text-[10px] font-bold"
+            className="rounded-lg border border-blue-500/20 bg-blue-500/10 py-2 text-[10px] font-bold text-blue-400 transition-all hover:bg-blue-500/20 active:scale-95"
           >
             💎 Common Gem
           </button>
           <button
             onClick={() => simulateGem(true)}
-            className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 py-2 rounded-lg border border-purple-500/20 transition-all active:scale-95 text-[10px] font-bold"
+            className="rounded-lg border border-purple-500/20 bg-purple-500/10 py-2 text-[10px] font-bold text-purple-400 transition-all hover:bg-purple-500/20 active:scale-95"
           >
             ✨ Rare Gem
           </button>
@@ -200,14 +200,14 @@ export const ComboDebugPanel: React.FC = () => {
 
         <button
           onClick={() => ComboSystem.resetCombo()}
-          className="w-full bg-slate-800 hover:bg-red-900/20 hover:text-red-400 hover:border-red-500/30 text-slate-400 py-2 rounded-lg border border-slate-700 transition-all active:scale-[0.98] text-[10px] font-bold"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 text-[10px] font-bold text-slate-400 transition-all hover:border-red-500/30 hover:bg-red-900/20 hover:text-red-400 active:scale-[0.98]"
         >
           🛑 Force Reset Combo
         </button>
 
         {/* Milestone Roadmap */}
-        <div className="pt-2 border-t border-slate-800/50">
-          <div className="text-[8px] text-slate-600 uppercase font-bold tracking-[0.2em] mb-2 flex justify-between">
+        <div className="border-t border-slate-800/50 pt-2">
+          <div className="mb-2 flex justify-between text-[8px] font-bold uppercase tracking-[0.2em] text-slate-600">
             <span>Milestone Path</span>
             <span>{COMBO_MILESTONES.length} Total</span>
           </div>
@@ -215,13 +215,13 @@ export const ComboDebugPanel: React.FC = () => {
             {COMBO_MILESTONES.map(m => {
               const isAchieved = state.killStreak >= m.kills;
               return (
-                <div key={m.kills} className="flex justify-between items-center">
+                <div key={m.kills} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
-                      className={`w-1 h-1 rounded-full ${isAchieved ? 'bg-amber-500 shadow-[0_0_4px_#f59e0b]' : 'bg-slate-800'}`}
+                      className={`h-1 w-1 rounded-full ${isAchieved ? 'bg-amber-500 shadow-[0_0_4px_#f59e0b]' : 'bg-slate-800'}`}
                     ></div>
                     <span
-                      className={`text-[9px] ${isAchieved ? 'text-amber-500/80 font-bold' : 'text-slate-600'}`}
+                      className={`text-[9px] ${isAchieved ? 'font-bold text-amber-500/80' : 'text-slate-600'}`}
                     >
                       {m.name}
                     </span>

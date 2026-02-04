@@ -42,7 +42,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
   const pairs = Object.values(CRYPTO_PAIRS);
 
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="flex justify-center gap-3">
       {pairs.map(pair => (
         <motion.button
           key={pair.id}
@@ -52,12 +52,12 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
           }}
           disabled={disabled}
           className={`
-            relative px-3 py-1.5 transition-all flex flex-col items-center gap-1 min-w-[60px]
-            ${isRetro ? `border-2 border-zinc-700 bg-zinc-900/50 rounded-none` : 'rounded-lg'}
+            relative flex min-w-[60px] flex-col items-center gap-1 px-3 py-1.5 transition-all
+            ${isRetro ? `rounded-none border-2 border-zinc-700 bg-zinc-900/50` : 'rounded-lg'}
             ${
               selected === pair.id
-                ? `scale-105 z-10 ${isRetro ? '!border-white bg-zinc-800' : ''}`
-                : 'opacity-30 hover:opacity-60 grayscale hover:grayscale-0'
+                ? `z-10 scale-105 ${isRetro ? '!border-white bg-zinc-800' : ''}`
+                : 'opacity-30 grayscale hover:opacity-60 hover:grayscale-0'
             }
           `}
           style={{
@@ -77,7 +77,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
           {selected === pair.id && (
             <motion.div
               layoutId="active-pair-indicator"
-              className={`absolute -bottom-0.5 w-6 h-0.5 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
+              className={`absolute -bottom-0.5 h-0.5 w-6 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
               style={{
                 backgroundColor: pair.color,
                 boxShadow: isRetro ? 'none' : `0 0 8px ${pair.color}`,
@@ -102,7 +102,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
             {getCryptoIcon(pair.id, 28)}
           </motion.div>
           <span
-            className={`text-[7px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} tracking-widest uppercase`}
+            className={`text-[7px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-widest`}
             style={{ color: pair.color }}
           >
             {pair.id}
@@ -117,7 +117,7 @@ export const CryptoSelector: React.FC<CryptoSelectorProps> = ({
 export const LongIcon = ({ size: _size = 40 }: { size?: number }) => (
   <div className="relative">
     <motion.div
-      className="p-3 rounded-xl bg-green-500/20 border border-green-500/30"
+      className="rounded-sm border border-green-500/30 bg-green-500/20 p-3"
       animate={{
         boxShadow: [
           '0 0 0 rgba(34, 197, 94, 0)',
@@ -127,7 +127,7 @@ export const LongIcon = ({ size: _size = 40 }: { size?: number }) => (
       }}
       transition={{ duration: 2, repeat: Infinity }}
     >
-      <IconTrendUp className="text-green-400 w-10 h-10" color="#4ade80" />
+      <IconTrendUp className="h-10 w-10 text-green-400" color="#4ade80" />
     </motion.div>
   </div>
 );
@@ -135,7 +135,7 @@ export const LongIcon = ({ size: _size = 40 }: { size?: number }) => (
 export const ShortIcon = ({ size: _size = 40 }: { size?: number }) => (
   <div className="relative">
     <motion.div
-      className="p-3 rounded-xl bg-red-500/20 border border-red-500/30"
+      className="rounded-sm border border-red-500/30 bg-red-500/20 p-3"
       animate={{
         boxShadow: [
           '0 0 0 rgba(239, 68, 68, 0)',
@@ -145,7 +145,7 @@ export const ShortIcon = ({ size: _size = 40 }: { size?: number }) => (
       }}
       transition={{ duration: 2, repeat: Infinity }}
     >
-      <IconTrendDown className="text-red-400 w-10 h-10" color="#f87171" />
+      <IconTrendDown className="h-10 w-10 text-red-400" color="#f87171" />
     </motion.div>
   </div>
 );

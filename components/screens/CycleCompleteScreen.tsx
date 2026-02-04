@@ -76,37 +76,37 @@ export function CycleCompleteScreen({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto allow-scroll"
+      className="allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4"
       style={{
         backgroundColor: 'rgba(0, 0, 0, 0.9)',
         zIndex: Z_LAYERS.CYCLE_COMPLETE,
       }}
     >
       <div
-        className={`relative w-full max-w-md mx-4 p-6 md:p-8 my-auto transition-all ${
+        className={`relative mx-4 my-auto w-full max-w-md p-6 transition-all md:p-8 ${
           isRetro
-            ? 'bg-zinc-900 border-4 border-[var(--color-primary)] rounded-none'
-            : 'cyber-glass rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
+            : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
         }`}
       >
         {/* Header */}
-        <div className="text-center mb-6">
+        <div className="mb-6 text-center">
           <div
-            className={`${isRetro ? 'font-retro-pixel' : 'font-cyber cyber-glitch-text'} ${sizes.heading} font-black mb-1 text-shadow-none`}
+            className={`${isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber'} ${sizes.heading} text-shadow-none mb-1 font-black`}
             style={{ color: COLORS.JACKPOT_YELLOW }}
           >
             {t('common.cycle_complete_screen.title', { val: data.cycleNumber })}
           </div>
 
           <div
-            className={`text-slate-400 text-[8px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-widest`}
+            className={`text-[8px] text-slate-400 ${isRetro ? 'font-retro-pixel' : 'font-cyber'} uppercase tracking-widest`}
           >
             {t('common.cycle_complete_screen.subtitle')}
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="mb-6 grid grid-cols-2 gap-3">
           <StatBox
             label={t('common.cycle_complete_screen.time_survived')}
             value={formatTime(data.survivalTimeSeconds)}
@@ -114,7 +114,7 @@ export function CycleCompleteScreen({
             isRetro={isRetro}
             icon={
               <IconMonitor
-                className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                className={isRetro ? 'h-5 w-5' : 'h-6 w-6'}
                 color={COLORS.ELECTRIC_BLUE}
               />
             }
@@ -126,7 +126,7 @@ export function CycleCompleteScreen({
             isRetro={isRetro}
             icon={
               <IconTrophy
-                className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                className={isRetro ? 'h-5 w-5' : 'h-6 w-6'}
                 color={COLORS.JACKPOT_YELLOW}
               />
             }
@@ -138,7 +138,7 @@ export function CycleCompleteScreen({
             isRetro={isRetro}
             icon={
               <IconSkull
-                className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                className={isRetro ? 'h-5 w-5' : 'h-6 w-6'}
                 color={COLORS.CASINO_RED}
               />
             }
@@ -152,12 +152,12 @@ export function CycleCompleteScreen({
             icon={
               data.effectivePnl >= 0 ? (
                 <IconTrendUp
-                  className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                  className={isRetro ? 'h-5 w-5' : 'h-6 w-6'}
                   color={COLORS.PUMP_GREEN}
                 />
               ) : (
                 <IconTrendDown
-                  className={isRetro ? 'w-5 h-5' : 'w-6 h-6'}
+                  className={isRetro ? 'h-5 w-5' : 'h-6 w-6'}
                   color={COLORS.DUMP_ORANGE}
                 />
               )
@@ -168,14 +168,14 @@ export function CycleCompleteScreen({
         {/* Coin Earnings */}
         {coinCalculation && (
           <div
-            className={`mb-6 p-4 ${isRetro ? 'border-2' : 'rounded-xl'}`}
+            className={`mb-6 p-4 ${isRetro ? 'border-2' : 'rounded-sm'}`}
             style={{
               backgroundColor: `${COLORS.JACKPOT_YELLOW}10`,
               borderColor: COLORS.JACKPOT_YELLOW,
             }}
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-slate-300 font-bold">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-bold text-slate-300">
                 {t('common.cycle_complete_screen.coins_earned')}
               </span>
 
@@ -196,7 +196,7 @@ export function CycleCompleteScreen({
             </div>
 
             {showBreakdown && (
-              <div className="mt-3 pt-3 border-t border-slate-700/50 space-y-1">
+              <div className="mt-3 space-y-1 border-t border-slate-700/50 pt-3">
                 {Object.entries(coinCalculation.breakdown).map(([key, value]) => (
                   <div key={key} className="flex justify-between text-xs">
                     <span className="text-slate-400">{key}</span>
@@ -230,10 +230,10 @@ export function CycleCompleteScreen({
               audio.playButton();
               void onCashOut();
             }}
-            className={`flex-1 py-4 font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+            className={`flex flex-1 items-center justify-center gap-2 py-4 font-black uppercase tracking-wider transition-all ${
               isRetro
                 ? 'border-4 active:translate-y-1'
-                : 'rounded-xl border-2 hover:scale-105 active:scale-95'
+                : 'rounded-sm border-2 hover:scale-105 active:scale-95'
             }`}
             style={{
               backgroundColor: COLORS.PUMP_GREEN,
@@ -241,7 +241,7 @@ export function CycleCompleteScreen({
               color: '#000',
             }}
           >
-            <IconBitcoin className="w-5 h-5" color="black" />
+            <IconBitcoin className="h-5 w-5" color="black" />
             {t('common.cycle_complete_screen.cash_out')}
           </button>
 
@@ -250,10 +250,10 @@ export function CycleCompleteScreen({
               audio.playButton();
               void onContinue();
             }}
-            className={`flex-1 py-4 font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+            className={`flex flex-1 items-center justify-center gap-2 py-4 font-black uppercase tracking-wider transition-all ${
               isRetro
                 ? 'border-4 active:translate-y-1'
-                : 'rounded-xl border-2 hover:scale-105 active:scale-95'
+                : 'rounded-sm border-2 hover:scale-105 active:scale-95'
             }`}
             style={{
               backgroundColor: isRetro ? 'transparent' : `${theme.colors.primary}20`,
@@ -261,13 +261,13 @@ export function CycleCompleteScreen({
               color: theme.colors.primary,
             }}
           >
-            <IconZap className="w-5 h-5" color={theme.colors.primary} />
+            <IconZap className="h-5 w-5" color={theme.colors.primary} />
             {t('common.cycle_complete_screen.continue')}
           </button>
         </div>
 
         {/* Continue Multiplier Hint */}
-        <div className="text-center mt-3 text-xs text-slate-500">
+        <div className="mt-3 text-center text-xs text-slate-500">
           {t('common.cycle_complete_screen.multiplier_hint', {
             val: Math.round((1 + data.cycleNumber * 0.5) * 100),
           })}
@@ -295,23 +295,23 @@ function StatBox({
 }): React.JSX.Element {
   return (
     <div
-      className={`p-3 relative overflow-hidden ${isRetro ? 'rounded-none border-2 border-slate-700 bg-zinc-900' : 'rounded-lg bg-white/5 backdrop-blur-sm border border-white/10'}`}
+      className={`relative overflow-hidden p-3 ${isRetro ? 'rounded-none border-2 border-slate-700 bg-zinc-900' : 'rounded-lg border border-white/10 bg-white/5 backdrop-blur-sm'}`}
     >
       {/* Background Icon Watermark */}
-      <div className="absolute -right-2 -bottom-2 opacity-10 pointer-events-none scale-150">
+      <div className="pointer-events-none absolute -bottom-2 -right-2 scale-150 opacity-10">
         {icon}
       </div>
 
-      <div className="flex items-center gap-2 mb-1 relative z-10">
-        <div className="opacity-80 scale-75 origin-left">{icon}</div>
+      <div className="relative z-10 mb-1 flex items-center gap-2">
+        <div className="origin-left scale-75 opacity-80">{icon}</div>
         <div
-          className={`text-xs text-slate-400 uppercase ${isRetro ? 'font-retro-text tracking-widest' : 'font-bold tracking-wider'}`}
+          className={`text-xs uppercase text-slate-400 ${isRetro ? 'font-retro-text tracking-widest' : 'font-bold tracking-wider'}`}
         >
           {label}
         </div>
       </div>
       <div
-        className={`text-xl font-black relative z-10 ${isRetro ? 'font-retro-pixel' : 'font-cyber tracking-tight'}`}
+        className={`relative z-10 text-xl font-black ${isRetro ? 'font-retro-pixel' : 'font-cyber tracking-tight'}`}
         style={{ color: valueColor ?? theme.colors.text }}
       >
         {value}

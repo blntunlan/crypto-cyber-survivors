@@ -34,18 +34,18 @@ export const AudioSection = memo(({ focusedItem }: AudioSectionProps) => {
 
   return (
     <section className="space-y-3 md:space-y-4">
-      <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-        <IconVolume className="w-3.5 h-3.5" color="#64748b" />
+      <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 md:text-xs">
+        <IconVolume className="h-3.5 w-3.5" color="#64748b" />
         <span>{t('settings.audio')}</span>
       </h3>
 
-      <div className="space-y-3 md:space-y-4 bg-white/5 p-3 md:p-4 rounded-xl border border-white/5">
-        <div className="flex justify-between items-center">
-          <span className="text-xs md:text-sm font-bold text-white uppercase flex items-center gap-2">
+      <div className="space-y-3 rounded-sm border border-white/5 bg-white/5 p-3 md:space-y-4 md:p-4">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-xs font-bold uppercase text-white md:text-sm">
             {t('settings.master_volume')}
           </span>
 
-          <span className="text-[10px] md:text-xs font-tech text-slate-400 tabular-nums">
+          <span className="font-tech text-[10px] tabular-nums text-slate-400 md:text-xs">
             {Math.round(audioSettings.masterVolume * 100)}%
           </span>
         </div>
@@ -56,28 +56,28 @@ export const AudioSection = memo(({ focusedItem }: AudioSectionProps) => {
           step="0.01"
           value={audioSettings.masterVolume}
           onChange={handleVolumeChange}
-          className={`w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all ${
+          className={`h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-yellow-500 transition-all ${
             focusedItem === 'volume'
-              ? 'ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)]'
+              ? 'shadow-[0_0_10px_rgba(255,255,255,0.3)] ring-2 ring-white'
               : ''
           }`}
         />
         <button
           onClick={handleMuteToggle}
-          className={`w-full py-2 rounded-lg font-black uppercase text-[10px] tracking-widest transition-all border flex items-center justify-center gap-2 ${
+          className={`flex w-full items-center justify-center gap-2 rounded-lg border py-2 text-[10px] font-black uppercase tracking-widest transition-all ${
             audioSettings.isMuted
-              ? 'bg-red-500/10 border-red-500/50 text-red-500'
-              : 'bg-green-500/10 border-green-500/50 text-green-500'
-          } ${focusedItem === 'mute' ? 'ring-2 ring-white shadow-[0_0_10px_rgba(255,255,255,0.3)] scale-[1.02]' : ''}`}
+              ? 'border-red-500/50 bg-red-500/10 text-red-500'
+              : 'border-green-500/50 bg-green-500/10 text-green-500'
+          } ${focusedItem === 'mute' ? 'scale-[1.02] shadow-[0_0_10px_rgba(255,255,255,0.3)] ring-2 ring-white' : ''}`}
         >
           {audioSettings.isMuted ? (
             <>
-              <IconVolumeMuted className="w-4 h-4" />
+              <IconVolumeMuted className="h-4 w-4" />
               <span>{t('settings.muted')}</span>
             </>
           ) : (
             <>
-              <IconVolume className="w-4 h-4" />
+              <IconVolume className="h-4 w-4" />
               <span>{t('settings.unmuted')}</span>
             </>
           )}
