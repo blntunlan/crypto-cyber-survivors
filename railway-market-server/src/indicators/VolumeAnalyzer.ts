@@ -71,7 +71,7 @@ export class VolumeAnalyzer {
   private addVolume(volume: number): void {
     // Remove oldest if at capacity
     if (this.volumes.length >= this.historySize) {
-      const removed = this.volumes.shift()!;
+      const removed = this.volumes.shift() ?? 0;
       this.cachedSum -= removed;
       this.cachedSumSquares -= removed * removed;
     }
@@ -171,7 +171,7 @@ export class VolumeAnalyzer {
         max: 0,
       };
     }
-    const last = this.volumes[this.volumes.length - 1]!;
+    const last = this.volumes.at(-1) ?? 0;
     return this.calculateMetrics(last);
   }
 
@@ -193,7 +193,7 @@ export class VolumeAnalyzer {
   /**
    * Get current z-score thresholds (for debugging/UI)
    */
-  getThresholds() {
+  getThresholds(): typeof WHALE_Z_THRESHOLDS {
     return WHALE_Z_THRESHOLDS;
   }
 

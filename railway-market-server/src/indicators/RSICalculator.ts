@@ -41,8 +41,8 @@ export class RSICalculator {
       return { rsi: this.currentRSI, state: this.currentState };
     }
 
-    const currentPrice = this.prices[this.prices.length - 1]!;
-    const previousPrice = this.prices[this.prices.length - 2]!;
+    const currentPrice = this.prices.at(-1) ?? 0;
+    const previousPrice = this.prices.at(-2) ?? 0;
     const change = currentPrice - previousPrice;
 
     const currentGain = change > 0 ? change : 0;
@@ -55,7 +55,7 @@ export class RSICalculator {
 
       // Calculate initial SMA from first 'period' changes
       for (let i = 1; i < this.prices.length; i++) {
-        const c = this.prices[i]! - this.prices[i - 1]!;
+        const c = (this.prices[i] ?? 0) - (this.prices[i - 1] ?? 0);
         if (c > 0) gains += c;
         else losses -= c;
       }

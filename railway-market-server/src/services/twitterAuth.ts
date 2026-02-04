@@ -5,9 +5,18 @@
  * The client_secret must never be exposed to the frontend.
  */
 
-import express, { Request, Response, Router } from 'express';
+import express, { Request, Response, Router, NextFunction, RequestHandler } from 'express';
 
 const router: Router = express.Router();
+
+// Wrapper for async handlers to avoid misused-promises lint error
+const asyncHandler = (
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
+): RequestHandler => {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
 
 interface TokenRequest {
   code: string;
@@ -32,7 +41,7 @@ interface TwitterErrorResponse {
  * POST /api/auth/twitter/token
  * Exchange authorization code for access token
  */
-router.post('/token', async (req: Request, res: Response): Promise<void> => {
+router.post('/token', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
 
@@ -101,13 +110,13 @@ router.post('/token', async (req: Request, res: Response): Promise<void> => {
       error: 'Internal server error during token exchange',
     });
   }
-});
+}));
 
 /**
  * POST /api/auth/twitter/refresh
  * Refresh an expired access token
  */
-router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
+router.post('/refresh', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
 
@@ -168,13 +177,13 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
       error: 'Internal server error during token refresh',
     });
   }
-});
+}));
 
 /**
  * POST /api/auth/twitter/revoke
  * Revoke an access token (for logout/unlink)
  */
-router.post('/revoke', async (req: Request, res: Response): Promise<void> => {
+router.post('/revoke', asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const clientId = process.env.TWITTER_CLIENT_ID;
   const clientSecret = process.env.TWITTER_CLIENT_SECRET;
 
@@ -228,6 +237,6 @@ router.post('/revoke', async (req: Request, res: Response): Promise<void> => {
       error: 'Internal server error during token revocation',
     });
   }
-});
+}));
 
 export default router;
