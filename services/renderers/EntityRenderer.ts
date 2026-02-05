@@ -12,6 +12,7 @@ import {
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
+import { COLORS } from '../../config/Colors';
 import { gradientCache } from '../../utils/GradientCache';
 
 /**
@@ -26,6 +27,11 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+
+  // Reusable batch buffers to avoid per-frame allocation
+  private gemBatchX: number[] = [];
+  private gemBatchY: number[] = [];
+  private gemBatchR: number[] = [];
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -129,22 +135,25 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
-    pool.activeGems.forEach(g => {
-      if (!g.active) {
-        return;
-      }
+    let batchCount = 0;
+    const gems = pool.activeGems;
+    const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
+    const fadeStartThreshold = 0.3;
+    const standardColor = COLORS.GEM;
+
+    for (let i = 0; i < gems.length; i++) {
+      const g = gems[i];
+      if (!g.active) continue;
 
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
-        return;
+        continue;
       }
 
       // Calculate fade-out alpha based on lifetime
       const elapsed = g.elapsedLifetime ?? 0;
-      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
       const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
 
       // Start fading when 30% of lifetime remains
-      const fadeStartThreshold = 0.3;
       let alpha = 1.0;
 
       if (remainingRatio < fadeStartThreshold) {
@@ -155,21 +164,51 @@ export class EntityRenderer implements IRenderer {
         }
       }
 
-      ctx.save();
-      ctx.globalAlpha = alpha;
+      // Batch optimization: Group standard gems (Gold, Opaque, Not Rare)
+      const isStandard = !g.isRare && alpha >= 0.99 && g.color === standardColor;
 
-      if (g.isRare && shadowsEnabled) {
-        ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
-        ctx.shadowColor = g.color;
+      if (isStandard) {
+        this.gemBatchX[batchCount] = g.x;
+        this.gemBatchY[batchCount] = g.y;
+        this.gemBatchR[batchCount] = g.radius;
+        batchCount++;
+      } else {
+        // Draw Complex/Rare/Fading gems immediately
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        if (g.isRare && shadowsEnabled) {
+          ctx.shadowBlur = GAME_ENGINE.GEM_RARE_GLOW_BLUR;
+          ctx.shadowColor = g.color;
+        }
+
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    // Flush batch
+    if (batchCount > 0) {
+      ctx.save();
+      ctx.fillStyle = standardColor;
+      ctx.globalAlpha = 1.0;
+      ctx.beginPath();
+
+      for (let i = 0; i < batchCount; i++) {
+        const x = Math.round(this.gemBatchX[i]);
+        const y = Math.round(this.gemBatchY[i]);
+        const r = this.gemBatchR[i];
+        ctx.moveTo(x + r, y);
+        ctx.arc(x, y, r, 0, Math.PI * 2);
       }
 
-      ctx.fillStyle = g.color;
-      ctx.beginPath();
-      ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
       ctx.fill();
-
       ctx.restore();
-    });
+    }
   }
 
   /**
