@@ -49,7 +49,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
 
   // Handle Magic Link
   const handleMagicLink = useCallback(async () => {
-    if (!magicLinkEmail?.includes('@')) {
+    if (!magicLinkEmail.includes('@')) {
       setError('Please enter a valid email address');
       audio.playHit();
       return;
@@ -171,8 +171,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
     }
   }, [onComplete]);
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async () => {
     if (isSubmitting) return;
 
     // 1. Validate
@@ -256,406 +255,302 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="relative my-auto w-full max-w-md py-6 sm:py-0"
       >
-        {/* Decorative corner elements - Cyan theme, enhanced for desktop */}
+        {/* Decorative corner elements */}
         {!isRetro && (
           <>
-            <div className="absolute -left-3 -top-3 h-10 w-10 rounded-tl-lg border-l-2 border-t-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
-            <div className="absolute -right-3 -top-3 h-10 w-10 rounded-tr-lg border-r-2 border-t-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
-            <div className="absolute -bottom-3 -left-3 h-10 w-10 rounded-bl-lg border-b-2 border-l-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
-            <div className="absolute -bottom-3 -right-3 h-10 w-10 rounded-br-lg border-b-2 border-r-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 rounded-tl-lg border-l-2 border-t-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-tr-lg border-r-2 border-t-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="pointer-events-none absolute -bottom-3 -left-3 h-10 w-10 rounded-bl-lg border-b-2 border-l-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+            <div className="pointer-events-none absolute -bottom-3 -right-3 h-10 w-10 rounded-br-lg border-b-2 border-r-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
           </>
         )}
 
         <ThemedPanel className="relative overflow-hidden p-5 transition-all sm:p-8">
-          {/* Animated top border - pulsing on desktop */}
+          {/* Animated top border */}
           {!isRetro && (
             <motion.div
-              className="absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+              className="pointer-events-none absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
               animate={{ opacity: [0.7, 1, 0.7] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
             />
           )}
 
-          {/* Glow effect behind - enhanced on desktop */}
+          {/* Glow effect */}
           {!isRetro && (
-            <div className="absolute -inset-1 rounded-sm bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 opacity-50 blur-xl sm:opacity-60" />
+            <div className="pointer-events-none absolute -inset-1 rounded-sm bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 opacity-50 blur-xl sm:opacity-60" />
           )}
 
-          <header className="relative mb-6 space-y-2 text-center sm:mb-8 sm:space-y-3">
-            {/* Icon with glow */}
-            <motion.div
-              className={`inline-flex p-4 ${isRetro ? 'rounded-none border-2 border-cyan-400 bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'relative rounded-full border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-purple-500/10'}`}
-              animate={{
-                boxShadow: isRetro
-                  ? undefined
-                  : [
-                      '0 0 20px rgba(34,211,238,0.2)',
-                      '0 0 40px rgba(34,211,238,0.3)',
-                      '0 0 20px rgba(34,211,238,0.2)',
-                    ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <User className="h-7 w-7 text-cyan-400" />
-            </motion.div>
-
-            <ThemedText
-              variant="h1"
-              className={`text-2xl font-black uppercase tracking-tight ${isRetro ? 'text-white' : 'italic text-white'}`}
-            >
-              {t('common.nickname_screen.title_identify')}{' '}
-              <span
-                className={
-                  isRetro
-                    ? 'text-cyan-400'
-                    : 'bg-gradient-to-r from-[var(--color-primary)] to-white bg-clip-text text-transparent'
-                }
-              >
-                {t('common.nickname_screen.title_survivor')}
-              </span>
-            </ThemedText>
-
-            <ThemedText
-              variant="mono"
-              className="text-[8px] uppercase tracking-[0.3em] text-slate-500"
-            >
-              {isDevelopment
-                ? 'Beta Access Protocol v1.0'
-                : 'Secure Authentication Required'}
-            </ThemedText>
-          </header>
-
-          {/* Error Display */}
-          <AnimatePresence mode="wait">
-            {error && (
+          <div className="relative z-10">
+            <header className="mb-6 space-y-2 text-center sm:mb-8 sm:space-y-3">
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400"
+                className={`inline-flex p-4 ${isRetro ? 'rounded-none border-2 border-cyan-400 bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'relative rounded-full border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-purple-500/10'}`}
+                animate={{
+                  boxShadow: isRetro
+                    ? undefined
+                    : [
+                        '0 0 20px rgba(34,211,238,0.2)',
+                        '0 0 40px rgba(34,211,238,0.3)',
+                        '0 0 20px rgba(34,211,238,0.2)',
+                      ],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
+                <User className="h-7 w-7 text-cyan-400" />
+              </motion.div>
+
+              <ThemedText
+                variant="h1"
+                className={`text-2xl font-black uppercase tracking-tight ${isRetro ? 'text-white' : 'italic text-white'}`}
+              >
+                {t('common.nickname_screen.title_identify')}{' '}
+                <span
+                  className={
+                    isRetro
+                      ? 'text-cyan-400'
+                      : 'bg-gradient-to-r from-[var(--color-primary)] to-white bg-clip-text text-transparent'
+                  }
+                >
+                  {t('common.nickname_screen.title_survivor')}
+                </span>
+              </ThemedText>
+
+              <ThemedText
+                variant="mono"
+                className="text-[8px] uppercase tracking-[0.3em] text-slate-500"
+              >
+                {isDevelopment
+                  ? 'Beta Access Protocol v1.0'
+                  : 'Secure Authentication Required'}
+              </ThemedText>
+            </header>
+
+            {/* Error Display */}
+            <AnimatePresence mode="wait">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400"
+                >
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Nickname Form - Only in Development */}
+            {isDevelopment && (
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  void handleSubmit();
+                }}
+                className="space-y-4 sm:space-y-6"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <label
+                      htmlFor="nickname-input"
+                      className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
+                    >
+                      <Shield className="h-3 w-3" />{' '}
+                      {t('common.nickname_screen.callsign')}
+                    </label>
+
+                    <span
+                      className={`text-[10px] font-black tracking-tighter transition-colors ${
+                        nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'
+                      }`}
+                    >
+                      {nickname.length}/16
+                    </span>
+                  </div>
+
+                  <div className="group relative">
+                    {!isRetro && (
+                      <div className="pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
+                    )}
+                    <ThemedInput
+                      id="nickname-input"
+                      aria-label="Enter your nickname"
+                      autoFocus
+                      type="text"
+                      inputMode="text"
+                      enterKeyHint="go"
+                      value={nickname}
+                      onChange={e => {
+                        setNickname(e.target.value);
+                        if (error) setError(null);
+                        audio.playKeystroke();
+                      }}
+                      className={`min-h-[48px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 placeholder:font-normal focus:outline-none focus:ring-2 sm:px-5 sm:py-4 ${
+                        error
+                          ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
+                          : `text-white focus:border-cyan-500/60 focus:ring-cyan-500/40 ${!isRetro ? 'sm:hover:border-cyan-500/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
+                      } ${!isRetro ? 'font-semibold' : ''}`}
+                      placeholder={(() => {
+                        const p = t('common.nickname_screen.placeholder');
+                        return Array.isArray(p) ? p[0] : p;
+                      })()}
+                      maxLength={16}
+                      disabled={isSubmitting}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+
+                    {/* Valid indicator */}
+                    <motion.div
+                      className="absolute right-4 top-1/2 -translate-y-1/2"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{
+                        opacity: nickname.length >= 3 ? 1 : 0,
+                        scale: nickname.length >= 3 ? 1 : 0.5,
+                      }}
+                    >
+                      <Zap
+                        className={`h-5 w-5 fill-yellow-400 text-yellow-400 ${isRetro ? '' : 'drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`}
+                      />
+                    </motion.div>
+                  </div>
+                </div>
+
+                <ThemedButton
+                  type="submit"
+                  intent="primary"
+                  disabled={isSubmitting || nickname.length < 3}
+                  className={`group relative flex min-h-[48px] w-full items-center justify-center gap-2 py-3 text-sm font-bold sm:py-4 sm:text-base ${
+                    nickname.length < 3 ? 'opacity-50 grayscale' : ''
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      <span>Connecting...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span>{t('common.nickname_screen.enter_arena')}</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </>
+                  )}
+                </ThemedButton>
+              </form>
+            )}
+
+            {/* Social Login Divider */}
+            {!isDevelopment && (
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
+                  {magicLinkSent ? 'Verification Sent' : 'Sign In Method'}
+                </span>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+              </div>
+            )}
+
+            {/* Magic Link Email - Production Only */}
+            {!isDevelopment && !magicLinkSent && (
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <label
+                    htmlFor="email-input"
+                    className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
+                  >
+                    📧 Email Magic Link
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    id="email-input"
+                    type="email"
+                    value={magicLinkEmail}
+                    onChange={e => setMagicLinkEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="flex-1 rounded-lg border border-slate-700/50 bg-slate-800/60 px-4 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => void handleMagicLink()}
+                    disabled={authLoading === 'magiclink'}
+                    className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-50"
+                  >
+                    {authLoading === 'magiclink' ? '...' : 'Send'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Magic Link Success */}
+            {magicLinkSent && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-center"
+              >
+                <p className="text-sm font-medium text-green-400">Check your email!</p>
+                <button
+                  onClick={() => setMagicLinkSent(false)}
+                  className="mt-2 text-xs text-cyan-400 underline"
+                >
+                  Use a different email
+                </button>
               </motion.div>
             )}
-          </AnimatePresence>
 
-          {/* Nickname Form - Only in Development */}
-          {isDevelopment && (
-            <form
-              onSubmit={event => {
-                void handleSubmit(event);
-              }}
-              className="relative space-y-4 sm:space-y-6"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label
-                    htmlFor="nickname-input"
-                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
+            {/* OAuth Buttons Grid */}
+            {!magicLinkSent && !isDevelopment && (
+              <div className="grid grid-cols-2 gap-2">
+                {oauthProviders.map(provider => (
+                  <button
+                    key={provider.id}
+                    onClick={() => void handleOAuthSignIn(provider.id)}
+                    disabled={authLoading !== null}
+                    className={`flex items-center justify-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/60 px-3 py-2.5 text-sm text-white hover:border-cyan-500/50 ${authLoading === provider.id ? 'opacity-50' : ''}`}
                   >
-                    <Shield className="h-3 w-3" />{' '}
-                    {t('common.nickname_screen.callsign')}
-                  </label>
-
-                  <span
-                    className={`text-[10px] font-black tracking-tighter transition-colors ${
-                      nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'
-                    }`}
-                  >
-                    {nickname.length}/16
-                  </span>
-                </div>
-
-                <div className="group relative">
-                  {/* Desktop cyberpunk focus glow */}
-                  {!isRetro && (
-                    <div className="pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
-                  )}
-                  <ThemedInput
-                    id="nickname-input"
-                    aria-label="Enter your nickname"
-                    autoFocus
-                    type="text"
-                    inputMode="text"
-                    enterKeyHint="go"
-                    value={nickname}
-                    onChange={e => {
-                      setNickname(e.target.value);
-                      if (error) setError(null);
-                      audio.playKeystroke();
-                    }}
-                    className={`min-h-[48px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 placeholder:font-normal focus:outline-none focus:ring-2 sm:px-5 sm:py-4 ${
-                      error
-                        ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                        : `text-white focus:border-cyan-500/60 focus:ring-cyan-500/40 ${!isRetro ? 'sm:hover:border-cyan-500/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
-                    } ${!isRetro ? 'font-semibold' : ''}`}
-                    placeholder={(() => {
-                      const p = t('common.nickname_screen.placeholder');
-                      return Array.isArray(p) ? p[0] : p;
-                    })()}
-                    maxLength={16}
-                    disabled={isSubmitting}
-                    autoComplete="off"
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                  />
-
-                  {/* Valid indicator */}
-                  <motion.div
-                    className={`absolute right-4 top-1/2 -translate-y-1/2`}
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{
-                      opacity: nickname.length >= 3 ? 1 : 0,
-                      scale: nickname.length >= 3 ? 1 : 0.5,
-                    }}
-                  >
-                    <Zap
-                      className={`h-5 w-5 fill-yellow-400 text-yellow-400 ${isRetro ? '' : 'drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`}
-                    />
-                  </motion.div>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {error && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex items-center gap-2 pl-1 text-xs font-medium text-red-400"
-                    >
-                      <AlertCircle className="h-3.5 w-3.5" /> {error}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
+                    {provider.icon}
+                    <span className="hidden sm:inline">{provider.name}</span>
+                  </button>
+                ))}
               </div>
+            )}
 
-              <ThemedButton
-                type="submit"
-                intent="primary"
-                disabled={isSubmitting || nickname.length < 3}
-                className={`group relative flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-2 overflow-hidden py-3 text-sm font-bold tracking-wide transition-all duration-200 sm:py-4 sm:text-base ${
-                  nickname.length < 3
-                    ? 'cursor-not-allowed border-slate-700/50 bg-slate-800/50 !text-slate-500'
-                    : !isRetro
-                      ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 sm:hover:scale-[1.02] sm:hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] sm:active:scale-[0.98]'
-                      : ''
-                }`}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`h-4 w-4 animate-spin border-2 border-white/30 border-t-white ${isRetro ? 'rounded-none' : 'rounded-full'}`}
-                    />
-                    <span>{t('common.nickname_screen.connecting')}</span>
-                  </div>
-                ) : (
-                  <>
-                    <span>{t('common.nickname_screen.enter_arena')}</span>
-                    <ChevronRight
-                      className={`h-4 w-4 transition-transform duration-200 ${!isRetro ? 'group-hover:translate-x-1' : ''}`}
-                    />
-                  </>
-                )}
-
-                {/* Shine effect */}
-                {nickname.length >= 3 && !isRetro && (
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '100%' }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      repeatDelay: 2,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                )}
-              </ThemedButton>
-            </form>
-          )}
-
-          {/* Social Login Divider */}
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
-            <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
-              {isDevelopment ? 'or sign in with' : 'sign in method'}
-            </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
-          </div>
-
-          {/* Magic Link Email - Production Only */}
-          {!isDevelopment && !magicLinkSent && (
-            <div className="mb-4 space-y-3">
-              <div className="flex items-center gap-2 px-1">
-                <label
-                  htmlFor="email-input"
-                  className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
-                >
-                  📧 Email Magic Link
-                </label>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  id="email-input"
-                  type="email"
-                  value={magicLinkEmail}
-                  onChange={e => setMagicLinkEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="flex-1 rounded-lg border border-slate-700/50 bg-slate-800/60 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-1 focus:ring-cyan-500/30"
-                />
-                <button
-                  onClick={() => void handleMagicLink()}
-                  disabled={authLoading === 'magiclink'}
-                  className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm font-medium text-cyan-400 transition-all hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-60"
-                >
-                  {authLoading === 'magiclink' ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-400" />
-                  ) : (
-                    'Send'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Magic Link Success */}
-          {magicLinkSent && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-center"
-            >
-              <div className="mb-2 text-2xl">✉️</div>
-              <p className="text-sm font-medium text-green-400">Check your email!</p>
-              <p className="mt-1 text-xs text-slate-400">
-                Click the link in the email to sign in
-              </p>
+            {/* Phantom Wallet Button */}
+            {!magicLinkSent && !isDevelopment && (
               <button
-                onClick={() => setMagicLinkSent(false)}
-                className="mt-3 text-xs text-cyan-400 underline hover:text-cyan-300"
-              >
-                Try different email
-              </button>
-            </motion.div>
-          )}
-
-          {/* OAuth Divider */}
-          {!isDevelopment && !magicLinkSent && (
-            <div className="my-4 flex items-center gap-3">
-              <div className="h-px flex-1 bg-slate-700/30" />
-              <span className="text-[9px] uppercase tracking-wider text-slate-600">
-                or
-              </span>
-              <div className="h-px flex-1 bg-slate-700/30" />
-            </div>
-          )}
-
-          {/* OAuth Buttons Grid */}
-          {!magicLinkSent && (
-            <div className="grid grid-cols-2 gap-2">
-              {oauthProviders.map(provider => (
-                <button
-                  key={provider.id}
-                  onClick={() => void handleOAuthSignIn(provider.id)}
-                  disabled={authLoading !== null}
-                  aria-label={provider.name}
-                  className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                    authLoading === provider.id
-                      ? 'cursor-wait opacity-70'
-                      : authLoading !== null
-                        ? 'cursor-not-allowed opacity-40'
-                        : 'hover:scale-[1.02] hover:border-cyan-500/50 active:scale-[0.98]'
-                  } ${isRetro ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-slate-700/50 bg-slate-800/60 text-white/90 backdrop-blur-sm'}`}
-                >
-                  {provider.icon}
-                  <span className="hidden sm:inline">{provider.name}</span>
-                  {authLoading === provider.id && (
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Phantom Wallet Button */}
-          {!magicLinkSent && (
-            <button
-              onClick={() => {
-                if (isPhantomInstalled) {
-                  void handleWalletConnect();
-                } else {
-                  PhantomAuthService.openPhantomDownload();
+                onClick={() =>
+                  isPhantomInstalled
+                    ? void handleWalletConnect()
+                    : PhantomAuthService.openPhantomDownload()
                 }
-              }}
-              disabled={authLoading !== null}
-              className={`mt-3 flex w-full items-center justify-center gap-2.5 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
-                authLoading === 'phantom'
-                  ? 'cursor-wait opacity-70'
-                  : authLoading !== null
-                    ? 'cursor-not-allowed opacity-40'
-                    : 'hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(153,69,255,0.3)] active:scale-[0.98]'
-              } ${isRetro ? 'border-2 border-purple-600 bg-purple-800 text-white' : 'border border-purple-400/30 bg-gradient-to-r from-purple-600 to-purple-500 text-white'}`}
-            >
-              <Ghost className="h-5 w-5" />
-              <span>
-                {isPhantomInstalled
-                  ? 'Connect Phantom Wallet'
-                  : 'Install Phantom Wallet'}
-              </span>
-              {authLoading === 'phantom' && (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              )}
-            </button>
-          )}
+                disabled={authLoading !== null}
+                className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50"
+              >
+                <Ghost className="h-5 w-5" />
+                <span>
+                  {isPhantomInstalled ? 'Connect Phantom' : 'Install Phantom'}
+                </span>
+              </button>
+            )}
 
-          <footer className="mt-6 flex items-center justify-between border-t border-slate-700/30 pt-4 text-[9px] font-medium text-slate-500 sm:mt-8 sm:pt-6">
-            <div className="flex items-center gap-2">
-              <motion.div
-                className={`h-2 w-2 bg-green-500 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <ThemedText variant="body" className="text-[9px]">
-                {t('common.nickname_screen.systems_online')}
-              </ThemedText>
-            </div>
-
-            <ThemedText variant="body" className="text-[9px] text-slate-600">
-              Crypto Survivors
-            </ThemedText>
-          </footer>
+            <footer className="mt-6 flex items-center justify-between border-t border-slate-700/30 pt-4 text-[9px] text-slate-500">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span>SYSTEMS_ONLINE</span>
+              </div>
+              <span>CRYPTO_SURVIVORS</span>
+            </footer>
+          </div>
         </ThemedPanel>
 
-        {/* Info hints - enhanced hover on desktop */}
-        <div className="mt-4 flex flex-wrap justify-center gap-2 px-2 sm:mt-6 sm:gap-3">
-          <div
-            className={`flex items-center gap-2 px-3 py-1.5 transition-all duration-200 ${isRetro ? 'rounded-none border-2 border-zinc-700 bg-zinc-900 shadow-[2px_2px_0px_rgba(0,0,0,0.8)]' : 'rounded-full border border-slate-700/30 bg-slate-900/60 backdrop-blur-sm sm:hover:border-cyan-500/40 sm:hover:bg-slate-900/80'}`}
-          >
-            <div
-              className={`h-1.5 w-1.5 bg-cyan-400 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
-            />
-            <ThemedText
-              variant="body"
-              className={`text-[9px] font-medium ${isRetro ? 'text-zinc-300' : 'text-slate-400'}`}
-            >
-              {t('common.nickname_screen.char_limit')}
-            </ThemedText>
+        {/* Info hints */}
+        <div className="mt-4 flex justify-center gap-2">
+          <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
+            3-16 CHARACTERS
           </div>
-          <div
-            className={`flex items-center gap-2 px-3 py-1.5 transition-all duration-200 ${isRetro ? 'rounded-none border-2 border-zinc-700 bg-zinc-900 shadow-[2px_2px_0px_rgba(0,0,0,0.8)]' : 'rounded-full border border-slate-700/30 bg-slate-900/60 backdrop-blur-sm sm:hover:border-cyan-500/40 sm:hover:bg-slate-900/80'}`}
-          >
-            <div
-              className={`h-1.5 w-1.5 bg-cyan-400 ${isRetro ? 'rounded-none' : 'rounded-full'}`}
-            />
-            <ThemedText
-              variant="body"
-              className={`text-[9px] font-medium ${isRetro ? 'text-zinc-300' : 'text-slate-400'}`}
-            >
-              {t('common.nickname_screen.chars_allowed')}
-            </ThemedText>
+          <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
+            A-Z, 0-9 ALLOWED
           </div>
         </div>
       </motion.div>
