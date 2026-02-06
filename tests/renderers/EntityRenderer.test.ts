@@ -70,6 +70,7 @@ describe('EntityRenderer', () => {
       fillRect: vi.fn(),
       strokeRect: vi.fn(),
       fillText: vi.fn(),
+      moveTo: vi.fn(),
       closePath: vi.fn(),
       createRadialGradient: vi.fn(() => ({
         addColorStop: vi.fn(),
