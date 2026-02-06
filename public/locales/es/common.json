@@ -50,7 +50,13 @@
       "enter_arena": "Entrar a la Arena",
       "systems_online": "Sistemas en Línea",
       "char_limit": "3-16 Caracteres",
-      "chars_allowed": "Letras y Números"
+      "chars_allowed": "Letras y Números",
+      "dev_mode_hint": "Protocolo Acceso Beta v1.0",
+      "prod_mode_hint": "Autenticación Segura Requerida",
+      "or_login_with": "o inicia sesión con cuenta",
+      "select_login_method": "Seleccionar método de inicio",
+      "install_phantom": "Instalar Phantom",
+      "connect_wallet": "Conectar Billetera"
     },
     "modes": {
       "casual_name": "Casual",
@@ -84,6 +90,52 @@
       "cash_out": "Retirar",
       "continue": "Continuar",
       "multiplier_hint": "Continúa para ganar {{val}}% multiplicador de monedas el próximo ciclo"
+    },
+    "close": "Cerrar",
+    "project_info": "Información del Proyecto",
+    "auth": {
+      "errors": {
+        "not_authenticated": "No autenticado",
+        "backend_not_configured": "Backend no configurado",
+        "profile_fetch_failed": "Error al obtener perfil",
+        "nickname_taken": "Este apodo ya está en uso",
+        "profile_creation_failed": "Error al crear perfil",
+        "user_not_found": "Usuario no encontrado",
+        "no_active_session": "Sin sesión activa",
+        "profile_not_found": "Perfil no encontrado",
+        "account_banned": "Tu cuenta ha sido baneada",
+        "session_validation_failed": "Validación de sesión fallida",
+        "display_name_taken": "Este nombre ya está en uso",
+        "display_name_update_failed": "Error al actualizar nombre",
+        "oauth_failed": "Autenticación fallida. Inténtalo de nuevo.",
+        "oauth_cancelled": "Autenticación cancelada",
+        "oauth_popup_blocked": "Popup bloqueado. Por favor, permítelo.",
+        "phantom_not_installed": "Billetera Phantom no instalada",
+        "phantom_connection_failed": "Error al conectar con Phantom",
+        "phantom_rejected": "Conexión rechazada por el usuario",
+        "generic_error": "Ocurrió un error. Inténtalo de nuevo."
+      },
+      "callback": {
+        "verifying": "Verificando identidad...",
+        "session_verifying": "Verificando sesión...",
+        "preparing_profile": "Preparando perfil...",
+        "login_success": "¡Login exitoso! Redirigiendo...",
+        "welcome": "¡Bienvenido! Se creará tu perfil...",
+        "password_reset": "Reset de contraseña verificado. Puedes establecer una nueva.",
+        "login_failed": "Login fallido",
+        "checking_oauth": "Comprobando sesión OAuth...",
+        "session_not_found": "Sesión no encontrada",
+        "oauth_incomplete": "Proceso OAuth incompleto. Inténtalo de nuevo.",
+        "return_home": "Volver al Inicio",
+        "error_occurred": "Ocurrió un error"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Billetera Phantom"
+      }
     }
   },
   "market": {
@@ -159,7 +211,17 @@
         "baby": "BALLENA BEBÉ",
         "mega": "MEGA BALLENA",
         "giga": "GIGA BALLENA"
-      }
+      },
+      "volume_spike": "PICO DE VOLUMEN",
+      "volume_spike_msg": "¡Presión masiva de compra/venta detectada!",
+      "breakout": "RUPTURA DE TENDENCIA",
+      "price_breakout_msg": "¡El precio está rompiendo niveles!",
+      "whale_alert": "ALERTA DE BALLENA",
+      "whale_alert_msg": "¡Un participante masivo ha entrado!",
+      "consolidation": "CONSOLIDACIÓN",
+      "consolidation_msg": "El mercado se enfría. Prepárate.",
+      "flash_crash": "CRASH REPENTINO",
+      "flash_crash_msg": "¡Pánico detectado! Peligro alto."
     },
     "recovered": "RECUPERADO",
     "xp_multiplier_up": "¡MULTIPLICADOR XP SUBIÓ!",
@@ -173,7 +235,8 @@
       "berserk": "Berserk",
       "diamond_hands": "Diamond Hands",
       "luck_boost": "Aumento de Suerte",
-      "rage_mode": "Modo Furia"
+      "rage_mode": "Modo Furia",
+      "lucky_star": "Estrella de la Suerte"
     },
     "fps": "FPS",
     "achievement": "¡Logro!",
@@ -185,7 +248,22 @@
     "claim_top": "¡Sé el primero en reclamar la cima!",
     "you": "Tú",
     "points": "puntos",
-    "sync_complete": "SINCRONIZACIÓN COMPLETA"
+    "sync_complete": "SINCRONIZACIÓN COMPLETA",
+    "profit_short": "G",
+    "loss_short": "P",
+    "entry_short": "ENT",
+    "volatility_short": "VOL",
+    "cycle_complete": "CICLO COMPLETADO",
+    "finished": "Finalizado",
+    "auto_continue": "Auto-continuar",
+    "current_difficulty": "Dificultad Actual",
+    "next_difficulty": "Dificultad Próximo Ciclo",
+    "harder": "más difícil",
+    "continue_playing": "CONTINUAR JUGANDO",
+    "risk_reward": "Más riesgo, más recompensa",
+    "cash_out": "RETIRAR",
+    "secure_rewards": "Asegura tus recompensas",
+    "decision_hint": "Más ciclos = Más XP y mejor botín"
   },
   "hub": {
     "play": "JUGAR",
@@ -284,7 +362,9 @@
     "lang_es": "Español",
     "lang_pt": "Portugués",
     "lang_zh": "Chino",
-    "lang_ru": "Ruso"
+    "lang_ru": "Ruso",
+    "visual_feedback": "Respuesta Visual",
+    "joystick": "Joystick Virtual"
   },
   "pwa": {
     "installTitle": "Instalar App",
@@ -466,7 +546,19 @@
       "access": "Acceso_Terminal",
       "privacy": "Doc_Privacidad",
       "terms": "Doc_Términos",
-      "contact": "Canal_Contacto"
+      "contact": "Canal_Contacto",
+      "top": "INICIO",
+      "back_to_top": "Volver Arriba",
+      "discord_soon": "Discord (Próximamente)",
+      "twitter_soon": "Twitter/X (Próximamente)"
+    }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Resumen",
+      "stats": "Estadísticas",
+      "achievements": "Logros",
+      "settings": "Ajustes"
     }
   }
 }

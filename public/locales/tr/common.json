@@ -52,7 +52,57 @@
       "enter_arena": "Arenaya Gir",
       "systems_online": "Sistemler Çevrimiçi",
       "char_limit": "3-16 Karakter",
-      "chars_allowed": "Harf & Rakamlar"
+      "chars_allowed": "Harf & Rakamlar",
+      "dev_mode_hint": "Beta Erişim Protokolü v1.0",
+      "prod_mode_hint": "Güvenli Kimlik Doğrulama Gerekli",
+      "or_login_with": "veya hesap ile giriş yap",
+      "select_login_method": "Giriş yöntemi seçin",
+      "install_phantom": "Phantom Yükle",
+      "connect_wallet": "Cüzdanı Bağla"
+    },
+    "auth": {
+      "errors": {
+        "not_authenticated": "Kimlik doğrulanmadı",
+        "backend_not_configured": "Backend yapılandırılmadı",
+        "profile_fetch_failed": "Profil alınamadı",
+        "nickname_taken": "Bu takma ad zaten alınmış",
+        "profile_creation_failed": "Profil oluşturulamadı",
+        "user_not_found": "Kullanıcı bulunamadı",
+        "no_active_session": "Aktif oturum yok",
+        "profile_not_found": "Profil bulunamadı",
+        "account_banned": "Hesabınız yasaklandı",
+        "session_validation_failed": "Oturum doğrulaması başarısız",
+        "display_name_taken": "Bu görünen ad zaten alınmış",
+        "display_name_update_failed": "Görünen ad güncellenemedi",
+        "oauth_failed": "Kimlik doğrulama başarısız. Lütfen tekrar deneyin.",
+        "oauth_cancelled": "Kimlik doğrulama iptal edildi",
+        "oauth_popup_blocked": "Açılır pencere engellendi. Lütfen izin verin.",
+        "phantom_not_installed": "Phantom cüzdanı yüklü değil",
+        "phantom_connection_failed": "Phantom cüzdanına bağlanılamadı",
+        "phantom_rejected": "Bağlantı kullanıcı tarafından reddedildi",
+        "generic_error": "Bir hata oluştu. Lütfen tekrar deneyin."
+      },
+      "callback": {
+        "verifying": "Kimlik doğrulanıyor...",
+        "session_verifying": "Oturum doğrulanıyor...",
+        "preparing_profile": "Profil hazırlanıyor...",
+        "login_success": "Giriş başarılı! Yönlendiriliyor...",
+        "welcome": "Hoş geldiniz! Profiliniz oluşturulacak...",
+        "password_reset": "Şifre sıfırlama doğrulandı. Yeni şifre belirleyebilirsiniz.",
+        "login_failed": "Giriş başarısız",
+        "checking_oauth": "OAuth oturumu kontrol ediliyor...",
+        "session_not_found": "Oturum bulunamadı",
+        "oauth_incomplete": "OAuth işlemi tamamlanamadı. Lütfen tekrar deneyin.",
+        "return_home": "Ana Sayfaya Dön",
+        "error_occurred": "Bir hata oluştu"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Phantom Cüzdan"
+      }
     },
     "modes": {
       "casual_name": "Serbest",
@@ -231,6 +281,14 @@
     "gear_subtitle": "Sistem Yapılandırması",
     "nav_help_retro": "[WASD] HAREKET   [ENTER] SEÇ",
     "nav_help_modern": "hareket için wasd • seçmek için enter"
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Genel Bakış",
+      "stats": "İstatistikler",
+      "achievements": "Başarımlar",
+      "settings": "Ayarlar"
+    }
   },
   "levelup": {
     "title": "SEVİYE ATLADI",
@@ -464,7 +522,11 @@
       ],
       "phase3": "2026 Q3",
       "phase3_title": "Sosyal",
-      "phase3_items": ["Dünya sıralamaları", "Tekrar paylaşımı", "Başarım rozetleri"],
+      "phase3_items": [
+        "Dünya sıralamaları",
+        "Tekrar paylaşımı",
+        "Başarım rozetleri"
+      ],
       "phase4": "2026 Q4",
       "phase4_title": "Genişleme",
       "phase4_items": [

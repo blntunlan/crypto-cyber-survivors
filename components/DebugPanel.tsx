@@ -8,6 +8,7 @@ import { useTheme } from '../contexts/useTheme';
 import { Z_LAYERS } from '../constants/ZIndex';
 import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
 import { EventBus } from '../services/core/EventBus';
+import { cn } from '../utils/classnames';
 
 interface DebugInfo {
   manualProfile?: string | null;
@@ -63,7 +64,10 @@ export const DebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-4 right-4 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg ${isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'}`}
+        className={cn(
+          'fixed bottom-4 right-4 bg-red-600 px-3 py-2 text-xs font-bold text-white shadow-lg',
+          isRetro ? 'rounded-none border-2 border-white font-display' : 'rounded-lg'
+        )}
         style={{ touchAction: 'manipulation', zIndex: Z_LAYERS.DEBUG_PANEL }}
       >
         🐛 DEBUG
@@ -77,7 +81,10 @@ export const DebugPanel: React.FC = () => {
       style={{ zIndex: Z_LAYERS.DEBUG_PANEL }}
     >
       <div
-        className={`border-2 border-green-500 bg-slate-900 p-4 font-mono text-xs text-white ${isRetro ? 'rounded-none' : 'rounded-lg'}`}
+        className={cn(
+          'border-2 border-green-500 bg-slate-900 p-4 font-mono text-xs text-white',
+          isRetro ? 'rounded-none' : 'rounded-lg'
+        )}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-green-400">🐛 Debug Panel</h2>
@@ -102,7 +109,10 @@ export const DebugPanel: React.FC = () => {
               🎯 Manual Mode Flag (Memory)
             </div>
             <div
-              className={`text-lg font-black ${debugInfo.isManualMode ? 'text-orange-400' : 'text-green-400'}`}
+              className={cn(
+                'text-lg font-black',
+                debugInfo.isManualMode ? 'text-orange-400' : 'text-green-400'
+              )}
             >
               {debugInfo.isManualMode ? '✅ MANUAL' : '🤖 AUTO'}
             </div>

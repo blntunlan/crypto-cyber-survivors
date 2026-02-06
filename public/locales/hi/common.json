@@ -50,7 +50,13 @@
       "enter_arena": "मैदान में उतरें",
       "systems_online": "सिस्टम ऑनलाइन",
       "char_limit": "3-16 अक्षर",
-      "chars_allowed": "अक्षर और अंक"
+      "chars_allowed": "अक्षर और अंक",
+      "dev_mode_hint": "बीटा एक्सेस प्रोटोकॉल v1.0",
+      "prod_mode_hint": "सुरक्षित प्रमाणीकरण आवश्यक",
+      "or_login_with": "या खाते के साथ साइन इन करें",
+      "select_login_method": "लॉगिन विधि चुनें",
+      "install_phantom": "Phantom इंस्टॉल करें",
+      "connect_wallet": "वॉलेट कनेक्ट करें"
     },
     "modes": {
       "casual_name": "कैजुअल",
@@ -84,6 +90,52 @@
       "cash_out": "कैश आउट",
       "continue": "जारी रखें",
       "multiplier_hint": "अगले चक्र में {{val}}% सिक्का गुणक अर्जित करने के लिए जारी रखें"
+    },
+    "close": "बंद करें",
+    "project_info": "परियोजना की जानकारी",
+    "auth": {
+      "errors": {
+        "not_authenticated": "प्रमाणित नहीं",
+        "backend_not_configured": "बैकएंड कॉन्फ़िगर नहीं किया गया",
+        "profile_fetch_failed": "प्रोफ़ाइल लाने में विफल",
+        "nickname_taken": "यह उपनाम पहले से लिया गया है",
+        "profile_creation_failed": "प्रोफ़ाइल बनाने में विफल",
+        "user_not_found": "उपयोगकर्ता नहीं मिला",
+        "no_active_session": "कोई सक्रिय सत्र नहीं",
+        "profile_not_found": "प्रोफ़ाइल नहीं मिली",
+        "account_banned": "आपका खाता प्रतिबंधित कर दिया गया है",
+        "session_validation_failed": "सत्र सत्यापन विफल रहा",
+        "display_name_taken": "यह प्रदर्शित नाम पहले से लिया गया है",
+        "display_name_update_failed": "नाम अपडेट करने में विफल",
+        "oauth_failed": "प्रमाणीकरण विफल। कृपया पुनः प्रयास करें।",
+        "oauth_cancelled": "प्रमाणीकरण रद्द कर दिया गया",
+        "oauth_popup_blocked": "पॉपअप अवरुद्ध कर दिया गया।",
+        "phantom_not_installed": "Phantom वॉलेट इंस्टॉल नहीं है",
+        "phantom_connection_failed": "Phantom वॉलेट से कनेक्ट करने में विफल",
+        "phantom_rejected": "कनेक्शन उपयोगकर्ता द्वारा अस्वीकार कर दिया गया",
+        "generic_error": "एक त्रुटि हुई। कृपया पुनः प्रयास करें।"
+      },
+      "callback": {
+        "verifying": "पहचान सत्यापित की जा रही है...",
+        "session_verifying": "सत्र सत्यापित किया जा रहा है...",
+        "preparing_profile": "प्रोफ़ाइल तैयार की जा रही है...",
+        "login_success": "लॉगिन सफल! पुनर्निर्देशित किया जा रहा है...",
+        "welcome": "स्वागत है! प्रोफ़ाइल बनाई जाएगी...",
+        "password_reset": "पासवर्ड रीसेट सत्यापित। नया पासवर्ड सेट करें।",
+        "login_failed": "लॉगिन विफल",
+        "checking_oauth": "OAuth सत्र की जाँच की जा रही है...",
+        "session_not_found": "सत्र नहीं मिला",
+        "oauth_incomplete": "प्रक्रिया पूरी नहीं हो सकी।",
+        "return_home": "होम पर वापस जाएँ",
+        "error_occurred": "एक त्रुटि हुई"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Phantom वॉलेट"
+      }
     }
   },
   "market": {
@@ -159,7 +211,17 @@
         "baby": "बेबी व्हेल",
         "mega": "मेगा व्हेल",
         "giga": "गीगा व्हेल"
-      }
+      },
+      "volume_spike": "वॉल्यूम स्पाइक",
+      "volume_spike_msg": "भारी दबाव पाया गया!",
+      "breakout": "ब्रेकआउट",
+      "price_breakout_msg": "मूल्य स्तरों को तोड़ रहा है!",
+      "whale_alert": "व्हेल अलर्ट",
+      "whale_alert_msg": "एक बड़ा खिलाड़ी बाजार में आया है!",
+      "consolidation": "स्थिरीकरण",
+      "consolidation_msg": "बाजार ठंडा हो रहा है।",
+      "flash_crash": "फ्लैश क्रैश",
+      "flash_crash_msg": "घबराहट की बिक्री! उच्च खतरा!"
     },
     "recovered": "रिकवर हुआ",
     "xp_multiplier_up": "XP गुणक बढ़ा!",
@@ -173,7 +235,8 @@
       "berserk": "बेरसेर्क",
       "diamond_hands": "डायमंड हैंड्स",
       "luck_boost": "भाग्य वृद्धि",
-      "rage_mode": "रेज मोड"
+      "rage_mode": "रेज मोड",
+      "lucky_star": "भाग्यशाली तारा"
     },
     "fps": "FPS",
     "achievement": "उपलब्धि!",
@@ -185,7 +248,22 @@
     "claim_top": "शीर्ष पर पहुंचने वाले पहले व्यक्ति बनें!",
     "you": "आप",
     "points": "अंक",
-    "sync_complete": "सिंक पूर्ण"
+    "sync_complete": "सिंक पूर्ण",
+    "profit_short": "ल",
+    "loss_short": "ह",
+    "entry_short": "प्र",
+    "volatility_short": "अ",
+    "cycle_complete": "चक्र पूरा हुआ",
+    "finished": "समाप्त",
+    "auto_continue": "ऑटो-जारी रखें",
+    "current_difficulty": "वर्तमान कठिनाई",
+    "next_difficulty": "अगली कठिनाई",
+    "harder": "कठिन",
+    "continue_playing": "खेलना जारी रखें",
+    "risk_reward": "बड़ा जोखिम, बड़ा इनाम",
+    "cash_out": "कैश आउट",
+    "secure_rewards": "इनाम सुरक्षित करें",
+    "decision_hint": "अधिक चक्र = अधिक एक्सपी और लूट"
   },
   "hub": {
     "play": "खेलें",
@@ -284,7 +362,9 @@
     "lang_es": "स्पेनिश",
     "lang_pt": "पुर्तगाली",
     "lang_zh": "चीनी",
-    "lang_ru": "रूसी"
+    "lang_ru": "रूसी",
+    "visual_feedback": "दृश्य प्रतिक्रिया",
+    "joystick": "वर्चुअल जॉयस्टिक"
   },
   "tutorial": {
     "language": {
@@ -414,7 +494,11 @@
       "active_tag": "सक्रिय",
       "phase1": "Q1 2026",
       "phase1_title": "नींव",
-      "phase1_items": ["कोर गेमप्ले लूप", "60 FPS कैनवास इंजन", "सुपर्बेस एकीकरण"],
+      "phase1_items": [
+        "कोर गेमप्ले लूप",
+        "60 FPS कैनवास इंजन",
+        "सुपर्बेस एकीकरण"
+      ],
       "phase2": "Q2 2026",
       "phase2_title": "लाइव मार्केट",
       "phase2_items": [
@@ -424,10 +508,18 @@
       ],
       "phase3": "Q3 2026",
       "phase3_title": "सामाजिक",
-      "phase3_items": ["वैश्विक लीडरबोर्ड", "रिप्ले शेयरिंग", "उपलब्धि बैज"],
+      "phase3_items": [
+        "वैश्विक लीडरबोर्ड",
+        "रिप्ले शेयरिंग",
+        "उपलब्धि बैज"
+      ],
       "phase4": "Q4 2026",
       "phase4_title": "विस्तार",
-      "phase4_items": ["मल्टी-क्रिप्टो सपोर्ट", "दैनिक चुनौतियां", "मौसमी कार्यक्रम"]
+      "phase4_items": [
+        "मल्टी-क्रिप्टो सपोर्ट",
+        "दैनिक चुनौतियां",
+        "मौसमी कार्यक्रम"
+      ]
     },
     "faq": {
       "title": "सामान्य प्रश्न",
@@ -448,7 +540,25 @@
       "access": "एक्सेस_टर्मिनल",
       "privacy": "गोपनीयता_दस्तावेज़",
       "terms": "शर्तें_दस्तावेज़",
-      "contact": "संपर्क_चैनल"
+      "contact": "संपर्क_चैनल",
+      "top": "ऊपर",
+      "back_to_top": "ऊपर वापस जाएँ",
+      "discord_soon": "Discord (जल्द आ रहा है)",
+      "twitter_soon": "Twitter/X (जल्द आ रहा है)"
     }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "अवलोकन",
+      "stats": "आँकड़े",
+      "achievements": "उपलब्धियाँ",
+      "settings": "सेटिंग्स"
+    }
+  },
+  "pwa": {
+    "installTitle": "ऐप इंस्टॉल करें",
+    "installDescription": "बेहतर अनुभव के लिए होम स्क्रीन पर जोड़ें",
+    "install": "इंस्टॉल करें",
+    "notNow": "अभी नहीं"
   }
 }

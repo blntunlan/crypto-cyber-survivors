@@ -50,7 +50,13 @@
       "enter_arena": "进入竞技场",
       "systems_online": "系统在线",
       "char_limit": "3-16 个字符",
-      "chars_allowed": "字母和数字"
+      "chars_allowed": "字母和数字",
+      "dev_mode_hint": "Beta 访问协议 v1.0",
+      "prod_mode_hint": "需要安全身份验证",
+      "or_login_with": "或使用账号登录",
+      "select_login_method": "选择登录方式",
+      "install_phantom": "安装 Phantom",
+      "connect_wallet": "连接钱包"
     },
     "modes": {
       "casual_name": "休闲模式",
@@ -84,6 +90,52 @@
       "cash_out": "提现离场",
       "continue": "继续挑战",
       "multiplier_hint": "继续以在下一个周期获得 {{val}}% 代币加成"
+    },
+    "close": "关闭",
+    "project_info": "项目信息",
+    "auth": {
+      "errors": {
+        "not_authenticated": "未授权",
+        "backend_not_configured": "后台未配置",
+        "profile_fetch_failed": "获取个人信息失败",
+        "nickname_taken": "该昵称已被使用",
+        "profile_creation_failed": "创建个人信息失败",
+        "user_not_found": "找不到用户",
+        "no_active_session": "无活跃会话",
+        "profile_not_found": "找不到个人信息",
+        "account_banned": "您的账号已被封锁",
+        "session_validation_failed": "会话验证失败",
+        "display_name_taken": "显示名称已被使用",
+        "display_name_update_failed": "更新显示名称失败",
+        "oauth_failed": "认证失败。请重试。",
+        "oauth_cancelled": "认证已取消",
+        "oauth_popup_blocked": "弹窗被拦截。请允许弹窗。",
+        "phantom_not_installed": "未安装 Phantom 钱包",
+        "phantom_connection_failed": "连接 Phantom 钱包失败",
+        "phantom_rejected": "用户拒绝连接",
+        "generic_error": "发生错误。请重试。"
+      },
+      "callback": {
+        "verifying": "正在验证身份...",
+        "session_verifying": "正在验证会话...",
+        "preparing_profile": "正在准备个人信息...",
+        "login_success": "登录成功！正在跳转...",
+        "welcome": "欢迎！个人信息将创建...",
+        "password_reset": "密码重置已验证。您可以设置新密码。",
+        "login_failed": "登录失败",
+        "checking_oauth": "正在检查 OAuth 会话...",
+        "session_not_found": "找不到会话",
+        "oauth_incomplete": "OAuth 过程无法完成。请重试。",
+        "return_home": "返回首页",
+        "error_occurred": "发生错误"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Phantom 钱包"
+      }
     }
   },
   "market": {
@@ -159,7 +211,17 @@
         "baby": "幼鲸",
         "mega": "巨鲸",
         "giga": "超级巨鲸"
-      }
+      },
+      "volume_spike": "成交量激增",
+      "volume_spike_msg": "检测到巨大的买入/卖出压力！",
+      "breakout": "趋势突破",
+      "price_breakout_msg": "价格正在突破关键水平！",
+      "whale_alert": "巨鲸警报",
+      "whale_alert_msg": "一位重量级市场参与者已进入！",
+      "consolidation": "盘整中",
+      "consolidation_msg": "市场正在降温。准备下一步行动。",
+      "flash_crash": "闪崩",
+      "flash_crash_msg": "恐慌性杀跌！高度危险！"
     },
     "recovered": "已恢复",
     "xp_multiplier_up": "经验倍率提升！",
@@ -173,7 +235,8 @@
       "berserk": "狂暴",
       "diamond_hands": "钻石手",
       "luck_boost": "幸运提升",
-      "rage_mode": "暴怒模式"
+      "rage_mode": "暴怒模式",
+      "lucky_star": "幸运之星"
     },
     "fps": "FPS",
     "achievement": "成就解锁！",
@@ -185,7 +248,22 @@
     "claim_top": "成为第一个登顶的人！",
     "you": "你",
     "points": "分",
-    "sync_complete": "同步完成"
+    "sync_complete": "同步完成",
+    "profit_short": "盈",
+    "loss_short": "亏",
+    "entry_short": "入",
+    "volatility_short": "波",
+    "cycle_complete": "周期完成",
+    "finished": "已完成",
+    "auto_continue": "自动继续",
+    "current_difficulty": "当前难度",
+    "next_difficulty": "下个周期难度",
+    "harder": "更难",
+    "continue_playing": "继续游戏",
+    "risk_reward": "越高风险，越高回报",
+    "cash_out": "提现",
+    "secure_rewards": "确保您的奖励",
+    "decision_hint": "周期越高 = 更多经验和更好掉落"
   },
   "hub": {
     "play": "开始",
@@ -284,7 +362,9 @@
     "lang_es": "西班牙语",
     "lang_pt": "葡萄牙语",
     "lang_zh": "中文",
-    "lang_ru": "俄语"
+    "lang_ru": "俄语",
+    "visual_feedback": "视觉反馈",
+    "joystick": "虚拟摇杆"
   },
   "pwa": {
     "installTitle": "安装应用",
@@ -406,7 +486,13 @@
         "本地进度保存",
         "支持离线模式"
       ],
-      "comp_items": ["全球排行榜", "反作弊验证", "重放录制", "成就追踪", "赛季排名"]
+      "comp_items": [
+        "全球排行榜",
+        "反作弊验证",
+        "重放录制",
+        "成就追踪",
+        "赛季排名"
+      ]
     },
     "roadmap": {
       "title": "开发时间轴",
@@ -414,16 +500,32 @@
       "active_tag": "进行中",
       "phase1": "2026 Q1",
       "phase1_title": "基础",
-      "phase1_items": ["核心游戏循环", "60 FPS Canvas 引擎", "Supabase 集成"],
+      "phase1_items": [
+        "核心游戏循环",
+        "60 FPS Canvas 引擎",
+        "Supabase 集成"
+      ],
       "phase2": "2026 Q2",
       "phase2_title": "实时市场",
-      "phase2_items": ["Binance/Coinbase WSS", "神经 AI 总监", "反作弊系统"],
+      "phase2_items": [
+        "Binance/Coinbase WSS",
+        "神经 AI 总监",
+        "反作弊系统"
+      ],
       "phase3": "2026 Q3",
       "phase3_title": "社交",
-      "phase3_items": ["全球排行榜", "重放分享", "成就徽章"],
+      "phase3_items": [
+        "全球排行榜",
+        "重放分享",
+        "成就徽章"
+      ],
       "phase4": "2026 Q4",
       "phase4_title": "扩张",
-      "phase4_items": ["多币种支持", "每日挑战", "季节性活动"]
+      "phase4_items": [
+        "多币种支持",
+        "每日挑战",
+        "季节性活动"
+      ]
     },
     "faq": {
       "title": "常见问题",
@@ -444,7 +546,19 @@
       "access": "访问终端",
       "privacy": "隐私文档",
       "terms": "条款文档",
-      "contact": "联系渠道"
+      "contact": "联系渠道",
+      "top": "顶部",
+      "back_to_top": "返回顶部",
+      "discord_soon": "Discord (即将推出)",
+      "twitter_soon": "Twitter/X (即将推出)"
+    }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "概览",
+      "stats": "统计",
+      "achievements": "成就",
+      "settings": "设置"
     }
   }
 }

@@ -50,7 +50,13 @@
       "enter_arena": "Entrar na Arena",
       "systems_online": "Sistemas Online",
       "char_limit": "3-16 Caracteres",
-      "chars_allowed": "Letras e Números"
+      "chars_allowed": "Letras e Números",
+      "dev_mode_hint": "Protocolo Acesso Beta v1.0",
+      "prod_mode_hint": "Autenticação Segura Necessária",
+      "or_login_with": "ou entrar com conta",
+      "select_login_method": "Selecionar método de login",
+      "install_phantom": "Instalar Phantom",
+      "connect_wallet": "Conectar Carteira"
     },
     "modes": {
       "casual_name": "Casual",
@@ -84,6 +90,52 @@
       "cash_out": "Sacar",
       "continue": "Continuar",
       "multiplier_hint": "Continue para ganhar multiplicador de {{val}}% moedas no próximo ciclo"
+    },
+    "close": "Fechar",
+    "project_info": "Informações do Projeto",
+    "auth": {
+      "errors": {
+        "not_authenticated": "Não autenticado",
+        "backend_not_configured": "Backend não configurado",
+        "profile_fetch_failed": "Falha ao obter perfil",
+        "nickname_taken": "Este apelido já está em uso",
+        "profile_creation_failed": "Falha ao criar perfil",
+        "user_not_found": "Usuário não encontrado",
+        "no_active_session": "Sem sessão ativa",
+        "profile_not_found": "Perfil não encontrado",
+        "account_banned": "Sua conta foi banida",
+        "session_validation_failed": "Falha na validação da sessão",
+        "display_name_taken": "Este nome já está em uso",
+        "display_name_update_failed": "Falha ao atualizar nome",
+        "oauth_failed": "Autenticação falhou. Tente novamente.",
+        "oauth_cancelled": "Autenticação cancelada",
+        "oauth_popup_blocked": "Popup bloqueado. Por favor, permita.",
+        "phantom_not_installed": "Carteira Phantom não instalada",
+        "phantom_connection_failed": "Falha ao conectar ao Phantom",
+        "phantom_rejected": "Conexão rejeitada pelo usuário",
+        "generic_error": "Ocorreu um erro. Tente novamente."
+      },
+      "callback": {
+        "verifying": "Verificando identidade...",
+        "session_verifying": "Verificando sessão...",
+        "preparing_profile": "Preparando perfil...",
+        "login_success": "Login realizado! Redirecionando...",
+        "welcome": "Bem-vindo! Perfil será criado...",
+        "password_reset": "Reset de senha verificado. Crie uma nova.",
+        "login_failed": "Lofin falhou",
+        "checking_oauth": "Verificando sessão OAuth...",
+        "session_not_found": "Sessão não encontrada",
+        "oauth_incomplete": "Processo OAuth incompleto. Tente novamente.",
+        "return_home": "Voltar ao Início",
+        "error_occurred": "Ocorreu um erro"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Carteira Phantom"
+      }
     }
   },
   "market": {
@@ -159,7 +211,17 @@
         "baby": "BALEIA BEBÊ",
         "mega": "MEGA BALEIA",
         "giga": "GIGA BALEIA"
-      }
+      },
+      "volume_spike": "PICO DE VOLUME",
+      "volume_spike_msg": "Pressão massiva detectada!",
+      "breakout": "ROMPIMENTO",
+      "price_breakout_msg": "O preço está rompendo níveis!",
+      "whale_alert": "ALERTA DE BALEIA",
+      "whale_alert_msg": "Um participante massivo entrou!",
+      "consolidation": "CONSOLIDAÇÃO",
+      "consolidation_msg": "Mercado esfriando. Prepare-se.",
+      "flash_crash": "QUEDA REPENTINA",
+      "flash_crash_msg": "Pânico detectado! Perigo alto."
     },
     "recovered": "RECUPERADO",
     "xp_multiplier_up": "MULTIPLICADOR XP SUBIU!",
@@ -173,7 +235,8 @@
       "berserk": "Berserk",
       "diamond_hands": "Diamond Hands",
       "luck_boost": "Bônus de Sorte",
-      "rage_mode": "Modo Fúria"
+      "rage_mode": "Modo Fúria",
+      "lucky_star": "Estrela da Sorte"
     },
     "fps": "FPS",
     "achievement": "Conquista!",
@@ -185,7 +248,22 @@
     "claim_top": "Seja o primeiro a chegar ao topo!",
     "you": "Você",
     "points": "pontos",
-    "sync_complete": "SINCRONIZAÇÃO COMPLETA"
+    "sync_complete": "SINCRONIZAÇÃO COMPLETA",
+    "profit_short": "L",
+    "loss_short": "P",
+    "entry_short": "ENT",
+    "volatility_short": "VOL",
+    "cycle_complete": "CICLO COMPLETADO",
+    "finished": "Finalizado",
+    "auto_continue": "Auto-continuar",
+    "current_difficulty": "Dificuldade Atual",
+    "next_difficulty": "Dificuldade Próxima",
+    "harder": "mais difícil",
+    "continue_playing": "CONTINUAR JOGANDO",
+    "risk_reward": "Maior risco, maior recompensa",
+    "cash_out": "SACAR",
+    "secure_rewards": "Segure suas recompensas",
+    "decision_hint": "Mais ciclos = Mais XP e espólios"
   },
   "hub": {
     "play": "JOGAR",
@@ -284,7 +362,9 @@
     "lang_es": "Espanhol",
     "lang_pt": "Português",
     "lang_zh": "Chinês",
-    "lang_ru": "Russo"
+    "lang_ru": "Russo",
+    "visual_feedback": "Feedback Visual",
+    "joystick": "Joystick Virtual"
   },
   "tutorial": {
     "language": {
@@ -435,7 +515,11 @@
       ],
       "phase4": "Q4 2026",
       "phase4_title": "Expansão",
-      "phase4_items": ["Suporte multi-cripto", "Desafios diários", "Eventos sazonais"]
+      "phase4_items": [
+        "Suporte multi-cripto",
+        "Desafios diários",
+        "Eventos sazonais"
+      ]
     },
     "faq": {
       "title": "Perguntas Frequentes",
@@ -456,7 +540,25 @@
       "access": "Acessar_Terminal",
       "privacy": "Doc_Privacidade",
       "terms": "Doc_Termos",
-      "contact": "Canal_Contato"
+      "contact": "Canal_Contato",
+      "top": "TOPO",
+      "back_to_top": "Voltar ao Topo",
+      "discord_soon": "Discord (Em breve)",
+      "twitter_soon": "Twitter/X (Em breve)"
     }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Visão Geral",
+      "stats": "Estatísticas",
+      "achievements": "Conquistas",
+      "settings": "Ajustes"
+    }
+  },
+  "pwa": {
+    "installTitle": "Instalar App",
+    "installDescription": "Adicione à tela inicial para melhor experiência",
+    "install": "Instalar",
+    "notNow": "Agora não"
   }
 }

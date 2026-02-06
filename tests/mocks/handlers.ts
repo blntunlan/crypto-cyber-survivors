@@ -9,6 +9,25 @@ export const handlers = [
     });
   }),
 
+  // Anonymous Sign-In Mock
+  http.post('*/auth/v1/signup', async ({ request }) => {
+    const body = (await request.json()) as any;
+
+    return HttpResponse.json({
+      access_token: 'fake-anon-token',
+      user: {
+        id: body.data?.display_name === 'existing_user' ? 'existing-uuid' : 'new-uuid',
+        email: null,
+        user_metadata: body.data ?? {},
+        is_anonymous: true,
+      },
+      session: {
+        access_token: 'fake-anon-token',
+        user: { id: 'new-uuid' },
+      },
+    });
+  }),
+
   // Profiles Table - Select (Check existing)
   http.get('*/rest/v1/profiles', ({ request }) => {
     const url = new URL(request.url);

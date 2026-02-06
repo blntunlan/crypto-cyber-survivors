@@ -50,7 +50,13 @@
       "enter_arena": "Vào Đấu trường",
       "systems_online": "Hệ thống Trực tuyến",
       "char_limit": "3-16 ký tự",
-      "chars_allowed": "Chữ cái & Số"
+      "chars_allowed": "Chữ cái & Số",
+      "dev_mode_hint": "Giao thức truy cập Beta v1.0",
+      "prod_mode_hint": "Yêu cầu xác thực bảo mật",
+      "or_login_with": "hoặc đăng nhập bằng tài khoản",
+      "select_login_method": "Chọn phương thức đăng nhập",
+      "install_phantom": "Cài đặt Phantom",
+      "connect_wallet": "Kết nối ví"
     },
     "modes": {
       "casual_name": "Phổ thông",
@@ -84,6 +90,52 @@
       "cash_out": "Rút tiền",
       "continue": "Tiếp tục",
       "multiplier_hint": "Tiếp tục để nhận hệ số nhân {{val}}% xu trong chu kỳ tới"
+    },
+    "close": "Đóng",
+    "project_info": "Thông tin dự án",
+    "auth": {
+      "errors": {
+        "not_authenticated": "Chưa xác thực",
+        "backend_not_configured": "Chưa cấu hình backend",
+        "profile_fetch_failed": "Lỗi tải hồ sơ",
+        "nickname_taken": "Biệt danh này đã được sử dụng",
+        "profile_creation_failed": "Lỗi tạo hồ sơ",
+        "user_not_found": "Không tìm thấy người dùng",
+        "no_active_session": "Không có phiên hoạt động",
+        "profile_not_found": "Không tìm thấy hồ sơ",
+        "account_banned": "Tài khoản của bạn đã bị khóa",
+        "session_validation_failed": "Xác thực phiên thất bại",
+        "display_name_taken": "Tên này đã được sử dụng",
+        "display_name_update_failed": "Cập nhật tên thất bại",
+        "oauth_failed": "Xác thực thất bại. Vui lòng thử lại.",
+        "oauth_cancelled": "Xác thực đã bị hủy",
+        "oauth_popup_blocked": "Cửa sổ bật lên bị chặn.",
+        "phantom_not_installed": "Chưa cài ví Phantom",
+        "phantom_connection_failed": "Kết nối ví Phantom thất bại",
+        "phantom_rejected": "Kết nối bị từ chối",
+        "generic_error": "Đã xảy ra lỗi. Vui lòng thử lại."
+      },
+      "callback": {
+        "verifying": "Đang xác thực...",
+        "session_verifying": "Đang xác thực phiên...",
+        "preparing_profile": "Đang chuẩn bị hồ sơ...",
+        "login_success": "Đăng nhập thành công!",
+        "welcome": "Chào mừng! Hồ sơ sẽ được tạo...",
+        "password_reset": "Đặt lại mật khẩu thành công.",
+        "login_failed": "Đăng nhập thất bại",
+        "checking_oauth": "Đang kiểm tra phiên OAuth...",
+        "session_not_found": "Không tìm thấy phiên",
+        "oauth_incomplete": "Quy trình không hoàn tất.",
+        "return_home": "Về Trang chủ",
+        "error_occurred": "Đã xảy ra lỗi"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Ví Phantom"
+      }
     }
   },
   "market": {
@@ -159,7 +211,17 @@
         "baby": "CÁ VOI CON",
         "mega": "CÁ VOI MEGA",
         "giga": "CÁ VOI GIGA"
-      }
+      },
+      "volume_spike": "ĐỘT BIẾN KHỐI LƯỢNG",
+      "volume_spike_msg": "Phát hiện áp lực mua/bán cực lớn!",
+      "breakout": "PHÁ VỠ XU HƯỚNG",
+      "price_breakout_msg": "Giá đang phá vỡ các mức quan trọng!",
+      "whale_alert": "CẢNH BÁO CÁ VOI",
+      "whale_alert_msg": "Một người chơi lớn đã vào cuộc!",
+      "consolidation": "TÍCH LŨY",
+      "consolidation_msg": "Thị trường đang hạ nhiệt.",
+      "flash_crash": "FLASH CRASH",
+      "flash_crash_msg": "Bán tháo hoảng loạn! Nguy cơ cao!"
     },
     "recovered": "HỒI PHỤC",
     "xp_multiplier_up": "TĂNG HỆ SỐ XP!",
@@ -173,7 +235,8 @@
       "berserk": "Cuồng nộ",
       "diamond_hands": "Diamond Hands",
       "luck_boost": "Tăng May mắn",
-      "rage_mode": "Rage Mode"
+      "rage_mode": "Rage Mode",
+      "lucky_star": "Ngôi sao may mắn"
     },
     "fps": "FPS",
     "achievement": "Thành tựu!",
@@ -185,7 +248,22 @@
     "claim_top": "Hãy là người đầu tiên chiếm vị trí dẫn đầu!",
     "you": "Bạn",
     "points": "điểm",
-    "sync_complete": "ĐỒNG BỘ HOÀN TẤT"
+    "sync_complete": "ĐỒNG BỘ HOÀN TẤT",
+    "profit_short": "L",
+    "loss_short": "L",
+    "entry_short": "ENT",
+    "volatility_short": "VOL",
+    "cycle_complete": "CHU KỲ HOÀN TẤT",
+    "finished": "Đã xong",
+    "auto_continue": "Tự động tiếp tục",
+    "current_difficulty": "Độ khó hiện tại",
+    "next_difficulty": "Độ khó chu kỳ tới",
+    "harder": "khó hơn",
+    "continue_playing": "TIẾP TỤC CHƠI",
+    "risk_reward": "Rủi ro cao, phần thưởng lớn",
+    "cash_out": "RÚT TIỀN",
+    "secure_rewards": "Đảm bảo phần thưởng của bạn",
+    "decision_hint": "Chu kỳ cao = Thêm XP và vật phẩm tốt"
   },
   "hub": {
     "play": "CHƠI",
@@ -284,7 +362,9 @@
     "lang_es": "Tiếng Tây Ban Nha",
     "lang_pt": "Tiếng Bồ Đào Nha",
     "lang_zh": "Tiếng Trung",
-    "lang_ru": "Tiếng Nga"
+    "lang_ru": "Tiếng Nga",
+    "visual_feedback": "Phản hồi hình ảnh",
+    "joystick": "Joystick ảo"
   },
   "tutorial": {
     "language": {
@@ -460,7 +540,25 @@
       "access": "Truy_cập_Terminal",
       "privacy": "Tài_liệu_Bảo_mật",
       "terms": "Điều_khoản_Dịch_vụ",
-      "contact": "Kênh_Liên_hệ"
+      "contact": "Kênh_Liên_hệ",
+      "top": "LÊN ĐẦU",
+      "back_to_top": "Về đầu trang",
+      "discord_soon": "Discord (Sớm ra mắt)",
+      "twitter_soon": "Twitter/X (Sớm ra mắt)"
     }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Tổng quan",
+      "stats": "Thống kê",
+      "achievements": "Thành tựu",
+      "settings": "Cài đặt"
+    }
+  },
+  "pwa": {
+    "installTitle": "Cài đặt ứng dụng",
+    "installDescription": "Thêm vào màn hình chính để trải nghiệm tốt nhất",
+    "install": "Cài đặt",
+    "notNow": "Để sau"
   }
 }

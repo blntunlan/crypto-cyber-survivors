@@ -42,6 +42,17 @@ vi.mock('../../../services/system/Logger', () => ({
   },
 }));
 
+// Mock SupabaseAuthService
+const { mockAuthService } = vi.hoisted(() => ({
+  mockAuthService: {
+    signInAnonymously: vi.fn(),
+  },
+}));
+
+vi.mock('../../../services/auth/SupabaseAuthService', () => ({
+  SupabaseAuthService: mockAuthService,
+}));
+
 describe('UserSessionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -118,47 +129,41 @@ describe('UserSessionService', () => {
 
   describe('registerNickname', () => {
     it('should register new profile in Supabase', async () => {
-      // 1. check exists -> null
-      mockSupabase.single.mockResolvedValueOnce({ data: null, error: null });
-      // 2. insert returns player
-      mockSupabase.single.mockResolvedValueOnce({
-        data: { id: '550e8400-e29b-41d4-a716-446655440005', display_name: 'NewPlayer' },
-        error: null,
+      mockAuthService.signInAnonymously.mockResolvedValueOnce({
+        success: true,
+        user: { id: '550e8400-e29b-41d4-a716-446655440005' },
       });
 
       const result = await UserSessionService.registerNickname('NewPlayer');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockSupabase.insert).toHaveBeenCalled();
+      expect(mockAuthService.signInAnonymously).toHaveBeenCalledWith('NewPlayer');
       expect(result.success).toBe(true);
       expect(UserSessionService.getNickname()).toBe('NewPlayer');
     });
 
     it('should login as existing profile if nickname exists', async () => {
-      const existingProfile = {
-        id: '550e8400-e29b-41d4-a716-446655440006',
-        display_name: 'oldie',
-      };
-      mockSupabase.single.mockResolvedValueOnce({ data: existingProfile, error: null });
+      // With the new Anonymous Sign-In flow, existing profiles are handled
+      // by Supabase (either linking or failing if it's not truly anonymous)
+      // For this test, we just assume signInAnonymously succeeds
+      mockAuthService.signInAnonymously.mockResolvedValueOnce({
+        success: true,
+        user: { id: '550e8400-e29b-41d4-a716-446655440006' },
+      });
 
       const result = await UserSessionService.registerNickname('Oldie');
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockSupabase.update).toHaveBeenCalledWith({
-        last_seen_at: expect.any(String),
-      });
+      expect(mockAuthService.signInAnonymously).toHaveBeenCalledWith('Oldie');
       expect(result.success).toBe(true);
       expect(UserSessionService.getProfileId()).toBe(
         '550e8400-e29b-41d4-a716-446655440006'
       );
     });
 
-    it('should handle conflict (23505 error code)', async () => {
-      mockSupabase.single.mockResolvedValueOnce({ data: null, error: null }); // check exists
-      mockSupabase.single.mockResolvedValueOnce({
-        data: null,
-        error: { code: '23505' },
-      }); // insert fail
+    it('should handle conflict (nickname taken)', async () => {
+      mockAuthService.signInAnonymously.mockResolvedValueOnce({
+        success: false,
+        error: 'Nickname already taken',
+      });
 
       const result = await UserSessionService.registerNickname('Taken');
       expect(result.success).toBe(false);

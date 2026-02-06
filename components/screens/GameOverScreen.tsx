@@ -8,6 +8,7 @@ import { useIsRetro } from '../../contexts/useTheme';
 import { IconTrophy } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { audio } from '../../services/audio';
+import { cn } from '../../utils/classnames';
 
 interface GameOverScreenProps {
   level: number;
@@ -70,7 +71,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     >
       {/* Glitch Title */}
       <motion.h2
-        className={`${isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber'} ${sizes.title} relative my-auto mb-4 font-black italic tracking-tighter text-white md:text-8xl`}
+        className={cn(
+          isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber',
+          sizes.title,
+          'relative my-auto mb-4 font-black italic tracking-tighter text-white md:text-8xl'
+        )}
         initial={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
         animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{
@@ -96,11 +101,12 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
       {/* Stats Card */}
       <motion.div
-        className={`mb-auto w-full max-w-md space-y-6 p-6 transition-all md:p-10 ${
+        className={cn(
+          'mb-auto w-full max-w-md space-y-6 p-6 transition-all md:p-10',
           isRetro
             ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
             : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
-        }`}
+        )}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 100, damping: 15, delay: 0.4 }}
@@ -123,9 +129,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         )}
 
         {/* Stats Grid */}
-        <div className={`grid grid-cols-2 ${sizes.gap} text-left`}>
+        <div className={cn('grid grid-cols-2 text-left', sizes.gap)}>
           <StatItem
-            label={t('common.level_label', { defaultValue: 'Level' })}
+            label={t('common.level_label', { defaultValue: 'Level' }) as string}
             value={`L${level}`}
             delay={0.5}
             sizes={sizes}
@@ -133,7 +139,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           />
 
           <StatItem
-            label={t('common.game_over_screen.pnl')}
+            label={t('common.game_over_screen.pnl') as string}
             value={`${(finalPnl * 100).toFixed(1)}%`}
             color={finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE}
             delay={0.6}
@@ -141,14 +147,14 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             isRetro={isRetro}
           />
           <StatItem
-            label={t('common.game_over_screen.time')}
+            label={t('common.game_over_screen.time') as string}
             value={formatTime(survivalTime)}
             delay={0.7}
             sizes={sizes}
             isRetro={isRetro}
           />
           <StatItem
-            label={t('common.game_over_screen.kills')}
+            label={t('common.game_over_screen.kills') as string}
             value={kills.toString()}
             delay={0.8}
             sizes={sizes}
@@ -164,19 +170,22 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           transition={{ delay: 1 }}
         >
           <p
-            className={`${sizes.tiny} mb-3 font-black uppercase tracking-widest text-slate-500`}
+            className={cn(
+              sizes.tiny,
+              'mb-3 font-black uppercase tracking-widest text-slate-500'
+            )}
           >
-            {t('common.game_over_screen.career_stats')}
+            {t('common.game_over_screen.career_stats') as string}
           </p>
 
-          <div className={`grid grid-cols-3 ${sizes.gap} text-center`}>
+          <div className={cn('grid grid-cols-3 text-center', sizes.gap)}>
             <div>
               <p className={`${sizes.stat} font-black text-white`}>
                 {progress.totalGamesPlayed}
               </p>
 
               <p className={`${sizes.tiny} uppercase text-slate-500`}>
-                {t('common.game_over_screen.games')}
+                {t('common.game_over_screen.games') as string}
               </p>
             </div>
 
@@ -186,7 +195,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               </p>
 
               <p className={`${sizes.tiny} uppercase text-slate-500`}>
-                {t('common.game_over_screen.total_kills')}
+                {t('common.game_over_screen.total_kills') as string}
               </p>
             </div>
 
@@ -196,7 +205,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               </p>
 
               <p className={`${sizes.tiny} uppercase text-slate-500`}>
-                {t('common.game_over_screen.best_level')}
+                {t('common.game_over_screen.best_level') as string}
               </p>
             </div>
           </div>
@@ -205,14 +214,17 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         {/* Restart Button */}
         <motion.button
           onClick={onRestart}
-          className={`w-full ${sizes.buttonLg} rounded-lg bg-white font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-yellow-500`}
+          className={cn(
+            'w-full rounded-lg bg-white font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-yellow-500',
+            sizes.buttonLg
+          )}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          {t('common.game_over_screen.back_to_menu')}
+          {t('common.game_over_screen.back_to_menu') as string}
         </motion.button>
       </motion.div>
     </motion.div>
@@ -242,12 +254,20 @@ const StatItem: React.FC<StatItemProps & { isRetro?: boolean }> = ({
     transition={{ delay }}
   >
     <p
-      className={`text-slate-500 ${sizes.tiny} font-black uppercase ${isRetro ? 'font-retro-text' : ''}`}
+      className={cn(
+        'text-slate-500 font-black uppercase',
+        sizes.tiny,
+        isRetro ? 'font-retro-text' : ''
+      )}
     >
       {label}
     </p>
     <p
-      className={`${sizes.heading} font-black ${isRetro ? 'font-retro-text' : 'font-cyber'}`}
+      className={cn(
+        sizes.heading,
+        'font-black',
+        isRetro ? 'font-retro-text' : 'font-cyber'
+      )}
       style={{ color: isRetro && color === '#ffffff' ? '#ffffff' : color }}
     >
       {value}

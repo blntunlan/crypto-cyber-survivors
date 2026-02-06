@@ -78,40 +78,21 @@ export class UserSessionService {
     }
 
     try {
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('display_name', nickname)
-        .single();
+      const { SupabaseAuthService } = await import('./SupabaseAuthService');
 
-      if (existingProfile) {
-        this.saveUser(existingProfile.id, nickname);
-        // Update last seen directly
-        await supabase
-          .from('profiles')
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq('id', existingProfile.id);
+      // Use Anonymous Sign-In for production
+      // This creates a proper auth user and triggers the profile creation via database triggers
+      const result = await SupabaseAuthService.signInAnonymously(nickname);
+
+      if (result.success && result.user) {
+        this.saveUser(result.user.id, nickname);
         return { success: true };
       }
 
-      const { data: newProfile, error } = await supabase
-        .from('profiles')
-        .insert({
-          display_name: nickname,
-          is_tester: true, // Auto-mark as tester in development/beta
-        })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') {
-          return { success: false, error: 'Nickname already taken' };
-        }
-        throw error;
-      }
-
-      this.saveUser(newProfile.id, nickname);
-      return { success: true };
+      return {
+        success: false,
+        error: result.error ?? 'Failed to register nickname',
+      };
     } catch (error) {
       Logger.error('[UserSession] Registration error', error);
       return { success: false, error: 'Connection error. Please try again.' };
@@ -131,10 +112,18 @@ export class UserSessionService {
 
       const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
       if (isSupabaseConfigured() && supabase && !SecurityUtils.isLocalEnvironment()) {
-        void supabase
-          .from('profiles')
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq('id', user.profileId);
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq('id', user.profileId);
+
+          if (error) {
+            Logger.error('[UserSession] Failed to update profile last seen:', error);
+          }
+        } catch (err) {
+          Logger.error('[UserSession] Profile update exception:', err);
+        }
       }
     }
   }

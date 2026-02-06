@@ -61,8 +61,8 @@ import { useCloudflareSession } from './hooks/useCloudflareSession';
 import { useTutorial } from './hooks/useTutorial';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
-import { useLanguage } from './contexts/LanguageContext';
 import { useGameStore } from './stores/gameStore';
+import { cn } from './utils/classnames';
 
 // Lazy load heavy components for performance optimization
 import { NicknameEntryScreen } from './components/screens/NicknameEntryScreen';
@@ -148,7 +148,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const { t } = useLanguage();
   const device = useDevice();
   const dimensions = useWindowDimensions();
   const { gameStatus, handlePauseToggle } = useGameStatus();
@@ -609,6 +608,19 @@ const App: React.FC = () => {
     GameStateMachine.transition(GameStatus.PLAYING);
   }, []);
 
+  const pauseMenuStats = useMemo(
+    () => ({
+      totalKills: runStats.totalKills,
+      maxStreak: ComboSystem.getMaxStreak(),
+      totalBonusXp: 0,
+    }),
+    [runStats.totalKills]
+  );
+
+  const handleOpenSettings = useCallback(() => {
+    setShowSettings(true);
+  }, []);
+
   const cheatHandlers = useMemo(
     () => ({
       onLevelUp: handleLevelUp,
@@ -680,7 +692,12 @@ const App: React.FC = () => {
       <ThemeProvider>
         <LazyMotionProvider>
           <div
-            className={`relative h-screen w-full ${gameStatus === GameStatus.PLAYING && !showLanding ? 'overflow-hidden' : 'overflow-y-auto'} bg-slate-950 font-mono`}
+            className={cn(
+              'relative h-screen w-full bg-slate-950 font-mono',
+              gameStatus === GameStatus.PLAYING && !showLanding
+                ? 'overflow-hidden'
+                : 'overflow-y-auto'
+            )}
           >
             <ErrorBoundary>
               {/* Auth Callback Handler - Priority Route */}
@@ -781,16 +798,11 @@ const App: React.FC = () => {
                     {gameStatus === GameStatus.PAUSED && (
                       <React.Suspense fallback={<UIFallback />}>
                         <PauseMenu
-                          runStats={{
-                            totalKills: runStats.totalKills,
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            maxStreak: (window.ComboSystem as any)?.getMaxStreak() ?? 0,
-                            totalBonusXp: 0,
-                          }}
+                          runStats={pauseMenuStats}
                           onResume={handlePauseToggle}
                           onRestart={resetGame}
                           onMainMenu={resetGame}
-                          onOpenSettings={() => setShowSettings(true)}
+                          onOpenSettings={handleOpenSettings}
                           isMuted={audioState.isMuted}
                           onToggleMute={toggleMute}
                           pauseSecondsRemaining={pauseBudget.remainingSeconds}

@@ -1,7 +1,7 @@
 # 🎮 Crypto Survivors - Claude Project Context File
 
 > This file is automatically read for Claude to better understand the project.
-> Last Update: 2026-01-31
+> Last Update: 2026-02-06
 
 ## 📋 Project Summary
 
@@ -11,7 +11,8 @@ It receives real-time BTC/USD price data via Binance & Coinbase WebSocket (Price
 **Casual/Competitive game modes**, PWA support and full tutorial flow are available.
 Major languages (ES, PT, HI, VI, ZH, RU) are fully supported.
 
-**DB Optimization:** Migration 026 added JSONB support for cheat logs, fixed transaction constraints for achievements, and implemented BRIN indexes for performance.
+**Auth Refactor:** Supports modern OAuth providers (Google, Twitter), Email/Password, Phantom (Solana), and legacy nickname-based profiles via Anonymous sign-in.
+**DB Optimization:** Migration 026 added JSONB support for cheat logs. Migration 027 (recent) improved session handling and profile linking.
 
 ## 🛠️ Frequently Used Commands
 
@@ -27,6 +28,7 @@ npm run supabase:gen     # Update Supabase types
 # Code Quality
 npm run lint             # ESLint check
 npm run lint:fix         # Fix ESLint errors
+npm run lint:ui          # UI Consistency Audit
 npm run format           # Format with Prettier
 ```
 
@@ -41,16 +43,19 @@ crypto-cyber-survivors/
 │   └── ...
 ├── config/                    # Game configurations (Magic Numbers Forbidden)
 ├── services/                  # Singleton Services (Logic Layer)
-│   ├── DifficultyManager.ts  # Consumer of V2 System
-│   ├── difficulty/           # V2 Layered Architecture (Inputs -> Context -> Director)
-│   ├── EventBus.ts           # System communication (Decoupled)
-│   ├── PoolManager.ts        # O(1) Object pooling (Mandatory for Entities)
+│   ├── gameplay/
+│   │   └── DifficultyManager.ts # Consumer of V2 System
+│   ├── core/
+│   │   └── EventBus.ts       # System communication (Decoupled)
+│   ├── combat/
+│   │   └── PoolManager.ts    # O(1) Object pooling (Mandatory for Entities)
+│   ├── auth/                 # Modern Auth Layer (Supabase, OAuth, Web3)
 │   ├── renderers/            # Canvas/Sprite implementations
 │   └── ...
 ├── stores/                    # Zustand state management (Shared State)
 ├── hooks/                     # Custom React hooks
 ├── types/                     # TypeScript Definitions
-├── tests/                     # Vitest unit & integration tests
+├── tests/                     # Vitest unit & integration tests (2100+ tests)
 ├── e2e/                       # Playwright E2E tests
 └── docs/                      # Documentation
 ```
@@ -59,7 +64,7 @@ crypto-cyber-survivors/
 
 ### 1. Performance Laws (Performance is Law)
 - **GC-Free Loop:** Memory allocation (new Object, Array map/filter) inside the Game Loop is **FORBIDDEN**.
-- **Object Pooling:** NVER use `new Entity()` when spawning Bullet, Customer, Particle. MUST use `PoolManager.spawn()`.
+- **Object Pooling:** NEVER use `new Entity()` when spawning Bullet, Customer, Particle. MUST use `PoolManager.spawn()`.
 - **Spatial Hashing:** O(N^2) loops for collision and distance checks are forbidden. Use `SpatialGrid`.
 - **References:** Use `useRef` or `Singleton Service` for data changing every frame (Position, Velocity), NOT React State.
 
@@ -94,28 +99,35 @@ crypto-cyber-survivors/
 1. ✅ Register new Entities to `PoolManager` when adding them.
 2. ✅ Mock with MSW when testing Network requests (API).
 3. ✅ Use conventional commits in commit messages (`feat:`, `fix:`, `perf:`).
+4. ✅ Verify that `PoolManager.getInstance()` is used correctly (it is a function).
 
 ## 🔌 Integrations & Debug
 
 ### Supabase & Auth
-- **Tables**: `players`, `game_sessions`, `achievements`. RLS active.
-- **Functions**: `verify-game` (Anti-Cheat on-submit validation).
+- **Tables**: `players`, `game_sessions`, `achievements`, `profiles`. RLS active.
+- **Functions**: `verify-game` (Score validation), `start-session`.
+- **Auth**: Supabase Auth (OAuth/Email) + Anonymous fallback for nickname persistence.
 
 ### Debug Tools
 - **Admin Dashboard**: `Ctrl+Shift+A` (Metrics, Console, State).
 - **Cheat Manager**: `F1` in Development mode.
 - **Logger**: Use `Logger.info()`, `Logger.warn()`. Do not leave `console.log`.
-- **documentation-system**: Capability to manage project documentation, generate API docs, and maintain documentation standards.
 
 ## 📝 Workflows
 Detailed processes under `.agent/workflows/`:
 - `/deploySon` (Deployment)
+- `/code-doc-sync` (Documentation synchronization)
+- `/sc-feature-factory` (Feature Slicing Scaffold)
+- `/sc-perf-audit` (Performance & GC-Free Check)
+- `/sc-service-standard` (Service Pattern Check)
+- `docs/SCALABILITY_DISCIPLINE.md` (Design & Scalability standards)
 
 ## 🚀 Deployment
 ```bash
 git add . && git commit -m "feat: description"
 npm run deploy # git push origin main
 ```
+**CI/CD:** Husky pre-push hooks run `lint`, `format`, and `test` to ensure stability.
 
 ---
 *This file is the SINGLE source of truth for project rules.*

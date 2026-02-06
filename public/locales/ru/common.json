@@ -50,7 +50,13 @@
       "enter_arena": "Войти на Арену",
       "systems_online": "Системы в норме",
       "char_limit": "3-16 Символов",
-      "chars_allowed": "Буквы и Цифры"
+      "chars_allowed": "Буквы и Цифры",
+      "dev_mode_hint": "Протокол бета-доступа v1.0",
+      "prod_mode_hint": "Требуется безопасная аутентификация",
+      "or_login_with": "или войдите с помощью аккаунта",
+      "select_login_method": "Выберите способ входа",
+      "install_phantom": "Установить Phantom",
+      "connect_wallet": "Подключить кошелек"
     },
     "modes": {
       "casual_name": "Обычный",
@@ -84,6 +90,52 @@
       "cash_out": "Забрать",
       "continue": "Продолжить",
       "multiplier_hint": "Продолжите, чтобы получить множитель монет {{val}}% в следующем цикле"
+    },
+    "close": "Закрыть",
+    "project_info": "О проекте",
+    "auth": {
+      "errors": {
+        "not_authenticated": "Не аутентифицирован",
+        "backend_not_configured": "Бэкенд не настроен",
+        "profile_fetch_failed": "Ошибка получения профиля",
+        "nickname_taken": "Этот ник уже занят",
+        "profile_creation_failed": "Ошибка создания профиля",
+        "user_not_found": "Пользователь не найден",
+        "no_active_session": "Нет активной сессии",
+        "profile_not_found": "Профиль не найден",
+        "account_banned": "Ваш аккаунт заблокирован",
+        "session_validation_failed": "Ошибка валидации сессии",
+        "display_name_taken": "Это имя уже занято",
+        "display_name_update_failed": "Ошибка обновления имени",
+        "oauth_failed": "Ошибка аутентификации. Попробуйте снова.",
+        "oauth_cancelled": "Аутентификация отменена",
+        "oauth_popup_blocked": "Окно заблокировано. Разрешите всплывающие окна.",
+        "phantom_not_installed": "Кошелек Phantom не установлен",
+        "phantom_connection_failed": "Ошибка подключения к Phantom",
+        "phantom_rejected": "Подключение отклонено пользователем",
+        "generic_error": "Произошла ошибка. Попробуйте снова."
+      },
+      "callback": {
+        "verifying": "Проверка личности...",
+        "session_verifying": "Проверка сессии...",
+        "preparing_profile": "Подготовка профиля...",
+        "login_success": "Вход выполнен! Перенаправление...",
+        "welcome": "Добро пожаловать! Профиль будет создан...",
+        "password_reset": "Сброс пароля подтвержден. Установите новый.",
+        "login_failed": "Ошибка входа",
+        "checking_oauth": "Проверка сессии OAuth...",
+        "session_not_found": "Сессия не найдена",
+        "oauth_incomplete": "Процесс OAuth не завершен. Попробуйте снова.",
+        "return_home": "Вернуться на главную",
+        "error_occurred": "Произошла ошибка"
+      },
+      "providers": {
+        "twitter": "Twitter/X",
+        "google": "Google",
+        "discord": "Discord",
+        "github": "GitHub",
+        "phantom": "Кошелек Phantom"
+      }
     }
   },
   "market": {
@@ -159,7 +211,17 @@
         "baby": "КИТ-МАЛЫШ",
         "mega": "МЕГА-КИТ",
         "giga": "ГИГА-КИТ"
-      }
+      },
+      "volume_spike": "ВСПЛЕСК ОБЪЕМА",
+      "volume_spike_msg": "Обнаружено сильное давление!",
+      "breakout": "ПРОРЫВ ТРЕНДА",
+      "price_breakout_msg": "Цена пробивает уровни!",
+      "whale_alert": "СИГНАЛ: КИТ",
+      "whale_alert_msg": "Крупный игрок вошел в рынок!",
+      "consolidation": "КОНСОЛИДАЦИЯ",
+      "consolidation_msg": "Рынок остывает. Готовьтесь.",
+      "flash_crash": "ФЛЕШ-КРАХ",
+      "flash_crash_msg": "Паника! Высокая опасность!"
     },
     "recovered": "ВОССТАНОВЛЕН",
     "xp_multiplier_up": "МНОЖИТЕЛЬ XP ПОВЫШЕН!",
@@ -173,7 +235,8 @@
       "berserk": "Берсерк",
       "diamond_hands": "Бриллиантовые руки",
       "luck_boost": "Буст удачи",
-      "rage_mode": "Режим ярости"
+      "rage_mode": "Режим ярости",
+      "lucky_star": "Звезда удачи"
     },
     "fps": "FPS",
     "achievement": "Достижение!",
@@ -185,7 +248,22 @@
     "claim_top": "Стань первым в топе!",
     "you": "Вы",
     "points": "очков",
-    "sync_complete": "СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА"
+    "sync_complete": "СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА",
+    "profit_short": "П",
+    "loss_short": "У",
+    "entry_short": "ВХД",
+    "volatility_short": "ВОЛ",
+    "cycle_complete": "ЦИКЛ ЗАВЕРШЕН",
+    "finished": "Завершено",
+    "auto_continue": "Авто-продолжение",
+    "current_difficulty": "Текущая сложность",
+    "next_difficulty": "Сложность след. цикла",
+    "harder": "сложнее",
+    "continue_playing": "ПРОДОЛЖИТЬ ИГРУ",
+    "risk_reward": "Выше риск, выше награда",
+    "cash_out": "ВЫВЕСТИ",
+    "secure_rewards": "Сохраните награды",
+    "decision_hint": "Больше циклов = Больше опыта и добычи"
   },
   "hub": {
     "play": "ИГРАТЬ",
@@ -284,7 +362,9 @@
     "lang_es": "Испанский",
     "lang_pt": "Португальский",
     "lang_zh": "Китайский",
-    "lang_ru": "Русский"
+    "lang_ru": "Русский",
+    "visual_feedback": "Визуальный отклик",
+    "joystick": "Вирт. джойстик"
   },
   "pwa": {
     "installTitle": "Установить приложение",
@@ -466,7 +546,19 @@
       "access": "Доступ_к_терминалу",
       "privacy": "Приватность",
       "terms": "Условия",
-      "contact": "Канал_связи"
+      "contact": "Канал_связи",
+      "top": "ВВЕРХ",
+      "back_to_top": "Вернуться наверх",
+      "discord_soon": "Discord (Скоро)",
+      "twitter_soon": "Twitter/X (Скоро)"
+    }
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Обзор",
+      "stats": "Статистика",
+      "achievements": "Достижения",
+      "settings": "Настройки"
     }
   }
 }

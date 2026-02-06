@@ -123,8 +123,11 @@ class SupabaseAuthServiceClass {
           session,
         });
         if (session?.user) {
-          void this.updateLastSeen(session.user.id);
+          void this.updateLastSeen(session.user.id).catch(err =>
+            Logger.error('[SupabaseAuth] Failed to update last seen:', err)
+          );
         }
+
         break;
 
       case 'SIGNED_OUT':
@@ -240,18 +243,54 @@ class SupabaseAuthServiceClass {
         return { success: false, error: this.mapAuthError(error.message) };
       }
 
-      if (data.session && data.user) {
-        Logger.info('[SupabaseAuth] SignIn successful');
-        return {
-          success: true,
-          user: data.user,
-          session: data.session,
-        };
-      }
+      Logger.info('[SupabaseAuth] SignIn successful');
+      return {
+        success: true,
+        user: data.user as User,
+        session: data.session as Session,
+      };
 
       return { success: false, error: 'Invalid credentials' };
     } catch (err) {
       Logger.error('[SupabaseAuth] SignIn exception:', err);
+      return { success: false, error: 'Connection error' };
+    }
+  }
+
+  /**
+   * Sign in anonymously (for nickname-only access)
+   * This creates a real Supabase user but without email/password
+   */
+  async signInAnonymously(nickname: string): Promise<AuthResult> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return { success: false, error: 'Auth service not configured' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInAnonymously({
+        options: {
+          data: {
+            display_name: nickname,
+            name: nickname,
+          },
+        },
+      });
+
+      if (error) {
+        Logger.error('[SupabaseAuth] Anonymous SignIn error:', error);
+        return { success: false, error: this.mapAuthError(error.message) };
+      }
+
+      Logger.info('[SupabaseAuth] Anonymous SignIn successful');
+      return {
+        success: true,
+        user: data.user as User,
+        session: data.session as Session,
+      };
+
+      return { success: false, error: 'Failed to create anonymous session' };
+    } catch (err) {
+      Logger.error('[SupabaseAuth] Anonymous SignIn exception:', err);
       return { success: false, error: 'Connection error' };
     }
   }
@@ -599,7 +638,8 @@ class SupabaseAuthServiceClass {
         .eq('auth_user_id', user.id)
         .single();
 
-      if (profileError || !profileData) return null;
+      if (profileError) return null;
+
       return this.mapProfileData(profileData as Record<string, unknown>);
     } catch {
       return null;

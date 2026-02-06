@@ -282,6 +282,14 @@
     "nav_help_retro": "[WASD] MOVE   [ENTER] SELECT",
     "nav_help_modern": "wasd to navigate • enter to select"
   },
+  "profile": {
+    "tabs": {
+      "overview": "Overview",
+      "stats": "Stats",
+      "achievements": "Achievements",
+      "settings": "Settings"
+    }
+  },
   "levelup": {
     "title": "LEVEL UP",
     "choose_upgrade": "Choose your upgrade! (W/S + Space)",

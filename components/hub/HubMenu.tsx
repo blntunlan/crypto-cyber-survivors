@@ -23,8 +23,10 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useDevice } from '../../hooks/useDevice';
 import { OptimizationBadge } from '../ui/OptimizationBadge';
+import { cn } from '../../utils/classnames';
 
 import { HubPlayerCard } from './HubPlayerCard.tsx';
+import { PlayerProfile } from './PlayerProfile';
 import { LootboxService } from '../../services/lootbox';
 import { InventoryService } from '../../services/inventory';
 import {
@@ -71,6 +73,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
   const [lootboxCount, setLootboxCount] = useState(0);
   const [consumableCount, setConsumableCount] = useState(0);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Update counts from services
   useEffect(() => {
@@ -99,8 +102,9 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             isAnimated
           />
         ),
-        title: t('hub.play'),
-        getSubtitle: () => t('hub.play_subtitle'),
+        title: t('hub.play') as string,
+        getSubtitle: () => t('hub.play_subtitle') as string,
+
         getBadge: () => 0,
 
         accentColor: COLORS.PUMP_GREEN,
@@ -116,8 +120,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             isAnimated
           />
         ),
-        title: t('hub.stash'),
-        getSubtitle: () => t('hub.stash_subtitle', { count: consumableCount }),
+        title: t('hub.stash') as string,
+        getSubtitle: () =>
+          t('hub.stash_subtitle', { count: consumableCount }) as string,
+
         getBadge: () => 0,
 
         accentColor: COLORS.WHALE,
@@ -134,9 +140,12 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             isAnimated
           />
         ),
-        title: t('hub.loot'),
+        title: t('hub.loot') as string,
         getSubtitle: () =>
-          lootboxCount > 0 ? t('hub.loot_subtitle') : t('hub.no_crates'),
+          lootboxCount > 0
+            ? (t('hub.loot_subtitle') as string)
+            : (t('hub.no_crates') as string),
+
         getBadge: () => lootboxCount,
 
         accentColor: COLORS.CASINO_GOLD,
@@ -153,8 +162,9 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             isAnimated
           />
         ),
-        title: t('hub.skins'),
-        getSubtitle: () => t('hub.skins_subtitle'),
+        title: t('hub.skins') as string,
+        getSubtitle: () => t('hub.skins_subtitle') as string,
+
         getBadge: () => 0,
 
         accentColor: '#9945FF',
@@ -171,8 +181,9 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             isAnimated
           />
         ),
-        title: t('hub.ranks'),
-        getSubtitle: () => t('hub.ranks_subtitle'),
+        title: t('hub.ranks') as string,
+        getSubtitle: () => t('hub.ranks_subtitle') as string,
+
         getBadge: () => 0,
 
         accentColor: COLORS.NEON_ORANGE,
@@ -189,8 +200,9 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             isAnimated
           />
         ),
-        title: t('hub.gear'),
-        getSubtitle: () => t('hub.gear_subtitle'),
+        title: t('hub.gear') as string,
+        getSubtitle: () => t('hub.gear_subtitle') as string,
+
         getBadge: () => 0,
 
         accentColor: '#64748b',
@@ -317,11 +329,18 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1
-            className={`${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'} ${sizes.title} leading-relaxed tracking-tight text-white`}
+            className={cn(
+              isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber',
+              sizes.title,
+              'leading-relaxed tracking-tight text-white'
+            )}
           >
             {t('common.menu.title')}
             <br />
-            <span style={{ color: COLORS.PUMP_GREEN }}>
+            <span
+              className={cn(isRetro && 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]')}
+              style={{ color: isRetro ? COLORS.ELECTRIC_BLUE : COLORS.PUMP_GREEN }}
+            >
               {t('common.menu.subtitle')}
             </span>
           </h1>
@@ -335,7 +354,12 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
             <OptimizationBadge sizes={sizes} />
           </div>
+          {/* Mobile HUD Spacer */}
+          <div className="h-20 lg:hidden" />
         </motion.header>
+
+        {/* Player Profile Modal */}
+        <PlayerProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
         {/* Player Card */}
         <motion.div
@@ -348,7 +372,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             coins={coins}
             cryptoBalance={{ btc: 0, eth: 0, sol: 0 }}
             equippedSkin={equippedSkin}
-            // onAvatarClick={() => onNavigate('skins')} // Temporarily disabled: Player menu/skins and stash not yet fully integrated
+            onAvatarClick={() => {
+              audio.playButton();
+              setIsProfileOpen(true);
+            }}
           />
         </motion.div>
 
@@ -391,17 +418,12 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className={`
-            py-2
-            text-center lg:py-3
-            ${
-              isRetro
-                ? 'border-b-2 border-t-2 border-zinc-700 font-retro-pixel text-[8px]'
-                : 'font-cyber text-xs lg:text-sm'
-            }
-            uppercase
-            tracking-widest text-slate-500
-          `}
+          className={cn(
+            'py-2 text-center lg:py-3 uppercase tracking-widest text-slate-500',
+            isRetro
+              ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[8px]'
+              : 'font-cyber text-xs lg:text-sm'
+          )}
         >
           {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
         </motion.div>

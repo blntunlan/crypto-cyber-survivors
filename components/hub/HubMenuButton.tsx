@@ -9,6 +9,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
+import { cn } from '../../utils/classnames';
 
 export type HubButtonId = 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear';
 
@@ -42,9 +43,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   const cyberStyles = {
     base: `
       relative overflow-hidden
-      bg-white/5 backdrop-blur-xl
-      border border-white/10
-      rounded-sm
+      cyber-glass rounded-2xl
       transition-all duration-300 ease-out
       hover:bg-white/10 hover:border-white/30
       hover:shadow-[var(--hub-shadow-hover)]
@@ -54,8 +53,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       focus-visible:ring-[var(--hub-accent)]
     `,
     selected: `
-      bg-white/10
-      border-[var(--hub-accent)]
+      !bg-white/[0.08]
+      border-[var(--hub-accent)]/60
       shadow-[var(--hub-shadow-selected)]
       scale-[1.02]
     `,
@@ -63,22 +62,23 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       'opacity-50 cursor-not-allowed grayscale hover:scale-100 lg:hover:scale-100',
   };
 
-  // Retro 16-bit styles - sharp pixel-perfect edges, no blur
+  // Retro 16-bit styles - matching MainMenu's neon green aesthetic
   const retroStyles = {
     base: `
       relative
-      bg-zinc-900
-      border-2 border-zinc-700
+      bg-zinc-950/90
+      border-2 border-[#39FF14]/30
       rounded-none
       transition-all duration-100
-      hover:border-zinc-500 hover:bg-zinc-850
+      hover:border-[#39FF14]/60 hover:bg-[#39FF14]/10
       active:translate-x-[2px] active:translate-y-[2px]
-      shadow-[4px_4px_0px_rgba(0,0,0,0.6)]
-      active:shadow-[2px_2px_0px_rgba(0,0,0,0.6)]
+      shadow-[4px_4px_0px_rgba(57,255,20,0.15)]
+      active:shadow-[2px_2px_0px_rgba(57,255,20,0.15)]
     `,
     selected: `
-      bg-zinc-800
-      shadow-[4px_4px_0px_rgba(0,0,0,0.8)]
+      !bg-[#39FF14]/10
+      !border-[#39FF14]
+      shadow-[4px_4px_0px_rgba(57,255,20,0.4)]
     `,
     disabled: 'opacity-60 cursor-not-allowed saturate-50',
   };
@@ -98,16 +98,12 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       disabled={disabled}
       whileHover={!isRetro ? { scale: 1.02 } : undefined}
       whileTap={!isRetro ? { scale: 0.98 } : undefined}
-      className={`
-        flex min-h-[110px] w-full touch-manipulation
-        flex-col items-center justify-center
-        p-4 sm:min-h-[140px]
-        sm:p-6
-        lg:p-8
-        ${styles.base}
-        ${isSelected ? styles.selected : ''}
-        ${disabled ? styles.disabled : ''}
-      `}
+      className={cn(
+        'flex min-h-[110px] w-full touch-manipulation flex-col items-center justify-center p-4 sm:min-h-[140px] sm:p-6 lg:p-8',
+        styles.base,
+        isSelected && styles.selected,
+        disabled && styles.disabled
+      )}
       style={{
         ...dynamicVars,
         borderColor: isSelected

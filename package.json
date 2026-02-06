@@ -39,6 +39,7 @@
     "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "2.89.0",
     "bs58": "^6.0.0",
+    "clsx": "^2.1.1",
     "framer-motion": "12.23.26",
     "howler": "2.2.4",
     "lucide-react": "0.562.0",
@@ -47,6 +48,7 @@
     "react-dom": "19.2.3",
     "serve": "14.2.5",
     "synaptic": "^1.1.4",
+    "tailwind-merge": "^3.4.0",
     "zod": "4.2.1",
     "zustand": "5.0.9"
   },

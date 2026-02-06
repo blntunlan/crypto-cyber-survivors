@@ -11,6 +11,8 @@ import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
 import { type CharacterSkinId } from '../../types/lootbox';
 import { CHARACTER_SKIN_DEFINITIONS } from '../../types/inventory';
+import { cn } from '../../utils/classnames';
+import { PANEL_VARIANTS } from '../../config/themeVariants';
 
 interface HubPlayerCardProps {
   nickname: string;
@@ -47,17 +49,21 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
 
   return (
     <div
-      className={`
-        flex
-        w-full items-center
-        gap-3 p-3 sm:gap-4 sm:p-4
-        ${
-          isRetro
-            ? 'rounded-none border-2 border-zinc-700 bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
-            : 'rounded-sm border border-white/10 bg-white/5 backdrop-blur-xl'
-        }
-      `}
+      className={cn(
+        'flex w-full items-center gap-3 p-3 sm:gap-4 sm:p-4',
+        isRetro ? PANEL_VARIANTS.retro : '!rounded-2xl cyber-glass'
+      )}
     >
+      {!isRetro && (
+        <motion.div
+          className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-white/20"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${skinDef.color}80, transparent)`,
+            boxShadow: `0 0 15px ${skinDef.color}40`,
+          }}
+        />
+      )}
+
       {/* Avatar */}
       <motion.div
         whileHover={onAvatarClick && !isRetro ? { scale: 1.05 } : undefined}
@@ -70,8 +76,9 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
           ${
             isRetro
               ? 'rounded-none border-2 border-zinc-600 bg-zinc-800'
-              : 'rounded-sm border border-white/20 bg-gradient-to-br from-white/10 to-white/5'
+              : 'rounded-xl border border-white/20 bg-gradient-to-br from-white/10 to-white/5'
           }
+
           ${onAvatarClick ? 'cursor-pointer' : 'cursor-default'}
         `}
         style={{

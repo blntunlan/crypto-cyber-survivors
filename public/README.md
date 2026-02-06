@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-1431%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-2145%20passing-brightgreen?logo=vitest)](https://vitest.dev/)
 [![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
@@ -49,6 +49,17 @@ Crypto Survivors, gerçek zamanlı Bitcoin fiyat verilerini oyun mekaniğiyle bi
 - **Premium Asset Design** - Hand-crafted SVG icons and generative art
 - **40+ Unique Upgrades** - Crypto-themed cards: "Diamond Hands", "Rug Pull", "Flash Loan", "Satoshi Mode"
 - **Slot Machine Leveling** - Psychologically optimized level-up screen with "reel stop" anticipation
+
+### 🔐 Modern Authentication
+- **Multi-Provider OAuth** - Support for Google, Twitter/X, and Email login
+- **Web3 Integration** - Phantom (Solana) wallet connection support
+- **Anonymous Migration** - Seamless transition from local nickname to persistent cloud profile
+- **Secure Sessions** - RLS-protected database with session heartbeats
+
+### 🌐 Localization
+- **Multi-Language Core** - Full support for **English, Spanish, Portuguese, Hindi, Vietnamese, Chinese, Russian**
+- **Dynamic Font Loading** - Optimized font delivery for non-latin character sets
+- **Localized UI Elements** - All HUD and Menu items translated and culturally adapted
 
 ### ✨ Buff/Debuff System
 - **Decorator Pattern** - Dynamic stat modifiers with stackable effects
@@ -93,9 +104,9 @@ npm run build        # Build for production
 npm run preview      # Preview production build
 
 # Testing
-npm run test         # Run 979 unit tests
+npm run test         # Run 2145 unit tests
 npm run test:watch   # Watch mode
-npm run test:coverage # Check test coverage (65-80%)
+npm run test:coverage # Check test coverage (70%+)
 npm run test:e2e     # Run 72 E2E tests (Playwright)
 npm run test:e2e:ui  # Playwright UI mode
 
@@ -692,9 +703,9 @@ crypto-cyber-survivors/
 | **Services** | 119 |
 | **Custom Hooks** | 25 |
 | **Config Files** | 16 |
-| **Unit Tests** | **1431 passing** (118 test suites) |
+| **Unit Tests** | **2145 passing** (194 test suites) |
 | **E2E Tests** | **72 passing** |
-| **Test Coverage** | ~65% (Overall), 80%+ (Core Logic) |
+| **Test Coverage** | ~70% (Overall), 85%+ (Core Logic) |
 | **ESLint** | **0 errors, 0 warnings** |
 | **Circular Dependencies** | **0** |
 | **Performance** | Stable 60 FPS (Mobile & Desktop) |
