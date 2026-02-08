@@ -40,6 +40,7 @@ import { EventBus } from '../services/core/EventBus';
 import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty';
 import { portalSystem } from '../services/gameplay/PortalSystem';
+import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -346,6 +347,21 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       const dtFactor = (deltaTime / GAME_ENGINE.TARGET_FRAME_TIME) * timeScale;
       s.lastTime = time;
+
+      // Update Visual Effects Service (Decay intensities)
+      VisualEffectService.update(deltaTime);
+
+      // Apply Market Volatility Shock to screen shake
+      const shockIntensity = VisualEffectService.getIntensity();
+      if (shockIntensity > 0) {
+        const leverage = difficultyContext.getContext().inputs.leverage;
+        const scaledShock = VisualEffectService.calculateLeverageScaledIntensity(
+          shockIntensity,
+          leverage
+        );
+        // Apply immediate shake boost - don't clamp here to allow high-leverage "chaos"
+        s.shake = Math.max(s.shake, scaledShock * 5);
+      }
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
       if (status !== GameStatus.MENU) {

@@ -36,12 +36,37 @@ class VisualEffectServiceClass {
     Logger.debug(
       `[VisualEffectService] Shock event received: intensity=${payload.intensity}`
     );
+
     this.currentShockIntensity = payload.intensity;
-    // Implementation for visual effects state will be added in subsequent tasks
+
+    this.shockTimer = 1000; // Duration in ms (1 second default)
   }
 
   /**
-   * Calculates scaled intensity based on leverage.
+
+     * Updates visual effect timers and decays intensities.
+
+     * @param deltaMs Elapsed time in milliseconds.
+
+     */
+
+  public update(deltaMs: number): void {
+    if (this.shockTimer > 0) {
+      this.shockTimer -= deltaMs;
+
+      if (this.shockTimer <= 0) {
+        this.currentShockIntensity = 0;
+      }
+    }
+  }
+
+  public getIntensity(): number {
+    return this.currentShockIntensity;
+  }
+
+  /**
+
+     * Calculates scaled intensity based on leverage.
    * Power-law scaling: 1 + log10(L) * 0.5 (as defined in DifficultyManager)
    */
   public calculateLeverageScaledIntensity(
