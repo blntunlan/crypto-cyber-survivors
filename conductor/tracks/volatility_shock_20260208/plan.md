@@ -5,7 +5,7 @@
 - [x] Task: Set up the VisualEffectService to listen for shock events. (14a9d9d)
     - [ ] Write tests for `VisualEffectService` to verify it correctly subscribes to `volatilityShock`.
     - [ ] Implement `VisualEffectService` to handle the event and calculate intensity.
-- [ ] Task: Implement leverage-aware screen shake logic.
+- [x] Task: Implement leverage-aware screen shake logic. (194ff12)
     - [ ] Write tests for the intensity calculation formula (1x vs 100x leverage).
     - [ ] Integrate the scaled shake intensity into the `GameEngine` state.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Core Event Handling and Screen Shake Scaling' (Protocol in workflow.md)
