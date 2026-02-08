@@ -55,17 +55,6 @@ railway-market-server/.env
 railway-market-server/.env.local
 railway-market-server/.env.*.local
 
-# AI Assistant files (contain project-specific context)
-.agent/
-.agents/
-.claude/
-.gemini/
-.gemini_security/
-.windsurf/
-.cursor/
-.continue/
-conductor/
-
 # Remotion video project (separate project)
 remotion-video/
 
