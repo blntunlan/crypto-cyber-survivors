@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EntityRenderer } from '../../services/renderers/EntityRenderer';
-import { Gem } from '../../types';
+import type { Gem } from '../../types';
 
 // Mock services
 vi.mock('../../services/system/ScreenService', () => ({
