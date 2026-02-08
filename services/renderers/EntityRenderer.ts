@@ -1,6 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player, type Enemy } from '../../types';
+import { type GameState, type Player, type Enemy, type Gem } from '../../types';
 import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
@@ -11,7 +11,7 @@ import {
 } from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
-import { ECONOMY_CONFIG } from '../../config';
+import { ECONOMY_CONFIG, COLORS } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';
 
 /**
@@ -26,6 +26,7 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private deferredGems: Gem[] = [];
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -129,6 +130,10 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    // 1. Prepare Batching for Standard Gems
+    this.deferredGems.length = 0;
+    let batchStarted = false;
+
     pool.activeGems.forEach(g => {
       if (!g.active) {
         return;
@@ -139,6 +144,40 @@ export class EntityRenderer implements IRenderer {
       }
 
       // Calculate fade-out alpha based on lifetime
+      const elapsed = g.elapsedLifetime ?? 0;
+      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
+      const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+
+      // Standard Gem Criteria:
+      // - Not Rare
+      // - Fully Opaque (remainingRatio >= 0.3)
+      // - Standard Color (Gold)
+      const isStandard =
+        !g.isRare && remainingRatio >= 0.3 && g.color === COLORS.GEM;
+
+      if (isStandard) {
+        if (!batchStarted) {
+          ctx.save();
+          ctx.fillStyle = COLORS.GEM;
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          batchStarted = true;
+        }
+        // Move to start of arc to avoid connecting lines
+        ctx.moveTo(Math.round(g.x) + g.radius, Math.round(g.y));
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+      } else {
+        this.deferredGems.push(g);
+      }
+    });
+
+    if (batchStarted) {
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 2. Draw Deferred (Special) Gems individually
+    this.deferredGems.forEach(g => {
       const elapsed = g.elapsedLifetime ?? 0;
       const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
       const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
