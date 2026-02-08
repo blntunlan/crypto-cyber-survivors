@@ -1,0 +1,72 @@
+import { EventBus } from '../core/EventBus';
+import { Logger } from '../system/Logger';
+
+export interface VolatilityShockPayload {
+  intensity: number;
+  direction: 'up' | 'down' | 'none';
+  isHighLeverage: boolean;
+}
+
+/**
+ * VisualEffectService - Manages high-impact visual effects triggered by game events.
+ * Adheres to the Cyber-Finance aesthetic.
+ */
+class VisualEffectServiceClass {
+  private static instance: VisualEffectServiceClass | null = null;
+  private currentShockIntensity: number = 0;
+  private shockTimer: number = 0;
+
+  private constructor() {
+    this.init();
+  }
+
+  static getInstance(): VisualEffectServiceClass {
+    return (VisualEffectServiceClass.instance ??= new VisualEffectServiceClass());
+  }
+
+  private init(): void {
+    EventBus.on('volatilityShock', (payload: VolatilityShockPayload) => {
+      this.handleVolatilityShock(payload);
+    });
+
+    EventBus.on('gameReset', () => this.reset());
+  }
+
+  private handleVolatilityShock(payload: VolatilityShockPayload): void {
+    Logger.debug(
+      `[VisualEffectService] Shock event received: intensity=${payload.intensity}`
+    );
+    this.currentShockIntensity = payload.intensity;
+    // Implementation for visual effects state will be added in subsequent tasks
+  }
+
+  /**
+   * Calculates scaled intensity based on leverage.
+   * Power-law scaling: 1 + log10(L) * 0.5 (as defined in DifficultyManager)
+   */
+  public calculateLeverageScaledIntensity(
+    baseIntensity: number,
+    leverage: number
+  ): number {
+    const leverageImpact = 1 + Math.log10(leverage) * 0.5;
+    return baseIntensity * leverageImpact;
+  }
+
+  public reset(): void {
+    this.currentShockIntensity = 0;
+    this.shockTimer = 0;
+    // Re-register listener because EventBus.clear() in tests removes it
+    this.init();
+  }
+
+  /**
+   * For testing purposes only.
+   */
+  static resetForTesting(): void {
+    if (this.instance) {
+      this.instance.reset();
+    }
+  }
+}
+
+export const VisualEffectService = VisualEffectServiceClass.getInstance();
