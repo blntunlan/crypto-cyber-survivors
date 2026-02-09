@@ -21,7 +21,7 @@
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 import { TimeService } from '../core/TimeService';
-import { FlowStateManager, type FlowState } from '../difficulty/FlowStateManager';
+import { type FlowState } from '../difficulty/FlowStateManager';
 
 /**
  * Portal configuration - timing and thresholds
@@ -569,9 +569,9 @@ class PortalSystemV2Class {
     if (newState === 'flow') {
       // Reset out-of-flow timer
       this.sessionState.outOfFlowStartTime = null;
-    } else if (this.sessionState.outOfFlowStartTime === null) {
+    } else {
       // Start tracking out-of-flow time
-      this.sessionState.outOfFlowStartTime = Date.now();
+      this.sessionState.outOfFlowStartTime ??= Date.now();
     }
   }
 

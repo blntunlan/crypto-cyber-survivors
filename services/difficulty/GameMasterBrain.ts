@@ -16,10 +16,26 @@ import * as SynapticLib from 'synaptic';
 import { Logger } from '../system/Logger';
 
 // ESM/CJS compatibility
-const SynapticModule = SynapticLib as Record<string, unknown>;
-const SynapticDefault = SynapticModule.default as Record<string, unknown> | undefined;
-const Architect = SynapticModule.Architect ?? SynapticDefault?.Architect;
-const NetworkLib = SynapticModule.Network ?? SynapticDefault?.Network;
+interface SynapticNet {
+  activate: (inputs: number[]) => number[];
+  fromJSON: (json: unknown) => SynapticNet;
+}
+
+interface SynapticArchitect {
+  Perceptron: new (i: number, h: number, o: number) => SynapticNet;
+}
+
+const SynapticModule = SynapticLib as unknown as {
+  Architect: SynapticArchitect;
+  Network: { fromJSON: (json: unknown) => SynapticNet };
+  default?: {
+    Architect: SynapticArchitect;
+    Network: { fromJSON: (json: unknown) => SynapticNet };
+  };
+};
+
+const Architect = SynapticModule.Architect;
+const NetworkLib = SynapticModule.Network;
 
 // ============================================================================
 // CONFIGURATION
@@ -57,12 +73,14 @@ export const GAME_MASTER_CONFIG = {
  * Inputs to the Game Master Brain (14 sensors)
  */
 export interface GameMasterInputs {
-  // Market Data (5)
+  // Market Data (7)
   rsi: number; // RSI / 100 (0-1)
   macd: number; // MACD factor normalized (0-1)
   volatility: number; // ATR% normalized (0-1)
   volume: number; // Volume normalized (0-1)
+  volumeMomentum: number; // Rate of change in volume (-1 to 1)
   trend: number; // 0=strong bear, 0.5=sideways, 1=strong bull
+  pnlMomentum: number; // Rate of change in PnL (-1 to 1)
 
   // Player Economy (4)
   pnl: number; // PnL ratio (-1 to 1, clamped from actual)
@@ -81,7 +99,7 @@ export interface GameMasterInputs {
 }
 
 /**
- * Outputs from the Game Master Brain (12 decisions)
+ * Outputs from the Game Master Brain (13 decisions)
  */
 export interface GameMasterOutputs {
   // Enemy Parameters (4)
@@ -90,8 +108,9 @@ export interface GameMasterOutputs {
   enemyHP: number; // Multiplier (0.7 - 2.0)
   enemyDamage: number; // Multiplier (0.7 - 2.0)
 
-  // Loot Parameters (2)
+  // Loot Parameters (3)
   gemDropRate: number; // Multiplier (0.4 - 1.5)
+  gemValueMultiplier: number; // Multiplier (0.5 - 2.5) for gem XP/value
   xpMultiplier: number; // Multiplier (0.6 - 1.4)
 
   // Special Spawns (2)
@@ -114,6 +133,7 @@ const OUTPUT_RANGES: Record<keyof GameMasterOutputs, { min: number; max: number 
   enemyHP: { min: 0.7, max: 2.0 },
   enemyDamage: { min: 0.7, max: 2.0 },
   gemDropRate: { min: 0.4, max: 1.5 },
+  gemValueMultiplier: { min: 0.5, max: 2.5 },
   xpMultiplier: { min: 0.6, max: 1.4 },
   whaleType: { min: 0, max: 3 },
   eventIntensity: { min: 0, max: 1 },
@@ -170,7 +190,7 @@ class GameMasterBrainClass {
   private static instance: GameMasterBrainClass | null = null;
 
   // Neural Network: 14 inputs -> 20 hidden -> 12 outputs
-  private net!: { activate: (inputs: number[]) => number[] };
+  private net!: SynapticNet;
   private brainLoaded: boolean = false;
   private enabled: boolean = true;
 
@@ -198,10 +218,10 @@ class GameMasterBrainClass {
 
   private initNetwork(): void {
     try {
-      // 14 inputs -> 20 hidden -> 12 outputs
-      this.net = new Architect.Perceptron(14, 20, 12);
+      // 16 inputs -> 22 hidden -> 13 outputs
+      this.net = new Architect.Perceptron(16, 22, 13);
       this.brainLoaded = false;
-      Logger.info('[GameMasterBrain] Neural Network initialized (14-20-12)');
+      Logger.info('[GameMasterBrain] Neural Network initialized (16-22-13)');
     } catch (error) {
       Logger.error('[GameMasterBrain] Failed to initialize:', error);
       this.enabled = false;
@@ -235,13 +255,15 @@ class GameMasterBrainClass {
     const elapsedSeconds = gameTimeMs / 1000;
     const graceFactor = getGraceFactor(elapsedSeconds);
 
-    // Prepare 14 input values
+    // Prepare 16 input values
     const inputArray = [
       inputs.rsi,
       inputs.macd,
       inputs.volatility,
       inputs.volume,
+      clamp((inputs.volumeMomentum + 1) / 2, 0, 1),
       inputs.trend,
+      clamp((inputs.pnlMomentum + 1) / 2, 0, 1),
       clamp((inputs.pnl + 1) / 2, 0, 1), // Map -1..1 to 0..1
       inputs.stress,
       inputs.playerDPS,
@@ -263,23 +285,33 @@ class GameMasterBrainClass {
       enemyHP: mapOutput(raw[2] ?? 0.5, 'enemyHP'),
       enemyDamage: mapOutput(raw[3] ?? 0.5, 'enemyDamage'),
       gemDropRate: mapOutput(raw[4] ?? 0.5, 'gemDropRate'),
-      xpMultiplier: mapOutput(raw[5] ?? 0.5, 'xpMultiplier'),
+      gemValueMultiplier: mapOutput(raw[5] ?? 0.5, 'gemValueMultiplier'),
+      xpMultiplier: mapOutput(raw[6] ?? 0.5, 'xpMultiplier'),
       whaleType: determineWhaleType(inputs.volume, graceFactor),
-      eventIntensity: mapOutput(raw[7] ?? 0.5, 'eventIntensity'),
-      aggression: mapOutput(raw[8] ?? 0.5, 'aggression'),
-      chaos: mapOutput(raw[9] ?? 0.5, 'chaos'),
-      mercyWindow: mapOutput(raw[10] ?? 0.5, 'mercyWindow'),
-      pressureRamp: mapOutput(raw[11] ?? 0.5, 'pressureRamp'),
+      eventIntensity: mapOutput(raw[8] ?? 0.5, 'eventIntensity'),
+      aggression: mapOutput(raw[9] ?? 0.5, 'aggression'),
+      chaos: mapOutput(raw[10] ?? 0.5, 'chaos'),
+      mercyWindow: mapOutput(raw[11] ?? 0.5, 'mercyWindow'),
+      pressureRamp: mapOutput(raw[12] ?? 0.5, 'pressureRamp'),
     };
 
     // Apply grace period (blend toward neutral)
     newOutputs = this.applyGracePeriod(newOutputs, graceFactor);
 
     // Apply PnL-based modifiers
-    newOutputs = this.applyPnLModifiers(newOutputs, inputs.pnl, inputs.luckStat);
+    newOutputs = this.applyPnLModifiers(
+      newOutputs,
+      inputs.pnl,
+      inputs.luckStat,
+      inputs.pnlMomentum
+    );
 
     // Apply flow state corrections
-    newOutputs = this.applyFlowStateCorrections(newOutputs, inputs.stress);
+    newOutputs = this.applyFlowStateCorrections(
+      newOutputs,
+      inputs.stress,
+      inputs.leverage
+    );
 
     // Smooth transition
     this.previousOutputs = { ...this.currentOutputs };
@@ -319,26 +351,29 @@ class GameMasterBrainClass {
    * - Negative PnL → increase difficulty, decrease gem drops
    * - Positive PnL → maintain flow, normal gems
    * - Luck stat helps gem drops even in negative PnL
+   * - MOMENTUM: Fast PnL moves (leveraged shocks) increase Chaos and Gem Value
    */
   private applyPnLModifiers(
     outputs: GameMasterOutputs,
     pnl: number,
-    luckStat: number
+    luckStat: number,
+    pnlMomentum: number
   ): GameMasterOutputs {
     const cfg = GAME_MASTER_CONFIG;
     const result = { ...outputs };
 
+    // Basic PnL Logic
     if (pnl >= cfg.PNL_POSITIVE_THRESHOLD) {
-      // Positive PnL: Flow state, low chaos
-      result.chaos *= 0.7;
-      result.aggression *= 0.85;
-      // Gems stay at brain decision (normal)
+      // Positive PnL: Flow state, slightly higher challenge to prevent boredom
+      result.chaos *= 0.8;
+      result.aggression *= 0.9;
+      result.spawnRate *= 1.1; // More enemies to fight since player is "rich"
     } else if (pnl >= cfg.PNL_NEGATIVE_MILD) {
       // Slightly negative: Start ramping
       const severity = Math.abs(pnl) / Math.abs(cfg.PNL_NEGATIVE_MILD);
       result.chaos *= 1 + severity * 0.3;
       result.spawnRate *= 1 + severity * 0.15;
-      result.gemDropRate *= 1 - severity * 0.2;
+      result.gemDropRate *= 1 - severity * 0.15;
     } else if (pnl >= cfg.PNL_NEGATIVE_SEVERE) {
       // Moderate negative: Significant ramp
       const severity =
@@ -347,20 +382,43 @@ class GameMasterBrainClass {
       result.chaos *= 1.3 + severity * 0.4;
       result.spawnRate *= 1.15 + severity * 0.25;
       result.enemySpeed *= 1 + severity * 0.2;
-      result.gemDropRate *= 0.8 - severity * 0.25;
+      result.gemDropRate *= 0.8 - severity * 0.2;
     } else {
       // Liquidation zone: Maximum pressure
       result.chaos = clamp(result.chaos * 1.8, 0, 1);
       result.spawnRate *= 1.5;
       result.enemySpeed *= 1.3;
       result.enemyDamage *= 1.2;
-      result.gemDropRate *= 0.5;
+      result.gemDropRate *= 0.6;
       result.aggression = clamp(result.aggression * 1.5, 0, 1);
+    }
+
+    // --- MARKET FLOW ENHANCEMENT (Risk/Reward) ---
+    // If PnL is dropping fast (negative momentum), it's a high-stress moment.
+    // We increase Chaos but ALSO increase Gem Value to reward survival in the "Eye of the Storm".
+    if (pnlMomentum < -0.2) {
+      const momentumImpact = Math.abs(pnlMomentum) * 1.5;
+      result.chaos = clamp(result.chaos * (1 + momentumImpact), 0, 1);
+      result.gemValueMultiplier = clamp(
+        result.gemValueMultiplier * (1 + momentumImpact),
+        1.0,
+        2.5
+      );
+    }
+
+    if (pnl < cfg.PNL_NEGATIVE_MILD) {
+      // Increase rewards during market distress to keep it "fun" (Risk/Reward)
+      const riskFactor = Math.abs(pnl) * 2;
+      result.gemValueMultiplier = clamp(
+        result.gemValueMultiplier * (1 + riskFactor),
+        1.0,
+        2.5
+      );
     }
 
     // Luck stat partially counters gem drop reduction
     if (pnl < 0 && luckStat > 0) {
-      const luckBonus = luckStat * 0.4; // Up to 40% recovery
+      const luckBonus = luckStat * 0.5; // Up to 50% recovery
       result.gemDropRate = clamp(
         result.gemDropRate * (1 + luckBonus),
         OUTPUT_RANGES.gemDropRate.min,
@@ -375,30 +433,34 @@ class GameMasterBrainClass {
    * Flow state corrections:
    * - HP > 65%: Increase enemy speed (challenge)
    * - HP < 35%: Mercy window (reduce spawn, brief respite)
+   * - LEVERAGE IMPACT: High leverage makes the flow window tighter
    */
   private applyFlowStateCorrections(
     outputs: GameMasterOutputs,
-    stress: number
+    stress: number,
+    leverage: number
   ): GameMasterOutputs {
     const result = { ...outputs };
     const hpPercent = (1 - stress) * 100;
     const cfg = GAME_MASTER_CONFIG;
 
     const idealHP = cfg.IDEAL_HP_PERCENT;
-    const tolerance = cfg.HP_TOLERANCE;
+    // Leverage-based flow tightening: 1x = 15% tolerance, 100x = 5% tolerance
+    const tolerance = clamp(cfg.HP_TOLERANCE * (1 - leverage * 0.6), 5, 20);
 
     if (hpPercent > idealHP + tolerance) {
-      // Player too comfortable → increase challenge via speed
+      // Player too comfortable → increase challenge via speed and density
       const comfortLevel =
         (hpPercent - (idealHP + tolerance)) / (100 - idealHP - tolerance);
-      result.enemySpeed *= 1 + comfortLevel * 0.35;
-      result.aggression = clamp(result.aggression + comfortLevel * 0.2, 0, 1);
+      result.enemySpeed *= 1 + comfortLevel * 0.4;
+      result.spawnRate *= 1 + comfortLevel * 0.25;
+      result.aggression = clamp(result.aggression + comfortLevel * 0.3, 0, 1);
     } else if (hpPercent < idealHP - tolerance) {
       // Player struggling → brief mercy
       const struggleLevel = (idealHP - tolerance - hpPercent) / (idealHP - tolerance);
-      result.mercyWindow = clamp(result.mercyWindow + struggleLevel * 0.4, 0, 1);
-      result.spawnRate *= 1 - struggleLevel * 0.25;
-      // Note: Don't reduce too much - player should still feel danger
+      result.mercyWindow = clamp(result.mercyWindow + struggleLevel * 0.5, 0, 1);
+      result.spawnRate *= 1 - struggleLevel * 0.3;
+      result.gemDropRate *= 1 + struggleLevel * 0.2; // Drop more gems when struggling to help recovery
     }
 
     return result;
@@ -421,6 +483,7 @@ class GameMasterBrainClass {
       enemyHP: lerp(old.enemyHP, next.enemyHP),
       enemyDamage: lerp(old.enemyDamage, next.enemyDamage),
       gemDropRate: lerp(old.gemDropRate, next.gemDropRate),
+      gemValueMultiplier: lerp(old.gemValueMultiplier, next.gemValueMultiplier),
       xpMultiplier: lerp(old.xpMultiplier, next.xpMultiplier),
       whaleType: next.whaleType, // No smoothing for discrete values
       eventIntensity: lerp(old.eventIntensity, next.eventIntensity),
@@ -442,6 +505,7 @@ class GameMasterBrainClass {
       enemyHP: 1.0,
       enemyDamage: 1.0,
       gemDropRate: 1.0,
+      gemValueMultiplier: 1.0,
       xpMultiplier: 1.0,
       whaleType: 0,
       eventIntensity: 0.3,

@@ -219,7 +219,7 @@ export class GameSessionService {
         let errorMsg = 'Verification failed';
         try {
           const body = await error.context.json();
-          errorMsg = body.error || body.message || error.message;
+          errorMsg = body.error ?? body.message ?? error.message;
         } catch {
           errorMsg = error.message;
         }

@@ -11,6 +11,8 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
   'http://192.168.1.8:3000',
+  'http://192.168.1.7:3000',
+  'http://192.168.1.7:5173',
   'https://crypto-cyber-survivors.vercel.app',
 ];
 
@@ -92,15 +94,49 @@ serve(async (req: Request) => {
       .eq('id', sessionId)
       .maybeSingle();
 
-    if (session) {
-      if (session.is_verified)
-        return new Response(JSON.stringify({ error: 'Already verified' }), {
-          status: 409,
-          headers: cors,
-        });
-
-      // Signature verification would go here using session.session_secret
+    if (!session) {
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
+        status: 404,
+        headers: cors,
+      });
     }
+
+    if (session.is_verified) {
+      return new Response(JSON.stringify({ error: 'Already verified' }), {
+        status: 409,
+        headers: cors,
+      });
+    }
+
+    // --- 🔐 HMAC VERIFICATION ---
+    // Payload MUST match GameSessionService.ts exactly
+    const verificationPayload = JSON.stringify({
+      sessionId: sessionId,
+      pair: pair,
+      position: position,
+      leverage: leverage,
+      claimedEntryPrice: data.claimedEntryPrice,
+      claimedExitPrice: data.claimedExitPrice,
+      claimedPnL: claimedPnL,
+      kills: kills,
+      level: level,
+      survivalSeconds: survivalSeconds,
+    });
+
+    const isValid = await verifyHmac(
+      verificationPayload,
+      signature,
+      session.session_secret
+    );
+
+    if (!isValid) {
+      console.error(`[Security] Invalid signature for session ${sessionId}`);
+      return new Response(JSON.stringify({ error: 'Invalid security signature' }), {
+        status: 403,
+        headers: cors,
+      });
+    }
+    // --- END HMAC VERIFICATION ---
 
     const duration = survivalSeconds || 0;
 

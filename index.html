@@ -1,16 +1,21 @@
 <!doctype html>
-<html lang="en">
+<html>
   <head>
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://*.supabase.com wss://*.supabase.co wss://stream.binance.com:9443 wss://stream.coinbase.com wss://*.coinbase.com https://cloudflareinsights.com;"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://cdn.discordapp.com; connect-src 'self' wss://stream.binance.com wss://stream.binance.com:9443 wss://ws-feed.exchange.coinbase.com wss://stream.coinbase.com wss://*.coinbase.com https://*.supabase.co wss://*.supabase.co https://*.supabase.com https://*.workers.dev https://cloudflareinsights.com; media-src 'self' blob: data:; worker-src 'self' blob:; base-uri 'self'; form-action 'self';"
     />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="google" content="notranslate" />
+    
+    <!-- 2026 AI Discovery & GEO Optimization -->
+    <meta name="ai-discovery" content="index" />
+    <meta name="sge-content" content="authorized" />
+    <meta name="answerengine" content="index" />
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#020617" />
@@ -19,109 +24,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CryptoSurvivors" />
 
-    <!-- SEO Meta Tags - Optimized for Search Rankings -->
-    <meta
-      name="description"
-      content="🎮 Crypto Survivors: Free browser game with real-time Bitcoin price action! Vampire Survivors meets crypto trading. Play now - no download required!"
-    />
-    <meta
-      name="keywords"
-      content="crypto game, bitcoin game, vampire survivors, crypto survivors, free browser game, btc game, trading game, roguelike, survival game, play to earn, web3 game, cryptocurrency game"
-    />
-    <meta name="author" content="Crypto Survivors Team" />
-    <meta
-      name="robots"
-      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
-    />
-    <meta name="googlebot" content="index, follow" />
-    <meta name="bingbot" content="index, follow" />
-    <meta name="rating" content="general" />
-    <meta name="revisit-after" content="1 days" />
-
-    <!-- Open Graph - Full URLs for Social Sharing -->
-    <meta property="og:site_name" content="Crypto Survivors" />
-    <meta
-      property="og:title"
-      content="Crypto Survivors - Free Bitcoin Survival Game 🚀"
-    />
-    <meta
-      property="og:description"
-      content="🎮 Play the ultimate crypto survival game! Real-time BTC prices control the chaos. Free, no download, instant play!"
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://crypto-survivors.com/" />
-    <meta
-      property="og:image"
-      content="https://crypto-survivors.com/icons/icon-512.png"
-    />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
-    <meta property="og:image:alt" content="Crypto Survivors Game Logo" />
-    <meta property="og:locale" content="en_US" />
-
-    <!-- Twitter Card - Optimized -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@CryptoSurvivors" />
-    <meta name="twitter:creator" content="@CryptoSurvivors" />
-    <meta
-      name="twitter:title"
-      content="Crypto Survivors - Free Bitcoin Survival Game 🚀"
-    />
-    <meta
-      name="twitter:description"
-      content="🎮 Vampire Survivors meets Bitcoin! Real-time crypto prices drive the chaos. Play free now!"
-    />
-    <meta
-      name="twitter:image"
-      content="https://crypto-survivors.com/icons/icon-512.png"
-    />
-    <meta name="twitter:image:alt" content="Crypto Survivors Game" />
-
     <!-- Google Search Console Verification -->
     <meta
       name="google-site-verification"
       content="Xhz5KIT2oqkB5oOGJYhamm3mETI03xOXmqLth9m9QYM"
     />
 
-    <!-- JSON-LD Structured Data - Multiple Types for Rich Results -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "VideoGame",
-        "name": "Crypto Survivors",
-        "description": "Free browser-based survival game powered by real-time Bitcoin prices. Vampire Survivors meets cryptocurrency trading!",
-        "url": "https://crypto-survivors.com",
-        "image": "https://crypto-survivors.com/icons/icon-512.png",
-        "genre": ["Roguelike", "Survival", "Action"],
-        "gamePlatform": ["Web Browser", "PC", "Mobile"],
-        "applicationCategory": "Game",
-        "operatingSystem": "Any",
-        "playMode": "SinglePlayer",
-        "numberOfPlayers": {
-          "@type": "QuantitativeValue",
-          "minValue": 1,
-          "maxValue": 1
-        },
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD",
-          "availability": "https://schema.org/InStock"
-        },
-        "author": {
-          "@type": "Organization",
-          "name": "Crypto Survivors Team",
-          "url": "https://crypto-survivors.com"
-        },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": "4.8",
-          "ratingCount": "150",
-          "bestRating": "5",
-          "worstRating": "1"
-        }
-      }
-    </script>
+    <!-- Minimal Fallback JSON-LD (Detailed schemas moved to App.tsx) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -138,38 +47,12 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "What is Crypto Survivors?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Crypto Survivors is a free browser-based survival game where real-time Bitcoin prices affect gameplay. It combines Vampire Survivors-style gameplay with cryptocurrency market dynamics."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Is Crypto Survivors free to play?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes! Crypto Survivors is completely free to play in your browser. No download or installation required."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How does Bitcoin price affect the game?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Real-time BTC/USD prices from Binance and Coinbase affect enemy spawns, difficulty, and game dynamics. Price volatility creates chaos!"
-            }
-          }
-        ]
+        "@type": "Organization",
+        "name": "Crypto Survivors Team",
+        "url": "https://crypto-survivors.com",
+        "logo": "https://crypto-survivors.com/icons/icon-512.png"
       }
     </script>
-
-    <title>Crypto Survivors</title>
-    <link rel="canonical" href="https://crypto-survivors.com/" />
 
     <!-- Hreflang for International SEO -->
     <link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />

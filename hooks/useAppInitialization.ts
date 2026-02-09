@@ -96,22 +96,19 @@ export function useAppInitialization(): UseAppInitializationResult {
               `[useAppInitialization] User authenticated: ${session.user.email}`
             );
 
-            // Ensure profile exists
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('id, display_name')
-              .eq('auth_user_id', session.user.id)
-              .maybeSingle();
+            // Ensure profile exists using ProfileService (centralized logic)
+            const { ProfileService } = await import('../services/auth/ProfileService');
+            const profileResult = await ProfileService.getInstance().initialize();
 
-            if (profile) {
-              // Profile exists, sync with local storage
+            if (profileResult.isValid && profileResult.profile) {
+              // Profile exists or was auto-linked
               await UserPersistenceService.createOrUpdateUser(
-                profile.display_name || session.user.email?.split('@')[0] || 'Player',
+                profileResult.profile.displayName,
                 false
               );
               setNeedsNicknameWithLog(false);
             } else {
-              // No profile yet - need to create one (show auth screen)
+              // No profile yet or needs nickname - show nickname screen
               setNeedsNicknameWithLog(true);
             }
           } else {

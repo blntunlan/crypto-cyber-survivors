@@ -25,7 +25,6 @@ export type { EnemyType, EnemyTypeConfig } from './EnemyConfig';
 
 // Game
 export {
-  WAVE_CONFIG,
   DIFFICULTY_CONFIG,
   COMBAT_CONFIG,
   VISUAL_CONFIG,

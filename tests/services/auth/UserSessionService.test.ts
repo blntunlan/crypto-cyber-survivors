@@ -4,7 +4,7 @@ import { type SupabaseClient } from '@supabase/supabase-js';
 import { UserPersistenceService } from '../../../services/auth/UserPersistenceService';
 
 // Mock types
-interface StoredUser {
+interface LegacyStoredUser {
   profileId: string;
   nickname: string;
   createdAt: number;
@@ -82,13 +82,13 @@ describe('UserSessionService', () => {
     });
   });
 
-  describe('getStoredUser', () => {
+  describe('getLegacyStoredUser', () => {
     it('should return null if no user is stored', () => {
-      expect(UserSessionService.getStoredUser()).toBeNull();
+      expect(UserSessionService.getLegacyStoredUser()).toBeNull();
     });
 
     it('should return stored user from localStorage', async () => {
-      const mockUser: StoredUser = {
+      const mockUser: LegacyStoredUser = {
         profileId: '550e8400-e29b-41d4-a716-446655440002',
         nickname: 'Tester',
         createdAt: Date.now(),
@@ -97,7 +97,7 @@ describe('UserSessionService', () => {
       localStorage.setItem('crypto_survivors_user', JSON.stringify(mockUser));
       await UserPersistenceService.initialize();
 
-      const user = UserSessionService.getStoredUser();
+      const user = UserSessionService.getLegacyStoredUser();
       expect(user).toEqual(mockUser);
     });
   });
@@ -174,12 +174,12 @@ describe('UserSessionService', () => {
   describe('updateLastSeen', () => {
     it('should update timestamp in localStorage and Supabase', async () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440007', 'Syncer');
-      const oldTime = UserSessionService.getStoredUser()?.lastSeenAt ?? 0;
+      const oldTime = UserSessionService.getLegacyStoredUser()?.lastSeenAt ?? 0;
 
       await new Promise(r => setTimeout(r, 10));
       await UserSessionService.updateLastSeen();
 
-      const newUser = UserSessionService.getStoredUser();
+      const newUser = UserSessionService.getLegacyStoredUser();
       expect(newUser?.lastSeenAt).toBeGreaterThan(oldTime);
       expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       expect(mockSupabase.update).toHaveBeenCalledWith({
@@ -193,7 +193,7 @@ describe('UserSessionService', () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440008', 'Clearer');
       UserSessionService.clearUser();
 
-      expect(UserSessionService.getStoredUser()).toBeNull();
+      expect(UserSessionService.getLegacyStoredUser()).toBeNull();
       expect(localStorage.getItem('crypto_survivors_user')).toBeNull();
     });
   });

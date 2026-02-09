@@ -156,7 +156,6 @@ class ReactiveLayerClass {
    */
   process(player: PlayerState, tactical: TacticalOutput): DirectorOutput {
     const now = Date.now();
-    const config = REACTIVE_CONFIG;
 
     // Clean old damage history
     this.cleanDamageHistory(now);

@@ -55,6 +55,7 @@ export interface MarketData {
   spawnRateMultiplier?: number;
   enemyDamage?: number;
   enemySpeed?: number;
+  gemValueMultiplier?: number;
 }
 
 export interface Entity {

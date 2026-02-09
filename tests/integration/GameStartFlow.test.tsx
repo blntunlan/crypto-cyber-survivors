@@ -23,6 +23,14 @@ vi.mock('../../contexts/LanguageContext', () => ({
   }),
 }));
 
+vi.mock('../../contexts/useTheme', () => ({
+  useTheme: () => ({
+    isRetro: false,
+    theme: { name: 'cyberpunk', colors: {}, fonts: {}, effects: {} },
+    toggleTheme: vi.fn(),
+  }),
+}));
+
 // Mock dependencies
 vi.mock('../../services/audio', () => ({
   audio: {
@@ -57,7 +65,7 @@ vi.mock('../../services/auth/UserPersistenceService', () => ({
     initialize: vi
       .fn()
       .mockResolvedValue({ nickname: 'TestUser', playerId: 'test-player-id' }),
-    getStoredUser: vi
+    getLegacyStoredUser: vi
       .fn()
       .mockReturnValue({ nickname: 'TestUser', playerId: 'test-player-id' }),
     saveUser: vi.fn(),

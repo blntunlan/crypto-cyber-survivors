@@ -207,7 +207,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   // Handle OTP verify
   const handleOtpVerify = useCallback(async () => {
-    if (otpCode?.length !== 6) {
+    if (otpCode.length !== 6) {
       setError('Lütfen 6 haneli kodu girin');
       return;
     }

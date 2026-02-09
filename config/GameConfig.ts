@@ -12,29 +12,6 @@ import { type WavePhase } from '../services/difficulty/types';
 export type { WavePhase };
 
 // =============================================================================
-// WAVE SYSTEM - DEPRECATED (AI Director V2)
-// =============================================================================
-
-/**
- * @deprecated Wave phases have been removed in AI Director V2.
- * Keeping for legacy compatibility - will be removed in future version.
- */
-export const WAVE_CONFIG = {
-  // Single "active" phase - wave rhythm now comes from market
-  PHASES: [{ name: 'active', duration: 300, multiplier: 1.0 }] as Array<{
-    name: WavePhase;
-    duration: number;
-    multiplier: number;
-  }>,
-
-  // Phase order - deprecated
-  PHASE_ORDER: ['active'] as WavePhase[],
-
-  // Total cycle duration (5 minutes default)
-  TOTAL_DURATION: 300,
-};
-
-// =============================================================================
 // DIFFICULTY V2 SYSTEM CONFIG
 // =============================================================================
 

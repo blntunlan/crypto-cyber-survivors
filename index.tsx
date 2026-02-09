@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './services/system/DebugService'; // Initialize debug tools
 
 import { LanguageProvider } from './contexts/LanguageContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // ========================================
 // PWA Scroll Prevention
@@ -70,9 +71,11 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <LanguageProvider>
-        <GameProvider>
-          <App />
-        </GameProvider>
+        <ThemeProvider>
+          <GameProvider>
+            <App />
+          </GameProvider>
+        </ThemeProvider>
       </LanguageProvider>
     </ErrorBoundary>
   </React.StrictMode>

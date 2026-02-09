@@ -8,7 +8,11 @@
  */
 
 import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { SupabaseUtils } from '../core/SupabaseUtils';
 import { Logger } from '../system/Logger';
+import type { Database } from '../../types/supabase';
+
+type DBProfile = Database['public']['Tables']['profiles']['Row'];
 
 export interface PlayerProfile {
   id: string;
@@ -70,17 +74,12 @@ export class ProfileService {
         return { isValid: false, error: 'Not authenticated' };
       }
 
-      // Check if profile exists using auth_user_id (modern auth flow)
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-
-      if (fetchError) {
-        Logger.error('[ProfileService] Error fetching profile:', fetchError);
-        return { isValid: false, error: 'Failed to fetch profile' };
-      }
+      // 1. Check if profile exists using auth_user_id (modern auth flow)
+      const existingProfile = await SupabaseUtils.safeFetchSingle<DBProfile>(
+        supabase.from('profiles').select('*').eq('auth_user_id', user.id),
+        'Profile',
+        false // Not critical yet as they are authenticated, it just might not exist
+      );
 
       if (existingProfile) {
         // Profile exists - validate and update last seen
@@ -93,33 +92,58 @@ export class ProfileService {
 
         this.isInitialized = true;
         Logger.info(
-          '[ProfileService] Profile loaded:',
+          '[ProfileService] Profile loaded via auth_user_id:',
           this.currentProfile.displayName
         );
         return { isValid: true, profile: this.currentProfile };
       }
 
-      // No profile exists - check if we have enough info to create one
-      const suggestedNickname = this.extractNickname(user);
+      // 2. RETURNING USER CHECK: If no auth_user_id match, check by email (Legacy profiles)
+      if (user.email) {
+        const legacyProfile = await SupabaseUtils.safeFetchSingle<DBProfile>(
+          supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', user.email)
+            .is('auth_user_id', null),
+          'LegacyProfile'
+        );
 
-      if (suggestedNickname) {
-        // Auto-create profile for OAuth users with displayName
-        const createResult = await this.createProfile({
-          userId: user.id,
-          displayName: suggestedNickname,
-          avatarUrl: user.user_metadata?.avatar_url as string | undefined,
-          email: user.email ?? undefined,
-          emailVerified: !!user.email_confirmed_at,
-          authProvider: user.app_metadata?.provider ?? 'email',
-        });
+        if (legacyProfile) {
+          Logger.info(
+            '[ProfileService] Found legacy profile matching email, linking...',
+            user.email
+          );
+          // Auto-link legacy profile
+          const { data: linkedProfile, error: linkError } = await supabase
+            .from('profiles')
+            .update({
+              auth_user_id: user.id,
+              email_verified: !!user.email_confirmed_at,
+              primary_auth_provider: user.app_metadata.provider ?? 'email',
+              last_seen_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', legacyProfile.id)
+            .select()
+            .single();
 
-        if (createResult.isValid) {
-          this.isInitialized = true;
-          return createResult;
+          if (linkedProfile) {
+            this.currentProfile = this.mapToPlayerProfile(linkedProfile, user);
+            this.isInitialized = true;
+            Logger.info(
+              '[ProfileService] Legacy profile linked successfully:',
+              this.currentProfile.displayName
+            );
+            return { isValid: true, profile: this.currentProfile };
+          }
+          Logger.error('[ProfileService] Failed to link legacy profile:', linkError);
         }
       }
 
-      // Need user to provide nickname
+      // 3. NEW USER FLOW: No existing profile found, force nickname creation
+      // Disable auto-creation from suggestedNickname to let user choose their own
+      Logger.info('[ProfileService] No profile found, forcing nickname screen');
       return {
         isValid: false,
         needsNickname: true,
@@ -222,14 +246,21 @@ export class ProfileService {
       }
 
       // Verify profile still exists in DB
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, is_banned')
-        .eq('id', session.user.id)
-        .maybeSingle();
+      const profile = await SupabaseUtils.safeFetchSingle<{
+        id: string;
+        is_banned: boolean;
+      }>(
+        supabase
+          .from('profiles')
+          .select('id, is_banned')
+          .eq('auth_user_id', session.user.id),
+        'ProfileVerification',
+        true // This IS critical - they have a session but profile might be gone
+      );
 
       if (!profile) {
         this.currentProfile = null;
+        // SupabaseUtils already cleared UserPersistenceService if profile missing
         return { isValid: false, error: 'Profile not found' };
       }
 
@@ -338,8 +369,8 @@ export class ProfileService {
           auth_user_id: user.id,
           email: user.email,
           email_verified: !!user.email_confirmed_at,
-          primary_auth_provider: user.app_metadata?.provider ?? 'email',
-          avatar_url: legacyProfile.avatar_url || user.user_metadata?.avatar_url,
+          primary_auth_provider: user.app_metadata.provider ?? 'email',
+          avatar_url: legacyProfile.avatar_url ?? user.user_metadata.avatar_url,
           updated_at: new Date().toISOString(),
         })
         .eq('id', legacyProfileId);
@@ -376,27 +407,6 @@ export class ProfileService {
   }
 
   // Private helper methods
-  private extractNickname(user: {
-    user_metadata?: {
-      full_name?: string;
-      name?: string;
-      preferred_username?: string;
-      user_name?: string;
-    };
-  }): string | null {
-    const metadata = user.user_metadata;
-    if (!metadata) return null;
-
-    // Try various common username fields from OAuth providers
-    return (
-      metadata.preferred_username ??
-      metadata.user_name ??
-      metadata.name ??
-      metadata.full_name ??
-      null
-    );
-  }
-
   private extractAuthProvider(user: {
     app_metadata?: { provider?: string };
     user_metadata?: { wallet_address?: string };

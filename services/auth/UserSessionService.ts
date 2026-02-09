@@ -6,7 +6,7 @@
  */
 
 import { Logger } from '../system/Logger';
-import { type StoredUser } from './types';
+import { type LegacyStoredUser } from './types';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from './UserPersistenceService';
 import { SecurityUtils } from './SecurityUtils';
@@ -15,15 +15,15 @@ export class UserSessionService {
   /**
    * Check if a user is already stored.
    */
-  static hasStoredUser(): boolean {
-    return UserPersistenceService.getStoredUser() !== null;
+  static hasLegacyStoredUser(): boolean {
+    return UserPersistenceService.getLegacyStoredUser() !== null;
   }
 
   /**
    * Get the stored user data.
    */
-  static getStoredUser(): StoredUser | null {
-    return UserPersistenceService.getStoredUser();
+  static getLegacyStoredUser(): LegacyStoredUser | null {
+    return UserPersistenceService.getLegacyStoredUser();
   }
 
   /**
@@ -31,7 +31,7 @@ export class UserSessionService {
    * If no user is stored, returns a temporary anonymous ID.
    */
   static getProfileId(): string {
-    const user = this.getStoredUser();
+    const user = this.getLegacyStoredUser();
     if (user) return user.profileId;
 
     // Return a temporary ID if not logged in (for pre-login metrics)
@@ -42,7 +42,7 @@ export class UserSessionService {
    * Get the player's nickname.
    */
   static getNickname(): string | null {
-    const user = this.getStoredUser();
+    const user = this.getLegacyStoredUser();
     return user ? user.nickname : null;
   }
 
@@ -51,7 +51,7 @@ export class UserSessionService {
    */
   static saveUser(profileId: string, nickname: string): void {
     const now = Date.now();
-    const user: StoredUser = {
+    const user: LegacyStoredUser = {
       profileId,
       nickname,
       createdAt: now,
@@ -103,7 +103,7 @@ export class UserSessionService {
    * Update the last seen timestamp in storage and optionally Supabase.
    */
   static async updateLastSeen(): Promise<void> {
-    const user = this.getStoredUser();
+    const user = this.getLegacyStoredUser();
     if (user) {
       const now = Date.now();
       const updatedUser = { ...user, lastSeenAt: now };

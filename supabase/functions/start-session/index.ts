@@ -12,6 +12,8 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:5173',
   'http://192.168.1.8:3000',
+  'http://192.168.1.2:3000',
+  'http://192.168.1.2:5173',
   'https://crypto-cyber-survivors.vercel.app',
 ];
 
@@ -81,7 +83,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         sessionId: session.id,
-        startTime: session.start_time,
+        startTime: session.created_at,
         sessionSecret: sessionSecret, // Return secret ONCE to client
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

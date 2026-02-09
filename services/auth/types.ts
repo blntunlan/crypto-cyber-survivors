@@ -8,9 +8,10 @@
 // ============================================
 
 /**
- * @deprecated Use ProfileData from SupabaseAuthService instead
+ * LegacyStoredUser - Storage format for nickname-based identities.
+ * Keeping for backward compatibility with local storage.
  */
-export interface StoredUser {
+export interface LegacyStoredUser {
   profileId: string; // UUID from Supabase
   nickname: string; // Display name (3-16 chars)
   createdAt: number; // First login timestamp

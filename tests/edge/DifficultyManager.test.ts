@@ -104,30 +104,6 @@ describe('DifficultyManager Edge Cases', () => {
     });
   });
 
-  describe('Wave Transition Edge Cases (DEPRECATED - AI Director V2)', () => {
-    it('should always return active phase regardless of time jumps', () => {
-      // Reset with time 0
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
-      DifficultyManager.startGame();
-
-      // AI Director V2: Always returns 'active' regardless of time
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
-      DifficultyManager.calculate(0, 0, 1, 1.0);
-      expect(DifficultyManager.getWavePhase()).toBe('active');
-    });
-
-    it('should always return active phase for small time increments', () => {
-      // Reset with time 0
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
-      DifficultyManager.startGame();
-
-      // Small time increments - should still be active
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0.1);
-      DifficultyManager.calculate(0, 0, 1, 1.0);
-      expect(DifficultyManager.getWavePhase()).toBe('active');
-    });
-  });
-
   describe('Kill Streak Boundaries', () => {
     it('should apply streak bonus exactly at threshold', () => {
       // Streak bonus: +5% per 5 kills, caps at +30%

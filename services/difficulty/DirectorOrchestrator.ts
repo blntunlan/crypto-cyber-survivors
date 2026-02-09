@@ -141,50 +141,34 @@ class DirectorOrchestratorClass {
     this.updateCount++;
 
     // === LAYER 1: STRATEGIC (PID Controller) ===
-    let strategicOutput: StrategicOutput;
-    if (config.STRATEGIC_ENABLED) {
-      const hpPercent = input.playerHP / input.playerMaxHP;
-      strategicOutput = StrategicLayer.update(hpPercent, input.deltaTime);
-    } else {
-      strategicOutput = this.getDefaultStrategicOutput();
-    }
+    const hpPercent = input.playerHP / input.playerMaxHP;
+    const strategicOutput = StrategicLayer.update(hpPercent, input.deltaTime);
     this.lastStrategicOutput = strategicOutput;
 
     // === LAYER 2: TACTICAL (Market Mapping) ===
-    let tacticalOutput: TacticalOutput;
-    if (config.TACTICAL_ENABLED) {
-      const marketIndicators: MarketIndicators = {
-        rsi: input.marketRSI,
-        atrPercent: input.marketATRPercent,
-        normalizedVolume: input.marketVolume,
-        priceChangePercent: input.marketPriceChange,
-        trend: input.marketTrend,
-      };
-      tacticalOutput = TacticalLayer.update(marketIndicators, strategicOutput);
-    } else {
-      tacticalOutput = this.getDefaultTacticalOutput(strategicOutput);
-    }
+    const marketIndicators: MarketIndicators = {
+      rsi: input.marketRSI,
+      atrPercent: input.marketATRPercent,
+      normalizedVolume: input.marketVolume,
+      priceChangePercent: input.marketPriceChange,
+      trend: input.marketTrend,
+    };
+    const tacticalOutput = TacticalLayer.update(marketIndicators, strategicOutput);
     this.lastTacticalOutput = tacticalOutput;
 
     // === LAYER 3: REACTIVE (Emergency Interventions) ===
-    let finalOutput: DirectorOutput;
-    if (config.REACTIVE_ENABLED) {
-      const playerState: PlayerState = {
-        hpPercent: input.playerHP / input.playerMaxHP,
-        isDead: input.playerIsDead,
-        lastDeathTime: input.playerLastDeathTime,
-        currentCombo: input.playerCombo,
-        recentDamageTaken: input.playerRecentDamage,
-      };
-      finalOutput = ReactiveLayer.process(playerState, tacticalOutput);
-    } else {
-      finalOutput = this.tacticalToFinalOutput(tacticalOutput, strategicOutput);
-    }
+    const playerState: PlayerState = {
+      hpPercent: input.playerHP / input.playerMaxHP,
+      isDead: input.playerIsDead,
+      lastDeathTime: input.playerLastDeathTime,
+      currentCombo: input.playerCombo,
+      recentDamageTaken: input.playerRecentDamage,
+    };
+    const finalOutput = ReactiveLayer.process(playerState, tacticalOutput);
 
     this.lastOutput = finalOutput;
 
-    // Debug logging
-    if (config.DEBUG_LOGGING && this.updateCount % 60 === 0) {
+    if (this.updateCount % 60 === 0) {
       Logger.debug(
         `[Director] Flow=${finalOutput.flowState}, ` +
           `Spawn=${finalOutput.spawnRate.toFixed(2)}, ` +
@@ -194,81 +178,6 @@ class DirectorOrchestratorClass {
     }
 
     return finalOutput;
-  }
-
-  /**
-   * Convert tactical output to final output (when reactive disabled)
-   */
-  private tacticalToFinalOutput(
-    tactical: TacticalOutput,
-    strategic: StrategicOutput
-  ): DirectorOutput {
-    return {
-      spawnRate: 1.0 + (tactical.strategicMultiplier - 1) * 0.5,
-      eliteChance: tactical.eliteChanceBonus,
-      bossChance: 0,
-
-      enemyDamageMultiplier: 1.0,
-      enemySpeedMultiplier: 1.0,
-      enemyHealthMultiplier: 1.0,
-
-      bearSpawnWeight: tactical.bearSpawnMultiplier,
-      bullSpawnWeight: tactical.bullSpawnMultiplier,
-
-      shouldSpawnWhale: tactical.shouldSpawnWhale,
-      whaleType: tactical.whaleType,
-      shouldSpawnPortal: tactical.shouldSpawnPortal,
-      portalType: tactical.portalType,
-
-      flowState: strategic.flowState,
-      interventionActive: false,
-      debugInfo: tactical.marketCondition,
-    };
-  }
-
-  /**
-   * Get default strategic output
-   */
-  private getDefaultStrategicOutput(): StrategicOutput {
-    return {
-      difficultyMultiplier: 1.0,
-      flowState: 'flow',
-      deviationMagnitude: 0,
-      trend: 0,
-      confidence: 0,
-      pid: {
-        error: 0,
-        integral: 0,
-        derivative: 0,
-        lastError: 0,
-        lastUpdateTime: 0,
-        output: 1.0,
-        smoothedOutput: 1.0,
-      },
-    };
-  }
-
-  /**
-   * Get default tactical output
-   */
-  private getDefaultTacticalOutput(strategic: StrategicOutput): TacticalOutput {
-    return {
-      bearSpawnMultiplier: 1.0,
-      bullSpawnMultiplier: 1.0,
-      eliteChanceBonus: 0.1,
-      speedVariance: 0.2,
-
-      shouldSpawnWhale: false,
-      whaleType: null,
-      shouldSpawnPortal: false,
-      portalType: null,
-
-      chaosLevel: 'normal',
-      marketMood: 'neutral',
-      strategicMultiplier: strategic.difficultyMultiplier,
-
-      marketCondition: 'Default',
-    };
   }
 
   /**

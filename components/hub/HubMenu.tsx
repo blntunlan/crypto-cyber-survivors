@@ -297,13 +297,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         allow-scroll absolute inset-0
         z-[100] flex flex-col items-center
         justify-start overflow-y-auto overscroll-contain
-        scroll-smooth p-4
-        sm:p-6 lg:p-8
-        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/80 backdrop-blur-md lg:backdrop-blur-xl'}
+        scroll-smooth p-3 pb-[calc(0.75rem+var(--sab))]
+        sm:justify-center sm:p-6
+        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/60 backdrop-blur-sm'}
       `}
     >
       {/* Container - pt-14 creates safe space below fixed back button on mobile */}
-      <div className="relative w-full max-w-lg space-y-3 pt-12 sm:space-y-6 sm:pt-0 lg:max-w-xl lg:space-y-8">
+      <div className="relative w-full max-w-xl space-y-4 pt-12 sm:space-y-8 sm:pt-0">
         {/* Back Button (Top Left) */}
         {onBack && (
           <motion.button
@@ -332,7 +332,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={cn(
               isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber',
               sizes.title,
-              'leading-relaxed tracking-tight text-white'
+              'leading-relaxed tracking-tight',
+              isRetro
+                ? 'text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]'
+                : 'text-white'
             )}
           >
             {t('common.menu.title')}
@@ -354,8 +357,6 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
             <OptimizationBadge sizes={sizes} />
           </div>
-          {/* Mobile HUD Spacer */}
-          <div className="h-20 lg:hidden" />
         </motion.header>
 
         {/* Player Profile Modal */}

@@ -33,7 +33,7 @@ describe('UserPersistenceService', () => {
 
       const user = await UserPersistenceService.initialize();
       expect(user?.nickname).toBe('TestUser');
-      expect(UserPersistenceService.getStoredUser()?.profileId).toBe(
+      expect(UserPersistenceService.getLegacyStoredUser()?.profileId).toBe(
         '550e8400-e29b-41d4-a716-446655440000'
       );
     });
@@ -89,7 +89,7 @@ describe('UserPersistenceService', () => {
         '550e8400-e29b-41d4-a716-446655440010'
       );
       expect(document.cookie).toContain(COOKIE_NAME);
-      expect(UserPersistenceService.getStoredUser()?.nickname).toBe('Saver');
+      expect(UserPersistenceService.getLegacyStoredUser()?.nickname).toBe('Saver');
     });
 
     it('should clear all storage sources on clear()', () => {
@@ -97,7 +97,7 @@ describe('UserPersistenceService', () => {
       UserPersistenceService.clear();
 
       expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
-      expect(UserPersistenceService.getStoredUser()).toBeNull();
+      expect(UserPersistenceService.getLegacyStoredUser()).toBeNull();
       // Cookie should be expired (cant easily check value in JSDOM, but can check clearing)
     });
   });

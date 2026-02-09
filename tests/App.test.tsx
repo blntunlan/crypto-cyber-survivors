@@ -158,12 +158,40 @@ vi.mock('../hooks/useMarketTimeout', () => ({
   useMarketTimeout: vi.fn(),
 }));
 
+vi.mock('../hooks/useTutorial', () => ({
+  useTutorial: () => ({
+    showTutorial: false,
+    currentStep: { id: 'test' },
+    nextStep: vi.fn(),
+    skipTutorial: vi.fn(),
+    completeTutorial: vi.fn(),
+    startTutorial: vi.fn(),
+    resetTutorial: vi.fn(),
+  }),
+}));
+
+vi.mock('../hooks/usePauseBudget', () => ({
+  usePauseBudget: () => ({
+    pauseBudget: 100,
+    isOutOfPauseBudget: false,
+    consumePauseBudget: vi.fn(),
+  }),
+}));
+
 vi.mock('../contexts/LanguageContext', () => ({
   LanguageProvider: ({ children }: { children: React.ReactNode }) => children,
   useLanguage: () => ({
     language: 'en',
     setLanguage: vi.fn(),
     t: (key: string) => key,
+  }),
+}));
+
+vi.mock('../contexts/useTheme', () => ({
+  useTheme: () => ({
+    isRetro: false,
+    theme: { name: 'cyberpunk' },
+    toggleTheme: vi.fn(),
   }),
 }));
 

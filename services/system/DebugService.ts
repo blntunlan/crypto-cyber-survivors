@@ -152,7 +152,7 @@ class DebugServiceClass {
         totalKills: comboState.totalKills,
       },
       difficulty: {
-        wavePhase: DifficultyManager.getWavePhase(),
+        wavePhase: 'active',
         totalElapsedSeconds: DifficultyManager.getTotalElapsedSeconds(),
       },
       settings: {

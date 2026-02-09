@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { type StoredUser } from '../services/auth/types';
+import { type LegacyStoredUser } from '../services/auth/types';
 import { Logger } from '../services/system/Logger';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
@@ -11,7 +11,7 @@ import { SecurityUtils } from '../services/auth/SecurityUtils';
 
 export interface UserContextType {
   /** Current user data, null if not logged in */
-  user: StoredUser | null;
+  user: LegacyStoredUser | null;
   /** Whether the user is authenticated */
   isAuthenticated: boolean;
   /** Whether initial loading is in progress */
@@ -44,7 +44,7 @@ export const UserContext = createContext<UserContextType | undefined>(undefined)
 // ============================================================================
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<StoredUser | null>(null);
+  const [user, setUser] = useState<LegacyStoredUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load user from storage on mount and VERIFY against Database
@@ -113,7 +113,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
         const mockPlayerId = '00000000-0000-4000-a000-000000000000';
         const now = Date.now();
-        const newUser: StoredUser = {
+        const newUser: LegacyStoredUser = {
           profileId: mockPlayerId,
           nickname,
           createdAt: now,
@@ -163,7 +163,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
           // Login as existing player
           const now = Date.now();
-          const newUser: StoredUser = {
+          const newUser: LegacyStoredUser = {
             profileId: existingProfile.id,
             nickname,
             createdAt: now,
@@ -222,7 +222,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
 
         const now = Date.now();
-        const createdUser: StoredUser = {
+        const createdUser: LegacyStoredUser = {
           profileId: newProfile.id,
           nickname,
           createdAt: now,

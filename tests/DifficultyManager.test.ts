@@ -113,41 +113,6 @@ describe('DifficultyManager', () => {
     expect(nearDeath).toBeLessThan(healthy);
   });
 
-  // NOTE: AI Director V2 - Wave phases removed
-  // These tests updated to expect always 'active' phase
-  it('should always return active phase (AI Director V2)', () => {
-    // Reset with time 0
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
-    DifficultyManager.startGame();
-    expect(DifficultyManager.getWavePhase()).toBe('active');
-
-    // Time advances - should still be 'active'
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(30);
-    DifficultyManager.calculate(0, 0, 1, 1.0);
-    expect(DifficultyManager.getWavePhase()).toBe('active');
-
-    // More time advances - should still be 'active'
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(90);
-    DifficultyManager.calculate(0, 0, 1, 1.0);
-    expect(DifficultyManager.getWavePhase()).toBe('active');
-
-    // Even more time - should still be 'active'
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(120);
-    DifficultyManager.calculate(0, 0, 1, 1.0);
-    expect(DifficultyManager.getWavePhase()).toBe('active');
-  });
-
-  it('should handle large time jumps (AI Director V2)', () => {
-    // Reset with time 0
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
-    DifficultyManager.startGame();
-
-    // Large time jump - should still be 'active'
-    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(310);
-    DifficultyManager.calculate(0, 0, 1, 1.0);
-    expect(DifficultyManager.getWavePhase()).toBe('active');
-  });
-
   describe('Kill Streak Logic', () => {
     it('should track kill streaks', () => {
       expect(DifficultyManager.getKillStreak()).toBe(0);

@@ -181,7 +181,8 @@ class MarketStateServiceClass {
           const timeDiff = currentTs - lastLog.timestamp;
 
           // Gap-Filling: If gap > 1.5s, fill with last known data at 1s intervals
-          if (timeDiff > 1500) {
+          // SAFETY: Cap gap-filling to 60 seconds to prevent main-thread hangs on large data gaps
+          if (timeDiff > 1500 && timeDiff < 60000) {
             const gapsToFill = Math.floor(timeDiff / 1000) - 1;
             for (let i = 1; i <= gapsToFill; i++) {
               filledLogs.push({
@@ -190,6 +191,10 @@ class MarketStateServiceClass {
                 timestamp: lastLog.timestamp + i * 1000,
               });
             }
+          } else if (timeDiff >= 60000) {
+            Logger.warn(
+              `[MarketState] Large gap detected (${(timeDiff / 1000).toFixed(0)}s), skipping gap-fill`
+            );
           }
         }
 

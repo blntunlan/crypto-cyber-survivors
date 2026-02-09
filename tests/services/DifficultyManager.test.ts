@@ -46,20 +46,6 @@ describe('DifficultyManager', () => {
     });
   });
 
-  describe('Wave System (DEPRECATED - AI Director V2)', () => {
-    it('should always return "active" phase (deprecated)', () => {
-      // AI Director V2: Wave phases removed
-      // getWavePhase should always return 'active'
-      expect(DifficultyManager.getWavePhase()).toBe('active');
-
-      // Even after time change, should still be 'active'
-      TimeService.setGameTime(30000);
-      DifficultyManager.updateWaveTimer(0);
-
-      expect(DifficultyManager.getWavePhase()).toBe('active');
-    });
-  });
-
   describe('Momentum & Streaks', () => {
     it('should track kill streaks and reset on timeout', () => {
       DifficultyManager.recordKill(); // 1

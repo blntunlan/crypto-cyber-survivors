@@ -35,7 +35,7 @@ describe('Registration Flow (Integration with MSW)', () => {
 
     expect(result.success).toBe(true);
 
-    const storedUser = UserSessionService.getStoredUser();
+    const storedUser = UserSessionService.getLegacyStoredUser();
     expect(storedUser).not.toBeNull();
     expect(storedUser?.nickname).toBe(nickname);
     expect(storedUser?.profileId).toBe('new-uuid');
@@ -48,7 +48,7 @@ describe('Registration Flow (Integration with MSW)', () => {
 
     expect(result.success).toBe(true);
 
-    const storedUser = UserSessionService.getStoredUser();
+    const storedUser = UserSessionService.getLegacyStoredUser();
     expect(storedUser?.nickname).toBe(nickname);
     expect(storedUser?.profileId).toBe('existing-uuid');
   });

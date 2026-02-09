@@ -14,7 +14,7 @@ import {
   type DirectorInput,
   type DirectorOutput,
 } from './DirectorOrchestrator';
-import { type DifficultyOutput } from '../gameplay/DifficultyManager';
+import { type DifficultyOutput } from '../gameplay/DifficultyTypes';
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
 import { TimeService } from '../core/TimeService';
@@ -212,6 +212,7 @@ class DirectorAdapterClass {
         DIFFICULTY_CONFIG.LIMITS.enemyHP.min,
         DIFFICULTY_CONFIG.LIMITS.enemyHP.max
       ),
+      gemValueMultiplier: old.gemValueMultiplier,
       total: old.total, // Keep old total for compatibility
       factors: old.factors, // Keep old factors for debugging
     };

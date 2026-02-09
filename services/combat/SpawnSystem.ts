@@ -62,7 +62,7 @@ export class SpawnSystem implements ISpawnSystem {
     pool: IPoolManager,
     pnl: number = 0,
     maxEnemiesOverride?: number,
-    _spawnRateMultiplier: number = 1,
+    spawnRateMultiplier?: number,
     _pair: CryptoPair = 'BTC',
     damageMultiplier: number = 1.0,
     speedMultiplier: number = 1.0
@@ -121,8 +121,10 @@ export class SpawnSystem implements ISpawnSystem {
     if (this.activeEvents.has('VOLUME_SPIKE')) eventSpawnMultiplier += 0.5;
     if (this.activeEvents.has('FLASH_CRASH')) eventSpawnMultiplier += 1.0;
 
-    // Normal spawn threshold logic
-    const spawnThreshold = config.baseInterval / (difficulty * eventSpawnMultiplier);
+    // Use AI multiplier if provided, otherwise fallback to standard difficulty
+    const effectiveMultiplier = spawnRateMultiplier ?? difficulty;
+    const spawnThreshold =
+      config.baseInterval / (effectiveMultiplier * eventSpawnMultiplier);
 
     let burstCount = 0;
     while (this.spawnTimer > spawnThreshold && burstCount < 5) {

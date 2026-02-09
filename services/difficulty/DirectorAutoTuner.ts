@@ -88,16 +88,12 @@ class DirectorAutoTunerClass {
 
     // Track game end for learning
     EventBus.on('gameOver', data => {
-      if (typeof data === 'object' && data !== null) {
-        this.onGameEnd(data as { survivalTime: number; score: number });
-      }
+      this.onGameEnd(data as unknown as { survivalTime: number; score: number });
     });
 
     // Apply params when optimization completes
     EventBus.on('optimizationComplete', result => {
-      if (result && typeof result === 'object' && 'bestParams' in result) {
-        this.onOptimizationComplete(result as OptimizationResult);
-      }
+      this.onOptimizationComplete(result as OptimizationResult);
     });
   }
 
@@ -111,7 +107,7 @@ class DirectorAutoTunerClass {
         const state: CachedState = JSON.parse(cached);
 
         // Validate version
-        if (state.version === 1 && state.params) {
+        if (state.version === 1) {
           this.appliedParams = state.params;
           this.currentScore = state.score;
 
@@ -149,7 +145,7 @@ class DirectorAutoTunerClass {
    * Check if optimization should be triggered
    */
   private checkOptimizationTrigger(): void {
-    if (!this.isEnabled || !AUTO_TUNER_CONFIG.BACKGROUND_OPTIMIZATION) {
+    if (!this.isEnabled) {
       return;
     }
 

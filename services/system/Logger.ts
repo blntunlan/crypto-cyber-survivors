@@ -31,7 +31,10 @@ class LoggerClass {
   private errorListeners: Set<ErrorListener> = new Set();
 
   private constructor() {
-    this.isDev = import.meta.env.DEV;
+    this.isDev =
+      typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
+        ? true
+        : import.meta.env.DEV;
     this.setupGlobalHandlers();
   }
 

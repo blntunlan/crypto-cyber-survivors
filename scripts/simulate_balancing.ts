@@ -1,5 +1,5 @@
-import { DifficultyManager } from '../services/DifficultyManager';
-import { TimeService } from '../services/TimeService';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { TimeService } from '../services/core/TimeService';
 import { DIFFICULTY_CONFIG } from '../services/difficulty/constants';
 import { ALL_CARDS_FLAT, TOTAL_CARDS } from '../services/cards/cardDefinitions';
 import { type Card } from '../services/cards/types';
@@ -206,7 +206,7 @@ async function runFullGameSimulation(leverage: number) {
 
     // 6. Logging
     if (sec % 30 === 0 || hpStatus.includes('DIED')) {
-      const phase = DifficultyManager.getWavePhase();
+      const phase = 'active';
       console.log(
         `${(sec / 60).toFixed(1)}m`.padEnd(7) +
           '| ' +

@@ -36,6 +36,7 @@ import { Logger } from './services/system/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
 import { ExperienceService } from './services/gameplay/ExperienceService';
 import { TimeService } from './services/core/TimeService';
+import { loadGameMasterBrain } from './services/difficulty/BrainLoader';
 import { PerformanceTracker } from './services/analytics/PerformanceTracker';
 import { DeviceProfiler } from './services/analytics/DeviceProfiler';
 import { WalletService } from './services/gameplay/WalletService';
@@ -46,6 +47,7 @@ import { SupabaseCoinProvider } from './services/gameplay/SupabaseCoinProvider';
 import { ErrorRecoveryService } from './services/core/ErrorRecoveryService';
 import { MarketEventManager } from './services/market/MarketEventManager';
 import { useDevice } from './hooks/useDevice';
+import { useLanguage } from './contexts/LanguageContext';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
 import { useWindowDimensions } from './hooks/useWindowDimensions';
@@ -56,13 +58,14 @@ import { useAppInitialization } from './hooks/useAppInitialization';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
 import { useDevShortcuts } from './hooks/useDevShortcuts';
 import { useMarketTimeout } from './hooks/useMarketTimeout';
+import { useTheme } from './contexts/useTheme';
 import { usePauseBudget } from './hooks/usePauseBudget';
 import { useCloudflareSession } from './hooks/useCloudflareSession';
 import { useTutorial } from './hooks/useTutorial';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { UserProvider } from './contexts/UserContext';
 import { useGameStore } from './stores/gameStore';
 import { cn } from './utils/classnames';
+import { SEO } from './components/SEO';
 
 // Lazy load heavy components for performance optimization
 import { NicknameEntryScreen } from './components/screens/NicknameEntryScreen';
@@ -223,6 +226,8 @@ const App: React.FC = () => {
   const { showAnalytics: _showAnalytics, showAdminDashboard: _showAdminDashboard } =
     useDevShortcuts();
   const tutorial = useTutorial();
+  const { t, language } = useLanguage();
+  const { isRetro } = useTheme();
 
   // Landing & Legal State - Landing page doesn't require auth
   const [showLanding, setShowLanding] = useState(() => {
@@ -296,6 +301,7 @@ const App: React.FC = () => {
   }, [gameStatus, isInitialized]);
 
   useEffect(() => {
+    void loadGameMasterBrain();
     CoinService.setProvider(new SupabaseCoinProvider());
     SupabaseAuthService.initialize();
     void ErrorRecoveryService;
@@ -458,8 +464,13 @@ const App: React.FC = () => {
     (card: Card) => {
       const p = playerRef.current;
       const nextP = applyCardEffect(p, card);
+
+      // Ensure exp and level are valid numbers
+      const safeExp = isNaN(nextP.exp) ? 0 : nextP.exp;
+      const safeNextLevelExp = isNaN(nextP.nextLevelExp) ? 100 : nextP.nextLevelExp;
+
       nextP.level += 1;
-      nextP.exp -= nextP.nextLevelExp;
+      nextP.exp = Math.max(0, safeExp - safeNextLevelExp);
       nextP.nextLevelExp = ExperienceService.getRequiredExp(nextP.level, leverage);
 
       MetricsService.trackLevelUp(nextP.level, card.name, card.tier);
@@ -689,265 +700,342 @@ const App: React.FC = () => {
   // Main Game App
   return (
     <UserProvider>
-      <ThemeProvider>
-        <LazyMotionProvider>
-          <div
-            className={cn(
-              'relative h-screen w-full bg-slate-950 font-mono',
-              gameStatus === GameStatus.PLAYING && !showLanding
-                ? 'overflow-hidden'
-                : 'overflow-y-auto'
+      <LazyMotionProvider>
+        <div
+          className={cn(
+            'relative h-screen w-full bg-slate-950 font-mono',
+            gameStatus === GameStatus.PLAYING && !showLanding
+              ? 'overflow-hidden'
+              : 'overflow-y-auto'
+          )}
+        >
+          <ErrorBoundary>
+            {/* Dynamic 2026 SEO & AI Discovery Meta Tags */}
+            {showLanding ? (
+              <SEO
+                title={
+                  (t('landing.hero.title_top') as string) +
+                  ' ' +
+                  (t('landing.hero.title_highlight') as string)
+                }
+                description={t('landing.hero.description') as string}
+                canonicalPath="/"
+                lang={language}
+                themeColor={isRetro ? '#334155' : '#020617'}
+                structuredData={{
+                  '@context': 'https://schema.org',
+                  '@type': 'VideoGame',
+                  name: 'Crypto Survivors',
+                  description: t('landing.hero.description') as string,
+                  genre: ['Survival', 'Rogue-lite', 'Simulation', 'Arcade'],
+                  gamePlatform: ['Web Browser', 'Mobile Browser', 'PWA'],
+                  applicationCategory: 'Game',
+                  operatingSystem: 'Any',
+                  playMode: 'SinglePlayer',
+                  author: {
+                    '@type': 'Person',
+                    name: 'blntunlan',
+                  },
+                  offers: {
+                    '@type': 'Offer',
+                    price: '0',
+                    priceCurrency: 'USD',
+                  },
+                }}
+                breadcrumbs={[{ name: 'Home', item: '/' }]}
+              />
+            ) : showDocs ? (
+              <SEO
+                title={t('landing.nav.docs') as string}
+                description="Complete technical protocol documentation for the Crypto Survivors engine, mechanics, and architecture."
+                canonicalPath="/docs"
+                lang={language}
+                breadcrumbs={[
+                  { name: 'Home', item: '/' },
+                  { name: 'Documentation', item: '/docs' },
+                ]}
+              />
+            ) : showPrivacy ? (
+              <SEO
+                title={t('landing.footer.privacy') as string}
+                description="Our commitment to protecting your privacy and gaming data."
+                canonicalPath="/privacy"
+                lang={language}
+                breadcrumbs={[
+                  { name: 'Home', item: '/' },
+                  { name: 'Privacy', item: '/privacy' },
+                ]}
+              />
+            ) : showTerms ? (
+              <SEO
+                title={t('landing.footer.terms') as string}
+                description="Official terms and conditions for playing Crypto Survivors."
+                canonicalPath="/terms"
+                lang={language}
+                breadcrumbs={[
+                  { name: 'Home', item: '/' },
+                  { name: 'Terms', item: '/terms' },
+                ]}
+              />
+            ) : (
+              <SEO
+                title={
+                  gameStatus === GameStatus.PLAYING
+                    ? '🔴 LIVE SESSION'
+                    : (t('hub.play') as string)
+                }
+                noindex={true}
+                lang={language}
+              />
             )}
-          >
-            <ErrorBoundary>
-              {/* Auth Callback Handler - Priority Route */}
-              {showAuthCallback ? (
-                <AuthCallback
-                  onSuccess={needsProfile => {
-                    setShowAuthCallback(false);
-                    setShowLanding(false);
-                    setNeedsNickname(needsProfile); // Set based on profile status from OAuth
-                    localStorage.setItem('has_seen_landing', 'true');
-                    window.history.replaceState(null, '', '/');
-                  }}
-                  onError={error => {
-                    Logger.error('[App] Auth callback error:', { error });
-                    setShowAuthCallback(false);
-                    window.history.replaceState(null, '', '/');
-                  }}
-                />
-              ) : showLanding ? (
-                <LandingPage
-                  onLaunch={handleLaunchGame}
-                  onViewPrivacy={() => {
-                    setShowPrivacy(true);
-                    window.history.pushState(null, '', '/privacy');
-                  }}
-                  onViewTerms={() => {
-                    setShowTerms(true);
-                    window.history.pushState(null, '', '/terms');
-                  }}
-                />
-              ) : (
-                <>
-                  <NotificationSystem />
+
+            {/* Auth Callback Handler - Priority Route */}
+            {showAuthCallback ? (
+              <AuthCallback
+                onSuccess={needsProfile => {
+                  setShowAuthCallback(false);
+                  setShowLanding(false);
+                  setNeedsNickname(needsProfile); // Set based on profile status from OAuth
+                  localStorage.setItem('has_seen_landing', 'true');
+                  window.history.replaceState(null, '', '/');
+                }}
+                onError={error => {
+                  Logger.error('[App] Auth callback error:', { error });
+                  setShowAuthCallback(false);
+                  window.history.replaceState(null, '', '/');
+                }}
+              />
+            ) : showLanding ? (
+              <LandingPage
+                onLaunch={handleLaunchGame}
+                onViewPrivacy={() => {
+                  setShowPrivacy(true);
+                  window.history.pushState(null, '', '/privacy');
+                }}
+                onViewTerms={() => {
+                  setShowTerms(true);
+                  window.history.pushState(null, '', '/terms');
+                }}
+              />
+            ) : (
+              <>
+                <NotificationSystem />
+
+                <React.Suspense fallback={<FallbackLoader />}>
+                  {needsNickname && (
+                    <React.Suspense fallback={<FallbackLoader />}>
+                      <NicknameEntryScreen onComplete={handleNicknameComplete} />
+                    </React.Suspense>
+                  )}
+
+                  {tutorial.showTutorial &&
+                    !needsNickname &&
+                    gameStatus === GameStatus.MENU && (
+                      <TutorialOverlay
+                        step={tutorial.currentStep}
+                        stepIndex={tutorial.currentStepIndex}
+                        totalSteps={tutorial.totalSteps}
+                        isFirstStep={tutorial.isFirstStep}
+                        isLastStep={tutorial.isLastStep}
+                        onNext={tutorial.nextStep}
+                        onPrev={tutorial.prevStep}
+                        onSkip={tutorial.skipTutorial}
+                        onComplete={tutorial.completeTutorial}
+                      />
+                    )}
 
                   <React.Suspense fallback={<FallbackLoader />}>
-                    {needsNickname && (
-                      <React.Suspense fallback={<FallbackLoader />}>
-                        <NicknameEntryScreen onComplete={handleNicknameComplete} />
-                      </React.Suspense>
-                    )}
+                    <GameEngine
+                      status={gameStatus}
+                      position={position}
+                      pair={selectedPair}
+                      marketData={marketData}
+                      onGameOver={() => void handleGameOver()}
+                      onLevelUp={handleLevelUp}
+                      updatePlayerStats={setUiStats}
+                      playerRef={playerRef}
+                      width={dimensions.width}
+                      height={dimensions.height}
+                    />
+                  </React.Suspense>
 
-                    {tutorial.showTutorial &&
-                      !needsNickname &&
-                      gameStatus === GameStatus.MENU && (
-                        <TutorialOverlay
-                          step={tutorial.currentStep}
-                          stepIndex={tutorial.currentStepIndex}
-                          totalSteps={tutorial.totalSteps}
-                          isFirstStep={tutorial.isFirstStep}
-                          isLastStep={tutorial.isLastStep}
-                          onNext={tutorial.nextStep}
-                          onPrev={tutorial.prevStep}
-                          onSkip={tutorial.skipTutorial}
-                          onComplete={tutorial.completeTutorial}
-                        />
-                      )}
-
-                    <React.Suspense fallback={<FallbackLoader />}>
-                      <GameEngine
-                        status={gameStatus}
+                  {gameStatus !== GameStatus.MENU && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <GameUI
                         position={position}
-                        pair={selectedPair}
+                        entryPrice={entryPrice}
                         marketData={marketData}
-                        onGameOver={() => void handleGameOver()}
-                        onLevelUp={handleLevelUp}
-                        updatePlayerStats={setUiStats}
-                        playerRef={playerRef}
-                        width={dimensions.width}
-                        height={dimensions.height}
+                        player={uiStats}
+                        onTogglePause={handlePauseToggle}
+                        status={gameStatus}
                       />
                     </React.Suspense>
+                  )}
 
-                    {gameStatus !== GameStatus.MENU && (
+                  {gameStatus === GameStatus.GAMEOVER && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <GameOverScreen
+                        level={playerRef.current.level}
+                        finalPnl={marketData.pnl}
+                        survivalTime={DifficultyManager.getTotalElapsedSeconds()}
+                        kills={runStats.totalKills}
+                        onRestart={resetGame}
+                      />
+                    </React.Suspense>
+                  )}
+
+                  {gameStatus === GameStatus.PAUSED && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <PauseMenu
+                        runStats={pauseMenuStats}
+                        onResume={handlePauseToggle}
+                        onRestart={resetGame}
+                        onMainMenu={resetGame}
+                        onOpenSettings={handleOpenSettings}
+                        isMuted={audioState.isMuted}
+                        onToggleMute={toggleMute}
+                        pauseSecondsRemaining={pauseBudget.remainingSeconds}
+                        pauseSecondsMax={pauseBudget.maxSeconds}
+                      />
+                    </React.Suspense>
+                  )}
+
+                  {gameStatus === GameStatus.MENU &&
+                    !needsNickname &&
+                    hubScreen === 'hub' && (
                       <React.Suspense fallback={<UIFallback />}>
-                        <GameUI
-                          position={position}
-                          entryPrice={entryPrice}
-                          marketData={marketData}
-                          player={uiStats}
-                          onTogglePause={handlePauseToggle}
-                          status={gameStatus}
+                        <HubMenu
+                          nickname={UserSessionService.getNickname() ?? 'Survivor'}
+                          coins={walletBalance}
+                          onNavigate={screen => {
+                            if (screen === 'gear') setShowSettings(true);
+                            else if (screen === 'hub') setHubScreen('hub');
+                            else setHubScreen(screen);
+                          }}
+                          onBack={() => setShowLanding(true)}
                         />
                       </React.Suspense>
                     )}
 
-                    {gameStatus === GameStatus.GAMEOVER && (
+                  {gameStatus === GameStatus.MENU &&
+                    !needsNickname &&
+                    hubScreen === 'play' && (
                       <React.Suspense fallback={<UIFallback />}>
-                        <GameOverScreen
-                          level={playerRef.current.level}
-                          finalPnl={marketData.pnl}
-                          survivalTime={DifficultyManager.getTotalElapsedSeconds()}
-                          kills={runStats.totalKills}
-                          onRestart={resetGame}
+                        <MainMenu
+                          price={marketData.price}
+                          onStart={(c, l) => {
+                            void startGame(c, l);
+                          }}
+                          onOpenSettings={() => setShowSettings(true)}
+                          selectedPair={selectedPair}
+                          onPairChange={setSelectedPair}
+                          selectedMode={gameMode}
+                          onModeChange={setGameMode}
                         />
+                        <button
+                          onClick={() => setHubScreen('hub')}
+                          className="fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
+                          style={{
+                            top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
+                            left: `calc(1rem + env(safe-area-inset-left, 0px))`,
+                          }}
+                        >
+                          ← {!device.isMobile && 'HUB'}
+                        </button>
                       </React.Suspense>
                     )}
 
-                    {gameStatus === GameStatus.PAUSED && (
-                      <React.Suspense fallback={<UIFallback />}>
-                        <PauseMenu
-                          runStats={pauseMenuStats}
-                          onResume={handlePauseToggle}
-                          onRestart={resetGame}
-                          onMainMenu={resetGame}
-                          onOpenSettings={handleOpenSettings}
-                          isMuted={audioState.isMuted}
-                          onToggleMute={toggleMute}
-                          pauseSecondsRemaining={pauseBudget.remainingSeconds}
-                          pauseSecondsMax={pauseBudget.maxSeconds}
-                        />
+                  {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <CycleCompleteScreen
+                        data={cycleData}
+                        onCashOut={handleCashOut}
+                        onContinue={handleContinue}
+                      />
+                    </React.Suspense>
+                  )}
+
+                  {gameStatus === GameStatus.DATA_DISCONNECTED && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <MarketDisconnectedScreen onBackToMenu={resetGame} />
+                    </React.Suspense>
+                  )}
+
+                  {gameStatus === GameStatus.MENU &&
+                    (hubScreen === 'ranks' || hubScreen === 'play') && (
+                      <React.Suspense fallback={null}>
+                        <LeaderboardPanel />
                       </React.Suspense>
                     )}
 
-                    {gameStatus === GameStatus.MENU &&
-                      !needsNickname &&
-                      hubScreen === 'hub' && (
-                        <React.Suspense fallback={<UIFallback />}>
-                          <HubMenu
-                            nickname={UserSessionService.getNickname() ?? 'Survivor'}
-                            coins={walletBalance}
-                            onNavigate={screen => {
-                              if (screen === 'gear') setShowSettings(true);
-                              else if (screen === 'hub') setHubScreen('hub');
-                              else setHubScreen(screen);
-                            }}
-                            onBack={() => setShowLanding(true)}
-                          />
-                        </React.Suspense>
-                      )}
+                  {showSettings && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <SettingsPanel
+                        onClose={() => setShowSettings(false)}
+                        isInGame={gameStatus !== GameStatus.MENU}
+                        onReplayTutorial={tutorial.startTutorial}
+                      />
+                    </React.Suspense>
+                  )}
 
-                    {gameStatus === GameStatus.MENU &&
-                      !needsNickname &&
-                      hubScreen === 'play' && (
-                        <React.Suspense fallback={<UIFallback />}>
-                          <MainMenu
-                            price={marketData.price}
-                            onStart={(c, l) => {
-                              void startGame(c, l);
-                            }}
-                            onOpenSettings={() => setShowSettings(true)}
-                            selectedPair={selectedPair}
-                            onPairChange={setSelectedPair}
-                            selectedMode={gameMode}
-                            onModeChange={setGameMode}
-                          />
-                          <button
-                            onClick={() => setHubScreen('hub')}
-                            className="fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
-                            style={{
-                              top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
-                              left: `calc(1rem + env(safe-area-inset-left, 0px))`,
-                            }}
-                          >
-                            ← {!device.isMobile && 'HUB'}
-                          </button>
-                        </React.Suspense>
-                      )}
+                  {gameStatus === GameStatus.LEVEL_UP && (
+                    <React.Suspense fallback={<UIFallback />}>
+                      <LevelUpScreen
+                        upgradeChoices={upgradeChoices}
+                        onSelect={selectUpgrade}
+                        gameMode={gameMode}
+                      />
+                    </React.Suspense>
+                  )}
+                </React.Suspense>
+              </>
+            )}
 
-                    {gameStatus === GameStatus.CYCLE_COMPLETE && cycleData && (
-                      <React.Suspense fallback={<UIFallback />}>
-                        <CycleCompleteScreen
-                          data={cycleData}
-                          onCashOut={handleCashOut}
-                          onContinue={handleContinue}
-                        />
-                      </React.Suspense>
-                    )}
-
-                    {gameStatus === GameStatus.DATA_DISCONNECTED && (
-                      <React.Suspense fallback={<UIFallback />}>
-                        <MarketDisconnectedScreen onBackToMenu={resetGame} />
-                      </React.Suspense>
-                    )}
-
-                    {gameStatus === GameStatus.MENU &&
-                      (hubScreen === 'ranks' || hubScreen === 'play') && (
-                        <React.Suspense fallback={null}>
-                          <LeaderboardPanel />
-                        </React.Suspense>
-                      )}
-
-                    {showSettings && (
-                      <React.Suspense fallback={<UIFallback />}>
-                        <SettingsPanel
-                          onClose={() => setShowSettings(false)}
-                          isInGame={gameStatus !== GameStatus.MENU}
-                          onReplayTutorial={tutorial.startTutorial}
-                        />
-                      </React.Suspense>
-                    )}
-
-                    {gameStatus === GameStatus.LEVEL_UP && (
-                      <React.Suspense fallback={<UIFallback />}>
-                        <LevelUpScreen
-                          upgradeChoices={upgradeChoices}
-                          onSelect={selectUpgrade}
-                          gameMode={gameMode}
-                        />
-                      </React.Suspense>
-                    )}
-                  </React.Suspense>
-                </>
-              )}
-
-              {/* Legal Modals */}
-              {showPrivacy && (
-                <PrivacyPolicy
-                  onClose={() => {
-                    setShowPrivacy(false);
-                    if (window.location.pathname === '/privacy') {
-                      window.history.pushState(null, '', '/');
-                    }
-                  }}
-                  onViewTerms={() => {
-                    setShowPrivacy(false);
-                    setShowTerms(true);
-                    window.history.pushState(null, '', '/terms');
-                  }}
-                />
-              )}
-              {showTerms && (
-                <TermsOfService
-                  onClose={() => {
-                    setShowTerms(false);
-                    if (window.location.pathname === '/terms') {
-                      window.history.pushState(null, '', '/');
-                    }
-                  }}
-                  onViewPrivacy={() => {
-                    setShowTerms(false);
-                    setShowPrivacy(true);
-                    window.history.pushState(null, '', '/privacy');
-                  }}
-                />
-              )}
-              {showDocs && (
-                <DocScreen
-                  onClose={() => {
-                    setShowDocs(false);
-                    window.location.hash = '';
-                    if (window.location.pathname === '/docs') {
-                      window.history.pushState(null, '', '/');
-                    }
-                  }}
-                />
-              )}
-            </ErrorBoundary>
-          </div>
-        </LazyMotionProvider>
-      </ThemeProvider>
+            {/* Legal Modals */}
+            {showPrivacy && (
+              <PrivacyPolicy
+                onClose={() => {
+                  setShowPrivacy(false);
+                  if (window.location.pathname === '/privacy') {
+                    window.history.pushState(null, '', '/');
+                  }
+                }}
+                onViewTerms={() => {
+                  setShowPrivacy(false);
+                  setShowTerms(true);
+                  window.history.pushState(null, '', '/terms');
+                }}
+              />
+            )}
+            {showTerms && (
+              <TermsOfService
+                onClose={() => {
+                  setShowTerms(false);
+                  if (window.location.pathname === '/terms') {
+                    window.history.pushState(null, '', '/');
+                  }
+                }}
+                onViewPrivacy={() => {
+                  setShowTerms(false);
+                  setShowPrivacy(true);
+                  window.history.pushState(null, '', '/privacy');
+                }}
+              />
+            )}
+            {showDocs && (
+              <DocScreen
+                onClose={() => {
+                  setShowDocs(false);
+                  window.location.hash = '';
+                  if (window.location.pathname === '/docs') {
+                    window.history.pushState(null, '', '/');
+                  }
+                }}
+              />
+            )}
+          </ErrorBoundary>
+        </div>
+      </LazyMotionProvider>
     </UserProvider>
   );
 };

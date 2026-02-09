@@ -5,6 +5,7 @@ import { useUser } from '../../contexts/useUser';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
 import { audio } from '../../services/audio';
 import { User, Shield, Zap, ChevronRight, AlertCircle, Ghost } from 'lucide-react';
+import { Logger } from '../../services/system/Logger';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedInput } from '../themed/ThemedInput';
 import { ThemedButton } from '../themed/ThemedButton';
@@ -15,6 +16,8 @@ import {
   type AuthProvider,
 } from '../../services/auth/SupabaseAuthService';
 import { PhantomAuthService } from '../../services/auth/PhantomAuthService';
+import { UserPersistenceService } from '../../services/auth/UserPersistenceService';
+import type { Session } from '@supabase/supabase-js';
 
 interface NicknameEntryScreenProps {
   onComplete: (nickname: string) => void;
@@ -43,9 +46,28 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   // Check if Phantom is installed
   const isPhantomInstalled = PhantomAuthService.isPhantomInstalled();
 
+  // Auth Session state
+  const [session, setSession] = useState<Session | null>(null);
+
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+
+    // Check for existing session on mount
+    const checkSession = async () => {
+      const currentSession = await SupabaseAuthService.getSession();
+      if (currentSession?.user) {
+        setSession(currentSession);
+        // Pre-fill nickname from metadata if available
+        const meta = currentSession.user.user_metadata;
+        const suggestedName =
+          meta.display_name ?? meta.name ?? meta.preferred_username ?? '';
+        if (suggestedName && !nickname) {
+          setNickname(suggestedName);
+        }
+      }
+    };
+    void checkSession();
+  }, [nickname]);
 
   // Handle Magic Link
   const handleMagicLink = useCallback(async () => {
@@ -185,21 +207,53 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
     // 2. Submit
     setIsSubmitting(true);
     setError(null);
-    audio.playLevelUp();
+    audio.playKeystroke();
 
     try {
-      const result = await login(nickname);
+      let success = false;
+      let errorMsg = '';
 
-      if (result.success) {
+      if (session?.user) {
+        // MODERN AUTH FLOW: User is logged in but needs profile
+        const { ProfileService } = await import('../../services/auth/ProfileService');
+        const profileResult = await ProfileService.getInstance().createProfile({
+          userId: session.user.id,
+          displayName: nickname,
+          avatarUrl: session.user.user_metadata.avatar_url as string,
+          email: session.user.email,
+          emailVerified: !!session.user.email_confirmed_at,
+          authProvider: session.user.app_metadata.provider ?? 'email',
+        });
+
+        if (profileResult.isValid && profileResult.profile) {
+          // Sync with local persistence so UserContext recognizes the session
+          UserPersistenceService.saveUser({
+            profileId: profileResult.profile.id,
+            nickname: profileResult.profile.displayName,
+            createdAt: new Date(profileResult.profile.createdAt).getTime(),
+            lastSeenAt: Date.now(),
+          });
+          success = true;
+        } else {
+          errorMsg = profileResult.error ?? 'Failed to create profile';
+        }
+      } else {
+        // LEGACY/DEV FLOW: Just nickname-based
+        const result = await login(nickname);
+        success = result.success;
+        const msg = result.error ?? t('common.nickname_screen.registration_failed');
+        errorMsg = Array.isArray(msg) ? (msg[0] ?? 'Error') : msg;
+      }
+
+      if (success) {
         audio.playLevelUp();
         onComplete(nickname);
       } else {
-        const errorMsg =
-          result.error ?? t('common.nickname_screen.registration_failed');
         setError(Array.isArray(errorMsg) ? (errorMsg[0] ?? 'Error') : errorMsg);
         audio.playHit();
       }
-    } catch (_err) {
+    } catch (err) {
+      Logger.error('[NicknameEntryScreen] Submission error:', err);
       const sysError = t('common.nickname_screen.system_error');
       setError(Array.isArray(sysError) ? (sysError[0] ?? 'System error') : sysError);
       audio.playHit();
@@ -339,8 +393,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               )}
             </AnimatePresence>
 
-            {/* Nickname Form - Only in Development */}
-            {isDevelopment && (
+            {/* Nickname Form - Development OR Authenticated without profile */}
+            {(isDevelopment || !!session?.user) && (
               <form
                 onSubmit={e => {
                   e.preventDefault();
@@ -440,8 +494,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               </form>
             )}
 
-            {/* Social Login Divider */}
-            {!isDevelopment && (
+            {/* Social Login Divider - Only if not authenticated */}
+            {!isDevelopment && !session?.user && (
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
                 <span className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
@@ -451,8 +505,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               </div>
             )}
 
-            {/* Magic Link Email - Production Only */}
-            {!isDevelopment && !magicLinkSent && (
+            {/* Magic Link Email - Production Only and not authenticated */}
+            {!isDevelopment && !magicLinkSent && !session?.user && (
               <div className="mb-4 space-y-3">
                 <div className="flex items-center gap-2 px-1">
                   <label
@@ -499,8 +553,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               </motion.div>
             )}
 
-            {/* OAuth Buttons Grid */}
-            {!magicLinkSent && !isDevelopment && (
+            {/* OAuth Buttons Grid - Only if not authenticated */}
+            {!magicLinkSent && !isDevelopment && !session?.user && (
               <div className="grid grid-cols-2 gap-2">
                 {oauthProviders.map(provider => (
                   <button
@@ -516,8 +570,8 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
               </div>
             )}
 
-            {/* Phantom Wallet Button */}
-            {!magicLinkSent && !isDevelopment && (
+            {/* Phantom Wallet Button - Only if not authenticated */}
+            {!magicLinkSent && !isDevelopment && !session?.user && (
               <button
                 onClick={() =>
                   isPhantomInstalled

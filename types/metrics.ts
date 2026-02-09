@@ -46,7 +46,8 @@ export type WavePhase =
   | 'breather'
   | 'escalation'
   | 'climax'
-  | 'resolution';
+  | 'resolution'
+  | 'active';
 
 // Legacy phase mapping for backwards compatibility
 export const LEGACY_PHASE_MAP: Record<string, WavePhase> = {
@@ -88,6 +89,7 @@ export const createDefaultWavePhaseRecord = (): Record<WavePhase, number> => ({
   escalation: 0,
   climax: 0,
   resolution: 0,
+  active: 0,
 });
 
 export interface DifficultyMetrics {

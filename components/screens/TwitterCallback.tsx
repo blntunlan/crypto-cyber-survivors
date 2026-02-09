@@ -38,11 +38,11 @@ export const TwitterCallback: React.FC<TwitterCallbackProps> = ({
       if (error) {
         Logger.error('[TwitterCallback] OAuth error:', error, { errorDescription });
         setStatus('error');
-        setMessage(errorDescription || error || 'Authentication was cancelled');
+        setMessage(errorDescription ?? error);
 
         // Redirect after delay
         setTimeout(() => {
-          window.location.href = `${errorRedirect}?twitter_error=${encodeURIComponent(errorDescription || error)}`;
+          window.location.href = `${errorRedirect}?twitter_error=${encodeURIComponent(errorDescription ?? error)}`;
         }, 2000);
         return;
       }
@@ -71,9 +71,9 @@ export const TwitterCallback: React.FC<TwitterCallbackProps> = ({
         }, 1500);
       } else {
         setStatus('error');
-        setMessage(result.error || 'Failed to connect Twitter');
+        setMessage(result.error ?? 'Failed to connect Twitter');
         setTimeout(() => {
-          window.location.href = `${errorRedirect}?twitter_error=${encodeURIComponent(result.error || 'unknown')}`;
+          window.location.href = `${errorRedirect}?twitter_error=${encodeURIComponent(result.error ?? 'unknown')}`;
         }, 2000);
       }
     };

@@ -5,6 +5,19 @@
  * This provides type-safety across the entire event system.
  */
 
+import { type MarketData } from '../types.ts';
+import { type CryptoPair } from './crypto';
+import { type WavePhase } from './metrics';
+import {
+  type LootboxType,
+  type LootboxRarity,
+  type LootboxSource,
+  type LootboxDrop,
+  type CharacterSkinId,
+  type ConsumableEffectType,
+} from './lootbox';
+import { type InventoryItemType } from './inventory';
+
 // =============================================================================
 // EVENT NAMES
 // =============================================================================
@@ -102,6 +115,27 @@ export type GameEvent =
   // Twitter auth events
   | 'twitterLoginSuccess'
   | 'twitterUnlinked'
+  // AI Director / Optimization events
+  | 'playerDied'
+  | 'optimizationComplete'
+  | 'directorAutoTuned'
+  | 'directorDecision'
+  | 'strategicLayerUpdate'
+  | 'tacticalLayerUpdate'
+  | 'flowStateChanged'
+  | 'clientIndicatorsUpdated'
+  | 'portalEntered'
+  | 'portalRejected'
+  | 'portalMissed'
+  // Market / Gameplay interaction events
+  | 'screenShake'
+  | 'visualOverlay'
+  | 'spawnBoss'
+  | 'playerModifierApplied'
+  | 'playerModifierRemoved'
+  | 'marketFlowInfluence'
+  | 'marketEventActive'
+  | 'marketEventExpired'
   // Supabase auth events
   | 'authStateChanged';
 
@@ -114,6 +148,8 @@ export interface EnemyKilledEvent {
   x: number;
   y: number;
   type?: string;
+  enemyType?: string; // Legacy/Compat
+  coinDrop?: number;
   isCrit?: boolean;
 }
 
@@ -201,10 +237,6 @@ export interface MilestoneAchievedEvent {
   type: string;
   threshold: number;
 }
-
-import { type CryptoPair } from './crypto';
-import { type WavePhase } from './metrics';
-import { type MarketData } from '../types';
 
 // ...
 
@@ -360,20 +392,6 @@ export interface NearMissEvent {
   /** Source enemy type */
   enemyType: string;
 }
-
-// =============================================================================
-// LOOTBOX EVENTS
-// =============================================================================
-
-import {
-  type LootboxType,
-  type LootboxRarity,
-  type LootboxSource,
-  type LootboxDrop,
-  type CharacterSkinId,
-  type ConsumableEffectType,
-} from './lootbox';
-import { type InventoryItemType } from './inventory';
 
 /** Lootbox earned event data */
 export interface LootboxEarnedEvent {
@@ -572,7 +590,11 @@ export interface EventDataMap {
   'verification:success': Record<string, unknown>;
   'verification:failed': Record<string, unknown>;
   'verification:retrying': Record<string, unknown>;
-  volatilityShock: { intensity: number; direction: 'up' | 'down' };
+  volatilityShock: {
+    intensity: number;
+    direction: 'up' | 'down' | 'none';
+    isHighLeverage: boolean;
+  };
   /** @deprecated AI Director V2: Wave phases removed - event no longer emitted */
   wavePhaseChange: { phase: WavePhase; oldPhase: WavePhase };
   cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
@@ -634,23 +656,24 @@ export interface EventDataMap {
     reason: string;
     isForced: boolean;
   };
-  portalClosed: EmptyEvent;
-  portalEntered: {
+  portalClosed: {
     type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
     portalNumber: number;
-    coinsEarned: number;
-    gameTimeMs: number;
-  };
-  portalRejected: {
-    type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
-    portalNumber: number;
-    rejectionCount: number;
-    penaltyApplied: boolean;
   };
   portalMissed: {
     type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
     portalNumber: number;
-    reason: 'timeout' | 'rejected';
+    consequence?: 'game_over' | 'penalty';
+  };
+  portalRejected: {
+    rejectionCount: number;
+    spawnRateMultiplier: number;
+    speedMultiplier: number;
+  };
+  portalEntered: {
+    type: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
+    portalNumber: number;
+    pnlPercent: number;
   };
   portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
 
@@ -692,6 +715,26 @@ export interface EventDataMap {
   // Twitter auth events
   twitterLoginSuccess: { username: string; displayName: string };
   twitterUnlinked: Record<string, never>;
+  // AI Director / Optimization events
+  playerDied: Record<string, never>;
+  optimizationComplete: { bestParams: unknown; bestScore: number };
+  directorAutoTuned: { improvement: number; newScore: number };
+  directorDecision: {
+    spawnRate: number;
+    flowState: string;
+    interventions: string[];
+  };
+  strategicLayerUpdate: {
+    difficultyMultiplier: number;
+    error: number;
+    integral: number;
+    derivative: number;
+  };
+  tacticalLayerUpdate: {
+    chaosLevel: string;
+    marketMood: string;
+    enemyBias: string;
+  };
   // Supabase auth state change event
   authStateChanged: AuthStateChangedEvent;
 }

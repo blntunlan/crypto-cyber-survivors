@@ -6,6 +6,18 @@ Disallow: /*.json$
 Disallow: /sw.js
 Disallow: /health
 
+# AI Crawlers - Allow indexing for SGE (Search Generative Experience)
+User-agent: GPTBot
+Allow: /
+Allow: /docs
+
+User-agent: CCBot
+Allow: /
+Allow: /docs
+
+User-agent: Google-Extended
+Allow: /
+
 # Block WordPress/CMS attack paths
 Disallow: /wp-admin/
 Disallow: /wp-content/
@@ -23,7 +35,7 @@ Disallow: /config/
 Disallow: /debug/
 
 # Crawl-delay for polite bots
-Crawl-delay: 2
+Crawl-delay: 1
 
 # Sitemaps
 Sitemap: https://crypto-survivors.com/sitemap.xml

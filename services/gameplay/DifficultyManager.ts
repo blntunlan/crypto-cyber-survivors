@@ -3,7 +3,7 @@ import { useAdminConfigStore } from '../../stores/admin/configStore';
 import type { DifficultyConfig } from '../../types/admin';
 import { type DifficultyDebugState, getDebugTimestamp } from '../../types/DebugState';
 import { type WavePhase } from '../../types/metrics';
-import { WAVE_CONFIG, DIFFICULTY_CONFIG as D_CONFIG } from '../../config';
+import { DIFFICULTY_CONFIG as D_CONFIG } from '../../config';
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 import { difficultyContext } from '../difficulty/DifficultyContext';
@@ -14,42 +14,7 @@ import { marketIndicatorService } from '../indicators/MarketIndicatorService';
 import { calculateMACDFactor } from '../difficulty/factors/macd';
 import { PoolManager } from '../combat/PoolManager';
 import { DirectorAdapter } from '../difficulty/DirectorAdapter';
-
-/**
- * Interface representing the various factors contributing to the final difficulty.
- */
-export interface DifficultyFactors {
-  baseTime: number;
-  pnlEffect: number;
-  volatility: number;
-  levelFactor: number;
-  waveMultiplier: number;
-  nearDeathMod: number;
-  streakBonus: number;
-  momentumMod: number;
-  cycleFactor: number;
-  leverageDamage: number;
-  leverageSpawn: number;
-  leverageSpeed: number;
-}
-
-/**
- * Result of difficulty calculation for the engine to use.
- */
-export interface DifficultyOutput {
-  /** Enemy spawn rate multiplier */
-  spawnRate: number;
-  /** Enemy speed multiplier */
-  enemySpeed: number;
-  /** Enemy health multiplier */
-  enemyHealth: number;
-  /** Enemy damage multiplier */
-  enemyDamage: number;
-  /** Combined raw difficulty value */
-  total: number;
-  /** Raw contributing factors for debugging/analytics */
-  factors: DifficultyFactors;
-}
+import { type DifficultyOutput } from './DifficultyTypes';
 
 /**
  * DifficultyManagerClass - Singleton service for managing game progression.
@@ -65,6 +30,12 @@ class DifficultyManagerClass {
   private lastKillStreakTime: number = 0;
   private lastShockTime: number = 0; // Prevent shock triggers for the first 10 seconds
   private latestOutput: DifficultyOutput | null = null;
+
+  // Momentum tracking
+  private lastPnL: number = 0;
+  private lastVolume: number = 0;
+  private pnlMomentum: number = 0;
+  private volumeMomentum: number = 0;
 
   private constructor() {
     // Sync with combat events for streak tracking
@@ -159,6 +130,16 @@ class DifficultyManagerClass {
     const market = marketIndicatorService.getState();
     const macdFactor = (calculateMACDFactor() + 1) / 2; // Normalize to 0-1
 
+    // Calculate Momentum
+    const currentLeveragedPnL = pnl * inp.leverage;
+    this.pnlMomentum =
+      this.pnlMomentum * 0.8 + (currentLeveragedPnL - this.lastPnL) * 0.2;
+    this.volumeMomentum =
+      this.volumeMomentum * 0.8 + (market.normalizedVolume - this.lastVolume) * 0.2;
+
+    this.lastPnL = currentLeveragedPnL;
+    this.lastVolume = market.normalizedVolume;
+
     // Determine trend from RSI
     let trendValue = 0.5;
     if (market.rsi > 60) trendValue = 1.0;
@@ -174,8 +155,10 @@ class DifficultyManagerClass {
       macd: macdFactor,
       volatility: Math.min(1, market.atrPercent * 2),
       volume: market.normalizedVolume,
+      volumeMomentum: clamp(this.volumeMomentum * 10, -1, 1), // Scale up for sensitivity
       trend: trendValue,
-      pnl: clamp(inp.pnlHistory[inp.pnlHistory.length - 1] ?? 0, -1, 1),
+      pnlMomentum: clamp(this.pnlMomentum * 5, -1, 1), // Scale up for sensitivity
+      pnl: clamp(currentLeveragedPnL, -1, 1),
       stress: 1 - Math.min(100, Math.max(0, inp.hpPercent)) / 100,
       playerDPS: 0.5, // Will be set externally
       killEfficiency,
@@ -211,6 +194,7 @@ class DifficultyManagerClass {
         D_CONFIG.LIMITS.enemyDamage.min,
         D_CONFIG.LIMITS.enemyDamage.max
       ),
+      gemValueMultiplier: gm.gemValueMultiplier,
       total,
       factors: {
         baseTime: f.cycle,
@@ -280,24 +264,39 @@ class DifficultyManagerClass {
   }
 
   public getXpMultiplier(): number {
-    const leverage = difficultyContext.getContext().inputs.leverage;
-    if (leverage <= 1) return 1.0;
+    const context = difficultyContext.getContext();
+    const leverage = context.inputs.leverage;
+
+    // 1. Base Leverage Scaling (Static part)
     // Power-law scaling for impact: sqrt(L) gives a nice diminishing return that still feels massive
     // 100x = 1 + (10 - 1) * 0.8 = 8.2x XP
     // 10x = 1 + (3.16 - 1) * 0.8 = 2.7x XP
-    const multiplier = 1 + (Math.sqrt(leverage) - 1) * 0.8;
-    return Math.min(multiplier, 12.0); // Extreme upper bound for 100x+ scenarios
+    let multiplier = 1.0;
+    if (leverage > 1) {
+      multiplier = 1 + (Math.sqrt(leverage) - 1) * 0.8;
+    }
+
+    // 2. Dynamic Flow State Scaling (Brain part)
+    // The GameMasterBrain provides gemValueMultiplier based on momentum, stress and flow
+    if (this.latestOutput && typeof this.latestOutput.gemValueMultiplier === 'number') {
+      // Blend static leverage multiplier with dynamic brain multiplier
+      // We use gemValueMultiplier to scale the final output
+      const brainMult = isNaN(this.latestOutput.gemValueMultiplier)
+        ? 1.0
+        : this.latestOutput.gemValueMultiplier;
+      multiplier *= brainMult;
+    }
+
+    // Ensure multiplier is at least 1.0 and is a valid number
+    if (isNaN(multiplier) || multiplier < 1.0) {
+      multiplier = 1.0;
+    }
+
+    return Math.min(multiplier, 25.0); // Increased upper bound to allow for high-stakes flow peaks
   }
 
   public getLatestOutput(): DifficultyOutput | null {
     return this.latestOutput;
-  }
-
-  /**
-   * @deprecated AI Director V2: Wave phases removed - always returns 'active'
-   */
-  getWavePhase(): WavePhase {
-    return 'active'; // AI Director V2: Always active
   }
 
   getKillStreak(): number {
@@ -312,27 +311,10 @@ class DifficultyManagerClass {
     return Math.floor(totalSeconds / 300) + 1;
   }
 
-  /**
-   * @deprecated AI Director V2: Wave cycles removed
-   */
   getCycleProgress(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
-    const cycleElapsed = totalElapsed % WAVE_CONFIG.TOTAL_DURATION;
-    return cycleElapsed / WAVE_CONFIG.TOTAL_DURATION;
-  }
-
-  /**
-   * @deprecated AI Director V2: Wave phases removed - always returns 0
-   */
-  getTimeRemainingInPhase(): number {
-    return 0; // AI Director V2: No phases
-  }
-
-  /**
-   * @deprecated AI Director V2: Wave phases removed - always returns 1.0
-   */
-  getWaveMultiplier(): number {
-    return 1.0; // AI Director V2: No wave multiplier
+    const cycleElapsed = totalElapsed % 300; // Legacy 300s cycle
+    return cycleElapsed / 300;
   }
 
   /**
@@ -340,15 +322,8 @@ class DifficultyManagerClass {
    */
   getTimeRemainingInCycle(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
-    const cycleElapsed = totalElapsed % WAVE_CONFIG.TOTAL_DURATION;
-    return WAVE_CONFIG.TOTAL_DURATION - cycleElapsed;
-  }
-
-  /**
-   * @deprecated AI Director V2: Wave cycles removed - always returns false
-   */
-  isCycleComplete(): boolean {
-    return false; // AI Director V2: No wave cycles
+    const cycleElapsed = totalElapsed % 300;
+    return 300 - cycleElapsed;
   }
 
   getDebugState(): DifficultyDebugState {
@@ -360,15 +335,11 @@ class DifficultyManagerClass {
       killStreak: this.killStreak,
       totalElapsedSeconds: TimeService.getGameTimeSeconds(),
       pnlHistoryLength: 0,
-      waveDurations: Object.fromEntries(
-        WAVE_CONFIG.PHASES.map(p => [p.name, p.duration])
-      ),
-      waveMultipliers: Object.fromEntries(
-        WAVE_CONFIG.PHASES.map(p => [p.name, p.multiplier])
-      ),
+      waveDurations: { active: 300 },
+      waveMultipliers: { active: 1.0 },
       cycleNumber: this.getCycleNumber(),
       cycleProgress: this.getCycleProgress(),
-      timeRemainingInPhase: this.getTimeRemainingInPhase(),
+      timeRemainingInPhase: 0,
       timeRemainingInCycle: this.getTimeRemainingInCycle(),
     };
   }
@@ -387,6 +358,10 @@ class DifficultyManagerClass {
     this.lastKillStreakTime = 0;
     this.lastShockTime = -20; // Ensure it can fire after grace period
     this.latestOutput = null;
+    this.lastPnL = 0;
+    this.lastVolume = 0;
+    this.pnlMomentum = 0;
+    this.volumeMomentum = 0;
     difficultyContext.reset();
     Logger.info('[DifficultyManager] V2 State reset');
   }

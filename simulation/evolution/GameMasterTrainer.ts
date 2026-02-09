@@ -37,7 +37,7 @@ type NeuralNetwork = {
 
 const CONFIG = {
   POPULATION_SIZE: 30,
-  GENERATIONS: 80,
+  GENERATIONS: 60, // Slightly reduced for faster iteration
   SIMULATION_TICKS: 180 * 60, // 3 minutes at 60fps (faster training)
   ELITE_PERCENT: 0.15,
   MUTATION_RATE: 0.2,
@@ -147,10 +147,14 @@ interface BrainOutputs {
   enemyHP: number;
   enemyDamage: number;
   gemDropRate: number;
+  gemValueMultiplier: number;
   xpMultiplier: number;
+  whaleType: number;
+  eventIntensity: number;
   aggression: number;
   chaos: number;
   mercyWindow: number;
+  pressureRamp: number;
 }
 
 function getMarketState(scenario: MarketScenario, tick: number) {
@@ -176,7 +180,6 @@ function getMarketState(scenario: MarketScenario, tick: number) {
   const trend = 0.5 + scenario.trendBias * 0.5;
 
   // PnL simulation based on trend and leverage
-  // In real game, PnL comes from market price, here we simulate
   const pnlChange = (trend - 0.5) * 0.001 + (Math.random() - 0.5) * 0.002;
 
   return {
@@ -193,16 +196,20 @@ function mapBrainOutput(raw: number[], graceFactor: number): BrainOutputs {
   const map = (val: number, min: number, max: number) =>
     min + Math.max(0, Math.min(1, val)) * (max - min);
 
-  const outputs = {
+  const outputs: BrainOutputs = {
     spawnRate: map(raw[0] ?? 0.5, 0.3, 2.5),
     enemySpeed: map(raw[1] ?? 0.5, 0.6, 1.8),
     enemyHP: map(raw[2] ?? 0.5, 0.7, 2.0),
     enemyDamage: map(raw[3] ?? 0.5, 0.7, 2.0),
     gemDropRate: map(raw[4] ?? 0.5, 0.4, 1.5),
-    xpMultiplier: map(raw[5] ?? 0.5, 0.6, 1.4),
-    aggression: map(raw[8] ?? 0.5, 0, 1),
-    chaos: map(raw[9] ?? 0.5, 0, 1),
-    mercyWindow: map(raw[10] ?? 0.5, 0, 1),
+    gemValueMultiplier: map(raw[5] ?? 0.5, 0.5, 2.5),
+    xpMultiplier: map(raw[6] ?? 0.5, 0.6, 1.4),
+    whaleType: 0,
+    eventIntensity: map(raw[8] ?? 0.5, 0, 1),
+    aggression: map(raw[9] ?? 0.5, 0, 1),
+    chaos: map(raw[10] ?? 0.5, 0, 1),
+    mercyWindow: map(raw[11] ?? 0.5, 0, 1),
+    pressureRamp: map(raw[12] ?? 0.5, 0, 1),
   };
 
   // Apply grace period
@@ -247,6 +254,11 @@ function simulateGame(
   const _DT = 1 / 60; // 60fps tick
   let survived = true;
 
+  let lastPnL = 0;
+  let lastVolume = 0.5;
+  let pnlMomentum = 0;
+  let volumeMomentum = 0;
+
   for (let tick = 0; tick < CONFIG.SIMULATION_TICKS && survived; tick++) {
     state.tick = tick;
     const elapsedSeconds = tick / 60;
@@ -259,17 +271,26 @@ function simulateGame(
 
     // Get market state
     const market = getMarketState(scenario, tick);
-    state.pnl += market.pnlChange * leverage;
+    const pnlMove = market.pnlChange * leverage;
+    state.pnl += pnlMove;
     state.pnl = Math.max(-1, Math.min(1, state.pnl));
 
-    // Prepare brain inputs (14)
+    // Momentum
+    pnlMomentum = pnlMomentum * 0.8 + (state.pnl - lastPnL) * 0.2;
+    volumeMomentum = volumeMomentum * 0.8 + (market.volume - lastVolume) * 0.2;
+    lastPnL = state.pnl;
+    lastVolume = market.volume;
+
+    // Prepare brain inputs (16)
     const stress = 1 - state.playerHP / state.playerMaxHP;
     const inputs = [
       market.rsi,
       market.macd,
       market.volatility,
       market.volume,
+      Math.max(0, Math.min(1, (volumeMomentum * 10 + 1) / 2)),
       market.trend,
+      Math.max(0, Math.min(1, (pnlMomentum * 5 + 1) / 2)),
       (state.pnl + 1) / 2, // Map -1..1 to 0..1
       stress,
       Math.min(1, state.kills / 500), // playerDPS proxy
@@ -292,23 +313,35 @@ function simulateGame(
       outputs.enemySpeed *= 1 + severity * 0.2;
       outputs.gemDropRate *= 1 - severity * 0.4;
       outputs.chaos = Math.min(1, outputs.chaos * (1 + severity * 0.5));
+
+      // Market Distress Reward
+      const riskFactor = Math.abs(state.pnl) * 2;
+      outputs.gemValueMultiplier = Math.min(
+        2.5,
+        outputs.gemValueMultiplier * (1 + riskFactor)
+      );
     } else if (state.pnl > 0.02) {
       outputs.chaos *= 0.7;
       outputs.aggression *= 0.85;
+      outputs.spawnRate *= 1.1;
     }
 
     // Flow state corrections
     const hpPercent = state.playerHP;
-    if (hpPercent > GAME_CONFIG.IDEAL_HP + GAME_CONFIG.HP_TOLERANCE) {
-      // Too comfortable -> speed up enemies
-      const comfort =
-        (hpPercent - GAME_CONFIG.IDEAL_HP - GAME_CONFIG.HP_TOLERANCE) / 35;
-      outputs.enemySpeed *= 1 + comfort * 0.35;
-    } else if (hpPercent < GAME_CONFIG.IDEAL_HP - GAME_CONFIG.HP_TOLERANCE) {
-      // Struggling -> mercy
-      const struggle =
-        (GAME_CONFIG.IDEAL_HP - GAME_CONFIG.HP_TOLERANCE - hpPercent) / 35;
-      outputs.spawnRate *= 1 - struggle * 0.25;
+    const tolerance = Math.max(
+      5,
+      GAME_CONFIG.HP_TOLERANCE * (1 - (leverage / 100) * 0.6)
+    );
+
+    if (hpPercent > GAME_CONFIG.IDEAL_HP + tolerance) {
+      const comfort = (hpPercent - GAME_CONFIG.IDEAL_HP - tolerance) / 35;
+      outputs.enemySpeed *= 1 + comfort * 0.4;
+      outputs.spawnRate *= 1 + comfort * 0.25;
+    } else if (hpPercent < GAME_CONFIG.IDEAL_HP - tolerance) {
+      const struggle = (GAME_CONFIG.IDEAL_HP - tolerance - hpPercent) / 35;
+      outputs.mercyWindow = Math.min(1, outputs.mercyWindow + struggle * 0.5);
+      outputs.spawnRate *= 1 - struggle * 0.3;
+      outputs.gemDropRate *= 1 + struggle * 0.2;
     }
 
     // Simulate enemy spawning
@@ -330,7 +363,8 @@ function simulateGame(
     const gemsFromKills =
       enemyKillsThisTick * outputs.gemDropRate * (1 + state.luck * 0.3);
     state.gems += gemsFromKills;
-    state.playerXP += enemyKillsThisTick * 10 * outputs.xpMultiplier;
+    state.playerXP +=
+      enemyKillsThisTick * 10 * outputs.xpMultiplier * outputs.gemValueMultiplier;
 
     // Level up
     const xpForLevel = state.playerLevel * 100;
@@ -355,7 +389,6 @@ function simulateGame(
 
     // Record history
     if (tick % 60 === 0) {
-      // Every second
       state.hpHistory.push((state.playerHP / state.playerMaxHP) * 100);
       state.stressHistory.push(stress);
     }
@@ -373,29 +406,19 @@ function simulateGame(
       ? state.hpHistory.reduce((a, b) => a + b, 0) / state.hpHistory.length
       : 50;
 
-  // HP variance (we want SOME variance, not flat)
   const hpVariance =
     state.hpHistory.length > 1
       ? state.hpHistory.reduce((sum, hp) => sum + Math.pow(hp - avgHP, 2), 0) /
         state.hpHistory.length
       : 0;
 
-  // Flow state score: How close to ideal HP?
   const hpDeviation = Math.abs(avgHP - GAME_CONFIG.IDEAL_HP);
-  const flowScore = Math.max(0, 100 - hpDeviation * 2); // 100 if perfect, 0 if way off
+  const flowScore = Math.max(0, 100 - hpDeviation * 2);
 
-  // Variance bonus (some tension is good)
   const varianceBonus = Math.min(30, Math.sqrt(hpVariance) * 2);
-
-  // Survival bonus
   const survivalBonus = survivalTime * 2;
-
-  // Kill efficiency
   const killEfficiency = state.kills / Math.max(1, survivalTime);
   const killBonus = Math.min(50, killEfficiency * 5);
-
-  // PnL appropriateness: If PnL was negative, did game get harder?
-  // This is implicit in our modifiers, so we just reward survival under pressure
   const pnlBonus = state.pnl < -0.1 && survivalTime > 60 ? 20 : 0;
 
   const fitness = flowScore + varianceBonus + survivalBonus + killBonus + pnlBonus;
@@ -421,7 +444,7 @@ interface Genome {
 
 function createGenome(): Genome {
   return {
-    brain: new Architect.Perceptron(14, 20, 12),
+    brain: new Architect.Perceptron(16, 22, 13),
     fitness: 0,
   };
 }
@@ -430,7 +453,6 @@ function crossover(a: Genome, b: Genome): Genome {
   const jsonA = a.brain.toJSON();
   const jsonB = b.brain.toJSON();
 
-  // Simple: Take better parent and add some noise
   const better = a.fitness > b.fitness ? jsonA : jsonB;
   const child = NetworkLib.fromJSON(better);
 
@@ -438,8 +460,6 @@ function crossover(a: Genome, b: Genome): Genome {
 }
 
 function mutate(genome: Genome): Genome {
-  // Clone and return (synaptic doesn't have easy weight mutation)
-  // The crossover already introduces variety
   const json = genome.brain.toJSON();
   return { brain: NetworkLib.fromJSON(json), fitness: 0 };
 }
@@ -449,13 +469,12 @@ function mutate(genome: Genome): Genome {
 // ============================================================================
 
 async function train() {
-  console.log('🧠 GameMaster Brain Training');
+  console.log('🧠 GameMaster Brain Training [V2 - Flow Optimized]');
   console.log(`   Population: ${CONFIG.POPULATION_SIZE}`);
   console.log(`   Generations: ${CONFIG.GENERATIONS}`);
-  console.log(`   Scenarios: ${SCENARIOS.length}`);
-  console.log(`   Goal: Flow state optimization with market awareness\n`);
+  console.log(`   Architecture: 16-22-13`);
+  console.log(`   Goal: Risk/Reward Balance & Momentum Awareness\n`);
 
-  // Initialize population
   let population: Genome[] = [];
   for (let i = 0; i < CONFIG.POPULATION_SIZE; i++) {
     population.push(createGenome());
@@ -464,11 +483,8 @@ async function train() {
   let bestEver: Genome | null = null;
 
   for (let gen = 1; gen <= CONFIG.GENERATIONS; gen++) {
-    // Evaluate each genome across multiple scenarios and leverages
     for (const genome of population) {
       let totalFitness = 0;
-
-      // Test with 2 random scenarios and 2 leverages for speed
       const testScenarios = SCENARIOS.sort(() => Math.random() - 0.5).slice(0, 2);
       const testLeverages = [5, 25];
 
@@ -482,7 +498,6 @@ async function train() {
       genome.fitness = totalFitness / (testScenarios.length * testLeverages.length);
     }
 
-    // Sort by fitness
     population.sort((a, b) => b.fitness - a.fitness);
     const best = population[0];
 
@@ -496,12 +511,10 @@ async function train() {
     const avgFitness =
       population.reduce((s, g) => s + g.fitness, 0) / population.length;
 
-    // Progress log
     console.log(
-      `Gen ${gen}/${CONFIG.GENERATIONS} | Best: ${best.fitness.toFixed(1)} | Avg: ${avgFitness.toFixed(1)} | Best Ever: ${bestEver.fitness.toFixed(1)}`
+      `Gen ${gen}/${CONFIG.GENERATIONS} | Best: ${best.fitness.toFixed(1)} | Avg: ${avgFitness.toFixed(1)}`
     );
 
-    // Save checkpoints
     if (gen % 20 === 0 || gen === CONFIG.GENERATIONS) {
       const brainDir = path.join(__dirname, '../../services/difficulty/brain');
       if (!fs.existsSync(brainDir)) fs.mkdirSync(brainDir, { recursive: true });
@@ -512,10 +525,9 @@ async function train() {
         path.join(brainDir, filename),
         JSON.stringify({ brain: best.brain.toJSON() }, null, 2)
       );
-      console.log(`   💾 Saved checkpoint: ${filename}`);
+      console.log(`   💾 Saved: ${filename}`);
     }
 
-    // Evolution
     if (gen < CONFIG.GENERATIONS) {
       const eliteCount = Math.floor(CONFIG.POPULATION_SIZE * CONFIG.ELITE_PERCENT);
       const elite = population.slice(0, eliteCount);
@@ -538,25 +550,12 @@ async function train() {
 
         nextGen.push(child);
       }
-
       population = nextGen;
     }
   }
 
   console.log('\n🎉 Training Complete!');
-  console.log(`   Best Fitness: ${bestEver?.fitness.toFixed(1)}`);
   console.log('   Brain saved to: services/difficulty/brain/gamemaster-FINAL.json');
-
-  // Final evaluation
-  if (bestEver) {
-    console.log('\n📊 Final Evaluation:');
-    for (const scenario of SCENARIOS.slice(0, 3)) {
-      const result = simulateGame(bestEver.brain, scenario, 10);
-      console.log(
-        `   ${scenario.name}: Survival=${result.survivalTime.toFixed(0)}s, AvgHP=${result.avgHP.toFixed(0)}%, Kills=${result.kills.toFixed(0)}`
-      );
-    }
-  }
 }
 
 train().catch(console.error);

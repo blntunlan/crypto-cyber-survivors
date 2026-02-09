@@ -101,7 +101,6 @@ vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getWaveMultiplier: vi.fn(() => 1),
     updateWaveTimer: vi.fn(),
-    getWavePhase: vi.fn(() => 'calm'),
   },
 }));
 vi.mock('../../services/combat/ComboSystem', () => ({

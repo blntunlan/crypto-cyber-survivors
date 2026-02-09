@@ -262,9 +262,9 @@ export const useMarketData = (
           // Use server ATR if available, otherwise use client-calculated
           const effectiveAtrPercent = prevMarketData.atrPercent ?? atrResult.atrPercent;
 
-          // Calculate Difficulty using CAPPED PnL (not full leverage)
+          // Calculate Difficulty using raw PnL (Internal leverage handling in V2)
           const difficultyOutput = DifficultyManager.calculate(
-            pnlResult.difficultyPnl, // Use capped PnL for difficulty (max 2x leverage effect)
+            pnlResult.rawPnl, // Pass raw PnL, Manager handles leverage
             effectiveAtrPercent, // Prefer server ATR
             playerLevel,
             hpPercent
@@ -280,8 +280,10 @@ export const useMarketData = (
             position: currentPosition,
             liquidationPrice,
             difficulty: difficultyOutput.total,
+            spawnRateMultiplier: difficultyOutput.spawnRate,
             enemyDamage: difficultyOutput.enemyDamage,
             enemySpeed: difficultyOutput.enemySpeed,
+            gemValueMultiplier: difficultyOutput.gemValueMultiplier,
             pair: expectedPair,
             symbol: expectedPair + 'USDT',
             momentum: difficultyOutput.total > 0 ? pnlResult.effectivePnl * 0.1 : 0, // Rudimentary momentum based on PnL

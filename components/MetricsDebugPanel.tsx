@@ -158,6 +158,12 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                       x{difficultyData.enemyDamage.toFixed(2)}
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Gem Value:</span>
+                    <span className="font-bold text-green-400">
+                      x{difficultyData.gemValueMultiplier.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-2 space-y-1 border-t border-slate-700/50 pt-2 text-[8px]">

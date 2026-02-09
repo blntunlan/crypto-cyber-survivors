@@ -8,21 +8,21 @@
  * 4. Cache-in-memory to avoid redundant storage hits
  */
 
-import { type StoredUser } from './types';
+import { type LegacyStoredUser } from './types';
 import { Logger } from '../system/Logger';
 
 const STORAGE_KEY = 'crypto_survivors_user';
 const COOKIE_NAME = 'cs_identity';
 
 export class UserPersistenceService {
-  private static cachedUser: StoredUser | null = null;
-  private static initPromise: Promise<StoredUser | null> | null = null;
+  private static cachedUser: LegacyStoredUser | null = null;
+  private static initPromise: Promise<LegacyStoredUser | null> | null = null;
 
   /**
    * Initializes the user identity from all available storage sources.
    * Uses a promise to prevent multiple concurrent initializations.
    */
-  static async initialize(): Promise<StoredUser | null> {
+  static async initialize(): Promise<LegacyStoredUser | null> {
     if (this.cachedUser) return this.cachedUser;
     if (this.initPromise) return this.initPromise;
 
@@ -69,14 +69,14 @@ export class UserPersistenceService {
   /**
    * Get current user (sync, returns cached if available)
    */
-  static getStoredUser(): StoredUser | null {
+  static getLegacyStoredUser(): LegacyStoredUser | null {
     return this.cachedUser;
   }
 
   /**
    * Save user to all storage sources
    */
-  static saveUser(user: StoredUser): void {
+  static saveUser(user: LegacyStoredUser): void {
     this.cachedUser = user;
     this.saveToLocalStorage(user);
     this.syncToCookie(user);
@@ -104,7 +104,7 @@ export class UserPersistenceService {
   static async createOrUpdateUser(
     nickname: string,
     isDev: boolean = false
-  ): Promise<StoredUser> {
+  ): Promise<LegacyStoredUser> {
     const now = Date.now();
     let user = this.cachedUser;
 
@@ -132,7 +132,7 @@ export class UserPersistenceService {
 
   // --- Internals ---
 
-  private static loadFromLocalStorage(): StoredUser | null {
+  private static loadFromLocalStorage(): LegacyStoredUser | null {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -145,7 +145,7 @@ export class UserPersistenceService {
             );
             return null;
           }
-          return parsed as StoredUser;
+          return parsed as LegacyStoredUser;
         }
       }
     } catch (e) {
@@ -154,7 +154,7 @@ export class UserPersistenceService {
     return null;
   }
 
-  private static saveToLocalStorage(user: StoredUser): void {
+  private static saveToLocalStorage(user: LegacyStoredUser): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     } catch (e) {
@@ -162,7 +162,7 @@ export class UserPersistenceService {
     }
   }
 
-  private static loadFromCookie(): StoredUser | null {
+  private static loadFromCookie(): LegacyStoredUser | null {
     try {
       const name = COOKIE_NAME + '=';
       const decodedCookie = decodeURIComponent(document.cookie);
@@ -181,7 +181,7 @@ export class UserPersistenceService {
             if (!this.isUUID(parsed.profileId)) {
               return null;
             }
-            return parsed as StoredUser;
+            return parsed as LegacyStoredUser;
           }
         }
       }
@@ -191,7 +191,7 @@ export class UserPersistenceService {
     return null;
   }
 
-  private static syncToCookie(user: StoredUser): void {
+  private static syncToCookie(user: LegacyStoredUser): void {
     try {
       const identityMinimal = {
         profileId: user.profileId,

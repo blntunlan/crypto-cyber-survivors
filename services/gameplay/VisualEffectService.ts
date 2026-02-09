@@ -11,7 +11,7 @@ export interface VolatilityShockPayload {
  * VisualEffectService - Manages high-impact visual effects triggered by game events.
  * Adheres to the Cyber-Finance aesthetic.
  */
-class VisualEffectServiceClass {
+export class VisualEffectServiceClass {
   private static instance: VisualEffectServiceClass | null = null;
   private currentShockIntensity: number = 0;
   private shockTimer: number = 0;
@@ -38,18 +38,13 @@ class VisualEffectServiceClass {
     );
 
     this.currentShockIntensity = payload.intensity;
-
     this.shockTimer = 1000; // Duration in ms (1 second default)
   }
 
   /**
-
-     * Updates visual effect timers and decays intensities.
-
-     * @param deltaMs Elapsed time in milliseconds.
-
-     */
-
+   * Updates visual effect timers and decays intensities.
+   * @param deltaMs Elapsed time in milliseconds.
+   */
   public update(deltaMs: number): void {
     if (this.shockTimer > 0) {
       this.shockTimer -= deltaMs;
@@ -65,8 +60,7 @@ class VisualEffectServiceClass {
   }
 
   /**
-
-     * Calculates scaled intensity based on leverage.
+   * Calculates scaled intensity based on leverage.
    * Power-law scaling: 1 + log10(L) * 0.5 (as defined in DifficultyManager)
    */
   public calculateLeverageScaledIntensity(
@@ -80,17 +74,13 @@ class VisualEffectServiceClass {
   public reset(): void {
     this.currentShockIntensity = 0;
     this.shockTimer = 0;
-    // Re-register listener because EventBus.clear() in tests removes it
-    this.init();
   }
 
   /**
    * For testing purposes only.
    */
   static resetForTesting(): void {
-    if (this.instance) {
-      this.instance.reset();
-    }
+    this.instance = null;
   }
 }
 

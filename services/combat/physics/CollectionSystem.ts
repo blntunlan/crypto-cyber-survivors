@@ -131,7 +131,9 @@ export class CollectionSystem implements ICollectionSystem {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
     const xpGain = Math.floor(gem.value * this.ctx.combo.getXpMultiplier());
 
-    player.exp += xpGain;
+    if (!isNaN(xpGain) && xpGain > 0) {
+      player.exp += xpGain;
+    }
     gem.active = false;
     this.ctx.audio.playGem();
 

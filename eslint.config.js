@@ -22,6 +22,7 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       '.gemini/**',
+      '.claude/**',
       '.agent/**',
       '.agents/**',
       '.windsurf/**',

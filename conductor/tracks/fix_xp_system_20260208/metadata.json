@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_xp_system_20260208",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-02-08T21:30:00Z",
+  "updated_at": "2026-02-08T21:30:00Z",
+  "description": "bug fix level atlama sistemimiz çalışmıyor muhtemelen exp sağlayan gemlerde problem var"
+}

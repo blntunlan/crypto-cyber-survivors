@@ -136,7 +136,7 @@ class StrategicLayerClass {
    * @param deltaTime - Time since last update in ms
    * @returns Strategic output for downstream layers
    */
-  update(currentHPPercent: number, deltaTime: number): StrategicOutput {
+  update(currentHPPercent: number, _deltaTime: number): StrategicOutput {
     const now = Date.now();
     const config = PID_CONFIG;
 

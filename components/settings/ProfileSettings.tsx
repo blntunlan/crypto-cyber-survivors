@@ -341,7 +341,7 @@ export const ProfileSettingsContent: React.FC<{
                 variant="h2"
                 className="text-sm font-semibold uppercase tracking-wide"
               >
-                {t('settings.linked_accounts') ?? 'Linked Accounts'}
+                {t('settings.linked_accounts')}
               </ThemedText>
             </div>
 

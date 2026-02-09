@@ -22,7 +22,6 @@
 
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
-import { TimeService } from '../core/TimeService';
 import type { GameMarketEvent, MarketEventPayload } from '../market/MarketEventManager';
 
 /**
@@ -225,12 +224,7 @@ class MarketEventMapperV2Class {
       }
     }
 
-    // Get effect configuration
     const baseEffect = MARKET_EVENT_EFFECTS[type];
-    if (!baseEffect) {
-      Logger.warn(`[MarketEventMapperV2] Unknown event type: ${type}`);
-      return;
-    }
 
     // Scale effect by intensity
     const scaledEffect = this.scaleEffect(baseEffect, intensity);

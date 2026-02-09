@@ -45,7 +45,7 @@ describe('5-Minute Cycle Yoyo Analysis (AI Director V2)', () => {
 
       console.log(
         `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`.padEnd(10),
-        DifficultyManager.getWavePhase().padEnd(15),
+        'active'.padEnd(15),
         (pnl * 100).toFixed(0).concat('%').padEnd(8),
         output.total.toFixed(2).padEnd(12),
         output.factors.waveMultiplier.toFixed(2).padEnd(10),

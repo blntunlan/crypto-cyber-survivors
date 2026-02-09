@@ -1,133 +1,97 @@
-# 🎮 Crypto Survivors - Claude Project Context File
+# 🎮 GEMINI.md - Crypto Survivors Project Context
 
-> This file is automatically read for Claude to better understand the project.
-> Last Update: 2026-02-06
+This file serves as the primary instructional context for Gemini CLI when working on the **Crypto Survivors** project.
 
-## 📋 Project Summary
+## 📋 Project Overview
+**Crypto Survivors** is a high-performance, real-time market-driven survival game (Vampire Survivors style) built with React 19, TypeScript, and Vite. The game integrates live Bitcoin (BTC/USD) price data from Binance and Coinbase WebSockets to dynamically adjust gameplay difficulty, enemy behavior, and reward structures.
 
-Crypto-themed vampire survivors game. Developed with React 19 + TypeScript + Vite + Zustand.
-It receives real-time BTC/USD price data via Binance & Coinbase WebSocket (Price) and Supabase Realtime (Indicators). Since I am developing on Windows, avoid using `&&`, use `;`.
-**Difficulty System V2 (Layered Architecture)**, **Tutorial System**, **Neural AIDirector** (Synaptic based) and **Cloudflare Anti-Cheat** are integrated.
-**Casual/Competitive game modes**, PWA support and full tutorial flow are available.
-Major languages (ES, PT, HI, VI, ZH, RU) are fully supported.
+### Core Tech Stack
+- **Frontend:** React 19 (Strict Mode), TypeScript 5.8, Vite 6.
+- **State Management:** Zustand 5 (Modular Slice Pattern).
+- **Game Engine:** Custom Canvas-based engine with a GC-free render loop.
+- **Services:** Singleton-based architecture for core logic (Combat, Physics, Difficulty).
+- **Styling & Animation:** Tailwind CSS, Framer Motion 12.
+- **Backend/DB:** Supabase (PostgreSQL, Realtime, Edge Functions).
+- **Testing:** Vitest (Unit/Integration - 2100+ tests), Playwright (E2E).
 
-**Auth Refactor:** Supports modern OAuth providers (Google, Twitter), Email/Password, Phantom (Solana), and legacy nickname-based profiles via Anonymous sign-in.
-**DB Optimization:** Migration 026 added JSONB support for cheat logs. Migration 027 (recent) improved session handling and profile linking.
+---
 
-## 🛠️ Frequently Used Commands
+## 🏗️ Architectural Standards (Performance is Law)
 
-```bash
-# Development
-npm run dev              # Start dev server (port 3000)
-npm run build            # Production build
-npm run docs             # Generate TypeDoc documentation
+### 1. The GC-Free Loop
+Memory allocation (e.g., `new Object()`, `[].map()`, `[].filter()`) inside the `GameEngine` render loop is **FORBIDDEN**. 
+- **Reason:** To avoid garbage collection spikes and maintain a stable 60 FPS.
+- **Enforcement:** Use pre-allocated arrays and object pools.
 
-# Database
-npm run supabase:gen     # Update Supabase types
+### 2. Object Pooling
+NEVER instantiate high-frequency entities (bullets, enemies, particles) using `new`. 
+- **Required:** Use `PoolManager.getInstance().spawn()` and `pool.release()`.
+- **Implementation:** `services/combat/PoolManager.ts`.
 
-# Code Quality
-npm run lint             # ESLint check
-npm run lint:fix         # Fix ESLint errors
-npm run lint:ui          # UI Consistency Audit
-npm run format           # Format with Prettier
-```
+### 3. Spatial Hashing (O(1) Physics)
+Do not use O(N^2) loops for collision or distance checks.
+- **Required:** Use the `SpatialGrid` service to query nearby entities.
+- **Implementation:** `services/combat/SpatialGrid.ts`.
+
+### 4. Decoupled Communication (EventBus)
+Services must not have tight circular dependencies. 
+- **Pattern:** Use `EventBus.emit()` and `EventBus.on()` for cross-system communication.
+- **Location:** `services/core/EventBus.ts`.
+
+---
+
+## 🚀 Key Commands
+
+### Development
+- `npm run dev`: Starts the development server on port 3000.
+- `npm run build`: Production build with Anti-Cheat obfuscation and minification.
+- `npm run format`: Formats code with Prettier.
+- `npm run lint`: Runs ESLint checks.
+
+### Testing & Quality
+- `npm run test`: Runs 2100+ Vitest unit tests.
+- `npm run test:coverage`: Generates test coverage reports (>70% global target).
+- `npm run test:e2e`: Runs Playwright E2E tests.
+- `npm run lint:ui`: Audits UI consistency (Typography, Colors).
+
+### Backend & Database
+- `npm run supabase:gen`: Synchronizes TypeScript types from the Supabase schema.
+- `npm run railway:deploy`: Deploys the application and market server to Railway.
+
+---
 
 ## 📁 Project Structure
 
-```
-crypto-cyber-survivors/
-├── App.tsx                    # Main application component
-├── components/                # React components (View Layer Only)
-│   ├── GameEngine.tsx        # Canvas render loop (No React State Updates in Loop!)
-│   ├── GameUI.tsx            # Responsive React HUD (Main)
-│   └── ...
-├── config/                    # Game configurations (Magic Numbers Forbidden)
-├── services/                  # Singleton Services (Logic Layer)
-│   ├── gameplay/
-│   │   └── DifficultyManager.ts # Consumer of V2 System
-│   ├── core/
-│   │   └── EventBus.ts       # System communication (Decoupled)
-│   ├── combat/
-│   │   └── PoolManager.ts    # O(1) Object pooling (Mandatory for Entities)
-│   ├── auth/                 # Modern Auth Layer (Supabase, OAuth, Web3)
-│   ├── renderers/            # Canvas/Sprite implementations
-│   └── ...
-├── stores/                    # Zustand state management (Shared State)
-├── hooks/                     # Custom React hooks
-├── types/                     # TypeScript Definitions
-├── tests/                     # Vitest unit & integration tests (2100+ tests)
-├── e2e/                       # Playwright E2E tests
-└── docs/                      # Documentation
-```
-
-## 🎯 Coding and Architectural Standards
-
-### 1. Performance Laws (Performance is Law)
-- **GC-Free Loop:** Memory allocation (new Object, Array map/filter) inside the Game Loop is **FORBIDDEN**.
-- **Object Pooling:** NEVER use `new Entity()` when spawning Bullet, Customer, Particle. MUST use `PoolManager.spawn()`.
-- **Spatial Hashing:** O(N^2) loops for collision and distance checks are forbidden. Use `SpatialGrid`.
-- **References:** Use `useRef` or `Singleton Service` for data changing every frame (Position, Velocity), NOT React State.
-
-### 2. Architectural Patterns
-- **Singleton Services:** Core systems like `CombatSystem`, `DifficultyManager` must be Singleton.
-- **EventBus Communication:** Services should not call each other directly, communicate via `EventBus.emit()`.
-- **Layered Difficulty (Difficulty V2):**
-  1. **Inputs:** `DifficultyContext.updateInputs()`
-  2. **Analysis:** `DifficultyContext` aggregates factors.
-  3. **Directing:** `AIDirector` applies neural/synaptic modification.
-  4. **Output:** `DifficultyManager` maps to game parameters.
-
-### 3. State Management
-- **Zustand:** For high-frequency global state (e.g., UI updates).
-- **React Context:** Only for static/low-frequency state (Theme, Language, User).
-- **Service State:** Game logic state is kept inside services (not `GameStore`).
-
-### 4. TypeScript Rules
-- **Strict Mode:** `any` is forbidden. Use Type Guards and Generics.
-- **Naming:** Variable/Function -> `camelCase`, Class/Component -> `PascalCase`, Constant -> `UPPER_SNAKE_CASE`.
-
-## ⚠️ Important Rules (Do's & Don'ts)
-
-### You Should NOT
-1. ❌ Perform `useState` updates inside `GameEngine` render loop (Breaks React Render Cycle).
-2. ❌ Host UI code (React Component) inside Services.
-3. ❌ Commit `.env*` or API Keys.
-4. ❌ Delete `Logger` calls (Critical for Anti-Cheat analysis).
-5. ❌ Add a "feature" without writing tests.
-
-### You SHOULD
-1. ✅ Register new Entities to `PoolManager` when adding them.
-2. ✅ Mock with MSW when testing Network requests (API).
-3. ✅ Use conventional commits in commit messages (`feat:`, `fix:`, `perf:`).
-4. ✅ Verify that `PoolManager.getInstance()` is used correctly (it is a function).
-
-## 🔌 Integrations & Debug
-
-### Supabase & Auth
-- **Tables**: `players`, `game_sessions`, `achievements`, `profiles`. RLS active.
-- **Functions**: `verify-game` (Score validation), `start-session`.
-- **Auth**: Supabase Auth (OAuth/Email) + Anonymous fallback for nickname persistence.
-
-### Debug Tools
-- **Admin Dashboard**: `Ctrl+Shift+A` (Metrics, Console, State).
-- **Cheat Manager**: `F1` in Development mode.
-- **Logger**: Use `Logger.info()`, `Logger.warn()`. Do not leave `console.log`.
-
-## 📝 Workflows
-Detailed processes under `.agent/workflows/`:
-- `/deploySon` (Deployment)
-- `/code-doc-sync` (Documentation synchronization)
-- `/sc-feature-factory` (Feature Slicing Scaffold)
-- `/sc-perf-audit` (Performance & GC-Free Check)
-- `/sc-service-standard` (Service Pattern Check)
-- `docs/SCALABILITY_DISCIPLINE.md` (Design & Scalability standards)
-
-## 🚀 Deployment
-```bash
-git add . && git commit -m "feat: description"
-npm run deploy # git push origin main
-```
-**CI/CD:** Husky pre-push hooks run `lint`, `format`, and `test` to ensure stability.
+- `components/`: React View Layer. `GameEngine.tsx` is the bridge between React and the Canvas loop.
+- `services/`: Singleton Logic Layer. Contains the "Brains" of the game.
+  - `core/`: EventBus, Time, Registry.
+  - `gameplay/`: DifficultyManager, PortalSystem.
+  - `combat/`: Physics, Spawning, Pooling.
+  - `renderers/`: Layer-specific canvas drawing logic.
+- `stores/`: Zustand slices for persistent state (Settings, Progress).
+- `config/`: Centralized "Magic Numbers". Never hardcode values in services; add them here.
+- `types/`: Strongly typed definitions for events, entities, and market data.
+- `hooks/`: React hooks for UI-to-Engine bridging (e.g., `useMarketData`).
 
 ---
-*This file is the SINGLE source of truth for project rules.*
+
+## 🎯 Development Conventions
+
+- **TypeScript:** `strict` mode is enabled. No `any`. Use Type Guards for complex objects.
+- **Naming:** 
+  - Variables/Functions: `camelCase`.
+  - Classes/Components: `PascalCase`.
+  - Constants: `UPPER_SNAKE_CASE`.
+- **Singletons:** Access core services via `.getInstance()`.
+- **React State:** Never use `useState` or `useEffect` for data that changes 60 times per second. Use `useRef` or Singleton Service state.
+- **Comments:** Prefer self-documenting code. Use JSDoc for complex service methods.
+
+---
+
+## 🛠️ Debugging & Tools
+- **Admin Dashboard:** `Ctrl + Shift + A` (Metrics, Price Analysis).
+- **Cheat Manager:** `F1` (Dev mode only - God mode, XP boost).
+- **Tracing:** Use `EventBus.enableTracing()` to debug event flows in the console.
+
+---
+*Last updated by Gemini CLI: February 8, 2026*

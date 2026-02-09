@@ -68,7 +68,7 @@ class TwitterAuthServiceClass {
 
     this.config = {
       clientId,
-      redirectUri: redirectUri || `${window.location.origin}/auth/twitter/callback`,
+      redirectUri: redirectUri ?? `${window.location.origin}/auth/twitter/callback`,
       scopes: ['tweet.read', 'users.read', 'offline.access'],
     };
 
@@ -245,7 +245,13 @@ class TwitterAuthServiceClass {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Token exchange failed');
+      let errorMsg = error.message ?? 'Token exchange failed';
+      if (error && typeof error === 'object' && 'error' in error) {
+        errorMsg = (error as { error: string }).error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMsg = (error as { message: string }).message;
+      }
+      throw new Error(errorMsg);
     }
 
     return response.json();
@@ -293,7 +299,7 @@ class TwitterAuthServiceClass {
       return;
     }
 
-    const currentUser = UserSessionService.getStoredUser();
+    const currentUser = UserSessionService.getLegacyStoredUser();
     if (!currentUser) {
       Logger.error('[TwitterAuth] No logged-in user to link Twitter account');
       throw new Error('Please log in first before connecting Twitter');
@@ -334,7 +340,7 @@ class TwitterAuthServiceClass {
       return localStorage.getItem('twitter_linked_profile') !== null;
     }
 
-    const currentUser = UserSessionService.getStoredUser();
+    const currentUser = UserSessionService.getLegacyStoredUser();
     if (!currentUser) return false;
 
     const { data } = await supabase
@@ -360,7 +366,7 @@ class TwitterAuthServiceClass {
       return stored ? JSON.parse(stored) : null;
     }
 
-    const currentUser = UserSessionService.getStoredUser();
+    const currentUser = UserSessionService.getLegacyStoredUser();
     if (!currentUser) return null;
 
     const { data } = await supabase
@@ -389,7 +395,7 @@ class TwitterAuthServiceClass {
       return { success: true };
     }
 
-    const currentUser = UserSessionService.getStoredUser();
+    const currentUser = UserSessionService.getLegacyStoredUser();
     if (!currentUser) {
       return { success: false, error: 'Not logged in' };
     }

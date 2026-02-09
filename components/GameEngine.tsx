@@ -38,7 +38,7 @@ import { marketIndicatorService } from '../services/indicators/MarketIndicatorSe
 import { Logger } from '../services/system/Logger';
 import { EventBus } from '../services/core/EventBus';
 import { EngineRegistry } from '../services/core/EngineRegistry';
-import { difficultyContext } from '../services/difficulty';
+import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { portalSystem } from '../services/gameplay/PortalSystem';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 
@@ -497,7 +497,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
 
         // Update metrics system
-        const wavePhase = DifficultyManager.getWavePhase();
+        const wavePhase = 'active'; // AI Director V2: Wave phases removed
         const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
         const hpPercent = (player.hp / maxHp) * 100;
 

@@ -17,7 +17,6 @@ import {
   type DifficultyInsights,
   type PlayerExperienceInsights,
 } from '../../../types/metrics';
-import { WAVE_CONFIG } from '../../../config/GameConfig';
 
 export class MetricsAnalyzer {
   private sessions: SessionMetrics[];
@@ -185,16 +184,17 @@ export class MetricsAnalyzer {
       0
     );
 
-    // Use WAVE_CONFIG.PHASE_ORDER for dynamic phase stats
+    // AI Director V2: Only 'active' phase
+    const phases: WavePhase[] = ['active'];
     const wavePhaseStats = {} as Record<
       WavePhase,
       { avgTime: number; deathRate: number }
     >;
-    for (const phase of WAVE_CONFIG.PHASE_ORDER) {
+    for (const phase of phases) {
       wavePhaseStats[phase] = { avgTime: 0, deathRate: 0 };
     }
 
-    for (const phase of WAVE_CONFIG.PHASE_ORDER) {
+    for (const phase of phases) {
       const times = sessions
         .map(s => s.difficulty.timeInEachWavePhase[phase])
         .filter((t): t is number => t !== undefined);
