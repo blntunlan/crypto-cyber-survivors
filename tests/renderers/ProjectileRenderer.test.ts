@@ -101,7 +101,7 @@ describe('ProjectileRenderer', () => {
     expect(mockCtx.translate).not.toHaveBeenCalled();
   });
 
-  it('should render super crit projectiles with unique visuals', () => {
+  it('should render super crit projectiles with optimized world-space rendering', () => {
     mockPool.activeBullets = [
       {
         x: 100,
@@ -126,9 +126,15 @@ describe('ProjectileRenderer', () => {
     // Super crit calls arc for pulse flare
     expect(mockCtx.arc).toHaveBeenCalled();
     expect(mockCtx.globalAlpha).toBeDefined();
+
+    // Optimization check: Should NOT use expensive context state changes
+    expect(mockCtx.save).not.toHaveBeenCalled();
+    expect(mockCtx.restore).not.toHaveBeenCalled();
+    expect(mockCtx.translate).not.toHaveBeenCalled();
+    expect(mockCtx.rotate).not.toHaveBeenCalled();
   });
 
-  it('should render crit projectiles correctly', () => {
+  it('should render crit projectiles with optimized world-space rendering', () => {
     mockPool.activeBullets = [
       {
         x: 100,
@@ -151,6 +157,12 @@ describe('ProjectileRenderer', () => {
     });
 
     expect(mockCtx.arc).toHaveBeenCalled(); // Impact flare
+
+    // Optimization check: Should NOT use expensive context state changes
+    expect(mockCtx.save).not.toHaveBeenCalled();
+    expect(mockCtx.restore).not.toHaveBeenCalled();
+    expect(mockCtx.translate).not.toHaveBeenCalled();
+    expect(mockCtx.rotate).not.toHaveBeenCalled();
   });
 
   it('should render retro projectiles when retro theme is enabled', () => {
