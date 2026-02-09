@@ -24,7 +24,14 @@ dist-ssr
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+
+# AI Code Agents
+.agent/
+.agents/
+.claude/
+.gemini/
+.gemini_security/
+.windsurf/
 
 # Test coverage
 coverage/
