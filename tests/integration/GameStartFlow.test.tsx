@@ -92,7 +92,22 @@ vi.mock('../../services/market/MarketStateService', () => ({
   },
 }));
 
+vi.mock('../../stores/useAuthStore', () => ({
+  useAuthStore: vi.fn(() => ({
+    authStage: 'COMPLETE', // Bypass auth for this test
+    setStage: vi.fn(),
+  })),
+}));
+
 // Mock simple components to avoid canvas issues
+vi.mock('../../components/auth/AuthScreen', () => ({
+  AuthScreen: () => <div data-testid="auth-screen">Auth Screen</div>,
+}));
+
+vi.mock('../../components/auth/NicknameSetup', () => ({
+  NicknameSetup: () => <div data-testid="nickname-setup">Nickname Setup</div>,
+}));
+
 vi.mock('../../components/GameEngine', () => ({
   GameEngine: () => <div data-testid="game-engine">Game Engine Running</div>,
 }));

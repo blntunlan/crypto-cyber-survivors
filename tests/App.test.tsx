@@ -217,9 +217,24 @@ vi.mock('../hooks/usePlayerState', () => ({
   }),
 }));
 
+vi.mock('../stores/useAuthStore', () => ({
+  useAuthStore: vi.fn(() => ({
+    authStage: 'COMPLETE', // Default to COMPLETE for this test to reach HubMenu
+    setStage: vi.fn(),
+  })),
+}));
+
 // Mock Lazy Components
 vi.mock('../components/screens/NicknameEntryScreen', () => ({
   NicknameEntryScreen: () => <div>NicknameEntryScreen</div>,
+}));
+
+vi.mock('../components/auth/AuthScreen', () => ({
+  AuthScreen: () => <div>AuthScreen</div>,
+}));
+
+vi.mock('../components/auth/NicknameSetup', () => ({
+  NicknameSetup: () => <div>NicknameSetup</div>,
 }));
 
 vi.mock('../components/GameEngine', () => ({
@@ -253,6 +268,11 @@ vi.mock('../components/screens/LandingPage', () => ({
       <button onClick={onLaunch}>EXECUTE ENGINE</button>
     </div>
   ),
+}));
+
+// Mock SEO component to avoid <html> nesting issues
+vi.mock('../components/SEO', () => ({
+  SEO: () => null,
 }));
 
 describe('App', () => {

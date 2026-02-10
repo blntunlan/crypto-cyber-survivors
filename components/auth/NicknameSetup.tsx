@@ -47,7 +47,7 @@ export const NicknameSetup: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black bg-[url('/assets/bg/grid.png')] bg-cover p-4">
+    <div className="flex min-h-screen items-center justify-center bg-black bg-[url('/assets/bg/grid.png')] bg-cover p-4 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
 
       <div className="relative z-10 w-full max-w-md">
