@@ -64,8 +64,8 @@ Connect all pieces: Landing -> Auth -> Nickname -> Hub, and verify PWA behavior.
 - [x] Task: Integrate Auth Flow into App Root (070fc43)
     - [x] Update `App.tsx` or Main Router to handle conditional rendering based on `authStage`.
     - [x] Ensure seamless transition from Landing Page "Enter Game" to Auth Screen.
-- [ ] Task: PWA & Mobile Optimization
-    - [ ] Verify `manifest.json` settings for standalone mode.
-    - [ ] Add "Safe Area" padding to Auth screens for notched phones.
-    - [ ] Verify keyboard handling (avoid UI shifting/breaking on mobile input).
+- [x] Task: PWA & Mobile Optimization (f3285fe)
+    - [x] Verify `manifest.json` settings for standalone mode.
+    - [x] Add "Safe Area" padding to Auth screens for notched phones.
+    - [x] Verify keyboard handling (avoid UI shifting/breaking on mobile input).
 - [ ] Task: Conductor - User Manual Verification 'Integration & PWA Polish' (Protocol in workflow.md)
