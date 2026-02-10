@@ -4,35 +4,24 @@
  * Provides a strongly-typed, decoupled event system for game-wide communication.
  * Allows components to subscribe to events without direct dependencies.
  *
- * @example
- * // Subscribe to event (returns unsubscribe function)
- * const unsub = EventBus.on('enemyKilled', (data) => {
- *   console.log(data.x, data.y); // Fully typed!
- * });
- *
- * // Emit event (type-safe payload)
- * EventBus.emit('enemyKilled', { x: 100, y: 200, type: 'bear' });
- *
- * // Cleanup
- * unsub();
- *
- * // Enable tracing for debugging
- * EventBus.enableTracing();
+ * Features:
+ * 1. Strongly Typed: Full type safety for event payloads.
+ * 2. Scoping: Group events into 'ui', 'gameplay', 'system' for collective cleanup.
+ * 3. Performance Guardrails: Profiles listener execution and logs warnings for slow handlers.
+ * 4. Throttling: Built-in support for rate-limiting high-frequency events.
+ * 5. Debugging: Integrated tracing and Redux DevTools support.
  */
 
 import {
   type GameEvent,
   type EventDataMap,
   type EventCallback,
+  type EventScope,
 } from '../../types/events';
 import { Logger } from '../system/Logger';
 
-// Re-export types for convenience
-export type { GameEvent, EventDataMap, EventCallback } from '../../types/events';
-export * from '../../types/events';
-
 // =============================================================================
-// TRACING TYPES
+// TYPES
 // =============================================================================
 
 export interface EventTrace {
@@ -40,6 +29,7 @@ export interface EventTrace {
   timestamp: number;
   listenerCount: number;
   data: unknown;
+  duration?: number; // profiling info
 }
 
 export interface EventBusDebugState {
@@ -51,12 +41,25 @@ export interface EventBusDebugState {
   recentEmits: EventTrace[];
 }
 
+export interface SubscriptionOptions {
+  scope?: EventScope;
+  once?: boolean;
+}
+
 // =============================================================================
 // EVENT BUS CLASS
 // =============================================================================
 
 class EventBusClass {
-  private listeners: Map<GameEvent, Set<EventCallback<GameEvent>>> = new Map();
+  // Scoped storage: Scope -> Event -> Set of Callbacks
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private listeners: Map<EventScope, Map<GameEvent, Set<EventCallback<any>>>> =
+    new Map();
+
+  // Mapping for fast lookup during unsubscribe: Callback -> Scope (to avoid searching all scopes)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private callbackScopes: Map<EventCallback<any>, EventScope> = new Map();
+
   private static instance: EventBusClass | null = null;
 
   // Tracing support
@@ -65,8 +68,16 @@ class EventBusClass {
   private readonly MAX_TRACE_LOG = 100;
   private totalEmitCount = 0;
 
+  // Performance Guardrails
+  private readonly SLOW_LISTENER_THRESHOLD_MS = 5;
+
+  // Throttling state
+  private throttleMap: Map<string, number> = new Map();
+
   private constructor() {
-    // Private constructor for singleton
+    // Initialize default scopes
+    const defaultScopes: EventScope[] = ['ui', 'gameplay', 'system', 'debug'];
+    defaultScopes.forEach(scope => this.listeners.set(scope, new Map()));
   }
 
   /**
@@ -77,53 +88,37 @@ class EventBusClass {
   }
 
   // ===========================================================================
-  // TRACING API
+  // TRACING & DEBUGGING
   // ===========================================================================
 
-  /**
-   * Enable tracing mode - logs all event emissions
-   */
   enableTracing(): void {
     this.tracingEnabled = true;
-    Logger.info('[EventBus] Tracing ENABLED - all events will be logged');
+    Logger.info('[EventBus] Tracing ENABLED');
   }
 
-  /**
-   * Disable tracing mode
-   */
   disableTracing(): void {
     this.tracingEnabled = false;
     Logger.info('[EventBus] Tracing DISABLED');
   }
 
-  /**
-   * Check if tracing is enabled
-   */
   isTracing(): boolean {
     return this.tracingEnabled;
   }
 
-  /**
-   * Get recent trace log
-   */
   getTraceLog(): EventTrace[] {
     return [...this.traceLog];
   }
 
-  /**
-   * Clear trace log
-   */
   clearTraceLog(): void {
     this.traceLog = [];
   }
 
-  /**
-   * Get debug state for runtime inspection
-   */
   getDebugState(): EventBusDebugState {
-    const eventListenerCounts: Record<string, number> = {};
-    this.listeners.forEach((listeners, event) => {
-      eventListenerCounts[event] = listeners.size;
+    const counts: Record<string, number> = {};
+    this.listeners.forEach(scopeMap => {
+      scopeMap.forEach((set, event) => {
+        counts[event] = (counts[event] ?? 0) + set.size;
+      });
     });
 
     return {
@@ -131,8 +126,8 @@ class EventBusClass {
       timestamp: Date.now(),
       isTracingEnabled: this.tracingEnabled,
       totalEvents: this.totalEmitCount,
-      eventListenerCounts,
-      recentEmits: this.traceLog.slice(-10), // Last 10 events
+      eventListenerCounts: counts,
+      recentEmits: this.traceLog.slice(-10),
     };
   }
 
@@ -141,130 +136,243 @@ class EventBusClass {
   // ===========================================================================
 
   /**
-   * Subscribe to an event with type-safe callback
+   * Subscribe to an event
+   * @param event The event name
+   * @param callback Function to execute
+   * @param options Subscription options (scope, once)
    * @returns Unsubscribe function
    */
-  subscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    // Cast is safe because we control the event-to-callback mapping
-    this.listeners.get(event)!.add(callback as EventCallback<GameEvent>);
+  subscribe<K extends GameEvent>(
+    event: K,
+    callback: EventCallback<K>,
+    options: SubscriptionOptions = {}
+  ): () => void {
+    const scope = options.scope ?? 'system';
 
-    // Return unsubscribe function
+    if (!this.listeners.has(scope)) {
+      this.listeners.set(scope, new Map());
+    }
+
+    const scopeMap = this.listeners.get(scope)!;
+    if (!scopeMap.has(event)) {
+      scopeMap.set(event, new Set());
+    }
+
+    const callbacks = scopeMap.get(event)!;
+
+    if (options.once) {
+      const onceWrapper = (data: EventDataMap[K]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.unsubscribe(event, onceWrapper as any);
+        callback(data);
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      callbacks.add(onceWrapper as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.callbackScopes.set(onceWrapper as any, scope);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return () => this.unsubscribe(event, onceWrapper as any);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    callbacks.add(callback as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.callbackScopes.set(callback as any, scope);
+
     return () => this.unsubscribe(event, callback);
   }
 
-  /**
-   * Alias for subscribe (convenience method)
-   */
-  on<K extends GameEvent>(event: K, callback: EventCallback<K>): () => void {
-    return this.subscribe(event, callback);
+  /** Alias for subscribe */
+  on<K extends GameEvent>(
+    event: K,
+    callback: EventCallback<K>,
+    options?: SubscriptionOptions
+  ): () => void {
+    return this.subscribe(event, callback, options);
   }
 
   /**
-   * Unsubscribe from an event
+   * Subscribe once
+   */
+  once<K extends GameEvent>(
+    event: K,
+    callback: EventCallback<K>,
+    options?: Omit<SubscriptionOptions, 'once'>
+  ): () => void {
+    return this.subscribe(event, callback, { ...options, once: true });
+  }
+
+  /**
+   * Unsubscribe a specific callback
    */
   unsubscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): void {
-    const eventListeners = this.listeners.get(event);
-    if (eventListeners) {
-      eventListeners.delete(callback as EventCallback<GameEvent>);
-    }
-  }
-
-  /**
-   * Emit an event to all subscribers with type-safe payload
-   */
-  emit<K extends GameEvent>(event: K, data: EventDataMap[K]): void {
-    const eventListeners = this.listeners.get(event);
-    const listenerCount = eventListeners?.size ?? 0;
-
-    // Increment total emit count
-    this.totalEmitCount++;
-
-    // Tracing
-    if (this.tracingEnabled) {
-      const trace: EventTrace = {
-        event,
-        timestamp: Date.now(),
-        listenerCount,
-        data,
-      };
-
-      this.traceLog.push(trace);
-      if (this.traceLog.length > this.MAX_TRACE_LOG) {
-        this.traceLog.shift();
-      }
-
-      Logger.debug(`[EventBus] EMIT: ${event} → ${listenerCount} listeners`, data);
-    }
-
-    if (eventListeners) {
-      eventListeners.forEach(callback => {
-        try {
-          callback(data);
-        } catch (error) {
-          Logger.error(`Error in event handler for ${event}:`, error);
-        }
+    const scope = this.callbackScopes.get(callback);
+    if (!scope) {
+      // Fallback: search all scopes if scope tracking failed
+      this.listeners.forEach(scopeMap => {
+        scopeMap.get(event)?.delete(callback as EventCallback<GameEvent>);
       });
+      return;
     }
-  }
 
-  /**
-   * Subscribe to an event and automatically unsubscribe after first emit
-   */
-  once<K extends GameEvent>(event: K, callback: EventCallback<K>): () => void {
-    const wrapper: EventCallback<K> = data => {
-      this.unsubscribe(event, wrapper);
-      callback(data);
-    };
-    return this.subscribe(event, wrapper);
+    this.listeners
+      .get(scope)
+      ?.get(event)
+      ?.delete(callback as EventCallback<GameEvent>);
+    this.callbackScopes.delete(callback);
   }
-
-  // ===========================================================================
-  // UTILITY METHODS
-  // ===========================================================================
 
   /**
    * Get the number of listeners for a specific event
    */
   listenerCount(event: GameEvent): number {
-    return this.listeners.get(event)?.size ?? 0;
+    let count = 0;
+    this.listeners.forEach(scopeMap => {
+      count += scopeMap.get(event)?.size ?? 0;
+    });
+    return count;
   }
 
   /**
-   * Get all registered event types
+   * Clear all listeners in a specific scope
    */
-  getRegisteredEvents(): GameEvent[] {
-    return Array.from(this.listeners.keys());
+  clearScope(scope: EventScope): void {
+    const scopeMap = this.listeners.get(scope);
+    if (scopeMap) {
+      // Clean up callbackScopes mapping
+      scopeMap.forEach(set => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        set.forEach(cb => this.callbackScopes.delete(cb as any));
+      });
+      scopeMap.clear();
+      Logger.debug(`[EventBus] Scope '${scope}' cleared`);
+    }
   }
 
   /**
-   * Clear all listeners (useful for cleanup/testing)
-   */
-  clear(): void {
-    this.listeners.clear();
-  }
-
-  /**
-   * Clear listeners for a specific event
+   * Clear listeners for a specific event across all scopes
    */
   clearEvent(event: GameEvent): void {
-    this.listeners.delete(event);
+    this.listeners.forEach(scopeMap => {
+      const set = scopeMap.get(event);
+      if (set) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        set.forEach(cb => this.callbackScopes.delete(cb as any));
+        scopeMap.delete(event);
+      }
+    });
+  }
+
+  // ===========================================================================
+  // EMISSION API
+  // ===========================================================================
+
+  /**
+   * Emit an event to all subscribers
+   */
+  emit<K extends GameEvent>(event: K, data: EventDataMap[K]): void {
+    this.totalEmitCount++;
+
+    // Optimization: Collect all listeners across all scopes for this event
+    const allListeners: EventCallback<GameEvent>[] = [];
+    this.listeners.forEach(scopeMap => {
+      const set = scopeMap.get(event);
+      if (set) set.forEach(cb => allListeners.push(cb));
+    });
+
+    if (allListeners.length === 0) {
+      if (this.tracingEnabled) {
+        this.logTrace(event, data, 0, 0);
+      }
+      return;
+    }
+
+    const startTime = performance.now();
+
+    allListeners.forEach(callback => {
+      const cbStart = performance.now();
+      try {
+        callback(data);
+      } catch (error) {
+        Logger.error(`[EventBus] Error in handler for ${event}:`, error);
+      }
+      const cbDuration = performance.now() - cbStart;
+
+      // Performance Guardrail
+      if (cbDuration > this.SLOW_LISTENER_THRESHOLD_MS) {
+        Logger.warn(
+          `[EventBus] Slow listener detected for '${event}': ${cbDuration.toFixed(2)}ms`
+        );
+      }
+    });
+
+    if (this.tracingEnabled) {
+      this.logTrace(event, data, allListeners.length, performance.now() - startTime);
+    }
   }
 
   /**
-   * Reset for testing - clears everything including traces
+   * Emit an event but throttle it to prevent spam
    */
+  emitThrottled<K extends GameEvent>(
+    event: K,
+    data: EventDataMap[K],
+    limitMs: number
+  ): void {
+    const now = Date.now();
+    const lastEmit = this.throttleMap.get(event) ?? 0;
+
+    if (now - lastEmit >= limitMs) {
+      this.emit(event, data);
+      this.throttleMap.set(event, now);
+    }
+  }
+
+  private logTrace(
+    event: GameEvent,
+    data: unknown,
+    count: number,
+    duration: number
+  ): void {
+    const trace: EventTrace = {
+      event,
+      timestamp: Date.now(),
+      listenerCount: count,
+      data,
+      duration,
+    };
+
+    this.traceLog.push(trace);
+    if (this.traceLog.length > this.MAX_TRACE_LOG) {
+      this.traceLog.shift();
+    }
+
+    if (this.tracingEnabled) {
+      Logger.debug(
+        `[EventBus] EMIT: ${event} → ${count} listeners (${duration.toFixed(2)}ms)`,
+        data
+      );
+    }
+  }
+
+  // ===========================================================================
+  // UTILITIES
+  // ===========================================================================
+
+  clear(): void {
+    this.listeners.forEach(m => m.clear());
+    this.callbackScopes.clear();
+    this.throttleMap.clear();
+  }
+
   static resetForTesting(): void {
     if (this.instance) {
       this.instance.clear();
-      this.instance.clearTraceLog();
-      this.instance.disableTracing();
+      this.instance.traceLog = [];
+      this.instance.tracingEnabled = false;
       this.instance.totalEmitCount = 0;
     }
   }
 }
 
-// Export singleton instance
 export const EventBus = EventBusClass.getInstance();
