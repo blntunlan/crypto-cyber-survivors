@@ -27,7 +27,7 @@ Implement the core logic for different authentication methods. This phase is pur
     - [x] Implement `signInWithPassword`.
     - [x] Implement `signInWithOAuth` (wrapper for Supabase `signInWithOAuth`).
     - [x] Refactor and ensure tests pass.
-- [ ] Task: Conductor - User Manual Verification 'Authentication Service Layer' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Authentication Service Layer' (Protocol in workflow.md) [checkpoint: 0dd93f9]
 
 ## Phase 3: Themed UI Implementation
 Build the visual components for the Auth system, strictly adhering to the "Neon-Cyber" aesthetic of the Main Menu/Hub.
