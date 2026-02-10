@@ -41,7 +41,7 @@ Build the visual components for the Auth system, strictly adhering to the "Neon-
     - [x] Implement tab switching (Email/Password vs OTP).
     - [x] Integrate `SocialAuthButtons` with neon icons.
     - [x] Apply Framer Motion entry animations.
-- [ ] Task: Conductor - User Manual Verification 'Themed UI Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Themed UI Implementation' (Protocol in workflow.md) [checkpoint: 73ed9ba]
 
 ## Phase 4: Onboarding & Nickname Flow
 Implement the logic to enforce nickname creation for new users before they can access the game Hub.
