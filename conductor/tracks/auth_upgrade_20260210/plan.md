@@ -46,12 +46,12 @@ Build the visual components for the Auth system, strictly adhering to the "Neon-
 ## Phase 4: Onboarding & Nickname Flow
 Implement the logic to enforce nickname creation for new users before they can access the game Hub.
 
-- [ ] Task: Implement Profile Service (Nickname Logic)
-    - [ ] Create `tests/services/profile/ProfileService.test.ts`.
-    - [ ] Write failing tests for `getProfile` and `updateNickname`.
-    - [ ] Implement `ProfileService.getProfile(userId)` to check existence.
-    - [ ] Implement `ProfileService.updateNickname(userId, nickname)` with uniqueness check.
-    - [ ] Refactor and ensure tests pass.
+- [x] Task: Implement Profile Service (Nickname Logic) (48092e6)
+    - [x] Create `tests/services/profile/ProfileService.test.ts`.
+    - [x] Write failing tests for `getProfile` and `updateNickname`.
+    - [x] Implement `ProfileService.getProfile(userId)` to check existence.
+    - [x] Implement `ProfileService.updateNickname(userId, nickname)` with uniqueness check.
+    - [x] Refactor and ensure tests pass.
 - [ ] Task: Implement Nickname Setup UI
     - [ ] Create `components/auth/NicknameSetup.tsx`.
     - [ ] Implement validation (length, allowed characters).
