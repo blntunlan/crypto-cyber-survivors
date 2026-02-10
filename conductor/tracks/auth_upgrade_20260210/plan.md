@@ -52,10 +52,10 @@ Implement the logic to enforce nickname creation for new users before they can a
     - [x] Implement `ProfileService.getProfile(userId)` to check existence.
     - [x] Implement `ProfileService.updateNickname(userId, nickname)` with uniqueness check.
     - [x] Refactor and ensure tests pass.
-- [ ] Task: Implement Nickname Setup UI
-    - [ ] Create `components/auth/NicknameSetup.tsx`.
-    - [ ] Implement validation (length, allowed characters).
-    - [ ] Connect to `ProfileService` to save nickname.
+- [x] Task: Implement Nickname Setup UI (d0d6d38)
+    - [x] Create `components/auth/NicknameSetup.tsx`.
+    - [x] Implement validation (length, allowed characters).
+    - [x] Connect to `ProfileService` to save nickname.
 - [ ] Task: Conductor - User Manual Verification 'Onboarding & Nickname Flow' (Protocol in workflow.md)
 
 ## Phase 5: Integration & PWA Polish
