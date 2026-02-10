@@ -10,7 +10,7 @@ This phase establishes the foundational services and state management required f
     - [x] Create `stores/useAuthStore.ts`.
     - [x] Define state: `user`, `session`, `loading`, `error`, `authStage` (e.g., 'LOGIN', 'OTP_VERIFY', 'NICKNAME_SETUP', 'COMPLETE').
     - [x] Implement actions: `setSession`, `setError`, `setStage`, `logout`.
-- [ ] Task: Conductor - User Manual Verification 'Infrastructure & State Management' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Infrastructure & State Management' (Protocol in workflow.md) [checkpoint: fac42d8]
 
 ## Phase 2: Authentication Service Layer (TDD)
 Implement the core logic for different authentication methods. This phase is purely functional (headless).
