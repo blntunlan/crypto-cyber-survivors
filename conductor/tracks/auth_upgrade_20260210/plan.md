@@ -61,9 +61,9 @@ Implement the logic to enforce nickname creation for new users before they can a
 ## Phase 5: Integration & PWA Polish
 Connect all pieces: Landing -> Auth -> Nickname -> Hub, and verify PWA behavior.
 
-- [ ] Task: Integrate Auth Flow into App Root
-    - [ ] Update `App.tsx` or Main Router to handle conditional rendering based on `authStage`.
-    - [ ] Ensure seamless transition from Landing Page "Enter Game" to Auth Screen.
+- [x] Task: Integrate Auth Flow into App Root (070fc43)
+    - [x] Update `App.tsx` or Main Router to handle conditional rendering based on `authStage`.
+    - [x] Ensure seamless transition from Landing Page "Enter Game" to Auth Screen.
 - [ ] Task: PWA & Mobile Optimization
     - [ ] Verify `manifest.json` settings for standalone mode.
     - [ ] Add "Safe Area" padding to Auth screens for notched phones.
