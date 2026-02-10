@@ -15,12 +15,12 @@ This phase establishes the foundational services and state management required f
 ## Phase 2: Authentication Service Layer (TDD)
 Implement the core logic for different authentication methods. This phase is purely functional (headless).
 
-- [ ] Task: Implement OTP Authentication Logic
-    - [ ] Create `tests/services/auth/AuthService.otp.test.ts`.
-    - [ ] Write failing tests for `signInWithOtp` and `verifyOtp`.
-    - [ ] Implement `AuthService.signInWithOtp(email)` using Supabase.
-    - [ ] Implement `AuthService.verifyOtp(email, token)`.
-    - [ ] Refactor and ensure tests pass.
+- [x] Task: Implement OTP Authentication Logic (c400d82)
+    - [x] Create `tests/services/auth/AuthService.otp.test.ts`.
+    - [x] Write failing tests for `signInWithOtp` and `verifyOtp`.
+    - [x] Implement `AuthService.signInWithOtp(email)` using Supabase.
+    - [x] Implement `AuthService.verifyOtp(email, token)`.
+    - [x] Refactor and ensure tests pass.
 - [ ] Task: Implement Password & OAuth Logic
     - [ ] Create `tests/services/auth/AuthService.general.test.ts`.
     - [ ] Write failing tests for `signInWithPassword`.
