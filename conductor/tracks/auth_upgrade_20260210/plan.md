@@ -56,7 +56,7 @@ Implement the logic to enforce nickname creation for new users before they can a
     - [x] Create `components/auth/NicknameSetup.tsx`.
     - [x] Implement validation (length, allowed characters).
     - [x] Connect to `ProfileService` to save nickname.
-- [ ] Task: Conductor - User Manual Verification 'Onboarding & Nickname Flow' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Onboarding & Nickname Flow' (Protocol in workflow.md) [checkpoint: 03c26d3]
 
 ## Phase 5: Integration & PWA Polish
 Connect all pieces: Landing -> Auth -> Nickname -> Hub, and verify PWA behavior.
