@@ -32,10 +32,10 @@ Implement the core logic for different authentication methods. This phase is pur
 ## Phase 3: Themed UI Implementation
 Build the visual components for the Auth system, strictly adhering to the "Neon-Cyber" aesthetic of the Main Menu/Hub.
 
-- [ ] Task: Create Shared Auth UI Components
-    - [ ] Create `components/auth/ui/AuthInput.tsx` (styled like Hub inputs).
-    - [ ] Create `components/auth/ui/AuthButton.tsx` (Neon hover effects).
-    - [ ] Create `components/auth/ui/AuthCard.tsx` (Framer motion container).
+- [x] Task: Create Shared Auth UI Components (920f809)
+    - [x] Create `components/auth/ui/AuthInput.tsx` (styled like Hub inputs).
+    - [x] Create `components/auth/ui/AuthButton.tsx` (Neon hover effects).
+    - [x] Create `components/auth/ui/AuthCard.tsx` (Framer motion container).
 - [ ] Task: Implement Main Auth Screen
     - [ ] Create `components/auth/AuthScreen.tsx`.
     - [ ] Implement tab switching (Email/Password vs OTP).
