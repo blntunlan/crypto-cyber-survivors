@@ -36,11 +36,11 @@ Build the visual components for the Auth system, strictly adhering to the "Neon-
     - [x] Create `components/auth/ui/AuthInput.tsx` (styled like Hub inputs).
     - [x] Create `components/auth/ui/AuthButton.tsx` (Neon hover effects).
     - [x] Create `components/auth/ui/AuthCard.tsx` (Framer motion container).
-- [ ] Task: Implement Main Auth Screen
-    - [ ] Create `components/auth/AuthScreen.tsx`.
-    - [ ] Implement tab switching (Email/Password vs OTP).
-    - [ ] Integrate `SocialAuthButtons` with neon icons.
-    - [ ] Apply Framer Motion entry animations.
+- [x] Task: Implement Main Auth Screen (6f3cdd4)
+    - [x] Create `components/auth/AuthScreen.tsx`.
+    - [x] Implement tab switching (Email/Password vs OTP).
+    - [x] Integrate `SocialAuthButtons` with neon icons.
+    - [x] Apply Framer Motion entry animations.
 - [ ] Task: Conductor - User Manual Verification 'Themed UI Implementation' (Protocol in workflow.md)
 
 ## Phase 4: Onboarding & Nickname Flow
