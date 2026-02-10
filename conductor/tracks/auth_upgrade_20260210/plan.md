@@ -21,12 +21,12 @@ Implement the core logic for different authentication methods. This phase is pur
     - [x] Implement `AuthService.signInWithOtp(email)` using Supabase.
     - [x] Implement `AuthService.verifyOtp(email, token)`.
     - [x] Refactor and ensure tests pass.
-- [ ] Task: Implement Password & OAuth Logic
-    - [ ] Create `tests/services/auth/AuthService.general.test.ts`.
-    - [ ] Write failing tests for `signInWithPassword`.
-    - [ ] Implement `signInWithPassword`.
-    - [ ] Implement `signInWithOAuth` (wrapper for Supabase `signInWithOAuth`).
-    - [ ] Refactor and ensure tests pass.
+- [x] Task: Implement Password & OAuth Logic (0267b4b)
+    - [x] Create `tests/services/auth/AuthService.general.test.ts`.
+    - [x] Write failing tests for `signInWithPassword`.
+    - [x] Implement `signInWithPassword`.
+    - [x] Implement `signInWithOAuth` (wrapper for Supabase `signInWithOAuth`).
+    - [x] Refactor and ensure tests pass.
 - [ ] Task: Conductor - User Manual Verification 'Authentication Service Layer' (Protocol in workflow.md)
 
 ## Phase 3: Themed UI Implementation
