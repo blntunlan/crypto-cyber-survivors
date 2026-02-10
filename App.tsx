@@ -86,6 +86,9 @@ import { DocScreen } from './components/screens/DocScreen';
 import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
 import { AuthCallback } from './components/auth';
 import { SupabaseAuthService } from './services/auth/SupabaseAuthService';
+import { useAuthStore } from './stores/useAuthStore';
+import { AuthScreen } from './components/auth/AuthScreen';
+import { NicknameSetup } from './components/auth/NicknameSetup';
 
 // Lazy load heavy admin/debug components
 const LeaderboardPanel = React.lazy(() =>
@@ -222,7 +225,8 @@ const App: React.FC = () => {
   // ========================================
   // Initialization & Utility Hooks
   // ========================================
-  const { needsNickname, setNeedsNickname, isInitialized } = useAppInitialization();
+  const { isInitialized } = useAppInitialization();
+  const { authStage, setStage } = useAuthStore();
   const { showAnalytics: _showAnalytics, showAdminDashboard: _showAdminDashboard } =
     useDevShortcuts();
   const tutorial = useTutorial();
@@ -280,7 +284,7 @@ const App: React.FC = () => {
 
   const handleLaunchGame = useCallback(() => {
     // Check if user is authenticated before proceeding
-    if (needsNickname) {
+    if (authStage !== 'COMPLETE') {
       // User needs to authenticate - hide landing but show auth screen
       setShowLanding(false);
       // Don't set has_seen_landing yet - will be set after successful auth
@@ -289,7 +293,7 @@ const App: React.FC = () => {
       setShowLanding(false);
       localStorage.setItem('has_seen_landing', 'true');
     }
-  }, [needsNickname]);
+  }, [authStage]);
 
   useEffect(() => {
     if (gameStatus === GameStatus.MENU && isInitialized) {
@@ -340,7 +344,7 @@ const App: React.FC = () => {
   // ========================================
   const handleNicknameComplete = useCallback(
     (nickname: string) => {
-      setNeedsNickname(false);
+      setStage('COMPLETE');
       localStorage.setItem('has_seen_landing', 'true');
       setHubScreen('hub'); // Go to hub after auth
       Logger.info(`Signed in as ${nickname}`);
@@ -353,7 +357,7 @@ const App: React.FC = () => {
         .getBalance()
         .then(b => setWalletBalance(b));
     },
-    [setNeedsNickname]
+    [setStage]
   );
 
   const handleLevelUp = useCallback(() => {
@@ -477,6 +481,17 @@ const App: React.FC = () => {
       playerRef.current = nextP;
       setUiStats({ ...nextP });
       EventBus.emit('levelUpComplete', { newLevel: nextP.level });
+      EventBus.emit('playerLevelUp', { level: nextP.level });
+      EventBus.emit('playerHealthChange', {
+        hpPercent: (nextP.hp / nextP.maxHp) * 100,
+        hp: nextP.hp,
+        maxHp: nextP.maxHp,
+      });
+      EventBus.emit('playerExperienceChange', {
+        exp: nextP.exp,
+        nextLevelExp: nextP.nextLevelExp,
+        expPercent: (nextP.exp / nextP.nextLevelExp) * 100,
+      });
 
       if (nextP.exp >= nextP.nextLevelExp) {
         handleLevelUp();
@@ -795,7 +810,8 @@ const App: React.FC = () => {
                 onSuccess={needsProfile => {
                   setShowAuthCallback(false);
                   setShowLanding(false);
-                  setNeedsNickname(needsProfile); // Set based on profile status from OAuth
+                  // Update Auth Store Stage
+                  setStage(needsProfile ? 'NICKNAME_SETUP' : 'COMPLETE');
                   localStorage.setItem('has_seen_landing', 'true');
                   window.history.replaceState(null, '', '/');
                 }}
@@ -822,14 +838,15 @@ const App: React.FC = () => {
                 <NotificationSystem />
 
                 <React.Suspense fallback={<FallbackLoader />}>
-                  {needsNickname && (
-                    <React.Suspense fallback={<FallbackLoader />}>
-                      <NicknameEntryScreen onComplete={handleNicknameComplete} />
-                    </React.Suspense>
-                  )}
+                  {/* New Auth Flow */}
+                  {!showLanding && authStage === 'LOGIN' || authStage === 'OTP_VERIFY' ? (
+                     <AuthScreen />
+                  ) : !showLanding && authStage === 'NICKNAME_SETUP' ? (
+                     <NicknameSetup />
+                  ) : null}
 
                   {tutorial.showTutorial &&
-                    !needsNickname &&
+                    authStage === 'COMPLETE' &&
                     gameStatus === GameStatus.MENU && (
                       <TutorialOverlay
                         step={tutorial.currentStep}
@@ -901,7 +918,7 @@ const App: React.FC = () => {
                   )}
 
                   {gameStatus === GameStatus.MENU &&
-                    !needsNickname &&
+                    authStage === 'COMPLETE' &&
                     hubScreen === 'hub' && (
                       <React.Suspense fallback={<UIFallback />}>
                         <HubMenu
@@ -918,7 +935,7 @@ const App: React.FC = () => {
                     )}
 
                   {gameStatus === GameStatus.MENU &&
-                    !needsNickname &&
+                    authStage === 'COMPLETE' &&
                     hubScreen === 'play' && (
                       <React.Suspense fallback={<UIFallback />}>
                         <MainMenu
