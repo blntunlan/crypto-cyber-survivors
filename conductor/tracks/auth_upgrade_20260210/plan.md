@@ -6,10 +6,10 @@ This phase establishes the foundational services and state management required f
 - [x] Task: Configure Supabase Client for PWA Persistence (6c130ca)
     - [x] Create/Update `services/supabase/client.ts` to use `localStorage` with explicit persistence settings.
     - [x] Verify `autoRefreshToken` and `persistSession` are enabled.
-- [ ] Task: Create Auth Store (Zustand)
-    - [ ] Create `stores/useAuthStore.ts`.
-    - [ ] Define state: `user`, `session`, `loading`, `error`, `authStage` (e.g., 'LOGIN', 'OTP_VERIFY', 'NICKNAME_SETUP', 'COMPLETE').
-    - [ ] Implement actions: `setSession`, `setError`, `setStage`, `logout`.
+- [x] Task: Create Auth Store (Zustand) (7bb6fd5)
+    - [x] Create `stores/useAuthStore.ts`.
+    - [x] Define state: `user`, `session`, `loading`, `error`, `authStage` (e.g., 'LOGIN', 'OTP_VERIFY', 'NICKNAME_SETUP', 'COMPLETE').
+    - [x] Implement actions: `setSession`, `setError`, `setStage`, `logout`.
 - [ ] Task: Conductor - User Manual Verification 'Infrastructure & State Management' (Protocol in workflow.md)
 
 ## Phase 2: Authentication Service Layer (TDD)
