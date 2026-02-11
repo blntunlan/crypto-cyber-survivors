@@ -16,6 +16,11 @@ import { gradientCache } from '../../utils/GradientCache';
  * 4. Device-aware performance scaling (toggles shadows on mobile).
  */
 export class ProjectileRenderer implements IRenderer {
+  // Reusable arrays for batching retro projectiles to reduce GC
+  private retroNormals: Bullet[] = [];
+  private retroCrits: Bullet[] = [];
+  private retroSuperCrits: Bullet[] = [];
+
   constructor() {}
 
   /**
@@ -43,10 +48,10 @@ export class ProjectileRenderer implements IRenderer {
 
     // 2. Optimized Rendering Path
     if (isRetro) {
-      // Group by tier for batching fillStyle in retro mode
-      const superCrits: Bullet[] = [];
-      const crits: Bullet[] = [];
-      const normals: Bullet[] = [];
+      // Reuse class arrays to prevent allocation
+      this.retroSuperCrits.length = 0;
+      this.retroCrits.length = 0;
+      this.retroNormals.length = 0;
 
       pool.activeBullets.forEach(b => {
         if (
@@ -59,15 +64,15 @@ export class ProjectileRenderer implements IRenderer {
         ) {
           return;
         }
-        if (b.isSuperCrit) superCrits.push(b);
-        else if (b.isCrit) crits.push(b);
-        else normals.push(b);
+        if (b.isSuperCrit) this.retroSuperCrits.push(b);
+        else if (b.isCrit) this.retroCrits.push(b);
+        else this.retroNormals.push(b);
       });
 
       // Render Normal
-      if (normals.length > 0) {
+      if (this.retroNormals.length > 0) {
         ctx.fillStyle = normalCoreColor; // Simplified for retro: use tier color or fallback
-        normals.forEach(b => {
+        this.retroNormals.forEach(b => {
           ctx.fillStyle = b.color; // Some bullets might have unique colors
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
@@ -76,14 +81,12 @@ export class ProjectileRenderer implements IRenderer {
             b.radius
           );
         });
-        // Actually, many normals might have DIFFERENT colors if we support multiple weapons.
-        // Let's re-batch by color if needed, but for now tier is enough if they share colors.
       }
 
       // Render Crits (usually same color)
-      if (crits.length > 0) {
+      if (this.retroCrits.length > 0) {
         ctx.fillStyle = critColor;
-        crits.forEach(b => {
+        this.retroCrits.forEach(b => {
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
             Math.round(b.y - b.radius / 2),
@@ -94,9 +97,9 @@ export class ProjectileRenderer implements IRenderer {
       }
 
       // Render Super Crits
-      if (superCrits.length > 0) {
+      if (this.retroSuperCrits.length > 0) {
         ctx.fillStyle = superCritColor;
-        superCrits.forEach(b => {
+        this.retroSuperCrits.forEach(b => {
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
             Math.round(b.y - b.radius / 2),
