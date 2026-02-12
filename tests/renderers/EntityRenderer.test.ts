@@ -3,6 +3,7 @@ import { EntityRenderer } from '../../services/renderers/EntityRenderer';
 import { GameStatus } from '../../types';
 import { BuffGemSpawner } from '../../services/spawners/BuffGemSpawner';
 import { ThemeService } from '../../services/system/ThemeService';
+import { COLORS } from '../../config/Colors';
 
 // Mock services
 vi.mock('../../services/system/ScreenService', () => ({
@@ -70,6 +71,7 @@ describe('EntityRenderer', () => {
       fillRect: vi.fn(),
       strokeRect: vi.fn(),
       fillText: vi.fn(),
+      moveTo: vi.fn(),
       closePath: vi.fn(),
       createRadialGradient: vi.fn(() => ({
         addColorStop: vi.fn(),
@@ -294,6 +296,72 @@ describe('EntityRenderer', () => {
       });
 
       expect(mockCtx.globalAlpha).toBeLessThan(1.0);
+    });
+
+    it('should batch standard gems into single draw call', () => {
+      mockPool.activeGems = [
+        {
+          x: 100,
+          y: 100,
+          radius: 5,
+          color: COLORS.GEM,
+          active: true,
+          elapsedLifetime: 0,
+        },
+        {
+          x: 200,
+          y: 200,
+          radius: 5,
+          color: COLORS.GEM,
+          active: true,
+          elapsedLifetime: 0,
+        },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      // 1 fill for the batch.
+      expect(mockCtx.fill).toHaveBeenCalledTimes(1);
+      expect(mockCtx.beginPath).toHaveBeenCalledTimes(1);
+      // moveTo is called for each gem in batch
+      expect(mockCtx.moveTo).toHaveBeenCalledTimes(2);
+      expect(mockCtx.arc).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle mixed batch and individual gems', () => {
+      mockPool.activeGems = [
+        {
+          x: 100,
+          y: 100,
+          radius: 5,
+          color: COLORS.GEM,
+          active: true,
+          elapsedLifetime: 0,
+        },
+        {
+          x: 200,
+          y: 200,
+          radius: 5,
+          color: '#123456', // Custom color
+          active: true,
+          elapsedLifetime: 0,
+        },
+      ];
+
+      (renderer as any).drawGems(mockCtx, mockPool, true, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      // 1 fill for batch, 1 fill for individual
+      expect(mockCtx.fill).toHaveBeenCalledTimes(2);
     });
   });
 
