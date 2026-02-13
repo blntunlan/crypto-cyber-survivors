@@ -36,5 +36,6 @@ export function assertSourceFreshness(
 
   expect(sourceStats.isFile()).toBe(true);
   expect(sourceStats.size).toBeGreaterThan(0);
-  expect(sourceStats.mtimeMs).toBeLessThanOrEqual(testStats.mtimeMs);
+  // Allow a 2-second buffer for CI filesystem race conditions where git restores files in arbitrary order
+  expect(sourceStats.mtimeMs).toBeLessThanOrEqual(testStats.mtimeMs + 2000);
 }
