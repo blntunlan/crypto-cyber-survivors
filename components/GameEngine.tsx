@@ -41,6 +41,8 @@ import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { portalSystem } from '../services/gameplay/PortalSystem';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
+import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
+import { useLanguage } from '../contexts/LanguageContext';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -74,12 +76,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   width,
   height,
 }) => {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
 
   // Use singleton instances for heavy systems (Architectural Compliance)
   const pool = useRef(PoolManager.getInstance());
-  const renderer = useLazyRef(() => new GameRenderer());
+  const renderer = useLazyRef(() => GameRenderer.getInstance());
   const combatSystem = useRef(CombatSystem.getInstance());
   const physicsSystem = useRef(PhysicsSystem.getInstance());
   const spawnSystemRef = useLazyRef(() => SpawnSystem.getInstance());
@@ -164,9 +167,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   // Ref for market data to avoid loop restarts while keeping data fresh
   const marketDataRef = useRef(marketData);
+  const hitStopGovernorRef = useRef(new HitStopGovernor());
+
   useEffect(() => {
     marketDataRef.current = marketData;
   }, [marketData]);
+
+  useEffect(() => {
+    if (status !== GameStatus.PLAYING) {
+      hitStopGovernorRef.current.reset();
+    }
+  }, [status]);
 
   // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
@@ -274,8 +285,19 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
     const unsubscribe = EventBus.on('hitStop', data => {
-      // Take the maximum duration to handle multiple simultaneous hits
-      state.current.hitStopTimer = Math.max(state.current.hitStopTimer, data.duration);
+      const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const adjustedDuration = hitStopGovernorRef.current.getAdjustedDuration(
+        data,
+        nowMs
+      );
+
+      if (adjustedDuration <= 0) return;
+
+      // Take the max duration, but cap chained freeze for smoothness.
+      state.current.hitStopTimer = Math.min(
+        GAME_ENGINE.HIT_STOP_CHAIN_CAP_MS,
+        Math.max(state.current.hitStopTimer, adjustedDuration)
+      );
     });
 
     return unsubscribe;
@@ -351,16 +373,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       // Update Visual Effects Service (Decay intensities)
       VisualEffectService.update(deltaTime);
 
-      // Apply Market Volatility Shock to screen shake
-      const shockIntensity = VisualEffectService.getIntensity();
-      if (shockIntensity > 0) {
-        const leverage = difficultyContext.getContext().inputs.leverage;
-        const scaledShock = VisualEffectService.calculateLeverageScaledIntensity(
-          shockIntensity,
-          leverage
-        );
-        // Apply immediate shake boost - don't clamp here to allow high-leverage "chaos"
-        s.shake = Math.max(s.shake, scaledShock * 5);
+      // Apply volatility-driven shake only during active gameplay.
+      if (status === GameStatus.PLAYING) {
+        const shockIntensity = VisualEffectService.getIntensity();
+        if (shockIntensity > 0) {
+          const leverage = difficultyContext.getContext().inputs.leverage;
+          const scaledShock = VisualEffectService.calculateLeverageScaledIntensity(
+            shockIntensity,
+            leverage
+          );
+          // Apply immediate shake boost - don't clamp here to allow high-leverage "chaos"
+          s.shake = Math.max(s.shake, scaledShock * 5);
+        }
       }
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
@@ -793,8 +817,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           // Only show supply drop notifications in development mode
           if (import.meta.env.DEV) {
             EventBus.emit('gameNotification', {
-              title: 'SUPPLY DROP',
-              message: 'A loot crate appeared!',
+              title: t('hud.announcer.supply_drop') as string,
+              message: t('hud.announcer.loot_crate_appeared') as string,
+              type: 'success',
             });
           }
           audio.playLevelUp(); // Cue for supply drop
@@ -876,6 +901,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       spawnSystemRef,
       speedLineSpawner,
       pair,
+      t,
     ]
   );
 

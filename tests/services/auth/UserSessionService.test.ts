@@ -1,6 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// Mock Supabase
+import { vi } from 'vitest';
+vi.mock('../../../services/core/Supabase', () => ({
+  supabase: {
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    ilike: vi.fn().mockReturnThis(),
+    single: vi.fn(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    rpc: vi.fn(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+  },
+  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
+
+import { describe, it, expect, beforeEach } from 'vitest';
+import { supabase } from '../../../services/core/Supabase';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
-import { type SupabaseClient } from '@supabase/supabase-js';
 import { UserPersistenceService } from '../../../services/auth/UserPersistenceService';
 
 // Mock types
@@ -10,27 +28,6 @@ interface LegacyStoredUser {
   createdAt: number;
   lastSeenAt: number;
 }
-
-// Mock Supabase
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn(),
-    select: vi.fn(),
-    eq: vi.fn(),
-    ilike: vi.fn(),
-    single: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
-    rpc: vi.fn(),
-    order: vi.fn(),
-    limit: vi.fn(),
-  },
-}));
-
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: mockSupabase as unknown as SupabaseClient,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
 
 // Mock Logger
 vi.mock('../../../services/system/Logger', () => ({
@@ -58,22 +55,12 @@ describe('UserSessionService', () => {
     vi.clearAllMocks();
     UserSessionService.resetForTesting();
 
-    // Set up chainable behavior
-    mockSupabase.from.mockReturnThis();
-    mockSupabase.select.mockReturnThis();
-    mockSupabase.eq.mockReturnThis();
-    mockSupabase.ilike.mockReturnThis();
-    mockSupabase.insert.mockReturnThis();
-    mockSupabase.update.mockReturnThis();
-    mockSupabase.order.mockReturnThis();
-    mockSupabase.limit.mockReturnThis();
-
     // Reset individual results
-    mockSupabase.single.mockReset();
-    mockSupabase.rpc.mockReset();
+    ((supabase as any).single as any).mockReset();
+    ((supabase as any).rpc as any).mockReset();
 
     // Default success for register check
-    mockSupabase.single.mockResolvedValue({ data: null, error: null });
+    ((supabase as any).single as any).mockResolvedValue({ data: null, error: null });
 
     // Mock hostname to bypass local-only check
     Object.defineProperty(window, 'location', {
@@ -176,13 +163,18 @@ describe('UserSessionService', () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440007', 'Syncer');
       const oldTime = UserSessionService.getLegacyStoredUser()?.lastSeenAt ?? 0;
 
+      const updateMock = vi.fn().mockResolvedValue({ error: null });
+      const fromSpy = vi
+        .spyOn(supabase as any, 'from')
+        .mockReturnValue({ update: updateMock } as any);
+
       await new Promise(r => setTimeout(r, 10));
       await UserSessionService.updateLastSeen();
 
       const newUser = UserSessionService.getLegacyStoredUser();
       expect(newUser?.lastSeenAt).toBeGreaterThan(oldTime);
-      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockSupabase.update).toHaveBeenCalledWith({
+      expect(fromSpy).toHaveBeenCalledWith('profiles');
+      expect(updateMock).toHaveBeenCalledWith({
         last_seen_at: expect.any(String),
       });
     });
@@ -198,3 +190,4 @@ describe('UserSessionService', () => {
     });
   });
 });
+

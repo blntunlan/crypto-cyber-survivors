@@ -66,25 +66,40 @@ export const SYNC_CONFIG = {
 
 /**
  * Whale tier based on normalized volume (0-1)
+ *
+ * Normalized volume uses sigmoid(z-score * 0.75):
+ *   z=0 (mean) → 0.50,  z=1.3 → 0.73,  z=2.0 → 0.82,  z=3.3 → 0.92
+ *
+ * Thresholds are set above 0.5 so that mean volume = NONE.
  */
 export enum WhaleTier {
-  /** No whale spawn (normalized volume < 0.30) */
+  /** No whale spawn (normalized volume < 0.75) — normal/below-average volume */
   NONE = 0,
-  /** Baby whale (0.30 - 0.60): 2x size, 3x HP */
+  /** Baby whale (0.75 - 0.85): notable volume spike (~z≥1.3σ) */
   BABY_WHALE = 1,
-  /** Whale (0.60 - 0.90): 3.5x size, 8x HP */
+  /** Whale (0.85 - 0.95): significant volume spike (~z≥2.3σ) */
   WHALE = 2,
-  /** Mega whale (> 0.90): 5x size, 20x HP */
+  /** Mega whale (> 0.95): extreme volume spike (~z≥3.3σ) */
   MEGA_WHALE = 3,
 }
 
 /**
- * Whale tier thresholds (normalized volume 0-1)
+ * Whale tier thresholds (sigmoid-mapped normalized volume 0-1)
+ *
+ * Calibrated for sigmoid(z-score * 0.75) mapping:
+ * - z=0 (mean) maps to 0.50 → NONE (no false whale triggers)
+ * - z=1.3 maps to ~0.73 → still NONE
+ * - z=1.5 maps to ~0.75 → BABY_WHALE (top ~7%)
+ * - z=2.3 maps to ~0.85 → WHALE (top ~1%)
+ * - z=3.3 maps to ~0.92 → approaching MEGA_WHALE (top ~0.05%)
+ *
+ * Previous thresholds (0.3/0.6/0.95) caused mean volume to trigger
+ * BABY_WHALE (0.5 >= 0.3), making whales spawn on nearly every tick.
  */
 export const WHALE_TIER_THRESHOLDS = {
-  BABY_WHALE: 0.3,
-  WHALE: 0.6,
-  MEGA_WHALE: 0.95, // Very rare - only spawns on extreme volume spikes
+  BABY_WHALE: 0.75,
+  WHALE: 0.85,
+  MEGA_WHALE: 0.95,
 } as const;
 
 /**
@@ -159,11 +174,17 @@ export const DEFAULT_VOLUME_CONFIG: VolumeConfig = {
 /**
  * ATR-based spawn rate multipliers
  *
+ * Calibrated for 1-SECOND TICK data (Binance/Coinbase WebSocket):
+ * BTC at $97,000 with 1s ticks: typical ATR(14) ≈ $2-5 → atrPercent ≈ 0.002-0.005%
+ *
  * ATR Percent → Spawn Rate:
- * - < 1.0%: 0.5x (calm market)
- * - 1-2%: 1.0x (normal)
- * - 2-4%: 1.5x (volatile)
- * - > 4.0%: 2.5x (chaos) - capped at 4% for safety
+ * - < 0.005%: 0.5x (calm market - minimal price movement)
+ * - 0.005-0.015%: 1.0x (normal volatility)
+ * - 0.015-0.03%: 1.5x (volatile - rapid price swings)
+ * - > 0.03%: 2.5x (chaos - extreme activity) - capped for safety
+ *
+ * NOTE: Previous thresholds (1%/2%/4%) were calibrated for daily candles
+ * and were UNREACHABLE with 1s data, causing spawnRate to always be 0.5x.
  */
 export interface ATRSpawnConfig {
   /** ATR percent thresholds */
@@ -185,12 +206,13 @@ export interface ATRSpawnConfig {
 
 /**
  * Default ATR spawn configuration
+ * Calibrated for 1-second tick data from crypto WebSocket feeds
  */
 export const DEFAULT_ATR_SPAWN_CONFIG: ATRSpawnConfig = {
   thresholds: {
-    calm: 1.0,
-    normal: 2.0,
-    volatile: 4.0,
+    calm: 0.005, // 0.005% — below this = calm market
+    normal: 0.015, // 0.015% — normal volatility
+    volatile: 0.03, // 0.03%  — volatile market
   },
   multipliers: {
     calm: 0.5,
@@ -198,7 +220,7 @@ export const DEFAULT_ATR_SPAWN_CONFIG: ATRSpawnConfig = {
     volatile: 1.5,
     chaos: 2.5,
   },
-  maxATRPercent: 4.0,
+  maxATRPercent: 0.05, // Cap at 0.05% for safety
 };
 
 // =============================================================================

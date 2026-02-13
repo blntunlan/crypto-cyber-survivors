@@ -12,7 +12,7 @@ const mockInsert = vi.fn().mockReturnValue({
 
 const mockUpsert = vi.fn().mockResolvedValue({ error: null });
 
-vi.mock('../services/core/Supabase', () => ({
+vi.mock('../services/supabase/client', () => ({
   supabase: {
     from: (table: string) => ({
       insert: (data: any) => mockInsert(table, data),

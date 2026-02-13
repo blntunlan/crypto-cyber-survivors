@@ -25,12 +25,18 @@ vi.mock('../../services/combat/PoolManager', () => {
   return { PoolManager: MockPoolManager };
 });
 
-vi.mock('../../services/renderers/GameRenderer', () => ({
-  GameRenderer: class {
-    render = vi.fn();
-    updateBackgroundCandles = vi.fn();
-  },
-}));
+vi.mock('../../services/renderers/GameRenderer', () => {
+  const mockInstance = {
+    render: vi.fn(),
+    updateBackgroundCandles: vi.fn(),
+  };
+  class MockGameRenderer {
+    render = mockInstance.render;
+    updateBackgroundCandles = mockInstance.updateBackgroundCandles;
+    static getInstance = vi.fn(() => mockInstance);
+  }
+  return { GameRenderer: MockGameRenderer };
+});
 
 vi.mock('../../services/combat/CombatSystem', () => {
   class MockCombatSystem {

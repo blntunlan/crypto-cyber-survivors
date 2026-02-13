@@ -27,13 +27,28 @@ describe('HapticService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should call navigator.vibrate with correct pattern for success', () => {
-    // We need to bypass the "isSupported" check if it was initialized as false.
-    // Accessing private property via any cast
+  it('should call navigator.vibrate with correct pattern for light', () => {
     (haptic as any).isSupported = true;
+    haptic.vibrate('light');
+    expect(vibrateMock).toHaveBeenCalledWith(10);
+  });
 
-    haptic.vibrate('success');
-    expect(vibrateMock).toHaveBeenCalledWith([80, 50, 80]);
+  it('should call navigator.vibrate with correct pattern for medium', () => {
+    (haptic as any).isSupported = true;
+    haptic.vibrate('medium');
+    expect(vibrateMock).toHaveBeenCalledWith(30);
+  });
+
+  it('should call navigator.vibrate with correct pattern for heavy', () => {
+    (haptic as any).isSupported = true;
+    haptic.vibrate('heavy');
+    expect(vibrateMock).toHaveBeenCalledWith(70);
+  });
+
+  it('should call navigator.vibrate with correct pattern for warning', () => {
+    (haptic as any).isSupported = true;
+    haptic.vibrate('warning');
+    expect(vibrateMock).toHaveBeenCalledWith([200]);
   });
 
   it('should call navigator.vibrate with correct pattern for error', () => {
@@ -41,6 +56,12 @@ describe('HapticService', () => {
 
     haptic.vibrate('error');
     expect(vibrateMock).toHaveBeenCalledWith([50, 100, 50, 100, 50]);
+  });
+
+  it('should call navigator.vibrate(0) when stop is called', () => {
+    (haptic as any).isSupported = true;
+    haptic.stop();
+    expect(vibrateMock).toHaveBeenCalledWith(0);
   });
 
   it('should not call navigator.vibrate if not supported', () => {

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AntiCheatService } from '../../services/system/AntiCheatService';
 import { EventBus } from '../../services/core/EventBus';
-import { supabase } from '../../services/core/Supabase';
+import { supabase } from '../../services/supabase/client';
 
 // Mock Supabase
-vi.mock('../../services/core/Supabase', () => ({
+vi.mock('../../services/supabase/client', () => ({
   supabase: {
     from: vi.fn(() => ({
       insert: vi.fn().mockResolvedValue({ error: null }),
@@ -117,11 +117,11 @@ describe('AntiCheatService', () => {
 
   describe('Reporting', () => {
     it('should report to Supabase when not in debug mode', async () => {
-      // Mock supabase.from().insert()
+      // Ensure supabase mock has required methods
       const insertMock = vi.fn().mockResolvedValue({ error: null });
       const fromMock = vi.fn(() => ({ insert: insertMock }));
-      // @ts-expect-error: testing
-      supabase.from = fromMock;
+
+      vi.spyOn(supabase!, 'from').mockImplementation(fromMock as any);
 
       AntiCheatService.init({
         reportToServer: true,

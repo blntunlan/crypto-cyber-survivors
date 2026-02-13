@@ -40,6 +40,13 @@ export function useGameStatus(): UseGameStatusReturn {
   // Keyboard shortcut for pause (Escape or P)
   useEffect(() => {
     const handleGlobalKeys = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input field
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
       if (e.key === 'Escape' || e.key === 'p') {
         handlePauseToggle();
       }

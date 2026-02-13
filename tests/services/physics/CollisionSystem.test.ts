@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { CollisionSystem } from '../../../services/combat/physics/CollisionSystem';
-import { type IPhysicsContext } from '../../../services/physics/PhysicsTypes';
+import { type IPhysicsContext } from '../../../services/combat/physics/PhysicsTypes';
 import { type Player, type GameState, type Bullet } from '../../../types';
 import { EventBus } from '../../../services/core/EventBus';
 import { CombatResolutionService } from '../../../services/combat/physics/CombatResolutionService';
@@ -227,6 +227,24 @@ describe('CollisionSystem', () => {
       expect(mockPlayer.hp).toBeLessThan(100);
       expect(mockContext.audio.playHit).toHaveBeenCalled();
       expect(mockState.shake).toBe(10);
+
+      // Verify immediate event emission for UI/Stats
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'playerHit',
+        expect.objectContaining({
+          damage: expect.any(Number),
+          remainingHp: mockPlayer.hp,
+        })
+      );
+
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'playerHealthChange',
+        expect.objectContaining({
+          hpPercent: (mockPlayer.hp / mockPlayer.maxHp) * 100,
+          hp: mockPlayer.hp,
+          maxHp: mockPlayer.maxHp,
+        })
+      );
     });
 
     it('should trigger Game Over if player hp drops to 0', () => {
@@ -361,7 +379,7 @@ describe('CollisionSystem', () => {
       expect(bullet.active).toBe(false);
     });
 
-    it('should buffer damage numbers and not show them immediately', () => {
+    it('should show damage numbers immediately on hit', () => {
       const enemy = {
         x: 100,
         y: 100,
@@ -391,10 +409,15 @@ describe('CollisionSystem', () => {
 
       collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
 
-      // Should NOT call getFloatingText immediately (accumulation window active)
-      expect(mockPool.getFloatingText).not.toHaveBeenCalled();
-      expect(enemy.damageBuffer).toBe(10);
-      expect(enemy.damageBufferTimer).toBe(1.5);
+      expect(mockPool.getFloatingText).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number),
+        expect.stringContaining('10'),
+        expect.any(String),
+        expect.any(Number)
+      );
+      expect(enemy.damageBuffer).toBe(0);
+      expect(enemy.damageBufferTimer).toBe(0);
     });
 
     it('should emit hitStop event on critical collision', () => {
@@ -468,7 +491,7 @@ describe('CollisionSystem', () => {
         mockPlayer,
         false
       );
-      // Should flush damage buffer immediately on death
+      // Damage text should still be created for the lethal hit
       expect(mockPool.getFloatingText).toHaveBeenCalled();
     });
 
@@ -479,6 +502,7 @@ describe('CollisionSystem', () => {
         radius: 20,
         active: true,
         health: 100,
+        damageBuffer: 0,
         damageBufferTimer: 0,
         behavior: { move: vi.fn() },
       };
@@ -510,9 +534,15 @@ describe('CollisionSystem', () => {
       expect(mockState.critFlash).toBeGreaterThan(0);
       expect(mockPool.getParticle).toHaveBeenCalled();
 
-      // Floating text should NOT be immediate (accumulation window active)
-      expect(mockPool.getFloatingText).not.toHaveBeenCalled();
-      expect(enemy.damageBuffer).toBe(10);
+      // Floating text should be immediate per hit
+      expect(mockPool.getFloatingText).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number),
+        expect.stringContaining('10'),
+        expect.any(String),
+        expect.any(Number)
+      );
+      expect(enemy.damageBuffer).toBe(0);
     });
   });
 });

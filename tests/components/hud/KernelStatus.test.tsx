@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '../../test-utils';
+import { render, screen, act } from '../../test-utils';
 import { KernelStatus } from '../../../components/hud/KernelStatus';
 import { screenService } from '../../../services/system/ScreenService';
 import { EventBus } from '../../../services/core/EventBus';
@@ -64,11 +64,15 @@ describe('KernelStatus Component', () => {
       // @ts-expect-error: testing
       screenService.isMobile.mockReturnValue(false);
       const { container } = render(
-        <KernelStatus player={{ ...mockPlayer, exp: 75, nextLevelExp: 100 }} />
+        <KernelStatus player={{ ...mockPlayer, exp: 0, nextLevelExp: 100 }} />
       );
 
-      // Trigger XP bar update
-      EventBus.emit('hudValuesUpdated', { exp: 75 });
+      // Trigger XP bar update via the new event-driven system
+      act(() => {
+        EventBus.emit('hudValuesUpdated', {
+          exp: 75,
+        });
+      });
 
       const xpBarFill = container.querySelector('.bg-blue-500');
       expect(xpBarFill).toHaveStyle('width: 75%');

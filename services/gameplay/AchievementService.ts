@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 import { type Achievement, type ProfileAchievement } from '../../types';
@@ -29,7 +29,7 @@ export class AchievementService {
    * Fetch all achievement definitions
    */
   async getAchievements(): Promise<Achievement[]> {
-    if (!isSupabaseConfigured() || supabase === null) {
+    if (!isSupabaseConfigured()) {
       Logger.warn('Supabase client not initialized');
       return [];
     }
@@ -69,7 +69,7 @@ export class AchievementService {
     const profileId = UserSessionService.getProfileId();
     if (profileId.startsWith('anon_')) return [];
 
-    if (!isSupabaseConfigured() || supabase === null) return [];
+    if (!isSupabaseConfigured()) return [];
 
     const { data, error } = await supabase
       .from('profile_achievements')

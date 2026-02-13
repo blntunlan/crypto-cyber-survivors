@@ -9,7 +9,6 @@ import {
   FlowStateManager,
   createFlowStateManager,
   FLOW_STATE_CONFIG,
-  type FlowState,
 } from '../../../services/difficulty/FlowStateManager';
 
 // Mock dependencies

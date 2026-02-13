@@ -172,3 +172,4 @@ describe('FPSMonitor', () => {
     expect(DeviceBenchmarkService.setManualProfile).not.toHaveBeenCalled();
   });
 });
+

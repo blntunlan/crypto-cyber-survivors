@@ -19,6 +19,10 @@ vi.mock('../services/combat/ComboSystem', () => ({
     getMaxStreak: vi.fn(() => 0),
     getState: vi.fn(() => ({ killStreak: 0, comboMultiplier: 1.0, totalBonusXp: 0 })),
   },
+  COMBO_MILESTONES: [
+    { kills: 5, name: 'COMBO!', multiplier: 1.2, color: '#ffffff' },
+    { kills: 10, name: 'SUPER COMBO!', multiplier: 1.5, color: '#00ff00' },
+  ],
 }));
 
 // Mock audioService
@@ -166,7 +170,7 @@ describe('GameHUD', () => {
     );
 
     // Check if pointer container has the correct ID
-    expect(document.getElementById('fps-counter')).toBeInTheDocument();
+    expect(document.getElementById('enemy-pointer-container')).toBeInTheDocument();
     // The pointers are 10 div children of a ref container, let's check by svg
     const svgs = document.querySelectorAll('svg');
     expect(svgs.length).toBeGreaterThan(0);

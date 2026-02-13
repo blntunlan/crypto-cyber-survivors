@@ -6,6 +6,14 @@ import { Z_LAYERS } from '../../constants/ZIndex';
 import { IconSettings, IconVolume, IconVolumeMuted } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { TimeService } from '../../services/core/TimeService';
+import { cn } from '../../utils/classnames';
+import {
+  MODERN_PANEL_FRAME,
+  MODERN_PANEL_INNER_BORDER,
+  MODERN_PANEL_OUTER_BORDER,
+  MODERN_PANEL_TOP_ACCENT,
+  MODERN_SCREEN_OVERLAY,
+} from '../../config/modernSurface';
 
 interface PauseMenuProps {
   runStats: {
@@ -53,9 +61,10 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
     pauseSecondsRemaining !== null && pauseSecondsRemaining !== undefined;
   const isLowBudget = isLimited && pauseSecondsRemaining <= 3;
 
-  const containerClasses = isRetro
-    ? `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-black/90 flex items-center justify-center p-4 overflow-y-auto allow-scroll`
-    : `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 pb-[env(safe-area-inset-bottom,16px)] overflow-y-auto allow-scroll animate-fade-in`;
+  const containerClasses = cn(
+    `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] flex items-center justify-center overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,16px)] allow-scroll`,
+    isRetro ? 'bg-black/90' : `${MODERN_SCREEN_OVERLAY} animate-fade-in`
+  );
 
   return (
     <div className={containerClasses}>
@@ -63,9 +72,16 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
         className={`my-auto w-full max-w-sm space-y-4 p-6 text-center transition-all md:p-8 ${sizes.gap} ${
           isRetro
             ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
-            : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-cyan-500/20 md:shadow-[0_0_60px_rgba(0,255,255,0.15),0_0_100px_rgba(0,0,0,0.6)]'
+            : MODERN_PANEL_FRAME
         }`}
       >
+        {!isRetro && (
+          <>
+            <div className={MODERN_PANEL_OUTER_BORDER} />
+            <div className={MODERN_PANEL_INNER_BORDER} />
+            <div className={MODERN_PANEL_TOP_ACCENT} />
+          </>
+        )}
         <h2
           className={`${isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber'} ${sizes.heading} mb-6 font-black italic tracking-tighter text-white ${isRetro ? '' : 'bg-gradient-to-b from-white to-slate-500 bg-clip-text text-transparent'}`}
           style={{
@@ -131,11 +147,12 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
 
         {/* Run Stats - Compact 2x2 grid */}
         <div
-          className={`md: grid grid-cols-2 gap-3${sizes.gap} md: p-3${sizes.cardPadding} mb-4 transition-all md:mb-6 ${
+          className={cn(
+            'grid grid-cols-2 gap-3 p-3 mb-4 transition-all md:mb-6',
             isRetro
-              ? `border-[var(--color-primary)]/20 rounded-none border-2 bg-[#0a0a0a] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]`
+              ? 'border-[var(--color-primary)]/20 rounded-none border-2 bg-[#0a0a0a] shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
               : 'border-[var(--color-primary)]/10 rounded-sm border bg-slate-900/60 md:border-cyan-500/15 md:bg-gradient-to-br md:from-slate-900/70 md:to-slate-950/80 md:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
-          }`}
+          )}
         >
           <div className="text-left">
             <p

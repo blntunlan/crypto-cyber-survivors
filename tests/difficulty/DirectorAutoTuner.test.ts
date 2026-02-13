@@ -61,9 +61,7 @@ vi.mock('../../services/core/EventBus', () => ({
       handlers.forEach(h => h(data));
     }),
     on: vi.fn((event: string, handler: (data: any) => void) => {
-      if (!mockEventHandlers[event]) {
-        mockEventHandlers[event] = [];
-      }
+      mockEventHandlers[event] ??= [];
       mockEventHandlers[event].push(handler);
       return () => {
         const idx = mockEventHandlers[event].indexOf(handler);

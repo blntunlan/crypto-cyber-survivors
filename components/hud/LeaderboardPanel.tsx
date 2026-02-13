@@ -88,7 +88,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
         // Map data using fallbacks for both OLD and NEW view schemas
         const rankedEntries = (data as VLeaderboardEntry[])
           .map((entry, index) => {
-            const name = (entry.display_name ?? 'Anonymous').trim();
+            const name = (
+              entry.display_name ??
+              ((t('hud.anonymous') as string) || 'Anonymous')
+            ).trim();
             return {
               id: entry.profile_id ?? `entry-${index}`,
               player_name: name,
@@ -124,7 +127,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Initial fetch and interval
   useEffect(() => {
@@ -254,7 +257,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
               void fetchLeaderboard();
             }}
             className="group/refresh rounded p-1 transition-colors hover:bg-white/10"
-            title={t('hud.refresh_pool')}
+            title={t('hud.refresh_pool') as string}
           >
             <RefreshCw
               className={`h-3.5 w-3.5 text-slate-400 transition-colors group-hover/refresh:text-cyan-400 ${loading ? 'animate-spin' : ''}`}

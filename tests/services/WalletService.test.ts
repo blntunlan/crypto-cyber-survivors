@@ -18,7 +18,7 @@ const mockSupabaseChain = {
   single: vi.fn(),
 };
 
-vi.mock('../../services/core/Supabase', () => ({
+vi.mock('../../services/supabase/client', () => ({
   supabase: {
     from: vi.fn(() => mockSupabaseChain),
   },

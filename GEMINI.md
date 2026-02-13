@@ -53,10 +53,13 @@ Services must not have tight circular dependencies.
 - `npm run test:coverage`: Generates test coverage reports (>70% global target).
 - `npm run test:e2e`: Runs Playwright E2E tests.
 - `npm run lint:ui`: Audits UI consistency (Typography, Colors).
+- `npm run security:check`: Scans dependencies for vulnerabilities.
 
-### Backend & Database
+### Backend, Database & AI
 - `npm run supabase:gen`: Synchronizes TypeScript types from the Supabase schema.
 - `npm run railway:deploy`: Deploys the application and market server to Railway.
+- `npm run railway:market:deploy`: Deploys the standalone Market Server.
+- `npm run train:ai`: Runs the evolutionary neural network trainer.
 
 ---
 
@@ -69,6 +72,8 @@ Services must not have tight circular dependencies.
   - `combat/`: Physics, Spawning, Pooling.
   - `renderers/`: Layer-specific canvas drawing logic.
 - `stores/`: Zustand slices for persistent state (Settings, Progress).
+- `railway-market-server/`: Standalone WebSocket server for Binance/Coinbase aggregation.
+- `simulation/`: Genetic Algorithm (NEAT) training environment for Enemy AI.
 - `config/`: Centralized "Magic Numbers". Never hardcode values in services; add them here.
 - `types/`: Strongly typed definitions for events, entities, and market data.
 - `hooks/`: React hooks for UI-to-Engine bridging (e.g., `useMarketData`).
@@ -78,6 +83,10 @@ Services must not have tight circular dependencies.
 ## 🎯 Development Conventions
 
 - **TypeScript:** `strict` mode is enabled. No `any`. Use Type Guards for complex objects.
+- **Editor Rules:**
+  - **Indentation:** 2 Spaces (enforced by `.editorconfig`).
+  - **Formatting:** Prettier on Save (VS Code default).
+  - **Line Endings:** LF.
 - **Naming:** 
   - Variables/Functions: `camelCase`.
   - Classes/Components: `PascalCase`.
@@ -94,4 +103,4 @@ Services must not have tight circular dependencies.
 - **Tracing:** Use `EventBus.enableTracing()` to debug event flows in the console.
 
 ---
-*Last updated by Gemini CLI: February 8, 2026*
+*Last updated by Gemini CLI: February 12, 2026*

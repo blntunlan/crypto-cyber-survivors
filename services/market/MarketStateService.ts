@@ -1,9 +1,10 @@
-import { supabase } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
 import { type MarketStateUpdatedEvent } from '../../types/events';
 import { type RealtimeChannel } from '@supabase/supabase-js';
 import { type CryptoPair } from '../../types';
+import { CRYPTO_PAIRS } from '../../types/crypto';
 
 export type MarketState = MarketStateUpdatedEvent;
 
@@ -26,10 +27,35 @@ class MarketStateServiceClass {
   }
 
   /**
+   * Helper: Map internal CryptoPair (BTC) to DB Pair format (BTC-USD)
+   * Falls back to constructing it if not found in config.
+   */
+  private mapToDbPair(pair: string): string {
+    // Check if it's already in DB format (contains divider)
+    if (pair.includes('-') || pair.includes('USD')) return pair;
+
+    if (Object.prototype.hasOwnProperty.call(CRYPTO_PAIRS, pair)) {
+      return CRYPTO_PAIRS[pair as CryptoPair].coinbaseProductId; // e.g. "BTC-USD"
+    }
+
+    // Fallback default
+    return `${pair}-USD`;
+  }
+
+  /**
+   * Helper: Map DB Pair format (BTC-USD) to internal CryptoPair (BTC)
+   */
+  private mapToCryptoPair(dbPair: string): CryptoPair {
+    if (dbPair.includes('ETH')) return 'ETH';
+    if (dbPair.includes('SOL')) return 'SOL';
+    return 'BTC'; // Default
+  }
+
+  /**
    * Initialize Realtime subscription to market_state table
    */
   async init(): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
     try {
       // 1. Initial fetch
       await this.fetchAll();
@@ -48,23 +74,18 @@ class MarketStateServiceClass {
               this.lastUpdate = now;
               this.isStale = false;
 
+              // Convert DB pair (BTC-USD) to App pair (BTC)
+              const cryptoPair = this.mapToCryptoPair(row.pair);
+
               if (wasStale) {
                 Logger.info(
                   `[MarketState] Data recovered after ${((now - this.lastUpdate) / 1000).toFixed(1)}s`
                 );
-
-                // Map pair string to CryptoPair type
-                let cryptoPair: CryptoPair = 'BTC';
-                if (row.pair.includes('ETH')) cryptoPair = 'ETH';
-                if (row.pair.includes('SOL')) cryptoPair = 'SOL';
-
                 EventBus.emit('marketDataRecovered', { pair: cryptoPair });
               }
 
-              // Map snake_case from DB to camelCase for Event
-              const pair = row.pair;
               const mappedState: MarketState = {
-                pair,
+                pair: cryptoPair,
                 price: Number(row.price),
                 volume: Number(row.volume),
                 rsi: Number(row.rsi),
@@ -78,7 +99,7 @@ class MarketStateServiceClass {
                 enemyAggroMultiplier: Number(row.enemy_aggro_multiplier_long),
                 updatedAt: new Date(String(row.updated_at)),
               };
-              this.states.set(pair, mappedState);
+              this.states.set(cryptoPair, mappedState);
               EventBus.emit('marketStateUpdated', mappedState);
             }
           }
@@ -110,15 +131,17 @@ class MarketStateServiceClass {
   }
 
   async fetchAll(): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
     try {
       const { data, error } = await supabase.from('market_state').select('*');
       if (error) throw error;
 
       (data as Array<Record<string, unknown>> | null)?.forEach(row => {
-        const pair = String(row.pair);
+        const dbPair = String(row.pair);
+        const cryptoPair = this.mapToCryptoPair(dbPair);
+
         const mappedState: MarketState = {
-          pair,
+          pair: cryptoPair,
           price: Number(row.price),
           volume: Number(row.volume),
           rsi: Number(row.rsi),
@@ -132,7 +155,7 @@ class MarketStateServiceClass {
           enemyAggroMultiplier: Number(row.enemy_aggro_multiplier_long),
           updatedAt: new Date(String(row.updated_at)),
         };
-        this.states.set(pair, mappedState);
+        this.states.set(cryptoPair, mappedState);
       });
       this.lastUpdate = Date.now();
       Logger.info(`[MarketState] Fetched ${data.length} pairs`);
@@ -141,7 +164,7 @@ class MarketStateServiceClass {
     }
   }
 
-  getState(pair: string = 'BTC-USD'): MarketState | undefined {
+  getState(pair: string = 'BTC'): MarketState | undefined {
     return this.states.get(pair);
   }
 
@@ -152,19 +175,26 @@ class MarketStateServiceClass {
     pair: string,
     limit: number = 300
   ): Promise<Array<{ price: number; volume: number; timestamp: number }>> {
-    if (!supabase) return [];
+    if (!isSupabaseConfigured()) return [];
+
+    const dbPair = this.mapToDbPair(pair);
 
     try {
       // Sort in descending order to get latest 'limit' logs, then reverse to get chronological
       const { data, error } = await supabase
         .from('price_logs')
         .select('price, volume, timestamp')
-        .eq('pair', pair)
+        .eq('pair', dbPair)
         .order('timestamp', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-      if (data.length === 0) return [];
+      if (data.length === 0) {
+        Logger.warn(
+          `[MarketState] No history found for ${dbPair} (mapped from ${pair})`
+        );
+        return [];
+      }
 
       const rawLogs = data.reverse();
       const filledLogs: Array<{ price: number; volume: number; timestamp: number }> =

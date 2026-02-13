@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { TimeService } from '../services/core/TimeService';
+import { EventBus } from '../services/core/EventBus';
 
 describe('TimeService', () => {
   beforeEach(() => {
@@ -73,6 +74,26 @@ describe('TimeService', () => {
       expect(TimeService.isClockPaused()).toBe(true);
       expect(TimeService.getDeltaTime()).toBe(0);
       expect(TimeService.getTimeScale()).toBe(1.0);
+    });
+
+    it('should emit secondElapsed from 0 again after reset', () => {
+      const secondSpy = vi.fn();
+      const unsubscribe = EventBus.on('secondElapsed', secondSpy);
+
+      TimeService.start();
+      TimeService.update(0);
+      TimeService.update(1000);
+      expect(secondSpy).toHaveBeenCalledWith({ totalSeconds: 0 });
+
+      TimeService.reset();
+      secondSpy.mockClear();
+
+      TimeService.start();
+      TimeService.update(0);
+      TimeService.update(1000);
+      expect(secondSpy).toHaveBeenCalledWith({ totalSeconds: 0 });
+
+      unsubscribe();
     });
   });
 

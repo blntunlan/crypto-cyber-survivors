@@ -4,6 +4,7 @@ import App from './App';
 import { GameProvider } from './contexts/GameContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './services/system/DebugService'; // Initialize debug tools
+import './services/core/ReduxDevToolsBridge'; // Bridge EventBus to Redux DevTools
 
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';

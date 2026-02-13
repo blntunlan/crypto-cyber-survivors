@@ -3,7 +3,7 @@ import { useDifficultyV2 } from '../../hooks/useDifficultyV2';
 import { motion } from 'framer-motion';
 
 export const DifficultyV2Monitor: React.FC = () => {
-  const { context, total, wavePhase } = useDifficultyV2(100);
+  const { context, total } = useDifficultyV2(100);
 
   if (!context) {
     return (
@@ -70,7 +70,7 @@ export const DifficultyV2Monitor: React.FC = () => {
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">
             Wave Phase
           </p>
-          <p className="text-lg font-bold capitalize text-white">{wavePhase}</p>
+          <p className="text-lg font-bold capitalize text-white">active</p>
           <div className="mt-1 text-[10px] text-purple-300/50">
             Agg Core: {aggregates.core.toFixed(2)}x
           </div>

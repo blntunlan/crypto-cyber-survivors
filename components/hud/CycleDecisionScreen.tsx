@@ -82,7 +82,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
       if (translated === key) {
         return FALLBACK_TRANSLATIONS[key] ?? key;
       }
-      return translated;
+      return translated as string;
     },
     [t]
   );
@@ -236,7 +236,8 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
                       {getText('hud.cycle_complete')}
                     </h2>
                     <p className="mt-1 text-sm text-purple-300">
-                      Cycle {state.cycleNumber} {getText('hud.finished')}
+                      {t('hud.cycle_count', { count: state.cycleNumber })}{' '}
+                      {getText('hud.finished')}
                     </p>
                   </div>
                   {/* Timer */}

@@ -65,6 +65,8 @@ export function useGameStatusEffects({
     // Pause/Resume buff timers based on game status
     if (status === GameStatus.PAUSED || status === GameStatus.LEVEL_UP) {
       BuffManager.pause();
+      state.current.shake = 0;
+      state.current.critFlash = 0;
     } else if (status === GameStatus.PLAYING && BuffManager.isPaused()) {
       BuffManager.resume();
     }

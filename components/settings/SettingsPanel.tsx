@@ -8,6 +8,14 @@ import { DeviceProfile } from '../../types/DeviceProfile';
 import { useIsRetro, useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
+import { cn } from '../../utils/classnames';
+import {
+  MODERN_PANEL_FRAME,
+  MODERN_PANEL_INNER_BORDER,
+  MODERN_PANEL_OUTER_BORDER,
+  MODERN_PANEL_TOP_ACCENT,
+  MODERN_SCREEN_OVERLAY,
+} from '../../config/modernSurface';
 
 // Section components
 import { AudioSection } from './AudioSection';
@@ -281,7 +289,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div
-      className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 md:p-6 ${isRetro ? 'bg-black/90' : 'bg-slate-950/90 backdrop-blur-xl'}`}
+      className={cn(
+        'allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 md:p-6',
+        isRetro ? 'bg-black/90' : MODERN_SCREEN_OVERLAY
+      )}
       style={{
         zIndex: Z_LAYERS.SETTINGS_PANEL,
         paddingTop: `calc(${isMobile ? '1rem' : '2rem'} + env(safe-area-inset-top, 0px))`,
@@ -292,9 +303,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         className={`flex max-h-full w-full max-w-md flex-col p-4 transition-all md:p-8 ${
           isRetro
             ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
-            : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
+            : MODERN_PANEL_FRAME
         }`}
       >
+        {!isRetro && (
+          <>
+            <div className={MODERN_PANEL_OUTER_BORDER} />
+            <div className={MODERN_PANEL_INNER_BORDER} />
+            <div className={MODERN_PANEL_TOP_ACCENT} />
+          </>
+        )}
+
         {/* Header */}
         <header className="mb-4 shrink-0 text-center md:mb-8">
           <h2

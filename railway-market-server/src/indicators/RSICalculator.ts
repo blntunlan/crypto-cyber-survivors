@@ -14,6 +14,7 @@ export class RSICalculator {
   // State for Wilder's Smoothing
   private prevAvgGain: number | null = null;
   private prevAvgLoss: number | null = null;
+  private lastPrice: number | null = null;
 
   // Constants synced with client SYNC_CONFIG
   private readonly MAX_HISTORY_SIZE = 300;
@@ -27,6 +28,12 @@ export class RSICalculator {
     if (!Number.isFinite(price) || price <= 0) {
       return { rsi: this.currentRSI, state: this.currentState };
     }
+
+    // Skip unchanged prices to prevent Wilder's smoothing decay on flat ticks.
+    if (this.lastPrice !== null && price === this.lastPrice) {
+      return { rsi: this.currentRSI, state: this.currentState };
+    }
+    this.lastPrice = price;
 
     // Add price to history
     this.prices.push(price);
@@ -53,15 +60,17 @@ export class RSICalculator {
       let gains = 0;
       let losses = 0;
 
-      // Calculate initial SMA from first 'period' changes
-      for (let i = 1; i < this.prices.length; i++) {
+      // Use only the last `period` changes for SMA seeding
+      const startIdx = Math.max(1, this.prices.length - this.period);
+      for (let i = startIdx; i < this.prices.length; i++) {
         const c = (this.prices[i] ?? 0) - (this.prices[i - 1] ?? 0);
         if (c > 0) gains += c;
         else losses -= c;
       }
 
-      this.prevAvgGain = gains / this.period;
-      this.prevAvgLoss = losses / this.period;
+      const changeCount = this.prices.length - startIdx;
+      this.prevAvgGain = changeCount > 0 ? gains / changeCount : 0;
+      this.prevAvgLoss = changeCount > 0 ? losses / changeCount : 0;
     } else {
       // Wilder's Smoothing
       this.prevAvgGain =
@@ -70,19 +79,17 @@ export class RSICalculator {
         (this.prevAvgLoss * (this.period - 1) + currentLoss) / this.period;
     }
 
-    // Precision handling and extreme decay reset
+    // Precision handling - don't null-reset smoothing state
     const MIN_AVG_THRESHOLD = 1e-12;
     if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      this.prevAvgGain = null;
-      this.prevAvgLoss = null;
       this.currentRSI = 50;
     } else {
       // Calculate RSI
       let rsi: number;
       if (this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-        rsi = this.prevAvgGain < MIN_AVG_THRESHOLD ? 50 : 100;
+        rsi = 95; // Clamped from 100
       } else if (this.prevAvgGain < MIN_AVG_THRESHOLD) {
-        rsi = 0;
+        rsi = 5; // Clamped from 0
       } else {
         const rs = this.prevAvgGain / this.prevAvgLoss;
         rsi = 100 - 100 / (1 + rs);
@@ -116,5 +123,6 @@ export class RSICalculator {
     this.currentState = 'NEUTRAL';
     this.prevAvgGain = null;
     this.prevAvgLoss = null;
+    this.lastPrice = null;
   }
 }

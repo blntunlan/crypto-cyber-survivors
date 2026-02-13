@@ -35,6 +35,7 @@ export class RSICalculator {
   // State for Wilder's Smoothing
   private prevAvgGain: number | null = null;
   private prevAvgLoss: number | null = null;
+  private lastPrice: number | null = null;
 
   constructor(config: RSIConfig = DEFAULT_RSI_CONFIG) {
     this.config = config;
@@ -54,6 +55,15 @@ export class RSICalculator {
     if (!Number.isFinite(price) || price <= 0) {
       return this.currentRSI;
     }
+
+    // Skip unchanged prices to prevent Wilder's smoothing decay on flat ticks.
+    // With 1-second WebSocket ticks, BTC price is often identical between ticks.
+    // Processing unchanged prices causes both avgGain/avgLoss to decay toward zero,
+    // which eventually triggers extreme RSI values (0 or 100).
+    if (this.lastPrice !== null && price === this.lastPrice) {
+      return this.currentRSI;
+    }
+    this.lastPrice = price;
 
     // Add to history
     this.priceHistory.push(price);
@@ -125,6 +135,7 @@ export class RSICalculator {
     this.previousState = 'NEUTRAL';
     this.prevAvgGain = null;
     this.prevAvgLoss = null;
+    this.lastPrice = null;
   }
 
   /**
@@ -158,10 +169,12 @@ export class RSICalculator {
       let sumGain = 0;
       let sumLoss = 0;
 
-      // Start calculating change from index 1 up to historyLength
-      // We use the first 'period' changes to seed the smoothing
-      // If we have period+1 prices, we have 'period' number of changes.
-      for (let i = 1; i < historyLength; i++) {
+      // Use only the last `period` changes for SMA seeding.
+      // Previously this iterated over ALL history (up to 300 elements)
+      // but divided by `period` (14), causing disproportionate averages
+      // when re-initialization was triggered mid-session.
+      const startIdx = Math.max(1, historyLength - period);
+      for (let i = startIdx; i < historyLength; i++) {
         const p1 = this.priceHistory[i];
         const p0 = this.priceHistory[i - 1];
         if (p1 !== undefined && p0 !== undefined) {
@@ -171,27 +184,33 @@ export class RSICalculator {
         }
       }
 
-      this.prevAvgGain = sumGain / period;
-      this.prevAvgLoss = sumLoss / period;
+      const changeCount = historyLength - startIdx;
+      this.prevAvgGain = changeCount > 0 ? sumGain / changeCount : 0;
+      this.prevAvgLoss = changeCount > 0 ? sumLoss / changeCount : 0;
     } else {
       // Wilder's Smoothing: (Previous Avg * (n-1) + Current) / n
       this.prevAvgGain = (this.prevAvgGain * (period - 1) + currentGain) / period;
       this.prevAvgLoss = (this.prevAvgLoss * (period - 1) + currentLoss) / period;
     }
 
-    // Precision handling
+    // Precision handling - when both averages decay to near-zero,
+    // return neutral RSI without resetting smoothing state.
+    // Previously this set prevAvgGain/prevAvgLoss to null, which forced
+    // a full SMA re-initialization on the next tick, causing RSI to
+    // spike to 0 or 100 depending on the window composition.
     const MIN_AVG_THRESHOLD = 1e-12;
     if (this.prevAvgGain < MIN_AVG_THRESHOLD && this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      this.prevAvgGain = null;
-      this.prevAvgLoss = null;
+      // Don't reset state - just return neutral
       return 50;
     }
 
     let rsi: number;
     if (this.prevAvgLoss < MIN_AVG_THRESHOLD) {
-      rsi = this.prevAvgGain < MIN_AVG_THRESHOLD ? 50 : 100;
+      // All gains, no losses - but clamp to 95 to avoid extreme display values
+      rsi = 95;
     } else if (this.prevAvgGain < MIN_AVG_THRESHOLD) {
-      rsi = 0;
+      // All losses, no gains - clamp to 5 to avoid extreme display values
+      rsi = 5;
     } else {
       const rs = this.prevAvgGain / this.prevAvgLoss;
       rsi = 100 - 100 / (1 + rs);

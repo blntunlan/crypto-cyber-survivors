@@ -120,6 +120,8 @@ describe('MetricsService', () => {
       entryPrice: 50000,
       leverage: 10,
       totalKills: 20,
+      deviceFingerprint: 'test-fingerprint',
+      avgFps: 60,
     };
 
     const session = MetricsService.endSession(GameEndReason.DEATH, finalData);

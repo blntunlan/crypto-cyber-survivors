@@ -80,6 +80,14 @@ describe('DifficultyManager', () => {
   });
 
   describe('Utilities', () => {
+    it('should not clear global gameplay scope during reset', () => {
+      const clearScopeSpy = vi.spyOn(EventBus, 'clearScope');
+
+      DifficultyManager.reset();
+
+      expect(clearScopeSpy).not.toHaveBeenCalledWith('gameplay');
+    });
+
     it('should return valid debug state', () => {
       const state = DifficultyManager.getDebugState();
       expect(state.systemName).toBe('DifficultyManager');

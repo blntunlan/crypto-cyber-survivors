@@ -366,6 +366,13 @@ export const GAME_ENGINE = {
   ENEMY_OFFSCREEN_THRESHOLD: 150,
   HIT_STOP_NORMAL: 15, // Reduced for smoother flow (Standard Crit)
   HIT_STOP_CRIT: 60, // Reduced for smoother flow (Super Crit)
+  HIT_STOP_CHAIN_CAP_MS: 72, // Prevent long chained freeze from repeated crit bursts
+  SUPER_CRIT_HITSTOP_WINDOW_MS: 1200, // Rolling window for burst-density calculation
+  SUPER_CRIT_HITSTOP_RATE_THRESHOLD: 4, // Start reducing hit stop above this rate (/sec)
+  SUPER_CRIT_HITSTOP_MAX_OVERLOAD_RATE: 8, // Full reduction reached at threshold + this value
+  SUPER_CRIT_HITSTOP_MIN_SCALE: 0.2, // Minimum duration scale under extreme super-crit bursts
+  SUPER_CRIT_HITSTOP_MIN_INTERVAL_MS: 90, // Skip repeated super-crit hit-stop within this gap
+  SUPER_CRIT_HITSTOP_MIN_DURATION_MS: 8, // Keep a tiny impact feel instead of fully removing
   PLAYER_HALO_RADIUS_MULT: 1.5,
   PLAYER_HALO_GLOW_OFFSET: 5,
   PLAYER_SPOTLIGHT_RADIUS_MULT: 1.2,

@@ -51,6 +51,13 @@ const mockPlayer = {
 describe('useGameStatusEffects', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.current.lastTime = 100;
+    mockState.current.spawnTimer = 50;
+    mockState.current.lastFireTime = 50;
+    mockState.current.shake = 10;
+    mockState.current.critFlash = 1;
+    mockPlayer.current.x = 100;
+    mockPlayer.current.y = 100;
   });
 
   it('should reset state and pool when entering MENU', () => {
@@ -90,7 +97,7 @@ describe('useGameStatusEffects', () => {
     expect(BuffGemSpawner.initialize).toHaveBeenCalledWith(800, 600);
   });
 
-  it('should pause BuffManager when PAUSED', () => {
+  it('should pause BuffManager and reset visual effects when PAUSED', () => {
     renderHook(() =>
       useGameStatusEffects({
         status: GameStatus.PAUSED,
@@ -103,6 +110,25 @@ describe('useGameStatusEffects', () => {
     );
 
     expect(BuffManager.pause).toHaveBeenCalled();
+    expect(mockState.current.shake).toBe(0);
+    expect(mockState.current.critFlash).toBe(0);
+  });
+
+  it('should reset visual effects when LEVEL_UP', () => {
+    renderHook(() =>
+      useGameStatusEffects({
+        status: GameStatus.LEVEL_UP,
+        pool: mockPool as any,
+        state: mockState as any,
+        playerRef: mockPlayer as any,
+        width: 800,
+        height: 600,
+      })
+    );
+
+    expect(BuffManager.pause).toHaveBeenCalled();
+    expect(mockState.current.shake).toBe(0);
+    expect(mockState.current.critFlash).toBe(0);
   });
 
   it('should clamp player position on resize', () => {

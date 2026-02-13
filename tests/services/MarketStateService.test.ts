@@ -4,7 +4,7 @@ import {
   type MarketState,
 } from '../../services/market/MarketStateService';
 import { EventBus } from '../../services/core/EventBus';
-import { supabase } from '../../services/core/Supabase';
+import { supabase } from '../../services/supabase/client';
 
 // Mock Supabase
 const mockChannel = {
@@ -13,7 +13,7 @@ const mockChannel = {
   unsubscribe: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../../services/core/Supabase', () => {
+vi.mock('../../services/supabase/client', () => {
   return {
     supabase: {
       from: vi.fn(), // Will be mocked per test
@@ -93,7 +93,7 @@ describe('MarketStateService', () => {
 
     expect(supabase!.from).toHaveBeenCalledWith('market_state');
 
-    const state = MarketStateService.getState('BTC-USD');
+    const state = MarketStateService.getState('BTC');
     expect(state).toBeDefined();
     expect(state?.price).toBe(50000);
     expect(state?.rsiState).toBe('NEUTRAL');
@@ -207,20 +207,18 @@ describe('MarketStateService', () => {
     const orderMock = vi.fn().mockReturnThis();
     const limitMock = vi.fn().mockResolvedValue({ data: historyData, error: null });
 
-    if (supabase) {
-      (supabase as any).from.mockReturnValue({
-        select: selectMock,
-      });
-      selectMock.mockReturnValue({
-        eq: eqMock,
-      });
-      eqMock.mockReturnValue({
-        order: orderMock,
-      });
-      orderMock.mockReturnValue({
-        limit: limitMock,
-      });
-    }
+    (supabase as any).from.mockReturnValue({
+      select: selectMock,
+    });
+    selectMock.mockReturnValue({
+      eq: eqMock,
+    });
+    eqMock.mockReturnValue({
+      order: orderMock,
+    });
+    orderMock.mockReturnValue({
+      limit: limitMock,
+    });
 
     const result = await MarketStateService.fetchMarketHistory('BTC', 10);
 

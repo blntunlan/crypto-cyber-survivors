@@ -100,14 +100,6 @@ vi.mock('../../stores/useAuthStore', () => ({
 }));
 
 // Mock simple components to avoid canvas issues
-vi.mock('../../components/auth/AuthScreen', () => ({
-  AuthScreen: () => <div data-testid="auth-screen">Auth Screen</div>,
-}));
-
-vi.mock('../../components/auth/NicknameSetup', () => ({
-  NicknameSetup: () => <div data-testid="nickname-setup">Nickname Setup</div>,
-}));
-
 vi.mock('../../components/GameEngine', () => ({
   GameEngine: () => <div data-testid="game-engine">Game Engine Running</div>,
 }));

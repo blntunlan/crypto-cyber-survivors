@@ -16,13 +16,18 @@ import { GAME_ENGINE } from '../../../constants';
  * 1. Screen boundaries vs Enemies
  * 2. Player vs Enemy contact (damage, dodge, armor)
  * 3. Bullet vs Enemy impact (spatial grid lookup, damage, knockback)
- * 4. Damage buffering (combining many small hits into one floating text)
+ * 4. Per-hit damage feedback (floating text shown on every hit)
  * 5. Impact visual/audio feedback (particles, screenshake, sounds)
  */
 export class CollisionSystem implements ICollisionSystem {
   private ctx: IPhysicsContext;
+  private static instance: CollisionSystem | null = null;
   private damageBufferUpdateCounter: number = 0;
-  private readonly DAMAGE_BUFFER_UPDATE_INTERVAL: number = 3; // Update every 3 frames
+  private readonly DAMAGE_BUFFER_UPDATE_INTERVAL: number = 3;
+
+  public static getInstance(): CollisionSystem {
+    return (CollisionSystem.instance ??= new CollisionSystem());
+  }
 
   constructor(context: IPhysicsContext = getPhysicsContext()) {
     this.ctx = context;
@@ -72,7 +77,7 @@ export class CollisionSystem implements ICollisionSystem {
       );
     }
 
-    // Batch damage buffer updates for performance
+    // Legacy damage-buffer cleanup path (kept for backward compatibility)
     this.damageBufferUpdateCounter++;
     const shouldUpdateDamageBuffers =
       this.damageBufferUpdateCounter >= this.DAMAGE_BUFFER_UPDATE_INTERVAL;
@@ -83,10 +88,15 @@ export class CollisionSystem implements ICollisionSystem {
     // Always update damage buffers in tests to ensure reliability
     const updateDamageThisFrame = shouldUpdateDamageBuffers || dtFactor === 1; // dtFactor === 1 is common in tests
 
-    pool.activeEnemies.forEach(enemy => {
+    const activeEnemies = pool.activeEnemies;
+    const enemiesCount = activeEnemies.length;
+    for (let i = 0; i < enemiesCount; i++) {
+      const enemy = activeEnemies[i];
+      if (!enemy) continue;
+
       // Skip dead/vanishing enemies
       if (enemy.isDying) {
-        return;
+        continue;
       }
 
       // Decrement Hit Flash Timer (Controls visual red/white flash)
@@ -97,7 +107,7 @@ export class CollisionSystem implements ICollisionSystem {
       // 1. Boundary Check (Culling)
       if (this.isOffScreen(enemy, width, height)) {
         enemy.active = false;
-        return;
+        continue;
       }
 
       // 2. Track Screen Entry for Spawn Animations
@@ -116,7 +126,7 @@ export class CollisionSystem implements ICollisionSystem {
         enemy.spawnTimer -= GAME_ENGINE.COLLISION_SPAWN_TIMER_DEC * dtFactor;
       }
 
-      // 4. Damage Buffer Decay (Controls accumulation window)
+      // 4. Legacy Damage Buffer Decay (for pre-existing buffered values)
       if (
         updateDamageThisFrame &&
         enemy.damageBufferTimer !== undefined &&
@@ -138,28 +148,36 @@ export class CollisionSystem implements ICollisionSystem {
         dtFactor,
         perfConfig.particleMultiplier
       );
-    });
+    }
 
     // 6. Interactables (Mining Rigs / Loot Crates) - Optimized loop
-    if (pool.activeInteractables.length > 0) {
+    const interactables = pool.activeInteractables;
+    const interactablesLen = interactables.length;
+
+    if (interactablesLen > 0) {
+      const bullets = pool.activeBullets;
       // Early exit if no bullets active
-      if (pool.activeBullets.length === 0) {
+      if (bullets.length === 0) {
         // Only update hit timers
-        pool.activeInteractables.forEach(obj => {
+        for (let i = 0; i < interactablesLen; i++) {
+          const obj = interactables[i];
+          if (!obj) continue;
           if (obj.hitTimer && obj.hitTimer > 0) {
             obj.hitTimer -= 0.05 * dtFactor;
             if (obj.hitTimer <= 0) obj.isHit = false;
           }
-        });
+        }
         return;
       }
 
-      pool.activeInteractables.forEach(obj => {
-        if (!obj.active) return;
+      for (let i = 0; i < interactablesLen; i++) {
+        const obj = interactables[i];
+        if (!obj?.active) continue;
 
         // Update hit timer
-        if (obj.hitTimer && obj.hitTimer > 0) {
-          obj.hitTimer -= 0.05 * dtFactor;
+        const hitTimer = obj.hitTimer ?? 0;
+        if (hitTimer > 0) {
+          obj.hitTimer = hitTimer - 0.05 * dtFactor;
           if (obj.hitTimer <= 0) obj.isHit = false;
         }
 
@@ -182,7 +200,7 @@ export class CollisionSystem implements ICollisionSystem {
 
             // Spawn chip particles
             const count = Math.round(3 * perfConfig.particleMultiplier);
-            for (let i = 0; i < count; i++) {
+            for (let p = 0; p < count; p++) {
               pool.getParticle(
                 obj.x,
                 obj.y,
@@ -212,7 +230,7 @@ export class CollisionSystem implements ICollisionSystem {
               this.ctx.audio.playCrit(); // Reuse nice sound
 
               // Explosion effect
-              for (let i = 0; i < 15; i++) {
+              for (let ex = 0; ex < 15; ex++) {
                 pool.getParticle(
                   obj.x,
                   obj.y,
@@ -224,7 +242,7 @@ export class CollisionSystem implements ICollisionSystem {
             }
           }
         });
-      });
+      }
     }
   }
 
@@ -303,6 +321,18 @@ export class CollisionSystem implements ICollisionSystem {
         // Apply HP loss (Fixed per hit, not scaled by dtFactor since we use I-Frames)
         player.hp -= finalDamage;
         player.hp = Math.max(0, player.hp);
+
+        // Emit events for immediate UI/Director feedback
+        EventBus.emit('playerHit', {
+          damage: finalDamage,
+          remainingHp: player.hp,
+        });
+
+        EventBus.emit('playerHealthChange', {
+          hpPercent: (player.hp / player.maxHp) * 100,
+          hp: player.hp,
+          maxHp: player.maxHp,
+        });
 
         // Set I-Frames after taking damage
         player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION;
@@ -404,7 +434,7 @@ export class CollisionSystem implements ICollisionSystem {
     this.spawnImpactParticles(pool, bullet, particleMultiplier);
     this.applyKnockback(enemy, bullet, dtFactor);
     this.triggerCritEffects(bullet, state);
-    this.bufferDamage(enemy, bullet);
+    this.bufferDamage(pool, enemy, bullet);
 
     // Hit Stop Effect (Only on Crits/Super Crits to maintain flow)
     if (bullet.isCrit || bullet.isSuperCrit) {
@@ -421,12 +451,12 @@ export class CollisionSystem implements ICollisionSystem {
           ? this.ctx.constants.HIT_STOP_CRIT
           : this.ctx.constants.HIT_STOP_NORMAL, // "Normal" stop for standard crits
         isCrit: true,
+        isSuperCrit: !!bullet.isSuperCrit,
       });
     }
 
     // Death Check
     if (enemy.health <= 0) {
-      this.flushDamageBuffer(pool, enemy);
       CombatResolutionService.handleEnemyDeath(
         pool,
         enemy,
@@ -464,33 +494,60 @@ export class CollisionSystem implements ICollisionSystem {
       state.critFlashColor = bullet.isSuperCrit
         ? physicsColors.SUPER_CRIT
         : physicsColors.CRIT;
-      // Note: Audio and Event emission is now handled in flushDamageBuffer (Optimized Stacking)
+      // Audio/event feedback is handled per-hit in bufferDamage().
     }
   }
 
   /**
-   * Accumulates damage onto an enemy to show a combined number later.
+   * Shows damage feedback immediately on each hit.
    */
-  private bufferDamage(enemy: Enemy, bullet: Bullet): void {
-    enemy.damageBuffer = (enemy.damageBuffer ?? 0) + bullet.damage;
-    enemy.damageBufferTimer = 1.5; // Reduced from 20 to 1.5 for faster feedback (~400ms)
+  private bufferDamage(pool: IPoolManager, enemy: Enemy, bullet: Bullet): void {
+    const isSuperCrit = !!bullet.isSuperCrit;
+    const isCrit = !!bullet.isCrit;
 
-    // Trigger hit flash immediately on each hit for visual feedback
-    enemy.hitFlashTimer = 8; // ~130ms flash per hit (shorter than flush's 20 frames)
+    const color = isSuperCrit
+      ? physicsColors.CASINO_RED
+      : isCrit
+        ? physicsColors.CASINO_GOLD
+        : physicsColors.SLOT_SILVER;
 
-    // Preserve the highest crit tier for the coloring
-    if (bullet.isSuperCrit) {
-      enemy.damageBufferIsSuperCrit = true;
-      enemy.damageBufferCritCount = (enemy.damageBufferCritCount ?? 0) + 1;
-    } else if (bullet.isCrit) {
-      if (!enemy.damageBufferIsSuperCrit) {
-        enemy.damageBufferIsCrit = true;
-      }
-      enemy.damageBufferCritCount = (enemy.damageBufferCritCount ?? 0) + 1;
+    const size = isSuperCrit
+      ? GAME_ENGINE.DAMAGE_TEXT_SIZE_SUPER_CRIT
+      : isCrit
+        ? GAME_ENGINE.DAMAGE_TEXT_SIZE_CRIT
+        : GAME_ENGINE.DAMAGE_TEXT_SIZE_NORMAL;
+
+    const text = StatService.formatCompact(bullet.damage);
+    if (text) {
+      pool.getFloatingText(
+        enemy.x + (Math.random() - 0.5) * GAME_ENGINE.DAMAGE_STACK_THRESHOLD_RANDOM,
+        enemy.y - GAME_ENGINE.COLLISION_TEXT_OFFSET_Y,
+        text,
+        color,
+        size
+      );
     }
 
-    // Optional: Immediate flush can still be done if needed,
-    // but the timer in update() will now handle it properly.
+    // Trigger hit flash immediately on each hit for visual feedback
+    enemy.hitFlashTimer = 8;
+
+    // Clear legacy buffer fields to fully disable stacked feedback mode.
+    enemy.damageBuffer = 0;
+    enemy.damageBufferTimer = 0;
+    enemy.damageBufferIsCrit = false;
+    enemy.damageBufferIsSuperCrit = false;
+    enemy.damageBufferCritCount = 0;
+
+    if (isCrit || isSuperCrit) {
+      this.ctx.audio.playCrit();
+      EventBus.emit('critHit', {
+        damage: bullet.damage,
+        isSuperCrit,
+        x: enemy.x,
+        y: enemy.y,
+        count: 1,
+      });
+    }
   }
 
   /**

@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { LiveFeed } from '../../../components/hud/LiveFeed';
 import { screenService } from '../../../services/system/ScreenService';
 import { EventBus } from '../../../services/core/EventBus';
+import { type MarketData } from '../../../types';
 
 // Mocks
 vi.mock('../../../services/system/ScreenService', () => ({
@@ -55,7 +55,7 @@ vi.mock('../../../components/themed/LiveTicker', () => ({
 }));
 
 describe('LiveFeed', () => {
-  const mockMarketData = {
+  const mockMarketData: MarketData = {
     pair: 'BTC',
     price: 50000,
     pnl: 0.05,
@@ -63,6 +63,9 @@ describe('LiveFeed', () => {
     leverage: 10,
     difficulty: 1.5,
     liquidationPrice: 45000,
+    volume: 1000000,
+    rsi: 50,
+    momentum: 0.12,
   };
 
   const mockServerState = {
@@ -209,7 +212,7 @@ describe('LiveFeed', () => {
   });
 
   it('should show DEGEN badge for high leverage', () => {
-    const degenData = { ...mockMarketData, leverage: 100 };
+    const degenData: MarketData = { ...mockMarketData, leverage: 100 };
     render(
       <LiveFeed marketData={degenData} entryPrice={48000} priceColor="text-green-500" />
     );

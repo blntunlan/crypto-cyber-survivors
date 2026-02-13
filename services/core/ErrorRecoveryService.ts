@@ -21,9 +21,21 @@ interface RecoveryStrategy {
   action: () => Promise<boolean>;
 }
 
+type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+interface CircuitBreaker {
+  name: string;
+  state: CircuitState;
+  failures: number;
+  failureThreshold: number;
+  resetTimeout: number;
+  lastFailureTime?: number;
+}
+
 class ErrorRecoveryServiceClass {
   private static instance: ErrorRecoveryServiceClass | null = null;
   private strategies: Map<string, RecoveryStrategy> = new Map();
+  private circuits: Map<string, CircuitBreaker> = new Map();
 
   private constructor() {
     this.setupListeners();
@@ -170,11 +182,77 @@ class ErrorRecoveryServiceClass {
   }
 
   /**
+   * executeWithCircuitBreaker - Protects a call via Circuit Breaker pattern
+   */
+  async executeWithCircuitBreaker<T>(
+    name: string,
+    action: () => Promise<T>,
+    fallback: T,
+    options: {
+      failureThreshold?: number;
+      resetTimeout?: number;
+    } = {}
+  ): Promise<T> {
+    const { failureThreshold = 5, resetTimeout = 30000 } = options;
+
+    let cb = this.circuits.get(name);
+    if (!cb) {
+      cb = {
+        name,
+        state: 'CLOSED',
+        failures: 0,
+        failureThreshold,
+        resetTimeout,
+      };
+      this.circuits.set(name, cb);
+    }
+
+    // Check circuit state
+    if (cb.state === 'OPEN') {
+      const now = Date.now();
+      if (cb.lastFailureTime && now - cb.lastFailureTime > cb.resetTimeout) {
+        Logger.info(`[CircuitBreaker] ${name} entering HALF_OPEN state`);
+        cb.state = 'HALF_OPEN';
+      } else {
+        Logger.warn(`[CircuitBreaker] ${name} is OPEN. Returning fallback.`);
+        return fallback;
+      }
+    }
+
+    try {
+      const result = await action();
+
+      // Success - reset circuit
+      if (cb.state !== 'CLOSED') {
+        Logger.info(`[CircuitBreaker] ${name} recovered! Closing circuit.`);
+      }
+      cb.state = 'CLOSED';
+      cb.failures = 0;
+
+      return result;
+    } catch (err) {
+      cb.failures++;
+      cb.lastFailureTime = Date.now();
+
+      Logger.error(
+        `[CircuitBreaker] ${name} failure (${cb.failures}/${cb.failureThreshold})`,
+        err
+      );
+
+      if (cb.failures >= cb.failureThreshold || cb.state === 'HALF_OPEN') {
+        Logger.error(`[CircuitBreaker] ${name} entering OPEN state`);
+        cb.state = 'OPEN';
+      }
+
+      return fallback;
+    }
+  }
+
+  /**
    * Report a non-critical logic error that might need recovery
    */
   reportError(context: string, error: unknown): void {
     Logger.error(`[Recovery] Error in ${context}:`, error);
-    // Future: send to Supabase error_logs
   }
 }
 

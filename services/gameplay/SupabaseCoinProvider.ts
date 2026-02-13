@@ -6,7 +6,7 @@
  */
 
 import { type ICoinProvider, type CoinSource } from './CoinService';
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 
@@ -21,7 +21,7 @@ export class SupabaseCoinProvider implements ICoinProvider {
     const profileId = UserSessionService.getProfileId();
     if (!profileId || profileId.startsWith('anon_')) return 0;
 
-    if (!isSupabaseConfigured() || supabase === null) return 0;
+    if (!isSupabaseConfigured()) return 0;
 
     const { data, error } = await supabase
       .from('virtual_accounts')
@@ -51,7 +51,7 @@ export class SupabaseCoinProvider implements ICoinProvider {
       return false;
     }
 
-    if (!isSupabaseConfigured() || supabase === null) return false;
+    if (!isSupabaseConfigured()) return false;
 
     try {
       const { data, error } = await supabase.rpc('credit_coins', {

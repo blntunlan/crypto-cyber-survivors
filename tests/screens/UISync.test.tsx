@@ -73,10 +73,11 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      // PauseMenu uses cyber-glass class with rounded-sm in cyberpunk mode (sharp corners)
+      // PauseMenu uses the shared modern panel shell to match MainMenu rhythm
       const frame = container.querySelector('.cyber-glass');
       expect(frame).toBeDefined();
-      expect(frame?.className).toContain('rounded-sm');
+      expect(frame?.className).toContain('rounded-[1.5rem]');
+      expect(frame?.className).toContain('border-white/20');
 
       const title = screen.getByText('common.paused');
       // PauseMenu uses font-cyber for cyberpunk mode

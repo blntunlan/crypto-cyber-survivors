@@ -8,6 +8,9 @@ interface AchievementPopupProps {
   achievement: { name: string; icon: string; color: string } | null;
 }
 
+const text = (value: string | string[]): string =>
+  Array.isArray(value) ? value.join(' ') : value;
+
 const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> = ({
   achievement,
   isRetro,
@@ -36,7 +39,7 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
           <span
             className={`text-[10px] font-bold uppercase tracking-widest ${isRetro ? 'text-white' : 'text-white/70'}`}
           >
-            {t('hud.achievement')}
+            {text(t('hud.achievement'))}
           </span>
 
           <span
@@ -86,7 +89,7 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
             className={`font-black uppercase tracking-widest ${isRetro ? 'text-white' : 'text-blue-400 opacity-80'} whitespace-nowrap`}
             style={{ fontSize: rfs(7) }}
           >
-            {t('hud.achievement').toUpperCase()}
+            {text(t('hud.achievement')).toUpperCase()}
           </span>
 
           <span

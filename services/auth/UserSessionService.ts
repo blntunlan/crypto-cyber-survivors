@@ -12,25 +12,41 @@ import { UserPersistenceService } from './UserPersistenceService';
 import { SecurityUtils } from './SecurityUtils';
 
 export class UserSessionService {
+  private static instance: UserSessionService | null = null;
+
+  private constructor() {}
+
+  public static getInstance(): UserSessionService {
+    return (UserSessionService.instance ??= new UserSessionService());
+  }
+
   /**
    * Check if a user is already stored.
    */
-  static hasLegacyStoredUser(): boolean {
+  hasLegacyStoredUser(): boolean {
     return UserPersistenceService.getLegacyStoredUser() !== null;
+  }
+
+  static hasLegacyStoredUser(): boolean {
+    return this.getInstance().hasLegacyStoredUser();
   }
 
   /**
    * Get the stored user data.
    */
-  static getLegacyStoredUser(): LegacyStoredUser | null {
+  getLegacyStoredUser(): LegacyStoredUser | null {
     return UserPersistenceService.getLegacyStoredUser();
+  }
+
+  static getLegacyStoredUser(): LegacyStoredUser | null {
+    return this.getInstance().getLegacyStoredUser();
   }
 
   /**
    * Get the profile ID for metrics tracking.
    * If no user is stored, returns a temporary anonymous ID.
    */
-  static getProfileId(): string {
+  getProfileId(): string {
     const user = this.getLegacyStoredUser();
     if (user) return user.profileId;
 
@@ -38,18 +54,26 @@ export class UserSessionService {
     return 'anon_' + nanoid(10);
   }
 
+  static getProfileId(): string {
+    return this.getInstance().getProfileId();
+  }
+
   /**
    * Get the player's nickname.
    */
-  static getNickname(): string | null {
+  getNickname(): string | null {
     const user = this.getLegacyStoredUser();
     return user ? user.nickname : null;
+  }
+
+  static getNickname(): string | null {
+    return this.getInstance().getNickname();
   }
 
   /**
    * Save a new user to storage after successful registration/login.
    */
-  static saveUser(profileId: string, nickname: string): void {
+  saveUser(profileId: string, nickname: string): void {
     const now = Date.now();
     const user: LegacyStoredUser = {
       profileId,
@@ -62,15 +86,19 @@ export class UserSessionService {
     Logger.info(`[UserSession] User saved: ${nickname} (${profileId})`);
   }
 
+  static saveUser(profileId: string, nickname: string): void {
+    this.getInstance().saveUser(profileId, nickname);
+  }
+
   /**
    * Register a new nickname in Supabase and save to local storage.
    */
-  static async registerNickname(
+  async registerNickname(
     nickname: string
   ): Promise<{ success: boolean; error?: string }> {
-    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
+    const { isSupabaseConfigured } = await import('../core/Supabase');
 
-    if (!isSupabaseConfigured() || !supabase || SecurityUtils.isLocalEnvironment()) {
+    if (!isSupabaseConfigured() || SecurityUtils.isLocalEnvironment()) {
       Logger.warn('[UserSession] Local environment detected, using local-only mode');
       const mockProfileId = '00000000-0000-4000-a000-000000000000';
       this.saveUser(mockProfileId, nickname);
@@ -99,10 +127,16 @@ export class UserSessionService {
     }
   }
 
+  static async registerNickname(
+    nickname: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.getInstance().registerNickname(nickname);
+  }
+
   /**
    * Update the last seen timestamp in storage and optionally Supabase.
    */
-  static async updateLastSeen(): Promise<void> {
+  async updateLastSeen(): Promise<void> {
     const user = this.getLegacyStoredUser();
     if (user) {
       const now = Date.now();
@@ -111,9 +145,9 @@ export class UserSessionService {
       UserPersistenceService.saveUser(updatedUser);
 
       const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
-      if (isSupabaseConfigured() && supabase && !SecurityUtils.isLocalEnvironment()) {
+      if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
         try {
-          const { error } = await supabase
+          const { error } = await supabase!
             .from('profiles')
             .update({ last_seen_at: new Date().toISOString() })
             .eq('id', user.profileId);
@@ -128,17 +162,30 @@ export class UserSessionService {
     }
   }
 
+  static async updateLastSeen(): Promise<void> {
+    return this.getInstance().updateLastSeen();
+  }
+
   /**
    * Clear user data from storage (logout/debug).
    */
-  static clearUser(): void {
+  clearUser(): void {
     UserPersistenceService.clear();
+  }
+
+  static clearUser(): void {
+    this.getInstance().clearUser();
   }
 
   /**
    * Reset for testing purposes.
    */
+  resetForTesting(): void {
+    UserPersistenceService.clear();
+  }
+
   static resetForTesting(): void {
+    this.instance = null!; // Reset singleton
     UserPersistenceService.clear();
   }
 }

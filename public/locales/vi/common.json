@@ -3,6 +3,7 @@
     "start": "Bắt đầu",
     "settings": "Cài đặt",
     "back": "Quay lại",
+    "close": "Đóng",
     "loading": "Đang tải...",
     "game_over": "Trò chơi kết thúc",
     "score": "Điểm: {{val}}",
@@ -11,6 +12,7 @@
     "level_label": "Cấp độ",
     "loading_engine": "ĐANG TẢI ENGINE...",
     "back_to_hub": "Quay lại Hub",
+    "project_info": "Thông tin dự án",
     "paused": "Đã tạm dừng",
     "resume": "Tiếp tục",
     "restart": "Chơi lại",
@@ -58,42 +60,25 @@
       "install_phantom": "Cài đặt Phantom",
       "connect_wallet": "Kết nối ví"
     },
-    "modes": {
-      "casual_name": "Phổ thông",
-      "casual_desc": "Sống sót cổ điển không giới hạn. Chơi theo tốc độ của riêng bạn.",
-      "competitive_name": "Cạnh tranh",
-      "competitive_desc": "Chu kỳ 5 phút. Cạnh tranh bảng xếp hạng và nhận thưởng."
-    },
-    "game_over_screen": {
-      "liquidated": "BỊ THANH KHOẢN",
-      "new_high_score": "Kỷ lục mới!",
-      "pnl": "P&L",
-      "time": "Thời gian",
-      "kills": "Hạ gục",
-      "career_stats": "Thống kê sự nghiệp",
-      "games": "Số trận",
-      "total_kills": "Tổng hạ gục",
-      "best_level": "Cấp độ tốt nhất",
-      "back_to_menu": "Quay lại Terminal"
-    },
-    "cycle_complete_screen": {
-      "title": "HOÀN THÀNH CHU KỲ {{val}}",
-      "subtitle": "Sống sót 5 phút",
-      "time_survived": "Thời gian sống sót",
-      "level_reached": "Cấp độ đạt được",
-      "total_kills": "Tổng hạ gục",
-      "pnl_performance": "Hiệu suất P&L",
-      "coins_earned": "XU KIẾM ĐƯỢC",
-      "details": "Chi tiết",
-      "hide": "Ẩn",
-      "continue_risk": "Tiếp tục Rủi ro: Tăng {{val}}% độ khó",
-      "cash_out": "Rút tiền",
-      "continue": "Tiếp tục",
-      "multiplier_hint": "Tiếp tục để nhận hệ số nhân {{val}}% xu trong chu kỳ tới"
-    },
-    "close": "Đóng",
-    "project_info": "Thông tin dự án",
     "auth": {
+      "sign_in": "Đăng Nhập",
+      "sign_up": "Tạo Tài Khoản",
+      "email": "Email",
+      "password": "Mật Khẩu",
+      "forgot_password": "Quên mật khẩu?",
+      "send_otp": "Gửi Mã",
+      "verify_otp": "Xác Minh Mã",
+      "otp_sent": "Mã 6 chữ số đã được gửi đến email của bạn",
+      "back_to_signin": "Quay lại",
+      "no_account": "Chưa có tài khoản?",
+      "has_account": "Đã có tài khoản?",
+      "or_continue_with": "Hoặc tiếp tục với",
+      "email_otp": "Mã Email",
+      "email_password": "Email & Mật Khẩu",
+      "resend_code": "Không nhận được mã? Gửi lại",
+      "invalid_email": "Vui lòng nhập email hợp lệ",
+      "password_min": "Mật khẩu phải có ít nhất 6 ký tự",
+      "check_email": "Kiểm tra email của bạn để xác minh",
       "errors": {
         "not_authenticated": "Chưa xác thực",
         "backend_not_configured": "Chưa cấu hình backend",
@@ -129,6 +114,23 @@
         "return_home": "Về Trang chủ",
         "error_occurred": "Đã xảy ra lỗi"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -136,6 +138,40 @@
         "github": "GitHub",
         "phantom": "Ví Phantom"
       }
+    },
+    "anonymous": "Anonymous",
+    "modes": {
+      "casual_name": "Phổ thông",
+      "casual_desc": "Sống sót cổ điển không giới hạn. Chơi theo tốc độ của riêng bạn.",
+      "competitive_name": "Cạnh tranh",
+      "competitive_desc": "Chu kỳ 5 phút. Cạnh tranh bảng xếp hạng và nhận thưởng."
+    },
+    "game_over_screen": {
+      "liquidated": "BỊ THANH KHOẢN",
+      "new_high_score": "Kỷ lục mới!",
+      "pnl": "P&L",
+      "time": "Thời gian",
+      "kills": "Hạ gục",
+      "career_stats": "Thống kê sự nghiệp",
+      "games": "Số trận",
+      "total_kills": "Tổng hạ gục",
+      "best_level": "Cấp độ tốt nhất",
+      "back_to_menu": "Quay lại Terminal"
+    },
+    "cycle_complete_screen": {
+      "title": "HOÀN THÀNH CHU KỲ {{val}}",
+      "subtitle": "Sống sót 5 phút",
+      "time_survived": "Thời gian sống sót",
+      "level_reached": "Cấp độ đạt được",
+      "total_kills": "Tổng hạ gục",
+      "pnl_performance": "Hiệu suất P&L",
+      "coins_earned": "XU KIẾM ĐƯỢC",
+      "details": "Chi tiết",
+      "hide": "Ẩn",
+      "continue_risk": "Tiếp tục Rủi ro: Tăng {{val}}% độ khó",
+      "cash_out": "Rút tiền",
+      "continue": "Tiếp tục",
+      "multiplier_hint": "Tiếp tục để nhận hệ số nhân {{val}}% xu trong chu kỳ tới"
     }
   },
   "market": {
@@ -157,8 +193,12 @@
     "live_feed": "Dữ liệu trực tiếp",
     "profit": "Lợi nhuận",
     "loss": "Thua lỗ",
+    "profit_short": "L",
+    "loss_short": "L",
     "entry": "Vị thế",
+    "entry_short": "ENT",
     "volatility": "Biến động",
+    "volatility_short": "VOL",
     "liquidation": "Thanh khoản",
     "whale_detected": "PHÁT HIỆN CÁ VOI",
     "kernel_status": "Trạng thái Kernel",
@@ -200,6 +240,8 @@
       "peak": "Đỉnh điểm"
     },
     "announcer": {
+      "supply_drop": "SUPPLY DROP",
+      "loot_crate_appeared": "A loot crate appeared!",
       "oversold": "THỊ TRƯỜNG QUÁ BÁN",
       "overbought": "THỊ TRƯỜNG QUÁ MUA",
       "bullish": "Phát hiện điều kiện Bullish",
@@ -207,11 +249,6 @@
       "rsi_message": "{{sentiment}} (RSI: {{rsi}})",
       "whale_spotted": "PHÁT HIỆN {{tier}}",
       "whale_volume": "Khối lượng giao dịch khổng lồ trên thị trường!",
-      "tiers": {
-        "baby": "CÁ VOI CON",
-        "mega": "CÁ VOI MEGA",
-        "giga": "CÁ VOI GIGA"
-      },
       "volume_spike": "ĐỘT BIẾN KHỐI LƯỢNG",
       "volume_spike_msg": "Phát hiện áp lực mua/bán cực lớn!",
       "breakout": "PHÁ VỠ XU HƯỚNG",
@@ -221,7 +258,12 @@
       "consolidation": "TÍCH LŨY",
       "consolidation_msg": "Thị trường đang hạ nhiệt.",
       "flash_crash": "FLASH CRASH",
-      "flash_crash_msg": "Bán tháo hoảng loạn! Nguy cơ cao!"
+      "flash_crash_msg": "Bán tháo hoảng loạn! Nguy cơ cao!",
+      "tiers": {
+        "baby": "CÁ VOI CON",
+        "mega": "CÁ VOI MEGA",
+        "giga": "CÁ VOI GIGA"
+      }
     },
     "recovered": "HỒI PHỤC",
     "xp_multiplier_up": "TĂNG HỆ SỐ XP!",
@@ -235,8 +277,8 @@
       "berserk": "Cuồng nộ",
       "diamond_hands": "Diamond Hands",
       "luck_boost": "Tăng May mắn",
-      "rage_mode": "Rage Mode",
-      "lucky_star": "Ngôi sao may mắn"
+      "lucky_star": "Ngôi sao may mắn",
+      "rage_mode": "Rage Mode"
     },
     "fps": "FPS",
     "achievement": "Thành tựu!",
@@ -249,10 +291,6 @@
     "you": "Bạn",
     "points": "điểm",
     "sync_complete": "ĐỒNG BỘ HOÀN TẤT",
-    "profit_short": "L",
-    "loss_short": "L",
-    "entry_short": "ENT",
-    "volatility_short": "VOL",
     "cycle_complete": "CHU KỲ HOÀN TẤT",
     "finished": "Đã xong",
     "auto_continue": "Tự động tiếp tục",
@@ -263,7 +301,9 @@
     "risk_reward": "Rủi ro cao, phần thưởng lớn",
     "cash_out": "RÚT TIỀN",
     "secure_rewards": "Đảm bảo phần thưởng của bạn",
-    "decision_hint": "Chu kỳ cao = Thêm XP và vật phẩm tốt"
+    "decision_hint": "Chu kỳ cao = Thêm XP và vật phẩm tốt",
+    "cycle_count": "Cycle {{count}}",
+    "anonymous": "Anonymous"
   },
   "hub": {
     "play": "CHƠI",
@@ -281,6 +321,14 @@
     "gear_subtitle": "Cấu hình",
     "nav_help_retro": "[WASD] DI CHUYỂN   [ENTER] CHỌN",
     "nav_help_modern": "wasd để di chuyển • enter để chọn"
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Tổng quan",
+      "stats": "Thống kê",
+      "achievements": "Thành tựu",
+      "settings": "Cài đặt"
+    }
   },
   "levelup": {
     "title": "LÊN CẤP",
@@ -344,6 +392,8 @@
     "side_left": "Trái",
     "side_right": "Phải",
     "haptic_feedback": "Phản hồi rung",
+    "visual_feedback": "Phản hồi hình ảnh",
+    "joystick": "Joystick ảo",
     "vibration": "Rung",
     "controls": "Điều khiển",
     "move": "Di chuyển",
@@ -362,9 +412,13 @@
     "lang_es": "Tiếng Tây Ban Nha",
     "lang_pt": "Tiếng Bồ Đào Nha",
     "lang_zh": "Tiếng Trung",
-    "lang_ru": "Tiếng Nga",
-    "visual_feedback": "Phản hồi hình ảnh",
-    "joystick": "Joystick ảo"
+    "lang_ru": "Tiếng Nga"
+  },
+  "pwa": {
+    "installTitle": "Cài đặt ứng dụng",
+    "installDescription": "Thêm vào màn hình chính để trải nghiệm tốt nhất",
+    "install": "Cài đặt",
+    "notNow": "Để sau"
   },
   "tutorial": {
     "language": {
@@ -427,6 +481,18 @@
       "execute": "CHẠY ĐỘNG CƠ",
       "protocol_retro": "GIAO THỨC: RETRO",
       "protocol_cyber": "GIAO THỨC: CYBER"
+    },
+    "stats": {
+      "tests_passing": "Tests Passing",
+      "singleton_services": "Singleton Services",
+      "target_performance": "Target Performance",
+      "event_types": "Event Types"
+    },
+    "terminal": {
+      "initializing": "INITIALIZING_SUBSYSTEMS...",
+      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
+      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
+      "process_pulse": "PROCESS: PULSE"
     },
     "hero": {
       "status": "TRẠNG THÁI HỆ THỐNG: CHẾ ĐỘ CHỜ (BETA_v1.0)",
@@ -546,19 +612,5 @@
       "discord_soon": "Discord (Sớm ra mắt)",
       "twitter_soon": "Twitter/X (Sớm ra mắt)"
     }
-  },
-  "profile": {
-    "tabs": {
-      "overview": "Tổng quan",
-      "stats": "Thống kê",
-      "achievements": "Thành tựu",
-      "settings": "Cài đặt"
-    }
-  },
-  "pwa": {
-    "installTitle": "Cài đặt ứng dụng",
-    "installDescription": "Thêm vào màn hình chính để trải nghiệm tốt nhất",
-    "install": "Cài đặt",
-    "notNow": "Để sau"
   }
 }

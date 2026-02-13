@@ -38,6 +38,7 @@ vi.mock('../../services/core/MetricsService', () => ({
 
 vi.mock('../../services/system/Logger', () => ({
   Logger: {
+    info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
   },

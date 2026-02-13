@@ -17,6 +17,9 @@ interface LiveFeedProps {
   priceColor: string;
 }
 
+const text = (value: string | string[]): string =>
+  Array.isArray(value) ? value.join(' ') : value;
+
 /**
  * Sub-component for static/slow-updating info rows to prevent redundant re-renders
  * and maintain layout stability.
@@ -189,7 +192,7 @@ const DesktopLiveFeed: React.FC<
 
       <div className="mt-3 flex flex-col gap-1.5 border-t border-slate-800/30 pt-2">
         <InfoRow
-          label={t('hud.entry')}
+          label={text(t('hud.entry'))}
           value={entryPrice}
           decimals={pairConfig.decimals}
           isRetro={isRetro}
@@ -197,7 +200,7 @@ const DesktopLiveFeed: React.FC<
 
         <LiveInfoRow
           id="vol-ticker"
-          label={t('hud.volatility')}
+          label={text(t('hud.volatility'))}
           valueKey="difficulty"
           isRetro={isRetro}
           formatter={(val: number) => `x${val.toFixed(2)}`}
@@ -206,7 +209,7 @@ const DesktopLiveFeed: React.FC<
         {marketData.liquidationPrice !== undefined &&
           marketData.liquidationPrice > 0 && (
             <InfoRow
-              label={t('hud.liquidation')}
+              label={text(t('hud.liquidation'))}
               value={marketData.liquidationPrice}
               decimals={pairConfig.decimals}
               isRetro={isRetro}

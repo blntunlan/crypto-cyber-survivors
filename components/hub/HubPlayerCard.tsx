@@ -51,7 +51,9 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
     <div
       className={cn(
         'flex w-full items-center gap-3 p-3 sm:gap-4 sm:p-4',
-        isRetro ? PANEL_VARIANTS.retro : '!rounded-2xl cyber-glass'
+        isRetro
+          ? PANEL_VARIANTS.retro
+          : 'rounded-2xl bg-slate-900/60 border border-white/10 cyber-glass'
       )}
     >
       {!isRetro && (

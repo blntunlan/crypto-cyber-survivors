@@ -190,11 +190,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
-      className={`allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-3 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6 sm:pb-6 landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2 ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/60 backdrop-blur-sm'}`}
+      className={`allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6 sm:pb-6 landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2 ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/60 backdrop-blur-sm'}`}
     >
       <div className="w-full max-w-xl space-y-4 py-2 text-center sm:space-y-8 sm:py-0 landscape:space-y-2">
         <motion.header
-          className="space-y-3 sm:space-y-5"
+          className="space-y-2.5 sm:space-y-5"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
@@ -228,8 +228,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </motion.header>
 
         <ThemedPanel
-          className={`relative p-3 transition-all duration-700 sm:p-5 ${!isRetro ? 'overflow-hidden !rounded-[1.5rem] backdrop-blur-xl' : ''}`}
+          className={`relative p-3.5 transition-all duration-700 sm:p-6 ${!isRetro ? 'bg-slate-900/78 overflow-hidden !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-xl' : ''}`}
         >
+          {!isRetro && (
+            <>
+              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
+              <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
+            </>
+          )}
+
           {/* Top Dynamic Border Accent */}
           {!isRetro && (
             <motion.div
@@ -238,10 +245,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               style={{ boxShadow: `0 0 20px ${pairConfig.color}40` }}
             />
           )}
-          <div className="mb-2 space-y-2 sm:mb-4">
+          <div className="mb-3 space-y-2.5 sm:mb-5">
             <div className="mb-1 flex items-center gap-2">
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+                className={`h-px flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
               />
               <span
                 className={`text-[9px] uppercase sm:text-[10px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} font-bold tracking-[0.15em] sm:tracking-[0.2em]`}
@@ -251,7 +258,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </span>
 
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+                className={`h-px flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
               />
             </div>
             <div className="flex gap-2">
@@ -268,7 +275,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       audio.playButton();
                       onModeChange(mode);
                     }}
-                    className={`group relative min-h-[48px] flex-1 touch-manipulation overflow-hidden p-2.5 text-left transition-all duration-300 active:scale-[0.98] sm:p-3
+                    className={`group relative min-h-[56px] flex-1 touch-manipulation overflow-hidden p-3 text-left transition-all duration-300 active:scale-[0.98] sm:min-h-[62px] sm:p-3.5
                       ${
                         isRetro
                           ? 'font-primary rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80 hover:border-[#39FF14]'
@@ -306,7 +313,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         color={isActive ? (isRetro ? '#ffffff' : modeColor) : '#475569'}
                       />
                       <div
-                        className={`${isRetro ? 'font-retro-pixel text-[10px] landscape:text-[9px]' : 'font-cyber text-[10px] sm:text-[9px]'} uppercase tracking-wider ${isActive ? 'font-black' : ''}`}
+                        className={`${isRetro ? 'font-retro-pixel text-[10px] landscape:text-[9px]' : 'font-cyber text-[11px] sm:text-[10px]'} uppercase tracking-wider ${isActive ? 'font-black' : ''}`}
                         style={{
                           color: isActive
                             ? isRetro
@@ -321,7 +328,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       </div>
                     </div>
                     <div
-                      className={`font-medium leading-snug ${isActive ? 'text-white' : 'text-slate-500'} ${isRetro ? 'font-retro-pixel text-[11px] landscape:text-[10px]' : 'text-[11px] sm:text-[10px]'}`}
+                      className={`font-medium leading-snug ${isActive ? 'text-white' : 'text-slate-500'} ${isRetro ? 'font-retro-pixel text-[11px] landscape:text-[10px]' : 'text-[12px] sm:text-[11px]'}`}
                     >
                       {mode === GameMode.CASUAL
                         ? t('common.modes.casual_desc')
@@ -342,10 +349,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </div>
           </div>
 
-          <div className="mb-2 space-y-2 sm:mb-4">
+          <div className="mb-3 space-y-2.5 sm:mb-5">
             <div className="mb-1 flex items-center gap-2">
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#FFD600]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+                className={`h-px flex-1 ${isRetro ? 'bg-[#FFD600]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
               />
               <span
                 className={`text-[9px] uppercase sm:text-[10px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} font-bold tracking-[0.15em] sm:tracking-[0.2em]`}
@@ -355,7 +362,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </span>
 
               <div
-                className={`h-[0.5px] flex-1 ${isRetro ? 'bg-[#FFD600]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+                className={`h-px flex-1 ${isRetro ? 'bg-[#FFD600]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
               />
             </div>
             <CryptoSelector
@@ -366,7 +373,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           <div
-            className={`font-numbers ${sizes.price} py-2 font-bold tracking-tight transition-colors duration-500 sm:py-4`}
+            className={`font-numbers ${sizes.price} py-2.5 font-bold tracking-tight transition-colors duration-500 sm:py-5`}
             style={{
               color: pairConfig.color,
               textShadow: isRetro
@@ -379,10 +386,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               : t('common.menu.connecting')}
           </div>
 
-          <div className="mb-2 space-y-2 sm:mb-4">
-            <div className="mb-1 flex items-center justify-between px-1">
+          <div className="mb-3 space-y-2.5 sm:mb-5">
+            <div className="mb-1.5 flex items-center justify-between px-1">
               <span
-                className={`font-display text-[9px] font-bold uppercase tracking-[0.15em] sm:text-[8px] sm:tracking-[0.2em] ${isRetro ? 'font-retro-pixel text-[#DCDCDC]' : 'text-slate-500'}`}
+                className={`text-[10px] font-semibold uppercase tracking-[0.12em] sm:text-[9px] sm:tracking-[0.16em] ${isRetro ? 'font-retro-pixel text-[#DCDCDC]' : 'font-cyber text-slate-400'}`}
               >
                 {t('common.menu.leverage')}
               </span>
@@ -393,7 +400,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   style={{ backgroundColor: getLeverageColorHex(selectedLeverage) }}
                 />
                 <span
-                  className={`text-[10px] font-black uppercase tracking-wider sm:text-[9px] sm:tracking-widest ${isRetro ? 'font-retro-pixel' : ''}`}
+                  className={`text-[10px] uppercase tracking-[0.08em] sm:text-[9px] sm:tracking-[0.1em] ${isRetro ? 'font-retro-pixel font-bold' : 'font-cyber font-semibold'}`}
                   style={{ color: getLeverageColorHex(selectedLeverage) }}
                 >
                   {getLeverageLabel(selectedLeverage)}
@@ -402,7 +409,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </div>
 
             <div
-              className={`flex flex-wrap justify-center gap-1.5 px-2 py-2 transition-all duration-500 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-sm'}`}
+              className={`custom-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2 overflow-x-auto px-1.5 py-3 transition-all duration-500 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-2.5 sm:py-3.5 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-sm'}`}
               style={{
                 backgroundColor: !isRetro
                   ? `${getLeverageColorHex(selectedLeverage)}05`
@@ -427,8 +434,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   <button
                     key={lev}
                     onClick={() => setSelectedLeverage(lev)}
-                    className={`group relative min-h-[44px] min-w-[44px] touch-manipulation px-2.5 py-1.5 text-[10px] transition-all duration-200 active:scale-95 sm:min-h-[36px] sm:min-w-[36px] sm:px-2 sm:py-1 sm:text-[9px]
-                      ${isRetro ? 'rounded-none font-retro-pixel' : 'rounded-lg font-display focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:hover:scale-105'}
+                    className={`group relative min-h-[44px] min-w-[50px] shrink-0 touch-manipulation snap-start px-2 py-1.5 text-[10px] transition-all duration-200 active:scale-95 sm:min-h-[42px] sm:min-w-[50px] sm:px-2.5 sm:py-1 sm:text-[10px]
+                      ${isRetro ? 'rounded-none font-retro-pixel' : 'rounded-lg font-cyber tracking-[0.02em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:hover:scale-105'}
                       ${isSelected ? 'z-10 scale-105' : 'bg-white/5 opacity-50 hover:opacity-80'}`}
                     style={{
                       boxShadow:
@@ -458,11 +465,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
 
           {/* Position Selection */}
-          <div className={`grid grid-cols-2 gap-3 sm:gap-4 landscape:gap-2`}>
+          <div className={`grid grid-cols-2 gap-2.5 sm:gap-4 landscape:gap-2`}>
             <button
               onClick={() => void onStart(MarketPosition.LONG, selectedLeverage)}
               disabled={price === 0}
-              className={`group flex min-h-[72px] touch-manipulation flex-col items-center p-3 transition-all duration-200 active:scale-95 sm:p-5 landscape:min-h-[56px] landscape:p-2 
+              className={`group flex min-h-[88px] touch-manipulation flex-col items-center p-4 transition-all duration-200 active:scale-95 sm:min-h-[96px] sm:p-5 landscape:min-h-[64px] landscape:p-2.5
                 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/60 bg-[#39FF14]/10 font-retro-pixel hover:border-[#39FF14]' : 'rounded-sm border border-transparent bg-green-500/10 hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 sm:hover:border-green-500/30 sm:hover:shadow-[0_0_30px_rgba(34,197,94,0.25)]'}
                 ${
                   price === 0 ? 'cursor-not-allowed opacity-50 grayscale' : ''
@@ -489,7 +496,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <button
               onClick={() => void onStart(MarketPosition.SHORT, selectedLeverage)}
               disabled={price === 0}
-              className={`group flex min-h-[72px] touch-manipulation flex-col items-center p-3 transition-all duration-200 active:scale-95 sm:p-5 landscape:min-h-[56px] landscape:p-2 
+              className={`group flex min-h-[88px] touch-manipulation flex-col items-center p-4 transition-all duration-200 active:scale-95 sm:min-h-[96px] sm:p-5 landscape:min-h-[64px] landscape:p-2.5
                 ${isRetro ? 'rounded-none border-2 border-[#B22222]/60 bg-[#B22222]/10 font-retro-pixel hover:border-[#FF3D00]' : 'rounded-sm border border-transparent bg-red-500/10 hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 sm:hover:border-red-500/30 sm:hover:shadow-[0_0_30px_rgba(239,68,68,0.25)]'}
                 ${
                   price === 0 ? 'cursor-not-allowed opacity-50 grayscale' : ''
@@ -518,7 +525,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <ThemedButton
             intent="secondary"
             onClick={onOpenSettings}
-            className={`mt-3 min-h-[44px] w-full touch-manipulation py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-[0.98] sm:mt-4 sm:py-3 sm:text-sm
+            className={`mt-4 min-h-[50px] w-full touch-manipulation py-3 text-xs font-black uppercase tracking-widest transition-all duration-200 active:scale-[0.98] sm:mt-5 sm:min-h-[52px] sm:py-3.5 sm:text-sm
               ${!isRetro ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 sm:hover:shadow-[0_0_20px_rgba(148,163,184,0.15)]' : ''}
               ${
                 activeRow === 4

@@ -22,6 +22,8 @@ import { type InventoryItemType } from './inventory';
 // EVENT NAMES
 // =============================================================================
 
+export type EventScope = 'ui' | 'gameplay' | 'system' | 'debug';
+
 export type GameEvent =
   | 'enemyKilled'
   | 'gemCollected'
@@ -90,11 +92,14 @@ export type GameEvent =
   // Difficulty System V2 events
   | 'marketUpdate'
   | 'playerLevelUp'
+  | 'playerExperienceChange'
   | 'playerHealthChange'
   | 'gameStart'
   | 'difficultyUpdated'
   | 'shockDetected'
   | 'liquidationWarning'
+  | 'secondElapsed'
+  | 'fpsUpdated'
   /** @deprecated AI Director V2: Boss wave events deprecated */
   | 'bossWaveStart'
   /** @deprecated AI Director V2: Boss wave events deprecated */
@@ -103,6 +108,9 @@ export type GameEvent =
   | 'cycleDecisionMade'
   | 'hudValuesUpdated'
   | 'marketReconnectRequest'
+  | 'marketConnectionStateChanged'
+  | 'marketDataFallback'
+  | 'marketReconnectAttempt'
   | 'gameMarketEvent'
   | 'portalOpened'
   | 'portalClosed'
@@ -385,6 +393,8 @@ export interface HitStopEvent {
   duration: number;
   /** Whether this was a critical hit */
   isCrit: boolean;
+  /** Whether this hit was a super critical hit */
+  isSuperCrit?: boolean;
 }
 
 /** Near miss event data (tension effect) */
@@ -622,7 +632,8 @@ export interface EventDataMap {
   // Difficulty System V2 events
   marketUpdate: { pnlPercent?: number; price?: number };
   playerLevelUp: { level: number };
-  playerHealthChange: { hpPercent: number };
+  playerExperienceChange: { exp: number; nextLevelExp: number; expPercent: number };
+  playerHealthChange: { hpPercent: number; hp: number; maxHp: number };
   gameStart: { leverage?: number; position?: 'LONG' | 'SHORT'; entryPrice?: number };
   difficultyUpdated: Record<string, unknown>;
   shockDetected: { intensity: number; direction: 'up' | 'down' };
@@ -630,6 +641,8 @@ export interface EventDataMap {
     level: 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';
     distance: number;
   };
+  secondElapsed: { totalSeconds: number };
+  fpsUpdated: { avgFps: number };
   /** @deprecated AI Director V2: Boss wave events deprecated */
   bossWaveStart: { cycleNumber: number };
   /** @deprecated AI Director V2: Boss wave events deprecated */
@@ -676,6 +689,14 @@ export interface EventDataMap {
     pnlPercent: number;
   };
   portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
+  marketConnectionStateChanged: {
+    state: 'connected' | 'degraded' | 'disconnected' | 'reconnecting';
+  };
+  marketDataFallback: {
+    lastRealData: unknown;
+    usingDefaults: boolean;
+  };
+  marketReconnectAttempt: { attempt: number };
 
   // Market Event Mapper V2 events
   screenShake: { intensity: number; duration: number };

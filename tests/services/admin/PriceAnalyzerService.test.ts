@@ -1,4 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// Mock Supabase
+import { vi } from 'vitest';
+vi.mock('../../../services/core/Supabase', () => ({
+  supabase: {
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+  },
+  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
+
+import { describe, it, expect, beforeEach } from 'vitest';
+import { supabase } from '../../../services/core/Supabase';
 import { priceAnalyzer } from '../../../services/admin/PriceAnalyzerService';
 
 // Mock Logger
@@ -8,19 +21,6 @@ vi.mock('../../../services/system/Logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   },
-}));
-
-// Mock Supabase
-const mockSupabase = {
-  from: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  gte: vi.fn().mockReturnThis(),
-  order: vi.fn().mockReturnThis(),
-};
-
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: mockSupabase,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 describe('PriceAnalyzerService', () => {
@@ -68,16 +68,18 @@ describe('PriceAnalyzerService', () => {
       },
     ];
 
-    mockSupabase
-      .from()
-      .select()
-      .gte()
-      .order.mockResolvedValue({ data: mockData, error: null });
+    const orderMock = vi.fn().mockResolvedValue({ data: mockData, error: null });
+    const gteMock = vi.fn().mockReturnValue({ order: orderMock });
+    const selectMock = vi.fn().mockReturnValue({ gte: gteMock });
+    const fromSpy = vi
+      .spyOn(supabase as any, 'from')
+      .mockReturnValue({ select: selectMock } as any);
 
     await priceAnalyzer.loadHistoryFromSupabase();
     expect(priceAnalyzer.isHistoryLoaded()).toBe(true);
     expect(priceAnalyzer.getHistory('BTC').length).toBe(2);
     expect(priceAnalyzer.getAnalysis('BTC')?.currentPrice).toBe(50000);
+    expect(fromSpy).toHaveBeenCalledWith('price_logs');
   });
 
   it('should calculate volatility and trend with enough data', () => {

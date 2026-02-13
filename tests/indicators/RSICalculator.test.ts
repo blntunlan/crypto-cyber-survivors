@@ -47,24 +47,26 @@ describe('RSICalculator', () => {
       expect(calculator.getRSI()).toBe(50);
     });
 
-    it('should return 100 when only gains (all prices increasing)', () => {
+    it('should return near-100 when only gains (all prices increasing)', () => {
       // Start with enough history, then all gains (need 15+ data points)
       const prices = [
         100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,
       ];
       prices.forEach(p => calculator.update(p));
 
-      expect(calculator.getRSI()).toBe(100);
+      // Clamped to 95 to avoid extreme display values when avgLoss ≈ 0
+      expect(calculator.getRSI()).toBe(95);
     });
 
-    it('should return 0 when only losses (all prices decreasing)', () => {
+    it('should return near-0 when only losses (all prices decreasing)', () => {
       // All decreasing prices (need 15+ data points)
       const prices = [
         115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 101, 100,
       ];
       prices.forEach(p => calculator.update(p));
 
-      expect(calculator.getRSI()).toBe(0);
+      // Clamped to 5 to avoid extreme display values when avgGain ≈ 0
+      expect(calculator.getRSI()).toBe(5);
     });
 
     it('should calculate RSI correctly for mixed price changes', () => {

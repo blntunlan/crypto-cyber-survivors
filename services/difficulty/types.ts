@@ -3,7 +3,7 @@ import type { MACDResult } from '../../types/indicators';
 
 /**
  * Wave phase names
- * @deprecated Wave phases have been removed in AI Director V2.
+ * Legacy Support (V1)
  * Difficulty is now driven by market conditions and player flow state.
  * Keeping this type for legacy compatibility.
  */

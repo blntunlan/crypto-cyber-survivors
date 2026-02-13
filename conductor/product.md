@@ -17,6 +17,7 @@ Crypto Survivors is a high-adrenaline, real-time market-driven survival game tha
 - **Market-Driven Difficulty:** Live price feeds (Binance/Coinbase) affecting spawn rates, enemy speed, and multipliers in real-time.
 - **Deep Progression & Customization:** 40+ crypto-themed upgrades (cards), a tiered rarity system, and a stackable buff/debuff decorator system.
 - **Multi-Platform Accessibility:** Fully responsive HUD with safe-area support, dual control schemes (Virtual Joystick/Drag-to-Move), and PWA support.
+- **Seamless Authentication:** Secure, passwordless entry via Email OTP and Social OAuth (Google, Discord) with aggressive session persistence for PWA users.
 
 ## Aesthetic & Design Philosophy
 - **Cyber-Finance / Neon Aesthetic:** A high-contrast visual style utilizing neon lasers, grid-based background rendering, and stylized financial indicator visualizations (RSI, ATR) integrated into the game world.

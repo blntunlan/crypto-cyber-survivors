@@ -34,7 +34,8 @@ describe('ATRCalculator', () => {
     calculator.update(200, 100, 150); // High=200, Low=100, PrevClose=115. TR=100. History: [10, 15, 100]
 
     // Period is 3, so first TR (10) should be removed.
-    const result = calculator.update(160, 140, 150); // High=160, Low=140, PrevClose=150. TR=20.
+    // Use unique close price (151 instead of 150) to avoid flat-price skip
+    const result = calculator.update(160, 140, 151); // High=160, Low=140, PrevClose=150. TR=20.
     // History should be [15, 100, 20]
     expect(result.atr).toBe((15 + 100 + 20) / 3);
   });
@@ -54,7 +55,9 @@ describe('ATRCalculator', () => {
   });
 
   it('should handle zero close price gracefully', () => {
+    // With input validation, close=0 is rejected and lastResult is returned
     const result = calculator.update(10, 0, 0);
+    expect(result.atr).toBe(0); // Initial lastResult
     expect(result.atrPercent).toBe(0);
   });
 

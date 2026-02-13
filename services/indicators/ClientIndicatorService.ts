@@ -293,7 +293,7 @@ class ClientIndicatorServiceClass {
   /**
    * Calculate price change over the window period
    */
-  private calculatePriceChange(currentTimestamp: number): {
+  private calculatePriceChange(_currentTimestamp: number): {
     priceChangePercent: number;
     isFlashCrash: boolean;
     isMoonShot: boolean;

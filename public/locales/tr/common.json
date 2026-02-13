@@ -61,6 +61,24 @@
       "connect_wallet": "Cüzdanı Bağla"
     },
     "auth": {
+      "sign_in": "Giriş Yap",
+      "sign_up": "Hesap Oluştur",
+      "email": "E-posta",
+      "password": "Şifre",
+      "forgot_password": "Şifremi Unuttum",
+      "send_otp": "Kod Gönder",
+      "verify_otp": "Kodu Doğrula",
+      "otp_sent": "6 haneli kod e-postanıza gönderildi",
+      "back_to_signin": "Geri",
+      "no_account": "Hesabınız yok mu?",
+      "has_account": "Zaten hesabınız var mı?",
+      "or_continue_with": "Veya şununla devam et",
+      "email_otp": "E-posta Kodu",
+      "email_password": "E-posta & Şifre",
+      "resend_code": "Kodu almadınız mı? Tekrar gönder",
+      "invalid_email": "Lütfen geçerli bir e-posta girin",
+      "password_min": "Şifre en az 6 karakter olmalıdır",
+      "check_email": "Doğrulama için e-postanızı kontrol edin",
       "errors": {
         "not_authenticated": "Kimlik doğrulanmadı",
         "backend_not_configured": "Backend yapılandırılmadı",
@@ -96,6 +114,23 @@
         "return_home": "Ana Sayfaya Dön",
         "error_occurred": "Bir hata oluştu"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -104,6 +139,7 @@
         "phantom": "Phantom Cüzdan"
       }
     },
+    "anonymous": "Anonim",
     "modes": {
       "casual_name": "Serbest",
       "casual_desc": "Klasik sonsuz hayatta kalma. Kendi temponda oyna.",
@@ -204,6 +240,8 @@
       "peak": "Zirve"
     },
     "announcer": {
+      "supply_drop": "İKMAL DROP",
+      "loot_crate_appeared": "Bir ganimet sandığı belirdi!",
       "oversold": "AŞIRI SATIM",
       "overbought": "AŞIRI ALIM",
       "bullish": "Boğa koşulları tespit edildi",
@@ -249,7 +287,7 @@
     "leaderboard_title": "Liderlik Tablosu",
     "refresh_pool": "Havuzu Yenile",
     "no_scores": "Henüz skor yok",
-    "claim_top": "Zirveyi ilk sen kap!",
+    "claim_top": "Zirveye yerleşen ilk kişi sen ol!",
     "you": "Sen",
     "points": "puan",
     "sync_complete": "SENKRONİZASYON TAMAMLANDI",
@@ -263,7 +301,9 @@
     "risk_reward": "Yüksek risk, yüksek ödül",
     "cash_out": "NAKİT ÇIK",
     "secure_rewards": "Ödüllerini güvence altına al",
-    "decision_hint": "Yüksek döngüler = Daha fazla XP & daha iyi ganimetler"
+    "decision_hint": "Yüksek döngüler = Daha fazla XP ve daha iyi ganimet",
+    "cycle_count": "Döngü {{count}}",
+    "anonymous": "Anonim"
   },
   "hub": {
     "play": "OYNA",
@@ -442,6 +482,18 @@
       "protocol_retro": "PROTOKOL: RETRO",
       "protocol_cyber": "PROTOKOL: CYBER"
     },
+    "stats": {
+      "tests_passing": "Başarılı Testler",
+      "singleton_services": "Tekil Servisler",
+      "target_performance": "Hedef Performans",
+      "event_types": "Olay Türleri"
+    },
+    "terminal": {
+      "initializing": "ALTSİSTEMLER_BAŞLATILIYOR...",
+      "connection_established": "BAĞLANTI_KURULDU: GECİKME 8ms",
+      "status_ready": "DURUM: DAĞITI_İÇİN_HAZIR",
+      "process_pulse": "SÜREÇ: NABIZ"
+    },
     "hero": {
       "status": "SİSTEM DURUMU: BEKLEMEDE (BETA_v1.0)",
       "title_top": "YÜKSEK RİSK",
@@ -522,11 +574,7 @@
       ],
       "phase3": "2026 Q3",
       "phase3_title": "Sosyal",
-      "phase3_items": [
-        "Dünya sıralamaları",
-        "Tekrar paylaşımı",
-        "Başarım rozetleri"
-      ],
+      "phase3_items": ["Dünya sıralamaları", "Tekrar paylaşımı", "Başarım rozetleri"],
       "phase4": "2026 Q4",
       "phase4_title": "Genişleme",
       "phase4_items": [

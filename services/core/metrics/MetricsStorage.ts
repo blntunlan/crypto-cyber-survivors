@@ -10,7 +10,7 @@
 
 import { Logger } from '../../system/Logger';
 import { type SessionMetrics } from '../../../types/metrics';
-import { supabase, isSupabaseConfigured } from '../Supabase';
+import { supabase, isSupabaseConfigured } from '../../supabase/client';
 import { UserSessionService } from '../../auth/UserSessionService';
 import { VerificationQueue } from '../../verification/VerificationQueue';
 import { EventBus } from '../EventBus';
@@ -119,7 +119,7 @@ export class MetricsStorage {
    */
   private async syncToSupabase(session: SessionMetrics, retryCount = 0): Promise<void> {
     // Skip sync if Supabase is not configured
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       Logger.debug('[MetricsStorage] Supabase not configured, skipping sync');
       return;
     }

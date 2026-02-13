@@ -32,6 +32,14 @@ vi.mock('lucide-react', () => ({
   RefreshCw: ({ className }: any) => (
     <div data-testid="icon-refresh" className={className} />
   ),
+  AtSign: () => <div data-testid="icon-at-sign" />,
+  Search: () => <div data-testid="icon-search" />,
+  Disc: () => <div data-testid="icon-disc" />,
+  Code2: () => <div data-testid="icon-code2" />,
+  Apple: () => <div data-testid="icon-apple" />,
+  Mail: () => <div data-testid="icon-mail" />,
+  Tv: () => <div data-testid="icon-tv" />,
+  User: () => <div data-testid="icon-user" />,
 }));
 
 // Mock Supabase
@@ -65,7 +73,7 @@ vi.mock('../../../contexts/useTheme', () => ({
 // Mock Language
 vi.mock('../../../contexts/LanguageContext', () => ({
   useLanguage: () => ({
-    t: (key: string) => key,
+    t: (key: string) => (key === 'hud.anonymous' ? 'Anonymous' : key),
   }),
 }));
 

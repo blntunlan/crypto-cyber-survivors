@@ -23,9 +23,20 @@ export interface CheatHandlers {
  *
  * @param gameStatus - Current game status
  * @param handlers - Callback handlers for cheat actions
+ * @param enabled - Whether cheat keyboard shortcuts should be active
  */
-export function useCheatManager(gameStatus: GameStatus, handlers: CheatHandlers): void {
+export function useCheatManager(
+  gameStatus: GameStatus,
+  handlers: CheatHandlers,
+  enabled = true
+): void {
   useEffect(() => {
+    CheatManager.setEnabled(enabled);
+
+    if (!enabled) {
+      return;
+    }
+
     CheatManager.init({
       onLevelUp: () => {
         if (gameStatus === GameStatus.PLAYING) {
@@ -46,5 +57,5 @@ export function useCheatManager(gameStatus: GameStatus, handlers: CheatHandlers)
     });
 
     return () => CheatManager.destroy();
-  }, [gameStatus, handlers]);
+  }, [gameStatus, handlers, enabled]);
 }

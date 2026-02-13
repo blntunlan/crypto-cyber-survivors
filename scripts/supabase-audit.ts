@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import 'dotenv/config';
 /**
  * Supabase Audit & Debug Workflow Script
  *
@@ -604,8 +605,8 @@ async function runFullAudit(): Promise<AuditResult> {
   rls.checks.forEach(c => log.result(c.status, c.name, c.message));
 
   log.section('Performance');
-  const performance = await checkPerformance(supabase);
-  performance.checks.forEach(c => log.result(c.status, c.name, c.message));
+  const performanceResult = await checkPerformance(supabase);
+  performanceResult.checks.forEach(c => log.result(c.status, c.name, c.message));
 
   log.section('Data Integrity');
   const dataIntegrity = await checkDataIntegrity(supabase);
@@ -620,7 +621,7 @@ async function runFullAudit(): Promise<AuditResult> {
     connection,
     schema,
     rls,
-    performance,
+    performanceResult,
     dataIntegrity,
     roadmapAlignment,
   ];
@@ -680,7 +681,7 @@ async function runFullAudit(): Promise<AuditResult> {
       connection,
       schema,
       rls,
-      performance,
+      performance: performanceResult,
       dataIntegrity,
       roadmapAlignment,
     },

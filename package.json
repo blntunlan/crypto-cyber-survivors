@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/sync-docs.js > $null 2>&1 ; vite --open",
-    "build": "node scripts/sync-docs.js ; vite build",
+    "dev": "node scripts/sync-docs.js && vite --open",
+    "build": "node scripts/sync-docs.js && vite build",
     "docs:sync": "node scripts/sync-docs.js",
     "start": "node server.js",
     "preview": "vite preview",
@@ -26,12 +26,12 @@
     "prepare": "husky",
     "railway:link": "railway link",
     "railway:deploy": "railway up",
-    "railway:market:deploy": "cd railway-market-server ; railway up",
+    "railway:market:deploy": "cd railway-market-server && railway up",
     "supabase:gen": "npx supabase gen types typescript --project-id dnhfsmvwqjxoextwbebj > types/supabase.ts",
     "supabase:push": "npx supabase db push",
     "supabase:functions:deploy": "npx supabase functions deploy --project-ref dnhfsmvwqjxoextwbebj",
     "supabase:functions:serve": "npx supabase functions serve --no-verify-jwt",
-    "security:check": "grep -rE 'api_key|secret|password|token|private_key' . --exclude-dir={node_modules,dist,.git} --exclude={package-lock.json,.env.example}",
+    "security:check": "node scripts/security-check.js",
     "deploy": "git push origin main",
     "train:ai": "tsx simulation/evolution/Trainer.ts --watch"
   },
@@ -68,6 +68,7 @@
     "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "axe-core": "^4.11.1",
+    "dotenv": "^17.2.4",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -105,7 +106,7 @@
       "npx ts-node scripts/ui-consistency-audit.ts --ci"
     ],
     "railway-market-server/src/**/*.ts": [
-      "bash -c 'cd railway-market-server && npm run typecheck'"
+      "node scripts/run-market-typecheck.js"
     ],
     "!(public|coverage|dist|node_modules|playwright-report|test-results|remotion-video|.agent|.agents)/**/*.{json,css}": [
       "prettier --write"

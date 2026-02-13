@@ -32,9 +32,13 @@ const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
   luck: 0.1,
   lifesteal: 0,
   critChance: 0.1,
+  critDamage: 2.0,
+  projectiles: 1,
   magnet: 50,
   armor: 0,
   area: 1,
+  regen: 0,
+  dodge: 0,
   ...overrides,
 });
 
@@ -374,7 +378,8 @@ describe('GameplayValidator', () => {
         [enemy],
         snapshot
       );
-      expect(fixedEnemies[0].active).toBe(false);
+      expect(fixedEnemies.length).toBe(1);
+      expect(fixedEnemies[0]!.active).toBe(false);
     });
   });
 
@@ -504,7 +509,8 @@ describe('GameplayValidator', () => {
       GameplayValidator.validate(snapshot);
 
       expect(eventSpy).toHaveBeenCalled();
-      expect(eventSpy.mock.calls[0][0].issues.length).toBeGreaterThan(0);
+      const call = eventSpy.mock.calls[0];
+      expect(call?.[0]?.issues?.length).toBeGreaterThan(0);
 
       unsub();
     });

@@ -22,6 +22,11 @@ import {
   CheckCircle,
   AlertCircle,
   Loader,
+  Search,
+  AtSign,
+  Disc,
+  Code2,
+  type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -48,13 +53,13 @@ interface ProfileSettingsProps {
 const OAUTH_PROVIDERS: {
   id: AuthProvider;
   name: string;
-  icon: string;
+  icon: LucideIcon;
   color: string;
 }[] = [
-  { id: 'google', name: 'Google', icon: '🔍', color: '#4285F4' },
-  { id: 'twitter', name: 'Twitter/X', icon: '𝕏', color: '#000000' },
-  { id: 'discord', name: 'Discord', icon: '🎮', color: '#5865F2' },
-  { id: 'github', name: 'GitHub', icon: '🐙', color: '#333333' },
+  { id: 'google', name: 'Google', icon: Search, color: '#4285F4' },
+  { id: 'twitter', name: 'Twitter/X', icon: AtSign, color: '#000000' },
+  { id: 'discord', name: 'Discord', icon: Disc, color: '#5865F2' },
+  { id: 'github', name: 'GitHub', icon: Code2, color: '#333333' },
 ];
 
 // ============================================
@@ -349,6 +354,7 @@ export const ProfileSettingsContent: React.FC<{
               {OAUTH_PROVIDERS.map(provider => {
                 const isLinked = linkedProviders.includes(provider.id);
                 const isLinking = linkingProvider === provider.id;
+                const ProviderIcon = provider.icon;
 
                 return (
                   <div
@@ -360,7 +366,12 @@ export const ProfileSettingsContent: React.FC<{
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xl">{provider.icon}</span>
+                      <span
+                        className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10"
+                        style={{ color: provider.color }}
+                      >
+                        <ProviderIcon className="h-5 w-5" />
+                      </span>
                       <span className="font-medium text-white">{provider.name}</span>
                       {isLinked && <CheckCircle className="h-4 w-4 text-green-400" />}
                     </div>

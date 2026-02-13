@@ -2,15 +2,26 @@
  * E2E Tests - Main Game Flow
  *
  * Tests the complete user journey:
- * 1. Nickname Entry
+ * 1. Landing Page
  * 2. Hub Menu
  * 3. Main Menu
  * 4. Game Start
- * 5. Gameplay
- * 6. Game Over
  */
 
 import { test, expect } from '@playwright/test';
+
+async function launchFromLanding(page: import('@playwright/test').Page): Promise<void> {
+  const launchButton = page
+    .getByRole('button', {
+      name: /EXECUTE|START|LAUNCH|BAŞLAT|landing\.hero\.start/i,
+    })
+    .first();
+  await expect(launchButton).toBeVisible({ timeout: 15000 });
+  await launchButton.click();
+  await expect(page.getByRole('button', { name: /PLAY|hub\.play/i })).toBeVisible({
+    timeout: 15000,
+  });
+}
 
 test.describe('Game Flow', () => {
   test.beforeEach(async ({ context, page }) => {
@@ -22,46 +33,47 @@ test.describe('Game Flow', () => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
-      localStorage.setItem('has_seen_landing', 'true');
+      // Ensure menu->game transition can initialize a valid session in E2E
+      localStorage.setItem(
+        'crypto_survivors_user',
+        JSON.stringify({
+          profileId: '00000000-0000-4000-a000-000000000000',
+          nickname: 'FlowTester',
+          createdAt: Date.now(),
+        })
+      );
     });
     // Wait for the app to be ready (look for root but not necessarily content yet)
     await expect(page.locator('#root')).toBeAttached();
   });
 
-  test('should display nickname entry screen on first visit', async ({ page }) => {
+  test('should display landing page on first visit', async ({ page }) => {
     await page.goto('/');
-    // Wait for the nickname screen to appear
-    await expect(page.locator('input').first()).toBeVisible({ timeout: 10000 });
+    await expect(
+      page
+        .getByRole('button', {
+          name: /EXECUTE|START|LAUNCH|BAŞLAT|landing\.hero\.start/i,
+        })
+        .first()
+    ).toBeVisible({ timeout: 15000 });
   });
 
-  test('should allow entering nickname and proceed to hub menu', async ({ page }) => {
+  test('should launch from landing and proceed to hub menu', async ({ page }) => {
     await page.goto('/');
 
-    // Enter nickname
-    const nicknameInput = page.locator('input').first();
-    await nicknameInput.waitFor({ state: 'visible', timeout: 10000 });
-    await nicknameInput.fill('E2ETestPlayer');
-
-    // Submit
-    await page.keyboard.press('Enter');
-
-    // Wait for Hub Menu - look for PLAY button (resilient to key name if translation slow)
-    const playBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
-    await expect(playBtn).toBeVisible({ timeout: 15000 });
-    // Should also see the nickname in Hub
-    await expect(page.locator('text=E2ETestPlayer')).toBeVisible();
+    await launchFromLanding(page);
+    const hasSeenLanding = await page.evaluate(() =>
+      localStorage.getItem('has_seen_landing')
+    );
+    expect(hasSeenLanding).toBe('true');
   });
 
   test('should navigate from hub to main menu and start game', async ({ page }) => {
     await page.goto('/');
-
-    // 1. Login
-    const nicknameInput = page.locator('input').first();
-    await nicknameInput.fill('FlowTester');
-    await page.keyboard.press('Enter');
+    await launchFromLanding(page);
 
     // 2. Hub Menu -> Main Menu
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
     await expect(playHubBtn).toBeVisible({ timeout: 10000 });
     await playHubBtn.click();
 
@@ -71,14 +83,15 @@ test.describe('Game Flow', () => {
     await longBtn.click();
 
     // 4. Confirm in-game
-    await expect(page.locator('text=/LV|LVL|LEVEL/i')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('canvas')).toBeVisible();
   });
 
   test('should display crypto pair selection on main menu', async ({ page }) => {
-    // Skip nickname entry via localStorage
+    // Skip landing via localStorage
     await page.goto('/');
     await page.evaluate(() => {
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -92,12 +105,12 @@ test.describe('Game Flow', () => {
     await page.reload();
 
     // Hub -> Main
-    await page.getByRole('button', { name: 'PLAY' }).click();
+    await page.getByRole('button', { name: /PLAY|hub\.play/i }).click();
 
     // Check for pair selection (BTC, ETH, SOL)
-    await expect(page.getByRole('button', { name: /btc/i }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /eth/i }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /sol/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^BTC$/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^ETH$/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^SOL$/i }).first()).toBeVisible();
   });
 });
 

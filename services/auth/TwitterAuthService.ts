@@ -8,7 +8,7 @@
  */
 
 import { Logger } from '../system/Logger';
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { UserSessionService } from './UserSessionService';
 import { EventBus } from '../core/EventBus';
 
@@ -285,7 +285,7 @@ class TwitterAuthServiceClass {
     profile: TwitterUserProfile,
     _tokens: { access_token: string; refresh_token?: string }
   ): Promise<void> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       Logger.warn('[TwitterAuth] Supabase not configured - storing locally only');
       // Store in local session for offline mode
       localStorage.setItem(
@@ -336,7 +336,7 @@ class TwitterAuthServiceClass {
    * Check if current user has Twitter linked
    */
   async hasTwitterLinked(): Promise<boolean> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return localStorage.getItem('twitter_linked_profile') !== null;
     }
 
@@ -361,7 +361,7 @@ class TwitterAuthServiceClass {
     name: string;
     profileImageUrl?: string;
   } | null> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       const stored = localStorage.getItem('twitter_linked_profile');
       return stored ? JSON.parse(stored) : null;
     }
@@ -390,7 +390,7 @@ class TwitterAuthServiceClass {
    * Unlink Twitter from current user
    */
   async unlinkTwitter(): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       localStorage.removeItem('twitter_linked_profile');
       return { success: true };
     }

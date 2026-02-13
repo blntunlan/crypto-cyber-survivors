@@ -6,20 +6,16 @@
  * - Player tracking initialization
  * - Device profiling and sync
  * - Device benchmarking
- * - Authentication check:
- *   - DEV: Skip login entirely, use anonymous session
- *   - PROD: Require authentication (OAuth/Magic Link)
+ * - Auth check intentionally disabled (temporary architecture reset)
  */
 
 import { useEffect, useState, useCallback } from 'react';
 import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
 import { Logger } from '../services/system/Logger';
-import { UserPersistenceService } from '../services/auth/UserPersistenceService';
-
 interface UseAppInitializationResult {
-  /** Whether the user needs to authenticate (PROD only) */
+  /** Legacy flag kept for compatibility (always false) */
   needsNickname: boolean;
-  /** Set needsNickname state */
+  /** Legacy setter kept for compatibility */
   setNeedsNickname: (value: boolean) => void;
   /** Whether initialization is complete */
   isInitialized: boolean;
@@ -64,68 +60,8 @@ export function useAppInitialization(): UseAppInitializationResult {
         }
       );
 
-      // 5. Check authentication based on environment
-      const isDev = import.meta.env.DEV;
-
-      if (isDev) {
-        // DEV MODE: Check for existing user
-        Logger.info('[useAppInitialization] DEV MODE: Checking authentication');
-
-        const user = await UserPersistenceService.initialize();
-        if (user) {
-          setNeedsNicknameWithLog(false);
-        } else {
-          setNeedsNicknameWithLog(true);
-        }
-      } else {
-        // PRODUCTION MODE: Require authentication
-        Logger.info('[useAppInitialization] PROD MODE: Checking authentication');
-
-        // Check for authenticated Supabase session
-        const { supabase, isSupabaseConfigured } =
-          await import('../services/core/Supabase');
-
-        if (isSupabaseConfigured() && supabase) {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-
-          if (session?.user) {
-            // User is authenticated
-            Logger.info(
-              `[useAppInitialization] User authenticated: ${session.user.email}`
-            );
-
-            // Ensure profile exists using ProfileService (centralized logic)
-            const { ProfileService } = await import('../services/auth/ProfileService');
-            const profileResult = await ProfileService.getInstance().initialize();
-
-            if (profileResult.isValid && profileResult.profile) {
-              // Profile exists or was auto-linked
-              await UserPersistenceService.createOrUpdateUser(
-                profileResult.profile.displayName,
-                false
-              );
-              setNeedsNicknameWithLog(false);
-            } else {
-              // No profile yet or needs nickname - show nickname screen
-              setNeedsNicknameWithLog(true);
-            }
-          } else {
-            // Not authenticated - show auth screen
-            Logger.info(
-              '[useAppInitialization] No session found, requiring authentication'
-            );
-            setNeedsNicknameWithLog(true);
-          }
-        } else {
-          // Supabase not configured - fallback to dev mode
-          Logger.warn(
-            '[useAppInitialization] Supabase not configured, falling back to dev mode'
-          );
-          setNeedsNicknameWithLog(false);
-        }
-      }
+      // 5. Auth reset mode: always allow direct entry to hub flow.
+      setNeedsNicknameWithLog(false);
 
       setIsInitialized(true);
     };

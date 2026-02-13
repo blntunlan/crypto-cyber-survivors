@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 
@@ -43,7 +43,7 @@ export class WalletService {
     const profileId = UserSessionService.getProfileId();
     if (profileId.startsWith('anon_')) return 0;
 
-    if (!isSupabaseConfigured() || supabase === null) return 0;
+    if (!isSupabaseConfigured()) return 0;
 
     const { data, error } = await supabase
       .from('virtual_accounts')
@@ -66,7 +66,7 @@ export class WalletService {
     const profileId = UserSessionService.getProfileId();
     if (profileId.startsWith('anon_')) return [];
 
-    if (!isSupabaseConfigured() || supabase === null) return [];
+    if (!isSupabaseConfigured()) return [];
 
     // Query ledger table for transaction history
     const { data, error } = await supabase

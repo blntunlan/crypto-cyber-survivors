@@ -23,15 +23,20 @@ import { portalSystem } from '../gameplay/PortalSystem';
  * 5. HUD-like canvas overlays (Damage indicators)
  */
 export class GameRenderer implements IGameRenderer {
+  private static instance: GameRenderer | null = null;
   private backgroundRenderer: BackgroundRenderer;
   private entityRenderer: EntityRenderer;
   private projectileRenderer: ProjectileRenderer;
   private effectRenderer: EffectRenderer;
 
-  constructor(
+  public static getInstance(): GameRenderer {
+    return (GameRenderer.instance ??= new GameRenderer());
+  }
+
+  private constructor(
     background: BackgroundRenderer = new BackgroundRenderer(),
     entity: EntityRenderer = new EntityRenderer(),
-    projectile: ProjectileRenderer = new ProjectileRenderer(),
+    projectile: ProjectileRenderer = ProjectileRenderer.getInstance(),
     effect: EffectRenderer = new EffectRenderer()
   ) {
     this.backgroundRenderer = background;
@@ -60,7 +65,7 @@ export class GameRenderer implements IGameRenderer {
     ctx.save();
 
     // 1. Screen Shake (if enabled and intensity > 0)
-    if (graphics.showScreenShake && state.shake > 0) {
+    if (status === GameStatus.PLAYING && graphics.showScreenShake && state.shake > 0) {
       ctx.translate(
         (Math.random() - GAME_ENGINE.SHAKE_CENTER_OFFSET) * state.shake,
         (Math.random() - GAME_ENGINE.SHAKE_CENTER_OFFSET) * state.shake

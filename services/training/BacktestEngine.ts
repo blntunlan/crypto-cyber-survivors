@@ -255,7 +255,7 @@ class BacktestEngineClass {
       if (dataIndex >= this.indicators.length) break;
 
       const indicator = this.indicators[dataIndex];
-      const marketData = this.marketData[dataIndex];
+      if (!indicator) break;
 
       // Get AI decision (simplified - will use actual network later)
       const aiDecision = this.getAIDecision(player, indicator, networkWeights);
@@ -629,6 +629,8 @@ class BacktestEngineClass {
       const indicator = this.indicators[dataIndex];
       const marketData = this.marketData[dataIndex];
 
+      if (!indicator || !marketData) break;
+
       // Calculate HP percentage
       const hpPercent = player.hp / player.maxHp;
 
@@ -709,7 +711,7 @@ class BacktestEngineClass {
           playerHP: player.hp,
           activeEnemies,
           spawnRate,
-          marketPrice: marketData?.close ?? 0,
+          marketPrice: marketData.price,
           rsi: indicator.rsi,
           atr: indicator.atrPercent,
         });

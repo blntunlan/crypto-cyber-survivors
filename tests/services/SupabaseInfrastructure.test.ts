@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isSupabaseConfigured, supabase } from '../../services/core/Supabase';
+import { isSupabaseConfigured, supabase } from '../../services/supabase/client';
 import { Logger } from '../../services/system/Logger';
 
 describe('Supabase Infrastructure', () => {
@@ -15,7 +15,7 @@ describe('Supabase Infrastructure', () => {
   });
 
   it('should have basic expected methods if configured', () => {
-    if (isSupabaseConfigured() && supabase) {
+    if (isSupabaseConfigured()) {
       expect(supabase).toHaveProperty('from');
       expect(supabase).toHaveProperty('auth');
       expect(supabase).toHaveProperty('functions');

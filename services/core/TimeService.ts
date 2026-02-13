@@ -37,6 +37,9 @@ class TimeServiceClass {
   /** Real-world timestamp of the last frame */
   private lastRealTime: number = 0;
 
+  /** Track last emitted second for event-driven updates */
+  private lastEmittedSecond: number = -1;
+
   /** Whether the game clock is currently active */
   private isPaused: boolean = true;
 
@@ -73,12 +76,20 @@ class TimeServiceClass {
    */
   private setupListeners(): void {
     this.unsubscribeFns.push(
-      EventBus.on('gameReset', () => {
-        this.reset();
-      }),
-      EventBus.on('beforeReset', () => {
-        this.reset();
-      })
+      EventBus.on(
+        'gameReset',
+        () => {
+          this.reset();
+        },
+        { scope: 'system' }
+      ),
+      EventBus.on(
+        'beforeReset',
+        () => {
+          this.reset();
+        },
+        { scope: 'system' }
+      )
     );
   }
 
@@ -104,6 +115,7 @@ class TimeServiceClass {
     this.gameTime = 0;
     this.deltaTime = 0;
     this.lastRealTime = 0;
+    this.lastEmittedSecond = -1;
     this.isPaused = true;
     this.timeScale = 1.0;
     this.deltaHistory = [];
@@ -149,6 +161,13 @@ class TimeServiceClass {
 
     // Advance total game time
     this.gameTime += this.deltaTime;
+
+    // Check for second boundary crossing for event-driven HUD
+    const currentSecond = Math.floor(this.getGameTimeSeconds());
+    if (currentSecond > this.lastEmittedSecond && currentSecond >= 0) {
+      this.lastEmittedSecond = currentSecond;
+      EventBus.emit('secondElapsed', { totalSeconds: currentSecond });
+    }
 
     // Save for next frame
     this.lastRealTime = currentTime;

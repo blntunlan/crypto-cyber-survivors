@@ -1,43 +1,65 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { screenService } from '../../services/system/ScreenService';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { EventBus } from '../../services/core/EventBus';
 
 /**
  * FPSCounter - Development-only FPS display
  *
- * Note: The actual FPS value is updated via Direct DOM manipulation
- * from the parent's RAF loop using the ID 'fps-counter'
+ * Subscribes to 'fpsUpdated' EventBus events from FPSMonitor
+ * and updates the displayed value via direct DOM manipulation (ref).
  */
 
 const DesktopFPS: React.FC = () => {
-  const { t } = useLanguage();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsubscribe = EventBus.on('fpsUpdated', (data: { avgFps: number }) => {
+      if (ref.current) {
+        ref.current.textContent = `${data.avgFps} FPS`;
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <div
       className="absolute left-2 z-[110]"
       style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
     >
       <div
+        ref={ref}
         id="fps-counter"
         className="rounded bg-green-500/80 px-2 py-1 font-stats text-[10px] font-bold text-white shadow-lg"
       >
-        {t('hud.fps_formatted', { val: '--' })}
+        -- FPS
       </div>
     </div>
   );
 };
 
 const MobileFPS: React.FC = () => {
-  const { t } = useLanguage();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsubscribe = EventBus.on('fpsUpdated', (data: { avgFps: number }) => {
+      if (ref.current) {
+        ref.current.textContent = `${data.avgFps} FPS`;
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <div
       className="absolute left-4 z-[110]"
       style={{ top: 'calc(0.5rem + env(safe-area-inset-top, 0px))' }}
     >
       <div
+        ref={ref}
         id="fps-counter"
         className="rounded bg-green-500/60 px-1.5 py-0.5 font-stats text-[8px] font-bold text-white"
       >
-        {t('hud.fps_formatted', { val: '--' })}
+        -- FPS
       </div>
     </div>
   );
@@ -58,3 +80,5 @@ export const FPSCounter: React.FC = memo(() => {
 
   return isMobile ? <MobileFPS /> : <DesktopFPS />;
 });
+
+FPSCounter.displayName = 'FPSCounter';

@@ -3,6 +3,8 @@ import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { EventBus } from '../../services/core/EventBus';
+import { TimeService } from '../../services/core/TimeService';
 
 /**
  * WaveTimer - Adaptive Survival Time Display
@@ -16,6 +18,33 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 const DesktopWaveTimer: React.FC = () => {
   const { t } = useLanguage();
+  const [displayTime, setDisplayTime] = useState('0:00');
+
+  useEffect(() => {
+    const formatTime = (totalSeconds: number): string => {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    setDisplayTime(formatTime(Math.floor(TimeService.getGameTimeSeconds())));
+
+    const unsubSecondElapsed = EventBus.on(
+      'secondElapsed',
+      data => setDisplayTime(formatTime(data.totalSeconds)),
+      { scope: 'ui' }
+    );
+
+    const unsubReset = EventBus.on('gameReset', () => setDisplayTime('0:00'), {
+      scope: 'ui',
+    });
+
+    return () => {
+      unsubSecondElapsed();
+      unsubReset();
+    };
+  }, []);
+
   return (
     <div className="flex flex-col items-center">
       <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">
@@ -26,7 +55,7 @@ const DesktopWaveTimer: React.FC = () => {
         id="wave-timer-text"
         className="text-4xl font-black italic tabular-nums tracking-tighter text-white drop-shadow-lg"
       >
-        0:00
+        {displayTime}
       </div>
     </div>
   );
@@ -36,6 +65,32 @@ const MobileWaveTimer: React.FC = () => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
   const { rfs, isVeryNarrow } = useResponsiveUI();
+  const [displayTime, setDisplayTime] = useState('0:00');
+
+  useEffect(() => {
+    const formatTime = (totalSeconds: number): string => {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    setDisplayTime(formatTime(Math.floor(TimeService.getGameTimeSeconds())));
+
+    const unsubSecondElapsed = EventBus.on(
+      'secondElapsed',
+      data => setDisplayTime(formatTime(data.totalSeconds)),
+      { scope: 'ui' }
+    );
+
+    const unsubReset = EventBus.on('gameReset', () => setDisplayTime('0:00'), {
+      scope: 'ui',
+    });
+
+    return () => {
+      unsubSecondElapsed();
+      unsubReset();
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center">
@@ -53,7 +108,7 @@ const MobileWaveTimer: React.FC = () => {
         className={`font-black italic tabular-nums leading-none tracking-tighter text-white drop-shadow-lg ${isRetro ? 'font-retro-pixel' : ''}`}
         style={{ fontSize: isRetro ? rfs(22) : rfs(26) }}
       >
-        0:00
+        {displayTime}
       </div>
     </div>
   );

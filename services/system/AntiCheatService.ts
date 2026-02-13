@@ -21,7 +21,7 @@
 import { EventBus } from '../core/EventBus';
 import { Logger } from './Logger';
 import { type CheatType } from '../../types/events';
-import { supabase } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 
 // =============================================================================
 // TYPES
@@ -391,14 +391,6 @@ class AntiCheatServiceClass {
     severity: number;
   }): Promise<void> {
     try {
-      if (!supabase) {
-        Logger.warn('[AntiCheat] Supabase not initialized, cannot report cheat');
-        return;
-      }
-
-      // Skip if Supabase is not configured (supabase is null)
-      // This check prevents runtime errors when credentials are missing
-      const { isSupabaseConfigured } = await import('../core/Supabase');
       if (!isSupabaseConfigured()) {
         Logger.debug('[AntiCheat] Supabase not configured, skipping cheat report');
         return;

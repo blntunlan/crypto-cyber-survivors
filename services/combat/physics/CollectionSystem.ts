@@ -146,6 +146,12 @@ export class CollectionSystem implements ICollectionSystem {
 
     EventBus.emit('xpGained', { amount: xpGain });
 
+    EventBus.emit('playerExperienceChange', {
+      exp: player.exp,
+      nextLevelExp: player.nextLevelExp,
+      expPercent: (player.exp / player.nextLevelExp) * 100,
+    });
+
     // Level up check
     if (player.exp >= player.nextLevelExp && state.levelUpFreeze <= 0) {
       state.levelUpFreeze = GAME_ENGINE.PENDING_LEVEL_UP_FREEZE_MS;

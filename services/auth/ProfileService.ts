@@ -7,7 +7,7 @@
  * - Synchronized with Supabase
  */
 
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { SupabaseUtils } from '../core/SupabaseUtils';
 import { Logger } from '../system/Logger';
 import type { Database } from '../../types/supabase';
@@ -59,7 +59,7 @@ export class ProfileService {
    */
   async initialize(): Promise<ProfileValidationResult> {
     // Check if Supabase is configured
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       Logger.warn('[ProfileService] Supabase not configured');
       return { isValid: false, error: 'Backend not configured' };
     }
@@ -75,13 +75,14 @@ export class ProfileService {
       }
 
       // 1. Check if profile exists using auth_user_id (modern auth flow)
-      const existingProfile = await SupabaseUtils.safeFetchSingle<DBProfile>(
+      const existingProfileResult = await SupabaseUtils.safeFetchSingle<DBProfile>(
         supabase.from('profiles').select('*').eq('auth_user_id', user.id),
         'Profile',
         false // Not critical yet as they are authenticated, it just might not exist
       );
 
-      if (existingProfile) {
+      if (existingProfileResult.success) {
+        const existingProfile = existingProfileResult.data;
         // Profile exists - validate and update last seen
         this.currentProfile = this.mapToPlayerProfile(existingProfile, user);
 
@@ -100,7 +101,7 @@ export class ProfileService {
 
       // 2. RETURNING USER CHECK: If no auth_user_id match, check by email (Legacy profiles)
       if (user.email) {
-        const legacyProfile = await SupabaseUtils.safeFetchSingle<DBProfile>(
+        const legacyProfileResult = await SupabaseUtils.safeFetchSingle<DBProfile>(
           supabase
             .from('profiles')
             .select('*')
@@ -109,7 +110,8 @@ export class ProfileService {
           'LegacyProfile'
         );
 
-        if (legacyProfile) {
+        if (legacyProfileResult.success) {
+          const legacyProfile = legacyProfileResult.data;
           Logger.info(
             '[ProfileService] Found legacy profile matching email, linking...',
             user.email
@@ -166,7 +168,7 @@ export class ProfileService {
     emailVerified?: boolean;
     authProvider?: string;
   }): Promise<ProfileValidationResult> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return { isValid: false, error: 'Backend not configured' };
     }
 
@@ -226,7 +228,7 @@ export class ProfileService {
    * Validate current session and profile
    */
   async validateSession(): Promise<ProfileValidationResult> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return { isValid: false, error: 'Backend not configured' };
     }
 
@@ -246,7 +248,7 @@ export class ProfileService {
       }
 
       // Verify profile still exists in DB
-      const profile = await SupabaseUtils.safeFetchSingle<{
+      const profileResult = await SupabaseUtils.safeFetchSingle<{
         id: string;
         is_banned: boolean;
       }>(
@@ -258,11 +260,13 @@ export class ProfileService {
         true // This IS critical - they have a session but profile might be gone
       );
 
-      if (!profile) {
+      if (!profileResult.success) {
         this.currentProfile = null;
         // SupabaseUtils already cleared UserPersistenceService if profile missing
         return { isValid: false, error: 'Profile not found' };
       }
+
+      const profile = profileResult.data;
 
       if (profile.is_banned) {
         this.currentProfile = null;
@@ -287,7 +291,7 @@ export class ProfileService {
    * Update profile display name
    */
   async updateDisplayName(newDisplayName: string): Promise<ProfileValidationResult> {
-    if (!this.currentProfile || !supabase) {
+    if (!this.currentProfile || !isSupabaseConfigured()) {
       return { isValid: false, error: 'No profile loaded' };
     }
 
@@ -326,7 +330,7 @@ export class ProfileService {
    * This allows existing anonymous players to "upgrade" their account
    */
   async linkLegacyProfile(legacyProfileId: string): Promise<ProfileValidationResult> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return { isValid: false, error: 'Backend not configured' };
     }
 

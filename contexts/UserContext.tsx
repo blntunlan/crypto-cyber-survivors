@@ -57,13 +57,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       if (storedUser) {
         try {
           const { supabase, isSupabaseConfigured } =
-            await import('../services/core/Supabase');
+            await import('../services/supabase/client');
 
-          if (
-            isSupabaseConfigured() &&
-            supabase &&
-            !SecurityUtils.isLocalEnvironment()
-          ) {
+          if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
             // Verify if profile still exists in the NEW database
             const { data, error } = await supabase
               .from('profiles')
@@ -106,10 +102,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const login = useCallback(
     async (nickname: string): Promise<{ success: boolean; error?: string }> => {
       const { supabase, isSupabaseConfigured } =
-        await import('../services/core/Supabase');
+        await import('../services/supabase/client');
 
       // Local-only mode for development (LAN, localhost, etc.)
-      if (!isSupabaseConfigured() || !supabase || SecurityUtils.isLocalEnvironment()) {
+      if (!isSupabaseConfigured() || SecurityUtils.isLocalEnvironment()) {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
         const mockPlayerId = '00000000-0000-4000-a000-000000000000';
         const now = Date.now();
@@ -241,12 +237,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (error instanceof Error) {
           errorMsg = error.message;
         } else if (typeof error === 'object' && error !== null) {
-          errorMsg =
+          errorMsg = String(
             anyError.message ??
-            anyError.details ??
-            anyError.hint ??
-            JSON.stringify(error);
-          detail = anyError.code ? `[Code: ${anyError.code}]` : '';
+              anyError.details ??
+              anyError.hint ??
+              JSON.stringify(error)
+          );
+          detail = anyError.code ? `[Code: ${String(anyError.code)}]` : '';
         } else {
           errorMsg = String(error);
         }
@@ -290,8 +287,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     // Async sync to Supabase
     try {
       const { supabase, isSupabaseConfigured } =
-        await import('../services/core/Supabase');
-      if (isSupabaseConfigured() && supabase && !SecurityUtils.isLocalEnvironment()) {
+        await import('../services/supabase/client');
+      if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
         void supabase
           .from('profiles')
           .update({ last_seen_at: new Date(now).toISOString() })

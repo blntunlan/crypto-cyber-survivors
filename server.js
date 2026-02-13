@@ -21,43 +21,124 @@ const DIST_DIR = join(process.cwd(), 'dist');
 // =============================================================================
 const BLOCKED_PATHS = [
   // WordPress
-  '/wp-admin', '/wp-login.php', '/wp-content', '/wp-includes', '/wordpress',
-  '/xmlrpc.php', '/wlwmanifest.xml', '/wp-config', '/wp-json',
+  '/wp-admin',
+  '/wp-login.php',
+  '/wp-content',
+  '/wp-includes',
+  '/wordpress',
+  '/xmlrpc.php',
+  '/wlwmanifest.xml',
+  '/wp-config',
+  '/wp-json',
   // Environment/Config files
-  '/.env', '/.git', '/.svn', '/.htaccess', '/.htpasswd',
-  '/config.php', '/config.json', '/config.yml', '/configuration.php',
-  '/settings.php', '/settings.json', '/web.config',
+  '/.env',
+  '/.git',
+  '/.svn',
+  '/.htaccess',
+  '/.htpasswd',
+  '/config.php',
+  '/config.json',
+  '/config.yml',
+  '/configuration.php',
+  '/settings.php',
+  '/settings.json',
+  '/web.config',
   // Admin panels
-  '/admin.php', '/admin/', '/administrator/', '/panel/', '/cpanel/',
-  '/webadmin/', '/sysadmin/', '/manage/', '/manager/',
+  '/admin.php',
+  '/admin/',
+  '/administrator/',
+  '/panel/',
+  '/cpanel/',
+  '/webadmin/',
+  '/sysadmin/',
+  '/manage/',
+  '/manager/',
   // Shell/Backdoors
-  '/shell', '/c99', '/r57', '/b374k', '/alfa', '/cmd', '/eval',
-  '/exec', '/backdoor', '/webshell', '/upload.php',
+  '/shell',
+  '/c99',
+  '/r57',
+  '/b374k',
+  '/alfa',
+  '/cmd',
+  '/eval',
+  '/exec',
+  '/backdoor',
+  '/webshell',
+  '/upload.php',
   // Database
-  '/phpmyadmin', '/pma', '/myadmin', '/mysql', '/db', '/sql', '/database',
-  '/adminer', '/dbadmin', '/sqladmin',
+  '/phpmyadmin',
+  '/pma',
+  '/myadmin',
+  '/mysql',
+  '/db',
+  '/sql',
+  '/database',
+  '/adminer',
+  '/dbadmin',
+  '/sqladmin',
   // Backups
-  '/backup', '/backups', '/bak', '/old', '/temp', '/tmp', '/cache',
-  '/dump', '/export', '/import',
+  '/backup',
+  '/backups',
+  '/bak',
+  '/old',
+  '/temp',
+  '/tmp',
+  '/cache',
+  '/dump',
+  '/export',
+  '/import',
   // API probing
-  '/api/v1', '/api/v2', '/graphql', '/rest/', '/soap/',
+  '/api/v1',
+  '/api/v2',
+  '/graphql',
+  '/rest/',
+  '/soap/',
   // Common CMS
-  '/joomla', '/drupal', '/magento', '/prestashop', '/opencart',
+  '/joomla',
+  '/drupal',
+  '/magento',
+  '/prestashop',
+  '/opencart',
   // Source maps (production)
   '.map',
   // Debug endpoints
-  '/debug', '/trace', '/test', '/phpinfo', '/info.php',
+  '/debug',
+  '/trace',
+  '/test',
+  '/phpinfo',
+  '/info.php',
   // Actuator endpoints (Spring Boot)
-  '/actuator', '/jolokia', '/metrics',
+  '/actuator',
+  '/jolokia',
+  '/metrics',
 ];
 
 // Blocked file extensions (source code, configs)
 const BLOCKED_EXTENSIONS = [
-  '.php', '.asp', '.aspx', '.jsp', '.cgi', '.pl',
-  '.py', '.rb', '.sh', '.bash', '.ps1',
-  '.bak', '.old', '.orig', '.swp', '.swo',
-  '.sql', '.sqlite', '.db', '.mdb',
-  '.log', '.ini', '.conf', '.cfg',
+  '.php',
+  '.asp',
+  '.aspx',
+  '.jsp',
+  '.cgi',
+  '.pl',
+  '.py',
+  '.rb',
+  '.sh',
+  '.bash',
+  '.ps1',
+  '.bak',
+  '.old',
+  '.orig',
+  '.swp',
+  '.swo',
+  '.sql',
+  '.sqlite',
+  '.db',
+  '.mdb',
+  '.log',
+  '.ini',
+  '.conf',
+  '.cfg',
 ];
 
 // =============================================================================
@@ -129,7 +210,8 @@ function getSecurityHeaders(isAsset = false) {
     // Referrer policy
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     // Permissions policy (comprehensive list)
-    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=()',
+    'Permissions-Policy':
+      'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=()',
     // HSTS (2 years with preload)
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
     // Prevent DNS prefetch to third parties
@@ -139,7 +221,7 @@ function getSecurityHeaders(isAsset = false) {
     'Cross-Origin-Resource-Policy': 'same-origin',
     // Hide server info
     'X-Powered-By': '',
-    'Server': '',
+    Server: '',
   };
 
   // Add CSP for HTML pages only (stricter - no unsafe-eval)
@@ -156,7 +238,7 @@ function getSecurityHeaders(isAsset = false) {
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "upgrade-insecure-requests",
+      'upgrade-insecure-requests',
     ].join('; ');
   }
 

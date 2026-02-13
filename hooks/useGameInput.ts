@@ -12,10 +12,24 @@ export const useGameInput = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input field
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
       keys.current[e.key] = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Ignore if typing in an input field
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
       keys.current[e.key] = false;
       // Reset consumed state when space is released
       if (e.key === ' ' || e.key === 'Spacebar') {

@@ -3,15 +3,13 @@ import { useAuthStore } from '../../stores/useAuthStore';
 
 describe('useAuthStore', () => {
   beforeEach(() => {
-    if (useAuthStore && useAuthStore.getState) {
-      useAuthStore.setState({
-        user: null,
-        session: null,
-        loading: false,
-        error: null,
-        authStage: 'LOGIN',
-      });
-    }
+    useAuthStore.setState({
+      user: null,
+      session: null,
+      loading: false,
+      error: null,
+      authStage: 'LOGIN',
+    });
   });
 
   it('should have initial state', () => {

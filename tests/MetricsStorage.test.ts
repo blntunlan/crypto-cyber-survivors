@@ -49,7 +49,7 @@ const mockSupabaseSelect = vi.fn();
 const mockSupabaseUpdate = vi.fn();
 let supabaseConfigured = false;
 
-vi.mock('../services/core/Supabase', () => ({
+vi.mock('../services/supabase/client', () => ({
   get supabase() {
     if (!supabaseConfigured) return null;
     return {

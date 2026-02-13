@@ -3,6 +3,7 @@
     "start": "खेल शुरू करें",
     "settings": "सेटिंग्स",
     "back": "वापस",
+    "close": "बंद करें",
     "loading": "लोड हो रहा है...",
     "game_over": "खेल समाप्त",
     "score": "स्कोर: {{val}}",
@@ -11,6 +12,7 @@
     "level_label": "स्तर",
     "loading_engine": "इंजन लोड हो रहा है...",
     "back_to_hub": "हब पर वापस",
+    "project_info": "परियोजना की जानकारी",
     "paused": "रुका हुआ",
     "resume": "जारी रखें",
     "restart": "फिर से शुरू करें",
@@ -58,42 +60,25 @@
       "install_phantom": "Phantom इंस्टॉल करें",
       "connect_wallet": "वॉलेट कनेक्ट करें"
     },
-    "modes": {
-      "casual_name": "कैजुअल",
-      "casual_desc": "क्लासिक अंतहीन उत्तरजीविता। अपनी गति से खेलें।",
-      "competitive_name": "प्रतिस्पर्धी",
-      "competitive_desc": "5 मिनट का चक्र। लीडरबोर्ड के लिए प्रतिस्पर्धा करें और पुरस्कार जीतें।"
-    },
-    "game_over_screen": {
-      "liquidated": "लिक्विडेटेड",
-      "new_high_score": "नया हाई स्कोर!",
-      "pnl": "P&L",
-      "time": "समय",
-      "kills": "शिकार",
-      "career_stats": "करियर आँकड़े",
-      "games": "खेल",
-      "total_kills": "कुल शिकार",
-      "best_level": "सर्वश्रेष्ठ स्तर",
-      "back_to_menu": "टर्मिनल पर वापस"
-    },
-    "cycle_complete_screen": {
-      "title": "चक्र {{val}} पूर्ण",
-      "subtitle": "5 मिनट जीवित रहे",
-      "time_survived": "उत्तरजीविता समय",
-      "level_reached": "पहुंचा गया स्तर",
-      "total_kills": "कुल शिकार",
-      "pnl_performance": "P&L प्रदर्शन",
-      "coins_earned": "अर्जित सिक्के",
-      "details": "विवरण",
-      "hide": "छिपाएं",
-      "continue_risk": "जोखिम जारी रखें: {{val}}% कठिनाई वृद्धि",
-      "cash_out": "कैश आउट",
-      "continue": "जारी रखें",
-      "multiplier_hint": "अगले चक्र में {{val}}% सिक्का गुणक अर्जित करने के लिए जारी रखें"
-    },
-    "close": "बंद करें",
-    "project_info": "परियोजना की जानकारी",
     "auth": {
+      "sign_in": "साइन इन करें",
+      "sign_up": "खाता बनाएं",
+      "email": "ईमेल",
+      "password": "पासवर्ड",
+      "forgot_password": "पासवर्ड भूल गए?",
+      "send_otp": "कोड भेजें",
+      "verify_otp": "कोड सत्यापित करें",
+      "otp_sent": "आपके ईमेल पर 6 अंकों का कोड भेजा गया",
+      "back_to_signin": "वापस",
+      "no_account": "खाता नहीं है?",
+      "has_account": "पहले से ही एक खाता है?",
+      "or_continue_with": "या इसके साथ जारी रखें",
+      "email_otp": "ईमेल कोड",
+      "email_password": "ईमेल और पासवर्ड",
+      "resend_code": "कोड नहीं मिला? पुन: भेजें",
+      "invalid_email": "कृपया एक मान्य ईमेल दर्ज करें",
+      "password_min": "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए",
+      "check_email": "सत्यापन के लिए अपना ईमेल जांचें",
       "errors": {
         "not_authenticated": "प्रमाणित नहीं",
         "backend_not_configured": "बैकएंड कॉन्फ़िगर नहीं किया गया",
@@ -129,6 +114,23 @@
         "return_home": "होम पर वापस जाएँ",
         "error_occurred": "एक त्रुटि हुई"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -136,6 +138,40 @@
         "github": "GitHub",
         "phantom": "Phantom वॉलेट"
       }
+    },
+    "anonymous": "Anonymous",
+    "modes": {
+      "casual_name": "कैजुअल",
+      "casual_desc": "क्लासिक अंतहीन उत्तरजीविता। अपनी गति से खेलें।",
+      "competitive_name": "प्रतिस्पर्धी",
+      "competitive_desc": "5 मिनट का चक्र। लीडरबोर्ड के लिए प्रतिस्पर्धा करें और पुरस्कार जीतें।"
+    },
+    "game_over_screen": {
+      "liquidated": "लिक्विडेटेड",
+      "new_high_score": "नया हाई स्कोर!",
+      "pnl": "P&L",
+      "time": "समय",
+      "kills": "शिकार",
+      "career_stats": "करियर आँकड़े",
+      "games": "खेल",
+      "total_kills": "कुल शिकार",
+      "best_level": "सर्वश्रेष्ठ स्तर",
+      "back_to_menu": "टर्मिनल पर वापस"
+    },
+    "cycle_complete_screen": {
+      "title": "चक्र {{val}} पूर्ण",
+      "subtitle": "5 मिनट जीवित रहे",
+      "time_survived": "उत्तरजीविता समय",
+      "level_reached": "पहुंचा गया स्तर",
+      "total_kills": "कुल शिकार",
+      "pnl_performance": "P&L प्रदर्शन",
+      "coins_earned": "अर्जित सिक्के",
+      "details": "विवरण",
+      "hide": "छिपाएं",
+      "continue_risk": "जोखिम जारी रखें: {{val}}% कठिनाई वृद्धि",
+      "cash_out": "कैश आउट",
+      "continue": "जारी रखें",
+      "multiplier_hint": "अगले चक्र में {{val}}% सिक्का गुणक अर्जित करने के लिए जारी रखें"
     }
   },
   "market": {
@@ -157,8 +193,12 @@
     "live_feed": "लाइव फीड",
     "profit": "लाभ",
     "loss": "हानि",
+    "profit_short": "ल",
+    "loss_short": "ह",
     "entry": "एंट्री",
+    "entry_short": "प्र",
     "volatility": "अस्थिरता",
+    "volatility_short": "अ",
     "liquidation": "लिक्विडेशन",
     "whale_detected": "व्हेल मिली",
     "kernel_status": "कर्नेल स्थिति",
@@ -200,6 +240,8 @@
       "peak": "शिखर"
     },
     "announcer": {
+      "supply_drop": "SUPPLY DROP",
+      "loot_crate_appeared": "A loot crate appeared!",
       "oversold": "मार्केट ओवरसोल्ड",
       "overbought": "मार्केट ओवरबॉट",
       "bullish": "बुलिश स्थितियां मिलीं",
@@ -207,11 +249,6 @@
       "rsi_message": "{{sentiment}} (RSI: {{rsi}})",
       "whale_spotted": "{{tier}} व्हेल देखी गई",
       "whale_volume": "बाजार पर भारी वॉल्यूम मिला!",
-      "tiers": {
-        "baby": "बेबी व्हेल",
-        "mega": "मेगा व्हेल",
-        "giga": "गीगा व्हेल"
-      },
       "volume_spike": "वॉल्यूम स्पाइक",
       "volume_spike_msg": "भारी दबाव पाया गया!",
       "breakout": "ब्रेकआउट",
@@ -221,7 +258,12 @@
       "consolidation": "स्थिरीकरण",
       "consolidation_msg": "बाजार ठंडा हो रहा है।",
       "flash_crash": "फ्लैश क्रैश",
-      "flash_crash_msg": "घबराहट की बिक्री! उच्च खतरा!"
+      "flash_crash_msg": "घबराहट की बिक्री! उच्च खतरा!",
+      "tiers": {
+        "baby": "बेबी व्हेल",
+        "mega": "मेगा व्हेल",
+        "giga": "गीगा व्हेल"
+      }
     },
     "recovered": "रिकवर हुआ",
     "xp_multiplier_up": "XP गुणक बढ़ा!",
@@ -235,8 +277,8 @@
       "berserk": "बेरसेर्क",
       "diamond_hands": "डायमंड हैंड्स",
       "luck_boost": "भाग्य वृद्धि",
-      "rage_mode": "रेज मोड",
-      "lucky_star": "भाग्यशाली तारा"
+      "lucky_star": "भाग्यशाली तारा",
+      "rage_mode": "रेज मोड"
     },
     "fps": "FPS",
     "achievement": "उपलब्धि!",
@@ -249,10 +291,6 @@
     "you": "आप",
     "points": "अंक",
     "sync_complete": "सिंक पूर्ण",
-    "profit_short": "ल",
-    "loss_short": "ह",
-    "entry_short": "प्र",
-    "volatility_short": "अ",
     "cycle_complete": "चक्र पूरा हुआ",
     "finished": "समाप्त",
     "auto_continue": "ऑटो-जारी रखें",
@@ -263,7 +301,9 @@
     "risk_reward": "बड़ा जोखिम, बड़ा इनाम",
     "cash_out": "कैश आउट",
     "secure_rewards": "इनाम सुरक्षित करें",
-    "decision_hint": "अधिक चक्र = अधिक एक्सपी और लूट"
+    "decision_hint": "अधिक चक्र = अधिक एक्सपी और लूट",
+    "cycle_count": "Cycle {{count}}",
+    "anonymous": "Anonymous"
   },
   "hub": {
     "play": "खेलें",
@@ -281,6 +321,14 @@
     "gear_subtitle": "सेटिंग्स",
     "nav_help_retro": "[WASD] चलना   [ENTER] चुनना",
     "nav_help_modern": "चलने के लिए wasd • चुनने के लिए enter"
+  },
+  "profile": {
+    "tabs": {
+      "overview": "अवलोकन",
+      "stats": "आँकड़े",
+      "achievements": "उपलब्धियाँ",
+      "settings": "सेटिंग्स"
+    }
   },
   "levelup": {
     "title": "लेवल अप",
@@ -344,6 +392,8 @@
     "side_left": "बाएं",
     "side_right": "दाएं",
     "haptic_feedback": "हैप्टिक फीडबैक",
+    "visual_feedback": "दृश्य प्रतिक्रिया",
+    "joystick": "वर्चुअल जॉयस्टिक",
     "vibration": "वाइब्रेशन",
     "controls": "कंट्रोल",
     "move": "मूवमेंट",
@@ -362,9 +412,13 @@
     "lang_es": "स्पेनिश",
     "lang_pt": "पुर्तगाली",
     "lang_zh": "चीनी",
-    "lang_ru": "रूसी",
-    "visual_feedback": "दृश्य प्रतिक्रिया",
-    "joystick": "वर्चुअल जॉयस्टिक"
+    "lang_ru": "रूसी"
+  },
+  "pwa": {
+    "installTitle": "ऐप इंस्टॉल करें",
+    "installDescription": "बेहतर अनुभव के लिए होम स्क्रीन पर जोड़ें",
+    "install": "इंस्टॉल करें",
+    "notNow": "अभी नहीं"
   },
   "tutorial": {
     "language": {
@@ -427,6 +481,18 @@
       "execute": "इंजन चलाएं",
       "protocol_retro": "प्रोटोकॉल: रेट्रो",
       "protocol_cyber": "प्रोटोकॉल: साइबर"
+    },
+    "stats": {
+      "tests_passing": "Tests Passing",
+      "singleton_services": "Singleton Services",
+      "target_performance": "Target Performance",
+      "event_types": "Event Types"
+    },
+    "terminal": {
+      "initializing": "INITIALIZING_SUBSYSTEMS...",
+      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
+      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
+      "process_pulse": "PROCESS: PULSE"
     },
     "hero": {
       "status": "सिस्टम स्थिति: स्टैंडबाय मोड (BETA_v1.0)",
@@ -494,11 +560,7 @@
       "active_tag": "सक्रिय",
       "phase1": "Q1 2026",
       "phase1_title": "नींव",
-      "phase1_items": [
-        "कोर गेमप्ले लूप",
-        "60 FPS कैनवास इंजन",
-        "सुपर्बेस एकीकरण"
-      ],
+      "phase1_items": ["कोर गेमप्ले लूप", "60 FPS कैनवास इंजन", "सुपर्बेस एकीकरण"],
       "phase2": "Q2 2026",
       "phase2_title": "लाइव मार्केट",
       "phase2_items": [
@@ -508,18 +570,10 @@
       ],
       "phase3": "Q3 2026",
       "phase3_title": "सामाजिक",
-      "phase3_items": [
-        "वैश्विक लीडरबोर्ड",
-        "रिप्ले शेयरिंग",
-        "उपलब्धि बैज"
-      ],
+      "phase3_items": ["वैश्विक लीडरबोर्ड", "रिप्ले शेयरिंग", "उपलब्धि बैज"],
       "phase4": "Q4 2026",
       "phase4_title": "विस्तार",
-      "phase4_items": [
-        "मल्टी-क्रिप्टो सपोर्ट",
-        "दैनिक चुनौतियां",
-        "मौसमी कार्यक्रम"
-      ]
+      "phase4_items": ["मल्टी-क्रिप्टो सपोर्ट", "दैनिक चुनौतियां", "मौसमी कार्यक्रम"]
     },
     "faq": {
       "title": "सामान्य प्रश्न",
@@ -546,19 +600,5 @@
       "discord_soon": "Discord (जल्द आ रहा है)",
       "twitter_soon": "Twitter/X (जल्द आ रहा है)"
     }
-  },
-  "profile": {
-    "tabs": {
-      "overview": "अवलोकन",
-      "stats": "आँकड़े",
-      "achievements": "उपलब्धियाँ",
-      "settings": "सेटिंग्स"
-    }
-  },
-  "pwa": {
-    "installTitle": "ऐप इंस्टॉल करें",
-    "installDescription": "बेहतर अनुभव के लिए होम स्क्रीन पर जोड़ें",
-    "install": "इंस्टॉल करें",
-    "notNow": "अभी नहीं"
   }
 }

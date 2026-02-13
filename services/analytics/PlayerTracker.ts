@@ -9,7 +9,7 @@
  */
 
 import { Logger } from '../system/Logger';
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { UserSessionService } from '../auth/UserSessionService';
 
 interface PlayerData {
@@ -39,7 +39,7 @@ export class PlayerTracker {
    * Initialize or restore player
    */
   private async initializePlayer(): Promise<void> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       Logger.debug('[PlayerTracker] Supabase not configured');
       return;
     }
@@ -140,7 +140,7 @@ export class PlayerTracker {
 
     this.heartbeatTimer = setInterval(() => {
       void (async () => {
-        if (!this.currentPlayer || !isSupabaseConfigured() || !supabase) return;
+        if (!this.currentPlayer || !isSupabaseConfigured()) return;
 
         try {
           await supabase
@@ -182,7 +182,7 @@ export class PlayerTracker {
       return false;
     }
 
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       // Still update local cache even without Supabase
       this.currentPlayer.highScore = newScore;
       return true;
@@ -222,7 +222,7 @@ export class PlayerTracker {
       benchmarkScore?: number;
     }
   ): Promise<void> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return;
     }
 

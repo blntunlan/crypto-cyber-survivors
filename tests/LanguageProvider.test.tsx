@@ -122,3 +122,4 @@ describe('LanguageProvider - Blank Screen Bug', () => {
     );
   });
 });
+

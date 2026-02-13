@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
-  PortalSystemV2,
   PORTAL_V2_CONFIG,
   createPortalSystemV2,
 } from '../../../services/gameplay/PortalSystemV2';
@@ -201,7 +200,7 @@ describe('PortalSystemV2', () => {
 
     it('should have configured rejection penalties', () => {
       expect(PORTAL_V2_CONFIG.REJECTION_PENALTIES).toHaveLength(3);
-      expect(PORTAL_V2_CONFIG.REJECTION_PENALTIES[0]?.spawnRateIncrease).toBe(0.2);
+      expect(PORTAL_V2_CONFIG.REJECTION_PENALTIES[0].spawnRateIncrease).toBe(0.2);
     });
   });
 

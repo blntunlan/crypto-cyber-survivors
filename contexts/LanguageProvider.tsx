@@ -46,10 +46,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem('game_lang', lang);
   };
 
-  const t = (
-    key: string,
-    params?: Record<string, string | number>
-  ): string | string[] => {
+  const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let value: unknown = translations;
 
@@ -61,20 +58,24 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
     }
 
-    if (Array.isArray(value)) {
-      return value;
-    }
-
-    if (typeof value !== 'string') return key;
-
-    let result = value;
-    if (params) {
+    const applyParams = (input: string): string => {
+      if (!params) return input;
+      let result = input;
       Object.entries(params).forEach(([k, v]) => {
         result = result.replace(`{{${k}}}`, v.toString());
       });
+      return result;
+    };
+
+    if (Array.isArray(value)) {
+      const stringItems = value
+        .filter((item): item is string => typeof item === 'string')
+        .map(item => applyParams(item));
+      return stringItems.join('\n');
     }
 
-    return result;
+    if (typeof value !== 'string') return key;
+    return applyParams(value);
   };
 
   return (

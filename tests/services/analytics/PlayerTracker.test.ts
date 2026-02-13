@@ -1,17 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PlayerTracker } from '../../../services/analytics/PlayerTracker';
-
-// Mock dependencies
-vi.mock('../../../services/system/Logger', () => ({
-  Logger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
-// Create a flexible mock for Supabase
+// Mock Supabase
+import { vi } from 'vitest';
 const { mockSupabase } = vi.hoisted(() => ({
   mockSupabase: {
     from: vi.fn().mockReturnThis(),
@@ -26,9 +14,24 @@ const { mockSupabase } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../services/core/Supabase', () => ({
+vi.mock('../../../services/supabase/client', () => ({
   supabase: mockSupabase as any,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { PlayerTracker } from '../../../services/analytics/PlayerTracker';
+import { isSupabaseConfigured } from '../../../services/supabase/client';
+import { UserSessionService } from '../../../services/auth/UserSessionService';
+
+// Mock other dependencies
+vi.mock('../../../services/system/Logger', () => ({
+  Logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 vi.mock('../../../services/auth/UserSessionService', () => ({
@@ -37,9 +40,6 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
     getNickname: vi.fn().mockReturnValue('test-nickname'),
   },
 }));
-
-import { isSupabaseConfigured } from '../../../services/core/Supabase';
-import { UserSessionService } from '../../../services/auth/UserSessionService';
 
 describe('PlayerTracker', () => {
   beforeEach(() => {
@@ -194,6 +194,9 @@ describe('PlayerTracker', () => {
         error: null,
       });
       const tracker = PlayerTracker.getInstance();
+
+      // Allow async init to proceed
+      vi.runAllTicks();
       await vi.advanceTimersByTimeAsync(100);
 
       // Act
@@ -315,3 +318,4 @@ describe('PlayerTracker', () => {
     });
   });
 });
+

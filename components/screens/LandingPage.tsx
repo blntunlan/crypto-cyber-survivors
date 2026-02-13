@@ -15,7 +15,13 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useInView, animate } from 'framer-motion';
+import {
+  motion,
+  AnimatePresence,
+  useInView,
+  animate,
+  type Variants,
+} from 'framer-motion';
 import {
   Shield,
   Zap,
@@ -43,12 +49,18 @@ import { useTheme } from '../../contexts/useTheme';
 // ANIMATION VARIANTS
 // =============================================================================
 
-const fadeInUp = {
+const MOTION_EASE = [0.22, 1, 0.36, 1] as const;
+
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: MOTION_EASE },
+  },
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -119,6 +131,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
+  const list = (key: string): string[] =>
+    t(key)
+      .split('\n')
+      .map(item => item.trim())
+      .filter(Boolean);
+
   // FAQ Data from Translations
   const faqItems = [
     { question: t('landing.faq.q1'), answer: t('landing.faq.a1') },
@@ -134,35 +152,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       phase: t('landing.roadmap.phase1'),
       title: t('landing.roadmap.phase1_title'),
       status: 'completed',
-      items: Array.isArray(t('landing.roadmap.phase1_items'))
-        ? (t('landing.roadmap.phase1_items') as string[])
-        : [],
+      items: list('landing.roadmap.phase1_items'),
     },
     {
       phase: t('landing.roadmap.phase2'),
       title: t('landing.roadmap.phase2_title'),
       status: 'current',
-      items: Array.isArray(t('landing.roadmap.phase2_items'))
-        ? (t('landing.roadmap.phase2_items') as string[])
-        : [],
+      items: list('landing.roadmap.phase2_items'),
     },
     {
       phase: t('landing.roadmap.phase3'),
       title: t('landing.roadmap.phase3_title'),
       status: 'upcoming',
-      items: Array.isArray(t('landing.roadmap.phase3_items'))
-        ? (t('landing.roadmap.phase3_items') as string[])
-        : [],
+      items: list('landing.roadmap.phase3_items'),
     },
     {
       phase: t('landing.roadmap.phase4'),
       title: t('landing.roadmap.phase4_title'),
       status: 'upcoming',
-      items: Array.isArray(t('landing.roadmap.phase4_items'))
-        ? (t('landing.roadmap.phase4_items') as string[])
-        : [],
+      items: list('landing.roadmap.phase4_items'),
     },
   ];
+  const casualModeItems = list('landing.modes.casual_items');
+  const competitiveModeItems = list('landing.modes.comp_items');
 
   return (
     <motion.div
@@ -222,26 +234,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             href="#engine"
             className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
           >
-            MOTOR
+            {t('landing.nav.engine')}
           </a>
           <a
             href="#pipeline"
             className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
           >
-            VERİ
+            {t('landing.nav.pipeline')}
           </a>
           <a
             href="#dev"
             className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
           >
-            GELİŞTİRİCİ
+            {t('landing.nav.dev')}
           </a>
           <button
             id="docs-nav-link"
             onClick={() => (window.location.hash = '#docs')}
             className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
           >
-            DÖKÜMAN
+            {t('landing.nav.docs')}
           </button>
 
           {/* Primary CTA */}
@@ -249,7 +261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             onClick={onLaunch}
             className="ml-2 h-11 bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-8 font-black text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            BAŞLAT
+            {t('landing.nav.execute')}
           </button>
         </div>
       </nav>
@@ -439,7 +451,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                     />
                   </div>
-                  <span className="text-[10px] text-[#d6b85c]">PROCESS: PULSE</span>
+                  <span className="text-[10px] text-[#d6b85c]">
+                    PROCESS: {t('landing.terminal.process_pulse')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -461,28 +475,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {
                 value: 2100,
                 suffix: '+',
-                label: 'Tests Passing',
+                label: t('landing.stats.tests_passing'),
                 icon: Check,
                 color: '#22c55e',
               },
               {
                 value: 42,
                 suffix: '+',
-                label: 'Singleton Services',
+                label: t('landing.stats.singleton_services'),
                 icon: Cpu,
                 color: '#d6b85c',
               },
               {
                 value: 60,
                 suffix: ' FPS',
-                label: 'Target Performance',
+                label: t('landing.stats.target_performance'),
                 icon: Zap,
                 color: '#00ffff',
               },
               {
                 value: 90,
                 suffix: '+',
-                label: 'Event Types',
+                label: t('landing.stats.event_types'),
                 icon: Activity,
                 color: '#b22222',
               },
@@ -751,16 +765,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {t('landing.modes.casual_desc')}
               </p>
               <ul className="space-y-3">
-                {Array.isArray(t('landing.modes.casual_items')) &&
-                  (t('landing.modes.casual_items') as string[]).map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center gap-3 text-sm text-slate-300"
-                    >
-                      <Check className="h-4 w-4 flex-shrink-0 text-[#d6b85c]" />
-                      {item}
-                    </li>
-                  ))}
+                {casualModeItems.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 text-sm text-slate-300"
+                  >
+                    <Check className="h-4 w-4 flex-shrink-0 text-[#d6b85c]" />
+                    {item}
+                  </li>
+                ))}
               </ul>
             </motion.div>
 
@@ -789,16 +802,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {t('landing.modes.comp_desc')}
               </p>
               <ul className="space-y-3">
-                {Array.isArray(t('landing.modes.comp_items')) &&
-                  (t('landing.modes.comp_items') as string[]).map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center gap-3 text-sm text-slate-300"
-                    >
-                      <Check className="h-4 w-4 flex-shrink-0 text-[#b22222]" />
-                      {item}
-                    </li>
-                  ))}
+                {competitiveModeItems.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 text-sm text-slate-300"
+                  >
+                    <Check className="h-4 w-4 flex-shrink-0 text-[#b22222]" />
+                    {item}
+                  </li>
+                ))}
               </ul>
             </motion.div>
           </motion.div>

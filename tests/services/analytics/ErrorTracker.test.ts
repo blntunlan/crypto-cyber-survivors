@@ -1,4 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { vi } from 'vitest';
+
+// 1. Hoist all mocks
+const { mockSupabase } = vi.hoisted(() => ({
+  mockSupabase: {
+    from: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockResolvedValue({ error: null }),
+  },
+}));
+
+vi.mock('../../../services/core/Supabase', () => ({
+  supabase: mockSupabase,
+  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
+
+// 2. Import Vitest and Service
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ErrorTracker } from '../../../services/analytics/ErrorTracker';
 
 // Mock Dependencies
@@ -19,19 +35,6 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
   },
 }));
 
-// Mock Supabase
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockResolvedValue({ error: null }),
-  },
-}));
-
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: mockSupabase as any,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
-
 describe('ErrorTracker', () => {
   let tracker: ErrorTracker;
 
@@ -42,6 +45,9 @@ describe('ErrorTracker', () => {
     tracker = ErrorTracker.getInstance();
     (tracker as any).isOnline = true;
     vi.useFakeTimers();
+    // Ensure service uses our mock
+    // Mock is already applied via vi.mock
+    // vi.spyOn(supabase as any, 'from').mockImplementation(mockSupabase.from);
   });
 
   afterEach(() => {
@@ -120,6 +126,10 @@ describe('ErrorTracker', () => {
         status: 500,
         statusText: 'Internal Server Error',
         url: 'https://api.example.com',
+        clone: function () {
+          return this;
+        },
+        text: () => Promise.resolve('Error body'),
       });
       window.fetch = mockFetch;
 
@@ -174,6 +184,69 @@ describe('ErrorTracker', () => {
       await (tracker as any).processQueue();
 
       expect(mockSupabase.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe('external integrations', () => {
+    it('should capture errors from Logger.error', async () => {
+      // Setup: we need to trigger the callback that setupLoggerSubscription registered.
+      // Since Logger is mocked, we need to inspect how onError was called.
+      const onErrorMock = (
+        import.meta.env.VITEST
+          ? (await import('../../../services/system/Logger')).Logger.onError
+          : null
+      ) as any;
+      if (onErrorMock?.mock) {
+        const callback = onErrorMock.mock.calls[0][0];
+        callback('Test Logger Message', new Error('Logger Error'), { extra: 'data' });
+
+        await tracker.flush();
+
+        expect(mockSupabase.insert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            error_type: 'LoggerError',
+            message: 'Test Logger Message',
+          })
+        );
+      }
+    });
+
+    it('should capture window error events', async () => {
+      const errorEvent = new ErrorEvent('error', {
+        message: 'Window error',
+        error: new Error('Script failed'),
+        filename: 'app.js',
+        lineno: 10,
+      });
+
+      window.dispatchEvent(errorEvent);
+      await tracker.flush();
+
+      expect(mockSupabase.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error_type: 'UnhandledError',
+          message: 'Window error',
+        })
+      );
+    });
+
+    it('should capture unhandled promise rejections', async () => {
+      const p = Promise.reject('fail');
+      p.catch(() => {}); // Prevent unhandled rejection in Vitest
+      const rejectionEvent = new PromiseRejectionEvent('unhandledrejection', {
+        reason: new Error('Async failed'),
+        promise: p,
+      });
+
+      window.dispatchEvent(rejectionEvent);
+      await tracker.flush();
+
+      expect(mockSupabase.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error_type: 'UnhandledPromiseRejection',
+          message: 'Async failed',
+        })
+      );
     });
   });
 });

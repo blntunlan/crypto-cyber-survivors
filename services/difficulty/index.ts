@@ -57,7 +57,7 @@ export type {
   DifficultyInputs,
   DifficultyContextState,
   DifficultyOutputV2,
-  WavePhase, // @deprecated - kept for legacy compatibility
+  WavePhase, // Legacy Support
   LiquidationWarning,
   LeverageScale,
 } from './types';
@@ -66,7 +66,7 @@ export type {
 export {
   DIFFICULTY_CONFIG,
   LEVERAGE_TIERS,
-  WAVE_PHASES, // @deprecated - kept for legacy compatibility
+  WAVE_PHASES, // Legacy Support
   getNearestLeverageTier,
   getLeverageScale,
 } from './constants';

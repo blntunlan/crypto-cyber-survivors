@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { AccountHealthPremium } from '../../../components/hud/AccountHealthPremium';
@@ -39,9 +38,9 @@ describe('AccountHealthPremium', () => {
   });
 
   const defaultProps = {
-    hpPercent: 100,
     hp: 100,
     maxHp: 100,
+    hpPercent: 100,
   };
 
   it('should render correctly in Desktop mode', () => {
@@ -71,22 +70,22 @@ describe('AccountHealthPremium', () => {
 
   describe('Health States', () => {
     it('should show "Secure" state (> 75%)', () => {
-      render(<AccountHealthPremium {...defaultProps} hpPercent={80} />);
+      render(<AccountHealthPremium hp={80} maxHp={100} hpPercent={80} />);
       expect(screen.getByText('hud.equity_secure')).toHaveClass('text-cyan-400');
     });
 
     it('should show "Caution" state (> 50% && <= 75%)', () => {
-      render(<AccountHealthPremium {...defaultProps} hpPercent={60} />);
+      render(<AccountHealthPremium hp={60} maxHp={100} hpPercent={60} />);
       expect(screen.getByText('hud.margin_caution')).toHaveClass('text-yellow-400');
     });
 
     it('should show "Pressure" state (> 25% && <= 50%)', () => {
-      render(<AccountHealthPremium {...defaultProps} hpPercent={40} />);
+      render(<AccountHealthPremium hp={40} maxHp={100} hpPercent={40} />);
       expect(screen.getByText('hud.margin_pressure')).toHaveClass('text-orange-500');
     });
 
     it('should show "Liquidation Risk" state (<= 25%)', () => {
-      render(<AccountHealthPremium {...defaultProps} hpPercent={10} />);
+      render(<AccountHealthPremium hp={10} maxHp={100} hpPercent={10} />);
       expect(screen.getByText('hud.liquidation_risk')).toHaveClass('text-red-600');
     });
   });
@@ -131,7 +130,7 @@ describe('AccountHealthPremium', () => {
   // Wave phases deprecated - now always shows "active" phase with cyan color
 
   it('should apply critical pulse animation when HP is low', () => {
-    render(<AccountHealthPremium {...defaultProps} hpPercent={10} />);
+    render(<AccountHealthPremium hp={10} maxHp={100} hpPercent={10} />);
     // Can't easily test animation class presence on specific dynamic elements without more specific selectors,
     // but we can check if the status text wrapper has animate-pulse
     const statusText = screen.getByText('hud.liquidation_risk');

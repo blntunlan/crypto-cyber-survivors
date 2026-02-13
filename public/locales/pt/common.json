@@ -3,6 +3,7 @@
     "start": "Iniciar Jogo",
     "settings": "Configurações",
     "back": "Voltar",
+    "close": "Fechar",
     "loading": "Carregando...",
     "game_over": "Fim de Jogo",
     "score": "Pontuação: {{val}}",
@@ -11,6 +12,7 @@
     "level_label": "Nível",
     "loading_engine": "CARREGANDO MOTOR...",
     "back_to_hub": "Voltar ao Hub",
+    "project_info": "Informações do Projeto",
     "paused": "Pausado",
     "resume": "Retomar",
     "restart": "Reiniciar",
@@ -58,42 +60,25 @@
       "install_phantom": "Instalar Phantom",
       "connect_wallet": "Conectar Carteira"
     },
-    "modes": {
-      "casual_name": "Casual",
-      "casual_desc": "Sobrevivência clássica infinita. Jogue no seu ritmo.",
-      "competitive_name": "Competitivo",
-      "competitive_desc": "Ciclos de 5 minutos. Compita pelo topo do ranking e ganhe recompensas."
-    },
-    "game_over_screen": {
-      "liquidated": "LIQUIDADO",
-      "new_high_score": "Novo Recorde!",
-      "pnl": "P&L",
-      "time": "Tempo",
-      "kills": "Abates",
-      "career_stats": "Estatísticas de Carreira",
-      "games": "Partidas",
-      "total_kills": "Total de Abates",
-      "best_level": "Melhor Nível",
-      "back_to_menu": "Voltar ao Terminal"
-    },
-    "cycle_complete_screen": {
-      "title": "CICLO {{val}} CONCLUÍDO",
-      "subtitle": "5 minutos sobrevividos",
-      "time_survived": "Tempo Sobrevivido",
-      "level_reached": "Nível Alcançado",
-      "total_kills": "Total de Abates",
-      "pnl_performance": "Desempenho P&L",
-      "coins_earned": "MOEDAS GANHAS",
-      "details": "Detalhes",
-      "hide": "Esconder",
-      "continue_risk": "Continuar Risco: {{val}}% aumento de dificuldade",
-      "cash_out": "Sacar",
-      "continue": "Continuar",
-      "multiplier_hint": "Continue para ganhar multiplicador de {{val}}% moedas no próximo ciclo"
-    },
-    "close": "Fechar",
-    "project_info": "Informações do Projeto",
     "auth": {
+      "sign_in": "Entrar",
+      "sign_up": "Criar Conta",
+      "email": "E-mail",
+      "password": "Senha",
+      "forgot_password": "Esqueceu a senha?",
+      "send_otp": "Enviar Código",
+      "verify_otp": "Verificar Código",
+      "otp_sent": "Código de 6 dígitos enviado para seu e-mail",
+      "back_to_signin": "Voltar",
+      "no_account": "Não tem uma conta?",
+      "has_account": "Já tem uma conta?",
+      "or_continue_with": "Ou continue com",
+      "email_otp": "Código por E-mail",
+      "email_password": "E-mail e Senha",
+      "resend_code": "Não recebeu o código? Reenviar",
+      "invalid_email": "Por favor, insira um e-mail válido",
+      "password_min": "A senha deve ter pelo menos 6 caracteres",
+      "check_email": "Verifique seu e-mail para confirmação",
       "errors": {
         "not_authenticated": "Não autenticado",
         "backend_not_configured": "Backend não configurado",
@@ -129,6 +114,23 @@
         "return_home": "Voltar ao Início",
         "error_occurred": "Ocorreu um erro"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -136,6 +138,40 @@
         "github": "GitHub",
         "phantom": "Carteira Phantom"
       }
+    },
+    "anonymous": "Anonymous",
+    "modes": {
+      "casual_name": "Casual",
+      "casual_desc": "Sobrevivência clássica infinita. Jogue no seu ritmo.",
+      "competitive_name": "Competitivo",
+      "competitive_desc": "Ciclos de 5 minutos. Compita pelo topo do ranking e ganhe recompensas."
+    },
+    "game_over_screen": {
+      "liquidated": "LIQUIDADO",
+      "new_high_score": "Novo Recorde!",
+      "pnl": "P&L",
+      "time": "Tempo",
+      "kills": "Abates",
+      "career_stats": "Estatísticas de Carreira",
+      "games": "Partidas",
+      "total_kills": "Total de Abates",
+      "best_level": "Melhor Nível",
+      "back_to_menu": "Voltar ao Terminal"
+    },
+    "cycle_complete_screen": {
+      "title": "CICLO {{val}} CONCLUÍDO",
+      "subtitle": "5 minutos sobrevividos",
+      "time_survived": "Tempo Sobrevivido",
+      "level_reached": "Nível Alcançado",
+      "total_kills": "Total de Abates",
+      "pnl_performance": "Desempenho P&L",
+      "coins_earned": "MOEDAS GANHAS",
+      "details": "Detalhes",
+      "hide": "Esconder",
+      "continue_risk": "Continuar Risco: {{val}}% aumento de dificuldade",
+      "cash_out": "Sacar",
+      "continue": "Continuar",
+      "multiplier_hint": "Continue para ganhar multiplicador de {{val}}% moedas no próximo ciclo"
     }
   },
   "market": {
@@ -157,8 +193,12 @@
     "live_feed": "Dados ao Vivo",
     "profit": "Lucro",
     "loss": "Prejuízo",
+    "profit_short": "L",
+    "loss_short": "P",
     "entry": "Entrada",
+    "entry_short": "ENT",
     "volatility": "Volatilidade",
+    "volatility_short": "VOL",
     "liquidation": "Liquidação",
     "whale_detected": "BALEIA DETECTADA",
     "kernel_status": "Status do Kernel",
@@ -200,6 +240,8 @@
       "peak": "Pico"
     },
     "announcer": {
+      "supply_drop": "SUPPLY DROP",
+      "loot_crate_appeared": "A loot crate appeared!",
       "oversold": "MERCADO SOBREVENDIDO",
       "overbought": "MERCADO SOBRECOMPRADO",
       "bullish": "Condições de alta detectadas",
@@ -207,11 +249,6 @@
       "rsi_message": "{{sentiment}} (RSI: {{rsi}})",
       "whale_spotted": "{{tier}} DETECTADA",
       "whale_volume": "Volume massivo detectado no mercado!",
-      "tiers": {
-        "baby": "BALEIA BEBÊ",
-        "mega": "MEGA BALEIA",
-        "giga": "GIGA BALEIA"
-      },
       "volume_spike": "PICO DE VOLUME",
       "volume_spike_msg": "Pressão massiva detectada!",
       "breakout": "ROMPIMENTO",
@@ -221,7 +258,12 @@
       "consolidation": "CONSOLIDAÇÃO",
       "consolidation_msg": "Mercado esfriando. Prepare-se.",
       "flash_crash": "QUEDA REPENTINA",
-      "flash_crash_msg": "Pânico detectado! Perigo alto."
+      "flash_crash_msg": "Pânico detectado! Perigo alto.",
+      "tiers": {
+        "baby": "BALEIA BEBÊ",
+        "mega": "MEGA BALEIA",
+        "giga": "GIGA BALEIA"
+      }
     },
     "recovered": "RECUPERADO",
     "xp_multiplier_up": "MULTIPLICADOR XP SUBIU!",
@@ -235,8 +277,8 @@
       "berserk": "Berserk",
       "diamond_hands": "Diamond Hands",
       "luck_boost": "Bônus de Sorte",
-      "rage_mode": "Modo Fúria",
-      "lucky_star": "Estrela da Sorte"
+      "lucky_star": "Estrela da Sorte",
+      "rage_mode": "Modo Fúria"
     },
     "fps": "FPS",
     "achievement": "Conquista!",
@@ -249,10 +291,6 @@
     "you": "Você",
     "points": "pontos",
     "sync_complete": "SINCRONIZAÇÃO COMPLETA",
-    "profit_short": "L",
-    "loss_short": "P",
-    "entry_short": "ENT",
-    "volatility_short": "VOL",
     "cycle_complete": "CICLO COMPLETADO",
     "finished": "Finalizado",
     "auto_continue": "Auto-continuar",
@@ -263,7 +301,9 @@
     "risk_reward": "Maior risco, maior recompensa",
     "cash_out": "SACAR",
     "secure_rewards": "Segure suas recompensas",
-    "decision_hint": "Mais ciclos = Mais XP e espólios"
+    "decision_hint": "Mais ciclos = Mais XP e espólios",
+    "cycle_count": "Cycle {{count}}",
+    "anonymous": "Anonymous"
   },
   "hub": {
     "play": "JOGAR",
@@ -281,6 +321,14 @@
     "gear_subtitle": "Configurações",
     "nav_help_retro": "[WASD] MOVER   [ENTER] SELECIONAR",
     "nav_help_modern": "wasd para navegar • enter para selecionar"
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Visão Geral",
+      "stats": "Estatísticas",
+      "achievements": "Conquistas",
+      "settings": "Ajustes"
+    }
   },
   "levelup": {
     "title": "SUBIU DE NÍVEL",
@@ -344,6 +392,8 @@
     "side_left": "Esquerda",
     "side_right": "Direita",
     "haptic_feedback": "Resposta Háptica",
+    "visual_feedback": "Feedback Visual",
+    "joystick": "Joystick Virtual",
     "vibration": "Vibração",
     "controls": "Controles",
     "move": "Movimento",
@@ -362,9 +412,13 @@
     "lang_es": "Espanhol",
     "lang_pt": "Português",
     "lang_zh": "Chinês",
-    "lang_ru": "Russo",
-    "visual_feedback": "Feedback Visual",
-    "joystick": "Joystick Virtual"
+    "lang_ru": "Russo"
+  },
+  "pwa": {
+    "installTitle": "Instalar App",
+    "installDescription": "Adicione à tela inicial para melhor experiência",
+    "install": "Instalar",
+    "notNow": "Agora não"
   },
   "tutorial": {
     "language": {
@@ -427,6 +481,18 @@
       "execute": "EXECUTAR MOTOR",
       "protocol_retro": "PROTOCOCO: RETRÔ",
       "protocol_cyber": "PROTOCOLO: CIBER"
+    },
+    "stats": {
+      "tests_passing": "Tests Passing",
+      "singleton_services": "Singleton Services",
+      "target_performance": "Target Performance",
+      "event_types": "Event Types"
+    },
+    "terminal": {
+      "initializing": "INITIALIZING_SUBSYSTEMS...",
+      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
+      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
+      "process_pulse": "PROCESS: PULSE"
     },
     "hero": {
       "status": "STATUS DO SISTEMA: EM ESPERA (BETA_v1.0)",
@@ -515,11 +581,7 @@
       ],
       "phase4": "Q4 2026",
       "phase4_title": "Expansão",
-      "phase4_items": [
-        "Suporte multi-cripto",
-        "Desafios diários",
-        "Eventos sazonais"
-      ]
+      "phase4_items": ["Suporte multi-cripto", "Desafios diários", "Eventos sazonais"]
     },
     "faq": {
       "title": "Perguntas Frequentes",
@@ -546,19 +608,5 @@
       "discord_soon": "Discord (Em breve)",
       "twitter_soon": "Twitter/X (Em breve)"
     }
-  },
-  "profile": {
-    "tabs": {
-      "overview": "Visão Geral",
-      "stats": "Estatísticas",
-      "achievements": "Conquistas",
-      "settings": "Ajustes"
-    }
-  },
-  "pwa": {
-    "installTitle": "Instalar App",
-    "installDescription": "Adicione à tela inicial para melhor experiência",
-    "install": "Instalar",
-    "notNow": "Agora não"
   }
 }

@@ -101,3 +101,4 @@ describe('usePlayerState', () => {
     expect(result.current.playerRef.current.exp).toBe(PLAYER_DEFAULTS.exp);
   });
 });
+

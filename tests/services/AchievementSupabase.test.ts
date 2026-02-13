@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AchievementService } from '../../services/gameplay/AchievementService';
-import { supabase, isSupabaseConfigured } from '../../services/core/Supabase';
+import { supabase, isSupabaseConfigured } from '../../services/supabase/client';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/system/Logger';
 
-vi.mock('../../services/core/Supabase', () => ({
+vi.mock('../../services/supabase/client', () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -25,6 +25,7 @@ vi.mock('../../services/auth/UserSessionService', () => ({
 
 vi.mock('../../services/system/Logger', () => ({
   Logger: {
+    info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
   },

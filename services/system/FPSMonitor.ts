@@ -24,6 +24,7 @@ class FPSMonitorClass {
   private frames: number[] = [];
   private lastTime = 0;
   private lastCheckTime = 0;
+  private lastFpsEmitTime = 0;
   private isMonitoring = false;
   private smoothedFps = 0; // Jitter filter (EMA)
   private profiles = [
@@ -160,6 +161,12 @@ class FPSMonitorClass {
 
     if (this.frames.length > CONFIG.SAMPLE_SIZE) {
       this.frames.shift();
+    }
+
+    // Emit FPS update for event-driven UI (Throttled to 1s)
+    if (now - this.lastFpsEmitTime > 1000) {
+      EventBus.emit('fpsUpdated', { avgFps: Math.round(this.smoothedFps) });
+      this.lastFpsEmitTime = now;
     }
 
     // Periodic check

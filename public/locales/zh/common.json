@@ -3,6 +3,7 @@
     "start": "开始游戏",
     "settings": "设置",
     "back": "返回",
+    "close": "关闭",
     "loading": "加载中...",
     "game_over": "游戏结束",
     "score": "得分: {{val}}",
@@ -11,6 +12,7 @@
     "level_label": "等级",
     "loading_engine": "引擎加载中...",
     "back_to_hub": "返回大厅",
+    "project_info": "项目信息",
     "paused": "暂停",
     "resume": "继续",
     "restart": "重新开始",
@@ -58,42 +60,25 @@
       "install_phantom": "安装 Phantom",
       "connect_wallet": "连接钱包"
     },
-    "modes": {
-      "casual_name": "休闲模式",
-      "casual_desc": "经典无尽生存。按自己的节奏游玩。",
-      "competitive_name": "竞技模式",
-      "competitive_desc": "5分钟周期。争夺排行榜并赢取奖励。"
-    },
-    "game_over_screen": {
-      "liquidated": "已爆仓 (LIQUIDATED)",
-      "new_high_score": "新高分！",
-      "pnl": "盈亏 (P&L)",
-      "time": "时间",
-      "kills": "击杀",
-      "career_stats": "生涯统计",
-      "games": "场次",
-      "total_kills": "总击杀",
-      "best_level": "最高等级",
-      "back_to_menu": "返回终端"
-    },
-    "cycle_complete_screen": {
-      "title": "周期 {{val}} 完成",
-      "subtitle": "存活 5 分钟",
-      "time_survived": "存活时间",
-      "level_reached": "达到等级",
-      "total_kills": "总击杀",
-      "pnl_performance": "盈亏表现",
-      "coins_earned": "获得代币",
-      "details": "详情",
-      "hide": "隐藏",
-      "continue_risk": "继续风险：难度增加 {{val}}%",
-      "cash_out": "提现离场",
-      "continue": "继续挑战",
-      "multiplier_hint": "继续以在下一个周期获得 {{val}}% 代币加成"
-    },
-    "close": "关闭",
-    "project_info": "项目信息",
     "auth": {
+      "sign_in": "登录",
+      "sign_up": "注册",
+      "email": "电子邮箱",
+      "password": "密码",
+      "forgot_password": "忘记密码？",
+      "send_otp": "发送验证码",
+      "verify_otp": "验证验证码",
+      "otp_sent": "6位验证码已发送至您的邮箱",
+      "back_to_signin": "返回",
+      "no_account": "还没有账号？",
+      "has_account": "已经有账号了？",
+      "or_continue_with": "或通过以下方式继续",
+      "email_otp": "邮箱验证码",
+      "email_password": "邮箱和密码",
+      "resend_code": "没收到验证码？重新发送",
+      "invalid_email": "请输入有效的电子邮箱",
+      "password_min": "密码长度至少为6个字符",
+      "check_email": "请检查您的邮箱进行验证",
       "errors": {
         "not_authenticated": "未授权",
         "backend_not_configured": "后台未配置",
@@ -129,6 +114,23 @@
         "return_home": "返回首页",
         "error_occurred": "发生错误"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -136,6 +138,40 @@
         "github": "GitHub",
         "phantom": "Phantom 钱包"
       }
+    },
+    "anonymous": "Anonymous",
+    "modes": {
+      "casual_name": "休闲模式",
+      "casual_desc": "经典无尽生存。按自己的节奏游玩。",
+      "competitive_name": "竞技模式",
+      "competitive_desc": "5分钟周期。争夺排行榜并赢取奖励。"
+    },
+    "game_over_screen": {
+      "liquidated": "已爆仓 (LIQUIDATED)",
+      "new_high_score": "新高分！",
+      "pnl": "盈亏 (P&L)",
+      "time": "时间",
+      "kills": "击杀",
+      "career_stats": "生涯统计",
+      "games": "场次",
+      "total_kills": "总击杀",
+      "best_level": "最高等级",
+      "back_to_menu": "返回终端"
+    },
+    "cycle_complete_screen": {
+      "title": "周期 {{val}} 完成",
+      "subtitle": "存活 5 分钟",
+      "time_survived": "存活时间",
+      "level_reached": "达到等级",
+      "total_kills": "总击杀",
+      "pnl_performance": "盈亏表现",
+      "coins_earned": "获得代币",
+      "details": "详情",
+      "hide": "隐藏",
+      "continue_risk": "继续风险：难度增加 {{val}}%",
+      "cash_out": "提现离场",
+      "continue": "继续挑战",
+      "multiplier_hint": "继续以在下一个周期获得 {{val}}% 代币加成"
     }
   },
   "market": {
@@ -157,8 +193,12 @@
     "live_feed": "实时数据",
     "profit": "盈利",
     "loss": "亏损",
+    "profit_short": "盈",
+    "loss_short": "亏",
     "entry": "入场价",
+    "entry_short": "入",
     "volatility": "波动率",
+    "volatility_short": "波",
     "liquidation": "强平价格",
     "whale_detected": "检测到巨鲸",
     "kernel_status": "内核状态",
@@ -200,6 +240,8 @@
       "peak": "顶峰"
     },
     "announcer": {
+      "supply_drop": "SUPPLY DROP",
+      "loot_crate_appeared": "A loot crate appeared!",
       "oversold": "市场超卖",
       "overbought": "市场超买",
       "bullish": "检测到看涨信号",
@@ -207,11 +249,6 @@
       "rsi_message": "{{sentiment}} (RSI: {{rsi}})",
       "whale_spotted": "发现 {{tier}}",
       "whale_volume": "市场检测到巨量交易！",
-      "tiers": {
-        "baby": "幼鲸",
-        "mega": "巨鲸",
-        "giga": "超级巨鲸"
-      },
       "volume_spike": "成交量激增",
       "volume_spike_msg": "检测到巨大的买入/卖出压力！",
       "breakout": "趋势突破",
@@ -221,7 +258,12 @@
       "consolidation": "盘整中",
       "consolidation_msg": "市场正在降温。准备下一步行动。",
       "flash_crash": "闪崩",
-      "flash_crash_msg": "恐慌性杀跌！高度危险！"
+      "flash_crash_msg": "恐慌性杀跌！高度危险！",
+      "tiers": {
+        "baby": "幼鲸",
+        "mega": "巨鲸",
+        "giga": "超级巨鲸"
+      }
     },
     "recovered": "已恢复",
     "xp_multiplier_up": "经验倍率提升！",
@@ -235,8 +277,8 @@
       "berserk": "狂暴",
       "diamond_hands": "钻石手",
       "luck_boost": "幸运提升",
-      "rage_mode": "暴怒模式",
-      "lucky_star": "幸运之星"
+      "lucky_star": "幸运之星",
+      "rage_mode": "暴怒模式"
     },
     "fps": "FPS",
     "achievement": "成就解锁！",
@@ -249,10 +291,6 @@
     "you": "你",
     "points": "分",
     "sync_complete": "同步完成",
-    "profit_short": "盈",
-    "loss_short": "亏",
-    "entry_short": "入",
-    "volatility_short": "波",
     "cycle_complete": "周期完成",
     "finished": "已完成",
     "auto_continue": "自动继续",
@@ -263,7 +301,9 @@
     "risk_reward": "越高风险，越高回报",
     "cash_out": "提现",
     "secure_rewards": "确保您的奖励",
-    "decision_hint": "周期越高 = 更多经验和更好掉落"
+    "decision_hint": "周期越高 = 更多经验和更好掉落",
+    "cycle_count": "Cycle {{count}}",
+    "anonymous": "Anonymous"
   },
   "hub": {
     "play": "开始",
@@ -281,6 +321,14 @@
     "gear_subtitle": "系统设置",
     "nav_help_retro": "[WASD] 移动   [ENTER] 选择",
     "nav_help_modern": "wasd 导航 • enter 选择"
+  },
+  "profile": {
+    "tabs": {
+      "overview": "概览",
+      "stats": "统计",
+      "achievements": "成就",
+      "settings": "设置"
+    }
   },
   "levelup": {
     "title": "等级提升",
@@ -344,6 +392,8 @@
     "side_left": "左",
     "side_right": "右",
     "haptic_feedback": "触觉反馈",
+    "visual_feedback": "视觉反馈",
+    "joystick": "虚拟摇杆",
     "vibration": "震动",
     "controls": "控制",
     "move": "移动",
@@ -362,9 +412,7 @@
     "lang_es": "西班牙语",
     "lang_pt": "葡萄牙语",
     "lang_zh": "中文",
-    "lang_ru": "俄语",
-    "visual_feedback": "视觉反馈",
-    "joystick": "虚拟摇杆"
+    "lang_ru": "俄语"
   },
   "pwa": {
     "installTitle": "安装应用",
@@ -434,6 +482,18 @@
       "protocol_retro": "协议: 复古",
       "protocol_cyber": "协议: 赛博"
     },
+    "stats": {
+      "tests_passing": "Tests Passing",
+      "singleton_services": "Singleton Services",
+      "target_performance": "Target Performance",
+      "event_types": "Event Types"
+    },
+    "terminal": {
+      "initializing": "INITIALIZING_SUBSYSTEMS...",
+      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
+      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
+      "process_pulse": "PROCESS: PULSE"
+    },
     "hero": {
       "status": "系统状态: 待机模式 (BETA_v1.0)",
       "title_top": "高风险",
@@ -486,13 +546,7 @@
         "本地进度保存",
         "支持离线模式"
       ],
-      "comp_items": [
-        "全球排行榜",
-        "反作弊验证",
-        "重放录制",
-        "成就追踪",
-        "赛季排名"
-      ]
+      "comp_items": ["全球排行榜", "反作弊验证", "重放录制", "成就追踪", "赛季排名"]
     },
     "roadmap": {
       "title": "开发时间轴",
@@ -500,32 +554,16 @@
       "active_tag": "进行中",
       "phase1": "2026 Q1",
       "phase1_title": "基础",
-      "phase1_items": [
-        "核心游戏循环",
-        "60 FPS Canvas 引擎",
-        "Supabase 集成"
-      ],
+      "phase1_items": ["核心游戏循环", "60 FPS Canvas 引擎", "Supabase 集成"],
       "phase2": "2026 Q2",
       "phase2_title": "实时市场",
-      "phase2_items": [
-        "Binance/Coinbase WSS",
-        "神经 AI 总监",
-        "反作弊系统"
-      ],
+      "phase2_items": ["Binance/Coinbase WSS", "神经 AI 总监", "反作弊系统"],
       "phase3": "2026 Q3",
       "phase3_title": "社交",
-      "phase3_items": [
-        "全球排行榜",
-        "重放分享",
-        "成就徽章"
-      ],
+      "phase3_items": ["全球排行榜", "重放分享", "成就徽章"],
       "phase4": "2026 Q4",
       "phase4_title": "扩张",
-      "phase4_items": [
-        "多币种支持",
-        "每日挑战",
-        "季节性活动"
-      ]
+      "phase4_items": ["多币种支持", "每日挑战", "季节性活动"]
     },
     "faq": {
       "title": "常见问题",
@@ -551,14 +589,6 @@
       "back_to_top": "返回顶部",
       "discord_soon": "Discord (即将推出)",
       "twitter_soon": "Twitter/X (即将推出)"
-    }
-  },
-  "profile": {
-    "tabs": {
-      "overview": "概览",
-      "stats": "统计",
-      "achievements": "成就",
-      "settings": "设置"
     }
   }
 }

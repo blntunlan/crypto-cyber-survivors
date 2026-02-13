@@ -1,9 +1,12 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { cn } from '../../utils/classnames';
+import { EventBus } from '../../services/core/EventBus';
+import { ComboSystem } from '../../services/combat/ComboSystem';
+import { type ComboUpdateEvent, type ComboEndEvent } from '../../types/events';
 
 import { COLORS } from '../../config/Colors';
 
@@ -13,6 +16,115 @@ interface ComboPanelProps {
   totalBonusXp: number;
 }
 
+/**
+ * useComboDOM - Internal hook for driving ComboPanel via EventBus + RAF
+ *
+ * Handles:
+ * 1. Show/hide the container (opacity + transform)
+ * 2. Update #combo-streak-count with current kill streak
+ * 3. Update #combo-multiplier-badge inner text with current multiplier
+ * 4. Animate #combo-timer-bar width based on ComboSystem.getComboTimeRemaining()
+ * 5. Hide and reset everything on comboEnd / gameReset
+ */
+function useComboDOM(containerRef: React.RefObject<HTMLDivElement | null>) {
+  const isActiveRef = useRef(false);
+  const rafIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const showPanel = () => {
+      if (containerRef.current) {
+        containerRef.current.style.opacity = '1';
+        containerRef.current.style.transform = 'translateX(-50%) translateY(0)';
+      }
+      if (!isActiveRef.current) {
+        isActiveRef.current = true;
+        startTimerLoop();
+      }
+    };
+
+    const hidePanel = () => {
+      if (containerRef.current) {
+        containerRef.current.style.opacity = '0';
+        containerRef.current.style.transform = 'translateX(-50%) translateY(20px)';
+      }
+      isActiveRef.current = false;
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
+
+    const resetDOMElements = () => {
+      const streakEl = document.getElementById('combo-streak-count');
+      if (streakEl) streakEl.textContent = '0';
+
+      const timerBar = document.getElementById('combo-timer-bar');
+      if (timerBar) timerBar.style.width = '100%';
+
+      const multEl = document.getElementById('combo-multiplier-badge');
+      if (multEl) {
+        const inner = multEl.firstElementChild as HTMLElement | null;
+        if (inner) inner.textContent = '1.0x XP';
+      }
+    };
+
+    // RAF loop for smooth timer bar countdown
+    const startTimerLoop = () => {
+      const animate = () => {
+        if (!isActiveRef.current) return;
+
+        const timerBar = document.getElementById('combo-timer-bar');
+        if (timerBar) {
+          const timeRemaining = ComboSystem.getComboTimeRemaining();
+          timerBar.style.width = `${(timeRemaining * 100).toFixed(1)}%`;
+        }
+
+        rafIdRef.current = requestAnimationFrame(animate);
+      };
+      rafIdRef.current = requestAnimationFrame(animate);
+    };
+
+    // EventBus subscriptions
+    const unsubUpdate = EventBus.on('comboUpdate', (data: ComboUpdateEvent) => {
+      // Update streak count
+      const streakEl = document.getElementById('combo-streak-count');
+      if (streakEl) streakEl.textContent = String(data.killStreak);
+
+      // Update multiplier badge
+      const multEl = document.getElementById('combo-multiplier-badge');
+      if (multEl) {
+        const inner = multEl.firstElementChild as HTMLElement | null;
+        if (inner) inner.textContent = `${data.multiplier.toFixed(1)}x XP`;
+      }
+
+      // Show panel if not already visible
+      showPanel();
+    });
+
+    const unsubEnd = EventBus.on('comboEnd', (_data: ComboEndEvent) => {
+      hidePanel();
+    });
+
+    const unsubReset = EventBus.on('gameReset', () => {
+      hidePanel();
+      resetDOMElements();
+    });
+
+    return () => {
+      unsubUpdate();
+      unsubEnd();
+      unsubReset();
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [containerRef]);
+}
+
+// =============================================================================
+// DESKTOP COMBO PANEL
+// =============================================================================
+
 const DesktopComboPanel: React.FC<ComboPanelProps> = ({
   containerRef,
   maxStreak,
@@ -20,6 +132,9 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
 }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
+
+  // Wire up EventBus → DOM updates
+  useComboDOM(containerRef);
 
   return (
     <div
@@ -148,6 +263,10 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
   );
 };
 
+// =============================================================================
+// MOBILE COMBO PANEL
+// =============================================================================
+
 const MobileComboPanel: React.FC<ComboPanelProps> = ({
   containerRef,
   maxStreak,
@@ -156,6 +275,9 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
   const { rs, rfs } = useResponsiveUI();
   const isRetro = useIsRetro();
   const { t } = useLanguage();
+
+  // Wire up EventBus → DOM updates
+  useComboDOM(containerRef);
 
   return (
     <div
@@ -290,6 +412,10 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
   );
 };
 
+// =============================================================================
+// MAIN EXPORT
+// =============================================================================
+
 export const ComboPanel: React.FC<ComboPanelProps> = memo(props => {
   const [isMobile, setIsMobile] = useState(screenService.isMobile());
 
@@ -302,3 +428,5 @@ export const ComboPanel: React.FC<ComboPanelProps> = memo(props => {
 
   return isMobile ? <MobileComboPanel {...props} /> : <DesktopComboPanel {...props} />;
 });
+
+ComboPanel.displayName = 'ComboPanel';

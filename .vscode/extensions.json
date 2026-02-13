@@ -7,13 +7,7 @@
     "ms-playwright.playwright",
     "vitest.explorer",
     "csstools.postcss",
-    "heybourn.headwind",
     "usernamehw.errorlens",
-    "wix.vscode-import-cost",
-    "stivo.tailwind-fold",
-    "eamodio.gitlens",
-    "dsznajder.es7-react-js-snippets",
-    "wallabyjs.console-ninja",
-    "chakrounanas.turbo-console-log"
+    "wix.vscode-import-cost"
   ]
 }

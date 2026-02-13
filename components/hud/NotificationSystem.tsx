@@ -15,6 +15,9 @@ interface Notification {
   duration?: number;
 }
 
+const text = (value: string | string[]): string =>
+  Array.isArray(value) ? value.join(' ') : value;
+
 export const NotificationSystem: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { t } = useLanguage();
@@ -59,15 +62,17 @@ export const NotificationSystem: React.FC = () => {
           type: 'market',
           title:
             data.state === 'OVERSOLD'
-              ? t('hud.announcer.oversold')
-              : t('hud.announcer.overbought'),
-          message: t('hud.announcer.rsi_message', {
-            sentiment:
-              data.state === 'OVERSOLD'
-                ? t('hud.announcer.bullish')
-                : t('hud.announcer.bearish'),
-            rsi: data.rsi.toFixed(1),
-          }),
+              ? text(t('hud.announcer.oversold'))
+              : text(t('hud.announcer.overbought')),
+          message: text(
+            t('hud.announcer.rsi_message', {
+              sentiment:
+                data.state === 'OVERSOLD'
+                  ? text(t('hud.announcer.bullish'))
+                  : text(t('hud.announcer.bearish')),
+              rsi: data.rsi.toFixed(1),
+            })
+          ),
           color: data.state === 'OVERSOLD' ? '#4ade80' : '#f87171',
           icon: data.state === 'OVERSOLD' ? '📈' : '📉',
         });
@@ -88,11 +93,11 @@ export const NotificationSystem: React.FC = () => {
         lastWhaleNotificationTime.current = now;
         const tierKeys = ['', 'baby', 'mega', 'giga'];
         const tierKey = tierKeys[data.tier];
-        const tierName = t(`hud.announcer.tiers.${tierKey}`);
+        const tierName = text(t(`hud.announcer.tiers.${tierKey}`));
         addNotification({
           type: 'market',
-          title: t('hud.announcer.whale_spotted', { tier: tierName }),
-          message: t('hud.announcer.whale_volume'),
+          title: text(t('hud.announcer.whale_spotted', { tier: tierName })),
+          message: text(t('hud.announcer.whale_volume')),
           color: '#fbbf24',
           icon: '🐋',
         });
@@ -154,27 +159,27 @@ export const NotificationSystem: React.FC = () => {
 
       const configs = {
         VOLUME_SPIKE: {
-          title: t('hud.announcer.volume_spike') || 'Volume Spike',
+          title: text(t('hud.announcer.volume_spike')) || 'Volume Spike',
           icon: '🔥',
           color: '#f59e0b',
         },
         PRICE_BREAKOUT: {
-          title: t('hud.announcer.breakout') || 'Trend Breakout',
+          title: text(t('hud.announcer.breakout')) || 'Trend Breakout',
           icon: '🚀',
           color: '#10b981',
         },
         WHALE_ALERT: {
-          title: t('hud.announcer.whale_alert') || 'Whale Arrival',
+          title: text(t('hud.announcer.whale_alert')) || 'Whale Arrival',
           icon: '🐋',
           color: '#8b5cf6',
         },
         CONSOLIDATION: {
-          title: t('hud.announcer.consolidation') || 'Consolidation',
+          title: text(t('hud.announcer.consolidation')) || 'Consolidation',
           icon: '💤',
           color: '#64748b',
         },
         FLASH_CRASH: {
-          title: t('hud.announcer.flash_crash') || 'FLASH CRASH',
+          title: text(t('hud.announcer.flash_crash')) || 'FLASH CRASH',
           icon: '🚨',
           color: '#ef4444',
         },
@@ -185,7 +190,7 @@ export const NotificationSystem: React.FC = () => {
         type: 'market',
         title: config.title,
         message:
-          t(`hud.announcer.${data.type.toLowerCase()}_msg`) ||
+          text(t(`hud.announcer.${data.type.toLowerCase()}_msg`)) ||
           `Market volatility detected: ${data.type}`,
         color: config.color,
         icon: config.icon,

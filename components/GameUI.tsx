@@ -22,6 +22,7 @@ import {
   BuffIndicator,
   WaveTimer,
   LiquidationWarningOverlay,
+  FPSCounter,
 } from './hud';
 import { useDifficultyV2 } from '../hooks/useDifficultyV2';
 
@@ -205,8 +206,8 @@ export const GameUI: React.FC<GameUIProps> = memo(
                     WebkitTapHighlightColor: 'transparent',
                     touchAction: 'none',
                   }}
-                  title={t('hud.pause_title')}
-                  aria-label={t('hud.pause_aria')}
+                  title={String(t('hud.pause_title'))}
+                  aria-label={String(t('hud.pause_aria'))}
                 >
                   <div className="pointer-events-none flex gap-1.5">
                     <div className="h-6 w-1.5 rounded-full bg-white shadow-sm"></div>
@@ -233,13 +234,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
             {/* Buff Indicator - Below LiveFeed */}
             {status === GameStatus.PLAYING && <BuffIndicator status={status} />}
             {/* Mobile FPS Counter - Below LiveFeed */}
-            {isMobile && showFPS && (
-              <div className="w-fit rounded bg-green-500/60 px-1.5 py-0.5 font-stats text-[8px] font-bold text-white">
-                <span id="fps-counter-mobile">
-                  {t('hud.fps_formatted', { val: '--' })}
-                </span>
-              </div>
-            )}
+            {isMobile && showFPS && <FPSCounter />}
           </div>
 
           {/* Right Panel: Enhanced Stats / Level */}

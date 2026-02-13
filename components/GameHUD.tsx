@@ -101,7 +101,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         } as React.CSSProperties
       }
     >
-      <NearDeathGlow />
+      <NearDeathGlow maxHp={player?.maxHp ?? 100} />
       {/* FPS Counter - Desktop only (mobile version is in GameUI below LiveFeed) */}
       {device.platform === 'desktop' &&
         (layout.elements.fpsCounter.visible || showFPSSource) && <FPSCounter />}

@@ -16,6 +16,7 @@ import { useIsRetro } from '../../contexts/useTheme';
 import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import type { LiquidationWarning } from '../../services/difficulty';
+import { cn } from '../../utils/classnames';
 
 interface WarningConfig {
   color: string;
@@ -268,7 +269,10 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
           {/* Warning Text - Enhanced cyberpunk glow for desktop */}
           {config.showText && (
             <motion.div
-              className="warning-text gpu-accelerated"
+              className={cn(
+                'warning-text gpu-accelerated',
+                !isRetro && 'font-cyber font-black'
+              )}
               animate={{
                 opacity: [0.7, 1, 0.7],
                 scale: isRetro || isMobile ? [1, 1, 1] : [0.98, 1.02, 0.98],
@@ -286,12 +290,18 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                 left: '50%',
                 transform: 'translateX(-50%)',
                 color: isRetro ? config.color : '#ffffff',
-                fontFamily: "'Press Start 2P', monospace",
+                fontFamily: isRetro ? "'Press Start 2P', monospace" : undefined,
                 fontSize: isMobile
                   ? rfs(activeLevel === 'CRITICAL' ? 14 : 11)
                   : activeLevel === 'CRITICAL'
                     ? '1.75rem'
                     : '1.125rem',
+                background: !isRetro ? 'rgba(2, 6, 23, 0.7)' : undefined,
+                border: !isRetro ? `1px solid ${config.glowColor}66` : undefined,
+                borderRadius: !isRetro ? (isMobile ? rs(10) : 12) : undefined,
+                boxShadow: !isRetro
+                  ? `0 10px 40px rgba(2,6,23,0.55), 0 0 20px ${config.glowColor}40, inset 0 1px 0 rgba(255,255,255,0.12)`
+                  : undefined,
                 // Enhanced neon glow for cyberpunk desktop
                 textShadow: isRetro
                   ? `${isMobile ? rs(2) : 4}px ${isMobile ? rs(2) : 4}px 0 #000`
@@ -308,7 +318,13 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                 letterSpacing: isMobile ? '0.1em' : '0.25em',
                 textAlign: 'center',
                 maxWidth: isMobile ? '90vw' : undefined,
-                padding: isMobile ? `0 ${rs(8)}px` : undefined,
+                padding: !isRetro
+                  ? isMobile
+                    ? `${rs(10)}px ${rs(14)}px`
+                    : '10px 20px'
+                  : isMobile
+                    ? `0 ${rs(8)}px`
+                    : undefined,
                 // Retro: pixel-perfect rendering
                 ...(isRetro && {
                   imageRendering: 'pixelated',
@@ -331,7 +347,10 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
           {/* Distance Indicator - Enhanced for desktop cyberpunk */}
           {config.showText && (
             <motion.div
-              className="distance-indicator gpu-accelerated"
+              className={cn(
+                'distance-indicator gpu-accelerated',
+                !isRetro && 'font-cyber uppercase tracking-[0.12em]'
+              )}
               animate={{ opacity: [0.5, 0.85, 0.5] }}
               transition={{ duration: 2, repeat: Infinity }}
               style={{
@@ -342,9 +361,7 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                 left: '50%',
                 transform: 'translateX(-50%)',
                 color: config.color,
-                fontFamily: isRetro
-                  ? "'Press Start 2P', monospace"
-                  : 'Inter, sans-serif',
+                fontFamily: isRetro ? "'Press Start 2P', monospace" : undefined,
                 fontWeight: isRetro ? 400 : 600,
                 fontSize: isMobile
                   ? rfs(isRetro ? 8 : 12)
@@ -357,7 +374,15 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                     ? undefined
                     : `0 0 8px ${config.glowColor}, 0 0 16px ${config.glowColor}80`,
                 textAlign: 'center',
-                letterSpacing: '0.05em',
+                letterSpacing: isRetro ? '0.05em' : undefined,
+                background: !isRetro ? 'rgba(2, 6, 23, 0.55)' : undefined,
+                border: !isRetro ? `1px solid ${config.glowColor}44` : undefined,
+                borderRadius: !isRetro ? (isMobile ? rs(8) : 10) : undefined,
+                padding: !isRetro
+                  ? isMobile
+                    ? `${rs(5)}px ${rs(10)}px`
+                    : '6px 12px'
+                  : undefined,
               }}
             >
               {distance.toFixed(1)}% from liquidation

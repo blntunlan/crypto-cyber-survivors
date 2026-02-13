@@ -1,5 +1,5 @@
 /**
- * @deprecated AI Director V2: Wave system removed
+ * Legacy V1 Support: Wave system removed
  *
  * This entire module is deprecated. Difficulty is now driven by market conditions,
  * not time-based wave phases. All functions return placeholder values for
@@ -13,8 +13,8 @@
 import { type WavePhase } from '../types';
 
 /**
- * @deprecated AI Director V2: Returns static 'active' phase
- * WaveFactor - Phase-based difficulty rhythm (DEPRECATED)
+ * Legacy V1 Support: Returns static 'active' phase
+ * WaveFactor - Phase-based difficulty rhythm (LEGACY)
  */
 export function calculateWaveFactor({
   elapsedSeconds: _elapsedSeconds,
@@ -36,21 +36,21 @@ export function calculateWaveFactor({
 }
 
 /**
- * @deprecated AI Director V2: Returns first (deprecated) phase config
+ * Legacy V1 Support: Returns first (deprecated) phase config
  */
 export function getPhaseConfig(_name: WavePhase) {
   return { name: 'active' as WavePhase, duration: 600, multiplier: 1.0 };
 }
 
 /**
- * @deprecated AI Director V2: Always returns false
+ * Legacy V1 Support: Always returns false
  */
 export function isInBossWave(_elapsedSeconds: number, _cycleDuration = 300): boolean {
   return false;
 }
 
 /**
- * @deprecated AI Director V2: Always returns false
+ * Legacy V1 Support: Always returns false
  */
 export function isInResolutionPhase(
   _elapsedSeconds: number,
@@ -60,7 +60,7 @@ export function isInResolutionPhase(
 }
 
 /**
- * @deprecated AI Director V2: Returns single 'active' phase
+ * Legacy V1 Support: Returns single 'active' phase
  */
 export function getPhaseTimeline(_cycleDuration: number = 600) {
   return [

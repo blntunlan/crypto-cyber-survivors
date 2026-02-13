@@ -5,7 +5,7 @@
  * and ending it to verify the results and replay data.
  */
 
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from './UserSessionService';
 import { type MarketPosition } from '../../types';
@@ -48,7 +48,7 @@ export class GameSessionService {
     Logger.info(`[GameSession] Starting server session for ${nickname} (${pair})...`);
 
     try {
-      if (!isSupabaseConfigured() || !supabase) {
+      if (!isSupabaseConfigured()) {
         throw new Error('Supabase not configured on this client');
       }
 
@@ -179,7 +179,7 @@ export class GameSessionService {
     this.isSubmitting = true;
 
     try {
-      if (!isSupabaseConfigured() || !supabase) {
+      if (!isSupabaseConfigured()) {
         throw new Error('Supabase not configured');
       }
 

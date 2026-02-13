@@ -12,7 +12,7 @@
 
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import bs58 from 'bs58';
 
 // ============================================
@@ -239,7 +239,7 @@ class PhantomAuthServiceClass {
     walletAddress: string,
     _signature: string
   ): Promise<WalletAuthResult> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       // Offline mode - just return success
       return { success: true, walletAddress, isNewUser: true };
     }

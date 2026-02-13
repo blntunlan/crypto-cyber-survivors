@@ -32,7 +32,12 @@ import { cyberpunkTheme } from '../config/themes';
 import { UserContext } from '../contexts/UserContext';
 
 const MockLanguageProvider = ({ children }: { children: React.ReactNode }) => {
-  const t = (key: string) => key;
+  const t = (key: string, params?: Record<string, any>) => {
+    if (key === 'hud.cycle_count' && params?.count !== undefined) {
+      return `Cycle ${params.count}`;
+    }
+    return key;
+  };
   return (
     <LanguageContext.Provider value={{ language: 'en', setLanguage: () => {}, t }}>
       {children}
@@ -64,7 +69,7 @@ const MockUserProvider = ({ children }: { children: React.ReactNode }) => {
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        playerId: 'test-player-id',
+        profileId: 'test-player-id',
         nickname: 'TestPlayer',
         login: async () => ({ success: true }),
         logout: () => {},

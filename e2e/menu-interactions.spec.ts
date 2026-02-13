@@ -4,7 +4,7 @@
  * Tests:
  * 1. Crypto Pair Selection
  * 2. Leverage Selection
- * 3. Theme Switching and Persistence
+ * 3. Theme Availability (Retro disabled for now)
  * 4. Game Start Flow
  */
 
@@ -18,7 +18,6 @@ test.describe('Menu Interactions and Theme Switching', () => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
-      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem('has_seen_landing', 'true');
       // Set a valid user session for the main menu to bypass nickname entry
       localStorage.setItem(
@@ -74,7 +73,7 @@ test.describe('Menu Interactions and Theme Switching', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('should toggle theme in settings and persist across reloads', async ({
+  test('should keep only Cyberpunk theme active while retro is disabled', async ({
     page,
   }) => {
     // Open settings menu
@@ -82,21 +81,21 @@ test.describe('Menu Interactions and Theme Switching', () => {
     await expect(settingsButton).toBeVisible();
     await settingsButton.click();
 
-    // Wait for settings panel (ThemeSection should have "Visual Style" heading)
+    // Theme section should be present
     await expect(page.getByText('Visual Style')).toBeVisible();
 
-    // Click on "16-Bit" (Retro) theme button
-    const retroButton = page.getByRole('button', { name: /16-Bit/i });
-    await expect(retroButton).toBeVisible();
-    await retroButton.click();
+    // Retro option is intentionally not available yet
+    const retroButton = page.getByRole('button', { name: /16-Bit|Retro/i });
+    await expect(retroButton).toHaveCount(0);
+    await expect(page.getByText(/More themes coming soon/i)).toBeVisible();
 
-    // Verify localStorage was updated
+    // Verify theme remains cyberpunk in storage
     let storedTheme = await page.evaluate(() =>
       localStorage.getItem('crypto-survivor-theme')
     );
-    expect(storedTheme).toBe('retro-16bit');
+    expect(storedTheme).toBe('cyberpunk');
 
-    // Reload page and check if it still has the retro theme
+    // Reload page and verify it still stays on cyberpunk
     await page.reload();
 
     // Handle Hub Menu
@@ -108,13 +107,11 @@ test.describe('Menu Interactions and Theme Switching', () => {
       timeout: 15000,
     });
 
-    // Check data-theme attribute on <html> element
-    const themeAttr = await page.locator('html').getAttribute('data-theme');
-    expect(themeAttr).toBe('retro-16bit');
-
-    // Navigate back to settings and switch back to Cyberpunk
+    // Cyberpunk button should be present and disabled as active
     await page.getByRole('button', { name: /settings/i }).click();
-    await page.getByRole('button', { name: /Cyberpunk/i }).click();
+    const cyberButton = page.getByRole('button', { name: /Cyberpunk/i });
+    await expect(cyberButton).toBeVisible();
+    await expect(cyberButton).toBeDisabled();
 
     storedTheme = await page.evaluate(() =>
       localStorage.getItem('crypto-survivor-theme')

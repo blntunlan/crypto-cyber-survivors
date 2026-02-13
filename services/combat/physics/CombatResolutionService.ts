@@ -39,9 +39,6 @@ export class CombatResolutionService {
     enemy.isDying = true;
     enemy.deathProgress = 0;
 
-    // 2. Metrics Tracking
-    DifficultyManager.recordKill();
-
     // 3. System Notification
     EventBus.emit('enemyKilled', {
       x: enemy.x,
@@ -135,6 +132,12 @@ export class CombatResolutionService {
           x: player.x,
           y: player.y - 20, // Offset for UI clarity
           source: 'lifesteal',
+        });
+
+        EventBus.emit('playerHealthChange', {
+          hpPercent: (player.hp / player.maxHp) * 100,
+          hp: player.hp,
+          maxHp: player.maxHp,
         });
 
         Logger.debug(`[Lifesteal] Proc! Healed ${actualHeal} HP`);

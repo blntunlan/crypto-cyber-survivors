@@ -3,6 +3,7 @@
     "start": "Начать игру",
     "settings": "Настройки",
     "back": "Назад",
+    "close": "Закрыть",
     "loading": "Загрузка...",
     "game_over": "Игра окончена",
     "score": "Счет: {{val}}",
@@ -11,6 +12,7 @@
     "level_label": "Уровень",
     "loading_engine": "ЗАГРУЗКА ДВИЖКА...",
     "back_to_hub": "В Хаб",
+    "project_info": "О проекте",
     "paused": "Пауза",
     "resume": "Продолжить",
     "restart": "Заново",
@@ -58,42 +60,25 @@
       "install_phantom": "Установить Phantom",
       "connect_wallet": "Подключить кошелек"
     },
-    "modes": {
-      "casual_name": "Обычный",
-      "casual_desc": "Классическое бесконечное выживание. Играйте в своем темпе.",
-      "competitive_name": "Соревновательный",
-      "competitive_desc": "5-минутные циклы. Соревнуйтесь в таблице лидеров и получайте награды."
-    },
-    "game_over_screen": {
-      "liquidated": "ЛИКВИДИРОВАН",
-      "new_high_score": "Новый Рекорд!",
-      "pnl": "P&L",
-      "time": "Время",
-      "kills": "Убийства",
-      "career_stats": "Статистика карьеры",
-      "games": "Игры",
-      "total_kills": "Всего убийств",
-      "best_level": "Лучший уровень",
-      "back_to_menu": "В Терминал"
-    },
-    "cycle_complete_screen": {
-      "title": "ЦИКЛ {{val}} ЗАВЕРШЕН",
-      "subtitle": "5 минут выживания",
-      "time_survived": "Время выживания",
-      "level_reached": "Достигнутый уровень",
-      "total_kills": "Всего убийств",
-      "pnl_performance": "P&L Эффективность",
-      "coins_earned": "ЗАРАБОТАНО МОНЕТ",
-      "details": "Детали",
-      "hide": "Скрыть",
-      "continue_risk": "Продолжить риск: +{{val}}% к сложности",
-      "cash_out": "Забрать",
-      "continue": "Продолжить",
-      "multiplier_hint": "Продолжите, чтобы получить множитель монет {{val}}% в следующем цикле"
-    },
-    "close": "Закрыть",
-    "project_info": "О проекте",
     "auth": {
+      "sign_in": "Войти",
+      "sign_up": "Создать аккаунт",
+      "email": "Email",
+      "password": "Пароль",
+      "forgot_password": "Забыли пароль?",
+      "send_otp": "Отправить код",
+      "verify_otp": "Подтвердить код",
+      "otp_sent": "6-значный код отправлен на вашу почту",
+      "back_to_signin": "Назад",
+      "no_account": "Нет аккаунта?",
+      "has_account": "Уже есть аккаунт?",
+      "or_continue_with": "Или продолжить через",
+      "email_otp": "Код из Email",
+      "email_password": "Email и пароль",
+      "resend_code": "Не получили код? Переотправить",
+      "invalid_email": "Пожалуйста, введите корректный email",
+      "password_min": "Пароль должен быть не менее 6 символов",
+      "check_email": "Проверьте почту для подтверждения",
       "errors": {
         "not_authenticated": "Не аутентифицирован",
         "backend_not_configured": "Бэкенд не настроен",
@@ -129,6 +114,23 @@
         "return_home": "Вернуться на главную",
         "error_occurred": "Произошла ошибка"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -136,6 +138,40 @@
         "github": "GitHub",
         "phantom": "Кошелек Phantom"
       }
+    },
+    "anonymous": "Anonymous",
+    "modes": {
+      "casual_name": "Обычный",
+      "casual_desc": "Классическое бесконечное выживание. Играйте в своем темпе.",
+      "competitive_name": "Соревновательный",
+      "competitive_desc": "5-минутные циклы. Соревнуйтесь в таблице лидеров и получайте награды."
+    },
+    "game_over_screen": {
+      "liquidated": "ЛИКВИДИРОВАН",
+      "new_high_score": "Новый Рекорд!",
+      "pnl": "P&L",
+      "time": "Время",
+      "kills": "Убийства",
+      "career_stats": "Статистика карьеры",
+      "games": "Игры",
+      "total_kills": "Всего убийств",
+      "best_level": "Лучший уровень",
+      "back_to_menu": "В Терминал"
+    },
+    "cycle_complete_screen": {
+      "title": "ЦИКЛ {{val}} ЗАВЕРШЕН",
+      "subtitle": "5 минут выживания",
+      "time_survived": "Время выживания",
+      "level_reached": "Достигнутый уровень",
+      "total_kills": "Всего убийств",
+      "pnl_performance": "P&L Эффективность",
+      "coins_earned": "ЗАРАБОТАНО МОНЕТ",
+      "details": "Детали",
+      "hide": "Скрыть",
+      "continue_risk": "Продолжить риск: +{{val}}% к сложности",
+      "cash_out": "Забрать",
+      "continue": "Продолжить",
+      "multiplier_hint": "Продолжите, чтобы получить множитель монет {{val}}% в следующем цикле"
     }
   },
   "market": {
@@ -157,8 +193,12 @@
     "live_feed": "Прямой эфир",
     "profit": "Прибыль",
     "loss": "Убыток",
+    "profit_short": "П",
+    "loss_short": "У",
     "entry": "Вход",
+    "entry_short": "ВХД",
     "volatility": "Волатильность",
+    "volatility_short": "ВОЛ",
     "liquidation": "Ликвидация",
     "whale_detected": "ОБНАРУЖЕН КИТ",
     "kernel_status": "Статус ядра",
@@ -200,6 +240,8 @@
       "peak": "Пик"
     },
     "announcer": {
+      "supply_drop": "SUPPLY DROP",
+      "loot_crate_appeared": "A loot crate appeared!",
       "oversold": "РЫНОК ПЕРЕПРОДАН",
       "overbought": "РЫНОК ПЕРЕКУПЛЕН",
       "bullish": "Обнаружен бычий тренд",
@@ -207,11 +249,6 @@
       "rsi_message": "{{sentiment}} (RSI: {{rsi}})",
       "whale_spotted": "ЗАМЕЧЕН {{tier}}",
       "whale_volume": "Обнаружен огромный объем на рынке!",
-      "tiers": {
-        "baby": "КИТ-МАЛЫШ",
-        "mega": "МЕГА-КИТ",
-        "giga": "ГИГА-КИТ"
-      },
       "volume_spike": "ВСПЛЕСК ОБЪЕМА",
       "volume_spike_msg": "Обнаружено сильное давление!",
       "breakout": "ПРОРЫВ ТРЕНДА",
@@ -221,7 +258,12 @@
       "consolidation": "КОНСОЛИДАЦИЯ",
       "consolidation_msg": "Рынок остывает. Готовьтесь.",
       "flash_crash": "ФЛЕШ-КРАХ",
-      "flash_crash_msg": "Паника! Высокая опасность!"
+      "flash_crash_msg": "Паника! Высокая опасность!",
+      "tiers": {
+        "baby": "КИТ-МАЛЫШ",
+        "mega": "МЕГА-КИТ",
+        "giga": "ГИГА-КИТ"
+      }
     },
     "recovered": "ВОССТАНОВЛЕН",
     "xp_multiplier_up": "МНОЖИТЕЛЬ XP ПОВЫШЕН!",
@@ -235,8 +277,8 @@
       "berserk": "Берсерк",
       "diamond_hands": "Бриллиантовые руки",
       "luck_boost": "Буст удачи",
-      "rage_mode": "Режим ярости",
-      "lucky_star": "Звезда удачи"
+      "lucky_star": "Звезда удачи",
+      "rage_mode": "Режим ярости"
     },
     "fps": "FPS",
     "achievement": "Достижение!",
@@ -249,10 +291,6 @@
     "you": "Вы",
     "points": "очков",
     "sync_complete": "СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА",
-    "profit_short": "П",
-    "loss_short": "У",
-    "entry_short": "ВХД",
-    "volatility_short": "ВОЛ",
     "cycle_complete": "ЦИКЛ ЗАВЕРШЕН",
     "finished": "Завершено",
     "auto_continue": "Авто-продолжение",
@@ -263,7 +301,9 @@
     "risk_reward": "Выше риск, выше награда",
     "cash_out": "ВЫВЕСТИ",
     "secure_rewards": "Сохраните награды",
-    "decision_hint": "Больше циклов = Больше опыта и добычи"
+    "decision_hint": "Больше циклов = Больше опыта и добычи",
+    "cycle_count": "Cycle {{count}}",
+    "anonymous": "Anonymous"
   },
   "hub": {
     "play": "ИГРАТЬ",
@@ -281,6 +321,14 @@
     "gear_subtitle": "Настройки",
     "nav_help_retro": "[WASD] ДВИЖЕНИЕ   [ENTER] ВЫБОР",
     "nav_help_modern": "wasd навигация • enter выбор"
+  },
+  "profile": {
+    "tabs": {
+      "overview": "Обзор",
+      "stats": "Статистика",
+      "achievements": "Достижения",
+      "settings": "Настройки"
+    }
   },
   "levelup": {
     "title": "НОВЫЙ УРОВЕНЬ",
@@ -344,6 +392,8 @@
     "side_left": "Слева",
     "side_right": "Справа",
     "haptic_feedback": "Тактильная отдача",
+    "visual_feedback": "Визуальный отклик",
+    "joystick": "Вирт. джойстик",
     "vibration": "Вибрация",
     "controls": "Управление",
     "move": "Движение",
@@ -362,9 +412,7 @@
     "lang_es": "Испанский",
     "lang_pt": "Португальский",
     "lang_zh": "Китайский",
-    "lang_ru": "Русский",
-    "visual_feedback": "Визуальный отклик",
-    "joystick": "Вирт. джойстик"
+    "lang_ru": "Русский"
   },
   "pwa": {
     "installTitle": "Установить приложение",
@@ -433,6 +481,18 @@
       "execute": "ЗАПУСТИТЬ ДВИЖОК",
       "protocol_retro": "ПРОТОКОЛ: РЕТРО",
       "protocol_cyber": "ПРОТОКОЛ: КИБЕР"
+    },
+    "stats": {
+      "tests_passing": "Tests Passing",
+      "singleton_services": "Singleton Services",
+      "target_performance": "Target Performance",
+      "event_types": "Event Types"
+    },
+    "terminal": {
+      "initializing": "INITIALIZING_SUBSYSTEMS...",
+      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
+      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
+      "process_pulse": "PROCESS: PULSE"
     },
     "hero": {
       "status": "СТАТУС СИСТЕМЫ: ОЖИДАНИЕ (BETA_v1.0)",
@@ -551,14 +611,6 @@
       "back_to_top": "Вернуться наверх",
       "discord_soon": "Discord (Скоро)",
       "twitter_soon": "Twitter/X (Скоро)"
-    }
-  },
-  "profile": {
-    "tabs": {
-      "overview": "Обзор",
-      "stats": "Статистика",
-      "achievements": "Достижения",
-      "settings": "Настройки"
     }
   }
 }

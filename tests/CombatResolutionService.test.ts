@@ -80,7 +80,6 @@ describe('CombatResolutionService', () => {
 
       expect(mockEnemy.isDying).toBe(true);
       expect(mockEnemy.deathProgress).toBe(0);
-      expect(DifficultyManager.recordKill).toHaveBeenCalled();
       expect(EventBus.emit).toHaveBeenCalledWith('enemyKilled', expect.any(Object));
     });
 

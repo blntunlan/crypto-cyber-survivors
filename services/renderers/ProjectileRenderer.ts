@@ -15,7 +15,14 @@ import { gradientCache } from '../../utils/GradientCache';
  * 3. Tiered visual feedback for critical and super-critical hits.
  * 4. Device-aware performance scaling (toggles shadows on mobile).
  */
+
 export class ProjectileRenderer implements IRenderer {
+  private static instance: ProjectileRenderer | null = null;
+
+  public static getInstance(): ProjectileRenderer {
+    return (ProjectileRenderer.instance ??= new ProjectileRenderer());
+  }
+
   constructor() {}
 
   /**
@@ -44,11 +51,17 @@ export class ProjectileRenderer implements IRenderer {
     // 2. Optimized Rendering Path
     if (isRetro) {
       // Group by tier for batching fillStyle in retro mode
+
+      // Group by tier for batching fillStyle in retro mode
+      const bullets = pool.activeBullets;
+      const count = bullets.length;
+
       const superCrits: Bullet[] = [];
       const crits: Bullet[] = [];
       const normals: Bullet[] = [];
 
-      pool.activeBullets.forEach(b => {
+      for (let i = 0; i < count; i++) {
+        const b = bullets[i]!;
         if (
           !isCircleVisible(
             b.x,
@@ -57,17 +70,19 @@ export class ProjectileRenderer implements IRenderer {
             bounds
           )
         ) {
-          return;
+          continue;
         }
         if (b.isSuperCrit) superCrits.push(b);
         else if (b.isCrit) crits.push(b);
         else normals.push(b);
-      });
+      }
 
       // Render Normal
-      if (normals.length > 0) {
+      const normalsLen = normals.length;
+      if (normalsLen > 0) {
         ctx.fillStyle = normalCoreColor; // Simplified for retro: use tier color or fallback
-        normals.forEach(b => {
+        for (let i = 0; i < normalsLen; i++) {
+          const b = normals[i]!;
           ctx.fillStyle = b.color; // Some bullets might have unique colors
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
@@ -75,38 +90,45 @@ export class ProjectileRenderer implements IRenderer {
             b.radius,
             b.radius
           );
-        });
+        }
         // Actually, many normals might have DIFFERENT colors if we support multiple weapons.
         // Let's re-batch by color if needed, but for now tier is enough if they share colors.
       }
 
       // Render Crits (usually same color)
-      if (crits.length > 0) {
+      const critsLen = crits.length;
+      if (critsLen > 0) {
         ctx.fillStyle = critColor;
-        crits.forEach(b => {
+        for (let i = 0; i < critsLen; i++) {
+          const b = crits[i]!;
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
             Math.round(b.y - b.radius / 2),
             b.radius,
             b.radius
           );
-        });
+        }
       }
 
       // Render Super Crits
-      if (superCrits.length > 0) {
+      const superCritsLen = superCrits.length;
+      if (superCritsLen > 0) {
         ctx.fillStyle = superCritColor;
-        superCrits.forEach(b => {
+        for (let i = 0; i < superCritsLen; i++) {
+          const b = superCrits[i]!;
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
             Math.round(b.y - b.radius / 2),
             b.radius,
             b.radius
           );
-        });
+        }
       }
     } else {
-      pool.activeBullets.forEach(b => {
+      const activeBullets = pool.activeBullets;
+      const count = activeBullets.length;
+      for (let i = 0; i < count; i++) {
+        const b = activeBullets[i]!;
         if (
           !isCircleVisible(
             b.x,
@@ -115,10 +137,10 @@ export class ProjectileRenderer implements IRenderer {
             bounds
           )
         ) {
-          return;
+          continue;
         }
         this.renderCyberpunkProjectile(ctx, b, normalCoreColor, superCritColor);
-      });
+      }
     }
 
     if (!isRetro) {

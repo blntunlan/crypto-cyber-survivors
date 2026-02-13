@@ -144,9 +144,16 @@ export class MilestoneServiceClass {
   private setupListeners(): void {
     // Subscribe to game events and store unsubscribe functions
     this.unsubscribeFns.push(
-      EventBus.on('enemyKilled', () => this.recordKill()),
-      EventBus.on('levelUpComplete', data => this.recordLevelUp(data.newLevel)),
-      EventBus.on('gameReset', () => this.reset())
+      EventBus.on('enemyKilled', () => this.recordKill(), { scope: 'gameplay' }),
+      EventBus.on('levelUpComplete', data => this.recordLevelUp(data.newLevel), {
+        scope: 'gameplay',
+      }),
+      EventBus.on(
+        'secondElapsed',
+        data => this.checkTimeMilestones(data.totalSeconds),
+        { scope: 'gameplay' }
+      ),
+      EventBus.on('gameReset', () => this.reset(), { scope: 'system' })
     );
   }
 

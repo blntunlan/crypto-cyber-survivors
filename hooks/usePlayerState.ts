@@ -9,6 +9,7 @@ import { useState, useRef, useCallback, useMemo } from 'react';
 import { type Player, MarketPosition } from '../types';
 import { COLORS } from '../constants';
 import { PLAYER_DEFAULTS } from '../services/core/GameStateManager';
+import { EventBus } from '../services/core/EventBus';
 
 /**
  * Create a fresh player object with initial values
@@ -47,6 +48,11 @@ export const usePlayerState = (width: number, height: number) => {
   const healFull = useCallback(() => {
     playerRef.current.hp = playerRef.current.maxHp;
     setUiStats({ ...playerRef.current });
+    EventBus.emit('playerHealthChange', {
+      hpPercent: 100,
+      hp: playerRef.current.maxHp,
+      maxHp: playerRef.current.maxHp,
+    });
   }, []);
 
   /**

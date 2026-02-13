@@ -1,9 +1,16 @@
-# Pre-push hook: Validate railway-market-server before pushing
-# This prevents broken deployments
+# Pre-push hook: Validate project before pushing
+# This prevents broken deployments and ensures cross-platform stability
 
 echo "🚀 Pre-push validation..."
 
-# Check if railway-market-server files were changed
+# 1. Validate Main Application
+echo "📦 Validating Main Application..."
+npm run build || {
+  echo "❌ Main Application build failed! Fix errors before pushing."
+  exit 1
+}
+
+# 2. Validate railway-market-server if changed
 CHANGED_FILES=$(git diff --cached --name-only HEAD~1 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
 
 if echo "$CHANGED_FILES" | grep -q "^railway-market-server/"; then
@@ -35,4 +42,5 @@ if echo "$CHANGED_FILES" | grep -q "^railway-market-server/"; then
   cd ..
 fi
 
-echo "✅ Pre-push checks complete!"
+echo "✅ All pre-push checks complete!"
+

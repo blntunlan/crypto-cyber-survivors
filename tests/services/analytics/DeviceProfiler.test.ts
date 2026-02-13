@@ -1,4 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
+
+// 1. Hoist mocks
+const { mockUpsert, mockFrom } = vi.hoisted(() => ({
+  mockUpsert: vi.fn().mockResolvedValue({ error: null }),
+  mockFrom: vi.fn().mockReturnThis(),
+}));
+
+vi.mock('../../../services/core/Supabase', () => ({
+  supabase: {
+    from: mockFrom,
+    upsert: mockUpsert,
+  },
+  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { supabase } from '../../../services/core/Supabase';
 import { DeviceProfiler } from '../../../services/analytics/DeviceProfiler';
 
 // Mock nanoid
@@ -6,30 +23,20 @@ vi.mock('nanoid', () => ({
   nanoid: () => 'mocked-id',
 }));
 
-// Mock Supabase - properly structured to return chainable methods
-const mockUpsert = vi.fn();
-const mockFrom = vi.fn(() => ({
-  upsert: mockUpsert,
-}));
-
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: {
-    from: mockFrom,
-  },
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
-
 describe('DeviceProfiler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFrom.mockClear();
-    mockUpsert.mockClear();
+    mockFrom.mockReturnValue({ upsert: mockUpsert });
+    mockUpsert.mockResolvedValue({ error: null });
     localStorage.clear();
 
     // Mock navigator and screen properties
     Object.defineProperty(window.screen, 'width', { value: 1920, configurable: true });
     Object.defineProperty(window.screen, 'height', { value: 1080, configurable: true });
-    Object.defineProperty(window, 'devicePixelRatio', { value: 2, configurable: true });
+    Object.defineProperty(window, 'devicePixelRatio', {
+      value: 2,
+      configurable: true,
+    });
     Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true });
     Object.defineProperty(navigator, 'userAgent', {
       value: 'TestBrowser',
@@ -49,6 +56,10 @@ describe('DeviceProfiler', () => {
       value: { hostname: 'game.cryptosurvivors.com' },
       configurable: true,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('getFingerprint', () => {
@@ -75,7 +86,7 @@ describe('DeviceProfiler', () => {
         screenHeight: 1080,
         pixelRatio: 2,
         language: 'en-US',
-        gpu: undefined, // Canvas/GL might not be fully available in jsdom
+        gpu: undefined,
         cores: 8,
         memory: undefined,
       });
@@ -84,11 +95,9 @@ describe('DeviceProfiler', () => {
 
   describe('syncToSupabase', () => {
     it('should upsert profile to Supabase', async () => {
-      mockUpsert.mockResolvedValue({ error: null });
-
       await DeviceProfiler.syncToSupabase();
 
-      expect(mockFrom).toHaveBeenCalledWith('device_profiles');
+      expect((supabase as any).from).toHaveBeenCalledWith('device_profiles');
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
           fingerprint: 'df-mocked-id',
@@ -106,12 +115,11 @@ describe('DeviceProfiler', () => {
       });
 
       await DeviceProfiler.syncToSupabase();
-      expect(mockFrom).not.toHaveBeenCalled();
+      expect((supabase as any).from).not.toHaveBeenCalled();
     });
 
     it('should identify as mobile if width < 768', async () => {
       Object.defineProperty(window, 'innerWidth', { value: 500, configurable: true });
-      mockUpsert.mockResolvedValue({ error: null });
 
       await DeviceProfiler.syncToSupabase();
 

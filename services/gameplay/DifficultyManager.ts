@@ -36,11 +36,18 @@ class DifficultyManagerClass {
   private lastVolume: number = 0;
   private pnlMomentum: number = 0;
   private volumeMomentum: number = 0;
+  private unsubscribeFns: (() => void)[] = [];
 
   private constructor() {
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
     // Sync with combat events for streak tracking
-    EventBus.on('enemyKilled', () => this.recordKill());
-    EventBus.on('gameReset', () => this.reset());
+    this.unsubscribeFns.push(
+      EventBus.on('enemyKilled', () => this.recordKill(), { scope: 'gameplay' }),
+      EventBus.on('gameReset', () => this.reset(), { scope: 'system' })
+    );
   }
 
   static getInstance(): DifficultyManagerClass {
@@ -248,7 +255,7 @@ class DifficultyManagerClass {
 
         // Increase global shake based on leverage during shocks
         if (inp.leverage >= 50) {
-          EventBus.emit('hitStop', { duration: 100, isCrit: true }); // Brief pause for impact
+          EventBus.emit('hitStop', { duration: 100, isCrit: true, isSuperCrit: false }); // Brief pause for impact
         }
       }
     }
@@ -304,7 +311,7 @@ class DifficultyManagerClass {
   }
 
   /**
-   * @deprecated AI Director V2: Wave cycles removed
+   * Legacy V1 Support: Wave cycles removed
    */
   getCycleNumber(): number {
     const totalSeconds = TimeService.getGameTimeSeconds();
@@ -318,7 +325,7 @@ class DifficultyManagerClass {
   }
 
   /**
-   * @deprecated AI Director V2: Wave cycles removed
+   * Legacy V1 Support: Wave cycles removed
    */
   getTimeRemainingInCycle(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
@@ -362,13 +369,17 @@ class DifficultyManagerClass {
     this.lastVolume = 0;
     this.pnlMomentum = 0;
     this.volumeMomentum = 0;
+
     difficultyContext.reset();
     Logger.info('[DifficultyManager] V2 State reset');
   }
 
   static resetForTesting(): void {
     if (this.instance) {
+      this.instance.unsubscribeFns.forEach(unsub => unsub());
+      this.instance.unsubscribeFns = [];
       this.instance.reset();
+      this.instance = null;
     }
   }
 

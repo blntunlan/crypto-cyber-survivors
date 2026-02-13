@@ -229,14 +229,6 @@ vi.mock('../components/screens/NicknameEntryScreen', () => ({
   NicknameEntryScreen: () => <div>NicknameEntryScreen</div>,
 }));
 
-vi.mock('../components/auth/AuthScreen', () => ({
-  AuthScreen: () => <div>AuthScreen</div>,
-}));
-
-vi.mock('../components/auth/NicknameSetup', () => ({
-  NicknameSetup: () => <div>NicknameSetup</div>,
-}));
-
 vi.mock('../components/GameEngine', () => ({
   GameEngine: () => <div>GameEngine</div>,
 }));
@@ -279,6 +271,10 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+  });
+
+  it('exports root app component', () => {
+    expect(App).toBeDefined();
   });
 
   it('renders without crashing and shows LandingPage initially', async () => {

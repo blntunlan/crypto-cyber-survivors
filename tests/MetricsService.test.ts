@@ -660,5 +660,7 @@ function createFinalData(
     entryPrice: 50000,
     leverage: overrides.leverage ?? 10,
     totalKills: overrides.totalKills ?? 50,
+    deviceFingerprint: 'test-fingerprint',
+    avgFps: 60,
   };
 }

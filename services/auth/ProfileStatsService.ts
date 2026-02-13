@@ -1,4 +1,4 @@
-import { supabase } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 import { AchievementService } from '../gameplay/AchievementService';
@@ -78,7 +78,7 @@ export class ProfileStatsService {
   private async aggregateSessionStats(
     profileId: string
   ): Promise<Omit<PlayerStats, 'goldBalance' | 'gemsBalance' | 'totalGoldEarned'>> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return {
         totalKills: 0,
         totalSurvivalTime: 0,
@@ -128,7 +128,9 @@ export class ProfileStatsService {
   private async getVirtualAccountBalance(
     profileId: string
   ): Promise<{ gold: number; gems: number; totalEarned: number }> {
-    if (!supabase) return { gold: 0, gems: 0, totalEarned: 0 };
+    if (!isSupabaseConfigured()) {
+      return { gold: 0, gems: 0, totalEarned: 0 };
+    }
 
     const { data, error } = await supabase
       .from('virtual_accounts')

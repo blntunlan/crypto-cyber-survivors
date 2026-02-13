@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameSessionService } from '../../../services/auth/GameSessionService';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
-import { supabase } from '../../../services/core/Supabase';
+import { supabase } from '../../../services/supabase/client';
 import { MarketPosition } from '../../../types';
 
 // Mock Supabase invoke
-vi.mock('../../../services/core/Supabase', () => ({
+vi.mock('../../../services/supabase/client', () => ({
   supabase: {
     functions: {
       invoke: vi.fn(),
@@ -124,3 +124,4 @@ describe('GameSessionService', () => {
     });
   });
 });
+

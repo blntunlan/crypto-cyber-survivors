@@ -147,6 +147,9 @@ class DataResilienceServiceClass {
   /**
    * Process incoming market data
    */
+  /**
+   * Process incoming market data
+   */
   private onMarketData(data: MarketDataPoint): void {
     const now = Date.now();
     const timeSinceLast = this.lastDataTime > 0 ? now - this.lastDataTime : 0;
@@ -163,7 +166,6 @@ class DataResilienceServiceClass {
     this.addToCache(data);
     this.lastKnownData = data;
     this.lastDataTime = now;
-    this.totalDataPoints++;
 
     // Update connection state
     this.updateConnectionState('connected');
@@ -219,6 +221,7 @@ class DataResilienceServiceClass {
    */
   private addToCache(data: MarketDataPoint): void {
     this.dataCache.push(data);
+    this.totalDataPoints++;
 
     // Trim cache if too large
     while (this.dataCache.length > RESILIENCE_CONFIG.MAX_CACHE_SIZE) {

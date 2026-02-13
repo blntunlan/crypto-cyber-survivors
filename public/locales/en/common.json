@@ -61,6 +61,24 @@
       "connect_wallet": "Connect Wallet"
     },
     "auth": {
+      "sign_in": "Sign In",
+      "sign_up": "Create Account",
+      "email": "Email",
+      "password": "Password",
+      "forgot_password": "Forgot Password?",
+      "send_otp": "Send Code",
+      "verify_otp": "Verify Code",
+      "otp_sent": "6-digit code sent to your email",
+      "back_to_signin": "Back",
+      "no_account": "Don't have an account?",
+      "has_account": "Already have an account?",
+      "or_continue_with": "Or continue with",
+      "email_otp": "Email Code",
+      "email_password": "Email & Password",
+      "resend_code": "Didn't receive code? Resend",
+      "invalid_email": "Please enter a valid email",
+      "password_min": "Password must be at least 6 characters",
+      "check_email": "Check your email for verification",
       "errors": {
         "not_authenticated": "Not authenticated",
         "backend_not_configured": "Backend not configured",
@@ -96,6 +114,23 @@
         "return_home": "Return to Home",
         "error_occurred": "An error occurred"
       },
+      "signing_in": "Signing in...",
+      "creating_account": "Creating account...",
+      "sending": "Sending...",
+      "verifying": "Verifying...",
+      "connect_phantom": "Connect Phantom",
+      "install_phantom": "Install Phantom",
+      "verification_code": "Verification Code",
+      "otp_verify_desc": "Enter the 6-digit code sent to",
+      "nickname_placeholder": "ENTER_ACCESS_KEY",
+      "access_granted": "ACCESS GRANTED",
+      "initialize_profile": "INITIALIZE PROFILE",
+      "footer_systems_online": "SYSTEMS_ONLINE",
+      "footer_title": "CRYPTO_SURVIVORS",
+      "nickname_rules_length": "3-16 CHARACTERS",
+      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
+      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
+      "send_reset_link": "Send Reset Link",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -104,6 +139,7 @@
         "phantom": "Phantom Wallet"
       }
     },
+    "anonymous": "Anonymous",
     "modes": {
       "casual_name": "Casual",
       "casual_desc": "Classic endless survival. Play at your own pace.",
@@ -204,6 +240,8 @@
       "peak": "Peak"
     },
     "announcer": {
+      "supply_drop": "SUPPLY DROP",
+      "loot_crate_appeared": "A loot crate appeared!",
       "oversold": "MARKET OVERSOLD",
       "overbought": "MARKET OVERBOUGHT",
       "bullish": "Bullish conditions detected",
@@ -263,7 +301,9 @@
     "risk_reward": "Higher risk, higher reward",
     "cash_out": "CASH OUT",
     "secure_rewards": "Secure your rewards",
-    "decision_hint": "Higher cycles = More XP & better loot drops"
+    "decision_hint": "Higher cycles = More XP & better loot drops",
+    "cycle_count": "Cycle {{count}}",
+    "anonymous": "Anonymous"
   },
   "hub": {
     "play": "PLAY",
@@ -441,6 +481,18 @@
       "execute": "EXECUTE ENGINE",
       "protocol_retro": "PROTOCOL: RETRO",
       "protocol_cyber": "PROTOCOL: CYBER"
+    },
+    "stats": {
+      "tests_passing": "Tests Passing",
+      "singleton_services": "Singleton Services",
+      "target_performance": "Target Performance",
+      "event_types": "Event Types"
+    },
+    "terminal": {
+      "initializing": "INITIALIZING_SUBSYSTEMS...",
+      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
+      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
+      "process_pulse": "PROCESS: PULSE"
     },
     "hero": {
       "status": "SYSTEM STATUS: STANDBY_MODE (BETA_v1.0)",

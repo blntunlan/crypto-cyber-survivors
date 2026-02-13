@@ -15,6 +15,9 @@ interface KernelStatusProps {
   player: Player;
 }
 
+const text = (value: string | string[]): string =>
+  Array.isArray(value) ? value.join(' ') : value;
+
 const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
@@ -48,7 +51,7 @@ const DesktopKernel: React.FC<KernelStatusProps> = ({ player }) => {
           return (
             <StatRow
               key={stat.id}
-              label={t(`hud.stat.${stat.id}`)}
+              label={text(t(`hud.stat.${stat.id}`))}
               valueKey={stat.id}
               color={stat.uiColor}
               formatter={(val: number) => StatService.format(val, stat.id as StatKey)}
@@ -84,7 +87,7 @@ const MobileKernel: React.FC<KernelStatusProps> = ({ player }) => {
           className="font-black uppercase tracking-wider text-blue-400/70"
           style={{ fontSize: rfs(10) }}
         >
-          {t('hud.level_short').substring(0, 2)}
+          {text(t('hud.level_short')).substring(0, 2)}
         </div>
 
         <div

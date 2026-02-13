@@ -10,6 +10,17 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import {
+  Apple,
+  AtSign,
+  Code2,
+  Disc,
+  Mail,
+  Search,
+  Tv,
+  User,
+  type LucideIcon,
+} from 'lucide-react';
 import type { AuthProvider } from '../../services/auth/SupabaseAuthService';
 
 // ============================================
@@ -68,16 +79,17 @@ const SIZE_CLASSES: Record<string, { container: string; text: string; badge: str
     },
   };
 
-const PROVIDER_ICONS: Record<string, { icon: string; bg: string; color: string }> = {
-  twitter: { icon: '𝕏', bg: 'bg-black', color: 'text-white' },
-  google: { icon: 'G', bg: 'bg-white', color: 'text-[#4285F4]' },
-  discord: { icon: '🎮', bg: 'bg-[#5865F2]', color: 'text-white' },
-  github: { icon: '🐙', bg: 'bg-[#24292e]', color: 'text-white' },
-  apple: { icon: '', bg: 'bg-black', color: 'text-white' },
-  twitch: { icon: '📺', bg: 'bg-[#9146FF]', color: 'text-white' },
-  email: { icon: '✉', bg: 'bg-gray-600', color: 'text-white' },
-  nickname: { icon: '👤', bg: 'bg-cyan-600', color: 'text-white' },
-};
+const PROVIDER_ICONS: Record<string, { icon: LucideIcon; bg: string; color: string }> =
+  {
+    twitter: { icon: AtSign, bg: 'bg-black', color: 'text-white' },
+    google: { icon: Search, bg: 'bg-white', color: 'text-[#4285F4]' },
+    discord: { icon: Disc, bg: 'bg-[#5865F2]', color: 'text-white' },
+    github: { icon: Code2, bg: 'bg-[#24292e]', color: 'text-white' },
+    apple: { icon: Apple, bg: 'bg-black', color: 'text-white' },
+    twitch: { icon: Tv, bg: 'bg-[#9146FF]', color: 'text-white' },
+    email: { icon: Mail, bg: 'bg-gray-600', color: 'text-white' },
+    nickname: { icon: User, bg: 'bg-cyan-600', color: 'text-white' },
+  };
 
 // Fallback avatar colors based on name hash
 const AVATAR_COLORS = [
@@ -134,6 +146,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const providerInfo = provider ? PROVIDER_ICONS[provider] : null;
 
   const hasValidImage = avatarUrl && !imageError;
+  const ProviderIcon = providerInfo?.icon;
 
   return (
     <div
@@ -189,7 +202,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       </div>
 
       {/* Provider Badge */}
-      {showProviderBadge && providerInfo && (
+      {showProviderBadge && providerInfo && ProviderIcon && (
         <div
           className={`
             absolute ${sizeClasses.badge}
@@ -197,12 +210,12 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             ${providerInfo.bg} ${providerInfo.color}
             flex items-center justify-center
             border
-            border-gray-900 text-[0.5rem]
+            border-gray-900
             shadow-md
           `}
           title={`Signed in with ${provider}`}
         >
-          {providerInfo.icon}
+          <ProviderIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
         </div>
       )}
 

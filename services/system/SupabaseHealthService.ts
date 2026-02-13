@@ -13,7 +13,7 @@
  *   console.log(health.summary);
  */
 
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from './Logger';
 import { EventBus } from '../core/EventBus';
 import type { Database } from '../../types/supabase';
@@ -180,7 +180,7 @@ class SupabaseHealthServiceClass {
    * Quick connection test
    */
   async ping(): Promise<{ ok: boolean; latencyMs: number }> {
-    if (!supabase) return { ok: false, latencyMs: -1 };
+    if (!isSupabaseConfigured()) return { ok: false, latencyMs: -1 };
 
     const start = performance.now();
     const { error } = await supabase.from('schema_versions').select('version').limit(1);
@@ -203,7 +203,9 @@ class SupabaseHealthServiceClass {
     valid: boolean;
     issues: string[];
   }> {
-    if (!supabase) return { valid: false, issues: ['Supabase not configured'] };
+    if (!isSupabaseConfigured()) {
+      return { valid: false, issues: ['Supabase not configured'] };
+    }
 
     const issues: string[] = [];
 
@@ -247,7 +249,7 @@ class SupabaseHealthServiceClass {
   // ============================================================
 
   private async checkConnection(): Promise<ConnectionCheck> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return { connected: false, latencyMs: -1, error: 'Client not initialized' };
     }
 
@@ -263,7 +265,7 @@ class SupabaseHealthServiceClass {
   }
 
   private async checkTables(): Promise<TableCheck[]> {
-    if (!supabase) return [];
+    if (!isSupabaseConfigured()) return [];
 
     const checks: TableCheck[] = [];
 
@@ -310,7 +312,7 @@ class SupabaseHealthServiceClass {
   }
 
   private async checkPerformance(): Promise<PerformanceCheck> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return { avgQueryTimeMs: -1, slowQueries: [], indexUsage: 'poor' };
     }
 
@@ -368,7 +370,7 @@ class SupabaseHealthServiceClass {
   }
 
   private async checkSync(): Promise<SyncCheck> {
-    if (!supabase) {
+    if (!isSupabaseConfigured()) {
       return {
         typesInSync: false,
         missingTables: [],
@@ -401,7 +403,7 @@ class SupabaseHealthServiceClass {
   // ============================================================
 
   private async validateProfiles(issues: string[]): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
 
     // Check for orphaned profiles (no virtual_account)
     const { data: profiles } = await supabase.from('profiles').select('id');
@@ -419,7 +421,7 @@ class SupabaseHealthServiceClass {
   }
 
   private async validateSessions(issues: string[]): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
 
     // Check for sessions with invalid data
     const { data: sessions } = await supabase
@@ -433,7 +435,7 @@ class SupabaseHealthServiceClass {
   }
 
   private async validateLedger(issues: string[]): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
 
     // Check for negative balances in ledger
     const { data: negativeBalances } = await supabase
@@ -449,7 +451,7 @@ class SupabaseHealthServiceClass {
   }
 
   private async validateVirtualAccounts(issues: string[]): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
 
     // Check for accounts with negative balances
     const { data: negativeAccounts } = await supabase

@@ -12,7 +12,7 @@
  * @see https://supabase.com/docs/guides/auth
  */
 
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
 import type { AuthChangeEvent, Session, User, Provider } from '@supabase/supabase-js';
@@ -94,7 +94,7 @@ class SupabaseAuthServiceClass {
    * Call this once when app starts
    */
   initialize(): void {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       Logger.warn('[SupabaseAuth] Not configured - auth features disabled');
       return;
     }
@@ -172,7 +172,7 @@ class SupabaseAuthServiceClass {
    * Sign up with email and password
    */
   async signUp(options: SignUpOptions): Promise<AuthResult> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -226,7 +226,7 @@ class SupabaseAuthServiceClass {
    * Sign in with email and password
    */
   async signIn(options: SignInOptions): Promise<AuthResult> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -249,8 +249,6 @@ class SupabaseAuthServiceClass {
         user: data.user as User,
         session: data.session as Session,
       };
-
-      return { success: false, error: 'Invalid credentials' };
     } catch (err) {
       Logger.error('[SupabaseAuth] SignIn exception:', err);
       return { success: false, error: 'Connection error' };
@@ -262,7 +260,7 @@ class SupabaseAuthServiceClass {
    * This creates a real Supabase user but without email/password
    */
   async signInAnonymously(nickname: string): Promise<AuthResult> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -287,8 +285,6 @@ class SupabaseAuthServiceClass {
         user: data.user as User,
         session: data.session as Session,
       };
-
-      return { success: false, error: 'Failed to create anonymous session' };
     } catch (err) {
       Logger.error('[SupabaseAuth] Anonymous SignIn exception:', err);
       return { success: false, error: 'Connection error' };
@@ -299,7 +295,7 @@ class SupabaseAuthServiceClass {
    * Sign out current user
    */
   async signOut(): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -330,7 +326,7 @@ class SupabaseAuthServiceClass {
   async signInWithOAuth(
     options: OAuthOptions
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -375,7 +371,7 @@ class SupabaseAuthServiceClass {
   async linkOAuthProvider(
     provider: AuthProvider
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -400,7 +396,7 @@ class SupabaseAuthServiceClass {
     email: string,
     redirectTo?: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -429,7 +425,7 @@ class SupabaseAuthServiceClass {
    * Send OTP code to email (same as magic link but expects code verification)
    */
   async sendOtpCode(email: string): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -458,7 +454,7 @@ class SupabaseAuthServiceClass {
    * Verify OTP code and create session
    */
   async verifyOtpCode(email: string, token: string): Promise<AuthResult> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -501,7 +497,7 @@ class SupabaseAuthServiceClass {
     email: string,
     redirectTo?: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -529,7 +525,7 @@ class SupabaseAuthServiceClass {
   async updatePassword(
     newPassword: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -559,7 +555,7 @@ class SupabaseAuthServiceClass {
    * Get current session
    */
   async getSession(): Promise<Session | null> {
-    if (!isSupabaseConfigured() || !supabase) return null;
+    if (!isSupabaseConfigured()) return null;
 
     try {
       const { data } = await supabase.auth.getSession();
@@ -573,7 +569,7 @@ class SupabaseAuthServiceClass {
    * Get current authenticated user
    */
   async getUser(): Promise<User | null> {
-    if (!isSupabaseConfigured() || !supabase) return null;
+    if (!isSupabaseConfigured()) return null;
 
     try {
       const { data } = await supabase.auth.getUser();
@@ -599,7 +595,7 @@ class SupabaseAuthServiceClass {
     session?: Session;
     error?: string;
   }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -625,7 +621,7 @@ class SupabaseAuthServiceClass {
    * Get current user's profile from profiles table
    */
   async getProfile(): Promise<ProfileData | null> {
-    if (!isSupabaseConfigured() || !supabase) return null;
+    if (!isSupabaseConfigured()) return null;
 
     try {
       const user = await this.getUser();
@@ -654,7 +650,7 @@ class SupabaseAuthServiceClass {
     username?: string;
     avatarUrl?: string;
   }): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -724,7 +720,7 @@ class SupabaseAuthServiceClass {
    * Get list of linked OAuth providers for current user
    */
   async getLinkedProviders(): Promise<AuthProvider[]> {
-    if (!isSupabaseConfigured() || !supabase) return [];
+    if (!isSupabaseConfigured()) return [];
 
     try {
       const user = await this.getUser();
@@ -777,7 +773,7 @@ class SupabaseAuthServiceClass {
   async updateProfileWithAuth(
     updates: Partial<ProfileData>
   ): Promise<{ success: boolean; profile?: ProfileData; error?: string }> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Auth service not configured' };
     }
 
@@ -850,7 +846,7 @@ class SupabaseAuthServiceClass {
    * Update last seen timestamp
    */
   private async updateLastSeen(authUserId: string): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
 
     try {
       await supabase

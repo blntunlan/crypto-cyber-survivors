@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
-  MarketEventMapperV2,
   MARKET_EVENT_EFFECTS,
   createMarketEventMapperV2,
 } from '../../../services/market/MarketEventMapperV2';
@@ -100,68 +99,248 @@ describe('MarketEventMapperV2', () => {
       expect(EventBus.on).toHaveBeenCalledWith('gameMarketEvent', expect.any(Function));
       expect(EventBus.on).toHaveBeenCalledWith('gameReset', expect.any(Function));
     });
+
+    it('should process VOLUME_SPIKE event', () => {
+      // Get the callback registered with EventBus
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 0.8,
+        durationMs: 10000,
+      });
+
+      expect(mapper.isEventActive('VOLUME_SPIKE')).toBe(true);
+      expect(mapper.getSpawnRateMultiplier()).toBeGreaterThan(1.0);
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'marketEventActive',
+        expect.objectContaining({
+          type: 'VOLUME_SPIKE',
+          intensity: 0.8,
+        })
+      );
+    });
+
+    it('should scale effects based on intensity', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      // Low intensity
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 0.1,
+        durationMs: 10000,
+      });
+      const lowSpawnRate = mapper.getSpawnRateMultiplier();
+
+      mapper.reset();
+
+      // High intensity
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 1.0,
+        durationMs: 10000,
+      });
+      const highSpawnRate = mapper.getSpawnRateMultiplier();
+
+      expect(highSpawnRate).toBeGreaterThan(lowSpawnRate);
+    });
+
+    it('should refresh existing effects instead of stacking', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 0.5,
+        durationMs: 10000,
+      });
+
+      const initialEffects = mapper.getActiveEffects();
+      expect(initialEffects).toHaveLength(1);
+
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 0.8,
+        durationMs: 15000,
+      });
+
+      expect(mapper.getActiveEffects()).toHaveLength(1);
+      expect(mapper.getActiveEffects()[0].intensity).toBe(0.8);
+    });
+
+    it('should emit specific gameplay events for WHALE_ALERT', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      callback({
+        type: 'WHALE_ALERT',
+        intensity: 1.0,
+        durationMs: 30000,
+      });
+
+      expect(EventBus.emit).toHaveBeenCalledWith('screenShake', expect.any(Object));
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'spawnBoss',
+        expect.objectContaining({
+          type: 'whale',
+        })
+      );
+      expect(mapper.shouldPauseNormalSpawns()).toBe(true);
+      expect(mapper.isBossActive()).toBe(true);
+    });
+
+    it('should apply player modifiers for FLASH_CRASH', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      callback({
+        type: 'FLASH_CRASH',
+        intensity: 1.0,
+        durationMs: 15000,
+      });
+
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'playerModifierApplied',
+        expect.objectContaining({
+          source: 'market_FLASH_CRASH',
+        })
+      );
+
+      const mods = mapper.getPlayerModifiers();
+      expect(mods.speed).toBeLessThan(1.0);
+    });
   });
 
   describe('Modifier Accumulation', () => {
-    it('should return default spawn rate when no effects', () => {
-      expect(mapper.getSpawnRateMultiplier()).toBe(1.0);
-    });
+    it('should combine multiple active effects', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
 
-    it('should return default elite bonus when no effects', () => {
-      expect(mapper.getEliteChanceBonus()).toBe(0);
-    });
+      // Volume spike increases spawn rate
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 1.0,
+        durationMs: 10000,
+      });
+      const spikeSpawnRate = mapper.getSpawnRateMultiplier();
 
-    it('should return default player modifiers when no effects', () => {
-      const mods = mapper.getPlayerModifiers();
-      expect(mods.speed).toBe(1.0);
-      expect(mods.damage).toBe(1.0);
-      expect(mods.defense).toBe(1.0);
+      // Price breakout also affects spawn rate
+      callback({
+        type: 'PRICE_BREAKOUT',
+        intensity: 1.0,
+        durationMs: 10000,
+      });
+
+      expect(mapper.getSpawnRateMultiplier()).toBeCloseTo(
+        spikeSpawnRate * MARKET_EVENT_EFFECTS.PRICE_BREAKOUT.spawnRateMultiplier,
+        2
+      );
     });
   });
 
-  describe('Boss State', () => {
-    it('should report no boss active by default', () => {
-      expect(mapper.isBossActive()).toBe(false);
-    });
+  describe('Update Loop and Expiration', () => {
+    it('should expire effects after duration', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
 
-    it('should not pause spawns by default', () => {
-      expect(mapper.shouldPauseNormalSpawns()).toBe(false);
-    });
-  });
+      vi.useFakeTimers();
 
-  describe('Active Effects', () => {
-    it('should start with empty active effects', () => {
-      expect(mapper.getActiveEffects()).toHaveLength(0);
-    });
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 1.0,
+        durationMs: 1000,
+      });
 
-    it('should report no specific event active by default', () => {
+      expect(mapper.isEventActive('VOLUME_SPIKE')).toBe(true);
+
+      // Advance time beyond duration
+      vi.advanceTimersByTime(1100);
+      mapper.update(1100);
+
       expect(mapper.isEventActive('VOLUME_SPIKE')).toBe(false);
-      expect(mapper.isEventActive('WHALE_ALERT')).toBe(false);
-      expect(mapper.isEventActive('FLASH_CRASH')).toBe(false);
+      expect(EventBus.emit).toHaveBeenCalledWith('marketEventExpired', {
+        type: 'VOLUME_SPIKE',
+      });
+      expect(EventBus.emit).toHaveBeenCalledWith('playerModifierRemoved', {
+        source: 'market_VOLUME_SPIKE',
+      });
+
+      vi.useRealTimers();
+    });
+
+    it('should recalculate modifiers after expiration', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      vi.useFakeTimers();
+
+      callback({
+        type: 'VOLUME_SPIKE',
+        intensity: 1.0,
+        durationMs: 1000,
+      });
+
+      const boostedRate = mapper.getSpawnRateMultiplier();
+      expect(boostedRate).toBeGreaterThan(1.0);
+
+      vi.advanceTimersByTime(1100);
+      mapper.update(1100);
+
+      expect(mapper.getSpawnRateMultiplier()).toBe(1.0);
+
+      vi.useRealTimers();
     });
   });
 
-  describe('Event History', () => {
-    it('should start with empty history', () => {
-      expect(mapper.getEventHistory()).toHaveLength(0);
-    });
-  });
+  describe('Utility Methods', () => {
+    it('should return event history', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
 
-  describe('Update Loop', () => {
-    it('should handle update calls gracefully', () => {
-      expect(() => mapper.update(16)).not.toThrow();
+      callback({ type: 'VOLUME_SPIKE', intensity: 0.5, durationMs: 5000 });
+      callback({ type: 'PRICE_BREAKOUT', intensity: 0.7, durationMs: 5000 });
+
+      const history = mapper.getEventHistory();
+      expect(history).toHaveLength(2);
+      expect(history[0].type).toBe('VOLUME_SPIKE');
+      expect(history[1].type).toBe('PRICE_BREAKOUT');
     });
 
-    it('should handle rapid updates', () => {
-      for (let i = 0; i < 100; i++) {
-        mapper.update(16);
-      }
+    it('should handle gameReset event', () => {
+      const resetCallback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameReset'
+      )[1];
+
+      const eventCallback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      eventCallback({ type: 'VOLUME_SPIKE', intensity: 0.5, durationMs: 5000 });
+      expect(mapper.getActiveEffects()).toHaveLength(1);
+
+      resetCallback();
       expect(mapper.getActiveEffects()).toHaveLength(0);
     });
   });
 
   describe('Reset', () => {
     it('should reset all state', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
+
+      callback({ type: 'VOLUME_SPIKE', intensity: 0.5, durationMs: 5000 });
       mapper.reset();
 
       expect(mapper.getActiveEffects()).toHaveLength(0);
@@ -172,14 +351,16 @@ describe('MarketEventMapperV2', () => {
   });
 
   describe('Debug State', () => {
-    it('should provide debug information', () => {
-      const debug = mapper.getDebugState();
+    it('should provide debug information with active effects', () => {
+      const callback = (EventBus.on as any).mock.calls.find(
+        (call: any) => call[0] === 'gameMarketEvent'
+      )[1];
 
-      expect(debug).toHaveProperty('activeEffects');
-      expect(debug).toHaveProperty('modifiers');
-      expect(debug).toHaveProperty('bossActive');
-      expect(debug).toHaveProperty('pauseSpawns');
-      expect(debug).toHaveProperty('eventCount');
+      callback({ type: 'VOLUME_SPIKE', intensity: 0.5, durationMs: 5000 });
+
+      const debug = mapper.getDebugState();
+      expect(debug.activeEffects).toHaveLength(1);
+      expect((debug.activeEffects as any)[0].type).toBe('VOLUME_SPIKE');
     });
 
     it('should show correct modifier values in debug', () => {

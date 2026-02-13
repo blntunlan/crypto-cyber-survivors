@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 
@@ -41,7 +41,7 @@ export class ShopService {
    * Fetch all shop items available
    */
   async getItems(): Promise<ShopItem[]> {
-    if (!isSupabaseConfigured() || supabase === null) return [];
+    if (!isSupabaseConfigured()) return [];
 
     const { data, error } = await supabase
       .from('shop_items')
@@ -71,7 +71,7 @@ export class ShopService {
    * Fetch player's inventory to check ownership
    */
   async getInventory(): Promise<string[]> {
-    if (!isSupabaseConfigured() || supabase === null) return [];
+    if (!isSupabaseConfigured()) return [];
     const profileId = UserSessionService.getProfileId();
     if (profileId.startsWith('anon_')) return [];
 
@@ -99,7 +99,7 @@ export class ShopService {
       return { success: false, error: 'Must be logged in to purchase' };
     }
 
-    if (!isSupabaseConfigured() || supabase === null) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Supabase unavailable' };
     }
 

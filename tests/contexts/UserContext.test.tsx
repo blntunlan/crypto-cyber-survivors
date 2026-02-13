@@ -15,7 +15,7 @@ const mockSupabase = {
   rpc: vi.fn(),
 };
 
-vi.mock('../../services/core/Supabase', () => ({
+vi.mock('../../services/supabase/client', () => ({
   supabase: mockSupabase,
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
@@ -219,3 +219,4 @@ describe('UserContext', () => {
     });
   });
 });
+

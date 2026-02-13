@@ -27,7 +27,7 @@ export const DIFFICULTY_CONFIG = {
 export const LEVERAGE_TIERS: Record<number, LeverageScale> = TIERS;
 
 /**
- * @deprecated Wave phases have been removed in AI Director V2.
+ * Legacy V1 Support: Wave phases removed
  * Difficulty is now driven by market conditions and player flow state.
  * Keeping this for legacy compatibility - will be removed in future version.
  */

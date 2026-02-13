@@ -144,6 +144,8 @@ vi.stubGlobal('AudioContext', MockAudioContext);
 vi.stubGlobal('webkitAudioContext', MockAudioContext);
 
 // Mock import.meta.env
+// Note: Vitest handles this via vi.stubGlobal or by defining it in vitest.config.ts
+// We do both for maximum reliability across different test runners
 vi.stubGlobal('import.meta', {
   env: {
     DEV: true,
@@ -153,6 +155,14 @@ vi.stubGlobal('import.meta', {
     VITE_SUPABASE_ANON_KEY: 'mock-key',
   },
 });
+
+// Polyfill for Response.clone if missing in some JSDOM versions used by MSW
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+if (typeof Response !== 'undefined' && !Response.prototype.clone) {
+  Response.prototype.clone = function () {
+    return this;
+  };
+}
 
 // Mock requestAnimationFrame
 vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {

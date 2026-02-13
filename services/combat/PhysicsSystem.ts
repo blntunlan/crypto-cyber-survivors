@@ -19,9 +19,10 @@ export class PhysicsSystem implements IPhysicsSystem {
   private movementSystem: IMovementSystem;
   private collisionSystem: ICollisionSystem;
   private collectionSystem: ICollectionSystem;
+
   private constructor(
     movement: IMovementSystem = new MovementSystem(),
-    collision: ICollisionSystem = new CollisionSystem(),
+    collision: ICollisionSystem = CollisionSystem.getInstance(),
     collection: ICollectionSystem = new CollectionSystem()
   ) {
     this.movementSystem = movement;

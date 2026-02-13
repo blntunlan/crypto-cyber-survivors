@@ -9,6 +9,8 @@ export class ATRCalculator {
   private trValues: number[] = [];
   private prevClose: number | null = null;
   private period: number;
+  private lastPrice: number | null = null;
+  private lastResult: { atr: number; atrPercent: number } = { atr: 0, atrPercent: 0 };
 
   // Constants synced with client SYNC_CONFIG
   private readonly MAX_HISTORY_SIZE = 300;
@@ -23,6 +25,17 @@ export class ATRCalculator {
     low: number,
     close: number
   ): { atr: number; atrPercent: number } {
+    // Validate inputs
+    if (!Number.isFinite(close) || close <= 0) {
+      return this.lastResult;
+    }
+
+    // Skip unchanged prices to avoid TR=0 dilution.
+    if (this.lastPrice !== null && close === this.lastPrice) {
+      return this.lastResult;
+    }
+    this.lastPrice = close;
+
     // Calculate True Range
     let tr: number;
     if (this.prevClose === null) {
@@ -54,7 +67,8 @@ export class ATRCalculator {
     const fixedAtr = Number(atr.toFixed(10));
     const fixedAtrPercent = Number(rawAtrPercent.toFixed(this.PRECISION));
 
-    return { atr: fixedAtr, atrPercent: fixedAtrPercent };
+    this.lastResult = { atr: fixedAtr, atrPercent: fixedAtrPercent };
+    return this.lastResult;
   }
 
   getSpawnRateMultiplier(atrPercent: number): number {
@@ -68,5 +82,7 @@ export class ATRCalculator {
   reset(): void {
     this.trValues = [];
     this.prevClose = null;
+    this.lastPrice = null;
+    this.lastResult = { atr: 0, atrPercent: 0 };
   }
 }

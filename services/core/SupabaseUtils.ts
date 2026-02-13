@@ -2,9 +2,17 @@
  * SupabaseUtils - Critical utilities for safe data fetching and error recovery
  */
 
-import { supabase } from './Supabase';
+import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserPersistenceService } from '../auth/UserPersistenceService';
+import {
+  type Result,
+  success,
+  failure,
+  DatabaseError,
+  type AppError,
+} from '../../types/errors';
+import ErrorTracker from '../analytics/ErrorTracker';
 
 export class SupabaseUtils {
   /**
@@ -20,15 +28,15 @@ export class SupabaseUtils {
     query: any,
     resourceName: string,
     critical: boolean = false
-  ): Promise<T | null> {
+  ): Promise<Result<T, DatabaseError>> {
     try {
       const { data, error } = await query.maybeSingle();
 
       if (error) {
-        // PostgREST error 406 is returned when multiple or no rows are found but .single() was expected
-        // Here we use .maybeSingle() to get null instead, but we check if it was fundamentally missing
         Logger.error(`[SupabaseUtils] Fetch ${resourceName} error:`, error);
-        return null;
+        return failure(
+          new DatabaseError(`Failed to fetch ${resourceName}`, { error }, error)
+        );
       }
 
       if (!data && critical) {
@@ -36,14 +44,92 @@ export class SupabaseUtils {
           `[SupabaseUtils] Critical resource ${resourceName} missing. Triggering recovery...`
         );
         this.handleCriticalResourceMissing(resourceName);
-        return null;
+        return failure(
+          new DatabaseError(`Critical resource ${resourceName} missing`, {
+            critical: true,
+          })
+        );
       }
 
-      return data as T;
+      if (!data) {
+        return failure(
+          new DatabaseError(`${resourceName} not found`, { notFound: true })
+        );
+      }
+
+      return success(data as T);
     } catch (e) {
       Logger.error(`[SupabaseUtils] Unexpected error fetching ${resourceName}:`, e);
-      return null;
+      return failure(
+        new DatabaseError(
+          `Unexpected error fetching ${resourceName}`,
+          { rawError: e },
+          e
+        )
+      );
     }
+  }
+
+  /**
+   * withResilience - High-order function for resilient async operations
+   * Features: Retry logic, error tracking, and fallback support
+   */
+  static async withResilience<T>(
+    operation: () => Promise<T>,
+    options: {
+      name: string;
+      maxRetries?: number;
+      fallbackValue?: T;
+      silent?: boolean;
+    }
+  ): Promise<Result<T, AppError>> {
+    const { name, maxRetries = 3, fallbackValue, silent = false } = options;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await operation();
+        return success(result);
+      } catch (err) {
+        lastError = err;
+
+        if (attempt < maxRetries) {
+          const delay = 1000 * Math.pow(2, attempt - 1);
+          if (!silent) {
+            Logger.warn(
+              `[Resilience] ${name} failed (attempt ${attempt}/${maxRetries}). Retrying in ${delay}ms...`
+            );
+          }
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // Handled max retries reached
+    const error: AppError = {
+      code: 'RESILIENCE_FAILURE',
+      message: `Operation ${name} failed after ${maxRetries} attempts`,
+      severity: 'high',
+      isRetryable: false,
+      context: { name, attempts: maxRetries },
+      originalError: lastError,
+    };
+
+    if (!silent) {
+      Logger.error(`[Resilience] ${name} failed permanently`, lastError);
+      void ErrorTracker.captureError({
+        errorType: 'ResilienceError',
+        errorMessage: error.message,
+        severity: 'high',
+        context: error.context,
+      });
+    }
+
+    if (fallbackValue !== undefined) {
+      return success(fallbackValue);
+    }
+
+    return failure(error);
   }
 
   /**
@@ -71,7 +157,7 @@ export class SupabaseUtils {
     category: string,
     context?: unknown
   ): Promise<void> {
-    if (!supabase) return;
+    if (!isSupabaseConfigured()) return;
 
     try {
       await supabase.from('error_reports').insert({

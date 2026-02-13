@@ -43,6 +43,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   const cyberStyles = {
     base: `
       relative overflow-hidden
+      bg-slate-900/40 border border-white/10
       cyber-glass rounded-2xl
       transition-all duration-300 ease-out
       hover:bg-white/10 hover:border-white/30
@@ -54,12 +55,12 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
     `,
     selected: `
       !bg-white/[0.08]
-      border-[var(--hub-accent)]/60
+      !border-[var(--hub-accent)]/60
       shadow-[var(--hub-shadow-selected)]
       scale-[1.02]
     `,
     disabled:
-      'opacity-50 cursor-not-allowed grayscale hover:scale-100 lg:hover:scale-100',
+      'opacity-50 cursor-not-allowed grayscale hover:scale-100 lg:hover:scale-100 bg-slate-950/50',
   };
 
   // Retro 16-bit styles - matching MainMenu's neon green aesthetic
