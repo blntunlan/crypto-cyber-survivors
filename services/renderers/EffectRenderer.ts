@@ -21,6 +21,12 @@ import { TimeService } from '../core/TimeService';
  * 4. Drawing dynamic speed lines to visualize player velocity/momentum.
  */
 export class EffectRenderer implements IRenderer {
+  private bounds: ViewportBounds;
+
+  constructor() {
+    this.bounds = createViewportBounds(0, 0, 0);
+  }
+
   /**
    * Primary render loop for cumulative visual effects.
    */
@@ -34,23 +40,23 @@ export class EffectRenderer implements IRenderer {
     const { width, height, graphics } = opts;
 
     // Boundary Check: 30px padding sufficient for transient effects
-    const bounds = createViewportBounds(
-      width,
-      height,
-      GAME_ENGINE.EFFECT_CULLING_PADDING
-    );
+    const padding = GAME_ENGINE.EFFECT_CULLING_PADDING;
+    this.bounds.left = -padding;
+    this.bounds.right = width + padding;
+    this.bounds.top = -padding;
+    this.bounds.bottom = height + padding;
 
     // 1. Combat Feedback (Bottom layer of effects)
     this.drawCritFlash(ctx, width, height, state);
 
     // 2. Particle Effects (Environmental detail)
     if (graphics.showParticles) {
-      this.drawParticles(ctx, pool, bounds);
+      this.drawParticles(ctx, pool, this.bounds);
     }
 
     // 3. UI Overlays (Damage numbers)
     if (graphics.showDamageNumbers) {
-      this.drawFloatingTexts(ctx, pool, bounds);
+      this.drawFloatingTexts(ctx, pool, this.bounds);
     }
 
     // 4. Momentum Feedback (Top layer)

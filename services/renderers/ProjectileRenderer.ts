@@ -1,7 +1,11 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Bullet } from '../../types';
-import { createViewportBounds, isCircleVisible } from './CullingUtils';
+import {
+  createViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
@@ -18,12 +22,15 @@ import { gradientCache } from '../../utils/GradientCache';
 
 export class ProjectileRenderer implements IRenderer {
   private static instance: ProjectileRenderer | null = null;
+  private bounds: ViewportBounds;
 
   public static getInstance(): ProjectileRenderer {
     return (ProjectileRenderer.instance ??= new ProjectileRenderer());
   }
 
-  constructor() {}
+  constructor() {
+    this.bounds = createViewportBounds(0, 0, 0);
+  }
 
   /**
    * Primary render loop for projectiles.
@@ -35,11 +42,11 @@ export class ProjectileRenderer implements IRenderer {
     _player: Player,
     opts: RenderOptions
   ): void {
-    const bounds = createViewportBounds(
-      opts.width,
-      opts.height,
-      GAME_ENGINE.BULLET_CULLING_PADDING
-    );
+    const padding = GAME_ENGINE.BULLET_CULLING_PADDING;
+    this.bounds.left = -padding;
+    this.bounds.right = opts.width + padding;
+    this.bounds.top = -padding;
+    this.bounds.bottom = opts.height + padding;
 
     const isRetro = ThemeService.isRetro();
 
@@ -67,7 +74,7 @@ export class ProjectileRenderer implements IRenderer {
             b.x,
             b.y,
             b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
-            bounds
+            this.bounds
           )
         ) {
           continue;
@@ -134,7 +141,7 @@ export class ProjectileRenderer implements IRenderer {
             b.x,
             b.y,
             b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
-            bounds
+            this.bounds
           )
         ) {
           continue;

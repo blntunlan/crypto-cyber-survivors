@@ -26,9 +26,11 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private bounds: ViewportBounds;
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
+    this.bounds = createViewportBounds(0, 0, 0);
   }
 
   /**
@@ -45,17 +47,17 @@ export class EntityRenderer implements IRenderer {
     const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
 
     // Boundary Check: 50px padding to ensure smooth entry into screen
-    const bounds = createViewportBounds(
-      opts.width,
-      opts.height,
-      GAME_ENGINE.ENTITY_CULLING_PADDING
-    );
+    const padding = GAME_ENGINE.ENTITY_CULLING_PADDING;
+    this.bounds.left = -padding;
+    this.bounds.right = opts.width + padding;
+    this.bounds.top = -padding;
+    this.bounds.bottom = opts.height + padding;
 
     // Layered rendering (Bottom to Top)
-    this.drawInteractables(ctx, pool, bounds);
-    this.drawGems(ctx, pool, shadowsEnabled, bounds);
-    this.drawBuffGems(ctx, shadowsEnabled, bounds);
-    this.drawEnemies(ctx, pool, bounds);
+    this.drawInteractables(ctx, pool, this.bounds);
+    this.drawGems(ctx, pool, shadowsEnabled, this.bounds);
+    this.drawBuffGems(ctx, shadowsEnabled, this.bounds);
+    this.drawEnemies(ctx, pool, this.bounds);
     this.drawPlayer(ctx, player, state, shadowsEnabled);
   }
 
