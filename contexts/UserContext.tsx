@@ -4,6 +4,7 @@ import { Logger } from '../services/system/Logger';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 import { SecurityUtils } from '../services/auth/SecurityUtils';
+import { supabase, isSupabaseConfigured } from '../services/supabase/client';
 
 // ============================================================================
 // Types
@@ -56,9 +57,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
       if (storedUser) {
         try {
-          const { supabase, isSupabaseConfigured } =
-            await import('../services/supabase/client');
-
           if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
             // Verify if profile still exists in the NEW database
             const { data, error } = await supabase
@@ -101,9 +99,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // Login / Register
   const login = useCallback(
     async (nickname: string): Promise<{ success: boolean; error?: string }> => {
-      const { supabase, isSupabaseConfigured } =
-        await import('../services/supabase/client');
-
       // Local-only mode for development (LAN, localhost, etc.)
       if (!isSupabaseConfigured() || SecurityUtils.isLocalEnvironment()) {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
@@ -286,8 +281,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     // Async sync to Supabase
     try {
-      const { supabase, isSupabaseConfigured } =
-        await import('../services/supabase/client');
       if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
         void supabase
           .from('profiles')

@@ -34,3 +34,11 @@ export {
   CHEAT_CONFIG,
 } from './GameConfig';
 export type { WavePhase } from './GameConfig';
+
+// Market runtime
+export {
+  getMarketRuntimeConfig,
+  getMarketRuntimeMode,
+  MARKET_RUNTIME_MODES,
+} from './marketRuntime';
+export type { MarketRuntimeMode, MarketRuntimeConfig } from './marketRuntime';

@@ -1,6 +1,4 @@
 import * as SynapticLib from 'synaptic';
-import { marketIndicatorService } from '../indicators/MarketIndicatorService';
-import { calculateMACDFactor } from './factors/macd';
 import { difficultyContext } from './DifficultyContext';
 import { Logger } from '../system/Logger';
 import { PoolManager } from '../combat/PoolManager';
@@ -24,7 +22,7 @@ const PRETRAINED_BRAIN: unknown = null;
  * - Market-aware difficulty scaling
  */
 export interface DirectorInputs {
-  // Market Inputs (from MarketIndicatorService)
+  // Market Inputs (from DifficultyContext)
   rsi: number; // RSI / 100
   macd: number; // MACD factor normalized 0-1
   volatility: number; // ATR% normalized
@@ -146,7 +144,13 @@ class AIDirectorClass {
     this.lastUpdate = time;
 
     const ctx = difficultyContext.getContext();
-    const market = marketIndicatorService.getState();
+    const marketRSI = Number.isFinite(ctx.inputs.rsi) ? ctx.inputs.rsi : 50;
+    const marketAtrPercent = Number.isFinite(ctx.inputs.atrPercent)
+      ? ctx.inputs.atrPercent
+      : 0;
+    const marketVolume = Number.isFinite(ctx.inputs.normalizedVolume)
+      ? ctx.inputs.normalizedVolume
+      : 0.5;
 
     // Power Analysis (fireRate is ms, lower is better, so we use 1000 / fireRate)
     const shotsPerSec = 1000 / Math.max(50, this.playerStats.fireRate);
@@ -163,21 +167,30 @@ class AIDirectorClass {
     const zoningScore = Math.min(1, activeGems / 150);
 
     // MACD factor normalized 0 to 1
-    const macdInput = (calculateMACDFactor() + 1) / 2;
+    const macdState = ctx.inputs.macd as { value?: number; macd?: number } | undefined;
+    const macdValue = macdState?.value;
+    const macdLegacy = macdState?.macd;
+    const macdLine =
+      typeof macdValue === 'number'
+        ? macdValue
+        : typeof macdLegacy === 'number'
+          ? macdLegacy
+          : 0;
+    const macdInput = Math.max(0, Math.min(1, (macdLine + 1) / 2));
 
     // Determine trend from RSI
     let trendValue = 0.5; // sideways
-    if (market.rsi > 60) {
+    if (marketRSI > 60) {
       trendValue = 1.0; // bull
-    } else if (market.rsi < 40) {
+    } else if (marketRSI < 40) {
       trendValue = 0.0; // bear
     }
 
     const inputs: DirectorInputs = {
-      rsi: market.rsi / 100,
+      rsi: marketRSI / 100,
       macd: macdInput,
-      volatility: Math.min(1, market.atrPercent * 2),
-      volume: market.normalizedVolume,
+      volatility: Math.min(1, marketAtrPercent * 2),
+      volume: marketVolume,
       trend: trendValue,
       stress: 1 - Math.min(100, Math.max(0, ctx.inputs.hpPercent)) / 100,
       playerDPS,

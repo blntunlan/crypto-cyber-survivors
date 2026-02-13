@@ -6,10 +6,14 @@ import { CRYPTO_PAIRS } from '../../types/crypto';
 import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import { EventBus } from '../../services/core/EventBus';
-import { type MarketStateData } from '../../types/events';
+import {
+  type MarketStateData,
+  type ClientIndicatorsUpdatedEvent,
+} from '../../types/events';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { LiveTicker } from '../themed/LiveTicker';
+import { ClientIndicatorService } from '../../services/indicators/ClientIndicatorService';
 
 interface LiveFeedProps {
   marketData: MarketData;
@@ -104,13 +108,32 @@ const LiveInfoRow = memo(
 LiveInfoRow.displayName = 'LiveInfoRow';
 
 const DesktopLiveFeed: React.FC<
-  LiveFeedProps & { serverState: MarketStateData | null }
-> = ({ marketData, entryPrice, priceColor, serverState }) => {
+  LiveFeedProps & {
+    serverState: MarketStateData | null;
+    clientIndicators: ClientIndicatorsUpdatedEvent | null;
+  }
+> = ({ marketData, entryPrice, priceColor, serverState, clientIndicators }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
 
   const pnlHex = marketData.effectivePnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE;
   const pairConfig = CRYPTO_PAIRS[marketData.pair ?? 'BTC'];
+
+  // Trend Arrow
+  const getTrendIcon = () => {
+    if (!clientIndicators) return '➡️';
+    if (clientIndicators.trendDirection === 'UP') return '⬆️';
+    if (clientIndicators.trendDirection === 'DOWN') return '⬇️';
+    return '➡️';
+  };
+
+  const trendColor = !clientIndicators
+    ? 'text-slate-500'
+    : clientIndicators.trendDirection === 'UP'
+      ? 'text-green-400'
+      : clientIndicators.trendDirection === 'DOWN'
+        ? 'text-red-400'
+        : 'text-slate-400';
 
   return (
     <div className="flex min-w-[220px] flex-col gap-0 bg-transparent p-1.5 transition-[width] duration-300">
@@ -224,31 +247,71 @@ const DesktopLiveFeed: React.FC<
             />
           )}
 
-        {serverState && (
-          <>
-            <div className="mt-1 flex items-center justify-between border-t border-slate-800/50 pt-1 text-[9px] uppercase tracking-widest text-slate-400">
-              <span className="flex items-center gap-1">
-                RSI <span className="text-[7px] opacity-50">({serverState.pair})</span>
-              </span>
-              <span
-                className={`tabular-nums ${
-                  serverState.rsi >= 70
-                    ? 'font-bold text-red-400'
-                    : serverState.rsi <= 30
-                      ? 'font-bold text-green-400'
-                      : 'text-slate-200'
-                }`}
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-              >
-                {serverState.rsi.toFixed(1)}
+        {/* Client Indicators Section */}
+        {clientIndicators && (
+          <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 border-t border-slate-800/50 pt-2 text-[9px]">
+            {/* Trend */}
+            <div className="flex items-center justify-between uppercase tracking-widest text-slate-400">
+              <span>Trend</span>
+              <span className={`font-bold ${trendColor}`}>
+                {getTrendIcon()} {(clientIndicators.trendStrength * 100).toFixed(0)}%
               </span>
             </div>
-            {serverState.whaleTier > 0 && (
-              <div className="mt-1 animate-pulse rounded border border-amber-400/30 bg-amber-400/10 px-1 py-0.5 text-center text-[9px] font-black tracking-widest text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
-                ⚠️ {t('hud.whale_detected')} (T{serverState.whaleTier})
+
+            {/* ATR/Vol */}
+            <div className="flex items-center justify-between uppercase tracking-widest text-slate-400">
+              <span>ATR</span>
+              <span
+                className={`font-bold ${clientIndicators.atrPercent > 0.5 ? 'text-orange-400' : 'text-slate-200'}`}
+              >
+                {(clientIndicators.atrPercent * 100).toFixed(2)}%
+              </span>
+            </div>
+
+            {/* Volume */}
+            <div className="col-span-2 flex items-center justify-between uppercase tracking-widest text-slate-400">
+              <span>Vol Rank</span>
+              <div className="flex items-center gap-1">
+                <div className="h-1 w-12 overflow-hidden rounded bg-slate-800">
+                  <div
+                    className={`h-full ${clientIndicators.normalizedVolume > 0.8 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                    style={{ width: `${clientIndicators.normalizedVolume * 100}%` }}
+                  />
+                </div>
+                <span className="font-bold text-slate-200">
+                  {(clientIndicators.normalizedVolume * 100).toFixed(0)}%
+                </span>
               </div>
-            )}
-          </>
+            </div>
+          </div>
+        )}
+
+        {serverState && (
+          <div className="mt-1 flex items-center justify-between pt-1 text-[9px] uppercase tracking-widest text-slate-400">
+            <span className="flex items-center gap-1">
+              RSI <span className="text-[7px] opacity-50">({serverState.pair})</span>
+            </span>
+            <span
+              className={`tabular-nums ${
+                serverState.rsi >= 70
+                  ? 'font-bold text-red-400'
+                  : serverState.rsi <= 30
+                    ? 'font-bold text-green-400'
+                    : 'text-slate-200'
+              }`}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {serverState.rsi.toFixed(1)}
+            </span>
+          </div>
+        )}
+
+        {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0) >
+          0 && (
+          <div className="mt-1 animate-pulse rounded border border-amber-400/30 bg-amber-400/10 px-1 py-0.5 text-center text-[9px] font-black tracking-widest text-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.2)]">
+            ⚠️ {t('hud.whale_detected')} (T
+            {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0)})
+          </div>
         )}
       </div>
     </div>
@@ -256,8 +319,11 @@ const DesktopLiveFeed: React.FC<
 };
 
 const MobileLiveFeed: React.FC<
-  LiveFeedProps & { serverState: MarketStateData | null }
-> = ({ marketData, entryPrice, priceColor, serverState }) => {
+  LiveFeedProps & {
+    serverState: MarketStateData | null;
+    clientIndicators: ClientIndicatorsUpdatedEvent | null;
+  }
+> = ({ marketData, entryPrice, priceColor, serverState, clientIndicators }) => {
   const isRetro = useIsRetro();
   const { t } = useLanguage();
   const { rfs, isSmallDevice } = useResponsiveUI();
@@ -281,6 +347,13 @@ const MobileLiveFeed: React.FC<
     if (marketData.effectivePnl <= -0.7) return 'text-red-500';
     if (marketData.effectivePnl <= -0.4) return 'text-orange-400';
     return 'text-slate-300';
+  };
+
+  const getTrendIcon = () => {
+    if (!clientIndicators) return '';
+    if (clientIndicators.trendDirection === 'UP') return '⬆️';
+    if (clientIndicators.trendDirection === 'DOWN') return '⬇️';
+    return '➡️';
   };
 
   return (
@@ -401,9 +474,24 @@ const MobileLiveFeed: React.FC<
         )}
 
         {/* Whale indicator */}
-        {serverState && serverState.whaleTier > 0 && (
+        {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0) >
+          0 && (
           <div className="animate-pulse rounded bg-amber-500/20 px-1.5 py-0.5 font-bold text-amber-400">
-            🐋 T{serverState.whaleTier}
+            🐋 T
+            {Math.max(clientIndicators?.whaleTier ?? 0, serverState?.whaleTier ?? 0)}
+          </div>
+        )}
+
+        {/* Trend Indicator Mobile */}
+        {clientIndicators && clientIndicators.trendDirection !== 'SIDEWAYS' && (
+          <div
+            className={`whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-bold tabular-nums ${
+              clientIndicators.trendDirection === 'UP'
+                ? 'text-green-400'
+                : 'text-red-400'
+            }`}
+          >
+            {getTrendIcon()} {(clientIndicators.trendStrength * 100).toFixed(0)}%
           </div>
         )}
       </div>
@@ -414,6 +502,8 @@ const MobileLiveFeed: React.FC<
 export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
   const [isMobile, setIsMobile] = useState(screenService.isMobile());
   const [serverState, setServerState] = useState<MarketStateData | null>(null);
+  const [clientIndicators, setClientIndicators] =
+    useState<ClientIndicatorsUpdatedEvent | null>(null);
 
   useEffect(() => {
     // Screen resize listener
@@ -425,17 +515,46 @@ export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
     const handleMarketUpdate = (data: MarketStateData) => {
       setServerState(data);
     };
+
+    // Client indicators listener
+    const handleClientIndicators = (data: ClientIndicatorsUpdatedEvent) => {
+      setClientIndicators(data);
+    };
+
     const unsubscribeBus = EventBus.on('marketStateUpdated', handleMarketUpdate);
+    const unsubscribeIndicators = EventBus.on(
+      'clientIndicatorsUpdated',
+      handleClientIndicators
+    );
+
+    // Initialize/Update active pair
+    if (props.marketData.pair) {
+      ClientIndicatorService.setPair(props.marketData.pair);
+    }
+
+    // Initial fetch to ensure we have data immediately if available
+    setClientIndicators(
+      ClientIndicatorService.getState() as unknown as ClientIndicatorsUpdatedEvent
+    );
 
     return () => {
       unsubscribeScreen();
       unsubscribeBus();
+      unsubscribeIndicators();
     };
-  }, []);
+  }, [props.marketData.pair]);
 
   return isMobile ? (
-    <MobileLiveFeed {...props} serverState={serverState} />
+    <MobileLiveFeed
+      {...props}
+      serverState={serverState}
+      clientIndicators={clientIndicators}
+    />
   ) : (
-    <DesktopLiveFeed {...props} serverState={serverState} />
+    <DesktopLiveFeed
+      {...props}
+      serverState={serverState}
+      clientIndicators={clientIndicators}
+    />
   );
 });

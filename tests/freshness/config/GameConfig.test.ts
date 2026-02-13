@@ -20,8 +20,12 @@ describe('GameConfig', () => {
       .sort((a, b) => a.tier - b.tier);
 
     for (let i = 1; i < ordered.length; i++) {
-      expect(ordered[i]!.value.spawn).toBeGreaterThanOrEqual(ordered[i - 1]!.value.spawn);
-      expect(ordered[i]!.value.xpReq).toBeGreaterThanOrEqual(ordered[i - 1]!.value.xpReq);
+      expect(ordered[i]!.value.spawn).toBeGreaterThanOrEqual(
+        ordered[i - 1]!.value.spawn
+      );
+      expect(ordered[i]!.value.xpReq).toBeGreaterThanOrEqual(
+        ordered[i - 1]!.value.xpReq
+      );
     }
   });
 

@@ -2,14 +2,26 @@ import { MarketPosition, type CryptoPair } from '../../types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { ENEMY_SPAWN } from '../../config';
 import { useAdminConfigStore } from '../../stores/admin/configStore';
-import { marketIndicatorService } from '../indicators/MarketIndicatorService';
-import { WHALE_TIER_CONFIGS } from '../../types/indicators';
+import {
+  WHALE_TIER_CONFIGS,
+  WhaleTier,
+  type RSIEnemyModifier,
+  type RSIState,
+  getEnemyModifierFromRSI,
+  getRSIStateWithHysteresis,
+} from '../../types/indicators';
 import { Logger } from '../system/Logger';
 import { type SpawnDebugState, getDebugTimestamp } from '../../types/DebugState';
 import { type ISpawnSystem } from '../interfaces/ISpawnSystem';
 import { type EnemyId } from '../../config/EnemyRegistry';
 import { EventBus } from '../core/EventBus';
 import { type GameMarketEvent } from '../market/MarketEventManager';
+
+export interface SpawnMarketSignals {
+  rsi?: number;
+  rsiState?: string;
+  whaleTier?: number;
+}
 
 /**
  * SpawnSystem Class
@@ -23,6 +35,7 @@ export class SpawnSystem implements ISpawnSystem {
   private whaleCooldownTimer: number = 0;
   private activeEvents: Map<GameMarketEvent, { intensity: number; expiry: number }> =
     new Map();
+  private previousRSIState: RSIState = 'NEUTRAL';
 
   private pendingGatekeeperSpawn: { x: number; y: number; count: number } | null = null;
 
@@ -65,10 +78,13 @@ export class SpawnSystem implements ISpawnSystem {
     spawnRateMultiplier?: number,
     _pair: CryptoPair = 'BTC',
     damageMultiplier: number = 1.0,
-    speedMultiplier: number = 1.0
+    speedMultiplier: number = 1.0,
+    marketSignals?: SpawnMarketSignals
   ): number {
     const config = this.getSpawnConfig();
-    const marketState = marketIndicatorService.getState();
+    const rsiState = this.resolveRSIState(marketSignals);
+    const whaleTier = this.resolveWhaleTier(marketSignals?.whaleTier);
+    const enemyModifier = getEnemyModifierFromRSI(rsiState, position);
 
     this.spawnTimer += deltaTime;
     this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
@@ -97,10 +113,10 @@ export class SpawnSystem implements ISpawnSystem {
 
     // 1. High-Tier Content: Whale Spawning
     const whaleAlert = this.activeEvents.get('WHALE_ALERT');
-    if (marketState.whaleTier > 0 || whaleAlert) {
+    if (whaleTier > WhaleTier.NONE || whaleAlert) {
       const effectiveTier = whaleAlert
-        ? Math.max(marketState.whaleTier, 2)
-        : marketState.whaleTier;
+        ? (Math.max(whaleTier, WhaleTier.WHALE) as WhaleTier)
+        : whaleTier;
       this.handleWhaleSpawning(
         effectiveTier,
         pool,
@@ -112,7 +128,8 @@ export class SpawnSystem implements ISpawnSystem {
         deltaTime,
         damageMultiplier,
         speedMultiplier,
-        whaleAlert?.intensity ?? 0
+        whaleAlert?.intensity ?? 0,
+        enemyModifier
       );
     }
 
@@ -138,7 +155,8 @@ export class SpawnSystem implements ISpawnSystem {
           height,
           damageMultiplier,
           speedMultiplier,
-          marketState.rsiState
+          rsiState,
+          enemyModifier
         );
       }
       this.spawnTimer -= spawnThreshold;
@@ -170,7 +188,7 @@ export class SpawnSystem implements ISpawnSystem {
   }
 
   private handleWhaleSpawning(
-    whaleTier: number,
+    whaleTier: WhaleTier,
     pool: IPoolManager,
     difficulty: number,
     position: MarketPosition,
@@ -180,10 +198,10 @@ export class SpawnSystem implements ISpawnSystem {
     deltaTime: number,
     damageMultiplier: number,
     speedMultiplier: number,
-    eventIntensity: number
+    eventIntensity: number,
+    rsiModifier: RSIEnemyModifier
   ) {
-    const whaleConfig =
-      WHALE_TIER_CONFIGS[whaleTier as keyof typeof WHALE_TIER_CONFIGS];
+    const whaleConfig = WHALE_TIER_CONFIGS[whaleTier];
     if (!whaleConfig) return;
 
     const eventBoost = eventIntensity > 0 ? 5.0 : 1.0;
@@ -207,7 +225,8 @@ export class SpawnSystem implements ISpawnSystem {
         position,
         whaleTier,
         damageMultiplier,
-        speedMultiplier
+        speedMultiplier,
+        rsiModifier
       );
       this.whaleCooldownTimer = 20000;
     }
@@ -222,7 +241,8 @@ export class SpawnSystem implements ISpawnSystem {
     height: number,
     damageMultiplier: number,
     speedMultiplier: number,
-    rsiState: string
+    rsiState: RSIState,
+    rsiModifier: RSIEnemyModifier
   ) {
     const { x, y } = this.getRandomSpawnPosition(width, height);
     const roll = Math.random();
@@ -253,8 +273,42 @@ export class SpawnSystem implements ISpawnSystem {
       enemyType,
       undefined,
       damageMultiplier,
-      speedMultiplier
+      speedMultiplier,
+      rsiModifier
     );
+  }
+
+  private resolveRSIState(marketSignals?: SpawnMarketSignals): RSIState {
+    const nextRSIState = marketSignals?.rsiState;
+
+    if (
+      nextRSIState === 'OVERSOLD' ||
+      nextRSIState === 'NEUTRAL' ||
+      nextRSIState === 'OVERBOUGHT'
+    ) {
+      this.previousRSIState = nextRSIState;
+      return nextRSIState;
+    }
+
+    const resolved = getRSIStateWithHysteresis(
+      marketSignals?.rsi ?? 50,
+      this.previousRSIState
+    );
+    this.previousRSIState = resolved;
+    return resolved;
+  }
+
+  private resolveWhaleTier(whaleTier?: number): WhaleTier {
+    if (
+      whaleTier === WhaleTier.NONE ||
+      whaleTier === WhaleTier.BABY_WHALE ||
+      whaleTier === WhaleTier.WHALE ||
+      whaleTier === WhaleTier.MEGA_WHALE
+    ) {
+      return whaleTier;
+    }
+
+    return WhaleTier.NONE;
   }
 
   private getRandomSpawnPosition(width: number, height: number) {
@@ -301,6 +355,7 @@ export class SpawnSystem implements ISpawnSystem {
   public reset(): void {
     this.spawnTimer = 0;
     this.pendingGatekeeperSpawn = null;
+    this.previousRSIState = 'NEUTRAL';
   }
 
   getDebugState(currentActiveEnemies: number = 0): SpawnDebugState {

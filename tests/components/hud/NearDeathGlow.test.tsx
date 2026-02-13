@@ -52,6 +52,10 @@ describe('NearDeathGlow', () => {
     // @ts-expect-error testing mock
     screenService.isMobile.mockReturnValue(true);
     const { container } = render(<NearDeathGlow maxHp={100} />);
-    expect(container.querySelector('.shadow-\\[inset_0_0_80px_rgba\\(239\\,68\\,68\\,1\\.0\\)\\]')).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        '.shadow-\\[inset_0_0_80px_rgba\\(239\\,68\\,68\\,1\\.0\\)\\]'
+      )
+    ).toBeInTheDocument();
   });
 });

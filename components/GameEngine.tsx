@@ -34,7 +34,7 @@ import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/audio';
 import { MarketStateService } from '../services/market/MarketStateService';
-import { marketIndicatorService } from '../services/indicators/MarketIndicatorService';
+import { ClientIndicatorService } from '../services/indicators/ClientIndicatorService';
 import { Logger } from '../services/system/Logger';
 import { EventBus } from '../services/core/EventBus';
 import { EngineRegistry } from '../services/core/EngineRegistry';
@@ -43,6 +43,7 @@ import { portalSystem } from '../services/gameplay/PortalSystem';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { useLanguage } from '../contexts/LanguageContext';
+import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -168,6 +169,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Ref for market data to avoid loop restarts while keeping data fresh
   const marketDataRef = useRef(marketData);
   const hitStopGovernorRef = useRef(new HitStopGovernor());
+  const lastWhaleTierRef = useRef<0 | 1 | 2 | 3>(0);
 
   useEffect(() => {
     marketDataRef.current = marketData;
@@ -230,8 +232,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           // 1. Fetch historical data (Snapshot)
           const history = await MarketStateService.fetchMarketHistory(pair, 300);
 
-          // 2. Warm up indicators (Deterministic Initial State)
-          await marketIndicatorService.warmup(history, position);
+          // 2. Warm up client indicators (deterministic initial state)
+          ClientIndicatorService.setPair(pair);
+          ClientIndicatorService.setPosition(position);
+          await ClientIndicatorService.warmup(history);
+          const clientIndicatorState = ClientIndicatorService.getState();
+          state.current.rsiVisualState = clientIndicatorState.rsiState;
+          lastWhaleTierRef.current = clientIndicatorState.whaleTier;
 
           // 3. Initialize Realtime subscription
           await MarketStateService.init();
@@ -245,27 +252,28 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       void initFlow();
 
       // Market Events for Visual Effects
-      const handleRSIChange = (data: {
-        state: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
-      }) => {
-        state.current.rsiVisualState = data.state;
-        Logger.info(`[GameEngine] RSI Visual State: ${data.state}`);
-      };
-
-      const handleWhaleChange = (data: { tier: number }) => {
-        if (data.tier > 0) {
-          state.current.whaleEventTimer = 2000; // 2 seconds of effect
-          state.current.shake = 15 + data.tier * 5; // Big shake
+      const handleClientIndicators = (data: ClientIndicatorsUpdatedEvent) => {
+        if (data.rsiState !== state.current.rsiVisualState) {
+          Logger.info(`[GameEngine] RSI Visual State: ${data.rsiState}`);
         }
+        state.current.rsiVisualState = data.rsiState;
+
+        const nextWhaleTier = data.whaleTier;
+        if (nextWhaleTier > lastWhaleTierRef.current && nextWhaleTier > 0) {
+          state.current.whaleEventTimer = 2000; // 2 seconds of effect
+          state.current.shake = 15 + nextWhaleTier * 5; // Big shake
+        }
+        lastWhaleTierRef.current = nextWhaleTier;
       };
 
-      const unsubRSI = EventBus.on('rsiStateChanged', handleRSIChange);
-      const unsubWhale = EventBus.on('whaleTierChanged', handleWhaleChange);
+      const unsubClientIndicators = EventBus.on(
+        'clientIndicatorsUpdated',
+        handleClientIndicators
+      );
 
       return () => {
         MarketStateService.cleanup();
-        unsubRSI();
-        unsubWhale();
+        unsubClientIndicators();
       };
     }
     // No cleanup needed if we didn't initialize
@@ -509,16 +517,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Update Speed Lines
         speedLineSpawner.current.update(p, s, player, width, height, time);
-
-        // Update local market indicators for responsive gameplay effects
-        // This calculates RSI(7), Volume Normalization and ATR-based spawn rates
-        const currentMarketData = marketDataRef.current;
-        marketIndicatorService.update(
-          currentMarketData.price,
-          currentMarketData.volume,
-          position,
-          pair
-        );
 
         // Update metrics system
         const wavePhase = 'active'; // AI Director V2: Wave phases removed
@@ -791,7 +789,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           state.current.spawnRateMultiplier,
           pair,
           marketDataRef.current.enemyDamage,
-          marketDataRef.current.enemySpeed
+          marketDataRef.current.enemySpeed,
+          {
+            rsi: marketDataRef.current.rsi,
+            rsiState: marketDataRef.current.rsiState,
+            whaleTier: marketDataRef.current.whaleTier,
+          }
         );
 
         // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---

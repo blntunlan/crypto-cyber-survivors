@@ -23,12 +23,14 @@ describe('gradientCache', () => {
 
   beforeEach(() => {
     gradientCache.clear();
-    originalMaxEntries = (gradientCache as unknown as { maxEntries: number }).maxEntries;
+    originalMaxEntries = (gradientCache as unknown as { maxEntries: number })
+      .maxEntries;
   });
 
   afterEach(() => {
     gradientCache.clear();
-    (gradientCache as unknown as { maxEntries: number }).maxEntries = originalMaxEntries;
+    (gradientCache as unknown as { maxEntries: number }).maxEntries =
+      originalMaxEntries;
   });
 
   it('caches linear gradients with same key', () => {

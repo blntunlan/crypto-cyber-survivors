@@ -9,12 +9,13 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Z-Index Screen Stacking', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
+      localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
-      localStorage.setItem('has_seen_landing', 'true');
+      localStorage.setItem('game_lang', 'en');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -50,10 +51,17 @@ test.describe('Z-Index Screen Stacking', () => {
     await settingsButton.click();
 
     // Settings panel should be visible and above pause menu
-    await expect(page.getByText('Visual Style')).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.getByRole('heading', {
+        name: /Settings|settings\.title/i,
+      })
+    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Visuals|settings\.visuals/i)).toBeVisible({
+      timeout: 5000,
+    });
 
     // Close settings
-    const closeButton = page.getByRole('button', { name: /close/i });
+    const closeButton = page.getByRole('button', { name: /Close|settings\.close/i });
     await expect(closeButton).toBeVisible();
     await closeButton.click();
 
@@ -85,8 +93,21 @@ test.describe('Z-Index Screen Stacking', () => {
     await page.getByRole('button', { name: /Long/i }).click();
     await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
 
-    // Trigger game over via cheat (key '4')
-    await page.keyboard.press('4');
+    // Trigger game over via test helper (cheat key '4' now changes luck)
+    await expect
+      .poll(
+        async () =>
+          await page.evaluate(() =>
+            Boolean((window as { GameHelpers?: unknown }).GameHelpers)
+          ),
+        { timeout: 5000 }
+      )
+      .toBe(true);
+    await page.evaluate(() => {
+      const helpers = (window as { GameHelpers?: { triggerGameOver?: () => void } })
+        .GameHelpers;
+      helpers?.triggerGameOver?.();
+    });
 
     // GameOver (LIQUIDATED) screen should be visible
     await expect(page.getByText(/LIQUIDATED/i)).toBeVisible({ timeout: 5000 });

@@ -1,7 +1,9 @@
-import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useMarketData } from '../../hooks/useMarketData';
-import { GameStatus, MarketPosition, type Player } from '../../types';
+import { GameStatus, MarketPosition, type MarketData, type Player } from '../../types';
+import { EventBus } from '../../services/core/EventBus';
+import { createRuntimeSnapshot } from '../../services/market/runtime/RuntimeContractBuilder';
 
 // Use vi.hoisted to share state between mock factory and tests
 const { callbackRef } = vi.hoisted(() => ({
@@ -30,6 +32,12 @@ vi.mock('../../services/market/MarketService', () => {
   };
 });
 
+vi.mock('../../services/market/sync', () => ({
+  getMarketSyncQueue: () => ({
+    enqueue: vi.fn(async () => undefined),
+  }),
+}));
+
 describe('useMarketData', () => {
   const mockPlayerRef = {
     current: {
@@ -39,9 +47,69 @@ describe('useMarketData', () => {
     },
   } as React.RefObject<Player>;
 
+  class MockRuntimeWorker {
+    public onmessage: ((event: MessageEvent) => void) | null = null;
+    public onerror: ((event: ErrorEvent) => void) | null = null;
+    private runConstants: any = null;
+
+    constructor(..._args: unknown[]) {}
+
+    postMessage(message: any) {
+      if (message.type === 'init') {
+        this.runConstants = message.runConstants;
+        this.onmessage?.({
+          data: { type: 'ready', runId: this.runConstants.runId },
+        } as MessageEvent);
+        return;
+      }
+
+      if (message.type === 'tick' && this.runConstants) {
+        const tick = message.tick;
+        const marketData: MarketData = {
+          price: tick.price,
+          volume: tick.volume,
+          pnl: 0.01,
+          effectivePnl: 0.1,
+          leverage: this.runConstants.leverage,
+          rsi: 55,
+          difficulty: 1.2,
+          momentum: 0.02,
+          atrPercent: 0.005,
+          spawnRateMultiplier: 1.1,
+          enemyDamage: 1.05,
+          enemySpeed: 1.03,
+          gemValueMultiplier: 1.01,
+        };
+
+        const snapshot = createRuntimeSnapshot({
+          runConstants: this.runConstants,
+          tick,
+          marketData,
+          createdAt: tick.recvTs,
+          macd: 0.001,
+        });
+
+        setTimeout(() => {
+          this.onmessage?.({
+            data: { type: 'snapshot', snapshot },
+          } as MessageEvent);
+        }, 0);
+      }
+    }
+
+    terminate() {
+      // no-op
+    }
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     callbackRef.current = null;
+    vi.stubGlobal('Worker', MockRuntimeWorker as unknown as typeof Worker);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should initialize with default market data', () => {
@@ -178,5 +246,43 @@ describe('useMarketData', () => {
     // For LONG 10x leverage, liquidation is at -10% price drop.
     // 40000 * (1 - 1/10) = 40000 * 0.9 = 36000
     expect(result.current.marketData.liquidationPrice).toBe(36000);
+  });
+
+  it('should apply worker snapshot authority in runtime mode', async () => {
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+
+    const { result } = renderHook(() =>
+      useMarketData(
+        GameStatus.PLAYING,
+        MarketPosition.LONG,
+        40000,
+        10,
+        mockPlayerRef,
+        'BTC',
+        'runtime'
+      )
+    );
+
+    act(() => {
+      if (callbackRef.current) {
+        callbackRef.current({
+          price: 41000,
+          volume: 7,
+          high: 41100,
+          low: 40900,
+          source: 'binance',
+        });
+      }
+    });
+
+    await waitFor(() => {
+      expect(result.current.marketData.runtimeSeq).toBe(1);
+      expect(result.current.marketData.runtimeChecksum).toBeTruthy();
+    });
+
+    expect(emitSpy).toHaveBeenCalledWith(
+      'marketRuntimeSnapshot',
+      expect.objectContaining({ seq: 1 })
+    );
   });
 });

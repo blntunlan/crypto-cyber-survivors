@@ -14,14 +14,12 @@ describe('UserAvatar', () => {
 
   it('renders provider badge when enabled', () => {
     const { container } = render(
-      <UserAvatar
-        displayName="Ada Lovelace"
-        provider="google"
-        showProviderBadge
-      />
+      <UserAvatar displayName="Ada Lovelace" provider="google" showProviderBadge />
     );
 
-    expect(container.querySelector('[title="Signed in with google"]')).toBeInTheDocument();
+    expect(
+      container.querySelector('[title="Signed in with google"]')
+    ).toBeInTheDocument();
   });
 
   it('shows online status indicator', () => {

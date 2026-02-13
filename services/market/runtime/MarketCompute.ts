@@ -1,0 +1,242 @@
+import { type MarketData } from '../../../types';
+import {
+  type MarketRuntimeTick,
+  type MarketRunConstants,
+  type MarketRuntimeSnapshot,
+} from '../../../types/marketRuntime';
+import { createRuntimeSnapshot } from './RuntimeContractBuilder';
+
+const RSI_PERIOD = 14;
+const ATR_PERIOD = 14;
+const VOLUME_WINDOW = 30;
+
+const clamp = (value: number, min: number, max: number): number => {
+  return Math.min(max, Math.max(min, value));
+};
+
+const toFixed = (value: number, decimals: number): number => {
+  return Number(value.toFixed(decimals));
+};
+
+const calculateRawPnl = (price: number, runConstants: MarketRunConstants): number => {
+  if (runConstants.entryPrice <= 0 || price <= 0) return 0;
+
+  const delta = (price - runConstants.entryPrice) / runConstants.entryPrice;
+  return runConstants.position === 'SHORT' ? -delta : delta;
+};
+
+const updateEma = (price: number, previous: number | null, period: number): number => {
+  if (previous === null) return price;
+  const alpha = 2 / (period + 1);
+  return previous + alpha * (price - previous);
+};
+
+const computeTrueRange = (
+  tick: MarketRuntimeTick,
+  previousClose: number | null
+): number => {
+  if (previousClose === null) {
+    return Math.abs(tick.high - tick.low);
+  }
+
+  const highLow = Math.abs(tick.high - tick.low);
+  const highPrevClose = Math.abs(tick.high - previousClose);
+  const lowPrevClose = Math.abs(tick.low - previousClose);
+  return Math.max(highLow, highPrevClose, lowPrevClose);
+};
+
+const normalizeVolume = (window: number[]): number => {
+  if (window.length === 0) return 0.5;
+
+  const min = Math.min(...window);
+  const max = Math.max(...window);
+  const latest = window[window.length - 1];
+  if (latest === undefined) return 0.5;
+  if (max === min) return 0.5;
+  return clamp((latest - min) / (max - min), 0, 1);
+};
+
+export interface MarketComputeState {
+  tickCount: number;
+  prevClose: number | null;
+  avgGain: number;
+  avgLoss: number;
+  ema12: number | null;
+  ema26: number | null;
+  atr: number | null;
+  trWindow: number[];
+  volumeWindow: number[];
+}
+
+export interface MarketComputeOutput {
+  snapshot: MarketRuntimeSnapshot;
+  nextState: MarketComputeState;
+}
+
+export const createInitialMarketComputeState = (): MarketComputeState => {
+  return {
+    tickCount: 0,
+    prevClose: null,
+    avgGain: 0,
+    avgLoss: 0,
+    ema12: null,
+    ema26: null,
+    atr: null,
+    trWindow: [],
+    volumeWindow: [],
+  };
+};
+
+const calculateDifficulty = (
+  rawPnl: number,
+  effectivePnl: number,
+  rsi: number,
+  atrPercent: number,
+  normalizedVolumeValue: number
+): {
+  difficulty: number;
+  spawnRateMultiplier: number;
+  enemyDamage: number;
+  enemySpeed: number;
+  gemValueMultiplier: number;
+  momentum: number;
+} => {
+  const pnlPressure = Math.min(Math.abs(effectivePnl), 3);
+  const rsiPressure = Math.max(0, Math.abs(rsi - 50) - 20) / 30;
+  const volatilityPressure = Math.min(atrPercent * 120, 2);
+
+  const difficulty = clamp(
+    1 + pnlPressure * 0.4 + rsiPressure * 0.8 + volatilityPressure * 0.6,
+    0.5,
+    5
+  );
+
+  const spawnRateMultiplier = clamp(
+    1 + difficulty * 0.08 + normalizedVolumeValue * 0.12,
+    0.6,
+    3
+  );
+  const enemyDamage = clamp(1 + difficulty * 0.1, 0.6, 3.5);
+  const enemySpeed = clamp(1 + difficulty * 0.07, 0.7, 3);
+  const gemValueMultiplier = clamp(
+    1 + (rawPnl < 0 ? Math.abs(rawPnl) * 0.5 : 0.05),
+    1,
+    2.5
+  );
+  const momentum = toFixed(effectivePnl * 0.1 + (normalizedVolumeValue - 0.5) * 0.2, 8);
+
+  return {
+    difficulty: toFixed(difficulty, 8),
+    spawnRateMultiplier: toFixed(spawnRateMultiplier, 8),
+    enemyDamage: toFixed(enemyDamage, 8),
+    enemySpeed: toFixed(enemySpeed, 8),
+    gemValueMultiplier: toFixed(gemValueMultiplier, 8),
+    momentum,
+  };
+};
+
+export interface ComputeRuntimeSnapshotInput {
+  runConstants: MarketRunConstants;
+  tick: MarketRuntimeTick;
+  previousSnapshot: MarketRuntimeSnapshot | null;
+  previousState: MarketComputeState;
+}
+
+export const computeRuntimeSnapshot = (
+  input: ComputeRuntimeSnapshotInput
+): MarketComputeOutput => {
+  const { runConstants, tick, previousState } = input;
+  const prevClose = previousState.prevClose;
+  const priceDelta = prevClose === null ? 0 : tick.price - prevClose;
+  const gain = Math.max(priceDelta, 0);
+  const loss = Math.max(-priceDelta, 0);
+
+  let avgGain: number;
+  let avgLoss: number;
+  if (previousState.tickCount === 0) {
+    avgGain = gain;
+    avgLoss = loss;
+  } else if (previousState.tickCount < RSI_PERIOD) {
+    const denominator = previousState.tickCount + 1;
+    avgGain = (previousState.avgGain * previousState.tickCount + gain) / denominator;
+    avgLoss = (previousState.avgLoss * previousState.tickCount + loss) / denominator;
+  } else {
+    avgGain = (previousState.avgGain * (RSI_PERIOD - 1) + gain) / RSI_PERIOD;
+    avgLoss = (previousState.avgLoss * (RSI_PERIOD - 1) + loss) / RSI_PERIOD;
+  }
+
+  let rsi = 50;
+  if (avgLoss === 0 && avgGain > 0) {
+    rsi = 100;
+  } else if (avgLoss > 0) {
+    const rs = avgGain / avgLoss;
+    rsi = 100 - 100 / (1 + rs);
+  }
+  rsi = toFixed(clamp(rsi, 0, 100), 4);
+
+  const ema12 = updateEma(tick.price, previousState.ema12, 12);
+  const ema26 = updateEma(tick.price, previousState.ema26, 26);
+  const macd = toFixed(ema12 - ema26, 8);
+
+  const trueRange = computeTrueRange(tick, prevClose);
+  const trWindow = [...previousState.trWindow, trueRange].slice(-ATR_PERIOD);
+  const atr =
+    previousState.atr === null
+      ? trWindow.reduce((sum, value) => sum + value, 0) / trWindow.length
+      : (previousState.atr * (ATR_PERIOD - 1) + trueRange) / ATR_PERIOD;
+  const atrPercent = tick.price > 0 ? toFixed(atr / tick.price, 8) : 0;
+
+  const volumeWindow = [...previousState.volumeWindow, tick.volume].slice(
+    -VOLUME_WINDOW
+  );
+  const normalizedVolumeValue = toFixed(normalizeVolume(volumeWindow), 8);
+
+  const rawPnl = toFixed(calculateRawPnl(tick.price, runConstants), 8);
+  const effectivePnl = toFixed(rawPnl * runConstants.leverage, 8);
+  const multipliers = calculateDifficulty(
+    rawPnl,
+    effectivePnl,
+    rsi,
+    atrPercent,
+    normalizedVolumeValue
+  );
+
+  const marketData: MarketData = {
+    price: tick.price,
+    volume: tick.volume,
+    pnl: rawPnl,
+    effectivePnl,
+    leverage: runConstants.leverage as MarketData['leverage'],
+    rsi,
+    difficulty: multipliers.difficulty,
+    momentum: multipliers.momentum,
+    atrPercent,
+    spawnRateMultiplier: multipliers.spawnRateMultiplier,
+    enemyDamage: multipliers.enemyDamage,
+    enemySpeed: multipliers.enemySpeed,
+    gemValueMultiplier: multipliers.gemValueMultiplier,
+  };
+
+  const snapshot = createRuntimeSnapshot({
+    runConstants,
+    tick,
+    marketData,
+    createdAt: tick.recvTs,
+    macd,
+  });
+
+  return {
+    snapshot,
+    nextState: {
+      tickCount: previousState.tickCount + 1,
+      prevClose: tick.price,
+      avgGain,
+      avgLoss,
+      ema12,
+      ema26,
+      atr,
+      trWindow,
+      volumeWindow,
+    },
+  };
+};

@@ -9,7 +9,7 @@ import {
   type CryptoPair,
 } from '../../types';
 import { type GameEnemy } from '../../factories/EnemyFactory';
-import { type WhaleTier } from '../../types/indicators';
+import { type WhaleTier, type RSIEnemyModifier } from '../../types/indicators';
 import { type EnemyId } from '../../config/EnemyRegistry';
 
 /**
@@ -41,7 +41,8 @@ export interface IPoolManager {
     enemyType?: EnemyId,
     pair?: CryptoPair,
     damageMultiplier?: number,
-    speedMultiplier?: number
+    speedMultiplier?: number,
+    rsiModifier?: RSIEnemyModifier
   ): GameEnemy;
 
   getWhaleEnemy(
@@ -51,7 +52,8 @@ export interface IPoolManager {
     position: MarketPosition,
     tier: WhaleTier,
     damageMultiplier?: number,
-    speedMultiplier?: number
+    speedMultiplier?: number,
+    rsiModifier?: RSIEnemyModifier
   ): GameEnemy;
 
   getBullet(

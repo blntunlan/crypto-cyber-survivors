@@ -10,9 +10,13 @@ import {
 } from '../../types';
 import { enemyFactory, type GameEnemy } from '../../factories/EnemyFactory';
 import { Logger } from '../system/Logger';
-import { WHALE_TIER_CONFIGS, type WhaleTier } from '../../types/indicators';
+import {
+  WHALE_TIER_CONFIGS,
+  type WhaleTier,
+  type RSIEnemyModifier,
+  NEUTRAL_ENEMY_MODIFIER,
+} from '../../types/indicators';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { marketIndicatorService } from '../indicators/MarketIndicatorService';
 import { audio } from '../audio';
 import { type EnemyId } from '../../config/EnemyRegistry';
 import { POOL } from '../../constants';
@@ -351,10 +355,10 @@ export class PoolManager implements IPoolManager {
     enemyType?: EnemyId,
     _pair?: CryptoPair,
     damageMultiplier: number = 1.0,
-    speedMultiplier: number = 1.0
+    speedMultiplier: number = 1.0,
+    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER
   ): GameEnemy {
     const currentEnemyType = enemyType ?? 'bear';
-    const rsiModifier = marketIndicatorService.getEnemyModifier();
 
     return this.enemies.get(
       () =>
@@ -394,10 +398,10 @@ export class PoolManager implements IPoolManager {
     position: MarketPosition,
     tier: WhaleTier,
     damageMultiplier: number = 1.0,
-    speedMultiplier: number = 1.0
+    speedMultiplier: number = 1.0,
+    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
-    const rsiModifier = marketIndicatorService.getEnemyModifier();
     audio.playWhaleArrival();
 
     return this.enemies.get(

@@ -12,6 +12,7 @@ import { Logger } from '../system/Logger';
 import { EventBus } from './EventBus';
 import { GameStateMachine } from './GameStateMachine';
 import { GameStatus } from '../../types';
+import { getMarketSyncQueue } from '../market/sync';
 
 interface RecoveryStrategy {
   name: string;
@@ -52,6 +53,10 @@ class ErrorRecoveryServiceClass {
     // Listen for market data timeouts
     EventBus.on('marketDataTimeout', () => {
       this.handleMarketFailure();
+    });
+
+    EventBus.on('marketDataRecovered', () => {
+      void getMarketSyncQueue().flushAll();
     });
 
     // Listen for connection drops
@@ -179,6 +184,7 @@ class ErrorRecoveryServiceClass {
 
     // Trigger reconnections
     this.handleMarketFailure();
+    void getMarketSyncQueue().flushAll();
   }
 
   /**

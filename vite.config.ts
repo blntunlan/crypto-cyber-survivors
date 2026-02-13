@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
+      chunkSizeWarningLimit: 2000,
     },
     // Esbuild options for development (faster builds)
     esbuild: {

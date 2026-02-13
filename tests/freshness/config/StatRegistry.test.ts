@@ -12,7 +12,9 @@ describe('StatRegistry', () => {
   });
 
   it('includes all major categories', () => {
-    const categories = new Set(Object.values(STAT_DEFINITIONS).map(stat => stat.category));
+    const categories = new Set(
+      Object.values(STAT_DEFINITIONS).map(stat => stat.category)
+    );
     expect(categories.has('combat')).toBe(true);
     expect(categories.has('defense')).toBe(true);
     expect(categories.has('movement')).toBe(true);

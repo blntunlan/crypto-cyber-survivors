@@ -44,12 +44,7 @@ describe('HubPlayerCard', () => {
   });
 
   it('hides crypto row when all balances are zero', () => {
-    render(
-      <HubPlayerCard
-        {...baseProps}
-        cryptoBalance={{ btc: 0, eth: 0, sol: 0 }}
-      />
-    );
+    render(<HubPlayerCard {...baseProps} cryptoBalance={{ btc: 0, eth: 0, sol: 0 }} />);
 
     expect(screen.queryByText(/₿/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Ξ/)).not.toBeInTheDocument();

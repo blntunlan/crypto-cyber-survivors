@@ -2,18 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SpawnSystem } from '../services/combat/SpawnSystem';
 import { type PoolManager } from '../services/combat/PoolManager';
 import { type GameEnemy } from '../factories/EnemyFactory';
-import { type MarketIndicatorState } from '../types/indicators';
 import { MarketPosition } from '../types';
-
-// Mock MarketIndicatorService
-vi.mock('../services/indicators/MarketIndicatorService', () => ({
-  marketIndicatorService: {
-    getState: vi.fn(),
-  },
-}));
-
-// Import after mock
-import { marketIndicatorService } from '../services/indicators/MarketIndicatorService';
 
 vi.mock('../stores/admin/configStore', () => ({
   useAdminConfigStore: {
@@ -39,13 +28,6 @@ describe('SpawnSystem', () => {
       getWhaleEnemy: vi.fn(),
       activeEnemies: [] as GameEnemy[], // Mock active enemies array for limit check
     };
-
-    vi.mocked(marketIndicatorService.getState).mockReturnValue({
-      spawnRateMultiplier: 1.0,
-      whaleTier: 0,
-      rsiState: 'NEUTRAL',
-      isInitialized: true,
-    } as unknown as MarketIndicatorState);
     // Access private constructor for testing
 
     spawnSystem = new (SpawnSystem as any)();
@@ -171,14 +153,26 @@ describe('SpawnSystem', () => {
     });
 
     it('should spawn whale when whaleTier > 0 and random hits', () => {
-      vi.mocked(marketIndicatorService.getState).mockReturnValue({
-        whaleTier: 2,
-      } as unknown as MarketIndicatorState);
-
       vi.spyOn(Math, 'random').mockReturnValue(0.00001);
       mockPool.getWhaleEnemy = vi.fn();
 
-      spawnSystem.update(16, 1, 800, 600, MarketPosition.LONG, mockPool as PoolManager);
+      spawnSystem.update(
+        16,
+        1,
+        800,
+        600,
+        MarketPosition.LONG,
+        mockPool as PoolManager,
+        0,
+        undefined,
+        undefined,
+        'BTC',
+        1.0,
+        1.0,
+        {
+          whaleTier: 2,
+        }
+      );
       expect(mockPool.getWhaleEnemy).toHaveBeenCalled();
     });
   });

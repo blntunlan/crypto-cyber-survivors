@@ -4,20 +4,23 @@ import React from 'react';
 import { UserProvider } from '../../contexts/UserContext';
 import { useUser } from '../../contexts/useUser';
 
-// Mock Supabase
-const mockSupabase = {
-  from: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  single: vi.fn(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  rpc: vi.fn(),
-};
+const { mockSupabase, mockIsSupabaseConfigured } = vi.hoisted(() => ({
+  mockSupabase: {
+    from: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn(),
+    single: vi.fn(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    rpc: vi.fn(),
+  },
+  mockIsSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
 
 vi.mock('../../services/supabase/client', () => ({
   supabase: mockSupabase,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+  isSupabaseConfigured: mockIsSupabaseConfigured,
 }));
 
 // Mock Logger
@@ -68,8 +71,10 @@ describe('UserContext', () => {
     mockSupabase.eq.mockReturnThis();
     mockSupabase.insert.mockReturnThis();
     mockSupabase.update.mockReturnThis();
+    mockSupabase.maybeSingle.mockReset();
     mockSupabase.single.mockReset();
     mockSupabase.rpc.mockReset();
+    mockIsSupabaseConfigured.mockReturnValue(true);
 
     // Mock hostname for local mode
     Object.defineProperty(window, 'location', {
@@ -219,4 +224,3 @@ describe('UserContext', () => {
     });
   });
 });
-

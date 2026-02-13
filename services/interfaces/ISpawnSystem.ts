@@ -34,7 +34,12 @@ export interface ISpawnSystem {
     spawnRateMultiplier?: number,
     pair?: CryptoPair,
     damageMultiplier?: number,
-    speedMultiplier?: number
+    speedMultiplier?: number,
+    marketSignals?: {
+      rsi?: number;
+      rsiState?: string;
+      whaleTier?: number;
+    }
   ): number;
 
   /**

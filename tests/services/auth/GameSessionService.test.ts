@@ -4,6 +4,15 @@ import { UserSessionService } from '../../../services/auth/UserSessionService';
 import { supabase } from '../../../services/supabase/client';
 import { MarketPosition } from '../../../types';
 
+const { flushAllMock } = vi.hoisted(() => ({
+  flushAllMock: vi.fn(async () => ({
+    batches: 0,
+    acked: 0,
+    retried: 0,
+    remaining: 0,
+  })),
+}));
+
 // Mock Supabase invoke
 vi.mock('../../../services/supabase/client', () => ({
   supabase: {
@@ -12,6 +21,12 @@ vi.mock('../../../services/supabase/client', () => ({
     },
   },
   isSupabaseConfigured: vi.fn(() => true),
+}));
+
+vi.mock('../../../services/market/sync', () => ({
+  getMarketSyncQueue: () => ({
+    flushAll: flushAllMock,
+  }),
 }));
 
 // Mock UserSessionService
@@ -25,6 +40,12 @@ describe('GameSessionService', () => {
   beforeEach(() => {
     GameSessionService.clearSession();
     vi.clearAllMocks();
+    flushAllMock.mockResolvedValue({
+      batches: 0,
+      acked: 0,
+      retried: 0,
+      remaining: 0,
+    });
     // Re-apply default mock value
     // @ts-expect-error: testing
     UserSessionService.getNickname.mockReturnValue('TestUser');
@@ -121,7 +142,7 @@ describe('GameSessionService', () => {
       GameSessionService.clearSession();
       expect(GameSessionService.getCurrentSessionId()).toBeNull();
       expect(GameSessionService.getCurrentSessionSecret()).toBeNull();
+      expect(flushAllMock).toHaveBeenCalled();
     });
   });
 });
-

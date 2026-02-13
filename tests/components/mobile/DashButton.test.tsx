@@ -40,7 +40,9 @@ describe('DashButton', () => {
   });
 
   it('shows cooldown overlay and clears after timer advances', () => {
-    const { getByText, container } = render(<DashButton onDash={vi.fn()} cooldownMs={200} />);
+    const { getByText, container } = render(
+      <DashButton onDash={vi.fn()} cooldownMs={200} />
+    );
     const button = getByText('DASH').parentElement as HTMLElement;
 
     fireEvent.touchStart(button);
@@ -50,7 +52,9 @@ describe('DashButton', () => {
       vi.advanceTimersByTime(250);
     });
 
-    expect(container.querySelector('div[style*="height: 100%"]')).not.toBeInTheDocument();
+    expect(
+      container.querySelector('div[style*="height: 100%"]')
+    ).not.toBeInTheDocument();
   });
 
   it('syncs cooldown from playerDash event', () => {

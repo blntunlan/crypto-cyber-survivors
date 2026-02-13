@@ -1,5 +1,16 @@
 import { type CryptoPair } from './types/crypto';
 export type { CryptoPair };
+export type {
+  RuntimePosition,
+  RuntimeFeedSource,
+  RuntimeConnectionState,
+  RuntimeVersionInfo,
+  MarketRunConstants,
+  MarketRuntimeTick,
+  MarketRuntimeSnapshot,
+  MarketRuntimeFeedHealth,
+  MarketRuntimeUpdatePayload,
+} from './types/marketRuntime';
 
 // Re-export GameMode types
 export {
@@ -56,6 +67,13 @@ export interface MarketData {
   enemyDamage?: number;
   enemySpeed?: number;
   gemValueMultiplier?: number;
+  // Runtime contract metadata (phase-0/1 compatibility layer)
+  runtimeRunId?: string;
+  runtimeSeq?: number;
+  runtimeChecksum?: string;
+  runtimeTickHash?: string;
+  algoVersion?: string;
+  configVersion?: string;
 }
 
 export interface Entity {

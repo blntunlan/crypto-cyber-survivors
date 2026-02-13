@@ -10,8 +10,6 @@ import { difficultyContext } from '../difficulty/DifficultyContext';
 import { clamp } from '../difficulty/utils';
 import { getShockDirection } from '../difficulty/factors';
 import { GameMasterBrain, type GameMasterInputs } from '../difficulty/GameMasterBrain';
-import { marketIndicatorService } from '../indicators/MarketIndicatorService';
-import { calculateMACDFactor } from '../difficulty/factors/macd';
 import { PoolManager } from '../combat/PoolManager';
 import { DirectorAdapter } from '../difficulty/DirectorAdapter';
 import { type DifficultyOutput } from './DifficultyTypes';
@@ -134,23 +132,37 @@ class DifficultyManagerClass {
     const scale = inp.leverageScale;
 
     // 4.5. Update GameMaster Brain with current state
-    const market = marketIndicatorService.getState();
-    const macdFactor = (calculateMACDFactor() + 1) / 2; // Normalize to 0-1
+    const marketRSI = Number.isFinite(inp.rsi) ? inp.rsi : 50;
+    const marketAtrPercent = Number.isFinite(inp.atrPercent) ? inp.atrPercent : 0;
+    const marketVolume = Number.isFinite(inp.normalizedVolume)
+      ? inp.normalizedVolume
+      : 0.5;
+
+    const macdInput = inp.macd as { value?: number; macd?: number } | undefined;
+    const macdValue = macdInput?.value;
+    const macdLegacy = macdInput?.macd;
+    const macdLine =
+      typeof macdValue === 'number'
+        ? macdValue
+        : typeof macdLegacy === 'number'
+          ? macdLegacy
+          : 0;
+    const macdFactor = clamp((macdLine + 1) / 2, 0, 1); // Normalize to 0-1
 
     // Calculate Momentum
     const currentLeveragedPnL = pnl * inp.leverage;
     this.pnlMomentum =
       this.pnlMomentum * 0.8 + (currentLeveragedPnL - this.lastPnL) * 0.2;
     this.volumeMomentum =
-      this.volumeMomentum * 0.8 + (market.normalizedVolume - this.lastVolume) * 0.2;
+      this.volumeMomentum * 0.8 + (marketVolume - this.lastVolume) * 0.2;
 
     this.lastPnL = currentLeveragedPnL;
-    this.lastVolume = market.normalizedVolume;
+    this.lastVolume = marketVolume;
 
     // Determine trend from RSI
     let trendValue = 0.5;
-    if (market.rsi > 60) trendValue = 1.0;
-    else if (market.rsi < 40) trendValue = 0.0;
+    if (marketRSI > 60) trendValue = 1.0;
+    else if (marketRSI < 40) trendValue = 0.0;
 
     // Calculate player stats for brain
     const activeGems = PoolManager.getInstance().activeGems.length;
@@ -158,10 +170,10 @@ class DifficultyManagerClass {
     const killEfficiency = Math.min(1, this.killStreak / 30);
 
     const brainInputs: GameMasterInputs = {
-      rsi: market.rsi / 100,
+      rsi: marketRSI / 100,
       macd: macdFactor,
-      volatility: Math.min(1, market.atrPercent * 2),
-      volume: market.normalizedVolume,
+      volatility: Math.min(1, marketAtrPercent * 2),
+      volume: marketVolume,
       volumeMomentum: clamp(this.volumeMomentum * 10, -1, 1), // Scale up for sensitivity
       trend: trendValue,
       pnlMomentum: clamp(this.pnlMomentum * 5, -1, 1), // Scale up for sensitivity

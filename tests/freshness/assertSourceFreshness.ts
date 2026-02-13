@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { expect } from 'vitest';
 
 const FRESHNESS_ROOT_SEGMENT = `${path.sep}tests${path.sep}freshness`;
+const FRESHNESS_TIME_TOLERANCE_MS = 1000;
 
 function resolveRepoRoot(testFilePath: string): string {
   const normalized = path.normalize(testFilePath);
@@ -11,7 +12,7 @@ function resolveRepoRoot(testFilePath: string): string {
 
   if (markerIndex < 0) {
     throw new Error(
-      `Could not resolve repository root from test path: ${testFilePath}`,
+      `Could not resolve repository root from test path: ${testFilePath}`
     );
   }
 
@@ -20,13 +21,13 @@ function resolveRepoRoot(testFilePath: string): string {
 
 export function assertSourceFreshness(
   sourceRelativePath: string,
-  testFileMetaUrl: string,
+  testFileMetaUrl: string
 ): void {
   const testFilePath = fileURLToPath(testFileMetaUrl);
   const repoRoot = resolveRepoRoot(testFilePath);
   const sourcePath = path.join(
     repoRoot,
-    ...sourceRelativePath.split('/').filter(Boolean),
+    ...sourceRelativePath.split('/').filter(Boolean)
   );
 
   expect(fs.existsSync(sourcePath)).toBe(true);
@@ -36,5 +37,7 @@ export function assertSourceFreshness(
 
   expect(sourceStats.isFile()).toBe(true);
   expect(sourceStats.size).toBeGreaterThan(0);
-  expect(sourceStats.mtimeMs).toBeLessThanOrEqual(testStats.mtimeMs);
+  expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+    testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+  );
 }

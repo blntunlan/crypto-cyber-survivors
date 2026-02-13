@@ -5,12 +5,27 @@ import { GameStateMachine } from '../../services/core/GameStateMachine';
 import { GameStatus } from '../../types';
 import { Logger } from '../../services/system/Logger';
 
+const { flushAllMock } = vi.hoisted(() => ({
+  flushAllMock: vi.fn(async () => ({
+    batches: 0,
+    acked: 0,
+    retried: 0,
+    remaining: 0,
+  })),
+}));
+
 // Mocks
 vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(),
     emit: vi.fn(),
   },
+}));
+
+vi.mock('../../services/market/sync', () => ({
+  getMarketSyncQueue: () => ({
+    flushAll: flushAllMock,
+  }),
 }));
 
 vi.mock('../../services/core/GameStateMachine', () => ({
@@ -33,6 +48,12 @@ describe('ErrorRecoveryService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    flushAllMock.mockResolvedValue({
+      batches: 0,
+      acked: 0,
+      retried: 0,
+      remaining: 0,
+    });
 
     // Reset singleton instance (hacky but necessary since we can't easily reset private static)
     // In a real app we might expose a reset method for tests
@@ -150,6 +171,7 @@ describe('ErrorRecoveryService', () => {
         })
       );
       expect(handleMarketSpy).toHaveBeenCalled();
+      expect(flushAllMock).toHaveBeenCalled();
     });
   });
 

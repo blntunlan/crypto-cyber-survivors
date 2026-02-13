@@ -162,35 +162,14 @@ vi.mock('../../services/market/MarketStateService', () => ({
     fetchMarketHistory: vi.fn().mockResolvedValue([]),
   },
 }));
-vi.mock('../../services/indicators/MarketIndicatorService', () => ({
-  marketIndicatorService: {
+vi.mock('../../services/indicators/ClientIndicatorService', () => ({
+  ClientIndicatorService: {
+    setPair: vi.fn(),
+    setPosition: vi.fn(),
     warmup: vi.fn().mockResolvedValue({}),
-    update: vi.fn(),
     getState: vi.fn(() => ({
       rsiState: 'NEUTRAL',
       whaleTier: 0,
-      spawnRateMultiplier: 1.0,
-      isInitialized: true,
-      rsi: 50,
-      normalizedVolume: 0.5,
-      canSpawnWhale: false,
-      lastWhaleSpawnTime: 0,
-      previousRsiState: 'NEUTRAL',
-      macd: { macd: 0, signal: 0, histogram: 0 },
-      atr: 0,
-      atrPercent: 0,
-      enemyModifier: {
-        aggroMultiplier: 1.0,
-        speedMultiplier: 1.0,
-        damageMultiplier: 1.0,
-        healthMultiplier: 1.0,
-        dropBuffChance: 0.25,
-        dropDebuffChance: 0.25,
-        movementPattern: 'chase',
-        visualStyle: 'neutral',
-      },
-      lastUpdateTime: 0,
-      currentPosition: 'LONG',
     })),
   },
 }));
@@ -340,26 +319,34 @@ describe('GameEngine', () => {
     expect(MarketStateService.cleanup).toHaveBeenCalled();
   });
 
-  it('responds to RSI and Whale events', () => {
+  it('responds to client indicator events', () => {
     render(<GameEngine {...mockProps} />);
 
-    // Find the RSI change handler passed to EventBus.on
+    // Find the indicator handler passed to EventBus.on
     const calls = (EventBus.on as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    const rsiHandler = calls.find((call: any[]) => call[0] === 'rsiStateChanged')?.[1];
-    const whaleHandler = calls.find(
-      (call: any[]) => call[0] === 'whaleTierChanged'
+    const indicatorsHandler = calls.find(
+      (call: any[]) => call[0] === 'clientIndicatorsUpdated'
     )?.[1];
 
-    expect(rsiHandler).toBeDefined();
-    expect(whaleHandler).toBeDefined();
+    expect(indicatorsHandler).toBeDefined();
 
     // Trigger handlers
-    if (rsiHandler) rsiHandler({ state: 'OVERSOLD' });
+    if (indicatorsHandler) {
+      indicatorsHandler({
+        rsi: 20,
+        rsiState: 'OVERSOLD',
+        atrPercent: 0.01,
+        normalizedVolume: 0.8,
+        priceChangePercent: -0.02,
+        trendStrength: 0.6,
+        trendDirection: 'DOWN',
+        whaleTier: 2,
+      });
+    }
+
     expect(Logger.info).toHaveBeenCalledWith(
       expect.stringContaining('RSI Visual State: OVERSOLD')
     );
-
-    if (whaleHandler) whaleHandler({ tier: 2 });
   });
 
   it('triggers heartbeat on low HP', () => {

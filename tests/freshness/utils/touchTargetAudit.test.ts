@@ -34,7 +34,8 @@ describe('touchTargetAudit', () => {
     const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
     const infoSpy = vi.spyOn(Logger, 'info').mockImplementation(() => undefined);
 
-    document.body.innerHTML = '<button id="small">S</button><button id="ok">OK</button>';
+    document.body.innerHTML =
+      '<button id="small">S</button><button id="ok">OK</button>';
 
     const small = document.getElementById('small') as HTMLButtonElement;
     const ok = document.getElementById('ok') as HTMLButtonElement;

@@ -22,8 +22,7 @@ import {
 } from './types';
 import { DIFFICULTY_CONFIG, getLeverageScale } from './constants';
 import { clamp, getDefaultInputs } from './utils';
-import type { MarketPosition } from '../../types';
-import { marketIndicatorService } from '../indicators/MarketIndicatorService';
+import type { MarketPosition, MarketRuntimeSnapshot } from '../../types';
 
 /**
  * DifficultyContextManager - Orchestrator for the Layered Difficulty System (V2)
@@ -52,6 +51,8 @@ class DifficultyContextManager {
 
   // Sensor Data Buffers
   private nearDeathStartTime: number = 0; // Timestamp when player fell below 20% HP
+  private lastRuntimeSnapshotKey: string | null = null;
+  private hasRuntimeMarketAuthority = false;
 
   private constructor() {
     this.inputs = getDefaultInputs();
@@ -62,6 +63,10 @@ class DifficultyContextManager {
 
     // Market Updates (Price & PnL)
     EventBus.on('gameMarketUpdate', data => {
+      if (this.isDuplicateRuntimeSnapshot(data.runtimeRunId, data.runtimeSeq)) {
+        return;
+      }
+
       this.inputs.pnlPercent = data.pnl;
       this.inputs.currentPrice = data.price;
 
@@ -75,8 +80,65 @@ class DifficultyContextManager {
       this.markDirty();
     });
 
+    EventBus.on('marketRuntimeSnapshot', (snapshot: MarketRuntimeSnapshot) => {
+      if (this.isDuplicateRuntimeSnapshot(snapshot.runId, snapshot.seq)) {
+        return;
+      }
+
+      this.hasRuntimeMarketAuthority = true;
+      this.inputs.pnlPercent = snapshot.rawPnl;
+      this.inputs.currentPrice = snapshot.price;
+      this.inputs.rsi = snapshot.rsi;
+      this.inputs.atrPercent = snapshot.atrPercent;
+      this.inputs.macd = {
+        value: snapshot.macd,
+        signal: this.inputs.macd.signal,
+        histogram: snapshot.macd - this.inputs.macd.signal,
+      };
+
+      this.inputs.pnlHistory.push(snapshot.effectivePnl);
+      if (this.inputs.pnlHistory.length > DIFFICULTY_CONFIG.pnlHistorySize) {
+        this.inputs.pnlHistory.shift();
+      }
+
+      this.markDirty();
+    });
+
+    EventBus.on('clientIndicatorsUpdated', data => {
+      if (this.hasRuntimeMarketAuthority) {
+        return;
+      }
+
+      this.inputs.rsi = data.rsi;
+      this.inputs.rsiState = data.rsiState;
+      this.inputs.normalizedVolume = data.normalizedVolume;
+      this.inputs.atrPercent = data.atrPercent;
+      this.inputs.whaleTier = data.whaleTier as 0 | 1 | 2 | 3;
+
+      const nextMacdValue =
+        typeof data.macdValue === 'number' ? data.macdValue : this.inputs.macd.value;
+      const nextMacdSignal =
+        typeof data.macdSignal === 'number' ? data.macdSignal : this.inputs.macd.signal;
+      const nextMacdHistogram =
+        typeof data.macdHistogram === 'number'
+          ? data.macdHistogram
+          : nextMacdValue - nextMacdSignal;
+
+      this.inputs.macd = {
+        value: nextMacdValue,
+        signal: nextMacdSignal,
+        histogram: nextMacdHistogram,
+      };
+
+      this.markDirty();
+    });
+
     // Market Indicator Updates (RSI, Volume, ATR)
     EventBus.on('marketStateChanged', data => {
+      if (this.hasRuntimeMarketAuthority) {
+        return;
+      }
+
       this.inputs.rsi = data.rsi;
       this.inputs.rsiState = data.rsiState;
       this.inputs.normalizedVolume = data.normalizedVolume;
@@ -86,6 +148,10 @@ class DifficultyContextManager {
 
     // We also need ATR directly from marketStateUpdated if available
     EventBus.on('marketStateUpdated', data => {
+      if (this.hasRuntimeMarketAuthority) {
+        return;
+      }
+
       this.inputs.atrPercent = data.atrPercent;
       this.inputs.whaleTier = data.whaleTier as 0 | 1 | 2 | 3;
       this.markDirty();
@@ -140,6 +206,7 @@ class DifficultyContextManager {
 
     EventBus.on('gameReset', () => {
       this.inputs = getDefaultInputs();
+      this.hasRuntimeMarketAuthority = false;
       this.markDirty();
     });
   }
@@ -150,6 +217,20 @@ class DifficultyContextManager {
 
   private markDirty() {
     this.isDirty = true;
+  }
+
+  private isDuplicateRuntimeSnapshot(runId?: string, seq?: number): boolean {
+    if (runId === undefined || seq === undefined) {
+      return false;
+    }
+
+    const key = `${runId}:${seq}`;
+    if (this.lastRuntimeSnapshotKey === key) {
+      return true;
+    }
+
+    this.lastRuntimeSnapshotKey = key;
+    return false;
   }
 
   /**
@@ -223,10 +304,6 @@ class DifficultyContextManager {
     }
 
     // 0.5 Update Sensors (MACD & Stress)
-
-    // MACD - Pull from centralized MarketIndicatorService
-    const marketState = marketIndicatorService.getState();
-    inputs.macd = marketState.macd;
 
     // Stress - Near Death Duration Tracking
     // We assume hpPercent is updated via updateInputs from GameEngine or Events
@@ -394,6 +471,7 @@ class DifficultyContextManager {
 
   public reset() {
     this.inputs = getDefaultInputs();
+    this.hasRuntimeMarketAuthority = false;
     this.resetHistory();
     this.markDirty();
   }
@@ -418,6 +496,8 @@ class DifficultyContextManager {
     this.hitsInWindow = 0;
     this.damageTakenInWindow = 0;
     this.dashUsageInWindow = 0;
+    this.lastRuntimeSnapshotKey = null;
+    this.hasRuntimeMarketAuthority = false;
   }
 
   /**

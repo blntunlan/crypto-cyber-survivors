@@ -230,4 +230,3 @@ describe('ProjectileRenderer', () => {
     expect(mockCtx.fillRect).not.toHaveBeenCalled();
   });
 });
-

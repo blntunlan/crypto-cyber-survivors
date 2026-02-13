@@ -19,6 +19,7 @@
  */
 
 import { type MarketPosition } from '../../types';
+import { MarketPosition as MarketPositionEnum } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
 import { createRSICalculator, type RSICalculator } from './RSICalculator';
 import { createMACDCalculator, type MACDCalculator } from './MACDCalculator';
@@ -148,7 +149,7 @@ class ClientIndicatorServiceClass {
   // Current state
   private state: ClientIndicatorState;
   private activePair: CryptoPair = 'BTC';
-  private position: MarketPosition = 'LONG';
+  private position: MarketPosition = MarketPositionEnum.LONG;
 
   private constructor() {
     this.rsiCalculator = createRSICalculator();
@@ -159,6 +160,13 @@ class ClientIndicatorServiceClass {
 
     // Subscribe to game reset
     EventBus.on('gameReset', () => this.reset());
+
+    // Subscribe to market state updates
+    EventBus.on('marketStateUpdated', data => {
+      if (data.pair === this.activePair) {
+        this.update(data.price, data.volume, data.updatedAt.getTime());
+      }
+    });
 
     Logger.debug('[ClientIndicatorService] Initialized');
   }
@@ -216,6 +224,7 @@ class ClientIndicatorServiceClass {
 
     // Calculate trend strength
     const { trendStrength, trendDirection } = this.calculateTrend();
+    const macd = this.macdCalculator.getResult();
 
     // Update state
     this.state = {
@@ -248,6 +257,11 @@ class ClientIndicatorServiceClass {
       normalizedVolume: this.state.normalizedVolume,
       priceChangePercent: this.state.priceChangePercent,
       trendStrength: this.state.trendStrength,
+      trendDirection: this.state.trendDirection,
+      macdValue: macd.macd,
+      macdSignal: macd.signal,
+      macdHistogram: macd.histogram,
+      whaleTier: this.state.whaleTier,
     });
 
     return this.state;
@@ -418,8 +432,8 @@ class ClientIndicatorServiceClass {
     if (rsiState === 'NEUTRAL') return false;
 
     return (
-      (this.position === 'LONG' && rsiState === 'OVERSOLD') ||
-      (this.position === 'SHORT' && rsiState === 'OVERBOUGHT')
+      (this.position === MarketPositionEnum.LONG && rsiState === 'OVERSOLD') ||
+      (this.position === MarketPositionEnum.SHORT && rsiState === 'OVERBOUGHT')
     );
   }
 
@@ -431,8 +445,8 @@ class ClientIndicatorServiceClass {
     if (rsiState === 'NEUTRAL') return false;
 
     return (
-      (this.position === 'LONG' && rsiState === 'OVERBOUGHT') ||
-      (this.position === 'SHORT' && rsiState === 'OVERSOLD')
+      (this.position === MarketPositionEnum.LONG && rsiState === 'OVERBOUGHT') ||
+      (this.position === MarketPositionEnum.SHORT && rsiState === 'OVERSOLD')
     );
   }
 

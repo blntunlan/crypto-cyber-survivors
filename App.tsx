@@ -66,6 +66,7 @@ import { UserProvider } from './contexts/UserContext';
 import { useGameStore } from './stores/gameStore';
 import { cn } from './utils/classnames';
 import { SEO } from './components/SEO';
+import { getMarketRuntimeConfig } from './config/marketRuntime';
 
 // Lazy load heavy components for performance optimization
 import { GameEngine } from './components/GameEngine';
@@ -215,6 +216,7 @@ const App: React.FC = () => {
   >('hub');
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const isGameOverProcessing = useRef(false);
+  const marketRuntimeConfig = useMemo(() => getMarketRuntimeConfig(), []);
 
   // ========================================
   // Initialization & Utility Hooks
@@ -290,6 +292,13 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    Logger.info('[MarketRuntime] Mode initialized', {
+      mode: marketRuntimeConfig.mode,
+      shadowRuntimeEnabled: marketRuntimeConfig.shouldRunShadowRuntime,
+    });
+  }, [marketRuntimeConfig.mode, marketRuntimeConfig.shouldRunShadowRuntime]);
+
+  useEffect(() => {
     return Logger.onError((message, error) => {
       EventBus.emit('gameNotification', {
         title: 'System Error',
@@ -311,7 +320,8 @@ const App: React.FC = () => {
     entryPrice,
     leverage,
     playerRef,
-    selectedPair
+    selectedPair,
+    marketRuntimeConfig.mode
   );
 
   useMarketTimeout({ playerRef });

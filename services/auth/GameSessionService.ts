@@ -12,6 +12,7 @@ import { type MarketPosition } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
 
 import { signPayload } from '../../utils/crypto';
+import { getMarketSyncQueue } from '../market/sync';
 
 export interface ServerSessionResponse {
   sessionId: string;
@@ -24,6 +25,18 @@ export class GameSessionService {
   private static currentSessionSecret: string | null = null;
   private static isStarting = false;
   private static isSubmitting = false;
+
+  private static async flushRuntimeAuditQueue(reason: string): Promise<void> {
+    try {
+      const result = await getMarketSyncQueue().flushAll();
+      Logger.info(`[GameSession] Runtime sync queue flushed (${reason})`, result);
+    } catch (error) {
+      Logger.warn('[GameSession] Runtime sync queue flush failed', {
+        reason,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   /**
    * Start a new validated session on the server.
@@ -187,6 +200,8 @@ export class GameSessionService {
         `[GameSession] Submitting results to verify-game-v2 for session: ${this.currentSessionId}`
       );
 
+      await this.flushRuntimeAuditQueue('before_submit');
+
       // Prepare payload to match server requirements
       const payload = {
         sessionId: this.currentSessionId,
@@ -270,6 +285,7 @@ export class GameSessionService {
    * Clear session data.
    */
   static clearSession(): void {
+    void this.flushRuntimeAuditQueue('clear_session');
     this.currentSessionId = null;
     this.currentSessionSecret = null;
   }

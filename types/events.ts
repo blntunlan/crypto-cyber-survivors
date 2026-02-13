@@ -9,6 +9,12 @@ import { type MarketData } from '../types.ts';
 import { type CryptoPair } from './crypto';
 import { type WavePhase } from './metrics';
 import {
+  type MarketRuntimeTick,
+  type MarketRuntimeSnapshot,
+  type MarketRuntimeFeedHealth,
+  type MarketRuntimeUpdatePayload,
+} from './marketRuntime';
+import {
   type LootboxType,
   type LootboxRarity,
   type LootboxSource,
@@ -69,6 +75,10 @@ export type GameEvent =
   | 'cycleComplete'
   | 'gameMarketUpdate'
   | 'marketDataRecovered'
+  | 'marketRuntimeTick'
+  | 'marketRuntimeSnapshot'
+  | 'marketRuntimeFeedHealth'
+  | 'marketRuntimeUpdate'
   // Lootbox events
   | 'lootboxEarned'
   | 'lootboxOpening'
@@ -329,6 +339,27 @@ export interface MarketDataTimeoutEvent {
   pair: string;
 }
 
+export type MarketRuntimeTickEvent = MarketRuntimeTick;
+export type MarketRuntimeSnapshotEvent = MarketRuntimeSnapshot;
+export type MarketRuntimeFeedHealthEvent = MarketRuntimeFeedHealth;
+export type MarketRuntimeUpdateEvent = MarketRuntimeUpdatePayload;
+
+/**
+ * Transitional market update payload.
+ * Legacy listeners can keep using `price`/`pnlPercent`,
+ * while runtime-aware listeners can switch to `tick`/`snapshot`.
+ */
+export interface MarketUpdateEvent {
+  pnlPercent?: number;
+  price?: number;
+  runId?: string;
+  seq?: number;
+  tick?: MarketRuntimeTickEvent;
+  snapshot?: MarketRuntimeSnapshotEvent;
+  algoVersion?: string;
+  configVersion?: string;
+}
+
 /** Client-side indicators updated event (AI Director V2) */
 export interface ClientIndicatorsUpdatedEvent {
   /** Current RSI value (0-100) */
@@ -343,6 +374,16 @@ export interface ClientIndicatorsUpdatedEvent {
   priceChangePercent: number;
   /** Trend strength (0-1) */
   trendStrength: number;
+  /** Trend direction */
+  trendDirection: 'UP' | 'DOWN' | 'SIDEWAYS';
+  /** MACD line value */
+  macdValue?: number;
+  /** MACD signal line value */
+  macdSignal?: number;
+  /** MACD histogram value */
+  macdHistogram?: number;
+  /** Whale tier (0=none, 1=baby, 2=normal, 3=mega) */
+  whaleTier: 0 | 1 | 2 | 3;
 }
 
 /** Flow state changed event (AI Director V2) */
@@ -610,6 +651,10 @@ export interface EventDataMap {
   cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
   gameMarketUpdate: MarketData;
   marketDataRecovered: { pair: CryptoPair };
+  marketRuntimeTick: MarketRuntimeTickEvent;
+  marketRuntimeSnapshot: MarketRuntimeSnapshotEvent;
+  marketRuntimeFeedHealth: MarketRuntimeFeedHealthEvent;
+  marketRuntimeUpdate: MarketRuntimeUpdateEvent;
   // Lootbox events
   lootboxEarned: LootboxEarnedEvent;
   lootboxOpening: LootboxOpeningEvent;
@@ -630,7 +675,7 @@ export interface EventDataMap {
   sessionSynced: SessionSyncedEvent;
   sessionSyncFailed: SessionSyncFailedEvent;
   // Difficulty System V2 events
-  marketUpdate: { pnlPercent?: number; price?: number };
+  marketUpdate: MarketUpdateEvent;
   playerLevelUp: { level: number };
   playerExperienceChange: { exp: number; nextLevelExp: number; expPercent: number };
   playerHealthChange: { hpPercent: number; hp: number; maxHp: number };

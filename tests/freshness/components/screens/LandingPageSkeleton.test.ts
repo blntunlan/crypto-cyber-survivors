@@ -3,6 +3,9 @@ import { assertSourceFreshness } from '../../assertSourceFreshness';
 
 describe('freshness:components/screens/LandingPageSkeleton.tsx', () => {
   it('keeps mapped source file present and not stale', () => {
-    assertSourceFreshness('components/screens/LandingPageSkeleton.tsx', import.meta.url);
+    assertSourceFreshness(
+      'components/screens/LandingPageSkeleton.tsx',
+      import.meta.url
+    );
   });
 });

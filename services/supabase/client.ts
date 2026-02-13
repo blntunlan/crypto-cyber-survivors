@@ -51,6 +51,7 @@ export const supabase = {
   get realtime() {
     return clientInstance?.realtime;
   },
+  channel: (name: string) => clientInstance!.channel(name),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (relation: string) => clientInstance!.from(relation as any),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

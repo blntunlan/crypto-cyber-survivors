@@ -1,16 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SpawnSystem } from '../../services/combat/SpawnSystem';
-import { type IPoolManager } from '../../services/combat/interfaces/IPoolManager';
+import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { MarketPosition } from '../../types';
-
-vi.mock('../../services/indicators/MarketIndicatorService', () => ({
-  marketIndicatorService: {
-    getState: vi.fn(),
-  },
-}));
-
-// Import after mock
-import { marketIndicatorService } from '../../services/indicators/MarketIndicatorService';
 
 vi.mock('../../services/system/Logger', () => ({
   Logger: {
@@ -56,11 +47,6 @@ describe('SpawnSystem', () => {
     vi.clearAllMocks();
     spawnSystem = new SpawnSystem();
     (mockPool as any).activeEnemies = [];
-    (marketIndicatorService.getState as any).mockReturnValue({
-      whaleTier: 0,
-      rsiState: 'NEUTRAL',
-      spawnRateMultiplier: 1.0,
-    });
   });
 
   it('should not spawn if timer is below threshold', () => {
@@ -87,15 +73,26 @@ describe('SpawnSystem', () => {
   });
 
   it('should spawn whales if whaleTier > 0', () => {
-    (marketIndicatorService.getState as any).mockReturnValue({
-      whaleTier: 1,
-      rsiState: 'NEUTRAL',
-      spawnRateMultiplier: 1.0,
-    });
     // This is probabilistic, so mock Math.random to ensure it spawns
     vi.spyOn(Math, 'random').mockReturnValue(0.001); // < config.spawnChance (0.2 * 0.01 = 0.002)
 
-    spawnSystem.update(16, 1.0, 800, 600, MarketPosition.LONG, mockPool);
+    spawnSystem.update(
+      16,
+      1.0,
+      800,
+      600,
+      MarketPosition.LONG,
+      mockPool,
+      0,
+      undefined,
+      undefined,
+      'BTC',
+      1.0,
+      1.0,
+      {
+        whaleTier: 1,
+      }
+    );
 
     expect(mockPool.getWhaleEnemy).toHaveBeenCalledWith(
       expect.any(Number),
@@ -104,7 +101,8 @@ describe('SpawnSystem', () => {
       expect.any(String),
       1, // tier
       expect.any(Number), // damageMultiplier
-      expect.any(Number) // speedMultiplier
+      expect.any(Number), // speedMultiplier
+      expect.any(Object) // rsiModifier
     );
   });
 
@@ -121,7 +119,8 @@ describe('SpawnSystem', () => {
       'bear',
       undefined,
       expect.any(Number), // damageMultiplier
-      expect.any(Number) // speedMultiplier
+      expect.any(Number), // speedMultiplier
+      expect.any(Object) // rsiModifier
     );
 
     // LONG + Profit = Bull
@@ -134,7 +133,8 @@ describe('SpawnSystem', () => {
       'bull',
       undefined,
       expect.any(Number), // damageMultiplier
-      expect.any(Number) // speedMultiplier
+      expect.any(Number), // speedMultiplier
+      expect.any(Object) // rsiModifier
     );
   });
 
@@ -158,7 +158,8 @@ describe('SpawnSystem', () => {
       'fud', // 0.8 is < 0.85
       undefined,
       expect.any(Number), // damageMultiplier
-      expect.any(Number) // speedMultiplier
+      expect.any(Number), // speedMultiplier
+      expect.any(Object) // rsiModifier
     );
   });
 });

@@ -233,3 +233,186 @@ Original prompt: gameplay ekranında screenshake levelup screen ve pause ekranı
 - Verification:
   - `npx eslint components/GameEngine.tsx services/gameplay/HitStopGovernor.ts services/combat/physics/CollisionSystem.ts services/gameplay/DifficultyManager.ts tests/services/gameplay/HitStopGovernor.test.ts tests/services/physics/CollisionSystem.test.ts types/events.ts constants.ts` (clean)
   - `npx vitest run tests/services/gameplay/HitStopGovernor.test.ts tests/services/physics/CollisionSystem.test.ts` (17/17 passed)
+
+2026-02-13
+- New request continuation: execute UI consistency checks and fix failing z-index E2E assertions.
+- Root causes identified in `e2e/zindex-stacking.spec.ts`:
+  - In-game settings panel hides Theme section, so expecting `Visual Style` was incorrect.
+  - Cheat key `4` no longer triggers game over (now sets luck in `CheatManager`).
+- Updated `e2e/zindex-stacking.spec.ts`:
+  - deterministic setup in `beforeEach` (`localStorage.clear()`, `?no-sw=true`, `game_lang=en`),
+  - replaced brittle settings assertion with heading + visuals checks,
+  - replaced game-over trigger from keyboard `4` to `window.GameHelpers.triggerGameOver()`.
+- Verification:
+  - `npx playwright test e2e/zindex-stacking.spec.ts --project=chromium` -> 4/4 passed.
+  - `npx playwright test e2e/visual.spec.ts e2e/zindex-stacking.spec.ts --project=chromium` -> 13/13 passed.
+- Note: full `npm run test:e2e` remains very long (468 tests) and timed out in earlier run window.
+
+2026-02-13
+- Market runtime/sync continuation: hardened Phase-6 queue reliability for larger runs and reconnect scenarios.
+- Updated `services/market/sync/MarketSyncStore.ts`:
+  - added `requeueInflight(maxAgeMs)` to recover stale `inflight` records back to `pending`.
+- Updated `services/market/sync/MarketSyncQueue.ts`:
+  - `flush()` now returns structured result metadata (`reason`, `acked`, `retried`, `runId`),
+  - added stale `inflight` recovery before each flush,
+  - constrained each flush payload to a single `runId` (prevents mixed-run batch ambiguity),
+  - added `flushAll()` to drain multiple batches in one call (bounded by config),
+  - made `flushAll()` wait/retry briefly when another flush is already in progress,
+  - made auto-flush interval configurable via queue config.
+- Updated `services/market/sync/MarketSyncClient.ts`:
+  - added defensive validation to reject mixed `runId` records in a single batch before issuing network request.
+- Updated session/recovery integrations:
+  - `services/auth/GameSessionService.ts` now uses `flushAll()` before submit/clear and logs flush summary.
+  - `services/core/ErrorRecoveryService.ts` now uses `flushAll()` on reconnect/recovery paths.
+- Tests:
+  - expanded `tests/services/market/MarketSyncQueue.test.ts` with:
+    - success ack behavior,
+    - retry scheduling,
+    - multi-batch `flushAll` draining,
+    - stale inflight recovery call,
+    - single-run payload scoping.
+  - added `tests/services/market/MarketSyncClient.test.ts` for endpoint/mixed-run/auth-header behavior.
+  - added `tests/services/market/MarketSyncStore.test.ts` for inflight requeue behavior.
+- Verification:
+  - `npm run lint`
+  - `npm run test -- tests/services/market/MarketSyncClient.test.ts tests/services/market/MarketSyncQueue.test.ts tests/services/market/MarketSyncStore.test.ts tests/services/ErrorRecoveryService.test.ts tests/services/auth/GameSessionService.test.ts`
+  - `npm run build`
+  - Result: all passing; existing Vite chunk/dynamic-import warnings remain unchanged.
+
+2026-02-13
+- Market runtime continuation: switched `runtime` mode toward worker-authoritative tick application in `useMarketData`.
+- Updated `hooks/useMarketData.ts`:
+  - added runtime pending tick buffer (`runtimePendingTickEntriesRef`) to correlate worker snapshot responses with emitted ticks,
+  - added runtime market mapping helper (`createRuntimeMarketData`) to project `MarketRuntimeSnapshot` into game `MarketData`,
+  - moved runtime event + sync queue emission into shared helper (`emitRuntimeArtifacts`),
+  - changed `runtime` mode flow:
+    - when worker is available, tick is queued and UI/event authority is applied on worker snapshot callback,
+    - when worker is unavailable, falls back to local runtime compute with explicit warning,
+  - preserved `dual` mode behavior as legacy-authoritative output with runtime metadata/events.
+  - fixed worker-authority same-seq overwrite guard so authoritative snapshot can replace provisional tick state (`runtimeSeq > snapshot.seq` check).
+- Updated/added tests around sync hardening:
+  - `tests/services/market/MarketSyncClient.test.ts`
+  - `tests/services/market/MarketSyncQueue.test.ts`
+  - `tests/services/market/MarketSyncStore.test.ts`
+  - adjusted service tests with queue `flushAll` mocking:
+    - `tests/services/auth/GameSessionService.test.ts`
+    - `tests/services/ErrorRecoveryService.test.ts`
+- Verification:
+  - `npm run lint`
+  - `npm run test -- tests/hooks/useMarketData.test.ts tests/services/market/MarketRuntimeController.test.ts tests/services/market/MarketRuntimeWorker.test.ts tests/services/market/MarketCompute.test.ts tests/services/market/MarketSyncClient.test.ts tests/services/market/MarketSyncQueue.test.ts tests/services/market/MarketSyncStore.test.ts tests/services/ErrorRecoveryService.test.ts tests/services/auth/GameSessionService.test.ts`
+  - `npm run build`
+  - Result: passing; existing Vite dynamic-import/chunk warnings persist.
+
+2026-02-13
+- Difficulty pipeline alignment follow-up:
+  - updated `services/difficulty/DifficultyContext.ts` to prefer runtime snapshot as MACD source-of-truth once runtime data is observed,
+  - added runtime authority flag reset paths on `gameReset`, `reset()`, and history reset,
+  - normalized runtime snapshot MACD into `MACDResult` shape (`value/signal/histogram`) for context consistency.
+- Added targeted tests:
+  - `tests/services/difficulty/DifficultyContext.test.ts`
+    - indicator MACD fallback when runtime authority is absent,
+    - runtime MACD persistence once runtime snapshot arrives,
+    - reset path returning to indicator MACD source.
+  - `tests/hooks/useMarketData.test.ts`
+    - added runtime-mode worker authority test with mocked worker snapshot flow.
+- Verification:
+  - `npm run lint`
+  - `npm run test -- tests/services/difficulty/DifficultyContext.test.ts tests/hooks/useMarketData.test.ts tests/services/market/MarketRuntimeController.test.ts tests/services/market/MarketRuntimeWorker.test.ts tests/services/market/MarketCompute.test.ts tests/services/market/MarketSyncClient.test.ts tests/services/market/MarketSyncQueue.test.ts tests/services/market/MarketSyncStore.test.ts tests/services/ErrorRecoveryService.test.ts tests/services/auth/GameSessionService.test.ts`
+  - `npm run build`
+
+2026-02-13
+- Market runtime continuation (Phase-4 decoupling): removed indicator singleton dependency from game-loop spawn chain.
+- Updated `components/GameEngine.tsx`:
+  - removed per-frame `marketIndicatorService.update(...)` call,
+  - passed runtime-aligned market signals (`rsi`, `rsiState`, `whaleTier`) into `SpawnSystem.update(...)`.
+- Updated `services/combat/SpawnSystem.ts`:
+  - removed `marketIndicatorService.getState()` usage,
+  - added optional `marketSignals` input (`rsi`, `rsiState`, `whaleTier`),
+  - resolved RSI state via provided state or hysteresis fallback,
+  - computed enemy modifiers from RSI+position and forwarded them to pool enemy/whale creation,
+  - reset RSI hysteresis cache on `reset()`.
+- Updated pool contracts to accept runtime-provided RSI modifiers:
+  - `services/interfaces/IPoolManager.ts`
+  - `services/interfaces/ISpawnSystem.ts`
+  - `services/combat/PoolManager.ts` (now uses passed modifier; defaults to neutral).
+- Tests updated:
+  - `tests/SpawnSystem.test.ts`
+  - `tests/services/SpawnSystem.test.ts`
+- Verification:
+  - `npm run lint -- components/GameEngine.tsx services/combat/SpawnSystem.ts services/combat/PoolManager.ts services/interfaces/IPoolManager.ts services/interfaces/ISpawnSystem.ts tests/SpawnSystem.test.ts tests/services/SpawnSystem.test.ts`
+  - `npm run test -- tests/SpawnSystem.test.ts tests/services/SpawnSystem.test.ts tests/services/PoolManager.test.ts tests/components/GameEngine.test.tsx`
+  - `npm run test -- tests/hooks/useMarketData.test.ts tests/services/difficulty/DifficultyContext.test.ts tests/services/market/MarketRuntimeController.test.ts tests/services/market/MarketRuntimeWorker.test.ts tests/services/market/MarketCompute.test.ts tests/services/market/MarketSyncClient.test.ts tests/services/market/MarketSyncQueue.test.ts tests/services/market/MarketSyncStore.test.ts tests/services/ErrorRecoveryService.test.ts tests/services/auth/GameSessionService.test.ts tests/SpawnSystem.test.ts tests/services/SpawnSystem.test.ts tests/services/PoolManager.test.ts tests/components/GameEngine.test.tsx`
+  - `npm run build`
+  - Result: all passing; existing Vite dynamic-import/externalization warnings unchanged.
+
+2026-02-13
+- Market runtime continuation (Phase-5 incremental): removed direct indicator singleton reads from `DifficultyManager` and sourced market brain inputs from `DifficultyContext`.
+- Updated `services/gameplay/DifficultyManager.ts`:
+  - removed `marketIndicatorService` and `calculateMACDFactor` dependencies,
+  - mapped `rsi`, `atrPercent`, `normalizedVolume`, and `macd` directly from `difficultyContext.getContext().inputs`,
+  - added backward-compatible MACD extraction (`value` / legacy `macd`) with safe fallback,
+  - preserved existing momentum/trend logic and GameMaster input shaping.
+- Verification:
+  - `npm run test -- tests/DifficultyManager.test.ts tests/DifficultyMomentum.test.ts tests/edge/DifficultyManager.test.ts tests/services/DifficultyManager.test.ts tests/services/LeverageDifficulty.test.ts tests/services/LeverageScaling.test.ts tests/BitcoinPnlDifficulty.test.ts tests/NewMechanics.test.ts tests/difficulty/DirectorAdapter.test.ts tests/services/difficulty/AIDirector.test.ts`
+  - `npm run test -- tests/hooks/useMarketData.test.ts tests/services/difficulty/DifficultyContext.test.ts tests/services/market/MarketRuntimeController.test.ts tests/services/market/MarketRuntimeWorker.test.ts tests/services/market/MarketCompute.test.ts tests/services/market/MarketSyncClient.test.ts tests/services/market/MarketSyncQueue.test.ts tests/services/market/MarketSyncStore.test.ts tests/services/ErrorRecoveryService.test.ts tests/services/auth/GameSessionService.test.ts tests/SpawnSystem.test.ts tests/services/SpawnSystem.test.ts tests/services/PoolManager.test.ts tests/components/GameEngine.test.tsx tests/DifficultyManager.test.ts tests/DifficultyMomentum.test.ts tests/edge/DifficultyManager.test.ts tests/services/DifficultyManager.test.ts`
+  - `npm run build`
+  - Result: all passing; existing Vite dynamic-import/externalization warnings unchanged.
+
+2026-02-13
+- Market runtime continuation (Phase-5 incremental): removed direct market-indicator singleton reads from Director pipeline bridges.
+- Updated `services/difficulty/DirectorAdapter.ts`:
+  - removed `marketIndicatorService.getState()` dependency,
+  - now builds `DirectorInput` market fields (`marketRSI`, `marketATRPercent`, `marketVolume`) from `difficultyContext.getContext().inputs`,
+  - preserves existing blend behavior; `marketPriceChange` remains neutral fallback (`0`).
+- Updated `services/difficulty/AIDirector.ts`:
+  - removed `marketIndicatorService` and `calculateMACDFactor` dependencies,
+  - now derives RSI/ATR/volume and MACD directly from `difficultyContext` inputs,
+  - keeps output contract and update cadence unchanged.
+- Verification:
+  - `npm run test -- tests/difficulty/DirectorAdapter.test.ts tests/services/difficulty/AIDirector.test.ts tests/DifficultyManager.test.ts tests/DifficultyMomentum.test.ts tests/edge/DifficultyManager.test.ts tests/services/DifficultyManager.test.ts`
+  - `npm run build`
+  - Result: passing; existing Vite dynamic-import/externalization warnings unchanged.
+2026-02-13
+- Market runtime continuation (Phase-5 alignment): removed direct `marketIndicatorService` dependency from `DifficultyContext`.
+- Updated `services/difficulty/DifficultyContext.ts`:
+  - removed MACD fallback pull (`marketIndicatorService.getState()`),
+  - added `clientIndicatorsUpdated` ingestion for RSI/ATR/volume/whale + MACD (`macdValue/signal/histogram`) when runtime authority is absent,
+  - preserved runtime authority behavior by ignoring client/server indicator side-channel updates after `marketRuntimeSnapshot` is observed,
+  - retained runtime snapshot dedupe + reset paths.
+- Updated `types/events.ts`:
+  - extended `ClientIndicatorsUpdatedEvent` with optional MACD fields (`macdValue`, `macdSignal`, `macdHistogram`).
+- Updated `services/indicators/ClientIndicatorService.ts`:
+  - included MACD values in emitted `clientIndicatorsUpdated` payload.
+- Updated tests:
+  - `tests/services/difficulty/DifficultyContext.test.ts` now validates client-indicator fallback, runtime authority lock, and post-reset fallback behavior.
+- Market-sync robustness follow-up:
+  - fixed Supabase realtime proxy mismatch by adding `channel(...)` passthrough in `services/supabase/client.ts` (resolved runtime `supabase.channel is not a function` path during `MarketStateService.init`).
+- Verification:
+  - `npx eslint services/difficulty/DifficultyContext.ts services/indicators/ClientIndicatorService.ts types/events.ts tests/services/difficulty/DifficultyContext.test.ts services/supabase/client.ts`
+  - `npm run test -- tests/services/difficulty/DifficultyContext.test.ts tests/services/indicators/ClientIndicatorService.test.ts`
+  - `npm run test -- tests/DifficultyManager.test.ts tests/DifficultyMomentum.test.ts tests/edge/DifficultyManager.test.ts tests/services/DifficultyManager.test.ts tests/difficulty/DirectorAdapter.test.ts tests/services/difficulty/AIDirector.test.ts`
+  - `npm run test -- tests/services/supabase/client.test.ts tests/services/MarketStateService.test.ts`
+- Playwright smoke (develop-web-game skill):
+  - ran `web_game_playwright_client.js` against local Vite server with `action_payloads.json`.
+  - artifacts: `output/market-sync-smoke/shot-0.png`, `output/market-sync-smoke/errors-0.json`.
+  - confirmed previous `supabase.channel` console error is gone; remaining console errors are pre-existing landing-page markup/CSP warnings.
+2026-02-13
+- Market runtime continuation (Phase-4/5 cleanup): removed remaining `GameEngine` runtime-path dependency on `marketIndicatorService`.
+- Updated `components/GameEngine.tsx`:
+  - replaced indicator warmup with `ClientIndicatorService` warmup (`setPair`, `setPosition`, `warmup(history)`),
+  - switched RSI/whale visual subscriptions from `rsiStateChanged` + `whaleTierChanged` to `clientIndicatorsUpdated`,
+  - preserved whale-impact visual effect with tier-up detection.
+- Updated tests:
+  - `tests/components/GameEngine.test.tsx` now mocks `ClientIndicatorService` and asserts `clientIndicatorsUpdated` handling.
+- Verification:
+  - `npx eslint components/GameEngine.tsx tests/components/GameEngine.test.tsx`
+  - `npm run test -- tests/components/GameEngine.test.tsx tests/services/difficulty/DifficultyContext.test.ts tests/services/indicators/ClientIndicatorService.test.ts`
+  - `npm run test -- tests/hooks/useMarketData.test.ts tests/services/market/MarketRuntimeController.test.ts tests/services/market/MarketRuntimeWorker.test.ts tests/services/market/MarketCompute.test.ts tests/services/market/MarketSyncQueue.test.ts tests/services/market/MarketSyncStore.test.ts tests/services/market/MarketSyncClient.test.ts`
+- Playwright smoke rerun:
+  - command: `web_game_playwright_client.js` against local Vite with `action_payloads.json`.
+  - artifacts: `output/market-sync-smoke/shot-0.png`, `output/market-sync-smoke/errors-0.json`.
+  - result: no `supabase.channel` error; only pre-existing landing HTML nesting/CSP console warnings remain.
+2026-02-13
+- Verification pass (post GameEngine/client-indicator decoupling):
+  - `npm run build` succeeded.
+  - Existing Vite warnings about externalized modules and mixed static/dynamic imports remain unchanged.

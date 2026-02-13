@@ -194,4 +194,3 @@ describe('CheatManager', () => {
     expect(CheatManager.isForcedSuperCrit()).toBe(false);
   });
 });
-

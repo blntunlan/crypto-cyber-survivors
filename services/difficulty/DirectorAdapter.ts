@@ -18,9 +18,9 @@ import { type DifficultyOutput } from '../gameplay/DifficultyTypes';
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
 import { TimeService } from '../core/TimeService';
-import { marketIndicatorService } from '../indicators/MarketIndicatorService';
 import { DIFFICULTY_CONFIG } from '../../config';
 import { clamp } from './utils';
+import { difficultyContext } from './DifficultyContext';
 
 /**
  * Adapter configuration
@@ -128,8 +128,15 @@ class DirectorAdapterClass {
     }
 
     // Build Director input from current game state
-    const market = marketIndicatorService.getState();
     const gameTime = TimeService.getGameTime();
+    const context = difficultyContext.getContext();
+    const marketRSI = Number.isFinite(context.inputs.rsi) ? context.inputs.rsi : 50;
+    const marketATRPercent = Number.isFinite(context.inputs.atrPercent)
+      ? context.inputs.atrPercent
+      : 0;
+    const marketVolume = Number.isFinite(context.inputs.normalizedVolume)
+      ? context.inputs.normalizedVolume
+      : 0.5;
 
     const input: DirectorInput = {
       // Player state
@@ -141,11 +148,11 @@ class DirectorAdapterClass {
       playerRecentDamage: this.playerState.recentDamage,
 
       // Market state
-      marketRSI: market.rsi,
-      marketATRPercent: market.atrPercent,
-      marketVolume: market.normalizedVolume,
-      marketPriceChange: market.priceChange24h ?? 0,
-      marketTrend: this.determineTrend(market.rsi),
+      marketRSI,
+      marketATRPercent,
+      marketVolume,
+      marketPriceChange: 0,
+      marketTrend: this.determineTrend(marketRSI),
 
       // Time (with safe fallback for tests)
       deltaTime:
