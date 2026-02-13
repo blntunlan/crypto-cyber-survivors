@@ -13,6 +13,13 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+declare const describe:
+  | ((name: string, fn: () => void) => void)
+  | undefined;
+declare const it:
+  | ((name: string, fn: () => Promise<void> | void, timeout?: number) => void)
+  | undefined;
+
 // Test configuration
 const TEST_CONFIG = {
   SUPABASE_URL: process.env.SUPABASE_URL ?? '',
@@ -352,7 +359,7 @@ class IntegrationTester {
 }
 
 // Run tests
-if (typeof describe !== 'undefined') {
+if (typeof describe !== 'undefined' && typeof it !== 'undefined') {
   describe('Railway → Supabase Integration', () => {
     it('should pass integration tests', async () => {
       const tester = new IntegrationTester();
