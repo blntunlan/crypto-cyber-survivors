@@ -184,7 +184,10 @@ export class PerformanceTracker {
       this.lastSampleTime = now;
     }
 
-    this.animationId = requestAnimationFrame(this.loop);
+    // Ensure we are in an environment that supports requestAnimationFrame
+    if (typeof requestAnimationFrame !== 'undefined') {
+      this.animationId = requestAnimationFrame(this.loop);
+    }
   };
 
   /**
