@@ -1,17 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// We mock the supabase client creation to inspect the options passed to it
+// Mock Logger to prevent actual logging and circular dependency issues
+vi.mock('../../../services/system/Logger', () => ({
+  Logger: {
+    warn: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn((url, key, options) => ({
-    url,
-    key,
-    options,
-    auth: {
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      })),
-    },
-  })),
+  createClient: vi.fn(),
 }));
 
 describe('Supabase Client Configuration', () => {
@@ -21,15 +19,23 @@ describe('Supabase Client Configuration', () => {
   });
 
   it('should initialize with correct PWA persistence settings', async () => {
-    const { supabase: _supabase } = await import('../../../services/supabase/client');
+    // 1. Stub environment variables BEFORE importing the client
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-key');
+
+    // 2. Import modules dynamically to pick up the stubbed env
     const { createClient } = await import('@supabase/supabase-js');
+    await import('../../../services/supabase/client');
 
+    // 3. Verify createClient was called
     expect(createClient).toHaveBeenCalled();
-    const options = (createClient as any).mock.calls[0][2];
 
+    // 4. Verify options
+    const options = (createClient as any).mock.calls[0][2];
     expect(options.auth.persistSession).toBe(true);
     expect(options.auth.autoRefreshToken).toBe(true);
     expect(options.auth.detectSessionInUrl).toBe(true);
+    // window.localStorage is available in jsdom environment
     expect(options.auth.storage).toBe(window.localStorage);
     expect(options.auth.storageKey).toBe('crypto-survivors-auth-token');
   });
