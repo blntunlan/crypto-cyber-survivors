@@ -28,6 +28,7 @@ dist-ssr
 # AI Code Agents
 .agent/
 .agents/
+.codex/
 .claude/
 .gemini/
 .gemini_security/
@@ -39,6 +40,8 @@ coverage/
 # Test reports and results
 playwright-report/
 test-results/
+output/market-sync-smoke/
+output/web-game/
 *.spec.js.map
 test-results.json
 test_results.json
