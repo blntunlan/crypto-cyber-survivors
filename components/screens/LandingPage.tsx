@@ -38,12 +38,11 @@ import {
   Gamepad2,
   Trophy,
   Sparkles,
-  Star,
-  Quote,
   Users,
 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/useTheme';
+import { type Language } from '../../contexts/LanguageConstants';
 
 // =============================================================================
 // ANIMATION VARIANTS
@@ -126,16 +125,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewPrivacy,
   onViewTerms,
 }) => {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const { isRetro } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const originalLanguageRef = useRef<Language>(language);
+
+  useEffect(() => {
+    originalLanguageRef.current = language;
+    if (language !== 'en') {
+      setLanguage('en');
+    }
+
+    return () => {
+      const originalLanguage = originalLanguageRef.current;
+      if (originalLanguage !== 'en') {
+        setLanguage(originalLanguage);
+      }
+    };
+    // Landing is intentionally forced to English while mounted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const list = (key: string): string[] =>
     t(key)
       .split('\n')
       .map(item => item.trim())
       .filter(Boolean);
+  const navLabel = (key: string): string =>
+    t(key)
+      .replace(/^\s*\d+\.\s*/, '')
+      .trim();
+  const framedNavButtonClass =
+    'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 xl:px-4 text-slate-300 transition-all duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]';
+  const navAccentLineClass =
+    'pointer-events-none absolute bottom-[7px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/55 to-transparent opacity-80 transition-all duration-300 group-hover:via-[#ffd86a] group-hover:opacity-100';
+  const desktopNavLabelClass = isRetro
+    ? 'font-retro-pixel text-[10px] tracking-[0.12em]'
+    : 'font-cyber text-[13px] tracking-[0.09em]';
+  const desktopCtaClass = isRetro
+    ? 'font-retro-pixel text-[10px] tracking-[0.1em]'
+    : 'font-cyber text-[13px] tracking-[0.11em]';
 
   // FAQ Data from Translations
   const faqItems = [
@@ -175,6 +205,49 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   ];
   const casualModeItems = list('landing.modes.casual_items');
   const competitiveModeItems = list('landing.modes.comp_items');
+  const technologyHighlights = [
+    {
+      title: 'C-SYNC Protocol',
+      description:
+        'A deterministic event contract that maps market ticks into gameplay-safe signals.',
+      badge: 'SYNC CORE',
+    },
+    {
+      title: 'Real-Time WebSocket Fabric',
+      description:
+        'Dual exchange streams (Binance + Coinbase) with failover and continuity guards.',
+      badge: 'LIVE DATA',
+    },
+    {
+      title: 'Neural AI Director',
+      description:
+        'A neural difficulty layer that evaluates market and player telemetry every cycle.',
+      badge: 'ADAPTIVE AI',
+    },
+  ];
+  const teamMembers = [
+    {
+      name: 'Bulent Unalan',
+      role: 'Lead Architect & Founder',
+      summary:
+        'Owns engine architecture, C-SYNC protocol design, and end-to-end performance discipline.',
+      proof: 'Company profile: Crypto Survivors',
+    },
+    {
+      name: 'Core Contributors',
+      role: 'Engine, QA, and Infrastructure',
+      summary:
+        'Contributors focused on gameplay systems, anti-cheat, CI quality gates, and deployment reliability.',
+      proof: 'Public contribution log available on GitHub',
+    },
+    {
+      name: 'Market & Operations Support',
+      role: 'Data Pipeline and Product Ops',
+      summary:
+        'Supports market feed resilience, production monitoring, and release operations for the live runtime.',
+      proof: 'Verification references maintained in company records',
+    },
+  ];
 
   return (
     <motion.div
@@ -199,12 +272,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* --- 01. NAVIGATION LAYER --- */}
       <nav
         id="top"
-        className="relative z-50 mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8"
+        className="relative z-50 mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-6"
       >
         {/* Branding Sub-module */}
         <a
           href="#top"
-          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:pr-24"
+          className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:pr-0"
         >
           <span
             className={`text-xl font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
@@ -228,42 +301,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </button>
 
         {/* Desktop Nav Menu */}
-        <div className="hidden items-center gap-3 font-mono text-xs font-semibold uppercase tracking-widest lg:flex">
+        <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-2 lg:flex xl:gap-3">
           {/* Navigation Links */}
-          <a
-            href="#engine"
-            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
-          >
-            {t('landing.nav.engine')}
+          <a href="#engine" className={`${framedNavButtonClass} w-[108px]`}>
+            <span className={desktopNavLabelClass}>
+              {navLabel('landing.nav.engine')}
+            </span>
+            <span className={navAccentLineClass} />
           </a>
-          <a
-            href="#pipeline"
-            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
-          >
-            {t('landing.nav.pipeline')}
+          <a href="#pipeline" className={`${framedNavButtonClass} w-[118px]`}>
+            <span className={desktopNavLabelClass}>
+              {navLabel('landing.nav.pipeline')}
+            </span>
+            <span className={navAccentLineClass} />
           </a>
-          <a
-            href="#dev"
-            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
-          >
-            {t('landing.nav.dev')}
+          <a href="#dev" className={`${framedNavButtonClass} w-[120px]`}>
+            <span className={desktopNavLabelClass}>{navLabel('landing.nav.dev')}</span>
+            <span className={navAccentLineClass} />
+          </a>
+          <a href="#team" className={`${framedNavButtonClass} w-[96px]`}>
+            <span className={desktopNavLabelClass}>TEAM</span>
+            <span className={navAccentLineClass} />
           </a>
           <button
             id="docs-nav-link"
             onClick={() => (window.location.hash = '#docs')}
-            className="flex h-11 items-center justify-center border border-white/10 bg-white/[0.03] px-6 text-slate-400 transition-all duration-300 hover:border-[#d6b85c]/50 hover:bg-[#d6b85c]/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+            className={`${framedNavButtonClass} w-[146px]`}
           >
-            {t('landing.nav.docs')}
-          </button>
-
-          {/* Primary CTA */}
-          <button
-            onClick={onLaunch}
-            className="ml-2 h-11 bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-8 font-black text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            {t('landing.nav.execute')}
+            <span className={desktopNavLabelClass}>{navLabel('landing.nav.docs')}</span>
+            <span className={navAccentLineClass} />
           </button>
         </div>
+        {/* Desktop CTA */}
+        <button
+          onClick={onLaunch}
+          className={`hidden h-12 min-w-[182px] items-center justify-center bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-7 font-black uppercase text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex ${desktopCtaClass}`}
+        >
+          {t('landing.nav.execute')}
+        </button>
       </nav>
 
       {/* --- MOBILE MENU DRAWER --- */}
@@ -299,25 +374,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <a
                   href="#engine"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  {t('landing.nav.engine')}
+                  <span>{navLabel('landing.nav.engine')}</span>
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </a>
 
                 <a
                   href="#pipeline"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  {t('landing.nav.pipeline')}
+                  <span>{navLabel('landing.nav.pipeline')}</span>
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </a>
 
                 <a
                   href="#dev"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  {t('landing.nav.dev')}
+                  <span>{navLabel('landing.nav.dev')}</span>
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
+                </a>
+                <a
+                  href="#team"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                >
+                  <span>TEAM</span>
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </a>
 
                 <button
@@ -325,9 +411,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     window.location.hash = '#docs';
                     setIsMobileMenuOpen(false);
                   }}
-                  className="min-h-[48px] w-full border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+                  className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  {t('landing.nav.docs')}
+                  <span>{navLabel('landing.nav.docs')}</span>
+                  <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </button>
               </div>
 
@@ -644,6 +731,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <p className="mb-6 font-mono text-sm leading-relaxed text-slate-400 sm:mb-8">
                 {t('landing.architecture.description')}
               </p>
+              <div className="mb-6 rounded-sm border border-[#d6b85c]/30 bg-[#d6b85c]/5 p-4 sm:mb-8 sm:p-5">
+                <p className="font-mono text-[10px] font-black uppercase tracking-[0.25em] text-[#d6b85c]">
+                  Technology / How It Works
+                </p>
+                <p className="mt-3 font-mono text-xs leading-relaxed text-slate-300">
+                  Crypto Survivors runs on a digital-native substrate where the C-SYNC
+                  Protocol converts live market movement into deterministic gameplay
+                  events, WebSocket infrastructure keeps market state continuous, and
+                  the Neural AI Director tunes encounter pressure while preserving 60
+                  FPS behavior.
+                </p>
+              </div>
+              <div className="mb-6 grid gap-3 sm:mb-8 sm:grid-cols-3">
+                {technologyHighlights.map(highlight => (
+                  <div
+                    key={highlight.title}
+                    className="border border-white/10 bg-black/30 p-3"
+                  >
+                    <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-[0.2em] text-[#b22222]">
+                      {highlight.badge}
+                    </p>
+                    <p className="mb-2 text-sm font-bold text-white">
+                      {highlight.title}
+                    </p>
+                    <p className="font-mono text-[11px] leading-relaxed text-slate-400">
+                      {highlight.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
 
               <div className="flex flex-wrap gap-2 sm:gap-4">
                 {[
@@ -913,8 +1030,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* --- SOCIAL PROOF / TESTIMONIALS --- */}
-      <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
+      {/* --- 07. TEAM / ABOUT --- */}
+      <section
+        id="team"
+        className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32"
+      >
         <div className="mx-auto max-w-7xl">
           <motion.div
             initial="hidden"
@@ -924,13 +1044,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             className="mb-12 text-center sm:mb-16"
           >
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
-              COMMUNITY
+              TEAM / ABOUT
             </h2>
             <div
               className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
             >
-              WHAT PLAYERS SAY
+              PEOPLE BEHIND THE ENGINE
             </div>
+            <p className="mx-auto mt-6 max-w-3xl font-mono text-sm leading-relaxed text-slate-400 sm:text-base">
+              Crypto Survivors is built as a public, digital-native software company.
+              This section documents who is responsible for product, infrastructure, and
+              runtime reliability.
+            </p>
           </motion.div>
 
           <motion.div
@@ -940,63 +1065,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             variants={staggerContainer}
             className="grid gap-6 md:grid-cols-3"
           >
-            {[
-              {
-                quote:
-                  'bro i was mass liquidated last week but somehow this game made it fun?? lmao bears go brrrr 🐻',
-                author: 'degen_marc',
-                role: '200+ hours',
-                rating: 5,
-              },
-              {
-                quote:
-                  'ok ngl the btc price sync is actually sick. played during the dip and it felt like chaos mode haha',
-                author: 'satoshi_wannabe',
-                role: 'beta tester',
-                rating: 4,
-              },
-              {
-                quote:
-                  'runs smooth af on my old phone, didnt expect that tbh. also the bear/bull mechanic is lowkey addicting',
-                author: 'xKr1pt0x',
-                role: 'mobile player',
-                rating: 5,
-              },
-            ].map((testimonial, index) => (
+            {teamMembers.map(member => (
               <motion.div
-                key={index}
+                key={member.name}
                 variants={fadeInUp}
-                whileHover={{ y: -5 }}
+                whileHover={{ y: -4 }}
                 className={`group relative border p-6 transition-all duration-300 sm:p-8
                   ${
                     isRetro
-                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.1)]'
+                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)]'
                       : 'border-white/10 bg-white/5 hover:border-[#d6b85c]/30'
                   }`}
               >
-                <Quote className="absolute right-4 top-4 h-8 w-8 text-[#d6b85c]/20" />
-                <div className="mb-4 flex gap-1">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-[#d6b85c] text-[#d6b85c]" />
-                  ))}
-                </div>
-                <p className="mb-6 font-mono text-sm leading-relaxed text-slate-300">
-                  "{testimonial.quote}"
-                </p>
-                <div className="flex items-center gap-3">
+                <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222]">
                     <Users className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white">
-                      {testimonial.author}
-                    </div>
-                    <div className="text-xs text-slate-500">{testimonial.role}</div>
+                    <p className="text-sm font-black uppercase tracking-wider text-[#d6b85c]">
+                      {member.role}
+                    </p>
+                    <p className="text-lg font-bold text-white">{member.name}</p>
                   </div>
+                </div>
+                <p className="mb-4 font-mono text-sm leading-relaxed text-slate-300">
+                  {member.summary}
+                </p>
+                <div className="border-l-2 border-[#b22222] pl-3 font-mono text-[11px] uppercase tracking-wider text-slate-500">
+                  {member.proof}
                 </div>
               </motion.div>
             ))}
           </motion.div>
+          <div className="mt-8 rounded-sm border border-[#d6b85c]/20 bg-[#d6b85c]/5 p-4 font-mono text-xs leading-relaxed text-slate-300 sm:p-5">
+            Audit note: founder and key team members maintain Crypto Survivors in their
+            LinkedIn Experience records with role and timeline details.
+          </div>
         </div>
       </section>
 
