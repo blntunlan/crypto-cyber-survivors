@@ -20,11 +20,13 @@ const CELL_COORD_OFFSET = 32768;
 
 export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   private cellSize: number;
+  private invCellSize: number;
   private grid: Map<number, T[]>;
   private arrayPool: T[][] = []; // Pool of arrays for cells
 
   constructor(cellSize: number = 100) {
     this.cellSize = cellSize;
+    this.invCellSize = 1 / cellSize;
     this.grid = new Map();
   }
 
@@ -46,8 +48,9 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
    * This avoids string allocation and GC pressure in the hot loop.
    */
   private getNumericKey(x: number, y: number): number {
-    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
-    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
+    // Optimization: Use multiplication by inverse cell size instead of division
+    const cellX = Math.floor(x * this.invCellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(y * this.invCellSize) + CELL_COORD_OFFSET;
     return (cellX << 16) | cellY;
   }
 
@@ -86,14 +89,16 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
    * @deprecated Use forEachNearby() for zero-allocation iteration in hot loops.
    */
   public getNearby(x: number, y: number): T[] {
-    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
-    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
+    const cellX = Math.floor(x * this.invCellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(y * this.invCellSize) + CELL_COORD_OFFSET;
     const nearby: T[] = [];
 
     // Check 3x3 grid of cells (current + 8 neighbors)
     for (let dx = -1; dx <= 1; dx++) {
+      // Hoist bitwise shift out of inner loop
+      const xKey = (cellX + dx) << 16;
       for (let dy = -1; dy <= 1; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = xKey | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           nearby.push(...cell);
@@ -126,12 +131,14 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
     radius: number,
     callback: (entity: T) => void
   ): void {
-    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
-    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
+    const cellX = Math.floor(x * this.invCellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(y * this.invCellSize) + CELL_COORD_OFFSET;
 
     for (let dx = -radius; dx <= radius; dx++) {
+      // Optimization: Hoist bitwise shift out of inner loop to reduce operations
+      const xKey = (cellX + dx) << 16;
       for (let dy = -radius; dy <= radius; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = xKey | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           const len = cell.length;
