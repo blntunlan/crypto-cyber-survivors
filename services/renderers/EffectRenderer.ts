@@ -162,6 +162,8 @@ export class EffectRenderer implements IRenderer {
       }
     }
 
+    this.drawFlowPulse(ctx, width, height, state, isRetro);
+
     // Whale Splash Effect
     if (state.whaleEventTimer > 0) {
       const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
@@ -194,6 +196,56 @@ export class EffectRenderer implements IRenderer {
 
     ctx.globalAlpha = 1; // Reset globalAlpha before restoring
     ctx.restore();
+  }
+
+  /**
+   * Rhythmic pulse overlay driven by core-loop spawn pressure.
+   * Positive spawn deltas feel like "build-up", negatives feel like "release".
+   */
+  private drawFlowPulse(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    state: GameState,
+    isRetro: boolean
+  ): void {
+    const spawnDelta = state.spawnRateMultiplier - 1;
+    const pressure = Math.min(1, Math.abs(spawnDelta) / 0.5);
+    if (pressure < 0.08) return;
+
+    // Keep pulse phase stable while remaining test-friendly with second-based time mocks.
+    const pulse = (Math.sin(TimeService.getGameTimeSeconds() * 6) + 1) * 0.5;
+    const alpha = Math.min(0.16, (0.04 + pressure * 0.12) * (0.6 + pulse * 0.4));
+    if (alpha <= 0.01) return;
+
+    ctx.globalAlpha = alpha;
+    const buildPhase = spawnDelta >= 0;
+
+    if (isRetro) {
+      ctx.strokeStyle = buildPhase ? 'rgba(214, 184, 92, 1)' : 'rgba(45, 212, 191, 1)';
+      ctx.lineWidth = 24;
+      ctx.strokeRect(0, 0, width, height);
+      return;
+    }
+
+    const gradient = gradientCache.getRadialGradient(
+      ctx,
+      width / 2,
+      height / 2,
+      height * 0.2,
+      width / 2,
+      height / 2,
+      Math.max(width, height) * 0.85,
+      [
+        { offset: 0, color: 'rgba(0,0,0,0)' },
+        {
+          offset: 1,
+          color: buildPhase ? 'rgba(214, 184, 92, 0.95)' : 'rgba(45, 212, 191, 0.95)',
+        },
+      ]
+    );
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
   }
 
   /**

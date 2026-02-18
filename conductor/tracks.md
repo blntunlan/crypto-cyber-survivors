@@ -4,11 +4,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: Implement a "Volatility Shock" visual feedback system.**
-  *Link: [./tracks/volatility_shock_20260208/](./tracks/volatility_shock_20260208/)*
-
----
-
 - [ ] **Track: Fix broken level progression system (GameMasterBrain NaN XP fix).**
   *Link: [./tracks/fix_xp_system_20260208/](./tracks/fix_xp_system_20260208/)*
 
@@ -16,8 +11,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Auth & Profile Coverage Boost (80%+)**
 *Link: [./tracks/auth_coverage_boost_20260208/](./tracks/auth_coverage_boost_20260208/)*
-
----
-
-- [~] **Track: Upgrade auth system with Supabase (Email, OTP, OAuth, Passkeys), aggressive persistence for PWA, and seamless UI integration.**
-*Link: [./tracks/auth_upgrade_20260210/](./tracks/auth_upgrade_20260210/)*

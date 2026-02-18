@@ -7,6 +7,9 @@ test.describe('Memory Leak Detection', () => {
 
     // Setup user to skip nickname
     await page.addInitScript(() => {
+      window.localStorage.setItem('disable_sw', 'true');
+      window.localStorage.setItem('has_seen_landing', 'true');
+      window.localStorage.setItem('tutorial-completed', 'true');
       window.localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -31,7 +34,7 @@ test.describe('Memory Leak Detection', () => {
     // Helper to start and exit game
     const runGameCycle = async () => {
       // 1. Recover Logic: Check where we are
-      const hubPlayBtn = page.getByRole('button', { name: 'PLAY', exact: true });
+      const hubPlayBtn = page.getByRole('button', { name: /PLAY/i }).first();
       const longBtn = page.getByRole('button', { name: /long/i }).first();
       const nicknameInput = page.locator('input');
 

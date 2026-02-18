@@ -271,6 +271,7 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('exports root app component', () => {
@@ -289,6 +290,17 @@ describe('App', () => {
     // Should show HubMenu since status is MENU and not needsNickname
     await waitFor(() => {
       expect(screen.getByText('HubMenu')).toBeInTheDocument();
+    });
+  });
+
+  it('restores last menu screen from sessionStorage on refresh', async () => {
+    localStorage.setItem('has_seen_landing', 'true');
+    sessionStorage.setItem('ui_hub_screen', 'play');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('MainMenu')).toBeInTheDocument();
     });
   });
 });

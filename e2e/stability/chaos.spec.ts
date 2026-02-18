@@ -12,8 +12,187 @@ test.describe('Chaos Monkey Stability Tests', () => {
       }
     });
 
-    // Mock user to skip intro
+    // Mock user to skip intro and make market feed deterministic for this suite.
     await page.addInitScript(() => {
+      type Listener = (event: Event) => void;
+      type ListenerMap = Record<string, Listener[]>;
+
+      const win = window as Window & { __chaosMarketPatched?: boolean };
+
+      if (!win.__chaosMarketPatched) {
+        const NativeWebSocket = window.WebSocket;
+
+        const createMarketSocket = (rawUrl: string): WebSocket => {
+          const listeners: ListenerMap = {
+            open: [],
+            message: [],
+            close: [],
+            error: [],
+          };
+
+          const pairMatch = /([A-Z]{3,5})USDT/i.exec(rawUrl);
+          const pair = (pairMatch?.[1] ?? 'BTC').toUpperCase();
+          const symbol = `${pair}USDT`;
+          const basePriceByPair: Record<string, number> = {
+            BTC: 50000,
+            ETH: 3000,
+            SOL: 150,
+          };
+          const basePrice = basePriceByPair[pair] ?? 1000;
+          const isCoinbase = rawUrl.includes('coinbase');
+
+          let tick = 0;
+          let interval: number | null = null;
+
+          const socket = {
+            url: rawUrl,
+            readyState: 0,
+            onopen: null as ((event: Event) => void) | null,
+            onmessage: null as ((event: MessageEvent) => void) | null,
+            onclose: null as ((event: Event) => void) | null,
+            onerror: null as ((event: Event) => void) | null,
+            send: () => {
+              // No-op for subscription messages in tests.
+            },
+            close: () => {
+              if (interval !== null) {
+                window.clearInterval(interval);
+                interval = null;
+              }
+              if (socket.readyState === 3) return;
+              socket.readyState = 3;
+              const closeEvent =
+                typeof CloseEvent === 'function'
+                  ? new CloseEvent('close')
+                  : new Event('close');
+              emit('close', closeEvent);
+            },
+            addEventListener: (
+              type: string,
+              listener: EventListenerOrEventListenerObject
+            ) => {
+              const list = listeners[type];
+              if (!list) return;
+              const callback =
+                typeof listener === 'function'
+                  ? (listener as Listener)
+                  : (event: Event) => listener.handleEvent(event);
+              list.push(callback);
+            },
+            removeEventListener: (
+              type: string,
+              listener: EventListenerOrEventListenerObject
+            ) => {
+              const list = listeners[type];
+              if (!list) return;
+              const callback =
+                typeof listener === 'function'
+                  ? (listener as Listener)
+                  : (event: Event) => listener.handleEvent(event);
+              const idx = list.indexOf(callback);
+              if (idx >= 0) list.splice(idx, 1);
+            },
+            dispatchEvent: (event: Event) => {
+              emit(event.type, event);
+              return true;
+            },
+          } as unknown as WebSocket & {
+            onopen: ((event: Event) => void) | null;
+            onmessage: ((event: MessageEvent) => void) | null;
+            onclose: ((event: Event) => void) | null;
+            onerror: ((event: Event) => void) | null;
+          };
+
+          const emit = (type: string, event: Event) => {
+            const handler = socket[`on${type}` as keyof typeof socket] as
+              | ((ev: Event) => void)
+              | null;
+            if (typeof handler === 'function') {
+              handler(event);
+            }
+            const list = listeners[type];
+            if (!list) return;
+            for (const listener of list) {
+              listener(event);
+            }
+          };
+
+          window.setTimeout(() => {
+            if ((socket as { readyState: number }).readyState !== 0) return;
+            (socket as { readyState: number }).readyState = 1;
+            emit('open', new Event('open'));
+
+            interval = window.setInterval(() => {
+              if ((socket as { readyState: number }).readyState !== 1) return;
+              tick += 1;
+              const drift = Math.sin(tick / 3) * 12;
+              const price = Math.max(1, basePrice + drift);
+
+              const payload = isCoinbase
+                ? {
+                    type: 'ticker',
+                    product_id: `${pair}-USD`,
+                    price: price.toFixed(2),
+                  }
+                : {
+                    e: 'kline',
+                    E: Date.now(),
+                    s: symbol,
+                    k: {
+                      t: Date.now() - 1000,
+                      T: Date.now(),
+                      s: symbol,
+                      i: '1s',
+                      o: price.toFixed(2),
+                      c: price.toFixed(2),
+                      h: (price + 10).toFixed(2),
+                      l: (price - 10).toFixed(2),
+                      v: '123.45',
+                      n: 1,
+                      x: true,
+                      q: '12345.67',
+                    },
+                  };
+
+              emit(
+                'message',
+                new MessageEvent('message', { data: JSON.stringify(payload) })
+              );
+            }, 250);
+          }, 50);
+
+          return socket;
+        };
+
+        const PatchedWebSocket = function (
+          url: string | URL,
+          protocols?: string | string[]
+        ): WebSocket {
+          const rawUrl = String(url);
+          const isMarketFeed =
+            rawUrl.includes('binance') || rawUrl.includes('coinbase');
+          if (isMarketFeed) {
+            return createMarketSocket(rawUrl);
+          }
+          if (protocols !== undefined) {
+            return new NativeWebSocket(url, protocols);
+          }
+          return new NativeWebSocket(url);
+        } as unknown as typeof WebSocket;
+
+        PatchedWebSocket.CONNECTING = 0;
+        PatchedWebSocket.OPEN = 1;
+        PatchedWebSocket.CLOSING = 2;
+        PatchedWebSocket.CLOSED = 3;
+
+        window.WebSocket = PatchedWebSocket;
+        win.__chaosMarketPatched = true;
+      }
+
+      localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
         'crypto_survivors_user',
         JSON.stringify({
@@ -25,7 +204,7 @@ test.describe('Chaos Monkey Stability Tests', () => {
       );
     });
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Navigate to Main Menu if on Hub
     const playHubBtn = page.getByRole('button', { name: 'PLAY' });

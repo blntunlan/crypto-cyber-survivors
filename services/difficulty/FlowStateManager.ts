@@ -198,11 +198,12 @@ class FlowStateManagerClass {
 
     // Subscribe to game events
     EventBus.on('gameReset', () => this.reset());
+    EventBus.on('gameStart', () => this.reset());
     EventBus.on('enemyKilled', () => this.recordKill());
-    EventBus.on('playerDamaged', data => this.recordDamageTaken(data.damage));
+    EventBus.on('playerHit', data => this.recordDamageTaken(data.damage));
+    EventBus.on('critHit', data => this.recordDamageDealt(data.damage));
     EventBus.on('playerDash', () => this.recordDash());
     EventBus.on('levelUp', data => this.recordLevelUp(data.level));
-    EventBus.on('playerInput', () => this.recordInput());
 
     Logger.debug('[FlowStateManager] Initialized');
   }

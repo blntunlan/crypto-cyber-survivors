@@ -19,6 +19,7 @@ import {
   motion,
   AnimatePresence,
   useInView,
+  useReducedMotion,
   animate,
   type Variants,
 } from 'framer-motion';
@@ -39,9 +40,10 @@ import {
   Trophy,
   Sparkles,
   Users,
+  Star,
+  Quote,
 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useTheme } from '../../contexts/useTheme';
 import { type Language } from '../../contexts/LanguageConstants';
 
 // =============================================================================
@@ -126,10 +128,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewTerms,
 }) => {
   const { t, language, setLanguage } = useLanguage();
-  const { isRetro } = useTheme();
+  const prefersReducedMotion = useReducedMotion();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const originalLanguageRef = useRef<Language>(language);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-landing-active', 'true');
+    return () => {
+      root.removeAttribute('data-landing-active');
+    };
+  }, []);
 
   useEffect(() => {
     originalLanguageRef.current = language;
@@ -160,12 +170,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 xl:px-4 text-slate-300 transition-all duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]';
   const navAccentLineClass =
     'pointer-events-none absolute bottom-[7px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/55 to-transparent opacity-80 transition-all duration-300 group-hover:via-[#ffd86a] group-hover:opacity-100';
-  const desktopNavLabelClass = isRetro
-    ? 'font-retro-pixel text-[10px] tracking-[0.12em]'
-    : 'font-cyber text-[13px] tracking-[0.09em]';
-  const desktopCtaClass = isRetro
-    ? 'font-retro-pixel text-[10px] tracking-[0.1em]'
-    : 'font-cyber text-[13px] tracking-[0.11em]';
+  const desktopNavLabelClass = 'font-cyber text-[13px] tracking-[0.09em]';
+  const desktopCtaClass = 'font-cyber text-[13px] tracking-[0.11em]';
 
   // FAQ Data from Translations
   const faqItems = [
@@ -248,6 +254,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       proof: 'Verification references maintained in company records',
     },
   ];
+  const playerTestimonials = [
+    {
+      quote:
+        'bro i was mass liquidated last week but somehow this game made it fun?? lmao bears go brrrr',
+      author: 'degen_marc',
+      role: '200+ hours',
+      rating: 5,
+    },
+    {
+      quote:
+        'ok ngl the btc price sync is actually sick. played during the dip and it felt like chaos mode haha',
+      author: 'satoshi_wannabe',
+      role: 'beta tester',
+      rating: 4,
+    },
+    {
+      quote:
+        'runs smooth af on my old phone, didnt expect that tbh. also the bear/bull mechanic is lowkey addicting',
+      author: 'xKr1pt0x',
+      role: 'mobile player',
+      rating: 5,
+    },
+  ];
 
   return (
     <motion.div
@@ -258,16 +287,108 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       className="allow-scroll min-h-screen overflow-x-hidden bg-[#020617] font-sans text-white selection:bg-[#d6b85c]/30"
     >
       {/* --- 00. BACKGROUND ARCHITECTURE --- */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        {/* Ambient Glows */}
-        <div className="absolute left-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-[#d6b85c]/5 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-[#b22222]/5 blur-[120px]" />
+      <div
+        className="pointer-events-none fixed inset-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <div className="absolute inset-0 bg-[#020617]" />
+        <div className="absolute inset-0 bg-[radial-gradient(130%_90%_at_50%_0%,rgba(214,184,92,0.12),transparent_55%),radial-gradient(110%_90%_at_95%_90%,rgba(178,34,34,0.15),transparent_60%),radial-gradient(90%_80%_at_10%_80%,rgba(15,23,42,0.8),transparent_65%)]" />
 
-        {/* Texture Overlays */}
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.05]" />
+        <motion.div
+          className="bg-[#d6b85c]/12 absolute -left-[18%] top-[-12%] h-[56%] w-[56%] rounded-full blur-[120px] md:blur-[150px]"
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.28 }
+              : {
+                  x: [-28, 22, -28],
+                  y: [0, 26, 0],
+                  scale: [1, 1.08, 1],
+                  opacity: [0.26, 0.38, 0.26],
+                }
+          }
+          transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="bg-[#b22222]/14 absolute -bottom-[24%] -right-[16%] h-[62%] w-[62%] rounded-full blur-[130px] md:blur-[170px]"
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.26 }
+              : {
+                  x: [18, -26, 18],
+                  y: [0, -24, 0],
+                  scale: [1.04, 0.96, 1.04],
+                  opacity: [0.22, 0.34, 0.22],
+                }
+          }
+          transition={{ duration: 30, repeat: Infinity, ease: 'easeInOut' }}
+        />
 
-        {/* Dynamic Effects */}
-        <div className="animate-scanline absolute inset-0 h-[2px] w-full bg-gradient-to-b from-transparent via-blue-500/5 to-transparent" />
+        <motion.div
+          className="absolute inset-0 opacity-[0.28] md:opacity-[0.44]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(214,184,92,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(214,184,92,0.08) 1px, transparent 1px)',
+            backgroundSize: '52px 52px',
+            maskImage: 'radial-gradient(ellipse at center, black 42%, transparent 85%)',
+          }}
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.18 }
+              : { x: [0, -20, 0], y: [0, -14, 0], opacity: [0.16, 0.3, 0.16] }
+          }
+          transition={{ duration: 26, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        <motion.div
+          className="absolute inset-0 hidden md:block"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(120deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 14px)',
+            opacity: 0.18,
+          }}
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.09 }
+              : { opacity: [0.08, 0.15, 0.08], x: [0, 14, 0] }
+          }
+          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        <motion.div
+          className="absolute -left-[35%] top-[-28%] h-[95%] w-[95%] rotate-[-20deg] bg-[linear-gradient(90deg,transparent_0%,rgba(214,184,92,0.34)_45%,transparent_100%)] blur-[68px]"
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.2 }
+              : { x: [-24, 36, -24], y: [0, 12, 0], opacity: [0.14, 0.3, 0.14] }
+          }
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute -right-[38%] bottom-[-35%] h-[110%] w-[90%] rotate-[18deg] bg-[linear-gradient(90deg,transparent_0%,rgba(178,34,34,0.30)_45%,transparent_100%)] blur-[72px]"
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.18 }
+              : { x: [18, -26, 18], y: [0, -16, 0], opacity: [0.12, 0.26, 0.12] }
+          }
+          transition={{ duration: 21, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        <motion.div
+          className="absolute left-1/2 top-1/2 hidden h-[66vmax] w-[66vmax] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d6b85c]/15 md:block"
+          animate={prefersReducedMotion ? {} : { rotate: [0, 360] }}
+          transition={{ duration: 95, repeat: Infinity, ease: 'linear' }}
+        />
+
+        <div
+          className="absolute inset-0 opacity-[0.15] md:opacity-[0.2]"
+          style={{
+            backgroundImage:
+              'radial-gradient(rgba(255,255,255,0.18) 0.8px, transparent 0.8px)',
+            backgroundSize: '3px 3px',
+          }}
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.08)_0%,rgba(2,6,23,0.22)_45%,rgba(2,6,23,0.58)_100%)]" />
+        <div className="animate-scanline absolute inset-0 h-[2px] w-full bg-gradient-to-b from-transparent via-[#d6b85c]/10 to-transparent" />
       </div>
       {/* --- 01. NAVIGATION LAYER --- */}
       <nav
@@ -279,14 +400,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           href="#top"
           className="flex flex-col pr-4 transition-all duration-300 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:pr-0"
         >
-          <span
-            className={`text-xl font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
-          >
+          <span className="cyber-sway-text font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-2xl">
             CRYPTO
           </span>
-          <span
-            className={`-mt-1 text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
-          >
+          <span className="cyber-sway-text -mt-1 font-cyber text-xl font-black uppercase italic leading-tight tracking-tight text-white sm:text-2xl">
             SURVIVORS
           </span>
         </a>
@@ -424,11 +541,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onLaunch();
                   setIsMobileMenuOpen(false);
                 }}
-                className={`mt-auto min-h-[48px] w-full border border-[#d6b85c] bg-[#d6b85c] p-4 text-center font-black text-black transition-all duration-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 ${
-                  isRetro
-                    ? 'shadow-[4px_4px_0px_rgba(214,184,92,0.4)]'
-                    : 'shadow-[0_0_20px_rgba(214,184,92,0.3)]'
-                }`}
+                className="mt-auto min-h-[48px] w-full border border-[#d6b85c] bg-[#d6b85c] p-4 text-center font-black text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95"
               >
                 {t('landing.nav.execute')}
               </button>
@@ -450,9 +563,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {t('landing.hero.status')}
             </div>
 
-            <h1
-              className={`mb-6 text-3xl font-black italic leading-[0.95] tracking-tighter sm:mb-8 sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-            >
+            <h1 className="mb-6 font-cyber text-3xl font-black italic leading-[0.95] tracking-tighter sm:mb-8 sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl">
               <span className="mb-4 block font-mono text-xs not-italic tracking-[0.5em] text-[#d6b85c] sm:text-sm">
                 CRYPTO SURVIVORS
               </span>
@@ -480,9 +591,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 href="https://github.com/blntunlan/crypto-cyber-survivors"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex min-h-[48px] w-full items-center justify-center gap-3 border px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-300 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] sm:w-auto sm:px-8 sm:py-5
-                  ${isRetro ? 'border-white/20 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.1)] hover:bg-white/10' : 'border-[#b22222]/30 hover:bg-[#b22222]/10'}
-                `}
+                className="flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#b22222]/30 px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-300 transition-all duration-300 hover:bg-[#b22222]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] sm:w-auto sm:px-8 sm:py-5"
               >
                 <svg
                   className="h-5 w-5 flex-shrink-0"
@@ -591,12 +700,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <motion.div
                 key={index}
                 variants={fadeInUp}
-                className={`group relative border p-6 transition-all duration-500 hover:scale-105 sm:p-8
-                  ${
-                    isRetro
-                      ? 'border-white/20 bg-black/40 shadow-[4px_4px_0px_rgba(255,255,255,0.1)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.2)]'
-                      : 'border-[#b22222]/20 bg-black/60 hover:border-[#d6b85c]/40'
-                  }`}
+                className="group relative border border-[#b22222]/20 bg-black/60 p-6 transition-all duration-500 hover:scale-105 hover:border-[#d6b85c]/40 sm:p-8"
               >
                 <div className="absolute right-4 top-4 opacity-20 transition-opacity group-hover:opacity-40">
                   <stat.icon className="h-8 w-8" style={{ color: stat.color }} />
@@ -638,9 +742,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.manifesto.title')}
             </h2>
-            <div
-              className={`flex flex-col items-center justify-center gap-2 text-2xl font-black uppercase italic text-white sm:gap-4 sm:text-4xl md:flex-row md:text-5xl lg:text-6xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-            >
+            <div className="flex flex-col items-center justify-center gap-2 font-cyber text-2xl font-black uppercase italic text-white sm:gap-4 sm:text-4xl md:flex-row md:text-5xl lg:text-6xl">
               <span>{t('landing.manifesto.solo')}</span>
               <span className="hidden h-px w-8 bg-[#b22222] md:block" />
               <span className="text-[#b22222]">
@@ -687,20 +789,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 key={i}
                 variants={fadeInUp}
                 id={card.tag === 'BACKEND' ? 'pipeline' : undefined}
-                className={`group border p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-[#d6b85c] active:scale-[0.98] sm:p-6
-                  ${
-                    isRetro
-                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:border-[#d6b85c]/40 hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)]'
-                      : 'border-white/5 bg-white/5 hover:scale-[1.02] hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5'
-                  }
-                `}
+                className="group border border-white/5 bg-white/5 p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-[#d6b85c] hover:scale-[1.02] hover:border-[#d6b85c]/30 hover:bg-[#d6b85c]/5 active:scale-[0.98] sm:p-6"
               >
                 <div className="mb-3 font-mono text-[10px] font-black tracking-widest text-[#b22222] sm:mb-4">
                   {card.tag}
                 </div>
-                <h3
-                  className={`mb-3 text-lg font-bold italic tracking-wide text-white transition-all duration-300 group-hover:text-[#d6b85c] sm:mb-4 sm:text-xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-                >
+                <h3 className="mb-3 font-cyber text-lg font-bold italic tracking-wide text-white transition-all duration-300 group-hover:text-[#d6b85c] sm:mb-4 sm:text-xl">
                   {card.title}
                 </h3>
                 <p className="min-h-[48px] font-mono text-[11px] leading-relaxed text-slate-500 sm:text-xs">
@@ -723,9 +817,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               transition={{ duration: 0.6, ease: 'easeOut' }}
             >
               <Terminal className="mb-6 h-10 w-10 text-[#d6b85c] sm:mb-8 sm:h-12 sm:w-12" />
-              <h3
-                className={`mb-6 text-2xl font-black uppercase italic sm:mb-8 sm:text-3xl md:text-4xl lg:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-              >
+              <h3 className="mb-6 font-cyber text-2xl font-black uppercase italic sm:mb-8 sm:text-3xl md:text-4xl lg:text-5xl">
                 {t('landing.architecture.title')}
               </h3>
               <p className="mb-6 font-mono text-sm leading-relaxed text-slate-400 sm:mb-8">
@@ -846,9 +938,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.modes.title')}
             </h2>
-            <div
-              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-            >
+            <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
               {t('landing.modes.subtitle')}
             </div>
           </motion.div>
@@ -864,17 +954,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <motion.div
               variants={fadeInUp}
               whileHover={{ scale: 1.02 }}
-              className={`border-2 p-6 transition-all duration-300 sm:p-8 ${
-                isRetro
-                  ? 'border-[#d6b85c]/30 bg-[#d6b85c]/5 shadow-[6px_6px_0px_rgba(214,184,92,0.1)]'
-                  : 'border-[#d6b85c]/20 bg-gradient-to-br from-[#d6b85c]/10 to-transparent'
-              }`}
+              className="border-2 border-[#d6b85c]/20 bg-gradient-to-br from-[#d6b85c]/10 to-transparent p-6 transition-all duration-300 sm:p-8"
             >
               <div className="mb-6 flex items-center gap-3">
                 <Gamepad2 className="h-8 w-8 text-[#d6b85c]" />
-                <h3
-                  className={`text-xl font-black uppercase italic text-[#d6b85c] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-                >
+                <h3 className="font-cyber text-xl font-black uppercase italic text-[#d6b85c] sm:text-2xl">
                   {t('landing.modes.casual_title')}
                 </h3>
               </div>
@@ -898,20 +982,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <motion.div
               variants={fadeInUp}
               whileHover={{ scale: 1.02 }}
-              className={`relative overflow-hidden border-2 p-6 transition-all duration-300 sm:p-8 ${
-                isRetro
-                  ? 'border-[#b22222]/30 bg-[#b22222]/5 shadow-[6px_6px_0px_rgba(178,34,34,0.1)]'
-                  : 'border-[#b22222]/20 bg-gradient-to-br from-[#b22222]/10 to-transparent'
-              }`}
+              className="relative overflow-hidden border-2 border-[#b22222]/20 bg-gradient-to-br from-[#b22222]/10 to-transparent p-6 transition-all duration-300 sm:p-8"
             >
               <div className="absolute right-4 top-4 bg-[#b22222] px-2 py-1 text-[8px] font-black uppercase tracking-wider sm:text-[9px]">
                 {t('landing.modes.comp_pro_tag')}
               </div>
               <div className="mb-6 flex items-center gap-3">
                 <Trophy className="h-8 w-8 text-[#b22222]" />
-                <h3
-                  className={`text-xl font-black uppercase italic text-[#b22222] sm:text-2xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-                >
+                <h3 className="font-cyber text-xl font-black uppercase italic text-[#b22222] sm:text-2xl">
                   {t('landing.modes.comp_title')}
                 </h3>
               </div>
@@ -934,7 +1012,65 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* --- 06. ROADMAP --- */}
+      {/* --- 06. SOCIAL PROOF / TESTIMONIALS --- */}
+      <section className="relative z-10 border-t border-[#b22222]/10 bg-[#b22222]/[0.02] px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
+        <div className="mx-auto max-w-6xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={fadeInUp}
+            className="mb-12 text-center sm:mb-16"
+          >
+            <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
+              COMMUNITY
+            </h2>
+            <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
+              WHAT PLAYERS SAY
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            variants={staggerContainer}
+            className="grid gap-4 md:grid-cols-3 md:gap-6"
+          >
+            {playerTestimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                whileHover={{ y: -5 }}
+                className="group relative border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-[#d6b85c]/35 sm:p-8"
+              >
+                <Quote className="absolute right-4 top-4 h-8 w-8 text-[#d6b85c]/20" />
+                <div className="mb-4 flex gap-1">
+                  {Array.from({ length: testimonial.rating }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-[#d6b85c] text-[#d6b85c]" />
+                  ))}
+                </div>
+                <p className="mb-6 font-mono text-sm leading-relaxed text-slate-300">
+                  "{testimonial.quote}"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222]">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">
+                      {testimonial.author}
+                    </div>
+                    <div className="text-xs text-slate-500">{testimonial.role}</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* --- 07. ROADMAP --- */}
       <section className="relative z-10 border-t border-[#b22222]/10 bg-[#b22222]/[0.02] px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-6xl">
           <motion.div
@@ -947,9 +1083,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.roadmap.title')}
             </h2>
-            <div
-              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-            >
+            <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
               {t('landing.roadmap.subtitle')}
             </div>
           </motion.div>
@@ -968,9 +1102,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 whileHover={{ y: -5 }}
                 className={`relative border p-5 transition-all duration-300 sm:p-6 ${
                   phase.status === 'current'
-                    ? isRetro
-                      ? 'border-[#d6b85c] bg-[#d6b85c]/10 shadow-[4px_4px_0px_rgba(214,184,92,0.2)]'
-                      : 'border-[#d6b85c]/50 bg-[#d6b85c]/5 shadow-[0_0_20px_rgba(214,184,92,0.1)]'
+                    ? 'border-[#d6b85c]/50 bg-[#d6b85c]/5 shadow-[0_0_20px_rgba(214,184,92,0.1)]'
                     : phase.status === 'completed'
                       ? 'border-green-500/30 bg-green-500/5'
                       : 'border-white/10 bg-white/5'
@@ -999,7 +1131,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       : phase.status === 'completed'
                         ? 'text-green-400'
                         : 'text-white'
-                  } ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
+                  } font-cyber`}
                 >
                   {phase.title}
                 </h3>
@@ -1030,7 +1162,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* --- 07. TEAM / ABOUT --- */}
+      {/* --- 08. TEAM / ABOUT --- */}
       <section
         id="team"
         className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32"
@@ -1046,9 +1178,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               TEAM / ABOUT
             </h2>
-            <div
-              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-            >
+            <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
               PEOPLE BEHIND THE ENGINE
             </div>
             <p className="mx-auto mt-6 max-w-3xl font-mono text-sm leading-relaxed text-slate-400 sm:text-base">
@@ -1070,12 +1200,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 key={member.name}
                 variants={fadeInUp}
                 whileHover={{ y: -4 }}
-                className={`group relative border p-6 transition-all duration-300 sm:p-8
-                  ${
-                    isRetro
-                      ? 'border-white/10 bg-white/5 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:shadow-[6px_6px_0px_rgba(214,184,92,0.15)]'
-                      : 'border-white/10 bg-white/5 hover:border-[#d6b85c]/30'
-                  }`}
+                className="group relative border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-[#d6b85c]/30 sm:p-8"
               >
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222]">
@@ -1104,7 +1229,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* --- 07. FAQ ACCORDION --- */}
+      {/* --- 09. FAQ ACCORDION --- */}
       <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
         <div className="mx-auto max-w-3xl">
           <motion.div
@@ -1117,9 +1242,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
               {t('landing.faq.title')}
             </h2>
-            <div
-              className={`text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl ${isRetro ? 'font-retro-pixel' : 'font-cyber'}`}
-            >
+            <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
               {t('landing.faq.subtitle')}
             </div>
           </motion.div>
@@ -1137,9 +1260,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 variants={fadeInUp}
                 className={`border transition-all duration-300 ${
                   openFaqIndex === i
-                    ? isRetro
-                      ? 'border-[#d6b85c]/50 bg-[#d6b85c]/5 shadow-[4px_4px_0px_rgba(214,184,92,0.1)]'
-                      : 'border-[#d6b85c]/30 bg-[#d6b85c]/5'
+                    ? 'border-[#d6b85c]/30 bg-[#d6b85c]/5'
                     : 'border-white/10 bg-white/5 hover:border-white/20'
                 }`}
               >
@@ -1187,14 +1308,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Logo & Trademark */}
           <div>
             <div className="mb-4 flex flex-col sm:mb-6">
-              <span
-                className={`text-lg font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
-              >
+              <span className="cyber-sway-text font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-[#d6b85c] sm:text-xl">
                 CRYPTO
               </span>
-              <span
-                className={`-mt-1 text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl ${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'}`}
-              >
+              <span className="cyber-sway-text -mt-1 font-cyber text-lg font-black uppercase italic leading-tight tracking-tight text-white sm:text-xl">
                 SURVIVORS
               </span>
             </div>
@@ -1210,11 +1327,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   e.preventDefault();
                   alert('Discord link coming soon!');
                 }}
-                className={`border p-2 transition-all duration-300 hover:scale-110 ${
-                  isRetro
-                    ? 'border-[#5865F2]/30 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
-                    : 'border-white/10 hover:border-[#5865F2] hover:bg-[#5865F2]/10'
-                }`}
+                className="border border-white/10 p-2 transition-all duration-300 hover:scale-110 hover:border-[#5865F2] hover:bg-[#5865F2]/10"
                 aria-label={t('landing.footer.discord_soon')}
               >
                 <svg
@@ -1232,11 +1345,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   e.preventDefault();
                   alert('Twitter/X link coming soon!');
                 }}
-                className={`border p-2 transition-all duration-300 hover:scale-110 ${
-                  isRetro
-                    ? 'border-white/30 hover:border-white hover:bg-white/10'
-                    : 'border-white/10 hover:border-white hover:bg-white/10'
-                }`}
+                className="border border-white/10 p-2 transition-all duration-300 hover:scale-110 hover:border-white hover:bg-white/10"
                 aria-label={t('landing.footer.twitter_soon')}
               >
                 <svg
@@ -1300,7 +1409,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* --- 06. GLOBAL STYLE INJECTIONS --- */}
       <style>{`
         @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
-        .animate-scanline { animation: scanline 8s linear infinite; }
+        .animate-scanline { animation: scanline 9s linear infinite; opacity: 0.6; }
+        @media (max-width: 640px) {
+          .animate-scanline { animation-duration: 12s; opacity: 0.35; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-scanline { animation: none; opacity: 0; }
+        }
         .clip-path-poly { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
         .font-display { font-family: 'Orbitron', sans-serif; }
       `}</style>

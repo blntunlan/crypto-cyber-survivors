@@ -42,6 +42,7 @@ import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { portalSystem } from '../services/gameplay/PortalSystem';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
+import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 
@@ -169,6 +170,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Ref for market data to avoid loop restarts while keeping data fresh
   const marketDataRef = useRef(marketData);
   const hitStopGovernorRef = useRef(new HitStopGovernor());
+  const coreLoopRef = useRef(new CoreGameplayLoop());
   const lastWhaleTierRef = useRef<0 | 1 | 2 | 3>(0);
 
   useEffect(() => {
@@ -178,6 +180,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     if (status !== GameStatus.PLAYING) {
       hitStopGovernorRef.current.reset();
+      coreLoopRef.current.reset();
     }
   }, [status]);
 
@@ -331,6 +334,51 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return unsubscribe;
   }, []);
 
+  // Expose concise state snapshot for Playwright smoke validation.
+  useEffect(() => {
+    const gameWindow = window as Window & {
+      render_game_to_text?: () => string;
+    };
+
+    gameWindow.render_game_to_text = () => {
+      const currentPlayer = playerRef.current;
+      const currentState = state.current;
+      const currentPool = pool.current;
+
+      return JSON.stringify({
+        note: 'origin=(top-left), +x=right, +y=down',
+        status,
+        player: {
+          x: Number(currentPlayer.x.toFixed(1)),
+          y: Number(currentPlayer.y.toFixed(1)),
+          hp: Number(currentPlayer.hp.toFixed(1)),
+          level: currentPlayer.level,
+        },
+        pacing: {
+          spawnRateMultiplier: Number(currentState.spawnRateMultiplier.toFixed(3)),
+          atrPercent: Number(currentState.atrPercent.toFixed(4)),
+          isDashing: currentState.isDashing,
+          shake: Number(currentState.shake.toFixed(2)),
+        },
+        enemies: currentPool.activeEnemies.slice(0, 12).map(enemy => ({
+          x: Number(enemy.x.toFixed(1)),
+          y: Number(enemy.y.toFixed(1)),
+          hp: Number(enemy.health.toFixed(1)),
+          type: enemy.type,
+        })),
+        counts: {
+          enemies: currentPool.activeEnemies.length,
+          bullets: currentPool.activeBullets.length,
+          gems: currentPool.activeGems.length,
+        },
+      });
+    };
+
+    return () => {
+      delete gameWindow.render_game_to_text;
+    };
+  }, [playerRef, pool, state, status]);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -457,13 +505,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update difficulty waves in real-time
         DifficultyManager.updateWaveTimer(deltaTime);
         difficultyContext.updateTime(TimeService.getGameTimeSeconds());
+        const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
+        const hpPercent = (player.hp / maxHp) * 100;
+        const killStreak = ComboSystem.getKillStreak();
 
         // Update AI Director (Brain) with Player Power Specs
         AIDirector.setPlayerStats(
           player.baseDamage,
           player.fireRate,
           player.projectiles,
-          ComboSystem.getKillStreak(),
+          killStreak,
           // Calculate Dash Pressure (0 = Ready, >0 = Cooldown/Panic)
           s.dashCooldownTimer > 0 ? s.dashCooldownTimer / GAME_ENGINE.DASH_COOLDOWN : 0
         );
@@ -475,7 +526,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update Gatekeeper Orbit positions & Knockback
         const portal = portalSystem.getState();
         if (portal.isActive) {
-          p.activeEnemies.forEach(enemy => {
+          const enemies = p.activeEnemies;
+          for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i]!;
             if (enemy.type === 'gatekeeper' && enemy.orbitPoint) {
               const e = enemy;
               const orbitSpeed = 0.02 * dtFactor;
@@ -492,7 +545,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 player.y += ky * 5 * dtFactor;
               }
             }
-          });
+          }
 
           // Portal Collision Check (Extraction)
           const pDist = Math.hypot(player.x - portal.x, player.y - portal.y);
@@ -520,8 +573,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Update metrics system
         const wavePhase = 'active'; // AI Director V2: Wave phases removed
-        const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
-        const hpPercent = (player.hp / maxHp) * 100;
 
         // Optimized: Pass primitives directly to avoid object allocation per frame
         MetricsService.update(
@@ -727,6 +778,36 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const bottomMargin = device.isMobile ? player.radius + 40 : player.radius;
         player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
 
+        const movementMagnitude = Math.min(1, Math.hypot(dx, dy));
+        const coreLoopOutput = coreLoopRef.current.update({
+          deltaMs: deltaTime,
+          hpPercent,
+          enemyCount: p.activeEnemies.length,
+          killStreak,
+          movementMagnitude,
+          isDashing: s.isDashing,
+          // FlowStateManager event timestamps use Date.now(); keep the same time base.
+          nowMs: Date.now(),
+        });
+
+        if (!s.isDashing) {
+          const pulseLerp = Math.min(1, (0.08 + coreLoopOutput.pulse * 0.1) * dtFactor);
+          s.playerScaleX = lerp(
+            s.playerScaleX,
+            coreLoopOutput.playerScaleTargetX,
+            pulseLerp
+          );
+          s.playerScaleY = lerp(
+            s.playerScaleY,
+            coreLoopOutput.playerScaleTargetY,
+            pulseLerp
+          );
+        }
+
+        if (coreLoopOutput.shakeBoost > 0) {
+          s.shake = Math.max(s.shake, coreLoopOutput.shakeBoost);
+        }
+
         // Calculate target background based on PnL
         // On mobile, we increase the floor values to prevent the screen from being too dark at low brightness
         const minVal = device.isMobile ? 12 : 2;
@@ -773,7 +854,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // 0. Sync Market Metadata from marketDataRef
         state.current.atrPercent = marketDataRef.current.atrPercent ?? 0;
         state.current.spawnRateMultiplier =
-          marketDataRef.current.spawnRateMultiplier ?? 1;
+          (marketDataRef.current.spawnRateMultiplier ?? 1) *
+          coreLoopOutput.spawnMultiplier;
         state.current.marketPosition = position;
 
         // 1. Update Sub-systems (Physics, Spawning, etc.)
@@ -788,8 +870,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           maxEnemies,
           state.current.spawnRateMultiplier,
           pair,
-          marketDataRef.current.enemyDamage,
-          marketDataRef.current.enemySpeed,
+          (marketDataRef.current.enemyDamage ?? 1) *
+            coreLoopOutput.enemyDamageMultiplier,
+          (marketDataRef.current.enemySpeed ?? 1) * coreLoopOutput.enemySpeedMultiplier,
           {
             rsi: marketDataRef.current.rsi,
             rsiState: marketDataRef.current.rsiState,

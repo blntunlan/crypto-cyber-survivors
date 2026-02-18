@@ -18,7 +18,7 @@ async function launchFromLanding(page: import('@playwright/test').Page): Promise
     .first();
   await expect(launchButton).toBeVisible({ timeout: 15000 });
   await launchButton.click();
-  await expect(page.getByRole('button', { name: /PLAY|hub\.play/i })).toBeVisible({
+  await expect(page.getByRole('button', { name: /play/i }).first()).toBeVisible({
     timeout: 15000,
   });
 }
@@ -31,6 +31,7 @@ test.describe('Game Flow', () => {
     await context.clearCookies();
     await page.evaluate(() => {
       localStorage.clear();
+      sessionStorage.clear();
       localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
       // Ensure menu->game transition can initialize a valid session in E2E
@@ -48,7 +49,7 @@ test.describe('Game Flow', () => {
   });
 
   test('should display landing page on first visit', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await expect(
       page
         .getByRole('button', {
@@ -59,7 +60,7 @@ test.describe('Game Flow', () => {
   });
 
   test('should launch from landing and proceed to hub menu', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     await launchFromLanding(page);
     const hasSeenLanding = await page.evaluate(() =>
@@ -73,7 +74,7 @@ test.describe('Game Flow', () => {
     await launchFromLanding(page);
 
     // 2. Hub Menu -> Main Menu
-    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
+    const playHubBtn = page.getByRole('button', { name: /play/i }).first();
     await expect(playHubBtn).toBeVisible({ timeout: 10000 });
     await playHubBtn.click();
 
@@ -89,7 +90,7 @@ test.describe('Game Flow', () => {
 
   test('should display crypto pair selection on main menu', async ({ page }) => {
     // Skip landing via localStorage
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
@@ -105,7 +106,7 @@ test.describe('Game Flow', () => {
     await page.reload();
 
     // Hub -> Main
-    await page.getByRole('button', { name: /PLAY|hub\.play/i }).click();
+    await page.getByRole('button', { name: /play/i }).first().click();
 
     // Check for pair selection (BTC, ETH, SOL)
     await expect(page.getByRole('button', { name: /^BTC$/i }).first()).toBeVisible();

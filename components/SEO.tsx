@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface SEOProps {
   title?: string;
@@ -55,13 +55,25 @@ export const SEO: React.FC<SEOProps> = ({
       }
     : null;
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    let themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (!themeMeta) {
+      themeMeta = document.createElement('meta');
+      themeMeta.setAttribute('name', 'theme-color');
+      document.head.appendChild(themeMeta);
+    }
+    themeMeta.setAttribute('content', themeColor);
+  }, [themeColor]);
+
   return (
     <>
-      <html lang={lang} />
       <title>{fullTitle}</title>
       <meta name="description" content={description ?? defaultDescription} />
       <meta name="author" content="Crypto Survivors Team" />
-      <meta name="theme-color" content={themeColor} />
       <link rel="canonical" href={canonicalUrl} />
 
       {/* 2026 AI Discovery (GEO) Meta Tags */}

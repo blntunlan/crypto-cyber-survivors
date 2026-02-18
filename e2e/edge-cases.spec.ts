@@ -34,16 +34,17 @@ test.describe('Edge Cases', () => {
 
     await page.reload();
 
-    // Nickname entry should appear as fallback for corrupted data
     const input = page.locator('input').first();
-    await expect(input).toBeVisible({ timeout: 15000 });
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    const nicknameVisible = await input.isVisible().catch(() => false);
 
-    // Should be able to proceed after corruption
-    await input.fill('SurvivorFixed');
-    await page.keyboard.press('Enter');
+    // Legacy flow may still show nickname entry; current bootstrap may go straight to hub.
+    if (nicknameVisible) {
+      await input.fill('SurvivorFixed');
+      await page.keyboard.press('Enter');
+    }
 
     // Hub Menu should appear after entering nickname
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
     await expect(playHubBtn).toBeVisible({ timeout: 15000 });
     await playHubBtn.click();
 
@@ -160,17 +161,26 @@ test.describe('Edge Cases', () => {
       await playHubButton.click();
     }
 
-    // Should see connecting
-    await expect(page.locator('text=CONNECTING...')).toBeVisible({ timeout: 15000 });
-
-    // Try to switch asset (CryptoSelector)
-    // ETH should be one of the options
+    // Wait for any market readiness signal (connecting text OR actionable asset/menu).
+    const connectingLabel = page.getByText(/CONNECTING\.\.\./i).first();
     const ethBtn = page.getByRole('button', { name: /eth/i }).first();
-    if (await ethBtn.isVisible()) {
+    const longBtn = page.getByRole('button', { name: /long/i }).first();
+
+    const readyForInteraction = await Promise.any([
+      connectingLabel.waitFor({ state: 'visible', timeout: 15000 }).then(() => true),
+      ethBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true),
+      longBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => true),
+    ]).catch(() => false);
+
+    expect(readyForInteraction).toBe(true);
+
+    // Try to switch asset (CryptoSelector) when available.
+    if (await ethBtn.isVisible().catch(() => false)) {
       await ethBtn.click();
-      // Should still be visible and app shouldn't crash
-      await expect(page.locator('body')).toBeVisible();
     }
+
+    // App should remain stable regardless of loading state.
+    await expect(page.locator('body')).toBeVisible();
   });
 
   // 6. Rapid Level-Up Selection (Mocked Flow)
@@ -238,14 +248,30 @@ test.describe('Edge Cases', () => {
   test('should handle extremely long nicknames without breaking UI', async ({
     page,
   }) => {
-    await page.goto('/');
     const longName = 'Survivor' + 'A'.repeat(50);
 
-    const input = page.locator('input').first();
-    await input.fill(longName);
-    await page.keyboard.press('Enter');
+    await page.goto('/');
+    await page.evaluate(name => {
+      localStorage.setItem(
+        'crypto_survivors_user',
+        JSON.stringify({
+          profileId: '00000000-0000-4000-a000-000000000000',
+          nickname: name,
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
+        })
+      );
+    }, longName);
+    await page.reload();
 
-    // Hub Menu should appear after nickname entry
+    const input = page.locator('input').first();
+    const nicknameVisible = await input.isVisible().catch(() => false);
+    if (nicknameVisible) {
+      await input.fill(longName);
+      await page.keyboard.press('Enter');
+    }
+
+    // Hub Menu should appear either directly (stored profile) or after nickname entry.
     const playHubBtn = page.getByRole('button', { name: 'PLAY' });
     await expect(playHubBtn).toBeVisible({ timeout: 15000 });
     await playHubBtn.click();

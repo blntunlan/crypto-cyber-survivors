@@ -273,41 +273,47 @@ class EventBusClass {
   emit<K extends GameEvent>(event: K, data: EventDataMap[K]): void {
     this.totalEmitCount++;
 
-    // Optimization: Collect all listeners across all scopes for this event
-    const allListeners: EventCallback<GameEvent>[] = [];
+    // GC-FREE OPTIMIZATION: Iterate directly without allocating intermediate array.
+    // Note: Listeners added *during* this emit will essentially be 'live' and might run.
+
+    // Check if we need performance profiling (only in Dev or excessive lag debugging)
+    const shouldProfile =
+      this.tracingEnabled || (import.meta.env.DEV && this.totalEmitCount % 100 === 0);
+    const methodStart = shouldProfile ? performance.now() : 0;
+    let listenerCount = 0;
+
     this.listeners.forEach(scopeMap => {
-      const set = scopeMap.get(event);
-      if (set) set.forEach(cb => allListeners.push(cb));
-    });
-
-    if (allListeners.length === 0) {
-      if (this.tracingEnabled) {
-        this.logTrace(event, data, 0, 0);
-      }
-      return;
-    }
-
-    const startTime = performance.now();
-
-    allListeners.forEach(callback => {
-      const cbStart = performance.now();
-      try {
-        callback(data);
-      } catch (error) {
-        Logger.error(`[EventBus] Error in handler for ${event}:`, error);
-      }
-      const cbDuration = performance.now() - cbStart;
-
-      // Performance Guardrail
-      if (cbDuration > this.SLOW_LISTENER_THRESHOLD_MS) {
-        Logger.warn(
-          `[EventBus] Slow listener detected for '${event}': ${cbDuration.toFixed(2)}ms`
-        );
+      const callbacks = scopeMap.get(event);
+      if (callbacks && callbacks.size > 0) {
+        callbacks.forEach(callback => {
+          listenerCount++;
+          if (shouldProfile) {
+            const start = performance.now();
+            try {
+              callback(data);
+            } catch (error) {
+              Logger.error(`[EventBus] Error in handler for ${event}:`, error);
+            }
+            const duration = performance.now() - start;
+            if (duration > this.SLOW_LISTENER_THRESHOLD_MS) {
+              Logger.warn(
+                `[EventBus] Slow listener for '${event}': ${duration.toFixed(2)}ms`
+              );
+            }
+          } else {
+            // Fast path (Production)
+            try {
+              callback(data);
+            } catch (error) {
+              Logger.error(`[EventBus] Error in handler for ${event}:`, error);
+            }
+          }
+        });
       }
     });
 
     if (this.tracingEnabled) {
-      this.logTrace(event, data, allListeners.length, performance.now() - startTime);
+      this.logTrace(event, data, listenerCount, performance.now() - methodStart);
     }
   }
 

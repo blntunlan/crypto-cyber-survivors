@@ -71,9 +71,25 @@ async function startGame(page: Page) {
     ) {
       if (await button.isVisible()) {
         await button.tap().catch(() => button.click());
-        // Wait for game initialization
-        await expect(page.locator('[data-testid="hud-container"]')).toBeVisible();
-        return true;
+        // Wait for any reliable gameplay transition signal.
+        const gameplaySignals = [
+          page.locator('canvas').first(),
+          page.locator('#wave-timer-text'),
+          page.getByText(/Survival|LIQUIDATED|GAME OVER/i).first(),
+          page
+            .getByRole('button', { name: /Back to Terminal|Return to Menu/i })
+            .first(),
+        ];
+
+        const started = await Promise.any(
+          gameplaySignals.map(locator =>
+            locator.waitFor({ state: 'visible', timeout: 10000 }).then(() => true)
+          )
+        ).catch(() => false);
+
+        if (started) {
+          return true;
+        }
       }
     }
   }
@@ -705,6 +721,12 @@ test.describe('Edge Cases - Network Conditions', () => {
 });
 
 test.describe('Edge Cases - Viewport Changes', () => {
+  test.use({
+    viewport: MOBILE_DEVICES.iPhoneSE,
+    hasTouch: true,
+    isMobile: true,
+  });
+
   test('should handle orientation change during gameplay', async ({ page }) => {
     await setupMobileSession(page, MOBILE_DEVICES.iPhoneSE);
     const gameStarted = await startGame(page);

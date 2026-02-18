@@ -1,0 +1,25 @@
+{
+  "note": "origin=(top-left), +x=right, +y=down",
+  "status": "PLAYING",
+  "player": { "x": 788, "y": 360, "hp": 100, "level": 1 },
+  "pacing": {
+    "spawnRateMultiplier": 0.623,
+    "atrPercent": 0.0034,
+    "isDashing": false,
+    "shake": 0
+  },
+  "enemies": [
+    { "x": 334.5, "y": 412.5, "hp": 32.4, "type": "fud" },
+    { "x": 985.9, "y": 527.3, "hp": 32.4, "type": "fud" },
+    { "x": 1134.7, "y": 231.6, "hp": 43.2, "type": "liquidator" },
+    { "x": 1184.5, "y": 141.5, "hp": 47.8, "type": "liquidator" },
+    { "x": 858.3, "y": 611.5, "hp": 35.8, "type": "fud" },
+    { "x": 562.4, "y": 65.6, "hp": 35.8, "type": "fud" },
+    { "x": 368.2, "y": 683.7, "hp": 47.8, "type": "liquidator" },
+    { "x": 632.4, "y": 92.9, "hp": 47.8, "type": "liquidator" },
+    { "x": 574.3, "y": 648.6, "hp": 47.8, "type": "liquidator" },
+    { "x": 898.1, "y": 721.3, "hp": 35.8, "type": "fud" },
+    { "x": 704.5, "y": -84.7, "hp": 35.8, "type": "fud" }
+  ],
+  "counts": { "enemies": 11, "bullets": 2, "gems": 2 }
+}

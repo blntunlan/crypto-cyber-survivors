@@ -1,0 +1,10 @@
+[
+  {
+    "type": "console.error",
+    "text": "In HTML, %s cannot be a child of <%s>.%s\nThis will cause a hydration error.%s <html> div  \n\n  ...\n    <ErrorBoundary>\n      <LanguageProvider>\n        <ThemeProvider>\n          <GameProvider>\n            <App>\n              <UserProvider>\n                <LazyMotionProvider>\n                  <LazyMotion features={function loadFeatures}>\n>                   <div className=\"relative h-screen w-full font-mono bg-transparent overflow-y-auto\">\n                      <ErrorBoundary>\n                        <SEO title=\"landing.he...\" description=\"landing.he...\" canonicalPath=\"/\" lang=\"en\" ...>\n>                         <html lang=\"en\">\n                          ...\n                        ...\n"
+  },
+  {
+    "type": "console.error",
+    "text": "<%s> cannot contain a nested %s.\nSee this log for the ancestor stack trace. div <html>"
+  }
+]

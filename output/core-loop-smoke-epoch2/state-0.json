@@ -1,0 +1,13 @@
+{
+  "note": "origin=(top-left), +x=right, +y=down",
+  "status": "MENU",
+  "player": { "x": 640, "y": 360, "hp": 100, "level": 1 },
+  "pacing": {
+    "spawnRateMultiplier": 1,
+    "atrPercent": 0,
+    "isDashing": false,
+    "shake": 0
+  },
+  "enemies": [],
+  "counts": { "enemies": 0, "bullets": 0, "gems": 0 }
+}

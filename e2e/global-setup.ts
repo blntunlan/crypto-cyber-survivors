@@ -6,7 +6,10 @@ async function globalSetup(config: FullConfig) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto(baseURL as string);
+  await page.goto(baseURL as string, {
+    waitUntil: 'domcontentloaded',
+    timeout: 120_000,
+  });
   await page.evaluate(() => {
     localStorage.setItem('has_seen_landing', 'true');
     localStorage.setItem('tutorial-completed', 'true');

@@ -11,6 +11,7 @@ import {
   type TutorialStep,
 } from '../config/TutorialConfig';
 import { Logger } from '../services/system/Logger';
+import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 
 interface TutorialState {
   /** Whether user has completed the tutorial */
@@ -127,25 +128,28 @@ function saveTutorialState(state: Partial<TutorialState>): void {
  * }
  * ```
  */
-export function useTutorial(): UseTutorialReturn {
+export function useTutorial(options: { enabled?: boolean } = {}): UseTutorialReturn {
+  const { enabled = true } = options;
   const [state, setState] = useState<TutorialState>(loadTutorialState);
   const [isActive, setIsActive] = useState(false);
 
-  // Determine if we should show tutorial on first render
+  // Determine if we should show tutorial
   useEffect(() => {
+    // Only auto-start if enabled is true
+    if (!enabled) return;
+
     const shouldShow = !state.hasCompleted && !state.hasSkipped;
-    if (shouldShow) {
+    if (shouldShow && !isActive) {
       // Small delay to ensure app is ready
       const timer = setTimeout(() => {
         setIsActive(true);
         setState(prev => ({ ...prev, startedAt: Date.now() }));
-        Logger.info('[useTutorial] Tutorial started (first time)');
+        Logger.info('[useTutorial] Tutorial auto-activated');
       }, 500);
       return () => clearTimeout(timer);
     }
     return undefined;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount - intentionally ignoring state deps
+  }, [enabled, state.hasCompleted, state.hasSkipped, isActive]);
 
   const currentStep = useMemo(
     () => TUTORIAL_STEPS[state.currentStepIndex] ?? TUTORIAL_STEPS[0]!,
@@ -192,6 +196,12 @@ export function useTutorial(): UseTutorialReturn {
     saveTutorialState({ hasSkipped: true, currentStepIndex: 0 });
     setIsActive(false);
 
+    // FIX: Ensure user exists when skipping
+    if (!UserPersistenceService.getLegacyStoredUser()) {
+      Logger.info('[useTutorial] No user found - Creating Survivor profile...');
+      void UserPersistenceService.createOrUpdateUser('Survivor');
+    }
+
     Logger.info(`[useTutorial] Tutorial skipped at step: ${stepId}`);
   }, [currentStep.id]);
 
@@ -206,6 +216,12 @@ export function useTutorial(): UseTutorialReturn {
     }));
     saveTutorialState({ hasCompleted: true, currentStepIndex: 0 });
     setIsActive(false);
+
+    // FIX: Ensure user exists when completing
+    if (!UserPersistenceService.getLegacyStoredUser()) {
+      Logger.info('[useTutorial] No user found - Creating Survivor profile...');
+      void UserPersistenceService.createOrUpdateUser('Survivor');
+    }
 
     Logger.info(`[useTutorial] Tutorial completed in ${durationMs}ms`);
   }, [state.startedAt]);

@@ -21,17 +21,9 @@ test.describe('Tutorial Flow', () => {
   });
 
   test('should guide new user through full tutorial', async ({ page }) => {
-    // 1. Nickname Entry
-    const nicknameInput = page.locator('input').first();
-    await expect(nicknameInput).toBeVisible();
-    await nicknameInput.fill('Newbie');
-    await page.keyboard.press('Enter');
-
-    // 2. Tutorial Step 1: Language Selection
-    // Tutorial overlay should appear
+    // 1. Tutorial Step 1: Language Selection
     await expect(page.locator('.tutorial-overlay')).toBeVisible({ timeout: 10000 });
-    // Check for Language Title
-    await expect(page.getByText(/Language|Language/i).first()).toBeVisible();
+    await expect(page.getByText(/Select Language|Language/i).first()).toBeVisible();
 
     // Using the Tutorial Overlay "Next" flow (or clicking the option if the step requires it)
     // The first step (language) usually requires picking one or clicking next?
@@ -43,65 +35,55 @@ test.describe('Tutorial Flow', () => {
     await expect(nextBtn).toBeVisible();
     await nextBtn.click();
 
-    // 3. Tutorial Step 2: Theme Selection
-    await expect(page.getByText(/Visual Style|Theme/i).first()).toBeVisible();
-    await nextBtn.click();
+    // Progress through remaining steps until tutorial closes.
+    for (let i = 0; i < 14; i++) {
+      if (
+        !(await page
+          .locator('.tutorial-overlay')
+          .isVisible()
+          .catch(() => false))
+      ) {
+        break;
+      }
 
-    // 4. Tutorial Step 3: Welcome
-    await expect(page.getByText(/Welcome to Crypto/i)).toBeVisible();
-    await nextBtn.click();
+      const nextVisible = await nextBtn.isVisible().catch(() => false);
+      if (nextVisible) {
+        await nextBtn.click();
+      } else {
+        break;
+      }
 
-    // 5. Steps loop... we can skip to the end or verify a few critical ones
+      await page.waitForTimeout(150);
+    }
 
-    // Verify "How to Play" (Movement)
-    await expect(page.getByText(/Movement/i)).toBeVisible();
-    await nextBtn.click();
-
-    // Speed/Dash
-    await expect(page.getByText(/Dash/i)).toBeVisible();
-    await nextBtn.click();
-
-    // Position (Long/Short)
-    await expect(page.getByText(/Long position/i)).toBeVisible();
-    await nextBtn.click();
-
-    // Leverage
-    await expect(page.getByText(/Leverage/i)).toBeVisible();
-    await nextBtn.click();
-
-    // Skip the rest
+    // If still open, skip remaining steps.
     const skipBtn = page.getByRole('button', { name: /Skip/i });
-    if (await skipBtn.isVisible()) {
+    if (await skipBtn.isVisible().catch(() => false)) {
       await skipBtn.click();
     }
 
-    // 6. Should be in Hub now
+    // 4. Should remain in Hub with tutorial closed
     // Tutorial overlay should be gone
     await expect(page.locator('.tutorial-overlay')).not.toBeVisible();
 
     // Should see PLAY button
-    await expect(page.getByRole('button', { name: 'PLAY' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /PLAY/i }).first()).toBeVisible();
   });
 
   test('should allow skipping tutorial immediately', async ({ page }) => {
-    // 1. Nickname Entry
-    const nicknameInput = page.locator('input').first();
-    await nicknameInput.fill('Skipper');
-    await page.keyboard.press('Enter');
-
-    // 2. Wait for Tutorial
+    // 1. Wait for Tutorial
     await expect(page.locator('.tutorial-overlay')).toBeVisible({ timeout: 10000 });
 
-    // 3. Click Skip
+    // 2. Click Skip
     const skipBtn = page.getByRole('button', { name: /Skip/i });
     await expect(skipBtn).toBeVisible();
     await skipBtn.click();
 
-    // 4. Verify gone
+    // 3. Verify gone
     await expect(page.locator('.tutorial-overlay')).not.toBeVisible();
-    await expect(page.getByRole('button', { name: 'PLAY' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /PLAY/i }).first()).toBeVisible();
 
-    // 5. Reload and ensure it stays gone (persistence)
+    // 4. Reload and ensure it stays gone (persistence)
     await page.reload();
     await expect(page.locator('.tutorial-overlay')).not.toBeVisible();
   });

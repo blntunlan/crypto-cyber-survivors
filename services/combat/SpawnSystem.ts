@@ -95,9 +95,7 @@ export class SpawnSystem implements ISpawnSystem {
     // 0. Cleanup Expired Events (Optimized for performance)
     const now = Date.now();
     if (this.activeEvents.size > 0) {
-      const keys = Array.from(this.activeEvents.keys());
-      for (let i = 0; i < keys.length; i++) {
-        const type = keys[i]!;
+      for (const type of this.activeEvents.keys()) {
         const data = this.activeEvents.get(type);
         if (data && now > data.expiry) {
           this.activeEvents.delete(type);

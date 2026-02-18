@@ -118,6 +118,35 @@ Original prompt: gameplay ekranında screenshake levelup screen ve pause ekranı
   - desktop spacing/typography increased in header, tabs, and content regions,
   - tabs remain scrollable on mobile but become full-width grid on desktop.
 - Verification:
+
+2026-02-18
+- New request: production'da MainMenu LONG/SHORT tıklamasında oyunun başlamaması ve nickname akışının görünmez kalması düzeltildi.
+- Session/auth flow hardening:
+  - `services/auth/GameSessionService.ts`:
+    - Nickname yoksa artık `NICKNAME_REQUIRED` throw ediliyor (sessiz `null` yerine).
+    - `PROFILE_NOT_FOUND` ve `NICKNAME_REQUIRED` hataları catch içinde yutulmayıp üst katmana rethrow ediliyor.
+  - `services/core/GameStateManager.ts`:
+    - `initializeNewGame()` içinde `PROFILE_NOT_FOUND` yanında `NICKNAME_REQUIRED` da rethrow ediliyor.
+- App giriş ve menü UX düzeltmesi:
+  - `App.tsx`:
+    - `UserPersistenceService.initialize()` ile nickname varlığı bootstrap edildi (`hasNickname`, `isIdentityReady` state).
+    - Nickname yoksa MENU'de `NicknameEntryScreen` overlay gösterimi eklendi.
+    - `startGame()` guardları iyileştirildi:
+      - MENU değilse silent return (log),
+      - nickname yoksa info bildirimi + hub'a dönüş,
+      - fiyat yoksa info bildirimi ("Market Loading").
+    - `PROFILE_NOT_FOUND`/`NICKNAME_REQUIRED` yakalandığında reload yerine nickname onboarding'e yönlendirme (`setHasNickname(false)` + hub).
+    - start failure bildirimi production'da görünür olması için `info` tipine alındı.
+    - `NotificationSystem` artık menüde de render ediliyor (hata/info görünürlüğü).
+- Test güncellemeleri:
+  - `tests/services/auth/GameSessionService.test.ts`:
+    - "nickname yok" senaryosu `NICKNAME_REQUIRED` throw beklentisine güncellendi.
+  - `tests/services/GameStateManager.test.ts`:
+    - `PROFILE_NOT_FOUND` rethrow testi eklendi.
+    - `NICKNAME_REQUIRED` rethrow testi eklendi.
+- Verification:
+  - `npx vitest run tests/services/auth/GameSessionService.test.ts tests/services/GameStateManager.test.ts tests/App.test.tsx` -> 16/16 passed.
+  - `npx eslint App.tsx services/auth/GameSessionService.ts services/core/GameStateManager.ts tests/services/auth/GameSessionService.test.ts tests/services/GameStateManager.test.ts` -> clean.
   - `npx eslint components/hub/PlayerProfile.tsx`
   - `npx vitest run tests/components/hub/HubMenu.test.tsx`
   - Result: lint clean and tests passed (4/4).
@@ -416,3 +445,206 @@ Original prompt: gameplay ekranında screenshake levelup screen ve pause ekranı
 - Verification pass (post GameEngine/client-indicator decoupling):
   - `npm run build` succeeded.
   - Existing Vite warnings about externalized modules and mixed static/dynamic imports remain unchanged.
+2026-02-14
+- New request: understand and develop market-driven game system architecture before implementation.
+- Expanded `docs/oyun-dusunce-notlari.md` into a full implementation blueprint:
+  - single-source runtime pipeline,
+  - domain contracts (`RunConfig`, `MarketSnapshot`, `RuntimeDifficultySnapshot`),
+  - concrete rules/formulas for leverage, PnL, RSI, volume spikes, ATR, MACD, timeout,
+  - frame-phase core loop,
+  - integration points for existing code paths,
+  - phased implementation workflow with acceptance criteria,
+  - legacy director removal strategy,
+  - Supabase timeout analysis plan.
+- No code-path/runtime behavior changed in this step (documentation and execution plan only).
+
+2026-02-16
+- New request: make landing page audit-ready for startup application feedback.
+- Updated components/screens/LandingPage.tsx with seamless, on-brand corporate transparency additions:
+  - Added explicit Technology / How It Works narrative under architecture flow.
+  - Added three technical highlight cards: C-SYNC Protocol, Real-Time WebSocket Fabric, Neural AI Director.
+  - Added desktop/mobile nav anchor to new #team section.
+  - Replaced informal testimonial block with structured Team / About section (founder + core contributor responsibilities + audit note).
+- Preserved existing visual language (cyber typography, gold/red accents, panel style, motion rhythm).
+- Verification updates:
+  - 
+px eslint components/screens/LandingPage.tsx (pass).
+  - 
+px vitest run tests/components/screens/LandingPage.test.tsx tests/App.test.tsx (pass).
+  - Added 2e/startup-audit-landing.spec.ts and ran 
+px playwright test e2e/startup-audit-landing.spec.ts --project=chromium (pass).
+  - Generated visual artifacts: output/startup-audit-technology.png and output/startup-audit-team.png.
+- Follow-up polish:
+  - Updated nav Team label to avoid numbering conflict with Documentation.
+  - Hardened E2E visual check to capture section-level screenshots after scroll/animation settle.
+  - Final artifacts regenerated: output/startup-audit-technology.png, output/startup-audit-team.png.
+- New request: refine landing nav buttons to remove numeric prefixes and add an aesthetic bottom accent line inside button frames.
+- Implemented in components/screens/LandingPage.tsx:
+  - Added 
+avLabel() helper to strip NN. prefixes from translated labels at render time.
+  - Added reusable desktop nav button frame + accent line classes.
+  - Applied same strip/line treatment to mobile drawer nav buttons for consistency.
+- Verification:
+  - 
+px eslint components/screens/LandingPage.tsx (pass).
+  - 
+px vitest run tests/components/screens/LandingPage.test.tsx tests/App.test.tsx (pass).
+
+2026-02-16
+- New request: landing page arkaplanını daha modern hale getir, retro branch kaldır, mevcut casino-cyber tema korunacak.
+- Updated `components/screens/LandingPage.tsx`:
+  - Removed landing-level retro branching (`isRetro`) and standardized landing typography/styling to modern cyber classes.
+  - Reworked background architecture into layered modern stack:
+    - base radial gradients (gold/red/deep navy),
+    - animated glow orbs (Framer Motion),
+    - subtle animated grid/parallax layer,
+    - low-opacity noise pattern,
+    - soft readability overlay + scanline pulse.
+  - Removed external texture URL dependency; background now fully local/CSS-driven.
+  - Added `useReducedMotion()` handling and CSS media guards for reduced motion + lower mobile intensity.
+- Verification:
+  - `npx eslint components/screens/LandingPage.tsx` (pass after `--fix`).
+  - `npx vitest run tests/components/screens/LandingPage.test.tsx` (pass).
+  - `npx playwright test e2e/startup-audit-landing.spec.ts --project=webkit` (pass when isolated).
+  - `npx playwright test e2e/startup-audit-landing.spec.ts` (chromium/firefox/mobile-chrome pass; webkit showed intermittent nav assertion flake under parallel run).
+  - Visual artifacts refreshed: `output/startup-audit-nav.png`, `output/startup-audit-technology.png`, `output/startup-audit-team.png`.
+
+2026-02-16
+- Follow-up request: background difference still not obvious; check other files and reinforce implementation.
+- Additional updates:
+  - `components/screens/LandingPage.tsx`:
+    - Added stronger animated visual layers (diagonal light beams + subtle rotating ring + increased grid/noise visibility).
+    - Added `data-landing-active` attribute lifecycle on `<html>` during landing mount.
+  - `App.tsx`:
+    - Root shell now uses `bg-transparent` when `showLanding` is true to avoid static app shell background dominating landing visuals.
+- Verification:
+  - `npx eslint components/screens/LandingPage.tsx App.tsx` (pass).
+  - `npx vitest run tests/components/screens/LandingPage.test.tsx tests/App.test.tsx` (pass).
+  - `npx playwright test e2e/startup-audit-landing.spec.ts --project=chromium` (pass).
+  - Refreshed artifacts: `output/startup-audit-nav.png`, `output/startup-audit-technology.png`, `output/startup-audit-team.png`.
+
+2026-02-16
+- New request: hub ekranında `Whale Alert`, `Trend Breakout` gibi popup bildirimleri görünmeye devam ediyor.
+- Updated `App.tsx`:
+  - `NotificationSystem` artık sadece `gameStatus !== GameStatus.MENU` iken render ediliyor.
+  - Sonuç: Hub/Main menu akışında market mikro-event popup’ları görünmüyor.
+- Verification:
+  - `npx eslint App.tsx` (pass).
+  - `npx vitest run tests/App.test.tsx tests/components/hud/NotificationSystem.test.tsx` (pass).
+
+2026-02-16
+- New request: landing sayfasındaki oyuncu yorumları (testimonials) bölümü kaybolmuş.
+- Updated `components/screens/LandingPage.tsx`:
+  - Player testimonials section re-added as a dedicated block (`PLAYER SIGNALS / WHAT PLAYERS ARE SAYING`).
+  - Added three testimonial cards with player handle, lane, quote, and proof line.
+  - Kept `Team / About` section intact (both now co-exist).
+- Verification:
+  - `npx eslint components/screens/LandingPage.tsx` (pass).
+  - `npx vitest run tests/components/screens/LandingPage.test.tsx` (pass).
+
+2026-02-16
+- Follow-up request: testimonials section should appear "as before" on landing.
+- Updated `components/screens/LandingPage.tsx` testimonials block to match the previous recognizable style:
+  - heading restored to `COMMUNITY / WHAT PLAYERS SAY`,
+  - cards now use quote icon + star rating row,
+  - testimonial content switched to prior style (author + role + quoted text).
+- Verification:
+  - `npx eslint components/screens/LandingPage.tsx` (pass).
+  - `npx vitest run tests/components/screens/LandingPage.test.tsx` (pass).
+
+2026-02-16
+- New request: refresh (`F5`) while on landing still routes to hub.
+- Root cause:
+  - Hub -> Landing transition only toggled `showLanding` state.
+  - Persistent flag `has_seen_landing` remained `true`, so full reload re-opened hub.
+- Updated `App.tsx`:
+  - Added `handleReturnToLanding` callback.
+  - On explicit return to landing, it now:
+    - clears `localStorage.has_seen_landing`,
+    - resets legal/docs overlays,
+    - normalizes URL to `/`,
+    - shows landing.
+  - Wired `HubMenu` `onBack` to `handleReturnToLanding`.
+- Verification:
+  - `npx eslint App.tsx` (pass).
+  - `npx vitest run tests/App.test.tsx` (pass).
+  - 
+px playwright test e2e/startup-audit-landing.spec.ts --project=chromium (pass), nav screenshot: output/startup-audit-nav.png.
+- Desktop nav proportion pass (user feedback iteration):
+  - Centered nav link cluster via absolute middle alignment.
+  - Normalized link widths and typography for consistent visual weight.
+  - Separated desktop CTA as right-side block with balanced height/spacing.
+  - Kept per-button underline style and removed numeric prefixes from rendered labels.
+  - Verified with 
+px eslint components/screens/LandingPage.tsx and 
+px playwright test e2e/startup-audit-landing.spec.ts --project=chromium; updated screenshot output/startup-audit-nav.png.
+- Desktop nav typography refinement (requested):
+  - Increased nav button height/widths and label font sizes for better proportional balance.
+  - Aligned nav typography with page language: modern uses ont-cyber, retro uses ont-retro-pixel.
+  - Enlarged desktop CTA height/width and typographic weight to match updated nav scale.
+  - Verified with 
+px eslint components/screens/LandingPage.tsx and 
+px playwright test e2e/startup-audit-landing.spec.ts --project=chromium; refreshed output/startup-audit-nav.png.
+- New request: force landing page to English for now while preserving normal in-app localization elsewhere.
+- Implemented in components/screens/LandingPage.tsx:
+  - On mount, store current language and force setLanguage('en').
+  - On unmount, restore original language if it was not English.
+- Verification:
+  - 
+px eslint components/screens/LandingPage.tsx (pass).
+  - 
+px vitest run tests/components/screens/LandingPage.test.tsx tests/App.test.tsx (pass).
+2026-02-17
+- New request: implement a core gameplay loop that keeps players in flow state with rhythmic yoyo-style pacing (without adding unrelated new systems).
+- Added `services/gameplay/CoreGameplayLoop.ts`:
+  - build/release phase model with smooth yoyo swing,
+  - flow-aware tuning via `FlowStateManager` corrections,
+  - adaptive multipliers for spawn/speed/damage,
+  - lightweight pulse targets for player squash/stretch,
+  - phase-switch micro-shake feedback,
+  - deterministic frame input API (`update(...)`) and `reset()`.
+- Integrated in `components/GameEngine.tsx`:
+  - instantiated loop service and reset it when leaving `PLAYING`,
+  - wired loop outputs into runtime spawn/damage/speed multipliers,
+  - added pulse-driven player scale blending when not dashing,
+  - kept existing dash and combat systems intact,
+  - exposed `window.render_game_to_text` for Playwright smoke/state capture.
+- Updated `services/renderers/EffectRenderer.ts`:
+  - added `drawFlowPulse(...)` overlay using spawn-pressure deltas to visualize build/release rhythm.
+- Updated `services/difficulty/FlowStateManager.ts` event wiring:
+  - replaced stale `playerDamaged` listener with `playerHit`,
+  - added `critHit` tracking as dealt damage signal,
+  - reset on `gameStart` as well as `gameReset`.
+- Added targeted tests:
+  - `tests/services/gameplay/CoreGameplayLoop.test.ts` (build pressure, stressed release, reset behavior).
+
+Verification
+- `npx eslint components/GameEngine.tsx services/gameplay/CoreGameplayLoop.ts services/renderers/EffectRenderer.ts services/difficulty/FlowStateManager.ts tests/services/gameplay/CoreGameplayLoop.test.ts`
+- `npx vitest run tests/services/gameplay/CoreGameplayLoop.test.ts tests/services/difficulty/FlowStateManager.test.ts tests/components/GameEngine.test.tsx tests/GameRenderer.test.ts`
+- Develop-web-game smoke (`web_game_playwright_client.js`, headed mode due local headless ANGLE issue):
+  - artifacts: `output/core-loop-smoke/shot-0.png`, `output/core-loop-smoke/state-0.json`, `output/core-loop-smoke/errors-0.json`
+  - `state-0.json` confirms in-game snapshot with loop-influenced `spawnRateMultiplier` and active enemy state.
+
+Known pre-existing runtime issues observed during smoke
+- React nesting warning from `SEO` rendering nested `<html>` in app tree.
+- `start-session` 401 / invalid JWT when running local smoke without real auth token.
+- React warning: setState during render (`App`).
+
+TODO / Next suggestions
+- If desired, fix SEO nesting warning to unblock cleaner smoke runs (`errors-0.json` currently always populated).
+- Add a small HUD debug readout (phase + flowState + spawn multiplier) behind DEV flag for tuning.
+- Optional: expose deterministic `window.advanceTime(ms)` hook from game loop for stricter automation parity.
+- Follow-up tuning:
+  - Updated `CoreGameplayLoop` player pulse targets to be phase-specific (build = stretch forward, release = rebound) for a clearer yoyo feel.
+- Re-verified:
+  - `npx vitest run tests/services/gameplay/CoreGameplayLoop.test.ts tests/components/GameEngine.test.tsx` (pass).
+- Core loop/flow time-base fix:
+  - `components/GameEngine.tsx` core loop update now passes `Date.now()` to `nowMs` instead of RAF timestamp.
+  - Reason: `FlowStateManager` event timestamps are epoch-based (`Date.now()`), so mixing with RAF time caused stale ring-buffer cleanup and incorrect flow timing.
+- Re-verified after fix:
+  - `npx eslint components/GameEngine.tsx services/gameplay/CoreGameplayLoop.ts services/difficulty/FlowStateManager.ts services/renderers/EffectRenderer.ts tests/services/gameplay/CoreGameplayLoop.test.ts` (pass)
+  - `npx vitest run tests/services/gameplay/CoreGameplayLoop.test.ts tests/services/difficulty/FlowStateManager.test.ts tests/components/GameEngine.test.tsx tests/GameRenderer.test.ts` (pass: 48/48)
+- Develop-web-game smoke rerun:
+  - First run (`output/core-loop-smoke-epoch/`) confirmed landing-state capture + known SEO nesting console errors.
+  - Second run (`output/core-loop-smoke-epoch2/`) used click-burst flow and produced screenshot + state + errors.
+  - `state-0.json` currently shows `status: "MENU"` (run did not fully reach active PLAYING loop before market interruption/error), but `render_game_to_text` hook is wired and returning JSON.

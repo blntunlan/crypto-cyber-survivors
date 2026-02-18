@@ -43,8 +43,7 @@ describe('NicknameEntryScreen', () => {
     expect(
       screen.getByText(/common.nickname_screen.title_identify/i)
     ).toBeInTheDocument();
-    // Use getAllByText for 'Survivor' or target the specific header one
-    expect(screen.getByText(/Beta Access Protocol/i)).toBeInTheDocument();
+    expect(screen.getByText(/Choose Your Callsign/i)).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText('common.nickname_screen.placeholder')
     ).toBeInTheDocument();

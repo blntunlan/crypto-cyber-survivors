@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Accessibility (A11y) Checks', () => {
-  test('should not have accessibility violations on Nickname Entry screen', async ({
+  test('should not have accessibility violations on entry surface', async ({
     context,
     page,
   }) => {
@@ -15,9 +15,13 @@ test.describe('Accessibility (A11y) Checks', () => {
     });
     await page.goto('/?no-sw=true');
 
-    // Scan Nickname Screen
-    // The nickname screen is the first thing shown
-    await expect(page.locator('input').first()).toBeVisible();
+    // Depending on bootstrap path, first surface can be Nickname or Hub.
+    const nicknameInput = page.locator('input').first();
+    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    const nicknameVisible = await nicknameInput.isVisible().catch(() => false);
+    if (!nicknameVisible) {
+      await expect(playHubBtn).toBeVisible({ timeout: 10000 });
+    }
 
     const accessibilityScanResults = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

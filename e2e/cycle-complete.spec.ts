@@ -2,12 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Cycle Complete Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear localStorage to start fresh
-    await page.goto('/');
-    await page.evaluate(() => localStorage.clear());
-
-    // Set user to skip nickname entry
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
+      localStorage.clear();
+      localStorage.setItem('disable_sw', 'true');
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
       localStorage.setItem(
@@ -21,7 +18,7 @@ test.describe('Cycle Complete Flow', () => {
       );
     });
 
-    await page.reload();
+    await page.goto('/?no-sw=true');
   });
 
   test('should verify Cycle Complete flow via debug button', async ({
@@ -40,16 +37,14 @@ test.describe('Cycle Complete Flow', () => {
     await expect(playHubBtn).toBeVisible({ timeout: 10000 });
     await playHubBtn.click();
 
-    // 1. Wait for App to Load (Price visible - Main Menu)
-    try {
-      await expect(page.locator('text=$')).toBeVisible({ timeout: 15000 });
-      console.error('STEP 1: App Loaded / Price Visible');
-    } catch (e) {
-      console.error('STEP 1 FAILED. Dumping content:');
-      const content = await page.content();
-      console.error(content.substring(0, 2000));
-      throw e;
-    }
+    // 1. Wait for Main Menu to load (network-independent signal).
+    await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByRole('button', { name: /LONG/i }).first()).toBeVisible({
+      timeout: 15000,
+    });
+    console.error('STEP 1: Main Menu Ready');
 
     // Explicit wait for stability
     await page.waitForTimeout(2000);

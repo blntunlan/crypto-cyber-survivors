@@ -323,13 +323,16 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Legacy V1 Support: Wave cycles removed
+   * @deprecated Legacy V1 Support: Wave cycles removed. Use DirectorAdapter instead.
    */
   getCycleNumber(): number {
     const totalSeconds = TimeService.getGameTimeSeconds();
     return Math.floor(totalSeconds / 300) + 1;
   }
 
+  /**
+   * @deprecated Legacy V1 Support.
+   */
   getCycleProgress(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
     const cycleElapsed = totalElapsed % 300; // Legacy 300s cycle
@@ -337,7 +340,7 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Legacy V1 Support: Wave cycles removed
+   * @deprecated Legacy V1 Support: Wave cycles removed
    */
   getTimeRemainingInCycle(): number {
     const totalElapsed = TimeService.getGameTimeSeconds();
