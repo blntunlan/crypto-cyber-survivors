@@ -34,6 +34,7 @@ import { GameStateMachine } from './services/core/GameStateMachine';
 import { ImagePreloader } from './services/system/ImagePreloader';
 import { Logger } from './services/system/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
+import { UserPersistenceService } from './services/auth/UserPersistenceService';
 import { ExperienceService } from './services/gameplay/ExperienceService';
 import { TimeService } from './services/core/TimeService';
 import { loadGameMasterBrain } from './services/difficulty/BrainLoader';
@@ -73,7 +74,7 @@ import { GameEngine } from './components/GameEngine';
 import { GameUI } from './components/GameUI';
 import { SettingsPanel } from './components/settings/SettingsPanel';
 import { MainMenu } from './components/screens/MainMenu';
-import { HubMenu } from './components/hub';
+import { HubMenu, type HubScreen } from './components/hub';
 import { LevelUpScreen } from './components/screens/LevelUpScreen';
 import { CycleCompleteScreen } from './components/screens/CycleCompleteScreen';
 import { MarketDisconnectedScreen } from './components/screens/MarketDisconnectedScreen';
@@ -84,6 +85,7 @@ import { NotificationSystem } from './components/hud';
 import { LandingPage } from './components/screens/LandingPage';
 import { DocScreen } from './components/screens/DocScreen';
 import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
+import { NicknameEntryScreen } from './components/screens/NicknameEntryScreen';
 
 // Lazy load heavy admin/debug components
 const LeaderboardPanel = React.lazy(() =>
@@ -129,6 +131,79 @@ const FallbackLoader = () => {
 };
 
 const UIFallback = () => null;
+
+const HUB_SCREEN_STORAGE_KEY = 'ui_hub_screen';
+const ACTIVE_SURFACE_STORAGE_KEY = 'ui_active_surface';
+const LEGAL_PATHS = new Set(['/privacy', '/terms', '/docs']);
+const HUB_SCREENS: readonly HubScreen[] = [
+  'hub',
+  'play',
+  'stash',
+  'loot',
+  'skins',
+  'ranks',
+  'gear',
+];
+
+const isHubScreen = (value: string | null): value is HubScreen => {
+  return value !== null && HUB_SCREENS.includes(value as HubScreen);
+};
+
+const readPersistedHubScreen = (): HubScreen => {
+  try {
+    const storedScreen = window.sessionStorage.getItem(HUB_SCREEN_STORAGE_KEY);
+    return isHubScreen(storedScreen) ? storedScreen : 'hub';
+  } catch {
+    // Ignore storage failures (e.g. private mode restrictions).
+    return 'hub';
+  }
+};
+
+const persistHubScreen = (screen: HubScreen): void => {
+  try {
+    window.sessionStorage.setItem(HUB_SCREEN_STORAGE_KEY, screen);
+  } catch {
+    // Ignore storage failures (e.g. private mode restrictions).
+  }
+};
+
+const persistActiveSurface = (surface: 'landing' | 'app'): void => {
+  try {
+    window.sessionStorage.setItem(ACTIVE_SURFACE_STORAGE_KEY, surface);
+  } catch {
+    // Ignore storage failures (e.g. private mode restrictions).
+  }
+};
+
+const readInitialLandingVisibility = (): boolean => {
+  const searchParams = new URLSearchParams(window.location.search);
+
+  // Deep links to legal/docs routes should open their own page, not landing.
+  if (LEGAL_PATHS.has(window.location.pathname) || window.location.hash === '#docs') {
+    return false;
+  }
+
+  // Dev/QA override: force landing with ?landing=1
+  if (searchParams.get('landing') === '1') {
+    return true;
+  }
+
+  // If user has already completed landing, always skip it by default.
+  // Explicit query params (e.g. ?landing=1) still override this.
+  if (localStorage.getItem('has_seen_landing') === 'true') {
+    return false;
+  }
+
+  try {
+    if (window.sessionStorage.getItem(ACTIVE_SURFACE_STORAGE_KEY) === 'landing') {
+      return true;
+    }
+  } catch {
+    // Ignore storage failures (e.g. private mode restrictions).
+  }
+
+  return true;
+};
 
 // Preload card images AFTER initial render (non-blocking)
 setTimeout(() => {
@@ -211,9 +286,7 @@ const App: React.FC = () => {
   const [leverage, setLeverage] = useState<LeverageOption>(10);
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
   const [cycleData, setCycleData] = useState<CycleCompleteData | null>(null);
-  const [hubScreen, setHubScreen] = useState<
-    'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear'
-  >('hub');
+  const [hubScreen, setHubScreen] = useState<HubScreen>(() => readPersistedHubScreen());
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const isGameOverProcessing = useRef(false);
   const marketRuntimeConfig = useMemo(() => getMarketRuntimeConfig(), []);
@@ -224,20 +297,17 @@ const App: React.FC = () => {
   const { isInitialized } = useAppInitialization();
   const { showAnalytics: _showAnalytics, showAdminDashboard: _showAdminDashboard } =
     useDevShortcuts();
-  const tutorial = useTutorial();
+  const [showLanding, setShowLanding] = useState(() => readInitialLandingVisibility());
+  const tutorial = useTutorial({ enabled: !showLanding });
   const { t, language } = useLanguage();
   const { isRetro } = useTheme();
 
   // Landing & Legal State
-  const [showLanding, setShowLanding] = useState(() => {
-    // If user has seen landing, skip landing
-    if (localStorage.getItem('has_seen_landing') === 'true') return false;
-    // Otherwise show landing first
-    return true;
-  });
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
+  const [isIdentityReady, setIsIdentityReady] = useState(false);
+  const [hasNickname, setHasNickname] = useState(false);
 
   // Handle Hash and Path Navigation for Docs and Legal
   useEffect(() => {
@@ -270,10 +340,59 @@ const App: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const initIdentity = async () => {
+      try {
+        const user = await UserPersistenceService.initialize();
+        if (!cancelled) {
+          setHasNickname(Boolean(user?.nickname));
+        }
+      } catch {
+        if (!cancelled) {
+          setHasNickname(Boolean(UserSessionService.getNickname()));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsIdentityReady(true);
+        }
+      }
+    };
+
+    void initIdentity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleLaunchGame = useCallback(() => {
+    persistActiveSurface('app');
     setShowLanding(false);
     localStorage.setItem('has_seen_landing', 'true');
   }, []);
+
+  const handleReturnToLanding = useCallback(() => {
+    // User explicitly requested landing; keep it sticky across refresh.
+    localStorage.removeItem('has_seen_landing');
+    persistActiveSurface('landing');
+    setShowLanding(true);
+    setShowDocs(false);
+    setShowPrivacy(false);
+    setShowTerms(false);
+    if (window.location.pathname !== '/' || window.location.hash) {
+      window.history.pushState(null, '', '/');
+    }
+  }, []);
+
+  useEffect(() => {
+    persistHubScreen(hubScreen);
+  }, [hubScreen]);
+
+  useEffect(() => {
+    persistActiveSurface(showLanding ? 'landing' : 'app');
+  }, [showLanding]);
 
   useEffect(() => {
     if (gameStatus === GameStatus.MENU && isInitialized) {
@@ -354,8 +473,27 @@ const App: React.FC = () => {
 
   const startGame = useCallback(
     async (choice: MarketPosition, selectedLeverage: LeverageOption) => {
-      if (marketData.price === 0 || gameStatus !== GameStatus.MENU) {
-        Logger.error(`[App] startGame aborted: condition check failed.`);
+      if (gameStatus !== GameStatus.MENU) {
+        Logger.error(`[App] startGame aborted: game is not in MENU state.`);
+        return;
+      }
+
+      if (!hasNickname) {
+        EventBus.emit('gameNotification', {
+          title: 'Nickname Required',
+          message: 'Please set your nickname before starting a run.',
+          type: 'info',
+        });
+        setHubScreen('hub');
+        return;
+      }
+
+      if (marketData.price === 0) {
+        EventBus.emit('gameNotification', {
+          title: 'Market Loading',
+          message: 'Live market price is still connecting. Please wait a moment.',
+          type: 'info',
+        });
         return;
       }
 
@@ -373,15 +511,19 @@ const App: React.FC = () => {
           selectedPair
         );
       } catch (error) {
-        // Profile not found in production - redirect to nickname screen
-        if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND') {
+        // Identity/session bootstrap errors route user back to nickname onboarding.
+        if (
+          error instanceof Error &&
+          (error.message === 'PROFILE_NOT_FOUND' ||
+            error.message === 'NICKNAME_REQUIRED')
+        ) {
           EventBus.emit('gameNotification', {
-            title: 'Session Expired',
-            message: 'Please enter your nickname again.',
-            type: 'warning',
+            title: 'Identity Required',
+            message: 'Please set your nickname to continue.',
+            type: 'info',
           });
-          // Force re-render to show nickname screen (user cleared in GameSessionService)
-          window.location.reload();
+          setHasNickname(false);
+          setHubScreen('hub');
           return;
         }
         success = false;
@@ -391,7 +533,7 @@ const App: React.FC = () => {
         EventBus.emit('gameNotification', {
           title: 'Connection Error',
           message: 'Failed to start game session.',
-          type: 'error',
+          type: 'info',
         });
         return;
       }
@@ -421,6 +563,7 @@ const App: React.FC = () => {
     [
       marketData.price,
       gameStatus,
+      hasNickname,
       resetPlayer,
       setPositionColor,
       selectedPair,
@@ -648,6 +791,15 @@ const App: React.FC = () => {
 
   useBeforeUnload(gameStatus);
 
+  const shouldShowNicknameEntry =
+    isIdentityReady &&
+    !hasNickname &&
+    !showLanding &&
+    !showDocs &&
+    !showPrivacy &&
+    !showTerms &&
+    gameStatus === GameStatus.MENU;
+
   // ========================================
   // Render Logic
   // ========================================
@@ -676,7 +828,8 @@ const App: React.FC = () => {
       <LazyMotionProvider>
         <div
           className={cn(
-            'relative h-screen w-full bg-slate-950 font-mono',
+            'relative h-screen w-full font-mono',
+            showLanding ? 'bg-transparent' : 'bg-slate-950',
             gameStatus === GameStatus.PLAYING && !showLanding
               ? 'overflow-hidden'
               : 'overflow-y-auto'
@@ -777,21 +930,30 @@ const App: React.FC = () => {
             ) : (
               <>
                 <NotificationSystem />
+                {shouldShowNicknameEntry && (
+                  <NicknameEntryScreen
+                    onComplete={() => {
+                      setHasNickname(true);
+                    }}
+                  />
+                )}
 
                 <React.Suspense fallback={<FallbackLoader />}>
-                  {tutorial.showTutorial && gameStatus === GameStatus.MENU && (
-                    <TutorialOverlay
-                      step={tutorial.currentStep}
-                      stepIndex={tutorial.currentStepIndex}
-                      totalSteps={tutorial.totalSteps}
-                      isFirstStep={tutorial.isFirstStep}
-                      isLastStep={tutorial.isLastStep}
-                      onNext={tutorial.nextStep}
-                      onPrev={tutorial.prevStep}
-                      onSkip={tutorial.skipTutorial}
-                      onComplete={tutorial.completeTutorial}
-                    />
-                  )}
+                  {tutorial.showTutorial &&
+                    gameStatus === GameStatus.MENU &&
+                    hubScreen === 'hub' && (
+                      <TutorialOverlay
+                        step={tutorial.currentStep}
+                        stepIndex={tutorial.currentStepIndex}
+                        totalSteps={tutorial.totalSteps}
+                        isFirstStep={tutorial.isFirstStep}
+                        isLastStep={tutorial.isLastStep}
+                        onNext={tutorial.nextStep}
+                        onPrev={tutorial.prevStep}
+                        onSkip={tutorial.skipTutorial}
+                        onComplete={tutorial.completeTutorial}
+                      />
+                    )}
 
                   <React.Suspense fallback={<FallbackLoader />}>
                     <GameEngine
@@ -859,7 +1021,7 @@ const App: React.FC = () => {
                           else if (screen === 'hub') setHubScreen('hub');
                           else setHubScreen(screen);
                         }}
-                        onBack={() => setShowLanding(true)}
+                        onBack={handleReturnToLanding}
                       />
                     </React.Suspense>
                   )}

@@ -73,17 +73,13 @@ describe('GameSessionService', () => {
       expect(GameSessionService.getCurrentSessionSecret()).toBe('secret-xyz');
     });
 
-    it('should return null and log error if no nickname found', async () => {
+    it('should throw NICKNAME_REQUIRED if no nickname found', async () => {
       // @ts-expect-error: testing
       UserSessionService.getNickname.mockReturnValue(null);
 
-      const result = await GameSessionService.startSession(
-        'BTC',
-        10,
-        MarketPosition.LONG
-      );
-
-      expect(result).toBeNull();
+      await expect(
+        GameSessionService.startSession('BTC', 10, MarketPosition.LONG)
+      ).rejects.toThrow('NICKNAME_REQUIRED');
       expect(GameSessionService.getCurrentSessionId()).toBeNull();
     });
 

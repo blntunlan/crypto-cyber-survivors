@@ -54,7 +54,7 @@ export class GameSessionService {
     const nickname = UserSessionService.getNickname();
     if (!nickname) {
       Logger.error('[GameSession] Cannot start session: No nickname found');
-      return null;
+      throw new Error('NICKNAME_REQUIRED');
     }
 
     this.isStarting = true;
@@ -133,6 +133,13 @@ export class GameSessionService {
       return data as ServerSessionResponse;
     } catch (error) {
       Logger.error('[GameSession] Failed to start server session', error);
+
+      if (
+        error instanceof Error &&
+        (error.message === 'PROFILE_NOT_FOUND' || error.message === 'NICKNAME_REQUIRED')
+      ) {
+        throw error;
+      }
 
       // Fallback for local development or connection issues
       if (import.meta.env.DEV) {

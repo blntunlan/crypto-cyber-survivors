@@ -204,8 +204,11 @@ class GameStateManagerClass {
 
       return true;
     } catch (error) {
-      // Re-throw PROFILE_NOT_FOUND so App.tsx can handle redirect
-      if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND') {
+      // Re-throw identity/session bootstrap errors so App.tsx can handle UI routing.
+      if (
+        error instanceof Error &&
+        (error.message === 'PROFILE_NOT_FOUND' || error.message === 'NICKNAME_REQUIRED')
+      ) {
         throw error;
       }
       Logger.error('[GameStateManager] Error initializing game', error);

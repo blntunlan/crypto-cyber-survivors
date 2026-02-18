@@ -9,6 +9,7 @@ import { EventBus } from '../../services/core/EventBus';
 import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { ComboSystem } from '../../services/combat/ComboSystem';
 import { MetricsService } from '../../services/core/MetricsService';
+import { GameSessionService } from '../../services/auth/GameSessionService';
 import { MarketPosition } from '../../types';
 
 // Mock dependencies
@@ -125,6 +126,26 @@ describe('GameStateManager', () => {
         ...startParams,
         sessionId: 'mock-session-id',
       });
+    });
+
+    it('should rethrow PROFILE_NOT_FOUND from session bootstrap', async () => {
+      vi.mocked(GameSessionService.startSession).mockRejectedValueOnce(
+        new Error('PROFILE_NOT_FOUND')
+      );
+
+      await expect(
+        GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10, 'BTC')
+      ).rejects.toThrow('PROFILE_NOT_FOUND');
+    });
+
+    it('should rethrow NICKNAME_REQUIRED from session bootstrap', async () => {
+      vi.mocked(GameSessionService.startSession).mockRejectedValueOnce(
+        new Error('NICKNAME_REQUIRED')
+      );
+
+      await expect(
+        GameStateManager.initializeNewGame(MarketPosition.LONG, 50000, 10, 'BTC')
+      ).rejects.toThrow('NICKNAME_REQUIRED');
     });
   });
 
