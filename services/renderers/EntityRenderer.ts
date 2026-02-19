@@ -1,6 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player, type Enemy } from '../../types';
+import { type GameState, type Player, type Enemy, type Gem } from '../../types';
 import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
@@ -26,6 +26,8 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private gemBatch: Map<string, Gem[]> = new Map();
+  private complexGems: Gem[] = [];
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -129,6 +131,12 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
+    // 1. Clear batches for reuse (GC optimization)
+    for (const batch of this.gemBatch.values()) {
+      batch.length = 0;
+    }
+    this.complexGems.length = 0;
+
     pool.activeGems.forEach(g => {
       if (!g.active) {
         return;
@@ -146,10 +154,62 @@ export class EntityRenderer implements IRenderer {
       // Start fading when 30% of lifetime remains
       const fadeStartThreshold = 0.3;
       let alpha = 1.0;
+      let isFading = false;
+
+      if (remainingRatio < fadeStartThreshold) {
+        isFading = true;
+        alpha = remainingRatio / fadeStartThreshold;
+      }
+
+      // OPTIMIZATION: Batch standard opaque gems by color to reduce draw calls
+      // Complex gems (Rare/Fading) are drawn individually to preserve effects
+      if (!g.isRare && !isFading && alpha >= 0.99) {
+        let batch = this.gemBatch.get(g.color);
+        if (!batch) {
+          batch = [];
+          this.gemBatch.set(g.color, batch);
+        }
+        batch.push(g);
+      } else {
+        this.complexGems.push(g);
+      }
+    });
+
+    // 2. Render Batched Gems (Bottom Layer)
+    for (const [color, batch] of this.gemBatch) {
+      if (batch.length === 0) continue;
+
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+
+      const len = batch.length;
+      for (let i = 0; i < len; i++) {
+        const g = batch[i];
+        // Must moveTo to avoid connecting lines between circles
+        ctx.moveTo(Math.round(g.x) + g.radius, Math.round(g.y));
+        ctx.arc(Math.round(g.x), Math.round(g.y), g.radius, 0, Math.PI * 2);
+      }
+
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 3. Render Complex Gems (Top Layer - Rare/Fading)
+    // Drawn last to ensure visibility over batched gems
+    const complexLen = this.complexGems.length;
+    for (let i = 0; i < complexLen; i++) {
+      const g = this.complexGems[i];
+
+      // Re-calculate alpha for correct visual state
+      const elapsed = g.elapsedLifetime ?? 0;
+      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
+      const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+      const fadeStartThreshold = 0.3;
+      let alpha = 1.0;
 
       if (remainingRatio < fadeStartThreshold) {
         alpha = remainingRatio / fadeStartThreshold;
-        // Add a "blinking" effect when very close to expiry
         if (remainingRatio < 0.1) {
           alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
         }
@@ -169,7 +229,7 @@ export class EntityRenderer implements IRenderer {
       ctx.fill();
 
       ctx.restore();
-    });
+    }
   }
 
   /**

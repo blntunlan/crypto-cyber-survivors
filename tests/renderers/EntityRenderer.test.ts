@@ -62,6 +62,7 @@ describe('EntityRenderer', () => {
       translate: vi.fn(),
       rotate: vi.fn(),
       scale: vi.fn(),
+      moveTo: vi.fn(),
       beginPath: vi.fn(),
       arc: vi.fn(),
       ellipse: vi.fn(),
