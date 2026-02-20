@@ -13,8 +13,8 @@
 [![E2E](https://img.shields.io/badge/E2E-72%20passing-blue?logo=playwright)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-## :FileText: Özet (Summary)
-Crypto Survivors, gerçek zamanlı Bitcoin fiyat verilerini oyun mekaniğiyle birleştiren, yüksek adrenalinli bir hayatta kalma oyunudur. Ayı piyasasında hayatta kal, boğalardan kaç ve piyasa volatilitesini kendi lehine kullan.
+## 📖 Project Overview
+Crypto Survivors is a high-adrenaline survival game that fuses real-time Bitcoin price data with fast-paced roguelite mechanics. Survive the bear market, dodge the bulls, and use market volatility to your advantage in this genre-bending experience.
 
 [🎯 Features](#-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#️-architecture) • [🤝 Contributing](CONTRIBUTING.md) • [📦 Project Structure](#-project-structure) • [🎮 How to Play](#-how-to-play)
 
