@@ -18,9 +18,13 @@ describe('Supabase Client Configuration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // Ensure credentials are set so that createClient is actually called
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
   });
 
   it('should initialize with correct PWA persistence settings', async () => {
+    // Import module fresh after setting env vars
     const { supabase: _supabase } = await import('../../../services/supabase/client');
     const { createClient } = await import('@supabase/supabase-js');
 

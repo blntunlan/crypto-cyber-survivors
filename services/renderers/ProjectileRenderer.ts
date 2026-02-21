@@ -18,6 +18,9 @@ import { gradientCache } from '../../utils/GradientCache';
 
 export class ProjectileRenderer implements IRenderer {
   private static instance: ProjectileRenderer | null = null;
+  private batchSuperCrits: Bullet[] = [];
+  private batchCrits: Bullet[] = [];
+  private batchNormals: Bullet[] = [];
 
   public static getInstance(): ProjectileRenderer {
     return (ProjectileRenderer.instance ??= new ProjectileRenderer());
@@ -52,13 +55,13 @@ export class ProjectileRenderer implements IRenderer {
     if (isRetro) {
       // Group by tier for batching fillStyle in retro mode
 
-      // Group by tier for batching fillStyle in retro mode
       const bullets = pool.activeBullets;
       const count = bullets.length;
 
-      const superCrits: Bullet[] = [];
-      const crits: Bullet[] = [];
-      const normals: Bullet[] = [];
+      // Reset batch arrays without allocation
+      this.batchSuperCrits.length = 0;
+      this.batchCrits.length = 0;
+      this.batchNormals.length = 0;
 
       for (let i = 0; i < count; i++) {
         const b = bullets[i]!;
@@ -72,17 +75,17 @@ export class ProjectileRenderer implements IRenderer {
         ) {
           continue;
         }
-        if (b.isSuperCrit) superCrits.push(b);
-        else if (b.isCrit) crits.push(b);
-        else normals.push(b);
+        if (b.isSuperCrit) this.batchSuperCrits.push(b);
+        else if (b.isCrit) this.batchCrits.push(b);
+        else this.batchNormals.push(b);
       }
 
       // Render Normal
-      const normalsLen = normals.length;
+      const normalsLen = this.batchNormals.length;
       if (normalsLen > 0) {
         ctx.fillStyle = normalCoreColor; // Simplified for retro: use tier color or fallback
         for (let i = 0; i < normalsLen; i++) {
-          const b = normals[i]!;
+          const b = this.batchNormals[i]!;
           ctx.fillStyle = b.color; // Some bullets might have unique colors
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
@@ -96,11 +99,11 @@ export class ProjectileRenderer implements IRenderer {
       }
 
       // Render Crits (usually same color)
-      const critsLen = crits.length;
+      const critsLen = this.batchCrits.length;
       if (critsLen > 0) {
         ctx.fillStyle = critColor;
         for (let i = 0; i < critsLen; i++) {
-          const b = crits[i]!;
+          const b = this.batchCrits[i]!;
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
             Math.round(b.y - b.radius / 2),
@@ -111,11 +114,11 @@ export class ProjectileRenderer implements IRenderer {
       }
 
       // Render Super Crits
-      const superCritsLen = superCrits.length;
+      const superCritsLen = this.batchSuperCrits.length;
       if (superCritsLen > 0) {
         ctx.fillStyle = superCritColor;
         for (let i = 0; i < superCritsLen; i++) {
-          const b = superCrits[i]!;
+          const b = this.batchSuperCrits[i]!;
           ctx.fillRect(
             Math.round(b.x - b.radius / 2),
             Math.round(b.y - b.radius / 2),
