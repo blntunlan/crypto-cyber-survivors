@@ -10,7 +10,10 @@ describe('Supabase Infrastructure', () => {
     if (status) {
       expect(supabase).not.toBeNull();
     } else {
-      expect(supabase).toBeNull();
+      // Supabase export is a proxy object, so it's never strictly null
+      // But its internal client should be null
+      expect(status).toBe(false);
+      expect(supabase.auth).toBeUndefined();
     }
   });
 
