@@ -21,6 +21,11 @@ describe('Supabase Client Configuration', () => {
   });
 
   it('should initialize with correct PWA persistence settings', async () => {
+    // Force env vars for this test to ensure client initializes
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-key');
+
+    // Re-import after stubbing env
     const { supabase: _supabase } = await import('../../../services/supabase/client');
     const { createClient } = await import('@supabase/supabase-js');
 

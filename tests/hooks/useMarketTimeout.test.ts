@@ -8,9 +8,11 @@ import { GameStatus } from '../../types';
 vi.mock('../../services/core/EventBus');
 vi.mock('../../services/core/GameStateMachine');
 vi.mock('../../services/system/Logger');
-vi.mock('../../services/analytics/ErrorReporter', () => ({
-  ErrorReporter: {
-    report: vi.fn(),
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: vi.fn(() => ({
+      captureError: vi.fn(),
+    })),
   },
 }));
 
