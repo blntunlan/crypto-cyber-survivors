@@ -41,24 +41,17 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   }
 
   /**
-   * Get the numeric key for a position.
-   * Uses bitwise operations to pack cellX and cellY into a single 32-bit integer.
-   * This avoids string allocation and GC pressure in the hot loop.
-   */
-  private getNumericKey(x: number, y: number): number {
-    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
-    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
-    return (cellX << 16) | cellY;
-  }
-
-  /**
    * Insert an entity into the grid.
    * Uses pooled arrays to avoid frame-level allocations.
    */
   public insert(entity: T): void {
     if (!entity.active) return;
 
-    const key = this.getNumericKey(entity.x, entity.y);
+    // Inline getNumericKey logic to avoid function call overhead in hot loop
+    const cellX = Math.floor(entity.x / this.cellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(entity.y / this.cellSize) + CELL_COORD_OFFSET;
+    const key = (cellX << 16) | cellY;
+
     let cell = this.grid.get(key);
 
     if (!cell) {
@@ -108,9 +101,54 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
    * Zero-allocation iterator for nearby entities.
    * Directly invokes callback for each entity in the 3x3 grid.
    * Significantly reduces GC pressure compared to getNearby().
+   * Optimized with loop unrolling for standard 3x3 queries.
    */
   public forEachNearby(x: number, y: number, callback: (entity: T) => void): void {
-    this.forEachInRange(x, y, 1, callback);
+    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
+
+    // Unrolled 3x3 Loop for maximum performance
+    // Manual inlining avoids function call overhead which dominates this hot loop.
+    let key, cell, len;
+
+    // Row -1
+    key = ((cellX - 1) << 16) | (cellY - 1);
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    key = (cellX << 16) | (cellY - 1);
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    key = ((cellX + 1) << 16) | (cellY - 1);
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    // Row 0
+    key = ((cellX - 1) << 16) | cellY;
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    key = (cellX << 16) | cellY;
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    key = ((cellX + 1) << 16) | cellY;
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    // Row +1
+    key = ((cellX - 1) << 16) | (cellY + 1);
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    key = (cellX << 16) | (cellY + 1);
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
+
+    key = ((cellX + 1) << 16) | (cellY + 1);
+    cell = this.grid.get(key);
+    if (cell) { len = cell.length; for (let i = 0; i < len; i++) callback(cell[i]!); }
   }
 
   /**

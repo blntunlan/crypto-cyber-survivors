@@ -8,9 +8,10 @@ describe('Supabase Infrastructure', () => {
     // We just check consistency
     const status = isSupabaseConfigured();
     if (status) {
-      expect(supabase).not.toBeNull();
+      expect(supabase.auth).toBeDefined();
     } else {
-      expect(supabase).toBeNull();
+      // The exported proxy object is never null, but its properties should be undefined
+      expect(supabase.auth).toBeUndefined();
     }
   });
 
