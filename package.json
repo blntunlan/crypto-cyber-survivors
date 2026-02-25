@@ -97,6 +97,11 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "overrides": {
+    "serve": {
+      "boxen": "^8.0.0"
+    }
+  },
   "lint-staged": {
     "!(public|coverage|dist|node_modules|playwright-report|test-results|remotion-video|.agent|.agents)/**/*.{ts,tsx}": [
       "eslint --fix --no-warn-ignored",
