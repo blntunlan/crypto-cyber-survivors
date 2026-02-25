@@ -1,0 +1,3 @@
+## 2024-05-23 - [Optimization Anti-Pattern: Inlining Generic Functions]
+**Learning:** In V8, manually inlining a loop from a generic function (like `forEachInRange`) into a caller (like `forEachNearby`) can actually *degrade* performance if the caller is also generic. The degradation was observed to be ~50% in benchmarks.
+**Action:** Prefer centralized loop logic in `forEachInRange` and optimize that method directly (e.g., hoisting invariants), rather than duplicating logic. V8 optimizes frequently called methods well, and excessive inlining can lead to deoptimization or larger code size issues.
