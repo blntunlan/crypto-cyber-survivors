@@ -102,6 +102,13 @@ export class UserSessionService {
       Logger.warn('[UserSession] Local environment detected, using local-only mode');
       const mockProfileId = '00000000-0000-4000-a000-000000000000';
       this.saveUser(mockProfileId, nickname);
+
+      // Clear any existing Supabase session to prevent 401 errors from stale tokens on local
+      const { supabase } = await import('../core/Supabase');
+      if (supabase) {
+        void supabase.auth.signOut().catch(() => {});
+      }
+
       return { success: true };
     }
 

@@ -1,26 +1,21 @@
 declare module 'synaptic' {
-  export interface Network {
-    toJSON(): unknown;
+  export class Network {
     activate(inputs: number[]): number[];
-    propagate(rate: number, target: number[]): void;
-    // Add other methods if needed
-  }
-
-  export interface StaticNetwork {
-    fromJSON(json: unknown): Network;
+    propagate(learningRate: number, target: number[]): void;
+    toJSON(): unknown;
+    static fromJSON(json: unknown): Network;
   }
 
   export const Architect: {
-    Perceptron: new (input: number, hidden: number, output: number) => Network;
-    // Add other architectures if needed
+    Perceptron: new (...layers: number[]) => Network;
+    LSTM: new (...layers: number[]) => Network;
+    Hopfield: new (size: number) => Network;
   };
 
-  export const Network: StaticNetwork;
+  export class Layer {
+    constructor(size: number);
+  }
 
-  const synaptic: {
-    Architect: typeof Architect;
-    Network: StaticNetwork;
-  };
-
-  export default synaptic;
+  // Support for legacy code that might use 'NetworkLib' as an alias
+  export const NetworkLib: typeof Network;
 }

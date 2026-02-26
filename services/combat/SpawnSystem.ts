@@ -352,6 +352,8 @@ export class SpawnSystem implements ISpawnSystem {
 
   public reset(): void {
     this.spawnTimer = 0;
+    this.whaleCooldownTimer = 0;
+    this.activeEvents.clear();
     this.pendingGatekeeperSpawn = null;
     this.previousRSIState = 'NEUTRAL';
   }

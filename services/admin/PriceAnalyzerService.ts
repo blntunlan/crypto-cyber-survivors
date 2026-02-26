@@ -101,7 +101,7 @@ export class PriceAnalyzerService {
 
       const { data, error } = await supabase
         .from('price_logs')
-        .select('pair, price, timestamp, source')
+        .select('pair, price, timestamp')
         .gte('timestamp', oneHourAgo)
         .order('timestamp', { ascending: true });
 
@@ -113,21 +113,25 @@ export class PriceAnalyzerService {
         return;
       }
 
-      if (data.length === 0) {
+      const rows = data as unknown as
+        | { pair: string; price: number; timestamp: string | null }[]
+        | null;
+
+      if (!rows || rows.length === 0) {
         Logger.info('[PriceAnalyzer] No historical data found in Supabase');
         return;
       }
 
       // Process and add to history
-      for (const row of data) {
+      for (const row of rows) {
         const pair = row.pair as CryptoPair;
         if (!['BTC', 'ETH', 'SOL'].includes(pair)) continue;
 
         const snapshot: PriceSnapshot = {
           pair,
           price: row.price,
-          timestamp: new Date(row.timestamp).getTime(),
-          source: row.source ?? 'binance',
+          timestamp: row.timestamp ? new Date(row.timestamp).getTime() : Date.now(),
+          source: 'binance', // Column 'source' missing in price_logs table
         };
 
         const pairHistory = this.history.get(pair) ?? [];

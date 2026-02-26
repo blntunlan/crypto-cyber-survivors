@@ -5,7 +5,7 @@
  * This is a developer/admin-only component.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   Users,
   Activity,
@@ -55,64 +55,103 @@ interface DeviceStats {
   avg_survival_seconds: number;
 }
 
+interface DashboardState {
+  summary: DashboardSummary | null;
+  sessions: SessionStats[];
+  errors: TopError[];
+  devices: DeviceStats[];
+  loading: boolean;
+  lastUpdate: Date | null;
+}
+
+const StatCard = React.memo(
+  ({
+    icon: Icon,
+    label,
+    value,
+    subValue,
+    color = 'cyan',
+  }: {
+    icon: React.ElementType;
+    label: string;
+    value: string | number;
+    subValue?: string;
+    color?: string;
+  }) => (
+    <div
+      className={`border- rounded-lg border${color}-500/30 bg-slate-800/50 p-4 transition-all duration-300`}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`text-${color}-400`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
+          <p className={`text- text-2xl font-bold${color}-300`}>{value}</p>
+          {subValue && <p className="text-xs text-slate-500">{subValue}</p>}
+        </div>
+      </div>
+    </div>
+  )
+);
+StatCard.displayName = 'StatCard';
+
 export const AnalyticsDashboard: React.FC = () => {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [sessions, setSessions] = useState<SessionStats[]>([]);
-  const [errors, setErrors] = useState<TopError[]>([]);
-  const [devices, setDevices] = useState<DeviceStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [state, dispatch] = React.useReducer(
+    (prev: DashboardState, next: Partial<DashboardState>) => ({ ...prev, ...next }),
+    {
+      summary: null,
+      sessions: [],
+      errors: [],
+      devices: [],
+      loading: true,
+      lastUpdate: null,
+    }
+  );
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    dispatch({ loading: true });
     try {
       const { supabase, isSupabaseConfigured } =
         await import('../../services/core/Supabase');
 
       if (!isSupabaseConfigured() || !supabase) {
         Logger.warn('[AnalyticsDashboard] Supabase not configured');
-        setLoading(false);
+        dispatch({ loading: false });
         return;
       }
 
-      // Fetch dashboard summary
-      const { data: summaryData } = await supabase.rpc('get_dashboard_summary');
-      if (summaryData?.[0]) {
-        setSummary(summaryData[0] as DashboardSummary);
-      }
+      const updates: Partial<DashboardState> = {};
 
-      // Fetch session stats
-      const { data: sessionData } = await supabase
-        .from('v_analytics_sessions')
-        .select('*')
-        .limit(7);
-      if (sessionData) {
-        setSessions(sessionData as SessionStats[]);
-      }
+      // Use Promise.all() for independent operations to eliminate waterfalls
+      const [
+        { data: summaryData },
+        { data: sessionData },
+        { data: errorData },
+        { data: deviceData },
+      ] = await Promise.all([
+        supabase.rpc('get_dashboard_summary'),
+        supabase.from('v_analytics_sessions').select('*').limit(7),
+        supabase.from('v_analytics_top_errors').select('*').limit(10),
+        supabase.from('v_analytics_performance_by_device').select('*').limit(10),
+      ]);
 
-      // Fetch top errors
-      const { data: errorData } = await supabase
-        .from('v_analytics_top_errors')
-        .select('*')
-        .limit(10);
-      if (errorData) {
-        setErrors(errorData as TopError[]);
+      if (summaryData) {
+        updates.summary = Array.isArray(summaryData)
+          ? summaryData[0]
+          : (summaryData as DashboardSummary);
       }
+      if (sessionData) updates.sessions = sessionData;
+      if (errorData) updates.errors = errorData;
+      if (deviceData) updates.devices = deviceData;
 
-      // Fetch device stats
-      const { data: deviceData } = await supabase
-        .from('v_analytics_performance_by_device')
-        .select('*')
-        .limit(10);
-      if (deviceData) {
-        setDevices(deviceData as DeviceStats[]);
-      }
-
-      setLastUpdate(new Date());
+      updates.lastUpdate = new Date();
+      updates.loading = false;
+      dispatch(updates);
     } catch (error) {
       Logger.error('[AnalyticsDashboard] Failed to fetch data', error);
+      dispatch({ loading: false });
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -130,28 +169,7 @@ export const AnalyticsDashboard: React.FC = () => {
     return `${mins}m ${secs}s`;
   };
 
-  const StatCard: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    value: string | number;
-    subValue?: string;
-    color?: string;
-  }> = React.memo(({ icon, label, value, subValue, color = 'cyan' }) => (
-    <div
-      className={`border- border bg-slate-800/50${color}-500/30 rounded-lg p-4 transition-all duration-300`}
-    >
-      <div className="flex items-center gap-3">
-        <div className={`text-${color}-400`}>{icon}</div>
-        <div>
-          <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
-          <p className={`text- text-2xl font-bold${color}-300`}>{value}</p>
-          {subValue && <p className="text-xs text-slate-500">{subValue}</p>}
-        </div>
-      </div>
-    </div>
-  ));
-
-  if (loading && !summary) {
+  if (state.loading && !state.summary) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
         <div className="flex animate-pulse items-center gap-2 text-cyan-400">
@@ -171,49 +189,49 @@ export const AnalyticsDashboard: React.FC = () => {
             <BarChart3 className="h-6 w-6" />
             Analytics Dashboard
           </h1>
-          {lastUpdate && (
+          {state.lastUpdate && (
             <p className="text-xs text-slate-500">
-              Last updated: {lastUpdate.toLocaleTimeString()}
+              Last updated: {state.lastUpdate.toLocaleTimeString()}
             </p>
           )}
         </div>
         <button
           onClick={() => void fetchData()}
-          disabled={loading}
+          disabled={state.loading}
           className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-600/20 px-4 py-2 text-cyan-400 transition-colors hover:bg-cyan-600/30 disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${state.loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
       {/* Summary Cards */}
-      {summary && (
+      {state.summary && (
         <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard
-            icon={<Users className="h-5 w-5" />}
+            icon={Users}
             label="Total Players"
-            value={summary.total_players}
-            subValue={`${summary.active_players_24h} active today`}
+            value={state.summary.total_players}
+            subValue={`${state.summary.active_players_24h} active today`}
           />
           <StatCard
-            icon={<Activity className="h-5 w-5" />}
+            icon={Activity}
             label="Sessions Today"
-            value={summary.sessions_today}
-            subValue={`${summary.total_sessions} total`}
+            value={state.summary.sessions_today}
+            subValue={`${state.summary.total_sessions} total`}
             color="green"
           />
           <StatCard
-            icon={<Clock className="h-5 w-5" />}
+            icon={Clock}
             label="Avg Session"
-            value={formatTime(summary.avg_session_time_seconds || 0)}
+            value={formatTime(state.summary.avg_session_time_seconds || 0)}
             color="yellow"
           />
           <StatCard
-            icon={<AlertTriangle className="h-5 w-5" />}
+            icon={AlertTriangle}
             label="Errors (24h)"
-            value={summary.total_errors_24h}
-            subValue={`${summary.error_rate}% error rate`}
+            value={state.summary.total_errors_24h}
+            subValue={`${state.summary.error_rate}% error rate`}
             color="red"
           />
         </div>
@@ -228,8 +246,8 @@ export const AnalyticsDashboard: React.FC = () => {
             Session Trends (Last 7 Days)
           </h3>
           <div className="space-y-2">
-            {sessions.map((day, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
+            {state.sessions.map(day => (
+              <div key={day.date} className="flex items-center justify-between text-sm">
                 <span className="text-slate-400">{day.date}</span>
                 <div className="flex items-center gap-4">
                   <span className="text-green-400">{day.total_sessions} sessions</span>
@@ -242,7 +260,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 </div>
               </div>
             ))}
-            {sessions.length === 0 && (
+            {state.sessions.length === 0 && (
               <p className="py-4 text-center text-slate-500">No session data yet</p>
             )}
           </div>
@@ -255,8 +273,11 @@ export const AnalyticsDashboard: React.FC = () => {
             Performance by Device
           </h3>
           <div className="space-y-2">
-            {devices.map((device, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
+            {state.devices.map(device => (
+              <div
+                key={`${device.device_type}-${device.optimization_profile}`}
+                className="flex items-center justify-between text-sm"
+              >
                 <div className="flex items-center gap-2">
                   {device.device_type === 'mobile' ? (
                     <Smartphone className="h-4 w-4 text-slate-500" />
@@ -280,7 +301,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 </div>
               </div>
             ))}
-            {devices.length === 0 && (
+            {state.devices.length === 0 && (
               <p className="py-4 text-center text-slate-500">No device data yet</p>
             )}
           </div>
@@ -305,8 +326,11 @@ export const AnalyticsDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {errors.map((error, i) => (
-                <tr key={i} className="border-b border-slate-800">
+              {state.errors.map(error => (
+                <tr
+                  key={`${error.error_type}-${error.last_seen}`}
+                  className="border-b border-slate-800"
+                >
                   <td className="py-2 text-yellow-400">{error.error_type}</td>
                   <td
                     className="max-w-xs truncate py-2 text-slate-300"
@@ -321,7 +345,7 @@ export const AnalyticsDashboard: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {errors.length === 0 && (
+              {state.errors.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-4 text-center text-slate-500">
                     No errors in the last 24 hours 🎉

@@ -1,0 +1,55 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [31mÔØ»[39m tests/audioService.test.ts [2m([22m[2m30 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 19[2mms[22m[39m
+       [32mÔ£ô[39m should start unmuted[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should toggle mute state[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return new mute state from toggleMute[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should start with volume at 1.0[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should set volume within valid range[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should clamp volume to minimum 0[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should clamp volume to maximum 1[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should accept boundary values[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should maintain mute state across multiple toggles[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should maintain volume after mute/unmute cycle[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should have mocked AudioContext globally[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should initialize AudioContext on first play[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should play shoot sound[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should handle multi-projectile shoot sound[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should play crit sound[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should play hit sound[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should play gem sound[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should play level up sound[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should play dash sound[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should play combo sound[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should play death sound[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should respect cooldowns[39m[32m 3[2mms[22m[39m
+         [32mÔ£ô[39m should play all combo milestone sounds[32m 3[2mms[22m[39m
+         [32mÔ£ô[39m should play slot tick[32m 0[2mms[22m[39m
+         [32mÔ£ô[39m should play anticipation sound[32m 0[2mms[22m[39m
+         [32mÔ£ô[39m should respect slot tick cooldown[32m 1[2mms[22m[39m
+         [32mÔ£ô[39m should load sound via Howler[32m 0[2mms[22m[39m
+         [32mÔ£ô[39m should play loaded sound[32m 0[2mms[22m[39m
+         [32mÔ£ô[39m should stop loaded sound[32m 0[2mms[22m[39m
+         [32mÔ£ô[39m should unload all sounds[32m 0[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/audioService.test.ts > AudioService > synthesized sounds > should respect cooldowns
+AssertionError: expected "vi.fn()" to be called 3 times, but got 4 times
+ ÔØ» tests/audioService.test.ts:197:36
+    195|       vi.advanceTimersByTime(100);
+    196|       audioService.playShoot();
+    197|       expect(ctx.createOscillator).toHaveBeenCalledTimes(initialCalls ÔÇĞ
+       |                                    ^
+    198|       vi.useRealTimers();
+    199|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m29 passed[39m[22m[90m (30)[39m
+[2m   Start at [22m 19:33:09
+[2m   Duration [22m 1.00s[2m (transform 139ms, setup 211ms, import 113ms, tests 19ms, environment 526ms)[22m
+

@@ -11,10 +11,10 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
     components: [
       {
         type: 'sawtooth',
-        frequency: 60,
-        frequencyEnd: 300,
-        envelope: { initial: 0.05, peak: 0.08, duration: 0.3, ramp: 'exponential' },
-        filter: { type: 'lowpass', frequency: 500, frequencyEnd: 2000 },
+        frequency: 80,
+        frequencyEnd: 250,
+        envelope: { initial: 0.03, peak: 0.05, duration: 0.25, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 400, frequencyEnd: 1600 },
       },
     ],
     cooldown: 800,
@@ -23,80 +23,93 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
     components: [
       {
         type: 'triangle',
-        frequency: 80,
-        frequencyEnd: 30,
-        envelope: { initial: 0.1, peak: 0.15, duration: 0.12, ramp: 'exponential' },
-        filter: { type: 'lowpass', frequency: 150 },
+        frequency: 70,
+        frequencyEnd: 25,
+        envelope: { initial: 0.06, peak: 0.09, duration: 0.12, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 120 },
       },
     ],
   },
+  // Laser pew — tight sine sweep with sub-harmonic
   shoot: {
     components: [
       {
         type: 'sine',
-        frequency: 400,
-        frequencyEnd: 160,
-        envelope: { initial: 0.02, peak: 0.025, duration: 0.06, ramp: 'linear' },
+        frequency: 500,
+        frequencyEnd: 180,
+        envelope: { initial: 0.015, peak: 0.018, duration: 0.05, ramp: 'linear' },
+      },
+      {
+        type: 'triangle',
+        frequency: 250,
+        frequencyEnd: 90,
+        envelope: { initial: 0.008, peak: 0.01, duration: 0.04, ramp: 'linear' },
       },
     ],
     cooldown: 50,
   },
+  // Crit — digital rising ping with bright harmonic
   crit: {
     components: [
       {
         type: 'triangle',
-        frequency: 800,
-        frequencyEnd: 1200,
-        envelope: { initial: 0.06, peak: 0.06, duration: 0.15, ramp: 'exponential' },
+        frequency: 700,
+        frequencyEnd: 1100,
+        envelope: { initial: 0.04, peak: 0.04, duration: 0.12, ramp: 'exponential' },
       },
       {
         type: 'sine',
-        frequency: 400,
-        frequencyEnd: 600,
-        envelope: { initial: 0.06, peak: 0.06, duration: 0.15, ramp: 'exponential' },
+        frequency: 350,
+        frequencyEnd: 550,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.1, ramp: 'exponential' },
       },
     ],
   },
+  // Hit — punchy impact with filtered body
   hit: {
     components: [
       {
         type: 'square',
-        frequency: 100,
-        frequencyEnd: 40,
-        envelope: { initial: 0.05, peak: 0.05, duration: 0.1, ramp: 'linear' },
-        filter: { type: 'lowpass', frequency: 400 },
+        frequency: 90,
+        frequencyEnd: 35,
+        envelope: { initial: 0.035, peak: 0.035, duration: 0.08, ramp: 'linear' },
+        filter: { type: 'lowpass', frequency: 350 },
       },
     ],
     cooldown: 100,
   },
+  // Gem — quick digital chirp (not harsh)
   gem: {
     components: [
       {
         type: 'sine',
-        frequency: 1600,
-        frequencyEnd: 2200,
-        envelope: { initial: 0.02, peak: 0.02, duration: 0.06, ramp: 'linear' },
+        frequency: 1200,
+        frequencyEnd: 1800,
+        envelope: { initial: 0.012, peak: 0.015, duration: 0.05, ramp: 'linear' },
       },
     ],
     cooldown: 30,
   },
+  // Dash — filtered ascending sweep
   dash: {
     components: [
       {
         type: 'sine',
-        frequency: 100,
-        frequencyEnd: 800,
-        envelope: { initial: 0.05, peak: 0.05, duration: 0.2, ramp: 'exponential' },
+        frequency: 120,
+        frequencyEnd: 700,
+        envelope: { initial: 0.035, peak: 0.035, duration: 0.15, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 600, frequencyEnd: 3000 },
       },
     ],
   },
+  // Combo — ascending chime
   combo: {
     components: [
       {
         type: 'triangle',
-        frequency: 650,
-        frequencyEnd: 975,
-        envelope: { initial: 0.04, peak: 0.04, duration: 0.15, ramp: 'exponential' },
+        frequency: 600,
+        frequencyEnd: 900,
+        envelope: { initial: 0.03, peak: 0.03, duration: 0.12, ramp: 'exponential' },
       },
     ],
   },
@@ -178,10 +191,10 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
     components: [
       {
         type: 'sawtooth',
-        frequency: 300,
-        frequencyEnd: 90,
-        envelope: { initial: 0.08, peak: 0.08, duration: 0.4, ramp: 'exponential' },
-        filter: { type: 'lowpass', frequency: 800, frequencyEnd: 200 },
+        frequency: 280,
+        frequencyEnd: 80,
+        envelope: { initial: 0.05, peak: 0.05, duration: 0.4, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 700, frequencyEnd: 180 },
       },
     ],
   },
@@ -217,15 +230,15 @@ export const AUDIO_PRESETS: Record<string, AudioPreset> = {
     components: [
       {
         type: 'sawtooth',
-        frequency: 60,
-        frequencyEnd: 40,
-        envelope: { initial: 0.1, peak: 0.1, duration: 0.8, ramp: 'exponential' },
-        filter: { type: 'lowpass', frequency: 300, frequencyEnd: 100 },
+        frequency: 55,
+        frequencyEnd: 38,
+        envelope: { initial: 0.06, peak: 0.06, duration: 0.8, ramp: 'exponential' },
+        filter: { type: 'lowpass', frequency: 250, frequencyEnd: 80 },
       },
       {
         type: 'sine',
-        frequency: 40,
-        envelope: { initial: 0.15, peak: 0.15, duration: 1.0, ramp: 'exponential' },
+        frequency: 38,
+        envelope: { initial: 0.08, peak: 0.08, duration: 1.0, ramp: 'exponential' },
       },
     ],
   },

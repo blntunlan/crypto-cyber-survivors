@@ -82,17 +82,18 @@ export const createMarketRuntimeWorkerHandler = (
 };
 
 const isWorkerContext =
-  typeof self !== 'undefined' &&
-  typeof (self as DedicatedWorkerGlobalScope).postMessage === 'function' &&
-  typeof (self as DedicatedWorkerGlobalScope).addEventListener === 'function';
+  typeof self !== 'undefined' && 'postMessage' in self && 'addEventListener' in self;
 
 if (isWorkerContext) {
-  const workerScope = self as DedicatedWorkerGlobalScope;
+  const workerScope = self as unknown as DedicatedWorkerGlobalScope;
   const handle = createMarketRuntimeWorkerHandler(response => {
     workerScope.postMessage(response);
   });
 
-  workerScope.addEventListener('message', event => {
-    handle(event.data as MarketRuntimeWorkerRequest);
-  });
+  workerScope.addEventListener(
+    'message',
+    (event: MessageEvent<MarketRuntimeWorkerRequest>) => {
+      handle(event.data);
+    }
+  );
 }

@@ -1,0 +1,60 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [31mÔØ»[39m tests/MarketCalculator.test.ts [2m([22m[2m25 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 11[2mms[22m[39m
+       [32mÔ£ô[39m should calculate positive PnL for LONG when price increases[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should calculate negative PnL for LONG when price decreases[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate positive PnL for SHORT when price decreases[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate negative PnL for SHORT when price increases[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should apply leverage to effective PnL[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should cap leverage for difficulty PnL at 2x[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return zero for invalid entry price[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return zero for invalid current price[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate liquidation price for LONG position[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate liquidation price for SHORT position[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should handle 1x leverage (no liquidation point)[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return 0 for invalid entry price[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return 0 for invalid leverage[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate ATR from OHLC data[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should include previous close in TR calculation[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should maintain rolling TR history up to 14 periods[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should calculate ATR percent relative to price[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should handle missing OHLC data gracefully[39m[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m should detect liquidation for LONG when price drops below threshold[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should not trigger liquidation for LONG when price is above threshold[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should detect liquidation for SHORT when price rises above threshold[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should not trigger liquidation for SHORT when price is below threshold[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should detect liquidation at exact threshold for LONG[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should detect liquidation at exact threshold for SHORT[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should return false for invalid inputs[32m 0[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+
+ FAIL  tests/MarketCalculator.test.ts > MarketCalculator > calculateATR > should handle missing OHLC data gracefully
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m24 passed[39m[22m[90m (25)[39m
+[2m   Start at [22m 19:32:25
+[2m   Duration [22m 946ms[2m (transform 67ms, setup 216ms, import 28ms, tests 11ms, environment 545ms)[22m
+
+AssertionError: expected [ 500, 600, 500 ] to deeply equal [ 500, 600 ]
+
+- Expected
++ Received
+
+  [
+    500,
+    600,
++   500,
+  ]
+
+ ÔØ» tests/MarketCalculator.test.ts:227:35
+    225| 
+    226|       // No new TR added (no high/low), but context maintained
+    227|       expect(result.newTrHistory).toEqual([500, 600]);
+       |                                   ^
+    228|       expect(result.atr).toBe(550); // Average of existing
+    229|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+

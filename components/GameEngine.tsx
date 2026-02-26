@@ -43,6 +43,9 @@ import { portalSystem } from '../services/gameplay/PortalSystem';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
+import { LeverageEngine } from '../services/gameplay/LeverageEngine';
+import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
+import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 
@@ -173,6 +176,24 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const coreLoopRef = useRef(new CoreGameplayLoop());
   const lastWhaleTierRef = useRef<0 | 1 | 2 | 3>(0);
 
+  // Pre-allocated objects for GC-free loop references
+  const coreLoopInputRef = useRef({
+    deltaMs: 0,
+    hpPercent: 0,
+    enemyCount: 0,
+    killStreak: 0,
+    movementMagnitude: 0,
+    didAttack: false,
+    isDashing: false,
+    nowMs: 0,
+  });
+
+  const spawnOptionsRef = useRef({
+    rsi: 0,
+    rsiState: 'NEUTRAL' as string,
+    whaleTier: 0 as 0 | 1 | 2 | 3,
+  });
+
   useEffect(() => {
     marketDataRef.current = marketData;
   }, [marketData]);
@@ -181,6 +202,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (status !== GameStatus.PLAYING) {
       hitStopGovernorRef.current.reset();
       coreLoopRef.current.reset();
+      MarketAudioReactor.stop();
     }
   }, [status]);
 
@@ -224,9 +246,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   useGameStatusEffects({ status, pool, state, playerRef, width, height });
 
   // Market State Initialization (Server-Side Indicators)
-  // Market State Initialization (Server-Side Indicators)
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
+      let isCancelled = false;
+      let marketAudioStartTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
       // Integrated Warmup Flow: Snapshot -> Warmup -> Realtime Stream
       const initFlow = async () => {
         try {
@@ -234,25 +258,44 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
           // 1. Fetch historical data (Snapshot)
           const history = await MarketStateService.fetchMarketHistory(pair, 300);
+          if (isCancelled) return;
 
           // 2. Warm up client indicators (deterministic initial state)
           ClientIndicatorService.setPair(pair);
           ClientIndicatorService.setPosition(position);
           await ClientIndicatorService.warmup(history);
+          if (isCancelled) return;
           const clientIndicatorState = ClientIndicatorService.getState();
+          if (isCancelled) return;
           state.current.rsiVisualState = clientIndicatorState.rsiState;
           lastWhaleTierRef.current = clientIndicatorState.whaleTier;
 
           // 3. Initialize Realtime subscription
           await MarketStateService.init();
+          if (isCancelled) {
+            MarketStateService.cleanup();
+            return;
+          }
 
           Logger.info('[GameEngine] Market state perfect sync complete');
         } catch (err) {
+          if (isCancelled) return;
           Logger.error('[GameEngine] Market sync flow failed:', err);
         }
       };
 
       void initFlow();
+
+      // Initialize market engines with game context
+      const currentLeverage = difficultyContext.getContext().inputs.leverage;
+      PriceMomentumEngine.setContext(position, currentLeverage);
+
+      // Start market-synced audio pulse (delayed to let audio context fully init)
+      marketAudioStartTimeoutId = setTimeout(() => {
+        if (!isCancelled) {
+          MarketAudioReactor.start();
+        }
+      }, 500);
 
       // Market Events for Visual Effects
       const handleClientIndicators = (data: ClientIndicatorsUpdatedEvent) => {
@@ -275,7 +318,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       );
 
       return () => {
+        isCancelled = true;
+        if (marketAudioStartTimeoutId !== null) {
+          clearTimeout(marketAudioStartTimeoutId);
+          marketAudioStartTimeoutId = null;
+        }
         MarketStateService.cleanup();
+        MarketAudioReactor.stop();
         unsubClientIndicators();
       };
     }
@@ -318,6 +367,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     const unsub = EventBus.on('gameMarketUpdate', (data: MarketData) => {
       marketDataRef.current = data;
+
+      // Feed PriceMomentumEngine with every price tick
+      if (data.price > 0) {
+        PriceMomentumEngine.update(data.price, Date.now());
+      }
     });
     return unsub;
   }, []);
@@ -445,11 +499,19 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
       if (status !== GameStatus.MENU) {
+        // Use PriceMomentumEngine for intensity-driven background
+        const priceMom = PriceMomentumEngine.getLatest();
+        // Amplify wave multiplier with market intensity (background moves faster in surging/crashing)
+        const marketAmpWave =
+          marketDataRef.current.difficulty * (1.0 + priceMom.intensity * 0.6);
+        // Use velocity direction as momentum for parallax drift
+        const driftMomentum = priceMom.velocity * 50; // Scale velocity for visible parallax
+
         renderer.current.updateBackgroundCandles(
           state.current,
           marketDataRef.current.pnl,
-          marketDataRef.current.difficulty, // Use total difficulty as speed/intensity proxy
-          marketDataRef.current.momentum,
+          marketAmpWave,
+          driftMomentum,
           dtFactor,
           width,
           height
@@ -600,14 +662,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             s.lastHeartbeatTime = time;
           }
         }
-
-        // ... Dash Logic ...
-
-        // [Existing Dash Logic code block - omitted for brevity in replacement, but kept in file via context]
-        // Note to assistant applying this: Ensure Dash Logic remains intact.
-        // I will target the MetricsService block specifically, and then the updatePlayerStats block specifically.
-
-        // Skipping dash logic lines for the tool call... see next tool call for PlayerStats throttling.
 
         // Dash Logic Timers
         if (s.dashTimer > 0) {
@@ -778,17 +832,29 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const bottomMargin = device.isMobile ? player.radius + 40 : player.radius;
         player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
 
+        // Combat System - Auto Fire (only targets on-screen enemies)
+        const didAttack = combatSystem.current.processAutoFire(
+          p,
+          player,
+          s,
+          deltaTime,
+          width,
+          height
+        );
+
         const movementMagnitude = Math.min(1, Math.hypot(dx, dy));
-        const coreLoopOutput = coreLoopRef.current.update({
-          deltaMs: deltaTime,
-          hpPercent,
-          enemyCount: p.activeEnemies.length,
-          killStreak,
-          movementMagnitude,
-          isDashing: s.isDashing,
-          // FlowStateManager event timestamps use Date.now(); keep the same time base.
-          nowMs: Date.now(),
-        });
+
+        const coreInput = coreLoopInputRef.current;
+        coreInput.deltaMs = deltaTime;
+        coreInput.hpPercent = hpPercent;
+        coreInput.enemyCount = p.activeEnemies.length;
+        coreInput.killStreak = killStreak;
+        coreInput.movementMagnitude = movementMagnitude;
+        coreInput.didAttack = didAttack;
+        coreInput.isDashing = s.isDashing;
+        coreInput.nowMs = Date.now();
+
+        const coreLoopOutput = coreLoopRef.current.update(coreInput);
 
         if (!s.isDashing) {
           const pulseLerp = Math.min(1, (0.08 + coreLoopOutput.pulse * 0.1) * dtFactor);
@@ -842,9 +908,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           s.currentBg.b = lerp(s.currentBg.b, s.targetBg.b, bgLerpFactor);
         }
 
-        // Combat System - Auto Fire (only targets on-screen enemies)
-        combatSystem.current.processAutoFire(p, player, s, deltaTime, width, height);
-
         const layout = getHUDLayout(device.platform);
         const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
 
@@ -853,12 +916,24 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // 0. Sync Market Metadata from marketDataRef
         state.current.atrPercent = marketDataRef.current.atrPercent ?? 0;
+
+        // Feed LeverageEngine (controls Risk/Reward XP and Damage)
+        LeverageEngine.updateMarketState(
+          state.current.atrPercent,
+          marketDataRef.current.pnl
+        );
+
         state.current.spawnRateMultiplier =
           (marketDataRef.current.spawnRateMultiplier ?? 1) *
           coreLoopOutput.spawnMultiplier;
         state.current.marketPosition = position;
 
         // 1. Update Sub-systems (Physics, Spawning, etc.)
+        const spawnOpts = spawnOptionsRef.current;
+        spawnOpts.rsi = marketDataRef.current.rsi;
+        spawnOpts.rsiState = marketDataRef.current.rsiState ?? 'NEUTRAL';
+        spawnOpts.whaleTier = marketDataRef.current.whaleTier ?? 0;
+
         spawnSystemRef.current.update(
           deltaTime,
           marketDataRef.current.difficulty,
@@ -870,35 +945,25 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           maxEnemies,
           state.current.spawnRateMultiplier,
           pair,
+          // marketData enemy damage/speed already include leverage-aware difficulty output.
+          // Applying LeverageEngine enemy multipliers here double-counts leverage and causes
+          // near-instant deaths at high leverage (e.g. 100x).
           (marketDataRef.current.enemyDamage ?? 1) *
             coreLoopOutput.enemyDamageMultiplier,
           (marketDataRef.current.enemySpeed ?? 1) * coreLoopOutput.enemySpeedMultiplier,
-          {
-            rsi: marketDataRef.current.rsi,
-            rsiState: marketDataRef.current.rsiState,
-            whaleTier: marketDataRef.current.whaleTier,
-          }
+          spawnOpts
         );
 
-        // --- INTERACTABLE SPAWN LOGIC (Temporary Logic) ---
+        // --- INTERACTABLE SPAWN LOGIC ---
         s.interactableSpawnTimer = s.interactableSpawnTimer + deltaTime;
-        if (s.interactableSpawnTimer > 20000) {
-          // Every 20 seconds
+        if (s.interactableSpawnTimer > 30000) {
+          // Every 30 seconds wait for a random loot crate
           s.interactableSpawnTimer = 0;
-          // Spawn random mining rig
           const pad = 100;
           const rx = pad + Math.random() * (width - pad * 2);
           const ry = pad + Math.random() * (height - pad * 2);
 
-          p.getInteractable(
-            Math.random() > 0.5 ? 'MINING_RIG' : 'LOOT_CRATE',
-            rx,
-            ry,
-            150 // Hit Points
-          );
-
-          // Spawn effect
-          Logger.info(`[GameEngine] Spawning Interactable at ${rx}, ${ry}`);
+          p.getInteractable('LOOT_CRATE', rx, ry, 150);
 
           // Only show supply drop notifications in development mode
           if (import.meta.env.DEV) {
@@ -908,7 +973,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               type: 'success',
             });
           }
-          audio.playLevelUp(); // Cue for supply drop
+          audio.playLevelUp();
         }
 
         // Update Physics & Collisions

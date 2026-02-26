@@ -907,6 +907,10 @@ export type Database = {
     };
     Functions: {
       aggregate_price_to_ohlc: { Args: never; Returns: undefined };
+      cleanup_old_price_history: {
+        Args: { p_batch_size?: number; p_cutoff: string };
+        Returns: number;
+      };
       credit_coins: {
         Args: {
           p_amount: number;

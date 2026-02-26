@@ -1,4 +1,5 @@
 import { FlowStateManager, type FlowState } from '../difficulty/FlowStateManager';
+import { PriceMomentumEngine } from '../market/PriceMomentumEngine';
 
 export type CoreLoopPhase = 'build' | 'release';
 
@@ -9,6 +10,7 @@ export interface CoreGameplayLoopInput {
   killStreak: number;
   movementMagnitude: number;
   isDashing: boolean;
+  didAttack?: boolean;
   nowMs?: number;
 }
 
@@ -23,6 +25,10 @@ export interface CoreGameplayLoopOutput {
   playerScaleTargetY: number;
   pulse: number;
   shakeBoost: number;
+  /** Market intensity (0-1) for audio/visual systems */
+  marketIntensity: number;
+  /** Suggested BPM from price momentum */
+  suggestedBPM: number;
 }
 
 export const CORE_GAMEPLAY_LOOP_CONFIG = {
@@ -46,6 +52,14 @@ export const CORE_GAMEPLAY_LOOP_CONFIG = {
   DAMAGE_MIN: 0.75,
   DAMAGE_MAX: 1.2,
   PLAYER_PULSE_SCALE: 0.06,
+
+  // --- Price Momentum Integration ---
+  /** How much momentum contributes to spawn rate (0-1 blend weight) */
+  MOMENTUM_SPAWN_WEIGHT: 0.4,
+  /** How much momentum contributes to enemy speed (0-1 blend weight) */
+  MOMENTUM_SPEED_WEIGHT: 0.35,
+  /** How much momentum contributes to enemy damage (0-1 blend weight) */
+  MOMENTUM_DAMAGE_WEIGHT: 0.25,
 } as const;
 
 const FRAME_MS = 1000 / 60;
@@ -62,6 +76,7 @@ const lerp = (from: number, to: number, alpha: number): number => {
  * Core gameplay pacing loop:
  * - Uses flow analysis to keep player in the challenge sweet spot.
  * - Alternates "build" and "release" phases for yoyo-like rhythm.
+ * - Integrates PriceMomentumEngine for market-driven feel.
  */
 export class CoreGameplayLoop {
   private phase: CoreLoopPhase = 'build';
@@ -71,6 +86,7 @@ export class CoreGameplayLoop {
   private enemyDamageMultiplier = 1;
   private pulse = 0;
   private pendingShakeBoost = 0;
+  private smoothedMarketIntensity = 0;
 
   public reset(): void {
     this.phase = 'build';
@@ -80,14 +96,18 @@ export class CoreGameplayLoop {
     this.enemyDamageMultiplier = 1;
     this.pulse = 0;
     this.pendingShakeBoost = 0;
+    this.smoothedMarketIntensity = 0;
     FlowStateManager.reset();
   }
 
   public update(input: CoreGameplayLoopInput): CoreGameplayLoopOutput {
     const nowMs = input.nowMs ?? Date.now();
     const deltaMs = Math.max(0, input.deltaMs);
+    const attackActivity = input.didAttack
+      ? CORE_GAMEPLAY_LOOP_CONFIG.INPUT_ACTIVITY_THRESHOLD + 0.01
+      : 0;
     const activity = clamp(
-      input.movementMagnitude + (input.isDashing ? 0.35 : 0),
+      input.movementMagnitude + (input.isDashing ? 0.35 : 0) + attackActivity,
       0,
       1
     );
@@ -99,9 +119,26 @@ export class CoreGameplayLoop {
     const flowAnalysis = FlowStateManager.update(input.hpPercent, nowMs);
     this.phaseElapsedMs += deltaMs;
 
-    this.maybeSwitchPhase(flowAnalysis.state, input.hpPercent, input.enemyCount);
+    // Get price momentum state (cached, zero allocation)
+    const momentum = PriceMomentumEngine.getLatest();
+    const mIntensity = momentum.intensity;
 
-    const phaseDuration = this.getPhaseDuration(flowAnalysis.state);
+    // Smooth market intensity for visual/audio (avoids jarring jumps)
+    const iAlpha = this.getSmoothingAlpha(deltaMs) * 0.5; // Slower smoothing for market
+    this.smoothedMarketIntensity = lerp(
+      this.smoothedMarketIntensity,
+      mIntensity,
+      iAlpha
+    );
+
+    this.maybeSwitchPhase(
+      flowAnalysis.state,
+      input.hpPercent,
+      input.enemyCount,
+      mIntensity
+    );
+
+    const phaseDuration = this.getPhaseDuration(flowAnalysis.state, mIntensity);
     const progress = clamp(this.phaseElapsedMs / phaseDuration, 0, 1);
     const phaseCurve = 0.5 - 0.5 * Math.cos(progress * Math.PI); // smooth 0 -> 1
     const signedSwing = this.phase === 'build' ? phaseCurve : -phaseCurve;
@@ -119,24 +156,46 @@ export class CoreGameplayLoop {
       flowSwingScale;
 
     const yoyoMultiplier = 1 + signedSwing * swingMagnitude;
+
+    // --- Blend flow corrections with price momentum ---
+    const C = CORE_GAMEPLAY_LOOP_CONFIG;
+    const mSpawnW = C.MOMENTUM_SPAWN_WEIGHT;
+    const mSpeedW = C.MOMENTUM_SPEED_WEIGHT;
+    const mDamageW = C.MOMENTUM_DAMAGE_WEIGHT;
+
+    const flowSpawn =
+      flowAnalysis.suggestedCorrections.spawnRateMultiplier * yoyoMultiplier;
+    const flowSpeed =
+      flowAnalysis.suggestedCorrections.enemySpeedMultiplier *
+      (1 + signedSwing * swingMagnitude * 0.45);
+    const flowDamage =
+      flowAnalysis.suggestedCorrections.enemyDamageMultiplier *
+      (1 + signedSwing * swingMagnitude * 0.35);
+
+    // Blend: (1-w) * flowValue + w * momentumValue
     const targetSpawn = clamp(
-      flowAnalysis.suggestedCorrections.spawnRateMultiplier * yoyoMultiplier,
-      CORE_GAMEPLAY_LOOP_CONFIG.SPAWN_MIN,
-      CORE_GAMEPLAY_LOOP_CONFIG.SPAWN_MAX
+      flowSpawn * (1 - mSpawnW) + momentum.spawnRateMod * mSpawnW,
+      C.SPAWN_MIN,
+      C.SPAWN_MAX
     );
     const targetSpeed = clamp(
-      flowAnalysis.suggestedCorrections.enemySpeedMultiplier *
-        (1 + signedSwing * swingMagnitude * 0.45),
-      CORE_GAMEPLAY_LOOP_CONFIG.SPEED_MIN,
-      CORE_GAMEPLAY_LOOP_CONFIG.SPEED_MAX
+      flowSpeed * (1 - mSpeedW) + momentum.enemySpeedMod * mSpeedW,
+      C.SPEED_MIN,
+      C.SPEED_MAX
     );
     const targetDamage = clamp(
-      flowAnalysis.suggestedCorrections.enemyDamageMultiplier *
-        (1 + signedSwing * swingMagnitude * 0.35),
-      CORE_GAMEPLAY_LOOP_CONFIG.DAMAGE_MIN,
-      CORE_GAMEPLAY_LOOP_CONFIG.DAMAGE_MAX
+      flowDamage * (1 - mDamageW) + 1.0 * mDamageW, // momentum doesn't directly drive damage
+      C.DAMAGE_MIN,
+      C.DAMAGE_MAX
     );
-    const targetPulse = clamp(Math.abs(signedSwing) * (0.55 + activity * 0.45), 0, 1);
+
+    // Pulse is amplified by market intensity for a breathing effect
+    const targetPulse = clamp(
+      Math.abs(signedSwing) *
+        (0.55 + activity * 0.3 + this.smoothedMarketIntensity * 0.3),
+      0,
+      1
+    );
 
     const smoothingAlpha = this.getSmoothingAlpha(deltaMs);
     this.spawnMultiplier = lerp(this.spawnMultiplier, targetSpawn, smoothingAlpha);
@@ -178,17 +237,20 @@ export class CoreGameplayLoop {
       playerScaleTargetY,
       pulse: this.pulse,
       shakeBoost,
+      marketIntensity: this.smoothedMarketIntensity,
+      suggestedBPM: momentum.suggestedBPM,
     };
   }
 
   private maybeSwitchPhase(
     flowState: FlowState,
     hpPercent: number,
-    enemyCount: number
+    enemyCount: number,
+    marketIntensity: number
   ): void {
     const minDurationReached =
       this.phaseElapsedMs >= CORE_GAMEPLAY_LOOP_CONFIG.MIN_PHASE_DURATION_MS;
-    const phaseDuration = this.getPhaseDuration(flowState);
+    const phaseDuration = this.getPhaseDuration(flowState, marketIntensity);
 
     if (!minDurationReached) return;
 
@@ -223,24 +285,28 @@ export class CoreGameplayLoop {
     this.pendingShakeBoost = CORE_GAMEPLAY_LOOP_CONFIG.PHASE_SWITCH_SHAKE;
   }
 
-  private getPhaseDuration(flowState: FlowState): number {
+  /**
+   * Phase duration is modulated by flow state AND market intensity.
+   * High market intensity → shorter build phases (less breathing room)
+   *                       → shorter release phases (faster rhythm)
+   * This makes the game pulse with the market's energy.
+   */
+  private getPhaseDuration(flowState: FlowState, marketIntensity: number = 0): number {
+    // Market intensity compression: high intensity = shorter phases = faster rhythm
+    // 0 intensity → 1.0x duration, 1.0 intensity → 0.65x duration
+    const marketCompression = 1.0 - marketIntensity * 0.35;
+
     if (this.phase === 'build') {
-      if (flowState === 'stressed') {
-        return CORE_GAMEPLAY_LOOP_CONFIG.BUILD_PHASE_MS * 1.2;
-      }
-      if (flowState === 'bored') {
-        return CORE_GAMEPLAY_LOOP_CONFIG.BUILD_PHASE_MS * 0.85;
-      }
-      return CORE_GAMEPLAY_LOOP_CONFIG.BUILD_PHASE_MS;
+      let base = CORE_GAMEPLAY_LOOP_CONFIG.BUILD_PHASE_MS;
+      if (flowState === 'stressed') base *= 1.2;
+      else if (flowState === 'bored') base *= 0.85;
+      return base * marketCompression;
     }
 
-    if (flowState === 'stressed') {
-      return CORE_GAMEPLAY_LOOP_CONFIG.RELEASE_PHASE_MS * 1.3;
-    }
-    if (flowState === 'bored') {
-      return CORE_GAMEPLAY_LOOP_CONFIG.RELEASE_PHASE_MS * 0.8;
-    }
-    return CORE_GAMEPLAY_LOOP_CONFIG.RELEASE_PHASE_MS;
+    let base = CORE_GAMEPLAY_LOOP_CONFIG.RELEASE_PHASE_MS;
+    if (flowState === 'stressed') base *= 1.3;
+    else if (flowState === 'bored') base *= 0.8;
+    return base * marketCompression;
   }
 
   private getSmoothingAlpha(deltaMs: number): number {

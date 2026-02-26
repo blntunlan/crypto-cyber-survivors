@@ -1,8 +1,8 @@
 /**
  * Cleanup Cron Job
  *
- * Eski price_logs kayıtlarını siler (30 günden eski)
- * Her gün saat 02:00'de çalışır (UTC)
+ * Eski price_history kayıtlarını siler (24 saatten eski)
+ * Periyodik olarak küçük batch'lerle çalışır
  */
 
 import { SupabaseService } from '../services/supabaseService';
@@ -43,12 +43,12 @@ export class CleanupCron {
       void this.runCleanup();
     }, 60 * 1000);
 
-    // Sonraki çalıştırmalar - her 24 saatte bir
+    // Sonraki çalıştırmalar - her 6 saatte bir
     this.intervalId = setInterval(() => {
       void this.runCleanup();
     }, CLEANUP_INTERVAL_MS);
 
-    Logger.info('[Cleanup] Cron scheduled - runs every 24 hours');
+    Logger.info('[Cleanup] Cron scheduled - runs every 6 hours');
   }
 
   /**
@@ -83,40 +83,35 @@ export class CleanupCron {
 
       Logger.info(`[Cleanup] Starting cleanup for records older than ${cutoffISO}`);
 
-      // Batch deletion loop
+      // Batch deletion loop (database-side deletion for fewer round-trips)
       let deletedInBatch = 0;
       let iterations = 0;
       const maxIterations = 100; // Safety limit
 
       do {
-        // Get IDs to delete (batch) - Updated to price_history
-        const { data: toDelete, error: selectError } = await supabase
-          .from('price_history')
-          .select('id')
-          .lt('timestamp', cutoffISO)
-          .limit(BATCH_SIZE);
+        const { data: deletedCount, error: cleanupError } = await supabase.rpc(
+          'cleanup_old_price_history',
+          {
+            p_cutoff: cutoffISO,
+            p_batch_size: BATCH_SIZE,
+          }
+        );
 
-        if (selectError) {
-          throw selectError;
+        if (cleanupError) {
+          throw cleanupError;
         }
 
-        if (toDelete.length === 0) {
+        deletedInBatch = Number(deletedCount ?? 0);
+        if (!Number.isFinite(deletedInBatch) || deletedInBatch < 0) {
+          throw new Error(
+            `[Cleanup] Unexpected cleanup_old_price_history result: ${String(deletedCount)}`
+          );
+        }
+
+        if (deletedInBatch === 0) {
           break;
         }
 
-        const ids = toDelete.map(row => row.id);
-
-        // Delete batch - Updated to price_history
-        const { error: deleteError } = await supabase
-          .from('price_history')
-          .delete()
-          .in('id', ids);
-
-        if (deleteError) {
-          throw deleteError;
-        }
-
-        deletedInBatch = ids.length;
         totalDeleted += deletedInBatch;
         iterations++;
 

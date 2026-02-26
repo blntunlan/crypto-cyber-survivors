@@ -5,26 +5,37 @@
  * Only visible in development mode.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { MetricsService } from '../services/core/MetricsService';
-import {
-  DifficultyManager,
-  type DifficultyOutput,
-} from '../services/gameplay/DifficultyManager';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { type DifficultyOutput } from '../services/gameplay/DifficultyTypes';
 import { shouldShowDebugPanel } from '../config/MetricsConfig';
 
 interface MetricsDebugPanelProps {
   isExpanded?: boolean;
 }
 
+interface MetricsState {
+  isExpanded: boolean;
+  sessionCount: number;
+  currentState: string;
+  insights: string | null;
+  difficultyData: DifficultyOutput | null;
+}
+
 export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
   isExpanded: initialExpanded = false,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
-  const [sessionCount, setSessionCount] = useState(0);
-  const [currentState, setCurrentState] = useState<string>('No active session');
-  const [insights, setInsights] = useState<string | null>(null);
-  const [difficultyData, setDifficultyData] = useState<DifficultyOutput | null>(null);
+  const [state, dispatch] = React.useReducer(
+    (prev: MetricsState, next: Partial<MetricsState>) => ({ ...prev, ...next }),
+    {
+      isExpanded: initialExpanded,
+      sessionCount: 0,
+      currentState: 'No active session',
+      insights: null,
+      difficultyData: null,
+    }
+  );
 
   // Check if panel should be shown (must be before any hooks that depend on it)
   const shouldShow = import.meta.env.DEV && shouldShowDebugPanel();
@@ -34,18 +45,21 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
     if (!shouldShow) return;
 
     const interval = setInterval(() => {
-      setSessionCount(MetricsService.getSessionCount());
-      setDifficultyData(DifficultyManager.getLatestOutput());
+      const updates: Partial<MetricsState> = {
+        sessionCount: MetricsService.getSessionCount(),
+        difficultyData: DifficultyManager.getLatestOutput(),
+      };
 
-      const state = MetricsService.getCurrentState();
-      if (state?.isActive) {
-        const duration = Math.round((Date.now() - state.sessionStartTime) / 1000);
-        setCurrentState(
-          `Active | ${duration}s | Kills: ${Object.values(state.killsByType).reduce((a, b) => a + b, 0)} | Max Streak: ${state.maxStreak}`
-        );
+      const mState = MetricsService.getCurrentState();
+      if (mState?.isActive) {
+        const duration = Math.round((Date.now() - mState.sessionStartTime) / 1000);
+        const kills = Object.values(mState.killsByType).reduce((a, b) => a + b, 0);
+        updates.currentState = `Active | ${duration}s | Kills: ${kills} | Max Streak: ${mState.maxStreak}`;
       } else {
-        setCurrentState('No active session');
+        updates.currentState = 'No active session';
       }
+
+      dispatch(updates);
     }, 500);
 
     return () => clearInterval(interval);
@@ -80,14 +94,13 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
 
   const handleShowInsights = () => {
     const gameInsights = MetricsService.getInsights();
-    setInsights(JSON.stringify(gameInsights, null, 2));
+    dispatch({ insights: JSON.stringify(gameInsights, null, 2) });
   };
 
   const handleClearSessions = () => {
     if (confirm('Clear all stored sessions?')) {
       MetricsService.clearSessions();
-      setSessionCount(0);
-      setInsights(null);
+      dispatch({ sessionCount: 0, insights: null });
     }
   };
 
@@ -98,17 +111,17 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
     >
       {/* Toggle Button */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => dispatch({ isExpanded: !state.isExpanded })}
         className="absolute bottom-0 right-0 flex items-center gap-2 rounded-lg border
                    border-purple-500/50 bg-purple-900/90 px-3 py-2
                    text-white shadow-lg transition-colors hover:bg-purple-800"
       >
-        📊 {sessionCount} Sessions
-        <span className="text-[10px]">{isExpanded ? '▼' : '▲'}</span>
+        📊 {state.sessionCount} Sessions
+        <span className="text-[10px]">{state.isExpanded ? '▼' : '▲'}</span>
       </button>
 
       {/* Expanded Panel */}
-      {isExpanded && (
+      {state.isExpanded && (
         <div
           className="absolute bottom-12 right-0 w-80 overflow-hidden rounded-lg border border-purple-500/30
                      bg-slate-900/95 shadow-2xl backdrop-blur-sm"
@@ -123,45 +136,45 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
             {/* Current Session */}
             <div className="rounded bg-slate-800/50 p-2">
               <div className="mb-1 text-[10px] text-slate-400">CURRENT SESSION</div>
-              <div className="text-green-400">{currentState}</div>
+              <div className="text-green-400">{state.currentState}</div>
             </div>
 
             {/* Real-time Difficulty Factors */}
-            {difficultyData && (
+            {state.difficultyData && (
               <div className="rounded border border-orange-500/20 bg-slate-800/50 p-2">
                 <div className="mb-2 flex justify-between text-[10px] font-bold text-orange-400">
                   <span>LIVE DIFFICULTY FACTORS</span>
-                  <span>v{difficultyData.total.toFixed(2)}</span>
+                  <span>v{state.difficultyData.total.toFixed(2)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px]">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Spawn:</span>
                     <span className="text-white">
-                      x{difficultyData.spawnRate.toFixed(2)}
+                      x{state.difficultyData.spawnRate.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Speed:</span>
                     <span className="text-white">
-                      x{difficultyData.enemySpeed.toFixed(2)}
+                      x{state.difficultyData.enemySpeed.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Health:</span>
                     <span className="text-white">
-                      x{difficultyData.enemyHealth.toFixed(2)}
+                      x{state.difficultyData.enemyHealth.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Damage:</span>
                     <span className="text-white">
-                      x{difficultyData.enemyDamage.toFixed(2)}
+                      x{state.difficultyData.enemyDamage.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Gem Value:</span>
                     <span className="font-bold text-green-400">
-                      x{difficultyData.gemValueMultiplier.toFixed(2)}
+                      x{state.difficultyData.gemValueMultiplier.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -171,42 +184,42 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                     <span className="text-slate-500">PnL Effect:</span>
                     <span
                       className={
-                        difficultyData.factors.pnlEffect > 1
+                        state.difficultyData.factors.pnlEffect > 1
                           ? 'text-red-400'
                           : 'text-green-400'
                       }
                     >
-                      {difficultyData.factors.pnlEffect.toFixed(3)}x
+                      {state.difficultyData.factors.pnlEffect.toFixed(3)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Volat. (ATR):</span>
                     <span className="text-blue-400">
-                      {difficultyData.factors.volatility.toFixed(3)}x
+                      {state.difficultyData.factors.volatility.toFixed(3)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Level Factor:</span>
                     <span className="text-yellow-400">
-                      {difficultyData.factors.levelFactor.toFixed(3)}x
+                      {state.difficultyData.factors.levelFactor.toFixed(3)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Wave Mult:</span>
                     <span className="text-purple-400">
-                      {difficultyData.factors.waveMultiplier.toFixed(2)}x
+                      {state.difficultyData.factors.waveMultiplier.toFixed(2)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Cycle Mult:</span>
                     <span className="text-cyan-400">
-                      {difficultyData.factors.cycleFactor.toFixed(2)}x
+                      {state.difficultyData.factors.cycleFactor.toFixed(2)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Time Factor:</span>
                     <span className="text-white">
-                      {difficultyData.factors.baseTime.toFixed(2)}x
+                      {state.difficultyData.factors.baseTime.toFixed(2)}x
                     </span>
                   </div>
                 </div>
@@ -216,7 +229,9 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
             {/* Session Count */}
             <div className="rounded bg-slate-800/50 p-2">
               <div className="mb-1 text-[10px] text-slate-400">STORED SESSIONS</div>
-              <div className="text-lg font-bold text-cyan-400">{sessionCount}</div>
+              <div className="text-lg font-bold text-cyan-400">
+                {state.sessionCount}
+              </div>
             </div>
 
             {/* Actions */}
@@ -255,25 +270,25 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
             </div>
 
             {/* Insights Display */}
-            {insights && (
+            {state.insights && (
               <div className="rounded bg-slate-800/50 p-2">
                 <div className="mb-1 flex justify-between text-[10px] text-slate-400">
                   <span>INSIGHTS</span>
                   <button
-                    onClick={() => setInsights(null)}
+                    onClick={() => dispatch({ insights: null })}
                     className="text-red-400 hover:text-red-300"
                   >
                     ✕
                   </button>
                 </div>
                 <pre className="max-h-48 overflow-x-auto whitespace-pre-wrap text-[9px] text-slate-300">
-                  {insights}
+                  {state.insights}
                 </pre>
               </div>
             )}
 
             {/* Quick Stats from Last Session */}
-            {sessionCount > 0 && (
+            {state.sessionCount > 0 && (
               <div className="rounded bg-slate-800/50 p-2">
                 <div className="mb-1 text-[10px] text-slate-400">LAST SESSION</div>
                 <div className="space-y-1 text-[10px]">

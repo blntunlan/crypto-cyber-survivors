@@ -253,7 +253,7 @@ export class GameRenderer implements IGameRenderer {
     state: GameState,
     pnl: number,
     waveMultiplier: number,
-    _momentum: number,
+    momentum: number,
     dtFactor: number,
     width: number,
     height: number
@@ -262,7 +262,7 @@ export class GameRenderer implements IGameRenderer {
       state,
       pnl,
       waveMultiplier,
-      0,
+      momentum,
       dtFactor,
       width,
       height

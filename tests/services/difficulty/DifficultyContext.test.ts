@@ -73,9 +73,11 @@ describe('DifficultyContext', () => {
       priceChangePercent: 0.02,
       trendStrength: 0.44,
       trendDirection: 'UP',
-      macdValue: 3.4,
-      macdSignal: 1.2,
-      macdHistogram: 2.2,
+      macd: {
+        value: 3.4,
+        signal: 1.2,
+        histogram: 2.2,
+      },
       whaleTier: 2,
     });
 
@@ -84,7 +86,12 @@ describe('DifficultyContext', () => {
 
     expect(context.inputs.rsi).toBe(61);
     expect(context.inputs.rsiState).toBe('OVERBOUGHT');
-    expect(context.inputs.macd).toEqual({ value: 3.4, signal: 1.2, histogram: 2.2 });
+    expect(context.inputs.macd).toEqual({
+      value: 3.4,
+      signal: 1.2,
+      histogram: 2.2,
+      macd: 3.4,
+    });
   });
 
   it('keeps runtime MACD as source after runtime snapshot arrives', () => {
@@ -104,9 +111,11 @@ describe('DifficultyContext', () => {
       priceChangePercent: -0.08,
       trendStrength: 0.9,
       trendDirection: 'DOWN',
-      macdValue: -9,
-      macdSignal: -8,
-      macdHistogram: -1,
+      macd: {
+        value: -9,
+        signal: -8,
+        histogram: -1,
+      },
       whaleTier: 3,
     });
 
@@ -130,9 +139,11 @@ describe('DifficultyContext', () => {
       priceChangePercent: 0,
       trendStrength: 0.1,
       trendDirection: 'SIDEWAYS',
-      macdValue: 2.5,
-      macdSignal: 1.5,
-      macdHistogram: 1.0,
+      macd: {
+        value: 2.5,
+        signal: 1.5,
+        histogram: 1.0,
+      },
       whaleTier: 1,
     });
     difficultyContext.updateTime(1);
@@ -142,6 +153,7 @@ describe('DifficultyContext', () => {
       value: 2.5,
       signal: 1.5,
       histogram: 1.0,
+      macd: 2.5,
     });
   });
 });

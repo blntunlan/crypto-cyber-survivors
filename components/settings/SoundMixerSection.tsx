@@ -48,8 +48,12 @@ const CATEGORY_CONFIG: Record<SoundCategory, CategoryConfig> = {
     Icon: IconGenesisEmblem,
     description: 'Level up slot machine',
   },
-  music: { label: 'Music', Icon: IconBolt, description: 'Background music' },
-  sfx: { label: 'SFX', Icon: IconBolt, description: 'Sound effects' },
+  music: {
+    label: 'Music',
+    Icon: IconFlashPulse,
+    description: 'Market beats and ambient tones',
+  },
+  sfx: { label: 'SFX', Icon: IconBolt, description: 'General sound effects' },
 };
 
 const CATEGORIES: SoundCategory[] = [

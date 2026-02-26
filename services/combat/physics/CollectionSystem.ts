@@ -9,6 +9,8 @@ import { lerp } from '../../../utils/math';
 import { type ICollectionSystem } from '../../interfaces/IPhysicsSubsystems';
 import { GAME_ENGINE } from '../../../constants';
 import { ECONOMY_CONFIG } from '../../../config';
+import { LeverageEngine } from '../../gameplay/LeverageEngine';
+import { PriceMomentumEngine } from '../../market/PriceMomentumEngine';
 
 /**
  * CollectionSystem - Handles player interaction with collectible items (Gems, BuffGems).
@@ -129,7 +131,16 @@ export class CollectionSystem implements ICollectionSystem {
     state: GameState
   ): void {
     const perfConfig = this.ctx.performance.getPerformanceConfig();
-    const xpGain = Math.floor(gem.value * this.ctx.combo.getXpMultiplier());
+
+    // Apply leverage and momentum gem value multipliers
+    const levMult = LeverageEngine.getMultipliers();
+    const momMult = PriceMomentumEngine.getLatest();
+    const adjustedGemValue = gem.value * levMult.gemValue * momMult.gemValueMod;
+
+    // Apply leverage XP gain multiplier (higher leverage = faster leveling)
+    const xpGain = Math.floor(
+      adjustedGemValue * this.ctx.combo.getXpMultiplier() * levMult.xpGain
+    );
 
     if (!isNaN(xpGain) && xpGain > 0) {
       player.exp += xpGain;

@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LeaderboardPanel from '../../../components/hud/LeaderboardPanel';
 
 // Mock Framer Motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-  motion: {
+vi.mock('framer-motion', () => {
+  const motionMock = {
     div: ({
       children,
       initial: _initial,
@@ -16,9 +16,13 @@ vi.mock('framer-motion', () => ({
       transition: _transition,
       ...props
     }: any) => <div {...props}>{children}</div>,
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
+  };
+  return {
+    motion: motionMock,
+    m: motionMock,
+    AnimatePresence: ({ children }: any) => <>{children}</>,
+  };
+});
 
 // Mock Lucide Icons
 vi.mock('lucide-react', () => ({
@@ -88,14 +92,14 @@ describe('LeaderboardPanel', () => {
       profile_id: '1',
       display_name: 'Player1',
       high_score: 10000,
-      max_survival_time: 300000,
+      max_survival_time: 300,
       total_sessions: 10,
     },
     {
       profile_id: '2',
       display_name: 'Player2',
       high_score: 5000,
-      max_survival_time: 150000,
+      max_survival_time: 150,
       total_sessions: 5,
     },
   ];
@@ -180,9 +184,9 @@ describe('LeaderboardPanel', () => {
     render(<LeaderboardPanel isVisible={true} />);
 
     await waitFor(() => {
-      // 300000ms = 5:00
+      // v_leaderboard returns seconds (300s = 5:00)
       expect(screen.getByText('5:00')).toBeInTheDocument();
-      // 150000ms = 2:30
+      // 150s = 2:30
       expect(screen.getByText('2:30')).toBeInTheDocument();
     });
   });
@@ -216,7 +220,7 @@ describe('LeaderboardPanel', () => {
         profile_id: 'anon-1',
         display_name: null,
         high_score: 100,
-        max_survival_time: 10000,
+        max_survival_time: 10,
       },
     ];
     (mockSupabase.limit as any).mockResolvedValueOnce({

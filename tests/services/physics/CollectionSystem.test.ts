@@ -6,6 +6,18 @@ import { type Player, type GameState, type Gem } from '../../../types';
 import { EventBus } from '../../../services/core/EventBus';
 import { BuffManager } from '../../../services/patterns/decorators/BuffManager';
 
+vi.mock('../../../services/gameplay/LeverageEngine', () => ({
+  LeverageEngine: {
+    getMultipliers: vi.fn(() => ({ gemValue: 1.0, xpGain: 1.0 })),
+  },
+}));
+
+vi.mock('../../../services/market/PriceMomentumEngine', () => ({
+  PriceMomentumEngine: {
+    getLatest: vi.fn(() => ({ gemValueMod: 1.0 })),
+  },
+}));
+
 describe('CollectionSystem', () => {
   let system: CollectionSystem;
   let mockContext: IPhysicsContext;

@@ -14,6 +14,7 @@
 
 import * as SynapticLib from 'synaptic';
 import { Logger } from '../system/Logger';
+import { EventBus } from '../core/EventBus';
 
 // ESM/CJS compatibility
 interface SynapticNet {
@@ -206,6 +207,7 @@ class GameMasterBrainClass {
 
   private constructor() {
     this.initNetwork();
+    EventBus.on('gameReset', () => this.reset());
   }
 
   static getInstance(): GameMasterBrainClass {

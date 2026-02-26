@@ -10,7 +10,7 @@
         },
         {
           "name": "ccs_benchmark_result",
-          "value": "{\"gpuScore\":1000,\"cpuScore\":1000,\"combinedScore\":1000,\"profile\":\"ULTRA\",\"deviceMemory\":8,\"hardwareConcurrency\":12,\"gpuRenderer\":\"ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)\",\"timestamp\":1771441902299,\"version\":\"1.0.0\"}"
+          "value": "{\"gpuScore\":1000,\"cpuScore\":1000,\"combinedScore\":1000,\"profile\":\"ULTRA\",\"deviceMemory\":8,\"hardwareConcurrency\":12,\"gpuRenderer\":\"ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)\",\"timestamp\":1771444921611,\"version\":\"1.0.0\"}"
         },
         {
           "name": "crypto-survivor-theme",

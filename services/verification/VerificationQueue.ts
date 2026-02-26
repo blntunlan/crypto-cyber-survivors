@@ -223,7 +223,13 @@ class VerificationQueueService {
     }
 
     const { data } = request;
-    const isReplayEnabled = !!data.replayData && !!data.metadata;
+    // verify-replay still targets legacy `game_sessions` schema and will reject
+    // current `sessions` records. Gate it behind an explicit flag until the
+    // replay verifier is migrated to the current `sessions` schema.
+    const isReplayEnabled =
+      import.meta.env.VITE_ENABLE_REPLAY_VERIFICATION === 'true' &&
+      !!data.replayData &&
+      !!data.metadata;
 
     // We will use the existing endpoint structure
     const functionName = isReplayEnabled ? 'verify-replay' : 'verify-game';
@@ -242,12 +248,15 @@ class VerificationQueueService {
           },
         }
       : {
-          profileId: data.userId, // UserSessionService.getPlayerId()
+          profileId: data.userId, // Profile UUID
           sessionId: data.sessionId,
           startTime: data.startTime,
           endTime: data.endTime,
           pair: data.pair,
           position: data.position,
+          leverage: data.leverage,
+          claimedEntryPrice: data.claimedEntryPrice,
+          claimedExitPrice: data.claimedExitPrice,
           kills: data.kills,
           level: data.level,
           survivalSeconds: Math.floor(data.survivalTimeMs / 1000),

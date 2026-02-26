@@ -117,7 +117,7 @@ describe('useMarketData', () => {
       useMarketData(GameStatus.MENU, MarketPosition.LONG, 0, 1, mockPlayerRef, 'BTC')
     );
 
-    expect(result.current.marketData.price).toBe(0);
+    expect(result.current.marketData.price).toBe(43000);
     expect(result.current.marketData.difficulty).toBe(1);
     expect(result.current.marketData.pair).toBe('BTC');
   });

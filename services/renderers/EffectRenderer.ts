@@ -10,6 +10,7 @@ import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
 import { TimeService } from '../core/TimeService';
+import { PriceMomentumEngine } from '../market/PriceMomentumEngine';
 
 /**
  * EffectRenderer - Handles transient visual overlays and particle systems.
@@ -53,12 +54,15 @@ export class EffectRenderer implements IRenderer {
       this.drawFloatingTexts(ctx, pool, bounds);
     }
 
-    // 4. Momentum Feedback (Top layer)
+    // 5. Momentum Feedback (Top layer)
     if (graphics.showParticles) {
       this.drawSpeedLines(ctx, pool, player);
     }
 
-    // 5. Market Ambiance Overlays (RSI/Whale)
+    // 6. Market Intensity Overlay (Phase 3C)
+    this.drawMomentumOverlay(ctx, width, height);
+
+    // 7. Market Ambiance Overlays (RSI/Whale)
     this.drawMarketAmbiance(ctx, width, height, state);
   }
 
@@ -500,6 +504,86 @@ export class EffectRenderer implements IRenderer {
     }
 
     ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  /**
+   * Visualizes high-frequency market momentum (Intensity).
+   * Adds a dynamic energy vibe when the market moves fast.
+   */
+  private drawMomentumOverlay(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ): void {
+    const mom = PriceMomentumEngine.getLatest();
+    // Only visible when things heat up
+    if (mom.intensity < 0.25) return;
+
+    ctx.save();
+    const isRetro = ThemeService.isRetro();
+
+    // Base alpha scales with intensity
+    const alpha = Math.min(0.2, (mom.intensity - 0.25) * 0.4);
+
+    // Pulse alpha slightly with BPM to sync with audio
+    const pulseTime = TimeService.getGameTimeSeconds();
+    const bpm = mom.suggestedBPM / 60; // beats per second
+    const pulse = Math.sin(pulseTime * bpm * Math.PI * 2) * 0.5 + 0.5; // 0-1
+    const finalAlpha = alpha * (0.8 + pulse * 0.4);
+
+    ctx.globalAlpha = finalAlpha;
+
+    // Favorable = Cyber Green, Unfavorable = Alarm Red
+    const color = mom.isFavorable
+      ? isRetro
+        ? '#10b981'
+        : '#34d399'
+      : isRetro
+        ? '#ef4444'
+        : '#f87171';
+
+    if (isRetro) {
+      // Retro: Thick border that grows with intensity
+      const borderWidth = 10 + mom.intensity * 40;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = borderWidth;
+      ctx.strokeRect(0, 0, width, height);
+    } else {
+      // Cyberpunk: Energy vignette
+      const gradient = gradientCache.getRadialGradient(
+        ctx,
+        width / 2,
+        height / 2,
+        height * 0.4,
+        width / 2,
+        height / 2,
+        Math.max(width, height) * 0.9,
+        [
+          { offset: 0, color: 'transparent' },
+          { offset: 1, color },
+        ]
+      );
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // High Intensity Scanline Glitch (CRASHING/SURGING generally > 0.8)
+    if (mom.intensity > 0.85) {
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.15;
+      // Random-ish scanline that scrolls
+      const scanHeight = height * 0.05;
+      const scanY =
+        (TimeService.getGameTimeSeconds() * 1000 * (1 + mom.intensity)) % height;
+      ctx.fillRect(0, scanY, width, scanHeight);
+
+      // Occasional second glitch line
+      if (Math.random() > 0.7) {
+        ctx.fillRect(0, (scanY + height / 2) % height, width, scanHeight * 0.5);
+      }
+    }
+
     ctx.restore();
   }
 }

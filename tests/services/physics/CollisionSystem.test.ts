@@ -26,6 +26,12 @@ vi.mock('../../../services/system/ThemeService', () => ({
   },
 }));
 
+vi.mock('../../../services/gameplay/LeverageEngine', () => ({
+  LeverageEngine: {
+    getMultipliers: vi.fn(() => ({ damageTaken: 1.0 })),
+  },
+}));
+
 describe('CollisionSystem', () => {
   let mockContext: IPhysicsContext;
   let mockPool: any; // Using any for partial mock convenience
@@ -340,6 +346,137 @@ describe('CollisionSystem', () => {
         expect.any(String),
         expect.any(Number)
       );
+    });
+
+    it('should allow multiple enemies to deal damage in the same frame', () => {
+      // All 3 enemies are at the same position as the player (0,0) → all collide
+      const enemy1 = {
+        x: 0,
+        y: 0,
+        radius: 10,
+        active: true,
+        damage: 10,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        behavior: { move: vi.fn() },
+      };
+      const enemy2 = {
+        x: 0,
+        y: 0,
+        radius: 10,
+        active: true,
+        damage: 15,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        behavior: { move: vi.fn() },
+      };
+      const enemy3 = {
+        x: 0,
+        y: 0,
+        radius: 10,
+        active: true,
+        damage: 5,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy1, enemy2, enemy3];
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      // All 3 enemies should have dealt damage (base multiplier = 0.8)
+      // 10*0.8 + 15*0.8 + 5*0.8 = 8 + 12 + 4 = 24
+      expect(mockPlayer.hp).toBeCloseTo(76, 0);
+
+      // 3 separate playerHit events should be emitted
+      const playerHitCalls = vi
+        .mocked(EventBus.emit)
+        .mock.calls.filter(call => call[0] === 'playerHit');
+      expect(playerHitCalls).toHaveLength(3);
+
+      // I-frames should be set after the loop
+      expect(mockPlayer.invulnerabilityTimer).toBe(400);
+    });
+
+    it('should set I-frames after frame preventing next-frame damage', () => {
+      const enemy = {
+        x: 0,
+        y: 0,
+        radius: 10,
+        active: true,
+        damage: 10,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+
+      // Frame 1: Enemy hits
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      const hpAfterFrame1 = mockPlayer.hp;
+      expect(hpAfterFrame1).toBeLessThan(100);
+      expect(mockPlayer.invulnerabilityTimer).toBe(400);
+
+      // Frame 2: Same enemy still colliding, but I-frames active → no damage
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      expect(mockPlayer.hp).toBe(hpAfterFrame1); // HP unchanged
+    });
+
+    it('should allow per-enemy dodge rolls (partial dodge on swarm)', () => {
+      vi.mocked(mockContext.stats.getDodge).mockReturnValue(0.5);
+
+      const enemy1 = {
+        x: 0,
+        y: 0,
+        radius: 10,
+        active: true,
+        damage: 10,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        behavior: { move: vi.fn() },
+      };
+      const enemy2 = {
+        x: 0,
+        y: 0,
+        radius: 10,
+        active: true,
+        damage: 10,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy1, enemy2];
+
+      // First enemy: random=0.1 < 0.5 → DODGE
+      // Second enemy: random=0.8 >= 0.5 → HIT
+      let callCount = 0;
+      vi.spyOn(Math, 'random').mockImplementation(() => {
+        callCount++;
+        return callCount === 1 ? 0.1 : 0.8;
+      });
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      // Only 1 enemy hit → damage = 10 * 0.8 = 8
+      expect(mockPlayer.hp).toBeCloseTo(92, 0);
+
+      // Should see DODGE floating text
+      expect(mockPool.getFloatingText).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number),
+        'DODGE!',
+        expect.any(String),
+        expect.any(Number)
+      );
+
+      // I-frames from hit (not dodge)
+      expect(mockPlayer.invulnerabilityTimer).toBe(400);
     });
   });
 

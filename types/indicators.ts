@@ -321,6 +321,8 @@ export interface MACDResult {
   signal: number;
   /** Histogram (MACD - Signal) */
   histogram: number;
+  /** Alias for macd, used by difficulty systems */
+  value: number;
 }
 
 // =============================================================================
@@ -387,7 +389,7 @@ export function getDefaultMarketIndicatorState(): MarketIndicatorState {
     rsi: 50,
     rsiState: 'NEUTRAL',
     previousRsiState: 'NEUTRAL',
-    macd: { macd: 0, signal: 0, histogram: 0 },
+    macd: { macd: 0, signal: 0, histogram: 0, value: 0 },
     atr: 0,
     atrPercent: 0,
     spawnRateMultiplier: 1.0,

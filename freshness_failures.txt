@@ -1,0 +1,259 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [31mÔØ»[39m tests/freshness/services/core/metrics/MetricsStorage.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 8[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m tests/freshness/components/admin/AnalyticsDashboard.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 8[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m tests/freshness/services/system/AntiCheatService.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 8[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m tests/freshness/components/mobile/VirtualJoystick.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 9[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m tests/freshness/services/gameplay/SupabaseCoinProvider.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 9[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m tests/freshness/services/core/SupabaseUtils.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 10[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [31mÔØ»[39m tests/freshness/hooks/useBeforeUnload.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 11[2mms[22m[39m
+[31m     [31m├ù[31m keeps mapped source file present and not stale[39m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/utils/classnames.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useLazyRef.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useWindowDimensions.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/utils/touchTargetAudit.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 248[2mms[22m[39m
+[90mstdout[2m | tests/freshness/utils/GradientCache.test.ts[2m > [22m[2mgradientCache[2m > [22m[2mcaches linear gradients with same key
+[22m[39m­şöı [00:41:53] [DEBUG] [GradientCache] New linear gradient cached: lin-0.0-0.0-100.0-0.0-0:#000|1:#fff
+
+[90mstdout[2m | tests/freshness/utils/GradientCache.test.ts[2m > [22m[2mgradientCache[2m > [22m[2mclears cache automatically when maxEntries is reached
+[22m[39m­şöı [00:41:53] [DEBUG] [GradientCache] New linear gradient cached: lin-0.0-0.0-10.0-0.0-0:#0f0
+­şöı [00:41:53] [DEBUG] [GradientCache] New linear gradient cached: lin-2.0-0.0-10.0-0.0-0:#0f0
+
+ [32mÔ£ô[39m tests/freshness/utils/GradientCache.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/StatRegistry.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/StreakFactor.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/system/ThemeService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/utils/backgroundCandles.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/AudioRegistry.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/lootbox/LootboxDropPools.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/EnemyRegistry.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/EnemyConfig.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/buffs/DiamondHandsDecorator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/macd.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/PlayerStatsAdapter.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/PlayerConfig.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/marketRuntime.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/LevelFactor.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/GameConfig.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/LegalModals.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/contexts/themeContextDef.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/utils.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/MetricsConfig.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/cards/tierConfig.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/NearDeathFactor.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/Colors.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/DocScreen.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/themed/ThemedPanel.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useLerpValue.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/buffs/BerserkDecorator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/audio/HowlerManager.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/TutorialConfig.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/factories/EnemyFactory.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/IPlayerStats.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/PerformancePresets.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useCloudflareSession.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/auth/PlayerIdentityService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/debuffs/VulnerableDecorator.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useResponsiveUI.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/contexts/GameContext.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/themes/cyberpunk.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/commitlint.config.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/themeVariants.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ui/CryptoSelector.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/themes/retro16bit.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/stores/slices/graphicsSlice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/audio/SlotMachineSounds.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ErrorBoundary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ComboDebugPanel.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useThemeSize.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/combat/physics/PhysicsContext.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/playwright.config.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/gameplay/AchievementService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/LevelUpScreen/SlotReel.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/buffs/LuckBoostDecorator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/market/MarketStateService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/VolumeFactor.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/cards/cardDefinitions.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/themed/LiveTicker.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/contexts/useTheme.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/themed/ThemedButton.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ui/ThemeToggle.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/TwitterCallback.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/cards/CardApplicator.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/auth/SecurityUtils.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/ATRFactor.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/audio/ComboSounds.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/stores/slices/progressSlice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/debuffs/SlowDecorator.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useRunStats.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/LazyMotionProvider.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/ToggleButton.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/buffs/RageModeDecorator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/themed/ThemedInput.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/admin/AdminDashboard.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/vitest.config.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/TutorialOverlay.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/contexts/ThemeContext.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/debuffs/LiquidatedDecorator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/MobileSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useEnemyPointers.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/core/ReduxDevToolsBridge.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/hud/LevelUpFlash.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/core/ErrorRecoveryService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/config/ExperienceConfig.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/gameplay/WalletService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/interfaces/IPhysicsSubsystems.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/SoundMixerSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/stores/slices/sessionSlice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/contexts/useUser.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/LevelUpScreen/LevelUpErrorBoundary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/admin/EvolutionViewer.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/AudioSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/SEO.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/BrainLoader.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/DifficultyContext.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ui/TutorialSpotlight.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/LanguageSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/QualitySection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/LevelUpScreen/CardIcon.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/contexts/useLanguage.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/stress.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/usePWAInstall.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useMenuNav.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/stores/slices/mobileSlice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useTutorial.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/hub/HubIcons.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/ControlsSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/eslint.config.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ui/TwitterLoginButton.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/icons/CardIcons.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/patterns/decorators/debuffs/WeakenedDecorator.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/PerformanceFactor.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/MetricsDebugPanel.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ui/OptimizationBadge.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/vite.config.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/GameMasterBrain.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/GraphicsSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useDevShortcuts.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/gameplay/ShopService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/themed/ThemedText.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/settings/ThemeSection.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ui/TutorialTooltip.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/indicators/ClientIndicatorService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/auth/ProfileService.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/screens/LandingPageSkeleton.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/services/difficulty/factors/RSIFactor.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/hud/EnemyPointers.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/hooks/useDifficultyV2.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/ParticleDebugPanel.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/stores/slices/gameplaySlice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/DebugPanel.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/stores/slices/audioSlice.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m tests/freshness/components/hud/MilestoneAnnouncer.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 7 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/freshness/hooks/useBeforeUnload.test.ts > freshness:hooks/useBeforeUnload.ts > keeps mapped source file present and not stale
+AssertionError: expected 1771781814054.8772 to be less than or equal to 1770981939088.841
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/hooks/useBeforeUnload.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/7]ÔÄ»
+
+ FAIL  tests/freshness/components/admin/AnalyticsDashboard.test.ts > freshness:components/admin/AnalyticsDashboard.tsx > keeps mapped source file present and not stale
+AssertionError: expected 1771781814052.7505 to be less than or equal to 1771509334260.1348
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/components/admin/AnalyticsDashboard.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/7]ÔÄ»
+
+ FAIL  tests/freshness/components/mobile/VirtualJoystick.test.ts > freshness:components/mobile/VirtualJoystick.tsx > keeps mapped source file present and not stale
+AssertionError: expected 1771781814053.871 to be less than or equal to 1770981939062.6248
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/components/mobile/VirtualJoystick.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/7]ÔÄ»
+
+ FAIL  tests/freshness/services/core/SupabaseUtils.test.ts > freshness:services/core/SupabaseUtils.ts > keeps mapped source file present and not stale
+AssertionError: expected 1771781814057.4656 to be less than or equal to 1770981939102.8418
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/services/core/SupabaseUtils.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/7]ÔÄ»
+
+ FAIL  tests/freshness/services/gameplay/SupabaseCoinProvider.test.ts > freshness:services/gameplay/SupabaseCoinProvider.ts > keeps mapped source file present and not stale
+AssertionError: expected 1771781814057.4656 to be less than or equal to 1770981939113.3445
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/services/gameplay/SupabaseCoinProvider.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/7]ÔÄ»
+
+ FAIL  tests/freshness/services/system/AntiCheatService.test.ts > freshness:services/system/AntiCheatService.ts > keeps mapped source file present and not stale
+AssertionError: expected 1771781814057.9717 to be less than or equal to 1770981939122.872
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/services/system/AntiCheatService.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/7]ÔÄ»
+
+ FAIL  tests/freshness/services/core/metrics/MetricsStorage.test.ts > freshness:services/core/metrics/MetricsStorage.ts > keeps mapped source file present and not stale
+AssertionError: expected 1771776847168.8347 to be less than or equal to 1770981939103.848
+ ÔØ» assertSourceFreshness tests/freshness/assertSourceFreshness.ts:40:31
+     38|   expect(sourceStats.isFile()).toBe(true);
+     39|   expect(sourceStats.size).toBeGreaterThan(0);
+     40|   expect(sourceStats.mtimeMs).toBeLessThanOrEqual(
+       |                               ^
+     41|     testStats.mtimeMs + FRESHNESS_TIME_TOLERANCE_MS
+     42|   );
+ ÔØ» tests/freshness/services/core/metrics/MetricsStorage.test.ts:6:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/7]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m7 failed[39m[22m[2m | [22m[1m[32m135 passed[39m[22m[90m (142)[39m
+[2m      Tests [22m [1m[31m7 failed[39m[22m[2m | [22m[1m[32m219 passed[39m[22m[90m (226)[39m
+[2m   Start at [22m 03:41:49
+[2m   Duration [22m 28.78s[2m (transform 5.74s, setup 62.19s, import 6.74s, tests 1.33s, environment 190.03s)[22m
+

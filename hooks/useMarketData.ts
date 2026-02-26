@@ -13,7 +13,7 @@ import {
 } from '../services/market/MarketService';
 import { MarketCalculator, type ATRContext } from '../services/market/MarketCalculator';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
-import { MAX_CHART_POINTS } from '../constants';
+import { MAX_CHART_POINTS, MARKET } from '../constants';
 import { type CryptoPair } from '../types/crypto';
 import { EventBus } from '../services/core/EventBus';
 import { Logger } from '../services/system/Logger';
@@ -105,7 +105,7 @@ export const useMarketData = (
   marketRuntimeMode: MarketRuntimeMode = 'legacy'
 ) => {
   const [marketData, setMarketData] = useState<MarketData>({
-    price: 0,
+    price: entryPrice || MARKET.FALLBACK_PRICES[pair],
     volume: 0,
     pnl: 0,
     effectivePnl: 0,
@@ -272,7 +272,7 @@ export const useMarketData = (
 
     setMarketData(prev => ({
       ...prev,
-      price: 0,
+      price: entryPriceRef.current || MARKET.FALLBACK_PRICES[pair],
       difficulty: 1,
       pnl: 0,
       effectivePnl: 0,

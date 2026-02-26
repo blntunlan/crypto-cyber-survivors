@@ -1,0 +1,39 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [31mÔØ»[39m tests/edge/PhysicsSystem.test.ts [2m([22m[2m7 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 12[2mms[22m[39m
+       [32mÔ£ô[39m should handle dtFactor of 0 (paused/frozen)[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m should handle extremely large dtFactor (lag spike)[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should handle large dtFactor in collisions (teleportation protection)[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should deactivate enemies slightly off-screen (threshold)[32m 0[2mms[22m[39m
+       [32mÔ£ô[39m should NOT deactivate enemies exactly at the edge[32m 0[2mms[22m[39m
+[31m       [31m├ù[31m should clamp player HP at 0 and not call onGameOver twice[39m[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m should handle massive XP gain in one frame[32m 1[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  tests/edge/PhysicsSystem.test.ts > PhysicsSystem Edge Cases > Player HP Edge Cases > should clamp player HP at 0 and not call onGameOver twice
+AssertionError: expected NaN to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ NaN
+
+ ÔØ» tests/edge/PhysicsSystem.test.ts:332:29
+    330|       );
+    331| 
+    332|       expect(mockPlayer.hp).toBe(0);
+       |                             ^
+    333|       expect(mockOnGameOver).toHaveBeenCalledTimes(1);
+    334| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (7)[39m
+[2m   Start at [22m 19:38:33
+[2m   Duration [22m 1.32s[2m (transform 347ms, setup 232ms, import 353ms, tests 12ms, environment 569ms)[22m
+

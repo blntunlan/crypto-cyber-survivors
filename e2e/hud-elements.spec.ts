@@ -161,6 +161,7 @@ test.describe('HUD Elements E2E', () => {
       window.EventBus.emit('volatilityShock', {
         intensity: 1.2,
         direction: 'up',
+        isHighLeverage: false,
       });
     });
 

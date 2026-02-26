@@ -80,6 +80,7 @@ export function getDefaultInputs(): DifficultyInputs {
     macd: {
       histogram: 0,
       signal: 0,
+      macd: 0,
       value: 0,
     },
     stress: {

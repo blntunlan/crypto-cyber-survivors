@@ -9,10 +9,10 @@ import { Logger } from '../system/Logger';
 import { difficultyContext } from '../difficulty/DifficultyContext';
 import { clamp } from '../difficulty/utils';
 import { getShockDirection } from '../difficulty/factors';
-import { GameMasterBrain, type GameMasterInputs } from '../difficulty/GameMasterBrain';
+import { UnifiedDirector, type UnifiedInputs } from '../difficulty/UnifiedDirector';
 import { PoolManager } from '../combat/PoolManager';
-import { DirectorAdapter } from '../difficulty/DirectorAdapter';
 import { type DifficultyOutput } from './DifficultyTypes';
+import { LeverageEngine } from './LeverageEngine';
 
 /**
  * DifficultyManagerClass - Singleton service for managing game progression.
@@ -29,11 +29,17 @@ class DifficultyManagerClass {
   private lastShockTime: number = 0; // Prevent shock triggers for the first 10 seconds
   private latestOutput: DifficultyOutput | null = null;
 
-  // Momentum tracking
+  // Momentum and Metric tracking
   private lastPnL: number = 0;
   private lastVolume: number = 0;
   private pnlMomentum: number = 0;
   private volumeMomentum: number = 0;
+
+  // AI Director V2 Sensors
+  private dashCount: number = 0;
+  private damageTakenSum: number = 0;
+  private killsInWindow: number = 0;
+  private windowStartTime: number = 0;
   private unsubscribeFns: (() => void)[] = [];
 
   private constructor() {
@@ -43,7 +49,28 @@ class DifficultyManagerClass {
   private setupListeners(): void {
     // Sync with combat events for streak tracking
     this.unsubscribeFns.push(
-      EventBus.on('enemyKilled', () => this.recordKill(), { scope: 'gameplay' }),
+      EventBus.on(
+        'enemyKilled',
+        () => {
+          this.recordKill();
+          this.killsInWindow++;
+        },
+        { scope: 'gameplay' }
+      ),
+      EventBus.on(
+        'playerDash',
+        () => {
+          this.dashCount++;
+        },
+        { scope: 'gameplay' }
+      ),
+      EventBus.on(
+        'playerHit',
+        data => {
+          this.damageTakenSum += data.damage;
+        },
+        { scope: 'gameplay' }
+      ),
       EventBus.on('gameReset', () => this.reset(), { scope: 'system' })
     );
   }
@@ -53,13 +80,18 @@ class DifficultyManagerClass {
   }
 
   /**
-   * Start tracking difficulty (Legacy Wrapper)
+   * Start tracking difficulty (Legacy Wrapper).
+   * NOTE: The caller (GameStateManager.resetAll) emits 'gameReset' BEFORE calling
+   * this method, so all state is already clean. We only need to stamp the
+   * session-specific leverage value.
    */
   startGame(leverage: number = 1): void {
-    this.reset();
     Logger.info(`[DifficultyManager] Starting session with ${leverage}x leverage`);
 
-    // Direct sync for context
+    // Deterministically set leverage on both systems (don't rely on event ordering)
+    LeverageEngine.setLeverage(leverage);
+
+    // Direct sync for context — stamps the chosen leverage onto the clean slate
     difficultyContext.updateInputs({
       leverage,
       level: 1,
@@ -124,30 +156,20 @@ class DifficultyManagerClass {
     const maxDifficulty = adminConfig?.maxDifficulty ?? D_CONFIG.LIMITS.total.max;
 
     // 4. Transform Aggregates to Engine Outputs (Layer 4 Mapping)
+    const totalRaw = agg.total * baseMultiplier;
     const total = clamp(
-      agg.total * baseMultiplier,
+      isNaN(totalRaw) ? 1.0 : totalRaw,
       D_CONFIG.LIMITS.total.min,
       maxDifficulty
     );
     const scale = inp.leverageScale;
 
-    // 4.5. Update GameMaster Brain with current state
+    // 4.5. Market Indicators
     const marketRSI = Number.isFinite(inp.rsi) ? inp.rsi : 50;
     const marketAtrPercent = Number.isFinite(inp.atrPercent) ? inp.atrPercent : 0;
     const marketVolume = Number.isFinite(inp.normalizedVolume)
       ? inp.normalizedVolume
       : 0.5;
-
-    const macdInput = inp.macd as { value?: number; macd?: number } | undefined;
-    const macdValue = macdInput?.value;
-    const macdLegacy = macdInput?.macd;
-    const macdLine =
-      typeof macdValue === 'number'
-        ? macdValue
-        : typeof macdLegacy === 'number'
-          ? macdLegacy
-          : 0;
-    const macdFactor = clamp((macdLine + 1) / 2, 0, 1); // Normalize to 0-1
 
     // Calculate Momentum
     const currentLeveragedPnL = pnl * inp.leverage;
@@ -159,61 +181,74 @@ class DifficultyManagerClass {
     this.lastPnL = currentLeveragedPnL;
     this.lastVolume = marketVolume;
 
-    // Determine trend from RSI
-    let trendValue = 0.5;
-    if (marketRSI > 60) trendValue = 1.0;
-    else if (marketRSI < 40) trendValue = 0.0;
+    // --- AI DIRECTOR V2 INTEGRATION ---
+    // Prepare 18 sensors for UnifiedDirector
+    const nowMs = TimeService.getGameTime();
+    const elapsedTime = nowMs / 1000;
 
-    // Calculate player stats for brain
+    // Calculate Windowed Metrics (5s window)
+    if (nowMs - this.windowStartTime > 5000) {
+      this.dashCount = 0;
+      this.damageTakenSum = 0;
+      this.killsInWindow = 0;
+      this.windowStartTime = nowMs;
+    }
+
     const activeGems = PoolManager.getInstance().activeGems.length;
-    const zoningScore = Math.min(1, activeGems / 150);
-    const killEfficiency = Math.min(1, this.killStreak / 30);
+    const windowDuration = (nowMs - this.windowStartTime) / 1000 || 1;
 
-    const brainInputs: GameMasterInputs = {
+    const inputs: UnifiedInputs = {
+      // Market Data
       rsi: marketRSI / 100,
-      macd: macdFactor,
-      volatility: Math.min(1, marketAtrPercent * 2),
-      volume: marketVolume,
-      volumeMomentum: clamp(this.volumeMomentum * 10, -1, 1), // Scale up for sensitivity
-      trend: trendValue,
-      pnlMomentum: clamp(this.pnlMomentum * 5, -1, 1), // Scale up for sensitivity
-      pnl: clamp(currentLeveragedPnL, -1, 1),
-      stress: 1 - Math.min(100, Math.max(0, inp.hpPercent)) / 100,
-      playerDPS: 0.5, // Will be set externally
-      killEfficiency,
-      elapsedTime: inp.elapsedSeconds / 900, // 15 min normalized
-      level: level / 30,
-      luckStat: 0.1, // Base luck, can be updated
-      zoningScore,
+      rsiMomentum: (marketRSI - 50) / 50, // Simplified momentum
+      atrPercent: marketAtrPercent,
+      volumeNorm: marketVolume,
+      priceChange: (pnl - this.lastPnL) * 10, // Scale up price change
+      trendStrength: Math.abs(marketRSI - 50) / 25, // Distance from neutral
+
+      // Player State
+      hpPercent: inp.hpPercent,
+      pnlRatio: clamp(currentLeveragedPnL, -1, 1),
+      killsPerMin: ((this.killsInWindow / windowDuration) * 60) / 30, // Normalized to 30 kills/min
+      dashFrequency: ((this.dashCount / windowDuration) * 10) / 5, // Normalized to 5 dashes/10s
+      playerDPS: this.killStreak / 10, // Proxy for DPS
+      damageTakenRate: this.damageTakenSum / windowDuration / 20, // Normalized to 20hp/s
+
+      // Game Context
+      elapsedMinutes: elapsedTime / 60,
+      playerLevel: level / 50,
       leverage: inp.leverage / 100,
+      gemPileup: activeGems / 200, // Normalized to 200 gems
+      engagementScore: 0.5, // Will be updated by brain
+      frustrationScore: 0.5, // Will be updated by brain
     };
 
-    GameMasterBrain.update(brainInputs, TimeService.getGameTime());
-    const gm = GameMasterBrain.getOutputs();
+    // Update brain and get outputs
+    UnifiedDirector.update(inputs, nowMs);
+    const uo = UnifiedDirector.getOutputs();
 
-    // Apply GameMaster Brain outputs directly
     const output: DifficultyOutput = {
       spawnRate: clamp(
-        total * scale.spawn * gm.spawnRate,
+        total * scale.spawn * uo.spawnRate || 1.0,
         D_CONFIG.LIMITS.spawnRate.min,
         D_CONFIG.LIMITS.spawnRate.max
       ),
       enemySpeed: clamp(
-        f.pnl * f.atr * scale.speed * gm.enemySpeed,
+        f.pnl * f.atr * scale.speed * uo.enemySpeed || 1.0,
         D_CONFIG.LIMITS.enemySpeed.min,
         D_CONFIG.LIMITS.enemySpeed.max
       ),
       enemyHealth: clamp(
-        f.cycle * f.level * scale.hp * gm.enemyHP,
+        f.cycle * f.level * scale.hp * uo.enemyHP || 1.0,
         D_CONFIG.LIMITS.enemyHP.min,
         D_CONFIG.LIMITS.enemyHP.max
       ),
       enemyDamage: clamp(
-        f.cycle * f.pnl * scale.damage * gm.enemyDamage,
+        f.cycle * f.pnl * scale.damage * uo.enemyDamage || 1.0,
         D_CONFIG.LIMITS.enemyDamage.min,
         D_CONFIG.LIMITS.enemyDamage.max
       ),
-      gemValueMultiplier: gm.gemValueMultiplier,
+      gemValueMultiplier: uo.gemDropRate, // Use gemDropRate as multiplier
       total,
       factors: {
         baseTime: f.cycle,
@@ -229,19 +264,19 @@ class DifficultyManagerClass {
         leverageSpawn: scale.spawn,
         leverageSpeed: scale.speed,
       },
+      // V2 Specific fields
+      variety: uo.enemyVariety,
+      chaos: uo.chaosLevel,
+      mercy: uo.mercyFactor,
+      pressure: uo.pressureIntensity,
+      whaleProb: uo.whaleProbability,
+      xpMult: uo.xpMultiplier,
     };
 
-    // Recalculate total difficulty metric for UI (Using GameMaster brain output)
-    const finalTotal = (output.total + output.total * gm.spawnRate) / 2;
-    output.total = clamp(finalTotal, D_CONFIG.LIMITS.total.min, maxDifficulty);
-
-    // === AI Director V2 Integration ===
-    // Update player HP in DirectorAdapter
-    DirectorAdapter.updatePlayerHP(inp.hpPercent * 100, 100);
-    // Apply Director V2 blending (returns blended output)
-    const finalOutput = DirectorAdapter.process(output);
-
-    this.latestOutput = finalOutput;
+    // Refine total for UI - Protect against NaN components
+    const totalComp = (output.spawnRate + output.enemySpeed + output.enemyHealth) / 3;
+    output.total = isNaN(totalComp) ? 1.0 : totalComp;
+    this.latestOutput = output;
 
     // 5. Emit Events (Cooldown 10s + 5s Session Grace Period)
     const isGracePeriod = TimeService.getGameTimeSeconds() < 5;
@@ -307,7 +342,7 @@ class DifficultyManagerClass {
     }
 
     // Ensure multiplier is at least 1.0 and is a valid number
-    if (isNaN(multiplier) || multiplier < 1.0) {
+    if (isNaN(multiplier) || multiplier < 1.0 || !isFinite(multiplier)) {
       multiplier = 1.0;
     }
 
@@ -349,20 +384,23 @@ class DifficultyManagerClass {
   }
 
   getDebugState(): DifficultyDebugState {
+    const totalElapsedSeconds = TimeService.getGameTimeSeconds();
+    const cycleElapsed = totalElapsedSeconds % 300;
+
     return {
       systemName: 'DifficultyManager',
       timestamp: getDebugTimestamp(),
       wavePhase: 'active' as WavePhase, // AI Director V2: Always active
       waveTimer: 0, // Simplified
       killStreak: this.killStreak,
-      totalElapsedSeconds: TimeService.getGameTimeSeconds(),
+      totalElapsedSeconds,
       pnlHistoryLength: 0,
       waveDurations: { active: 300 },
       waveMultipliers: { active: 1.0 },
-      cycleNumber: this.getCycleNumber(),
-      cycleProgress: this.getCycleProgress(),
+      cycleNumber: Math.floor(totalElapsedSeconds / 300) + 1,
+      cycleProgress: cycleElapsed / 300,
       timeRemainingInPhase: 0,
-      timeRemainingInCycle: this.getTimeRemainingInCycle(),
+      timeRemainingInCycle: 300 - cycleElapsed,
     };
   }
 
@@ -394,7 +432,7 @@ class DifficultyManagerClass {
       this.instance.unsubscribeFns.forEach(unsub => unsub());
       this.instance.unsubscribeFns = [];
       this.instance.reset();
-      this.instance = null;
+      this.instance.setupListeners();
     }
   }
 
@@ -413,3 +451,4 @@ class DifficultyManagerClass {
 }
 
 export const DifficultyManager = DifficultyManagerClass.getInstance();
+export { DifficultyManagerClass };

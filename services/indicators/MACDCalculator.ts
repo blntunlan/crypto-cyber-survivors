@@ -39,7 +39,7 @@ export class MACDCalculator {
   private prevSlowEma: number | null = null;
   private prevSignalEma: number | null = null;
 
-  private currentResult: MACDResult = { macd: 0, signal: 0, histogram: 0 };
+  private currentResult: MACDResult = { macd: 0, signal: 0, histogram: 0, value: 0 };
 
   constructor(config: MACDConfig = DEFAULT_MACD_CONFIG) {
     this.config = config;
@@ -101,7 +101,7 @@ export class MACDCalculator {
     this.prevFastEma = null;
     this.prevSlowEma = null;
     this.prevSignalEma = null;
-    this.currentResult = { macd: 0, signal: 0, histogram: 0 };
+    this.currentResult = { macd: 0, signal: 0, histogram: 0, value: 0 };
   }
 
   /**
@@ -152,6 +152,7 @@ export class MACDCalculator {
         macd: Number(macdLine.toFixed(SYNC_CONFIG.PRECISION)),
         signal: 0,
         histogram: 0,
+        value: Number(macdLine.toFixed(SYNC_CONFIG.PRECISION)),
       };
     }
 
@@ -162,6 +163,7 @@ export class MACDCalculator {
       macd: Number(macdLine.toFixed(SYNC_CONFIG.PRECISION)),
       signal: Number(this.prevSignalEma.toFixed(SYNC_CONFIG.PRECISION)),
       histogram: Number(histogram.toFixed(SYNC_CONFIG.PRECISION)),
+      value: Number(macdLine.toFixed(SYNC_CONFIG.PRECISION)),
     };
   }
 

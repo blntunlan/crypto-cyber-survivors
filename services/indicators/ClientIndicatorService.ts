@@ -258,9 +258,11 @@ class ClientIndicatorServiceClass {
       priceChangePercent: this.state.priceChangePercent,
       trendStrength: this.state.trendStrength,
       trendDirection: this.state.trendDirection,
-      macdValue: macd.macd,
-      macdSignal: macd.signal,
-      macdHistogram: macd.histogram,
+      macd: {
+        value: macd.macd,
+        signal: macd.signal,
+        histogram: macd.histogram,
+      },
       whaleTier: this.state.whaleTier,
     });
 

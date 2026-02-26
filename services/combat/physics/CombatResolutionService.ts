@@ -217,16 +217,20 @@ export class CombatResolutionService {
       : player.luck;
     const luck = Math.min(rawLuck, PLAYER_STATS.MAX_LUCK);
 
-    // 1. Rare Gem Determination
+    // 1. Rare Gem Determination (RSI enemies always drop rare 'coins')
     const rareChance = Math.min(
       LUCK.MAX_RARE_CHANCE,
       LUCK.BASE_RARE_CHANCE + luck * LUCK.RARE_CHANCE_PER_LUCK
     );
-    const isRare = Math.random() < rareChance;
+    const isRare = Math.random() < rareChance || enemy.type === 'rsi';
 
     // 2. Value Calculation
     const baseVal =
-      enemy.type === 'whale' ? GEMS.BASE_VALUE_WHALE : GEMS.BASE_VALUE_NORMAL;
+      enemy.type === 'whale'
+        ? GEMS.BASE_VALUE_WHALE
+        : enemy.type === 'rsi'
+          ? GEMS.BASE_VALUE_NORMAL * 5
+          : GEMS.BASE_VALUE_NORMAL;
     const luckValueBonus = 1 + luck * LUCK.VALUE_BONUS_PER_LUCK;
     const rareMultiplier = isRare ? GEMS.RARE_MULTIPLIER : 1;
     const leverageMultiplier = DifficultyManager.getXpMultiplier();

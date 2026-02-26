@@ -61,7 +61,11 @@ describe('DashButton', () => {
     const { container } = render(<DashButton onDash={vi.fn()} />);
 
     act(() => {
-      EventBus.emit('playerDash', { cooldown: 1000 });
+      EventBus.emit('playerDash', {
+        duration: 300,
+        cooldown: 1000,
+        isDoubleDash: false,
+      });
     });
 
     expect(container.querySelector('div[style*="height: 100%"]')).toBeInTheDocument();

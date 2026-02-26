@@ -27,11 +27,11 @@ export const DIFFICULTY_CONFIG = {
 
   /** Clamp limits for engine outputs */
   LIMITS: {
-    total: { min: 0.5, max: 7.5 },
+    total: { min: 0.5, max: 15.0 },
     spawnRate: { min: 0.5, max: 5.0 },
-    enemySpeed: { min: 0.5, max: 6.5 },
-    enemyHP: { min: 0.5, max: 5.0 },
-    enemyDamage: { min: 0.8, max: 8.0 },
+    enemySpeed: { min: 0.5, max: 8.0 },
+    enemyHP: { min: 0.5, max: 20.0 },
+    enemyDamage: { min: 0.8, max: 15.0 },
   },
 
   /** Near Death Threshold */
@@ -54,12 +54,12 @@ export const LEVERAGE_TIERS: Record<
   { spawn: number; speed: number; hp: number; damage: number; xpReq: number }
 > = {
   1: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 },
-  2: { spawn: 1.0, speed: 0.85, hp: 0.9, damage: 0.9, xpReq: 1.15 },
-  5: { spawn: 1.4, speed: 1.0, hp: 1.0, damage: 1.0, xpReq: 1.5 },
-  10: { spawn: 2.0, speed: 1.1, hp: 1.1, damage: 1.15, xpReq: 2.2 },
-  25: { spawn: 3.0, speed: 1.25, hp: 1.2, damage: 1.4, xpReq: 3.5 },
-  50: { spawn: 4.0, speed: 1.4, hp: 1.4, damage: 1.8, xpReq: 5.0 },
-  100: { spawn: 6.0, speed: 2.0, hp: 1.6, damage: 3.0, xpReq: 7.5 },
+  2: { spawn: 1.0, speed: 0.85, hp: 0.88, damage: 0.88, xpReq: 1.2 },
+  5: { spawn: 1.3, speed: 0.95, hp: 0.96, damage: 0.96, xpReq: 2.0 },
+  10: { spawn: 1.8, speed: 1.05, hp: 1.06, damage: 1.08, xpReq: 4.5 },
+  25: { spawn: 2.6, speed: 1.18, hp: 1.16, damage: 1.25, xpReq: 7.0 },
+  50: { spawn: 3.5, speed: 1.35, hp: 1.3, damage: 1.55, xpReq: 12.0 },
+  100: { spawn: 4.8, speed: 1.6, hp: 1.5, damage: 2.0, xpReq: 20.0 },
 };
 
 // =============================================================================
@@ -137,8 +137,8 @@ export const VISUAL_CONFIG = {
 export const ECONOMY_CONFIG = {
   // Experience Gems
   GEMS: {
-    BASE_VALUE_NORMAL: 15,
-    BASE_VALUE_WHALE: 100,
+    BASE_VALUE_NORMAL: 12,
+    BASE_VALUE_WHALE: 80,
     RARE_MULTIPLIER: 3,
     RARE_SIZE: 10,
     NORMAL_SIZE: 7,

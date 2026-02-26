@@ -198,7 +198,6 @@ class TacticalLayerClass {
 
     this.cachedOutput = output;
 
-    // Emit event
     EventBus.emit('tacticalLayerUpdate', {
       chaosLevel,
       marketMood,
@@ -297,9 +296,15 @@ class TacticalLayerClass {
    */
   private checkPortalSpawn(
     priceChangePercent: number,
-    _now: number
+    now: number
   ): { shouldSpawnPortal: boolean; portalType: 'profit' | 'loss' | null } {
     const config = TACTICAL_CONFIG;
+
+    // Check cooldown
+    if (now - this.lastPortalSpawnTime < 15000) {
+      // 15s cooldown for portals
+      return { shouldSpawnPortal: false, portalType: null };
+    }
 
     const absChange = Math.abs(priceChangePercent);
     if (absChange < config.PORTAL_TREND_THRESHOLD) {
@@ -311,6 +316,7 @@ class TacticalLayerClass {
       return { shouldSpawnPortal: false, portalType: null };
     }
 
+    this.lastPortalSpawnTime = now;
     const portalType = priceChangePercent > 0 ? 'profit' : 'loss';
     return { shouldSpawnPortal: true, portalType };
   }

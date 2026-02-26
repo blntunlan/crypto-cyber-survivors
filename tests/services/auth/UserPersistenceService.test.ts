@@ -4,6 +4,15 @@ import { UserPersistenceService } from '../../../services/auth/UserPersistenceSe
 const STORAGE_KEY = 'crypto_survivors_user';
 const COOKIE_NAME = 'cs_identity';
 
+vi.mock('../../../services/system/Logger', () => ({
+  Logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 describe('UserPersistenceService', () => {
   beforeEach(() => {
     vi.useFakeTimers();

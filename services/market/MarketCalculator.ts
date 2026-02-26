@@ -122,8 +122,30 @@ export class MarketCalculator {
     const { high, low, close } = input;
     const { trHistory, prevClose } = context;
 
+    // Skip unchanged prices to prevent TR=0 from diluting moving averages excessively
+    // during high-frequency identical price updates
+    if (
+      prevClose !== null &&
+      close === prevClose &&
+      high === undefined &&
+      low === undefined
+    ) {
+      const atr =
+        trHistory.length > 0
+          ? trHistory.reduce((a, b) => a + b, 0) / trHistory.length
+          : 0;
+      const atrPercent = close > 0 ? atr / close : 0;
+
+      return {
+        atr,
+        atrPercent,
+        newTrHistory: trHistory,
+        newPrevClose: close,
+      };
+    }
+
     // Calculate True Range if we have OHLC data
-    let currentTR = 0;
+    let currentTR: number | null = null;
     if (high !== undefined && low !== undefined) {
       const h_l = high - low;
       const h_pc = prevClose !== null ? Math.abs(high - prevClose) : 0;
@@ -131,9 +153,9 @@ export class MarketCalculator {
       currentTR = Math.max(h_l, h_pc, l_pc);
     }
 
-    // Update TR history (immutable)
+    // Update TR history (immutable) - only if we have a new valid TR
     let newTrHistory = [...trHistory];
-    if (currentTR > 0) {
+    if (currentTR !== null) {
       newTrHistory.push(currentTR);
       if (newTrHistory.length > this.ATR_PERIOD) {
         newTrHistory = newTrHistory.slice(-this.ATR_PERIOD);

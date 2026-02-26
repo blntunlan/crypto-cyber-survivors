@@ -18,6 +18,8 @@ import {
   type EventCallback,
   type EventScope,
 } from '../../types/events';
+
+export type { GameEvent, EventDataMap, EventCallback, EventScope };
 import { Logger } from '../system/Logger';
 
 // =============================================================================

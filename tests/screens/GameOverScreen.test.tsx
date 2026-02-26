@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameOverScreen } from '../../components/screens/GameOverScreen';
 
 // Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-  motion: {
+vi.mock('framer-motion', () => {
+  const motionMock = {
     div: ({
       children,
       initial: _initial,
@@ -49,9 +49,13 @@ vi.mock('framer-motion', () => ({
       transition: _transition,
       ...props
     }: any) => <button {...props}>{children}</button>,
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
+  };
+  return {
+    motion: motionMock,
+    m: motionMock,
+    AnimatePresence: ({ children }: any) => <>{children}</>,
+  };
+});
 
 describe('GameOverScreen', () => {
   const defaultProps = {
@@ -70,7 +74,7 @@ describe('GameOverScreen', () => {
     render(<GameOverScreen {...defaultProps} />);
     // Multiple L10 elements may exist (stat + career best)
     expect(screen.getAllByText(/L10/)).toBeDefined();
-    expect(screen.getByText('50.0%')).toBeDefined();
+    expect(screen.getByText('50.00%')).toBeDefined();
   });
 
   it('should render survival time and kills', () => {

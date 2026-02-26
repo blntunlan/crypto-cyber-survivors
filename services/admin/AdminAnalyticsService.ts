@@ -30,7 +30,7 @@ class AdminAnalyticsService {
       const { data, error } = await supabase.rpc('get_market_health_status');
 
       if (error) throw error;
-      return data as MarketHealth;
+      return data as unknown as MarketHealth;
     } catch (error) {
       Logger.error('[Analytics] Failed to fetch market health:', error);
       return null;
@@ -44,7 +44,7 @@ class AdminAnalyticsService {
       const { data, error } = await supabase.from('v_error_summary').select('*');
 
       if (error) throw error;
-      return (data as ErrorOccurence[] | null) ?? [];
+      return (data as unknown as ErrorOccurence[] | null) ?? [];
     } catch (error) {
       Logger.error('[Analytics] Failed to fetch error summary:', error);
       return [];

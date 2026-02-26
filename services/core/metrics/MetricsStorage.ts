@@ -234,11 +234,10 @@ export class MetricsStorage {
         gameSession?.id ?? session.serverSessionId ?? session.sessionId;
 
       // 1b. Enqueue for server-side verification (rewards & anti-cheat)
-      // nickname is already declared above at the start of syncToSupabase
-      if (nickname) {
+      if (!isAnonymous && profileId && actualSessionId) {
         void VerificationQueue.enqueue(
           {
-            userId: nickname, // Edge function uses display_name (nickname) for lookup
+            userId: profileId, // verify-game expects profile UUID
             startTime: session.sessionTimestamp,
             endTime: session.sessionTimestamp + session.player.survivalTimeMs,
             pair: session.pair,
@@ -252,7 +251,7 @@ export class MetricsStorage {
             goldCollected: 0, // Not tracked yet
             survivalTimeMs: session.player.survivalTimeMs,
             optimisticReward: 0, // No client-side optimistic reward yet
-            sessionId: session.serverSessionId ?? session.sessionId,
+            sessionId: actualSessionId,
             replayData: session.replayData,
             metadata: session.replayMetadata,
           },

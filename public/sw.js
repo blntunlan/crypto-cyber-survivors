@@ -7,8 +7,8 @@
  * - Offline fallback page
  */
 
-const CACHE_NAME = 'crypto-survivors-v1';
-const STATIC_CACHE = 'crypto-survivors-static-v1';
+const CACHE_NAME = 'crypto-survivors-v2';
+const STATIC_CACHE = 'crypto-survivors-static-v2';
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/offline.html'];

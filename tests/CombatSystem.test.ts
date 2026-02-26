@@ -176,7 +176,7 @@ describe('CombatSystem', () => {
       expect(mockPool.getBullet).toHaveBeenCalled();
     });
 
-    it('should reset fireTimer when firing', () => {
+    it('should preserve fireTimer overflow when firing', () => {
       mockPool.activeEnemies = [{ x: 500, y: 300, radius: 15, speed: 2, active: true }];
       mockState.fireTimer = 0;
       mockPlayer.fireRate = 300;
@@ -188,7 +188,7 @@ describe('CombatSystem', () => {
         1000
       );
 
-      expect(mockState.fireTimer).toBe(0);
+      expect(mockState.fireTimer).toBe(700);
     });
 
     it('should fire multiple projectiles when player has projectiles > 1', () => {

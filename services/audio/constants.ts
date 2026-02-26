@@ -15,21 +15,21 @@ import {
  * Default volume levels for each sound type
  */
 export const SOUND_DEFAULTS: Record<SoundType, SoundConfig> = {
-  shoot: { volume: 0.04 },
-  crit: { volume: 0.06 },
-  hit: { volume: 0.05 },
-  gem: { volume: 0.02 },
-  levelUp: { volume: 0.03 },
-  dash: { volume: 0.05 },
-  combo: { volume: 0.04 },
-  death: { volume: 0.08 },
-  button: { volume: 0.03 },
-  slotTick: { volume: 0.1 },
-  slowdownTension: { volume: 0.04 },
-  reelStop: { volume: 0.12 },
-  coinShower: { volume: 0.08 },
-  multiplierChime: { volume: 0.05 },
-  nearMiss: { volume: 0.06 },
+  shoot: { volume: 0.025 },
+  crit: { volume: 0.04 },
+  hit: { volume: 0.035 },
+  gem: { volume: 0.015 },
+  levelUp: { volume: 0.025 },
+  dash: { volume: 0.035 },
+  combo: { volume: 0.03 },
+  death: { volume: 0.05 },
+  button: { volume: 0.025 },
+  slotTick: { volume: 0.06 },
+  slowdownTension: { volume: 0.03 },
+  reelStop: { volume: 0.08 },
+  coinShower: { volume: 0.05 },
+  multiplierChime: { volume: 0.035 },
+  nearMiss: { volume: 0.04 },
 };
 
 /**
@@ -97,6 +97,6 @@ export const DEFAULT_CATEGORY_VOLUMES: CategoryVolumes = {
   ui: 1.0,
   alerts: 1.0,
   slots: 1.0,
-  music: 1.0,
+  music: 0.4,
   sfx: 1.0,
 };

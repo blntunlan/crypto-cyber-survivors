@@ -15,9 +15,9 @@ export function calculatePnLFactor({ pnlPercent, leverage }: PnLInputs): number 
   if (leveragedPnL < 0) {
     // LOSS: Difficulty increases
     const lossMagnitude = Math.abs(leveragedPnL);
-    // 1.0 + log(1 + magnitude * 10) * 0.4
+    // 1.0 + log(1 + magnitude * 10) * 0.8
     // Provides rapid initial increase that levels off
-    return Math.min(3.0, 1.0 + Math.log1p(lossMagnitude * 10) * 0.4);
+    return Math.min(3.0, 1.0 + Math.log1p(lossMagnitude * 10) * 0.8);
   } else {
     // PROFIT: Difficulty decreases
     const profitMagnitude = leveragedPnL;

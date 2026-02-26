@@ -14,15 +14,9 @@
  * 5. Mercy System: Emergency help when struggling
  */
 
-import * as SynapticLib from 'synaptic';
+import { Architect, Network } from 'synaptic';
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
-
-// ESM/CJS compatibility
-const SynapticModule = SynapticLib as Record<string, unknown>;
-const SynapticDefault = SynapticModule.default as Record<string, unknown> | undefined;
-const Architect = SynapticModule.Architect ?? SynapticDefault?.Architect;
-const NetworkLib = SynapticModule.Network ?? SynapticDefault?.Network;
 
 // ============================================================================
 // CONFIGURATION
@@ -252,7 +246,7 @@ class UnifiedDirectorClass {
   private static instance: UnifiedDirectorClass | null = null;
 
   // Neural Network: 18 inputs -> 32 hidden -> 32 hidden -> 14 outputs
-  private net!: { activate: (inputs: number[]) => number[] };
+  private net!: Network;
   private brainLoaded: boolean = false;
   private enabled: boolean = true;
 
@@ -298,7 +292,7 @@ class UnifiedDirectorClass {
 
   public loadBrain(brainJson: unknown): boolean {
     try {
-      this.net = NetworkLib.fromJSON(brainJson);
+      this.net = Network.fromJSON(brainJson);
       this.brainLoaded = true;
       Logger.info('[UnifiedDirector] Pre-trained brain loaded');
       return true;
@@ -575,6 +569,7 @@ class UnifiedDirectorClass {
       Logger.info('[UnifiedDirector] Mercy window activated');
       EventBus.emit('gameNotification', {
         type: 'info',
+        title: 'Mercy',
         message: 'Mercy activated!',
         duration: 2000,
       });

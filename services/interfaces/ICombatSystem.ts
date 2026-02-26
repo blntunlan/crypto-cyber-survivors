@@ -15,6 +15,7 @@ export interface ICombatSystem {
    * @param deltaMs - Time since last frame in milliseconds
    * @param screenWidth - Optional screen width for on-screen targeting
    * @param screenHeight - Optional screen height for on-screen targeting
+   * @returns `true` if bullets were fired during this call; callers may ignore this value.
    */
   processAutoFire(
     pool: IPoolManager,
@@ -23,5 +24,5 @@ export interface ICombatSystem {
     deltaMs: number,
     screenWidth?: number,
     screenHeight?: number
-  ): void;
+  ): boolean;
 }

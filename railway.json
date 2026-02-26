@@ -2,6 +2,37 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
+    "watchPatterns": [
+      "App.tsx",
+      "index.tsx",
+      "index.css",
+      "index.html",
+      "server.js",
+      "package.json",
+      "package-lock.json",
+      "vite.config.ts",
+      "tsconfig.json",
+      "postcss.config.cjs",
+      "tailwind.config.cjs",
+      "metadata.json",
+      "nixpacks.toml",
+      ".railwayignore",
+      "public/**",
+      "components/**",
+      "hooks/**",
+      "services/**",
+      "stores/**",
+      "contexts/**",
+      "config/**",
+      "constants/**",
+      "types/**",
+      "utils/**",
+      "factories/**",
+      "schemas/**",
+      "scripts/sync-docs.js",
+      "README.md",
+      "railway.json"
+    ],
     "nixpacksPlan": {
       "providers": ["node"],
       "phases": {
@@ -19,7 +50,7 @@
   },
   "deploy": {
     "startCommand": "npm start",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }
 }

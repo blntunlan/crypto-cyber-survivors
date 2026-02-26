@@ -12,6 +12,7 @@ import { EventBus } from '../services/core/EventBus';
 import { audio } from '../services/audio';
 import { COLORS } from '../constants';
 import { type PoolManager } from '../services/combat/PoolManager';
+import { spawnSystem } from '../services/combat/SpawnSystem';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { GAME_STATE_DEFAULTS } from '../services/core/GameStateManager';
@@ -45,6 +46,7 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
       // Reset buff manager
       BuffManager.reset();
       BuffGemSpawner.reset();
+      spawnSystem.reset();
     });
     return () => unsub();
   }, [pool, state]);

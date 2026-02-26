@@ -194,7 +194,8 @@ describe('AudioService', () => {
       // Advance time past cooldown (60ms)
       vi.advanceTimersByTime(100);
       audioService.playShoot();
-      expect(ctx.createOscillator).toHaveBeenCalledTimes(initialCalls + 1);
+      // Shoot preset has 2 components (sine + triangle)
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(initialCalls + 2);
       vi.useRealTimers();
     });
 

@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-md-refactor": {
+      "source": "softaworks/agent-toolkit",
+      "sourceType": "github",
+      "computedHash": "11d1ffbb2d9f180d63dabfb0b6c63a4632b4c0e2e6be1660c7651cef0f3f1c07"
+    },
+    "database": {
+      "source": "railwayapp/railway-skills",
+      "sourceType": "github",
+      "computedHash": "dcd5f31da93e9352f1b3a156d85c356554bae96876bc582818b2f7e08060afc3"
+    },
+    "deploy": {
+      "source": "railwayapp/railway-skills",
+      "sourceType": "github",
+      "computedHash": "99b9ff018804acdf0f1053d37dfbf1350606e0addd0c01b59d519aced7704208"
+    },
+    "game-development": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "91cc673368267da80368129c80baad245785a872271d3196de56bca6e69c9d72"
+    },
+    "railway-docs": {
+      "source": "railwayapp/railway-skills",
+      "sourceType": "github",
+      "computedHash": "f2875f91dce7c7ac81db4e6415cf05623bea45b3eb251747eaf32107cfd918bf"
+    },
+    "react-doctor": {
+      "source": "millionco/react-doctor",
+      "sourceType": "github",
+      "computedHash": "276053f3861a6f29e2ab1922fc91281934dac5be78f85ec9f21604fd979383ee"
+    },
+    "requesting-code-review": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "93a837ba79c3c3f0b3e503fd9d8b54c638337d73d200c1af3bca9607264bf0e0"
+    },
+    "systematic-debugging": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "72e9ab72627e4fd8ed26a582e82309a98ecdc4f6e1c99418430ac05682c9e91d"
+    },
+    "use-railway": {
+      "source": "railwayapp/railway-skills",
+      "sourceType": "github",
+      "computedHash": "f652d73c95fc7bbc43c219c6e7df9ac6b408ca55141cd8c266ee16ea9dcbde1d"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "61f8c307aa8ce0c4c52da8886d42e344dab83f76f9b5360cf8923b25fb1d67bb"
+    },
+    "vitest": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "computedHash": "0efd9cf8c56aada060d418d009cfe621a7915d0c73a958fe611985bc0c2fa4b8"
+    }
+  }
+}

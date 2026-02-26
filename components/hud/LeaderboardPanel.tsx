@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -77,6 +77,9 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
       const { data, error } = await supabase
         .from('v_leaderboard')
         .select('*')
+        .order('high_score', { ascending: false })
+        .order('max_survival_time', { ascending: false })
+        .order('total_kills', { ascending: false })
         .limit(10);
 
       if (error) {
@@ -96,7 +99,8 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
               id: entry.profile_id ?? `entry-${index}`,
               player_name: name,
               score: entry.high_score ?? 0,
-              survival_time_ms: entry.max_survival_time ?? 0,
+              // v_leaderboard stores survival time in seconds; UI formatter expects ms.
+              survival_time_ms: (entry.max_survival_time ?? 0) * 1000,
               created_at: new Date().toISOString(),
               rank: index + 1,
               avatar_url: entry.avatar_url,
@@ -115,6 +119,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
         Logger.debug('[Leaderboard] Fetched', {
           count: rankedEntries.length,
           source:
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             data.length > 0 && data[0] && 'display_name' in data[0]
               ? 'new_view'
               : 'old_view',
@@ -225,7 +230,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
   if (!isVisible) return null;
 
   return (
-    <motion.div
+    <m.div
       className={`fixed right-4 top-20 z-[100] hidden w-72 lg:block`}
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
@@ -274,7 +279,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
       {/* Content */}
       <AnimatePresence>
         {!isCollapsed && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -311,7 +316,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                     const isCurrentPlayer = entry.player_name === currentNickname;
 
                     return (
-                      <motion.div
+                      <m.div
                         key={entry.id}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -424,7 +429,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                             {t('hud.points')}
                           </ThemedText>
                         </div>
-                      </motion.div>
+                      </m.div>
                     );
                   })}
                 </div>
@@ -437,10 +442,10 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
                 </div>
               )}
             </ThemedPanel>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   );
 };
 

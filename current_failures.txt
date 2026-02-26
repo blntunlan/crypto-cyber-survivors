@@ -1,0 +1,438 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/crypto-cyber-survivors[39m
+
+ [32mÔ£ô[39m tests/services/CombatSystem.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/services/LeverageScaling.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/NewMechanics.test.ts
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [UnifiedDirector] Neural Network initialized (18-32-32-14)
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mVolatility Damping[2m > [22m[2mshould dampen volatility heavily in the early game
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mPNL Calculation[2m > [22m[2mshould calculate positive PNL when LONG and price goes UP
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mExtreme Input Clamping[2m > [22m[2mshould handle extremely high P&L (+1000%)
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mPNL Calculation[2m > [22m[2mshould calculate negative PNL when LONG and price goes DOWN
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mVolatility Damping[2m > [22m[2mshould gradually increase difficulty over time even with constant inputs
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mPNL Calculation[2m > [22m[2mshould calculate positive PNL when SHORT and price goes DOWN
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mPNL Calculation[2m > [22m[2mshould calculate negative PNL when SHORT and price goes UP
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mExtreme Input Clamping[2m > [22m[2mshould handle extremely low P&L (-1000%)
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mLeverage XP Scaling[2m > [22m[2mshould provide 1.0x XP multiplier for 1x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mLeverage Effect[2m > [22m[2mshould amplify PNL by leverage multiplier
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mExtreme Input Clamping[2m > [22m[2mshould handle NaN and Infinite P&L gracefully
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mLeverage XP Scaling[2m > [22m[2mshould provide 1.0x XP multiplier for 1x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mLeverage Effect[2m > [22m[2mshould amplify losses as well as profits
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mLeverage XP Scaling[2m > [22m[2mshould provide ~2.7x XP multiplier for 10x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould make game EASIER when player is profiting
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mExtreme Input Clamping[2m > [22m[2mshould handle extreme volatility
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mLeverage XP Scaling[2m > [22m[2mshould provide ~2.7x XP multiplier for 10x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 10x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 10x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mExtreme Input Clamping[2m > [22m[2mshould handle level 0 and very high levels
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mLeverage XP Scaling[2m > [22m[2mshould provide ~8.2x XP multiplier for 100x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mKill Streak Boundaries[2m > [22m[2mshould apply streak bonus exactly at threshold
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould make game EASIER when player is profiting
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mLeverage XP Scaling[2m > [22m[2mshould provide ~8.2x XP multiplier for 100x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mVolatility Shock Detection[2m > [22m[2mshould emit volatilityShock event on sudden PnL jump
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould make game HARDER when player is losing
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mKill Streak Boundaries[2m > [22m[2mshould cap streak bonus at 30 kills
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould make game HARDER when player is losing
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould scale difficulty with loss magnitude
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mKill Streak Boundaries[2m > [22m[2mshould cap streak bonus at 30 kills
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould scale difficulty with loss magnitude
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/edge/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager Edge Cases[2m > [22m[2mMomentum Buffer Stability[2m > [22m[2mshould handle rapid P&L oscillations
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould not go below minimum difficulty even with huge profits
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mDifficulty Response to PNL[2m > [22m[2mshould not exceed maximum difficulty even with huge losses
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mVolatility (ATR) Effect[2m > [22m[2mshould increase difficulty during high volatility
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mVolatility Shock Detection[2m > [22m[2mshould suppress shock events during the first 5 seconds (Grace Period)
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mVolatility (ATR) Effect[2m > [22m[2mshould increase difficulty during high volatility
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mVolatility (ATR) Effect[2m > [22m[2mshould combine volatility with PNL effect
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/NewMechanics.test.ts[2m > [22m[2mNew Mechanics (Damping, XP, Shock)[2m > [22m[2mVolatility Shock Detection[2m > [22m[2mshould obey shockwave cooldown (10s) after grace period
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mNear-Death Mercy[2m > [22m[2mshould reduce difficulty when HP drops below 20%
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mNear-Death Mercy[2m > [22m[2mshould reduce difficulty when HP drops below 20%
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mNear-Death Mercy[2m > [22m[2mshould give losing players a chance to recover
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+ [32mÔ£ô[39m tests/edge/DifficultyManager.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mNear-Death Mercy[2m > [22m[2mshould give losing players a chance to recover
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mReal-World Scenarios[2m > [22m[2mScenario: LONG position, BTC pumps 3% with 10x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mReal-World Scenarios[2m > [22m[2mScenario: SHORT position, BTC pumps 3% with 10x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mReal-World Scenarios[2m > [22m[2mScenario: Sideways market with high volatility
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mReal-World Scenarios[2m > [22m[2mScenario: Player recovering from near-death during crash
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+ [32mÔ£ô[39m tests/NewMechanics.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+[90mstdout[2m | tests/BitcoinPnlDifficulty.test.ts[2m > [22m[2mBitcoin-PNL-Difficulty System[2m > [22m[2mReal-World Scenarios[2m > [22m[2mScenario: Player recovering from near-death during crash
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+ [32mÔ£ô[39m tests/BitcoinPnlDifficulty.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould apply correct scaling for 1x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/LeverageScaling.test.ts[2m > [22m[2mLeverage Scaling & Spawn Rate Tests (1x-100x)[2m > [22m[2mshould produce increasing spawn rates for standard leverages
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mCore Logic[2m > [22m[2mshould calculate base difficulty at start
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould apply correct scaling for 1x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould apply aggressive scaling for 100x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould apply aggressive scaling for 100x leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould scale spawnRate correctly with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould scale spawnRate correctly with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould scale enemyDamage correctly with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mCore Logic[2m > [22m[2mshould increase difficulty with leverage and loss
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould scale enemyDamage correctly with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould clamp values to max/min limits even with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mCore Logic[2m > [22m[2mshould increase difficulty with leverage and loss
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 10x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 10x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 10x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 10x
+
+[90mstdout[2m | tests/services/LeverageScaling.test.ts[2m > [22m[2mLeverage Scaling & Spawn Rate Tests (1x-100x)[2m > [22m[2mshould produce increasing spawn rates for standard leverages
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 2x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 2x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 5x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 5x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 10x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 10x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 25x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 25x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 50x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 50x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+ÔöîÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö¼ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö¼ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö¼ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÉ
+Ôöé (index) Ôöé leverage Ôöé spawnRate          Ôöé totalDifficulty    Ôöé
+Ôö£ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö╝ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö╝ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö╝ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöñ
+Ôöé 0       Ôöé [33m1[39m        Ôöé [33m1.8414056221852726[39m Ôöé [33m1.2303128690622842[39m Ôöé
+Ôöé 1       Ôöé [33m2[39m        Ôöé [33m2.307660650772225[39m  Ôöé [33m1.4342631491121347[39m Ôöé
+Ôöé 2       Ôöé [33m5[39m        Ôöé [33m3.0229829758623645[39m Ôöé [33m1.7431011318505805[39m Ôöé
+Ôöé 3       Ôöé [33m10[39m       Ôöé [33m4.238801343175132[39m  Ôöé [33m2.2254377953299023[39m Ôöé
+Ôöé 4       Ôöé [33m25[39m       Ôöé [33m5[39m                  Ôöé [33m2.569353717625777[39m  Ôöé
+Ôöé 5       Ôöé [33m50[39m       Ôöé [33m5[39m                  Ôöé [33m2.6903623040633895[39m Ôöé
+Ôöé 6       Ôöé [33m100[39m      Ôöé [33m5[39m                  Ôöé [33m2.866355323334387[39m  Ôöé
+ÔööÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö┤ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö┤ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔö┤ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöİ
+
+[90mstdout[2m | tests/services/LeverageDifficulty.test.ts[2m > [22m[2mLeverage-based Difficulty Scaling[2m > [22m[2mshould clamp values to max/min limits even with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mCore Logic[2m > [22m[2mshould apply mercy when HP is low
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/LeverageScaling.test.ts[2m > [22m[2mLeverage Scaling & Spawn Rate Tests (1x-100x)[2m > [22m[2mshould respect max limits at 100x chaos
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/LeverageScaling.test.ts[2m > [22m[2mLeverage Scaling & Spawn Rate Tests (1x-100x)[2m > [22m[2mshould respect max limits at 100x chaos
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+ [32mÔ£ô[39m tests/services/LeverageDifficulty.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mMomentum & Streaks[2m > [22m[2mshould track kill streaks and reset on timeout
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mMomentum & Streaks[2m > [22m[2mshould detect market shocks
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+ [32mÔ£ô[39m tests/services/LeverageScaling.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mMomentum & Streaks[2m > [22m[2mshould detect market shocks
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mUtilities[2m > [22m[2mshould not clear global gameplay scope during reset
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould initialize with default market data
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mUtilities[2m > [22m[2mshould not clear global gameplay scope during reset
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mUtilities[2m > [22m[2mshould return valid debug state
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mUtilities[2m > [22m[2mshould provide correct XP multiplier based on leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] V2 State reset
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+
+[90mstdout[2m | tests/services/DifficultyManager.test.ts[2m > [22m[2mDifficultyManager[2m > [22m[2mUtilities[2m > [22m[2mshould provide correct XP multiplier based on leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 1x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 1x
+Ôä╣´©Å [00:26:18] [INFO] [DifficultyManager] Starting session with 100x leverage
+Ôä╣´©Å [00:26:18] [INFO] [LeverageEngine] Leverage set to 100x
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould initialize with default market data
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+ [32mÔ£ô[39m tests/services/DifficultyManager.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould update price when in MENU status
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould update price when in MENU status
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate PNL when in PLAYING status
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate PNL when in PLAYING status
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate inverse PNL for SHORT position
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate inverse PNL for SHORT position
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate effective PNL with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate effective PNL with leverage
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould record price history
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould record price history
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate liquidation price
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould calculate liquidation price
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould apply worker snapshot authority in runtime mode
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Creating MarketService for BTC
+Ôä╣´©Å [00:26:18] [INFO] [MarketRuntime] Run constants locked {
+  runId: [32m'BTC-mlyfrrh6-mjms9n'[39m,
+  pair: [32m'BTC'[39m,
+  position: [32m'LONG'[39m,
+  leverage: [33m10[39m,
+  entryPrice: [33m40000[39m,
+  liquidationPrice: [33m36000[39m,
+  mode: [32m'runtime'[39m
+}
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould apply worker snapshot authority in runtime mode
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [MarketRuntime] Shadow snapshot {
+  mode: [32m'runtime'[39m,
+  pair: [32m'BTC'[39m,
+  source: [32m'binance'[39m,
+  price: [33m41000[39m,
+  pnl: [33m0.01[39m,
+  effectivePnl: [33m0.1[39m,
+  difficulty: [33m1.2[39m
+}
+
+[90mstdout[2m | tests/hooks/useMarketData.test.ts[2m > [22m[2museMarketData[2m > [22m[2mshould apply worker snapshot authority in runtime mode
+[22m[39mÔä╣´©Å [00:26:18] [INFO] [useMarketData] Destroying MarketService for BTC
+
+ [32mÔ£ô[39m tests/hooks/useMarketData.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 106[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+[2m      Tests [22m [1m[32m69 passed[39m[22m[90m (69)[39m
+[2m   Start at [22m 03:26:16
+[2m   Duration [22m 2.30s[2m (transform 2.70s, setup 2.95s, import 4.02s, tests 250ms, environment 7.90s)[22m
+

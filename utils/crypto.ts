@@ -35,14 +35,18 @@ export async function signPayload(payload: string, secret: string): Promise<stri
  * Minimal sanity check before transmission.
  */
 export function createSignablePayload(data: Record<string, unknown>): string {
-  // Use fields that match VerificationData and Supabase's createPayload
+  // Must match supabase/functions/verify-game verificationPayload field order exactly.
   const criticalFields = {
     sessionId: String(data.sessionId ?? ''),
-    serverSessionId: String(data.sessionId ?? ''), // Supabase expects serverSessionId too
-    score: Number(data.optimisticReward ?? 0),
+    pair: String(data.pair ?? ''),
+    position: String(data.position ?? ''),
+    leverage: Number(data.leverage ?? 0),
+    claimedEntryPrice: Number(data.claimedEntryPrice ?? 0),
+    claimedExitPrice: Number(data.claimedExitPrice ?? 0),
+    claimedPnL: Number(data.claimedPnL ?? 0),
     kills: Number(data.kills ?? 0),
-    pnl: Number(data.claimedPnL ?? 0),
-    duration: Math.floor(Number(data.survivalTimeMs ?? 0) / 1000),
+    level: Number(data.level ?? 0),
+    survivalSeconds: Math.floor(Number(data.survivalTimeMs ?? 0) / 1000),
   };
 
   return JSON.stringify(criticalFields);

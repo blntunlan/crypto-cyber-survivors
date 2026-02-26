@@ -97,7 +97,7 @@ class DirectorAdapterClass {
     });
 
     EventBus.on('comboUpdate', data => {
-      this.playerState.combo = data.combo;
+      this.playerState.combo = data.killStreak;
     });
 
     EventBus.on('gameReset', () => this.reset());
@@ -187,9 +187,9 @@ class DirectorAdapterClass {
     director: DirectorOutput
   ): DifficultyOutput {
     const blend = this.blendFactor;
-    const oldWeight = 1 - blend;
 
-    // Map Director outputs to DifficultyOutput format
+    // Map Director outputs to relative multipliers
+    // These should be centered around 1.0
     const directorSpawn = director.spawnRate * ADAPTER_CONFIG.SPAWN_RATE_SCALE;
     const directorSpeed =
       director.enemySpeedMultiplier * ADAPTER_CONFIG.ENEMY_SPEED_SCALE;
@@ -197,31 +197,37 @@ class DirectorAdapterClass {
       director.enemyDamageMultiplier * ADAPTER_CONFIG.ENEMY_DAMAGE_SCALE;
     const directorHP = director.enemyHealthMultiplier * ADAPTER_CONFIG.ENEMY_HP_SCALE;
 
-    // Blend values
+    // AI Director V2 should act as a MODIFIER on top of the progression-based difficulty
+    // old = base difficulty (time, level, leverage)
+    // director = AI's desired offset (centered around 1.0)
+    // Formula: modified = old * (1 - blend + (directorMod * blend))
+    const m = (mod: number) => 1 - blend + mod * blend;
+
+    // Apply blended modifiers
     const output: DifficultyOutput = {
+      ...old, // Keep all factors and gemValueMultiplier
       spawnRate: clamp(
-        old.spawnRate * oldWeight + directorSpawn * blend,
+        old.spawnRate * m(directorSpawn),
         DIFFICULTY_CONFIG.LIMITS.spawnRate.min,
         DIFFICULTY_CONFIG.LIMITS.spawnRate.max
       ),
       enemySpeed: clamp(
-        old.enemySpeed * oldWeight + directorSpeed * blend,
+        old.enemySpeed * m(directorSpeed),
         DIFFICULTY_CONFIG.LIMITS.enemySpeed.min,
         DIFFICULTY_CONFIG.LIMITS.enemySpeed.max
       ),
       enemyDamage: clamp(
-        old.enemyDamage * oldWeight + directorDamage * blend,
+        old.enemyDamage * m(directorDamage),
         DIFFICULTY_CONFIG.LIMITS.enemyDamage.min,
         DIFFICULTY_CONFIG.LIMITS.enemyDamage.max
       ),
       enemyHealth: clamp(
-        old.enemyHealth * oldWeight + directorHP * blend,
+        old.enemyHealth * m(directorHP),
         DIFFICULTY_CONFIG.LIMITS.enemyHP.min,
         DIFFICULTY_CONFIG.LIMITS.enemyHP.max
       ),
-      gemValueMultiplier: old.gemValueMultiplier,
-      total: old.total, // Keep old total for compatibility
-      factors: old.factors, // Keep old factors for debugging
+      // Update the 'total' value to reflect the new scaled spawn rate
+      total: old.total * m(directorSpawn),
     };
 
     // Emit blended output for monitoring

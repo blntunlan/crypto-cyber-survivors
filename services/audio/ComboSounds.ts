@@ -21,7 +21,9 @@ import { SOUND_CATEGORY_MAP } from './constants';
  */
 function getCategoryVolume(): number {
   const category = SOUND_CATEGORY_MAP['comboMilestone'] ?? 'feedback';
-  return synthEngine.getEffectiveVolume(category) / synthEngine.getVolume();
+  const masterVol = synthEngine.getVolume();
+  if (masterVol <= 0) return 0;
+  return synthEngine.getEffectiveVolume(category) / masterVol;
 }
 
 /**

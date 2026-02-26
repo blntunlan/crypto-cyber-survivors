@@ -76,6 +76,9 @@ serve(async (req: Request) => {
       endTime,
       pair,
       position,
+      leverage,
+      claimedEntryPrice,
+      claimedExitPrice,
       claimedPnL,
       kills,
       level,
@@ -115,8 +118,8 @@ serve(async (req: Request) => {
       pair: pair,
       position: position,
       leverage: leverage,
-      claimedEntryPrice: data.claimedEntryPrice,
-      claimedExitPrice: data.claimedExitPrice,
+      claimedEntryPrice: claimedEntryPrice,
+      claimedExitPrice: claimedExitPrice,
       claimedPnL: claimedPnL,
       kills: kills,
       level: level,
@@ -202,7 +205,7 @@ serve(async (req: Request) => {
     await supabase
       .from('sessions')
       .update({
-        exit_price: data.claimedExitPrice, // if available
+        exit_price: claimedExitPrice, // if available
         survival_seconds: Math.floor(duration),
         is_verified: true,
         reward_amount: Math.floor(reward),

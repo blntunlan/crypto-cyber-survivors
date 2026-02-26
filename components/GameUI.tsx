@@ -38,8 +38,7 @@ interface GameUIProps {
 export const GameUI: React.FC<GameUIProps> = memo(
   ({ position: _position, entryPrice, marketData, player, onTogglePause, status }) => {
     const { t } = useLanguage();
-    const [lastPrice, setLastPrice] = useState(marketData.price);
-
+    const lastPriceRef = useRef(entryPrice || marketData.price);
     const [priceColor, setPriceColor] = useState('text-white');
     const [buffTrigger, setBuffTrigger] = useState(0);
 
@@ -123,8 +122,8 @@ export const GameUI: React.FC<GameUIProps> = memo(
       // This prevents the flickering described as "rewriting from scratch"
       // when the pulse class was being removed and re-added rapidly.
 
-      const isRising = marketData.price > lastPrice;
-      const isFalling = marketData.price < lastPrice;
+      const isRising = marketData.price > lastPriceRef.current;
+      const isFalling = marketData.price < lastPriceRef.current;
 
       if (isRising) {
         setPriceColor('text-green-400 animate-pulse');
@@ -143,14 +142,14 @@ export const GameUI: React.FC<GameUIProps> = memo(
         }, 1000);
       }
 
-      setLastPrice(marketData.price);
+      lastPriceRef.current = marketData.price;
 
       return () => {
         if (priceColorTimeoutRef.current) {
           clearTimeout(priceColorTimeoutRef.current);
         }
       };
-    }, [marketData.price, lastPrice]);
+    }, [marketData.price]);
 
     const isMobile = screenService.isMobile();
     const showFPS = useGameStore(state => state.graphics.showFPS);

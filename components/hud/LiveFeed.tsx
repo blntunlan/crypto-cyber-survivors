@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect } from 'react';
 import { type MarketData } from '../../types';
 import { COLORS } from '../../constants';
 // Import crypto config
@@ -14,6 +14,7 @@ import { useIsRetro } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { LiveTicker } from '../themed/LiveTicker';
 import { ClientIndicatorService } from '../../services/indicators/ClientIndicatorService';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface LiveFeedProps {
   marketData: MarketData;
@@ -107,6 +108,20 @@ const LiveInfoRow = memo(
 
 LiveInfoRow.displayName = 'LiveInfoRow';
 
+const formatVolatility = (val: number) => `x${val.toFixed(2)}`;
+const formatPnlPct = (val: number) => `${(val * 100).toFixed(2)}%`;
+const formatPnlUsd = (val: number) => {
+  const amount = val * 1000;
+  const formatted = Math.abs(amount).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${amount >= 0 ? '+' : '-'}$${formatted}`;
+};
+const formatPnlPctMobile = (val: number) =>
+  `${val >= 0 ? '+' : ''}${(val * 100).toFixed(2)}%`;
+const formatVolMobile = (val: number) => val.toFixed(1);
+
 const DesktopLiveFeed: React.FC<
   LiveFeedProps & {
     serverState: MarketStateData | null;
@@ -121,10 +136,17 @@ const DesktopLiveFeed: React.FC<
 
   // Trend Arrow
   const getTrendIcon = () => {
-    if (!clientIndicators) return '➡️';
-    if (clientIndicators.trendDirection === 'UP') return '⬆️';
-    if (clientIndicators.trendDirection === 'DOWN') return '⬇️';
-    return '➡️';
+    const iconClass = 'h-3 w-3 inline-block mb-0.5';
+    if (!clientIndicators) {
+      return <Minus className={iconClass} />;
+    }
+    if (clientIndicators.trendDirection === 'UP') {
+      return <TrendingUp className={iconClass} />;
+    }
+    if (clientIndicators.trendDirection === 'DOWN') {
+      return <TrendingDown className={iconClass} />;
+    }
+    return <Minus className={iconClass} />;
   };
 
   const trendColor = !clientIndicators
@@ -168,12 +190,14 @@ const DesktopLiveFeed: React.FC<
           <LiveTicker
             id={`${pairConfig.id}-price`}
             valueKey="price"
-            formatter={(val: number) =>
-              val.toLocaleString(undefined, {
-                minimumFractionDigits: pairConfig.decimals,
-                maximumFractionDigits: pairConfig.decimals,
-              })
-            }
+            formatter={React.useCallback(
+              (val: number) =>
+                val.toLocaleString(undefined, {
+                  minimumFractionDigits: pairConfig.decimals,
+                  maximumFractionDigits: pairConfig.decimals,
+                }),
+              [pairConfig.decimals]
+            )}
           />
         </div>
         <div className="mt-1 flex items-center justify-between">
@@ -184,7 +208,7 @@ const DesktopLiveFeed: React.FC<
             <LiveTicker
               id="pnl-pct-ticker"
               valueKey="pnl"
-              formatter={(val: number) => `${(val * 100).toFixed(2)}%`}
+              formatter={formatPnlPct}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             />
             <span className="text-[10px] uppercase tracking-widest opacity-70">
@@ -197,18 +221,7 @@ const DesktopLiveFeed: React.FC<
             className={`text-xs font-black tabular-nums ${isRetro ? 'font-retro-text' : 'font-mono'}`}
             style={{ color: pnlHex, fontVariantNumeric: 'tabular-nums' }}
           >
-            <LiveTicker
-              id="pnl-usd-ticker"
-              valueKey="pnl"
-              formatter={(val: number) => {
-                const amount = val * 1000;
-                const formatted = Math.abs(amount).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                });
-                return `${amount >= 0 ? '+' : '-'}$${formatted}`;
-              }}
-            />
+            <LiveTicker id="pnl-usd-ticker" valueKey="pnl" formatter={formatPnlUsd} />
           </div>
         </div>
       </div>
@@ -226,7 +239,7 @@ const DesktopLiveFeed: React.FC<
           label={text(t('hud.volatility'))}
           valueKey="difficulty"
           isRetro={isRetro}
-          formatter={(val: number) => `x${val.toFixed(2)}`}
+          formatter={formatVolatility}
         />
 
         {marketData.liquidationPrice !== undefined &&
@@ -350,10 +363,17 @@ const MobileLiveFeed: React.FC<
   };
 
   const getTrendIcon = () => {
-    if (!clientIndicators) return '';
-    if (clientIndicators.trendDirection === 'UP') return '⬆️';
-    if (clientIndicators.trendDirection === 'DOWN') return '⬇️';
-    return '➡️';
+    const iconClass = 'h-2 w-2 inline-block mb-0.5';
+    if (!clientIndicators) {
+      return null;
+    }
+    if (clientIndicators.trendDirection === 'UP') {
+      return <TrendingUp className={iconClass} />;
+    }
+    if (clientIndicators.trendDirection === 'DOWN') {
+      return <TrendingDown className={iconClass} />;
+    }
+    return <Minus className={iconClass} />;
   };
 
   return (
@@ -399,12 +419,14 @@ const MobileLiveFeed: React.FC<
           <LiveTicker
             id={`${pairConfig.id}-price-mobile`}
             valueKey="price"
-            formatter={(val: number) =>
-              val.toLocaleString(undefined, {
-                minimumFractionDigits: displayDecimals,
-                maximumFractionDigits: displayDecimals,
-              })
-            }
+            formatter={React.useCallback(
+              (val: number) =>
+                val.toLocaleString(undefined, {
+                  minimumFractionDigits: displayDecimals,
+                  maximumFractionDigits: displayDecimals,
+                }),
+              [displayDecimals]
+            )}
           />
         </div>
         <div
@@ -419,9 +441,7 @@ const MobileLiveFeed: React.FC<
           <LiveTicker
             id="pnl-pct-mobile"
             valueKey="pnl"
-            formatter={(val: number) =>
-              `${val >= 0 ? '+' : ''}${(val * 100).toFixed(2)}%`
-            }
+            formatter={formatPnlPctMobile}
           />
         </div>
       </div>
@@ -460,7 +480,7 @@ const MobileLiveFeed: React.FC<
           <LiveTicker
             id="vol-mobile"
             valueKey="difficulty"
-            formatter={(val: number) => val.toFixed(1)}
+            formatter={formatVolMobile}
           />
         </div>
 
@@ -500,25 +520,41 @@ const MobileLiveFeed: React.FC<
 };
 
 export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
-  const [serverState, setServerState] = useState<MarketStateData | null>(null);
-  const [clientIndicators, setClientIndicators] =
-    useState<ClientIndicatorsUpdatedEvent | null>(null);
+  const [state, dispatch] = React.useReducer(
+    (
+      prev: {
+        isMobile: boolean;
+        serverState: MarketStateData | null;
+        clientIndicators: ClientIndicatorsUpdatedEvent | null;
+      },
+      update: Partial<{
+        isMobile: boolean;
+        serverState: MarketStateData | null;
+        clientIndicators: ClientIndicatorsUpdatedEvent | null;
+      }>
+    ) => ({ ...prev, ...update }),
+    null,
+    () => ({
+      isMobile: screenService.isMobile(),
+      serverState: null,
+      clientIndicators: null,
+    })
+  );
 
   useEffect(() => {
     // Screen resize listener
     const unsubscribeScreen = screenService.onChange(() => {
-      setIsMobile(screenService.isMobile());
+      dispatch({ isMobile: screenService.isMobile() });
     });
 
     // Server state listener
     const handleMarketUpdate = (data: MarketStateData) => {
-      setServerState(data);
+      dispatch({ serverState: data });
     };
 
     // Client indicators listener
     const handleClientIndicators = (data: ClientIndicatorsUpdatedEvent) => {
-      setClientIndicators(data);
+      dispatch({ clientIndicators: data });
     };
 
     const unsubscribeBus = EventBus.on('marketStateUpdated', handleMarketUpdate);
@@ -533,9 +569,10 @@ export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
     }
 
     // Initial fetch to ensure we have data immediately if available
-    setClientIndicators(
-      ClientIndicatorService.getState() as unknown as ClientIndicatorsUpdatedEvent
-    );
+    dispatch({
+      clientIndicators:
+        ClientIndicatorService.getState() as unknown as ClientIndicatorsUpdatedEvent,
+    });
 
     return () => {
       unsubscribeScreen();
@@ -544,17 +581,17 @@ export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
     };
   }, [props.marketData.pair]);
 
-  return isMobile ? (
+  return state.isMobile ? (
     <MobileLiveFeed
       {...props}
-      serverState={serverState}
-      clientIndicators={clientIndicators}
+      serverState={state.serverState}
+      clientIndicators={state.clientIndicators}
     />
   ) : (
     <DesktopLiveFeed
       {...props}
-      serverState={serverState}
-      clientIndicators={clientIndicators}
+      serverState={state.serverState}
+      clientIndicators={state.clientIndicators}
     />
   );
 });

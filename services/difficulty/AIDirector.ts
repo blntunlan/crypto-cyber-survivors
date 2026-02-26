@@ -1,13 +1,7 @@
-import * as SynapticLib from 'synaptic';
+import { Architect, Network } from 'synaptic';
 import { difficultyContext } from './DifficultyContext';
 import { Logger } from '../system/Logger';
 import { PoolManager } from '../combat/PoolManager';
-
-// Robust way to access Architect/Network from different build environments (Vite/Node/CJS/ESM)
-const SynapticModule = SynapticLib as Record<string, unknown>;
-const SynapticDefault = SynapticModule.default as Record<string, unknown> | undefined;
-const Architect = SynapticModule.Architect ?? SynapticDefault?.Architect;
-const NetworkLib = SynapticModule.Network ?? SynapticDefault?.Network;
 
 // Pre-trained brain data (embedded or loaded)
 // This can be replaced with dynamic loading from brain-FINAL.json
@@ -48,7 +42,7 @@ export interface DirectorOutputs {
 
 class AIDirectorClass {
   private static instance: AIDirectorClass | null = null;
-  private net!: { activate: (inputs: number[]) => number[] };
+  private net!: Network;
   private enabled: boolean = false;
   private lastUpdate: number = 0;
   private readonly BRAIN_UPDATE_INTERVAL = 1000;
@@ -85,7 +79,7 @@ class AIDirectorClass {
    */
   public loadBrain(brainJson: unknown): boolean {
     try {
-      this.net = NetworkLib.fromJSON(brainJson);
+      this.net = Network.fromJSON(brainJson);
       this.brainLoaded = true;
       Logger.info('[AIDirector] Pre-trained brain loaded successfully');
       return true;
@@ -107,7 +101,7 @@ class AIDirectorClass {
     // Try to load pre-trained brain first
     if (PRETRAINED_BRAIN) {
       try {
-        this.net = NetworkLib.fromJSON(PRETRAINED_BRAIN);
+        this.net = Network.fromJSON(PRETRAINED_BRAIN);
         this.brainLoaded = true;
         Logger.info('[AIDirector] Loaded embedded pre-trained brain');
         return;

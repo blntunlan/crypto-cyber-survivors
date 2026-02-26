@@ -143,7 +143,7 @@ describe('CombatSystem', () => {
       // Pass time > fireRate (400)
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
-      expect(mockGameState.fireTimer).toBe(0); // Should reset
+      expect(mockGameState.fireTimer).toBe(100); // Should accumulate (500 - 400)
       expect(mockPool.getBullet).toHaveBeenCalled();
       expect(mockAudio.playShoot).toHaveBeenCalled();
     });

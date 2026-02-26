@@ -144,6 +144,7 @@ const HUB_SCREENS: readonly HubScreen[] = [
   'ranks',
   'gear',
 ];
+const START_OF_RUN_LIQUIDATION_GRACE_MS = 3_000;
 
 const isHubScreen = (value: string | null): value is HubScreen => {
   return value !== null && HUB_SCREENS.includes(value as HubScreen);
@@ -289,6 +290,8 @@ const App: React.FC = () => {
   const [hubScreen, setHubScreen] = useState<HubScreen>(() => readPersistedHubScreen());
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const isGameOverProcessing = useRef(false);
+  const frozenPnlRef = useRef<number>(0);
+  const liquidationGraceUntilRef = useRef<number>(0);
   const marketRuntimeConfig = useMemo(() => getMarketRuntimeConfig(), []);
 
   // ========================================
@@ -303,31 +306,29 @@ const App: React.FC = () => {
   const { isRetro } = useTheme();
 
   // Landing & Legal State
-  const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showDocs, setShowDocs] = useState(false);
-  const [isIdentityReady, setIsIdentityReady] = useState(false);
-  const [hasNickname, setHasNickname] = useState(false);
+  const [legalRoute, setLegalRoute] = useState({
+    showPrivacy: false,
+    showTerms: false,
+    showDocs: false,
+  });
+  const [identityState, setIdentityState] = useState({
+    isReady: false,
+    hasNickname: false,
+  });
+  const { showPrivacy, showTerms, showDocs } = legalRoute;
+  const { isReady: isIdentityReady, hasNickname } = identityState;
 
   // Handle Hash and Path Navigation for Docs and Legal
   useEffect(() => {
     const handleNavigation = () => {
-      // Check Hash for #docs
-      if (window.location.hash === '#docs') {
-        setShowDocs(true);
-      } else {
-        setShowDocs(false);
-      }
-
-      // Check Pathname for /privacy, /terms, /docs
+      const isHashDocs = window.location.hash === '#docs';
       const path = window.location.pathname;
-      if (path === '/privacy') {
-        setShowPrivacy(true);
-      } else if (path === '/terms') {
-        setShowTerms(true);
-      } else if (path === '/docs') {
-        setShowDocs(true);
-      }
+
+      setLegalRoute({
+        showDocs: isHashDocs || path === '/docs',
+        showPrivacy: path === '/privacy',
+        showTerms: path === '/terms',
+      });
     };
 
     window.addEventListener('hashchange', handleNavigation);
@@ -344,18 +345,21 @@ const App: React.FC = () => {
     let cancelled = false;
 
     const initIdentity = async () => {
+      let isReady = false;
+      let hasNicknameVal = false;
       try {
         const user = await UserPersistenceService.initialize();
         if (!cancelled) {
-          setHasNickname(Boolean(user?.nickname));
+          hasNicknameVal = Boolean(user?.nickname);
         }
       } catch {
         if (!cancelled) {
-          setHasNickname(Boolean(UserSessionService.getNickname()));
+          hasNicknameVal = Boolean(UserSessionService.getNickname());
         }
       } finally {
         if (!cancelled) {
-          setIsIdentityReady(true);
+          isReady = true;
+          setIdentityState({ isReady, hasNickname: hasNicknameVal });
         }
       }
     };
@@ -378,9 +382,7 @@ const App: React.FC = () => {
     localStorage.removeItem('has_seen_landing');
     persistActiveSurface('landing');
     setShowLanding(true);
-    setShowDocs(false);
-    setShowPrivacy(false);
-    setShowTerms(false);
+    setLegalRoute({ showDocs: false, showPrivacy: false, showTerms: false });
     if (window.location.pathname !== '/' || window.location.hash) {
       window.history.pushState(null, '', '/');
     }
@@ -466,6 +468,7 @@ const App: React.FC = () => {
     resetRunStats();
     resetPlayer();
     isGameOverProcessing.current = false;
+    frozenPnlRef.current = 0;
     void WalletService.getInstance()
       .getBalance()
       .then(b => setWalletBalance(b));
@@ -522,7 +525,7 @@ const App: React.FC = () => {
             message: 'Please set your nickname to continue.',
             type: 'info',
           });
-          setHasNickname(false);
+          setIdentityState(prev => ({ ...prev, hasNickname: false }));
           setHubScreen('hub');
           return;
         }
@@ -541,6 +544,7 @@ const App: React.FC = () => {
       setPosition(choice);
       setEntryPrice(marketData.price);
       setPositionColor(choice);
+      liquidationGraceUntilRef.current = Date.now() + START_OF_RUN_LIQUIDATION_GRACE_MS;
 
       playerRef.current.nextLevelExp = ExperienceService.getRequiredExp(
         playerRef.current.level,
@@ -607,6 +611,9 @@ const App: React.FC = () => {
     async (reason: GameEndReason = GameEndReason.DEATH) => {
       if (isGameOverProcessing.current) return;
       isGameOverProcessing.current = true;
+
+      // Capture P/L at the moment of death so it stays fixed on the Game Over screen
+      frozenPnlRef.current = marketData.pnl;
 
       GameStateMachine.transition(GameStatus.GAMEOVER);
 
@@ -685,7 +692,10 @@ const App: React.FC = () => {
   );
 
   useEffect(() => {
-    if (gameStatus === GameStatus.PLAYING && marketData.effectivePnl <= -1) {
+    if (gameStatus !== GameStatus.PLAYING) return;
+    if (Date.now() < liquidationGraceUntilRef.current) return;
+
+    if (marketData.effectivePnl <= -1) {
       Logger.warn(`[Liquidation] Player liquidated at price ${marketData.price}`);
       void handleGameOver(GameEndReason.LIQUIDATION);
     }
@@ -919,11 +929,19 @@ const App: React.FC = () => {
               <LandingPage
                 onLaunch={handleLaunchGame}
                 onViewPrivacy={() => {
-                  setShowPrivacy(true);
+                  setLegalRoute(prev => ({
+                    ...prev,
+                    showPrivacy: true,
+                    showTerms: false,
+                  }));
                   window.history.pushState(null, '', '/privacy');
                 }}
                 onViewTerms={() => {
-                  setShowTerms(true);
+                  setLegalRoute(prev => ({
+                    ...prev,
+                    showTerms: true,
+                    showPrivacy: false,
+                  }));
                   window.history.pushState(null, '', '/terms');
                 }}
               />
@@ -933,7 +951,7 @@ const App: React.FC = () => {
                 {shouldShowNicknameEntry && (
                   <NicknameEntryScreen
                     onComplete={() => {
-                      setHasNickname(true);
+                      setIdentityState(prev => ({ ...prev, hasNickname: true }));
                     }}
                   />
                 )}
@@ -987,7 +1005,7 @@ const App: React.FC = () => {
                     <React.Suspense fallback={<UIFallback />}>
                       <GameOverScreen
                         level={playerRef.current.level}
-                        finalPnl={marketData.pnl}
+                        finalPnl={frozenPnlRef.current}
                         survivalTime={DifficultyManager.getTotalElapsedSeconds()}
                         kills={runStats.totalKills}
                         onRestart={resetGame}
@@ -1102,14 +1120,17 @@ const App: React.FC = () => {
             {showPrivacy && (
               <PrivacyPolicy
                 onClose={() => {
-                  setShowPrivacy(false);
+                  setLegalRoute(prev => ({ ...prev, showPrivacy: false }));
                   if (window.location.pathname === '/privacy') {
                     window.history.pushState(null, '', '/');
                   }
                 }}
                 onViewTerms={() => {
-                  setShowPrivacy(false);
-                  setShowTerms(true);
+                  setLegalRoute(prev => ({
+                    ...prev,
+                    showPrivacy: false,
+                    showTerms: true,
+                  }));
                   window.history.pushState(null, '', '/terms');
                 }}
               />
@@ -1117,14 +1138,17 @@ const App: React.FC = () => {
             {showTerms && (
               <TermsOfService
                 onClose={() => {
-                  setShowTerms(false);
+                  setLegalRoute(prev => ({ ...prev, showTerms: false }));
                   if (window.location.pathname === '/terms') {
                     window.history.pushState(null, '', '/');
                   }
                 }}
                 onViewPrivacy={() => {
-                  setShowTerms(false);
-                  setShowPrivacy(true);
+                  setLegalRoute(prev => ({
+                    ...prev,
+                    showTerms: false,
+                    showPrivacy: true,
+                  }));
                   window.history.pushState(null, '', '/privacy');
                 }}
               />
@@ -1132,7 +1156,7 @@ const App: React.FC = () => {
             {showDocs && (
               <DocScreen
                 onClose={() => {
-                  setShowDocs(false);
+                  setLegalRoute(prev => ({ ...prev, showDocs: false }));
                   window.location.hash = '';
                   if (window.location.pathname === '/docs') {
                     window.history.pushState(null, '', '/');

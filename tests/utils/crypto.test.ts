@@ -73,7 +73,11 @@ describe('crypto utilities', () => {
     it('should create signable payload with critical fields', () => {
       const data = {
         sessionId: 'session-123',
-        optimisticReward: 1000,
+        pair: 'BTCUSDT',
+        position: 'long',
+        leverage: 5,
+        claimedEntryPrice: 42000.5,
+        claimedExitPrice: 42555.25,
         kills: 50,
         survivalTimeMs: 120000,
         claimedPnL: 15.5,
@@ -85,11 +89,15 @@ describe('crypto utilities', () => {
 
       expect(parsed).toEqual({
         sessionId: 'session-123',
-        serverSessionId: 'session-123',
-        score: 1000,
+        pair: 'BTCUSDT',
+        position: 'long',
+        leverage: 5,
+        claimedEntryPrice: 42000.5,
+        claimedExitPrice: 42555.25,
+        claimedPnL: 15.5,
         kills: 50,
-        pnl: 15.5,
-        duration: 120,
+        level: 0,
+        survivalSeconds: 120,
       });
     });
 
@@ -101,17 +109,21 @@ describe('crypto utilities', () => {
 
       expect(parsed).toEqual({
         sessionId: '',
-        serverSessionId: '',
-        score: 0,
+        pair: '',
+        position: '',
+        leverage: 0,
+        claimedEntryPrice: 0,
+        claimedExitPrice: 0,
+        claimedPnL: 0,
         kills: 0,
-        pnl: 0,
-        duration: 0,
+        level: 0,
+        survivalSeconds: 0,
       });
     });
 
     it('should handle partial data', () => {
       const data = {
-        optimisticReward: 500,
+        position: 'short',
         claimedPnL: -10.2,
       };
 
@@ -120,11 +132,15 @@ describe('crypto utilities', () => {
 
       expect(parsed).toEqual({
         sessionId: '',
-        serverSessionId: '',
-        score: 500,
+        pair: '',
+        position: 'short',
+        leverage: 0,
+        claimedEntryPrice: 0,
+        claimedExitPrice: 0,
+        claimedPnL: -10.2,
         kills: 0,
-        pnl: -10.2,
-        duration: 0,
+        level: 0,
+        survivalSeconds: 0,
       });
     });
 
@@ -136,7 +152,7 @@ describe('crypto utilities', () => {
       const result = createSignablePayload(data as unknown as Record<string, unknown>);
       const parsed = JSON.parse(result);
 
-      expect(parsed.duration).toBe(61); // Floor to seconds
+      expect(parsed.survivalSeconds).toBe(61); // Floor to seconds
     });
   });
 });

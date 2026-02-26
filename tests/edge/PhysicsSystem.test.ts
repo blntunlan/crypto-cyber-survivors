@@ -59,6 +59,28 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
   },
 }));
 
+vi.mock('../../services/gameplay/LeverageEngine', () => ({
+  LeverageEngine: {
+    getMultipliers: vi.fn(() => ({
+      gemValue: 1.0,
+      xpGain: 1.0,
+      damageTaken: 1.0,
+      spawnRate: 1.0,
+      enemySpeed: 1.0,
+      enemyHP: 1.0,
+      enemyDamage: 1.0,
+      difficultyRampSpeed: 1.0,
+    })),
+    updateMarketState: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/market/PriceMomentumEngine', () => ({
+  PriceMomentumEngine: {
+    getLatest: vi.fn(() => ({ gemValueMod: 1.0 })),
+  },
+}));
+
 // Mock SpatialGrid to avoid forEachNearby issues
 vi.mock('../../services/combat/SpatialGrid', () => ({
   bulletGrid: {

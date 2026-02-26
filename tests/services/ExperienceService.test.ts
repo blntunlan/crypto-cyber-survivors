@@ -4,9 +4,9 @@ import { EXPERIENCE_CONFIG } from '../../config/ExperienceConfig';
 
 describe('ExperienceService', () => {
   it('should return initial base exp for level 1', () => {
-    // Current formula: Base + level^1.5 * 40
-    // Level 1: 200 + 1^1.5 * 40 = 240
-    expect(ExperienceService.getRequiredExp(1)).toBe(410);
+    // Current formula: BASE (600) + level^1.55 * 120
+    // Level 1: 600 + 1 * 120 = 720
+    expect(ExperienceService.getRequiredExp(1)).toBe(720);
   });
 
   it('should increase exp requirements for higher levels', () => {

@@ -35,4 +35,18 @@ export interface DifficultyOutput {
   total: number;
   /** Raw contributing factors for debugging/analytics */
   factors: DifficultyFactors;
+
+  // AI Director V2 - Advanced Metrics
+  /** Enemy variety multiplier (0.5 - 2.0) */
+  variety?: number;
+  /** Chaos/Randomness level (0 - 1) */
+  chaos?: number;
+  /** Mercy system attenuation (0 - 1) */
+  mercy?: number;
+  /** Player pressure intensity (0 - 1) */
+  pressure?: number;
+  /** Probability of spawning a Whale enemy */
+  whaleProb?: number;
+  /** Experience multiplier from director */
+  xpMult?: number;
 }

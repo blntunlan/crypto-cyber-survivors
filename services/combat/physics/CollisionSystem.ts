@@ -8,6 +8,7 @@ import { StatService } from '../../gameplay/StatService';
 import { ThemeService } from '../../system/ThemeService';
 import { type ICollisionSystem } from '../../interfaces/IPhysicsSubsystems';
 import { GAME_ENGINE } from '../../../constants';
+import { LeverageEngine } from '../../gameplay/LeverageEngine';
 
 /**
  * CollisionSystem - Physical Interaction Orchestrator
@@ -88,6 +89,16 @@ export class CollisionSystem implements ICollisionSystem {
     // Always update damage buffers in tests to ensure reliability
     const updateDamageThisFrame = shouldUpdateDamageBuffers || dtFactor === 1; // dtFactor === 1 is common in tests
 
+    // Capture vulnerability state at frame start.
+    // This allows ALL colliding enemies to deal damage in the same frame.
+    // I-frames are applied AFTER the loop to prevent next-frame damage.
+    const isVulnerable =
+      !this.ctx.cheat.isGodMode() &&
+      !state.isDashing &&
+      player.invulnerabilityTimer <= 0;
+    let frameDamageDealt = false;
+    let frameDodged = false;
+
     const activeEnemies = pool.activeEnemies;
     const enemiesCount = activeEnemies.length;
     for (let i = 0; i < enemiesCount; i++) {
@@ -139,7 +150,19 @@ export class CollisionSystem implements ICollisionSystem {
       }
 
       // 5. Interaction Checks
-      this.checkPlayerEnemyCollision(pool, player, enemy, state, dtFactor, onGameOver);
+      // Only check player-enemy collision if player is vulnerable and alive
+      if (isVulnerable && player.hp > 0) {
+        const hitResult = this.checkPlayerEnemyCollision(
+          pool,
+          player,
+          enemy,
+          state,
+          dtFactor,
+          onGameOver
+        );
+        if (hitResult === 'hit') frameDamageDealt = true;
+        else if (hitResult === 'dodge') frameDodged = true;
+      }
       this.processBulletCollisions(
         pool,
         enemy,
@@ -148,6 +171,15 @@ export class CollisionSystem implements ICollisionSystem {
         dtFactor,
         perfConfig.particleMultiplier
       );
+    }
+
+    // Apply I-frames AFTER all enemy collisions are processed.
+    // This ensures multiple enemies can damage the player in one frame,
+    // but the player is protected for subsequent frames.
+    if (frameDamageDealt) {
+      player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION;
+    } else if (frameDodged) {
+      player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION / 2;
     }
 
     // 6. Interactables (Mining Rigs / Loot Crates) - Optimized loop
@@ -262,7 +294,10 @@ export class CollisionSystem implements ICollisionSystem {
   /**
    * Handles contact between Player and Enemy.
    * Calculates Dodge, Armor reduction, and HP depletion.
-   * Optimized with squared distance comparisons.
+   * Returns 'hit', 'dodge', or 'none' for frame-level I-frame management.
+   *
+   * NOTE: Invulnerability/GodMode/Dash checks are handled by the caller (update loop).
+   * I-frames are applied after ALL enemies are processed to allow multi-enemy hits per frame.
    */
   private checkPlayerEnemyCollision(
     pool: IPoolManager,
@@ -271,7 +306,7 @@ export class CollisionSystem implements ICollisionSystem {
     state: GameState,
     dtFactor: number,
     onGameOver: () => void
-  ): void {
+  ): 'none' | 'hit' | 'dodge' {
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
     const distSq = dx * dx + dy * dy;
@@ -280,94 +315,81 @@ export class CollisionSystem implements ICollisionSystem {
       (GAME_ENGINE.PLAYER_HIT_BOX_RADIUS + enemy.radius);
 
     // Radius-based collision check using squared distance
-    if (distSq < combinedRadiusSq) {
-      // Skill Check: Invulnerable during Dash, I-Frames or if God Mode enabled
-      if (
-        !this.ctx.cheat.isGodMode() &&
-        !state.isDashing &&
-        player.invulnerabilityTimer <= 0
-      ) {
-        // A. Dodge Check
-        const rawDodge = this.ctx.stats.getDodge(player);
-        const dodgeChance = Math.min(rawDodge, this.ctx.statCaps.MAX_DODGE);
-
-        if (Math.random() < dodgeChance) {
-          pool.getFloatingText(
-            player.x,
-            player.y - GAME_ENGINE.COLLISION_TEXT_OFFSET_Y,
-            'DODGE!',
-            physicsColors.BULLET,
-            GAME_ENGINE.DODGE_INDICATOR_SIZE
-          );
-          // Give brief I-Frame even on dodge to prevent immediate re-roll
-          player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION / 2;
-          return;
-        }
-
-        // B. Armor & Damage Calculation
-        const rawArmor = this.ctx.stats.getArmor(player);
-        const effectiveArmor = Math.min(rawArmor, this.ctx.statCaps.MAX_ARMOR);
-
-        // Diminishing returns formula for armor
-        const armorReduction =
-          effectiveArmor / (effectiveArmor + GAME_ENGINE.ARMOR_RESISTANCE_FACTOR);
-
-        const baseDamage = enemy.damage;
-        const finalDamage = Math.max(
-          baseDamage * GAME_ENGINE.DAMAGE_MINIMUM_MULTIPLIER,
-          baseDamage * GAME_ENGINE.DAMAGE_REDUCTION_BASE * (1 - armorReduction)
-        );
-
-        // Apply HP loss (Fixed per hit, not scaled by dtFactor since we use I-Frames)
-        player.hp -= finalDamage;
-        player.hp = Math.max(0, player.hp);
-
-        // Emit events for immediate UI/Director feedback
-        EventBus.emit('playerHit', {
-          damage: finalDamage,
-          remainingHp: player.hp,
-        });
-
-        EventBus.emit('playerHealthChange', {
-          hpPercent: (player.hp / player.maxHp) * 100,
-          hp: player.hp,
-          maxHp: player.maxHp,
-        });
-
-        // Set I-Frames after taking damage
-        player.invulnerabilityTimer = GAME_ENGINE.PLAYER_I_FRAME_DURATION;
-
-        // Apply knockback to the enemy that hit the player (separates it from player)
-        this.applyKnockback(enemy, { x: player.x, y: player.y }, dtFactor);
-
-        // Add damage direction indicator (throttled to once every 200ms)
-        /*
-        const gameTime = this.ctx.constants.getGameTime();
-        const lastInd = state.damageIndicators[state.damageIndicators.length - 1];
-        if (!lastInd || gameTime - lastInd.timestamp > 200) {
-          state.damageIndicators.push({
-            sourceX: enemy.x,
-            sourceY: enemy.y,
-            timestamp: gameTime,
-          });
-        }
-        */
-
-        // Visual Feedback
-        state.shake = GAME_ENGINE.PLAYER_HIT_SHAKE;
-
-        // Audio Feedback (Randomized to avoid spam/phasing)
-        if (Math.random() > GAME_ENGINE.HIT_SOUND_PROBABILITY) {
-          this.ctx.audio.playHit();
-        }
-
-        // Game Over Check
-        if (player.hp <= 0 && !state.isGameOverTriggered) {
-          state.isGameOverTriggered = true;
-          onGameOver();
-        }
-      }
+    if (distSq >= combinedRadiusSq) {
+      return 'none';
     }
+
+    // A. Dodge Check (per-enemy roll — player may dodge some but not all)
+    const rawDodge = this.ctx.stats.getDodge(player);
+    const dodgeChance = Math.min(rawDodge, this.ctx.statCaps.MAX_DODGE);
+
+    if (Math.random() < dodgeChance) {
+      pool.getFloatingText(
+        player.x,
+        player.y - GAME_ENGINE.COLLISION_TEXT_OFFSET_Y,
+        'DODGE!',
+        physicsColors.BULLET,
+        GAME_ENGINE.DODGE_INDICATOR_SIZE
+      );
+      return 'dodge';
+    }
+
+    // B. Armor & Damage Calculation
+    const rawArmor = this.ctx.stats.getArmor(player);
+    const effectiveArmor = Math.min(rawArmor, this.ctx.statCaps.MAX_ARMOR);
+
+    // Diminishing returns formula for armor
+    const armorReduction =
+      effectiveArmor / (effectiveArmor + GAME_ENGINE.ARMOR_RESISTANCE_FACTOR);
+
+    const baseDamage = enemy.damage;
+    // Apply LeverageEngine's dynamic damage multiplier
+    // Higher leverage + higher volatility = exponentially more damage taken
+    const leverageDamageMult = LeverageEngine.getMultipliers().damageTaken;
+    const finalDamage = Math.max(
+      baseDamage * GAME_ENGINE.DAMAGE_MINIMUM_MULTIPLIER,
+      baseDamage *
+        GAME_ENGINE.DAMAGE_REDUCTION_BASE *
+        (1 - armorReduction) *
+        leverageDamageMult
+    );
+
+    // Apply HP loss (Fixed per hit, not scaled by dtFactor since we use I-Frames)
+    player.hp -= finalDamage;
+    player.hp = Math.max(0, player.hp);
+
+    // Emit events for immediate UI/Director feedback
+    EventBus.emit('playerHit', {
+      damage: finalDamage,
+      remainingHp: player.hp,
+    });
+
+    EventBus.emit('playerHealthChange', {
+      hpPercent: (player.hp / player.maxHp) * 100,
+      hp: player.hp,
+      maxHp: player.maxHp,
+    });
+
+    // NOTE: I-frames are set in update() after ALL enemy collisions are processed
+
+    // Apply knockback to the enemy that hit the player (separates it from player)
+    this.applyKnockback(enemy, { x: player.x, y: player.y }, dtFactor);
+
+    // Visual Feedback (accumulate shake for multi-hit impact)
+    state.shake = Math.max(state.shake, GAME_ENGINE.PLAYER_HIT_SHAKE);
+
+    // Audio Feedback (Randomized to avoid spam/phasing)
+    if (Math.random() > GAME_ENGINE.HIT_SOUND_PROBABILITY) {
+      this.ctx.audio.playHit();
+    }
+
+    // Game Over Check
+    if (player.hp <= 0 && !state.isGameOverTriggered) {
+      state.isGameOverTriggered = true;
+      onGameOver();
+    }
+
+    return 'hit';
   }
 
   /**

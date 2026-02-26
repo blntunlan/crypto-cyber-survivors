@@ -135,12 +135,18 @@ export type GameEvent =
   | 'twitterUnlinked'
   // AI Director / Optimization events
   | 'playerDied'
+  | 'playerDeath'
+  | 'playerRespawn'
+  | 'optimizationProgress'
+  | 'trainingProgress'
+  | 'directorParamsUpdated'
   | 'optimizationComplete'
   | 'directorAutoTuned'
   | 'directorDecision'
   | 'strategicLayerUpdate'
   | 'tacticalLayerUpdate'
   | 'flowStateChanged'
+  | 'directorBlendedOutput'
   | 'clientIndicatorsUpdated'
   | 'portalEntered'
   | 'portalRejected'
@@ -154,6 +160,8 @@ export type GameEvent =
   | 'marketFlowInfluence'
   | 'marketEventActive'
   | 'marketEventExpired'
+  // Price Momentum Engine events
+  | 'priceMomentumUpdate'
   // Supabase auth events
   | 'authStateChanged';
 
@@ -376,12 +384,12 @@ export interface ClientIndicatorsUpdatedEvent {
   trendStrength: number;
   /** Trend direction */
   trendDirection: 'UP' | 'DOWN' | 'SIDEWAYS';
-  /** MACD line value */
-  macdValue?: number;
-  /** MACD signal line value */
-  macdSignal?: number;
-  /** MACD histogram value */
-  macdHistogram?: number;
+  /** MACD values */
+  macd: {
+    value: number;
+    signal: number;
+    histogram: number;
+  };
   /** Whale tier (0=none, 1=baby, 2=normal, 3=mega) */
   whaleTier: 0 | 1 | 2 | 3;
 }
@@ -412,6 +420,20 @@ export interface MarketStateChangedEvent {
   isFavorable: boolean;
   /** Player's current position */
   position: 'LONG' | 'SHORT';
+}
+
+/** Price momentum update event data (PriceMomentumEngine) */
+export interface PriceMomentumUpdateEvent {
+  /** Current momentum phase */
+  phase: 'STAGNANT' | 'DRIFTING' | 'TRENDING' | 'SURGING' | 'CRASHING';
+  /** Current intensity (0-1) */
+  intensity: number;
+  /** Price direction */
+  direction: 'up' | 'down' | 'flat';
+  /** Suggested music BPM */
+  suggestedBPM: number;
+  /** Whether current direction is favorable for player's position */
+  isFavorable: boolean;
 }
 
 /** Whale spawned event data */
@@ -620,6 +642,12 @@ export interface EventDataMap {
   afterReset: EmptyEvent;
   gameInitialized: GameInitializedEvent;
   settingsUpdate: SettingsUpdateEvent;
+  playerDied: EmptyEvent;
+  playerDeath: EmptyEvent;
+  playerRespawn: EmptyEvent;
+  optimizationProgress: { progress: number; iteration?: number; total?: number };
+  trainingProgress: { progress: number };
+  directorParamsUpdated: { params: unknown };
   buffApplied: BuffAppliedEvent;
   buffExpired: BuffExpiredEvent;
   buffGemSpawned: BuffGemSpawnedEvent;
@@ -630,6 +658,12 @@ export interface EventDataMap {
   clientIndicatorsUpdated: ClientIndicatorsUpdatedEvent;
   flowStateChanged: FlowStateChangedEvent;
   whaleSpawned: WhaleSpawnedEvent;
+  directorBlendedOutput: {
+    flowState: string;
+    interventionActive: boolean;
+    blendFactor: number;
+    spawnRate: number;
+  };
   whaleTierChanged: WhaleTierChangedEvent;
   rsiStateChanged: RSIStateChangedEvent;
   marketStateUpdated: MarketStateUpdatedEvent;
@@ -782,7 +816,6 @@ export interface EventDataMap {
   twitterLoginSuccess: { username: string; displayName: string };
   twitterUnlinked: Record<string, never>;
   // AI Director / Optimization events
-  playerDied: Record<string, never>;
   optimizationComplete: { bestParams: unknown; bestScore: number };
   directorAutoTuned: { improvement: number; newScore: number };
   directorDecision: {
@@ -801,6 +834,8 @@ export interface EventDataMap {
     marketMood: string;
     enemyBias: string;
   };
+  // Price Momentum Engine
+  priceMomentumUpdate: PriceMomentumUpdateEvent;
   // Supabase auth state change event
   authStateChanged: AuthStateChangedEvent;
 }

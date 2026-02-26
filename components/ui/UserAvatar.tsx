@@ -50,34 +50,36 @@ export interface UserAvatarProps {
 // Constants
 // ============================================
 
-const SIZE_CLASSES: Record<string, { container: string; text: string; badge: string }> =
-  {
-    xs: {
-      container: 'w-6 h-6',
-      text: 'text-xs',
-      badge: 'w-3 h-3 -bottom-0.5 -right-0.5',
-    },
-    sm: {
-      container: 'w-8 h-8',
-      text: 'text-sm',
-      badge: 'w-4 h-4 -bottom-0.5 -right-0.5',
-    },
-    md: {
-      container: 'w-10 h-10',
-      text: 'text-base',
-      badge: 'w-5 h-5 -bottom-1 -right-1',
-    },
-    lg: {
-      container: 'w-12 h-12',
-      text: 'text-lg',
-      badge: 'w-6 h-6 -bottom-1 -right-1',
-    },
-    xl: {
-      container: 'w-16 h-16',
-      text: 'text-xl',
-      badge: 'w-7 h-7 -bottom-1.5 -right-1.5',
-    },
-  };
+const SIZE_CLASSES: Record<
+  'xs' | 'sm' | 'md' | 'lg' | 'xl',
+  { container: string; text: string; badge: string }
+> = {
+  xs: {
+    container: 'w-6 h-6',
+    text: 'text-xs',
+    badge: 'w-3 h-3 -bottom-0.5 -right-0.5',
+  },
+  sm: {
+    container: 'w-8 h-8',
+    text: 'text-sm',
+    badge: 'w-4 h-4 -bottom-0.5 -right-0.5',
+  },
+  md: {
+    container: 'w-10 h-10',
+    text: 'text-base',
+    badge: 'w-5 h-5 -bottom-1 -right-1',
+  },
+  lg: {
+    container: 'w-12 h-12',
+    text: 'text-lg',
+    badge: 'w-6 h-6 -bottom-1 -right-1',
+  },
+  xl: {
+    container: 'w-16 h-16',
+    text: 'text-xl',
+    badge: 'w-7 h-7 -bottom-1.5 -right-1.5',
+  },
+};
 
 const PROVIDER_ICONS: Record<string, { icon: LucideIcon; bg: string; color: string }> =
   {
@@ -110,9 +112,11 @@ const AVATAR_COLORS = [
 function getInitials(name: string): string {
   const words = name.trim().split(/\s+/);
   if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+    const first = words[0]?.[0] ?? '';
+    const second = words[1]?.[0] ?? '';
+    if (first || second) return (first + second).toUpperCase();
   }
-  return name.slice(0, 2).toUpperCase();
+  return name.trim().slice(0, 2).toUpperCase() || '?';
 }
 
 function getColorFromName(name: string): string {
@@ -120,7 +124,9 @@ function getColorFromName(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  return (
+    AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] ?? 'from-cyan-500 to-blue-500'
+  );
 }
 
 // ============================================
@@ -148,12 +154,13 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const hasValidImage = avatarUrl && !imageError;
   const ProviderIcon = providerInfo?.icon;
 
+  const Container = onClick ? 'button' : 'div';
+  const containerProps = onClick ? { type: 'button' as const, onClick } : {};
+
   return (
-    <div
-      className={`relative inline-flex ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
+    <Container
+      {...containerProps}
+      className={`relative inline-flex outline-none ${onClick ? 'cursor-pointer appearance-none rounded-full border-none bg-transparent p-0 text-left focus-visible:ring-2 focus-visible:ring-cyan-500' : ''} ${className}`}
     >
       {/* Avatar Container */}
       <div
@@ -231,7 +238,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           title={isOnline ? 'Online' : 'Offline'}
         />
       )}
-    </div>
+    </Container>
   );
 };
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { TimeService } from '../services/core/TimeService';
+import { UnifiedDirector } from '../services/difficulty/UnifiedDirector';
 
 // Mock TimeService
 vi.mock('../services/core/TimeService', () => ({
@@ -10,10 +11,11 @@ vi.mock('../services/core/TimeService', () => ({
   },
 }));
 
-// Mock GameMasterBrain
-vi.mock('../services/difficulty/GameMasterBrain', () => ({
-  GameMasterBrain: {
+// Mock UnifiedDirector
+vi.mock('../services/difficulty/UnifiedDirector', () => ({
+  UnifiedDirector: {
     update: vi.fn(),
+    reset: vi.fn(),
     getOutputs: vi.fn(() => ({
       spawnRate: 1.0,
       enemySpeed: 1.0,
@@ -55,6 +57,7 @@ vi.mock('../services/combat/PoolManager', () => ({
 
 describe('DifficultyManager', () => {
   beforeEach(() => {
+    DifficultyManager.reset();
     DifficultyManager.startGame();
     vi.clearAllMocks();
   });
@@ -106,9 +109,9 @@ describe('DifficultyManager', () => {
 
   it('should give mercy when near death', () => {
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(230); // Climax phase (1.5x)
-    DifficultyManager.startGame(50);
-    const healthy = DifficultyManager.calculate(0, 0, 10, 1.0).total;
-    const nearDeath = DifficultyManager.calculate(0, 0, 10, 0.1).total; // 10% HP
+    DifficultyManager.startGame(1); // Low leverage
+    const healthy = DifficultyManager.calculate(0, 0, 1, 1.0).total; // Level 1
+    const nearDeath = DifficultyManager.calculate(0, 0, 1, 0.1).total; // 10% HP
 
     expect(nearDeath).toBeLessThan(healthy);
   });

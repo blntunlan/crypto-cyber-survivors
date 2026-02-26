@@ -65,6 +65,7 @@ export class CombatSystem implements ICombatSystem {
    * @param deltaMs - Time elapsed since last frame.
    * @param screenWidth - Actual viewport width for culling.
    * @param screenHeight - Actual viewport height for culling.
+   * @returns `true` when projectiles were fired this tick, otherwise `false`.
    */
   public processAutoFire(
     pool: IPoolManager,
@@ -73,7 +74,7 @@ export class CombatSystem implements ICombatSystem {
     deltaMs: number,
     screenWidth?: number,
     screenHeight?: number
-  ): void {
+  ): boolean {
     state.fireTimer += deltaMs;
 
     // Get decorated stats which include active buffs or card modifiers
@@ -86,22 +87,23 @@ export class CombatSystem implements ICombatSystem {
 
     // Enforce cooldown interval
     if (state.fireTimer < cappedFireRate) {
-      return;
+      return false;
     }
 
     // Identify target - prioritizing enemies currently visible to the player
     const nearest = this.findNearestEnemy(pool, player, screenWidth, screenHeight);
     if (!nearest) {
-      return;
+      return false;
     }
 
     // Launch projectiles targeting the predicted position
     this.fireBullets(pool, player, nearest, state, 0, stats);
-    state.fireTimer = 0;
+    state.fireTimer -= cappedFireRate;
 
     // Provide dynamic audio feedback based on firing intensity
     const fireRateMultiplier = COMBAT_CONFIG.FIRE_RATE_AUDIO_THRESHOLD / cappedFireRate;
     this.audio.playShoot(fireRateMultiplier, effectiveProjectiles);
+    return true;
   }
 
   /**

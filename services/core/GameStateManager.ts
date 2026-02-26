@@ -123,15 +123,21 @@ class GameStateManagerClass {
       // Emit before reset event for any cleanup operations
       EventBus.emit('beforeReset', {});
 
-      // Reset all game systems
+      // 1. FIRST: Broadcast gameReset so ALL subsystems wipe their state to clean defaults.
+      //    This resets LeverageEngine (→1x), DifficultyContext (→defaults),
+      //    DifficultyManager (→defaults), and ~30 other listeners.
+      EventBus.emit('gameReset', {});
+
+      // 2. THEN: Apply the chosen leverage on top of the clean slate.
+      //    DifficultyManager.startGame will NOT call its own reset() again
+      //    because its gameReset listener already handled that above.
+      //    It will only call difficultyContext.updateInputs({ leverage })
+      //    to stamp the correct value.
       DifficultyManager.startGame(leverage);
       ComboSystem.startGame();
 
       // Emit after reset event for UI updates
       EventBus.emit('afterReset', {});
-
-      // Legacy event for backwards compatibility (can be removed after full migration)
-      EventBus.emit('gameReset', {});
     } finally {
       this.isResetting = false;
     }

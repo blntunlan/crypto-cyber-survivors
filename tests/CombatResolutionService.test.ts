@@ -221,8 +221,8 @@ describe('CombatResolutionService', () => {
       if (!gemArgs) throw new Error('getGem not called');
       const value = gemArgs[2];
 
-      // Base value is 15 for grunt. 15 * 2.0 = 30 (non-rare, no luck bonus).
-      expect(value).toBe(30);
+      // Base value is 12 for normal enemies (as per ECONOMY_CONFIG). 12 * 2.0 = 24.
+      expect(value).toBe(24);
       randomSpy.mockRestore();
     });
   });

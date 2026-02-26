@@ -23,6 +23,13 @@ describe('GameConfig', () => {
       expect(ordered[i]!.value.spawn).toBeGreaterThanOrEqual(
         ordered[i - 1]!.value.spawn
       );
+      expect(ordered[i]!.value.speed).toBeGreaterThanOrEqual(
+        ordered[i - 1]!.value.speed
+      );
+      expect(ordered[i]!.value.hp).toBeGreaterThanOrEqual(ordered[i - 1]!.value.hp);
+      expect(ordered[i]!.value.damage).toBeGreaterThanOrEqual(
+        ordered[i - 1]!.value.damage
+      );
       expect(ordered[i]!.value.xpReq).toBeGreaterThanOrEqual(
         ordered[i - 1]!.value.xpReq
       );

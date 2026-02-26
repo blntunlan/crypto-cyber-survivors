@@ -22,6 +22,7 @@ import {
 } from './types';
 import { DIFFICULTY_CONFIG, getLeverageScale } from './constants';
 import { clamp, getDefaultInputs } from './utils';
+import { LeverageEngine } from '../gameplay/LeverageEngine';
 import type { MarketPosition, MarketRuntimeSnapshot } from '../../types';
 
 /**
@@ -70,6 +71,9 @@ class DifficultyContextManager {
       this.inputs.pnlPercent = data.pnl;
       this.inputs.currentPrice = data.price;
 
+      // Feed LeverageEngine with latest market state
+      LeverageEngine.updateMarketState(this.inputs.atrPercent, data.pnl);
+
       // Update PnL history buffer
       const leveragedPnL = data.pnl * this.inputs.leverage;
       this.inputs.pnlHistory.push(leveragedPnL);
@@ -91,6 +95,7 @@ class DifficultyContextManager {
       this.inputs.rsi = snapshot.rsi;
       this.inputs.atrPercent = snapshot.atrPercent;
       this.inputs.macd = {
+        macd: snapshot.macd,
         value: snapshot.macd,
         signal: this.inputs.macd.signal,
         histogram: snapshot.macd - this.inputs.macd.signal,
@@ -115,19 +120,11 @@ class DifficultyContextManager {
       this.inputs.atrPercent = data.atrPercent;
       this.inputs.whaleTier = data.whaleTier as 0 | 1 | 2 | 3;
 
-      const nextMacdValue =
-        typeof data.macdValue === 'number' ? data.macdValue : this.inputs.macd.value;
-      const nextMacdSignal =
-        typeof data.macdSignal === 'number' ? data.macdSignal : this.inputs.macd.signal;
-      const nextMacdHistogram =
-        typeof data.macdHistogram === 'number'
-          ? data.macdHistogram
-          : nextMacdValue - nextMacdSignal;
-
       this.inputs.macd = {
-        value: nextMacdValue,
-        signal: nextMacdSignal,
-        histogram: nextMacdHistogram,
+        macd: data.macd.value,
+        value: data.macd.value,
+        signal: data.macd.signal,
+        histogram: data.macd.histogram,
       };
 
       this.markDirty();
@@ -192,6 +189,7 @@ class DifficultyContextManager {
     EventBus.on('gameStart', data => {
       if (data.leverage) {
         this.inputs.leverage = data.leverage;
+        LeverageEngine.setLeverage(data.leverage);
       }
       if (data.position) {
         this.inputs.position = data.position as unknown as MarketPosition;
@@ -207,6 +205,10 @@ class DifficultyContextManager {
     EventBus.on('gameReset', () => {
       this.inputs = getDefaultInputs();
       this.hasRuntimeMarketAuthority = false;
+      this.resetHistory();
+      this.nearDeathStartTime = 0;
+      this.lastPerformanceUpdate = 0;
+      this.lastCycleCount = 0;
       this.markDirty();
     });
   }
@@ -509,30 +511,33 @@ class DifficultyContextManager {
     const { limits } = DIFFICULTY_CONFIG;
     const scale = inp.leverageScale;
 
+    // Get dynamic leverage multipliers (volatility-aware, PnL-aware)
+    const levMult = LeverageEngine.getMultipliers();
+
     return {
       total: agg.total,
       wavePhase: f.wavePhase, // Always 'active' in V2
       liquidationWarning: f.liquidation.warningLevel,
       fovReduction: f.liquidation.fovReduction,
       shockActive: f.shock.triggered,
+      // Blend static tier with dynamic LeverageEngine (weighted: 30% static, 70% dynamic)
       spawnRate: clamp(
-        agg.total * scale.spawn,
+        agg.total * (scale.spawn * 0.3 + levMult.spawnRate * 0.7),
         limits.spawnRate.min,
         limits.spawnRate.max
       ),
-      // Wave factor removed from enemySpeed calculation
       enemySpeed: clamp(
-        f.pnl * f.atr * scale.speed,
+        f.pnl * f.atr * (scale.speed * 0.3 + levMult.enemySpeed * 0.7),
         limits.enemySpeed.min,
         limits.enemySpeed.max
       ),
       enemyHP: clamp(
-        f.cycle * f.level * scale.hp,
+        f.cycle * f.level * (scale.hp * 0.3 + levMult.enemyHP * 0.7),
         limits.enemyHP.min,
         limits.enemyHP.max
       ),
       enemyDamage: clamp(
-        f.cycle * f.pnl * scale.damage,
+        f.cycle * f.pnl * (scale.damage * 0.3 + levMult.enemyDamage * 0.7),
         limits.enemyDamage.min,
         limits.enemyDamage.max
       ),

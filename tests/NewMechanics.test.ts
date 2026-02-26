@@ -56,6 +56,7 @@ vi.mock('../services/combat/PoolManager', () => ({
 
 describe('New Mechanics (Damping, XP, Shock)', () => {
   beforeEach(() => {
+    DifficultyManager.reset();
     DifficultyManager.startGame(1);
     vi.clearAllMocks();
   });

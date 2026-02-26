@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { COLORS } from '../../constants';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { useGameStore } from '../../stores/gameStore';
@@ -62,7 +62,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   }, [isNewHighScore]);
 
   return (
-    <motion.div
+    <m.div
       className="allow-scroll fixed inset-0 flex flex-col items-center justify-center overflow-y-auto bg-slate-950 p-4 text-center"
       style={{ zIndex: Z_LAYERS.GAME_OVER }}
       initial={{ opacity: 0 }}
@@ -70,13 +70,13 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       transition={{ duration: 0.5 }}
     >
       {/* Glitch Title */}
-      <motion.h2
+      <m.h2
         className={cn(
           isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber',
           sizes.title,
           'relative my-auto mb-4 font-black italic tracking-tighter text-white md:text-8xl'
         )}
-        initial={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
+        initial={{ scale: 2, opacity: 0, filter: 'blur(10px)' }}
         animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
         transition={{
           type: 'spring',
@@ -85,7 +85,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           delay: 0.2,
         }}
       >
-        <motion.span
+        <m.span
           animate={{
             textShadow: [
               `2px 0 ${COLORS.CASINO_RED}, -2px 0 ${COLORS.ELECTRIC_BLUE}`,
@@ -96,11 +96,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           transition={{ duration: 0.1, repeat: 3 }}
         >
           {t('common.game_over_screen.liquidated')}
-        </motion.span>
-      </motion.h2>
+        </m.span>
+      </m.h2>
 
       {/* Stats Card */}
-      <motion.div
+      <m.div
         className={cn(
           'mb-auto w-full max-w-md space-y-6 p-6 transition-all md:p-10',
           isRetro
@@ -113,10 +113,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       >
         {/* New High Score Badge */}
         {isNewHighScore && (
-          <motion.div
+          <m.div
             className="flex items-center justify-center gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-4 py-2 text-center"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
           >
             <IconTrophy className="h-4 w-4" color={isRetro ? '#ffd600' : '#eab308'} />
@@ -125,7 +125,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             >
               {t('common.game_over_screen.new_high_score')}
             </span>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Stats Grid */}
@@ -140,7 +140,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
           <StatItem
             label={t('common.game_over_screen.pnl') as string}
-            value={`${(finalPnl * 100).toFixed(1)}%`}
+            value={`${(finalPnl * 100).toFixed(2)}%`}
             color={finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE}
             delay={0.6}
             sizes={sizes}
@@ -163,7 +163,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
         </div>
 
         {/* Career Stats */}
-        <motion.div
+        <m.div
           className="border-t border-white/10 pt-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -209,10 +209,10 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
               </p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Restart Button */}
-        <motion.button
+        <m.button
           onClick={onRestart}
           className={cn(
             'w-full rounded-lg bg-white font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-yellow-500',
@@ -225,9 +225,9 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
           whileTap={{ scale: 0.98 }}
         >
           {t('common.game_over_screen.back_to_menu') as string}
-        </motion.button>
-      </motion.div>
-    </motion.div>
+        </m.button>
+      </m.div>
+    </m.div>
   );
 };
 
@@ -248,7 +248,7 @@ const StatItem: React.FC<StatItemProps & { isRetro?: boolean }> = ({
   sizes,
   isRetro,
 }) => (
-  <motion.div
+  <m.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
     transition={{ delay }}
@@ -272,5 +272,5 @@ const StatItem: React.FC<StatItemProps & { isRetro?: boolean }> = ({
     >
       {value}
     </p>
-  </motion.div>
+  </m.div>
 );
