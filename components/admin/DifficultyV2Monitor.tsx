@@ -3,17 +3,15 @@ import { useDifficultyV2 } from '../../hooks/useDifficultyV2';
 import { motion } from 'framer-motion';
 
 export const DifficultyV2Monitor: React.FC = () => {
-  const { context, total } = useDifficultyV2(100);
+  const { output, total } = useDifficultyV2(100);
 
-  if (!context) {
+  if (!output) {
     return (
       <div className="animate-pulse rounded-sm border border-slate-800 bg-slate-900/50 p-4">
         <p className="text-sm text-slate-500">Initializing Difficulty System V2...</p>
       </div>
     );
   }
-
-  const { factors, aggregates } = context;
 
   const FactorRow = ({
     label,
@@ -58,7 +56,7 @@ export const DifficultyV2Monitor: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="rounded-sm border border-cyan-500/30 bg-slate-900 p-4">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
             Total Difficulty
@@ -68,21 +66,12 @@ export const DifficultyV2Monitor: React.FC = () => {
         </div>
         <div className="rounded-sm border border-purple-500/30 bg-slate-900 p-4">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-purple-400">
-            Wave Phase
+            Director Output
           </p>
-          <p className="text-lg font-bold capitalize text-white">active</p>
+          <p className="text-lg font-bold capitalize text-white">{output.wavePhase}</p>
           <div className="mt-1 text-[10px] text-purple-300/50">
-            Agg Core: {aggregates.core.toFixed(2)}x
+            Spawn: {output.spawnRate.toFixed(2)}x
           </div>
-        </div>
-        <div className="rounded-sm border border-orange-500/30 bg-slate-900 p-4">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-orange-400">
-            Risk Modifier
-          </p>
-          <p className="text-2xl font-black text-white">
-            {aggregates.modifier.toFixed(2)}x
-          </p>
-          <ProgressBar value={aggregates.modifier} max={5} color="bg-orange-500" />
         </div>
       </div>
 
@@ -91,81 +80,32 @@ export const DifficultyV2Monitor: React.FC = () => {
         <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
           <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
             <span className="h-2 w-2 rounded-full bg-blue-500" />
-            Core Progression
+            V2 Outputs
           </h4>
-          <FactorRow label="Cycle" value={factors.cycle} />
-          <FactorRow label="Level" value={factors.level} />
-          <FactorRow label="Wave Mult" value={factors.wave} />
-          <FactorRow label="Base PnL" value={factors.pnl} />
-          <div className="mt-4 border-t border-slate-800 pt-4">
-            <FactorRow
-              label="Aggregated Core"
-              value={aggregates.core}
-              color="text-blue-400"
-            />
-          </div>
+          <FactorRow label="Enemy Speed" value={(output.enemySpeed || 1).toFixed(2)} />
+          <FactorRow label="Enemy HP" value={(output.enemyHP || 1).toFixed(2)} />
+          <FactorRow
+            label="Enemy Damage"
+            value={(output.enemyDamage || 1).toFixed(2)}
+          />
         </div>
 
         {/* Dynamic Modifiers */}
         <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
           <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
             <span className="h-2 w-2 rounded-full bg-orange-500" />
-            Dynamic Modifiers
+            V2 State
           </h4>
-          <FactorRow label="Liquidation" value={factors.liquidation.factor} />
-          <FactorRow label="Kill Streak" value={factors.streak} />
+          <FactorRow label="Liquidation Warn" value={output.liquidationWarning} />
           <FactorRow
-            label="Shock Multiplier"
-            value={factors.shock.factor}
-            color={factors.shock.triggered ? 'text-red-400' : 'text-white'}
+            label="FOV Reduction"
+            value={(output.fovReduction || 0).toFixed(2)}
           />
           <FactorRow
-            label="Warning Level"
-            value={factors.liquidation.warningLevel}
-            color={
-              factors.liquidation.warningLevel !== 'NONE'
-                ? 'text-red-400'
-                : 'text-slate-500'
-            }
+            label="Shock Active"
+            value={output.shockActive ? 'Yes' : 'No'}
+            color={output.shockActive ? 'text-red-400' : 'text-slate-500'}
           />
-          <div className="mt-4 border-t border-slate-800 pt-4">
-            <FactorRow
-              label="Aggregated Mod"
-              value={aggregates.modifier}
-              color="text-orange-400"
-            />
-          </div>
-        </div>
-
-        {/* Market Indicators */}
-        <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
-          <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            Market Indicators
-          </h4>
-          <FactorRow label="RSI Factor" value={factors.rsi} />
-          <FactorRow label="Volume Intensity" value={factors.volume} />
-          <FactorRow label="ATR Volatility" value={factors.atr} />
-          <div className="mt-4 border-t border-slate-800 pt-4">
-            <FactorRow
-              label="Aggregated Market"
-              value={aggregates.market}
-              color="text-green-400"
-            />
-          </div>
-        </div>
-
-        {/* Scaling Details */}
-        <div className="rounded-sm border border-slate-800 bg-slate-900/50 p-4">
-          <h4 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-purple-500" />
-            Leverage Scaling
-          </h4>
-          <FactorRow label="Current Leverage" value={context.inputs.leverage + 'x'} />
-          <FactorRow label="Spawn Scale" value={context.inputs.leverageScale.spawn} />
-          <FactorRow label="Speed Scale" value={context.inputs.leverageScale.speed} />
-          <FactorRow label="HP Scale" value={context.inputs.leverageScale.hp} />
-          <FactorRow label="Damage Scale" value={context.inputs.leverageScale.damage} />
         </div>
       </div>
     </div>

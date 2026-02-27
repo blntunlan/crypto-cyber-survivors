@@ -208,8 +208,8 @@ export class CombatResolutionService {
     player: Player
   ): void {
     const { GEMS, LUCK } = ECONOMY_CONFIG;
-    const context = difficultyContext.getContext();
-    const leverage = context.inputs.leverage;
+    const inputs = difficultyContext.inputs;
+    const leverage = inputs.leverage;
 
     // Stat Resolution with systemic caps
     const rawLuck = BuffManager.isInitialized()

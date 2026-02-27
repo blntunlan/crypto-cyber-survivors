@@ -59,8 +59,8 @@ test.describe('Chaos Monkey Stability Tests', () => {
                 window.clearInterval(interval);
                 interval = null;
               }
-              if (socket.readyState === 3) return;
-              socket.readyState = 3;
+              if ((socket as any).readyState === 3) return;
+              (socket as any).readyState = 3;
               const closeEvent =
                 typeof CloseEvent === 'function'
                   ? new CloseEvent('close')
@@ -180,10 +180,10 @@ test.describe('Chaos Monkey Stability Tests', () => {
           return new NativeWebSocket(url);
         } as unknown as typeof WebSocket;
 
-        PatchedWebSocket.CONNECTING = 0;
-        PatchedWebSocket.OPEN = 1;
-        PatchedWebSocket.CLOSING = 2;
-        PatchedWebSocket.CLOSED = 3;
+        (PatchedWebSocket as any).CONNECTING = 0;
+        (PatchedWebSocket as any).OPEN = 1;
+        (PatchedWebSocket as any).CLOSING = 2;
+        (PatchedWebSocket as any).CLOSED = 3;
 
         window.WebSocket = PatchedWebSocket;
         win.__chaosMarketPatched = true;

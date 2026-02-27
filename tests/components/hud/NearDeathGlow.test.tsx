@@ -43,7 +43,7 @@ describe('NearDeathGlow', () => {
     expect(parseFloat(glow?.style.opacity ?? '0')).toBeCloseTo(0.875, 3);
 
     act(() => {
-      EventBus.emit('gameReset');
+      EventBus.emit('gameReset', {});
     });
     expect(glow?.style.opacity).toBe('0');
   });

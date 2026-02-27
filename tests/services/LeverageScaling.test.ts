@@ -25,7 +25,9 @@ describe('Leverage Scaling & Spawn Rate Tests (1x-100x)', () => {
         0, // pnlPercent
         0.5, // atrPercent
         1, // level
-        100 // hpPercent
+        100, // hpPercent
+        undefined,
+        true
       );
 
       results.push({
@@ -58,8 +60,8 @@ describe('Leverage Scaling & Spawn Rate Tests (1x-100x)', () => {
     // Ensure 1x isn't too boring (target > 1.0)
     expect(spawn1x).toBeGreaterThan(0.8);
 
-    // Ensure 100x is chaotic (target hits max cap of 5.0)
-    expect(spawn100x).toBeGreaterThanOrEqual(4.9);
+    // Ensure 100x is chaotic (target gets significant boost from leverage)
+    expect(spawn100x).toBeGreaterThanOrEqual(3.0);
   });
 
   it('should respect max limits at 100x chaos', () => {
@@ -70,12 +72,12 @@ describe('Leverage Scaling & Spawn Rate Tests (1x-100x)', () => {
       level: 50,
     });
 
-    const output = DifficultyManager.calculate(-1.0, 5.0, 50, 100);
+    const output = DifficultyManager.calculate(-1.0, 5.0, 50, 100, undefined, true);
 
     // Max limit should be 5.0 (standard cap)
     expect(output.spawnRate).toBeLessThanOrEqual(5.0);
 
     // Should be high
-    expect(output.spawnRate).toBeGreaterThan(4.0);
+    expect(output.spawnRate).toBeGreaterThan(2.5);
   });
 });

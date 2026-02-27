@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
-import { TimeService } from '../services/core/TimeService';
 import { EventBus } from '../services/core/EventBus';
 
 // Mock TimeService
+let mockGameTimeSeconds = 0;
 vi.mock('../services/core/TimeService', () => ({
   TimeService: {
-    getGameTimeSeconds: vi.fn().mockReturnValue(0),
-    getGameTime: vi.fn().mockReturnValue(0),
+    getGameTimeSeconds: vi.fn(() => mockGameTimeSeconds),
+    getGameTime: vi.fn(() => mockGameTimeSeconds * 1000),
   },
 }));
 
@@ -64,14 +64,28 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
   describe('Volatility Damping', () => {
     it('should dampen volatility heavily in the early game', () => {
       // Early game (0s): Damping is 0.2
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      mockGameTimeSeconds = 0;
 
       // Calculate with high ATR (5%)
-      const earlyDifficulty = DifficultyManager.calculate(0, 0.05, 1, 1.0).total;
+      const earlyDifficulty = DifficultyManager.calculate(
+        0,
+        0.05,
+        1,
+        1.0,
+        undefined,
+        true
+      ).total;
 
       // Buildup phase (60s): wave factor 0.85 (higher than warmup 0.75)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
-      const lateDifficulty = DifficultyManager.calculate(0, 0.05, 1, 1.0).total;
+      mockGameTimeSeconds = 60;
+      const lateDifficulty = DifficultyManager.calculate(
+        0,
+        0.05,
+        1,
+        1.0,
+        undefined,
+        true
+      ).total;
 
       expect(earlyDifficulty).toBeLessThan(lateDifficulty);
       // Damping formula: deviation * 0.2 vs deviation * 1.0
@@ -86,30 +100,36 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
     it('should gradually increase difficulty over time even with constant inputs', () => {
       const inputs = { pnl: 0, atr: 0.02, level: 1, hp: 1.0 };
 
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      mockGameTimeSeconds = 0;
       const startDiff = DifficultyManager.calculate(
         inputs.pnl,
         inputs.atr,
         inputs.level,
-        inputs.hp
+        inputs.hp,
+        undefined,
+        true
       ).total;
 
       // Move to buildup (higher wave factor)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
+      mockGameTimeSeconds = 60;
       const midDiff = DifficultyManager.calculate(
         inputs.pnl,
         inputs.atr,
         inputs.level,
-        inputs.hp
+        inputs.hp,
+        undefined,
+        true
       ).total;
 
       // Move to climax (even higher)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(240);
+      mockGameTimeSeconds = 240;
       const endDiff = DifficultyManager.calculate(
         inputs.pnl,
         inputs.atr,
         inputs.level,
-        inputs.hp
+        inputs.hp,
+        undefined,
+        true
       ).total;
 
       expect(startDiff).toBeLessThan(midDiff);
@@ -139,13 +159,14 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
       const emitSpy = vi.spyOn(EventBus, 'emit');
 
       // Start at 0, fill history with 5 zeroes
+      mockGameTimeSeconds = 0;
       for (let i = 0; i < 5; i++) {
-        DifficultyManager.calculate(0.0, 0, 1, 1.0);
+        DifficultyManager.calculate(0.0, 0, 1, 1.0, undefined, true);
       }
 
-      // Advance to 10s (past 5s grace period) and jump PnL by 1% (threshold is 0.5%)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(10);
-      DifficultyManager.calculate(0.1, 0, 1, 1.0);
+      // Advance to 10s (past 5s grace period) and jump PnL significantly
+      mockGameTimeSeconds = 10;
+      DifficultyManager.calculate(-0.2, 0, 1, 1.0, undefined, true);
 
       expect(emitSpy).toHaveBeenCalledWith('volatilityShock', expect.anything());
     });
@@ -154,14 +175,14 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
       const emitSpy = vi.spyOn(EventBus, 'emit');
 
       // Start at 0, fill history
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      mockGameTimeSeconds = 0;
       for (let i = 0; i < 5; i++) {
-        DifficultyManager.calculate(0.0, 0, 1, 1.0);
+        DifficultyManager.calculate(0.0, 0, 1, 1.0, undefined, true);
       }
 
       // Large jump at 2s (within grace period)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(2);
-      DifficultyManager.calculate(0.2, 0, 1, 1.0);
+      mockGameTimeSeconds = 2;
+      DifficultyManager.calculate(-0.2, 0, 1, 1.0, undefined, true);
 
       expect(emitSpy).not.toHaveBeenCalledWith('volatilityShock', expect.anything());
     });
@@ -170,25 +191,25 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
       const emitSpy = vi.spyOn(EventBus, 'emit');
 
       // Establish baseline at 0 with 5 zeroes
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
+      mockGameTimeSeconds = 0;
       for (let i = 0; i < 5; i++) {
-        DifficultyManager.calculate(0.0, 0, 1, 1.0);
+        DifficultyManager.calculate(0.0, 0, 1, 1.0, undefined, true);
       }
 
       // Shock 1 (at 6s, just after grace period)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(6);
-      DifficultyManager.calculate(0.1, 0, 1, 1.0);
+      mockGameTimeSeconds = 6;
+      DifficultyManager.calculate(-0.2, 0, 1, 1.0, undefined, true);
       expect(emitSpy).toHaveBeenCalledWith('volatilityShock', expect.anything());
       emitSpy.mockClear();
 
       // Immediate shock 2 (within 10s cooldown)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(10);
-      DifficultyManager.calculate(0.2, 0, 1, 1.0);
+      mockGameTimeSeconds = 10;
+      DifficultyManager.calculate(-0.3, 0, 1, 1.0, undefined, true);
       expect(emitSpy).not.toHaveBeenCalledWith('volatilityShock', expect.anything());
 
       // After cooldown (10s + 6s = 16s)
-      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(17);
-      DifficultyManager.calculate(0.3, 0, 1, 1.0);
+      mockGameTimeSeconds = 17;
+      DifficultyManager.calculate(-0.5, 0, 1, 1.0, undefined, true);
       expect(emitSpy).toHaveBeenCalledWith('volatilityShock', expect.anything());
     });
   });

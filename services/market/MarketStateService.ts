@@ -205,7 +205,9 @@ class MarketStateServiceClass {
       for (const log of rawLogs) {
         const currentPrice = Number(log.price);
         const currentVolume = Number(log.volume);
-        const currentTs = new Date(log.timestamp).getTime();
+        const currentTs = log.timestamp
+          ? new Date(log.timestamp).getTime()
+          : Date.now();
 
         if (lastLog) {
           const timeDiff = currentTs - lastLog.timestamp;

@@ -33,86 +33,28 @@
 // AI Director V2 - Unified Brain
 export {
   UnifiedDirector,
-  UNIFIED_DIRECTOR_CONFIG,
   type UnifiedInputs,
   type UnifiedOutputs,
 } from './UnifiedDirector';
 
-// AI Director V2 - Flow State Manager
-export {
-  FlowStateManager,
-  createFlowStateManager,
-  FLOW_STATE_CONFIG,
-  type FlowState,
-  type PlayerMetrics,
-  type FlowStateAnalysis,
-  type FlowStateCorrections,
-} from './FlowStateManager';
-
-// Main context (legacy)
 export { difficultyContext } from './DifficultyContext';
+export { FlowStateManager } from './FlowStateManager';
 
-// Types
 export type {
   DifficultyInputs,
   DifficultyContextState,
   DifficultyOutputV2,
-  WavePhase, // Legacy Support
+  WavePhase,
   LiquidationWarning,
   LeverageScale,
 } from './types';
 
-// Constants
 export {
   DIFFICULTY_CONFIG,
   LEVERAGE_TIERS,
-  WAVE_PHASES, // Legacy Support
+  WAVE_PHASES,
   getNearestLeverageTier,
   getLeverageScale,
 } from './constants';
 
-// Utilities
 export { clamp, getDefaultInputs, calculateLiquidationPrice } from './utils';
-
-// Factor calculators (pure functions)
-export {
-  // Cycle
-  calculateCycleFactor,
-  getCurrentCycle,
-  getCycleProgress,
-  getTimeRemainingInCycle,
-  // PnL
-  calculatePnLFactor,
-  getPnLStatus,
-  // Level
-  calculateLevelFactor,
-  getLevelCapForLeverage,
-  // Wave - DEPRECATED (kept for legacy compatibility)
-  // calculateWaveFactor,
-  // getPhaseConfig,
-  // isInBossWave,
-  // isInResolutionPhase,
-  // getPhaseTimeline,
-  // Liquidation
-  calculateLiquidationFactor,
-  getLiquidationDistance,
-  isLiquidationImminent,
-  // Streak
-  calculateStreakFactor,
-  getStreakTier,
-  getKillsToNextThreshold,
-  // Shock
-  calculateShockFactor,
-  getShockDirection,
-  getShockIntensity,
-  // Near Death
-  calculateNearDeathFactor,
-  getHealthDangerLevel,
-  shouldApplyMercy,
-  // RSI
-  calculateRSIFactor,
-  // Volume
-  calculateVolumeFactor,
-  // ATR
-  calculateATRFactor,
-} from './factors';

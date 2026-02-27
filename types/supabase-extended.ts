@@ -65,7 +65,7 @@ export type ExtendedDatabase = Database & {
           status: 'healthy' | 'stale' | 'no_data';
           last_ping: string | null;
           delay_seconds: number | null;
-        };
+        }[];
       };
     };
   };

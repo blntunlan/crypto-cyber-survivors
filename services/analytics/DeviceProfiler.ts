@@ -85,7 +85,8 @@ export class DeviceProfiler {
     const profile = this.getProfile();
 
     try {
-      await supabase.from('device_profiles').upsert(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('device_profiles' as any) as any).upsert(
         {
           fingerprint: profile.fingerprint,
           device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',

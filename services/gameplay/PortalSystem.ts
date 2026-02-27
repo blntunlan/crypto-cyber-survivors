@@ -1,6 +1,6 @@
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
-import { difficultyContext } from '../difficulty/DifficultyContext';
+import { difficultyContext } from '../difficulty';
 import { TimeService } from '../core/TimeService';
 
 export interface PortalState {
@@ -61,8 +61,8 @@ class PortalSystemClass {
   }
 
   private checkTrigger(width: number, height: number) {
-    const ctx = difficultyContext.getContext();
-    const pnl = ctx.inputs.pnlPercent;
+    const inputs = difficultyContext.inputs;
+    const pnl = inputs.pnlPercent;
 
     // AI Decision: High Aggression or High Stress might force a portal
     // But primarily based on PnL as per user request
@@ -102,6 +102,9 @@ class PortalSystemClass {
       x: this.state.x,
       y: this.state.y,
       type: this.state.type,
+      portalNumber: Math.floor(this.lastPortalTime),
+      reason: 'Rule-Based Allocation',
+      isForced: false,
     });
   }
 
@@ -109,7 +112,10 @@ class PortalSystemClass {
     if (!this.state.isActive) return;
     this.state.isActive = false;
     Logger.info(`[PortalSystem] Portal Closed`);
-    EventBus.emit('portalClosed', {});
+    EventBus.emit('portalClosed', {
+      type: this.state.type,
+      portalNumber: Math.floor(this.lastPortalTime),
+    });
   }
 
   /**
@@ -121,8 +127,8 @@ class PortalSystemClass {
     bonus: number;
   } {
     const survivalTime = TimeService.getGameTimeSeconds();
-    const ctx = difficultyContext.getContext();
-    const plValue = Math.max(0, Math.floor(ctx.inputs.pnlPercent * 100)); // Use percentage as integer
+    const inputs = difficultyContext.inputs;
+    const plValue = Math.max(0, Math.floor(inputs.pnlPercent * 100)); // Use percentage as integer
 
     // Formula: rawCoins + (survivalTime / 10 * plValue)
     const bonus = Math.floor((survivalTime / 10) * plValue);

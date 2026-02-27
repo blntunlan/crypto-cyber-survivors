@@ -170,7 +170,7 @@ describe('MarketEventMapperV2', () => {
       });
 
       expect(mapper.getActiveEffects()).toHaveLength(1);
-      expect(mapper.getActiveEffects()[0].intensity).toBe(0.8);
+      expect(mapper.getActiveEffects()[0]?.intensity).toBe(0.8);
     });
 
     it('should emit specific gameplay events for WHALE_ALERT', () => {
@@ -313,8 +313,8 @@ describe('MarketEventMapperV2', () => {
 
       const history = mapper.getEventHistory();
       expect(history).toHaveLength(2);
-      expect(history[0].type).toBe('VOLUME_SPIKE');
-      expect(history[1].type).toBe('PRICE_BREAKOUT');
+      expect(history[0]?.type).toBe('VOLUME_SPIKE');
+      expect(history[1]?.type).toBe('PRICE_BREAKOUT');
     });
 
     it('should handle gameReset event', () => {

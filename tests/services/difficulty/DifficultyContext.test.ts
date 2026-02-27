@@ -8,6 +8,7 @@ import {
 } from '../../../services/market/runtime/RuntimeContractBuilder';
 import { MARKET_RUNTIME_VERSION } from '../../../types/marketRuntime';
 import { type MarketData } from '../../../types';
+import { type MACDResult } from '../../../types/indicators';
 
 const createRuntimeSnapshotEvent = (seq: number, macd: number) => {
   const runConstants = createRunConstants({
@@ -82,11 +83,11 @@ describe('DifficultyContext', () => {
     });
 
     difficultyContext.updateTime(1);
-    const context = difficultyContext.getContext();
+    const context = difficultyContext.inputs;
 
-    expect(context.inputs.rsi).toBe(61);
-    expect(context.inputs.rsiState).toBe('OVERBOUGHT');
-    expect(context.inputs.macd).toEqual({
+    expect(context.rsi).toBe(61);
+    expect(context.rsiState).toBe('OVERBOUGHT');
+    expect(context.macd).toEqual({
       value: 3.4,
       signal: 1.2,
       histogram: 2.2,
@@ -98,10 +99,10 @@ describe('DifficultyContext', () => {
     const snapshot = createRuntimeSnapshotEvent(1, 0.75);
     EventBus.emit('marketRuntimeSnapshot', snapshot);
 
-    const first = difficultyContext.getContext();
-    expect(first.inputs.macd.value).toBe(0.75);
-    expect(first.inputs.macd.signal).toBe(0);
-    expect(first.inputs.macd.histogram).toBe(0.75);
+    const first = difficultyContext.inputs;
+    expect(first.macd.value).toBe(0.75);
+    expect(first.macd.signal).toBe(0);
+    expect(first.macd.histogram).toBe(0.75);
 
     EventBus.emit('clientIndicatorsUpdated', {
       rsi: 20,
@@ -120,15 +121,15 @@ describe('DifficultyContext', () => {
     });
 
     difficultyContext.updateTime(2);
-    const second = difficultyContext.getContext();
-    expect(second.inputs.macd.value).toBe(0.75);
-    expect(second.inputs.macd.signal).toBe(0);
-    expect(second.inputs.macd.histogram).toBe(0.75);
+    const second = difficultyContext.inputs;
+    expect(second.macd.value).toBe(0.75);
+    expect(second.macd.signal).toBe(0);
+    expect(second.macd.histogram).toBe(0.75);
   });
 
   it('returns to client indicator MACD after game reset', () => {
     EventBus.emit('marketRuntimeSnapshot', createRuntimeSnapshotEvent(1, 0.5));
-    expect(difficultyContext.getContext().inputs.macd.value).toBe(0.5);
+    expect(difficultyContext.inputs.macd.value).toBe(0.5);
 
     EventBus.emit('gameReset', {});
     EventBus.emit('clientIndicatorsUpdated', {
@@ -140,16 +141,17 @@ describe('DifficultyContext', () => {
       trendStrength: 0.1,
       trendDirection: 'SIDEWAYS',
       macd: {
+        macd: 2.5,
         value: 2.5,
         signal: 1.5,
         histogram: 1.0,
-      },
+      } as MACDResult,
       whaleTier: 1,
     });
     difficultyContext.updateTime(1);
 
-    const context = difficultyContext.getContext();
-    expect(context.inputs.macd).toEqual({
+    const context = difficultyContext.inputs;
+    expect(context.macd).toEqual({
       value: 2.5,
       signal: 1.5,
       histogram: 1.0,

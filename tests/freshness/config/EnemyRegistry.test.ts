@@ -28,7 +28,7 @@ describe('EnemyRegistry', () => {
   });
 
   it('keeps manual-only bosses with zero spawn weight', () => {
-    expect(ENEMY_DEFINITIONS.market_maker.spawnWeight).toBe(0);
-    expect(ENEMY_DEFINITIONS.gatekeeper.spawnWeight).toBe(0);
+    expect(ENEMY_DEFINITIONS.market_maker?.spawnWeight).toBe(0);
+    expect(ENEMY_DEFINITIONS.gatekeeper?.spawnWeight).toBe(0);
   });
 });

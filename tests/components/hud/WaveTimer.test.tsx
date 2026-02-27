@@ -52,7 +52,7 @@ describe('WaveTimer', () => {
     expect(screen.getByText('2:10')).toBeInTheDocument();
 
     act(() => {
-      EventBus.emit('gameReset');
+      EventBus.emit('gameReset', {});
     });
     expect(screen.getByText('0:00')).toBeInTheDocument();
   });

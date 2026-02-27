@@ -31,7 +31,7 @@ describe('AdminAnalyticsService', () => {
     const mockHealth = { status: 'healthy', delay_seconds: 5 };
     const rpcSpy = vi
       .spyOn(supabase as any, 'rpc')
-      .mockResolvedValue({ data: mockHealth, error: null } as any);
+      .mockResolvedValue({ data: [mockHealth], error: null } as any);
 
     const result = await adminAnalytics.getMarketHealth();
     expect(result).toEqual(mockHealth);

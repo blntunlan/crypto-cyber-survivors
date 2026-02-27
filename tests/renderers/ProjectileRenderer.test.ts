@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProjectileRenderer } from '../../services/renderers/ProjectileRenderer';
 import { ThemeService } from '../../services/system/ThemeService';
-import { type IPoolManager } from '../../services/combat/interfaces/IPoolManager';
+import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { type GameState, type Player, GameStatus } from '../../types';
 
 describe('ProjectileRenderer', () => {

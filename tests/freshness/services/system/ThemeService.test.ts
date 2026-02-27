@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ThemeService } from '../../../../services/system/ThemeService';
 import { cyberpunkTheme, retro16bitTheme } from '../../../../config/themes';
 

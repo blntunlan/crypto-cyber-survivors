@@ -15,11 +15,31 @@
  * @see docs/AI_DIRECTOR_V2_DESIGN.md
  */
 
-import {
-  HistoricalDataLoader,
-  type PriceDataPoint,
-  type IndicatorSnapshot,
-} from '../../simulation/data/HistoricalDataLoader';
+// Stub definitions for removed simulation dependencies
+export interface PriceDataPoint {
+  price: number;
+  timestamp: number;
+}
+export interface IndicatorSnapshot {
+  rsi: number;
+  atrPercent: number;
+  normalizedVolume: number;
+  macdHistogram: number;
+}
+export class HistoricalDataLoader {
+  async fetchPriceHistory(
+    _pair: string,
+    _start: Date,
+    _end: Date,
+    _limit: number
+  ): Promise<PriceDataPoint[]> {
+    return [];
+  }
+  calculateIndicators(_data: PriceDataPoint[]): IndicatorSnapshot[] {
+    return [];
+  }
+}
+
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
 

@@ -44,7 +44,7 @@ describe('LootboxDropPools', () => {
   });
 
   it('keeps coin drop ranges valid', () => {
-    for (const drop of LOOTBOX_DROP_POOLS.coins) {
+    for (const drop of LOOTBOX_DROP_POOLS.coins as any) {
       expect(drop.minAmount).toBeGreaterThan(0);
       expect(drop.maxAmount).toBeGreaterThanOrEqual(drop.minAmount);
     }

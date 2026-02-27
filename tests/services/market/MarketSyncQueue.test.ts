@@ -6,6 +6,7 @@ import {
   createRuntimeSnapshot,
   createRuntimeTick,
 } from '../../../services/market/runtime/RuntimeContractBuilder';
+import { type MarketSyncRecord } from '../../../services/market/sync/MarketSyncStore';
 import { type MarketData } from '../../../types';
 
 const createRecordInput = () => {
@@ -55,7 +56,7 @@ const createRecordInput = () => {
     macd: 0.001,
   });
 
-  return { runConstants, tick, snapshot };
+  return { runConstants, tick, snapshot: snapshot as any };
 };
 
 describe('MarketSyncQueue', () => {
@@ -67,9 +68,9 @@ describe('MarketSyncQueue', () => {
     return {
       enqueue: vi.fn(async () => undefined),
       requeueInflight: vi.fn(async () => 0),
-      getFlushableBatch: vi.fn(async () => []),
-      updateRecords: vi.fn(async () => undefined),
-      acknowledge: vi.fn(async () => undefined),
+      getFlushableBatch: vi.fn(async () => [] as MarketSyncRecord[]),
+      updateRecords: vi.fn(async (_records: MarketSyncRecord[]) => undefined),
+      acknowledge: vi.fn(async (_ids: string[]) => undefined),
       getStats: vi.fn(async () => ({ total: 0, pending: 0, inflight: 0 })),
     };
   };
@@ -92,19 +93,20 @@ describe('MarketSyncQueue', () => {
       },
     ];
 
-    const store = createStoreMock();
+    const store = createStoreMock() as any;
     store.getFlushableBatch.mockResolvedValue(batch);
     const client = {
       sendBatch: vi.fn(async () => ({ ok: true, retriable: false })),
-    };
+    } as any;
 
-    const queue = new MarketSyncQueue(store as never, client as never, {
-      batchSize: 10,
+    const queue = new MarketSyncQueue(store, client, {
+      batchSize: 100,
     });
 
     const result = await queue.flush();
+    const ackedIds = store.acknowledge.mock.calls[0]?.[0];
 
-    expect(store.acknowledge).toHaveBeenCalledWith([batch[0]?.id]);
+    expect(ackedIds).toEqual([batch[0]?.id]);
     expect(result.reason).toBe('success');
     expect(result.acked).toBe(1);
   });
@@ -145,12 +147,12 @@ describe('MarketSyncQueue', () => {
 
     const result = await queue.flush();
 
-    const updateCalls = (store.updateRecords as ReturnType<typeof vi.fn>).mock.calls;
+    const updateCalls = (store.updateRecords as any).mock.calls;
     const retryUpdate = updateCalls[1]?.[0]?.[0];
     expect(result.reason).toBe('retry_scheduled');
-    expect(retryUpdate.status).toBe('pending');
-    expect(retryUpdate.retryCount).toBe(1);
-    expect(retryUpdate.nextRetryAt).toBeGreaterThan(0);
+    expect(retryUpdate?.status).toBe('pending');
+    expect(retryUpdate?.retryCount).toBe(1);
+    expect(retryUpdate?.nextRetryAt).toBeGreaterThan(0);
   });
 
   it('flushAll drains successive successful batches', async () => {
@@ -164,7 +166,7 @@ describe('MarketSyncQueue', () => {
         seq: 1,
         runConstants: input.runConstants,
         tick: { ...input.tick, seq: 1 },
-        snapshot: { ...input.snapshot, seq: 1 },
+        snapshot: { ...input.snapshot, seq: 1 } as any,
         status: 'pending' as const,
         retryCount: 0,
         nextRetryAt: 0,
@@ -179,7 +181,7 @@ describe('MarketSyncQueue', () => {
         seq: 2,
         runConstants: input.runConstants,
         tick: { ...input.tick, seq: 2 },
-        snapshot: { ...input.snapshot, seq: 2 },
+        snapshot: { ...input.snapshot, seq: 2 } as any,
         status: 'pending' as const,
         retryCount: 0,
         nextRetryAt: 0,
@@ -214,17 +216,19 @@ describe('MarketSyncQueue', () => {
 
     expect(result.batches).toBe(2);
     expect(result.acked).toBe(2);
+    expect(store.acknowledge).toHaveBeenCalledWith([batchA[0]?.id]);
+    expect(store.acknowledge).toHaveBeenCalledWith([batchB[0]?.id]);
     expect(result.remaining).toBe(0);
   });
 
   it('recovers stale inflight records before flush', async () => {
-    const store = createStoreMock();
+    const store = createStoreMock() as any;
     store.requeueInflight.mockResolvedValue(3);
     const client = {
       sendBatch: vi.fn(async () => ({ ok: true, retriable: false })),
-    };
+    } as any;
 
-    const queue = new MarketSyncQueue(store as never, client as never, {
+    const queue = new MarketSyncQueue(store, client, {
       inflightRecoveryMs: 12_345,
     });
 
@@ -245,7 +249,7 @@ describe('MarketSyncQueue', () => {
         seq: 1,
         runConstants: input.runConstants,
         tick: { ...input.tick, seq: 1, runId: runA },
-        snapshot: { ...input.snapshot, seq: 1, runId: runA },
+        snapshot: { ...input.snapshot, seq: 1, runId: runA } as any,
         status: 'pending' as const,
         retryCount: 0,
         nextRetryAt: 0,
@@ -258,7 +262,7 @@ describe('MarketSyncQueue', () => {
         seq: 1,
         runConstants: { ...input.runConstants, runId: runB },
         tick: { ...input.tick, seq: 1, runId: runB },
-        snapshot: { ...input.snapshot, seq: 1, runId: runB },
+        snapshot: { ...input.snapshot, seq: 1, runId: runB } as any,
         status: 'pending' as const,
         retryCount: 0,
         nextRetryAt: 0,
@@ -267,21 +271,18 @@ describe('MarketSyncQueue', () => {
       },
     ];
 
-    const store = createStoreMock();
+    const store = createStoreMock() as any;
     store.getFlushableBatch.mockResolvedValue(batch);
     const client = {
       sendBatch: vi.fn(async () => ({ ok: true, retriable: false })),
-    };
+    } as any;
 
-    const queue = new MarketSyncQueue(store as never, client as never, {
-      batchSize: 10,
-    });
-
+    const queue = new MarketSyncQueue(store, client);
     await queue.flush();
 
     const payload = client.sendBatch.mock.calls[0]?.[0];
     expect(payload).toHaveLength(1);
-    expect(payload[0]?.runId).toBe(runA);
+    expect(payload?.[0]?.runId).toBe(runA);
     expect(store.acknowledge).toHaveBeenCalledWith([`${runA}:1`]);
   });
 
@@ -296,7 +297,7 @@ describe('MarketSyncQueue', () => {
         seq: 1,
         runConstants: input.runConstants,
         tick: { ...input.tick, seq: 1 },
-        snapshot: { ...input.snapshot, seq: 1 },
+        snapshot: { ...input.snapshot, seq: 1 } as any,
         status: 'pending' as const,
         retryCount: 0,
         nextRetryAt: 0,

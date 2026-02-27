@@ -18,29 +18,50 @@ describe('DifficultyManager', () => {
 
   describe('Core Logic', () => {
     it('should calculate base difficulty at start', () => {
-      const output = DifficultyManager.calculate(0, 0.02, 1, 1);
+      const output = DifficultyManager.calculate(0, 0.02, 1, 1, undefined, true);
       expect(output.total).toBeGreaterThan(0.3);
     });
 
     it('should increase difficulty with leverage and loss', () => {
       DifficultyManager.startGame(10);
-      const baseline = DifficultyManager.calculate(0, 0.02, 1, 1).total;
+      const baseline = DifficultyManager.calculate(
+        0,
+        0.02,
+        1,
+        1,
+        undefined,
+        true
+      ).total;
 
       DifficultyManager.reset(); // Reset history
       DifficultyManager.startGame(10);
-      const hard = DifficultyManager.calculate(-0.1, 0.02, 1, 1).total;
+      const hard = DifficultyManager.calculate(-0.1, 0.02, 1, 1, undefined, true).total;
 
       expect(hard).toBeGreaterThan(baseline);
     });
 
     it('should apply mercy when HP is low', () => {
-      // Calculate normal difficulty (100% HP)
-      const normal = DifficultyManager.calculate(-0.1, 0.02, 10, 1.0).total;
+      // Calculate normal difficulty (100% HP) with neutral PnL
+      const normal = DifficultyManager.calculate(
+        0,
+        0.02,
+        10,
+        1.0,
+        undefined,
+        true
+      ).total;
 
       // Calculate mercy difficulty with critical HP (5%)
       // @ts-expect-error: testing
       DifficultyManager.lastShockTime = -100000;
-      const mercy = DifficultyManager.calculate(-0.1, 0.02, 10, 0.05).total;
+      const mercy = DifficultyManager.calculate(
+        0,
+        0.02,
+        10,
+        0.05,
+        undefined,
+        true
+      ).total;
 
       expect(mercy).toBeLessThan(normal);
     });
@@ -72,8 +93,12 @@ describe('DifficultyManager', () => {
 
       // Sudden large 20% drop (threshold is 0.5%)
       // Need 6 points for shock detection in V2
-      for (let i = 0; i < 3; i++) DifficultyManager.calculate(0, 0.02, 1, 1);
-      for (let i = 0; i < 3; i++) DifficultyManager.calculate(-0.2, 0.02, 1, 1);
+      for (let i = 0; i < 3; i++) {
+        DifficultyManager.calculate(0, 0.02, 1, 1, undefined, true);
+      }
+      for (let i = 0; i < 3; i++) {
+        DifficultyManager.calculate(-0.2, 0.02, 1, 1, undefined, true);
+      }
 
       expect(shockSpy).toHaveBeenCalled();
     });

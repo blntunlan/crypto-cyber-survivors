@@ -221,10 +221,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
         {/* ROW 2: HUD CORE (Live Feed & Kernel Status) */}
         <div className="mt-2 flex w-full items-start justify-between">
           {/* Left Panel: Live Feed */}
-          <div
-            className="hud-element-left flex flex-col gap-2"
-            style={{ maxWidth: isMobile ? '55%' : undefined }}
-          >
+          <div className="hud-element-left flex max-w-[55%] flex-col gap-2 lg:max-w-none">
             <LiveFeed
               marketData={marketData}
               entryPrice={entryPrice}
@@ -237,10 +234,7 @@ export const GameUI: React.FC<GameUIProps> = memo(
           </div>
 
           {/* Right Panel: Enhanced Stats / Level */}
-          <div
-            className="hud-element-right flex flex-col items-end gap-3"
-            style={{ maxWidth: isMobile ? '40%' : undefined }}
-          >
+          <div className="hud-element-right flex max-w-[40%] flex-col items-end gap-3 lg:max-w-none">
             <KernelStatus player={player} />
           </div>
         </div>

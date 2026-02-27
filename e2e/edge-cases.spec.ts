@@ -34,17 +34,24 @@ test.describe('Edge Cases', () => {
 
     await page.reload();
 
-    const input = page.locator('input').first();
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    const nicknameVisible = await input.isVisible().catch(() => false);
+    // Wait for either the nickname input OR the Hub menu to be ready
+    // This is more robust against async initialization timings
+    const nicknameInput = page.locator('input[id="nickname-input"]');
+    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
 
-    // Legacy flow may still show nickname entry; current bootstrap may go straight to hub.
-    if (nicknameVisible) {
-      await input.fill('SurvivorFixed');
+    await Promise.race([
+      nicknameInput.waitFor({ state: 'visible', timeout: 15000 }),
+      playHubBtn.waitFor({ state: 'visible', timeout: 15000 }),
+    ]).catch(() => {
+      // Ignore timeout here, we will check visibility below
+    });
+
+    if (await nicknameInput.isVisible()) {
+      await nicknameInput.fill('SurvivorFixed');
       await page.keyboard.press('Enter');
     }
 
-    // Hub Menu should appear after entering nickname
+    // Hub Menu should appear (or already be there)
     await expect(playHubBtn).toBeVisible({ timeout: 15000 });
     await playHubBtn.click();
 

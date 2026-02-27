@@ -652,14 +652,24 @@ test.describe('Edge Cases - Session State', () => {
 
     await page.reload();
 
-    // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
+    // Wait for the app to settle (either Nickname Screen or Hub)
+    const nicknameInput = page.locator('input[id="nickname-input"]');
+    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
+
+    await Promise.race([
+      nicknameInput.waitFor({ state: 'visible', timeout: 15000 }),
+      playHubBtn.waitFor({ state: 'visible', timeout: 15000 }),
+    ]).catch(() => {});
+
+    // Handle Nickname Screen if it appeared
+    if (await nicknameInput.isVisible()) {
+      await nicknameInput.fill('RecoveryUser');
+      await page.keyboard.press('Enter');
     }
 
-    // App should recover gracefully
+    // App should reach a stable state (Hub or Main Menu)
     await expect(page.locator('body')).toBeVisible();
+    await expect(playHubBtn).toBeVisible({ timeout: 15000 });
 
     // Check no error overlays
     const hasError = await page
@@ -770,11 +780,22 @@ test.describe('Edge Cases - Viewport Changes', () => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.reload();
 
-    // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
+    // Wait for the app to settle
+    const nicknameInput = page.locator('input[id="nickname-input"]');
+    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
+
+    await Promise.race([
+      nicknameInput.waitFor({ state: 'visible', timeout: 15000 }),
+      playHubBtn.waitFor({ state: 'visible', timeout: 15000 }),
+    ]).catch(() => {});
+
+    if (await nicknameInput.isVisible()) {
+      await nicknameInput.fill('ViewportUser');
+      await page.keyboard.press('Enter');
     }
+
+    await expect(playHubBtn).toBeVisible({ timeout: 15000 });
+    await playHubBtn.click();
 
     await page.waitForTimeout(2000);
     await expect(page.locator('body')).toBeVisible();

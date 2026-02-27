@@ -130,4 +130,12 @@ export interface DifficultyOutputV2 {
   enemySpeed: number;
   enemyHP: number;
   enemyDamage: number;
+  // Director Advanced Metrics
+  enemyVariety: number;
+  chaosLevel: number;
+  mercyFactor: number;
+  pressureIntensity: number;
+  whaleProbability: number;
+  xpMultiplier: number;
+  gemDropRate: number;
 }

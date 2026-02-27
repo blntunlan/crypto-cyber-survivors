@@ -45,7 +45,8 @@ describe('SpawnSystem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    spawnSystem = new SpawnSystem();
+    SpawnSystem.resetInstance();
+    spawnSystem = SpawnSystem.getInstance();
     (mockPool as any).activeEnemies = [];
   });
 

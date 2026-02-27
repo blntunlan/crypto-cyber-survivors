@@ -162,7 +162,7 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                   <div className="flex justify-between">
                     <span className="text-slate-400">Health:</span>
                     <span className="text-white">
-                      x{state.difficultyData.enemyHealth.toFixed(2)}
+                      x{state.difficultyData.enemyHP.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -174,52 +174,40 @@ export const MetricsDebugPanel: React.FC<MetricsDebugPanelProps> = ({
                   <div className="flex justify-between">
                     <span className="text-slate-400">Gem Value:</span>
                     <span className="font-bold text-green-400">
-                      x{state.difficultyData.gemValueMultiplier.toFixed(2)}
+                      x{state.difficultyData.gemDropRate.toFixed(2)}
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-2 space-y-1 border-t border-slate-700/50 pt-2 text-[8px]">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">PnL Effect:</span>
-                    <span
-                      className={
-                        state.difficultyData.factors.pnlEffect > 1
-                          ? 'text-red-400'
-                          : 'text-green-400'
-                      }
-                    >
-                      {state.difficultyData.factors.pnlEffect.toFixed(3)}x
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Volat. (ATR):</span>
+                    <span className="text-slate-500">Chaos Level:</span>
                     <span className="text-blue-400">
-                      {state.difficultyData.factors.volatility.toFixed(3)}x
+                      {state.difficultyData.chaosLevel.toFixed(3)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Level Factor:</span>
-                    <span className="text-yellow-400">
-                      {state.difficultyData.factors.levelFactor.toFixed(3)}x
+                    <span className="text-slate-500">Mercy Factor:</span>
+                    <span className="text-green-400">
+                      {state.difficultyData.mercyFactor.toFixed(3)}x
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Wave Mult:</span>
+                    <span className="text-slate-500">Pressure:</span>
+                    <span className="text-red-400">
+                      {state.difficultyData.pressureIntensity.toFixed(3)}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Whale Prob:</span>
                     <span className="text-purple-400">
-                      {state.difficultyData.factors.waveMultiplier.toFixed(2)}x
+                      {state.difficultyData.whaleProbability.toFixed(3)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Cycle Mult:</span>
-                    <span className="text-cyan-400">
-                      {state.difficultyData.factors.cycleFactor.toFixed(2)}x
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Time Factor:</span>
-                    <span className="text-white">
-                      {state.difficultyData.factors.baseTime.toFixed(2)}x
+                    <span className="text-slate-500">XP Mult:</span>
+                    <span className="text-yellow-400">
+                      {state.difficultyData.xpMultiplier.toFixed(2)}x
                     </span>
                   </div>
                 </div>

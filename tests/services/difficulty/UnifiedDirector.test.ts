@@ -1,58 +1,16 @@
 /**
- * UnifiedDirector Tests - AI Director V2
+ * UnifiedDirector Tests - Rule Based AI Director
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Mock synaptic before importing UnifiedDirector
-const mockNetwork = {
-  activate: vi.fn().mockReturnValue(Array(14).fill(0.5)),
-};
-
-vi.mock('synaptic', () => {
-  const mockPerceptron = vi.fn().mockImplementation(() => mockNetwork);
-  const mockFromJSON = vi.fn().mockImplementation(() => mockNetwork);
-
-  return {
-    Architect: { Perceptron: mockPerceptron },
-    Network: { fromJSON: mockFromJSON },
-    default: {
-      Architect: { Perceptron: mockPerceptron },
-      Network: { fromJSON: mockFromJSON },
-    },
-  };
-});
-
-vi.mock('../../../services/system/Logger', () => ({
-  Logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
-vi.mock('../../../services/core/EventBus', () => ({
-  EventBus: {
-    emit: vi.fn(),
-    on: vi.fn(() => vi.fn()),
-  },
-}));
-
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   UnifiedDirector,
-  UNIFIED_DIRECTOR_CONFIG,
   type UnifiedInputs,
 } from '../../../services/difficulty/UnifiedDirector';
 
 describe('UnifiedDirector', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     UnifiedDirector.reset();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   const createDefaultInputs = (): UnifiedInputs => ({
@@ -62,18 +20,18 @@ describe('UnifiedDirector', () => {
     volumeNorm: 0.5,
     priceChange: 0,
     trendStrength: 0.5,
-    hpPercent: 0.5,
+    hpPercent: 1.0,
     pnlRatio: 0,
     killsPerMin: 0.5,
     dashFrequency: 0.1,
     playerDPS: 0.5,
-    damageTakenRate: 0.2,
-    elapsedMinutes: 0.1,
-    playerLevel: 0.1,
+    damageTakenRate: 0,
+    elapsedMinutes: 1,
+    playerLevel: 1,
     leverage: 0.1,
-    gemPileup: 0.1,
+    gemPileup: 0,
     engagementScore: 0.5,
-    frustrationScore: 0.2,
+    frustrationScore: 0,
   });
 
   describe('Initialization', () => {
@@ -89,174 +47,95 @@ describe('UnifiedDirector', () => {
     });
   });
 
-  describe('Grace Period', () => {
-    it('should apply reduced difficulty during grace period', () => {
-      const inputs = createDefaultInputs();
-      inputs.hpPercent = 0.8;
-
-      // Update at 5 seconds (still in grace)
-      UnifiedDirector.update(inputs, 5000);
-      const earlyOutputs = UnifiedDirector.getOutputs();
-
-      // Update at 35 seconds (after grace)
-      UnifiedDirector.update(inputs, 35000);
-      const lateOutputs = UnifiedDirector.getOutputs();
-
-      // Grace period should have lower chaos/pressure
-      expect(earlyOutputs.chaosLevel).toBeLessThanOrEqual(lateOutputs.chaosLevel);
-    });
-
-    it('should block whales during early grace period', () => {
-      const inputs = createDefaultInputs();
-      inputs.volumeNorm = 1.0; // High volume
-
-      // Update at 5 seconds
-      UnifiedDirector.update(inputs, 5000);
-      const earlyOutputs = UnifiedDirector.getOutputs();
-
-      expect(earlyOutputs.whaleProbability).toBeLessThan(0.5);
-    });
-  });
-
-  describe('Flow State Management', () => {
-    it('should detect "bored" state when HP > 65%', () => {
-      const status = UnifiedDirector.getFlowStateStatus(0.8);
-      expect(status).toBe('bored');
-    });
-
-    it('should detect "flow" state when HP between 35-65%', () => {
-      const status = UnifiedDirector.getFlowStateStatus(0.5);
-      expect(status).toBe('flow');
-    });
-
-    it('should detect "stressed" state when HP < 35%', () => {
-      const status = UnifiedDirector.getFlowStateStatus(0.2);
-      expect(status).toBe('stressed');
-    });
-
-    it('should increase spawn rate when player is too comfortable', () => {
-      const inputs = createDefaultInputs();
-      inputs.hpPercent = 0.9; // 90% HP = too easy
-
-      UnifiedDirector.update(inputs, 35000);
-      const outputs = UnifiedDirector.getOutputs();
-
-      // Should have increased spawn rate to challenge player
-      expect(outputs.spawnRate).toBeGreaterThanOrEqual(1.0);
-    });
-
-    it('should reduce difficulty when player is struggling', () => {
-      const inputs = createDefaultInputs();
-      inputs.hpPercent = 0.2; // 20% HP = struggling
-      inputs.frustrationScore = 0.7; // High frustration
-
-      UnifiedDirector.update(inputs, 35000);
-      const outputs = UnifiedDirector.getOutputs();
-
-      // Flow state corrections should reduce spawn rate when HP < 35%
-      // With mock returning 0.5, after flow corrections spawn should be reduced
-      expect(outputs.spawnRate).toBeLessThanOrEqual(1.0);
-    });
-  });
-
-  describe('PnL Modifiers', () => {
-    it('should reduce chaos when PnL is positive', () => {
-      const inputs = createDefaultInputs();
-      inputs.pnlRatio = 0.1; // +10% profit
-
-      UnifiedDirector.update(inputs, 35000);
-      const positiveOutputs = UnifiedDirector.getOutputs();
-
-      // Reset and test negative
-      UnifiedDirector.reset();
-      inputs.pnlRatio = -0.1; // -10% loss
-      UnifiedDirector.update(inputs, 35000);
-      const negativeOutputs = UnifiedDirector.getOutputs();
-
-      // Positive PnL should have lower chaos
-      expect(positiveOutputs.chaosLevel).toBeLessThanOrEqual(
-        negativeOutputs.chaosLevel
-      );
-    });
-
-    it('should increase difficulty on significant loss', () => {
-      const inputs = createDefaultInputs();
-      inputs.pnlRatio = -0.2; // -20% loss
-
-      UnifiedDirector.update(inputs, 35000);
-      const outputs = UnifiedDirector.getOutputs();
-
-      // High loss should result in at least baseline chaos
-      // (PnL modifiers multiply chaos, but mock starts at 0.5 which maps to ~0.3)
-      expect(outputs.chaosLevel).toBeGreaterThanOrEqual(0.3);
-    });
-  });
-
   describe('Mercy System', () => {
-    it('should not activate mercy immediately', () => {
-      expect(UnifiedDirector.isMercyActive(0)).toBe(false);
-    });
-
-    it('should report mercy status correctly', () => {
+    it('should trigger mercy when HP is low and damage rate is high', () => {
       const inputs = createDefaultInputs();
-      inputs.hpPercent = 0.15; // Very low HP
-      inputs.frustrationScore = 0.8; // High frustration
+      inputs.hpPercent = 0.1; // 10% HP
+      inputs.damageTakenRate = 0.8; // Taking lots of damage
 
-      // Update several times to potentially trigger mercy
-      UnifiedDirector.update(inputs, 35000);
-      UnifiedDirector.update(inputs, 36000);
+      // Update multiple times to move through smoothing
+      for (let i = 0; i < 100; i++) {
+        UnifiedDirector.update(inputs, i * 100);
+      }
 
-      // Mercy might be active depending on cooldown
-      const mercyActive = UnifiedDirector.isMercyActive(36000);
-      expect(typeof mercyActive).toBe('boolean');
+      const outputs = UnifiedDirector.getOutputs();
+      expect(outputs.mercyFactor).toBeGreaterThan(0);
+      expect(outputs.spawnRate).toBeLessThan(2.0); // Mercy should reduce it
     });
   });
 
-  describe('Brain Loading', () => {
-    it('should report brain loaded status', () => {
-      expect(UnifiedDirector.isUsingTrainedBrain()).toBe(false);
+  describe('Market Influence', () => {
+    it('should increase spawn rate with volume', () => {
+      const inputsLow = createDefaultInputs();
+      inputsLow.volumeNorm = 0.1;
+
+      const inputsHigh = createDefaultInputs();
+      inputsHigh.volumeNorm = 0.9;
+
+      UnifiedDirector.reset();
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, i * 100);
+      const lowOut = UnifiedDirector.getOutputs().spawnRate;
+
+      UnifiedDirector.reset();
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, i * 100);
+      const highOut = UnifiedDirector.getOutputs().spawnRate;
+
+      expect(highOut).toBeGreaterThan(lowOut);
     });
 
-    it('should enable/disable updates', () => {
-      UnifiedDirector.setEnabled(false);
+    it('should increase enemy speed with volatility (ATR)', () => {
+      const inputsLow = createDefaultInputs();
+      inputsLow.atrPercent = 0.01;
 
+      const inputsHigh = createDefaultInputs();
+      inputsHigh.atrPercent = 0.08;
+
+      UnifiedDirector.reset();
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, i * 100);
+      const lowOut = UnifiedDirector.getOutputs().enemySpeed;
+
+      UnifiedDirector.reset();
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, i * 100);
+      const highOut = UnifiedDirector.getOutputs().enemySpeed;
+
+      expect(highOut).toBeGreaterThan(lowOut);
+    });
+  });
+
+  describe('Leverage Impact', () => {
+    it('should penalize high leverage with harder enemies', () => {
+      const inputsLow = createDefaultInputs();
+      inputsLow.leverage = 0.1;
+
+      const inputsHigh = createDefaultInputs();
+      inputsHigh.leverage = 1.0; // 100x
+
+      UnifiedDirector.reset();
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsLow, i * 100);
+      const lowOut = UnifiedDirector.getOutputs();
+
+      UnifiedDirector.reset();
+      for (let i = 0; i < 100; i++) UnifiedDirector.update(inputsHigh, i * 100);
+      const highOut = UnifiedDirector.getOutputs();
+
+      expect(highOut.spawnRate).toBeGreaterThan(lowOut.spawnRate);
+      expect(highOut.enemyDamage).toBeGreaterThan(lowOut.enemyDamage);
+    });
+  });
+
+  describe('Smoothing', () => {
+    it('should approach target values gradually', () => {
       const inputs = createDefaultInputs();
-      const before = { ...UnifiedDirector.getOutputs() };
+      inputs.volumeNorm = 1.0;
 
-      UnifiedDirector.update(inputs, 10000);
+      UnifiedDirector.update(inputs, 100);
+      const firstOut = UnifiedDirector.getOutputs().spawnRate;
 
-      const after = UnifiedDirector.getOutputs();
-      expect(after).toEqual(before); // No change when disabled
+      UnifiedDirector.update(inputs, 200);
+      const secondOut = UnifiedDirector.getOutputs().spawnRate;
 
-      UnifiedDirector.setEnabled(true);
-    });
-  });
-
-  describe('Configuration', () => {
-    it('should have correct grace period config', () => {
-      expect(UNIFIED_DIRECTOR_CONFIG.GRACE_PERIOD_SECONDS).toBe(30);
-      expect(UNIFIED_DIRECTOR_CONFIG.GRACE_PHASES).toHaveLength(3);
-    });
-
-    it('should have correct flow state config', () => {
-      expect(UNIFIED_DIRECTOR_CONFIG.FLOW_STATE.HP_MIN).toBe(35);
-      expect(UNIFIED_DIRECTOR_CONFIG.FLOW_STATE.HP_MAX).toBe(65);
-      expect(UNIFIED_DIRECTOR_CONFIG.FLOW_STATE.HP_IDEAL).toBe(50);
-    });
-
-    it('should have correct mercy config', () => {
-      expect(UNIFIED_DIRECTOR_CONFIG.MERCY.TRIGGER_HP).toBe(20);
-      expect(UNIFIED_DIRECTOR_CONFIG.MERCY.DIFFICULTY_REDUCTION).toBe(0.3);
-    });
-  });
-
-  describe('Debug State', () => {
-    it('should return debug state', () => {
-      const debug = UnifiedDirector.getDebugState();
-
-      expect(debug).toHaveProperty('enabled');
-      expect(debug).toHaveProperty('brainLoaded');
-      expect(debug).toHaveProperty('outputs');
+      expect(secondOut).toBeGreaterThan(firstOut);
+      expect(secondOut).toBeLessThan(5.0); // Should not jump to max immediately
     });
   });
 });

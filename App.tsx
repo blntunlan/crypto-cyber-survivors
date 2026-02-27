@@ -37,7 +37,6 @@ import { UserSessionService } from './services/auth/UserSessionService';
 import { UserPersistenceService } from './services/auth/UserPersistenceService';
 import { ExperienceService } from './services/gameplay/ExperienceService';
 import { TimeService } from './services/core/TimeService';
-import { loadGameMasterBrain } from './services/difficulty/BrainLoader';
 import { PerformanceTracker } from './services/analytics/PerformanceTracker';
 import { DeviceProfiler } from './services/analytics/DeviceProfiler';
 import { WalletService } from './services/gameplay/WalletService';
@@ -406,7 +405,6 @@ const App: React.FC = () => {
   }, [gameStatus, isInitialized]);
 
   useEffect(() => {
-    void loadGameMasterBrain();
     CoinService.setProvider(new SupabaseCoinProvider());
     void ErrorRecoveryService;
     void MarketEventManager;

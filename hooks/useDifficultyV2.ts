@@ -1,58 +1,14 @@
-/**
- * useDifficultyV2 - React hook for accessing DifficultyContext V2
- *
- * Provides access to the new modular difficulty system with
- * real-time updates via EventBus subscriptions.
- *
- * NOTE: AI Director V2 - Wave phases deprecated
- * Difficulty now driven by market conditions, not time-based waves
- *
- * @example
- * const { context, output, liquidationWarning } = useDifficultyV2();
- */
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { EventBus } from '../services/core/EventBus';
-import { difficultyContext } from '../services/difficulty';
+import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import type {
-  DifficultyContextState,
   DifficultyOutputV2,
-  WavePhase,
   LiquidationWarning,
-} from '../services/difficulty';
+} from '../services/difficulty/types';
 
-interface DifficultyV2State {
-  /** Full context state with all factors */
-  context: DifficultyContextState | null;
-  /** Calculated difficulty outputs for game systems */
-  output: DifficultyOutputV2 | null;
-  /**
-   * @deprecated AI Director V2: Wave phases removed - always returns 'active'
-   * Current wave phase
-   */
-  wavePhase: WavePhase;
-  /** Liquidation warning level */
-  liquidationWarning: LiquidationWarning;
-  /** FOV reduction for liquidation visual effect */
-  fovReduction: number;
-  /** Whether a market shock is active */
-  shockActive: boolean;
-  /** Total difficulty multiplier */
-  total: number;
-}
-
-/**
- * Hook for accessing DifficultyContext V2
- *
- * @param updateInterval - How often to poll for updates (ms). Default: 100ms
- * @returns Current difficulty state
- */
-export function useDifficultyV2(updateInterval: number = 100): DifficultyV2State {
-  const [state, setState] = useState<DifficultyV2State>({
-    context: null,
-    output: null,
-    wavePhase: 'active', // AI Director V2: Always 'active'
-    liquidationWarning: 'NONE',
+export function useDifficultyV2(updateInterval: number = 100) {
+  const [state, setState] = useState({
+    output: null as DifficultyOutputV2 | null,
     fovReduction: 0,
     shockActive: false,
     total: 1,
@@ -62,66 +18,35 @@ export function useDifficultyV2(updateInterval: number = 100): DifficultyV2State
 
   const updateState = useCallback(() => {
     try {
-      const context = difficultyContext.getContext();
-      const output = difficultyContext.getDifficultyOutput();
-
+      const output = DifficultyManager.getLatestOutput();
+      if (!output) return;
       setState({
-        context,
         output,
-        wavePhase: output.wavePhase,
-        liquidationWarning: output.liquidationWarning,
         fovReduction: output.fovReduction,
         shockActive: output.shockActive,
         total: output.total,
       });
     } catch {
-      // Context may not be initialized yet
+      // Context not ready
     }
   }, []);
 
   useEffect(() => {
-    // Initial update
     updateState();
-
-    // Periodic updates
     intervalRef.current = setInterval(updateState, updateInterval);
-
-    // Listen for explicit updates
-    const unsubscribe = EventBus.on('difficultyUpdated', updateState);
-
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      unsubscribe();
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [updateState, updateInterval]);
 
   return state;
 }
 
-/**
- * @deprecated AI Director V2: Wave phases removed
- * Hook for wave phase change events - No longer emits events
- * Keep for backwards compatibility, but callback never fires
- */
-export function useWavePhaseChange(
-  _onPhaseChange: (phase: WavePhase, oldPhase: WavePhase) => void
-): void {
-  // AI Director V2: Wave phase events deprecated
-  // This hook is kept for backwards compatibility but does nothing
-  useEffect(() => {
-    // No-op: wavePhaseChange event no longer emitted
-    return () => {};
-  }, []);
-}
+export function useWavePhaseChange() {}
 
-/**
- * Hook for liquidation warning events
- */
 export function useLiquidationWarning(
   onWarning: (level: LiquidationWarning, distance: number) => void
-): void {
+) {
   useEffect(() => {
     const unsubscribe = EventBus.on(
       'liquidationWarning',
@@ -133,34 +58,10 @@ export function useLiquidationWarning(
   }, [onWarning]);
 }
 
-/**
- * Hook for boss wave events
- */
-export function useBossWave(
-  onBossWaveStart: (cycleNumber: number) => void,
-  onBossWaveEnd: (cycleNumber: number) => void
-): void {
-  useEffect(() => {
-    const unsubStart = EventBus.on('bossWaveStart', (data: { cycleNumber: number }) => {
-      onBossWaveStart(data.cycleNumber);
-    });
-    const unsubEnd = EventBus.on('bossWaveEnd', (data: { cycleNumber: number }) => {
-      onBossWaveEnd(data.cycleNumber);
-    });
-
-    return () => {
-      unsubStart();
-      unsubEnd();
-    };
-  }, [onBossWaveStart, onBossWaveEnd]);
-}
-
-/**
- * Hook for shock detection events
- */
+export function useBossWave() {}
 export function useShockDetection(
   onShock: (intensity: number, direction: 'up' | 'down') => void
-): void {
+) {
   useEffect(() => {
     const unsubscribe = EventBus.on(
       'shockDetected',

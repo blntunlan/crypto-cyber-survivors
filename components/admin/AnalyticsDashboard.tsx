@@ -136,6 +136,7 @@ export const AnalyticsDashboard: React.FC = () => {
         supabase.from('v_analytics_performance_by_device').select('*').limit(10),
       ]);
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (summaryData) {
         updates.summary = Array.isArray(summaryData)
           ? summaryData[0]

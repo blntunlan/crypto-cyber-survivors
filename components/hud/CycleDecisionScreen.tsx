@@ -14,7 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { EventBus } from '../../services/core/EventBus';
 import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { calculateCycleFactor } from '../../services/difficulty/factors';
 
 interface CycleDecisionScreenProps {
   /** Callback when player chooses to continue */
@@ -150,17 +149,11 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
         const cycleNumber = data.cycleNumber;
         const currentDifficulty = DifficultyManager.getLatestOutput()?.total ?? 1;
 
-        // Calculate next cycle difficulty
-        const nextCycleFactor = calculateCycleFactor({
-          elapsedSeconds: (cycleNumber + 1) * 300,
-          cycleDuration: 300,
-        });
-
         setState(prev => ({
           ...prev,
           cycleNumber,
           currentDifficulty,
-          nextDifficulty: nextCycleFactor,
+          nextDifficulty: currentDifficulty * 1.2,
           timeRemaining: 35,
         }));
 

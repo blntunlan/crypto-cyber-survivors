@@ -44,6 +44,10 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
         return;
       }
 
+      const player = playerRef.current;
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!player) return;
+
       const disconnectDuration = data.disconnectedDuration;
 
       // FATAL DISCONNECT: 10+ seconds → End game
@@ -56,8 +60,8 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
 
           // Emit game over event with disconnect reason
           EventBus.emit('gameOver', {
-            finalLevel: playerRef.current.level,
-            finalPnl: playerRef.current.pnl ?? 0,
+            finalLevel: player.level,
+            finalPnl: player.pnl ?? 0,
             reason: 'DISCONNECT',
           });
 
@@ -76,8 +80,8 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
               pair: data.pair,
               disconnectedDuration: disconnectDuration,
               lastPriceTime: data.lastPriceTime,
-              playerLevel: playerRef.current.level,
-              playerScore: playerRef.current.score,
+              playerLevel: player.level,
+              playerScore: player.score ?? 0,
               survivalTime: DifficultyManager.getTotalElapsedSeconds(),
             },
           });
@@ -104,7 +108,7 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
             pair: data.pair,
             disconnectedDuration: disconnectDuration,
             lastPriceTime: data.lastPriceTime,
-            playerLevel: playerRef.current.level,
+            playerLevel: player.level,
             survivalTime: DifficultyManager.getTotalElapsedSeconds(),
             wasInGame: currentState === GameStatus.PLAYING,
           },

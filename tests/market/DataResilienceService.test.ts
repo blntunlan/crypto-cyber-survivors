@@ -316,7 +316,7 @@ describe('DataResilienceService', () => {
       }
 
       expect(service.getCachedData()).toHaveLength(RESILIENCE_CONFIG.MAX_CACHE_SIZE);
-      expect(service.getCachedData()[0].price).toBe(110); // First 10 should be shifted out
+      expect(service.getCachedData()[0]?.price).toBe(110); // First 10 should be shifted out
     });
   });
 
@@ -334,7 +334,7 @@ describe('DataResilienceService', () => {
       }
 
       expect(service.getRecentData(3)).toHaveLength(3);
-      expect(service.getRecentData(3)[2].price).toBe(104);
+      expect(service.getRecentData(3)[2]?.price).toBe(104);
     });
 
     it('should handle gameReset', () => {

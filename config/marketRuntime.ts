@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 export const MARKET_RUNTIME_MODES = ['legacy', 'dual', 'runtime'] as const;
 
 export type MarketRuntimeMode = (typeof MARKET_RUNTIME_MODES)[number];

@@ -15,7 +15,6 @@ import { GameRenderer } from '../services/renderers/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
 import { MetricsService } from '../services/core/MetricsService';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
-import { AIDirector } from '../services/difficulty/AIDirector';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { TimeService } from '../services/core/TimeService';
 import { getHUDLayout } from '../config/UILayout';
@@ -248,7 +247,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   // Market State Initialization (Server-Side Indicators)
   useEffect(() => {
     if (status === GameStatus.PLAYING) {
-      let isCancelled = false;
+      const cancelRef = { current: false };
       let marketAudioStartTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
       // Integrated Warmup Flow: Snapshot -> Warmup -> Realtime Stream
@@ -258,28 +257,31 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
           // 1. Fetch historical data (Snapshot)
           const history = await MarketStateService.fetchMarketHistory(pair, 300);
-          if (isCancelled) return;
+          if (cancelRef.current) return;
 
           // 2. Warm up client indicators (deterministic initial state)
           ClientIndicatorService.setPair(pair);
           ClientIndicatorService.setPosition(position);
           await ClientIndicatorService.warmup(history);
-          if (isCancelled) return;
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (cancelRef.current) return;
           const clientIndicatorState = ClientIndicatorService.getState();
-          if (isCancelled) return;
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (cancelRef.current) return;
           state.current.rsiVisualState = clientIndicatorState.rsiState;
           lastWhaleTierRef.current = clientIndicatorState.whaleTier;
 
           // 3. Initialize Realtime subscription
           await MarketStateService.init();
-          if (isCancelled) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (cancelRef.current) {
             MarketStateService.cleanup();
             return;
           }
 
           Logger.info('[GameEngine] Market state perfect sync complete');
         } catch (err) {
-          if (isCancelled) return;
+          if (cancelRef.current) return;
           Logger.error('[GameEngine] Market sync flow failed:', err);
         }
       };
@@ -287,12 +289,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       void initFlow();
 
       // Initialize market engines with game context
-      const currentLeverage = difficultyContext.getContext().inputs.leverage;
+      const currentLeverage = difficultyContext.inputs.leverage;
       PriceMomentumEngine.setContext(position, currentLeverage);
 
       // Start market-synced audio pulse (delayed to let audio context fully init)
       marketAudioStartTimeoutId = setTimeout(() => {
-        if (!isCancelled) {
+        if (!cancelRef.current) {
           MarketAudioReactor.start();
         }
       }, 500);
@@ -318,7 +320,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       );
 
       return () => {
-        isCancelled = true;
+        cancelRef.current = true;
         if (marketAudioStartTimeoutId !== null) {
           clearTimeout(marketAudioStartTimeoutId);
           marketAudioStartTimeoutId = null;
@@ -331,16 +333,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     // No cleanup needed if we didn't initialize
     return undefined;
   }, [status, pair, position, state]);
-
-  // AIDirector Activation
-  useEffect(() => {
-    if (status === GameStatus.PLAYING) {
-      AIDirector.setEnabled(true);
-    } else {
-      AIDirector.setEnabled(false);
-    }
-    return () => AIDirector.setEnabled(false);
-  }, [status]);
 
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
@@ -487,7 +479,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       if (status === GameStatus.PLAYING) {
         const shockIntensity = VisualEffectService.getIntensity();
         if (shockIntensity > 0) {
-          const leverage = difficultyContext.getContext().inputs.leverage;
+          const leverage = difficultyContext.inputs.leverage;
           const scaledShock = VisualEffectService.calculateLeverageScaledIntensity(
             shockIntensity,
             leverage
@@ -571,16 +563,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         const hpPercent = (player.hp / maxHp) * 100;
         const killStreak = ComboSystem.getKillStreak();
 
-        // Update AI Director (Brain) with Player Power Specs
-        AIDirector.setPlayerStats(
-          player.baseDamage,
-          player.fireRate,
-          player.projectiles,
-          killStreak,
-          // Calculate Dash Pressure (0 = Ready, >0 = Cooldown/Panic)
-          s.dashCooldownTimer > 0 ? s.dashCooldownTimer / GAME_ENGINE.DASH_COOLDOWN : 0
-        );
-        AIDirector.update(time);
+        // AI Director V2 calculation is now done inside DifficultyManager update routine
 
         // Update Portal System
         portalSystem.update(deltaTime, width, height);

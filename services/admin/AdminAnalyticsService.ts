@@ -30,7 +30,8 @@ class AdminAnalyticsService {
       const { data, error } = await supabase.rpc('get_market_health_status');
 
       if (error) throw error;
-      return data as unknown as MarketHealth;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data as any)?.[0] ?? null;
     } catch (error) {
       Logger.error('[Analytics] Failed to fetch market health:', error);
       return null;
@@ -55,8 +56,8 @@ class AdminAnalyticsService {
     try {
       const { supabase } = await import('../core/Supabase');
       if (!supabase) return false;
-      const { error } = await supabase
-        .from('error_reports')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('error_reports' as any) as any)
         .update({ status: 'resolved' })
         .eq('error_type', errorType);
 

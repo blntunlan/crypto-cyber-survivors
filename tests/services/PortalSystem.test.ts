@@ -41,9 +41,9 @@ describe('PortalSystem', () => {
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(30);
 
       // Setup context
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: 0.2 }, // 20% profit
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: 0.2, // 20% profit
+      } as any;
 
       portalSystem.update(16, 1000, 1000);
 
@@ -53,9 +53,9 @@ describe('PortalSystem', () => {
     it('should spawn TAKE_PROFIT portal when PnL > 10% after cooldown', () => {
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(61);
 
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: 0.15 }, // 15% profit
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: 0.15, // 15% profit
+      } as any;
 
       portalSystem.update(16, 1000, 1000);
 
@@ -68,9 +68,9 @@ describe('PortalSystem', () => {
     it('should spawn STOP_LOSS portal when PnL < -15%', () => {
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(100);
 
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: -0.2 }, // -20% loss
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: -0.2, // -20% loss
+      } as any;
 
       portalSystem.update(16, 1000, 1000);
 
@@ -82,9 +82,9 @@ describe('PortalSystem', () => {
     it('should not spawn if PnL is within neutral range', () => {
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(100);
 
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: 0.05 }, // 5% profit (below 10% threshold)
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: 0.05, // 5% profit (below 10% threshold)
+      } as any;
 
       portalSystem.update(16, 1000, 1000);
 
@@ -93,9 +93,9 @@ describe('PortalSystem', () => {
 
     it('should respect cooldown between portals', () => {
       const timeSpy = vi.spyOn(TimeService, 'getGameTimeSeconds');
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: 0.2 },
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: 0.2,
+      } as any;
 
       // Spawn first portal at 61s
       timeSpy.mockReturnValue(61);
@@ -122,9 +122,9 @@ describe('PortalSystem', () => {
     it('should close portal after duration expires', () => {
       // Force spawn
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(70);
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: 0.2 },
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: 0.2,
+      } as any;
 
       portalSystem.update(16, 1000, 1000);
       expect(portalSystem.getState().isActive).toBe(true);
@@ -134,7 +134,7 @@ describe('PortalSystem', () => {
       portalSystem.update((duration + 1) * 1000, 1000, 1000);
 
       expect(portalSystem.getState().isActive).toBe(false);
-      expect(EventBus.emit).toHaveBeenCalledWith('portalClosed', {});
+      expect(EventBus.emit).toHaveBeenCalledWith('portalClosed', expect.anything());
     });
 
     it('should accumulate raw coins from enemy kills', () => {
@@ -162,9 +162,9 @@ describe('PortalSystem', () => {
 
       // Mock time and PnL
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(300); // 300s = 5 mins
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: 0.5 }, // 50% profit
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: 0.5,
+      } as any;
 
       // Formula: rawCoins + (survivalTime / 10 * pnlPercent * 100)
       // Note: The implementation uses Math.floor(ctx.inputs.pnlPercent * 100) -> 50
@@ -182,9 +182,9 @@ describe('PortalSystem', () => {
       portalSystem.addRawCoins(100);
 
       vi.spyOn(TimeService, 'getGameTimeSeconds').mockReturnValue(300);
-      vi.spyOn(difficultyContext, 'getContext').mockReturnValue({
-        inputs: { pnlPercent: -0.5 }, // -50% loss
-      } as any);
+      difficultyContext.inputs = {
+        pnlPercent: -0.5,
+      } as any;
 
       // plValue should be clamped to 0
       const result = portalSystem.calculateFinalRewards();

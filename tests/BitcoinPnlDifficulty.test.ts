@@ -122,10 +122,24 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
   describe('Difficulty Response to PNL', () => {
     it('should make game EASIER when player is profiting', () => {
-      const neutralDifficulty = DifficultyManager.calculate(0, 0, 1, 1.0);
+      const neutralDifficulty = DifficultyManager.calculate(
+        0,
+        0,
+        1,
+        1.0,
+        undefined,
+        true
+      );
 
       DifficultyManager.startGame();
-      const profitDifficulty = DifficultyManager.calculate(0.05, 0, 1, 1.0); // +5% profit
+      const profitDifficulty = DifficultyManager.calculate(
+        0.005,
+        0,
+        1,
+        1.0,
+        undefined,
+        true
+      ); // +0.5% profit
 
       expect(profitDifficulty.total).toBeLessThan(neutralDifficulty.total);
       expect(profitDifficulty.spawnRate).toBeLessThanOrEqual(
@@ -137,10 +151,24 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     });
 
     it('should make game HARDER when player is losing', () => {
-      const neutralDifficulty = DifficultyManager.calculate(0, 0, 1, 1.0);
+      const neutralDifficulty = DifficultyManager.calculate(
+        0,
+        0,
+        1,
+        1.0,
+        undefined,
+        true
+      );
 
       DifficultyManager.startGame();
-      const lossDifficulty = DifficultyManager.calculate(-0.05, 0, 1, 1.0); // -5% loss
+      const lossDifficulty = DifficultyManager.calculate(
+        -0.05,
+        0,
+        1,
+        1.0,
+        undefined,
+        true
+      ); // -5% loss
 
       expect(lossDifficulty.total).toBeGreaterThan(neutralDifficulty.total);
       expect(lossDifficulty.spawnRate).toBeGreaterThanOrEqual(
@@ -153,22 +181,36 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
     it('should scale difficulty with loss magnitude', () => {
       DifficultyManager.startGame();
-      const smallLoss = DifficultyManager.calculate(-0.02, 0, 1, 1.0);
+      const smallLoss = DifficultyManager.calculate(-0.02, 0, 1, 1.0, undefined, true);
 
       DifficultyManager.startGame();
-      const largeLoss = DifficultyManager.calculate(-0.1, 0, 1, 1.0);
+      const largeLoss = DifficultyManager.calculate(-0.1, 0, 1, 1.0, undefined, true);
 
       expect(largeLoss.total).toBeGreaterThan(smallLoss.total);
     });
 
     it('should not go below minimum difficulty even with huge profits', () => {
-      const hugeProfitDifficulty = DifficultyManager.calculate(0.5, 0, 1, 1.0); // +50% profit
+      const hugeProfitDifficulty = DifficultyManager.calculate(
+        0.5,
+        0,
+        1,
+        1.0,
+        undefined,
+        true
+      ); // +50% profit
 
       expect(hugeProfitDifficulty.total).toBeGreaterThanOrEqual(0.3);
     });
 
     it('should not exceed maximum difficulty even with huge losses', () => {
-      const hugeLossDifficulty = DifficultyManager.calculate(-0.5, 0, 1, 1.0); // -50% loss
+      const hugeLossDifficulty = DifficultyManager.calculate(
+        -0.5,
+        0,
+        1,
+        1.0,
+        undefined,
+        true
+      ); // -50% loss
 
       expect(hugeLossDifficulty.total).toBeLessThanOrEqual(8.0);
     });
@@ -176,17 +218,31 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
   describe('Volatility (ATR) Effect', () => {
     it('should increase difficulty during high volatility', () => {
-      const lowVolatility = DifficultyManager.calculate(0, 0.002, 1, 1.0); // 0.2% ATR
+      const lowVolatility = DifficultyManager.calculate(
+        0,
+        0.002,
+        1,
+        1.0,
+        undefined,
+        true
+      ); // 0.2% ATR
 
       DifficultyManager.startGame();
-      const highVolatility = DifficultyManager.calculate(0, 0.03, 1, 1.0); // 3% ATR
+      const highVolatility = DifficultyManager.calculate(
+        0,
+        0.03,
+        1,
+        1.0,
+        undefined,
+        true
+      ); // 3% ATR
 
       expect(highVolatility.enemySpeed).toBeGreaterThan(lowVolatility.enemySpeed);
     });
 
     it('should combine volatility with PNL effect', () => {
-      const hardMode = DifficultyManager.calculate(-0.1, 0.05, 5, 0.5); // Loss + Volatility
-      const easyMode = DifficultyManager.calculate(0.1, 0.002, 1, 1.0); // Profit + Stability
+      const hardMode = DifficultyManager.calculate(-0.1, 0.05, 5, 0.5, undefined, true); // Loss + Volatility
+      const easyMode = DifficultyManager.calculate(0.1, 0.002, 1, 1.0, undefined, true); // Profit + Stability
 
       expect(hardMode.total).toBeGreaterThan(easyMode.total * 1.2); // Significantly harder with new scalers
     });
@@ -194,10 +250,10 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
   describe('Near-Death Mercy', () => {
     it('should reduce difficulty when HP drops below 20%', () => {
-      const normalHp = DifficultyManager.calculate(-0.03, 0, 5, 1.0);
+      const normalHp = DifficultyManager.calculate(-0.03, 0, 5, 1.0, undefined, true);
 
       DifficultyManager.startGame();
-      const lowHp = DifficultyManager.calculate(-0.03, 0, 5, 0.15); // 15% HP
+      const lowHp = DifficultyManager.calculate(-0.03, 0, 5, 0.15, undefined, true); // 15% HP
 
       expect(lowHp.total).toBeLessThan(normalHp.total);
     });
@@ -205,7 +261,14 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     it('should give losing players a chance to recover', () => {
       // Losing + low HP = mercy kick in
       DifficultyManager.startGame();
-      const desperateSituation = DifficultyManager.calculate(-0.1, 0.02, 5, 0.1);
+      const desperateSituation = DifficultyManager.calculate(
+        -0.1,
+        0.02,
+        5,
+        0.1,
+        undefined,
+        true
+      );
 
       // Even with -10% PNL and high volatility, near-death should help
       expect(desperateSituation.total).toBeLessThan(8.0); // Not max difficulty
@@ -219,7 +282,14 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       const leverage = 10;
       const effectivePnl = rawPnl * leverage; // +30%
 
-      const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 0.8);
+      const difficulty = DifficultyManager.calculate(
+        effectivePnl,
+        0.01,
+        5,
+        0.8,
+        undefined,
+        true
+      );
 
       // Should be relatively easy (compared to losses) but climax phase adds base pressure
       expect(difficulty.total).toBeLessThan(2.3);
@@ -233,7 +303,14 @@ describe('Bitcoin-PNL-Difficulty System', () => {
 
       // Advance time to mock Climax phase (avoid Warmup 0.3 factor)
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(230);
-      const difficulty = DifficultyManager.calculate(effectivePnl, 0.01, 5, 0.8);
+      const difficulty = DifficultyManager.calculate(
+        effectivePnl,
+        0.01,
+        5,
+        0.8,
+        undefined,
+        true
+      );
 
       // Should be quite hard
       expect(difficulty.total).toBeGreaterThan(2.0);
@@ -244,7 +321,7 @@ describe('Bitcoin-PNL-Difficulty System', () => {
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(230);
 
       // No directional PNL but market is choppy
-      const difficulty = DifficultyManager.calculate(0, 0.04, 5, 0.8);
+      const difficulty = DifficultyManager.calculate(0, 0.04, 5, 0.8, undefined, true);
 
       // Volatility alone should increase difficulty somewhat
       expect(difficulty.enemySpeed).toBeGreaterThanOrEqual(0.6); // Adjusted for V2 scaling
@@ -253,7 +330,14 @@ describe('Bitcoin-PNL-Difficulty System', () => {
     it('Scenario: Player recovering from near-death during crash', () => {
       // Market crashing (-5%), player is LONG, HP is critical
       DifficultyManager.startGame();
-      const criticalMoment = DifficultyManager.calculate(-0.05, 0.02, 5, 0.12);
+      const criticalMoment = DifficultyManager.calculate(
+        -0.05,
+        0.02,
+        5,
+        0.12,
+        undefined,
+        true
+      );
 
       // Mercy system should prevent total destruction
       expect(criticalMoment.total).toBeLessThan(4.0);

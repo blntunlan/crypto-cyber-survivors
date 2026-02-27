@@ -7,15 +7,15 @@ interface LevelUpFlashProps {
 
 const DesktopFlash: React.FC<LevelUpFlashProps> = ({ intensity }) => (
   <div
-    className="pointer-events-none absolute inset-0 z-[120] bg-white transition-opacity duration-500 ease-out"
-    style={{ opacity: intensity > 0 ? 0.3 : 0 }}
+    className="pointer-events-none absolute inset-0 z-[120] bg-white mix-blend-overlay transition-opacity duration-300 ease-out"
+    style={{ opacity: intensity > 0 ? 0.15 : 0 }}
   />
 );
 
 const MobileFlash: React.FC<LevelUpFlashProps> = ({ intensity }) => (
   <div
-    className="pointer-events-none absolute inset-0 z-[120] bg-white transition-opacity duration-300 ease-out"
-    style={{ opacity: intensity > 0 ? 0.25 : 0 }}
+    className="pointer-events-none absolute inset-0 z-[120] bg-white mix-blend-overlay transition-opacity duration-200 ease-out"
+    style={{ opacity: intensity > 0 ? 0.1 : 0 }}
   />
 );
 

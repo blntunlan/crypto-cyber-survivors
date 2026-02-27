@@ -646,7 +646,14 @@ export interface EventDataMap {
   playerDeath: EmptyEvent;
   playerRespawn: EmptyEvent;
   optimizationProgress: { progress: number; iteration?: number; total?: number };
-  trainingProgress: { progress: number };
+  trainingProgress: {
+    episode: number;
+    totalEpisodes: number;
+    avgReward: number;
+    bestReward: number;
+    flowRatio: number;
+    progress?: number;
+  };
   directorParamsUpdated: { params: unknown };
   buffApplied: BuffAppliedEvent;
   buffExpired: BuffExpiredEvent;

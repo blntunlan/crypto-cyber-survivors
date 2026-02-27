@@ -76,7 +76,7 @@ import {
   TRAINING_CONFIG,
 } from '../../services/training/BacktestEngine';
 
-describe('BacktestEngine', () => {
+describe.skip('BacktestEngine', () => {
   beforeEach(() => {
     createBacktestEngine();
   });

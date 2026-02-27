@@ -18,8 +18,8 @@ describe('5-Minute Cycle Yoyo Analysis (AI Director V2)', () => {
       String('Phase').padEnd(15),
       String('PnL').padEnd(8),
       String('Total Diff').padEnd(12),
-      String('WaveMult').padEnd(10),
-      String('PnLFactor').padEnd(10)
+      String('SpawnRate').padEnd(10),
+      String('EnemyHP').padEnd(10)
     );
     console.log('-'.repeat(75));
 
@@ -48,8 +48,8 @@ describe('5-Minute Cycle Yoyo Analysis (AI Director V2)', () => {
         'active'.padEnd(15),
         (pnl * 100).toFixed(0).concat('%').padEnd(8),
         output.total.toFixed(2).padEnd(12),
-        output.factors.waveMultiplier.toFixed(2).padEnd(10),
-        output.factors.pnlEffect.toFixed(2).padEnd(10)
+        output.spawnRate.toFixed(2).padEnd(10),
+        output.enemyHP.toFixed(2).padEnd(10)
       );
     }
 

@@ -17,36 +17,19 @@ export interface DifficultyFactors {
   leverageSpeed: number;
 }
 
+import type { DifficultyOutputV2 } from '../difficulty/types';
+
 /**
  * Result of difficulty calculation for the engine to use.
+ * Compatible with V1 and V2.
  */
-export interface DifficultyOutput {
-  /** Enemy spawn rate multiplier */
-  spawnRate: number;
-  /** Enemy speed multiplier */
-  enemySpeed: number;
-  /** Enemy health multiplier */
+export interface DifficultyOutput extends DifficultyOutputV2 {
+  /** @deprecated Use enemyHP */
   enemyHealth: number;
-  /** Enemy damage multiplier */
-  enemyDamage: number;
-  /** Multiplier for gem XP/value (Reward scaling) */
+  /** @deprecated Use gemDropRate */
   gemValueMultiplier: number;
-  /** Combined raw difficulty value */
-  total: number;
-  /** Raw contributing factors for debugging/analytics */
+  /** @deprecated Factors are now internal to Director */
   factors: DifficultyFactors;
 
-  // AI Director V2 - Advanced Metrics
-  /** Enemy variety multiplier (0.5 - 2.0) */
-  variety?: number;
-  /** Chaos/Randomness level (0 - 1) */
-  chaos?: number;
-  /** Mercy system attenuation (0 - 1) */
-  mercy?: number;
-  /** Player pressure intensity (0 - 1) */
-  pressure?: number;
-  /** Probability of spawning a Whale enemy */
-  whaleProb?: number;
-  /** Experience multiplier from director */
-  xpMult?: number;
+  // V2 fields are inherited from DifficultyOutputV2
 }

@@ -93,7 +93,7 @@ export function runDifficultySimulation() {
       output.total.toFixed(2).padEnd(8),
       output.spawnRate.toFixed(2).padEnd(8),
       output.enemySpeed.toFixed(2).padEnd(8),
-      output.enemyHealth.toFixed(2).padEnd(8)
+      output.enemyHP.toFixed(2).padEnd(8)
     );
   });
   console.log('\n=========================================\n');

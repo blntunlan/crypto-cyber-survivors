@@ -514,14 +514,16 @@ class GameplayValidatorClass {
 
     for (let i = 0; i < enemies.length && issues.length < 20; i += step) {
       const enemy = enemies[i];
-      if (!enemy.active) continue;
+      if (!enemy?.active) continue;
 
       for (const rule of ENEMY_RULES) {
-        if (!rule.check(enemy, snapshot)) {
-          const issue = this.createIssue(rule, enemy);
+        // Explicitly ensuring rule is treated as ValidationRule<Enemy>
+        const typedRule = rule as ValidationRule<Enemy>;
+        if (!typedRule.check(enemy, snapshot)) {
+          const issue = this.createIssue(typedRule, enemy);
 
-          if (this.config.autoFix && rule.fix) {
-            updatedEnemies[i] = rule.fix(enemy);
+          if (this.config.autoFix && typedRule.fix) {
+            updatedEnemies[i] = typedRule.fix(enemy);
             issue.autoFixed = true;
             fixedCount++;
           }
@@ -547,14 +549,15 @@ class GameplayValidatorClass {
 
     for (let i = 0; i < gems.length && issues.length < 10; i += step) {
       const gem = gems[i];
-      if (!gem.active) continue;
+      if (!gem?.active) continue;
 
       for (const rule of GEM_RULES) {
-        if (!rule.check(gem, snapshot)) {
-          const issue = this.createIssue(rule, gem);
+        const typedRule = rule as ValidationRule<Gem>;
+        if (!typedRule.check(gem, snapshot)) {
+          const issue = this.createIssue(typedRule, gem);
 
-          if (this.config.autoFix && rule.fix) {
-            updatedGems[i] = rule.fix(gem);
+          if (this.config.autoFix && typedRule.fix) {
+            updatedGems[i] = typedRule.fix(gem);
             issue.autoFixed = true;
             fixedCount++;
           }

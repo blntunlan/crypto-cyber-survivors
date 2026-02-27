@@ -11,6 +11,7 @@ import {
   CLIENT_INDICATOR_CONFIG,
   getDefaultClientIndicatorState,
 } from '../../../services/indicators/ClientIndicatorService';
+import { MarketPosition } from '../../../types';
 
 // Mock dependencies
 vi.mock('../../../services/core/EventBus', () => ({
@@ -310,7 +311,7 @@ describe('ClientIndicatorService', () => {
 
   describe('Position Favorability', () => {
     it('should report neutral favorability for neutral RSI', () => {
-      service.setPosition('LONG');
+      service.setPosition(MarketPosition.LONG);
       // Default RSI is neutral
       expect(service.isFavorable()).toBe(false);
       expect(service.isUnfavorable()).toBe(false);
@@ -325,7 +326,7 @@ describe('ClientIndicatorService', () => {
     });
 
     it('should allow setting position', () => {
-      service.setPosition('SHORT');
+      service.setPosition(MarketPosition.SHORT);
       // Should not throw
       expect(true).toBe(true);
     });
