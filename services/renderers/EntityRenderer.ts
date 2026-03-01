@@ -180,15 +180,10 @@ export class EntityRenderer implements IRenderer {
         isComplex = true;
       }
 
-      // Store computed alpha unconditionally to prevent stale state from object pooling
-      (g as any)._alpha = alpha;
-
       if (isComplex) {
         this.gemBatchComplex.push(g);
       } else {
-        if (!this.gemBatchStandard[g.color]) {
-          this.gemBatchStandard[g.color] = [];
-        }
+        this.gemBatchStandard[g.color] ??= [];
         this.gemBatchStandard[g.color]!.push(g);
       }
     }
@@ -222,8 +217,18 @@ export class EntityRenderer implements IRenderer {
       const g = this.gemBatchComplex[i]!;
 
       ctx.save();
-      // Restore the transient alpha value if it was set, otherwise 1.0
-      const alpha = (g as any)._alpha !== undefined ? (g as any)._alpha : 1.0;
+
+      // Recalculate alpha for the slow path to avoid storing it on the pooled entity object
+      const elapsed = g.elapsedLifetime ?? 0;
+      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
+      const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+      let alpha = 1.0;
+      if (remainingRatio < 0.3) {
+        alpha = remainingRatio / 0.3;
+        if (remainingRatio < 0.1) {
+          alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+        }
+      }
       ctx.globalAlpha = alpha;
 
       if (g.isRare && shadowsEnabled) {
