@@ -1,6 +1,6 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
-import { type GameState, type Player, type Enemy } from '../../types';
+import { type GameState, type Player, type Enemy, type Gem } from '../../types';
 import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
@@ -26,6 +26,10 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+
+  // Optimization Buffers: Used to batch render gems and prevent per-frame allocation
+  private gemBatchStandard: Record<string, Gem[]> = {};
+  private gemBatchComplex: Gem[] = [];
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -129,13 +133,26 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
-    pool.activeGems.forEach(g => {
+    // 1. Clear optimization buffers without deallocating memory
+    this.gemBatchComplex.length = 0;
+    for (const color in this.gemBatchStandard) {
+      if (Object.prototype.hasOwnProperty.call(this.gemBatchStandard, color)) {
+        this.gemBatchStandard[color]!.length = 0;
+      }
+    }
+
+    const gems = pool.activeGems;
+    const len = gems.length;
+
+    // 2. Iterate and bin gems by rendering complexity and color
+    for (let i = 0; i < len; i++) {
+      const g = gems[i]!;
       if (!g.active) {
-        return;
+        continue;
       }
 
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
-        return;
+        continue;
       }
 
       // Calculate fade-out alpha based on lifetime
@@ -145,6 +162,7 @@ export class EntityRenderer implements IRenderer {
 
       // Start fading when 30% of lifetime remains
       const fadeStartThreshold = 0.3;
+      let isComplex = false;
       let alpha = 1.0;
 
       if (remainingRatio < fadeStartThreshold) {
@@ -153,9 +171,64 @@ export class EntityRenderer implements IRenderer {
         if (remainingRatio < 0.1) {
           alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
         }
+        if (alpha < 1.0) {
+          isComplex = true;
+        }
       }
 
+      if (g.isRare && shadowsEnabled) {
+        isComplex = true;
+      }
+
+      if (isComplex) {
+        this.gemBatchComplex.push(g);
+      } else {
+        this.gemBatchStandard[g.color] ??= [];
+        this.gemBatchStandard[g.color]!.push(g);
+      }
+    }
+
+    // 3. Fast Path: Batch render standard opaque gems by color
+    // This reduces `ctx.beginPath` and `ctx.fill` calls significantly.
+    for (const color in this.gemBatchStandard) {
+      if (!Object.prototype.hasOwnProperty.call(this.gemBatchStandard, color)) continue;
+
+      const batch = this.gemBatchStandard[color]!;
+      const batchLen = batch.length;
+      if (batchLen === 0) continue;
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (let i = 0; i < batchLen; i++) {
+        const g = batch[i]!;
+        const rX = Math.round(g.x);
+        const rY = Math.round(g.y);
+
+        // crucial optimization: moveTo prevents connected lines between arcs in a single path
+        ctx.moveTo(rX + g.radius, rY);
+        ctx.arc(rX, rY, g.radius, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+
+    // 4. Slow Path: Render complex gems individually
+    const complexLen = this.gemBatchComplex.length;
+    for (let i = 0; i < complexLen; i++) {
+      const g = this.gemBatchComplex[i]!;
+
       ctx.save();
+
+      // Recalculate alpha for the slow path to avoid storing it on the pooled entity object
+      const elapsed = g.elapsedLifetime ?? 0;
+      const lifetime = ECONOMY_CONFIG.GEMS.LIFETIME_MS;
+      const remainingRatio = Math.max(0, 1 - elapsed / lifetime);
+      let alpha = 1.0;
+      if (remainingRatio < 0.3) {
+        alpha = remainingRatio / 0.3;
+        if (remainingRatio < 0.1) {
+          alpha *= Math.sin(Date.now() * 0.02) * 0.5 + 0.5;
+        }
+      }
       ctx.globalAlpha = alpha;
 
       if (g.isRare && shadowsEnabled) {
@@ -169,7 +242,7 @@ export class EntityRenderer implements IRenderer {
       ctx.fill();
 
       ctx.restore();
-    });
+    }
   }
 
   /**
