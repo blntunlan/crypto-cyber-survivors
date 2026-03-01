@@ -1,0 +1,3 @@
+## 2024-03-01 - [Canvas Path Batching & Object Pool Leak]
+**Learning:** When using object pools to avoid GC, temporarily caching properties (like alpha values) on the entity `(g as any)._alpha` must be unconditionally overwritten every frame. Incomplete overwrites lead to visual glitches when entities are recycled. Furthermore, batching `arc` rendering via single `beginPath` calls requires intermediate `moveTo(x+r, y)` calls to prevent connecting segments.
+**Action:** Always assign temporary properties outside of conditional logic blocks during processing loops, or explicitly clean them up during pooling/respawn logic. Always use `moveTo` before `arc` in a batched path.

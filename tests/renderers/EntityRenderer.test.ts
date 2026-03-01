@@ -64,6 +64,7 @@ describe('EntityRenderer', () => {
       scale: vi.fn(),
       beginPath: vi.fn(),
       arc: vi.fn(),
+      moveTo: vi.fn(),
       ellipse: vi.fn(),
       fill: vi.fn(),
       stroke: vi.fn(),
