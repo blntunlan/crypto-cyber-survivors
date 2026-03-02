@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 
 // Mock SecurityUtils module to simulate non-local environment
@@ -16,6 +16,14 @@ vi.mock('../../services/auth/SecurityUtils', () => ({
 const isCI = process.env.CI === 'true';
 
 describe('Registration Flow (Integration with MSW)', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
   beforeEach(() => {
     UserSessionService.clearUser();
 
