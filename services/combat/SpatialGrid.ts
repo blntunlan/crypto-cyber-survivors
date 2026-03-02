@@ -92,8 +92,11 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
 
     // Check 3x3 grid of cells (current + 8 neighbors)
     for (let dx = -1; dx <= 1; dx++) {
+      // Optimization: Hoist the X-coordinate bitwise shift out of the inner loop
+      // to reduce redundant operations.
+      const xKey = (cellX + dx) << 16;
       for (let dy = -1; dy <= 1; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = xKey | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           nearby.push(...cell);
@@ -130,8 +133,11 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
     const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
 
     for (let dx = -radius; dx <= radius; dx++) {
+      // Optimization: Hoist the X-coordinate bitwise shift out of the inner loop
+      // to reduce redundant operations.
+      const xKey = (cellX + dx) << 16;
       for (let dy = -radius; dy <= radius; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = xKey | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           const len = cell.length;
