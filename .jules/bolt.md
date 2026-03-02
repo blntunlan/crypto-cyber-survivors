@@ -1,0 +1,3 @@
+## 2025-03-02 - Hoist bitwise shift in SpatialGrid hot loops
+**Learning:** In the hot loops of `SpatialGrid.getNearby` and `SpatialGrid.forEachInRange`, the calculation `((cellX + dx) << 16)` was being performed inside the inner `dy` loop. Since it only depends on the outer loop variable `dx`, it is a redundant calculation.
+**Action:** Always inspect nested loops in hot paths (like spatial grid lookups) for calculations that only depend on the outer loop variables. Manually hoisting these calculations out of the inner loop can reduce redundant operations and guarantee optimization, even if JIT compilers might sometimes do this automatically via Loop Invariant Code Motion (LICM).
