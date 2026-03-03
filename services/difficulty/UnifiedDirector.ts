@@ -57,8 +57,8 @@ class RuleBasedDirector {
     // Player is struggling: Low HP (< 30%)
     let mercy = 0;
     if (inputs.hpPercent < 0.3) {
-      // mercy scales from 0 (at 30% HP) to 0.8 (at 0% HP)
-      mercy = clamp(1.0 - inputs.hpPercent * 3.33, 0, 1) * 0.8;
+      // mercy scales from 0 (at 30% HP) to 0.7 (at 0% HP)
+      mercy = clamp(1.0 - inputs.hpPercent * 3.33, 0, 1) * 0.7;
     }
 
     // 2. Base Multipliers Driven by Market Action
@@ -78,8 +78,8 @@ class RuleBasedDirector {
     // Time scaling
     const timePressure = inputs.elapsedMinutes * 0.3;
 
-    // Leverage penalty (Higher leverage = faster and harder enemies)
-    const leverageBoost = inputs.leverage * 2.0;
+    // Leverage contribution (moderate — LeverageEngine handles primary scaling)
+    const leverageBoost = inputs.leverage * 0.5;
 
     // 3. Execution (The Rules)
     const spawnRate = clamp(
@@ -87,25 +87,26 @@ class RuleBasedDirector {
       0.5,
       5.0
     );
+    // Speed: multiplicative leverage, not additive
     const enemySpeed = clamp(
-      atrSpeedMult * pnlSpeedMult + leverageBoost - mercy * 0.4,
+      atrSpeedMult * pnlSpeedMult * (1.0 + leverageBoost * 0.3) - mercy * 0.4,
       0.5,
-      3.0
+      2.5
     );
 
-    // If they have high DPS, enemies get tankier
+    // Enemies scale with player power, not too aggressively
     const enemyHP = clamp(
-      1.0 + inputs.playerLevel * 2.0 + inputs.playerDPS * 0.5,
+      1.0 + inputs.playerLevel * 1.2 + inputs.playerDPS * 0.3,
+      0.5,
+      4.0
+    );
+
+    // Enemy damage: moderate leverage impact, capped to prevent one-shots
+    const underwaterPenalty = inputs.pnlRatio < 0 ? Math.abs(inputs.pnlRatio) * 2.5 : 0;
+    const enemyDamage = clamp(
+      1.0 + timePressure + leverageBoost * 2.0 + underwaterPenalty,
       0.5,
       5.0
-    );
-
-    // Leverage hugely impacts enemy damage. If you are 100x and underwater, damage spikes.
-    const underwaterPenalty = inputs.pnlRatio < 0 ? Math.abs(inputs.pnlRatio) * 5.0 : 0;
-    const enemyDamage = clamp(
-      1.0 + timePressure + leverageBoost * 4.0 + underwaterPenalty,
-      0.5,
-      10.0
     );
 
     // Whale Spawns (Linked to volume spikes and trend strength)
@@ -118,9 +119,9 @@ class RuleBasedDirector {
     // Rewards (Gem drops and XP)
     const gemDropRate = clamp(1.0 + inputs.killsPerMin * 0.5 + mercy * 2.0, 1.0, 5.0);
     const xpMultiplier = clamp(
-      1.0 + inputs.leverage * 2.0 + inputs.killsPerMin,
+      1.0 + inputs.leverage * 1.0 + inputs.killsPerMin * 0.5,
       1.0,
-      10.0
+      5.0
     );
 
     // Variety and Chaos

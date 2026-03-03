@@ -21,10 +21,10 @@ describe('Leverage-based Difficulty Scaling', () => {
     DifficultyManager.startGame(100);
     const output = DifficultyManager.calculate(0, 0.02, 1, 100, undefined, true);
 
-    // 100x leverage should significantly boost difficulty outputs
+    // 100x leverage should boost difficulty (moderate — LeverageEngine handles primary scaling)
     expect(output.enemyDamage).toBeGreaterThan(1.5);
-    expect(output.spawnRate).toBeGreaterThan(2.0);
-    expect(output.enemySpeed).toBeGreaterThan(1.2);
+    expect(output.spawnRate).toBeGreaterThan(1.0);
+    expect(output.enemySpeed).toBeGreaterThan(1.0);
   });
 
   it('should scale spawnRate correctly with leverage', () => {
@@ -76,8 +76,8 @@ describe('Leverage-based Difficulty Scaling', () => {
       true
     ).enemyDamage;
 
-    // 100x should be deadlier than 1x
-    expect(damage100x).toBeGreaterThan(damage1x * 2);
+    // 100x should be deadlier than 1x (moderate gap — LeverageEngine adds more)
+    expect(damage100x).toBeGreaterThan(damage1x * 1.5);
   });
 
   it('should clamp values to max/min limits even with leverage', () => {
@@ -87,6 +87,6 @@ describe('Leverage-based Difficulty Scaling', () => {
 
     expect(output.spawnRate).toBeLessThanOrEqual(DIFFICULTY.SPAWN_RATE_MAX);
     expect(output.enemySpeed).toBeLessThanOrEqual(DIFFICULTY.ENEMY_SPEED_MAX);
-    expect(output.enemyDamage).toBeLessThanOrEqual(10.0); // V2 AI Director allows up to 10x for extreme high leverage + loss
+    expect(output.enemyDamage).toBeLessThanOrEqual(5.0); // Balanced max clamp for Director output
   });
 });

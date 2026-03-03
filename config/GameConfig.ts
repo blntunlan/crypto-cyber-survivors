@@ -25,13 +25,13 @@ export const DIFFICULTY_CONFIG = {
   /** Shock detection threshold (underlying price %) */
   SHOCK_THRESHOLD: 0.005,
 
-  /** Clamp limits for engine outputs */
+  /** Clamp limits for engine outputs (balanced) */
   LIMITS: {
-    total: { min: 0.5, max: 15.0 },
+    total: { min: 0.5, max: 8.0 },
     spawnRate: { min: 0.5, max: 5.0 },
-    enemySpeed: { min: 0.5, max: 8.0 },
-    enemyHP: { min: 0.5, max: 20.0 },
-    enemyDamage: { min: 0.8, max: 15.0 },
+    enemySpeed: { min: 0.5, max: 4.0 },
+    enemyHP: { min: 0.5, max: 8.0 },
+    enemyDamage: { min: 0.8, max: 8.0 },
   },
 
   /** Near Death Threshold */

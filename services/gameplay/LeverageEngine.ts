@@ -27,53 +27,56 @@ export const LEVERAGE_ENGINE_CONFIG = {
   /** Logarithmic base for normalizing leverage to 0-1 range */
   NORM_BASE: 101, // log2(leverage+1) / log2(101)
 
-  // --- Damage Taken Scaling ---
+  // --- Damage Taken (Fragility) Scaling ---
+  // Design spec target: 1x→1.0, 5x→1.12, 20x→1.35, 50x→1.75, 100x→2.30
   /** Base damage amplification at max leverage (before volatility) */
-  DAMAGE_BASE_AMP: 1.0,
+  DAMAGE_BASE_AMP: 1.3,
   /** How much volatility amplifies damage on top of leverage */
-  VOLATILITY_DAMAGE_AMP: 0.4,
-  /** Max damage reduction when PnL is strongly positive (20%) */
-  POSITIVE_PNL_DAMAGE_SHIELD: 0.2,
+  VOLATILITY_DAMAGE_AMP: 0.15,
+  /** Max damage reduction when PnL is strongly positive (15%) */
+  POSITIVE_PNL_DAMAGE_SHIELD: 0.15,
 
   // --- XP / Level Speed Scaling ---
+  // Design spec target: 1x→1.0, 100x→2.20
   /** XP gain coefficient (sqrt-based for diminishing returns) */
-  XP_COEFFICIENT: 0.3,
+  XP_COEFFICIENT: 0.13,
 
   // --- Spawn Rate Scaling ---
   /** Base spawn rate amplification at max leverage */
-  SPAWN_BASE_AMP: 3.5,
+  SPAWN_BASE_AMP: 2.0,
   /** Extra spawn pressure when PnL is negative */
-  NEGATIVE_PNL_SPAWN_AMP: 1.25,
+  NEGATIVE_PNL_SPAWN_AMP: 1.15,
 
   // --- Enemy Speed Scaling ---
   /** Base enemy speed amplification at max leverage */
-  SPEED_BASE_AMP: 1.5,
+  SPEED_BASE_AMP: 1.0,
 
   // --- Enemy HP Scaling ---
   /** Base enemy HP amplification at max leverage */
-  HP_BASE_AMP: 1.0,
+  HP_BASE_AMP: 0.8,
 
   // --- Enemy Damage Scaling ---
   /** Base enemy damage amplification at max leverage */
-  ENEMY_DAMAGE_BASE_AMP: 1.6,
+  ENEMY_DAMAGE_BASE_AMP: 1.2,
 
   // --- Gem/Reward Scaling ---
+  // Design spec target: 1x→1.0, 100x→2.20
   /** Gem value per leverage point (linear) */
-  GEM_PER_LEVERAGE: 0.02,
+  GEM_PER_LEVERAGE: 0.012,
 
   // --- Difficulty Ramp Speed ---
   /** How much faster difficulty escalates over time at high leverage */
-  RAMP_SPEED_COEFFICIENT: 0.5,
+  RAMP_SPEED_COEFFICIENT: 0.3,
 
-  // --- Hard Limits (Safety Rails) ---
-  MAX_DAMAGE_TAKEN: 3.0,
-  MAX_XP_GAIN: 10.0,
-  MAX_SPAWN_RATE: 6.0,
-  MAX_ENEMY_SPEED: 2.4,
-  MAX_ENEMY_HP: 3.0,
-  MAX_ENEMY_DAMAGE: 3.2,
-  MAX_GEM_VALUE: 8.0,
-  MAX_RAMP_SPEED: 4.0,
+  // --- Hard Limits (Safety Rails, aligned with design spec) ---
+  MAX_DAMAGE_TAKEN: 2.3,
+  MAX_XP_GAIN: 2.5,
+  MAX_SPAWN_RATE: 4.0,
+  MAX_ENEMY_SPEED: 2.0,
+  MAX_ENEMY_HP: 2.5,
+  MAX_ENEMY_DAMAGE: 2.5,
+  MAX_GEM_VALUE: 2.5,
+  MAX_RAMP_SPEED: 3.0,
 } as const;
 
 // =============================================================================
@@ -184,10 +187,9 @@ class LeverageEngineClass {
     // 1x → 0, 10x → 0.48, 50x → 0.84, 100x → 1.0
     const norm = (Math.log2(L + 1) - 1) / (Math.log2(C.NORM_BASE) - 1);
 
-    // --- DAMAGE TAKEN ---
-    // Base: 1.0 at 1x, up to 2.0 at 100x
-    // Volatility amplifies further but is capped to avoid instant one-shots
-    // Positive PnL provides a small shield (max 20% reduction)
+    // --- DAMAGE TAKEN (Fragility) ---
+    // Base: 1.0 at 1x, up to 2.3 at 100x (design spec)
+    // Volatility amplifies moderately, positive PnL provides small shield
     const baseDamage = 1.0 + norm * C.DAMAGE_BASE_AMP;
     const volAmp = 1.0 + V * C.VOLATILITY_DAMAGE_AMP * 100; // V is typically 0.001-0.05
     const pnlShield =
@@ -201,8 +203,7 @@ class LeverageEngineClass {
     );
 
     // --- XP GAIN ---
-    // sqrt(L) based for nice diminishing returns
-    // 1x → 1.3, 10x → 1.95, 100x → 4.0
+    // sqrt(L) based for diminishing returns (design spec: 1x→1.0, 100x→2.17)
     this.output.xpGain = clamp(
       1.0 + (Math.sqrt(L) - 1) * C.XP_COEFFICIENT,
       1.0,
