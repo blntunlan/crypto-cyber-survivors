@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion'; // 📦 [Import Cost]: 32.4KB (gzipped: 10.8KB)
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { CryptoSelector } from '../ui/CryptoSelector';
@@ -39,6 +39,23 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   const { t } = useLanguage();
 
   const [selectedLeverage, setSelectedLeverage] = useState<LeverageOption>(10);
+  const leverageScrollRef = useRef<HTMLDivElement>(null);
+
+  // Scroll selected leverage button into view on mobile
+  const scrollToSelectedLeverage = useCallback((lev: LeverageOption) => {
+    const container = leverageScrollRef.current;
+    if (!container) return;
+    const idx = LEVERAGE_OPTIONS.indexOf(lev);
+    const btn = container.children[idx] as HTMLElement | undefined;
+    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, []);
+
+  // Scroll to default selection on mount
+  useEffect(() => {
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => scrollToSelectedLeverage(selectedLeverage), 100);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Navigation State
   const [activeRow, setActiveRow] = useState<number>(0);
@@ -409,6 +426,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </div>
 
             <div
+              ref={leverageScrollRef}
               className={`custom-scrollbar flex snap-x snap-mandatory flex-nowrap justify-start gap-2 overflow-x-auto px-1.5 py-3 transition-all duration-500 sm:flex-wrap sm:justify-center sm:gap-2.5 sm:overflow-visible sm:px-2.5 sm:py-3.5 ${isRetro ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#0a0a12]/80' : 'rounded-sm'}`}
               style={{
                 backgroundColor: !isRetro
@@ -433,8 +451,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 return (
                   <button
                     key={lev}
-                    onClick={() => setSelectedLeverage(lev)}
-                    className={`group relative min-h-[44px] min-w-[50px] shrink-0 touch-manipulation snap-start px-2 py-1.5 text-[10px] transition-all duration-200 active:scale-95 sm:min-h-[42px] sm:min-w-[50px] sm:px-2.5 sm:py-1 sm:text-[10px]
+                    onClick={() => {
+                      setSelectedLeverage(lev);
+                      scrollToSelectedLeverage(lev);
+                    }}
+                    className={`group relative min-h-[44px] min-w-[54px] shrink-0 touch-manipulation snap-start px-2.5 py-1.5 text-[11px] transition-all duration-200 active:scale-95 sm:min-h-[42px] sm:min-w-[50px] sm:px-2.5 sm:py-1 sm:text-[10px]
                       ${isRetro ? 'rounded-none font-retro-pixel' : 'rounded-lg font-cyber tracking-[0.02em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 sm:hover:scale-105'}
                       ${isSelected ? 'z-10 scale-105' : 'bg-white/5 opacity-50 hover:opacity-80'}`}
                     style={{

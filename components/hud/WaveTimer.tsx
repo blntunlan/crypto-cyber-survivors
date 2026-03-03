@@ -105,8 +105,11 @@ const MobileWaveTimer: React.FC = () => {
       )}
       <div
         id="wave-timer-text"
-        className={`font-black italic tabular-nums leading-none tracking-tighter text-white drop-shadow-lg ${isRetro ? 'font-retro-pixel' : ''}`}
-        style={{ fontSize: isRetro ? rfs(22) : rfs(26) }}
+        className={`font-black italic tabular-nums leading-tight tracking-tighter text-white ${isRetro ? 'font-retro-pixel' : ''}`}
+        style={{
+          fontSize: isRetro ? rfs(22) : rfs(26),
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        }}
       >
         {displayTime}
       </div>
