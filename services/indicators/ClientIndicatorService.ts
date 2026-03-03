@@ -34,8 +34,8 @@ import { Logger } from '../system/Logger';
 export const CLIENT_INDICATOR_CONFIG = {
   // RSI settings
   RSI_PERIOD: 14,
-  RSI_OVERSOLD: 30,
-  RSI_OVERBOUGHT: 70,
+  RSI_OVERSOLD: 20,
+  RSI_OVERBOUGHT: 80,
   RSI_HYSTERESIS: 5, // Buffer to prevent flickering
 
   // ATR settings

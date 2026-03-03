@@ -56,6 +56,7 @@ export type GameEvent =
   | 'buffGemSpawned'
   | 'buffGemCollected'
   | 'marketDataTimeout'
+  | 'marketTimeoutWarning'
   | 'whaleTierChanged'
   | 'rsiStateChanged'
   | 'marketStateUpdated'
@@ -345,6 +346,14 @@ export interface MarketDataTimeoutEvent {
   lastPriceTime: number | null;
   disconnectedDuration: number; // ms
   pair: string;
+  reason?: 'market_timeout';
+}
+
+/** Market timeout warning event data */
+export interface MarketTimeoutWarningEvent {
+  level: 'warning' | 'critical';
+  remainingMs: number;
+  disconnectedDuration: number;
 }
 
 export type MarketRuntimeTickEvent = MarketRuntimeTick;
@@ -660,6 +669,7 @@ export interface EventDataMap {
   buffGemSpawned: BuffGemSpawnedEvent;
   buffGemCollected: BuffGemCollectedEvent;
   marketDataTimeout: MarketDataTimeoutEvent;
+  marketTimeoutWarning: MarketTimeoutWarningEvent;
   // Deprecated: marketStateChanged: MarketStateChangedEvent;
   marketStateChanged: MarketStateChangedEvent;
   clientIndicatorsUpdated: ClientIndicatorsUpdatedEvent;
@@ -721,7 +731,11 @@ export interface EventDataMap {
   playerExperienceChange: { exp: number; nextLevelExp: number; expPercent: number };
   playerHealthChange: { hpPercent: number; hp: number; maxHp: number };
   gameStart: { leverage?: number; position?: 'LONG' | 'SHORT'; entryPrice?: number };
-  difficultyUpdated: Record<string, unknown>;
+  difficultyUpdated: {
+    trendAlignment?: string;
+    lootboxDropChance?: number;
+    [key: string]: unknown;
+  };
   shockDetected: { intensity: number; direction: 'up' | 'down' };
   liquidationWarning: {
     level: 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';

@@ -19,6 +19,8 @@ import {
   DEFAULT_EARN_CONFIG,
 } from '../../types/lootbox';
 
+import { type TrendAlignment } from '../../types/runtimeDifficulty';
+
 /**
  * LootboxServiceClass - Internal implementation for managing rewards
  */
@@ -27,10 +29,21 @@ class LootboxServiceClass {
   private playerLootboxes: Map<string, PlayerLootbox[]> = new Map();
   private currentProfileId: string | null = null;
   private sessionFlags: Set<string> = new Set();
+  private currentTrendAlignment: TrendAlignment = 'neutral';
+  private currentLootboxDropChance: number = 0.03;
 
   constructor() {
     // Subscribe to game reset
     EventBus.subscribe('gameReset', () => this.handleGameReset());
+
+    EventBus.subscribe('difficultyUpdated', data => {
+      if (data?.trendAlignment) {
+        this.currentTrendAlignment = data.trendAlignment as TrendAlignment;
+      }
+      if (typeof data?.lootboxDropChance === 'number') {
+        this.currentLootboxDropChance = data.lootboxDropChance;
+      }
+    });
   }
 
   /**
@@ -339,6 +352,8 @@ class LootboxServiceClass {
 
   private handleGameReset(): void {
     this.sessionFlags.clear();
+    this.currentTrendAlignment = 'neutral';
+    this.currentLootboxDropChance = 0.03;
     Logger.debug('[LootboxService] Session flags cleared');
   }
 
@@ -349,6 +364,8 @@ class LootboxServiceClass {
     this.playerLootboxes.clear();
     this.sessionFlags.clear();
     this.currentProfileId = null;
+    this.currentTrendAlignment = 'neutral';
+    this.currentLootboxDropChance = 0.03;
   }
 
   /**
@@ -360,7 +377,30 @@ class LootboxServiceClass {
       totalLootboxes: this.getUnopenedLootboxes().length,
       counts: this.getUnopenedCounts(),
       sessionFlags: Array.from(this.sessionFlags),
+      trendAlignment: this.currentTrendAlignment,
+      lootboxDropChance: this.currentLootboxDropChance,
     };
+  }
+
+  /**
+   * Check for market-driven lootbox drop (called on enemy kill).
+   * Drop chance is influenced by MACD trend alignment.
+   * V1: Lootbox contents are gem-only.
+   */
+  public checkMarketDrivenDrop(): PlayerLootbox | null {
+    if (Math.random() > this.currentLootboxDropChance) {
+      return null;
+    }
+
+    // V1: Market-driven drops are always mining crates (gem-focused)
+    return this.earnLootbox('mining_crate', 'wave_milestone');
+  }
+
+  /**
+   * Get current trend alignment for debugging
+   */
+  public getTrendAlignment(): TrendAlignment {
+    return this.currentTrendAlignment;
   }
 
   /**

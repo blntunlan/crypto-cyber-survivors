@@ -15,7 +15,7 @@ import { GameStatus, type Player } from '../types';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 
 // Fatal disconnect threshold - game ends if disconnected for this long
-const FATAL_DISCONNECT_THRESHOLD_MS = 10_000; // 10 seconds
+const FATAL_DISCONNECT_THRESHOLD_MS = 15_000; // 15 seconds (design spec)
 
 interface UseMarketTimeoutParams {
   /** Player reference */
@@ -50,7 +50,7 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
 
       const disconnectDuration = data.disconnectedDuration;
 
-      // FATAL DISCONNECT: 10+ seconds → End game
+      // FATAL DISCONNECT: 15+ seconds → End game
       if (disconnectDuration >= FATAL_DISCONNECT_THRESHOLD_MS) {
         if (!gameEndedByDisconnectRef.current) {
           gameEndedByDisconnectRef.current = true;

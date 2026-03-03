@@ -20,6 +20,8 @@ describe('UnifiedDirector', () => {
     volumeNorm: 0.5,
     priceChange: 0,
     trendStrength: 0.5,
+    macdHistogram: 0,
+    side: 'long',
     hpPercent: 1.0,
     pnlRatio: 0,
     killsPerMin: 0.5,

@@ -60,7 +60,7 @@ export const RESILIENCE_CONFIG = {
 
   // Staleness thresholds
   FRESH_THRESHOLD_MS: 2000, // Data is fresh within 2s
-  DEGRADED_THRESHOLD_MS: 10000, // Data is degraded after 10s
+  DEGRADED_THRESHOLD_MS: 15000, // Data is degraded after 15s (design spec)
   STALE_THRESHOLD_MS: 30000, // Data is stale after 30s
 
   // Interpolation settings

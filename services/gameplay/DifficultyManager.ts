@@ -198,6 +198,8 @@ class DifficultyManagerClass {
       gemPileup: activeGems / 200,
       engagementScore: 0.5,
       frustrationScore: 0.5,
+      macdHistogram: 0,
+      side: 'long',
     };
 
     UnifiedDirector.update(unifiedInputs, nowMs);

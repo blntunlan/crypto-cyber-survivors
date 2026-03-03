@@ -63,7 +63,7 @@ const HEARTBEAT_CONFIG = {
   /** Maximum acceptable data gap before fallback activation (ms) */
   DATA_GAP_THRESHOLD_MS: 5_000,
   /** Fatal disconnect threshold - end game if exceeded (ms) */
-  FATAL_DISCONNECT_MS: 10_000,
+  FATAL_DISCONNECT_MS: 15_000,
 } as const;
 
 /**

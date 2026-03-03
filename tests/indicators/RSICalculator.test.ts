@@ -98,23 +98,23 @@ describe('RSICalculator', () => {
   });
 
   describe('RSI State Detection', () => {
-    it('should detect OVERSOLD state when RSI < 30', () => {
-      // Strong downtrend to get RSI below 30 (need 15+ data points)
+    it('should detect OVERSOLD state when RSI < 20', () => {
+      // Strong downtrend to get RSI below 20 (need 15+ data points)
       const prices = [100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55];
       prices.forEach(p => calculator.update(p));
 
-      expect(calculator.getRSI()).toBeLessThan(30);
+      expect(calculator.getRSI()).toBeLessThan(20);
       expect(calculator.getState()).toBe('OVERSOLD');
     });
 
-    it('should detect OVERBOUGHT state when RSI > 70', () => {
-      // Strong uptrend to get RSI above 70 (need 15+ data points)
+    it('should detect OVERBOUGHT state when RSI > 80', () => {
+      // Strong uptrend to get RSI above 80 (need 15+ data points)
       const prices = [
         100, 103, 106, 109, 112, 115, 118, 121, 124, 127, 130, 133, 136, 139, 142, 145,
       ];
       prices.forEach(p => calculator.update(p));
 
-      expect(calculator.getRSI()).toBeGreaterThan(70);
+      expect(calculator.getRSI()).toBeGreaterThan(80);
       expect(calculator.getState()).toBe('OVERBOUGHT');
     });
 
@@ -126,14 +126,14 @@ describe('RSICalculator', () => {
       prices.forEach(p => calculator.update(p));
 
       const rsi = calculator.getRSI();
-      expect(rsi).toBeGreaterThanOrEqual(30);
-      expect(rsi).toBeLessThanOrEqual(70);
+      expect(rsi).toBeGreaterThanOrEqual(20);
+      expect(rsi).toBeLessThanOrEqual(80);
       expect(calculator.getState()).toBe('NEUTRAL');
     });
   });
 
   describe('Hysteresis (Flickering Prevention)', () => {
-    it('should stay OVERSOLD when RSI rises to 31 (below exit threshold of 35)', () => {
+    it('should stay OVERSOLD when RSI rises slightly (below exit threshold of 25)', () => {
       // First, get into OVERSOLD state (need 15+ data points)
       const downPrices = [
         100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55,
@@ -141,7 +141,7 @@ describe('RSICalculator', () => {
       downPrices.forEach(p => calculator.update(p));
       expect(calculator.getState()).toBe('OVERSOLD');
 
-      // Now add a small recovery that brings RSI to ~31 (still below 35 exit)
+      // Now add a small recovery that keeps RSI below 25 exit threshold
       calculator.update(56);
       calculator.update(57);
 
@@ -149,7 +149,7 @@ describe('RSICalculator', () => {
       expect(calculator.getState()).toBe('OVERSOLD');
     });
 
-    it('should exit OVERSOLD when RSI rises above 35 (exit threshold)', () => {
+    it('should exit OVERSOLD when RSI rises above 25 (exit threshold)', () => {
       // First, get into OVERSOLD state with strong downtrend (need 15+ data points)
       const downPrices = [
         100, 97, 94, 91, 88, 85, 82, 79, 76, 73, 70, 67, 64, 61, 58, 55,
@@ -157,7 +157,7 @@ describe('RSICalculator', () => {
       downPrices.forEach(p => calculator.update(p));
       expect(calculator.getState()).toBe('OVERSOLD');
 
-      // Moderate recovery - bigger gains to push RSI above 35
+      // Moderate recovery - bigger gains to push RSI above 25
       for (let i = 0; i < 10; i++) {
         calculator.update(55 + i * 3);
       }
@@ -168,12 +168,12 @@ describe('RSICalculator', () => {
       const state = calculator.getState();
 
       // RSI should have recovered somewhat
-      expect(rsi).toBeGreaterThan(30);
+      expect(rsi).toBeGreaterThan(20);
       // State could be NEUTRAL or still transitioning
       expect(['NEUTRAL', 'OVERBOUGHT', 'OVERSOLD']).toContain(state);
     });
 
-    it('should stay OVERBOUGHT when RSI drops to 66 (above exit threshold of 65)', () => {
+    it('should stay OVERBOUGHT when RSI drops slightly (above exit threshold of 75)', () => {
       // First, get into OVERBOUGHT state (need 15+ data points)
       const upPrices = [
         100, 103, 106, 109, 112, 115, 118, 121, 124, 127, 130, 133, 136, 139, 142, 145,

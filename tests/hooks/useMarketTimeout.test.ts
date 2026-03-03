@@ -32,7 +32,7 @@ describe('useMarketTimeout', () => {
     (EventBus.on as any).mockReturnValue(() => {});
   });
 
-  it('should transition to DATA_DISCONNECTED when disconnect is under 10 seconds', () => {
+  it('should transition to DATA_DISCONNECTED when disconnect is under 15 seconds', () => {
     vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
     renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
 
@@ -53,7 +53,7 @@ describe('useMarketTimeout', () => {
     );
   });
 
-  it('should transition to GAMEOVER when disconnect is 10+ seconds (fatal)', () => {
+  it('should transition to GAMEOVER when disconnect is 15+ seconds (fatal)', () => {
     vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
     renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
 

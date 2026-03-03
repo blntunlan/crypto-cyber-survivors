@@ -67,7 +67,7 @@ describe('MarketIndicatorService', () => {
      * Build RSI state by feeding appropriate price sequences
      */
     function buildOversoldState() {
-      // Strong downtrend to get RSI < 30
+      // Strong downtrend to get RSI < 20
       // Need at least 15 points for 14-period RSI
       for (let i = 0; i < 20; i++) {
         service.update(100 - i * 5, 1000, 'LONG' as MarketPosition);
@@ -75,7 +75,7 @@ describe('MarketIndicatorService', () => {
     }
 
     function buildOverboughtState() {
-      // Strong uptrend to get RSI > 70
+      // Strong uptrend to get RSI > 80
       for (let i = 0; i < 20; i++) {
         service.update(100 + i * 5, 1000, 'LONG' as MarketPosition);
       }

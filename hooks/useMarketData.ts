@@ -44,9 +44,11 @@ import { getMarketSyncQueue } from '../services/market/sync';
 // ATR_PERIOD is now managed by MarketCalculator
 
 // Market data timeout configuration
-// CRITICAL: 10 seconds = fatal disconnect (game ends)
-// Under 10 seconds = game continues with fallback data
-const MARKET_DATA_TIMEOUT_MS = 10_000; // 10 seconds without data = timeout
+// CRITICAL: 15 seconds = fatal disconnect (game ends)
+// Under 15 seconds = game continues with fallback data
+const MARKET_DATA_TIMEOUT_MS = 15_000; // 15 seconds without data = timeout (design spec)
+const MARKET_WARNING_MS = 10_000; // 10s: initial warning
+const MARKET_CRITICAL_MS = 13_000; // 13s: critical warning
 const TIMEOUT_CHECK_INTERVAL_MS = 1_000; // Check every 1 second for responsive detection
 const RUNTIME_TELEMETRY_LOG_INTERVAL_MS = 5_000;
 const MAX_RUNTIME_PENDING_TICKS = 256;
@@ -214,6 +216,29 @@ export const useMarketData = (
 
       const timeSinceLastPrice = Date.now() - lastPriceTimeRef.current;
 
+      // Critical warning at 13s
+      if (
+        timeSinceLastPrice > MARKET_CRITICAL_MS &&
+        timeSinceLastPrice <= MARKET_DATA_TIMEOUT_MS
+      ) {
+        EventBus.emit('marketTimeoutWarning', {
+          level: 'critical',
+          remainingMs: MARKET_DATA_TIMEOUT_MS - timeSinceLastPrice,
+          disconnectedDuration: timeSinceLastPrice,
+        });
+      }
+      // Initial warning at 10s
+      else if (
+        timeSinceLastPrice > MARKET_WARNING_MS &&
+        timeSinceLastPrice <= MARKET_CRITICAL_MS
+      ) {
+        EventBus.emit('marketTimeoutWarning', {
+          level: 'warning',
+          remainingMs: MARKET_DATA_TIMEOUT_MS - timeSinceLastPrice,
+          disconnectedDuration: timeSinceLastPrice,
+        });
+      }
+
       if (timeSinceLastPrice > MARKET_DATA_TIMEOUT_MS && !timeoutTriggeredRef.current) {
         timeoutTriggeredRef.current = true;
 
@@ -226,6 +251,7 @@ export const useMarketData = (
           lastPriceTime: lastPriceTimeRef.current,
           disconnectedDuration: timeSinceLastPrice,
           pair: pairRef.current,
+          reason: 'market_timeout',
         });
       }
     };

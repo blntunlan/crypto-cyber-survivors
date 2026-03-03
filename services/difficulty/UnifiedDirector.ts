@@ -8,6 +8,8 @@ export interface UnifiedInputs {
   volumeNorm: number; // 0.0 to 1.0
   priceChange: number;
   trendStrength: number;
+  macdHistogram: number;
+  side: 'long' | 'short';
 
   // Player State
   hpPercent: number; // 0.0 to 1.0
@@ -38,6 +40,8 @@ export interface UnifiedOutputs {
   pressureIntensity: number;
   whaleProbability: number;
   xpMultiplier: number;
+  trendAlignment: 'with_player' | 'against_player' | 'neutral';
+  lootboxDropChance: number;
 }
 
 /**
@@ -61,12 +65,15 @@ class RuleBasedDirector {
     // Volume drives swarm size
     const volumeBoost = inputs.volumeNorm * 1.5;
 
-    // Volatility (ATR) drives chaos and speed
-    const volatilityBoost = inputs.atrPercent * 10; // assuming atr is ~0.01-0.10
+    // ATR-based speed: normalize atrPercent to 0..1 then lerp to 0.90..1.35
+    const atrNorm = clamp((inputs.atrPercent - 0.002) / (0.03 - 0.002), 0, 1);
+    const atrSpeedMult = 0.9 + atrNorm * (1.35 - 0.9);
 
-    // Profit bonus (Profiting player = easier game)
-    // Only applies if they are in profit. Reduces intensity up to 50%
-    const profitBonus = inputs.pnlRatio > 0 ? clamp(inputs.pnlRatio * 0.5, 0, 0.5) : 0;
+    // PnL-driven speed (design spec formulas)
+    const pnlSpeedMult =
+      inputs.pnlRatio < 0
+        ? 1 + clamp(-inputs.pnlRatio, 0, 0.6) * 0.55
+        : 1 - clamp(inputs.pnlRatio, 0, 0.4) * 0.15;
 
     // Time scaling
     const timePressure = inputs.elapsedMinutes * 0.3;
@@ -76,12 +83,12 @@ class RuleBasedDirector {
 
     // 3. Execution (The Rules)
     const spawnRate = clamp(
-      1.0 + timePressure + volumeBoost + leverageBoost - mercy - profitBonus,
+      1.0 + timePressure + volumeBoost + leverageBoost - mercy,
       0.5,
       5.0
     );
     const enemySpeed = clamp(
-      1.0 + volatilityBoost + leverageBoost - mercy * 0.4 - profitBonus * 0.4,
+      atrSpeedMult * pnlSpeedMult + leverageBoost - mercy * 0.4,
       0.5,
       3.0
     );
@@ -109,7 +116,6 @@ class RuleBasedDirector {
     ); // Max 10%
 
     // Rewards (Gem drops and XP)
-    // We reward them more if they are flowing fast (killsPerMin) OR if mercy is triggered to help them recover
     const gemDropRate = clamp(1.0 + inputs.killsPerMin * 0.5 + mercy * 2.0, 1.0, 5.0);
     const xpMultiplier = clamp(
       1.0 + inputs.leverage * 2.0 + inputs.killsPerMin,
@@ -118,10 +124,25 @@ class RuleBasedDirector {
     );
 
     // Variety and Chaos
-    const chaosLevel = clamp(volatilityBoost + Math.abs(inputs.priceChange), 0, 1);
+    const chaosLevel = clamp(atrNorm + Math.abs(inputs.priceChange), 0, 1);
     const enemyVariety = clamp(1.0 + timePressure, 1.0, 2.0);
 
     const pressureIntensity = clamp(timePressure + volumeBoost, 0, 1);
+
+    // MACD trend alignment
+    const trendAlignment = this.computeTrendAlignment(
+      inputs.macdHistogram,
+      inputs.side
+    );
+
+    // Lootbox drop chance (base 0.03, boosted by trend alignment)
+    const baseLootboxChance = 0.03;
+    const lootboxDropChance =
+      trendAlignment === 'with_player'
+        ? clamp(baseLootboxChance * 1.5, 0, 0.1)
+        : trendAlignment === 'against_player'
+          ? clamp(baseLootboxChance * 0.8, 0, 0.1)
+          : baseLootboxChance;
 
     this.outputs = {
       spawnRate,
@@ -135,9 +156,24 @@ class RuleBasedDirector {
       pressureIntensity,
       whaleProbability,
       xpMultiplier,
+      trendAlignment,
+      lootboxDropChance,
     };
 
     this.applySmoothing();
+  }
+
+  private computeTrendAlignment(
+    macdHistogram: number,
+    side: 'long' | 'short'
+  ): 'with_player' | 'against_player' | 'neutral' {
+    if (macdHistogram === 0 || !Number.isFinite(macdHistogram)) {
+      return 'neutral';
+    }
+    if (side === 'long') {
+      return macdHistogram > 0 ? 'with_player' : 'against_player';
+    }
+    return macdHistogram < 0 ? 'with_player' : 'against_player';
   }
 
   /**
@@ -153,9 +189,15 @@ class RuleBasedDirector {
 
     const keys = Object.keys(this.outputs) as Array<keyof UnifiedOutputs>;
     for (const key of keys) {
-      this.smoothedOutputs[key] =
-        this.smoothedOutputs[key] +
-        (this.outputs[key] - this.smoothedOutputs[key]) * LERP_SPEED;
+      const val = this.outputs[key];
+      if (typeof val === 'number') {
+        (this.smoothedOutputs as Record<string, unknown>)[key] =
+          (this.smoothedOutputs[key] as number) +
+          (val - (this.smoothedOutputs[key] as number)) * LERP_SPEED;
+      } else {
+        // Non-numeric fields (trendAlignment) - copy directly
+        (this.smoothedOutputs as Record<string, unknown>)[key] = val;
+      }
     }
   }
 
@@ -181,6 +223,8 @@ class RuleBasedDirector {
       pressureIntensity: 0,
       whaleProbability: 0,
       xpMultiplier: 1.0,
+      trendAlignment: 'neutral',
+      lootboxDropChance: 0.03,
     };
   }
 }

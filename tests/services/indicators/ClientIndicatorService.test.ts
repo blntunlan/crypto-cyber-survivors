@@ -108,8 +108,8 @@ describe('ClientIndicatorService', () => {
   describe('Configuration', () => {
     it('should have correct RSI config values', () => {
       expect(CLIENT_INDICATOR_CONFIG.RSI_PERIOD).toBe(14);
-      expect(CLIENT_INDICATOR_CONFIG.RSI_OVERSOLD).toBe(30);
-      expect(CLIENT_INDICATOR_CONFIG.RSI_OVERBOUGHT).toBe(70);
+      expect(CLIENT_INDICATOR_CONFIG.RSI_OVERSOLD).toBe(20);
+      expect(CLIENT_INDICATOR_CONFIG.RSI_OVERBOUGHT).toBe(80);
     });
 
     it('should have correct ATR config values', () => {

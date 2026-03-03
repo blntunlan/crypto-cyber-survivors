@@ -77,7 +77,7 @@ describe('MarketCalculator', () => {
       });
 
       expect(result.rawPnl).toBe(0.1);
-      expect(result.effectivePnl).toBe(10.0); // 0.1 * 100 (full leverage)
+      expect(result.effectivePnl).toBe(1.0); // 0.1 * 100 = 10.0, clamped to [-1, 1]
       expect(result.difficultyPnl).toBe(0.2); // 0.1 * 2 (capped)
     });
 

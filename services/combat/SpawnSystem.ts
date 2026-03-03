@@ -36,6 +36,9 @@ export class SpawnSystem implements ISpawnSystem {
   private activeEvents: Map<GameMarketEvent, { intensity: number; expiry: number }> =
     new Map();
   private previousRSIState: RSIState = 'NEUTRAL';
+  private rsiSpawnCooldownTimer: number = 0;
+  private static readonly RSI_SPAWN_COOLDOWN_MS = 4000; // 4s cooldown per design spec
+  private static readonly MAX_ACTIVE_WHALES = 3;
 
   private pendingGatekeeperSpawn: { x: number; y: number; count: number } | null = null;
 
@@ -88,6 +91,7 @@ export class SpawnSystem implements ISpawnSystem {
 
     this.spawnTimer += deltaTime;
     this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
+    this.rsiSpawnCooldownTimer = Math.max(0, this.rsiSpawnCooldownTimer - deltaTime);
 
     // No direct AI Logic here - central logic is in DifficultyManager
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
@@ -210,10 +214,14 @@ export class SpawnSystem implements ISpawnSystem {
       eventBoost *
       (deltaTime / frameTargetMs);
 
+    // Count active whales
+    const activeWhales = pool.activeEnemies.filter(e => e.type === 'whale').length;
+
     if (
       this.whaleCooldownTimer <= 0 &&
       Math.random() < probPerFrame &&
-      pool.activeEnemies.length < maxEnemies
+      pool.activeEnemies.length < maxEnemies &&
+      activeWhales < SpawnSystem.MAX_ACTIVE_WHALES
     ) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
       pool.getWhaleEnemy(
@@ -249,14 +257,18 @@ export class SpawnSystem implements ISpawnSystem {
     if (this.activeEvents.has('FLASH_CRASH')) {
       enemyType = roll < 0.7 ? 'liquidator' : 'fud';
     } else if (
-      rsiState === 'OVERSOLD' ||
+      (rsiState === 'OVERSOLD' && this.rsiSpawnCooldownTimer <= 0) ||
       (position === MarketPosition.LONG && pnl < 0)
     ) {
+      if (rsiState === 'OVERSOLD')
+        this.rsiSpawnCooldownTimer = SpawnSystem.RSI_SPAWN_COOLDOWN_MS;
       enemyType = roll < 0.6 ? 'bear' : roll < 0.8 ? 'fud' : 'liquidator';
     } else if (
-      rsiState === 'OVERBOUGHT' ||
+      (rsiState === 'OVERBOUGHT' && this.rsiSpawnCooldownTimer <= 0) ||
       (position === MarketPosition.SHORT && pnl < 0)
     ) {
+      if (rsiState === 'OVERBOUGHT')
+        this.rsiSpawnCooldownTimer = SpawnSystem.RSI_SPAWN_COOLDOWN_MS;
       enemyType = roll < 0.6 ? 'bull' : roll < 0.8 ? 'pumpdump' : 'rsi';
     } else {
       enemyType =
@@ -356,6 +368,7 @@ export class SpawnSystem implements ISpawnSystem {
     this.activeEvents.clear();
     this.pendingGatekeeperSpawn = null;
     this.previousRSIState = 'NEUTRAL';
+    this.rsiSpawnCooldownTimer = 0;
   }
 
   getDebugState(currentActiveEnemies: number = 0): SpawnDebugState {

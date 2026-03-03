@@ -15,8 +15,8 @@ import { type MarketPosition } from '../types';
  * RSI state with hysteresis zones to prevent flickering
  *
  * Thresholds:
- * - OVERSOLD: Entry < 30, Exit > 35
- * - OVERBOUGHT: Entry > 70, Exit < 65
+ * - OVERSOLD: Entry < 20, Exit > 25
+ * - OVERBOUGHT: Entry > 80, Exit < 75
  */
 export type RSIState = 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
 
@@ -42,10 +42,10 @@ export interface RSIConfig {
  */
 export const DEFAULT_RSI_CONFIG: RSIConfig = {
   period: 14,
-  oversoldEnter: 30,
-  oversoldExit: 35,
-  overboughtEnter: 70,
-  overboughtExit: 65,
+  oversoldEnter: 20,
+  oversoldExit: 25,
+  overboughtEnter: 80,
+  overboughtExit: 75,
 };
 
 /**

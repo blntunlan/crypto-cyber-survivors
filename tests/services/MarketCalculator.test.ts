@@ -81,9 +81,9 @@ describe('MarketCalculator', () => {
       const result = MarketCalculator.calculatePnL(input);
 
       // CAP is 2.0. So difficulty should be calculated with 2x leverage.
-      // Raw 0.1. Effective 10.0. Difficulty (0.1 * 2.0) = 0.2
+      // Raw 0.1. Effective clamped to 1.0. Difficulty (0.1 * 2.0) = 0.2
       expect(result.difficultyPnl).toBeCloseTo(0.2);
-      expect(result.effectivePnl).toBeCloseTo(10.0);
+      expect(result.effectivePnl).toBeCloseTo(1.0);
     });
   });
 

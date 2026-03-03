@@ -78,7 +78,7 @@ export class MarketCalculator {
     }
 
     // Calculate effective PnL with full leverage
-    const effectivePnl = rawPnl * leverage;
+    const effectivePnl = Math.max(-1, Math.min(1, rawPnl * leverage));
 
     // Calculate difficulty PnL with capped leverage (prevents extreme difficulty spikes)
     const difficultyLeverage = Math.min(leverage, this.DIFFICULTY_LEVERAGE_CAP);
