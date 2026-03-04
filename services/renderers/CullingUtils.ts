@@ -17,6 +17,22 @@ export interface ViewportBounds {
 }
 
 /**
+ * Updates an existing viewport bounds object in-place to avoid GC overhead
+ */
+export function updateViewportBounds(
+  bounds: ViewportBounds,
+  width: number,
+  height: number,
+  padding: number = 50
+): ViewportBounds {
+  bounds.left = -padding;
+  bounds.right = width + padding;
+  bounds.top = -padding;
+  bounds.bottom = height + padding;
+  return bounds;
+}
+
+/**
  * Create viewport bounds with optional padding for offscreen margin
  * Objects within the padding area are still rendered to prevent pop-in
  */
