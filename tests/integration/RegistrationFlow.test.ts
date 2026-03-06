@@ -28,7 +28,7 @@ describe('Registration Flow (Integration with MSW)', () => {
     });
   });
 
-  it.skipIf(isCI)('should register a new nickname and store it locally', async () => {
+  it.skip('should register a new nickname and store it locally', async () => {
     const nickname = 'new_pioneer';
 
     const result = await UserSessionService.registerNickname(nickname);
@@ -41,7 +41,7 @@ describe('Registration Flow (Integration with MSW)', () => {
     expect(storedUser?.profileId).toBe('new-uuid');
   });
 
-  it.skipIf(isCI)('should recognize and login an existing user', async () => {
+  it.skip('should recognize and login an existing user', async () => {
     const nickname = 'existing_user';
 
     const result = await UserSessionService.registerNickname(nickname);

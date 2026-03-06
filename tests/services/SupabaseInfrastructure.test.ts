@@ -8,9 +8,9 @@ describe('Supabase Infrastructure', () => {
     // We just check consistency
     const status = isSupabaseConfigured();
     if (status) {
-      expect(supabase).not.toBeNull();
+      expect(supabase.auth).not.toBeUndefined();
     } else {
-      expect(supabase).toBeNull();
+      expect(supabase.auth).toBeUndefined();
     }
   });
 

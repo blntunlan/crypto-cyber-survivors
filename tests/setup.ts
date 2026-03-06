@@ -165,6 +165,16 @@ if (typeof Response !== 'undefined' && !Response.prototype.clone) {
 }
 
 // Mock requestAnimationFrame
+if (typeof global !== 'undefined') {
+  global.requestAnimationFrame = (callback: FrameRequestCallback) => {
+    return setTimeout(() => callback(performance.now()), 16) as unknown as number;
+  };
+
+  global.cancelAnimationFrame = (id: number) => {
+    clearTimeout(id);
+  };
+}
+
 vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
   return setTimeout(() => callback(performance.now()), 16);
 });
