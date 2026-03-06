@@ -18,6 +18,12 @@ describe('Supabase Client Configuration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://mock-url');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('should initialize with correct PWA persistence settings', async () => {

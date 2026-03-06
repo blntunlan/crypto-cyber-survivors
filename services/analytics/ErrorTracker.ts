@@ -545,6 +545,13 @@ export class ErrorTracker {
     }
 
     try {
+      // In test environment, skip actual database insertion to prevent fetch errors
+      // from hanging vitest-worker instances when rpc connections are closed
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+        Logger.debug('[ErrorTracker] Skipped sending error to Supabase in test env');
+        return;
+      }
+
       const { error } = await supabase.from('error_reports').insert({
         profile_id: ErrorTracker.isUUID(report.profileId) ? report.profileId : null,
         session_id: ErrorTracker.isUUID(report.sessionId) ? report.sessionId : null,
