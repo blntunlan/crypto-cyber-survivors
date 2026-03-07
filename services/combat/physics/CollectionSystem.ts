@@ -68,14 +68,19 @@ export class CollectionSystem implements ICollectionSystem {
     dtFactor: number,
     effectiveMagnet: number
   ): void {
-    pool.activeGems.forEach(gem => {
+    // ⚡ Bolt: Replaced Array.prototype.forEach with standard for-loop
+    // 💡 What: Used standard loop with length caching instead of closure
+    // 🎯 Why: Prevents creating closure function allocations per iteration in 60fps hot loop
+    // 📊 Impact: Significantly reduces Garbage Collection (GC) pressure and stalls
+    for (let i = 0, len = pool.activeGems.length; i < len; i++) {
+      const gem = pool.activeGems[i]!;
       // 1. Lifetime check - gems despawn if not collected
       gem.elapsedLifetime ??= 0;
       gem.elapsedLifetime += dtFactor * GAME_ENGINE.MS_PER_FRAME;
 
       if (gem.elapsedLifetime >= ECONOMY_CONFIG.GEMS.LIFETIME_MS) {
         gem.active = false;
-        return;
+        continue;
       }
 
       const dx = player.x - gem.x;
@@ -85,7 +90,7 @@ export class CollectionSystem implements ICollectionSystem {
       const pickupDist = player.radius + gem.radius;
       if (distSq < pickupDist * pickupDist) {
         this.collectGem(pool, player, gem, state);
-        return;
+        continue;
       }
 
       if (gem.magnetized) {
@@ -94,7 +99,7 @@ export class CollectionSystem implements ICollectionSystem {
 
         const dist = Math.sqrt(distSq);
         if (dist < 0.001) {
-          return;
+          continue;
         }
         const tx = (dx / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
         const ty = (dy / dist) * GAME_ENGINE.GEM_MAX_PULL_SPEED;
@@ -118,7 +123,7 @@ export class CollectionSystem implements ICollectionSystem {
           gem.vy = Math.sin(popAngle) * popSpeed;
         }
       }
-    });
+    }
   }
 
   /**
