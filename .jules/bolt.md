@@ -1,0 +1,3 @@
+## 2024-03-08 - Array.prototype.forEach vs standard loops in hot paths
+**Learning:** In high-frequency loop paths (e.g., 60 FPS update loops in physics systems like `MovementSystem.ts` and `CollectionSystem.ts`), using `Array.prototype.forEach` creates closure function allocations that cause significant GC (Garbage Collection) pressure. Specialized zero-allocation iterators like `SpatialGrid.forEachNearby` are exceptions.
+**Action:** Replace `Array.prototype.forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in hot paths. Ensure `return` statements within the `forEach` callback are accurately translated to `continue` to properly preserve the flow logic.
