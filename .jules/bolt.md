@@ -1,0 +1,3 @@
+## 2024-05-18 - [Optimization] Hot Loop Iteration
+**Learning:** In high-frequency loop paths (e.g., 60 FPS update loops in `MovementSystem.ts` and `CollectionSystem.ts`), replace `Array.prototype.forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops to avoid closure function allocations and GC pressure. When converting, ensure `return` statements within the `forEach` callback are translated to `continue` to properly preserve the flow logic. Specialized zero-allocation iterators like `SpatialGrid.forEachNearby` are exceptions.
+**Action:** Replace `forEach` with traditional `for` loops in hot code paths like game loops.
