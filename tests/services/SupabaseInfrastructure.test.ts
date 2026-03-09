@@ -10,7 +10,7 @@ describe('Supabase Infrastructure', () => {
     if (status) {
       expect(supabase).not.toBeNull();
     } else {
-      expect(supabase).toBeNull();
+      expect(supabase.auth).toBeUndefined();
     }
   });
 
