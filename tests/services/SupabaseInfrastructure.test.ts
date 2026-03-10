@@ -5,12 +5,13 @@ import { Logger } from '../../services/system/Logger';
 describe('Supabase Infrastructure', () => {
   it('should report configuration status correctly', () => {
     // If we are in a test environment with .env.test, this might be true or false
-    // We just check consistency
+    // We just check consistency. Note that `supabase` is a proxy object, so it's never null.
+    // Instead we check if the auth property is undefined to determine if it's unconfigured.
     const status = isSupabaseConfigured();
     if (status) {
-      expect(supabase).not.toBeNull();
+      expect(supabase.auth).toBeDefined();
     } else {
-      expect(supabase).toBeNull();
+      expect(supabase.auth).toBeUndefined();
     }
   });
 

@@ -426,7 +426,11 @@ export class ErrorTracker {
     window.addEventListener('online', this.boundOnlineHandler);
     window.addEventListener('offline', this.boundOfflineHandler);
 
-    // Intercept fetch
+    // Intercept fetch (skipped in most test files, but explicitly allowed if needed)
+    if (import.meta.env.MODE === 'test' && !window.__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__) {
+      return;
+    }
+
     const originalFetch = window.fetch;
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
