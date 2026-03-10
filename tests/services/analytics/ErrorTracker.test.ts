@@ -117,6 +117,8 @@ describe('ErrorTracker', () => {
 
   describe('network interception', () => {
     it('should capture failed fetch requests', async () => {
+      // Explicitly allow fetch interception for this test
+      window.__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__ = true;
       // Store original fetch
       const originalFetch = window.fetch;
 
@@ -152,6 +154,7 @@ describe('ErrorTracker', () => {
 
       // Restore original fetch
       window.fetch = originalFetch;
+      window.__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__ = false;
     });
   });
 
