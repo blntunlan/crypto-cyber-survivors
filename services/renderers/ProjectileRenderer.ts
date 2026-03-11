@@ -1,7 +1,7 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Bullet } from '../../types';
-import { createViewportBounds, isCircleVisible } from './CullingUtils';
+import { createViewportBounds, updateViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
@@ -19,6 +19,9 @@ import { gradientCache } from '../../utils/GradientCache';
 export class ProjectileRenderer implements IRenderer {
   private static instance: ProjectileRenderer | null = null;
 
+  // Reusable viewport bounds object for culling, updated each frame to avoid GC
+  private viewportBounds: ViewportBounds = createViewportBounds(0, 0, 0);
+
   public static getInstance(): ProjectileRenderer {
     return (ProjectileRenderer.instance ??= new ProjectileRenderer());
   }
@@ -35,7 +38,8 @@ export class ProjectileRenderer implements IRenderer {
     _player: Player,
     opts: RenderOptions
   ): void {
-    const bounds = createViewportBounds(
+    updateViewportBounds(
+      this.viewportBounds,
       opts.width,
       opts.height,
       GAME_ENGINE.BULLET_CULLING_PADDING
@@ -67,7 +71,7 @@ export class ProjectileRenderer implements IRenderer {
             b.x,
             b.y,
             b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
-            bounds
+            this.viewportBounds
           )
         ) {
           continue;
@@ -134,7 +138,7 @@ export class ProjectileRenderer implements IRenderer {
             b.x,
             b.y,
             b.radius * GAME_ENGINE.BULLET_CULLING_RADIUS_MULT,
-            bounds
+            this.viewportBounds
           )
         ) {
           continue;

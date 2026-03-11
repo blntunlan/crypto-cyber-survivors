@@ -3,6 +3,7 @@ import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import {
   createViewportBounds,
+  updateViewportBounds,
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
@@ -22,6 +23,9 @@ import { PriceMomentumEngine } from '../market/PriceMomentumEngine';
  * 4. Drawing dynamic speed lines to visualize player velocity/momentum.
  */
 export class EffectRenderer implements IRenderer {
+  // Reusable viewport bounds object for culling, updated each frame to avoid GC
+  private viewportBounds: ViewportBounds = createViewportBounds(0, 0, 0);
+
   /**
    * Primary render loop for cumulative visual effects.
    */
@@ -34,8 +38,9 @@ export class EffectRenderer implements IRenderer {
   ): void {
     const { width, height, graphics } = opts;
 
-    // Boundary Check: 30px padding sufficient for transient effects
-    const bounds = createViewportBounds(
+    // Boundary Check: 30px padding sufficient for transient effects, using in-place update
+    updateViewportBounds(
+      this.viewportBounds,
       width,
       height,
       GAME_ENGINE.EFFECT_CULLING_PADDING
@@ -46,12 +51,12 @@ export class EffectRenderer implements IRenderer {
 
     // 2. Particle Effects (Environmental detail)
     if (graphics.showParticles) {
-      this.drawParticles(ctx, pool, bounds);
+      this.drawParticles(ctx, pool, this.viewportBounds);
     }
 
     // 3. UI Overlays (Damage numbers)
     if (graphics.showDamageNumbers) {
-      this.drawFloatingTexts(ctx, pool, bounds);
+      this.drawFloatingTexts(ctx, pool, this.viewportBounds);
     }
 
     // 5. Momentum Feedback (Top layer)
