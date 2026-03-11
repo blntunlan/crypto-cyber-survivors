@@ -15,6 +15,11 @@ vi.mock('../../../services/core/Supabase', () => ({
 
 // 2. Import Vitest and Service
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+// Enable fetch interception for these specific tests
+// @ts-expect-error test flag injection
+window.__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__ = true;
+
 import { ErrorTracker } from '../../../services/analytics/ErrorTracker';
 
 // Mock Dependencies
