@@ -101,7 +101,9 @@ vi.mock('../../stores/useAuthStore', () => ({
 
 // Mock simple components to avoid canvas issues
 vi.mock('../../components/GameEngine', () => ({
+  __esModule: true,
   GameEngine: () => <div data-testid="game-engine">Game Engine Running</div>,
+  default: () => <div data-testid="game-engine">Game Engine Running</div>,
 }));
 
 vi.mock('../../components/GameUI', () => ({
@@ -123,6 +125,16 @@ vi.mock('../../services/gameplay/WalletService', () => ({
       getBalance: vi.fn().mockResolvedValue(100),
     })),
   },
+}));
+
+vi.mock('../../components/gameplay/LeverageEngine', () => ({
+  LeverageEngine: {
+    getMultipliers: vi.fn(() => ({ maxHpScale: 1.0 })),
+  },
+}));
+
+vi.mock('../../components/admin/AITrainerOverlay', () => ({
+  AITrainerOverlay: () => null,
 }));
 
 describe('Game Entry Flow', () => {

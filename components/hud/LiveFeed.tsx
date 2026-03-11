@@ -446,11 +446,18 @@ const MobileLiveFeed: React.FC<
         </div>
       </div>
 
-      {/* Row 3: Compact indicator pills - All in one row */}
+      {/* Row 3: Compact indicator pills - Scrollable row without pushing height */}
       <div
-        className="mt-1 flex flex-wrap items-center gap-1"
-        style={{ fontSize: rfs(isSmallDevice ? 9 : 10) }}
+        className="mt-1 flex flex-nowrap items-center gap-1 overflow-x-auto"
+        style={{
+          fontSize: rfs(isSmallDevice ? 9 : 10),
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          maxWidth: '100%',
+          paddingBottom: '2px', // Prevent cutoff
+        }}
       >
+        <style>{'.flex-nowrap::-webkit-scrollbar { display: none; }'}</style>
         {/* Entry pill */}
         <div className="whitespace-nowrap rounded bg-white/5 px-1.5 py-0.5 font-mono font-bold tabular-nums text-slate-300">
           {t('hud.entry_short')} $

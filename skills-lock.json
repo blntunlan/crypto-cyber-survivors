@@ -16,6 +16,11 @@
       "sourceType": "github",
       "computedHash": "99b9ff018804acdf0f1053d37dfbf1350606e0addd0c01b59d519aced7704208"
     },
+    "deployment-automation": {
+      "source": "supercent-io/skills-template",
+      "sourceType": "github",
+      "computedHash": "f2b783a4414ce85f591d544e27c470d2ce9e2642a34cd96de4e69edcbdd5ed9f"
+    },
     "game-development": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",

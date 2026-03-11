@@ -329,7 +329,13 @@ class CheatManagerClass {
    * @param enabled Set to false to disable all cheat shortcuts
    */
   public setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
+    const nextEnabled = import.meta.env.DEV && enabled;
+
+    if (!nextEnabled && this.initialized) {
+      this.destroy();
+    }
+
+    this.enabled = nextEnabled;
   }
 
   /**

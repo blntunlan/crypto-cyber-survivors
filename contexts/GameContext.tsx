@@ -11,10 +11,60 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 import { type Player, type MarketData, GameStatus, MarketPosition } from '../types';
 import { PLAYER_INITIAL_HP } from '../constants';
+
+const createInitialMarketData = (): MarketData => ({
+  price: 0,
+  volume: 0,
+  pnl: 0,
+  effectivePnl: 0,
+  leverage: 1,
+  rsi: 50,
+  difficulty: 1,
+  momentum: 0,
+});
+
+const createInitialPlayer = (): Player => ({
+  x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
+  y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
+  radius: 12,
+  color: '',
+  hp: PLAYER_INITIAL_HP,
+  maxHp: PLAYER_INITIAL_HP,
+  level: 1,
+  exp: 0,
+  nextLevelExp: 100,
+  speed: 5,
+  fireRate: 400,
+  critChance: 0.05,
+  critDamage: 2.0,
+  baseDamage: 25,
+  luck: 0,
+  area: 1.0,
+  projectiles: 1,
+  armor: 0,
+  regen: 0,
+  dodge: 0,
+  lifesteal: 0,
+  magnet: 0,
+  invulnerabilityTimer: 0,
+});
+
+const useRequiredContext = <T,>(
+  context: React.Context<T | null>,
+  hookName: string,
+  providerName: string
+): T => {
+  const ctx = useContext(context);
+  if (!ctx) {
+    throw new Error(`${hookName} must be used within ${providerName}`);
+  }
+  return ctx;
+};
 
 // =============================================================================
 // MARKET CONTEXT - Updates frequently (every price tick)
@@ -27,11 +77,8 @@ interface MarketContextType {
 
 const MarketContext = createContext<MarketContextType | null>(null);
 
-export const useMarket = () => {
-  const ctx = useContext(MarketContext);
-  if (!ctx) throw new Error('useMarket must be used within MarketProvider');
-  return ctx;
-};
+export const useMarket = (): MarketContextType =>
+  useRequiredContext(MarketContext, 'useMarket', 'MarketProvider');
 
 // =============================================================================
 // GAME STATE CONTEXT - Updates on game events
@@ -48,11 +95,8 @@ interface GameStateContextType {
 
 const GameStateContext = createContext<GameStateContextType | null>(null);
 
-export const useGameState = () => {
-  const ctx = useContext(GameStateContext);
-  if (!ctx) throw new Error('useGameState must be used within GameProvider');
-  return ctx;
-};
+export const useGameState = (): GameStateContextType =>
+  useRequiredContext(GameStateContext, 'useGameState', 'GameProvider');
 
 // =============================================================================
 // PLAYER CONTEXT - Updates on player changes
@@ -66,11 +110,8 @@ interface PlayerContextType {
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
 
-export const usePlayer = () => {
-  const ctx = useContext(PlayerContext);
-  if (!ctx) throw new Error('usePlayer must be used within PlayerProvider');
-  return ctx;
-};
+export const usePlayer = (): PlayerContextType =>
+  useRequiredContext(PlayerContext, 'usePlayer', 'PlayerProvider');
 
 // =============================================================================
 // COMBINED PROVIDER
@@ -82,16 +123,9 @@ interface GameProviderProps {
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   // Market State (high frequency updates)
-  const [marketData, setMarketData] = useState<MarketData>({
-    price: 0,
-    volume: 0,
-    pnl: 0,
-    effectivePnl: 0,
-    leverage: 1,
-    rsi: 50,
-    difficulty: 1,
-    momentum: 0,
-  });
+  const [marketData, setMarketData] = useState<MarketData>(() =>
+    createInitialMarketData()
+  );
 
   // Game State (event-based updates)
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.MENU);
@@ -99,56 +133,40 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [entryPrice, setEntryPrice] = useState<number>(0);
 
   // Player State
-  const playerRef = useRef<Player | null>({
-    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
-    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
-    radius: 12,
-    color: '',
-    hp: PLAYER_INITIAL_HP,
-    maxHp: PLAYER_INITIAL_HP,
-    level: 1,
-    exp: 0,
-    nextLevelExp: 100,
-    speed: 5,
-    fireRate: 400,
-    critChance: 0.05,
-    critDamage: 2.0,
-    baseDamage: 25,
-    luck: 0,
-    area: 1.0,
-    projectiles: 1,
-    armor: 0,
-    regen: 0,
-    dodge: 0,
-    lifesteal: 0,
-    magnet: 0,
-    invulnerabilityTimer: 0,
-  });
-
-  const [player, setPlayer] = useState<Player>(playerRef.current!);
+  const initialPlayer = useMemo(() => createInitialPlayer(), []);
+  const playerRef = useRef<Player | null>(initialPlayer);
+  const [player, setPlayer] = useState<Player>(initialPlayer);
 
   const updatePlayer = useCallback((updates: Partial<Player>) => {
-    if (playerRef.current) {
-      playerRef.current = { ...playerRef.current, ...updates };
-      setPlayer({ ...playerRef.current });
-    }
+    if (!playerRef.current) return;
+
+    playerRef.current = { ...playerRef.current, ...updates };
+    setPlayer({ ...playerRef.current });
   }, []);
 
+  const marketValue = useMemo(() => ({ marketData, setMarketData }), [marketData]);
+
+  const gameStateValue = useMemo(
+    () => ({
+      gameStatus,
+      setGameStatus,
+      position,
+      setPosition,
+      entryPrice,
+      setEntryPrice,
+    }),
+    [gameStatus, position, entryPrice]
+  );
+
+  const playerValue = useMemo(
+    () => ({ player, playerRef, updatePlayer }),
+    [player, updatePlayer]
+  );
+
   return (
-    <MarketContext.Provider value={{ marketData, setMarketData }}>
-      <GameStateContext.Provider
-        value={{
-          gameStatus,
-          setGameStatus,
-          position,
-          setPosition,
-          entryPrice,
-          setEntryPrice,
-        }}
-      >
-        <PlayerContext.Provider value={{ player, playerRef, updatePlayer }}>
-          {children}
-        </PlayerContext.Provider>
+    <MarketContext.Provider value={marketValue}>
+      <GameStateContext.Provider value={gameStateValue}>
+        <PlayerContext.Provider value={playerValue}>{children}</PlayerContext.Provider>
       </GameStateContext.Provider>
     </MarketContext.Provider>
   );

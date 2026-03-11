@@ -1,86 +1,138 @@
-import React, { useState, useEffect, type ReactNode } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { LanguageContext } from './LanguageContextDefinition';
 import { SUPPORTED_LANGUAGES, type Language } from './LanguageConstants';
 
-export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Helper to determine initial language
-  const getInitialLanguage = (): Language => {
-    // 1. Priority: User's saved preference
-    const saved = localStorage.getItem('game_lang') as Language | null;
+const LANGUAGE_STORAGE_KEY = 'game_lang';
+
+async function fetchLanguageTranslations(
+  language: Language
+): Promise<Record<string, unknown>> {
+  const response = await fetch(`/locales/${language}/common.json`);
+  if ('ok' in response && !response.ok) {
+    throw new Error(`Failed to load translations for ${language}`);
+  }
+  return (await response.json()) as Record<string, unknown>;
+}
+
+const getInitialLanguage = (): Language => {
+  try {
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
     if (saved && SUPPORTED_LANGUAGES.includes(saved)) {
       return saved;
     }
+  } catch {
+    // Ignore localStorage errors in non-browser or restricted environments.
+  }
 
-    // 2. Priority: Browser/Device language
-    try {
-      const browserLang = navigator.language.split('-')[0] as Language; // 'tr-TR' -> 'tr'
-      if (SUPPORTED_LANGUAGES.includes(browserLang)) {
-        return browserLang;
-      }
-    } catch {
-      // Ignore errors in non-browser envs
+  try {
+    const browserLang = navigator.language.split('-')[0] as Language;
+    if (SUPPORTED_LANGUAGES.includes(browserLang)) {
+      return browserLang;
     }
+  } catch {
+    // Ignore navigator access errors in non-browser envs.
+  }
 
-    // 3. Fallback
-    return 'en';
-  };
+  return 'en';
+};
 
-  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+const resolveTranslationValue = (
+  translations: Record<string, unknown>,
+  key: string
+): unknown => {
+  const keys = key.split('.');
+  let value: unknown = translations;
+
+  for (const segment of keys) {
+    if (value && typeof value === 'object' && segment in value) {
+      value = (value as Record<string, unknown>)[segment];
+    } else {
+      return null;
+    }
+  }
+
+  return value;
+};
+
+const applyTranslationParams = (
+  input: string,
+  params?: Record<string, string | number>
+): string => {
+  if (!params) return input;
+
+  let result = input;
+  Object.entries(params).forEach(([paramKey, paramValue]) => {
+    result = result.replace(`{{${paramKey}}}`, paramValue.toString());
+  });
+
+  return result;
+};
+
+export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [language, setLanguageState] = useState<Language>(() => getInitialLanguage());
   const [translations, setTranslations] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
+    let isCancelled = false;
+
     const loadTranslations = async () => {
       try {
-        const response = await fetch(`/locales/${language}/common.json`);
-        const data = await response.json();
-        setTranslations(data);
+        const data = await fetchLanguageTranslations(language);
+        if (!isCancelled) {
+          setTranslations(data);
+        }
       } catch (error) {
         console.error('Failed to load translations:', error);
       }
     };
+
     void loadTranslations();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [language]);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('game_lang', lang);
-  };
 
-  const t = (key: string, params?: Record<string, string | number>): string => {
-    const keys = key.split('.');
-    let value: unknown = translations;
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch {
+      // Ignore storage errors and continue with in-memory language state.
+    }
+  }, []);
 
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = (value as Record<string, unknown>)[k];
-      } else {
-        return key;
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>): string => {
+      const value = resolveTranslationValue(translations, key);
+      if (value == null) return key;
+
+      if (Array.isArray(value)) {
+        const stringItems = value
+          .filter((item): item is string => typeof item === 'string')
+          .map(item => applyTranslationParams(item, params));
+        return stringItems.join('\n');
       }
-    }
 
-    const applyParams = (input: string): string => {
-      if (!params) return input;
-      let result = input;
-      Object.entries(params).forEach(([k, v]) => {
-        result = result.replace(`{{${k}}}`, v.toString());
-      });
-      return result;
-    };
+      if (typeof value !== 'string') return key;
+      return applyTranslationParams(value, params);
+    },
+    [translations]
+  );
 
-    if (Array.isArray(value)) {
-      const stringItems = value
-        .filter((item): item is string => typeof item === 'string')
-        .map(item => applyParams(item));
-      return stringItems.join('\n');
-    }
-
-    if (typeof value !== 'string') return key;
-    return applyParams(value);
-  };
+  const contextValue = useMemo(
+    () => ({ language, setLanguage, t }),
+    [language, setLanguage, t]
+  );
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={contextValue}>{children}</LanguageContext.Provider>
   );
 };

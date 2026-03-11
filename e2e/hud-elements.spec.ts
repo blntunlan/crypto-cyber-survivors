@@ -97,7 +97,7 @@ test.describe('HUD Elements E2E', () => {
     // Emitting real events via EventBus is most reliable for the full flow
     await page.evaluate(() => {
       for (let i = 0; i < 6; i++) {
-        window.EventBus.emit('enemyKilled', {
+        window.EventBus!.emit('enemyKilled', {
           x: Math.random() * 800,
           y: Math.random() * 600,
           type: 'grunt',
@@ -113,7 +113,7 @@ test.describe('HUD Elements E2E', () => {
 
   test('should verify Milestone Announcements', async ({ page }) => {
     await page.evaluate(() => {
-      window.EventBus.emit('comboMilestone', {
+      window.EventBus!.emit('comboMilestone', {
         name: '100 HIT STREAK',
         kills: 100,
         multiplier: 3.0,
@@ -127,7 +127,7 @@ test.describe('HUD Elements E2E', () => {
 
   test('should verify Achievement Popups', async ({ page }) => {
     await page.evaluate(() => {
-      window.EventBus.emit('milestoneAchieved', {
+      window.EventBus!.emit('milestoneAchieved', {
         id: 'achievement_paper_hands',
         name: 'PAPER HANDS',
         icon: '🧻',
@@ -143,7 +143,7 @@ test.describe('HUD Elements E2E', () => {
 
   test('should verify Clutch Announcement (manual trigger check)', async ({ page }) => {
     await page.evaluate(() => {
-      window.EventBus.emit('milestoneAchieved', {
+      window.EventBus!.emit('milestoneAchieved', {
         id: 'clutch_manual',
         name: 'CLUTCH!',
         icon: '🔥',
@@ -158,7 +158,7 @@ test.describe('HUD Elements E2E', () => {
 
   test('should verify Volatility Shock feedback', async ({ page }) => {
     await page.evaluate(() => {
-      window.EventBus.emit('volatilityShock', {
+      window.EventBus!.emit('volatilityShock', {
         intensity: 1.2,
         direction: 'up',
         isHighLeverage: false,

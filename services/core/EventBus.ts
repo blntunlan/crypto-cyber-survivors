@@ -58,10 +58,6 @@ class EventBusClass {
   private listeners: Map<EventScope, Map<GameEvent, Set<EventCallback<any>>>> =
     new Map();
 
-  // Mapping for fast lookup during unsubscribe: Callback -> Scope (to avoid searching all scopes)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private callbackScopes: Map<EventCallback<any>, EventScope> = new Map();
-
   private static instance: EventBusClass | null = null;
 
   // Tracing support
@@ -171,15 +167,11 @@ class EventBusClass {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callbacks.add(onceWrapper as any);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.callbackScopes.set(onceWrapper as any, scope);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return () => this.unsubscribe(event, onceWrapper as any);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callbacks.add(callback as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.callbackScopes.set(callback as any, scope);
 
     return () => this.unsubscribe(event, callback);
   }
@@ -208,22 +200,16 @@ class EventBusClass {
    * Unsubscribe a specific callback
    */
   unsubscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): void {
-    const scope = this.callbackScopes.get(callback);
-    if (!scope) {
-      // Fallback: search all scopes if scope tracking failed
-      this.listeners.forEach(scopeMap => {
-        scopeMap.get(event)?.delete(callback as EventCallback<GameEvent>);
-      });
-      return;
-    }
+    this.listeners.forEach(scopeMap => {
+      const callbacks = scopeMap.get(event);
+      callbacks?.delete(callback as EventCallback<GameEvent>);
 
-    this.listeners
-      .get(scope)
-      ?.get(event)
-      ?.delete(callback as EventCallback<GameEvent>);
-    this.callbackScopes.delete(callback);
+      // Keep maps compact after removals
+      if (callbacks?.size === 0) {
+        scopeMap.delete(event);
+      }
+    });
   }
-
   /**
    * Get the number of listeners for a specific event
    */
@@ -241,30 +227,18 @@ class EventBusClass {
   clearScope(scope: EventScope): void {
     const scopeMap = this.listeners.get(scope);
     if (scopeMap) {
-      // Clean up callbackScopes mapping
-      scopeMap.forEach(set => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        set.forEach(cb => this.callbackScopes.delete(cb as any));
-      });
       scopeMap.clear();
       Logger.debug(`[EventBus] Scope '${scope}' cleared`);
     }
   }
-
   /**
    * Clear listeners for a specific event across all scopes
    */
   clearEvent(event: GameEvent): void {
     this.listeners.forEach(scopeMap => {
-      const set = scopeMap.get(event);
-      if (set) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        set.forEach(cb => this.callbackScopes.delete(cb as any));
-        scopeMap.delete(event);
-      }
+      scopeMap.delete(event);
     });
   }
-
   // ===========================================================================
   // EMISSION API
   // ===========================================================================
@@ -369,7 +343,6 @@ class EventBusClass {
 
   clear(): void {
     this.listeners.forEach(m => m.clear());
-    this.callbackScopes.clear();
     this.throttleMap.clear();
   }
 

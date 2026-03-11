@@ -149,6 +149,7 @@ export class CollectionSystem implements ICollectionSystem {
     this.ctx.audio.playGem();
 
     this.spawnCollectionParticles(pool, gem, perfConfig.particleMultiplier);
+    this.spawnLeverageJackpotParticles(pool, gem, perfConfig.particleMultiplier);
 
     EventBus.emit('gemCollected', {
       value: gem.value,
@@ -282,6 +283,39 @@ export class CollectionSystem implements ICollectionSystem {
       );
       part.life = collectCfg.life;
       part.radius = collectCfg.radius ?? GAME_ENGINE.GEM_PARTICLE_RADIUS;
+    }
+  }
+
+  /**
+   * Spawns leverage jackpot particles when a gem is actually collected.
+   * This keeps enemy death burst visuals deterministic across leverage levels.
+   */
+  private spawnLeverageJackpotParticles(
+    pool: IPoolManager,
+    gem: Gem,
+    particleMultiplier: number
+  ): void {
+    const leverage = LeverageEngine.getLeverage();
+    if (leverage < 25) {
+      return;
+    }
+
+    const count = Math.max(1, Math.round(Math.sqrt(leverage) * particleMultiplier));
+    const minSpeed = 4;
+    const maxSpeed = 10;
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = minSpeed + Math.random() * (maxSpeed - minSpeed);
+      const part = pool.getParticle(
+        gem.x,
+        gem.y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        i % 2 === 0 ? '#00FFFF' : '#FFD700'
+      );
+      part.life = GAME_ENGINE.BUFF_PARTICLE_LIFE;
+      part.radius = GAME_ENGINE.GEM_PARTICLE_RADIUS;
     }
   }
 

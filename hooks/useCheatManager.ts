@@ -28,12 +28,13 @@ export interface CheatHandlers {
 export function useCheatManager(
   gameStatus: GameStatus,
   handlers: CheatHandlers,
-  enabled = true
+  enabled = import.meta.env.DEV
 ): void {
   useEffect(() => {
-    CheatManager.setEnabled(enabled);
+    const isCheatEnabled = import.meta.env.DEV && enabled;
+    CheatManager.setEnabled(isCheatEnabled);
 
-    if (!enabled) {
+    if (!isCheatEnabled) {
       return;
     }
 

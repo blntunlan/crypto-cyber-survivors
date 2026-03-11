@@ -260,15 +260,17 @@ export class SpawnSystem implements ISpawnSystem {
       (rsiState === 'OVERSOLD' && this.rsiSpawnCooldownTimer <= 0) ||
       (position === MarketPosition.LONG && pnl < 0)
     ) {
-      if (rsiState === 'OVERSOLD')
+      if (rsiState === 'OVERSOLD') {
         this.rsiSpawnCooldownTimer = SpawnSystem.RSI_SPAWN_COOLDOWN_MS;
+      }
       enemyType = roll < 0.6 ? 'bear' : roll < 0.8 ? 'fud' : 'liquidator';
     } else if (
       (rsiState === 'OVERBOUGHT' && this.rsiSpawnCooldownTimer <= 0) ||
       (position === MarketPosition.SHORT && pnl < 0)
     ) {
-      if (rsiState === 'OVERBOUGHT')
+      if (rsiState === 'OVERBOUGHT') {
         this.rsiSpawnCooldownTimer = SpawnSystem.RSI_SPAWN_COOLDOWN_MS;
+      }
       enemyType = roll < 0.6 ? 'bull' : roll < 0.8 ? 'pumpdump' : 'rsi';
     } else {
       enemyType =

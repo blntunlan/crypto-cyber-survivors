@@ -230,7 +230,9 @@ vi.mock('../components/screens/NicknameEntryScreen', () => ({
 }));
 
 vi.mock('../components/GameEngine', () => ({
+  __esModule: true,
   GameEngine: () => <div>GameEngine</div>,
+  default: () => <div>GameEngine</div>,
 }));
 
 vi.mock('../components/GameUI', () => ({

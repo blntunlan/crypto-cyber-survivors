@@ -6,8 +6,6 @@
     "denoland.vscode-deno",
     "ms-playwright.playwright",
     "vitest.explorer",
-    "csstools.postcss",
-    "usernamehw.errorlens",
-    "wix.vscode-import-cost"
+    "EditorConfig.EditorConfig"
   ]
 }

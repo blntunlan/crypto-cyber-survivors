@@ -5,9 +5,36 @@
 import React, { useState, useEffect } from 'react';
 import { ParticleConfigService } from '../services/system/ParticleConfigService';
 
+interface SliderProps {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (v: number) => void;
+}
+
+const Slider: React.FC<SliderProps> = ({ label, min, max, step, value, onChange }) => (
+  <div className="mb-2 flex flex-col gap-1">
+    <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
+      <span className="text-slate-500">{label}</span>
+      <span className="text-amber-400">{value.toFixed(3)}</span>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={e => onChange(parseFloat(e.target.value))}
+      className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-slate-800 accent-amber-500"
+    />
+  </div>
+);
+
 export const ParticleDebugPanel: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const [config, setConfig] = useState(ParticleConfigService.current());
+  const [config, setConfig] = useState(() => ParticleConfigService.current());
 
   const shouldShow = import.meta.env.DEV;
 
@@ -51,38 +78,6 @@ export const ParticleDebugPanel: React.FC = () => {
       </button>
     );
   }
-
-  const Slider = ({
-    label,
-    min,
-    max,
-    step,
-    value,
-    onChange,
-  }: {
-    label: string;
-    min: number;
-    max: number;
-    step: number;
-    value: number;
-    onChange: (v: number) => void;
-  }) => (
-    <div className="mb-2 flex flex-col gap-1">
-      <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
-        <span className="text-slate-500">{label}</span>
-        <span className="text-amber-400">{value.toFixed(3)}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={e => onChange(parseFloat(e.target.value))}
-        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-slate-800 accent-amber-500"
-      />
-    </div>
-  );
 
   return (
     <div className="fixed bottom-20 right-4 z-[9999] w-72 rounded-sm border border-amber-500/40 bg-slate-900/90 p-4 shadow-[0_0_30px_rgba(245,158,11,0.15)] backdrop-blur-md">

@@ -253,25 +253,7 @@ export class CombatResolutionService {
       isRare
     );
 
-    // 3. Leverage "Jackpot" Visuals (High-stakes feedback)
-    if (leverage >= 25) {
-      const jackpotCount = Math.floor(Math.sqrt(leverage));
-      for (let i = 0; i < jackpotCount; i++) {
-        const vx = (Math.random() - 0.5) * 150;
-        const vy = (Math.random() - 0.5) * 150;
-        // Cyan/Gold high-speed particles for money feel
-        pool.getParticle(
-          enemy.x,
-          enemy.y,
-          vx,
-          vy,
-          i % 2 === 0 ? '#00FFFF' : '#FFD700',
-          true
-        );
-      }
-    }
-
-    // 4. Bonus Gem Logic (Luck Proc)
+    // 3. Bonus Gem Logic (Luck Proc)
     const bonusGemChance = Math.min(
       LUCK.MAX_BONUS_GEM_CHANCE,
       luck * LUCK.BONUS_GEM_CHANCE_PER_LUCK

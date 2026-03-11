@@ -385,6 +385,8 @@ export interface ClientIndicatorsUpdatedEvent {
   rsiState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
   /** ATR as percentage of price */
   atrPercent: number;
+  /** ATR-derived spawn rate multiplier (0.5x-2.0x) */
+  spawnRateMultiplier?: number;
   /** Normalized volume (0-1) */
   normalizedVolume: number;
   /** Price change % in last 60s */

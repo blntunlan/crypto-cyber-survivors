@@ -5,10 +5,12 @@ import { type IPoolManager } from '../../../services/interfaces/IPoolManager';
 import { type Player, type GameState, type Gem } from '../../../types';
 import { EventBus } from '../../../services/core/EventBus';
 import { BuffManager } from '../../../services/patterns/decorators/BuffManager';
+import { LeverageEngine } from '../../../services/gameplay/LeverageEngine';
 
 vi.mock('../../../services/gameplay/LeverageEngine', () => ({
   LeverageEngine: {
     getMultipliers: vi.fn(() => ({ gemValue: 1.0, xpGain: 1.0 })),
+    getLeverage: vi.fn(() => 5),
   },
 }));
 
@@ -26,6 +28,7 @@ describe('CollectionSystem', () => {
   let state: GameState;
 
   beforeEach(() => {
+    vi.mocked(LeverageEngine.getLeverage).mockReturnValue(5);
     mockContext = {
       stats: { getMagnet: vi.fn().mockReturnValue(0) },
       statCaps: { MAX_MAGNET: 500 },
@@ -64,6 +67,26 @@ describe('CollectionSystem', () => {
       expect(gem.active).toBe(false);
       expect(player.exp).toBe(10);
       expect(mockContext.audio.playGem).toHaveBeenCalled();
+    });
+
+    it('should keep base collection particles at low leverage', () => {
+      vi.mocked(LeverageEngine.getLeverage).mockReturnValue(10);
+      const gem: Gem = { x: 5, y: 5, radius: 5, value: 10, active: true } as any;
+      (mockPool as any).activeGems = [gem];
+
+      system.update(mockPool, player, state, 1);
+
+      expect(mockPool.getParticle).toHaveBeenCalledTimes(10);
+    });
+
+    it('should add jackpot particles on collection at high leverage', () => {
+      vi.mocked(LeverageEngine.getLeverage).mockReturnValue(100);
+      const gem: Gem = { x: 5, y: 5, radius: 5, value: 10, active: true } as any;
+      (mockPool as any).activeGems = [gem];
+
+      system.update(mockPool, player, state, 1);
+
+      expect(mockPool.getParticle.mock.calls.length).toBeGreaterThan(10);
     });
 
     it('should magnetize a gem when in magnet range', () => {

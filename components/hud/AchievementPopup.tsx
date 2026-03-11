@@ -31,7 +31,6 @@ const DesktopAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }>
           backgroundColor: 'rgba(15, 23, 42, 0.9)',
           borderColor: achievement.color,
           boxShadow: isRetro ? '6px 6px 0 #000' : `0 0 15px ${achievement.color}44`,
-          willChange: 'transform',
         }}
       >
         <div className="text-4xl">{achievement.icon}</div>
@@ -67,7 +66,7 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
       className="pointer-events-none absolute right-4 z-[140]"
       style={{
         animation: 'achievementSlideIn 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-        top: `calc(${rs(220)}px + env(safe-area-inset-top, 0px))`,
+        top: `calc(${rs(70)}px + env(safe-area-inset-top, 0px))`,
         width: rs(140),
       }}
     >
@@ -105,7 +104,7 @@ const MobileAchievement: React.FC<AchievementPopupProps & { isRetro: boolean }> 
 };
 
 export const AchievementPopup: React.FC<AchievementPopupProps> = memo(props => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
   const isRetro = useIsRetro();
 
   useEffect(() => {

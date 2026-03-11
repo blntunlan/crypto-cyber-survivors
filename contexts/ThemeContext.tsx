@@ -11,7 +11,13 @@
  *   import { useTheme } from './contexts/useTheme';
  */
 
-import React, { useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import { type ThemeName, type ThemeConfig } from '../types/theme';
 import { cyberpunkTheme, retro16bitTheme } from '../config/themes';
 import { ThemeContext, type ThemeContextType } from './themeContextDef';
@@ -68,7 +74,11 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
 
   // Apply theme to DOM and sync with ThemeService whenever it changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, themeName);
+    try {
+      localStorage.setItem(STORAGE_KEY, themeName);
+    } catch {
+      // Ignore persistence failures (private mode, storage disabled, etc.).
+    }
 
     // Trigger transition effect
     const root = document.documentElement;
@@ -98,14 +108,17 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     // setThemeName(prev => (prev === 'cyberpunk' ? 'retro-16bit' : 'cyberpunk'));
   }, []);
 
-  const value: ThemeContextType = {
-    theme,
-    themeName,
-    setTheme,
-    toggleTheme,
-    isRetro,
-    isTransitioning,
-  };
+  const value = useMemo<ThemeContextType>(
+    () => ({
+      theme,
+      themeName,
+      setTheme,
+      toggleTheme,
+      isRetro,
+      isTransitioning,
+    }),
+    [theme, themeName, setTheme, toggleTheme, isRetro, isTransitioning]
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

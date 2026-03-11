@@ -48,18 +48,25 @@ export const DIFFICULTY_CONFIG = {
 /**
  * Leverage Scaling Tiers
  * Maps player leverage to difficulty multipliers and XP requirements.
+ *
+ * DESIGN: Higher leverage = faster leveling (xpReq < 1.0 = less XP needed)
+ * but significantly more dangerous (damage, spawn rate, enemy speed all higher).
+ * This is the core "risk vs reward" mechanic.
+ *
+ * xpReq < 1.0 means LESS experience needed to level (faster progression)
+ * xpReq = 1.0 means normal experience requirement
  */
 export const LEVERAGE_TIERS: Record<
   number,
   { spawn: number; speed: number; hp: number; damage: number; xpReq: number }
 > = {
-  1: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 },
-  2: { spawn: 1.0, speed: 0.85, hp: 0.88, damage: 0.88, xpReq: 1.2 },
-  5: { spawn: 1.3, speed: 0.95, hp: 0.96, damage: 0.96, xpReq: 2.0 },
-  10: { spawn: 1.8, speed: 1.05, hp: 1.06, damage: 1.08, xpReq: 4.5 },
-  25: { spawn: 2.6, speed: 1.18, hp: 1.16, damage: 1.25, xpReq: 7.0 },
-  50: { spawn: 3.5, speed: 1.35, hp: 1.3, damage: 1.55, xpReq: 12.0 },
-  100: { spawn: 4.8, speed: 1.6, hp: 1.5, damage: 2.0, xpReq: 20.0 },
+  1: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 }, // Spot: Normal progression
+  2: { spawn: 1.0, speed: 0.85, hp: 0.88, damage: 0.95, xpReq: 0.96 }, // Safe: ~4% faster leveling
+  5: { spawn: 1.3, speed: 0.95, hp: 0.96, damage: 1.1, xpReq: 0.9 }, // Standard: ~10% faster
+  10: { spawn: 1.8, speed: 1.05, hp: 1.06, damage: 1.3, xpReq: 0.85 }, // Standard+: ~15% faster
+  25: { spawn: 2.6, speed: 1.18, hp: 1.16, damage: 1.6, xpReq: 0.78 }, // Risky: ~22% faster
+  50: { spawn: 3.5, speed: 1.35, hp: 1.3, damage: 2.0, xpReq: 0.7 }, // Degen: ~30% faster
+  100: { spawn: 4.8, speed: 1.6, hp: 1.5, damage: 2.5, xpReq: 0.6 }, // Max Degen: ~40% faster
 };
 
 // =============================================================================

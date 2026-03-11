@@ -3,6 +3,7 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import React from 'react';
 import { UserProvider } from '../../contexts/UserContext';
 import { useUser } from '../../contexts/useUser';
+import { nanoid } from 'nanoid';
 
 const { mockSupabase, mockIsSupabaseConfigured } = vi.hoisted(() => ({
   mockSupabase: {
@@ -124,6 +125,29 @@ describe('UserContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('profileId').textContent).toMatch(/^anon_/);
       });
+    });
+
+    it('should keep anon-ID stable across rerenders', async () => {
+      vi.mocked(nanoid)
+        .mockReturnValueOnce('first-anon-id')
+        .mockReturnValueOnce('second-anon-id');
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      const firstProfileId = screen.getByTestId('profileId').textContent;
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      const secondProfileId = screen.getByTestId('profileId').textContent;
+
+      expect(firstProfileId).toBe('anon_first-anon-id');
+      expect(secondProfileId).toBe(firstProfileId);
     });
 
     it('should load user from localStorage on mount', async () => {

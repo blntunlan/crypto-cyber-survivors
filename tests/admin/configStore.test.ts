@@ -180,6 +180,43 @@ describe('AdminConfigStore', () => {
       const { config } = useAdminConfigStore.getState();
       expect(config.spawn.maxEnemies).toBe(75);
     });
+
+    it('should merge partial enemy distribution updates', () => {
+      const { updateSpawn } = useAdminConfigStore.getState();
+
+      updateSpawn({ enemyDistribution: { fast: 40 } });
+
+      const { enemyDistribution } = useAdminConfigStore.getState().config.spawn;
+      expect(enemyDistribution.fast).toBe(40);
+      expect(enemyDistribution.normal).toBe(50);
+      expect(enemyDistribution.tank).toBe(15);
+      expect(enemyDistribution.ranged).toBe(10);
+    });
+  });
+
+  describe('updateItems', () => {
+    it('should merge partial gem values updates', () => {
+      const { updateItems } = useAdminConfigStore.getState();
+
+      updateItems({ gemValues: { large: 80 } });
+
+      const { gemValues } = useAdminConfigStore.getState().config.items;
+      expect(gemValues.large).toBe(80);
+      expect(gemValues.small).toBe(5);
+      expect(gemValues.medium).toBe(15);
+    });
+
+    it('should merge partial power-up duration updates', () => {
+      const { updateItems } = useAdminConfigStore.getState();
+
+      updateItems({ powerUpDurations: { shield: 9000 } });
+
+      const { powerUpDurations } = useAdminConfigStore.getState().config.items;
+      expect(powerUpDurations.shield).toBe(9000);
+      expect(powerUpDurations.speedBoost).toBe(3000);
+      expect(powerUpDurations.damage).toBe(10000);
+      expect(powerUpDurations.magnet).toBe(8000);
+    });
   });
 
   describe('History', () => {

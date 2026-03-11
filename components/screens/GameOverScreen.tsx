@@ -9,6 +9,8 @@ import { IconTrophy } from '../icons/CardIcons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { audio } from '../../services/audio';
 import { cn } from '../../utils/classnames';
+import { CoinService, type CoinCalculation } from '../../services/gameplay/CoinService';
+import { ComboSystem } from '../../services/combat/ComboSystem';
 
 interface GameOverScreenProps {
   level: number;
@@ -16,6 +18,8 @@ interface GameOverScreenProps {
   survivalTime: number;
   kills: number;
   onRestart: () => void;
+  /** Server-verified reward coins (from session submission) */
+  coinsEarned?: number;
 }
 
 export const GameOverScreen: React.FC<GameOverScreenProps> = ({
@@ -24,6 +28,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   survivalTime,
   kills,
   onRestart,
+  coinsEarned = 0,
 }) => {
   const sizes = useThemeSize();
   const isRetro = useIsRetro();
@@ -31,6 +36,8 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   const { progress, recordGameEnd } = useGameStore();
 
   const hasRecordedRef = React.useRef(false);
+  const [coinCalc, setCoinCalc] = React.useState<CoinCalculation | null>(null);
+  const [showBreakdown, setShowBreakdown] = React.useState(false);
 
   // Record this game to progress on mount
   React.useEffect(() => {
@@ -41,6 +48,16 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
       kills * 10 + survivalTime + (finalPnl > 0 ? finalPnl * 1000 : 0)
     );
     recordGameEnd(score, level, survivalTime, kills);
+
+    // Calculate coin breakdown for display
+    const calc = CoinService.calculateCycleReward({
+      survivalTimeSeconds: survivalTime,
+      kills,
+      level,
+      pnl: finalPnl,
+      maxStreak: ComboSystem.getMaxStreak(),
+    });
+    setCoinCalc(calc);
   }, [kills, level, survivalTime, finalPnl, recordGameEnd]);
 
   const formatTime = (seconds: number) => {
@@ -161,6 +178,79 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
             isRetro={isRetro}
           />
         </div>
+
+        {/* Coin Earnings Section */}
+        {coinCalc && (
+          <m.div
+            className={cn(
+              'mb-4 p-4',
+              isRetro
+                ? 'border-2 border-yellow-500/50 bg-zinc-900'
+                : 'rounded-lg border border-yellow-500/20 bg-yellow-500/5'
+            )}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <span
+                className={cn(
+                  sizes.small,
+                  'font-black uppercase tracking-widest',
+                  isRetro ? 'font-retro-text' : ''
+                )}
+                style={{ color: COLORS.JACKPOT_YELLOW }}
+              >
+                🪙{' '}
+                {t('common.game_over_screen.coins_earned', {
+                  defaultValue: 'Coins Earned',
+                })}
+              </span>
+              <button
+                onClick={() => setShowBreakdown(prev => !prev)}
+                className="text-xs text-slate-400 underline transition-colors hover:text-white"
+              >
+                {showBreakdown ? '▲' : '▼'}
+              </button>
+            </div>
+
+            {/* Total */}
+            <div
+              className={cn(
+                sizes.heading,
+                'font-black',
+                isRetro ? 'font-retro-pixel' : 'font-cyber'
+              )}
+              style={{ color: COLORS.JACKPOT_YELLOW }}
+            >
+              +{(coinsEarned > 0 ? coinsEarned : coinCalc.total).toLocaleString()}
+            </div>
+
+            {/* Breakdown */}
+            {showBreakdown && (
+              <m.div
+                className="mt-3 space-y-1.5 border-t border-white/10 pt-3"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+              >
+                {Object.entries(coinCalc.breakdown).map(([key, value]) => (
+                  <div key={key} className="flex justify-between text-xs">
+                    <span className="text-slate-400">{key}</span>
+                    <span
+                      className={cn(
+                        'font-bold',
+                        isRetro ? 'font-retro-text' : 'font-numbers'
+                      )}
+                      style={{ color: value > 0 ? COLORS.PUMP_GREEN : '#64748b' }}
+                    >
+                      +{value}
+                    </span>
+                  </div>
+                ))}
+              </m.div>
+            )}
+          </m.div>
+        )}
 
         {/* Career Stats */}
         <m.div

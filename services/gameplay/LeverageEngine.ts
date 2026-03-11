@@ -28,28 +28,38 @@ export const LEVERAGE_ENGINE_CONFIG = {
   NORM_BASE: 101, // log2(leverage+1) / log2(101)
 
   // --- Damage Taken (Fragility) Scaling ---
-  // Design spec target: 1x→1.0, 5x→1.12, 20x→1.35, 50x→1.75, 100x→2.30
+  // Design spec target: 1x→1.0, 5x→1.25, 25x→2.0, 50x→2.80, 100x→3.50
+  // High leverage = GLASS CANNON. Players melt if they get hit.
   /** Base damage amplification at max leverage (before volatility) */
-  DAMAGE_BASE_AMP: 1.3,
+  DAMAGE_BASE_AMP: 2.5,
   /** How much volatility amplifies damage on top of leverage */
-  VOLATILITY_DAMAGE_AMP: 0.15,
-  /** Max damage reduction when PnL is strongly positive (15%) */
-  POSITIVE_PNL_DAMAGE_SHIELD: 0.15,
+  VOLATILITY_DAMAGE_AMP: 0.2,
+  /** Max damage reduction when PnL is strongly positive (10%) */
+  POSITIVE_PNL_DAMAGE_SHIELD: 0.1,
 
   // --- XP / Level Speed Scaling ---
-  // Design spec target: 1x→1.0, 100x→2.20
+  // Design spec target: 1x→1.0, 10x→1.13, 25x→1.24, 50x→1.37, 100x→1.54
+  // Combined with xpReq tiers gives effective speed:
+  //   10x→1.33x, 25x→1.59x, 50x→1.95x, 100x→2.57x
+  // Moderate boost — the REWARD is xpReq reduction, this amplifies it slightly
   /** XP gain coefficient (sqrt-based for diminishing returns) */
-  XP_COEFFICIENT: 0.13,
+  XP_COEFFICIENT: 0.06,
+
+  // --- Max HP Scaling ---
+  // Design spec target: 1x→1.0, 10x→0.85, 25x→0.72, 50x→0.60, 100x→0.50
+  // Higher leverage = less starting/maximum health (FRAGILITY)
+  /** Max HP reduction per leverage norm unit */
+  MAX_HP_REDUCTION: 0.5,
 
   // --- Spawn Rate Scaling ---
   /** Base spawn rate amplification at max leverage */
-  SPAWN_BASE_AMP: 2.0,
+  SPAWN_BASE_AMP: 2.5,
   /** Extra spawn pressure when PnL is negative */
-  NEGATIVE_PNL_SPAWN_AMP: 1.15,
+  NEGATIVE_PNL_SPAWN_AMP: 1.25,
 
   // --- Enemy Speed Scaling ---
   /** Base enemy speed amplification at max leverage */
-  SPEED_BASE_AMP: 1.0,
+  SPEED_BASE_AMP: 1.2,
 
   // --- Enemy HP Scaling ---
   /** Base enemy HP amplification at max leverage */
@@ -57,26 +67,27 @@ export const LEVERAGE_ENGINE_CONFIG = {
 
   // --- Enemy Damage Scaling ---
   /** Base enemy damage amplification at max leverage */
-  ENEMY_DAMAGE_BASE_AMP: 1.2,
+  ENEMY_DAMAGE_BASE_AMP: 1.5,
 
   // --- Gem/Reward Scaling ---
-  // Design spec target: 1x→1.0, 100x→2.20
+  // Design spec target: 1x→1.0, 100x→2.50
   /** Gem value per leverage point (linear) */
-  GEM_PER_LEVERAGE: 0.012,
+  GEM_PER_LEVERAGE: 0.015,
 
   // --- Difficulty Ramp Speed ---
   /** How much faster difficulty escalates over time at high leverage */
-  RAMP_SPEED_COEFFICIENT: 0.3,
+  RAMP_SPEED_COEFFICIENT: 0.4,
 
-  // --- Hard Limits (Safety Rails, aligned with design spec) ---
-  MAX_DAMAGE_TAKEN: 2.3,
-  MAX_XP_GAIN: 2.5,
-  MAX_SPAWN_RATE: 4.0,
-  MAX_ENEMY_SPEED: 2.0,
+  // --- Hard Limits (Safety Rails) ---
+  MAX_DAMAGE_TAKEN: 3.5,
+  MAX_XP_GAIN: 1.8,
+  MAX_SPAWN_RATE: 5.0,
+  MAX_ENEMY_SPEED: 2.5,
   MAX_ENEMY_HP: 2.5,
-  MAX_ENEMY_DAMAGE: 2.5,
-  MAX_GEM_VALUE: 2.5,
-  MAX_RAMP_SPEED: 3.0,
+  MAX_ENEMY_DAMAGE: 3.0,
+  MAX_GEM_VALUE: 3.0,
+  MAX_RAMP_SPEED: 3.5,
+  MIN_MAX_HP_SCALE: 0.5,
 } as const;
 
 // =============================================================================
@@ -84,10 +95,12 @@ export const LEVERAGE_ENGINE_CONFIG = {
 // =============================================================================
 
 export interface LeverageMultipliers {
-  /** How much MORE damage the player receives (1.0 = normal) */
+  /** How much MORE damage the player receives (1.0 = normal, >1.0 = more fragile) */
   damageTaken: number;
-  /** How much FASTER the player gains XP/levels (1.0 = normal) */
+  /** How much FASTER the player gains XP/levels (1.0 = normal, >1.0 = faster) */
   xpGain: number;
+  /** Player max HP multiplier (1.0 = normal, <1.0 = less health = more fragile) */
+  maxHpScale: number;
   /** Enemy spawn rate multiplier (1.0 = normal) */
   spawnRate: number;
   /** Enemy movement speed multiplier (1.0 = normal) */
@@ -128,6 +141,7 @@ class LeverageEngineClass {
   private readonly output: LeverageMultipliers = {
     damageTaken: 1.0,
     xpGain: 1.0,
+    maxHpScale: 1.0,
     spawnRate: 1.0,
     enemySpeed: 1.0,
     enemyHP: 1.0,
@@ -188,30 +202,41 @@ class LeverageEngineClass {
     const norm = (Math.log2(L + 1) - 1) / (Math.log2(C.NORM_BASE) - 1);
 
     // --- DAMAGE TAKEN (Fragility) ---
-    // Base: 1.0 at 1x, up to 2.3 at 100x (design spec)
-    // Volatility amplifies moderately, positive PnL provides small shield
+    // 1x→1.0, 5x→1.35, 25x→2.10, 50x→2.80, 100x→3.50
+    // GLASS CANNON: High leverage players melt on contact.
+    // Volatility amplifies danger, positive PnL provides small shield.
     const baseDamage = 1.0 + norm * C.DAMAGE_BASE_AMP;
     const volAmp = 1.0 + V * C.VOLATILITY_DAMAGE_AMP * 100; // V is typically 0.001-0.05
     const pnlShield =
       pnl > 0 ? 1.0 - Math.min(pnl, 1) * C.POSITIVE_PNL_DAMAGE_SHIELD : 1.0;
-    const pnlPressure = pnl < 0 ? 1.0 + Math.abs(pnl) * 0.5 : 1.0;
+    const pnlPressure = pnl < 0 ? 1.0 + Math.abs(pnl) * 0.6 : 1.0;
 
     this.output.damageTaken = clamp(
-      baseDamage * Math.min(volAmp, 2.0) * pnlShield * pnlPressure,
+      baseDamage * Math.min(volAmp, 2.5) * pnlShield * pnlPressure,
       1.0,
       C.MAX_DAMAGE_TAKEN
     );
 
-    // --- XP GAIN ---
-    // sqrt(L) based for diminishing returns (design spec: 1x→1.0, 100x→2.17)
+    // --- XP GAIN (REWARD) ---
+    // 1x→1.0, 5x→1.07, 10x→1.13, 25x→1.24, 50x→1.37, 100x→1.54
+    // Moderate boost: combined with xpReq reduction, total speed is ~1.3x-2.6x
     this.output.xpGain = clamp(
       1.0 + (Math.sqrt(L) - 1) * C.XP_COEFFICIENT,
       1.0,
       C.MAX_XP_GAIN
     );
 
+    // --- MAX HP SCALE (Fragility) ---
+    // 1x→1.0, 10x→0.85, 25x→0.72, 50x→0.60, 100x→0.50
+    // High leverage characters literally have LESS health.
+    this.output.maxHpScale = clamp(
+      1.0 - norm * C.MAX_HP_REDUCTION,
+      C.MIN_MAX_HP_SCALE,
+      1.0
+    );
+
     // --- SPAWN RATE ---
-    // Linear with leverage norm, extra pressure when losing
+    // More enemies at high leverage, extra pain when losing
     const spawnPnlBoost =
       pnl < 0 ? 1.0 + Math.abs(pnl) * (C.NEGATIVE_PNL_SPAWN_AMP - 1) : 1.0;
     this.output.spawnRate = clamp(
@@ -241,7 +266,7 @@ class LeverageEngineClass {
     // --- GEM VALUE ---
     // Higher leverage = bigger rewards (risk/reward payoff)
     // Positive PnL boosts gems further (winning streak)
-    const pnlGemBoost = 1.0 + Math.max(0, pnl) * 0.5;
+    const pnlGemBoost = 1.0 + Math.max(0, pnl) * 0.6;
     this.output.gemValue = clamp(
       (1.0 + (L - 1) * C.GEM_PER_LEVERAGE) * pnlGemBoost,
       1.0,
@@ -288,6 +313,7 @@ class LeverageEngineClass {
 
     this.output.damageTaken = 1.0;
     this.output.xpGain = 1.0;
+    this.output.maxHpScale = 1.0;
     this.output.spawnRate = 1.0;
     this.output.enemySpeed = 1.0;
     this.output.enemyHP = 1.0;

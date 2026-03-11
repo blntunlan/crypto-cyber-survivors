@@ -22,6 +22,13 @@ interface WindowWithRedux {
   };
 }
 
+type EventBusEmit = typeof EventBus.emit;
+
+type EventBusWithDevToolsState = typeof EventBus & {
+  __devToolsEmitWrapped?: boolean;
+  __devToolsOriginalEmit?: EventBusEmit;
+};
+
 class ReduxDevToolsBridgeClass {
   private devTools: ReduxDevToolsConnection | null = null;
   private isConnected = false;
@@ -77,9 +84,17 @@ class ReduxDevToolsBridgeClass {
     // we would need a special 'internal:all' event or similar.
     // For now, we'll proxy the 'emit' method.
 
-    const originalEmit = EventBus.emit.bind(EventBus);
+    const eventBus = EventBus as EventBusWithDevToolsState;
 
-    EventBus.emit = <K extends GameEvent>(event: K, data: EventDataMap[K]) => {
+    // Guard against wrapping multiple times (e.g. after HMR reloads)
+    if (eventBus.__devToolsEmitWrapped) {
+      return;
+    }
+
+    eventBus.__devToolsOriginalEmit ??= eventBus.emit.bind(eventBus);
+    const originalEmit = eventBus.__devToolsOriginalEmit;
+
+    eventBus.emit = (<K extends GameEvent>(event: K, data: EventDataMap[K]) => {
       // 1. Call original logic
       originalEmit(event, data);
 
@@ -90,7 +105,9 @@ class ReduxDevToolsBridgeClass {
           { lastEvent: event }
         );
       }
-    };
+    }) as EventBusEmit;
+
+    eventBus.__devToolsEmitWrapped = true;
   }
 }
 

@@ -4,6 +4,7 @@ import { type Enemy, type Player } from '../types';
 import { EventBus } from '../services/core/EventBus';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { difficultyContext } from '../services/difficulty/DifficultyContext';
 
 // Mock dependencies
 vi.mock('../services/core/EventBus', () => ({
@@ -43,6 +44,8 @@ describe('CombatResolutionService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    difficultyContext.reset();
+    difficultyContext.updateInputs({ leverage: 5 });
 
     mockPool = {
       getParticle: vi.fn(),
@@ -94,6 +97,20 @@ describe('CombatResolutionService', () => {
         mockPool.getParticle.mock.calls.length - normalCallCount;
 
       expect(superCritCallCount).toBeGreaterThan(normalCallCount);
+    });
+
+    it('should keep death particle count stable across leverage levels', () => {
+      difficultyContext.updateInputs({ leverage: 5 });
+      CombatResolutionService.handleEnemyDeath(mockPool, mockEnemy, mockPlayer, false);
+      const lowLeverageParticles = mockPool.getParticle.mock.calls.length;
+
+      mockPool.getParticle.mockClear();
+
+      difficultyContext.updateInputs({ leverage: 100 });
+      CombatResolutionService.handleEnemyDeath(mockPool, mockEnemy, mockPlayer, false);
+      const highLeverageParticles = mockPool.getParticle.mock.calls.length;
+
+      expect(highLeverageParticles).toBe(lowLeverageParticles);
     });
   });
 

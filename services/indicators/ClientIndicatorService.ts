@@ -21,6 +21,7 @@
 import { type MarketPosition } from '../../types';
 import { MarketPosition as MarketPositionEnum } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
+import { getSpawnRateFromATR } from '../../types/indicators';
 import { createRSICalculator, type RSICalculator } from './RSICalculator';
 import { createMACDCalculator, type MACDCalculator } from './MACDCalculator';
 import { ATRCalculator } from './ATRCalculator';
@@ -52,10 +53,28 @@ export const CLIENT_INDICATOR_CONFIG = {
   // Price change settings
   PRICE_CHANGE_WINDOW: 60, // seconds
   FLASH_CRASH_THRESHOLD: -0.01, // -1% in 60s
+  MOONSHOT_THRESHOLD: 0.01, // +1% in 60s
 
   // Trend settings
   TREND_EMA_FAST: 12,
   TREND_EMA_SLOW: 26,
+
+  /**
+   * MACD histogram normalization scale per trading pair.
+   * MACD histogram magnitude scales with asset price, so normalization
+   * must be pair-specific to produce comparable trendStrength values.
+   *
+   * Calibrated from typical 1s-tick MACD(12,26,9) histogram ranges:
+   * - BTC (~$97k): ±$10-50 → scale 50
+   * - ETH (~$3.5k): ±$1-5  → scale 5
+   * - SOL (~$200):  ±$0.1-0.5 → scale 0.5
+   */
+  TREND_HISTOGRAM_SCALE: {
+    BTC: 50,
+    ETH: 5,
+    SOL: 0.5,
+  } as Record<string, number>,
+  TREND_HISTOGRAM_SCALE_DEFAULT: 50,
 
   // Precision for deterministic calculations
   PRECISION: 6,
@@ -75,6 +94,7 @@ export interface ClientIndicatorState {
   atr: number; // Raw ATR value
   atrPercent: number; // ATR as percentage of price
   atrNormalized: number; // Normalized 0-1 for neural network
+  spawnRateMultiplier: number; // ATR-derived spawn rate multiplier (0.5x-2.0x)
 
   // Volume Data
   normalizedVolume: number; // 0-1 percentile
@@ -108,6 +128,7 @@ export function getDefaultClientIndicatorState(): ClientIndicatorState {
     atr: 0,
     atrPercent: 0,
     atrNormalized: 0.5,
+    spawnRateMultiplier: 1.0,
     normalizedVolume: 0.5,
     volumeSpike: false,
     whaleTier: 0,
@@ -161,13 +182,6 @@ class ClientIndicatorServiceClass {
     // Subscribe to game reset
     EventBus.on('gameReset', () => this.reset());
 
-    // Subscribe to market state updates
-    EventBus.on('marketStateUpdated', data => {
-      if (data.pair === this.activePair) {
-        this.update(data.price, data.volume, data.updatedAt.getTime());
-      }
-    });
-
     Logger.debug('[ClientIndicatorService] Initialized');
   }
 
@@ -187,7 +201,9 @@ class ClientIndicatorServiceClass {
   update(
     price: number,
     volume: number,
-    timestamp: number = Date.now()
+    timestamp: number = Date.now(),
+    high?: number,
+    low?: number
   ): ClientIndicatorState {
     // Validate inputs
     if (!Number.isFinite(price) || price <= 0) {
@@ -204,9 +220,12 @@ class ClientIndicatorServiceClass {
     const rsiNormalized = rsi / 100;
     const rsiMomentum = this.calculateRsiMomentum(rsi);
 
-    // Update ATR
-    const { atr, atrPercent } = this.atrCalculator.update(price, price, price);
+    // Update ATR with real OHLC data when available, otherwise fallback to price
+    const h = high ?? price;
+    const l = low ?? price;
+    const { atr, atrPercent } = this.atrCalculator.update(h, l, price);
     const atrNormalized = this.normalizeAtr(atrPercent);
+    const spawnRateMultiplier = getSpawnRateFromATR(atrPercent);
 
     // Update Volume
     const normalizedVolume = this.volumeAnalyzer.update(volume);
@@ -235,6 +254,7 @@ class ClientIndicatorServiceClass {
       atr,
       atrPercent,
       atrNormalized,
+      spawnRateMultiplier,
       normalizedVolume,
       volumeSpike,
       whaleTier,
@@ -254,6 +274,7 @@ class ClientIndicatorServiceClass {
       rsi: this.state.rsi,
       rsiState: this.state.rsiState,
       atrPercent: this.state.atrPercent,
+      spawnRateMultiplier: this.state.spawnRateMultiplier,
       normalizedVolume: this.state.normalizedVolume,
       priceChangePercent: this.state.priceChangePercent,
       trendStrength: this.state.trendStrength,
@@ -336,7 +357,7 @@ class ClientIndicatorServiceClass {
         clampedChange.toFixed(CLIENT_INDICATOR_CONFIG.PRECISION)
       ),
       isFlashCrash: priceChangePercent <= CLIENT_INDICATOR_CONFIG.FLASH_CRASH_THRESHOLD,
-      isMoonShot: priceChangePercent >= -CLIENT_INDICATOR_CONFIG.FLASH_CRASH_THRESHOLD,
+      isMoonShot: priceChangePercent >= CLIENT_INDICATOR_CONFIG.MOONSHOT_THRESHOLD,
     };
   }
 
@@ -359,14 +380,20 @@ class ClientIndicatorServiceClass {
     const histogram = macdResult.histogram;
     const histogramAbs = Math.abs(histogram);
 
-    // Normalize histogram to 0-1 (typical range is -50 to +50 for BTC)
-    const normalizedHistogram = Math.min(1, histogramAbs / 50);
+    // Normalize histogram to 0-1 using pair-specific scale.
+    // MACD histogram magnitude scales with asset price:
+    //   BTC (~$97k) histogram ±$10-50, ETH (~$3.5k) ±$1-5, SOL (~$200) ±$0.1-0.5
+    const histogramScale =
+      CLIENT_INDICATOR_CONFIG.TREND_HISTOGRAM_SCALE[this.activePair] ??
+      CLIENT_INDICATOR_CONFIG.TREND_HISTOGRAM_SCALE_DEFAULT;
+    const normalizedHistogram = Math.min(1, histogramAbs / histogramScale);
 
-    // Determine direction
+    // Determine direction using pair-aware threshold (1% of scale)
+    const directionThreshold = histogramScale * 0.01;
     let direction: 'UP' | 'DOWN' | 'SIDEWAYS';
-    if (histogram > 0.5) {
+    if (histogram > directionThreshold) {
       direction = 'UP';
-    } else if (histogram < -0.5) {
+    } else if (histogram < -directionThreshold) {
       direction = 'DOWN';
     } else {
       direction = 'SIDEWAYS';
@@ -509,6 +536,7 @@ class ClientIndicatorServiceClass {
       rsiState: this.state.rsiState,
       rsiMomentum: this.state.rsiMomentum.toFixed(3),
       atrPercent: `${(this.state.atrPercent * 100).toFixed(3)}%`,
+      spawnRateMultiplier: `${this.state.spawnRateMultiplier.toFixed(2)}x`,
       volume: this.state.normalizedVolume.toFixed(3),
       whaleTier: this.state.whaleTier,
       priceChange: `${(this.state.priceChangePercent * 100).toFixed(2)}%`,

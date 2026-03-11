@@ -71,6 +71,7 @@ vi.mock('../../services/gameplay/LeverageEngine', () => ({
       enemyDamage: 1.0,
       difficultyRampSpeed: 1.0,
     })),
+    getLeverage: vi.fn(() => 5),
     updateMarketState: vi.fn(),
   },
 }));

@@ -143,7 +143,6 @@ const DesktopComboPanel: React.FC<ComboPanelProps> = ({
       style={{
         opacity: 0,
         transform: 'translateX(-50%) translateY(20px)',
-        willChange: 'transform, opacity',
       }}
     >
       <div
@@ -284,11 +283,10 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
       ref={containerRef}
       className="pointer-events-none absolute left-1/2 z-[115] flex flex-col items-center transition-all duration-200 ease-out"
       style={{
-        bottom: rs(160),
+        top: `calc(${rs(85)}px + env(safe-area-inset-top, 0px))`,
         minWidth: rs(150),
         opacity: 0,
         transform: 'translateX(-50%) translateY(20px)',
-        willChange: 'transform, opacity',
       }}
     >
       <div
@@ -417,7 +415,7 @@ const MobileComboPanel: React.FC<ComboPanelProps> = ({
 // =============================================================================
 
 export const ComboPanel: React.FC<ComboPanelProps> = memo(props => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
 
   useEffect(() => {
     const unsubscribe = screenService.onChange(() => {

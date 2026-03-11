@@ -93,7 +93,8 @@ export class EffectRenderer implements IRenderer {
       const sessionFadeIn = Math.min(1, timeInGame / 2.0); // 2 second fade
 
       // Retro uses subtle overlays; Modern uses a soft monitor glow / vignette
-      const baseOpacity = isRetro ? 0.08 : 0.12;
+      // Reduced from 0.12 to 0.07 for cyberpunk to prevent green screen wash
+      const baseOpacity = isRetro ? 0.06 : 0.07;
       const opacity = baseOpacity * sessionFadeIn;
 
       ctx.globalAlpha = opacity;
@@ -117,7 +118,9 @@ export class EffectRenderer implements IRenderer {
             { offset: 0, color: 'rgba(0,0,0,0)' },
             {
               offset: 1,
-              color: isFavorable ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)',
+              color: isFavorable
+                ? 'rgba(16, 185, 129, 0.45)'
+                : 'rgba(239, 68, 68, 0.45)',
             },
           ]
         );
@@ -524,7 +527,8 @@ export class EffectRenderer implements IRenderer {
     const isRetro = ThemeService.isRetro();
 
     // Base alpha scales with intensity
-    const alpha = Math.min(0.2, (mom.intensity - 0.25) * 0.4);
+    // Reduced cap from 0.2 to 0.10 to prevent overly intense green/red screen wash
+    const alpha = Math.min(0.1, (mom.intensity - 0.25) * 0.25);
 
     // Pulse alpha slightly with BPM to sync with audio
     const pulseTime = TimeService.getGameTimeSeconds();

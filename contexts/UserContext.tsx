@@ -1,4 +1,11 @@
-import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import { type LegacyStoredUser } from '../services/auth/types';
 import { Logger } from '../services/system/Logger';
 import { nanoid } from 'nanoid';
@@ -33,6 +40,54 @@ interface UserProviderProps {
   children: React.ReactNode;
 }
 
+interface ErrorInfo {
+  errorMsg: string;
+  detail: string;
+}
+
+const LOCAL_DEV_PROFILE_ID = '00000000-0000-4000-a000-000000000000';
+
+const isRemoteMode = (): boolean =>
+  isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment();
+
+const createAnonymousProfileId = (): string => `anon_${nanoid(10)}`;
+
+const createLegacyUser = (
+  profileId: string,
+  nickname: string,
+  timestamp = Date.now()
+): LegacyStoredUser => ({
+  profileId,
+  nickname,
+  createdAt: timestamp,
+  lastSeenAt: timestamp,
+});
+
+const extractErrorInfo = (error: unknown): ErrorInfo => {
+  if (error instanceof Error) {
+    return { errorMsg: error.message, detail: '' };
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const errorRecord = error as Record<string, unknown>;
+    const errorMsg = String(
+      errorRecord.message ??
+        errorRecord.details ??
+        errorRecord.hint ??
+        JSON.stringify(errorRecord)
+    );
+    const detail = errorRecord.code ? `[Code: ${String(errorRecord.code)}]` : '';
+    return { errorMsg, detail };
+  }
+
+  return { errorMsg: String(error), detail: '' };
+};
+
+const toMetadataRecord = (metadata: unknown): Record<string, unknown> =>
+  typeof metadata === 'object' && metadata !== null
+    ? (metadata as Record<string, unknown>)
+    : {};
+
 // ============================================================================
 // Context
 // ============================================================================
@@ -48,45 +103,54 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<LegacyStoredUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from storage on mount and VERIFY against Database
+  const userRef = useRef<LegacyStoredUser | null>(null);
+  const anonymousProfileIdRef = useRef<string>(createAnonymousProfileId());
+
+  const commitUser = useCallback((nextUser: LegacyStoredUser | null): void => {
+    userRef.current = nextUser;
+    setUser(nextUser);
+  }, []);
+
+  // Load user from storage on mount and verify against database when available.
   useEffect(() => {
     let mounted = true;
 
     const init = async () => {
       const storedUser = await UserPersistenceService.initialize();
 
-      if (storedUser) {
-        try {
-          if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
-            // Verify if profile still exists in the NEW database
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('id', storedUser.profileId)
-              .maybeSingle();
+      if (!storedUser) {
+        if (mounted) setIsLoading(false);
+        return;
+      }
 
-            if (error || !data) {
-              Logger.warn(
-                `[UserContext] Stored user ${storedUser.nickname} not found in new DB. Clearing session.`
-              );
-              UserPersistenceService.clear();
-              if (mounted) setUser(null);
-            } else {
-              if (mounted) setUser(storedUser);
-            }
-          } else {
-            // Local mode or Supabase not ready, trust storage
-            if (mounted) setUser(storedUser);
-          }
-        } catch (err) {
-          Logger.error('[UserContext] Failed to verify session', err);
-          if (mounted) setUser(storedUser); // Fallback to storage on connection error
+      if (!isRemoteMode()) {
+        if (mounted) commitUser(storedUser);
+        if (mounted) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', storedUser.profileId)
+          .maybeSingle();
+
+        if (error || !data) {
+          Logger.warn(
+            `[UserContext] Stored user ${storedUser.nickname} not found in new DB. Clearing session.`
+          );
+          UserPersistenceService.clear();
+          if (mounted) commitUser(null);
+        } else if (mounted) {
+          commitUser(storedUser);
         }
+      } catch (err) {
+        Logger.error('[UserContext] Failed to verify session', err);
+        if (mounted) commitUser(storedUser);
       }
 
-      if (mounted) {
-        setIsLoading(false);
-      }
+      if (mounted) setIsLoading(false);
     };
 
     void init();
@@ -94,24 +158,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [commitUser]);
 
   // Login / Register
   const login = useCallback(
     async (nickname: string): Promise<{ success: boolean; error?: string }> => {
-      // Local-only mode for development (LAN, localhost, etc.)
-      if (!isSupabaseConfigured() || SecurityUtils.isLocalEnvironment()) {
+      if (!isRemoteMode()) {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
-        const mockPlayerId = '00000000-0000-4000-a000-000000000000';
-        const now = Date.now();
-        const newUser: LegacyStoredUser = {
-          profileId: mockPlayerId,
-          nickname,
-          createdAt: now,
-          lastSeenAt: now,
-        };
-        UserPersistenceService.saveUser(newUser);
-        setUser(newUser);
+        const localUser = createLegacyUser(LOCAL_DEV_PROFILE_ID, nickname);
+        UserPersistenceService.saveUser(localUser);
+        commitUser(localUser);
         return { success: true };
       }
 
@@ -120,7 +176,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           await import('../services/auth/PlayerIdentityService');
         const identityHash = await PlayerIdentityService.generatePlayerHash(nickname);
 
-        // Check if nickname exists (strict case-sensitive)
         const { data: existingProfile, error: fetchError } = await supabase
           .from('profiles')
           .select('id, metadata')
@@ -136,10 +191,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
 
         if (existingProfile) {
-          // IDENTITY VERIFICATION: Check if the stored hash matches current device
-          // In the new schema, identity metadata is stored in the metadata JSONB
-          const metadata =
-            (existingProfile.metadata as Record<string, unknown> | null) ?? {};
+          const metadata = toMetadataRecord(existingProfile.metadata);
           const storedHash = metadata.identity_hash as string | undefined;
 
           if (storedHash && storedHash !== identityHash) {
@@ -152,26 +204,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             };
           }
 
-          // Login as existing player
-          const now = Date.now();
-          const newUser: LegacyStoredUser = {
-            profileId: existingProfile.id,
-            nickname,
-            createdAt: now,
-            lastSeenAt: now,
-          };
-          UserPersistenceService.saveUser(newUser);
-          setUser(newUser);
+          const existingUser = createLegacyUser(existingProfile.id, nickname);
+          UserPersistenceService.saveUser(existingUser);
+          commitUser(existingUser);
 
           const { DeviceProfiler } =
             await import('../services/analytics/DeviceProfiler');
           const fingerprint = DeviceProfiler.getFingerprint();
 
-          // Update profile
           await supabase
             .from('profiles')
             .update({
-              last_seen_at: new Date(now).toISOString(),
+              last_seen_at: new Date(existingUser.lastSeenAt).toISOString(),
               metadata: {
                 ...metadata,
                 identity_hash: identityHash,
@@ -186,7 +230,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const { DeviceProfiler } = await import('../services/analytics/DeviceProfiler');
         const fingerprint = DeviceProfiler.getFingerprint();
 
-        // Create new profile with device binding
+        const now = Date.now();
         const { data: newProfile, error } = await supabase
           .from('profiles')
           .insert({
@@ -196,8 +240,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
               identity_hash: identityHash,
               last_device_fingerprint: fingerprint,
             },
-            created_at: new Date().toISOString(), // Add created_at
-            last_seen_at: new Date().toISOString(), // Add last_seen_at
+            created_at: new Date(now).toISOString(),
+            last_seen_at: new Date(now).toISOString(),
           })
           .select()
           .single();
@@ -212,36 +256,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           throw error;
         }
 
-        const now = Date.now();
-        const createdUser: LegacyStoredUser = {
-          profileId: newProfile.id,
-          nickname,
-          createdAt: now,
-          lastSeenAt: now,
-        };
+        const createdUser = createLegacyUser(newProfile.id, nickname, now);
         UserPersistenceService.saveUser(createdUser);
-        setUser(createdUser);
+        commitUser(createdUser);
+
         return { success: true };
       } catch (error: unknown) {
-        // Detailed error extraction for better debugging
-        let errorMsg = 'Unknown error';
-        let detail = '';
-
-        const anyError = error as Record<string, unknown>;
-
-        if (error instanceof Error) {
-          errorMsg = error.message;
-        } else if (typeof error === 'object' && error !== null) {
-          errorMsg = String(
-            anyError.message ??
-              anyError.details ??
-              anyError.hint ??
-              JSON.stringify(error)
-          );
-          detail = anyError.code ? `[Code: ${String(anyError.code)}]` : '';
-        } else {
-          errorMsg = String(error);
-        }
+        const { errorMsg, detail } = extractErrorInfo(error);
 
         Logger.error(
           `[UserContext] Identity/Registration error: ${errorMsg} ${detail}`,
@@ -260,37 +281,41 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         };
       }
     },
-    []
+    [commitUser]
   );
 
   // Logout
   const logout = useCallback(() => {
     UserPersistenceService.clear();
-    setUser(null);
-  }, []);
+    anonymousProfileIdRef.current = createAnonymousProfileId();
+    commitUser(null);
+  }, [commitUser]);
 
   // Update last seen
   const updateLastSeen = useCallback(async () => {
-    if (!user) return;
+    const currentUser = userRef.current;
+    if (!currentUser) return;
 
     const now = Date.now();
-    const updatedUser = { ...user, lastSeenAt: now };
+    const updatedUser: LegacyStoredUser = {
+      ...currentUser,
+      lastSeenAt: now,
+    };
 
     UserPersistenceService.saveUser(updatedUser);
-    setUser(updatedUser);
+    commitUser(updatedUser);
 
-    // Async sync to Supabase
     try {
-      if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
+      if (isRemoteMode()) {
         void supabase
           .from('profiles')
           .update({ last_seen_at: new Date(now).toISOString() })
-          .eq('id', user.profileId);
+          .eq('id', currentUser.profileId);
       }
     } catch (error) {
       Logger.error('[UserContext] Failed to update lastSeenAt', error);
     }
-  }, [user]);
+  }, [commitUser]);
 
   // Memoized context value
   const value = useMemo<UserContextType>(
@@ -298,7 +323,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       user,
       isAuthenticated: user !== null,
       isLoading,
-      profileId: user?.profileId ?? `anon_${nanoid(10)}`,
+      profileId: user?.profileId ?? anonymousProfileIdRef.current,
       nickname: user?.nickname ?? null,
       login,
       logout,

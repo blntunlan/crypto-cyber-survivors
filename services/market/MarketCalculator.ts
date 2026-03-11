@@ -78,7 +78,8 @@ export class MarketCalculator {
     }
 
     // Calculate effective PnL with full leverage
-    const effectivePnl = Math.max(-1, Math.min(1, rawPnl * leverage));
+    // Floor at -1 (liquidation threshold) but no upper cap — profits are uncapped
+    const effectivePnl = Math.max(-1, rawPnl * leverage);
 
     // Calculate difficulty PnL with capped leverage (prevents extreme difficulty spikes)
     const difficultyLeverage = Math.min(leverage, this.DIFFICULTY_LEVERAGE_CAP);

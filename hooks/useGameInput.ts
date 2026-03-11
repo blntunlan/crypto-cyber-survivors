@@ -1,5 +1,13 @@
 import { useEffect, useRef } from 'react';
 
+// Global AI Override State
+export const AI_INPUT_STATE = {
+  active: false,
+  dx: 0,
+  dy: 0,
+  dash: false,
+};
+
 export const useGameInput = () => {
   const keys = useRef<Record<string, boolean>>({});
   const touchVector = useRef({ dx: 0, dy: 0 });
@@ -9,6 +17,14 @@ export const useGameInput = () => {
 
   // Track if space was released since last dash (for double dash detection)
   const spaceConsumed = useRef(false);
+
+  const resetInputState = () => {
+    keys.current = {};
+    touchVector.current = { dx: 0, dy: 0 };
+    touchDash.current = false;
+    touchDashTimestamp.current = 0;
+    spaceConsumed.current = false;
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,12 +53,22 @@ export const useGameInput = () => {
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        resetInputState();
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', resetInputState);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', resetInputState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -62,6 +88,10 @@ export const useGameInput = () => {
   };
 
   const getMovementVector = () => {
+    if (AI_INPUT_STATE.active) {
+      return { dx: AI_INPUT_STATE.dx, dy: AI_INPUT_STATE.dy };
+    }
+
     // Keyboard input
     let kdx = 0;
     let kdy = 0;
@@ -88,6 +118,9 @@ export const useGameInput = () => {
   };
 
   const isSpacePressed = () => {
+    if (AI_INPUT_STATE.active) {
+      return AI_INPUT_STATE.dash;
+    }
     const kSpace = keys.current[' '] ?? keys.current['Spacebar'] ?? false;
     // Check key, physical hold, or buffered input
     return kSpace || touchDash.current || isTouchBuffered();
@@ -98,6 +131,9 @@ export const useGameInput = () => {
    * Used for double dash - requires user to release and press again
    */
   const isSpaceFreshPress = () => {
+    if (AI_INPUT_STATE.active) {
+      return AI_INPUT_STATE.dash && !spaceConsumed.current;
+    }
     const kSpace = keys.current[' '] ?? keys.current['Spacebar'] ?? false;
     const pressed = kSpace || touchDash.current || isTouchBuffered();
     return pressed && !spaceConsumed.current;
@@ -107,6 +143,10 @@ export const useGameInput = () => {
    * Resets the dash state after it's processed by the engine
    */
   const consumeDash = () => {
+    if (AI_INPUT_STATE.active) {
+      spaceConsumed.current = true;
+      return;
+    }
     touchDash.current = false;
     touchDashTimestamp.current = 0; // Clear buffer
     spaceConsumed.current = true; // Mark space as consumed until released

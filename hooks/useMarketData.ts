@@ -12,7 +12,7 @@ import {
   type ConnectionStatus,
 } from '../services/market/MarketService';
 import { MarketCalculator, type ATRContext } from '../services/market/MarketCalculator';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { createMarketSignalPipeline } from '../services/market/pipeline/MarketSignalPipeline';
 import { MAX_CHART_POINTS, MARKET } from '../constants';
 import { type CryptoPair } from '../types/crypto';
 import { EventBus } from '../services/core/EventBus';
@@ -151,6 +151,7 @@ export const useMarketData = (
   const runtimeControllerRef = useRef<MarketRuntimeController | null>(null);
   const runtimeControllerRunIdRef = useRef<string | null>(null);
   const lastRuntimeWorkerTelemetryAtRef = useRef(0);
+  const marketPipelineRef = useRef(createMarketSignalPipeline());
 
   useEffect(() => {
     gameStatusRef.current = gameStatus;
@@ -158,6 +159,7 @@ export const useMarketData = (
     entryPriceRef.current = entryPrice;
     leverageRef.current = leverage;
     pairRef.current = pair;
+    marketPipelineRef.current.setContext(pair, position);
   }, [gameStatus, position, entryPrice, leverage, pair]);
 
   useEffect(() => {
@@ -179,7 +181,7 @@ export const useMarketData = (
   // Reset timeout timer when resuming game to prevent immediate disconnects from background time
   useEffect(() => {
     // Defensive check: GameStatus might be undefined during hot reload or circular dependencies
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // eslint_disable-next-line @typescript-eslint/no-unnecessary-condition
     if (gameStatus === GameStatus?.PLAYING) {
       lastPriceTimeRef.current = Date.now();
       timeoutTriggeredRef.current = false;
@@ -263,16 +265,8 @@ export const useMarketData = (
   // Sync with MarketStateService for indicators (RSI, Volume, ATR, etc.)
   useEffect(() => {
     const handleMarketStateUpdate = (state: MarketStateData) => {
-      if (state.pair === pairRef.current) {
-        setMarketData(prev => ({
-          ...prev,
-          rsi: state.rsi,
-          rsiState: state.rsiState,
-          whaleTier: state.whaleTier,
-          spawnRateMultiplier: state.spawnRateMultiplier,
-          atrPercent: state.atrPercent, // Server ATR for difficulty calculation
-        }));
-      }
+      if (state.pair !== pairRef.current) return;
+      marketPipelineRef.current.syncServerState(state);
     };
 
     const unsub = EventBus.on('marketStateUpdated', handleMarketStateUpdate);
@@ -287,6 +281,8 @@ export const useMarketData = (
     atrContextRef.current = { trHistory: [], prevClose: null };
     lastPriceTimeRef.current = Date.now(); // Reset timeout on pair switch
     timeoutTriggeredRef.current = false;
+    marketPipelineRef.current.reset();
+    marketPipelineRef.current.setContext(pair, positionRef.current);
     runtimeRunConstantsRef.current = null;
     runtimeSeqRef.current = 0;
     runtimeHashRef.current = 'seed0000';
@@ -714,22 +710,26 @@ export const useMarketData = (
         const effectiveLiquidationPrice =
           runtimeRunConstants?.liquidationPrice ?? dynamicLiquidationPrice;
 
-        // Prefer server ATR (more reliable), fallback to client-calculated
         const hpPercent = (playerRef.current.hp / playerRef.current.maxHp) * 100;
         const playerLevel = playerRef.current.level;
+        const tickTimestamp = Date.now();
 
-        // Get current marketData to check for server ATR
         setMarketData(prevMarketData => {
-          // Use server ATR if available, otherwise use client-calculated
-          const effectiveAtrPercent = prevMarketData.atrPercent ?? atrResult.atrPercent;
+          const pipelineResult = marketPipelineRef.current.processTick({
+            pair: expectedPair,
+            position: currentPosition,
+            price,
+            volume: update.volume ?? 0,
+            timestamp: tickTimestamp,
+            rawPnl: pnlResult.rawPnl,
+            level: playerLevel,
+            hpPercent,
+            fallbackAtrPercent: prevMarketData.atrPercent ?? atrResult.atrPercent,
+            high: update.high,
+            low: update.low,
+          });
 
-          // Calculate Difficulty using raw PnL (Internal leverage handling in V2)
-          const difficultyOutput = DifficultyManager.calculate(
-            pnlResult.rawPnl, // Pass raw PnL, Manager handles leverage
-            effectiveAtrPercent, // Prefer server ATR
-            playerLevel,
-            hpPercent
-          );
+          const difficultyOutput = pipelineResult.gameplay.difficultyOutput;
 
           const nextData = {
             ...prevMarketData,
@@ -740,14 +740,18 @@ export const useMarketData = (
             leverage: currentLeverage,
             position: currentPosition,
             liquidationPrice: effectiveLiquidationPrice,
-            difficulty: difficultyOutput.total,
-            spawnRateMultiplier: difficultyOutput.spawnRate,
-            enemyDamage: difficultyOutput.enemyDamage,
-            enemySpeed: difficultyOutput.enemySpeed,
-            gemValueMultiplier: difficultyOutput.gemDropRate,
+            rsi: pipelineResult.indicators.rsi,
+            rsiState: pipelineResult.indicators.rsiState,
+            whaleTier: pipelineResult.indicators.whaleTier,
+            atrPercent: pipelineResult.indicators.atrPercent,
+            difficulty: pipelineResult.gameplay.totalDifficulty,
+            spawnRateMultiplier: pipelineResult.gameplay.spawnRateMultiplier,
+            enemyDamage: pipelineResult.gameplay.enemyDamage,
+            enemySpeed: pipelineResult.gameplay.enemySpeed,
+            gemValueMultiplier: pipelineResult.gameplay.gemValueMultiplier,
             pair: expectedPair,
             symbol: expectedPair + 'USDT',
-            momentum: difficultyOutput.total > 0 ? pnlResult.effectivePnl * 0.1 : 0, // Rudimentary momentum based on PnL
+            momentum: difficultyOutput.total > 0 ? pnlResult.effectivePnl * 0.1 : 0,
           };
 
           if (runtimeRunConstants && shouldEmitRuntimeEvents) {

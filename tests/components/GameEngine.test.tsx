@@ -120,6 +120,7 @@ vi.mock('../../services/combat/ComboSystem', () => ({
 vi.mock('../../services/core/TimeService', () => ({
   TimeService: {
     update: vi.fn(() => 16.67),
+    getGameTime: vi.fn(() => 0),
     getGameTimeSeconds: vi.fn(() => 0),
   },
 }));

@@ -9,7 +9,6 @@ import {
 } from '../types';
 import { type CryptoPair } from '../types/crypto';
 import { COLORS, GAME_ENGINE } from '../constants';
-import { PLAYER_STATS } from '../config/PlayerConfig';
 import { PoolManager } from '../services/combat/PoolManager';
 import { GameRenderer } from '../services/renderers/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
@@ -43,6 +42,19 @@ import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
 import { LeverageEngine } from '../services/gameplay/LeverageEngine';
+import type {
+  MutableRef,
+  PoolLikeRef,
+  TickContext,
+} from '../services/gameplay/contracts';
+import { GameLoopCoordinator, type GameLoopPhase } from '../services/gameplay/loop';
+import {
+  InputPhase,
+  CombatPhase,
+  SpawnPhase,
+  PhysicsPhase,
+  EffectsPhase,
+} from '../services/gameplay/phases';
 import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -54,6 +66,9 @@ import { useLazyRef } from '../hooks/useLazyRef';
 import { useGameSetup } from '../hooks/useGameSetup';
 import { useGameEvents } from '../hooks/useGameEvents';
 import { useGameStatusEffects } from '../hooks/useGameStatusEffects';
+
+const DEBUG_API_ENABLED =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEBUG_API === 'true';
 
 interface GameEngineProps {
   status: GameStatus;
@@ -174,6 +189,119 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const hitStopGovernorRef = useRef(new HitStopGovernor());
   const coreLoopRef = useRef(new CoreGameplayLoop());
   const lastWhaleTierRef = useRef<0 | 1 | 2 | 3>(0);
+  const gameplayFrameRef = useRef(0);
+  const phaseSharedRef = useRef<Record<string, unknown>>({});
+  const lastPhaseErrorLogTimeRef = useRef(0);
+  const lastPhaseTickRef = useRef<{
+    completedPhaseIds: string[];
+    errorCount: number;
+  }>({
+    completedPhaseIds: [],
+    errorCount: 0,
+  });
+
+  const gameLoopCoordinatorRef = useLazyRef(() => {
+    const inputPhase = new InputPhase();
+    const combatPhase = new CombatPhase();
+    const spawnPhase = new SpawnPhase();
+    const physicsPhase = new PhysicsPhase();
+    const effectsPhase = new EffectsPhase();
+
+    const phases: GameLoopPhase<TickContext>[] = [
+      {
+        id: inputPhase.phase,
+        execute: context => {
+          const result = inputPhase.execute({
+            phase: inputPhase.phase,
+            context,
+            shared: phaseSharedRef.current as Record<string, never>,
+          });
+          if (result.shared) {
+            Object.assign(
+              phaseSharedRef.current,
+              result.shared as Record<string, unknown>
+            );
+          }
+        },
+      },
+      {
+        id: combatPhase.phase,
+        execute: context => {
+          const result = combatPhase.execute({
+            phase: combatPhase.phase,
+            context,
+            shared: phaseSharedRef.current as Record<string, never>,
+          });
+          if (result.shared) {
+            Object.assign(
+              phaseSharedRef.current,
+              result.shared as Record<string, unknown>
+            );
+          }
+        },
+      },
+      {
+        id: spawnPhase.phase,
+        execute: context => {
+          const result = spawnPhase.execute({
+            phase: spawnPhase.phase,
+            context,
+            shared: phaseSharedRef.current as Record<string, never>,
+          });
+          if (result.shared) {
+            Object.assign(
+              phaseSharedRef.current,
+              result.shared as Record<string, unknown>
+            );
+          }
+        },
+      },
+      {
+        id: physicsPhase.phase,
+        execute: context => {
+          const result = physicsPhase.execute({
+            phase: physicsPhase.phase,
+            context,
+            shared: phaseSharedRef.current as Record<string, never>,
+          });
+          if (result.shared) {
+            Object.assign(
+              phaseSharedRef.current,
+              result.shared as Record<string, unknown>
+            );
+          }
+        },
+      },
+      {
+        id: effectsPhase.phase,
+        execute: context => {
+          const result = effectsPhase.execute({
+            phase: effectsPhase.phase,
+            context,
+            shared: phaseSharedRef.current as Record<string, never>,
+          });
+          if (result.shared) {
+            Object.assign(
+              phaseSharedRef.current,
+              result.shared as Record<string, unknown>
+            );
+          }
+        },
+      },
+    ];
+
+    return new GameLoopCoordinator<TickContext>(phases, {
+      errorPolicy: 'collect',
+      hooks: {
+        onError: phaseError => {
+          Logger.warn('[GameLoopCoordinator] Phase execution error', {
+            phaseId: phaseError.phaseId,
+            stage: phaseError.stage,
+          });
+        },
+      },
+    });
+  });
 
   // Pre-allocated objects for GC-free loop references
   const coreLoopInputRef = useRef({
@@ -382,11 +510,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   // Expose concise state snapshot for Playwright smoke validation.
   useEffect(() => {
-    const gameWindow = window as Window & {
-      render_game_to_text?: () => string;
-    };
+    if (!DEBUG_API_ENABLED) {
+      return;
+    }
 
-    gameWindow.render_game_to_text = () => {
+    window.render_game_to_text = () => {
       const currentPlayer = playerRef.current;
       const currentState = state.current;
       const currentPool = pool.current;
@@ -417,11 +545,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           bullets: currentPool.activeBullets.length,
           gems: currentPool.activeGems.length,
         },
+        phases: {
+          completed: lastPhaseTickRef.current.completedPhaseIds,
+          errorCount: lastPhaseTickRef.current.errorCount,
+        },
       });
     };
 
     return () => {
-      delete gameWindow.render_game_to_text;
+      delete window.render_game_to_text;
     };
   }, [playerRef, pool, state, status]);
 
@@ -471,6 +603,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       const dtFactor = (deltaTime / GAME_ENGINE.TARGET_FRAME_TIME) * timeScale;
       s.lastTime = time;
+
+      gameplayFrameRef.current += 1;
 
       // Update Visual Effects Service (Decay intensities)
       VisualEffectService.update(deltaTime);
@@ -646,184 +780,71 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
         }
 
-        // Dash Logic Timers
-        if (s.dashTimer > 0) {
-          s.dashTimer -= deltaTime;
-
-          // Update halo opacity - pulse during dash window
-          s.dashHaloOpacity =
-            Math.sin(time / GAME_ENGINE.DASH_HALO_PULSE_SPEED) *
-              GAME_ENGINE.DASH_HALO_OPACITY_BASE +
-            GAME_ENGINE.DASH_HALO_OPACITY_AMP; // Pulsing 0.4-1.0
-
-          // Check for double dash input during active dash
-          // User must RELEASE and PRESS space again (not just hold)
-          if (isSpaceFreshPress() && !s.doubleDashQueued && !s.doubleDashUsed) {
-            s.doubleDashQueued = true;
-            consumeDash();
-            // Visual feedback for queued double dash
-            s.shake = 5;
-          }
-
-          // Dash ended
-          if (s.dashTimer <= 0) {
-            s.isDashing = false;
-            s.dashHaloOpacity = 0;
-
-            // Squash effect at end of dash (short and fat)
-            s.playerScaleX = 0.4;
-            s.playerScaleY = 1.6;
-            // Keep rotation at last dash angle
-
-            // Execute queued double dash
-            if (s.doubleDashQueued) {
-              const { dx: ddx, dy: ddy } = getMovementVector();
-              if (ddx !== 0 || ddy !== 0) {
-                // Start second dash immediately
-                const effectiveDashDuration = device.isMobile
-                  ? GAME_ENGINE.PLAYER_DASH_DURATION_MOBILE
-                  : GAME_ENGINE.PLAYER_DASH_DURATION;
-
-                s.isDashing = true;
-                s.dashTimer = effectiveDashDuration;
-                s.doubleDashQueued = false;
-                s.doubleDashUsed = true;
-                s.dashCooldownTimer = GAME_ENGINE.DOUBLE_DASH_COOLDOWN; // 4 seconds
-                audio.playDash();
-                s.shake = 10; // Extra feedback for double dash
-                EventBus.emit('playerDash', {
-                  duration: effectiveDashDuration,
-                  cooldown: GAME_ENGINE.DOUBLE_DASH_COOLDOWN,
-                  isDoubleDash: true,
-                });
-
-                // Stretch for double dash
-                s.playerScaleX = 1.8;
-                s.playerScaleY = 0.4;
-                s.playerRotation = Math.atan2(ddy, ddx);
-              } else {
-                s.doubleDashQueued = false;
-              }
-            }
-          }
-
-          // Add current position to trail
-          s.dashTrail.push({ x: player.x, y: player.y });
-          const maxTrail = s.isDashing
-            ? Math.floor(GAME_ENGINE.DASH_TRAIL_MAX_LENGTH * 1.5)
-            : GAME_ENGINE.DASH_TRAIL_MAX_LENGTH;
-          if (s.dashTrail.length > maxTrail) {
-            s.dashTrail.shift();
-          }
-        } else {
-          // Fade out trail - frame-rate independent using accumulator
-          s.dashHaloOpacity = 0;
-          if (s.dashTrail.length > 0) {
-            s.dashTrailAccumulator += dtFactor;
-            while (s.dashTrailAccumulator >= 1) {
-              if (s.dashTrail.length > 0) {
-                s.dashTrail.shift();
-              }
-              s.dashTrailAccumulator -= 1;
-            }
-          } else {
-            s.dashTrailAccumulator = 0;
-          }
-        }
-        if (s.dashCooldownTimer > 0) {
-          s.dashCooldownTimer -= deltaTime;
-          if (s.dashCooldownTimer <= 0) {
-            // Reset double dash flag when cooldown ends
-            s.doubleDashUsed = false;
-          }
-        }
-
-        const { dx, dy } = getMovementVector();
-
-        // Handle Dash Trigger (initial dash only)
-        if (
-          isSpacePressed() &&
-          s.dashCooldownTimer <= 0 &&
-          (dx !== 0 || dy !== 0) &&
-          !s.isDashing
-        ) {
-          const effectiveDashDuration = device.isMobile
-            ? GAME_ENGINE.PLAYER_DASH_DURATION_MOBILE
-            : GAME_ENGINE.PLAYER_DASH_DURATION;
-
-          s.isDashing = true;
-          s.dashTimer = effectiveDashDuration;
-          s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
-          s.doubleDashQueued = false;
-          s.doubleDashUsed = false;
-          audio.playDash();
-          consumeDash();
-          EventBus.emit('playerDash', {
-            duration: effectiveDashDuration,
-            cooldown: GAME_ENGINE.DASH_COOLDOWN,
-            isDoubleDash: false,
-          });
-
-          // Dash Stretch (long and thin)
-          s.playerScaleX = 1.8;
-          s.playerScaleY = 0.4;
-          s.playerRotation = Math.atan2(dy, dx);
-        }
-
-        // --- ANIMATION METADATA SYNC ---
-        s.isMoving = Math.hypot(dx, dy) > 0.1;
-        if (dx !== 0) {
-          s.lastMoveX = dx > 0 ? 1 : -1;
-        }
-
-        if (dx !== 0 || dy !== 0) {
-          const mag = Math.hypot(dx, dy);
-          let speedMult = 1;
-
-          // Support analog move
-          let inputFactor = Math.min(1, mag);
-
-          if (s.isDashing) {
-            speedMult = GAME_ENGINE.DASH_SPEED_MULTIPLIER;
-            inputFactor = 1.0;
-          }
-
-          const dirX = dx / mag;
-          const dirY = dy / mag;
-
-          // Update rotation for squash/stretch
-          if (!s.isDashing) {
-            s.playerRotation = Math.atan2(dy, dx);
-          }
-
-          // Get effective speed from BuffManager (includes buff/card bonuses)
-          // Apply system-level cap from PlayerConfig
-          const rawSpeed = BuffManager.isInitialized()
-            ? BuffManager.getDecoratedStats().getSpeed()
-            : player.speed;
-          const effectiveSpeed = Math.min(rawSpeed, PLAYER_STATS.MAX_SPEED);
-
-          player.x += dirX * inputFactor * effectiveSpeed * speedMult * dtFactor;
-          player.y += dirY * inputFactor * effectiveSpeed * speedMult * dtFactor;
-        }
-
-        // Clamp player to screen bounds (prevent going off-screen)
-        player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
-
-        // Mobile: Add small padding at the bottom to stay clear of HP bar
-        // Desktop: Keep standard radius-based clamping
-        const bottomMargin = device.isMobile ? player.radius + 40 : player.radius;
-        player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
-
-        // Combat System - Auto Fire (only targets on-screen enemies)
-        const didAttack = combatSystem.current.processAutoFire(
-          p,
-          player,
-          s,
+        phaseSharedRef.current = {
           deltaTime,
+          dtFactor,
+          timeMs: time,
           width,
-          height
-        );
+          height,
+          deviceIsMobile: device.isMobile,
+          combatSystem: combatSystem.current,
+          getMovementVector,
+          isDashPressed: isSpacePressed,
+          isDashFreshPress: isSpaceFreshPress,
+          consumeDash,
+        };
+
+        const phaseTickResult = gameLoopCoordinatorRef.current.runTickSync({
+          clock: {
+            frame: gameplayFrameRef.current,
+            nowMs: time,
+            deltaMs: deltaTime,
+            elapsedMs: TimeService.getGameTime(),
+          },
+          status,
+          dimensions: { width, height },
+          world: {
+            player: playerRef as unknown as MutableRef<Player | null>,
+            gameState: state as unknown as MutableRef<GameState>,
+            pool: pool as unknown as MutableRef<PoolLikeRef>,
+          },
+          marketData: marketDataRef.current,
+          telemetry: {
+            phaseDurationsMs: {},
+            counters: {},
+            marks: {},
+          },
+        });
+        lastPhaseTickRef.current = {
+          completedPhaseIds: phaseTickResult.completedPhaseIds,
+          errorCount: phaseTickResult.errors.length,
+        };
+
+        if (phaseTickResult.errors.length > 0) {
+          // Throttle warning logs to avoid console spam during frame loop.
+          if (time - lastPhaseErrorLogTimeRef.current > 1000) {
+            const firstError = phaseTickResult.errors[0];
+            if (firstError) {
+              Logger.warn('[GameLoopCoordinator] Tick completed with phase errors', {
+                errorCount: phaseTickResult.errors.length,
+                firstPhaseId: firstError.phaseId,
+                firstStage: firstError.stage,
+              });
+            }
+            lastPhaseErrorLogTimeRef.current = time;
+          }
+        }
+
+        const movementVector = phaseSharedRef.current.inputVector as
+          | { dx: number; dy: number }
+          | undefined;
+        const dx = movementVector?.dx ?? 0;
+        const dy = movementVector?.dy ?? 0;
+
+        const didAttack =
+          typeof phaseSharedRef.current.didAttack === 'boolean'
+            ? phaseSharedRef.current.didAttack
+            : false;
 
         const movementMagnitude = Math.min(1, Math.hypot(dx, dy));
 
@@ -1034,6 +1055,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       renderer,
       spawnSystemRef,
       speedLineSpawner,
+      gameLoopCoordinatorRef,
       pair,
       t,
     ]

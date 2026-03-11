@@ -274,6 +274,46 @@ describe('EventBus', () => {
   });
 
   // =====================
+  // SECTION: emitThrottled()
+  // =====================
+  describe('emitThrottled()', () => {
+    it('should emit once within throttle window', () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+        const callback = vi.fn();
+        EventBus.on('fpsUpdated', callback);
+
+        EventBus.emitThrottled('fpsUpdated', { avgFps: 60 }, 1000);
+        EventBus.emitThrottled('fpsUpdated', { avgFps: 61 }, 1000);
+
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(callback).toHaveBeenCalledWith({ avgFps: 60 });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should emit again after throttle window passes', () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+        const callback = vi.fn();
+        EventBus.on('fpsUpdated', callback);
+
+        EventBus.emitThrottled('fpsUpdated', { avgFps: 60 }, 1000);
+        vi.setSystemTime(new Date('2026-01-01T00:00:01.001Z'));
+        EventBus.emitThrottled('fpsUpdated', { avgFps: 61 }, 1000);
+
+        expect(callback).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+  // =====================
   // SECTION: unsubscribe()
   // =====================
   describe('unsubscribe()', () => {
@@ -319,6 +359,21 @@ describe('EventBus', () => {
 
       expect(callback1).not.toHaveBeenCalled();
       expect(callback2).toHaveBeenCalledTimes(1);
+    });
+
+    it('should unsubscribe same callback across different scopes', () => {
+      const callback = vi.fn();
+
+      EventBus.on('enemyKilled', callback, { scope: 'ui' });
+      EventBus.on('enemyKilled', callback, { scope: 'system' });
+
+      expect(EventBus.listenerCount('enemyKilled')).toBe(2);
+
+      EventBus.unsubscribe('enemyKilled', callback);
+
+      expect(EventBus.listenerCount('enemyKilled')).toBe(0);
+      EventBus.emit('enemyKilled', { x: 0, y: 0 });
+      expect(callback).not.toHaveBeenCalled();
     });
   });
 
@@ -456,6 +511,31 @@ describe('EventBus', () => {
     });
   });
 
+  // =====================
+  // SECTION: clearScope()
+  // =====================
+  describe('clearScope()', () => {
+    it('should remove listeners only from the target scope', () => {
+      const uiCallback = vi.fn();
+      const systemCallback = vi.fn();
+
+      EventBus.on('enemyKilled', uiCallback, { scope: 'ui' });
+      EventBus.on('enemyKilled', systemCallback, { scope: 'system' });
+
+      EventBus.clearScope('ui');
+      EventBus.emit('enemyKilled', { x: 0, y: 0 });
+
+      expect(uiCallback).not.toHaveBeenCalled();
+      expect(systemCallback).toHaveBeenCalledTimes(1);
+      expect(EventBus.listenerCount('enemyKilled')).toBe(1);
+    });
+
+    it('should not throw when clearing an already empty scope', () => {
+      EventBus.clearScope('debug');
+
+      expect(() => EventBus.clearScope('debug')).not.toThrow();
+    });
+  });
   // =====================
   // SECTION: clearEvent()
   // =====================

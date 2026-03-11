@@ -6,7 +6,6 @@
  *
  * Hooks:
  * - useHUDEvents: EventBus subscriptions
- * - useHUDUpdateLoop: High-frequency DOM updates
  * - useEnemyPointers: Off-screen enemy indicators
  */
 
@@ -19,7 +18,6 @@ import { getHUDLayout } from '../config/UILayout';
 
 // Custom hooks
 import { useHUDEvents } from '../hooks/useHUDEvents';
-import { useHUDUpdateLoop } from '../hooks/useHUDUpdateLoop';
 import { useEnemyPointers } from '../hooks/useEnemyPointers';
 
 // Import HUD sub-components
@@ -45,9 +43,11 @@ interface GameHUDProps {
   player?: Player;
 }
 
+const EMPTY_ENEMIES: GameEnemy[] = [];
+
 export const GameHUD: React.FC<GameHUDProps> = ({
   status,
-  enemies = [],
+  enemies = EMPTY_ENEMIES,
   width = 0,
   height = 0,
   player,
@@ -67,13 +67,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     player,
     status
   );
-
-  useHUDUpdateLoop({
-    status,
-    player,
-    containerRef,
-    comboPanelOffset: layout.elements.comboPanel.offset,
-  });
 
   useEnemyPointers({
     status,

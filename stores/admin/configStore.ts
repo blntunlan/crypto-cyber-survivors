@@ -29,6 +29,15 @@ interface ConfigHistoryEntry {
   description: string;
 }
 
+type SpawnUpdates = Partial<Omit<SpawnConfig, 'enemyDistribution'>> & {
+  enemyDistribution?: Partial<SpawnConfig['enemyDistribution']>;
+};
+
+type ItemUpdates = Partial<Omit<ItemConfig, 'gemValues' | 'powerUpDurations'>> & {
+  gemValues?: Partial<ItemConfig['gemValues']>;
+  powerUpDurations?: Partial<ItemConfig['powerUpDurations']>;
+};
+
 interface AdminConfigState {
   // Current config
   config: GameConfig;
@@ -42,8 +51,8 @@ interface AdminConfigState {
   // Actions
   setConfig: (config: GameConfig) => void;
   updateDifficulty: (updates: Partial<DifficultyConfig>) => void;
-  updateSpawn: (updates: Partial<SpawnConfig>) => void;
-  updateItems: (updates: Partial<ItemConfig>) => void;
+  updateSpawn: (updates: SpawnUpdates) => void;
+  updateItems: (updates: ItemUpdates) => void;
   updateVisuals: (updates: Partial<VisualConfig>) => void;
 
   // Persistence
@@ -67,11 +76,11 @@ interface AdminConfigState {
 // =============================================================================
 
 const STORAGE_KEY = 'admin_game_config';
+const MAX_PERSISTED_HISTORY = 10;
 
-// Import default config inline to avoid circular dependency
-const getDefaultConfig = (): GameConfig => ({
+const ADMIN_DEFAULT_CONFIG_TEMPLATE: GameConfig = {
   version: '1.0.0',
-  lastModified: Date.now(),
+  lastModified: 0,
   difficulty: {
     base: 5,
     volatilityMultiplier: 1.0,
@@ -114,160 +123,350 @@ const getDefaultConfig = (): GameConfig => ({
     screenShake: true,
     glowEffects: true,
   },
+};
+
+type PersistedAdminConfigState = Pick<
+  AdminConfigState,
+  'config' | 'history' | 'historyIndex'
+>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const cloneConfig = (config: GameConfig): GameConfig => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(config);
+  }
+  return JSON.parse(JSON.stringify(config)) as GameConfig;
+};
+
+const createDefaultConfig = (): GameConfig => ({
+  ...cloneConfig(ADMIN_DEFAULT_CONFIG_TEMPLATE),
+  lastModified: Date.now(),
 });
+
+const stampConfig = (config: GameConfig): GameConfig => ({
+  ...cloneConfig(config),
+  lastModified: Date.now(),
+});
+
+const createHistoryEntry = (
+  config: GameConfig,
+  description: string
+): ConfigHistoryEntry => ({
+  timestamp: Date.now(),
+  config: cloneConfig(config),
+  description,
+});
+
+const appendHistory = (
+  state: Pick<AdminConfigState, 'history' | 'historyIndex' | 'maxHistorySize'>,
+  config: GameConfig,
+  description: string
+): Pick<AdminConfigState, 'history' | 'historyIndex'> => {
+  const pastHistory = state.history.slice(0, state.historyIndex + 1);
+  const historyWithNewEntry = [...pastHistory, createHistoryEntry(config, description)];
+  const overflowCount = Math.max(historyWithNewEntry.length - state.maxHistorySize, 0);
+  const trimmedHistory =
+    overflowCount > 0 ? historyWithNewEntry.slice(overflowCount) : historyWithNewEntry;
+
+  return {
+    history: trimmedHistory,
+    historyIndex: trimmedHistory.length - 1,
+  };
+};
+
+const mergeConfigWithDefaults = (partial: Partial<GameConfig>): GameConfig => {
+  const defaults = createDefaultConfig();
+
+  return {
+    ...defaults,
+    ...partial,
+    version: typeof partial.version === 'string' ? partial.version : defaults.version,
+    lastModified: Date.now(),
+    difficulty: {
+      ...defaults.difficulty,
+      ...(partial.difficulty ?? {}),
+    },
+    spawn: {
+      ...defaults.spawn,
+      ...(partial.spawn ?? {}),
+      enemyDistribution: {
+        ...defaults.spawn.enemyDistribution,
+        ...(partial.spawn?.enemyDistribution ?? {}),
+      },
+    },
+    items: {
+      ...defaults.items,
+      ...(partial.items ?? {}),
+      gemValues: {
+        ...defaults.items.gemValues,
+        ...(partial.items?.gemValues ?? {}),
+      },
+      powerUpDurations: {
+        ...defaults.items.powerUpDurations,
+        ...(partial.items?.powerUpDurations ?? {}),
+      },
+    },
+    visuals: {
+      ...defaults.visuals,
+      ...(partial.visuals ?? {}),
+    },
+  };
+};
+
+const isImportShapeValid = (value: unknown): value is Partial<GameConfig> =>
+  isRecord(value) &&
+  typeof value.version === 'string' &&
+  isRecord(value.difficulty) &&
+  isRecord(value.spawn);
+
+const normalizePersistedHistory = (history: unknown): ConfigHistoryEntry[] => {
+  if (!Array.isArray(history)) return [];
+
+  return history
+    .map(entry => {
+      if (!isRecord(entry) || !isRecord(entry.config)) return null;
+
+      return {
+        timestamp: typeof entry.timestamp === 'number' ? entry.timestamp : Date.now(),
+        description:
+          typeof entry.description === 'string' ? entry.description : 'Config update',
+        config: mergeConfigWithDefaults(entry.config as Partial<GameConfig>),
+      } satisfies ConfigHistoryEntry;
+    })
+    .filter((entry): entry is ConfigHistoryEntry => entry !== null);
+};
+
+const createInitialState = (): Pick<
+  AdminConfigState,
+  'config' | 'isDirty' | 'history' | 'historyIndex' | 'maxHistorySize'
+> => {
+  const initialConfig = createDefaultConfig();
+  return {
+    config: initialConfig,
+    isDirty: false,
+    history: [createHistoryEntry(initialConfig, 'Initial state')],
+    historyIndex: 0,
+    maxHistorySize: 50,
+  };
+};
 
 export const useAdminConfigStore = create<AdminConfigState>()(
   persist(
-    (set, get) => ({
-      // Initial state
-      config: getDefaultConfig(),
-      isDirty: false,
-      history: [
-        {
-          timestamp: Date.now(),
-          config: getDefaultConfig(),
-          description: 'Initial state',
-        },
-      ],
-      historyIndex: 0,
-      maxHistorySize: 50,
+    (set, get) => {
+      const applyConfigUpdate = (
+        state: Pick<AdminConfigState, 'history' | 'historyIndex' | 'maxHistorySize'>,
+        config: GameConfig,
+        description: string
+      ): Pick<AdminConfigState, 'config' | 'isDirty' | 'history' | 'historyIndex'> => {
+        const stamped = stampConfig(config);
+        const nextHistory = appendHistory(state, stamped, description);
 
-      // Set entire config
-      setConfig: (config: GameConfig) => {
-        const state = get();
-        // Create new entry
-        const newEntry: ConfigHistoryEntry = {
-          timestamp: Date.now(),
-          config: config,
-          description: 'Config update',
-        };
-
-        // If we are in the middle of history, discard the future
-        const pastHistory = state.history.slice(0, state.historyIndex + 1);
-
-        // Add new entry
-        const newHistory = [...pastHistory, newEntry].slice(-state.maxHistorySize);
-
-        set({
-          config: { ...config, lastModified: Date.now() },
+        return {
+          config: stamped,
           isDirty: true,
-          history: newHistory,
-          historyIndex: newHistory.length - 1,
-        });
-      },
+          ...nextHistory,
+        };
+      };
 
-      // Partial updates
-      updateDifficulty: (updates: Partial<DifficultyConfig>) => {
-        const state = get();
-        state.setConfig({
-          ...state.config,
-          difficulty: { ...state.config.difficulty, ...updates },
-        });
-      },
+      return {
+        ...createInitialState(),
 
-      updateSpawn: (updates: Partial<SpawnConfig>) => {
-        const state = get();
-        state.setConfig({
-          ...state.config,
-          spawn: { ...state.config.spawn, ...updates },
-        });
-      },
+        // Set entire config
+        setConfig: (config: GameConfig) =>
+          set(state => applyConfigUpdate(state, config, 'Config update')),
 
-      updateItems: (updates: Partial<ItemConfig>) => {
-        const state = get();
-        state.setConfig({
-          ...state.config,
-          items: { ...state.config.items, ...updates },
-        });
-      },
+        // Partial updates
+        updateDifficulty: (updates: Partial<DifficultyConfig>) =>
+          set(state =>
+            applyConfigUpdate(
+              state,
+              {
+                ...state.config,
+                difficulty: { ...state.config.difficulty, ...updates },
+              },
+              'Difficulty update'
+            )
+          ),
 
-      updateVisuals: (updates: Partial<VisualConfig>) => {
-        const state = get();
-        state.setConfig({
-          ...state.config,
-          visuals: { ...state.config.visuals, ...updates },
-        });
-      },
+        updateSpawn: (updates: SpawnUpdates) =>
+          set(state =>
+            applyConfigUpdate(
+              state,
+              {
+                ...state.config,
+                spawn: {
+                  ...state.config.spawn,
+                  ...updates,
+                  enemyDistribution: {
+                    ...state.config.spawn.enemyDistribution,
+                    ...(updates.enemyDistribution ?? {}),
+                  },
+                },
+              },
+              'Spawn update'
+            )
+          ),
 
-      // Persistence
-      saveConfig: () => {
-        set({ isDirty: false });
-        // Persist middleware handles localStorage automatically
-      },
+        updateItems: (updates: ItemUpdates) =>
+          set(state =>
+            applyConfigUpdate(
+              state,
+              {
+                ...state.config,
+                items: {
+                  ...state.config.items,
+                  ...updates,
+                  gemValues: {
+                    ...state.config.items.gemValues,
+                    ...(updates.gemValues ?? {}),
+                  },
+                  powerUpDurations: {
+                    ...state.config.items.powerUpDurations,
+                    ...(updates.powerUpDurations ?? {}),
+                  },
+                },
+              },
+              'Items update'
+            )
+          ),
 
-      loadConfig: () => {
-        // Persist middleware loads automatically
-        set({ isDirty: false });
-      },
+        updateVisuals: (updates: Partial<VisualConfig>) =>
+          set(state =>
+            applyConfigUpdate(
+              state,
+              {
+                ...state.config,
+                visuals: { ...state.config.visuals, ...updates },
+              },
+              'Visuals update'
+            )
+          ),
 
-      resetToDefaults: () => {
-        const state = get();
-        state.setConfig(getDefaultConfig());
-      },
+        // Persistence
+        saveConfig: () => {
+          set({ isDirty: false });
+          // Persist middleware handles localStorage automatically
+        },
 
-      // History navigation
-      undo: () => {
-        const state = get();
-        if (state.historyIndex > 0) {
-          const newIndex = state.historyIndex - 1;
-          const entry = state.history[newIndex];
-          if (entry) {
-            set({
-              config: entry.config,
+        loadConfig: () => {
+          // Persist middleware loads automatically
+          set({ isDirty: false });
+        },
+
+        resetToDefaults: () =>
+          set(state =>
+            applyConfigUpdate(state, createDefaultConfig(), 'Reset to defaults')
+          ),
+
+        // History navigation
+        undo: () =>
+          set(state => {
+            if (state.historyIndex <= 0) return state;
+
+            const newIndex = state.historyIndex - 1;
+            const entry = state.history[newIndex];
+            if (!entry) return state;
+
+            return {
+              config: cloneConfig(entry.config),
               historyIndex: newIndex,
               isDirty: true,
-            });
-          }
-        }
-      },
+            };
+          }),
 
-      redo: () => {
-        const state = get();
-        if (state.historyIndex < state.history.length - 1) {
-          const newIndex = state.historyIndex + 1;
-          const entry = state.history[newIndex];
-          if (entry) {
-            set({
-              config: entry.config,
+        redo: () =>
+          set(state => {
+            if (state.historyIndex >= state.history.length - 1) return state;
+
+            const newIndex = state.historyIndex + 1;
+            const entry = state.history[newIndex];
+            if (!entry) return state;
+
+            return {
+              config: cloneConfig(entry.config),
               historyIndex: newIndex,
               isDirty: true,
-            });
-          }
-        }
-      },
+            };
+          }),
 
-      canUndo: () => get().historyIndex > 0,
-      canRedo: () => get().historyIndex < get().history.length - 1,
+        canUndo: () => get().historyIndex > 0,
+        canRedo: () => get().historyIndex < get().history.length - 1,
 
-      // Export/Import
-      exportConfig: () => {
-        return JSON.stringify(get().config, null, 2);
-      },
+        // Export/Import
+        exportConfig: () => {
+          return JSON.stringify(cloneConfig(get().config), null, 2);
+        },
 
-      importConfig: (json: string) => {
-        try {
-          const parsed = JSON.parse(json) as Partial<GameConfig>;
+        importConfig: (json: string) => {
+          try {
+            const parsed = JSON.parse(json) as unknown;
 
-          // Basic validation
-          if (!parsed.version || !parsed.difficulty || !parsed.spawn) {
-            Logger.error('Invalid config format');
+            // Basic validation
+            if (!isImportShapeValid(parsed)) {
+              Logger.error('Invalid config format');
+              return false;
+            }
+
+            const normalized = mergeConfigWithDefaults(parsed);
+            set(state => applyConfigUpdate(state, normalized, 'Imported config'));
+            return true;
+          } catch (error) {
+            Logger.error('Failed to parse config JSON:', { error });
             return false;
           }
-
-          get().setConfig(parsed as GameConfig);
-          return true;
-        } catch (error) {
-          Logger.error('Failed to parse config JSON:', { error });
-          return false;
-        }
-      },
-    }),
+        },
+      };
+    },
     {
       name: STORAGE_KEY,
-      partialize: state => ({
-        config: state.config,
-        history: state.history.slice(-10), // Only persist last 10 history entries
-      }),
+      partialize: state => {
+        const trimmedHistory = state.history.slice(-MAX_PERSISTED_HISTORY);
+        const trimOffset = Math.max(state.history.length - MAX_PERSISTED_HISTORY, 0);
+        const trimmedHistoryIndex = Math.max(0, state.historyIndex - trimOffset);
+
+        return {
+          config: state.config,
+          history: trimmedHistory,
+          historyIndex: trimmedHistoryIndex,
+        } satisfies PersistedAdminConfigState;
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as
+          | Partial<PersistedAdminConfigState>
+          | undefined;
+        if (!persisted) {
+          return currentState;
+        }
+
+        const fallbackConfig = currentState.config;
+        const normalizedConfig = persisted.config
+          ? mergeConfigWithDefaults(persisted.config)
+          : fallbackConfig;
+
+        const normalizedHistory = normalizePersistedHistory(persisted.history);
+        const history =
+          normalizedHistory.length > 0
+            ? normalizedHistory
+            : [createHistoryEntry(normalizedConfig, 'Recovered state')];
+
+        const maxIndex = history.length - 1;
+        const requestedIndex =
+          typeof persisted.historyIndex === 'number'
+            ? persisted.historyIndex
+            : maxIndex;
+        const safeIndex = Math.min(Math.max(requestedIndex, 0), maxIndex);
+        const activeConfig = history[safeIndex]?.config ?? normalizedConfig;
+
+        return {
+          ...currentState,
+          config: cloneConfig(activeConfig),
+          history,
+          historyIndex: safeIndex,
+          isDirty: false,
+        };
+      },
     }
   )
 );

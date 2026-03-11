@@ -72,8 +72,8 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   // Desktop: Full info bar with wave phase, status, etc.
   return (
     <div
-      className={`hud-bottom-safe fixed left-1/2 z-[1000] flex -translate-x-1/2 flex-col items-center transition-all duration-500 ${
-        isMobile ? (isSmallDevice ? 'w-[92%]' : 'w-[88%]') : 'bottom-10 w-[450px]'
+      className={`hud-bottom-safe pointer-events-none fixed left-1/2 z-[1000] flex -translate-x-1/2 flex-col items-center transition-all duration-500 ${
+        isMobile ? (isSmallDevice ? 'w-[85%]' : 'w-[80%]') : 'bottom-10 w-[450px]'
       }`}
       style={
         isMobile
@@ -216,7 +216,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
 // Wave phases deprecated - difficulty now market-driven
 
 export const AccountHealthPremium: React.FC<AccountHealthProps> = memo(props => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
 
   useEffect(() => {
     const unsubscribe = screenService.onChange(() => {

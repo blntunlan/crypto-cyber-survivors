@@ -706,9 +706,9 @@ export class EntityRenderer implements IRenderer {
     ctx.stroke();
     ctx.restore();
 
-    // 2. Radial Glow Field (Enhanced visibility backdrop)
+    // 2. Radial Glow Field (Enhanced visibility backdrop — toned down)
     ctx.save();
-    const glowRadius = player.radius * 2.5;
+    const glowRadius = player.radius * 1.8;
     const gradient = gradientCache.getRadialGradient(
       ctx,
       px,
@@ -718,8 +718,8 @@ export class EntityRenderer implements IRenderer {
       py,
       glowRadius,
       [
-        { offset: 0, color: `${player.color}40` },
-        { offset: 0.5, color: `${player.color}20` },
+        { offset: 0, color: `${player.color}25` },
+        { offset: 0.5, color: `${player.color}10` },
         { offset: 1, color: `${player.color}00` },
       ]
     );

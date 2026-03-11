@@ -30,9 +30,8 @@ describe('GameConfig', () => {
       expect(ordered[i]!.value.damage).toBeGreaterThanOrEqual(
         ordered[i - 1]!.value.damage
       );
-      expect(ordered[i]!.value.xpReq).toBeGreaterThanOrEqual(
-        ordered[i - 1]!.value.xpReq
-      );
+      // xpReq DECREASES with leverage (higher leverage = faster leveling = less XP needed)
+      expect(ordered[i]!.value.xpReq).toBeLessThanOrEqual(ordered[i - 1]!.value.xpReq);
     }
   });
 

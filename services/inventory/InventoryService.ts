@@ -43,14 +43,12 @@ class InventoryServiceClass {
     EventBus.subscribe('gameReset', () => this.handleGameReset());
 
     // Subscribe to lootbox item events
-    EventBus.subscribe('inventoryItemAdded' as never, (data: unknown) => {
-      const event = data as { itemType: string; itemId: string; quantity: number };
-      this.addItem(event.itemType as InventoryItemType, event.itemId, event.quantity);
+    EventBus.subscribe('inventoryItemAdded', data => {
+      this.addItem(data.itemType, data.itemId, data.quantity);
     });
 
-    EventBus.subscribe('skinUnlocked' as never, (data: unknown) => {
-      const event = data as { skinId: CharacterSkinId };
-      this.unlockSkin(event.skinId);
+    EventBus.subscribe('skinUnlocked', data => {
+      this.unlockSkin(data.skinId);
     });
   }
 
@@ -143,14 +141,11 @@ class InventoryServiceClass {
     inventory.lastUpdated = new Date();
     Logger.info(`[InventoryService] Added ${quantity}x ${definition.name}`);
 
-    EventBus.emit(
-      'inventoryUpdated' as never,
-      {
-        itemType: 'consumable',
-        itemId,
-        action: 'add',
-      } as never
-    );
+    EventBus.emit('inventoryUpdated', {
+      itemType: 'consumable',
+      itemId,
+      action: 'add',
+    });
 
     return true;
   }
@@ -182,14 +177,11 @@ class InventoryServiceClass {
 
     Logger.info(`[InventoryService] Unlocked skin: ${definition.name}`);
 
-    EventBus.emit(
-      'inventoryUpdated' as never,
-      {
-        itemType: 'character_skin',
-        itemId: skinId,
-        action: 'unlock',
-      } as never
-    );
+    EventBus.emit('inventoryUpdated', {
+      itemType: 'character_skin',
+      itemId: skinId,
+      action: 'unlock',
+    });
 
     return true;
   }
@@ -262,15 +254,12 @@ class InventoryServiceClass {
       `[InventoryService] Used ${definition.name}, ${item.quantity} remaining`
     );
 
-    EventBus.emit(
-      'consumableUsed' as never,
-      {
-        itemId,
-        effectType: definition.effectType,
-        effectValue: definition.effectValue,
-        duration: definition.duration,
-      } as never
-    );
+    EventBus.emit('consumableUsed', {
+      itemId,
+      effectType: definition.effectType,
+      effectValue: definition.effectValue,
+      duration: definition.duration,
+    });
 
     return true;
   }
@@ -394,13 +383,10 @@ class InventoryServiceClass {
 
     Logger.info(`[InventoryService] Equipped skin: ${skinId}`);
 
-    EventBus.emit(
-      'skinEquipped' as never,
-      {
-        skinId,
-        previousSkinId: previousSkin,
-      } as never
-    );
+    EventBus.emit('skinEquipped', {
+      skinId,
+      previousSkinId: previousSkin,
+    });
 
     return true;
   }
