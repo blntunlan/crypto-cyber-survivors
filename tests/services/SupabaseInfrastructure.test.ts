@@ -8,17 +8,17 @@ describe('Supabase Infrastructure', () => {
     // We just check consistency
     const status = isSupabaseConfigured();
     if (status) {
-      expect(supabase).not.toBeNull();
+      expect(supabase.auth).toBeDefined();
     } else {
-      expect(supabase).toBeNull();
+      expect(supabase.auth).toBeUndefined();
     }
   });
 
   it('should have basic expected methods if configured', () => {
     if (isSupabaseConfigured()) {
       expect(supabase).toHaveProperty('from');
-      expect(supabase).toHaveProperty('auth');
-      expect(supabase).toHaveProperty('functions');
+      expect(supabase.auth).toBeDefined();
+      expect(supabase.functions).toBeDefined();
     }
   });
 });
