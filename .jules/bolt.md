@@ -1,0 +1,3 @@
+## 2024-05-16 - [ViewportBounds Allocation Optimization]
+**Learning:** `createViewportBounds` in `CullingUtils.ts` currently returns a new object every time it's called. In high-frequency render loops (like 60 FPS `EntityRenderer.ts`, `EffectRenderer.ts`, `ProjectileRenderer.ts`, and `CombatSystem.ts`), this creates a new `ViewportBounds` object per frame, causing unnecessary garbage collection pressure.
+**Action:** Introduce `updateViewportBounds(bounds, width, height, padding)` to reuse a single `ViewportBounds` instance (allocated once) and mutate it in-place instead of reallocating it per frame, minimizing GC overhead in hot render loops.
