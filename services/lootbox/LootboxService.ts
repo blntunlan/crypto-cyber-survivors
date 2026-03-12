@@ -37,10 +37,10 @@ class LootboxServiceClass {
     EventBus.subscribe('gameReset', () => this.handleGameReset());
 
     EventBus.subscribe('difficultyUpdated', data => {
-      if (data?.trendAlignment) {
+      if (data.trendAlignment) {
         this.currentTrendAlignment = data.trendAlignment as TrendAlignment;
       }
-      if (typeof data?.lootboxDropChance === 'number') {
+      if (typeof data.lootboxDropChance === 'number') {
         this.currentLootboxDropChance = data.lootboxDropChance;
       }
     });

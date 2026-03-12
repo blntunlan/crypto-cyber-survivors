@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // We mock the supabase client creation to inspect the options passed to it
 vi.mock('@supabase/supabase-js', () => ({
@@ -18,11 +18,17 @@ describe('Supabase Client Configuration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock-url.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('should initialize with correct PWA persistence settings', async () => {
-    const { supabase: _supabase } = await import('../../../services/supabase/client');
     const { createClient } = await import('@supabase/supabase-js');
+    await import('../../../services/supabase/client');
 
     expect(createClient).toHaveBeenCalled();
     const options = (createClient as any).mock.calls[0][2];

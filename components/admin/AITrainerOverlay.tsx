@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { AI_INPUT_STATE } from '../../hooks/useGameInput';
 import { PoolManager } from '../../services/combat/PoolManager';
-import { EngineRegistry } from '../../services/core/EngineRegistry';
 import { GameStatus } from '../../types';
-import { GameStateMachine } from '../../services/core/GameStateMachine';
 
 import { MarketPosition, type LeverageOption, type Player } from '../../types';
 
@@ -14,12 +12,12 @@ class NeuralNetwork {
 
   constructor(w1?: number[][], w2?: number[][]) {
     this.w1 =
-      w1 ||
+      w1 ??
       Array.from({ length: 8 }, () =>
         Array.from({ length: 8 }, () => Math.random() * 2 - 1)
       );
     this.w2 =
-      w2 ||
+      w2 ??
       Array.from({ length: 8 }, () =>
         Array.from({ length: 3 }, () => Math.random() * 2 - 1)
       );
@@ -97,10 +95,10 @@ export const AITrainerOverlay: React.FC<AITrainerOverlayProps> = ({
       const saved = localStorage.getItem(getStorageKey());
       if (saved) {
         const data = JSON.parse(saved);
-        setBestFitness(data.fitness || 0);
+        setBestFitness(data.fitness ?? 0);
         return NeuralNetwork.fromJSON(data.brain);
       }
-    } catch (e) {
+    } catch (_e) {
       /* ignore */
     }
     setBestFitness(0);
@@ -189,6 +187,7 @@ export const AITrainerOverlay: React.FC<AITrainerOverlayProps> = ({
       const player = playerRef.current;
       const pool = PoolManager.getInstance();
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!player) {
         animationFrame = requestAnimationFrame(loop);
         return;
@@ -266,9 +265,9 @@ export const AITrainerOverlay: React.FC<AITrainerOverlayProps> = ({
         gDirY = Math.sin(angle);
       }
 
-      const hpNorm = player.hp / (player.maxHp || 100);
+      const hpNorm = player.hp / player.maxHp;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dashReady = ((player as any).dashCooldownTimer || 0) <= 0 ? 1 : -1;
+      const dashReady = ((player as any).dashCooldownTimer ?? 0) <= 0 ? 1 : -1;
 
       // 8 Inputs now: (Enemy Dist, Enemy X, Enemy Y, Gem Dist, Gem X, Gem Y, HP, Dash)
       const inputs = [distE, eDirX, eDirY, distG, gDirX, gDirY, hpNorm, dashReady];
