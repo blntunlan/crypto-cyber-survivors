@@ -8,17 +8,20 @@ describe('Supabase Infrastructure', () => {
     // We just check consistency
     const status = isSupabaseConfigured();
     if (status) {
-      expect(supabase).not.toBeNull();
+      expect(supabase.auth).not.toBeUndefined();
     } else {
-      expect(supabase).toBeNull();
+      // The supabase export is a proxy object that is never null.
+      // Tests verifying configuration status should check specific properties.
+      expect(supabase.auth).toBeUndefined();
     }
   });
 
   it('should have basic expected methods if configured', () => {
+    // In our proxy implementation, properties like 'from' always exist as functions
+    // but auth/functions/storage will be undefined if not configured.
     if (isSupabaseConfigured()) {
-      expect(supabase).toHaveProperty('from');
-      expect(supabase).toHaveProperty('auth');
-      expect(supabase).toHaveProperty('functions');
+      expect(supabase.auth).not.toBeUndefined();
+      expect(supabase.functions).not.toBeUndefined();
     }
   });
 });

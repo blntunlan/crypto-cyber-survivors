@@ -181,8 +181,7 @@ export const useMarketData = (
   // Reset timeout timer when resuming game to prevent immediate disconnects from background time
   useEffect(() => {
     // Defensive check: GameStatus might be undefined during hot reload or circular dependencies
-    // eslint_disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (gameStatus === GameStatus?.PLAYING) {
+    if (gameStatus === GameStatus.PLAYING) {
       lastPriceTimeRef.current = Date.now();
       timeoutTriggeredRef.current = false;
     }
@@ -719,7 +718,7 @@ export const useMarketData = (
             pair: expectedPair,
             position: currentPosition,
             price,
-            volume: update.volume ?? 0,
+            volume: update.volume,
             timestamp: tickTimestamp,
             rawPnl: pnlResult.rawPnl,
             level: playerLevel,
@@ -734,7 +733,7 @@ export const useMarketData = (
           const nextData = {
             ...prevMarketData,
             price,
-            volume: update.volume ?? 0,
+            volume: update.volume,
             pnl: pnlResult.rawPnl,
             effectivePnl: pnlResult.effectivePnl,
             leverage: currentLeverage,
