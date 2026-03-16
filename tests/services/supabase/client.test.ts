@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // We mock the supabase client creation to inspect the options passed to it
 vi.mock('@supabase/supabase-js', () => ({
@@ -20,7 +20,14 @@ describe('Supabase Client Configuration', () => {
     vi.resetModules();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('should initialize with correct PWA persistence settings', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
+
     const { supabase: _supabase } = await import('../../../services/supabase/client');
     const { createClient } = await import('@supabase/supabase-js');
 
