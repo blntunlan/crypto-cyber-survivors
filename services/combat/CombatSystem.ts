@@ -6,7 +6,7 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { createViewportBounds, updateViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
@@ -34,6 +34,7 @@ interface NearestEnemy {
 export class CombatSystem implements ICombatSystem {
   private static instance: CombatSystem | null = null;
   private audio: IAudioService;
+  private readonly viewportBounds: ViewportBounds;
 
   /**
    * Initializes the CombatSystem with a dedicated audio service.
@@ -42,6 +43,8 @@ export class CombatSystem implements ICombatSystem {
    */
   private constructor(audioService: IAudioService = defaultAudio) {
     this.audio = audioService;
+    // Pre-allocate viewport bounds to avoid GC overhead
+    this.viewportBounds = createViewportBounds(0, 0, 0);
   }
 
   /**
@@ -119,9 +122,9 @@ export class CombatSystem implements ICombatSystem {
     screenHeight?: number
   ): NearestEnemy | null {
     // Cache viewport bounds calculation to avoid redundant math in the loop
-    const viewportBounds =
+    const bounds =
       screenWidth !== undefined && screenHeight !== undefined
-        ? createViewportBounds(screenWidth, screenHeight, 0)
+        ? updateViewportBounds(this.viewportBounds, screenWidth, screenHeight, 0)
         : null;
 
     let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
@@ -136,9 +139,9 @@ export class CombatSystem implements ICombatSystem {
       }
 
       // Optimized viewport check - only calculate if bounds exist
-      if (viewportBounds) {
+      if (bounds) {
         const enemyRadius = enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-        if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
+        if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, bounds)) {
           return;
         }
       }
@@ -158,10 +161,10 @@ export class CombatSystem implements ICombatSystem {
       enemyGrid.forEachInRange(player.x, player.y, 3, enemy => {
         if (enemy.isDying || !enemy.active) return;
 
-        if (viewportBounds) {
+        if (bounds) {
           const enemyRadius =
             enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) return;
+          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, bounds)) return;
         }
 
         const dx = enemy.x - player.x;
@@ -184,10 +187,10 @@ export class CombatSystem implements ICombatSystem {
         if (enemy.isDying || !enemy.active) continue;
 
         // Optimized viewport check in fallback scan
-        if (viewportBounds) {
+        if (bounds) {
           const enemyRadius =
             enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, viewportBounds)) {
+          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, bounds)) {
             continue;
           }
         }

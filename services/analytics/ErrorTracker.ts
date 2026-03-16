@@ -427,52 +427,65 @@ export class ErrorTracker {
     window.addEventListener('offline', this.boundOfflineHandler);
 
     // Intercept fetch
+    const shouldInterceptFetch =
+      import.meta.env.MODE !== 'test' ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__;
+
     const originalFetch = window.fetch;
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const startTime = Date.now();
-      const url =
-        typeof input === 'string'
-          ? input
-          : input instanceof URL
-            ? input.href
-            : input.url;
-      const method = init?.method ?? 'GET';
+    if (shouldInterceptFetch) {
+      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const startTime = Date.now();
+        const url =
+          typeof input === 'string'
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
+        const method = init?.method ?? 'GET';
 
-      try {
-        const response = await originalFetch(input, init);
-        const duration = Date.now() - startTime;
+        try {
+          const response = await originalFetch(input, init);
+          const duration = Date.now() - startTime;
 
-        // Track slow requests
-        if (duration > 5000) {
-          this.addBreadcrumb(
-            'network',
-            `Slow request: ${method} ${url} (${duration}ms)`
-          );
+          // Track slow requests
+          if (duration > 5000) {
+            this.addBreadcrumb(
+              'network',
+              `Slow request: ${method} ${url} (${duration}ms)`
+            );
+          }
+
+          // Track failed requests (but not Supabase errors to prevent loops)
+          if (!response.ok && !url.includes('supabase')) {
+            Logger.debug(
+              `[ErrorTracker] fetch failed detected: ${url} status: ${response.status}`
+            );
+            this.captureNetworkError(
+              url,
+              method,
+              response.status,
+              response.statusText,
+              duration
+            );
+          }
+
+          return response;
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          if (!url.includes('supabase')) {
+            this.captureNetworkError(
+              url,
+              method,
+              0,
+              (error as Error).message,
+              duration
+            );
+          }
+          throw error;
         }
-
-        // Track failed requests (but not Supabase errors to prevent loops)
-        if (!response.ok && !url.includes('supabase')) {
-          Logger.debug(
-            `[ErrorTracker] fetch failed detected: ${url} status: ${response.status}`
-          );
-          this.captureNetworkError(
-            url,
-            method,
-            response.status,
-            response.statusText,
-            duration
-          );
-        }
-
-        return response;
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        if (!url.includes('supabase')) {
-          this.captureNetworkError(url, method, 0, (error as Error).message, duration);
-        }
-        throw error;
-      }
-    };
+      };
+    }
   }
 
   private setupResourceMonitoring(): void {
