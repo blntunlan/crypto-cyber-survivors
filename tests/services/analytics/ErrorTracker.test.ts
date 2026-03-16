@@ -39,6 +39,8 @@ describe('ErrorTracker', () => {
   let tracker: ErrorTracker;
 
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__ = true;
     vi.clearAllMocks();
     localStorage.clear();
     ErrorTracker.resetForTesting();
@@ -51,6 +53,8 @@ describe('ErrorTracker', () => {
   });
 
   afterEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__ALLOW_FETCH_INTERCEPTION_FOR_TESTS__ = false;
     vi.useRealTimers();
   });
 
