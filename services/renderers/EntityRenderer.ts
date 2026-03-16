@@ -6,6 +6,7 @@ import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import {
   createViewportBounds,
+  updateViewportBounds,
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
@@ -26,9 +27,12 @@ import { gradientCache } from '../../utils/GradientCache';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private readonly bounds: ViewportBounds;
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
+    // Pre-allocate viewport bounds to avoid GC overhead in hot render loop
+    this.bounds = createViewportBounds(0, 0, GAME_ENGINE.ENTITY_CULLING_PADDING);
   }
 
   /**
@@ -45,17 +49,19 @@ export class EntityRenderer implements IRenderer {
     const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
 
     // Boundary Check: 50px padding to ensure smooth entry into screen
-    const bounds = createViewportBounds(
+    // Optimization: Update pre-allocated bounds to prevent GC pressure
+    updateViewportBounds(
+      this.bounds,
       opts.width,
       opts.height,
       GAME_ENGINE.ENTITY_CULLING_PADDING
     );
 
     // Layered rendering (Bottom to Top)
-    this.drawInteractables(ctx, pool, bounds);
-    this.drawGems(ctx, pool, shadowsEnabled, bounds);
-    this.drawBuffGems(ctx, shadowsEnabled, bounds);
-    this.drawEnemies(ctx, pool, bounds);
+    this.drawInteractables(ctx, pool, this.bounds);
+    this.drawGems(ctx, pool, shadowsEnabled, this.bounds);
+    this.drawBuffGems(ctx, shadowsEnabled, this.bounds);
+    this.drawEnemies(ctx, pool, this.bounds);
     this.drawPlayer(ctx, player, state, shadowsEnabled);
   }
 
