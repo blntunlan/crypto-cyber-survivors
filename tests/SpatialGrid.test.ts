@@ -33,7 +33,7 @@ function createTestEntity(
 }
 
 /**
- * Helper to use forEachNearby instead of deprecated getNearby
+ * Helper to use forEachNearby instead of legacy getNearby
  */
 function getNearbyHelper<T extends { x: number; y: number; active: boolean }>(
   grid: SpatialGrid<T>,

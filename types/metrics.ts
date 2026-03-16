@@ -28,34 +28,11 @@ export enum GameEndReason {
 }
 
 /**
- * Wave Phase Types for 5-minute game cycle
+ * Wave Phase Types (AI Director V2)
  *
- * Total cycle: 300 seconds (5 minutes)
- * - warmup (0:00-0:45): Easy start, player gets comfortable
- * - buildup (0:45-1:45): Gradual difficulty increase
- * - firstPeak (1:45-2:15): First adrenaline spike
- * - breather (2:15-3:00): Relief period, power collection
- * - escalation (3:00-4:00): Building towards climax
- * - climax (4:00-4:45): Maximum intensity
- * - resolution (4:45-5:00): Decision time, coin display
+ * Legacy wave cycling was removed; runtime now reports a single active phase.
  */
-export type WavePhase =
-  | 'warmup'
-  | 'buildup'
-  | 'firstPeak'
-  | 'breather'
-  | 'escalation'
-  | 'climax'
-  | 'resolution'
-  | 'active';
-
-// Legacy phase mapping for backwards compatibility
-export const LEGACY_PHASE_MAP: Record<string, WavePhase> = {
-  calm: 'warmup',
-  building: 'buildup',
-  intense: 'climax',
-  peak: 'climax',
-};
+export type WavePhase = 'active';
 
 // ============= Bitcoin Metrics =============
 
@@ -82,13 +59,6 @@ export interface BitcoinMetrics {
  * All phases initialized to 0
  */
 export const createDefaultWavePhaseRecord = (): Record<WavePhase, number> => ({
-  warmup: 0,
-  buildup: 0,
-  firstPeak: 0,
-  breather: 0,
-  escalation: 0,
-  climax: 0,
-  resolution: 0,
   active: 0,
 });
 
@@ -96,7 +66,7 @@ export interface DifficultyMetrics {
   averageDifficulty: number;
   maxDifficulty: number;
   difficultyAtDeath: number;
-  timeInEachWavePhase: Partial<Record<WavePhase, number>>; // ms - Partial for legacy compat
+  timeInEachWavePhase: Partial<Record<WavePhase, number>>; // ms
   timeInHighDifficulty: number; // ms (difficulty > 5)
   timeInLowDifficulty: number; // ms (difficulty < 2)
   nearDeathActivations: number;

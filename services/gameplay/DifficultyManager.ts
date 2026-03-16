@@ -107,7 +107,11 @@ class DifficultyManagerClass {
    */
   recordKill(): void {
     const gameTimeSec = TimeService.getGameTimeSeconds();
-    if (gameTimeSec - this.lastKillStreakTime < D_CONFIG.STREAK_TIMEOUT_MS / 1000) {
+    // Extend combo window at high leverage (enemies are faster/denser, harder to chain kills)
+    // 1x→3s, 25x→3.75s, 50x→4.25s, 100x→5s
+    const leverageExtension = Math.min(2.0, (LeverageEngine.getLeverage() - 1) * 0.02);
+    const streakWindowSec = D_CONFIG.STREAK_TIMEOUT_MS / 1000 + leverageExtension;
+    if (gameTimeSec - this.lastKillStreakTime < streakWindowSec) {
       this.killStreak += 1;
     } else {
       this.killStreak = 1;
@@ -252,23 +256,6 @@ class DifficultyManagerClass {
       pressureIntensity: uo.pressureIntensity,
       whaleProbability: uo.whaleProbability,
       xpMultiplier: uo.xpMultiplier,
-      // Legacy compatibility
-      enemyHealth: uo.enemyHP,
-      gemValueMultiplier: uo.gemDropRate,
-      factors: {
-        baseTime: 1.0,
-        pnlEffect: 1.0,
-        volatility: uo.chaosLevel,
-        levelFactor: 1.0,
-        waveMultiplier: 1.0,
-        nearDeathMod: uo.mercyFactor > 0 ? 0.5 : 1.0,
-        streakBonus: 1.0,
-        momentumMod: shockFactor,
-        cycleFactor: 1.0,
-        leverageDamage: 1.0,
-        leverageSpawn: 1.0,
-        leverageSpeed: 1.0,
-      },
     };
 
     this.latestOutput = output;
@@ -296,34 +283,26 @@ class DifficultyManagerClass {
   }
 
   public getXpMultiplier(): number {
-    const leverage = difficultyContext.inputs.leverage;
-
-    // 1. Base Leverage Scaling (Static part)
-    // Power-law scaling for impact: sqrt(L) gives a nice diminishing return that still feels massive
-    // 100x = 1 + (10 - 1) * 0.8 = 8.2x XP
-    // 10x = 1 + (3.16 - 1) * 0.8 = 2.7x XP
+    // Dynamic Flow State Scaling ONLY (brain/director part).
+    // Leverage-based XP scaling is handled exclusively by:
+    //   - LeverageEngine.gemValue (gem reward size)
+    //   - LEVERAGE_TIERS.xpReq (level threshold reduction)
+    // These two factors combined give ~1x-3.5x leveling speed across leverages.
+    // Stacking a third leverage multiplier here caused ~64x compounding at 100x.
     let multiplier = 1.0;
-    if (leverage > 1) {
-      multiplier = 1 + (Math.sqrt(leverage) - 1) * 0.8;
-    }
 
-    // 2. Dynamic Flow State Scaling (Brain part)
-    // The GameMasterBrain provides gemDropRate based on momentum, stress and flow
     if (this.latestOutput && typeof this.latestOutput.gemDropRate === 'number') {
-      // Blend static leverage multiplier with dynamic brain multiplier
-      // We use gemDropRate to scale the final output
       const brainMult = isNaN(this.latestOutput.gemDropRate)
         ? 1.0
         : this.latestOutput.gemDropRate;
       multiplier *= brainMult;
     }
 
-    // Ensure multiplier is at least 1.0 and is a valid number
     if (isNaN(multiplier) || multiplier < 1.0 || !isFinite(multiplier)) {
       multiplier = 1.0;
     }
 
-    return Math.min(multiplier, 25.0); // Increased upper bound to allow for high-stakes flow peaks
+    return Math.min(multiplier, 3.0);
   }
 
   public getLatestOutput(): DifficultyOutput | null {
@@ -332,32 +311,6 @@ class DifficultyManagerClass {
 
   getKillStreak(): number {
     return this.killStreak;
-  }
-
-  /**
-   * @deprecated Legacy V1 Support: Wave cycles removed. Use DirectorAdapter instead.
-   */
-  getCycleNumber(): number {
-    const totalSeconds = TimeService.getGameTimeSeconds();
-    return Math.floor(totalSeconds / 300) + 1;
-  }
-
-  /**
-   * @deprecated Legacy V1 Support.
-   */
-  getCycleProgress(): number {
-    const totalElapsed = TimeService.getGameTimeSeconds();
-    const cycleElapsed = totalElapsed % 300; // Legacy 300s cycle
-    return cycleElapsed / 300;
-  }
-
-  /**
-   * @deprecated Legacy V1 Support: Wave cycles removed
-   */
-  getTimeRemainingInCycle(): number {
-    const totalElapsed = TimeService.getGameTimeSeconds();
-    const cycleElapsed = totalElapsed % 300;
-    return 300 - cycleElapsed;
   }
 
   getDebugState(): DifficultyDebugState {
@@ -429,4 +382,3 @@ class DifficultyManagerClass {
 }
 
 export const DifficultyManager = DifficultyManagerClass.getInstance();
-export { DifficultyManagerClass };

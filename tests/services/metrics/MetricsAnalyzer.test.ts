@@ -34,8 +34,7 @@ function createMockSession(overrides: any = {}): SessionMetrics {
       difficultyAtDeath: 4,
       timeInEachWavePhase: {
         ...createDefaultWavePhaseRecord(),
-        warmup: 10000,
-        buildup: 20000,
+        active: 30000,
       },
       timeInHighDifficulty: 0,
       timeInLowDifficulty: 10000,

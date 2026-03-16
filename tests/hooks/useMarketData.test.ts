@@ -10,13 +10,31 @@ const { callbackRef } = vi.hoisted(() => ({
   callbackRef: { current: null as any },
 }));
 
-vi.mock('../../services/market/MarketService', () => {
+vi.mock('../../services/market/SSEMarketService', () => {
   return {
-    MarketService: class MockMarketService {
+    SSEMarketService: class MockSSEMarketService {
       constructor(config: any) {
         callbackRef.current = (data: any) => {
           // Ensure pair is always included in the callback data
-          config.onData({ ...data, pair: config.pair });
+          config.onData({
+            rsi: 50,
+            rsiState: 'NEUTRAL',
+            atrPercent: 0.01,
+            normalizedVolume: 0.5,
+            volumePercentile: 50,
+            whaleTier: 0,
+            spawnRateMultiplier: 1,
+            enemyAggroMultiplierLong: 1,
+            enemyAggroMultiplierShort: 1,
+            trendStrength: 0,
+            trendDirection: 'NEUTRAL',
+            timestamp: Date.now(),
+            high: data.price,
+            low: data.price,
+            volume: 0,
+            ...data,
+            pair: config.pair,
+          });
         };
       }
       connect() {
@@ -129,7 +147,7 @@ describe('useMarketData', () => {
 
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 50000, source: 'binance' });
+        callbackRef.current({ price: 50000 });
       }
     });
 
@@ -150,7 +168,7 @@ describe('useMarketData', () => {
 
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 44000, source: 'binance' });
+        callbackRef.current({ price: 44000 });
       }
     });
 
@@ -173,7 +191,7 @@ describe('useMarketData', () => {
 
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 36000, source: 'binance' });
+        callbackRef.current({ price: 36000 });
       }
     });
 
@@ -195,7 +213,7 @@ describe('useMarketData', () => {
 
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 44000, source: 'binance' });
+        callbackRef.current({ price: 44000 });
       }
     });
 
@@ -212,12 +230,12 @@ describe('useMarketData', () => {
 
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 100, source: 'binance' });
+        callbackRef.current({ price: 100 });
       }
     });
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 200, source: 'binance' });
+        callbackRef.current({ price: 200 });
       }
     });
 
@@ -239,7 +257,7 @@ describe('useMarketData', () => {
 
     act(() => {
       if (callbackRef.current) {
-        callbackRef.current({ price: 40000, source: 'binance' });
+        callbackRef.current({ price: 40000 });
       }
     });
 
@@ -270,7 +288,6 @@ describe('useMarketData', () => {
           volume: 7,
           high: 41100,
           low: 40900,
-          source: 'binance',
         });
       }
     });

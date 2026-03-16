@@ -213,7 +213,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
 };
 
 // NOTE: getWaveColorText removed in AI Director V2
-// Wave phases deprecated - difficulty now market-driven
+// Wave phase system removed - difficulty now market-driven
 
 export const AccountHealthPremium: React.FC<AccountHealthProps> = memo(props => {
   const [isMobile, setIsMobile] = useState(() => screenService.isMobile());

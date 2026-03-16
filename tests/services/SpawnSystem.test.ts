@@ -108,7 +108,7 @@ describe('SpawnSystem', () => {
   });
 
   it('should select enemy type based on market sentiment (Thematic)', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5); // < 0.7 (Thematic spawn)
+    vi.spyOn(Math, 'random').mockReturnValue(0.4); // < 0.45 for bear, < 0.55 for bull
 
     // LONG + Loss = Bear
     spawnSystem.update(1100, 1.0, 800, 600, MarketPosition.LONG, mockPool, -100);
@@ -140,7 +140,7 @@ describe('SpawnSystem', () => {
   });
 
   it('should spawn random variants', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.8); // > 0.7 (Random spawn)
+    vi.spyOn(Math, 'random').mockReturnValue(0.6); // 0.55 <= roll < 0.7 -> 'fud'
 
     // Mock the second random call for variant selection
     // Math.random is called again.

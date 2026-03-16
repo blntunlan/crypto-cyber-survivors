@@ -1,14 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  CoinService,
-  CoinCalculator,
-  MockCoinProvider,
-} from '../../services/gameplay/CoinService';
+import { CoinService, MockCoinProvider } from '../../services/gameplay/CoinService';
+import { RewardCalculator } from '../../services/gameplay/RewardCalculator';
 import { EventBus } from '../../services/core/EventBus';
 
 describe('CoinService System', () => {
-  describe('CoinCalculator', () => {
-    const calculator = new CoinCalculator({
+  describe('RewardCalculator', () => {
+    const calculator = new RewardCalculator({
       perSecond: 1,
       perKill: 10,
       perLevel: 100,

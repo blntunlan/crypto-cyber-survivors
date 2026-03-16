@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MarketEventManager } from '../../services/market/MarketEventManager';
 import { EventBus } from '../../services/core/EventBus';
 import { Logger } from '../../services/system/Logger';
-import { type MarketState } from '../../services/market/MarketStateService';
+import { type MarketStateUpdatedEvent as MarketState } from '../../types/events';
 
 // Mock Logger to keep test output clean
 vi.mock('../../services/system/Logger', () => ({

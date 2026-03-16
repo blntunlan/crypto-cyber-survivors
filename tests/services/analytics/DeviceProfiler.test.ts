@@ -1,21 +1,14 @@
 import { vi } from 'vitest';
 
-// 1. Hoist mocks
-const { mockUpsert, mockFrom } = vi.hoisted(() => ({
-  mockUpsert: vi.fn().mockResolvedValue({ error: null }),
-  mockFrom: vi.fn().mockReturnThis(),
-}));
-
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: {
-    from: mockFrom,
-    upsert: mockUpsert,
+// Mock RailwayClient
+const mockPost = vi.fn().mockResolvedValue({ accepted: true });
+vi.mock('../../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    post: (...args: unknown[]) => mockPost(...args),
   },
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { supabase } from '../../../services/core/Supabase';
 import { DeviceProfiler } from '../../../services/analytics/DeviceProfiler';
 
 // Mock nanoid
@@ -26,8 +19,6 @@ vi.mock('nanoid', () => ({
 describe('DeviceProfiler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFrom.mockReturnValue({ upsert: mockUpsert });
-    mockUpsert.mockResolvedValue({ error: null });
     localStorage.clear();
 
     // Mock navigator and screen properties
@@ -94,17 +85,16 @@ describe('DeviceProfiler', () => {
   });
 
   describe('syncToSupabase', () => {
-    it('should upsert profile to Supabase', async () => {
+    it('should upsert profile via Railway API', async () => {
       await DeviceProfiler.syncToSupabase();
 
-      expect((supabase as any).from).toHaveBeenCalledWith('device_profiles');
-      expect(mockUpsert).toHaveBeenCalledWith(
+      expect(mockPost).toHaveBeenCalledWith(
+        '/api/v1/telemetry/device-profiles',
         expect.objectContaining({
           fingerprint: 'df-mocked-id',
           screen_width: 1920,
           device_type: 'desktop',
-        }),
-        { onConflict: 'fingerprint' }
+        })
       );
     });
 
@@ -115,7 +105,7 @@ describe('DeviceProfiler', () => {
       });
 
       await DeviceProfiler.syncToSupabase();
-      expect((supabase as any).from).not.toHaveBeenCalled();
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('should identify as mobile if width < 768', async () => {
@@ -123,11 +113,11 @@ describe('DeviceProfiler', () => {
 
       await DeviceProfiler.syncToSupabase();
 
-      expect(mockUpsert).toHaveBeenCalledWith(
+      expect(mockPost).toHaveBeenCalledWith(
+        '/api/v1/telemetry/device-profiles',
         expect.objectContaining({
           device_type: 'mobile',
-        }),
-        expect.anything()
+        })
       );
     });
   });

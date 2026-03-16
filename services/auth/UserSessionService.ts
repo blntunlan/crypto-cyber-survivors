@@ -151,17 +151,10 @@ export class UserSessionService {
 
       UserPersistenceService.saveUser(updatedUser);
 
-      const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
-      if (isSupabaseConfigured() && !SecurityUtils.isLocalEnvironment()) {
+      if (!SecurityUtils.isLocalEnvironment()) {
         try {
-          const { error } = await supabase!
-            .from('profiles')
-            .update({ last_seen_at: new Date().toISOString() })
-            .eq('id', user.profileId);
-
-          if (error) {
-            Logger.error('[UserSession] Failed to update profile last seen:', error);
-          }
+          const { railwayClient } = await import('../api/RailwayClient');
+          await railwayClient.patch('/api/v1/profile', {});
         } catch (err) {
           Logger.error('[UserSession] Profile update exception:', err);
         }

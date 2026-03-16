@@ -10,7 +10,7 @@
 
 export type CryptoPair = 'BTC' | 'ETH' | 'SOL';
 export type TrendDirection = 'bullish' | 'bearish' | 'sideways';
-export type PriceSource = 'binance' | 'coinbase' | 'mock';
+export type PriceSource = 'binance' | 'coinbase' | 'sse' | 'mock';
 
 export interface PriceSnapshot {
   pair: CryptoPair;

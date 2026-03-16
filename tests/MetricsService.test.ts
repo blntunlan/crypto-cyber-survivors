@@ -102,9 +102,9 @@ describe('MetricsService', () => {
     it('should track max PnL', () => {
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
-      MetricsService.update(16.67, 0.05, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, 0.1, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, 0.03, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0.05, 1.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, 0.1, 1.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, 0.03, 1.0, 100, 5, 0, 0, 'active', 0.01);
 
       const session = MetricsService.endSession(
         GameEndReason.DEATH,
@@ -117,9 +117,9 @@ describe('MetricsService', () => {
     it('should track min PnL', () => {
       MetricsService.startSession(MarketPosition.SHORT, 50000, 10, 'BTC');
 
-      MetricsService.update(16.67, -0.02, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, -0.08, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, -0.03, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, -0.02, 1.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, -0.08, 1.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, -0.03, 1.0, 100, 5, 0, 0, 'active', 0.01);
 
       const session = MetricsService.endSession(
         GameEndReason.DEATH,
@@ -132,9 +132,9 @@ describe('MetricsService', () => {
     it('should track max difficulty', () => {
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
-      MetricsService.update(16.67, 0, 1.5, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, 0, 3.2, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, 0, 2.1, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0, 1.5, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, 0, 3.2, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, 0, 2.1, 100, 5, 0, 0, 'active', 0.01);
 
       const session = MetricsService.endSession(
         GameEndReason.DEATH,
@@ -147,9 +147,9 @@ describe('MetricsService', () => {
     it('should track max enemies on screen', () => {
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
-      MetricsService.update(16.67, 0, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, 0, 1.0, 100, 15, 0, 0, 'buildup', 0.01);
-      MetricsService.update(16.67, 0, 1.0, 100, 8, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0, 1.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, 0, 1.0, 100, 15, 0, 0, 'active', 0.01);
+      MetricsService.update(16.67, 0, 1.0, 100, 8, 0, 0, 'active', 0.01);
 
       const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
@@ -160,9 +160,9 @@ describe('MetricsService', () => {
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       // Difficulty > 5 is considered high
-      MetricsService.update(1000, 0, 6.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(500, 0, 7.0, 100, 5, 0, 0, 'buildup', 0.01);
-      MetricsService.update(1000, 0, 1.0, 100, 5, 0, 0, 'buildup', 0.01); // Not high
+      MetricsService.update(1000, 0, 6.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(500, 0, 7.0, 100, 5, 0, 0, 'active', 0.01);
+      MetricsService.update(1000, 0, 1.0, 100, 5, 0, 0, 'active', 0.01); // Not high
 
       const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
@@ -453,13 +453,13 @@ describe('MetricsService', () => {
 
       // Simulate sampling interval
       vi.advanceTimersByTime(1000);
-      MetricsService.update(16.67, 0.02, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0.02, 1.0, 100, 5, 0, 0, 'active', 0.01);
 
       vi.advanceTimersByTime(1000);
-      MetricsService.update(16.67, 0.04, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0.04, 1.0, 100, 5, 0, 0, 'active', 0.01);
 
       vi.advanceTimersByTime(1000);
-      MetricsService.update(16.67, 0.06, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0.06, 1.0, 100, 5, 0, 0, 'active', 0.01);
 
       const session = MetricsService.endSession(
         GameEndReason.DEATH,
@@ -474,13 +474,13 @@ describe('MetricsService', () => {
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
 
       vi.advanceTimersByTime(1000);
-      MetricsService.update(16.67, 0, 1.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0, 1.0, 100, 5, 0, 0, 'active', 0.01);
 
       vi.advanceTimersByTime(1000);
-      MetricsService.update(16.67, 0, 2.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0, 2.0, 100, 5, 0, 0, 'active', 0.01);
 
       vi.advanceTimersByTime(1000);
-      MetricsService.update(16.67, 0, 3.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0, 3.0, 100, 5, 0, 0, 'active', 0.01);
 
       const session = MetricsService.endSession(
         GameEndReason.DEATH,
@@ -502,7 +502,7 @@ describe('MetricsService', () => {
       MetricsService.startSession(MarketPosition.LONG, 50000, 5, 'BTC');
       vi.advanceTimersByTime(30000); // 30s
       TimeService.setGameTime(30000);
-      MetricsService.update(16.67, 0.05, 1.5, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0.05, 1.5, 100, 5, 0, 0, 'active', 0.01);
       MetricsService.trackKill('bear', 0);
       MetricsService.endSession(
         GameEndReason.DEATH,
@@ -518,7 +518,7 @@ describe('MetricsService', () => {
       MetricsService.startSession(MarketPosition.SHORT, 60000, 20, 'BTC');
       vi.advanceTimersByTime(600000); // 10m
       TimeService.setGameTime(600000);
-      MetricsService.update(16.67, -0.15, 7.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, -0.15, 7.0, 100, 5, 0, 0, 'active', 0.01);
       MetricsService.trackKill('bear', 0);
       MetricsService.trackKill('whale', 0);
       MetricsService.endSession(
@@ -537,7 +537,7 @@ describe('MetricsService', () => {
       MetricsService.startSession(MarketPosition.LONG, 40000, 10, 'BTC');
       vi.advanceTimersByTime(900000); // 15m
       TimeService.setGameTime(900000);
-      MetricsService.update(16.67, 0.2, 5.0, 100, 5, 0, 0, 'buildup', 0.01);
+      MetricsService.update(16.67, 0.2, 5.0, 100, 5, 0, 0, 'active', 0.01);
       MetricsService.endSession(
         GameEndReason.DEATH,
         createFinalData({

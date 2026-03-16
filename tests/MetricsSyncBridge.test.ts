@@ -3,23 +3,50 @@ import { MetricsStorage } from '../services/core/metrics/MetricsStorage';
 import { GameEndReason } from '../types/metrics';
 import { MarketPosition } from '../types';
 
-// Mock Supabase
-const mockInsert = vi.fn().mockReturnValue({
-  select: () => ({
-    single: () => Promise.resolve({ data: { id: 'mock-uuid' }, error: null }),
-  }),
-});
+// Mock RailwayClient
+const mockPost = vi.fn().mockResolvedValue({ id: 'mock-uuid' });
 
-const mockUpsert = vi.fn().mockResolvedValue({ error: null });
-
-vi.mock('../services/supabase/client', () => ({
-  supabase: {
-    from: (table: string) => ({
-      insert: (data: any) => mockInsert(table, data),
-      upsert: (data: any) => mockUpsert(table, data),
-    }),
+vi.mock('../services/api/RailwayClient', () => ({
+  railwayClient: {
+    post: (...args: unknown[]) => mockPost(...args),
   },
-  isSupabaseConfigured: () => true,
+}));
+
+// Set Railway API URL
+vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
+
+// Mock UserSessionService
+vi.mock('../services/auth/UserSessionService', () => ({
+  UserSessionService: {
+    getProfileId: vi.fn().mockReturnValue('test-profile-id'),
+    getNickname: vi.fn().mockReturnValue('test-nickname'),
+  },
+}));
+
+// Mock VerificationQueue (exported as singleton instance)
+vi.mock('../services/verification/VerificationQueue', () => ({
+  VerificationQueue: {
+    enqueue: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock EventBus
+vi.mock('../services/core/EventBus', () => ({
+  EventBus: {
+    emit: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+  },
+}));
+
+// Mock Logger
+vi.mock('../services/system/Logger', () => ({
+  Logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 describe('MetricsSyncBridge Integration', () => {
@@ -27,7 +54,8 @@ describe('MetricsSyncBridge Integration', () => {
     vi.clearAllMocks();
   });
 
-  it('should sync all optimized schema fields to Supabase', async () => {
+  it('should sync all optimized schema fields to Railway API', async () => {
+    vi.stubEnv('VITE_ENABLE_ANALYTICS', 'true');
     const storage = new MetricsStorage();
 
     const mockSession = {
@@ -74,17 +102,19 @@ describe('MetricsSyncBridge Integration', () => {
     // @ts-expect-error:  testing private/internal sync logic via addSession
     await storage.syncToSupabase(mockSession);
 
-    // 1. Verify sessions insert
-    const sessionCall = mockInsert.mock.calls.find(call => call[0] === 'sessions');
+    // 1. Verify session sync call
+    const sessionCall = mockPost.mock.calls.find(
+      (call: unknown[]) => call[0] === '/api/v1/sessions/sync'
+    );
     expect(sessionCall).toBeDefined();
-    expect(sessionCall?.[1]).toMatchObject({
+    expect(sessionCall?.[1].sessionData).toMatchObject({
       crypto_pair: 'BTC',
       position_chosen: MarketPosition.LONG,
     });
 
-    // 2. Verify performance_metrics insert
-    const perfCall = mockInsert.mock.calls.find(
-      call => call[0] === 'performance_metrics'
+    // 2. Verify performance metrics call
+    const perfCall = mockPost.mock.calls.find(
+      (call: unknown[]) => call[0] === '/api/v1/telemetry/performance-metrics'
     );
     expect(perfCall).toBeDefined();
     expect(perfCall?.[1].metadata).toMatchObject({
@@ -97,17 +127,15 @@ describe('MetricsSyncBridge Integration', () => {
       device_fingerprint: 'device-123',
     });
 
-    // 3. Verify device_profiles upsert
-    const deviceCall = mockUpsert.mock.calls.find(
-      call => call[0] === 'device_profiles'
+    // 3. Verify device profile call
+    const deviceCall = mockPost.mock.calls.find(
+      (call: unknown[]) => call[0] === '/api/v1/telemetry/device-profiles'
     );
     expect(deviceCall).toBeDefined();
     expect(deviceCall?.[1]).toMatchObject({
       fingerprint: 'device-123',
       browser: 'Chrome',
       device_type: expect.stringMatching(/desktop|mobile/),
-      screen_width: expect.any(Number),
-      screen_height: expect.any(Number),
     });
   });
 });

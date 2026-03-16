@@ -74,9 +74,6 @@ export class DeviceProfiler {
    * Sync profile to Supabase.
    */
   static async syncToSupabase(): Promise<void> {
-    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
-    if (!isSupabaseConfigured() || !supabase) return;
-
     // Skip sync on local environments
     if (SecurityUtils.isLocalEnvironment()) {
       return;
@@ -85,20 +82,16 @@ export class DeviceProfiler {
     const profile = this.getProfile();
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('device_profiles' as any) as any).upsert(
-        {
-          fingerprint: profile.fingerprint,
-          device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',
-          browser: profile.userAgent.substring(0, 64),
-          screen_width: profile.screenWidth,
-          screen_height: profile.screenHeight,
-          hardware_concurrency: profile.cores,
-          device_memory: profile.memory,
-          last_seen_at: new Date().toISOString(),
-        },
-        { onConflict: 'fingerprint' }
-      );
+      const { railwayClient } = await import('../api/RailwayClient');
+      await railwayClient.post('/api/v1/telemetry/device-profiles', {
+        fingerprint: profile.fingerprint,
+        device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',
+        browser: profile.userAgent.substring(0, 64),
+        screen_width: profile.screenWidth,
+        screen_height: profile.screenHeight,
+        hardware_concurrency: profile.cores,
+        device_memory: profile.memory,
+      });
     } catch (err) {
       console.warn('[DeviceProfiler] Sync failed', err);
     }

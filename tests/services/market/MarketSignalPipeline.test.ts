@@ -41,22 +41,6 @@ const difficultyOutput = {
   whaleProbability: 0.1,
   xpMultiplier: 1.1,
   gemDropRate: 1.2,
-  enemyHealth: 1.2,
-  gemValueMultiplier: 1.2,
-  factors: {
-    baseTime: 1,
-    pnlEffect: 1,
-    volatility: 1,
-    levelFactor: 1,
-    waveMultiplier: 1,
-    nearDeathMod: 1,
-    streakBonus: 1,
-    momentumMod: 1,
-    cycleFactor: 1,
-    leverageDamage: 1,
-    leverageSpawn: 1,
-    leverageSpeed: 1,
-  },
 } as const;
 
 describe('MarketSignalPipeline', () => {

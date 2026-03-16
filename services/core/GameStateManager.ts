@@ -8,6 +8,7 @@
 import { MarketPosition, type PlayerStats } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
 import { EventBus } from './EventBus';
+import { ResetOrchestrator } from './ResetOrchestrator';
 import { DifficultyManager } from '../gameplay/DifficultyManager';
 import { ComboSystem } from '../combat/ComboSystem';
 import { MetricsService } from './MetricsService';
@@ -123,16 +124,11 @@ class GameStateManagerClass {
       // Emit before reset event for any cleanup operations
       EventBus.emit('beforeReset', {});
 
-      // 1. FIRST: Broadcast gameReset so ALL subsystems wipe their state to clean defaults.
-      //    This resets LeverageEngine (→1x), DifficultyContext (→defaults),
-      //    DifficultyManager (→defaults), and ~30 other listeners.
-      EventBus.emit('gameReset', {});
+      // Run orchestrated reset handlers in priority order, then emit
+      // legacy `gameReset` for any listeners not yet migrated.
+      ResetOrchestrator.orchestrateReset();
 
-      // 2. THEN: Apply the chosen leverage on top of the clean slate.
-      //    DifficultyManager.startGame will NOT call its own reset() again
-      //    because its gameReset listener already handled that above.
-      //    It will only call difficultyContext.updateInputs({ leverage })
-      //    to stamp the correct value.
+      // Apply the chosen leverage on top of the clean slate.
       DifficultyManager.startGame(leverage);
       ComboSystem.startGame();
 

@@ -85,13 +85,6 @@ vi.mock('../../hooks/useMarketData', () => ({
   }),
 }));
 
-vi.mock('../../services/market/MarketStateService', () => ({
-  MarketStateService: {
-    init: vi.fn().mockResolvedValue(undefined),
-    cleanup: vi.fn(),
-  },
-}));
-
 vi.mock('../../stores/useAuthStore', () => ({
   useAuthStore: vi.fn(() => ({
     authStage: 'COMPLETE', // Bypass auth for this test
@@ -131,10 +124,6 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   LeverageEngine: {
     getMultipliers: vi.fn(() => ({ maxHpScale: 1.0 })),
   },
-}));
-
-vi.mock('../../components/admin/AITrainerOverlay', () => ({
-  AITrainerOverlay: () => null,
 }));
 
 describe('Game Entry Flow', () => {

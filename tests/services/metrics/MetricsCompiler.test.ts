@@ -25,10 +25,7 @@ describe('MetricsCompiler', () => {
     maxDifficulty: 3.0,
     wavePhaseTime: {
       ...createDefaultWavePhaseRecord(),
-      warmup: 1000,
-      buildup: 2000,
-      climax: 3000,
-      firstPeak: 500,
+      active: 6500,
     },
     highDifficultyTime: 1000,
     lowDifficultyTime: 5000,
@@ -99,7 +96,7 @@ describe('MetricsCompiler', () => {
     );
     expect(result.averageDifficulty).toBe(1.5);
     expect(result.difficultyAtDeath).toBe(3.5);
-    expect(result.timeInEachWavePhase.climax).toBe(3000);
+    expect(result.timeInEachWavePhase.active).toBe(6500);
   });
 
   it('should compile player metrics', () => {

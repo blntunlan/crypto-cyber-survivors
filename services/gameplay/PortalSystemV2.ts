@@ -1,19 +1,12 @@
 /**
- * PortalSystemV2 - Dynamic Exit Point System
+ * PortalSystemV2 - Dynamic Exit Point System (Thin Coordinator)
  *
- * AI Director V2 - Phase 5: Portal System V2
+ * Delegates to:
+ *   - PortalTrigger: trigger condition evaluation
+ *   - PortalPenaltyManager: rejection tracking & difficulty penalties
+ *   - PortalRewardCalculator: coin reward calculation
  *
- * This system manages portal spawning and exit mechanics based on:
- * - PnL thresholds (Take Profit / Stop Loss)
- * - Flow state duration (too long outside flow)
- * - Market events (flash crash, whale kills)
- * - Time limits (max game duration)
- *
- * Key Features:
- * - Maximum 3 portals per game (forced exit on 3rd)
- * - Portal rejection penalties (difficulty increase + cooldown extension)
- * - Portal types: TAKE_PROFIT (green), STOP_LOSS (red), FLOW_EXIT (yellow)
- * - Coin calculation based on exit type and PnL
+ * Public API is fully backward-compatible.
  *
  * @see docs/AI_DIRECTOR_V2_DESIGN.md
  */
@@ -22,53 +15,40 @@ import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 import { TimeService } from '../core/TimeService';
 import { type FlowState } from '../difficulty/FlowStateManager';
+import { PortalTrigger } from './portal/PortalTrigger';
+import { PortalPenaltyManager } from './portal/PortalPenaltyManager';
+import { PortalRewardCalculator } from './portal/PortalRewardCalculator';
 
-/**
- * Portal configuration - timing and thresholds
- */
+// =============================================================================
+// CONFIG & TYPES (re-exported for backward compat)
+// =============================================================================
+
 export const PORTAL_V2_CONFIG = {
-  // Timing Constraints
-  FIRST_PORTAL_MIN_TIME: 300, // 5 minutes minimum (TODO: backtest)
-  MAX_GAME_TIME: 600, // 10 minutes max without portal
-  PORTAL_COOLDOWN: 180, // 3 minutes between portals
-  PORTAL_DURATION: 25, // Seconds portal stays open
-
-  // PnL Trigger Thresholds
-  TAKE_PROFIT_THRESHOLD: 0.1, // +10% PnL
-  STOP_LOSS_THRESHOLD: -0.15, // -15% PnL
-
-  // Flow State Thresholds
-  OUT_OF_FLOW_DURATION: 60, // 60s outside flow state triggers portal
-
-  // Portal Limits
+  FIRST_PORTAL_MIN_TIME: 300,
+  MAX_GAME_TIME: 600,
+  PORTAL_COOLDOWN: 180,
+  PORTAL_DURATION: 25,
+  TAKE_PROFIT_THRESHOLD: 0.1,
+  STOP_LOSS_THRESHOLD: -0.15,
+  OUT_OF_FLOW_DURATION: 60,
   MAX_PORTALS: 3,
-  MAX_REJECTIONS: 3, // After 3 rejections, must take next portal
-
-  // Rejection Penalties
+  MAX_REJECTIONS: 3,
   REJECTION_PENALTIES: [
     { spawnRateIncrease: 0.2, speedIncrease: 0, cooldownExtension: 60 },
     { spawnRateIncrease: 0.3, speedIncrease: 0.1, cooldownExtension: 90 },
-    { spawnRateIncrease: 0.4, speedIncrease: 0.2, cooldownExtension: 0 }, // 3rd = forced
+    { spawnRateIncrease: 0.4, speedIncrease: 0.2, cooldownExtension: 0 },
   ],
-
-  // Coin Calculation
   COIN_MULTIPLIERS: {
-    TAKE_PROFIT_BONUS: 1.2, // +20% for take profit
-    STOP_LOSS_PENALTY: 0, // No survival bonus
-    FLOW_EXIT_MULT: 0.5, // 50% survival bonus
-    DEATH_PENALTY: 0.5, // 50% of raw coins
-    AFK_DEATH_PENALTY: 0, // No coins for AFK death
+    TAKE_PROFIT_BONUS: 1.2,
+    STOP_LOSS_PENALTY: 0,
+    FLOW_EXIT_MULT: 0.5,
+    DEATH_PENALTY: 0.5,
+    AFK_DEATH_PENALTY: 0,
   },
 } as const;
 
-/**
- * Portal types based on trigger condition
- */
 export type PortalType = 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
 
-/**
- * Portal state
- */
 export interface PortalV2State {
   isActive: boolean;
   type: PortalType;
@@ -76,12 +56,9 @@ export interface PortalV2State {
   y: number;
   radius: number;
   timeLeft: number;
-  portalNumber: number; // 1, 2, or 3
+  portalNumber: number;
 }
 
-/**
- * Session tracking for portal system
- */
 export interface PortalSessionState {
   portalsOpened: number;
   portalsRejected: number;
@@ -95,9 +72,6 @@ export interface PortalSessionState {
   };
 }
 
-/**
- * Trigger reason for portal spawn
- */
 export type PortalTriggerReason =
   | 'TAKE_PROFIT'
   | 'STOP_LOSS'
@@ -107,18 +81,6 @@ export type PortalTriggerReason =
   | 'POST_WHALE_KILL'
   | 'FORCED_FINAL';
 
-/**
- * Portal trigger check result
- */
-interface PortalTriggerResult {
-  shouldSpawn: boolean;
-  type: PortalType;
-  reason: PortalTriggerReason;
-}
-
-/**
- * Coin reward calculation result
- */
 export interface CoinRewardResult {
   total: number;
   breakdown: {
@@ -132,13 +94,19 @@ export interface CoinRewardResult {
   portalType: PortalType | null;
 }
 
-/**
- * PortalSystemV2 - Singleton service
- */
+// =============================================================================
+// COORDINATOR
+// =============================================================================
+
 class PortalSystemV2Class {
   private static instance: PortalSystemV2Class | null = null;
 
-  // Current portal state
+  // Sub-services
+  private readonly trigger = new PortalTrigger();
+  private readonly penaltyManager = new PortalPenaltyManager();
+  private readonly rewardCalculator = new PortalRewardCalculator();
+
+  // Portal state
   private portalState: PortalV2State = {
     isActive: false,
     type: 'TAKE_PROFIT',
@@ -150,47 +118,32 @@ class PortalSystemV2Class {
   };
 
   // Session state
-  private sessionState: PortalSessionState = {
-    portalsOpened: 0,
-    portalsRejected: 0,
-    lastPortalTime: 0,
-    outOfFlowStartTime: null,
-    isFlashCrashActive: false,
-    lastWhaleKillTime: 0,
-    difficultyPenalty: {
-      spawnRateMultiplier: 1.0,
-      speedMultiplier: 1.0,
-    },
-  };
+  private portalsOpened = 0;
+  private lastPortalTime = 0;
+  private outOfFlowStartTime: number | null = null;
+  private isFlashCrashActive = false;
+  private lastWhaleKillTime = 0;
 
   // Coin tracking
-  private rawCoins: number = 0;
-  private enemyDropCoins: number = 0;
-  private comboBonus: number = 0;
-
-  // Current game state (updated externally)
-  private currentPnL: number = 0;
+  private rawCoins = 0;
+  private enemyDropCoins = 0;
+  private maxStreak = 0;
+  private currentPnL = 0;
   private currentFlowState: FlowState = 'flow';
 
   private constructor() {
-    // Subscribe to game events
     EventBus.on('gameReset', () => this.reset());
+    EventBus.on('enemyKilled', data => this.onEnemyKilled(data));
+    EventBus.on('flowStateChanged', data => this.onFlowStateChanged(data.newState));
 
-    // Track coin sources
-    EventBus.on('enemyKilled', data => {
-      this.onEnemyKilled(data);
-    });
-
-    // Track flow state changes
-    EventBus.on('flowStateChanged', data => {
-      this.onFlowStateChanged(data.newState, data.previousState);
-    });
-
-    // Track market events
+    // Flash crash detection from legacy event
     EventBus.on('clientIndicatorsUpdated', data => {
-      if (data.priceChangePercent <= -0.01) {
-        this.onFlashCrash();
-      }
+      if (data.priceChangePercent <= -0.01) this.onFlashCrash();
+    });
+
+    // Canonical consolidated event (Step 3)
+    EventBus.on('canonicalMarketUpdate', data => {
+      if (data.priceChangePercent <= -0.01) this.onFlashCrash();
     });
 
     Logger.debug('[PortalSystemV2] Initialized');
@@ -200,18 +153,13 @@ class PortalSystemV2Class {
     return (PortalSystemV2Class.instance ??= new PortalSystemV2Class());
   }
 
-  /**
-   * Update portal system - call every frame
-   *
-   * @param dt Delta time in ms
-   * @param pnlPercent Current PnL percentage (-1 to 1+)
-   * @param width Screen width
-   * @param height Screen height
-   */
+  // =========================================================================
+  // MAIN UPDATE
+  // =========================================================================
+
   update(dt: number, pnlPercent: number, width: number, height: number): void {
     this.currentPnL = pnlPercent;
 
-    // Update active portal timer
     if (this.portalState.isActive) {
       this.portalState.timeLeft -= dt / 1000;
       if (this.portalState.timeLeft <= 0) {
@@ -220,98 +168,49 @@ class PortalSystemV2Class {
       return;
     }
 
-    // Check for new portal triggers
     const elapsed = TimeService.getGameTimeSeconds();
+    if (elapsed < PORTAL_V2_CONFIG.FIRST_PORTAL_MIN_TIME) return;
 
-    // Minimum time check
-    if (elapsed < PORTAL_V2_CONFIG.FIRST_PORTAL_MIN_TIME) {
-      return;
+    const timeSinceLastPortal = elapsed - this.lastPortalTime;
+    const effectiveCooldown =
+      PORTAL_V2_CONFIG.PORTAL_COOLDOWN + this.penaltyManager.getCooldownExtension();
+    if (timeSinceLastPortal < effectiveCooldown && this.portalsOpened > 0) return;
+
+    const result = this.trigger.checkTriggerConditions(
+      elapsed,
+      this.currentPnL,
+      this.portalsOpened,
+      this.penaltyManager.getPortalsRejected(),
+      this.outOfFlowStartTime,
+      this.isFlashCrashActive,
+      this.lastWhaleKillTime
+    );
+
+    // Reset flash crash flag after check
+    if (this.isFlashCrashActive && result.reason === 'POST_FLASH_CRASH') {
+      this.isFlashCrashActive = false;
+    }
+    // Reset whale kill after check
+    if (result.reason === 'POST_WHALE_KILL') {
+      this.lastWhaleKillTime = 0;
     }
 
-    // Cooldown check
-    const timeSinceLastPortal = elapsed - this.sessionState.lastPortalTime;
-    const effectiveCooldown = this.getEffectiveCooldown();
-
-    if (
-      timeSinceLastPortal < effectiveCooldown &&
-      this.sessionState.portalsOpened > 0
-    ) {
-      return;
-    }
-
-    // Check trigger conditions
-    const trigger = this.checkTriggerConditions(elapsed);
-
-    if (trigger.shouldSpawn) {
-      this.spawnPortal(trigger.type, trigger.reason, width, height);
+    if (result.shouldSpawn) {
+      this.spawnPortal(result.type, result.reason, width, height);
     }
   }
 
-  /**
-   * Check all portal trigger conditions
-   */
-  private checkTriggerConditions(elapsedSeconds: number): PortalTriggerResult {
-    const config = PORTAL_V2_CONFIG;
+  // =========================================================================
+  // PORTAL LIFECYCLE
+  // =========================================================================
 
-    // Priority 1: Max game time reached (forced final portal)
-    if (elapsedSeconds >= config.MAX_GAME_TIME) {
-      return { shouldSpawn: true, type: 'FORCED', reason: 'MAX_TIME' };
-    }
-
-    // Priority 2: Max portals reached (forced if previously rejected all)
-    if (
-      this.sessionState.portalsOpened >= config.MAX_PORTALS - 1 &&
-      this.sessionState.portalsRejected >= config.MAX_REJECTIONS
-    ) {
-      return { shouldSpawn: true, type: 'FORCED', reason: 'FORCED_FINAL' };
-    }
-
-    // Priority 3: PnL-based triggers
-    if (this.currentPnL >= config.TAKE_PROFIT_THRESHOLD) {
-      return { shouldSpawn: true, type: 'TAKE_PROFIT', reason: 'TAKE_PROFIT' };
-    }
-
-    if (this.currentPnL <= config.STOP_LOSS_THRESHOLD) {
-      return { shouldSpawn: true, type: 'STOP_LOSS', reason: 'STOP_LOSS' };
-    }
-
-    // Priority 4: Flow state - too long outside flow
-    if (this.sessionState.outOfFlowStartTime !== null) {
-      const outOfFlowDuration =
-        (Date.now() - this.sessionState.outOfFlowStartTime) / 1000;
-      if (outOfFlowDuration >= config.OUT_OF_FLOW_DURATION) {
-        return { shouldSpawn: true, type: 'FLOW_EXIT', reason: 'OUT_OF_FLOW' };
-      }
-    }
-
-    // Priority 5: Post flash crash (if enabled)
-    if (this.sessionState.isFlashCrashActive) {
-      this.sessionState.isFlashCrashActive = false;
-      return { shouldSpawn: true, type: 'STOP_LOSS', reason: 'POST_FLASH_CRASH' };
-    }
-
-    // Priority 6: Post whale kill (within 30s)
-    const timeSinceWhale = (Date.now() - this.sessionState.lastWhaleKillTime) / 1000;
-    if (timeSinceWhale < 30 && this.sessionState.lastWhaleKillTime > 0) {
-      this.sessionState.lastWhaleKillTime = 0; // Reset to not trigger again
-      return { shouldSpawn: true, type: 'TAKE_PROFIT', reason: 'POST_WHALE_KILL' };
-    }
-
-    return { shouldSpawn: false, type: 'TAKE_PROFIT', reason: 'TAKE_PROFIT' };
-  }
-
-  /**
-   * Spawn a portal
-   */
   private spawnPortal(
     type: PortalType,
     reason: PortalTriggerReason,
     width: number,
     height: number
   ): void {
-    const portalNumber = this.sessionState.portalsOpened + 1;
-
-    // Position away from center (20% margin)
+    const portalNumber = this.portalsOpened + 1;
     const margin = 0.2;
     const x = (margin + Math.random() * (1 - 2 * margin)) * width;
     const y = (margin + Math.random() * (1 - 2 * margin)) * height;
@@ -321,18 +220,17 @@ class PortalSystemV2Class {
       type,
       x,
       y,
-      radius: type === 'FORCED' ? 60 : 50, // Forced portals are larger
+      radius: type === 'FORCED' ? 60 : 50,
       timeLeft: PORTAL_V2_CONFIG.PORTAL_DURATION,
       portalNumber,
     };
 
-    this.sessionState.portalsOpened = portalNumber;
-    this.sessionState.lastPortalTime = TimeService.getGameTimeSeconds();
+    this.portalsOpened = portalNumber;
+    this.lastPortalTime = TimeService.getGameTimeSeconds();
 
     Logger.info(
       `[PortalSystemV2] ${type} Portal #${portalNumber} opened (reason: ${reason})`
     );
-
     EventBus.emit('portalOpened', {
       x,
       y,
@@ -343,68 +241,31 @@ class PortalSystemV2Class {
     });
   }
 
-  /**
-   * Handle portal expiration (player didn't enter)
-   */
   private onPortalExpired(): void {
-    const wasForced = this.portalState.type === 'FORCED';
-
-    if (wasForced) {
-      // Forced portal expired = game over
+    if (this.portalState.type === 'FORCED') {
       Logger.warn('[PortalSystemV2] Forced portal expired - game over');
       EventBus.emit('portalMissed', {
         type: this.portalState.type,
         portalNumber: this.portalState.portalNumber,
         consequence: 'game_over',
       });
-      // Game engine should handle forced death
     } else {
-      // Regular portal rejected
-      this.applyRejectionPenalty();
+      this.penaltyManager.applyRejectionPenalty();
     }
-
     this.closePortal();
   }
 
-  /**
-   * Apply penalty for rejecting a portal
-   */
-  private applyRejectionPenalty(): void {
-    const rejectionCount = this.sessionState.portalsRejected;
-    const penalties = PORTAL_V2_CONFIG.REJECTION_PENALTIES;
-    const penalty = penalties[Math.min(rejectionCount, penalties.length - 1)];
-
-    if (!penalty) return;
-
-    // Apply difficulty penalty
-    this.sessionState.difficultyPenalty.spawnRateMultiplier +=
-      penalty.spawnRateIncrease;
-    this.sessionState.difficultyPenalty.speedMultiplier += penalty.speedIncrease;
-
-    this.sessionState.portalsRejected++;
-
-    Logger.warn(
-      `[PortalSystemV2] Portal rejected (${this.sessionState.portalsRejected}/${PORTAL_V2_CONFIG.MAX_REJECTIONS})`,
-      {
-        spawnPenalty: this.sessionState.difficultyPenalty.spawnRateMultiplier,
-        speedPenalty: this.sessionState.difficultyPenalty.speedMultiplier,
-      }
-    );
-
-    EventBus.emit('portalRejected', {
-      rejectionCount: this.sessionState.portalsRejected,
-      spawnRateMultiplier: this.sessionState.difficultyPenalty.spawnRateMultiplier,
-      speedMultiplier: this.sessionState.difficultyPenalty.speedMultiplier,
-    });
-  }
-
-  /**
-   * Player entered the portal - calculate rewards and exit
-   */
   enterPortal(): CoinRewardResult {
     if (!this.portalState.isActive) {
       Logger.warn('[PortalSystemV2] enterPortal called but no active portal');
-      return this.calculateReward('portal', this.portalState.type);
+      return this.rewardCalculator.calculate(
+        'portal',
+        this.portalState.type,
+        this.currentPnL,
+        this.rawCoins,
+        this.enemyDropCoins,
+        this.maxStreak
+      );
     }
 
     const portalType = this.portalState.type;
@@ -419,103 +280,31 @@ class PortalSystemV2Class {
     });
 
     this.closePortal();
-    return this.calculateReward('portal', portalType);
-  }
-
-  /**
-   * Player died - calculate reduced rewards
-   */
-  onPlayerDeath(wasAFK: boolean = false): CoinRewardResult {
-    Logger.info(`[PortalSystemV2] Player died (AFK: ${wasAFK})`);
-
-    if (this.portalState.isActive) {
-      this.closePortal();
-    }
-
-    return this.calculateReward(wasAFK ? 'afk_death' : 'death', null);
-  }
-
-  /**
-   * Calculate final coin reward
-   */
-  private calculateReward(
-    exitType: 'portal' | 'death' | 'afk_death',
-    portalType: PortalType | null
-  ): CoinRewardResult {
-    const config = PORTAL_V2_CONFIG.COIN_MULTIPLIERS;
-    const survivalTime = TimeService.getGameTimeSeconds();
-    const leveragedPnL = this.currentPnL; // Already includes leverage effect
-
-    let rawCoins = this.rawCoins;
-    let enemyDrops = this.enemyDropCoins;
-    let survivalBonus = 0;
-    let portalBonus = 0;
-    let comboBonus = this.comboBonus;
-
-    // Calculate survival bonus (time * leveraged PnL)
-    if (leveragedPnL > 0) {
-      survivalBonus = Math.floor((survivalTime / 10) * (leveragedPnL * 100));
-    }
-
-    // Apply exit type modifiers
-    if (exitType === 'portal' && portalType) {
-      switch (portalType) {
-        case 'TAKE_PROFIT':
-          // Full rewards + 20% bonus
-          portalBonus = Math.floor((rawCoins + enemyDrops + survivalBonus) * 0.2);
-          break;
-
-        case 'STOP_LOSS':
-          // Raw coins only, no survival bonus
-          survivalBonus = 0;
-          break;
-
-        case 'FLOW_EXIT':
-          // 50% survival bonus
-          survivalBonus = Math.floor(survivalBonus * config.FLOW_EXIT_MULT);
-          break;
-
-        case 'FORCED':
-          // Same as flow exit
-          survivalBonus = Math.floor(survivalBonus * config.FLOW_EXIT_MULT);
-          break;
-      }
-    } else if (exitType === 'death') {
-      // 50% of raw coins only
-      rawCoins = Math.floor(rawCoins * config.DEATH_PENALTY);
-      enemyDrops = Math.floor(enemyDrops * config.DEATH_PENALTY);
-      survivalBonus = 0;
-      comboBonus = 0;
-    } else if (exitType === 'afk_death') {
-      // No coins for AFK
-      rawCoins = 0;
-      enemyDrops = 0;
-      survivalBonus = 0;
-      comboBonus = 0;
-    }
-
-    const total = rawCoins + enemyDrops + survivalBonus + portalBonus + comboBonus;
-
-    return {
-      total: Math.floor(total),
-      breakdown: {
-        raw: rawCoins,
-        enemyDrops,
-        survivalBonus,
-        portalBonus,
-        comboBonus,
-      },
-      exitType,
+    return this.rewardCalculator.calculate(
+      'portal',
       portalType,
-    };
+      this.currentPnL,
+      this.rawCoins,
+      this.enemyDropCoins,
+      this.maxStreak
+    );
   }
 
-  /**
-   * Close the current portal
-   */
+  onPlayerDeath(wasAFK = false): CoinRewardResult {
+    Logger.info(`[PortalSystemV2] Player died (AFK: ${wasAFK})`);
+    if (this.portalState.isActive) this.closePortal();
+    return this.rewardCalculator.calculate(
+      wasAFK ? 'afk_death' : 'death',
+      null,
+      this.currentPnL,
+      this.rawCoins,
+      this.enemyDropCoins,
+      this.maxStreak
+    );
+  }
+
   private closePortal(): void {
     if (!this.portalState.isActive) return;
-
     this.portalState.isActive = false;
     Logger.debug('[PortalSystemV2] Portal closed');
     EventBus.emit('portalClosed', {
@@ -524,131 +313,83 @@ class PortalSystemV2Class {
     });
   }
 
-  /**
-   * Get effective cooldown (base + rejection extension)
-   */
-  private getEffectiveCooldown(): number {
-    const baseCooldown = PORTAL_V2_CONFIG.PORTAL_COOLDOWN;
-    const rejectionCount = this.sessionState.portalsRejected;
-    const penalties = PORTAL_V2_CONFIG.REJECTION_PENALTIES;
-
-    let totalExtension = 0;
-    for (let i = 0; i < rejectionCount && i < penalties.length; i++) {
-      totalExtension += penalties[i]?.cooldownExtension ?? 0;
-    }
-
-    return baseCooldown + totalExtension;
-  }
-
-  // --- Event Handlers ---
+  // =========================================================================
+  // EVENT HANDLERS
+  // =========================================================================
 
   private onEnemyKilled(data: { enemyType?: string; coinDrop?: number }): void {
-    // Track coin drops from enemies
     if (data.coinDrop && data.coinDrop > 0) {
       this.enemyDropCoins += data.coinDrop;
+    } else if (data.enemyType === 'whale') {
+      this.enemyDropCoins += 50;
+    } else if (data.enemyType === 'elite') {
+      this.enemyDropCoins += 15;
     } else {
-      // Default coin values
-      if (data.enemyType === 'whale') {
-        this.enemyDropCoins += 50;
-      } else if (data.enemyType === 'elite') {
-        this.enemyDropCoins += 15;
-      } else {
-        this.rawCoins += 1;
-      }
+      this.rawCoins += 1;
     }
 
-    // Check for whale kill (tier 3+)
     if (data.enemyType === 'whale') {
-      this.sessionState.lastWhaleKillTime = Date.now();
+      this.lastWhaleKillTime = TimeService.getGameTime();
     }
   }
 
-  private onFlowStateChanged(newState: FlowState, _previousState: FlowState): void {
+  private onFlowStateChanged(newState: FlowState): void {
     this.currentFlowState = newState;
-
     if (newState === 'flow') {
-      // Reset out-of-flow timer
-      this.sessionState.outOfFlowStartTime = null;
+      this.outOfFlowStartTime = null;
     } else {
-      // Start tracking out-of-flow time
-      this.sessionState.outOfFlowStartTime ??= Date.now();
+      this.outOfFlowStartTime ??= TimeService.getGameTime();
     }
   }
 
   private onFlashCrash(): void {
-    // Flag flash crash for next portal check
-    this.sessionState.isFlashCrashActive = true;
+    this.isFlashCrashActive = true;
     Logger.info('[PortalSystemV2] Flash crash detected');
   }
 
-  // --- Public API ---
+  // =========================================================================
+  // PUBLIC API
+  // =========================================================================
 
-  /**
-   * Add raw coins (from gameplay, gems, etc.)
-   */
   addRawCoins(amount: number): void {
     this.rawCoins += amount;
   }
-
-  /**
-   * Add combo bonus
-   */
-  addComboBonus(amount: number): void {
-    this.comboBonus += amount;
+  setMaxStreak(streak: number): void {
+    this.maxStreak = streak;
   }
-
-  /**
-   * Get current portal state
-   */
   getPortalState(): PortalV2State {
     return { ...this.portalState };
   }
 
-  /**
-   * Get session state
-   */
   getSessionState(): PortalSessionState {
-    return { ...this.sessionState };
+    return {
+      portalsOpened: this.portalsOpened,
+      portalsRejected: this.penaltyManager.getPortalsRejected(),
+      lastPortalTime: this.lastPortalTime,
+      outOfFlowStartTime: this.outOfFlowStartTime,
+      isFlashCrashActive: this.isFlashCrashActive,
+      lastWhaleKillTime: this.lastWhaleKillTime,
+      difficultyPenalty: this.penaltyManager.getDifficultyPenalty(),
+    };
   }
 
-  /**
-   * Get difficulty penalty multipliers (for SpawnSystem)
-   */
   getDifficultyPenalty(): { spawnRateMultiplier: number; speedMultiplier: number } {
-    return { ...this.sessionState.difficultyPenalty };
+    return this.penaltyManager.getDifficultyPenalty();
   }
 
-  /**
-   * Get raw coins accumulated
-   */
   getRawCoins(): number {
     return this.rawCoins;
   }
-
-  /**
-   * Check if a portal is currently active
-   */
   isPortalActive(): boolean {
     return this.portalState.isActive;
   }
-
-  /**
-   * Get number of portals remaining
-   */
   getPortalsRemaining(): number {
-    return PORTAL_V2_CONFIG.MAX_PORTALS - this.sessionState.portalsOpened;
+    return PORTAL_V2_CONFIG.MAX_PORTALS - this.portalsOpened;
   }
-
-  /**
-   * Check if this is the final portal
-   */
   isFinalPortal(): boolean {
-    return this.sessionState.portalsOpened >= PORTAL_V2_CONFIG.MAX_PORTALS - 1;
+    return this.portalsOpened >= PORTAL_V2_CONFIG.MAX_PORTALS - 1;
   }
 
-  /**
-   * Reset portal system (call on game start)
-   */
   reset(): void {
     this.portalState = {
       isActive: false,
@@ -659,58 +400,42 @@ class PortalSystemV2Class {
       timeLeft: 0,
       portalNumber: 0,
     };
-
-    this.sessionState = {
-      portalsOpened: 0,
-      portalsRejected: 0,
-      lastPortalTime: 0,
-      outOfFlowStartTime: null,
-      isFlashCrashActive: false,
-      lastWhaleKillTime: 0,
-      difficultyPenalty: {
-        spawnRateMultiplier: 1.0,
-        speedMultiplier: 1.0,
-      },
-    };
-
+    this.portalsOpened = 0;
+    this.lastPortalTime = 0;
+    this.outOfFlowStartTime = null;
+    this.isFlashCrashActive = false;
+    this.lastWhaleKillTime = 0;
     this.rawCoins = 0;
     this.enemyDropCoins = 0;
-    this.comboBonus = 0;
+    this.maxStreak = 0;
     this.currentPnL = 0;
     this.currentFlowState = 'flow';
-
+    this.penaltyManager.reset();
     Logger.debug('[PortalSystemV2] Reset');
   }
 
-  /**
-   * Get debug information
-   */
   getDebugState(): Record<string, unknown> {
     return {
       isActive: this.portalState.isActive,
       type: this.portalState.type,
       portalNumber: this.portalState.portalNumber,
       timeLeft: this.portalState.timeLeft.toFixed(1),
-      portalsOpened: this.sessionState.portalsOpened,
-      portalsRejected: this.sessionState.portalsRejected,
+      portalsOpened: this.portalsOpened,
+      portalsRejected: this.penaltyManager.getPortalsRejected(),
       portalsRemaining: this.getPortalsRemaining(),
-      cooldown: this.getEffectiveCooldown(),
+      cooldown:
+        PORTAL_V2_CONFIG.PORTAL_COOLDOWN + this.penaltyManager.getCooldownExtension(),
       rawCoins: this.rawCoins,
       enemyDrops: this.enemyDropCoins,
       pnl: `${(this.currentPnL * 100).toFixed(1)}%`,
       flowState: this.currentFlowState,
-      penalty: {
-        spawn: this.sessionState.difficultyPenalty.spawnRateMultiplier.toFixed(2),
-        speed: this.sessionState.difficultyPenalty.speedMultiplier.toFixed(2),
-      },
+      penalty: this.penaltyManager.getDifficultyPenalty(),
     };
   }
 }
 
-// Export singleton instance
 export const PortalSystemV2 = PortalSystemV2Class.getInstance();
 
-// For testing - allows creating fresh instances
 export function createPortalSystemV2(): PortalSystemV2Class {
   (PortalSystemV2Class as unknown as { instance: null }).instance = null;
   return PortalSystemV2Class.getInstance();

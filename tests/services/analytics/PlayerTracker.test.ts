@@ -1,27 +1,20 @@
-// Mock Supabase
 import { vi } from 'vitest';
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    upsert: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn(),
-    single: vi.fn(),
-    rpc: vi.fn(),
-  },
-}));
 
-vi.mock('../../../services/supabase/client', () => ({
-  supabase: mockSupabase as any,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+// Mock RailwayClient
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+const mockPatch = vi.fn();
+
+vi.mock('../../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: (...args: unknown[]) => mockGet(...args),
+    post: (...args: unknown[]) => mockPost(...args),
+    patch: (...args: unknown[]) => mockPatch(...args),
+  },
 }));
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PlayerTracker } from '../../../services/analytics/PlayerTracker';
-import { isSupabaseConfigured } from '../../../services/supabase/client';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
 
 // Mock other dependencies
@@ -41,24 +34,31 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
   },
 }));
 
+// Set Railway API URL
+vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
+
 describe('PlayerTracker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     PlayerTracker.resetForTesting();
 
-    // Default setup for successful fetch
-    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
-    mockSupabase.single.mockResolvedValue({
-      data: { id: 'test-profile-id', display_name: 'test' },
-      error: null,
+    // Default: profile exists
+    mockGet.mockResolvedValue({
+      id: 'test-profile-id',
+      nickname: 'test-nickname',
+      display_name: 'test-nickname',
+      created_at: new Date().toISOString(),
+      last_seen_at: new Date().toISOString(),
     });
+    mockPost.mockResolvedValue({ accepted: true });
+    mockPatch.mockResolvedValue({});
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  const waitForInit = async (tracker: any) => {
+  const waitForInit = async (tracker: PlayerTracker) => {
     let attempts = 0;
     while (!tracker.getCurrentPlayer() && attempts < 100) {
       await new Promise(resolve => setTimeout(resolve, 5));
@@ -68,145 +68,109 @@ describe('PlayerTracker', () => {
 
   describe('initialization', () => {
     it('should initialize player if not exists', async () => {
-      // Arrange
-      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
-      mockSupabase.single.mockResolvedValueOnce({
-        data: {
-          id: 'test-profile-id',
-          display_name: 'test-nickname',
-          created_at: new Date().toISOString(),
-          last_seen_at: new Date().toISOString(),
-          total_sessions: 1,
-        },
-        error: null,
+      // GET profile fails (404), POST creates it
+      mockGet.mockRejectedValueOnce(new Error('404'));
+      mockPost.mockResolvedValueOnce({
+        id: 'test-profile-id',
+        nickname: 'test-nickname',
+        display_name: 'test-nickname',
+        created_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
       });
 
-      // Act
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);
 
-      // Assert
-      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
-      expect(mockSupabase.insert).toHaveBeenCalled();
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/profile', {
+        nickname: 'test-nickname',
+      });
       expect(tracker.getCurrentPlayer()).not.toBeNull();
       expect(tracker.getCurrentPlayer()?.displayName).toBe('test-nickname');
     });
 
     it('should update existing player on initialization', async () => {
-      // Arrange
-      const existingPlayer = {
+      mockGet.mockResolvedValueOnce({
         id: 'test-profile-id',
+        nickname: 'test-nickname',
         display_name: 'test-nickname',
         created_at: '2023-01-01',
         last_seen_at: '2023-01-01',
-        total_sessions: 5,
-      };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: existingPlayer,
-        error: null,
       });
-      mockSupabase.update.mockReturnThis();
-      mockSupabase.eq.mockReturnThis();
-      // fallback for update error or next single()
-      mockSupabase.single.mockResolvedValue({ data: {}, error: null });
 
-      // Act
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);
 
-      // Assert
-      expect(mockSupabase.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          total_sessions: 6,
-        })
-      );
-      expect(tracker.getCurrentPlayer()?.totalSessions).toBe(6);
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/profile');
+      expect(tracker.getCurrentPlayer()?.displayName).toBe('test-nickname');
     });
 
-    it('should skip initialization if Supabase is not configured', async () => {
-      // Arrange
-      (isSupabaseConfigured as any).mockReturnValueOnce(false);
+    it('should skip initialization if Railway API is not configured', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', '');
 
-      // Act
       const tracker = PlayerTracker.getInstance();
       await new Promise(resolve => setTimeout(resolve, 20));
 
-      // Assert
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
       expect(tracker.getCurrentPlayer()).toBeNull();
+
+      // Restore
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
     });
 
     it('should skip initialization for anonymous players', async () => {
-      // Arrange
-      (UserSessionService.getProfileId as any).mockReturnValueOnce('anon_12345');
+      (UserSessionService.getProfileId as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+        'anon_12345'
+      );
 
-      // Act
       const tracker = PlayerTracker.getInstance();
       await new Promise(resolve => setTimeout(resolve, 20));
 
-      // Assert
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(mockGet).not.toHaveBeenCalled();
       expect(tracker.getCurrentPlayer()).toBeNull();
     });
   });
 
   describe('heartbeat', () => {
     it('should start heartbeat after successful initialization', async () => {
-      // We need to use fake timers BEFORE the tracker is instantiated
-      // so it uses the mocked setInterval
       vi.useFakeTimers();
 
-      const existingPlayer = {
+      mockGet.mockResolvedValueOnce({
         id: 'test-id',
+        nickname: 'test',
         display_name: 'test',
-        total_sessions: 1,
-      };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: existingPlayer,
-        error: null,
       });
 
-      // Act
       PlayerTracker.getInstance();
 
-      // Advance timers to allow the async init (the void initializePlayer()) to proceed
       vi.runAllTicks();
-
-      // Wait for the async work
       await vi.advanceTimersByTimeAsync(0);
 
       // Advance time by 5 minutes
       await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
 
-      // Assert
-      expect(mockSupabase.update).toHaveBeenCalled();
+      expect(mockPatch).toHaveBeenCalledWith('/api/v1/profile', {});
     });
 
     it('should stop heartbeat when stop() is called', async () => {
       vi.useFakeTimers();
-      const existingPlayer = {
+
+      mockGet.mockResolvedValueOnce({
         id: 'test-id',
+        nickname: 'test',
         display_name: 'test',
-        total_sessions: 1,
-      };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: existingPlayer,
-        error: null,
       });
+
       const tracker = PlayerTracker.getInstance();
 
-      // Allow async init to proceed
       vi.runAllTicks();
       await vi.advanceTimersByTimeAsync(100);
 
-      // Act
       tracker.stop();
+      mockPatch.mockClear();
+
       await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 100);
 
-      // Assert
-      // First call was during init, shouldn't be a second call from heartbeat
-      const updateCalls = mockSupabase.update.mock.calls.length;
-      expect(updateCalls).toBe(1);
+      expect(mockPatch).not.toHaveBeenCalled();
     });
   });
 
@@ -224,97 +188,65 @@ describe('PlayerTracker', () => {
 
       await tracker.trackDeviceProfile('fingerprint-123', profile);
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('device_profiles');
-      expect(mockSupabase.upsert).toHaveBeenCalledWith(
+      expect(mockPost).toHaveBeenCalledWith(
+        '/api/v1/telemetry/device-profiles',
         expect.objectContaining({
           fingerprint: 'fingerprint-123',
           device_type: 'desktop',
-        }),
-        expect.any(Object)
+        })
       );
     });
   });
 
   describe('high score', () => {
     it('should update high score if new score is higher', async () => {
-      // Arrange
-      const existingPlayer = {
+      mockGet.mockResolvedValueOnce({
         id: 'test-profile-id',
+        nickname: 'test-nickname',
         display_name: 'test-nickname',
         created_at: '2023-01-01',
         last_seen_at: '2023-01-01',
-        total_sessions: 1,
-        high_score: 100,
-      };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: existingPlayer,
-        error: null,
       });
 
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);
 
-      // Verify initial high score
-      expect(tracker.getHighScore()).toBe(100);
-
-      // Setup mock for updateHighScore call
-      mockSupabase.eq.mockResolvedValueOnce({ error: null });
-
-      // Act
+      // Default highScore is 0
       const result = await tracker.updateHighScore(200);
 
-      // Assert
       expect(result).toBe(true);
       expect(tracker.getHighScore()).toBe(200);
-      expect(mockSupabase.update).toHaveBeenCalledWith(
-        expect.objectContaining({ high_score: 200 })
-      );
     });
 
     it('should not update high score if new score is lower', async () => {
-      // Arrange
-      const existingPlayer = {
+      mockGet.mockResolvedValueOnce({
         id: 'test-profile-id',
+        nickname: 'test-nickname',
         display_name: 'test-nickname',
         created_at: '2023-01-01',
         last_seen_at: '2023-01-01',
-        total_sessions: 1,
-        high_score: 500,
-      };
-      mockSupabase.maybeSingle.mockResolvedValueOnce({
-        data: existingPlayer,
-        error: null,
       });
 
       const tracker = PlayerTracker.getInstance();
       await waitForInit(tracker);
 
-      // Verify initial high score loaded
-      expect(tracker.getHighScore()).toBe(500);
+      // Set an initial high score
+      await tracker.updateHighScore(500);
 
-      // Clear update mock calls from init
-      mockSupabase.update.mockClear();
-
-      // Act
       const result = await tracker.updateHighScore(100);
 
-      // Assert
       expect(result).toBe(false);
-      expect(tracker.getHighScore()).toBe(500); // Should remain unchanged
-      // update should NOT have been called for high_score
-      expect(mockSupabase.update).not.toHaveBeenCalledWith(
-        expect.objectContaining({ high_score: expect.anything() })
-      );
+      expect(tracker.getHighScore()).toBe(500);
     });
 
-    it('should return 0 si no player is initialized', async () => {
-      // Arrange
-      (isSupabaseConfigured as any).mockReturnValue(false);
+    it('should return 0 if no player is initialized', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', '');
       const tracker = PlayerTracker.getInstance();
       await new Promise(resolve => setTimeout(resolve, 20));
 
-      // Assert
       expect(tracker.getHighScore()).toBe(0);
+
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
     });
   });
 });

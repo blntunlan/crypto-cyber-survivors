@@ -60,13 +60,16 @@ export const LEVERAGE_TIERS: Record<
   number,
   { spawn: number; speed: number; hp: number; damage: number; xpReq: number }
 > = {
+  // xpReq × gemValue = effective leveling speed (lower xpReq = faster)
+  // gemValue at each tier: 1x→1.0, 2x→1.01, 5x→1.03, 10x→1.07, 25x→1.19, 50x→1.39, 100x→1.79
+  // Effective speed:       1x→1.0, 2x→1.06, 5x→1.17, 10x→1.37, 25x→1.83, 50x→2.53, 100x→3.58
   1: { spawn: 0.8, speed: 0.8, hp: 0.8, damage: 0.8, xpReq: 1.0 }, // Spot: Normal progression
-  2: { spawn: 1.0, speed: 0.85, hp: 0.88, damage: 0.95, xpReq: 0.96 }, // Safe: ~4% faster leveling
-  5: { spawn: 1.3, speed: 0.95, hp: 0.96, damage: 1.1, xpReq: 0.9 }, // Standard: ~10% faster
-  10: { spawn: 1.8, speed: 1.05, hp: 1.06, damage: 1.3, xpReq: 0.85 }, // Standard+: ~15% faster
-  25: { spawn: 2.6, speed: 1.18, hp: 1.16, damage: 1.6, xpReq: 0.78 }, // Risky: ~22% faster
-  50: { spawn: 3.5, speed: 1.35, hp: 1.3, damage: 2.0, xpReq: 0.7 }, // Degen: ~30% faster
-  100: { spawn: 4.8, speed: 1.6, hp: 1.5, damage: 2.5, xpReq: 0.6 }, // Max Degen: ~40% faster
+  2: { spawn: 1.0, speed: 0.85, hp: 0.88, damage: 0.95, xpReq: 0.95 }, // Safe: ~6% faster
+  5: { spawn: 1.3, speed: 0.95, hp: 0.96, damage: 1.1, xpReq: 0.88 }, // Standard: ~17% faster
+  10: { spawn: 1.8, speed: 1.05, hp: 1.06, damage: 1.3, xpReq: 0.78 }, // Standard+: ~37% faster
+  25: { spawn: 2.6, speed: 1.18, hp: 1.16, damage: 1.6, xpReq: 0.65 }, // Risky: ~83% faster
+  50: { spawn: 3.5, speed: 1.35, hp: 1.3, damage: 2.0, xpReq: 0.55 }, // Degen: ~153% faster
+  100: { spawn: 4.8, speed: 1.6, hp: 1.5, damage: 2.5, xpReq: 0.5 }, // Max Degen: ~258% faster
 };
 
 // =============================================================================

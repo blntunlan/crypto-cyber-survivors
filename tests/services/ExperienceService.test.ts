@@ -3,10 +3,10 @@ import { ExperienceService } from '../../services/gameplay/ExperienceService';
 import { EXPERIENCE_CONFIG } from '../../config/ExperienceConfig';
 
 describe('ExperienceService', () => {
-  it('should return initial base exp for level 1', () => {
-    // Current formula: BASE (600) + level^1.55 * 120
-    // Level 1: 600 + 1 * 120 = 720
-    expect(ExperienceService.getRequiredExp(1)).toBe(720);
+  it('should return early-game discounted exp for level 1', () => {
+    // Base formula: 600 + 1^1.55 * 120 = 720
+    // Early game ramp at level 1: t=0, earlyMult=0.20 → 720 * 0.20 = 144
+    expect(ExperienceService.getRequiredExp(1)).toBe(144);
   });
 
   it('should increase exp requirements for higher levels', () => {

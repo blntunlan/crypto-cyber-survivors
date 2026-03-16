@@ -31,6 +31,7 @@ import { PerformanceTracker } from '../services/analytics/PerformanceTracker';
 import { DeviceProfiler } from '../services/analytics/DeviceProfiler';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { Logger } from '../services/system/Logger';
+import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { type CryptoPair } from '../types/crypto';
 
 interface UseGameFlowControllerParams {
@@ -48,7 +49,7 @@ interface UseGameFlowControllerParams {
   startOfRunLiquidationGraceMs?: number;
 }
 
-interface PauseMenuStats {
+export interface PauseMenuStats {
   totalKills: number;
   maxStreak: number;
   totalBonusXp: number;
@@ -154,6 +155,7 @@ export const useGameFlowController = ({
       isGameOverProcessingRef.current = true;
 
       frozenPnlRef.current = marketData.pnl;
+      difficultyContext.reset();
       GameStateMachine.transition(GameStatus.GAMEOVER);
 
       const tracker = PerformanceTracker.getInstance();
@@ -278,13 +280,25 @@ export const useGameFlowController = ({
     });
 
     await CoinService.creditCoins(rewards.total, 'cycle_complete');
+    difficultyContext.reset();
     void handleGameOver(GameEndReason.DEATH);
   }, [cycleData, handleGameOver]);
 
   const handleContinue = useCallback(() => {
+    if (cycleData) {
+      // Apply difficulty multiplier for continuing (risk/reward)
+      const cycleFactor = cycleData.continueMultiplier;
+      difficultyContext.updateInputs({ cycleFactor });
+      Logger.info(
+        `[GameFlow] Continue: cycle ${cycleData.cycleNumber}, difficulty x${cycleFactor.toFixed(1)}`
+      );
+
+      // Heal player to full as reward for continuing
+      healFull();
+    }
     setCycleData(null);
     GameStateMachine.transition(GameStatus.PLAYING);
-  }, []);
+  }, [cycleData, healFull]);
 
   const resetFlowState = useCallback(() => {
     isGameOverProcessingRef.current = false;

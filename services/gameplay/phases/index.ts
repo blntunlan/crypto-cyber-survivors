@@ -11,3 +11,6 @@ export { CombatPhase } from './CombatPhase';
 export { SpawnPhase } from './SpawnPhase';
 export { PhysicsPhase } from './PhysicsPhase';
 export { EffectsPhase } from './EffectsPhase';
+export { DifficultyPhase } from './DifficultyPhase';
+export { PortalPhase } from './PortalPhase';
+export { MetricsPhase } from './MetricsPhase';

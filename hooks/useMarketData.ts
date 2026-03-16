@@ -7,10 +7,10 @@ import {
   type LeverageOption,
 } from '../types';
 import {
-  MarketService,
-  type MarketUpdate,
-  type ConnectionStatus,
-} from '../services/market/MarketService';
+  SSEMarketService,
+  type SSEMarketUpdate,
+  type SSEConnectionStatus,
+} from '../services/market/SSEMarketService';
 import { MarketCalculator, type ATRContext } from '../services/market/MarketCalculator';
 import { createMarketSignalPipeline } from '../services/market/pipeline/MarketSignalPipeline';
 import { MAX_CHART_POINTS, MARKET } from '../constants';
@@ -18,7 +18,7 @@ import { type CryptoPair } from '../types/crypto';
 import { EventBus } from '../services/core/EventBus';
 import { Logger } from '../services/system/Logger';
 import { priceAnalyzer } from '../services/admin/PriceAnalyzerService';
-import { type MarketStateData } from '../types/events';
+// MarketStateData import removed — SSE provides indicators inline
 import { type MarketRuntimeMode } from '../config/marketRuntime';
 import {
   MARKET_RUNTIME_VERSION,
@@ -40,6 +40,9 @@ import {
 } from '../services/market/runtime/MarketCompute';
 import { MarketRuntimeController } from '../services/market/runtime/MarketRuntimeController';
 import { getMarketSyncQueue } from '../services/market/sync';
+
+// Bridge type: map SSE data to the MarketUpdate shape used by runtime internals
+type MarketUpdate = SSEMarketUpdate & { source: 'sse' };
 
 // ATR_PERIOD is now managed by MarketCalculator
 
@@ -119,7 +122,7 @@ export const useMarketData = (
     momentum: 0,
   });
 
-  const [_priceHistory, setPriceHistory] = useState<number[]>([]);
+  const priceHistoryRef = useRef<number[]>([]);
   // ATR calculation context (managed by MarketCalculator)
   const atrContextRef = useRef<ATRContext>({ trHistory: [], prevClose: null });
 
@@ -180,9 +183,7 @@ export const useMarketData = (
 
   // Reset timeout timer when resuming game to prevent immediate disconnects from background time
   useEffect(() => {
-    // Defensive check: GameStatus might be undefined during hot reload or circular dependencies
-    // eslint_disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (gameStatus === GameStatus?.PLAYING) {
+    if (gameStatus === GameStatus.PLAYING) {
       lastPriceTimeRef.current = Date.now();
       timeoutTriggeredRef.current = false;
     }
@@ -262,22 +263,11 @@ export const useMarketData = (
     return () => clearInterval(intervalId);
   }, []);
 
-  // Sync with MarketStateService for indicators (RSI, Volume, ATR, etc.)
-  useEffect(() => {
-    const handleMarketStateUpdate = (state: MarketStateData) => {
-      if (state.pair !== pairRef.current) return;
-      marketPipelineRef.current.syncServerState(state);
-    };
-
-    const unsub = EventBus.on('marketStateUpdated', handleMarketStateUpdate);
-    return () => {
-      unsub();
-    };
-  }, [pair]);
+  // NOTE: MarketStateService subscription removed — SSE provides indicators inline.
 
   // Session Reset & Cleanup (CRITICAL for pair switching)
   useEffect(() => {
-    setPriceHistory([]);
+    priceHistoryRef.current = [];
     atrContextRef.current = { trHistory: [], prevClose: null };
     lastPriceTimeRef.current = Date.now(); // Reset timeout on pair switch
     timeoutTriggeredRef.current = false;
@@ -335,7 +325,7 @@ export const useMarketData = (
 
     const maybeLogRuntimeFeedHealth = (
       mode: MarketRuntimeMode,
-      status: ConnectionStatus
+      status: SSEConnectionStatus
     ) => {
       if (mode === 'legacy') return;
 
@@ -351,8 +341,7 @@ export const useMarketData = (
       Logger.info('[MarketRuntime] Feed health', {
         mode,
         pair: expectedPair,
-        binance: status.binance,
-        coinbase: status.coinbase,
+        sse: status.state,
         totalDisconnectDuration: status.totalDisconnectDuration,
         isUsingFallbackData: status.isUsingFallbackData,
       });
@@ -587,24 +576,37 @@ export const useMarketData = (
       return runConstants;
     };
 
-    Logger.info(`[useMarketData] Creating MarketService for ${expectedPair}`);
+    Logger.info(`[useMarketData] Creating SSEMarketService for ${expectedPair}`);
 
-    const service = new MarketService({
+    const service = new SSEMarketService({
       pair,
       onStatusChange: status => {
         if (runtimeModeRef.current === 'legacy') {
           return;
         }
 
+        // Adapt SSE status to ConnectionStatus shape for runtime feed health
+        const adaptedStatus = {
+          binance:
+            status.state === 'connected'
+              ? ('connected' as const)
+              : ('disconnected' as const),
+          coinbase: 'disconnected' as const,
+          lastPriceTime: status.lastDataTime,
+          totalDisconnectDuration: status.totalDisconnectDuration,
+          isUsingFallbackData: status.isUsingFallbackData,
+        };
         const feedHealth = createRuntimeFeedHealth(
-          status,
+          adaptedStatus,
           expectedPair,
           runtimeRunConstantsRef.current?.runId ?? null
         );
         EventBus.emit('marketRuntimeFeedHealth', feedHealth);
         maybeLogRuntimeFeedHealth(runtimeModeRef.current, status);
       },
-      onData: (update: MarketUpdate) => {
+      onData: (sseUpdate: SSEMarketUpdate) => {
+        // Adapt SSE update to MarketUpdate shape
+        const update: MarketUpdate = { ...sseUpdate, source: 'sse' };
         // CRITICAL: Ignore callbacks if this effect has been cleaned up
         if (isCancelled) {
           Logger.debug(
@@ -636,13 +638,29 @@ export const useMarketData = (
         priceAnalyzer.addPrice(update.pair, price, update.source);
 
         // Update Price History
-        setPriceHistory(prevHistory => {
-          const newHistory = [...prevHistory, price];
-          if (newHistory.length > MAX_CHART_POINTS) return newHistory.slice(1);
-          return newHistory;
+        priceHistoryRef.current.push(price);
+        if (priceHistoryRef.current.length > MAX_CHART_POINTS) {
+          priceHistoryRef.current.shift();
+        }
+
+        // SSE provides server-computed indicators — sync them into pipeline
+        marketPipelineRef.current.syncServerState({
+          pair: expectedPair as CryptoPair,
+          price,
+          volume: sseUpdate.volume,
+          rsi: sseUpdate.rsi,
+          rsiState: sseUpdate.rsiState as 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT',
+          atr: 0,
+          atrPercent: sseUpdate.atrPercent,
+          spawnRateMultiplier: sseUpdate.spawnRateMultiplier,
+          normalizedVolume: sseUpdate.normalizedVolume,
+          volumePercentile: sseUpdate.volumePercentile,
+          whaleTier: sseUpdate.whaleTier as 0 | 1 | 2 | 3,
+          enemyAggroMultiplier: sseUpdate.enemyAggroMultiplierLong,
+          updatedAt: new Date(),
         });
 
-        // Calculate ATR using MarketCalculator (pure function)
+        // Calculate ATR using MarketCalculator (pure function) — kept as fallback
         const atrResult = MarketCalculator.calculateATR(
           { high: update.high, low: update.low, close: price },
           atrContextRef.current
@@ -901,10 +919,10 @@ export const useMarketData = (
       runtimeControllerRef.current = null;
       runtimeControllerRunIdRef.current = null;
       runtimeWorkerSnapshotRef.current = null;
-      Logger.info(`[useMarketData] Destroying MarketService for ${expectedPair}`);
+      Logger.info(`[useMarketData] Destroying SSEMarketService for ${expectedPair}`);
       service.destroy(); // Use destroy() instead of disconnect() for complete cleanup
     };
   }, [playerRef, pair]);
 
-  return { marketData, priceHistory: _priceHistory };
+  return { marketData, priceHistory: priceHistoryRef.current };
 };

@@ -138,19 +138,17 @@ describe('New Mechanics (Damping, XP, Shock)', () => {
   });
 
   describe('Leverage XP Scaling', () => {
-    it('should provide 1.0x XP multiplier for 1x leverage', () => {
+    it('should provide 1.0x XP multiplier regardless of leverage (no leverage compounding)', () => {
+      // getXpMultiplier() no longer includes leverage scaling.
+      // Leverage XP speed is controlled by LeverageEngine.gemValue + LEVERAGE_TIERS.xpReq.
       DifficultyManager.startGame(1);
       expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(1.0);
-    });
 
-    it('should provide ~2.7x XP multiplier for 10x leverage', () => {
       DifficultyManager.startGame(10);
-      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(2.73, 2);
-    });
+      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(1.0);
 
-    it('should provide ~8.2x XP multiplier for 100x leverage', () => {
       DifficultyManager.startGame(100);
-      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(8.2);
+      expect(DifficultyManager.getXpMultiplier()).toBeCloseTo(1.0);
     });
   });
 

@@ -3,7 +3,7 @@ import { render } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameEngine } from '../../components/GameEngine';
 import { GameStatus, MarketPosition, type LeverageOption } from '../../types';
-import { MarketStateService } from '../../services/market/MarketStateService';
+import { railwayClient } from '../../services/api/RailwayClient';
 import { EventBus } from '../../services/core/EventBus';
 import { Logger } from '../../services/system/Logger';
 
@@ -156,11 +156,11 @@ vi.mock('../../services/patterns/decorators/BuffManager', () => ({
     })),
   },
 }));
-vi.mock('../../services/market/MarketStateService', () => ({
-  MarketStateService: {
-    init: vi.fn().mockResolvedValue({}),
-    cleanup: vi.fn(),
-    fetchMarketHistory: vi.fn().mockResolvedValue([]),
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue([]),
+    post: vi.fn().mockResolvedValue({}),
+    patch: vi.fn().mockResolvedValue({}),
   },
 }));
 vi.mock('../../services/indicators/ClientIndicatorService', () => ({
@@ -309,15 +309,17 @@ describe('GameEngine', () => {
     expect(screen.getByTestId('mobile-controls')).toBeInTheDocument();
   });
 
-  it('initializes and cleans up market state', async () => {
+  it('fetches market history on mount', async () => {
     const { unmount } = render(<GameEngine {...mockProps} />);
 
-    // Check initialization (Wait for async flow)
-    await vi.waitFor(() => expect(MarketStateService.init).toHaveBeenCalled());
+    // Check that Railway API was called for market history
+    await vi.waitFor(() =>
+      expect(railwayClient.get).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/market/history')
+      )
+    );
 
-    // Check cleanup
     unmount();
-    expect(MarketStateService.cleanup).toHaveBeenCalled();
   });
 
   it('responds to client indicator events', () => {

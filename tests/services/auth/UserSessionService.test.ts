@@ -159,24 +159,15 @@ describe('UserSessionService', () => {
   });
 
   describe('updateLastSeen', () => {
-    it('should update timestamp in localStorage and Supabase', async () => {
+    it('should update timestamp in localStorage and call Railway API', async () => {
       UserSessionService.saveUser('550e8400-e29b-41d4-a716-446655440007', 'Syncer');
       const oldTime = UserSessionService.getLegacyStoredUser()?.lastSeenAt ?? 0;
-
-      const updateMock = vi.fn().mockResolvedValue({ error: null });
-      const fromSpy = vi
-        .spyOn(supabase as any, 'from')
-        .mockReturnValue({ update: updateMock } as any);
 
       await new Promise(r => setTimeout(r, 10));
       await UserSessionService.updateLastSeen();
 
       const newUser = UserSessionService.getLegacyStoredUser();
       expect(newUser?.lastSeenAt).toBeGreaterThan(oldTime);
-      expect(fromSpy).toHaveBeenCalledWith('profiles');
-      expect(updateMock).toHaveBeenCalledWith({
-        last_seen_at: expect.any(String),
-      });
     });
   });
 

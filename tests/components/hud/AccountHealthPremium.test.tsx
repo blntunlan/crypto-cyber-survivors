@@ -21,7 +21,7 @@ vi.mock('../../../hooks/useResponsiveUI', () => ({
 }));
 
 // NOTE: DifficultyManager.getWavePhase mock removed in AI Director V2
-// Wave phases deprecated - difficulty now market-driven
+// Wave phase system removed - difficulty now market-driven
 
 vi.mock('../../../contexts/useTheme', () => ({
   useIsRetro: vi.fn(),
@@ -91,7 +91,7 @@ describe('AccountHealthPremium', () => {
   });
 
   // NOTE: Wave phase tests removed in AI Director V2
-  // Wave phases deprecated - difficulty now market-driven
+  // Wave phase system removed - difficulty now market-driven
   // The UI now always shows "active" phase with cyan color
 
   it('should display static "active" phase (AI Director V2)', () => {
@@ -127,7 +127,7 @@ describe('AccountHealthPremium', () => {
   });
 
   // NOTE: Wave Phase Colors tests removed in AI Director V2
-  // Wave phases deprecated - now always shows "active" phase with cyan color
+  // Wave phase system removed - now always shows "active" phase with cyan color
 
   it('should apply critical pulse animation when HP is low', () => {
     render(<AccountHealthPremium hp={10} maxHp={100} hpPercent={10} />);

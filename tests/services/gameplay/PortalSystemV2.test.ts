@@ -231,11 +231,14 @@ describe('PortalSystemV2', () => {
     });
 
     it('should track combo bonus', () => {
-      portalSystem.addComboBonus(50);
+      // 20 streak = 2 milestones = 50 coins bonus with default rates
+      portalSystem.setMaxStreak(20);
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(350);
       portalSystem.update(16, 0.15, 800, 600);
 
       const result = portalSystem.enterPortal();
+      // TAKE_PROFIT portal adds 20% bonus, so the base bonus is calculated first
+      // But let's check streakBonus directly if it exposes it, or at least expect it's calculated
       expect(result.breakdown.comboBonus).toBe(50);
     });
 

@@ -1,21 +1,59 @@
 import type { MarketPosition } from '../../types';
 import type { MACDResult } from '../../types/indicators';
 
+// =============================================================================
+// INPUT SLICES (Step 1: Aggregator pattern)
+// =============================================================================
+
+/** Market-sourced inputs, owned by MarketInputAggregator */
+export interface MarketInputSlice {
+  pnlPercent: number;
+  currentPrice: number;
+  rsi: number;
+  rsiState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  normalizedVolume: number;
+  whaleTier: 0 | 1 | 2 | 3;
+  atrPercent: number;
+  macd: MACDResult;
+  pnlHistory: number[];
+}
+
+/** Player-state inputs, owned by PlayerMetricsAggregator */
+export interface PlayerInputSlice {
+  level: number;
+  hpPercent: number;
+  killStreak: number;
+  timeSinceLastKill: number;
+  accuracy: number;
+  damageTakenFrequency: number;
+  performanceScore: number;
+  dps: number;
+  enemyHealthPool: number;
+  screenDensity: number;
+  upgradeEfficiency: number;
+  movementEntropy: number;
+  stress: {
+    score: number;
+    damageRate: number;
+    dashUsage: number;
+    nearDeathDuration: number;
+  };
+}
+
+/** Leverage-related inputs, owned by LeverageStateProvider */
+export interface LeverageInputSlice {
+  leverage: number;
+  position: MarketPosition;
+  entryPrice: number;
+  liquidationPrice: number;
+  cycleFactor: number;
+}
+
 /**
- * Wave phase names
- * Legacy Support (V1)
- * Difficulty is now driven by market conditions and player flow state.
- * Keeping this type for legacy compatibility.
+ * Wave phase names (AI Director V2).
+ * Difficulty is now driven continuously and exposed as a single active phase.
  */
-export type WavePhase =
-  | 'active' // New: Single active phase (V2)
-  | 'warmup' // @deprecated
-  | 'buildup' // @deprecated
-  | 'firstPeak' // @deprecated
-  | 'breather' // @deprecated
-  | 'escalation' // @deprecated
-  | 'climax' // @deprecated
-  | 'resolution'; // @deprecated
+export type WavePhase = 'active';
 
 /** Liquidation warning levels */
 export type LiquidationWarning = 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';
@@ -72,6 +110,9 @@ export interface DifficultyInputs {
 
   // History
   pnlHistory: number[]; // buffer of leveraged PnL values
+
+  // Cycle progression
+  cycleFactor: number; // Multiplier from continuing past cycle (1.0 = base, 1.5 = cycle 1 continue, etc.)
 
   // --- Neural Network Sensors (V2) ---
   macd: MACDResult;

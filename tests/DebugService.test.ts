@@ -59,12 +59,13 @@ describe('DebugService', () => {
       download: '',
       click: vi.fn(),
     } as any;
-    vi.spyOn(document, 'createElement').mockReturnValue(mockAnchor);
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockReturnValue(mockAnchor);
 
     DebugService.exportSnapshot();
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    expect(document.createElement).toHaveBeenCalledWith('a');
+    expect(createElementSpy).toHaveBeenCalledWith('a');
     expect(mockAnchor.href).toBe(mockURL);
     expect(mockAnchor.download).toContain('game-snapshot');
     expect(mockAnchor.click).toHaveBeenCalled();

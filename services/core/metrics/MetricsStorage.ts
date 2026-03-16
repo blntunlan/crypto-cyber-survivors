@@ -10,7 +10,7 @@
 
 import { Logger } from '../../system/Logger';
 import { type SessionMetrics } from '../../../types/metrics';
-import { supabase, isSupabaseConfigured } from '../../supabase/client';
+import { railwayClient } from '../../api/RailwayClient';
 import { UserSessionService } from '../../auth/UserSessionService';
 import { VerificationQueue } from '../../verification/VerificationQueue';
 import { EventBus } from '../EventBus';
@@ -118,9 +118,10 @@ export class MetricsStorage {
    * Otherwise, insert a new record.
    */
   private async syncToSupabase(session: SessionMetrics, retryCount = 0): Promise<void> {
-    // Skip sync if Supabase is not configured
-    if (!isSupabaseConfigured()) {
-      Logger.debug('[MetricsStorage] Supabase not configured, skipping sync');
+    // Skip sync if Railway API is not configured
+    const railwayUrl = import.meta.env.VITE_RAILWAY_API_URL;
+    if (!railwayUrl) {
+      Logger.debug('[MetricsStorage] Railway API not configured, skipping sync');
       return;
     }
 
@@ -175,42 +176,22 @@ export class MetricsStorage {
       let gameSession: { id: string } | null = null;
       let sessionError: Error | null = null;
 
-      // If we have a VALID serverSessionId (UUID format), UPDATE the existing record
-      // local- prefixed IDs are not UUIDs and will cause a 400 Bad Request
-      if (hasValidServerUuid) {
-        Logger.debug('[MetricsStorage] Updating existing server session', {
-          serverSessionId: session.serverSessionId as string,
+      try {
+        Logger.debug('[MetricsStorage] Syncing session to Railway', {
+          serverSessionId: session.serverSessionId ?? 'none',
         });
 
-        const { data, error } = await supabase
-          .from('sessions')
-          .update(sessionData)
-          .eq('id', session.serverSessionId ?? '')
-          .select('id')
-          .single();
+        const result = await railwayClient.post<{ id: string }>(
+          '/api/v1/sessions/sync',
+          {
+            sessionId: hasValidServerUuid ? session.serverSessionId : undefined,
+            sessionData,
+          }
+        );
 
-        gameSession = data;
-        sessionError = error as Error | null;
-
-        if (error) {
-          Logger.warn(
-            '[MetricsStorage] Failed to update server session, falling back to insert',
-            error
-          );
-          // Fall through to insert
-        }
-      }
-
-      // If no serverSessionId OR update failed, try INSERT
-      if (!gameSession) {
-        const { data, error } = await supabase
-          .from('sessions')
-          .insert(sessionData)
-          .select('id')
-          .single();
-
-        gameSession = data;
-        sessionError = error as Error | null;
+        gameSession = result;
+      } catch (error) {
+        sessionError = error as Error;
       }
 
       if (sessionError) {
@@ -272,52 +253,47 @@ export class MetricsStorage {
 
       // 2. Insert performance metrics (if available)
       if (session.performance && actualSessionId) {
-        const { error: perfError } = await supabase.from('performance_metrics').insert({
-          session_id: actualSessionId,
-          profile_id: isAnonymous ? null : profileId,
-          avg_fps: session.performance.avgFps,
-          min_fps: session.performance.minFps,
-          max_fps: session.performance.maxFps ?? session.performance.avgFps,
-          frame_drops: session.performance.frameDrops ?? 0,
-          device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
-          metadata: {
-            fps_samples: session.performance.fpsSamples ?? 1,
-            memory_used_mb: session.performance.memoryUsedMb,
-            memory_peak_mb: session.performance.memoryPeakMb,
-            enemy_count_max: session.performance.enemyCountMax,
-            fps_1_percentile: session.performance.fps_1_percentile,
-            avg_frame_time_ms: session.performance.avg_frame_time_ms,
-            max_frame_time_ms: session.performance.max_frame_time_ms,
-            enemy_count_avg: session.performance.enemy_count_avg,
-            bullet_count_avg: session.performance.bullet_count_avg,
-            particle_count_avg: session.performance.particle_count_avg,
-            optimization_profile: session.performance.optimizationProfile,
-            device_fingerprint: session.performance.deviceFingerprint,
-          },
-        });
-
-        if (perfError) {
-          Logger.warn('[MetricsStorage] Performance metrics sync failed', perfError);
-        } else {
+        try {
+          await railwayClient.post('/api/v1/telemetry/performance-metrics', {
+            session_id: actualSessionId,
+            profile_id: isAnonymous ? null : profileId,
+            avg_fps: session.performance.avgFps,
+            min_fps: session.performance.minFps,
+            max_fps: session.performance.maxFps ?? session.performance.avgFps,
+            frame_drops: session.performance.frameDrops ?? 0,
+            device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
+            metadata: {
+              fps_samples: session.performance.fpsSamples ?? 1,
+              memory_used_mb: session.performance.memoryUsedMb,
+              memory_peak_mb: session.performance.memoryPeakMb,
+              enemy_count_max: session.performance.enemyCountMax,
+              fps_1_percentile: session.performance.fps_1_percentile,
+              avg_frame_time_ms: session.performance.avg_frame_time_ms,
+              max_frame_time_ms: session.performance.max_frame_time_ms,
+              enemy_count_avg: session.performance.enemy_count_avg,
+              bullet_count_avg: session.performance.bullet_count_avg,
+              particle_count_avg: session.performance.particle_count_avg,
+              optimization_profile: session.performance.optimizationProfile,
+              device_fingerprint: session.performance.deviceFingerprint,
+            },
+          });
           Logger.debug('[MetricsStorage] Performance metrics synced');
+        } catch (perfError) {
+          Logger.warn('[MetricsStorage] Performance metrics sync failed', perfError);
         }
       }
 
       // 3. Upsert device profile
       if (session.performance?.deviceFingerprint) {
-        const { error: deviceError } = await supabase.from('device_profiles').upsert(
-          {
+        try {
+          await railwayClient.post('/api/v1/telemetry/device-profiles', {
             fingerprint: session.performance.deviceFingerprint,
             browser: session.performance.browser,
             device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',
             screen_width: window.innerWidth,
             screen_height: window.innerHeight,
-            last_seen_at: new Date().toISOString(),
-          },
-          { onConflict: 'fingerprint' }
-        );
-
-        if (deviceError) {
+          });
+        } catch (deviceError) {
           Logger.warn('[MetricsStorage] Device profile sync failed', deviceError);
         }
       }
@@ -331,36 +307,34 @@ export class MetricsStorage {
         session.inputLogs.length > 0 &&
         session.player.survivalTimeMs > 60000 // Only upload logs for runs > 1 minute
       ) {
-        // Upload asynchronously to avoid blocking
-        void (async () => {
-          try {
-            const blob = new Blob([JSON.stringify(session.inputLogs)], {
-              type: 'application/json',
-            });
-            const { error: uploadError } = await supabase.storage
-              .from('session-replays')
-              .upload(`${session.sessionId}.json`, blob, {
-                upsert: true,
-              });
-
-            if (uploadError) {
-              // Bucket might not exist, strictly optional feature for now
-              Logger.debug(
-                '[MetricsStorage] Log upload failed (Bucket missing?)',
-                uploadError
-              );
-            } else {
-              Logger.info('[MetricsStorage] Replay logs uploaded');
-            }
-          } catch (err) {
-            Logger.warn('[MetricsStorage] Log upload exception', err);
-          }
-        })();
+        // Replay upload temporarily disabled during Railway migration
+        // TODO: Implement replay upload via Railway API when storage is available
+        Logger.debug('[MetricsStorage] Replay upload skipped (Railway migration)');
       }
 
       // 5. Player stats are updated automatically via database trigger
       // on the server when a record is inserted into 'game_sessions'.
     } catch (err) {
+      // Don't retry on 402 (quota exhausted) — it won't help
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const isQuotaExhausted =
+        errMsg.includes('402') ||
+        (err !== null &&
+          typeof err === 'object' &&
+          'code' in err &&
+          (err as { code: string }).code === '402');
+      if (isQuotaExhausted) {
+        Logger.warn(
+          '[MetricsStorage] Supabase quota exhausted (402), skipping retries'
+        );
+        EventBus.emit('sessionSyncFailed', {
+          sessionId: session.sessionId,
+          error: 'Supabase quota exhausted (402)',
+          retryCount,
+        });
+        return;
+      }
+
       // Retry logic with exponential backoff
       if (retryCount < MAX_SYNC_RETRIES) {
         const delay =

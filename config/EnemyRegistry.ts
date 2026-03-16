@@ -129,6 +129,71 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     description:
       'Portal Sentinels that protect the extraction point. High knockback force.',
   },
+  rugpull: {
+    id: 'rugpull',
+    type: 'rugpull',
+    radius: 11,
+    baseHealth: 35,
+    baseSpeed: 2.0,
+    baseDamage: 15,
+    color: COLORS.RUGPULL_CRIMSON,
+    spawnWeight: 7,
+    isOppositeColor: false,
+    description:
+      'Deceptive entities that teleport unpredictably. Represent exit scams.',
+  },
+  mev_bot: {
+    id: 'mev_bot',
+    type: 'mev_bot',
+    radius: 9,
+    baseHealth: 25,
+    baseSpeed: 2.5,
+    baseDamage: 6,
+    color: COLORS.MEV_CYAN,
+    spawnWeight: 8,
+    isOppositeColor: false,
+    description:
+      'Algorithmic predators that anticipate player movement. Front-runners.',
+  },
+  flash_loan: {
+    id: 'flash_loan',
+    type: 'flash_loan',
+    radius: 15,
+    baseHealth: 60,
+    baseSpeed: 0.8,
+    baseDamage: 25,
+    color: COLORS.FLASH_LOAN_YELLOW,
+    spawnWeight: 5,
+    isOppositeColor: false,
+    description:
+      'Charge-and-burst entities. Pause to build energy, then strike explosively.',
+  },
+  sandwich: {
+    id: 'sandwich',
+    type: 'sandwich',
+    radius: 12,
+    baseHealth: 45,
+    baseSpeed: 1.6,
+    baseDamage: 10,
+    color: COLORS.SANDWICH_PINK,
+    spawnWeight: 6,
+    isOppositeColor: false,
+    description:
+      'Pincer attack units that spawn in pairs and converge from opposite sides.',
+  },
+  '51_attack': {
+    id: '51_attack',
+    type: '51_attack',
+    radius: 40,
+    baseHealth: 400,
+    baseSpeed: 0.5,
+    baseDamage: 20,
+    color: COLORS.ATTACK_51_RED,
+    spawnWeight: 0, // Rare spawn only
+    isOppositeColor: false,
+    description:
+      'Network dominance boss. Absorbs nearby enemies to grow stronger over time.',
+  },
 };
 
 export type EnemyId = keyof typeof ENEMY_DEFINITIONS;

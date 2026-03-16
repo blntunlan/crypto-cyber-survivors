@@ -9,14 +9,9 @@
  * - Auth check intentionally disabled (temporary architecture reset)
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
-import { Logger } from '../services/system/Logger';
 interface UseAppInitializationResult {
-  /** Legacy flag kept for compatibility (always false) */
-  needsNickname: boolean;
-  /** Legacy setter kept for compatibility */
-  setNeedsNickname: (value: boolean) => void;
   /** Whether initialization is complete */
   isInitialized: boolean;
 }
@@ -26,15 +21,8 @@ interface UseAppInitializationResult {
  * @returns Initialization state and controls
  */
 export function useAppInitialization(): UseAppInitializationResult {
-  const [needsNickname, setNeedsNickname] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [hasStartedInit, setHasStartedInit] = useState<boolean>(false);
-
-  // Memoized setter that logs for debugging
-  const setNeedsNicknameWithLog = useCallback((value: boolean) => {
-    Logger.debug(`[useAppInitialization] setNeedsNickname: ${value}`);
-    setNeedsNickname(value);
-  }, []);
 
   useEffect(() => {
     if (hasStartedInit) return;
@@ -53,25 +41,15 @@ export function useAppInitialization(): UseAppInitializationResult {
       // 3. Run device benchmark
       void DeviceBenchmarkService.runBenchmark();
 
-      // 4. Initialize market state realtime feed
-      void import('../services/market/MarketStateService').then(
-        ({ MarketStateService }) => {
-          void MarketStateService.init();
-        }
-      );
-
-      // 5. Auth reset mode: always allow direct entry to hub flow.
-      setNeedsNicknameWithLog(false);
+      // 4. Market state now handled by SSE via useMarketData hook
 
       setIsInitialized(true);
     };
 
     void init();
-  }, [hasStartedInit, setNeedsNicknameWithLog]);
+  }, [hasStartedInit]);
 
   return {
-    needsNickname,
-    setNeedsNickname: setNeedsNicknameWithLog,
     isInitialized,
   };
 }

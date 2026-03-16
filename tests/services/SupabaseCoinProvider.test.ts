@@ -1,20 +1,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SupabaseCoinProvider } from '../../services/gameplay/SupabaseCoinProvider';
-import { supabase } from '../../services/supabase/client';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 
-vi.mock('../../services/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(),
-        })),
-      })),
-    })),
-    rpc: vi.fn(),
+const { railwayGetMock } = vi.hoisted(() => ({
+  railwayGetMock: vi.fn(),
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: railwayGetMock,
+    post: vi.fn(),
+    patch: vi.fn(),
+    del: vi.fn(),
   },
-  isSupabaseConfigured: vi.fn(() => true),
 }));
 
 vi.mock('../../services/auth/UserSessionService', () => ({
@@ -36,49 +34,29 @@ describe('SupabaseCoinProvider', () => {
       '550e8400-e29b-41d4-a716-446655440001'
     );
 
-    const mockSingle = vi.fn().mockResolvedValue({
-      data: { gold_balance: 500 },
-      error: null,
-    });
-
-    vi.mocked(supabase!.from).mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: mockSingle,
-        }),
-      }),
-    } as any);
+    railwayGetMock.mockResolvedValue({ balance: 500 });
 
     const balance = await provider.getBalance();
     expect(balance).toBe(500);
-    expect(supabase!.from).toHaveBeenCalledWith('virtual_accounts');
+    expect(railwayGetMock).toHaveBeenCalledWith('/api/v1/wallet/balance');
   });
 
   it('should return 0 for anonymous players', async () => {
     vi.mocked(UserSessionService.getProfileId).mockReturnValue('anon_123');
     const balance = await provider.getBalance();
     expect(balance).toBe(0);
-    expect(supabase!.from).not.toHaveBeenCalled();
+    expect(railwayGetMock).not.toHaveBeenCalled();
   });
 
-  it('should credit coins via RPC', async () => {
+  it('should optimistically credit coins and return true', async () => {
     vi.mocked(UserSessionService.getProfileId).mockReturnValue(
       '550e8400-e29b-41d4-a716-446655440001'
     );
-    vi.mocked(supabase!.rpc).mockResolvedValue({
-      data: { success: true, new_balance: 100 },
-      error: null,
-    } as any);
 
     const success = await provider.credit(50, 'achievement', { referenceId: 'ach-1' });
 
     expect(success).toBe(true);
-    expect(supabase!.rpc).toHaveBeenCalledWith('credit_coins', {
-      p_profile_id: '550e8400-e29b-41d4-a716-446655440001',
-      p_amount: 50,
-      p_transaction_type: 'achievement',
-      p_reference_id: 'ach-1',
-      p_metadata: expect.any(Object),
-    });
+    // No API call — optimistic only
+    expect(railwayGetMock).not.toHaveBeenCalled();
   });
 });

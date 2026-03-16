@@ -1,7 +1,12 @@
 import { type CryptoPair } from './crypto';
 
 export type RuntimePosition = 'LONG' | 'SHORT';
-export type RuntimeFeedSource = 'binance' | 'coinbase' | 'fallback' | 'connecting';
+export type RuntimeFeedSource =
+  | 'binance'
+  | 'coinbase'
+  | 'sse'
+  | 'fallback'
+  | 'connecting';
 export type RuntimeConnectionState =
   | 'connected'
   | 'degraded'

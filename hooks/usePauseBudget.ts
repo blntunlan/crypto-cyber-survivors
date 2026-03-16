@@ -25,7 +25,7 @@ const PAUSE_CONFIG = {
   TICK_INTERVAL_MS: 100,
 } as const;
 
-interface PauseBudgetState {
+export interface PauseBudgetState {
   /** Remaining pause seconds (null = unlimited) */
   remainingSeconds: number | null;
   /** Maximum pause seconds */

@@ -4,15 +4,25 @@
  * This service ensures that player profiles are:
  * - Properly created and linked to authentication providers
  * - Validated on each session
- * - Synchronized with Supabase
+ * - Synchronized with Railway API
  */
 
 import { supabase, isSupabaseConfigured } from '../supabase/client';
-import { SupabaseUtils } from '../core/SupabaseUtils';
+import { railwayClient } from '../api/RailwayClient';
 import { Logger } from '../system/Logger';
-import type { Database } from '../../types/supabase';
 
-type DBProfile = Database['public']['Tables']['profiles']['Row'];
+interface DBProfile {
+  id: string;
+  auth_user_id?: string | null;
+  nickname?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  wallet_address?: string | null;
+  primary_auth_provider?: string | null;
+  last_seen_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
 
 export interface PlayerProfile {
   id: string;
@@ -58,7 +68,7 @@ export class ProfileService {
    * Initialize and validate the current user's profile
    */
   async initialize(): Promise<ProfileValidationResult> {
-    // Check if Supabase is configured
+    // Check if Supabase Auth is configured
     if (!isSupabaseConfigured()) {
       Logger.warn('[ProfileService] Supabase not configured');
       return { isValid: false, error: 'Backend not configured' };
@@ -74,77 +84,27 @@ export class ProfileService {
         return { isValid: false, error: 'Not authenticated' };
       }
 
-      // 1. Check if profile exists using auth_user_id (modern auth flow)
-      const existingProfileResult = await SupabaseUtils.safeFetchSingle<DBProfile>(
-        supabase.from('profiles').select('*').eq('auth_user_id', user.id),
-        'Profile',
-        false // Not critical yet as they are authenticated, it just might not exist
-      );
+      // Fetch profile from Railway API
+      try {
+        const profile = await railwayClient.get<DBProfile>('/api/v1/profile');
+        if (profile) {
+          this.currentProfile = this.mapToPlayerProfile(profile, user);
 
-      if (existingProfileResult.success) {
-        const existingProfile = existingProfileResult.data;
-        // Profile exists - validate and update last seen
-        this.currentProfile = this.mapToPlayerProfile(existingProfile, user);
+          // Update last_seen_at
+          await railwayClient.patch('/api/v1/profile', {}).catch(() => {});
 
-        await supabase
-          .from('profiles')
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq('auth_user_id', user.id);
-
-        this.isInitialized = true;
-        Logger.info(
-          '[ProfileService] Profile loaded via auth_user_id:',
-          this.currentProfile.displayName
-        );
-        return { isValid: true, profile: this.currentProfile };
-      }
-
-      // 2. RETURNING USER CHECK: If no auth_user_id match, check by email (Legacy profiles)
-      if (user.email) {
-        const legacyProfileResult = await SupabaseUtils.safeFetchSingle<DBProfile>(
-          supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', user.email)
-            .is('auth_user_id', null),
-          'LegacyProfile'
-        );
-
-        if (legacyProfileResult.success) {
-          const legacyProfile = legacyProfileResult.data;
+          this.isInitialized = true;
           Logger.info(
-            '[ProfileService] Found legacy profile matching email, linking...',
-            user.email
+            '[ProfileService] Profile loaded:',
+            this.currentProfile.displayName
           );
-          // Auto-link legacy profile
-          const { data: linkedProfile, error: linkError } = await supabase
-            .from('profiles')
-            .update({
-              auth_user_id: user.id,
-              email_verified: !!user.email_confirmed_at,
-              primary_auth_provider: user.app_metadata.provider ?? 'email',
-              last_seen_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', legacyProfile.id)
-            .select()
-            .single();
-
-          if (linkedProfile) {
-            this.currentProfile = this.mapToPlayerProfile(linkedProfile, user);
-            this.isInitialized = true;
-            Logger.info(
-              '[ProfileService] Legacy profile linked successfully:',
-              this.currentProfile.displayName
-            );
-            return { isValid: true, profile: this.currentProfile };
-          }
-          Logger.error('[ProfileService] Failed to link legacy profile:', linkError);
+          return { isValid: true, profile: this.currentProfile };
         }
+      } catch {
+        // Profile not found — new user flow
       }
 
-      // 3. NEW USER FLOW: No existing profile found, force nickname creation
-      // Disable auto-creation from suggestedNickname to let user choose their own
+      // NEW USER FLOW: No existing profile found, force nickname creation
       Logger.info('[ProfileService] No profile found, forcing nickname screen');
       return {
         isValid: false,
@@ -173,37 +133,10 @@ export class ProfileService {
     }
 
     try {
-      // Validate nickname uniqueness
-      const { data: existingNickname } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('display_name', params.displayName)
-        .maybeSingle();
-
-      if (existingNickname) {
-        return { isValid: false, error: 'Nickname already taken' };
-      }
-
-      // Create profile with auth_user_id and OAuth data
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert({
-          // id is auto-generated UUID
-          auth_user_id: params.userId,
-          display_name: params.displayName,
-          avatar_url: params.avatarUrl,
-          email: params.email,
-          email_verified: params.emailVerified ?? false,
-          primary_auth_provider: params.authProvider ?? 'email',
-          last_seen_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        Logger.error('[ProfileService] Profile creation error:', createError);
-        return { isValid: false, error: 'Failed to create profile' };
-      }
+      const newProfile = await railwayClient.post<DBProfile>('/api/v1/profile', {
+        nickname: params.displayName,
+        avatar_url: params.avatarUrl,
+      });
 
       const {
         data: { user },
@@ -219,6 +152,10 @@ export class ProfileService {
       Logger.info('[ProfileService] Profile created:', this.currentProfile.displayName);
       return { isValid: true, profile: this.currentProfile };
     } catch (error) {
+      // Check for nickname conflict
+      if (error instanceof Error && error.message.includes('409')) {
+        return { isValid: false, error: 'Nickname already taken' };
+      }
       Logger.error('[ProfileService] Create profile error:', error);
       return { isValid: false, error: 'Profile creation failed' };
     }
@@ -247,30 +184,12 @@ export class ProfileService {
         return await this.initialize();
       }
 
-      // Verify profile still exists in DB
-      const profileResult = await SupabaseUtils.safeFetchSingle<{
-        id: string;
-        is_banned: boolean;
-      }>(
-        supabase
-          .from('profiles')
-          .select('id, is_banned')
-          .eq('auth_user_id', session.user.id),
-        'ProfileVerification',
-        true // This IS critical - they have a session but profile might be gone
-      );
-
-      if (!profileResult.success) {
+      // Verify profile still exists via Railway API
+      try {
+        await railwayClient.get<DBProfile>('/api/v1/profile');
+      } catch {
         this.currentProfile = null;
-        // SupabaseUtils already cleared UserPersistenceService if profile missing
         return { isValid: false, error: 'Profile not found' };
-      }
-
-      const profile = profileResult.data;
-
-      if (profile.is_banned) {
-        this.currentProfile = null;
-        return { isValid: false, error: 'Account is banned' };
       }
 
       return { isValid: true, profile: this.currentProfile };
@@ -291,35 +210,21 @@ export class ProfileService {
    * Update profile display name
    */
   async updateDisplayName(newDisplayName: string): Promise<ProfileValidationResult> {
-    if (!this.currentProfile || !isSupabaseConfigured()) {
+    if (!this.currentProfile) {
       return { isValid: false, error: 'No profile loaded' };
     }
 
     try {
-      // Check uniqueness
-      const { data: existing } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('display_name', newDisplayName)
-        .neq('id', this.currentProfile.id)
-        .maybeSingle();
-
-      if (existing) {
-        return { isValid: false, error: 'Display name already taken' };
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ display_name: newDisplayName })
-        .eq('id', this.currentProfile.id);
-
-      if (error) {
-        return { isValid: false, error: 'Failed to update display name' };
-      }
+      await railwayClient.patch('/api/v1/profile', {
+        nickname: newDisplayName,
+      });
 
       this.currentProfile.displayName = newDisplayName;
       return { isValid: true, profile: this.currentProfile };
     } catch (error) {
+      if (error instanceof Error && error.message.includes('409')) {
+        return { isValid: false, error: 'Display name already taken' };
+      }
       Logger.error('[ProfileService] Update display name error:', error);
       return { isValid: false, error: 'Display name update failed' };
     }
@@ -327,71 +232,11 @@ export class ProfileService {
 
   /**
    * Link a legacy nickname profile to an authenticated user
-   * This allows existing anonymous players to "upgrade" their account
    */
-  async linkLegacyProfile(legacyProfileId: string): Promise<ProfileValidationResult> {
-    if (!isSupabaseConfigured()) {
-      return { isValid: false, error: 'Backend not configured' };
-    }
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        return { isValid: false, error: 'Not authenticated' };
-      }
-
-      // Check if user already has a linked profile
-      const { data: existingLink } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-
-      if (existingLink) {
-        return { isValid: false, error: 'Account already has a linked profile' };
-      }
-
-      // Get the legacy profile
-      const { data: legacyProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', legacyProfileId)
-        .is('auth_user_id', null)
-        .maybeSingle();
-
-      if (fetchError || !legacyProfile) {
-        return { isValid: false, error: 'Legacy profile not found or already linked' };
-      }
-
-      // Link the profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          auth_user_id: user.id,
-          email: user.email,
-          email_verified: !!user.email_confirmed_at,
-          primary_auth_provider: user.app_metadata.provider ?? 'email',
-          avatar_url: legacyProfile.avatar_url ?? user.user_metadata.avatar_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', legacyProfileId);
-
-      if (updateError) {
-        Logger.error('[ProfileService] Link legacy profile error:', updateError);
-        return { isValid: false, error: 'Failed to link profile' };
-      }
-
-      // Refresh profile
-      const result = await this.initialize();
-      Logger.info('[ProfileService] Legacy profile linked:', legacyProfileId);
-      return result;
-    } catch (error) {
-      Logger.error('[ProfileService] Link legacy profile error:', error);
-      return { isValid: false, error: 'Profile linking failed' };
-    }
+  async linkLegacyProfile(_legacyProfileId: string): Promise<ProfileValidationResult> {
+    // Legacy profile linking is handled server-side during profile creation
+    // Re-initialize to pick up any linked profile
+    return this.initialize();
   }
 
   /**
@@ -422,24 +267,7 @@ export class ProfileService {
   }
 
   private mapToPlayerProfile(
-    dbProfile: {
-      id: string;
-      auth_user_id?: string | null;
-      display_name: string;
-      username?: string | null;
-      email?: string | null;
-      email_verified?: boolean | null;
-      avatar_url?: string | null;
-      high_score?: number | null;
-      level?: number | null;
-      xp?: number | null;
-      is_banned?: boolean | null;
-      is_tester?: boolean | null;
-      total_sessions?: number | null;
-      created_at?: string | null;
-      last_seen_at?: string | null;
-      primary_auth_provider?: string | null;
-    },
+    dbProfile: DBProfile,
     user: {
       id: string;
       app_metadata?: { provider?: string };
@@ -451,17 +279,14 @@ export class ProfileService {
     return {
       id: dbProfile.id,
       authUserId: dbProfile.auth_user_id ?? undefined,
-      displayName: dbProfile.display_name,
-      username: dbProfile.username ?? undefined,
-      email: dbProfile.email ?? undefined,
-      emailVerified: dbProfile.email_verified ?? false,
+      displayName: dbProfile.display_name ?? dbProfile.nickname ?? 'Player',
       avatarUrl: dbProfile.avatar_url ?? undefined,
-      highScore: dbProfile.high_score ?? 0,
-      level: dbProfile.level ?? 1,
-      xp: dbProfile.xp ?? 0,
-      isBanned: dbProfile.is_banned ?? false,
-      isTester: dbProfile.is_tester ?? false,
-      totalSessions: dbProfile.total_sessions ?? 0,
+      highScore: 0,
+      level: 1,
+      xp: 0,
+      isBanned: false,
+      isTester: false,
+      totalSessions: 0,
       createdAt: dbProfile.created_at ?? new Date().toISOString(),
       lastSeenAt: dbProfile.last_seen_at ?? new Date().toISOString(),
       authProvider,

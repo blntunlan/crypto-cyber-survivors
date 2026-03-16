@@ -75,14 +75,14 @@ describe('MetricsService', () => {
       10, // enemyCount
       0, // bulletCount
       0, // particleCount
-      'climax' as any, // wavePhase
+      'active', // wavePhase
       0.5 // atr
     );
 
     const state = MetricsService.getCurrentState();
     expect(state?.maxEnemiesOnScreen).toBe(10);
     expect(state?.maxPnL).toBe(100);
-    expect(state?.currentWavePhase).toBe('climax');
+    expect(state?.currentWavePhase).toBe('active');
   });
 
   it('should track damage dealt via events', () => {

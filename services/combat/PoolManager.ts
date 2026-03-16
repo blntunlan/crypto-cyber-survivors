@@ -274,6 +274,9 @@ export class PoolManager implements IPoolManager {
         color: '',
         size: 0,
         life: 0,
+        isCrit: false,
+        vx: 0,
+        vy: 0,
       });
     }
 
@@ -565,10 +568,13 @@ export class PoolManager implements IPoolManager {
     y: number,
     text: string,
     color: string,
-    size: number
+    size: number,
+    isCrit?: boolean,
+    vx: number = 0,
+    vy: number = 0
   ): FloatingText {
     return this.floatingTexts.get(
-      () => ({ active: true, x, y, text, color, size, life: 1 }),
+      () => ({ active: true, x, y, text, color, size, life: 1, isCrit, vx, vy }),
       obj => {
         obj.active = true;
         obj.x = x;
@@ -577,6 +583,9 @@ export class PoolManager implements IPoolManager {
         obj.color = color;
         obj.size = size;
         obj.life = 1;
+        obj.isCrit = isCrit;
+        obj.vx = vx;
+        obj.vy = vy;
       }
     );
   }

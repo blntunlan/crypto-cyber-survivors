@@ -311,49 +311,60 @@ export class PerformanceTracker {
     const stats = this.getStats();
     const snapshot = this.getSnapshot();
 
-    const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
+    const { railwayClient } = await import('../api/RailwayClient');
     const { UserSessionService } = await import('../auth/UserSessionService');
     const { DeviceProfiler } = await import('./DeviceProfiler');
 
-    if (isSupabaseConfigured() && supabase) {
-      const profileId = UserSessionService.getProfileId();
-      const device = DeviceProfiler.getProfile();
+    const profileId = UserSessionService.getProfileId();
+    const device = DeviceProfiler.getProfile();
 
-      try {
-        // Define extended navigator for non-standard properties
-        interface ExtendedNavigator extends Navigator {
-          deviceMemory?: number;
-        }
-        const extendedNav = navigator as ExtendedNavigator;
-
-        await supabase.from('performance_metrics').insert({
-          profile_id: profileId.startsWith('anon_') ? null : profileId,
-          session_id: sessionId ?? null,
-          device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
-          // eslint-disable-next-line @typescript-eslint/no-deprecated
-          device_model: navigator.platform,
-          os_info: navigator.userAgent,
-          memory_gb: extendedNav.deviceMemory ?? null,
-          cpu_cores: navigator.hardwareConcurrency || null,
-          avg_fps: stats.avgFps,
-          min_fps: stats.minFps,
-          max_fps: stats.maxFps,
-          frame_drops:
-            stats.sampleCount > 0
-              ? Math.floor((60 - stats.avgFps) * stats.sampleCount)
-              : 0,
-          resolution: `${window.innerWidth}x${window.innerHeight}`,
-          gpu_info: device.gpu,
-          metadata: {
-            memoryUsedMB: snapshot.memoryUsedMB,
-            onePercentLow: stats.onePercentLow,
-            avgFrameTime: stats.avgFrameTime,
-          },
-        });
-        Logger.info('[PerformanceTracker] Metrics synced to Supabase');
-      } catch (error) {
-        Logger.warn('[PerformanceTracker] Failed to sync metrics', error);
+    try {
+      // Define extended navigator for non-standard properties
+      interface ExtendedNavigator extends Navigator {
+        deviceMemory?: number;
+        userAgentData?: {
+          platform?: string;
+        };
       }
+      const extendedNav = navigator as ExtendedNavigator;
+      const inferPlatformFromUserAgent = (ua: string): string => {
+        if (/Windows/i.test(ua)) return 'Windows';
+        if (/Macintosh|Mac OS/i.test(ua)) return 'macOS';
+        if (/Linux/i.test(ua)) return 'Linux';
+        if (/Android/i.test(ua)) return 'Android';
+        if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+        return 'unknown';
+      };
+      const deviceModel =
+        extendedNav.userAgentData?.platform ??
+        inferPlatformFromUserAgent(navigator.userAgent);
+
+      await railwayClient.post('/api/v1/telemetry/performance-metrics', {
+        profile_id: profileId.startsWith('anon_') ? null : profileId,
+        session_id: sessionId ?? null,
+        device_platform: window.innerWidth < 768 ? 'mobile' : 'desktop',
+        device_model: deviceModel,
+        os_info: navigator.userAgent,
+        memory_gb: extendedNav.deviceMemory ?? null,
+        cpu_cores: navigator.hardwareConcurrency || null,
+        avg_fps: stats.avgFps,
+        min_fps: stats.minFps,
+        max_fps: stats.maxFps,
+        frame_drops:
+          stats.sampleCount > 0
+            ? Math.floor((60 - stats.avgFps) * stats.sampleCount)
+            : 0,
+        resolution: `${window.innerWidth}x${window.innerHeight}`,
+        gpu_info: device.gpu,
+        metadata: {
+          memoryUsedMB: snapshot.memoryUsedMB,
+          onePercentLow: stats.onePercentLow,
+          avgFrameTime: stats.avgFrameTime,
+        },
+      });
+      Logger.info('[PerformanceTracker] Metrics synced to Railway');
+    } catch (error) {
+      Logger.warn('[PerformanceTracker] Failed to sync metrics', error);
     }
   }
 

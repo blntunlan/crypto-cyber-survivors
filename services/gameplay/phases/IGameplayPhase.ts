@@ -1,6 +1,14 @@
 import type { PhaseInput, PhaseResult } from '../contracts';
 
-export type GameplayPhaseName = 'input' | 'combat' | 'spawn' | 'physics' | 'effects';
+export type GameplayPhaseName =
+  | 'input'
+  | 'combat'
+  | 'spawn'
+  | 'physics'
+  | 'effects'
+  | 'difficulty'
+  | 'portal'
+  | 'metrics';
 
 export interface BaselinePhaseMetadata<
   TPhase extends GameplayPhaseName = GameplayPhaseName,

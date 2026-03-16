@@ -23,9 +23,7 @@
  */
 
 import { Logger } from '../system/Logger';
-import { supabase, isSupabaseConfigured } from '../core/Supabase';
 import { UserSessionService } from '../auth/UserSessionService';
-import { type Database, type Json } from '../../types/supabase';
 
 // Import from extracted modules
 import {
@@ -69,6 +67,11 @@ export class ErrorTracker {
   private originalConsoleError: typeof console.error;
   private tags: string[] = [];
   private pendingPromises: Set<Promise<unknown>> = new Set();
+
+  /** Circuit breaker: stop sending when Supabase quota is exhausted (402) */
+  private circuitOpen = false;
+  private circuitOpenedAt = 0;
+  private static readonly CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 min
 
   // Handler references for cleanup
   private queueProcessorInterval: ReturnType<typeof setInterval> | null = null;
@@ -208,15 +211,11 @@ export class ErrorTracker {
       .catch(() => {})
       .finally(() => {
         // Queue or send after trying to get context
-        Logger.debug(
-          `[ErrorTracker] captureError finally: online=${this.isOnline}, supabaseConfigured=${isSupabaseConfigured()}`
-        );
-        if (this.isOnline && isSupabaseConfigured()) {
+        Logger.debug(`[ErrorTracker] captureError finally: online=${this.isOnline}`);
+        if (this.isOnline) {
           return this.sendError(report);
         } else {
-          Logger.debug(
-            `[ErrorTracker] captureError: queueing because ${!this.isOnline ? 'offline' : 'no supabase'}`
-          );
+          Logger.debug(`[ErrorTracker] captureError: queueing because offline`);
           this.queue.enqueue(report);
           return Promise.resolve();
         }
@@ -450,8 +449,8 @@ export class ErrorTracker {
           );
         }
 
-        // Track failed requests (but not Supabase errors to prevent loops)
-        if (!response.ok && !url.includes('supabase')) {
+        // Track failed requests (but not telemetry errors to prevent loops)
+        if (!response.ok && !url.includes('/telemetry/')) {
           Logger.debug(
             `[ErrorTracker] fetch failed detected: ${url} status: ${response.status}`
           );
@@ -467,7 +466,7 @@ export class ErrorTracker {
         return response;
       } catch (error) {
         const duration = Date.now() - startTime;
-        if (!url.includes('supabase')) {
+        if (!url.includes('/telemetry/')) {
           this.captureNetworkError(url, method, 0, (error as Error).message, duration);
         }
         throw error;
@@ -538,59 +537,74 @@ export class ErrorTracker {
   // QUEUE & SEND
   // ==========================================================================
 
+  private isCircuitOpen(): boolean {
+    if (!this.circuitOpen) return false;
+    // Auto-reset after cooldown
+    if (Date.now() - this.circuitOpenedAt > ErrorTracker.CIRCUIT_COOLDOWN_MS) {
+      this.circuitOpen = false;
+      Logger.debug('[ErrorTracker] Circuit breaker reset — retrying error reporting');
+      return false;
+    }
+    return true;
+  }
+
   private async sendError(report: ErrorReport): Promise<void> {
-    if (!isSupabaseConfigured() || !supabase) {
+    if (this.isCircuitOpen()) {
+      this.queue.enqueue(report);
+      return;
+    }
+
+    const railwayUrl = import.meta.env.VITE_RAILWAY_API_URL as string | undefined;
+    if (!railwayUrl) {
       this.queue.enqueue(report);
       return;
     }
 
     try {
-      const { error } = await supabase.from('error_reports').insert({
-        profile_id: ErrorTracker.isUUID(report.profileId) ? report.profileId : null,
-        session_id: ErrorTracker.isUUID(report.sessionId) ? report.sessionId : null,
-        error_type: report.errorType,
-        message: report.errorMessage,
-        stack_trace: report.stackTrace,
-        browser_info: report.userAgent,
-        page_url: report.url,
-        device_fingerprint: report.deviceFingerprint,
-        severity: report.severity,
-        category: report.category,
-        fingerprint: report.fingerprint,
-
-        context_data: {
-          ...report.context,
-          viewport: report.viewport,
-          nickname: report.nickname,
-          gameContext: report.gameContext,
-          breadcrumbs: report.breadcrumbs.slice(-10),
-          tags: report.tags,
-          sessionDurationMs: report.sessionDurationMs,
-        } as unknown as Json,
-        created_at: report.reportedAt,
-        status: 'new',
-      } as Database['public']['Tables']['error_reports']['Insert']);
-      Logger.debug(`[ErrorTracker] sendError response:`, {
-        error,
-        status: error?.code,
-        message: error?.message,
+      const res = await fetch(`${railwayUrl}/api/v1/telemetry/errors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          errorType: report.errorType,
+          errorMessage: report.errorMessage,
+          stackTrace: report.stackTrace,
+          severity: report.severity,
+          category: report.category,
+          url: report.url,
+          userAgent: report.userAgent,
+          context: {
+            ...report.context,
+            viewport: report.viewport,
+            nickname: report.nickname,
+            gameContext: report.gameContext,
+            breadcrumbs: report.breadcrumbs.slice(-10),
+            tags: report.tags,
+            sessionDurationMs: report.sessionDurationMs,
+            fingerprint: report.fingerprint,
+            deviceFingerprint: report.deviceFingerprint,
+          },
+        }),
       });
 
-      if (error) throw error;
-      Logger.debug('[ErrorTracker] Error sent to Supabase');
+      if (!res.ok) {
+        if (res.status === 402 || res.status === 429) {
+          this.circuitOpen = true;
+          this.circuitOpenedAt = Date.now();
+          this.originalConsoleError(
+            '[ErrorTracker] Rate limited. Circuit breaker open — suppressing sends for 5 minutes.'
+          );
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
     } catch (err) {
-      // USE ORIGINAL CONSOLE ERROR HERE (this.originalConsoleError)
-      // Do NOT use Logger.error as it triggers the UI notification loop
-      this.originalConsoleError(
-        '[ErrorTracker] Failed to send error report to Supabase:',
-        err
-      );
+      this.originalConsoleError('[ErrorTracker] Failed to send error report:', err);
       this.queue.enqueue(report);
     }
   }
 
   private async processQueue(): Promise<void> {
-    if (!isSupabaseConfigured() || this.queue.isEmpty) return;
+    if (this.queue.isEmpty || this.isCircuitOpen()) return;
 
     const batch = this.queue.getBatch();
 
@@ -647,16 +661,6 @@ export class ErrorTracker {
 
       this.instance = null;
     }
-  }
-
-  /**
-   * Simple UUID validation regex (checks for standard 8-4-4-4-12 format)
-   */
-  private static isUUID(str?: string | null): boolean {
-    if (!str) return false;
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
   }
 }
 

@@ -1,4 +1,5 @@
 import { describe, it } from 'vitest';
+
 import { assertSourceFreshness } from '../../assertSourceFreshness';
 
 describe('freshness:services/gameplay/SupabaseCoinProvider.ts', () => {

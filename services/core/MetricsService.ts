@@ -106,7 +106,7 @@ export class MetricsServiceClass {
       pnlHistory: [],
       difficultyHistory: [],
       atrHistory: [],
-      currentWavePhase: 'warmup',
+      currentWavePhase: 'active',
       wavePhaseStartTime: now,
       totalDamageDealt: 0,
       totalDamageTaken: 0,
@@ -212,19 +212,22 @@ export class MetricsServiceClass {
               enemyCountMax: finalData.enemyCountMax ?? this.state.maxEnemiesOnScreen,
               enemy_count_avg:
                 finalData.enemy_count_avg ??
-                (this.state.enemyCountSamples.reduce((a, b) => a + b, 0) /
-                  this.state.enemyCountSamples.length ||
-                  0),
+                (this.state.enemyCountSamples.length > 0
+                  ? this.state.enemyCountSamples.reduce((a, b) => a + b, 0) /
+                    this.state.enemyCountSamples.length
+                  : 0),
               bullet_count_avg:
                 finalData.bullet_count_avg ??
-                (this.state.bulletCountSamples.reduce((a, b) => a + b, 0) /
-                  this.state.bulletCountSamples.length ||
-                  0),
+                (this.state.bulletCountSamples.length > 0
+                  ? this.state.bulletCountSamples.reduce((a, b) => a + b, 0) /
+                    this.state.bulletCountSamples.length
+                  : 0),
               particle_count_avg:
                 finalData.particle_count_avg ??
-                (this.state.particleCountSamples.reduce((a, b) => a + b, 0) /
-                  this.state.particleCountSamples.length ||
-                  0),
+                (this.state.particleCountSamples.length > 0
+                  ? this.state.particleCountSamples.reduce((a, b) => a + b, 0) /
+                    this.state.particleCountSamples.length
+                  : 0),
             })
           : undefined,
     };
@@ -384,10 +387,6 @@ export class MetricsServiceClass {
   private trackWavePhaseTime(phase: WavePhase, deltaMs: number): void {
     if (!this.state) return;
     this.state.wavePhaseTime[phase] = (this.state.wavePhaseTime[phase] ?? 0) + deltaMs;
-    if (phase !== this.state.currentWavePhase) {
-      this.state.currentWavePhase = phase;
-      this.state.wavePhaseStartTime = Date.now();
-    }
   }
 
   private trackDifficultyRanges(difficulty: number, deltaMs: number): void {

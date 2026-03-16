@@ -1,16 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AntiCheatService } from '../../services/system/AntiCheatService';
 import { EventBus } from '../../services/core/EventBus';
-import { supabase } from '../../services/supabase/client';
 
-// Mock Supabase
-vi.mock('../../services/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn().mockResolvedValue({ error: null }),
-    })),
+// Mock RailwayClient
+const mockPost = vi.fn().mockResolvedValue({ accepted: true });
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    post: (...args: unknown[]) => mockPost(...args),
   },
-  isSupabaseConfigured: vi.fn(() => true),
 }));
 
 describe('AntiCheatService', () => {
@@ -116,12 +113,8 @@ describe('AntiCheatService', () => {
   });
 
   describe('Reporting', () => {
-    it('should report to Supabase when not in debug mode', async () => {
-      // Ensure supabase mock has required methods
-      const insertMock = vi.fn().mockResolvedValue({ error: null });
-      const fromMock = vi.fn(() => ({ insert: insertMock }));
-
-      vi.spyOn(supabase!, 'from').mockImplementation(fromMock as any);
+    it('should report to Railway API when not in debug mode', async () => {
+      mockPost.mockClear();
 
       AntiCheatService.init({
         reportToServer: true,
@@ -132,8 +125,12 @@ describe('AntiCheatService', () => {
       AntiCheatService.onCheatDetected('DEBUGGER_DETECTED', 'details', 10);
 
       await vi.waitFor(() => {
-        expect(fromMock).toHaveBeenCalledWith('cheat_attempts');
-        expect(insertMock).toHaveBeenCalled();
+        expect(mockPost).toHaveBeenCalledWith(
+          '/api/v1/telemetry/cheat-reports',
+          expect.objectContaining({
+            cheatType: 'DEBUGGER_DETECTED',
+          })
+        );
       });
     });
   });

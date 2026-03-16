@@ -2,32 +2,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProfileService } from '../../../services/auth/ProfileService';
 import { supabase } from '../../../services/supabase/client';
 
-// Mock Supabase client
+// Mock RailwayClient
+const mockGet = vi.fn();
+const mockPost = vi.fn();
+const mockPatch = vi.fn();
+
+vi.mock('../../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: (...args: unknown[]) => mockGet(...args),
+    post: (...args: unknown[]) => mockPost(...args),
+    patch: (...args: unknown[]) => mockPatch(...args),
+  },
+}));
+
+// Mock Supabase client (only auth remains)
 vi.mock('../../../services/supabase/client', () => ({
   supabase: {
     auth: {
       getUser: vi.fn(),
       getSession: vi.fn(),
     },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      is: vi.fn().mockReturnThis(),
-      neq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(),
-      single: vi.fn(),
-    })),
   },
   isSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
-
-// Mock SupabaseUtils
-vi.mock('../../../services/core/SupabaseUtils', () => ({
-  SupabaseUtils: {
-    safeFetchSingle: vi.fn(),
-  },
 }));
 
 // Mock Logger
@@ -65,26 +61,26 @@ describe('ProfileService', () => {
         app_metadata: {},
         user_metadata: {},
       };
-      const mockDBProfile = {
-        id: 'prof-123',
-        auth_user_id: 'user-123',
-        display_name: 'Survivor',
-        high_score: 1000,
-      };
 
-      (supabase.auth.getUser as any).mockResolvedValue({
+      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
 
-      const { SupabaseUtils } = await import('../../../services/core/SupabaseUtils');
-      (SupabaseUtils.safeFetchSingle as any).mockResolvedValue({
-        success: true,
-        data: mockDBProfile,
-      });
+      const profileData = {
+        id: 'prof-123',
+        auth_user_id: 'user-123',
+        display_name: 'Survivor',
+        nickname: 'Survivor',
+        created_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+      };
+      mockGet.mockResolvedValue(profileData);
+      mockPatch.mockResolvedValue({});
 
       const result = await service.initialize();
 
+      expect(mockGet).toHaveBeenCalledWith('/api/v1/profile');
       expect(result.isValid).toBe(true);
       expect(result.profile?.displayName).toBe('Survivor');
       expect(service.getProfile()?.displayName).toBe('Survivor');
@@ -98,14 +94,13 @@ describe('ProfileService', () => {
         user_metadata: {},
       };
 
-      (supabase.auth.getUser as any).mockResolvedValue({
+      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
-      const { SupabaseUtils } = await import('../../../services/core/SupabaseUtils');
-      (SupabaseUtils.safeFetchSingle as any)
-        .mockResolvedValueOnce({ success: false, error: { message: 'not found' } })
-        .mockResolvedValueOnce({ success: false, error: { message: 'not found' } });
+
+      // Railway GET /profile returns 404
+      mockGet.mockRejectedValueOnce(new Error('404'));
 
       const result = await service.initialize();
 
@@ -121,28 +116,17 @@ describe('ProfileService', () => {
         displayName: 'NewPlayer',
       };
 
-      const mockNewProfile = {
+      mockPost.mockResolvedValueOnce({
         id: 'prof-456',
         auth_user_id: 'user-123',
         display_name: 'NewPlayer',
-      };
-
-      // Mock nickname check (maybeSingle returns null if not taken)
-      const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-      const mockSingle = vi
-        .fn()
-        .mockResolvedValue({ data: mockNewProfile, error: null });
-
-      (supabase.from as any).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: mockMaybeSingle,
-        insert: vi.fn().mockReturnThis(),
-        single: mockSingle,
+        nickname: 'NewPlayer',
+        created_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
       });
 
-      (supabase.auth.getUser as any).mockResolvedValue({
-        data: { user: { id: 'user-123' } },
+      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { user: { id: 'user-123', app_metadata: {}, user_metadata: {} } },
         error: null,
       });
 
@@ -150,18 +134,16 @@ describe('ProfileService', () => {
 
       expect(result.isValid).toBe(true);
       expect(result.profile?.displayName).toBe('NewPlayer');
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/profile', {
+        nickname: 'NewPlayer',
+        avatar_url: undefined,
+      });
     });
 
     it('should fail if nickname is taken', async () => {
       const params = { userId: 'user-123', displayName: 'Taken' };
 
-      (supabase.from as any).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi
-          .fn()
-          .mockResolvedValue({ data: { id: 'existing' }, error: null }),
-      });
+      mockPost.mockRejectedValueOnce(new Error('409'));
 
       const result = await service.createProfile(params);
 
@@ -173,21 +155,21 @@ describe('ProfileService', () => {
   describe('updateDisplayName', () => {
     it('should update display name successfully', async () => {
       // Setup initial profile
-      const service = ProfileService.getInstance();
       (service as any).currentProfile = { id: 'prof-123', displayName: 'OldName' };
 
-      (supabase.from as any).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        neq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-        update: vi.fn().mockReturnThis(),
+      mockPatch.mockResolvedValueOnce({
+        id: 'prof-123',
+        nickname: 'NewName',
+        display_name: 'NewName',
       });
 
       const result = await service.updateDisplayName('NewName');
 
       expect(result.isValid).toBe(true);
       expect(service.getProfile()?.displayName).toBe('NewName');
+      expect(mockPatch).toHaveBeenCalledWith('/api/v1/profile', {
+        nickname: 'NewName',
+      });
     });
   });
 });

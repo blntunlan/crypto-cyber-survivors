@@ -16,25 +16,19 @@ vi.mock('../../services/analytics/DeviceProfiler', () => ({
     syncToSupabase: vi.fn(async () => undefined),
   },
 }));
-vi.mock('../../services/market/MarketStateService', () => ({
-  MarketStateService: {
-    init: vi.fn(async () => undefined),
-  },
-}));
 
 describe('useAppInitialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('initializes app and exposes compatibility flags', async () => {
+  it('initializes app', async () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
       expect(result.current.isInitialized).toBe(true);
     });
 
-    expect(result.current.needsNickname).toBe(false);
     expect(DeviceBenchmarkService.runBenchmark).toHaveBeenCalledTimes(1);
   });
 });

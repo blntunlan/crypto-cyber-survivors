@@ -286,7 +286,7 @@ describe('GameLoopCoordinator', () => {
       },
     });
 
-    expect(() => coordinator.runTickSync(context)).toThrowError(
+    expect(() => coordinator.runTickSync(context)).toThrow(
       /runTickSync received an async phase\/hook/
     );
     expect(execute).not.toHaveBeenCalled();
@@ -300,7 +300,7 @@ describe('GameLoopCoordinator', () => {
       { errorPolicy: 'throw' }
     );
 
-    expect(() => coordinator.runTickSync(context)).toThrowError(
+    expect(() => coordinator.runTickSync(context)).toThrow(
       /runTickSync received an async phase\/hook/
     );
     expect(asyncPhaseExecute).toHaveBeenCalledTimes(1);

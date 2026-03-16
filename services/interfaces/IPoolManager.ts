@@ -91,7 +91,10 @@ export interface IPoolManager {
     y: number,
     text: string,
     color: string,
-    size: number
+    size: number,
+    isCrit?: boolean,
+    vx?: number,
+    vy?: number
   ): FloatingText;
 
   getSpeedLine(

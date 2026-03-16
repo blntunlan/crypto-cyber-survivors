@@ -26,6 +26,11 @@
       "sourceType": "github",
       "computedHash": "91cc673368267da80368129c80baad245785a872271d3196de56bca6e69c9d72"
     },
+    "postgresql-database-engineering": {
+      "source": "manutej/luxor-claude-marketplace",
+      "sourceType": "github",
+      "computedHash": "6039063ea5257f77ff0797f08074d3ec40da34ca8f412d8af5b194b9b6db0e89"
+    },
     "railway-docs": {
       "source": "railwayapp/railway-skills",
       "sourceType": "github",
@@ -49,7 +54,7 @@
     "use-railway": {
       "source": "railwayapp/railway-skills",
       "sourceType": "github",
-      "computedHash": "f652d73c95fc7bbc43c219c6e7df9ac6b408ca55141cd8c266ee16ea9dcbde1d"
+      "computedHash": "e4d9059f05854c83b63e13160871e56ea610b28b643dd8cd1e4149a679a0b2b6"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",

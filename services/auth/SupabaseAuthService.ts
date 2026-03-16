@@ -845,14 +845,10 @@ class SupabaseAuthServiceClass {
   /**
    * Update last seen timestamp
    */
-  private async updateLastSeen(authUserId: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-
+  private async updateLastSeen(_authUserId: string): Promise<void> {
     try {
-      await supabase
-        .from('profiles')
-        .update({ last_seen_at: new Date().toISOString() })
-        .eq('auth_user_id', authUserId);
+      const { railwayClient } = await import('../api/RailwayClient');
+      await railwayClient.patch('/api/v1/profile', {});
     } catch {
       // Silent fail - not critical
     }

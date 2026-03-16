@@ -2,7 +2,6 @@
  * SupabaseUtils - Critical utilities for safe data fetching and error recovery
  */
 
-import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserPersistenceService } from '../auth/UserPersistenceService';
 import {
@@ -157,16 +156,19 @@ export class SupabaseUtils {
     category: string,
     context?: unknown
   ): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-
     try {
-      await supabase.from('error_reports').insert({
-        error_type: 'CLIENT_RECOVERY',
-        message,
-        category,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        context_data: (context as any) ?? {},
-        device_fingerprint: localStorage.getItem('crypto_survivors_fingerprint') ?? '',
+      const railwayUrl = import.meta.env.VITE_RAILWAY_API_URL;
+      if (!railwayUrl) return;
+
+      await fetch(`${railwayUrl}/api/v1/telemetry/errors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          errorType: 'CLIENT_RECOVERY',
+          message,
+          category,
+          context: context ?? {},
+        }),
       });
     } catch (e) {
       // Don't crash on error reporting

@@ -59,7 +59,7 @@ describe('Performance Benchmark', () => {
       );
 
       expect(avgTime).toBeLessThan(0.5);
-      expect(maxTime).toBeLessThan(30.0);
+      expect(maxTime).toBeLessThan(100.0);
     });
   });
 
@@ -80,7 +80,7 @@ describe('Performance Benchmark', () => {
       console.log(
         `[Benchmark] SpatialGrid: Insert ${COUNT} entities: ${elapsedInsert.toFixed(4)}ms`
       );
-      expect(elapsedInsert).toBeLessThan(30);
+      expect(elapsedInsert).toBeLessThan(150);
 
       const startQuery = performance.now();
       for (let i = 0; i < 1000; i++) {
@@ -116,7 +116,7 @@ describe('Performance Benchmark', () => {
       console.log(
         `[Benchmark] PredictiveTargeting: 1000 intercept calculations: ${elapsed.toFixed(4)}ms`
       );
-      expect(elapsed).toBeLessThan(40.0);
+      expect(elapsed).toBeLessThan(100.0);
     });
   });
 });

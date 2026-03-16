@@ -2,6 +2,10 @@
  * Config Index - Re-export all configurations
  */
 
+// Configuration Registry (Step 6)
+export { ConfigRegistry } from './ConfigRegistry';
+export { CONFIG_NS, type ConfigNamespace } from './namespaces';
+
 // Colors (independent - no dependencies)
 export { COLORS } from './Colors';
 export type { ColorKey } from './Colors';
@@ -42,3 +46,28 @@ export {
   MARKET_RUNTIME_MODES,
 } from './marketRuntime';
 export type { MarketRuntimeMode, MarketRuntimeConfig } from './marketRuntime';
+
+// =============================================================================
+// AUTO-REGISTER configs with ConfigRegistry (debug/admin tooling only)
+// =============================================================================
+import { ConfigRegistry } from './ConfigRegistry';
+import { CONFIG_NS } from './namespaces';
+import { COLORS } from './Colors';
+import { PLAYER_STATS } from './PlayerConfig';
+import { ENEMY_TYPES, ENEMY_SPAWN, ENEMY_SCALING } from './EnemyConfig';
+import {
+  DIFFICULTY_CONFIG,
+  COMBAT_CONFIG,
+  LEVERAGE_TIERS,
+  ECONOMY_CONFIG,
+} from './GameConfig';
+
+ConfigRegistry.register(CONFIG_NS.COLORS, COLORS);
+ConfigRegistry.register(CONFIG_NS.PLAYER, PLAYER_STATS);
+ConfigRegistry.register(CONFIG_NS.ENEMY, { ENEMY_TYPES, ENEMY_SPAWN, ENEMY_SCALING });
+ConfigRegistry.register(CONFIG_NS.GAME, {
+  DIFFICULTY_CONFIG,
+  COMBAT_CONFIG,
+  ECONOMY_CONFIG,
+});
+ConfigRegistry.register(CONFIG_NS.DIFFICULTY, { LEVERAGE_TIERS });

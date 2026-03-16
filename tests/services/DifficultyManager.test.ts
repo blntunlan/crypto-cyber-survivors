@@ -119,12 +119,13 @@ describe('DifficultyManager', () => {
       expect(state.cycleNumber).toBeDefined();
     });
 
-    it('should provide correct XP multiplier based on leverage', () => {
+    it('should provide 1.0x XP multiplier without brain output (leverage removed)', () => {
       DifficultyManager.startGame(1);
       expect(DifficultyManager.getXpMultiplier()).toBe(1.0);
 
+      // Leverage no longer affects getXpMultiplier - only brain/flow state does
       DifficultyManager.startGame(100);
-      expect(DifficultyManager.getXpMultiplier()).toBeGreaterThan(1.5);
+      expect(DifficultyManager.getXpMultiplier()).toBe(1.0);
     });
   });
 });

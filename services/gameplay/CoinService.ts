@@ -12,19 +12,15 @@
 
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
+import {
+  RewardCalculator,
+  type CoinRates,
+  type RewardCalculationResult as CoinCalculation,
+} from './RewardCalculator';
 
 // =============================================================================
 // INTERFACES - For Future Crypto Integration
 // =============================================================================
-
-/**
- * Coin earning event data
- */
-export interface CoinEarnedEvent {
-  amount: number;
-  source: CoinSource;
-  timestamp: number;
-}
 
 /**
  * Sources of coin earnings
@@ -62,114 +58,7 @@ export interface ICoinProvider {
   verifyTransaction?(txId: string): Promise<boolean>;
 }
 
-/**
- * Coin calculation result
- */
-export interface CoinCalculation {
-  base: number;
-  killBonus: number;
-  levelBonus: number;
-  marketBonus: number;
-  streakBonus: number;
-  total: number;
-  breakdown: Record<string, number>;
-}
-
-// =============================================================================
-// COIN CALCULATOR - Pure Calculation Logic
-// =============================================================================
-
-/**
- * Rate configuration for coin calculations
- * Can be adjusted for balancing or modified by promotions
- */
-export interface CoinRates {
-  /** Coins per second survived */
-  perSecond: number;
-  /** Coins per kill */
-  perKill: number;
-  /** Coins per level */
-  perLevel: number;
-  /** Bonus multiplier for positive PnL (0-1 = pnl%) */
-  pnlMultiplier: number;
-  /** Bonus per streak milestone (per 10 kills) */
-  streakMilestoneBonus: number;
-  /** Maximum streak bonus */
-  maxStreakBonus: number;
-}
-
-const DEFAULT_RATES: CoinRates = {
-  perSecond: 2,
-  perKill: 5,
-  perLevel: 50,
-  pnlMultiplier: 100, // 1% pnl = 1 coin
-  streakMilestoneBonus: 25,
-  maxStreakBonus: 250,
-};
-
-/**
- * Pure coin calculation logic
- */
-export class CoinCalculator {
-  constructor(private rates: CoinRates = DEFAULT_RATES) {}
-
-  /**
-   * Calculate coins earned for a cycle
-   */
-  calculate(params: {
-    survivalTimeSeconds: number;
-    kills: number;
-    level: number;
-    pnl: number; // Decimal, e.g., 0.05 = 5%
-    maxStreak: number;
-  }): CoinCalculation {
-    const { survivalTimeSeconds, kills, level, pnl, maxStreak } = params;
-
-    // Base: survival time
-    const base = Math.floor(survivalTimeSeconds * this.rates.perSecond);
-
-    // Kill bonus
-    const killBonus = kills * this.rates.perKill;
-
-    // Level bonus
-    const levelBonus = level * this.rates.perLevel;
-
-    // Market bonus (only for positive PnL)
-    const marketBonus = pnl > 0 ? Math.floor(pnl * 100 * this.rates.pnlMultiplier) : 0;
-
-    // Streak bonus (per 10-kill milestone)
-    const streakMilestones = Math.floor(maxStreak / 10);
-    const streakBonus = Math.min(
-      streakMilestones * this.rates.streakMilestoneBonus,
-      this.rates.maxStreakBonus
-    );
-
-    const total = base + killBonus + levelBonus + marketBonus + streakBonus;
-
-    return {
-      base,
-      killBonus,
-      levelBonus,
-      marketBonus,
-      streakBonus,
-      total,
-      breakdown: {
-        'Survival Time': base,
-        Kills: killBonus,
-        'Level Bonus': levelBonus,
-        'Market Profit': marketBonus,
-        'Kill Streak': streakBonus,
-      },
-    };
-  }
-
-  /**
-   * Update rates (for promotions, events, etc.)
-   */
-  setRates(rates: Partial<CoinRates>): void {
-    this.rates = { ...this.rates, ...rates };
-  }
-}
+export type { CoinCalculation, CoinRates };
 
 // =============================================================================
 // MOCK COIN PROVIDER - Development/Testing
@@ -238,7 +127,7 @@ export class MockCoinProvider implements ICoinProvider {
  */
 class CoinServiceClass {
   private provider: ICoinProvider = new MockCoinProvider();
-  private calculator = new CoinCalculator();
+  private calculator = new RewardCalculator();
   private sessionCoins: number = 0;
 
   /**
@@ -283,6 +172,11 @@ class CoinServiceClass {
     source: CoinSource,
     metadata?: Record<string, unknown>
   ): Promise<boolean> {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Logger.warn(`[CoinService] Invalid coin amount: ${amount}`);
+      return false;
+    }
+
     const success = await this.provider.credit(amount, source, metadata);
 
     if (success) {

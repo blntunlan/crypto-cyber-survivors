@@ -65,8 +65,8 @@ export const FLOW_STATE_CONFIG = {
 
   // Time thresholds
   TIME_THRESHOLDS: {
-    comfortableDuration: 15, // Seconds at high HP before "bored"
-    stressedDuration: 10, // Seconds at low HP before "stressed"
+    comfortableDuration: 10, // Seconds at high HP before "bored" (was 15 — too slow at 1x)
+    stressedDuration: 8, // Seconds at low HP before "stressed" (was 10 — faster mercy response)
     afkThreshold: 5, // Seconds without input = AFK
     outOfFlowMax: 60, // Max seconds outside flow before portal
   },

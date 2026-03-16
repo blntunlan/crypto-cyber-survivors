@@ -76,6 +76,11 @@ class EventBusClass {
     // Initialize default scopes
     const defaultScopes: EventScope[] = ['ui', 'gameplay', 'system', 'debug'];
     defaultScopes.forEach(scope => this.listeners.set(scope, new Map()));
+
+    // Clear throttle timestamps on game reset so new runs start with clean state
+    this.on('gameReset', () => {
+      this.throttleMap.clear();
+    });
   }
 
   /**

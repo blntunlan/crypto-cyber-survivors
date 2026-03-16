@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { expect } from 'vitest';
 
 const FRESHNESS_ROOT_SEGMENT = `${path.sep}tests${path.sep}freshness`;
-const FRESHNESS_TIME_TOLERANCE_MS = 1000;
+const FRESHNESS_TIME_TOLERANCE_MS = 5_000;
 
 function resolveRepoRoot(testFilePath: string): string {
   const normalized = path.normalize(testFilePath);

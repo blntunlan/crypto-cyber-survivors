@@ -27,19 +27,6 @@ export const DIFFICULTY_CONFIG = {
 export const LEVERAGE_TIERS: Record<number, LeverageScale> = TIERS;
 
 /**
- * Legacy V1 Support: Wave phases removed
- * Difficulty is now driven by market conditions and player flow state.
- * Keeping this for legacy compatibility - will be removed in future version.
- */
-export const WAVE_PHASES: Array<{
-  name: string;
-  duration: number;
-  multiplier: number;
-}> = [
-  { name: 'active', duration: 300, multiplier: 1.0 }, // Single "active" phase
-];
-
-/**
  * Get nearest leverage tier
  */
 export function getNearestLeverageTier(leverage: number): number {

@@ -35,6 +35,14 @@ export class ExperienceService {
       baseExp = plateauExp + levelsOverPlateau * EXPERIENCE_CONFIG.LINEAR_STEP;
     }
 
+    // Early game ramp: levels 1-(EARLY_END-1) need less XP to hook the player
+    const { EARLY_END, EARLY_SCALE } = EXPERIENCE_CONFIG;
+    if (level < EARLY_END) {
+      const t = (level - 1) / (EARLY_END - 1); // 0 at level 1, 1 at EARLY_END-1
+      const earlyMult = EARLY_SCALE + (1 - EARLY_SCALE) * t;
+      baseExp = Math.floor(baseExp * earlyMult);
+    }
+
     // Scale by leverage (V2)
     const scale = getLeverageScale(leverage);
     return Math.floor(baseExp * scale.xpReq);

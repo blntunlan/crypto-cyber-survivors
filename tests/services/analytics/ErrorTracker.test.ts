@@ -1,17 +1,11 @@
 import { vi } from 'vitest';
 
-// 1. Hoist all mocks
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockResolvedValue({ error: null }),
-  },
-}));
-
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: mockSupabase,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
+// 1. Mock fetch for Railway telemetry endpoint
+const mockFetchImpl = vi.fn().mockResolvedValue({
+  ok: true,
+  status: 200,
+  json: () => Promise.resolve({ accepted: 1 }),
+});
 
 // 2. Import Vitest and Service
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -37,42 +31,63 @@ vi.mock('../../../services/auth/UserSessionService', () => ({
 
 describe('ErrorTracker', () => {
   let tracker: ErrorTracker;
+  let originalFetch: typeof window.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+
+    // Store and replace fetch
+    originalFetch = window.fetch;
+
+    // Set Railway API URL
+    import.meta.env.VITE_RAILWAY_API_URL = 'http://localhost:3001';
+
     ErrorTracker.resetForTesting();
     tracker = ErrorTracker.getInstance();
     (tracker as any).isOnline = true;
+
+    // Intercept the wrapped fetch to track telemetry calls
+    const wrappedFetch = window.fetch;
+    window.fetch = vi.fn(async (...args: Parameters<typeof fetch>) => {
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+      if (url.includes('/telemetry/')) {
+        return mockFetchImpl(...args);
+      }
+      // For non-telemetry, use the real wrapped fetch
+      return wrappedFetch(...args);
+    }) as typeof fetch;
+
     vi.useFakeTimers();
-    // Ensure service uses our mock
-    // Mock is already applied via vi.mock
-    // vi.spyOn(supabase as any, 'from').mockImplementation(mockSupabase.from);
   });
 
   afterEach(() => {
+    window.fetch = originalFetch;
     vi.useRealTimers();
   });
 
   describe('captureError', () => {
-    it('should send error to Supabase when online', async () => {
+    it('should send error to Railway when online', async () => {
       await tracker.captureError({
         errorType: 'TestError',
         errorMessage: 'Something went wrong',
       });
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('error_reports');
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
+      expect(mockFetchImpl).toHaveBeenCalledWith(
+        'http://localhost:3001/api/v1/telemetry/errors',
         expect.objectContaining({
-          error_type: 'TestError',
-          message: 'Something went wrong',
-          profile_id: '550e8400-e29b-41d4-a716-446655440001',
+          method: 'POST',
         })
       );
+
+      // Verify the body contains the error data
+      const callArgs = mockFetchImpl.mock.calls[0];
+      const callBody = JSON.parse((callArgs?.[1] as RequestInit).body as string);
+      expect(callBody.errorType).toBe('TestError');
+      expect(callBody.errorMessage).toBe('Something went wrong');
     });
 
     it('should queue error when offline', async () => {
-      // Force offline
       (tracker as any).isOnline = false;
 
       await tracker.captureError({
@@ -80,7 +95,7 @@ describe('ErrorTracker', () => {
         errorMessage: 'Waiting for internet',
       });
 
-      expect(mockSupabase.insert).not.toHaveBeenCalled();
+      expect(mockFetchImpl).not.toHaveBeenCalled();
       expect(localStorage.getItem('error_tracker_queue')).not.toBeNull();
     });
 
@@ -91,7 +106,7 @@ describe('ErrorTracker', () => {
       await tracker.captureError(err);
       await tracker.captureError(err);
 
-      expect(mockSupabase.insert).toHaveBeenCalledTimes(1);
+      expect(mockFetchImpl).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -117,11 +132,11 @@ describe('ErrorTracker', () => {
 
   describe('network interception', () => {
     it('should capture failed fetch requests', async () => {
-      // Store original fetch
-      const originalFetch = window.fetch;
+      // Store the current (wrapped) fetch
+      const wrappedFetch = window.fetch;
 
-      // Mock fetch that returns a failed response
-      const mockFetch = vi.fn().mockResolvedValue({
+      // Replace with one that simulates a failing non-telemetry request
+      const failingFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -131,27 +146,33 @@ describe('ErrorTracker', () => {
         },
         text: () => Promise.resolve('Error body'),
       });
-      window.fetch = mockFetch;
+      window.fetch = failingFetch;
 
       // Re-initialize tracker so it wraps our mock fetch
       ErrorTracker.resetForTesting();
       const newTracker = ErrorTracker.getInstance();
       (newTracker as any).isOnline = true;
 
-      // The wrapped fetch should intercept this call
-      await window.fetch('https://api.example.com');
+      // Intercept wrapped fetch for telemetry
+      const newWrappedFetch = window.fetch;
+      window.fetch = vi.fn(async (...args: Parameters<typeof fetch>) => {
+        const url = typeof args[0] === 'string' ? args[0] : '';
+        if (url.includes('/telemetry/')) {
+          return mockFetchImpl(...args);
+        }
+        return newWrappedFetch(...args);
+      }) as typeof fetch;
 
-      // Wait for pending async operations
+      await window.fetch('https://api.example.com');
       await newTracker.flush();
 
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error_type: 'NetworkError',
-        })
+      expect(mockFetchImpl).toHaveBeenCalled();
+      const callBody = JSON.parse(
+        (mockFetchImpl.mock.calls[0]?.[1] as RequestInit)?.body as string
       );
+      expect(callBody.errorType).toBe('NetworkError');
 
-      // Restore original fetch
-      window.fetch = originalFetch;
+      window.fetch = wrappedFetch;
     });
   });
 
@@ -160,12 +181,16 @@ describe('ErrorTracker', () => {
       console.error('Console Failure');
       await tracker.flush();
 
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error_type: 'ConsoleError',
-          message: 'Console Failure',
-        })
-      );
+      expect(mockFetchImpl).toHaveBeenCalled();
+      const calls = mockFetchImpl.mock.calls.filter((c: any) => {
+        try {
+          const body = JSON.parse(c[1]?.body);
+          return body.errorType === 'ConsoleError';
+        } catch {
+          return false;
+        }
+      });
+      expect(calls.length).toBeGreaterThan(0);
     });
   });
 
@@ -174,23 +199,20 @@ describe('ErrorTracker', () => {
       (tracker as any).isOnline = false;
       await tracker.captureError({ errorType: 'Queued', errorMessage: 'Later' });
 
-      expect(mockSupabase.insert).not.toHaveBeenCalled();
+      expect(mockFetchImpl).not.toHaveBeenCalled();
 
       // Simulate back online
       (tracker as any).isOnline = true;
       window.dispatchEvent(new Event('online'));
 
-      // Fast forward interval or manual trigger
       await (tracker as any).processQueue();
 
-      expect(mockSupabase.insert).toHaveBeenCalled();
+      expect(mockFetchImpl).toHaveBeenCalled();
     });
   });
 
   describe('external integrations', () => {
     it('should capture errors from Logger.error', async () => {
-      // Setup: we need to trigger the callback that setupLoggerSubscription registered.
-      // Since Logger is mocked, we need to inspect how onError was called.
       const onErrorMock = (
         import.meta.env.VITEST
           ? (await import('../../../services/system/Logger')).Logger.onError
@@ -202,12 +224,15 @@ describe('ErrorTracker', () => {
 
         await tracker.flush();
 
-        expect(mockSupabase.insert).toHaveBeenCalledWith(
-          expect.objectContaining({
-            error_type: 'LoggerError',
-            message: 'Test Logger Message',
-          })
-        );
+        const calls = mockFetchImpl.mock.calls.filter((c: any) => {
+          try {
+            const body = JSON.parse(c[1]?.body);
+            return body.errorType === 'LoggerError';
+          } catch {
+            return false;
+          }
+        });
+        expect(calls.length).toBeGreaterThan(0);
       }
     });
 
@@ -222,12 +247,15 @@ describe('ErrorTracker', () => {
       window.dispatchEvent(errorEvent);
       await tracker.flush();
 
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error_type: 'UnhandledError',
-          message: 'Window error',
-        })
-      );
+      const calls = mockFetchImpl.mock.calls.filter((c: any) => {
+        try {
+          const body = JSON.parse(c[1]?.body);
+          return body.errorType === 'UnhandledError';
+        } catch {
+          return false;
+        }
+      });
+      expect(calls.length).toBeGreaterThan(0);
     });
 
     it('should capture unhandled promise rejections', async () => {
@@ -241,12 +269,15 @@ describe('ErrorTracker', () => {
       window.dispatchEvent(rejectionEvent);
       await tracker.flush();
 
-      expect(mockSupabase.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error_type: 'UnhandledPromiseRejection',
-          message: 'Async failed',
-        })
-      );
+      const calls = mockFetchImpl.mock.calls.filter((c: any) => {
+        try {
+          const body = JSON.parse(c[1]?.body);
+          return body.errorType === 'UnhandledPromiseRejection';
+        } catch {
+          return false;
+        }
+      });
+      expect(calls.length).toBeGreaterThan(0);
     });
   });
 });

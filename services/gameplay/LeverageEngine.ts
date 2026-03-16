@@ -28,28 +28,25 @@ export const LEVERAGE_ENGINE_CONFIG = {
   NORM_BASE: 101, // log2(leverage+1) / log2(101)
 
   // --- Damage Taken (Fragility) Scaling ---
-  // Design spec target: 1x→1.0, 5x→1.25, 25x→2.0, 50x→2.80, 100x→3.50
-  // High leverage = GLASS CANNON. Players melt if they get hit.
+  // Design spec target: 1x→1.0, 5x→1.20, 25x→1.80, 50x→2.40, 100x→3.00
+  // High leverage = GLASS CANNON, but survivable with skill.
   /** Base damage amplification at max leverage (before volatility) */
-  DAMAGE_BASE_AMP: 2.5,
+  DAMAGE_BASE_AMP: 2.0,
   /** How much volatility amplifies damage on top of leverage */
-  VOLATILITY_DAMAGE_AMP: 0.2,
-  /** Max damage reduction when PnL is strongly positive (10%) */
-  POSITIVE_PNL_DAMAGE_SHIELD: 0.1,
+  VOLATILITY_DAMAGE_AMP: 0.15,
+  /** Max damage reduction when PnL is strongly positive (15%) */
+  POSITIVE_PNL_DAMAGE_SHIELD: 0.15,
 
   // --- XP / Level Speed Scaling ---
-  // Design spec target: 1x→1.0, 10x→1.13, 25x→1.24, 50x→1.37, 100x→1.54
-  // Combined with xpReq tiers gives effective speed:
-  //   10x→1.33x, 25x→1.59x, 50x→1.95x, 100x→2.57x
-  // Moderate boost — the REWARD is xpReq reduction, this amplifies it slightly
-  /** XP gain coefficient (sqrt-based for diminishing returns) */
-  XP_COEFFICIENT: 0.06,
+  // XP speed is now controlled by LeverageEngine.gemValue + LEVERAGE_TIERS.xpReq only.
+  // The separate xpGain multiplier was removed to prevent compounding (~64x at 100x).
+  // Effective leveling speed: 1x→1.0, 10x→1.4, 25x→1.8, 50x→2.5, 100x→3.6
 
   // --- Max HP Scaling ---
-  // Design spec target: 1x→1.0, 10x→0.85, 25x→0.72, 50x→0.60, 100x→0.50
-  // Higher leverage = less starting/maximum health (FRAGILITY)
+  // Design spec target: 1x→1.0, 10x→0.88, 25x→0.77, 50x→0.67, 100x→0.60
+  // Higher leverage = less health, but floor raised for playability
   /** Max HP reduction per leverage norm unit */
-  MAX_HP_REDUCTION: 0.5,
+  MAX_HP_REDUCTION: 0.4,
 
   // --- Spawn Rate Scaling ---
   /** Base spawn rate amplification at max leverage */
@@ -70,24 +67,24 @@ export const LEVERAGE_ENGINE_CONFIG = {
   ENEMY_DAMAGE_BASE_AMP: 1.5,
 
   // --- Gem/Reward Scaling ---
-  // Design spec target: 1x→1.0, 100x→2.50
+  // Design spec target: 1x→1.0, 10x→1.07, 25x→1.19, 50x→1.39, 100x→1.79
+  // Reduced from 0.015 to prevent compounding with xpReq threshold reduction
   /** Gem value per leverage point (linear) */
-  GEM_PER_LEVERAGE: 0.015,
+  GEM_PER_LEVERAGE: 0.008,
 
   // --- Difficulty Ramp Speed ---
   /** How much faster difficulty escalates over time at high leverage */
   RAMP_SPEED_COEFFICIENT: 0.4,
 
   // --- Hard Limits (Safety Rails) ---
-  MAX_DAMAGE_TAKEN: 3.5,
-  MAX_XP_GAIN: 1.8,
+  MAX_DAMAGE_TAKEN: 3.0,
   MAX_SPAWN_RATE: 5.0,
   MAX_ENEMY_SPEED: 2.5,
   MAX_ENEMY_HP: 2.5,
   MAX_ENEMY_DAMAGE: 3.0,
-  MAX_GEM_VALUE: 3.0,
+  MAX_GEM_VALUE: 2.5,
   MAX_RAMP_SPEED: 3.5,
-  MIN_MAX_HP_SCALE: 0.5,
+  MIN_MAX_HP_SCALE: 0.6,
 } as const;
 
 // =============================================================================
@@ -217,14 +214,11 @@ class LeverageEngineClass {
       C.MAX_DAMAGE_TAKEN
     );
 
-    // --- XP GAIN (REWARD) ---
-    // 1x→1.0, 5x→1.07, 10x→1.13, 25x→1.24, 50x→1.37, 100x→1.54
-    // Moderate boost: combined with xpReq reduction, total speed is ~1.3x-2.6x
-    this.output.xpGain = clamp(
-      1.0 + (Math.sqrt(L) - 1) * C.XP_COEFFICIENT,
-      1.0,
-      C.MAX_XP_GAIN
-    );
+    // --- XP GAIN ---
+    // Fixed at 1.0: XP speed is controlled by gemValue + xpReq only.
+    // The old sqrt-based xpGain was a third compounding layer that caused
+    // ~64x leveling speed at 100x when combined with gem spawn multiplier + xpReq.
+    this.output.xpGain = 1.0;
 
     // --- MAX HP SCALE (Fragility) ---
     // 1x→1.0, 10x→0.85, 25x→0.72, 50x→0.60, 100x→0.50

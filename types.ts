@@ -177,6 +177,9 @@ export interface FloatingText {
   color: string;
   life: number;
   size: number;
+  vx?: number;
+  vy?: number;
+  isCrit?: boolean;
 }
 
 export interface Candle {

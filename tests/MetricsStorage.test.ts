@@ -122,19 +122,13 @@ function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetr
       difficultyAtDeath: 3.0,
       timeInEachWavePhase: {
         ...createDefaultWavePhaseRecord(),
-        warmup: 10000,
-        buildup: 20000,
-        climax: 30000,
-        resolution: 10000,
+        active: 70000,
       },
       timeInHighDifficulty: 20000,
       timeInLowDifficulty: 30000,
       nearDeathActivations: 2,
       difficultySamples: [1.5, 2.0, 2.5, 3.0],
-      wavePhaseTransitions: [
-        { phase: 'warmup', timestamp: 0 },
-        { phase: 'buildup', timestamp: 10000 },
-      ],
+      wavePhaseTransitions: [{ phase: 'active', timestamp: 0 }],
     },
     player: {
       maxLevel: 5,

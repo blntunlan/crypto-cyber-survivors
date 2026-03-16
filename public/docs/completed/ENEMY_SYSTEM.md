@@ -20,6 +20,11 @@ graph TD
     AI --> Orbit[Bull: Circle]
     AI --> Wave[FUD: ZigZag]
     AI --> Boss[Whale: Slow Tank]
+    AI --> Teleport[Rug Pull: Teleport]
+    AI --> Predict[MEV Bot: Predictive]
+    AI --> Burst[Flash Loan: Burst]
+    AI --> Pincer[Sandwich: Pincer]
+    AI --> Absorb[51% Attack: Absorb]
 ```
 
 ## :Skull: Enemy Directory
@@ -31,6 +36,11 @@ graph TD
 | **Whale** | 🐋 | Tank | Slow "Boss" unit with massive health points. |
 | **Liquidator** | 💣 | Explosive | Explosive unit that accelerates suddenly when near the player. |
 | **PumpDump** | 🌪️ | Growing | Dangerous wave that grows in size and area over time. |
+| **Rug Pull** | 🪤 | Teleport | Deceptive entity that teleports unpredictably near the player. |
+| **MEV Bot** | 🤖 | Predictive | Algorithmic predator that anticipates player movement direction. |
+| **Flash Loan** | ⚡ | Burst | Charges up slowly, then dashes at extreme speed. |
+| **Sandwich** | 🥪 | Pincer | Spawns in pairs from opposite sides — converges for pincer attack. |
+| **51% Attack** | ☠️ | Absorb | Ultra-rare boss that grows stronger over time. Network dominance. |
 
 ## :Target: Difficulty Scaling
 Enemy stats increase non-linearly according to the following formulas:

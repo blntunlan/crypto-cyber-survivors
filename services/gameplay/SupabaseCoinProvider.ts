@@ -1,84 +1,56 @@
 /**
  * SupabaseCoinProvider - Persistent reward backend
  *
- * Implements ICoinProvider to bridge CoinService with Supabase database.
- * Uses direct balance fetching and RPC calls for atomic updates.
+ * Implements ICoinProvider to bridge CoinService with Railway API.
+ * Now acts primarily as an optimistic UI updater for gameplay events.
+ * Actual secure crediting happens via Railway verify endpoint.
  */
 
 import { type ICoinProvider, type CoinSource } from './CoinService';
-import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
+import { railwayClient } from '../api/RailwayClient';
 
 export class SupabaseCoinProvider implements ICoinProvider {
   readonly id = 'supabase';
   readonly isRealCurrency = false; // "Gold" is in-game virtual currency
 
   /**
-   * Get current confirmed gold balance from virtual_accounts table
+   * Get current confirmed gold balance from Railway API
    */
   async getBalance(): Promise<number> {
     const profileId = UserSessionService.getProfileId();
     if (!profileId || profileId.startsWith('anon_')) return 0;
 
-    if (!isSupabaseConfigured()) return 0;
-
-    const { data, error } = await supabase
-      .from('virtual_accounts')
-      .select('gold_balance')
-      .eq('profile_id', profileId)
-      .single();
-
-    if (error) {
+    try {
+      const data = await railwayClient.get<{ balance: number }>(
+        '/api/v1/wallet/balance'
+      );
+      return data.balance ?? 0;
+    } catch (error) {
       Logger.warn('[SupabaseCoinProvider] Failed to fetch balance', error);
       return 0;
     }
-
-    return data.gold_balance ?? 0;
   }
 
   /**
-   * Credit coins and log to ledger using atomic RPC
+   * Optimistically credit coins locally.
+   * Actual DB updates are handled by Railway verify endpoint to prevent cheating.
    */
   async credit(
     amount: number,
     source: CoinSource,
-    metadata?: Record<string, unknown>
+    _metadata?: Record<string, unknown>
   ): Promise<boolean> {
     const profileId = UserSessionService.getProfileId();
     if (!profileId || profileId.startsWith('anon_')) {
-      Logger.warn('[SupabaseCoinProvider] Cannot credit: anonymous user');
       return false;
     }
 
-    if (!isSupabaseConfigured()) return false;
+    Logger.info(
+      `[SupabaseCoinProvider] Optimistically allowing ${amount} coins from ${source}. CoinService will track session state.`
+    );
 
-    try {
-      const { data, error } = await supabase.rpc('credit_coins', {
-        p_profile_id: profileId,
-        p_amount: Math.floor(amount),
-        p_transaction_type: source,
-        p_reference_id: (metadata?.referenceId as string | undefined) ?? undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        p_metadata: (metadata ?? {}) as any,
-      });
-
-      if (error) throw error;
-
-      const result = data as { success: boolean; new_balance?: number; error?: string };
-
-      if (result.success) {
-        Logger.info(
-          `[SupabaseCoinProvider] Credited ${amount} coins. New balance: ${result.new_balance}`
-        );
-        return true;
-      } else {
-        Logger.error('[SupabaseCoinProvider] RPC failed:', result.error);
-        return false;
-      }
-    } catch (err) {
-      Logger.error('[SupabaseCoinProvider] Failed to credit coins:', err);
-      return false;
-    }
+    return true;
   }
 }

@@ -12,8 +12,6 @@ import { COLORS, GAME_ENGINE } from '../constants';
 import { PoolManager } from '../services/combat/PoolManager';
 import { GameRenderer } from '../services/renderers/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
-import { MetricsService } from '../services/core/MetricsService';
-import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { TimeService } from '../services/core/TimeService';
 import { getHUDLayout } from '../config/UILayout';
@@ -31,13 +29,15 @@ import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/audio';
-import { MarketStateService } from '../services/market/MarketStateService';
+import { railwayClient } from '../services/api/RailwayClient';
 import { ClientIndicatorService } from '../services/indicators/ClientIndicatorService';
 import { Logger } from '../services/system/Logger';
 import { EventBus } from '../services/core/EventBus';
 import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
-import { portalSystem } from '../services/gameplay/PortalSystem';
+import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
+import { CoinService } from '../services/gameplay/CoinService';
+import { GAME_MODE_CONFIGS, GameMode } from '../types/gameMode';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
@@ -54,6 +54,9 @@ import {
   SpawnPhase,
   PhysicsPhase,
   EffectsPhase,
+  DifficultyPhase,
+  PortalPhase,
+  MetricsPhase,
 } from '../services/gameplay/phases';
 import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
@@ -81,6 +84,7 @@ interface GameEngineProps {
   playerRef: React.RefObject<Player>;
   width: number;
   height: number;
+  gameMode?: GameMode;
 }
 
 export const GameEngine: React.FC<GameEngineProps> = ({
@@ -94,6 +98,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   playerRef,
   width,
   height,
+  gameMode = GameMode.COMPETITIVE,
 }) => {
   const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -106,6 +111,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const physicsSystem = useRef(PhysicsSystem.getInstance());
   const spawnSystemRef = useLazyRef(() => SpawnSystem.getInstance());
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
+  const lastCycleRef = useRef(1);
 
   const {
     getMovementVector,
@@ -118,6 +124,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const device = useDevice();
   const mobileSettings = useGameStore(state => state.mobile);
   const graphicsSettings = useGameStore(selectGraphics);
+  const graphicsRef = useRef({
+    showParticles: graphicsSettings.showParticles,
+    showDamageNumbers: graphicsSettings.showDamageNumbers,
+    showScreenShake: graphicsSettings.showScreenShake,
+  });
+  useEffect(() => {
+    graphicsRef.current.showParticles = graphicsSettings.showParticles;
+    graphicsRef.current.showDamageNumbers = graphicsSettings.showDamageNumbers;
+    graphicsRef.current.showScreenShake = graphicsSettings.showScreenShake;
+  }, [graphicsSettings]);
 
   const state = useRef<GameState>({
     bgCandles: [] as Candle[],
@@ -192,22 +208,47 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const gameplayFrameRef = useRef(0);
   const phaseSharedRef = useRef<Record<string, unknown>>({});
   const lastPhaseErrorLogTimeRef = useRef(0);
-  const lastPhaseTickRef = useRef<{
-    completedPhaseIds: string[];
-    errorCount: number;
-  }>({
-    completedPhaseIds: [],
+  const lastPhaseTickRef = useRef({
+    completedPhaseIds: [] as string[],
     errorCount: 0,
   });
 
   const gameLoopCoordinatorRef = useLazyRef(() => {
+    const difficultyPhase = new DifficultyPhase();
     const inputPhase = new InputPhase();
     const combatPhase = new CombatPhase();
     const spawnPhase = new SpawnPhase();
     const physicsPhase = new PhysicsPhase();
     const effectsPhase = new EffectsPhase();
+    const portalPhase = new PortalPhase();
+    const metricsPhase = new MetricsPhase();
+
+    const wrapPhase = (phase: {
+      phase: string;
+      execute: (input: {
+        phase: string;
+        context: TickContext;
+        shared: Record<string, never>;
+      }) => { shared?: object };
+    }) => ({
+      id: phase.phase,
+      execute: (context: TickContext) => {
+        const result = phase.execute({
+          phase: phase.phase,
+          context,
+          shared: phaseSharedRef.current as Record<string, never>,
+        });
+        if (result.shared) {
+          Object.assign(
+            phaseSharedRef.current,
+            result.shared as Record<string, unknown>
+          );
+        }
+      },
+    });
 
     const phases: GameLoopPhase<TickContext>[] = [
+      wrapPhase(difficultyPhase),
       {
         id: inputPhase.phase,
         execute: context => {
@@ -288,6 +329,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
         },
       },
+      wrapPhase(portalPhase),
+      wrapPhase(metricsPhase),
     ];
 
     return new GameLoopCoordinator<TickContext>(phases, {
@@ -330,6 +373,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       hitStopGovernorRef.current.reset();
       coreLoopRef.current.reset();
       MarketAudioReactor.stop();
+    }
+    if (status === GameStatus.MENU) {
+      lastCycleRef.current = 1;
     }
   }, [status]);
 
@@ -383,8 +429,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         try {
           Logger.info('[GameEngine] Starting market sync flow...');
 
-          // 1. Fetch historical data (Snapshot)
-          const history = await MarketStateService.fetchMarketHistory(pair, 300);
+          // 1. Fetch historical data (Snapshot) from Railway API
+          const history = await railwayClient
+            .get<
+              Array<{ price: number; volume: number; timestamp: number }>
+            >(`/api/v1/market/history?pair=${pair}&limit=300`)
+            .catch(
+              () => [] as Array<{ price: number; volume: number; timestamp: number }>
+            );
           if (cancelRef.current) return;
 
           // 2. Warm up client indicators (deterministic initial state)
@@ -399,13 +451,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           state.current.rsiVisualState = clientIndicatorState.rsiState;
           lastWhaleTierRef.current = clientIndicatorState.whaleTier;
 
-          // 3. Initialize Realtime subscription
-          await MarketStateService.init();
+          // 3. SSE market stream is initialized by useMarketData hook
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (cancelRef.current) {
-            MarketStateService.cleanup();
-            return;
-          }
+          if (cancelRef.current) return;
 
           Logger.info('[GameEngine] Market state perfect sync complete');
         } catch (err) {
@@ -453,14 +501,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           clearTimeout(marketAudioStartTimeoutId);
           marketAudioStartTimeoutId = null;
         }
-        MarketStateService.cleanup();
+        // SSE cleanup handled by useMarketData hook
         MarketAudioReactor.stop();
         unsubClientIndicators();
       };
     }
     // No cleanup needed if we didn't initialize
     return undefined;
-  }, [status, pair, position, state]);
+  }, [status, pair, position]);
 
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
@@ -563,13 +611,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Pass graphics settings to renderer
-    const graphics = {
-      showParticles: graphicsSettings.showParticles,
-      showDamageNumbers: graphicsSettings.showDamageNumbers,
-      showScreenShake: graphicsSettings.showScreenShake,
-    };
-
     renderer.current.render(
       ctx,
       width,
@@ -578,9 +619,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       playerRef.current!,
       pool.current,
       status,
-      graphics
+      graphicsRef.current
     );
-  }, [width, height, status, graphicsSettings, playerRef, pool, renderer]);
+  }, [width, height, status, playerRef, pool, renderer]);
 
   const update = useCallback(
     (time: number) => {
@@ -690,20 +731,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         s.playerScaleX = lerp(s.playerScaleX, 1, recoverySpeed * dtFactor);
         s.playerScaleY = lerp(s.playerScaleY, 1, recoverySpeed * dtFactor);
 
-        // Update difficulty waves in real-time
-        DifficultyManager.updateWaveTimer(deltaTime);
-        difficultyContext.updateTime(TimeService.getGameTimeSeconds());
+        // Difficulty and Portal updates are now handled by DifficultyPhase and PortalPhase
+        // in the GameLoopCoordinator pipeline (Step 5).
         const maxHp = 100 + (player.level - 1) * 10; // Base HP calculation
         const hpPercent = (player.hp / maxHp) * 100;
         const killStreak = ComboSystem.getKillStreak();
 
-        // AI Director V2 calculation is now done inside DifficultyManager update routine
-
-        // Update Portal System
-        portalSystem.update(deltaTime, width, height);
-
         // Update Gatekeeper Orbit positions & Knockback
-        const portal = portalSystem.getState();
+        const portal = PortalSystemV2.getPortalState();
         if (portal.isActive) {
           const enemies = p.activeEnemies;
           for (let i = 0; i < enemies.length; i++) {
@@ -717,7 +752,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
               // Knockback player if touching
               const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-              if (dist < player.radius + enemy.radius) {
+              if (dist > 0 && dist < player.radius + enemy.radius) {
                 const kx = (player.x - enemy.x) / dist;
                 const ky = (player.y - enemy.y) / dist;
                 player.x += kx * 5 * dtFactor;
@@ -729,18 +764,57 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           // Portal Collision Check (Extraction)
           const pDist = Math.hypot(player.x - portal.x, player.y - portal.y);
           if (pDist < player.radius + portal.radius * 0.4) {
-            const rewards = portalSystem.calculateFinalRewards();
-            portalSystem.closePortal();
-            EventBus.emit('portalExtraction', rewards);
+            // V2: enterPortal() calculates rewards and closes portal internally
+            const coinReward = PortalSystemV2.enterPortal();
+
+            // Credit coins to player via CoinService
+            if (coinReward.total > 0) {
+              void CoinService.creditCoins(coinReward.total, 'cycle_complete', {
+                exitType: coinReward.exitType,
+                portalType: coinReward.portalType,
+                breakdown: coinReward.breakdown,
+              });
+            }
+
+            EventBus.emit('portalExtraction', {
+              totalCoins: coinReward.total,
+              rawCoins: coinReward.breakdown.raw,
+              bonus:
+                coinReward.breakdown.portalBonus + coinReward.breakdown.survivalBonus,
+            });
+
+            Logger.info('[GameEngine] Portal extraction complete', {
+              total: coinReward.total,
+              exitType: coinReward.exitType,
+              portalType: coinReward.portalType,
+            });
+
             onGameOver(); // Exit run
           }
         }
 
-        // Update combo system
-        ComboSystem.update();
+        // Cycle Timer: auto-emit cycleComplete at cycle boundaries (COMPETITIVE mode)
+        if (gameMode === GameMode.COMPETITIVE) {
+          const cycleDuration =
+            GAME_MODE_CONFIGS[GameMode.COMPETITIVE].cycleDurationSeconds;
+          const elapsed = TimeService.getGameTimeSeconds();
+          const currentCycle = Math.floor(elapsed / cycleDuration) + 1;
+          const lastEmittedCycle = lastCycleRef.current;
 
-        // Update buff manager (handles effect expiration)
-        BuffManager.update();
+          if (currentCycle > lastEmittedCycle) {
+            lastCycleRef.current = currentCycle;
+            Logger.info(
+              `[GameEngine] Cycle ${currentCycle} complete at ${elapsed.toFixed(0)}s`
+            );
+            EventBus.emit('cycleComplete', {
+              cycleNumber: currentCycle,
+              totalElapsedSeconds: elapsed,
+            });
+          }
+        }
+
+        // Combo, BuffManager, and MetricsService updates are now in MetricsPhase (Step 5).
+        // BuffManager.updateBaseStats needs direct player ref, keep it here.
         BuffManager.updateBaseStats(player);
 
         // Update buff gem spawner (spawns gems based on volatility)
@@ -749,22 +823,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
         // Update Speed Lines
         speedLineSpawner.current.update(p, s, player, width, height, time);
-
-        // Update metrics system
-        const wavePhase = 'active'; // AI Director V2: Wave phases removed
-
-        // Optimized: Pass primitives directly to avoid object allocation per frame
-        MetricsService.update(
-          deltaTime,
-          marketDataRef.current.pnl,
-          marketDataRef.current.difficulty,
-          hpPercent,
-          p.activeEnemies.length,
-          p.activeBullets.length,
-          p.activeParticles.length,
-          wavePhase,
-          marketDataRef.current.atrPercent ?? 0.01
-        );
 
         // Low HP Heartbeat Logic
         if (hpPercent < GAME_ENGINE.LOW_HP_THRESHOLD_PERCENT) {
@@ -1058,6 +1116,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       gameLoopCoordinatorRef,
       pair,
       t,
+      gameMode,
     ]
   );
 
@@ -1110,7 +1169,8 @@ export const GameEngineShared = memo(
     prev.height === next.height &&
     prev.position === next.position &&
     prev.pair === next.pair &&
-    prev.playerRef === next.playerRef
+    prev.playerRef === next.playerRef &&
+    prev.gameMode === next.gameMode
 );
 
 export default GameEngineShared;

@@ -7,7 +7,6 @@
 
 import { type MarketData } from '../types.ts';
 import { type CryptoPair } from './crypto';
-import { type WavePhase } from './metrics';
 import {
   type MarketRuntimeTick,
   type MarketRuntimeSnapshot,
@@ -22,6 +21,7 @@ import {
   type CharacterSkinId,
   type ConsumableEffectType,
 } from './lootbox';
+import { type CanonicalMarketPayload } from './marketCanonical';
 import { type InventoryItemType } from './inventory';
 
 // =============================================================================
@@ -71,8 +71,6 @@ export type GameEvent =
   | 'verification:failed'
   | 'verification:retrying'
   | 'volatilityShock'
-  /** @deprecated AI Director V2: Wave phases removed */
-  | 'wavePhaseChange'
   | 'cycleComplete'
   | 'gameMarketUpdate'
   | 'marketDataRecovered'
@@ -111,10 +109,6 @@ export type GameEvent =
   | 'liquidationWarning'
   | 'secondElapsed'
   | 'fpsUpdated'
-  /** @deprecated AI Director V2: Boss wave events deprecated */
-  | 'bossWaveStart'
-  /** @deprecated AI Director V2: Boss wave events deprecated */
-  | 'bossWaveEnd'
   | 'cycleDecisionScreen'
   | 'cycleDecisionMade'
   | 'hudValuesUpdated'
@@ -163,6 +157,8 @@ export type GameEvent =
   | 'marketEventExpired'
   // Price Momentum Engine events
   | 'priceMomentumUpdate'
+  // Consolidated market event (Step 3)
+  | 'canonicalMarketUpdate'
   // Supabase auth events
   | 'authStateChanged';
 
@@ -699,8 +695,6 @@ export interface EventDataMap {
     direction: 'up' | 'down' | 'none';
     isHighLeverage: boolean;
   };
-  /** @deprecated AI Director V2: Wave phases removed - event no longer emitted */
-  wavePhaseChange: { phase: WavePhase; oldPhase: WavePhase };
   cycleComplete: { cycleNumber: number; totalElapsedSeconds: number };
   gameMarketUpdate: MarketData;
   marketDataRecovered: { pair: CryptoPair };
@@ -745,10 +739,6 @@ export interface EventDataMap {
   };
   secondElapsed: { totalSeconds: number };
   fpsUpdated: { avgFps: number };
-  /** @deprecated AI Director V2: Boss wave events deprecated */
-  bossWaveStart: { cycleNumber: number };
-  /** @deprecated AI Director V2: Boss wave events deprecated */
-  bossWaveEnd: { cycleNumber: number };
   cycleDecisionScreen: { cycleNumber: number; options: string[] };
   cycleDecisionMade: { decision: 'CONTINUE' | 'CASH_OUT'; cycleNumber: number };
   hudValuesUpdated: Record<string, number>;
@@ -859,6 +849,8 @@ export interface EventDataMap {
   };
   // Price Momentum Engine
   priceMomentumUpdate: PriceMomentumUpdateEvent;
+  // Consolidated market event (Step 3)
+  canonicalMarketUpdate: CanonicalMarketPayload;
   // Supabase auth state change event
   authStateChanged: AuthStateChangedEvent;
 }

@@ -92,6 +92,7 @@ export class SpawnSystem implements ISpawnSystem {
     this.spawnTimer += deltaTime;
     this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
     this.rsiSpawnCooldownTimer = Math.max(0, this.rsiSpawnCooldownTimer - deltaTime);
+    this.attackCooldownTimer = Math.max(0, this.attackCooldownTimer - deltaTime);
 
     // No direct AI Logic here - central logic is in DifficultyManager
     const maxEnemies = maxEnemiesOverride ?? config.maxEnemies;
@@ -141,7 +142,7 @@ export class SpawnSystem implements ISpawnSystem {
     if (this.activeEvents.has('FLASH_CRASH')) eventSpawnMultiplier += 1.0;
 
     // Use AI multiplier if provided, otherwise fallback to standard difficulty
-    const effectiveMultiplier = spawnRateMultiplier ?? difficulty;
+    const effectiveMultiplier = Math.max(0.01, spawnRateMultiplier ?? difficulty);
     const spawnThreshold =
       config.baseInterval / (effectiveMultiplier * eventSpawnMultiplier);
 
@@ -238,6 +239,9 @@ export class SpawnSystem implements ISpawnSystem {
     }
   }
 
+  private attackCooldownTimer: number = 0;
+  private static readonly ATTACK_51_COOLDOWN_MS = 60000; // 60s cooldown
+
   private spawnRegularEnemy(
     pool: IPoolManager,
     difficulty: number,
@@ -255,7 +259,21 @@ export class SpawnSystem implements ISpawnSystem {
     let enemyType: EnemyId = 'bear';
 
     if (this.activeEvents.has('FLASH_CRASH')) {
-      enemyType = roll < 0.7 ? 'liquidator' : 'fud';
+      // Flash Crash: liquidators + fud + flash_loan
+      enemyType = roll < 0.5 ? 'liquidator' : roll < 0.75 ? 'fud' : 'flash_loan';
+    } else if (this.activeEvents.has('VOLUME_SPIKE') && roll < 0.25) {
+      // Volume Spike: chance for sandwich pair spawn
+      this.spawnSandwichPair(
+        pool,
+        difficulty,
+        position,
+        width,
+        height,
+        damageMultiplier,
+        speedMultiplier,
+        rsiModifier
+      );
+      return;
     } else if (
       (rsiState === 'OVERSOLD' && this.rsiSpawnCooldownTimer <= 0) ||
       (position === MarketPosition.LONG && pnl < 0)
@@ -263,7 +281,14 @@ export class SpawnSystem implements ISpawnSystem {
       if (rsiState === 'OVERSOLD') {
         this.rsiSpawnCooldownTimer = SpawnSystem.RSI_SPAWN_COOLDOWN_MS;
       }
-      enemyType = roll < 0.6 ? 'bear' : roll < 0.8 ? 'fud' : 'liquidator';
+      enemyType =
+        roll < 0.45
+          ? 'bear'
+          : roll < 0.65
+            ? 'fud'
+            : roll < 0.8
+              ? 'liquidator'
+              : 'mev_bot';
     } else if (
       (rsiState === 'OVERBOUGHT' && this.rsiSpawnCooldownTimer <= 0) ||
       (position === MarketPosition.SHORT && pnl < 0)
@@ -271,10 +296,47 @@ export class SpawnSystem implements ISpawnSystem {
       if (rsiState === 'OVERBOUGHT') {
         this.rsiSpawnCooldownTimer = SpawnSystem.RSI_SPAWN_COOLDOWN_MS;
       }
-      enemyType = roll < 0.6 ? 'bull' : roll < 0.8 ? 'pumpdump' : 'rsi';
-    } else {
       enemyType =
-        roll < 0.4 ? 'bear' : roll < 0.7 ? 'bull' : roll < 0.85 ? 'fud' : 'pumpdump';
+        roll < 0.4 ? 'bull' : roll < 0.6 ? 'pumpdump' : roll < 0.75 ? 'rsi' : 'rugpull';
+    } else {
+      // Neutral spawns — mix in new types
+      enemyType =
+        roll < 0.3
+          ? 'bear'
+          : roll < 0.55
+            ? 'bull'
+            : roll < 0.7
+              ? 'fud'
+              : roll < 0.8
+                ? 'pumpdump'
+                : roll < 0.88
+                  ? 'mev_bot'
+                  : roll < 0.94
+                    ? 'rugpull'
+                    : 'flash_loan';
+    }
+
+    // Ultra-rare 51% Attack boss spawn (difficulty >= 5)
+    if (
+      difficulty >= 5 &&
+      this.attackCooldownTimer <= 0 &&
+      Math.random() < 0.008 &&
+      pool.activeEnemies.filter(e => e.type === '51_attack').length === 0
+    ) {
+      const bossPos = this.getRandomSpawnPosition(width, height);
+      pool.getEnemy(
+        bossPos.x,
+        bossPos.y,
+        difficulty,
+        position,
+        '51_attack',
+        undefined,
+        damageMultiplier,
+        speedMultiplier,
+        rsiModifier
+      );
+      this.attackCooldownTimer = SpawnSystem.ATTACK_51_COOLDOWN_MS;
+      Logger.info('[SpawnSystem] 51% Attack boss spawned!');
     }
 
     pool.getEnemy(
@@ -283,6 +345,66 @@ export class SpawnSystem implements ISpawnSystem {
       difficulty,
       position,
       enemyType,
+      undefined,
+      damageMultiplier,
+      speedMultiplier,
+      rsiModifier
+    );
+  }
+
+  /**
+   * Spawns a Sandwich Attack pair from opposite sides of the screen
+   */
+  private spawnSandwichPair(
+    pool: IPoolManager,
+    difficulty: number,
+    position: MarketPosition,
+    width: number,
+    height: number,
+    damageMultiplier: number,
+    speedMultiplier: number,
+    rsiModifier: RSIEnemyModifier
+  ) {
+    // Spawn from opposite edges
+    const isHorizontal = Math.random() > 0.5;
+    const safeOffset = Math.max(
+      ENEMY_SPAWN.SPAWN_DISTANCE,
+      ENEMY_SPAWN.MIN_SAFE_OFFSET
+    );
+
+    let x1: number, y1: number, x2: number, y2: number;
+
+    if (isHorizontal) {
+      const randomY = Math.random() * height;
+      x1 = -safeOffset;
+      y1 = randomY;
+      x2 = width + safeOffset;
+      y2 = randomY;
+    } else {
+      const randomX = Math.random() * width;
+      x1 = randomX;
+      y1 = -safeOffset;
+      x2 = randomX;
+      y2 = height + safeOffset;
+    }
+
+    pool.getEnemy(
+      x1,
+      y1,
+      difficulty,
+      position,
+      'sandwich',
+      undefined,
+      damageMultiplier,
+      speedMultiplier,
+      rsiModifier
+    );
+    pool.getEnemy(
+      x2,
+      y2,
+      difficulty,
+      position,
+      'sandwich',
       undefined,
       damageMultiplier,
       speedMultiplier,
@@ -371,6 +493,7 @@ export class SpawnSystem implements ISpawnSystem {
     this.pendingGatekeeperSpawn = null;
     this.previousRSIState = 'NEUTRAL';
     this.rsiSpawnCooldownTimer = 0;
+    this.attackCooldownTimer = 0;
   }
 
   getDebugState(currentActiveEnemies: number = 0): SpawnDebugState {

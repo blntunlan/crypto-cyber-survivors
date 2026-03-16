@@ -1,18 +1,16 @@
 /**
- * GameSessionService - Manages game session lifecycle via Supabase Edge Functions.
+ * GameSessionService - Manages game session lifecycle via Railway API.
  *
- * Handles starting a session on the server to get a unique session secret
- * and ending it to verify the results and replay data.
+ * Migrated from Supabase Edge Functions to Railway Express endpoints.
  */
 
-import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from './UserSessionService';
 import { type MarketPosition } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
-
 import { signPayload } from '../../utils/crypto';
 import { getMarketSyncQueue } from '../market/sync';
+import { railwayClient } from '../api/RailwayClient';
 
 export interface ServerSessionResponse {
   sessionId: string;
@@ -61,10 +59,6 @@ export class GameSessionService {
     Logger.info(`[GameSession] Starting server session for ${nickname} (${pair})...`);
 
     try {
-      if (!isSupabaseConfigured()) {
-        throw new Error('Supabase not configured on this client');
-      }
-
       const payload = {
         userId: nickname,
         pair,
@@ -74,51 +68,10 @@ export class GameSessionService {
 
       Logger.info('[GameSession] STARTING SESSION WITH', payload);
 
-      const { data, error } = await supabase.functions.invoke('start-session', {
-        body: payload,
-      });
-
-      if (error) {
-        let errorMsg = 'Unknown Error';
-        try {
-          const body = await error.context.json();
-          errorMsg = (body.error ?? body.message ?? JSON.stringify(body)) as string;
-        } catch {
-          errorMsg = error.message;
-        }
-
-        // Handle specific 'Profile/Player not found' error - common during initial setup or dev
-        const isProfileNotFound =
-          errorMsg.includes('Profile not found') ||
-          errorMsg.includes('Player not found');
-
-        if (isProfileNotFound) {
-          if (import.meta.env.DEV) {
-            Logger.warn(
-              `[GameSession] Player '${nickname}' not found on server yet. Using local fallback.`
-            );
-            return this.triggerDevFallback();
-          } else {
-            // Production: Clear invalid session and redirect to nickname screen
-            Logger.error(
-              `[GameSession] Profile '${nickname}' not found in production. Clearing session.`
-            );
-            UserSessionService.clearUser();
-            throw new Error('PROFILE_NOT_FOUND');
-          }
-        }
-
-        Logger.error(`[GameSession] start-session failed: ${errorMsg}`, error);
-
-        if (import.meta.env.DEV) {
-          Logger.warn(
-            '[GameSession] DEV mode: Falling back to local session after error'
-          );
-          return this.triggerDevFallback();
-        }
-
-        throw new Error(errorMsg);
-      }
+      const data = await railwayClient.post<ServerSessionResponse>(
+        '/api/v1/sessions/start',
+        payload
+      );
 
       if (!data?.sessionId) {
         Logger.error('[GameSession] start-session returned empty data:', data);
@@ -130,9 +83,29 @@ export class GameSessionService {
 
       Logger.info(`[GameSession] Server session started: ${this.currentSessionId}`);
 
-      return data as ServerSessionResponse;
+      return data;
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       Logger.error('[GameSession] Failed to start server session', error);
+
+      // Handle specific 'Profile/Player not found' error
+      const isProfileNotFound =
+        errorMsg.includes('Profile not found') || errorMsg.includes('Player not found');
+
+      if (isProfileNotFound) {
+        if (import.meta.env.DEV) {
+          Logger.warn(
+            `[GameSession] Player '${nickname}' not found on server yet. Using local fallback.`
+          );
+          return this.triggerDevFallback();
+        } else {
+          Logger.error(
+            `[GameSession] Profile '${nickname}' not found in production. Clearing session.`
+          );
+          UserSessionService.clearUser();
+          throw new Error('PROFILE_NOT_FOUND');
+        }
+      }
 
       if (
         error instanceof Error &&
@@ -141,7 +114,6 @@ export class GameSessionService {
         throw error;
       }
 
-      // Fallback for local development or connection issues
       if (import.meta.env.DEV) {
         return this.triggerDevFallback();
       }
@@ -152,9 +124,6 @@ export class GameSessionService {
     }
   }
 
-  /**
-   * Triggers a local session fallback for development mode.
-   */
   private static triggerDevFallback(): ServerSessionResponse {
     Logger.warn('[GameSession] DEV mode fallback active');
     const fallbackId = `local-${Date.now()}`;
@@ -183,6 +152,8 @@ export class GameSessionService {
     position: MarketPosition;
     leverage: number;
     endReason: string;
+    exitType?: 'portal' | 'death' | 'afk_death' | 'cycle_complete';
+    portalType?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED' | null;
     replayData?: unknown;
     performance?: unknown;
   }): Promise<{ success: boolean; reward?: number; error?: string }> {
@@ -199,17 +170,12 @@ export class GameSessionService {
     this.isSubmitting = true;
 
     try {
-      if (!isSupabaseConfigured()) {
-        throw new Error('Supabase not configured');
-      }
-
       Logger.info(
-        `[GameSession] Submitting results to verify-game-v2 for session: ${this.currentSessionId}`
+        `[GameSession] Submitting results to verify session: ${this.currentSessionId}`
       );
 
       await this.flushRuntimeAuditQueue('before_submit');
 
-      // Prepare payload to match server requirements
       const payload = {
         sessionId: this.currentSessionId,
         pair: results.pair,
@@ -221,6 +187,8 @@ export class GameSessionService {
         kills: results.kills,
         level: results.level,
         survivalSeconds: Math.floor(results.survivalTimeMs / 1000),
+        exitType: results.exitType ?? 'death',
+        portalType: results.portalType ?? null,
       };
 
       // Generate HMAC signature
@@ -229,24 +197,15 @@ export class GameSessionService {
         this.currentSessionSecret
       );
 
-      const { data, error } = await supabase.functions.invoke('verify-game-v2', {
-        body: {
-          sessionId: this.currentSessionId,
-          signature,
-          payload,
-        },
+      const data = await railwayClient.post<{
+        verified: boolean;
+        reward: number;
+        pnl: number;
+      }>('/api/v1/sessions/verify', {
+        sessionId: this.currentSessionId,
+        signature,
+        payload,
       });
-
-      if (error) {
-        let errorMsg = 'Verification failed';
-        try {
-          const body = await error.context.json();
-          errorMsg = body.error ?? body.message ?? error.message;
-        } catch {
-          errorMsg = error.message;
-        }
-        throw new Error(errorMsg);
-      }
 
       Logger.info('[GameSession] Results verified successfully', data);
 
@@ -274,23 +233,14 @@ export class GameSessionService {
     }
   }
 
-  /**
-   * Get the current session ID.
-   */
   static getCurrentSessionId(): string | null {
     return this.currentSessionId;
   }
 
-  /**
-   * Get the current session secret.
-   */
   static getCurrentSessionSecret(): string | null {
     return this.currentSessionSecret;
   }
 
-  /**
-   * Clear session data.
-   */
   static clearSession(): void {
     void this.flushRuntimeAuditQueue('clear_session');
     this.currentSessionId = null;

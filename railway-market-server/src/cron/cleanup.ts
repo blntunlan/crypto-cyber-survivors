@@ -5,12 +5,12 @@
  * Periyodik olarak küçük batch'lerle çalışır
  */
 
-import { SupabaseService } from '../services/supabaseService';
+import { query } from '../db/pool';
 import { Logger } from '../utils/logger';
 
 const RETENTION_HOURS = 24;
-const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours (more frequent for smaller buffer)
-const BATCH_SIZE = 5000; // Slightly smaller batches for performance
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const BATCH_SIZE = 5000;
 
 export class CleanupCron {
   private static instance: CleanupCron | null = null;
@@ -25,9 +25,6 @@ export class CleanupCron {
     return (CleanupCron.instance ??= new CleanupCron());
   }
 
-  /**
-   * Cron job'ı başlat
-   */
   start(): void {
     if (this.intervalId) {
       Logger.warn('[Cleanup] Already running');
@@ -38,12 +35,12 @@ export class CleanupCron {
       `[Cleanup] Starting cleanup cron (retention: ${RETENTION_HOURS} hours)`
     );
 
-    // İlk çalıştırma - 1 dakika sonra (startup için bekle)
+    // İlk çalıştırma - 1 dakika sonra
     setTimeout(() => {
       void this.runCleanup();
     }, 60 * 1000);
 
-    // Sonraki çalıştırmalar - her 6 saatte bir
+    // Her 6 saatte bir
     this.intervalId = setInterval(() => {
       void this.runCleanup();
     }, CLEANUP_INTERVAL_MS);
@@ -51,9 +48,6 @@ export class CleanupCron {
     Logger.info('[Cleanup] Cron scheduled - runs every 6 hours');
   }
 
-  /**
-   * Cron job'ı durdur
-   */
   stop(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -62,9 +56,6 @@ export class CleanupCron {
     }
   }
 
-  /**
-   * Cleanup işlemini çalıştır
-   */
   async runCleanup(): Promise<{ deleted: number; error?: string }> {
     if (this.isRunning) {
       Logger.warn('[Cleanup] Already running, skipping...');
@@ -76,41 +67,26 @@ export class CleanupCron {
     let totalDeleted = 0;
 
     try {
-      const supabase = SupabaseService.getInstance().getClient();
       const cutoffDate = new Date();
       cutoffDate.setHours(cutoffDate.getHours() - RETENTION_HOURS);
       const cutoffISO = cutoffDate.toISOString();
 
       Logger.info(`[Cleanup] Starting cleanup for records older than ${cutoffISO}`);
 
-      // Batch deletion loop (database-side deletion for fewer round-trips)
       let deletedInBatch = 0;
       let iterations = 0;
-      const maxIterations = 100; // Safety limit
+      const maxIterations = 100;
 
       do {
-        const { data: deletedCount, error: cleanupError } = await supabase.rpc(
-          'cleanup_old_price_history',
-          {
-            p_cutoff: cutoffISO,
-            p_batch_size: BATCH_SIZE,
-          }
+        const { rows } = await query<{ cleanup_old_price_history: string }>(
+          `SELECT cleanup_old_price_history($1, $2)`,
+          [cutoffISO, BATCH_SIZE]
         );
 
-        if (cleanupError) {
-          throw cleanupError;
-        }
+        const deletedCount = Number(rows[0]?.cleanup_old_price_history ?? 0);
+        deletedInBatch = Number.isFinite(deletedCount) && deletedCount >= 0 ? deletedCount : 0;
 
-        deletedInBatch = Number(deletedCount ?? 0);
-        if (!Number.isFinite(deletedInBatch) || deletedInBatch < 0) {
-          throw new Error(
-            `[Cleanup] Unexpected cleanup_old_price_history result: ${String(deletedCount)}`
-          );
-        }
-
-        if (deletedInBatch === 0) {
-          break;
-        }
+        if (deletedInBatch === 0) break;
 
         totalDeleted += deletedInBatch;
         iterations++;
@@ -119,7 +95,6 @@ export class CleanupCron {
           `[Cleanup] Deleted batch of ${deletedInBatch} records (total: ${totalDeleted})`
         );
 
-        // Small delay to prevent overwhelming the database
         await new Promise(resolve => setTimeout(resolve, 100));
       } while (deletedInBatch === BATCH_SIZE && iterations < maxIterations);
 
@@ -141,9 +116,6 @@ export class CleanupCron {
     }
   }
 
-  /**
-   * Stats endpoint için bilgi
-   */
   getStats(): CleanupStats {
     return {
       isRunning: this.isRunning,

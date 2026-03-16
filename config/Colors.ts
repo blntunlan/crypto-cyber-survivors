@@ -41,6 +41,13 @@ export const COLORS = {
   DUMP_ORANGE: '#FF3D00',
   JACKPOT_YELLOW: '#FFD600',
 
+  // New Enemy Colors
+  RUGPULL_CRIMSON: '#DC143C', // Deep crimson (deceptive danger)
+  MEV_CYAN: '#00FFFF', // Bright cyan (algorithmic precision)
+  FLASH_LOAN_YELLOW: '#FFEA00', // Electric yellow (burst energy)
+  SANDWICH_PINK: '#FF1493', // Hot deep pink (pincer squeeze)
+  ATTACK_51_RED: '#8B0000', // Dark blood red (network dominance)
+
   // Theme Specific - Cyberpunk
   PRIMARY_CYBER: '#c800ff',
   SECONDARY_CYBER: '#00ccff',

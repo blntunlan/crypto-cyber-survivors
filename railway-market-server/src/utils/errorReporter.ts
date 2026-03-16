@@ -1,5 +1,5 @@
-import { type SupabaseClient } from '@supabase/supabase-js';
 import { Logger } from './logger';
+import type pg from 'pg';
 
 export interface ErrorReportOptions {
   type: string;
@@ -9,51 +9,49 @@ export interface ErrorReportOptions {
   context?: Record<string, unknown>;
 }
 
+type QueryFn = <T extends pg.QueryResultRow = pg.QueryResultRow>(
+  text: string,
+  params?: unknown[]
+) => Promise<pg.QueryResult<T>>;
+
 export class ErrorReporter {
   private static serviceName = 'railway-market-server';
-  private static client: SupabaseClient | null = null;
+  private static queryFn: QueryFn | null = null;
 
   /**
-   * Set the client instance to avoid circular dependencies with SupabaseService
+   * Set the query function to avoid circular dependencies with pool.
    */
-  static setClient(client: SupabaseClient): void {
-    this.client = client;
+  static setQueryFn(fn: QueryFn): void {
+    this.queryFn = fn;
   }
 
   static async report(options: ErrorReportOptions): Promise<void> {
     const { type, message, stack, severity = 'high', context = {} } = options;
 
     try {
-      if (!this.client) {
-        Logger.warn('[ErrorReporter] No Supabase client set, logging only:', message);
+      if (!this.queryFn) {
+        Logger.warn('[ErrorReporter] No query function set, logging only:', message);
         return;
       }
 
-      const { error } = await this.client.from('error_reports').insert({
-        error_type: type,
-        message: message,
-        stack_trace: stack,
-        severity,
-        category: 'server',
-        page_url: this.serviceName,
-        browser_info: `Node.js ${process.version}`,
-        context_data: {
-          ...context,
-          server: this.serviceName,
-          uptime: process.uptime(),
-          memory: process.memoryUsage(),
-        },
-        status: 'new',
-        created_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        // Log to console only, don't throw to avoid loops
-        Logger.error(
-          '[ErrorReporter] Failed to send error to Supabase:',
-          error.message
-        );
-      }
+      await this.queryFn(
+        `INSERT INTO error_reports (error_type, message, stack_trace, severity, category, page_url, browser_info, context_data, status)
+         VALUES ($1, $2, $3, $4, 'server', $5, $6, $7, 'new')`,
+        [
+          type,
+          message,
+          stack ?? null,
+          severity,
+          this.serviceName,
+          `Node.js ${process.version}`,
+          JSON.stringify({
+            ...context,
+            server: this.serviceName,
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+          }),
+        ]
+      );
     } catch (err) {
       Logger.error('[ErrorReporter] Critical failure in ErrorReporter:', err);
     }
@@ -68,7 +66,6 @@ export class ErrorReporter {
         stack: error.stack,
         severity: 'critical',
       }).finally(() => {
-        // Exit in case of critical error
         process.exit(1);
       });
     });

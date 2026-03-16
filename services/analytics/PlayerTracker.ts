@@ -5,11 +5,11 @@
  * - Player registration and session tracking
  * - Device fingerprinting
  * - Last seen updates
- * - Supabase integration
+ * - Railway API integration
  */
 
 import { Logger } from '../system/Logger';
-import { supabase, isSupabaseConfigured } from '../supabase/client';
+import { railwayClient } from '../api/RailwayClient';
 import { UserSessionService } from '../auth/UserSessionService';
 
 interface PlayerData {
@@ -19,6 +19,15 @@ interface PlayerData {
   lastSeenAt: string;
   totalSessions: number;
   highScore: number;
+}
+
+interface ProfileResponse {
+  id: string;
+  nickname: string;
+  display_name: string;
+  created_at: string;
+  last_seen_at: string;
+  updated_at: string;
 }
 
 export class PlayerTracker {
@@ -39,8 +48,9 @@ export class PlayerTracker {
    * Initialize or restore player
    */
   private async initializePlayer(): Promise<void> {
-    if (!isSupabaseConfigured()) {
-      Logger.debug('[PlayerTracker] Supabase not configured');
+    const railwayUrl = import.meta.env.VITE_RAILWAY_API_URL;
+    if (!railwayUrl) {
+      Logger.debug('[PlayerTracker] Railway API not configured');
       return;
     }
 
@@ -59,67 +69,25 @@ export class PlayerTracker {
     }
 
     try {
-      // Check if player exists
-      const { data: existing, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .maybeSingle();
+      // Fetch profile via Railway API (upsert semantics — creates if missing)
+      const profile = await railwayClient
+        .get<ProfileResponse>('/api/v1/profile')
+        .catch(async () => {
+          // Profile doesn't exist yet, create it
+          return railwayClient.post<ProfileResponse>('/api/v1/profile', { nickname });
+        });
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError;
-      }
-
-      if (existing) {
-        // Increment session count on returning player
-        const newTotalSessions = (existing.total_sessions ?? 0) + 1;
-
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            total_sessions: newTotalSessions,
-            last_seen_at: new Date().toISOString(),
-          })
-          .eq('id', profileId);
-
-        if (updateError) throw updateError;
-
+      if (profile) {
         this.currentPlayer = {
-          id: existing.id,
-          displayName: existing.display_name,
-          createdAt: existing.created_at ?? new Date().toISOString(),
-          lastSeenAt: existing.last_seen_at ?? new Date().toISOString(),
-          totalSessions: newTotalSessions,
-          highScore: existing.high_score ?? 0,
-        };
-
-        Logger.info(`[PlayerTracker] Welcome back, ${nickname}!`);
-      } else {
-        // Create new player
-        const { data: newPlayer, error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: profileId,
-            display_name: nickname,
-            created_at: new Date().toISOString(),
-            last_seen_at: new Date().toISOString(),
-            total_sessions: 1, // First session
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        this.currentPlayer = {
-          id: newPlayer.id,
-          displayName: newPlayer.display_name,
-          createdAt: newPlayer.created_at ?? new Date().toISOString(),
-          lastSeenAt: newPlayer.last_seen_at ?? new Date().toISOString(),
+          id: profile.id,
+          displayName: profile.display_name ?? profile.nickname,
+          createdAt: profile.created_at ?? new Date().toISOString(),
+          lastSeenAt: profile.last_seen_at ?? new Date().toISOString(),
           totalSessions: 1,
           highScore: 0,
         };
 
-        Logger.info(`[PlayerTracker] New player registered: ${nickname}`);
+        Logger.info(`[PlayerTracker] Welcome, ${nickname}!`);
       }
 
       // Start heartbeat for active players
@@ -133,21 +101,17 @@ export class PlayerTracker {
   private readonly HEARTBEAT_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
   /**
-   * Periodically update last_seen_at in Supabase
+   * Periodically update last_seen_at via Railway API
    */
   private startHeartbeat(): void {
     if (this.heartbeatTimer) return;
 
     this.heartbeatTimer = setInterval(() => {
       void (async () => {
-        if (!this.currentPlayer || !isSupabaseConfigured()) return;
+        if (!this.currentPlayer) return;
 
         try {
-          await supabase
-            .from('profiles')
-            .update({ last_seen_at: new Date().toISOString() })
-            .eq('id', this.currentPlayer.id);
-
+          await railwayClient.patch('/api/v1/profile', {});
           Logger.debug('[PlayerTracker] Heartbeat sent');
         } catch (err) {
           Logger.warn('[PlayerTracker] Heartbeat failed', err);
@@ -182,28 +146,10 @@ export class PlayerTracker {
       return false;
     }
 
-    if (!isSupabaseConfigured()) {
-      // Still update local cache even without Supabase
-      this.currentPlayer.highScore = newScore;
-      return true;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ high_score: newScore })
-        .eq('id', this.currentPlayer.id);
-
-      if (error) throw error;
-
-      // Update local cache
-      this.currentPlayer.highScore = newScore;
-      Logger.debug(`[PlayerTracker] High score updated to ${newScore}`);
-      return true;
-    } catch (err) {
-      Logger.error('[PlayerTracker] Failed to update high score', err);
-      return false;
-    }
+    // Update local cache
+    this.currentPlayer.highScore = newScore;
+    Logger.debug(`[PlayerTracker] High score updated to ${newScore}`);
+    return true;
   }
 
   /**
@@ -222,31 +168,18 @@ export class PlayerTracker {
       benchmarkScore?: number;
     }
   ): Promise<void> {
-    if (!isSupabaseConfigured()) {
-      return;
-    }
-
     try {
-      const { error } = await supabase.from('device_profiles').upsert(
-        {
-          fingerprint,
-          device_type: profile.deviceType,
-          browser: profile.browser,
-          screen_width: profile.screenWidth,
-          screen_height: profile.screenHeight,
-          hardware_concurrency: profile.hardwareConcurrency,
-          device_memory: profile.deviceMemory,
-          recommended_profile: profile.recommendedProfile,
-          benchmark_score: profile.benchmarkScore,
-          first_seen_at: new Date().toISOString(),
-          last_seen_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'fingerprint',
-        }
-      );
-
-      if (error) throw error;
+      await railwayClient.post('/api/v1/telemetry/device-profiles', {
+        fingerprint,
+        device_type: profile.deviceType,
+        browser: profile.browser,
+        screen_width: profile.screenWidth,
+        screen_height: profile.screenHeight,
+        hardware_concurrency: profile.hardwareConcurrency,
+        device_memory: profile.deviceMemory,
+        recommended_profile: profile.recommendedProfile,
+        benchmark_score: profile.benchmarkScore,
+      });
 
       Logger.debug('[PlayerTracker] Device profile tracked');
     } catch (err) {

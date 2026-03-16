@@ -22,9 +22,6 @@ export function useBeforeUnload(gameStatus: GameStatus): void {
         gameStatus === GameStatus.LEVEL_UP
       ) {
         e.preventDefault();
-        // Modern browsers require returnValue to be set (legacy support)
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        e.returnValue = '';
       }
     };
 

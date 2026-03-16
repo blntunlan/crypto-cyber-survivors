@@ -12,7 +12,8 @@
 
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
-import { supabase, isSupabaseConfigured } from '../supabase/client';
+import { isSupabaseConfigured } from '../supabase/client';
+import { railwayClient } from '../api/RailwayClient';
 import bs58 from 'bs58';
 
 // ============================================
@@ -245,41 +246,14 @@ class PhantomAuthServiceClass {
     }
 
     try {
-      // Check if wallet already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, display_name')
-        .eq('wallet_address', walletAddress)
-        .single();
-
-      if (existingProfile) {
-        // Existing user - update last seen
-        await supabase
-          .from('profiles')
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq('wallet_address', walletAddress);
-
-        Logger.info('[PhantomAuth] Existing wallet user signed in');
-        return { success: true, walletAddress, isNewUser: false };
-      }
-
-      // New user - create profile
+      // Create or fetch profile via Railway API
       const displayName = `Wallet_${walletAddress.slice(0, 6)}`;
-      const { error: insertError } = await supabase.from('profiles').insert({
-        wallet_address: walletAddress,
-        display_name: displayName,
-        primary_auth_provider: 'phantom',
-        created_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString(),
+      await railwayClient.post('/api/v1/profile', {
+        nickname: displayName,
       });
 
-      if (insertError) {
-        Logger.error('[PhantomAuth] Failed to create profile:', insertError);
-        return { success: false, error: 'Failed to create profile' };
-      }
-
-      Logger.info('[PhantomAuth] New wallet user created');
-      return { success: true, walletAddress, isNewUser: true };
+      Logger.info('[PhantomAuth] Wallet user profile ensured');
+      return { success: true, walletAddress, isNewUser: false };
     } catch (error) {
       Logger.error('[PhantomAuth] Database error:', error);
       return { success: false, error: 'Database error' };

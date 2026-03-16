@@ -1,6 +1,6 @@
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
-import { type MarketState } from './MarketStateService';
+import { type MarketStateUpdatedEvent as MarketState } from '../../types/events';
 
 /**
  * GameMarketEvent - Custom events triggered by market conditions

@@ -236,6 +236,227 @@ export class GrowingStrategy implements MovementStrategy {
 }
 
 /**
+ * TeleportStrategy - Chases then teleports unpredictably near the player
+ * Used for "rugpull" type enemies — deceptive, hard to track
+ */
+export class TeleportStrategy implements MovementStrategy {
+  readonly name = 'teleport';
+  private teleportTimer: number = 0;
+  private teleportInterval: number;
+  private teleportRange: number;
+
+  constructor(interval: number = 120, range: number = 150) {
+    this.teleportInterval = interval;
+    this.teleportRange = range;
+  }
+
+  move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
+    const dx = playerX - enemy.x;
+    const dy = playerY - enemy.y;
+    const dist = Math.hypot(dx, dy);
+
+    this.teleportTimer += dtFactor;
+
+    if (this.teleportTimer >= this.teleportInterval && dist < 400) {
+      // Teleport to a random position near the player
+      const angle = Math.random() * Math.PI * 2;
+      const teleportDist = 80 + Math.random() * this.teleportRange;
+      enemy.x = playerX + Math.cos(angle) * teleportDist;
+      enemy.y = playerY + Math.sin(angle) * teleportDist;
+      this.teleportTimer = 0;
+    } else if (dist > 0) {
+      // Normal chase between teleports
+      enemy.x += (dx / dist) * enemy.speed * dtFactor;
+      enemy.y += (dy / dist) * enemy.speed * dtFactor;
+    }
+  }
+}
+
+/**
+ * PredictiveStrategy - Leads the player by predicting movement direction
+ * Used for "mev_bot" enemies — algorithmic front-runners
+ */
+export class PredictiveStrategy implements MovementStrategy {
+  readonly name = 'predictive';
+  private lastPlayerX: number = 0;
+  private lastPlayerY: number = 0;
+  private initialized: boolean = false;
+  private leadFactor: number;
+
+  constructor(leadFactor: number = 2.5) {
+    this.leadFactor = leadFactor;
+  }
+
+  move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
+    if (!this.initialized) {
+      this.lastPlayerX = playerX;
+      this.lastPlayerY = playerY;
+      this.initialized = true;
+    }
+
+    // Calculate player velocity
+    const pvx = playerX - this.lastPlayerX;
+    const pvy = playerY - this.lastPlayerY;
+
+    // Predict future position
+    const predictX = playerX + pvx * this.leadFactor;
+    const predictY = playerY + pvy * this.leadFactor;
+
+    const dx = predictX - enemy.x;
+    const dy = predictY - enemy.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 0) {
+      enemy.x += (dx / dist) * enemy.speed * 1.2 * dtFactor;
+      enemy.y += (dy / dist) * enemy.speed * 1.2 * dtFactor;
+    }
+
+    this.lastPlayerX = playerX;
+    this.lastPlayerY = playerY;
+  }
+}
+
+/**
+ * BurstStrategy - Charges up while stationary, then bursts forward at high speed
+ * Used for "flash_loan" enemies — instant devastating attacks
+ */
+export class BurstStrategy implements MovementStrategy {
+  readonly name = 'burst';
+  private chargeTimer: number = 0;
+  private chargeDuration: number;
+  private burstDuration: number;
+  private burstTimer: number = 0;
+  private isCharging: boolean = true;
+  private burstDirX: number = 0;
+  private burstDirY: number = 0;
+
+  constructor(chargeDuration: number = 90, burstDuration: number = 20) {
+    this.chargeDuration = chargeDuration;
+    this.burstDuration = burstDuration;
+  }
+
+  move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
+    if (this.isCharging) {
+      this.chargeTimer += dtFactor;
+
+      // Slow approach during charge (menacing)
+      const dx = playerX - enemy.x;
+      const dy = playerY - enemy.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0) {
+        enemy.x += (dx / dist) * enemy.speed * 0.2 * dtFactor;
+        enemy.y += (dy / dist) * enemy.speed * 0.2 * dtFactor;
+      }
+
+      if (this.chargeTimer >= this.chargeDuration) {
+        // Lock burst direction towards player
+        if (dist > 0) {
+          this.burstDirX = dx / dist;
+          this.burstDirY = dy / dist;
+        }
+        this.isCharging = false;
+        this.burstTimer = 0;
+      }
+    } else {
+      // BURST phase — extremely fast dash
+      this.burstTimer += dtFactor;
+      enemy.x += this.burstDirX * enemy.speed * 3.5 * dtFactor;
+      enemy.y += this.burstDirY * enemy.speed * 3.5 * dtFactor;
+
+      if (this.burstTimer >= this.burstDuration) {
+        this.isCharging = true;
+        this.chargeTimer = 0;
+      }
+    }
+  }
+}
+
+/**
+ * PincerStrategy - Approaches from perpendicular offset for pincer maneuvers
+ * Used for "sandwich" enemies — designed to spawn in pairs from opposite sides
+ */
+export class PincerStrategy implements MovementStrategy {
+  readonly name = 'pincer';
+  private offsetSign: number;
+  private orbitPhase: number = 0;
+  private convergeDist: number = 120;
+
+  constructor(offsetSign: number = 1) {
+    this.offsetSign = offsetSign;
+    this.orbitPhase = Math.random() * Math.PI;
+  }
+
+  move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
+    const dx = playerX - enemy.x;
+    const dy = playerY - enemy.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > this.convergeDist) {
+      // Approach from offset angle (perpendicular flanking)
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+      const offset = this.offsetSign * 60;
+
+      const targetX = playerX + perpX * offset;
+      const targetY = playerY + perpY * offset;
+
+      const tdx = targetX - enemy.x;
+      const tdy = targetY - enemy.y;
+      const tDist = Math.hypot(tdx, tdy);
+
+      if (tDist > 0) {
+        enemy.x += (tdx / tDist) * enemy.speed * dtFactor;
+        enemy.y += (tdy / tDist) * enemy.speed * dtFactor;
+      }
+    } else {
+      // Close enough — converge directly on player
+      this.orbitPhase += 0.03 * dtFactor;
+      if (dist > 0) {
+        enemy.x += (dx / dist) * enemy.speed * 1.3 * dtFactor;
+        enemy.y += (dy / dist) * enemy.speed * 1.3 * dtFactor;
+      }
+    }
+  }
+}
+
+/**
+ * AbsorbStrategy - Slow menacing approach with periodic growth pulses
+ * Used for "51_attack" boss enemies — network dominance theme
+ */
+export class AbsorbStrategy implements MovementStrategy {
+  readonly name = 'absorb';
+  private pulseTimer: number = 0;
+  private pulseCycle: number = 180; // frames between pulses
+  private maxGrowthFactor: number = 1.8;
+  private currentGrowth: number = 1.0;
+
+  move(enemy: Enemy, playerX: number, playerY: number, dtFactor: number): void {
+    const dx = playerX - enemy.x;
+    const dy = playerY - enemy.y;
+    const dist = Math.hypot(dx, dy);
+
+    // Slow, unstoppable approach
+    if (dist > 0) {
+      const speedMod = 0.4 + this.currentGrowth * 0.1;
+      enemy.x += (dx / dist) * enemy.speed * speedMod * dtFactor;
+      enemy.y += (dy / dist) * enemy.speed * speedMod * dtFactor;
+    }
+
+    // Periodic growth pulse (visual + hitbox expansion)
+    this.pulseTimer += dtFactor;
+    if (
+      this.pulseTimer >= this.pulseCycle &&
+      this.currentGrowth < this.maxGrowthFactor
+    ) {
+      this.currentGrowth += 0.1;
+      enemy.radius = Math.round(enemy.radius * 1.05);
+      enemy.damage = Math.round(enemy.damage * 1.08);
+      this.pulseTimer = 0;
+    }
+  }
+}
+
+/**
  * Strategy Factory - Creates strategies based on enemy type
  */
 export function createMovementStrategy(type: string): MovementStrategy {
@@ -250,6 +471,16 @@ export function createMovementStrategy(type: string): MovementStrategy {
       return new ExplosiveStrategy();
     case 'pumpdump':
       return new GrowingStrategy();
+    case 'rugpull':
+      return new TeleportStrategy(100, 140);
+    case 'mev_bot':
+      return new PredictiveStrategy(2.5);
+    case 'flash_loan':
+      return new BurstStrategy(80, 18);
+    case 'sandwich':
+      return new PincerStrategy(Math.random() > 0.5 ? 1 : -1);
+    case '51_attack':
+      return new AbsorbStrategy();
     case 'bear':
     default:
       return new ChaseStrategy();

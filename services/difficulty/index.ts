@@ -47,12 +47,20 @@ export type {
   WavePhase,
   LiquidationWarning,
   LeverageScale,
+  MarketInputSlice,
+  PlayerInputSlice,
+  LeverageInputSlice,
 } from './types';
+
+export {
+  MarketInputAggregator,
+  PlayerMetricsAggregator,
+  LeverageStateProvider,
+} from './aggregators';
 
 export {
   DIFFICULTY_CONFIG,
   LEVERAGE_TIERS,
-  WAVE_PHASES,
   getNearestLeverageTier,
   getLeverageScale,
 } from './constants';

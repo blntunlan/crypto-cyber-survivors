@@ -8,7 +8,8 @@
  */
 
 import { Logger } from '../system/Logger';
-import { supabase, isSupabaseConfigured } from '../supabase/client';
+import { isSupabaseConfigured } from '../supabase/client';
+import { railwayClient } from '../api/RailwayClient';
 import { UserSessionService } from './UserSessionService';
 import { EventBus } from '../core/EventBus';
 
@@ -305,10 +306,9 @@ class TwitterAuthServiceClass {
       throw new Error('Please log in first before connecting Twitter');
     }
 
-    // Upsert identity record
-    const { error } = await supabase.from('identities').upsert(
-      {
-        profile_id: currentUser.profileId,
+    // Upsert identity record via Railway API
+    try {
+      await railwayClient.post('/api/v1/identities', {
         provider: 'twitter',
         provider_id: profile.id,
         identity_data: {
@@ -317,16 +317,9 @@ class TwitterAuthServiceClass {
           profile_image_url: profile.profile_image_url,
           verified: profile.verified,
           followers_count: profile.public_metrics?.followers_count,
-          // Don't store tokens in client - backend handles this
         },
-        last_login_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'provider,provider_id',
-      }
-    );
-
-    if (error) {
+      });
+    } catch (error) {
       Logger.error('[TwitterAuth] Failed to link identity:', error);
       throw error;
     }
@@ -340,17 +333,12 @@ class TwitterAuthServiceClass {
       return localStorage.getItem('twitter_linked_profile') !== null;
     }
 
-    const currentUser = UserSessionService.getLegacyStoredUser();
-    if (!currentUser) return false;
-
-    const { data } = await supabase
-      .from('identities')
-      .select('id')
-      .eq('profile_id', currentUser.profileId)
-      .eq('provider', 'twitter')
-      .single();
-
-    return data !== null;
+    try {
+      const profile = await this.getLinkedTwitterProfile();
+      return profile !== null;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -366,24 +354,14 @@ class TwitterAuthServiceClass {
       return stored ? JSON.parse(stored) : null;
     }
 
-    const currentUser = UserSessionService.getLegacyStoredUser();
-    if (!currentUser) return null;
-
-    const { data } = await supabase
-      .from('identities')
-      .select('identity_data')
-      .eq('profile_id', currentUser.profileId)
-      .eq('provider', 'twitter')
-      .single();
-
-    if (!data) return null;
-
-    const identityData = data.identity_data as Record<string, unknown>;
-    return {
-      username: identityData.username as string,
-      name: identityData.name as string,
-      profileImageUrl: identityData.profile_image_url as string | undefined,
-    };
+    try {
+      // Railway identities route returns identity data; we'd need a GET endpoint
+      // For now, use localStorage fallback since GET /identities isn't implemented
+      const stored = localStorage.getItem('twitter_linked_profile');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -395,23 +373,16 @@ class TwitterAuthServiceClass {
       return { success: true };
     }
 
-    const currentUser = UserSessionService.getLegacyStoredUser();
-    if (!currentUser) {
-      return { success: false, error: 'Not logged in' };
+    try {
+      await railwayClient.del('/api/v1/identities?provider=twitter');
+      EventBus.emit('twitterUnlinked', {});
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to unlink',
+      };
     }
-
-    const { error } = await supabase
-      .from('identities')
-      .delete()
-      .eq('profile_id', currentUser.profileId)
-      .eq('provider', 'twitter');
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    EventBus.emit('twitterUnlinked', {});
-    return { success: true };
   }
 
   /**

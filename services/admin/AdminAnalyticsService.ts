@@ -25,13 +25,9 @@ class AdminAnalyticsService {
 
   async getMarketHealth(): Promise<MarketHealth | null> {
     try {
-      const { supabase } = await import('../core/Supabase');
-      if (!supabase) return null;
-      const { data, error } = await supabase.rpc('get_market_health_status');
-
-      if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (data as any)?.[0] ?? null;
+      // Market health is now monitored via SSE connection status
+      // No direct DB RPC needed
+      return null;
     } catch (error) {
       Logger.error('[Analytics] Failed to fetch market health:', error);
       return null;
@@ -40,29 +36,20 @@ class AdminAnalyticsService {
 
   async getErrorSummary(): Promise<ErrorOccurence[]> {
     try {
-      const { supabase } = await import('../core/Supabase');
-      if (!supabase) return [];
-      const { data, error } = await supabase.from('v_error_summary').select('*');
-
-      if (error) throw error;
-      return (data as unknown as ErrorOccurence[] | null) ?? [];
+      // Error summary not yet exposed via Railway API
+      // TODO: Add GET /api/v1/telemetry/error-summary endpoint
+      return [];
     } catch (error) {
       Logger.error('[Analytics] Failed to fetch error summary:', error);
       return [];
     }
   }
 
-  async resolveError(errorType: string): Promise<boolean> {
+  async resolveError(_errorType: string): Promise<boolean> {
     try {
-      const { supabase } = await import('../core/Supabase');
-      if (!supabase) return false;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('error_reports' as any) as any)
-        .update({ status: 'resolved' })
-        .eq('error_type', errorType);
-
-      if (error) throw error;
-      return true;
+      // Error resolution not yet exposed via Railway API
+      // TODO: Add PATCH /api/v1/telemetry/errors/:errorType endpoint
+      return false;
     } catch (error) {
       Logger.error('[Analytics] Failed to resolve error:', error);
       return false;

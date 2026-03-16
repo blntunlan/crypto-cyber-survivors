@@ -4,8 +4,6 @@ import { screenService } from '../services/system/ScreenService';
 describe('ScreenService', () => {
   const originalUserAgent = navigator.userAgent;
   const originalMaxTouchPoints = navigator.maxTouchPoints;
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
-  const originalPlatform = navigator.platform;
   const originalInnerWidth = window.innerWidth;
   const originalInnerHeight = window.innerHeight;
 
@@ -20,7 +18,6 @@ describe('ScreenService', () => {
     vi.stubGlobal('navigator', {
       userAgent: originalUserAgent,
       maxTouchPoints: originalMaxTouchPoints,
-      platform: originalPlatform,
     });
     vi.stubGlobal('window', {
       ...window,
@@ -32,7 +29,6 @@ describe('ScreenService', () => {
   const mockDevice = (options: {
     ua: string;
     touchPoints?: number;
-    platform?: string;
     width?: number;
     height?: number;
     coarsePointer?: boolean;
@@ -40,7 +36,6 @@ describe('ScreenService', () => {
     vi.stubGlobal('navigator', {
       userAgent: options.ua,
       maxTouchPoints: options.touchPoints ?? 0,
-      platform: options.platform ?? 'Win32',
     });
 
     // Mock matchMedia for pointer detection
@@ -139,7 +134,6 @@ describe('ScreenService', () => {
     it('should detect modern iPadOS (MacIntel + Touch)', () => {
       mockDevice({
         ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15',
-        platform: 'MacIntel',
         touchPoints: 5,
       });
       expect(screenService.getOS()).toBe('ios');

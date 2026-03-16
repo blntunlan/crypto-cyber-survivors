@@ -53,7 +53,10 @@ export type PhaseName =
   | 'physics'
   | 'effects'
   | 'render'
-  | 'uiSync';
+  | 'uiSync'
+  | 'difficulty'
+  | 'portal'
+  | 'metrics';
 
 export interface TickContext {
   clock: TickClock;

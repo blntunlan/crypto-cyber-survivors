@@ -21,7 +21,7 @@
 import { EventBus } from '../core/EventBus';
 import { Logger } from './Logger';
 import { type CheatType } from '../../types/events';
-import { supabase, isSupabaseConfigured } from '../supabase/client';
+import { railwayClient } from '../api/RailwayClient';
 
 // =============================================================================
 // TYPES
@@ -391,23 +391,15 @@ class AntiCheatServiceClass {
     severity: number;
   }): Promise<void> {
     try {
-      if (!isSupabaseConfigured()) {
-        Logger.debug('[AntiCheat] Supabase not configured, skipping cheat report');
-        return;
-      }
-
-      // Report to cheat_attempts table
-      const { error } = await supabase.from('cheat_attempts').insert([
-        {
-          cheat_type: data.type,
-          details: data.details,
+      await railwayClient.post('/api/v1/telemetry/cheat-reports', {
+        cheatType: data.type,
+        details: {
+          message: data.details,
           fingerprint: data.fingerprint,
-          severity: data.severity,
           timestamp: new Date(data.timestamp).toISOString(),
         },
-      ]);
-
-      if (error) throw error;
+        severity: String(data.severity),
+      });
 
       Logger.debug('[AntiCheat] Cheat report sent successfully');
     } catch (error) {

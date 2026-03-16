@@ -55,27 +55,6 @@ export class CombatResolutionService {
   }
 
   /**
-   * Spawns RSI-based buff/debuff gems based on enemy metadata.
-   * @deprecated Removed from death logic, keeping method in case needed later or just comment it out.
-   */
-  /*
-  private static spawnRSIBuffForEnemy(enemy: Enemy): void {
-    const { dropBuffChance = 0, dropDebuffChance = 0 } = enemy;
-
-    // Roll for Buff
-    if (dropBuffChance > 0 && Math.random() < dropBuffChance) {
-      BuffGemSpawner.forceSpawnAt(enemy.x, enemy.y, 'positive');
-      return; // Prioritize positive buff
-    }
-
-    // Roll for Debuff
-    if (dropDebuffChance > 0 && Math.random() < dropDebuffChance) {
-      BuffGemSpawner.forceSpawnAt(enemy.x, enemy.y, 'negative');
-    }
-  }
-  */
-
-  /**
    * Applies a directional shockwave that displaces all enemies.
    * Typically triggered by high-volatility market events.
    *
