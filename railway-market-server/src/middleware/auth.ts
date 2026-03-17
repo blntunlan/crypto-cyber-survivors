@@ -9,7 +9,12 @@ declare module 'express-serve-static-core' {
   }
 }
 
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+// Supabase JWT secrets are base64-encoded in the dashboard.
+// Decode to raw bytes so HMAC-SHA256 verification uses the correct 64-byte key.
+const RAW_SECRET = process.env.SUPABASE_JWT_SECRET;
+const JWT_SECRET: Buffer | undefined = RAW_SECRET
+  ? Buffer.from(RAW_SECRET, 'base64')
+  : undefined;
 
 /**
  * Middleware to verify Supabase JWT tokens.
@@ -30,18 +35,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  // Debug: decode without verification to inspect token structure
-  const debugDecoded = jwt.decode(token, { complete: true });
-  Logger.info('[Auth] Token debug:', {
-    headerAlg: debugDecoded?.header?.alg,
-    headerTyp: debugDecoded?.header?.typ,
-    issuer: (debugDecoded?.payload as jwt.JwtPayload)?.iss,
-    ref: (debugDecoded?.payload as jwt.JwtPayload)?.ref,
-    secretLen: JWT_SECRET.length,
-    secretFirst8: JWT_SECRET.slice(0, 8),
-    tokenFirst20: token.slice(0, 20),
-  });
-
   try {
     const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload;
     const sub = decoded.sub;
@@ -58,11 +51,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       res.status(401).json({ error: 'Token expired' });
       return;
     }
-    const jwtErr = error as { name?: string; message?: string };
-    Logger.warn('[Auth] JWT verification failed:', {
-      name: jwtErr.name,
-      message: jwtErr.message,
-    });
+    Logger.warn('[Auth] JWT verification failed:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
 }

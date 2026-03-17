@@ -29,8 +29,8 @@ import { execSync } from 'child_process';
 // ============================================================
 
 const CONFIG = {
-  PROJECT_ID: 'dnhfsmvwqjxoextwbebj',
-  PROJECT_REF: 'dnhfsmvwqjxoextwbebj',
+  PROJECT_ID: 'nymgxiyrpaqcdlxqmhhd',
+  PROJECT_REF: 'nymgxiyrpaqcdlxqmhhd',
   REGION: 'eu-central-1',
   EXPECTED_TABLES: [
     'achievements',
@@ -567,7 +567,7 @@ async function syncTypeScriptTypes(): Promise<void> {
   try {
     log.info('Generating types from Supabase...');
     execSync(
-      'npx supabase gen types typescript --project-id dnhfsmvwqjxoextwbebj > types/supabase.ts',
+      'npx supabase gen types typescript --project-id nymgxiyrpaqcdlxqmhhd > types/supabase.ts',
       {
         stdio: 'inherit',
       }
