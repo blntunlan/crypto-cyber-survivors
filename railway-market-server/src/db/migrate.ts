@@ -235,6 +235,7 @@ CREATE TABLE IF NOT EXISTS performance_metrics (
 );
 
 -- Views and functions
+DROP VIEW IF EXISTS v_leaderboard;
 CREATE OR REPLACE VIEW v_leaderboard AS
 SELECT
   p.id AS profile_id,
