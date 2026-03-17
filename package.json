@@ -91,6 +91,7 @@
     "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.50.0",
+    "utf-8-validate": "^5.0.10",
     "vite": "^6.4.1",
     "vitest": "^4.0.16"
   },
