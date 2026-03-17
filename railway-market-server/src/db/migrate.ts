@@ -7,6 +7,7 @@ import { Logger } from '../utils/logger';
  * Tracks applied migrations in a `_migrations` table.
  */
 export async function runMigrations(): Promise<void> {
+  Logger.info('[Migration] Starting runMigrations...');
   const pool = getPool();
 
   // Create migrations tracking table
@@ -19,6 +20,7 @@ export async function runMigrations(): Promise<void> {
   `);
 
   const migrations: { name: string; sql: string }[] = [
+    { name: '000_core_schema', sql: MIGRATION_000 },
     { name: '001_meta_challenges_replays', sql: MIGRATION_001 },
     { name: '002_fix_leaderboard_view', sql: MIGRATION_002 },
     { name: '003_pg_best_practices', sql: MIGRATION_003 },
@@ -54,6 +56,247 @@ export async function runMigrations(): Promise<void> {
 // ============================================================
 // Migration SQL strings (inlined for single-file simplicity)
 // ============================================================
+
+const MIGRATION_000 = `
+-- Migration 000: Core Schema baseline
+-- Baseline tables + indexes + functions for a fresh Railway PostgreSQL instance.
+
+-- 1. profiles
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_user_id UUID UNIQUE,
+  nickname TEXT UNIQUE,
+  display_name TEXT,
+  avatar_url TEXT,
+  wallet_address TEXT UNIQUE,
+  primary_auth_provider TEXT DEFAULT 'supabase',
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_auth_user_id ON profiles(auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_nickname ON profiles(nickname);
+
+-- 2. identities
+CREATE TABLE IF NOT EXISTS identities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  provider_user_id TEXT NOT NULL,
+  provider_username TEXT,
+  access_token TEXT,
+  refresh_token TEXT,
+  token_expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(provider, provider_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_identities_profile_id ON identities(profile_id);
+
+-- 3. virtual_accounts
+CREATE TABLE IF NOT EXISTS virtual_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID UNIQUE NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  gold_balance BIGINT NOT NULL DEFAULT 0 CHECK (gold_balance >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 4. ledger
+CREATE TABLE IF NOT EXISTS ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount BIGINT NOT NULL,
+  transaction_type TEXT NOT NULL,
+  reference_id TEXT,
+  metadata JSONB DEFAULT '{}',
+  balance_after BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ledger_profile_id ON ledger(profile_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_reference_id ON ledger(reference_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_created_at ON ledger(created_at DESC);
+
+-- 5. sessions
+CREATE TABLE IF NOT EXISTS sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  pair TEXT NOT NULL,
+  position TEXT NOT NULL CHECK (position IN ('LONG', 'SHORT')),
+  leverage INTEGER NOT NULL CHECK (leverage >= 1 AND leverage <= 500),
+  entry_price DOUBLE PRECISION,
+  exit_price DOUBLE PRECISION,
+  session_secret TEXT NOT NULL,
+  is_verified BOOLEAN NOT NULL DEFAULT false,
+  reward_amount INTEGER DEFAULT 0 CHECK (reward_amount >= 0),
+  survival_seconds INTEGER DEFAULT 0 CHECK (survival_seconds >= 0),
+  kills INTEGER DEFAULT 0 CHECK (kills >= 0),
+  level INTEGER DEFAULT 1 CHECK (level >= 1),
+  exit_type TEXT,
+  portal_type TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  verified_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_profile_id ON sessions(profile_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_is_verified ON sessions(is_verified);
+CREATE INDEX IF NOT EXISTS idx_sessions_verified_pair_survival ON sessions(is_verified, pair, survival_seconds DESC);
+
+-- 6. market_state
+CREATE TABLE IF NOT EXISTS market_state (
+  pair TEXT PRIMARY KEY,
+  price DOUBLE PRECISION NOT NULL DEFAULT 0,
+  volume DOUBLE PRECISION NOT NULL DEFAULT 0,
+  high DOUBLE PRECISION NOT NULL DEFAULT 0,
+  low DOUBLE PRECISION NOT NULL DEFAULT 0,
+  rsi DOUBLE PRECISION NOT NULL DEFAULT 50,
+  rsi_state TEXT NOT NULL DEFAULT 'NEUTRAL',
+  atr DOUBLE PRECISION NOT NULL DEFAULT 0,
+  atr_percent DOUBLE PRECISION NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 7. price_history
+CREATE TABLE IF NOT EXISTS price_history (
+  id BIGSERIAL PRIMARY KEY,
+  pair TEXT NOT NULL,
+  price DOUBLE PRECISION NOT NULL,
+  volume DOUBLE PRECISION NOT NULL DEFAULT 0,
+  timestamp TIMESTAMPTZ NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  UNIQUE(pair, timestamp)
+);
+
+CREATE INDEX IF NOT EXISTS idx_price_history_pair_ts ON price_history(pair, timestamp DESC);
+
+-- 8. error_reports
+CREATE TABLE IF NOT EXISTS error_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  error_type TEXT NOT NULL,
+  message TEXT NOT NULL,
+  stack_trace TEXT,
+  severity TEXT NOT NULL DEFAULT 'medium',
+  category TEXT NOT NULL DEFAULT 'runtime',
+  page_url TEXT,
+  browser_info TEXT,
+  context_data JSONB DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'new',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 9. cheat_attempts
+CREATE TABLE IF NOT EXISTS cheat_attempts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  cheat_type TEXT NOT NULL,
+  details JSONB DEFAULT '{}',
+  severity TEXT NOT NULL DEFAULT 'medium',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 10. device_profiles
+CREATE TABLE IF NOT EXISTS device_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fingerprint TEXT UNIQUE NOT NULL,
+  device_type TEXT,
+  browser TEXT,
+  screen_width INTEGER,
+  screen_height INTEGER,
+  hardware_concurrency INTEGER,
+  device_memory NUMERIC,
+  recommended_profile TEXT,
+  benchmark_score NUMERIC,
+  first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 11. performance_metrics
+CREATE TABLE IF NOT EXISTS performance_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  device_platform TEXT,
+  device_model TEXT,
+  os_info TEXT,
+  memory_gb NUMERIC,
+  cpu_cores INTEGER,
+  avg_fps NUMERIC,
+  min_fps NUMERIC,
+  max_fps NUMERIC,
+  frame_drops INTEGER DEFAULT 0,
+  resolution TEXT,
+  gpu_info TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Views and functions
+CREATE OR REPLACE VIEW v_leaderboard AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  s.pair,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider, s.pair;
+
+CREATE OR REPLACE FUNCTION credit_coins(
+  p_profile_id UUID,
+  p_amount BIGINT,
+  p_transaction_type TEXT,
+  p_reference_id TEXT DEFAULT NULL,
+  p_metadata JSONB DEFAULT '{}'
+) RETURNS TABLE(new_balance BIGINT) AS $$
+DECLARE
+  v_new_balance BIGINT;
+BEGIN
+  UPDATE virtual_accounts
+  SET gold_balance = gold_balance + p_amount,
+      updated_at = now()
+  WHERE profile_id = p_profile_id
+  RETURNING gold_balance INTO v_new_balance;
+
+  IF NOT FOUND THEN
+    INSERT INTO virtual_accounts (profile_id, gold_balance)
+    VALUES (p_profile_id, GREATEST(0, p_amount))
+    RETURNING gold_balance INTO v_new_balance;
+  END IF;
+
+  INSERT INTO ledger (profile_id, amount, transaction_type, reference_id, metadata, balance_after)
+  VALUES (p_profile_id, p_amount, p_transaction_type, p_reference_id, p_metadata, v_new_balance);
+
+  RETURN QUERY SELECT v_new_balance;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION handle_new_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO virtual_accounts (profile_id, gold_balance)
+  VALUES (NEW.id, 0)
+  ON CONFLICT (profile_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_profile_created ON profiles;
+CREATE TRIGGER on_profile_created
+  AFTER INSERT ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_profile();
+`;
 
 const MIGRATION_001 = `
 -- Migration 001: Meta Progression + Daily Challenges + Replay System

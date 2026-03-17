@@ -32,8 +32,9 @@ test-results
 .idea
 *.local
 
-# Separate server (has its own Railway service)
-railway-market-server
+# NOTE: Do NOT ignore railway-market-server here!
+# Railway shares one repo snapshot across all services.
+# The market-server service needs this directory as its rootDirectory.
 
 # Supabase Edge Functions (Deno - deployed separately via Supabase CLI)
 supabase/functions
