@@ -160,7 +160,13 @@ export type GameEvent =
   // Consolidated market event (Step 3)
   | 'canonicalMarketUpdate'
   // Supabase auth events
-  | 'authStateChanged';
+  | 'authStateChanged'
+  // Market Event Announcements
+  | 'marketAnnouncement'
+  // Elite enemy events
+  | 'eliteAbilityActivated'
+  | 'eliteChainExplosion'
+  | 'eliteSpawned';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -455,6 +461,42 @@ export interface WhaleSpawnedEvent {
   healthMultiplier: number;
   /** Size multiplier applied */
   sizeMultiplier: number;
+}
+
+// =============================================================================
+// ELITE ENEMY EVENTS
+// =============================================================================
+
+/** Elite ability activated event data */
+export interface EliteAbilityActivatedEvent {
+  /** Which elite ability was triggered */
+  type: string;
+  /** X position of the activation */
+  x: number;
+  /** Y position of the activation */
+  y: number;
+}
+
+/** Elite chain explosion event data */
+export interface EliteChainExplosionEvent {
+  /** Explosion center X */
+  x: number;
+  /** Explosion center Y */
+  y: number;
+  /** Explosion radius */
+  radius: number;
+  /** Explosion damage */
+  damage: number;
+}
+
+/** Elite enemy spawned event data */
+export interface EliteSpawnedEvent {
+  /** Enemy type that became elite */
+  type: string;
+  /** Spawn X position */
+  x: number;
+  /** Spawn Y position */
+  y: number;
 }
 
 /** Hit stop event data (freeze frame on impact) */
@@ -853,6 +895,12 @@ export interface EventDataMap {
   canonicalMarketUpdate: CanonicalMarketPayload;
   // Supabase auth state change event
   authStateChanged: AuthStateChangedEvent;
+  // Market Event Announcements
+  marketAnnouncement: MarketAnnouncementEvent;
+  // Elite enemy events
+  eliteAbilityActivated: EliteAbilityActivatedEvent;
+  eliteChainExplosion: EliteChainExplosionEvent;
+  eliteSpawned: EliteSpawnedEvent;
 }
 
 export interface NotificationEvent {
@@ -891,6 +939,16 @@ export interface SupabaseHealthCheckEvent {
   status: 'healthy' | 'degraded' | 'unhealthy';
   latencyMs: number;
   recommendations: string[];
+}
+
+/** Market event announcement data */
+export interface MarketAnnouncementEvent {
+  type: string;
+  message: string;
+  color: string;
+  icon: string;
+  duration: number;
+  priority: number;
 }
 
 /** Auth state changed event (Supabase Auth) */

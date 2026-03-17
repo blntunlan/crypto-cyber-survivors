@@ -9,6 +9,7 @@ import { Logger } from '../../system/Logger';
 import { ThemeService } from '../../system/ThemeService';
 // import { BuffGemSpawner } from '../../spawners/BuffGemSpawner';
 import { difficultyContext } from '../../difficulty/DifficultyContext';
+import { EliteAbilitySystem } from '../EliteAbilitySystem';
 
 /**
  * CombatResolutionService - Logic engine for processing combat outcomes.
@@ -46,6 +47,11 @@ export class CombatResolutionService {
       type: enemy.type,
       isCrit: isSuperCrit,
     });
+
+    // 3b. Elite death abilities
+    if (enemy.isElite) {
+      EliteAbilitySystem.getInstance().onEliteDeath(enemy, pool);
+    }
 
     // 4. Reward Generation
     this.spawnDeathParticles(pool, enemy, isSuperCrit);
@@ -214,9 +220,12 @@ export class CombatResolutionService {
     const rareMultiplier = isRare ? GEMS.RARE_MULTIPLIER : 1;
     const leverageMultiplier = DifficultyManager.getXpMultiplier();
 
+    // Apply elite/whale value multiplier
+    const eliteMultiplier = enemy.valueMultiplier ?? 1;
+
     // Final integer XP value
     const finalValue = Math.floor(
-      baseVal * rareMultiplier * luckValueBonus * leverageMultiplier
+      baseVal * rareMultiplier * luckValueBonus * leverageMultiplier * eliteMultiplier
     );
 
     // Primary Gem Spawn

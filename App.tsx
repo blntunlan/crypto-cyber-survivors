@@ -37,7 +37,6 @@ import { SupabaseCoinProvider } from './services/gameplay/SupabaseCoinProvider';
 // Custom hooks
 import { ErrorRecoveryService } from './services/core/ErrorRecoveryService';
 import { MarketEventManager } from './services/market/MarketEventManager';
-import { useDevice } from './hooks/useDevice';
 import { useLanguage } from './contexts/LanguageContext';
 import { useMarketData } from './hooks/useMarketData';
 import { usePlayerState } from './hooks/usePlayerState';
@@ -113,7 +112,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const _device = useDevice();
   const dimensions = useWindowDimensions();
   const { gameStatus, handlePauseToggle } = useGameStatus();
   const { runStats, resetRunStats } = useRunStats();

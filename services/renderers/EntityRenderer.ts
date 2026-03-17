@@ -13,6 +13,7 @@ import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';
+import { ELITE_CONFIG } from '../../config/EliteConfig';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -404,6 +405,11 @@ export class EntityRenderer implements IRenderer {
       ctx.restore();
     }
 
+    // 1b. Elite Visual Indicators (Gold glow + Crown)
+    if (e.isElite) {
+      this.drawEliteIndicators(ctx, e, ex, ey);
+    }
+
     // 2. Health Bar (Overlays) - only draw if healthy enough or if player needs info
     if (e.spawnTimer === undefined || e.spawnTimer < 0.7) {
       this.drawEnemyHealthBar(ctx, e, ex, ey);
@@ -466,6 +472,50 @@ export class EntityRenderer implements IRenderer {
     if (t < 0.1) {
       ctx.globalAlpha = t * 10;
     }
+  }
+
+  /**
+   * Renders elite enemy visual indicators: gold glow circle and crown icon.
+   */
+  private drawEliteIndicators(
+    ctx: CanvasRenderingContext2D,
+    e: Enemy,
+    ex: number,
+    ey: number
+  ): void {
+    ctx.save();
+
+    // Gold glow circle behind the enemy
+    const pulseTime = performance.now() * 0.004;
+    const pulseAlpha = 0.3 + Math.sin(pulseTime) * 0.1;
+    const glowRadius = e.radius + ELITE_CONFIG.visualGlowRadius;
+
+    ctx.globalAlpha = pulseAlpha;
+    ctx.strokeStyle = ELITE_CONFIG.visualGlowColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ex, ey, glowRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Filled glow
+    ctx.globalAlpha = pulseAlpha * 0.3;
+    ctx.fillStyle = ELITE_CONFIG.visualGlowColor;
+    ctx.beginPath();
+    ctx.arc(ex, ey, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Crown icon above the enemy
+    ctx.globalAlpha = 0.9;
+    const crownX = ex + ELITE_CONFIG.crownIconOffset.x;
+    const crownY = ey + ELITE_CONFIG.crownIconOffset.y;
+    const fontSize = Math.max(10, Math.round(e.radius * 0.8));
+    ctx.font = `${fontSize}px ${ThemeService.isRetro() ? 'VT323' : 'Arial'}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = ELITE_CONFIG.visualGlowColor;
+    ctx.fillText('\u2655', crownX, crownY);
+
+    ctx.restore();
   }
 
   /**

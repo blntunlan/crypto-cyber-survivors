@@ -83,7 +83,6 @@ describe('CollisionSystem', () => {
         isGodMode: vi.fn(() => false),
       },
       bulletGrid: {
-        getNearby: vi.fn(() => []),
         forEachNearby: vi.fn((_x: number, _y: number, _callback: (b: any) => void) => {
           // Default: no bullets nearby
         }),

@@ -53,7 +53,7 @@ describe('useMarketTimeout', () => {
     );
   });
 
-  it('should transition to GAMEOVER when disconnect is 15+ seconds (fatal)', () => {
+  it('should transition to DATA_DISCONNECTED (not GAMEOVER) at 15-29s disconnect', () => {
     vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
     renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
 
@@ -62,11 +62,33 @@ describe('useMarketTimeout', () => {
 
     expect(timeoutHandler).toBeDefined();
 
-    // 10+ seconds - fatal disconnect, game should end
+    // 20s — should pause, NOT end game (fatal threshold is 30s)
     timeoutHandler({
       pair: 'BTC',
-      disconnectedDuration: 15000,
-      lastPriceTime: Date.now() - 15000,
+      disconnectedDuration: 20000,
+      lastPriceTime: Date.now() - 20000,
+    });
+
+    expect(GameStateMachine.transition).toHaveBeenCalledWith(
+      GameStatus.DATA_DISCONNECTED
+    );
+    expect(EventBus.emit).not.toHaveBeenCalledWith('gameOver', expect.anything());
+  });
+
+  it('should transition to GAMEOVER when disconnect is 30+ seconds (fatal)', () => {
+    vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
+    renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
+
+    const calls = (EventBus.on as any).mock.calls;
+    const timeoutHandler = calls.find((c: any) => c[0] === 'marketDataTimeout')?.[1];
+
+    expect(timeoutHandler).toBeDefined();
+
+    // 30+ seconds — fatal disconnect, game should end
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 30000,
+      lastPriceTime: Date.now() - 30000,
     });
 
     expect(EventBus.emit).toHaveBeenCalledWith(

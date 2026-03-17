@@ -39,6 +39,7 @@ export function getDefaultInputs(): DifficultyInputs {
     // Time
     elapsedSeconds: 0,
     cycleDuration: DIFFICULTY_CONFIG.cycleDuration,
+    cycleFactor: 1.0,
 
     // Market
     pnlPercent: 0,

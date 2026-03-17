@@ -8,8 +8,9 @@ import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import twitterAuthRouter from './services/twitterAuth';
-import { closePool } from './db/pool';
+import { closePool, getPool } from './db/pool';
 import { startHeartbeat, getSSEClientCount } from './routes/marketStream';
+import { asyncHandler } from './utils/asyncHandler';
 
 // API Routes
 import profileRouter from './routes/profile';
@@ -19,6 +20,9 @@ import leaderboardRouter from './routes/leaderboard';
 import telemetryRouter from './routes/telemetry';
 import identitiesRouter from './routes/identities';
 import marketStreamRouter from './routes/marketStream';
+import metaProgressionRouter from './routes/metaProgression';
+import challengesRouter from './routes/challenges';
+import replaysRouter from './routes/replays';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -65,10 +69,13 @@ app.use('/api/v1/leaderboard', leaderboardRouter);
 app.use('/api/v1/telemetry', telemetryRouter);
 app.use('/api/v1/identities', identitiesRouter);
 app.use('/api/v1/market', marketStreamRouter);
+app.use('/api/v1/meta', metaProgressionRouter);
+app.use('/api/v1/challenges', challengesRouter);
+app.use('/api/v1/replays', replaysRouter);
 
 // ---- Monitoring endpoints ----
 
-app.get('/health', async (_req, res) => {
+app.get('/health', asyncHandler(async (_req: express.Request, res: express.Response) => {
   const binance = BinanceService.getInstance();
   const db = await SupabaseService.getInstance().checkHealth();
   res.json({
@@ -79,7 +86,7 @@ app.get('/health', async (_req, res) => {
     dbConnected: db,
     sseClients: getSSEClientCount(),
   });
-});
+}));
 
 app.get('/stats', (_req, res) => {
   const priceStats = PriceLogger.getInstance().getStats();
@@ -91,6 +98,118 @@ app.get('/stats', (_req, res) => {
   });
 });
 
+/**
+ * GET /debug — Full system diagnostics for production monitoring.
+ * Returns DB table counts, pool stats, pipeline health, and sync status.
+ */
+app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Response) => {
+  const binance = BinanceService.getInstance();
+  const pool = getPool();
+  const dbHealthy = await SupabaseService.getInstance().checkHealth();
+
+  // DB table row counts (lightweight count estimates via pg_class)
+  type CountRow = { table_name: string; row_estimate: string };
+  let tableCounts: Record<string, number> = {};
+  try {
+    const { rows } = await pool.query<CountRow>(
+      `SELECT relname AS table_name, reltuples::BIGINT AS row_estimate
+       FROM pg_class
+       WHERE relkind = 'r'
+         AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+       ORDER BY reltuples DESC`
+    );
+    tableCounts = Object.fromEntries(
+      rows.map(r => [r.table_name, Number(r.row_estimate)])
+    );
+  } catch {
+    tableCounts = { error: -1 };
+  }
+
+  // Connection pool stats
+  const poolStats = {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+  };
+
+  // Check for recent errors (last 1 hour)
+  let recentErrors = 0;
+  try {
+    const { rows } = await pool.query<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM error_reports WHERE created_at > now() - INTERVAL '1 hour'`
+    );
+    recentErrors = Number(rows[0]?.count ?? 0);
+  } catch { /* ignore */ }
+
+  // Check for recent cheat attempts (last 24h)
+  let recentCheats = 0;
+  try {
+    const { rows } = await pool.query<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM cheat_attempts WHERE created_at > now() - INTERVAL '24 hours'`
+    );
+    recentCheats = Number(rows[0]?.count ?? 0);
+  } catch { /* ignore */ }
+
+  // Verified vs unverified sessions (last 24h)
+  type SessionStat = { is_verified: boolean; count: string };
+  let sessionStats: Record<string, number> = {};
+  try {
+    const { rows } = await pool.query<SessionStat>(
+      `SELECT is_verified, COUNT(*) AS count FROM sessions
+       WHERE created_at > now() - INTERVAL '24 hours'
+       GROUP BY is_verified`
+    );
+    sessionStats = {
+      verified_24h: Number(rows.find(r => r.is_verified)?.count ?? 0),
+      unverified_24h: Number(rows.find(r => !r.is_verified)?.count ?? 0),
+    };
+  } catch { /* ignore */ }
+
+  // Market data freshness
+  type MarketRow = { pair: string; price: number; updated_at: string };
+  let marketFreshness: Record<string, unknown>[] = [];
+  try {
+    const { rows } = await pool.query<MarketRow>(
+      `SELECT pair, price, updated_at FROM market_state ORDER BY pair`
+    );
+    marketFreshness = rows.map(r => ({
+      pair: r.pair,
+      price: r.price,
+      updatedAt: r.updated_at,
+      staleSeconds: Math.round((Date.now() - new Date(r.updated_at).getTime()) / 1000),
+    }));
+  } catch { /* ignore */ }
+
+  const priceStats = PriceLogger.getInstance().getStats();
+  const cleanupStats = CleanupCron.getInstance().getStats();
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    server: {
+      uptime: Math.round(process.uptime()),
+      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      nodeVersion: process.version,
+    },
+    pipeline: {
+      binanceConnected: binance.isConnected(),
+      dbConnected: dbHealthy,
+      sseClients: getSSEClientCount(),
+      priceStats,
+    },
+    database: {
+      pool: poolStats,
+      tableCounts,
+      marketFreshness,
+    },
+    activity: {
+      sessionStats,
+      recentErrors_1h: recentErrors,
+      recentCheats_24h: recentCheats,
+    },
+    cleanup: cleanupStats,
+  });
+}));
+
 app.get('/', (_req, res) => {
   res.json({
     name: 'Railway Market Server',
@@ -99,11 +218,15 @@ app.get('/', (_req, res) => {
     endpoints: {
       health: '/health',
       stats: '/stats',
+      debug: '/debug',
       marketStream: '/api/v1/market/stream?pair=BTC',
       profile: '/api/v1/profile',
       sessions: '/api/v1/sessions',
       wallet: '/api/v1/wallet',
       leaderboard: '/api/v1/leaderboard',
+      meta: '/api/v1/meta',
+      challenges: '/api/v1/challenges',
+      replays: '/api/v1/replays',
     },
   });
 });

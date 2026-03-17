@@ -86,7 +86,7 @@ describe('CollectionSystem', () => {
 
       system.update(mockPool, player, state, 1);
 
-      expect(mockPool.getParticle.mock.calls.length).toBeGreaterThan(10);
+      expect((mockPool.getParticle as any).mock.calls.length).toBeGreaterThan(10);
     });
 
     it('should magnetize a gem when in magnet range', () => {

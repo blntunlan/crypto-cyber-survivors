@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
 import { query } from '../db/pool';
 import { Logger } from '../utils/logger';
 
@@ -8,7 +9,7 @@ const router = Router();
 /**
  * GET /api/v1/profile — Fetch current user's profile
  */
-router.get('/', requireAuth, async (req: Request, res: Response) => {
+router.get('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { rows } = await query(
       `SELECT id, auth_user_id, nickname, display_name, avatar_url, wallet_address, primary_auth_provider, last_seen_at, created_at, updated_at
@@ -26,12 +27,12 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     Logger.error('[Profile] GET error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 /**
  * POST /api/v1/profile — Create or return existing profile (upsert semantics)
  */
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { nickname, avatar_url } = req.body as {
       nickname?: string;
@@ -75,12 +76,12 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     Logger.error('[Profile] POST error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 /**
  * PATCH /api/v1/profile — Update profile fields
  */
-router.patch('/', requireAuth, async (req: Request, res: Response) => {
+router.patch('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { nickname, avatar_url } = req.body as {
       nickname?: string;
@@ -125,6 +126,6 @@ router.patch('/', requireAuth, async (req: Request, res: Response) => {
     Logger.error('[Profile] PATCH error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;

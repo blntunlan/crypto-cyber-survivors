@@ -14,6 +14,8 @@ import {
   createMarketMovementStrategy,
 } from '../strategies/EnemyBehaviors';
 import { type RSIEnemyModifier, NEUTRAL_ENEMY_MODIFIER } from '../types/indicators';
+import { ELITE_CONFIG, canBeElite, getEliteAbility } from '../config/EliteConfig';
+import { EventBus } from '../services/core/EventBus';
 
 /**
  * Enemy configuration blueprint (now matches Registry)
@@ -151,6 +153,22 @@ export class EnemyFactory {
     enemyObj.visualStyle = rsiModifier.visualStyle;
     enemyObj.dropBuffChance = rsiModifier.dropBuffChance;
     enemyObj.dropDebuffChance = rsiModifier.dropDebuffChance;
+
+    // Elite roll: non-boss enemies have a chance to become elite
+    if (canBeElite(type) && Math.random() < ELITE_CONFIG.spawnChance) {
+      enemyObj.isElite = true;
+      enemyObj.eliteAbility = getEliteAbility(type);
+      enemyObj.health *= ELITE_CONFIG.hpMultiplier;
+      enemyObj.maxHealth = enemyObj.health;
+      enemyObj.speed *= ELITE_CONFIG.speedMultiplier;
+      enemyObj.damage *= ELITE_CONFIG.damageMultiplier;
+      enemyObj.valueMultiplier = ELITE_CONFIG.dropValueMultiplier;
+
+      EventBus.emit('eliteSpawned', { type, x, y });
+    } else {
+      enemyObj.isElite = false;
+      enemyObj.eliteAbility = undefined;
+    }
 
     return enemyObj;
   }

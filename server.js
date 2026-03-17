@@ -232,7 +232,7 @@ function getSecurityHeaders(isAsset = false) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://cdn.discordapp.com",
-      "connect-src 'self' wss://stream.binance.com wss://stream.binance.com:9443 wss://ws-feed.exchange.coinbase.com wss://stream.coinbase.com wss://*.coinbase.com https://*.supabase.co wss://*.supabase.co https://*.supabase.com https://*.workers.dev https://cloudflareinsights.com",
+      "connect-src 'self' wss://stream.binance.com wss://stream.binance.com:9443 wss://ws-feed.exchange.coinbase.com wss://stream.coinbase.com wss://*.coinbase.com https://*.supabase.co wss://*.supabase.co https://*.supabase.com https://*.workers.dev https://*.up.railway.app https://cloudflareinsights.com",
       "media-src 'self' blob: data:",
       "worker-src 'self' blob:",
       "frame-ancestors 'none'",

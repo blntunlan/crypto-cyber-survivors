@@ -48,6 +48,29 @@ export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
 }
 
 /**
+ * Execute multiple queries in a single transaction.
+ * Automatically rolls back on error.
+ */
+export async function withTransaction<T>(
+  fn: (client: pg.PoolClient) => Promise<T>
+): Promise<T> {
+  const p = getPool();
+  const client = await p.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    Logger.error('[DB] Transaction rolled back:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Shut down the pool gracefully.
  */
 export async function closePool(): Promise<void> {

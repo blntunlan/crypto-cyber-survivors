@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { query } from '../db/pool';
 import { Logger } from '../utils/logger';
+import { asyncHandler } from '../utils/asyncHandler';
 
 /**
  * SSE Market Data Stream
@@ -118,7 +119,7 @@ export function getSSEClientCount(): number {
  * GET /api/v1/market/history?pair=BTC&limit=300
  * Returns recent price history for indicator warmup.
  */
-router.get('/history', async (req: Request, res: Response) => {
+router.get('/history', asyncHandler(async (req: Request, res: Response) => {
   try {
     const pair = (req.query.pair as string) ?? 'BTC';
     const limit = Math.min(Number(req.query.limit) || 300, 1000);
@@ -141,6 +142,6 @@ router.get('/history', async (req: Request, res: Response) => {
     Logger.error('[Market] History fetch failed:', error);
     res.status(500).json({ error: 'Failed to fetch price history' });
   }
-});
+}));
 
 export default router;

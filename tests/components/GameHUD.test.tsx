@@ -47,6 +47,9 @@ vi.mock('../../components/hud', () => ({
     <div data-testid="milestone-announcer">MilestoneAnnouncer</div>
   ),
   ComboPanel: () => <div data-testid="combo-panel">ComboPanel</div>,
+  MarketAnnouncementBanner: () => (
+    <div data-testid="market-announcement-banner">MarketAnnouncementBanner</div>
+  ),
 }));
 
 // Mock config

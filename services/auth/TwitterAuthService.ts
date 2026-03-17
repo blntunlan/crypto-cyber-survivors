@@ -310,14 +310,8 @@ class TwitterAuthServiceClass {
     try {
       await railwayClient.post('/api/v1/identities', {
         provider: 'twitter',
-        provider_id: profile.id,
-        identity_data: {
-          username: profile.username,
-          name: profile.name,
-          profile_image_url: profile.profile_image_url,
-          verified: profile.verified,
-          followers_count: profile.public_metrics?.followers_count,
-        },
+        provider_user_id: profile.id,
+        provider_username: profile.username,
       });
     } catch (error) {
       Logger.error('[TwitterAuth] Failed to link identity:', error);
@@ -374,7 +368,7 @@ class TwitterAuthServiceClass {
     }
 
     try {
-      await railwayClient.del('/api/v1/identities?provider=twitter');
+      await railwayClient.del('/api/v1/identities/twitter');
       EventBus.emit('twitterUnlinked', {});
       return { success: true };
     } catch (error) {

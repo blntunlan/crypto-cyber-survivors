@@ -158,14 +158,13 @@ export class MetricsStorage {
 
       const sessionData: Record<string, unknown> = {
         profile_id: isAnonymous ? null : profileId,
-        crypto_pair: session.pair,
-        position_chosen: session.bitcoin.positionChosen,
+        pair: session.pair,
+        position: session.bitcoin.positionChosen,
         leverage: session.bitcoin.leverage,
         entry_price: session.bitcoin.priceAtStart,
         exit_price: session.bitcoin.priceAtEnd,
         survival_seconds: Math.floor(session.player.survivalTimeMs / 1000),
         kills: session.player.totalKills,
-        created_at: new Date(session.sessionTimestamp).toISOString(),
       };
 
       // Only set explicit ID if we have a valid server-generated UUID

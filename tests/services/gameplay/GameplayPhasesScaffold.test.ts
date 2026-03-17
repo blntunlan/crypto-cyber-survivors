@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameStatus, type GameState } from '../../../types';
+import { createInitialPlayer } from '../../../config/PlayerConfig';
 import type { PhaseInput, TickContext } from '../../../services/gameplay/contracts';
 import {
   CombatPhase,
@@ -99,36 +100,7 @@ describe('Gameplay scaffold phases', () => {
 
   it('combat phase writes didAttack into shared contract when runtime dependencies exist', () => {
     const context = createFakeTickContext();
-    context.world.player.current = {
-      x: 100,
-      y: 100,
-      radius: 12,
-      color: '#fff',
-      speed: 5,
-      level: 1,
-      exp: 0,
-      nextLevelExp: 100,
-      hp: 100,
-      maxHp: 100,
-      invulnerabilityTimer: 0,
-      scoreMultiplier: 1,
-      attackSpeed: 1,
-      attackRange: 1,
-      critChance: 0,
-      critDamage: 1.5,
-      magnetRange: 1,
-      luck: 1,
-      hpRegen: 0,
-      damageReduction: 0,
-      expBonus: 1,
-      coinMultiplier: 1,
-      attackPower: 1,
-      projectileSpeed: 1,
-      maxProjectiles: 1,
-      dashDistance: 1,
-      pickupRadius: 1,
-      cdr: 0,
-    };
+    context.world.player.current = createInitialPlayer(100, 100, '#fff');
 
     const shared: Record<string, unknown> = {
       deltaTime: 16,

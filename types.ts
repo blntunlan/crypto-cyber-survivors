@@ -133,6 +133,9 @@ export interface Enemy extends Entity {
   // Gatekeeper specifics
   orbitPoint?: { x: number; y: number };
   orbitAngle?: number;
+  // Elite enemy metadata
+  isElite?: boolean;
+  eliteAbility?: string;
 }
 
 export interface Bullet extends Entity {

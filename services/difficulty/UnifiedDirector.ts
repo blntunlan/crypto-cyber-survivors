@@ -114,12 +114,12 @@ class RuleBasedDirector {
     for (const key of keys) {
       const val = this.outputs[key];
       if (typeof val === 'number') {
-        (this.smoothedOutputs as Record<string, unknown>)[key] =
+        (this.smoothedOutputs as Record<string, number>)[key as string] =
           (this.smoothedOutputs[key] as number) +
           (val - (this.smoothedOutputs[key] as number)) * LERP_SPEED;
       } else {
         // Non-numeric fields (trendAlignment) - copy directly
-        (this.smoothedOutputs as Record<string, unknown>)[key] = val;
+        (this.smoothedOutputs as Record<string, unknown>)[key as string] = val;
       }
     }
   }

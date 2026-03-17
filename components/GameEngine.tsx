@@ -59,6 +59,7 @@ import {
   MetricsPhase,
 } from '../services/gameplay/phases';
 import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
+import { MarketEventAnnouncer } from '../services/market/MarketEventAnnouncer';
 import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
@@ -225,11 +226,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
     const wrapPhase = (phase: {
       phase: string;
-      execute: (input: {
+      execute: (args: {
         phase: string;
         context: TickContext;
         shared: Record<string, never>;
-      }) => { shared?: object };
+      }) => { shared?: Record<string, unknown> };
     }) => ({
       id: phase.phase,
       execute: (context: TickContext) => {
@@ -373,6 +374,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       hitStopGovernorRef.current.reset();
       coreLoopRef.current.reset();
       MarketAudioReactor.stop();
+      MarketEventAnnouncer.reset();
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
@@ -533,6 +535,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   // Listen for high-frequency market updates directly to avoid React re-render overhead
   useEffect(() => {
+    let lastAnnouncerUpdate = 0;
+    const ANNOUNCER_THROTTLE_MS = 500;
+
     const unsub = EventBus.on('gameMarketUpdate', (data: MarketData) => {
       marketDataRef.current = data;
 
@@ -540,9 +545,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       if (data.price > 0) {
         PriceMomentumEngine.update(data.price, Date.now());
       }
+
+      // Feed MarketEventAnnouncer, throttled to ~500ms
+      const now = Date.now();
+      if (now - lastAnnouncerUpdate >= ANNOUNCER_THROTTLE_MS) {
+        lastAnnouncerUpdate = now;
+        MarketEventAnnouncer.update(data, position);
+      }
     });
     return unsub;
-  }, []);
+  }, [position]);
 
   // Near Miss Event Listener (Matrix slow-mo effect)
   useEffect(() => {

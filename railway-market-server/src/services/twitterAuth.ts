@@ -5,18 +5,11 @@
  * The client_secret must never be exposed to the frontend.
  */
 
-import express, { Request, Response, Router, NextFunction, RequestHandler } from 'express';
+import { Router, type Request, type Response } from 'express';
+import { Logger } from '../utils/logger';
+import { asyncHandler } from '../utils/asyncHandler';
 
-const router: Router = express.Router();
-
-// Wrapper for async handlers to avoid misused-promises lint error
-const asyncHandler = (
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
-): RequestHandler => {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-};
+const router = Router();
 
 interface TokenRequest {
   code: string;
@@ -86,7 +79,7 @@ router.post('/token', asyncHandler(async (req: Request, res: Response): Promise<
 
     if (!tokenResponse.ok) {
       const errorData = data as TwitterErrorResponse;
-      console.error('[TwitterAuth] Token exchange failed:', errorData);
+      Logger.error(`[TwitterAuth] Token exchange failed: ${JSON.stringify(errorData)}`);
       res.status(tokenResponse.status).json({
         success: false,
         error: errorData.error_description || errorData.error || 'Token exchange failed',
@@ -104,7 +97,7 @@ router.post('/token', asyncHandler(async (req: Request, res: Response): Promise<
       token_type: tokenData.token_type,
     });
   } catch (error) {
-    console.error('[TwitterAuth] Server error:', error);
+    Logger.error('[TwitterAuth] Server error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error during token exchange',
@@ -157,6 +150,7 @@ router.post('/refresh', asyncHandler(async (req: Request, res: Response): Promis
 
     if (!tokenResponse.ok) {
       const errorData = data as TwitterErrorResponse;
+      Logger.error(`[TwitterAuth] Token refresh failed: ${JSON.stringify(errorData)}`);
       res.status(tokenResponse.status).json({
         success: false,
         error: errorData.error_description || errorData.error || 'Token refresh failed',
@@ -171,7 +165,7 @@ router.post('/refresh', asyncHandler(async (req: Request, res: Response): Promis
       expires_in: tokenData.expires_in,
     });
   } catch (error) {
-    console.error('[TwitterAuth] Refresh error:', error);
+    Logger.error('[TwitterAuth] Refresh error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error during token refresh',
@@ -222,6 +216,7 @@ router.post('/revoke', asyncHandler(async (req: Request, res: Response): Promise
 
     if (!revokeResponse.ok) {
       const errorData = (await revokeResponse.json()) as TwitterErrorResponse;
+      Logger.error(`[TwitterAuth] Token revocation failed: ${JSON.stringify(errorData)}`);
       res.status(revokeResponse.status).json({
         success: false,
         error: errorData.error_description || errorData.error || 'Token revocation failed',
@@ -231,7 +226,7 @@ router.post('/revoke', asyncHandler(async (req: Request, res: Response): Promise
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[TwitterAuth] Revoke error:', error);
+    Logger.error('[TwitterAuth] Revoke error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error during token revocation',

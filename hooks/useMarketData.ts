@@ -46,10 +46,12 @@ type MarketUpdate = SSEMarketUpdate & { source: 'sse' };
 
 // ATR_PERIOD is now managed by MarketCalculator
 
-// Market data timeout configuration
-// CRITICAL: 15 seconds = fatal disconnect (game ends)
-// Under 15 seconds = game continues with fallback data
-const MARKET_DATA_TIMEOUT_MS = 15_000; // 15 seconds without data = timeout (design spec)
+// Market data timeout configuration (tolerant of brief disconnections)
+// 0-10s:  No action — use fallback data silently (brief gaps are normal)
+// 10-15s: Warning UI indicator, still playing with fallback data
+// 15-20s: Critical warning, emit timeout event → DATA_DISCONNECTED pause
+// 30s+:   Fatal disconnect → GAMEOVER
+const MARKET_DATA_TIMEOUT_MS = 15_000; // 15s: emit timeout → pause (DATA_DISCONNECTED)
 const MARKET_WARNING_MS = 10_000; // 10s: initial warning
 const MARKET_CRITICAL_MS = 13_000; // 13s: critical warning
 const TIMEOUT_CHECK_INTERVAL_MS = 1_000; // Check every 1 second for responsive detection
@@ -211,15 +213,18 @@ export const useMarketData = (
     const checkTimeout = () => {
       const currentStatus = gameStatusRef.current;
 
-      // Only check during active gameplay
-      if (currentStatus !== GameStatus.PLAYING) {
-        timeoutTriggeredRef.current = false; // Reset flag when not playing
+      // Only check during active gameplay or DATA_DISCONNECTED (for escalation to GAMEOVER)
+      if (
+        currentStatus !== GameStatus.PLAYING &&
+        currentStatus !== GameStatus.DATA_DISCONNECTED
+      ) {
+        timeoutTriggeredRef.current = false;
         return;
       }
 
       const timeSinceLastPrice = Date.now() - lastPriceTimeRef.current;
 
-      // Critical warning at 13s
+      // Critical warning at 13s (UI indicator)
       if (
         timeSinceLastPrice > MARKET_CRITICAL_MS &&
         timeSinceLastPrice <= MARKET_DATA_TIMEOUT_MS
@@ -230,7 +235,7 @@ export const useMarketData = (
           disconnectedDuration: timeSinceLastPrice,
         });
       }
-      // Initial warning at 10s
+      // Initial warning at 10s (UI indicator)
       else if (
         timeSinceLastPrice > MARKET_WARNING_MS &&
         timeSinceLastPrice <= MARKET_CRITICAL_MS
@@ -242,14 +247,16 @@ export const useMarketData = (
         });
       }
 
-      if (timeSinceLastPrice > MARKET_DATA_TIMEOUT_MS && !timeoutTriggeredRef.current) {
-        timeoutTriggeredRef.current = true;
+      // 15s+ → emit timeout (first hit pauses via DATA_DISCONNECTED)
+      // Keep emitting so useMarketTimeout can escalate to GAMEOVER at 30s
+      if (timeSinceLastPrice > MARKET_DATA_TIMEOUT_MS) {
+        if (!timeoutTriggeredRef.current) {
+          timeoutTriggeredRef.current = true;
+          Logger.error(
+            `[Market] Data timeout - no price updates for ${timeSinceLastPrice}ms`
+          );
+        }
 
-        Logger.error(
-          `[Market] Data timeout - no price updates for ${timeSinceLastPrice}ms`
-        );
-
-        // Emit timeout event for game to handle
         EventBus.emit('marketDataTimeout', {
           lastPriceTime: lastPriceTimeRef.current,
           disconnectedDuration: timeSinceLastPrice,

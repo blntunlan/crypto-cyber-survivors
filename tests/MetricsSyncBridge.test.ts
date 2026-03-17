@@ -108,8 +108,8 @@ describe('MetricsSyncBridge Integration', () => {
     );
     expect(sessionCall).toBeDefined();
     expect(sessionCall?.[1].sessionData).toMatchObject({
-      crypto_pair: 'BTC',
-      position_chosen: MarketPosition.LONG,
+      pair: 'BTC',
+      position: MarketPosition.LONG,
     });
 
     // 2. Verify performance metrics call

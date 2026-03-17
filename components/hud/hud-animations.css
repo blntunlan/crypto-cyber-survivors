@@ -110,3 +110,22 @@
 .buff-enter {
   animation: buffSlideIn 0.3s ease-out forwards;
 }
+
+/* Market Announcement Liquidation Pulse */
+@keyframes marketAnnouncePulse {
+  0% {
+    opacity: 0.85;
+    box-shadow:
+      0 0 20px #ff000040,
+      0 0 40px #ff000020,
+      inset 0 0 15px #ff000010;
+  }
+
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 30px #ff000080,
+      0 0 60px #ff000040,
+      inset 0 0 20px #ff000030;
+  }
+}

@@ -14,7 +14,10 @@ interface PairIndicators {
 export class IndicatorService {
   private static instance: IndicatorService | null = null;
   private indicators: Map<string, PairIndicators> = new Map();
+  private lastDbUpdate: Map<string, number> = new Map();
   private supabase: SupabaseService;
+  
+  private readonly DB_UPDATE_THROTTLE = 1000; // 1 second throttle per pair
 
   // Statistics
   private stats = {
@@ -69,33 +72,42 @@ export class IndicatorService {
         rsiResult.rsi
       );
 
-      // Update Supabase
-      // Note: This is an upsert, so it's efficient.
-      // We might want to throttle this if it causes too much DB load,
-      // but "every second" is generally fine for single-row updates.
-      await this.supabase.updateMarketState({
-        pair: data.pair,
-        price: data.price,
-        volume: data.volume,
-        high: data.high,
-        low: data.low,
-        rsi: rsiResult.rsi,
-        rsi_state: rsiResult.state,
-        atr: atrResult.atr,
-        atr_percent: atrResult.atrPercent,
-        spawn_rate_multiplier: spawnRateMultiplier,
-        normalized_volume: volumeResult.normalized,
-        volume_percentile: volumeResult.percentile,
-        volume_z_score: volumeResult.zScore,
-        volume_mean: volumeResult.mean,
-        volume_std_dev: volumeResult.stdDev,
-        whale_tier: volumeResult.whaleTier,
-        volume_history_min: volumeResult.min,
-        volume_history_max: volumeResult.max,
-        volume_history_count: ind.volume.getHistoryCount(),
-        enemy_aggro_multiplier_long: aggroLong,
-        enemy_aggro_multiplier_short: aggroShort,
-      });
+      // Update Supabase (Throttled per pair)
+      const now = Date.now();
+      const lastUpdate = this.lastDbUpdate.get(data.pair) || 0;
+
+      if (now - lastUpdate >= this.DB_UPDATE_THROTTLE) {
+        // We don't await this to keep the loop moving fast, 
+        // but we handle it such that we track the last update attempt.
+        this.lastDbUpdate.set(data.pair, now);
+        
+        void this.supabase.updateMarketState({
+          pair: data.pair,
+          price: data.price,
+          volume: data.volume,
+          high: data.high,
+          low: data.low,
+          rsi: rsiResult.rsi,
+          rsi_state: rsiResult.state,
+          atr: atrResult.atr,
+          atr_percent: atrResult.atrPercent,
+          spawn_rate_multiplier: spawnRateMultiplier,
+          normalized_volume: volumeResult.normalized,
+          volume_percentile: volumeResult.percentile,
+          volume_z_score: volumeResult.zScore,
+          volume_mean: volumeResult.mean,
+          volume_std_dev: volumeResult.stdDev,
+          whale_tier: volumeResult.whaleTier,
+          volume_history_min: volumeResult.min,
+          volume_history_max: volumeResult.max,
+          volume_history_count: ind.volume.getHistoryCount(),
+          enemy_aggro_multiplier_long: aggroLong,
+          enemy_aggro_multiplier_short: aggroShort,
+        }).catch(err => {
+          this.stats.errors++;
+          Logger.error(`DB Update Error [${data.pair}]:`, err);
+        });
+      }
 
       // Broadcast to SSE clients (real-time, no DB dependency)
       broadcastMarketData({

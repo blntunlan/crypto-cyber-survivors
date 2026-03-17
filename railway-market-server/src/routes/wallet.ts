@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
 import { query } from '../db/pool';
 import { Logger } from '../utils/logger';
 
@@ -8,7 +9,7 @@ const router = Router();
 /**
  * GET /api/v1/wallet/balance — Get gold balance for current user
  */
-router.get('/balance', requireAuth, async (req: Request, res: Response) => {
+router.get('/balance', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     // Find profile by auth user id
     const { rows: profiles } = await query(
@@ -35,6 +36,6 @@ router.get('/balance', requireAuth, async (req: Request, res: Response) => {
     Logger.error('[Wallet] Balance error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;

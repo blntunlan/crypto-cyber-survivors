@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { requireAuth } from '../middleware/auth';
-import { query } from '../db/pool';
+import { asyncHandler } from '../utils/asyncHandler';
+import { query, withTransaction } from '../db/pool';
 import { Logger } from '../utils/logger';
 import { RewardCalculator, type ExitType, type PortalType } from '../shared/RewardCalculator';
 
@@ -10,7 +11,7 @@ const router = Router();
 /**
  * POST /api/v1/sessions/start — Start a new game session
  */
-router.post('/start', requireAuth, async (req: Request, res: Response) => {
+router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { pair, leverage, position, userId } = req.body as {
       pair?: string;
@@ -68,13 +69,13 @@ router.post('/start', requireAuth, async (req: Request, res: Response) => {
     Logger.error('[Sessions] Start error:', error);
     res.status(500).json({ error: 'Failed to start session' });
   }
-});
+}));
 
 /**
  * POST /api/v1/sessions/verify — Verify game results and credit rewards
  * Ported from supabase/functions/verify-game/index.ts
  */
-router.post('/verify', async (req: Request, res: Response) => {
+router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { sessionId, signature, payload } = req.body as {
       sessionId?: string;
@@ -87,9 +88,12 @@ router.post('/verify', async (req: Request, res: Response) => {
       return;
     }
 
-    // 1. Session exists + not verified
+    // 1. Session exists + not verified (JOIN profile to avoid N+1)
     const { rows: sessions } = await query(
-      `SELECT id, profile_id, session_secret, is_verified FROM sessions WHERE id = $1`,
+      `SELECT s.id, s.profile_id, s.session_secret, s.is_verified
+       FROM sessions s
+       JOIN profiles p ON s.profile_id = p.id
+       WHERE s.id = $1`,
       [sessionId]
     );
 
@@ -139,17 +143,7 @@ router.post('/verify', async (req: Request, res: Response) => {
       return;
     }
 
-    // 4. Profile check
-    const { rows: profiles } = await query(
-      `SELECT id FROM profiles WHERE id = $1`,
-      [session.profile_id]
-    );
-    if (profiles.length === 0) {
-      res.status(404).json({ error: 'Profile not found' });
-      return;
-    }
-
-    // 5. Reward calculation
+    // 4. Reward calculation
     const calculator = new RewardCalculator();
     const calculation = calculator.calculate({
       survivalTimeSeconds: duration,
@@ -163,72 +157,91 @@ router.post('/verify', async (req: Request, res: Response) => {
 
     const reward = Math.min(50000, calculation.total);
 
-    // 6. Atomic coin crediting
-    const { rows: creditResult } = await query(
-      `SELECT * FROM credit_coins($1, $2, $3, $4, $5)`,
-      [
-        session.profile_id,
-        Math.floor(reward),
-        'game_reward',
-        sessionId,
-        JSON.stringify({
-          pnl: payload.claimedPnL,
-          kills: payload.kills,
-          duration,
-        }),
-      ]
-    );
+    // 5. Atomic transaction: credit coins + mark verified + transfer meta
+    const txResult = await withTransaction(async (client) => {
+      // 5a. Atomic coin crediting
+      const { rows: creditResult } = await client.query(
+        `SELECT * FROM credit_coins($1, $2, $3, $4, $5)`,
+        [
+          session.profile_id,
+          Math.floor(reward),
+          'game_reward',
+          sessionId,
+          JSON.stringify({
+            pnl: payload.claimedPnL,
+            kills: payload.kills,
+            duration,
+          }),
+        ]
+      );
 
-    if (creditResult.length === 0) {
-      Logger.error(`[Security] Failed to credit coins for session ${sessionId}`);
-      res.status(500).json({ error: 'Failed to process reward' });
-      return;
-    }
+      if (creditResult.length === 0) {
+        throw new Error(`Failed to credit coins for session ${sessionId}`);
+      }
 
-    // 7. Mark session verified
-    await query(
-      `UPDATE sessions SET
-         exit_price = $1,
-         survival_seconds = $2,
-         is_verified = true,
-         reward_amount = $3,
-         kills = $4,
-         level = $5,
-         exit_type = $6,
-         portal_type = $7,
-         verified_at = now()
-       WHERE id = $8`,
-      [
-        payload.claimedExitPrice,
-        Math.floor(duration),
-        Math.floor(reward),
-        payload.kills,
-        payload.level,
-        payload.exitType,
-        payload.portalType,
-        sessionId,
-      ]
-    );
+      // 5b. Mark session verified
+      await client.query(
+        `UPDATE sessions SET
+           exit_price = $1,
+           survival_seconds = $2,
+           is_verified = true,
+           reward_amount = $3,
+           kills = $4,
+           level = $5,
+           exit_type = $6,
+           portal_type = $7,
+           verified_at = now()
+         WHERE id = $8`,
+        [
+          payload.claimedExitPrice,
+          Math.floor(duration),
+          Math.floor(reward),
+          payload.kills,
+          payload.level,
+          payload.exitType,
+          payload.portalType,
+          sessionId,
+        ]
+      );
+
+      // 5c. Transfer meta coins (15% of reward → meta wallet)
+      let metaShare = 0;
+      try {
+        const { rows: metaResult } = await client.query(
+          `SELECT * FROM transfer_meta_coins($1, $2)`,
+          [session.profile_id, Math.floor(reward)]
+        );
+        if (metaResult.length > 0) {
+          metaShare = Number(metaResult[0].meta_share);
+        }
+      } catch (metaErr) {
+        // Non-critical: log but don't rollback the whole transaction
+        Logger.warn(`[Sessions] Meta coin transfer failed for ${sessionId}:`, metaErr);
+      }
+
+      return { metaShare };
+    });
 
     Logger.info(
-      `[Sessions] Verified session ${sessionId}: reward=${Math.floor(reward)}`
+      `[Sessions] Verified session ${sessionId}: reward=${Math.floor(reward)}, metaShare=${txResult.metaShare}`
     );
 
     res.json({
       verified: true,
       reward: Math.floor(reward),
+      metaShare: txResult.metaShare,
       pnl: payload.claimedPnL,
     });
   } catch (error) {
     Logger.error('[Sessions] Verify error:', error);
     res.status(500).json({ error: 'Verification failed' });
   }
-});
+}));
 
 /**
  * POST /api/v1/sessions/sync — Sync session metrics (update or insert)
  */
-router.post('/sync', async (req: Request, res: Response) => {
+router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { sessionId, sessionData } = req.body as {
       sessionId?: string;
@@ -240,9 +253,30 @@ router.post('/sync', async (req: Request, res: Response) => {
       return;
     }
 
-    // Build column list from sessionData
-    const columns = Object.keys(sessionData);
-    const values = Object.values(sessionData);
+    // Strict column whitelist — only safe columns for client sync
+    // SECURITY: is_verified, session_secret, verified_at excluded (server-only via /verify)
+    const COLUMN_MAP: Record<string, true> = {
+      profile_id: true, pair: true, position: true, leverage: true,
+      entry_price: true, exit_price: true, survival_seconds: true,
+      reward_amount: true, kills: true, level: true,
+      exit_type: true, portal_type: true,
+    };
+
+    const requestedColumns = Object.keys(sessionData);
+    const columns: string[] = [];
+    const values: unknown[] = [];
+
+    for (const col of requestedColumns) {
+      if (col in COLUMN_MAP) {
+        columns.push(col);
+        values.push(sessionData[col]);
+      }
+    }
+
+    if (columns.length === 0) {
+      res.status(400).json({ error: 'No valid fields provided' });
+      return;
+    }
 
     let resultId: string | null = null;
 
@@ -281,6 +315,6 @@ router.post('/sync', async (req: Request, res: Response) => {
     Logger.error('[Sessions] Sync error:', error);
     res.status(500).json({ error: 'Failed to sync session' });
   }
-});
+}));
 
 export default router;

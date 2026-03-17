@@ -73,6 +73,7 @@ export class CleanupCron {
 
       Logger.info(`[Cleanup] Starting cleanup for records older than ${cutoffISO}`);
 
+      // 1. Price history (24h retention)
       let deletedInBatch = 0;
       let iterations = 0;
       const maxIterations = 100;
@@ -92,18 +93,63 @@ export class CleanupCron {
         iterations++;
 
         Logger.debug(
-          `[Cleanup] Deleted batch of ${deletedInBatch} records (total: ${totalDeleted})`
+          `[Cleanup] Deleted batch of ${deletedInBatch} price_history records (total: ${totalDeleted})`
         );
 
         await new Promise(resolve => setTimeout(resolve, 100));
       } while (deletedInBatch === BATCH_SIZE && iterations < maxIterations);
+
+      // 2. Error reports (30-day retention)
+      try {
+        const { rows: errRows } = await query<{ cleanup_old_error_reports: string }>(
+          `SELECT cleanup_old_error_reports(30, $1)`,
+          [BATCH_SIZE]
+        );
+        const errDeleted = Number(errRows[0]?.cleanup_old_error_reports ?? 0);
+        if (errDeleted > 0) {
+          totalDeleted += errDeleted;
+          Logger.info(`[Cleanup] Deleted ${errDeleted} old error_reports`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_error_reports function not yet available');
+      }
+
+      // 3. Performance metrics (30-day retention)
+      try {
+        const { rows: perfRows } = await query<{ cleanup_old_performance_metrics: string }>(
+          `SELECT cleanup_old_performance_metrics(30, $1)`,
+          [BATCH_SIZE]
+        );
+        const perfDeleted = Number(perfRows[0]?.cleanup_old_performance_metrics ?? 0);
+        if (perfDeleted > 0) {
+          totalDeleted += perfDeleted;
+          Logger.info(`[Cleanup] Deleted ${perfDeleted} old performance_metrics`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_performance_metrics function not yet available');
+      }
+
+      // 4. Cheat attempts (60-day retention)
+      try {
+        const { rows: cheatRows } = await query<{ cleanup_old_cheat_attempts: string }>(
+          `SELECT cleanup_old_cheat_attempts(60, $1)`,
+          [BATCH_SIZE]
+        );
+        const cheatDeleted = Number(cheatRows[0]?.cleanup_old_cheat_attempts ?? 0);
+        if (cheatDeleted > 0) {
+          totalDeleted += cheatDeleted;
+          Logger.info(`[Cleanup] Deleted ${cheatDeleted} old cheat_attempts`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_cheat_attempts function not yet available');
+      }
 
       const duration = Date.now() - startTime;
       this.lastCleanup = new Date();
       this.totalDeleted += totalDeleted;
 
       Logger.info(
-        `[Cleanup] Completed: ${totalDeleted} records deleted in ${duration}ms`
+        `[Cleanup] Completed: ${totalDeleted} total records deleted in ${duration}ms`
       );
 
       return { deleted: totalDeleted };

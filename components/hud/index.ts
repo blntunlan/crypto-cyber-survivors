@@ -20,3 +20,4 @@ export { BuffIndicator } from './BuffIndicator.tsx';
 export { NotificationSystem } from './NotificationSystem.tsx';
 export { LiquidationWarningOverlay } from './LiquidationWarningOverlay.tsx';
 export { CycleDecisionScreen } from './CycleDecisionScreen.tsx';
+export { MarketAnnouncementBanner } from './MarketAnnouncementBanner.tsx';

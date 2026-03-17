@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { query } from '../db/pool';
+import { asyncHandler } from '../utils/asyncHandler';
 import { Logger } from '../utils/logger';
 
 const router = Router();
@@ -8,7 +9,7 @@ const router = Router();
  * POST /api/v1/errors — Submit error reports (public, no auth required)
  * Accepts single report or batch array.
  */
-router.post('/errors', async (req: Request, res: Response) => {
+router.post('/errors', asyncHandler(async (req: Request, res: Response) => {
   try {
     const reports = Array.isArray(req.body) ? req.body : [req.body];
 
@@ -17,37 +18,46 @@ router.post('/errors', async (req: Request, res: Response) => {
       return;
     }
 
-    // Batch insert (max 50 per request)
+    // Batch insert (max 50 per request) — single multi-row INSERT
     const batch = reports.slice(0, 50);
+    const values: unknown[] = [];
+    const placeholders: string[] = [];
 
-    for (const report of batch) {
-      await query(
-        `INSERT INTO error_reports (error_type, message, stack_trace, severity, category, page_url, browser_info, context_data, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'new')`,
-        [
-          report.errorType ?? report.error_type ?? 'unknown',
-          report.errorMessage ?? report.message ?? 'No message',
-          report.stackTrace ?? report.stack_trace ?? null,
-          report.severity ?? 'medium',
-          report.category ?? 'runtime',
-          report.url ?? report.page_url ?? null,
-          report.userAgent ?? report.browser_info ?? null,
-          JSON.stringify(report.context ?? report.context_data ?? {}),
-        ]
+    for (let i = 0; i < batch.length; i++) {
+      const report = batch[i];
+      const offset = i * 8;
+      placeholders.push(
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, 'new')`
+      );
+      values.push(
+        report.errorType ?? report.error_type ?? 'unknown',
+        report.errorMessage ?? report.message ?? 'No message',
+        report.stackTrace ?? report.stack_trace ?? null,
+        report.severity ?? 'medium',
+        report.category ?? 'runtime',
+        report.url ?? report.page_url ?? null,
+        report.userAgent ?? report.browser_info ?? null,
+        JSON.stringify(report.context ?? report.context_data ?? {}),
       );
     }
+
+    await query(
+      `INSERT INTO error_reports (error_type, message, stack_trace, severity, category, page_url, browser_info, context_data, status)
+       VALUES ${placeholders.join(', ')}`,
+      values
+    );
 
     res.json({ accepted: batch.length });
   } catch (error) {
     Logger.error('[Telemetry] Error report insert failed:', error);
     res.status(500).json({ error: 'Failed to store error reports' });
   }
-});
+}));
 
 /**
  * POST /api/v1/cheat-reports — Submit cheat detection reports (public)
  */
-router.post('/cheat-reports', async (req: Request, res: Response) => {
+router.post('/cheat-reports', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { profileId, sessionId, cheatType, details, severity } = req.body as {
       profileId?: string;
@@ -79,12 +89,12 @@ router.post('/cheat-reports', async (req: Request, res: Response) => {
     Logger.error('[Telemetry] Cheat report insert failed:', error);
     res.status(500).json({ error: 'Failed to store cheat report' });
   }
-});
+}));
 
 /**
  * POST /api/v1/telemetry/device-profiles — Upsert device profile (public)
  */
-router.post('/device-profiles', async (req: Request, res: Response) => {
+router.post('/device-profiles', asyncHandler(async (req: Request, res: Response) => {
   try {
     const {
       fingerprint,
@@ -134,12 +144,12 @@ router.post('/device-profiles', async (req: Request, res: Response) => {
     Logger.error('[Telemetry] Device profile upsert failed:', error);
     res.status(500).json({ error: 'Failed to store device profile' });
   }
-});
+}));
 
 /**
  * POST /api/v1/telemetry/performance-metrics — Insert performance metrics (public)
  */
-router.post('/performance-metrics', async (req: Request, res: Response) => {
+router.post('/performance-metrics', asyncHandler(async (req: Request, res: Response) => {
   try {
     const {
       profile_id,
@@ -184,6 +194,6 @@ router.post('/performance-metrics', async (req: Request, res: Response) => {
     Logger.error('[Telemetry] Performance metrics insert failed:', error);
     res.status(500).json({ error: 'Failed to store performance metrics' });
   }
-});
+}));
 
 export default router;

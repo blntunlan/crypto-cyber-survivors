@@ -182,14 +182,15 @@ describe('useGameFlowController', () => {
     vi.mocked(MetricsService.endSession).mockReturnValue(null);
     vi.mocked(CoinService.calculateCycleReward).mockReturnValue({
       base: 50,
-      killBonus: 10,
+      killBonus: 20,
       levelBonus: 10,
-      marketBonus: 5,
-      streakBonus: 2,
-      total: 77,
+      marketBonus: 15,
+      streakBonus: 5,
+      portalBonus: 0,
+      total: 100,
       breakdown: {},
     });
-    vi.mocked(CoinService.creditCoins).mockResolvedValue(undefined);
+    vi.mocked(CoinService.creditCoins).mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -386,7 +387,7 @@ describe('useGameFlowController', () => {
 
     expect(CoinService.calculateCycleReward).toHaveBeenCalled();
     expect(ComboSystem.getMaxStreak).toHaveBeenCalled();
-    expect(CoinService.creditCoins).toHaveBeenCalledWith(77, 'cycle_complete');
+    expect(CoinService.creditCoins).toHaveBeenCalledWith(100, 'cycle_complete');
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 

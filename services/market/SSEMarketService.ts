@@ -43,8 +43,8 @@ export interface SSEMarketServiceConfig {
   onStatusChange?: (status: SSEConnectionStatus) => void;
 }
 
-const FATAL_DISCONNECT_MS = 15_000;
-const DATA_GAP_THRESHOLD_MS = 5_000;
+const FATAL_DISCONNECT_MS = 30_000;
+const DATA_GAP_THRESHOLD_MS = 8_000;
 
 export class SSEMarketService {
   private eventSource: EventSource | null = null;
@@ -91,7 +91,7 @@ export class SSEMarketService {
     const url = `${baseUrl}/api/v1/market/stream?pair=${this.pair}`;
     this.eventSource = new EventSource(url);
 
-    // Connection timeout: if no data in 15s, mark as failed
+    // Connection timeout: if no data in 30s, mark as failed
     this.connectionTimeoutTimer = setTimeout(() => {
       if (this.state === 'connecting') {
         Logger.warn('[SSE] Connection timeout — no data received in 15s');

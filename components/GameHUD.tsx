@@ -30,6 +30,7 @@ import {
   AchievementPopup,
   MilestoneAnnouncer,
   ComboPanel,
+  MarketAnnouncementBanner,
 } from './hud';
 
 // Import animations
@@ -101,6 +102,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       <EnemyPointers containerRef={pointerContainerRef} />
       <LevelUpFlash intensity={flash} />
       <ClutchAnnouncement active={clutchActive} />
+      <MarketAnnouncementBanner />
       {layout.elements.comboPanel.visible && (
         <ComboPanel
           containerRef={containerRef}

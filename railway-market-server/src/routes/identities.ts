@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAuth } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
 import { query } from '../db/pool';
 import { Logger } from '../utils/logger';
 
@@ -8,7 +9,7 @@ const router = Router();
 /**
  * POST /api/v1/identities — Link an OAuth identity
  */
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { provider, provider_user_id, provider_username, access_token, refresh_token, token_expires_at } =
       req.body as {
@@ -64,12 +65,12 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     Logger.error('[Identities] POST error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 /**
  * DELETE /api/v1/identities/:provider — Unlink an OAuth identity
  */
-router.delete('/:provider', requireAuth, async (req: Request, res: Response) => {
+router.delete('/:provider', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { provider } = req.params;
 
@@ -100,6 +101,6 @@ router.delete('/:provider', requireAuth, async (req: Request, res: Response) => 
     Logger.error('[Identities] DELETE error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;

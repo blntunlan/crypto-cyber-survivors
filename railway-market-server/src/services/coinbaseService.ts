@@ -103,11 +103,11 @@ export class CoinbaseService extends EventEmitter {
     // High = Low = Price
     // Volume = 0 (We don't get 1s volume from ticker, only 24h)
 
-    const pair = data.product_id.replace('-USD', 'USDT').replace('-', ''); // BTC-USD -> BTCUSDT
+    const pair = data.product_id.split('-')[0].toUpperCase();
     const price = parseFloat(data.price);
 
     return {
-      pair, // Keep consistent with Binance format (BTCUSDT)
+      pair, 
       timestamp: new Date(data.time),
       open: price,
       high: price,
