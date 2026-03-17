@@ -5,23 +5,32 @@ import { UserProvider } from '../../contexts/UserContext';
 import { useUser } from '../../contexts/useUser';
 import { nanoid } from 'nanoid';
 
-const { mockSupabase, mockIsSupabaseConfigured } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn(),
-    single: vi.fn(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    rpc: vi.fn(),
-  },
+const { mockIsSupabaseConfigured } = vi.hoisted(() => ({
   mockIsSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('../../services/supabase/client', () => ({
-  supabase: mockSupabase,
+  supabase: {
+    auth: {
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
   isSupabaseConfigured: mockIsSupabaseConfigured,
+}));
+
+vi.mock('../../services/auth/SupabaseAuthService', () => ({
+  SupabaseAuthService: {
+    initialize: vi.fn(),
+    getSession: vi.fn().mockResolvedValue(null),
+    signOut: vi.fn().mockResolvedValue({ success: true }),
+    signInAnonymously: vi
+      .fn()
+      .mockResolvedValue({ success: true, session: { access_token: 'test' } }),
+  },
 }));
 
 // Mock Logger
@@ -65,16 +74,6 @@ describe('UserContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-
-    // Reset mock chains
-    mockSupabase.from.mockReturnThis();
-    mockSupabase.select.mockReturnThis();
-    mockSupabase.eq.mockReturnThis();
-    mockSupabase.insert.mockReturnThis();
-    mockSupabase.update.mockReturnThis();
-    mockSupabase.maybeSingle.mockReset();
-    mockSupabase.single.mockReset();
-    mockSupabase.rpc.mockReset();
     mockIsSupabaseConfigured.mockReturnValue(true);
 
     // Mock hostname for local mode
@@ -96,7 +95,6 @@ describe('UserContext', () => {
         </UserProvider>
       );
 
-      // After initial render, loading should become false
       await waitFor(() => {
         expect(screen.getByTestId('loading').textContent).toBe('false');
       });
@@ -206,7 +204,7 @@ describe('UserContext', () => {
     it('should clear user on logout', async () => {
       // Pre-populate storage
       const mockUser = {
-        profileId: '550e8400-e29b-41d4-a716-446655440010', // Must be UUID
+        profileId: '550e8400-e29b-41d4-a716-446655440010',
         nickname: 'LogoutUser',
         createdAt: Date.now(),
         lastSeenAt: Date.now(),

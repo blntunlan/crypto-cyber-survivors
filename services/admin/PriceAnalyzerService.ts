@@ -88,34 +88,27 @@ export class PriceAnalyzerService {
     this.isLoadingHistory = true;
 
     try {
-      // Dynamic import to avoid circular dependencies
-      const { supabase, isSupabaseConfigured } = await import('../core/Supabase');
+      // Fetch price history from Railway API
+      const { railwayClient } = await import('../api/RailwayClient');
 
-      if (!isSupabaseConfigured() || !supabase) {
-        Logger.info('[PriceAnalyzer] Supabase not configured, skipping history load');
-        return;
-      }
+      type PriceRow = { price: number; volume: number; timestamp: string };
+      const [btcData, ethData, solData] = await Promise.all([
+        railwayClient
+          .get<PriceRow[]>('/api/v1/market/history?pair=BTC&limit=300')
+          .catch(() => []),
+        railwayClient
+          .get<PriceRow[]>('/api/v1/market/history?pair=ETH&limit=300')
+          .catch(() => []),
+        railwayClient
+          .get<PriceRow[]>('/api/v1/market/history?pair=SOL&limit=300')
+          .catch(() => []),
+      ]);
 
-      // Get last 1 hour of data
-      const oneHourAgo = new Date(Date.now() - CONFIG.WINDOWS['1h']).toISOString();
-
-      const { data, error } = await supabase
-        .from('price_logs')
-        .select('pair, price, timestamp')
-        .gte('timestamp', oneHourAgo)
-        .order('timestamp', { ascending: true });
-
-      if (error) {
-        Logger.warn(
-          '[PriceAnalyzer] Failed to load history from Supabase:',
-          error.message
-        );
-        return;
-      }
-
-      const rows = data as unknown as
-        | { pair: string; price: number; timestamp: string | null }[]
-        | null;
+      const rows = [
+        ...btcData.map(r => ({ pair: 'BTC', price: r.price, timestamp: r.timestamp })),
+        ...ethData.map(r => ({ pair: 'ETH', price: r.price, timestamp: r.timestamp })),
+        ...solData.map(r => ({ pair: 'SOL', price: r.price, timestamp: r.timestamp })),
+      ] as { pair: string; price: number; timestamp: string | null }[] | null;
 
       if (!rows || rows.length === 0) {
         Logger.info('[PriceAnalyzer] No historical data found in Supabase');
@@ -149,11 +142,11 @@ export class PriceAnalyzerService {
 
       this.historyLoaded = true;
 
-      Logger.info('[PriceAnalyzer] Loaded history from Supabase:', {
+      Logger.info('[PriceAnalyzer] Loaded history from Railway:', {
         BTC: this.history.get('BTC')?.length ?? 0,
         ETH: this.history.get('ETH')?.length ?? 0,
         SOL: this.history.get('SOL')?.length ?? 0,
-        total: data.length,
+        total: rows?.length ?? 0,
       });
     } catch (err) {
       Logger.warn('[PriceAnalyzer] Error loading from Supabase:', err);

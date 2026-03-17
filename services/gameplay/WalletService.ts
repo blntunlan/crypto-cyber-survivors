@@ -1,19 +1,5 @@
-import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
-
-/**
- * DB types matching ledger table schema
- */
-interface DBLedgerRow {
-  id: string;
-  amount: number;
-  balance_after: number;
-  transaction_type: string;
-  reference_id: string | null;
-  currency: string;
-  created_at: string;
-}
 
 export interface WalletTransaction {
   id: string;
@@ -36,61 +22,34 @@ export class WalletService {
   }
 
   /**
-   * Get current confirmed gold balance.
-   * Uses virtual_accounts.gold_balance as the source of truth.
+   * Get current confirmed gold balance via Railway API.
    */
   async getBalance(): Promise<number> {
     const profileId = UserSessionService.getProfileId();
     if (profileId.startsWith('anon_')) return 0;
 
-    if (!isSupabaseConfigured()) return 0;
-
-    const { data, error } = await supabase
-      .from('virtual_accounts')
-      .select('gold_balance')
-      .eq('profile_id', profileId)
-      .single();
-
-    if (error) {
-      Logger.warn('[WalletService] Failed to fetch balance', error);
+    try {
+      const { railwayClient } = await import('../api/RailwayClient');
+      const data = await railwayClient.get<{ balance: number }>(
+        '/api/v1/wallet/balance'
+      );
+      return data.balance ?? 0;
+    } catch (err) {
+      Logger.warn('[WalletService] Failed to fetch balance', err);
       return 0;
     }
-
-    return data.gold_balance ?? 0;
   }
 
   /**
-   * Fetch transaction history from ledger.
+   * Fetch transaction history from Railway API.
+   * Note: Ledger history endpoint not yet implemented on server.
+   * Returns empty array until server endpoint is available.
    */
-  async getHistory(limit = 20): Promise<WalletTransaction[]> {
+  async getHistory(_limit = 20): Promise<WalletTransaction[]> {
     const profileId = UserSessionService.getProfileId();
     if (profileId.startsWith('anon_')) return [];
 
-    if (!isSupabaseConfigured()) return [];
-
-    // Query ledger table for transaction history
-    const { data, error } = await supabase
-      .from('ledger')
-      .select(
-        'id, amount, balance_after, transaction_type, reference_id, currency, created_at'
-      )
-      .eq('profile_id', profileId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      Logger.error('[WalletService] Failed to fetch history', error);
-      return [];
-    }
-
-    return (data as DBLedgerRow[]).map(entry => ({
-      id: entry.id,
-      amount: entry.amount,
-      balanceAfter: entry.balance_after,
-      type: entry.transaction_type,
-      referenceId: entry.reference_id ?? undefined,
-      currency: entry.currency,
-      createdAt: entry.created_at,
-    }));
+    // TODO: Add GET /api/v1/wallet/history endpoint to Railway server
+    return [];
   }
 }

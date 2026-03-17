@@ -11,7 +11,8 @@ import { Logger } from '../services/system/Logger';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 import { SecurityUtils } from '../services/auth/SecurityUtils';
-import { supabase, isSupabaseConfigured } from '../services/supabase/client';
+import { isSupabaseConfigured } from '../services/supabase/client';
+import { SupabaseAuthService } from '../services/auth/SupabaseAuthService';
 
 // ============================================================================
 // Types
@@ -40,11 +41,6 @@ interface UserProviderProps {
   children: React.ReactNode;
 }
 
-interface ErrorInfo {
-  errorMsg: string;
-  detail: string;
-}
-
 const LOCAL_DEV_PROFILE_ID = '00000000-0000-4000-a000-000000000000';
 
 const isRemoteMode = (): boolean =>
@@ -62,31 +58,6 @@ const createLegacyUser = (
   createdAt: timestamp,
   lastSeenAt: timestamp,
 });
-
-const extractErrorInfo = (error: unknown): ErrorInfo => {
-  if (error instanceof Error) {
-    return { errorMsg: error.message, detail: '' };
-  }
-
-  if (typeof error === 'object' && error !== null) {
-    const errorRecord = error as Record<string, unknown>;
-    const errorMsg = String(
-      errorRecord.message ??
-        errorRecord.details ??
-        errorRecord.hint ??
-        JSON.stringify(errorRecord)
-    );
-    const detail = errorRecord.code ? `[Code: ${String(errorRecord.code)}]` : '';
-    return { errorMsg, detail };
-  }
-
-  return { errorMsg: String(error), detail: '' };
-};
-
-const toMetadataRecord = (metadata: unknown): Record<string, unknown> =>
-  typeof metadata === 'object' && metadata !== null
-    ? (metadata as Record<string, unknown>)
-    : {};
 
 // ============================================================================
 // Context
@@ -111,9 +82,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setUser(nextUser);
   }, []);
 
-  // Load user from storage on mount and verify against database when available.
+  // Initialize Supabase Auth listener + restore session on mount
   useEffect(() => {
     let mounted = true;
+
+    // Initialize auth state listener (handles OAuth callbacks, token refresh, etc.)
+    SupabaseAuthService.initialize();
 
     const init = async () => {
       const storedUser = await UserPersistenceService.initialize();
@@ -129,24 +103,37 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         return;
       }
 
+      // Verify stored user against Railway API
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', storedUser.profileId)
-          .maybeSingle();
+        const { railwayClient } = await import('../services/api/RailwayClient');
 
-        if (error || !data) {
-          Logger.warn(
-            `[UserContext] Stored user ${storedUser.nickname} not found in new DB. Clearing session.`
-          );
+        // Check if we have a valid Supabase session
+        const session = await SupabaseAuthService.getSession();
+
+        if (session) {
+          // Session exists — verify profile via Railway
+          const profile = await railwayClient
+            .get<{ id: string }>('/api/v1/profile')
+            .catch(() => null);
+
+          if (profile) {
+            if (mounted) commitUser(storedUser);
+          } else {
+            // Profile not found on server — clear local session
+            Logger.warn('[UserContext] Profile not found on server. Clearing session.');
+            UserPersistenceService.clear();
+            await SupabaseAuthService.signOut();
+            if (mounted) commitUser(null);
+          }
+        } else {
+          // No Supabase session — clear stored user (JWT expired/missing)
+          Logger.warn('[UserContext] No Supabase session. Clearing stored user.');
           UserPersistenceService.clear();
           if (mounted) commitUser(null);
-        } else if (mounted) {
-          commitUser(storedUser);
         }
       } catch (err) {
         Logger.error('[UserContext] Failed to verify session', err);
+        // Keep stored user on network errors (offline support)
         if (mounted) commitUser(storedUser);
       }
 
@@ -172,112 +159,61 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       try {
-        const { PlayerIdentityService } =
-          await import('../services/auth/PlayerIdentityService');
-        const identityHash = await PlayerIdentityService.generatePlayerHash(nickname);
+        // 1. Check if we already have a Supabase session
+        let session = await SupabaseAuthService.getSession();
 
-        const { data: existingProfile, error: fetchError } = await supabase
-          .from('profiles')
-          .select('id, metadata')
-          .eq('display_name', nickname)
-          .maybeSingle();
+        if (!session) {
+          // 2. Create anonymous Supabase Auth user → gets a real JWT
+          const authResult = await SupabaseAuthService.signInAnonymously(nickname);
 
-        if (fetchError) {
-          Logger.error(
-            '[UserContext] Failed to check for existing profile',
-            fetchError
-          );
-          throw fetchError;
-        }
-
-        if (existingProfile) {
-          const metadata = toMetadataRecord(existingProfile.metadata);
-          const storedHash = metadata.identity_hash as string | undefined;
-
-          if (storedHash && storedHash !== identityHash) {
-            Logger.warn(
-              `[UserContext] Identity violation for ${nickname}: Hash mismatch`
-            );
+          if (!authResult.success || !authResult.session) {
             return {
               success: false,
-              error: 'Nickname tied to another device. Access denied.',
+              error: authResult.error ?? 'Authentication failed',
             };
           }
 
-          const existingUser = createLegacyUser(existingProfile.id, nickname);
-          UserPersistenceService.saveUser(existingUser);
-          commitUser(existingUser);
-
-          const { DeviceProfiler } =
-            await import('../services/analytics/DeviceProfiler');
-          const fingerprint = DeviceProfiler.getFingerprint();
-
-          await supabase
-            .from('profiles')
-            .update({
-              last_seen_at: new Date(existingUser.lastSeenAt).toISOString(),
-              metadata: {
-                ...metadata,
-                identity_hash: identityHash,
-                last_device_fingerprint: fingerprint,
-              },
-            })
-            .eq('id', existingProfile.id);
-
-          return { success: true };
+          session = authResult.session;
         }
 
-        const { DeviceProfiler } = await import('../services/analytics/DeviceProfiler');
-        const fingerprint = DeviceProfiler.getFingerprint();
+        // 3. Create or fetch profile via Railway API (JWT is auto-attached)
+        const { railwayClient } = await import('../services/api/RailwayClient');
 
-        const now = Date.now();
-        const { data: newProfile, error } = await supabase
-          .from('profiles')
-          .insert({
-            display_name: nickname,
-            is_tester: true,
-            metadata: {
-              identity_hash: identityHash,
-              last_device_fingerprint: fingerprint,
-            },
-            created_at: new Date(now).toISOString(),
-            last_seen_at: new Date(now).toISOString(),
-          })
-          .select()
-          .single();
+        type ProfileResponse = { id: string; nickname?: string; display_name?: string };
+        let profile: ProfileResponse;
 
-        if (error) {
-          if (error.code === '23505') {
-            return {
-              success: false,
-              error: 'Nickname already taken (Internal Conflict)',
-            };
-          }
-          throw error;
+        try {
+          // Try to get existing profile first
+          profile = await railwayClient.get<ProfileResponse>('/api/v1/profile');
+        } catch {
+          // Profile doesn't exist — create it
+          profile = await railwayClient.post<ProfileResponse>('/api/v1/profile', {
+            nickname: nickname.trim(),
+          });
         }
 
-        const createdUser = createLegacyUser(newProfile.id, nickname, now);
-        UserPersistenceService.saveUser(createdUser);
-        commitUser(createdUser);
+        // 4. Store locally
+        const legacyUser = createLegacyUser(profile.id, nickname.trim());
+        UserPersistenceService.saveUser(legacyUser);
+        commitUser(legacyUser);
 
+        Logger.info(`[UserContext] Login successful: ${nickname} (${profile.id})`);
         return { success: true };
       } catch (error: unknown) {
-        const { errorMsg, detail } = extractErrorInfo(error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
 
-        Logger.error(
-          `[UserContext] Identity/Registration error: ${errorMsg} ${detail}`,
-          error,
-          {
-            nickname,
-            context: 'login/register',
-          }
-        );
+        Logger.error(`[UserContext] Login error: ${errorMsg}`, error);
+
+        // Handle specific errors
+        if (errorMsg.includes('Nickname already taken')) {
+          return { success: false, error: 'Nickname already taken' };
+        }
 
         return {
           success: false,
           error: errorMsg.includes('fetch')
             ? 'Connection to server failed. Check your internet.'
-            : `Identity verification failed: ${errorMsg}`,
+            : `Login failed: ${errorMsg}`,
         };
       }
     },
@@ -289,6 +225,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     UserPersistenceService.clear();
     anonymousProfileIdRef.current = createAnonymousProfileId();
     commitUser(null);
+
+    // Sign out from Supabase (non-blocking)
+    void SupabaseAuthService.signOut().catch(() => {
+      // Silent — user is already logged out locally
+    });
   }, [commitUser]);
 
   // Update last seen
@@ -307,10 +248,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     try {
       if (isRemoteMode()) {
-        void supabase
-          .from('profiles')
-          .update({ last_seen_at: new Date(now).toISOString() })
-          .eq('id', currentUser.profileId);
+        const { railwayClient } = await import('../services/api/RailwayClient');
+        void railwayClient.patch('/api/v1/profile', {}).catch(() => {
+          // Silent — not critical
+        });
       }
     } catch (error) {
       Logger.error('[UserContext] Failed to update lastSeenAt', error);

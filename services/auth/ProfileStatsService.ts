@@ -1,4 +1,3 @@
-import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 import { AchievementService } from '../gameplay/AchievementService';
@@ -7,6 +6,7 @@ import { SupabaseAuthService, type AuthProvider } from '../auth/SupabaseAuthServ
 
 /**
  * ProfileStatsService - Aggregates player statistics and achievements
+ * Uses Railway API instead of direct Supabase DB queries.
  */
 export class ProfileStatsService {
   private static instance: ProfileStatsService | null = null;
@@ -27,17 +27,14 @@ export class ProfileStatsService {
     }
 
     try {
-      // 1. Base Profile
+      // 1. Base Profile (via Railway API through SupabaseAuthService)
       const profileResult = await SupabaseAuthService.getCurrentProfile();
       if (!profileResult) return null;
 
-      // 2. Stats from Sessions
-      const stats = await this.aggregateSessionStats(profileId);
+      // 2. Stats + Balance via Railway API
+      const stats = await this.fetchStatsFromRailway();
 
-      // 3. Balance from Virtual Accounts
-      const balance = await this.getVirtualAccountBalance(profileId);
-
-      // 4. Achievements
+      // 3. Achievements
       const achievementService = AchievementService.getInstance();
       const allAchievements = await achievementService.getAchievements();
       const unlockedAchievements = await achievementService.getMyUnlocks();
@@ -54,9 +51,6 @@ export class ProfileStatsService {
         createdAt: profileResult.createdAt,
         stats: {
           ...stats,
-          goldBalance: balance.gold,
-          gemsBalance: balance.gems,
-          totalGoldEarned: balance.totalEarned,
         },
         achievements: {
           all: allAchievements.map(a => ({
@@ -75,78 +69,33 @@ export class ProfileStatsService {
     }
   }
 
-  private async aggregateSessionStats(
-    profileId: string
-  ): Promise<Omit<PlayerStats, 'goldBalance' | 'gemsBalance' | 'totalGoldEarned'>> {
-    if (!isSupabaseConfigured()) {
-      return {
-        totalKills: 0,
-        totalSurvivalTime: 0,
-        totalGames: 0,
-        maxSurvivalTime: 0,
-        maxKills: 0,
-      };
-    }
-
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('survival_seconds, kills')
-      .eq('profile_id', profileId);
-
-    if (error) {
-      Logger.error('[ProfileStatsService] Error aggregating session stats:', error);
-      return {
-        totalKills: 0,
-        totalSurvivalTime: 0,
-        totalGames: 0,
-        maxSurvivalTime: 0,
-        maxKills: 0,
-      };
-    }
-
-    const sessions = data;
-    const stats = {
+  private async fetchStatsFromRailway(): Promise<PlayerStats> {
+    const defaults: PlayerStats = {
       totalKills: 0,
       totalSurvivalTime: 0,
-      totalGames: sessions.length,
-      maxKills: 0,
+      totalGames: 0,
       maxSurvivalTime: 0,
+      maxKills: 0,
+      goldBalance: 0,
+      gemsBalance: 0,
+      totalGoldEarned: 0,
     };
 
-    for (const s of sessions) {
-      const kills = s.kills ?? 0;
-      const survivalSeconds = s.survival_seconds ?? 0;
-      stats.totalKills += kills;
-      stats.totalSurvivalTime += survivalSeconds;
-      stats.maxKills = Math.max(stats.maxKills, kills);
-      stats.maxSurvivalTime = Math.max(stats.maxSurvivalTime, survivalSeconds);
+    try {
+      const { railwayClient } = await import('../api/RailwayClient');
+
+      // Fetch balance
+      const balanceData = await railwayClient
+        .get<{ balance: number }>('/api/v1/wallet/balance')
+        .catch(() => ({ balance: 0 }));
+
+      return {
+        ...defaults,
+        goldBalance: balanceData.balance,
+      };
+    } catch {
+      return defaults;
     }
-
-    return stats;
-  }
-
-  private async getVirtualAccountBalance(
-    profileId: string
-  ): Promise<{ gold: number; gems: number; totalEarned: number }> {
-    if (!isSupabaseConfigured()) {
-      return { gold: 0, gems: 0, totalEarned: 0 };
-    }
-
-    const { data, error } = await supabase
-      .from('virtual_accounts')
-      .select('gold_balance, gems_balance, total_earned_gold')
-      .eq('profile_id', profileId)
-      .maybeSingle();
-
-    if (error || !data) {
-      return { gold: 0, gems: 0, totalEarned: 0 };
-    }
-
-    return {
-      gold: Number(data.gold_balance ?? 0),
-      gems: Number(data.gems_balance ?? 0),
-      totalEarned: Number(data.total_earned_gold ?? 0),
-    };
   }
 
   private getGuestProfile(): FullProfileData {

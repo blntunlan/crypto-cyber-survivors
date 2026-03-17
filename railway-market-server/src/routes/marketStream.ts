@@ -124,16 +124,13 @@ router.get('/history', asyncHandler(async (req: Request, res: Response) => {
     const pair = (req.query.pair as string) ?? 'BTC';
     const limit = Math.min(Number(req.query.limit) || 300, 1000);
 
-    // Map short pair to DB format (BTC -> BTC-USD)
-    const dbPair = pair.includes('-') ? pair : `${pair}-USD`;
-
     const { rows } = await query(
       `SELECT price, volume, timestamp
        FROM price_history
        WHERE pair = $1
        ORDER BY timestamp DESC
        LIMIT $2`,
-      [dbPair, limit]
+      [pair, limit]
     );
 
     // Reverse to chronological order

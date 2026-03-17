@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SupabaseHealthService } from '../../../services/system/SupabaseHealthService';
-import { supabase, isSupabaseConfigured } from '../../../services/supabase/client';
 
-vi.mock('../../../services/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
-  isSupabaseConfigured: vi.fn(),
+const mockRailwayClient = {
+  get: vi.fn(),
+};
+
+vi.mock('../../../services/api/RailwayClient', () => ({
+  railwayClient: mockRailwayClient,
 }));
 
 vi.mock('../../../services/system/Logger', () => ({
@@ -18,112 +18,82 @@ vi.mock('../../../services/system/Logger', () => ({
   },
 }));
 
-vi.mock('../../../services/core/EventBus', () => ({
-  EventBus: {
-    emit: vi.fn(),
-    on: vi.fn(),
-  },
-}));
-
 describe('SupabaseHealthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (SupabaseHealthService as any).reset();
   });
 
-  const createMockChain = (data: any, error: any = null, count: number = 0) => {
-    const chain = {
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      gt: vi.fn().mockReturnThis(),
-      lt: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      neq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data, error }),
-      maybeSingle: vi.fn().mockResolvedValue({ data, error }),
-      then: (resolve: any) => resolve({ data, error, count }),
-    };
-    return chain;
-  };
-
-  it('should return unhealthy if Supabase is not configured', async () => {
-    (isSupabaseConfigured as any).mockReturnValue(false);
-
-    const result = await SupabaseHealthService.runHealthCheck();
-
-    expect(result.status).toBe('unhealthy');
-    expect(result.summary).toContain('Supabase not configured');
-  });
-
-  it('should return healthy if all checks pass', async () => {
-    (isSupabaseConfigured as any).mockReturnValue(true);
-
-    (supabase.from as any).mockImplementation((table: string) => {
-      if (table === 'schema_versions') {
-        return createMockChain({ version: '1.0.0' }, null, 1);
-      }
-      return createMockChain([], null, 10); // Assume tables exist and have rows
+  it('should return healthy when Railway DB is connected', async () => {
+    mockRailwayClient.get.mockResolvedValue({
+      pipeline: { binanceConnected: true, dbConnected: true },
+      database: { pool: { totalCount: 5, idleCount: 3, waitingCount: 0 } },
     });
 
     const result = await SupabaseHealthService.runHealthCheck();
 
     expect(result.status).toBe('healthy');
+    expect(result.summary).toContain('connected');
   });
 
-  it('should detect missing tables', async () => {
-    (isSupabaseConfigured as any).mockReturnValue(true);
-
-    (supabase.from as any).mockImplementation((table: string) => {
-      if (table === 'profiles') {
-        return createMockChain(null, { message: 'Table not found' }, 0);
-      }
-      return createMockChain([], null, 1);
+  it('should return unhealthy when Railway DB is disconnected', async () => {
+    mockRailwayClient.get.mockResolvedValue({
+      pipeline: { binanceConnected: false, dbConnected: false },
+      database: { pool: { totalCount: 0, idleCount: 0, waitingCount: 0 } },
     });
 
     const result = await SupabaseHealthService.runHealthCheck();
 
     expect(result.status).toBe('unhealthy');
-    expect(
-      result.recommendations.some(
-        r => r.includes('Missing tables') && r.includes('profiles')
-      )
-    ).toBe(true);
+    expect(result.summary).toContain('disconnected');
   });
 
-  it('should detect slow queries', async () => {
-    (isSupabaseConfigured as any).mockReturnValue(true);
-
-    // Mock performance.now to simulate delay
-    let callCount = 0;
-    const originalNow = global.performance.now;
-    global.performance.now = vi.fn(() => {
-      callCount++;
-      return callCount * 600; // Each call adds 600ms
-    });
-
-    (supabase.from as any).mockReturnValue(
-      createMockChain({ version: '1.0.0' }, null, 1)
-    );
+  it('should return unhealthy when Railway API is unreachable', async () => {
+    mockRailwayClient.get.mockRejectedValue(new Error('Network error'));
 
     const result = await SupabaseHealthService.runHealthCheck();
 
-    expect(result.status).toBe('degraded');
-    expect(result.recommendations.some(r => r.includes('Slow queries detected'))).toBe(
-      true
-    );
-
-    global.performance.now = originalNow;
+    expect(result.status).toBe('unhealthy');
+    expect(result.summary).toContain('UNHEALTHY');
   });
 
-  it('should validate individual tables', async () => {
-    (isSupabaseConfigured as any).mockReturnValue(true);
+  it('should ping Railway health endpoint', async () => {
+    mockRailwayClient.get.mockResolvedValue({ status: 'ok' });
 
-    (supabase.from as any).mockReturnValue(createMockChain([], null, 10));
+    const result = await SupabaseHealthService.ping();
 
+    expect(result.ok).toBe(true);
+    expect(result.latencyMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should return failed ping when Railway is unreachable', async () => {
+    mockRailwayClient.get.mockRejectedValue(new Error('Connection refused'));
+
+    const result = await SupabaseHealthService.ping();
+
+    expect(result.ok).toBe(false);
+    expect(result.latencyMs).toBe(-1);
+  });
+
+  it('should validate individual tables (stub always returns valid)', async () => {
     const result = await SupabaseHealthService.validateTable('profiles');
 
     expect(result.valid).toBe(true);
     expect(result.issues).toHaveLength(0);
+  });
+
+  it('should store and return last health check result', async () => {
+    expect(SupabaseHealthService.getLastResult()).toBeNull();
+
+    mockRailwayClient.get.mockResolvedValue({
+      pipeline: { binanceConnected: true, dbConnected: true },
+      database: { pool: { totalCount: 5, idleCount: 3, waitingCount: 0 } },
+    });
+
+    await SupabaseHealthService.runHealthCheck();
+
+    const lastResult = SupabaseHealthService.getLastResult();
+    expect(lastResult).not.toBeNull();
+    expect(lastResult?.status).toBe('healthy');
   });
 });

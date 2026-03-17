@@ -618,7 +618,7 @@ class SupabaseAuthServiceClass {
   // ============================================
 
   /**
-   * Get current user's profile from profiles table
+   * Get current user's profile via Railway API
    */
   async getProfile(): Promise<ProfileData | null> {
     if (!isSupabaseConfigured()) return null;
@@ -627,23 +627,17 @@ class SupabaseAuthServiceClass {
       const user = await this.getUser();
       if (!user) return null;
 
-      // Direct query to profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (profileError) return null;
-
-      return this.mapProfileData(profileData as Record<string, unknown>);
+      const { railwayClient } = await import('../api/RailwayClient');
+      const profileData =
+        await railwayClient.get<Record<string, unknown>>('/api/v1/profile');
+      return this.mapProfileData(profileData);
     } catch {
       return null;
     }
   }
 
   /**
-   * Update current user's profile
+   * Update current user's profile via Railway API
    */
   async updateProfile(updates: {
     displayName?: string;
@@ -660,9 +654,8 @@ class SupabaseAuthServiceClass {
         return { success: false, error: 'Not authenticated' };
       }
 
-      // Validate username format and update directly
+      // Validate username format
       if (updates.username) {
-        // Username validation: 3-16 alphanumeric + underscore
         const usernameRegex = /^[a-zA-Z0-9_]{3,16}$/;
         if (!usernameRegex.test(updates.username)) {
           return {
@@ -670,42 +663,23 @@ class SupabaseAuthServiceClass {
             error: 'Username must be 3-16 alphanumeric characters or underscores',
           };
         }
-
-        // Check if username is taken
-        const { data: existing } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', updates.username)
-          .neq('auth_user_id', user.id)
-          .single();
-
-        if (existing) {
-          return { success: false, error: 'Username already taken' };
-        }
       }
 
-      // Direct update for fields
-      const updateData: Record<string, unknown> = {};
-      if (updates.displayName) updateData.display_name = updates.displayName;
-      if (updates.avatarUrl) updateData.avatar_url = updates.avatarUrl;
-      if (updates.username) updateData.username = updates.username;
+      const patchData: Record<string, unknown> = {};
+      if (updates.displayName) patchData.nickname = updates.displayName;
+      if (updates.avatarUrl) patchData.avatar_url = updates.avatarUrl;
 
-      if (Object.keys(updateData).length > 1) {
-        const { error } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('auth_user_id', user.id);
-
-        if (error) {
-          return { success: false, error: error.message };
-        }
+      if (Object.keys(patchData).length > 0) {
+        const { railwayClient } = await import('../api/RailwayClient');
+        await railwayClient.patch('/api/v1/profile', patchData);
       }
 
-      Logger.info('[SupabaseAuth] Profile updated');
+      Logger.info('[SupabaseAuth] Profile updated via Railway');
       return { success: true };
     } catch (err) {
       Logger.error('[SupabaseAuth] Update profile exception:', err);
-      return { success: false, error: 'Failed to update profile' };
+      const msg = err instanceof Error ? err.message : 'Failed to update profile';
+      return { success: false, error: msg };
     }
   }
 
@@ -783,24 +757,17 @@ class SupabaseAuthServiceClass {
         return { success: false, error: 'Not authenticated' };
       }
 
-      const updateData: Record<string, unknown> = {};
-      if (updates.displayName) updateData.display_name = updates.displayName;
-      if (updates.avatarUrl) updateData.avatar_url = updates.avatarUrl;
-      if (updates.username) updateData.username = updates.username;
-      updateData.updated_at = new Date().toISOString();
+      const patchData: Record<string, unknown> = {};
+      if (updates.displayName) patchData.nickname = updates.displayName;
+      if (updates.avatarUrl) patchData.avatar_url = updates.avatarUrl;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('auth_user_id', user.id)
-        .select()
-        .single();
+      const { railwayClient } = await import('../api/RailwayClient');
+      const data = await railwayClient.patch<Record<string, unknown>>(
+        '/api/v1/profile',
+        patchData
+      );
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      const profile = this.mapProfileData(data as Record<string, unknown>);
+      const profile = this.mapProfileData(data);
       return { success: true, profile };
     } catch (err) {
       Logger.error('[SupabaseAuth] Update profile with auth error:', err);

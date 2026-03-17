@@ -112,39 +112,31 @@ export const AnalyticsDashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     dispatch({ loading: true });
     try {
-      const { supabase, isSupabaseConfigured } =
-        await import('../../services/core/Supabase');
+      const { railwayClient } = await import('../../services/api/RailwayClient');
 
-      if (!isSupabaseConfigured() || !supabase) {
-        Logger.warn('[AnalyticsDashboard] Supabase not configured');
-        dispatch({ loading: false });
-        return;
-      }
+      // Fetch debug endpoint for analytics data
+      const debugData = await railwayClient.get<{
+        activity: {
+          sessionStats: { verified_24h: number; unverified_24h: number };
+          recentErrors_1h: number;
+        };
+        database: { tableCounts: Record<string, number> };
+      }>('/debug');
 
       const updates: Partial<DashboardState> = {};
 
-      // Use Promise.all() for independent operations to eliminate waterfalls
-      const [
-        { data: summaryData },
-        { data: sessionData },
-        { data: errorData },
-        { data: deviceData },
-      ] = await Promise.all([
-        supabase.rpc('get_dashboard_summary'),
-        supabase.from('v_analytics_sessions').select('*').limit(7),
-        supabase.from('v_analytics_top_errors').select('*').limit(10),
-        supabase.from('v_analytics_performance_by_device').select('*').limit(10),
-      ]);
-
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (summaryData) {
-        updates.summary = Array.isArray(summaryData)
-          ? summaryData[0]
-          : (summaryData as DashboardSummary);
-      }
-      if (sessionData) updates.sessions = sessionData;
-      if (errorData) updates.errors = errorData;
-      if (deviceData) updates.devices = deviceData;
+      updates.summary = {
+        total_players: debugData.database?.tableCounts?.profiles ?? 0,
+        active_players_24h: 0,
+        active_players_7d: 0,
+        total_sessions: debugData.database?.tableCounts?.sessions ?? 0,
+        sessions_today:
+          (debugData.activity?.sessionStats?.verified_24h ?? 0) +
+          (debugData.activity?.sessionStats?.unverified_24h ?? 0),
+        avg_session_time_seconds: 0,
+        total_errors_24h: debugData.activity?.recentErrors_1h ?? 0,
+        error_rate: 0,
+      };
 
       updates.lastUpdate = new Date();
       updates.loading = false;

@@ -52,10 +52,6 @@ export const supabase = {
     return clientInstance?.realtime;
   },
   channel: (name: string) => clientInstance!.channel(name),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  from: (relation: string) => clientInstance!.from(relation as any),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rpc: (fn: string, args?: unknown) => clientInstance!.rpc(fn as any, args),
 } as unknown as SupabaseClient<Database>;
 
 /**

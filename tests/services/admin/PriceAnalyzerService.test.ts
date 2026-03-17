@@ -1,17 +1,14 @@
-// Mock Supabase
 import { vi } from 'vitest';
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-  },
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+
+const mockRailwayClient = {
+  get: vi.fn(),
+};
+
+vi.mock('../../../services/api/RailwayClient', () => ({
+  railwayClient: mockRailwayClient,
 }));
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { supabase } from '../../../services/core/Supabase';
 import { priceAnalyzer } from '../../../services/admin/PriceAnalyzerService';
 
 // Mock Logger
@@ -52,34 +49,25 @@ describe('PriceAnalyzerService', () => {
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it('should load history from Supabase', async () => {
-    const mockData = [
+  it('should load history from Railway API', async () => {
+    const btcData = [
       {
-        pair: 'BTC',
         price: 49000,
+        volume: 100,
         timestamp: new Date(Date.now() - 1000).toISOString(),
-        source: 'binance',
       },
-      {
-        pair: 'BTC',
-        price: 50000,
-        timestamp: new Date().toISOString(),
-        source: 'binance',
-      },
+      { price: 50000, volume: 200, timestamp: new Date().toISOString() },
     ];
 
-    const orderMock = vi.fn().mockResolvedValue({ data: mockData, error: null });
-    const gteMock = vi.fn().mockReturnValue({ order: orderMock });
-    const selectMock = vi.fn().mockReturnValue({ gte: gteMock });
-    const fromSpy = vi
-      .spyOn(supabase as any, 'from')
-      .mockReturnValue({ select: selectMock } as any);
+    mockRailwayClient.get.mockImplementation((url: string) => {
+      if (url.includes('pair=BTC')) return Promise.resolve(btcData);
+      return Promise.resolve([]);
+    });
 
     await priceAnalyzer.loadHistoryFromSupabase();
     expect(priceAnalyzer.isHistoryLoaded()).toBe(true);
     expect(priceAnalyzer.getHistory('BTC').length).toBe(2);
     expect(priceAnalyzer.getAnalysis('BTC')?.currentPrice).toBe(50000);
-    expect(fromSpy).toHaveBeenCalledWith('price_logs');
   });
 
   it('should calculate volatility and trend with enough data', () => {

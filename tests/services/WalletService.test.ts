@@ -9,20 +9,23 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
-// Helper to mock fully chained Supabase calls
-const mockSupabaseChain = {
-  select: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  order: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockReturnThis(),
-  single: vi.fn(),
+const mockRailwayClient = {
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
 };
 
-vi.mock('../../services/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => mockSupabaseChain),
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: mockRailwayClient,
+}));
+
+vi.mock('../../services/system/Logger', () => ({
+  Logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 describe('WalletService', () => {
@@ -37,27 +40,22 @@ describe('WalletService', () => {
       expect(balance).toBe(0);
     });
 
-    it('should return gold_balance from Supabase', async () => {
+    it('should return balance from Railway API', async () => {
       vi.mocked(UserSessionService.getProfileId).mockReturnValue(
         '00000000-0000-0000-0000-000000000001'
       );
-      mockSupabaseChain.single.mockResolvedValue({
-        data: { gold_balance: 150 },
-        error: null,
-      });
+      mockRailwayClient.get.mockResolvedValue({ balance: 150 });
 
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(150);
+      expect(mockRailwayClient.get).toHaveBeenCalledWith('/api/v1/wallet/balance');
     });
 
     it('should return 0 on error', async () => {
       vi.mocked(UserSessionService.getProfileId).mockReturnValue(
         '00000000-0000-0000-0000-000000000001'
       );
-      mockSupabaseChain.single.mockResolvedValue({
-        data: null,
-        error: { message: 'DB Error' },
-      });
+      mockRailwayClient.get.mockRejectedValue(new Error('Network error'));
 
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(0);
@@ -71,34 +69,12 @@ describe('WalletService', () => {
       expect(history).toEqual([]);
     });
 
-    it('should map DB transactions to WalletTransactions', async () => {
+    it('should return empty array (server endpoint not yet implemented)', async () => {
       vi.mocked(UserSessionService.getProfileId).mockReturnValue(
         '00000000-0000-0000-0000-000000000001'
       );
-      const mockData = [
-        {
-          id: '00000000-0000-0000-0000-000000000002',
-          amount: 50,
-          balance_after: 100,
-          transaction_type: 'LOOT',
-          currency: 'GOLD',
-          created_at: '2024-01-01',
-        },
-      ];
-      mockSupabaseChain.limit.mockResolvedValue({
-        data: mockData,
-        error: null,
-      });
-
       const history = await WalletService.getInstance().getHistory();
-      expect(history[0]).toEqual({
-        id: '00000000-0000-0000-0000-000000000002',
-        amount: 50,
-        balanceAfter: 100,
-        type: 'LOOT',
-        currency: 'GOLD',
-        createdAt: '2024-01-01',
-      });
+      expect(history).toEqual([]);
     });
   });
 });

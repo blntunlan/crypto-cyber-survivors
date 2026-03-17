@@ -46,19 +46,13 @@ vi.mock('lucide-react', () => ({
   User: () => <div data-testid="icon-user" />,
 }));
 
-// Mock Supabase
-const { mockSupabase } = vi.hoisted(() => ({
-  mockSupabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-  },
-}));
+// Mock Railway Client
+const mockRailwayGet = vi.fn();
 
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: mockSupabase as any,
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+vi.mock('../../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: (...args: any[]) => mockRailwayGet(...args),
+  },
 }));
 
 // Mock UserSessionService
@@ -106,7 +100,7 @@ describe('LeaderboardPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (mockSupabase.limit as any).mockResolvedValue({ data: mockEntries, error: null });
+    mockRailwayGet.mockResolvedValue({ entries: mockEntries });
   });
 
   afterEach(() => {
@@ -116,7 +110,7 @@ describe('LeaderboardPanel', () => {
   it('should render leaderboard entries after fetching', async () => {
     render(<LeaderboardPanel isVisible={true} />);
 
-    // Header should be visible - text is "hud.leaderboard_title" in the component
+    // Header should be visible
     expect(screen.getByText('hud.leaderboard_title')).toBeInTheDocument();
 
     // Entries should appear
@@ -140,14 +134,14 @@ describe('LeaderboardPanel', () => {
       expect(screen.getByText('Player1')).toBeInTheDocument();
     });
 
-    // Click header to collapse - text is "hud.leaderboard_title" in the component
+    // Click header to collapse
     const header = screen.getByText('hud.leaderboard_title').parentElement
       ?.parentElement;
     if (!header) throw new Error('Header not found');
 
     fireEvent.click(header);
 
-    // Entries should be hidden (check queryByText)
+    // Entries should be hidden
     expect(screen.queryByText('Player1')).not.toBeInTheDocument();
 
     // Click again to expand
@@ -159,19 +153,19 @@ describe('LeaderboardPanel', () => {
     render(<LeaderboardPanel isVisible={true} />);
 
     await waitFor(() => {
-      expect(mockSupabase.limit).toHaveBeenCalled();
+      expect(mockRailwayGet).toHaveBeenCalled();
     });
 
     const refreshButton = screen.getByTitle('hud.refresh_pool');
     fireEvent.click(refreshButton);
 
     await waitFor(() => {
-      expect(mockSupabase.limit).toHaveBeenCalledTimes(2);
+      expect(mockRailwayGet).toHaveBeenCalledTimes(2);
     });
   });
 
   it('should show "hud.no_scores" when list is empty', async () => {
-    (mockSupabase.limit as any).mockResolvedValueOnce({ data: [], error: null });
+    mockRailwayGet.mockResolvedValueOnce({ entries: [] });
 
     render(<LeaderboardPanel isVisible={true} />);
 
@@ -184,9 +178,9 @@ describe('LeaderboardPanel', () => {
     render(<LeaderboardPanel isVisible={true} />);
 
     await waitFor(() => {
-      // v_leaderboard returns seconds (300s = 5:00)
+      // max_survival_time is in seconds (300s = 5:00, 150s = 2:30)
+      // Component converts to ms (* 1000) then formats
       expect(screen.getByText('5:00')).toBeInTheDocument();
-      // 150s = 2:30
       expect(screen.getByText('2:30')).toBeInTheDocument();
     });
   });
@@ -201,13 +195,10 @@ describe('LeaderboardPanel', () => {
 
     render(<LeaderboardPanel isVisible={true} />);
 
-    // In retro mode, it should still show the entries
     await waitFor(() => {
       expect(screen.getByText('Player1')).toBeInTheDocument();
     });
 
-    // Retro mode uses specific classes/styles (e.g., retro-player-highlight)
-    // We can't easily check styles in JSDOM, but we can check if it rendered without crashing
     expect(screen.getByText('10,000')).toBeInTheDocument();
 
     // Reset mock for other tests
@@ -223,10 +214,7 @@ describe('LeaderboardPanel', () => {
         max_survival_time: 10,
       },
     ];
-    (mockSupabase.limit as any).mockResolvedValueOnce({
-      data: anonymousEntries,
-      error: null,
-    });
+    mockRailwayGet.mockResolvedValueOnce({ entries: anonymousEntries });
 
     render(<LeaderboardPanel isVisible={true} />);
 

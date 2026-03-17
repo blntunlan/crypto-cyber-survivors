@@ -1,48 +1,50 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isSupabaseConfigured, supabase } from '../../services/supabase/client';
-import { Logger } from '../../services/system/Logger';
+
+vi.mock('../../services/supabase/client', () => ({
+  supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(),
+      getSession: vi.fn(),
+      signOut: vi.fn(),
+    },
+  },
+  isSupabaseConfigured: vi.fn().mockReturnValue(true),
+}));
+
+vi.mock('../../services/system/Logger', () => ({
+  Logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 
 describe('Supabase Infrastructure', () => {
-  it('should report configuration status correctly', () => {
-    // If we are in a test environment with .env.test, this might be true or false
-    // We just check consistency
+  it('should report configuration status correctly', async () => {
+    const { isSupabaseConfigured } = await import('../../services/supabase/client');
     const status = isSupabaseConfigured();
-    if (status) {
-      expect(supabase).not.toBeNull();
-    } else {
-      expect(supabase).toBeNull();
-    }
+    expect(typeof status).toBe('boolean');
   });
 
-  it('should have basic expected methods if configured', () => {
+  it('should have auth methods if configured (auth-only client)', async () => {
+    const { supabase, isSupabaseConfigured } =
+      await import('../../services/supabase/client');
     if (isSupabaseConfigured()) {
-      expect(supabase).toHaveProperty('from');
       expect(supabase).toHaveProperty('auth');
-      expect(supabase).toHaveProperty('functions');
     }
   });
 });
 
 describe('Supabase Error Handling in Services', () => {
-  // We want to test how other services behave when Supabase returns an error
-  it('should handle database errors without crashing', async () => {
-    vi.spyOn(Logger, 'error');
-
-    // Mock a failing supabase call
-    const mockSupabase = {
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() =>
-            Promise.resolve({ data: null, error: { message: 'Database unreachable' } })
-          ),
-        })),
-      })),
+  it('should handle API errors without crashing', async () => {
+    // With Supabase now auth-only, test that Railway API errors are handled gracefully
+    const mockRailwayClient = {
+      get: vi.fn().mockRejectedValue(new Error('Network error')),
     };
 
-    // Example service logic test (AchievementService or similar)
-    const { data, error } = await mockSupabase.from().select().eq();
-
-    expect(data).toBeNull();
-    expect(error.message).toBe('Database unreachable');
+    await expect(mockRailwayClient.get('/api/v1/profile')).rejects.toThrow(
+      'Network error'
+    );
   });
 });

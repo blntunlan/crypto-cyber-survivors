@@ -107,20 +107,25 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
   const pool = getPool();
   const dbHealthy = await SupabaseService.getInstance().checkHealth();
 
-  // DB table row counts (lightweight count estimates via pg_class)
-  type CountRow = { table_name: string; row_estimate: string };
+  // DB table row counts (exact counts, individually to handle missing tables)
   let tableCounts: Record<string, number> = {};
   try {
-    const { rows } = await pool.query<CountRow>(
-      `SELECT relname AS table_name, reltuples::BIGINT AS row_estimate
-       FROM pg_class
-       WHERE relkind = 'r'
-         AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
-       ORDER BY reltuples DESC`
-    );
-    tableCounts = Object.fromEntries(
-      rows.map(r => [r.table_name, Number(r.row_estimate)])
-    );
+    const tables = [
+      'profiles', 'sessions', 'virtual_accounts', 'ledger',
+      'market_state', 'price_history', 'error_reports',
+      'cheat_attempts', 'device_profiles', 'performance_metrics',
+      'identities', 'meta_progression', 'daily_challenges',
+      'challenge_completions', 'challenge_seed_log', 'game_replays',
+    ];
+    // Count each table individually to avoid one missing table breaking all counts
+    for (const t of tables) {
+      try {
+        const { rows: r } = await pool.query<{ count: string }>(`SELECT COUNT(*)::TEXT AS count FROM ${t}`);
+        tableCounts[t] = Number(r[0]?.count ?? 0);
+      } catch {
+        tableCounts[t] = -1; // table doesn't exist
+      }
+    }
   } catch {
     tableCounts = { error: -1 };
   }
@@ -132,13 +137,23 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
     waitingCount: pool.waitingCount,
   };
 
-  // Check for recent errors (last 1 hour)
+  // Recent errors: count + last 10 details
   let recentErrors = 0;
+  type ErrorRow = { error_type: string; message: string; severity: string; category: string; created_at: string };
+  let recentErrorDetails: ErrorRow[] = [];
   try {
-    const { rows } = await pool.query<{ count: string }>(
+    const { rows: countRows } = await pool.query<{ count: string }>(
       `SELECT COUNT(*) AS count FROM error_reports WHERE created_at > now() - INTERVAL '1 hour'`
     );
-    recentErrors = Number(rows[0]?.count ?? 0);
+    recentErrors = Number(countRows[0]?.count ?? 0);
+
+    const { rows: detailRows } = await pool.query<ErrorRow>(
+      `SELECT error_type, message, severity, category, created_at::TEXT
+       FROM error_reports
+       ORDER BY created_at DESC
+       LIMIT 10`
+    );
+    recentErrorDetails = detailRows;
   } catch { /* ignore */ }
 
   // Check for recent cheat attempts (last 24h)
@@ -204,6 +219,7 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
     activity: {
       sessionStats,
       recentErrors_1h: recentErrors,
+      recentErrorDetails,
       recentCheats_24h: recentCheats,
     },
     cleanup: cleanupStats,

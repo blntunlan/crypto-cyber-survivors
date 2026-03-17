@@ -23,7 +23,7 @@ import {
   ChevronDown,
   RefreshCw,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../../services/core/Supabase';
+import { railwayClient } from '../../services/api/RailwayClient';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/system/Logger';
 import { COLORS } from '../../config/Colors';
@@ -68,66 +68,39 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
   const currentNickname = UserSessionService.getNickname();
 
   const fetchLeaderboard = useCallback(async () => {
-    if (!isSupabaseConfigured() || !supabase) {
-      // Fallback for dev/unconfigured state
-      return;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('v_leaderboard')
-        .select('*')
-        .order('high_score', { ascending: false })
-        .order('max_survival_time', { ascending: false })
-        .order('total_kills', { ascending: false })
-        .limit(10);
+      const data = await railwayClient.get<{ entries: VLeaderboardEntry[] }>(
+        '/api/v1/leaderboard?limit=10&sort=high_score'
+      );
 
-      if (error) {
-        // Fallback to empty if table doesn't exist yet
-        Logger.warn('[Leaderboard] Fetch failed', error);
-        setEntries([]);
-        setLastUpdated(new Date());
-      } else {
-        // Map data using fallbacks for both OLD and NEW view schemas
-        const rankedEntries = (data as VLeaderboardEntry[])
-          .map((entry, index) => {
-            const name = (
-              entry.display_name ??
-              ((t('hud.anonymous') as string) || 'Anonymous')
-            ).trim();
-            return {
-              id: entry.profile_id ?? `entry-${index}`,
-              player_name: name,
-              score: entry.high_score ?? 0,
-              // v_leaderboard stores survival time in seconds; UI formatter expects ms.
-              survival_time_ms: (entry.max_survival_time ?? 0) * 1000,
-              created_at: new Date().toISOString(),
-              rank: index + 1,
-              avatar_url: entry.avatar_url,
-              auth_provider: entry.primary_auth_provider as
-                | AuthProvider
-                | 'email'
-                | 'nickname'
-                | null,
-            } as LeaderboardEntry;
-          })
-          // Filter out anonymous/empty names
-          .filter(entry => entry.player_name !== '');
+      const rankedEntries = (data.entries ?? [])
+        .map((entry, index) => {
+          const name = (
+            entry.display_name ??
+            ((t('hud.anonymous') as string) || 'Anonymous')
+          ).trim();
+          return {
+            id: entry.profile_id ?? `entry-${index}`,
+            player_name: name,
+            score: entry.high_score ?? 0,
+            survival_time_ms: (entry.max_survival_time ?? 0) * 1000,
+            created_at: new Date().toISOString(),
+            rank: index + 1,
+            avatar_url: entry.avatar_url,
+            auth_provider: entry.primary_auth_provider as
+              | AuthProvider
+              | 'email'
+              | 'nickname'
+              | null,
+          } as LeaderboardEntry;
+        })
+        .filter(entry => entry.player_name !== '');
 
-        setEntries(rankedEntries);
-        setLastUpdated(new Date());
-        Logger.debug('[Leaderboard] Fetched', {
-          count: rankedEntries.length,
-          source:
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            data.length > 0 && data[0] && 'display_name' in data[0]
-              ? 'new_view'
-              : 'old_view',
-        });
-      }
+      setEntries(rankedEntries);
+      setLastUpdated(new Date());
+      Logger.debug('[Leaderboard] Fetched', { count: rankedEntries.length });
     } catch (err) {
       Logger.error('[Leaderboard] Fetch failed', err);
-      // Fallback on crash
       setEntries([]);
     } finally {
       setLoading(false);
