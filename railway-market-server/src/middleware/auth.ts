@@ -31,7 +31,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as jwt.JwtPayload;
     const sub = decoded.sub;
 
     if (!sub || typeof sub !== 'string') {
