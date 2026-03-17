@@ -9,6 +9,7 @@ import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import twitterAuthRouter from './services/twitterAuth';
 import { closePool, getPool } from './db/pool';
+import { runMigrations } from './db/migrate';
 import { startHeartbeat, getSSEClientCount } from './routes/marketStream';
 import { asyncHandler } from './utils/asyncHandler';
 
@@ -262,6 +263,10 @@ async function startServer(): Promise<void> {
 
     // Initialize database service (validates DATABASE_URL)
     SupabaseService.getInstance();
+
+    // Run pending database migrations
+    await runMigrations();
+
     BinanceService.getInstance();
 
     // Start price logging
