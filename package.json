@@ -115,8 +115,6 @@
     "!(public|coverage|dist|node_modules|playwright-report|test-results|remotion-video|.agent|.agents)/**/*.md": [
       "prettier --write"
     ]
-  },
-  "optionalDependencies": {
-    "utf-8-validate": "5.0.10"
   }
 }
+
