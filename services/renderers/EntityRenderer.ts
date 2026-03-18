@@ -5,7 +5,7 @@ import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import {
-  createViewportBounds,
+  updateViewportBounds,
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
@@ -27,6 +27,7 @@ import { ELITE_CONFIG } from '../../config/EliteConfig';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private _viewportBounds: ViewportBounds = { left: 0, right: 0, top: 0, bottom: 0 };
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -46,7 +47,8 @@ export class EntityRenderer implements IRenderer {
     const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
 
     // Boundary Check: 50px padding to ensure smooth entry into screen
-    const bounds = createViewportBounds(
+    const bounds = updateViewportBounds(
+      this._viewportBounds,
       opts.width,
       opts.height,
       GAME_ENGINE.ENTITY_CULLING_PADDING
