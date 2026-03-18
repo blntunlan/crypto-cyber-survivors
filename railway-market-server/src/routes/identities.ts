@@ -1,7 +1,10 @@
 import { Router, type Request, type Response } from 'express';
+import { eq, and, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
-import { query } from '../db/pool';
+import { getDb } from '../db';
+import { profiles, identities } from '../db/schema';
+import { createIdentitySchema } from '../db/validation';
 import { Logger } from '../utils/logger';
 
 const router = Router();
@@ -11,54 +14,57 @@ const router = Router();
  */
 router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { provider, provider_user_id, provider_username, access_token, refresh_token, token_expires_at } =
-      req.body as {
-        provider?: string;
-        provider_user_id?: string;
-        provider_username?: string;
-        access_token?: string;
-        refresh_token?: string;
-        token_expires_at?: string;
-      };
-
-    if (!provider || !provider_user_id) {
-      res.status(400).json({ error: 'provider and provider_user_id are required' });
+    const parsed = createIdentitySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
       return;
     }
 
-    // Find profile
-    const { rows: profiles } = await query(
-      `SELECT id FROM profiles WHERE auth_user_id = $1`,
-      [req.authUserId]
-    );
+    const db = getDb();
 
-    if (profiles.length === 0) {
+    // Find profile
+    const profile = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.authUserId, req.authUserId!))
+      .limit(1);
+
+    if (profile.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const profileId = profiles[0].id;
+    const profileId = profile[0].id;
+    const data = parsed.data;
 
-    const { rows } = await query(
-      `INSERT INTO identities (profile_id, provider, provider_user_id, provider_username, access_token, refresh_token, token_expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (provider, provider_user_id) DO UPDATE SET
-         provider_username = EXCLUDED.provider_username,
-         access_token = EXCLUDED.access_token,
-         refresh_token = EXCLUDED.refresh_token,
-         token_expires_at = EXCLUDED.token_expires_at,
-         updated_at = now()
-       RETURNING id, provider, provider_user_id, provider_username, created_at`,
-      [
+    const rows = await db
+      .insert(identities)
+      .values({
         profileId,
-        provider,
-        provider_user_id,
-        provider_username ?? null,
-        access_token ?? null,
-        refresh_token ?? null,
-        token_expires_at ?? null,
-      ]
-    );
+        provider: data.provider,
+        providerUserId: data.provider_user_id,
+        providerUsername: data.provider_username ?? null,
+        accessToken: data.access_token ?? null,
+        refreshToken: data.refresh_token ?? null,
+        tokenExpiresAt: data.token_expires_at ? new Date(data.token_expires_at) : null,
+      })
+      .onConflictDoUpdate({
+        target: [identities.provider, identities.providerUserId],
+        set: {
+          providerUsername: sql`EXCLUDED.provider_username`,
+          accessToken: sql`EXCLUDED.access_token`,
+          refreshToken: sql`EXCLUDED.refresh_token`,
+          tokenExpiresAt: sql`EXCLUDED.token_expires_at`,
+          updatedAt: sql`now()`,
+        },
+      })
+      .returning({
+        id: identities.id,
+        provider: identities.provider,
+        providerUserId: identities.providerUserId,
+        providerUsername: identities.providerUsername,
+        createdAt: identities.createdAt,
+      });
 
     res.json(rows[0]);
   } catch (error) {
@@ -73,25 +79,30 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
 router.delete('/:provider', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { provider } = req.params;
+    const db = getDb();
 
-    const { rows: profiles } = await query(
-      `SELECT id FROM profiles WHERE auth_user_id = $1`,
-      [req.authUserId]
-    );
+    const profile = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.authUserId, req.authUserId!))
+      .limit(1);
 
-    if (profiles.length === 0) {
+    if (profile.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const profileId = profiles[0].id;
+    const deleted = await db
+      .delete(identities)
+      .where(
+        and(
+          eq(identities.profileId, profile[0].id),
+          eq(identities.provider, provider)
+        )
+      )
+      .returning({ id: identities.id });
 
-    const { rowCount } = await query(
-      `DELETE FROM identities WHERE profile_id = $1 AND provider = $2`,
-      [profileId, provider]
-    );
-
-    if (rowCount === 0) {
+    if (deleted.length === 0) {
       res.status(404).json({ error: 'Identity not found' });
       return;
     }

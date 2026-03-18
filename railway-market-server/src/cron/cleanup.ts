@@ -5,7 +5,8 @@
  * Periyodik olarak küçük batch'lerle çalışır
  */
 
-import { query } from '../db/pool';
+import { sql } from 'drizzle-orm';
+import { getDb } from '../db';
 import { Logger } from '../utils/logger';
 
 const RETENTION_HOURS = 24;
@@ -73,18 +74,20 @@ export class CleanupCron {
 
       Logger.info(`[Cleanup] Starting cleanup for records older than ${cutoffISO}`);
 
+      const db = getDb();
+
       // 1. Price history (24h retention)
       let deletedInBatch = 0;
       let iterations = 0;
       const maxIterations = 100;
 
       do {
-        const { rows } = await query<{ cleanup_old_price_history: string }>(
-          `SELECT cleanup_old_price_history($1, $2)`,
-          [cutoffISO, BATCH_SIZE]
+        const result = await db.execute(
+          sql`SELECT cleanup_old_price_history(${cutoffISO}::timestamptz, ${BATCH_SIZE})`
         );
 
-        const deletedCount = Number(rows[0]?.cleanup_old_price_history ?? 0);
+        const row = result.rows[0] as { cleanup_old_price_history?: string } | undefined;
+        const deletedCount = Number(row?.cleanup_old_price_history ?? 0);
         deletedInBatch = Number.isFinite(deletedCount) && deletedCount >= 0 ? deletedCount : 0;
 
         if (deletedInBatch === 0) break;
@@ -101,11 +104,11 @@ export class CleanupCron {
 
       // 2. Error reports (30-day retention)
       try {
-        const { rows: errRows } = await query<{ cleanup_old_error_reports: string }>(
-          `SELECT cleanup_old_error_reports(30, $1)`,
-          [BATCH_SIZE]
+        const errResult = await db.execute(
+          sql`SELECT cleanup_old_error_reports(30, ${BATCH_SIZE})`
         );
-        const errDeleted = Number(errRows[0]?.cleanup_old_error_reports ?? 0);
+        const errRow = errResult.rows[0] as { cleanup_old_error_reports?: string } | undefined;
+        const errDeleted = Number(errRow?.cleanup_old_error_reports ?? 0);
         if (errDeleted > 0) {
           totalDeleted += errDeleted;
           Logger.info(`[Cleanup] Deleted ${errDeleted} old error_reports`);
@@ -116,11 +119,11 @@ export class CleanupCron {
 
       // 3. Performance metrics (30-day retention)
       try {
-        const { rows: perfRows } = await query<{ cleanup_old_performance_metrics: string }>(
-          `SELECT cleanup_old_performance_metrics(30, $1)`,
-          [BATCH_SIZE]
+        const perfResult = await db.execute(
+          sql`SELECT cleanup_old_performance_metrics(30, ${BATCH_SIZE})`
         );
-        const perfDeleted = Number(perfRows[0]?.cleanup_old_performance_metrics ?? 0);
+        const perfRow = perfResult.rows[0] as { cleanup_old_performance_metrics?: string } | undefined;
+        const perfDeleted = Number(perfRow?.cleanup_old_performance_metrics ?? 0);
         if (perfDeleted > 0) {
           totalDeleted += perfDeleted;
           Logger.info(`[Cleanup] Deleted ${perfDeleted} old performance_metrics`);
@@ -131,11 +134,11 @@ export class CleanupCron {
 
       // 4. Cheat attempts (60-day retention)
       try {
-        const { rows: cheatRows } = await query<{ cleanup_old_cheat_attempts: string }>(
-          `SELECT cleanup_old_cheat_attempts(60, $1)`,
-          [BATCH_SIZE]
+        const cheatResult = await db.execute(
+          sql`SELECT cleanup_old_cheat_attempts(60, ${BATCH_SIZE})`
         );
-        const cheatDeleted = Number(cheatRows[0]?.cleanup_old_cheat_attempts ?? 0);
+        const cheatRow = cheatResult.rows[0] as { cleanup_old_cheat_attempts?: string } | undefined;
+        const cheatDeleted = Number(cheatRow?.cleanup_old_cheat_attempts ?? 0);
         if (cheatDeleted > 0) {
           totalDeleted += cheatDeleted;
           Logger.info(`[Cleanup] Deleted ${cheatDeleted} old cheat_attempts`);

@@ -1,7 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { query } from '../db/pool';
+import { sql } from 'drizzle-orm';
 import { Logger } from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
+import { getDb } from '../db';
 
 /**
  * SSE Market Data Stream
@@ -124,17 +125,17 @@ router.get('/history', asyncHandler(async (req: Request, res: Response) => {
     const pair = (req.query.pair as string) ?? 'BTC';
     const limit = Math.min(Number(req.query.limit) || 300, 1000);
 
-    const { rows } = await query(
-      `SELECT price, volume, timestamp
-       FROM price_history
-       WHERE pair = $1
-       ORDER BY timestamp DESC
-       LIMIT $2`,
-      [pair, limit]
+    const db = getDb();
+    const result = await db.execute(
+      sql`SELECT price, volume, timestamp
+          FROM price_history
+          WHERE pair = ${pair}
+          ORDER BY timestamp DESC
+          LIMIT ${limit}`
     );
 
     // Reverse to chronological order
-    res.json(rows.reverse());
+    res.json(result.rows.reverse());
   } catch (error) {
     Logger.error('[Market] History fetch failed:', error);
     res.status(500).json({ error: 'Failed to fetch price history' });

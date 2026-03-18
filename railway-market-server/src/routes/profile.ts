@@ -1,7 +1,10 @@
 import { Router, type Request, type Response } from 'express';
+import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
-import { query } from '../db/pool';
+import { getDb } from '../db';
+import { profiles } from '../db/schema';
+import { createProfileSchema, updateProfileSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
 
 const router = Router();
@@ -11,11 +14,12 @@ const router = Router();
  */
 router.get('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { rows } = await query(
-      `SELECT id, auth_user_id, nickname, display_name, avatar_url, wallet_address, primary_auth_provider, last_seen_at, created_at, updated_at
-       FROM profiles WHERE auth_user_id = $1`,
-      [req.authUserId]
-    );
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.authUserId, req.authUserId!))
+      .limit(1);
 
     if (rows.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
@@ -34,22 +38,21 @@ router.get('/', requireAuth, asyncHandler(async (req: Request, res: Response) =>
  */
 router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { nickname, avatar_url } = req.body as {
-      nickname?: string;
-      avatar_url?: string;
-    };
-
-    if (!nickname || typeof nickname !== 'string' || nickname.trim().length === 0) {
-      res.status(400).json({ error: 'nickname is required' });
+    const parsed = createProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
       return;
     }
 
+    const { nickname, avatar_url } = parsed.data;
+    const db = getDb();
+
     // Check if profile already exists for this auth user
-    const { rows: existing } = await query(
-      `SELECT id, auth_user_id, nickname, display_name, avatar_url, wallet_address, primary_auth_provider, last_seen_at, created_at, updated_at
-       FROM profiles WHERE auth_user_id = $1`,
-      [req.authUserId]
-    );
+    const existing = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.authUserId, req.authUserId!))
+      .limit(1);
 
     if (existing.length > 0) {
       res.json(existing[0]);
@@ -57,15 +60,21 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
     }
 
     // Create new profile
-    const { rows } = await query(
-      `INSERT INTO profiles (auth_user_id, nickname, display_name, avatar_url)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (auth_user_id) DO UPDATE SET updated_at = now()
-       RETURNING *`,
-      [req.authUserId, nickname.trim(), nickname.trim(), avatar_url ?? null]
-    );
+    const rows = await db
+      .insert(profiles)
+      .values({
+        authUserId: req.authUserId!,
+        nickname: nickname,
+        displayName: nickname,
+        avatarUrl: avatar_url ?? null,
+      })
+      .onConflictDoUpdate({
+        target: profiles.authUserId,
+        set: { updatedAt: sql`now()` },
+      })
+      .returning();
 
-    Logger.info(`[Profile] Created profile for ${nickname.trim()}`);
+    Logger.info(`[Profile] Created profile for ${nickname}`);
     res.status(201).json(rows[0]);
   } catch (error) {
     // Unique constraint violation on nickname
@@ -83,34 +92,30 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
  */
 router.patch('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { nickname, avatar_url } = req.body as {
-      nickname?: string;
-      avatar_url?: string;
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
+      return;
+    }
+
+    const db = getDb();
+    const updateData: Record<string, unknown> = {
+      lastSeenAt: sql`now()`,
+      updatedAt: sql`now()`,
     };
 
-    const updates: string[] = [];
-    const params: unknown[] = [];
-    let paramIdx = 1;
-
-    if (nickname !== undefined) {
-      updates.push(`nickname = $${paramIdx++}`);
-      params.push(nickname.trim());
+    if (parsed.data.nickname !== undefined) {
+      updateData.nickname = parsed.data.nickname;
     }
-    if (avatar_url !== undefined) {
-      updates.push(`avatar_url = $${paramIdx++}`);
-      params.push(avatar_url);
+    if (parsed.data.avatar_url !== undefined) {
+      updateData.avatarUrl = parsed.data.avatar_url;
     }
 
-    // Always update last_seen_at and updated_at (supports heartbeat with empty body)
-    updates.push(`last_seen_at = now()`);
-    updates.push(`updated_at = now()`);
-    params.push(req.authUserId);
-
-    const { rows } = await query(
-      `UPDATE profiles SET ${updates.join(', ')} WHERE auth_user_id = $${paramIdx}
-       RETURNING *`,
-      params
-    );
+    const rows = await db
+      .update(profiles)
+      .set(updateData)
+      .where(eq(profiles.authUserId, req.authUserId!))
+      .returning();
 
     if (rows.length === 0) {
       res.status(404).json({ error: 'Profile not found' });

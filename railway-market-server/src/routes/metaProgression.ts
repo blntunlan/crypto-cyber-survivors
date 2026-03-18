@@ -1,8 +1,11 @@
 import { Router, type Request, type Response } from 'express';
+import { eq, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
-import { query } from '../db/pool';
-import { Logger } from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
+import { getDb } from '../db';
+import { metaProgression } from '../db/schema';
+import { getProfileId } from '../db/helpers';
+import { Logger } from '../utils/logger';
 
 const router = Router();
 
@@ -27,39 +30,35 @@ const META_UPGRADE_DEFS: Record<string, { maxLevel: number; costPerLevel: number
 };
 
 /**
- * Helper: resolve profile_id from auth_user_id
- */
-async function getProfileId(authUserId: string): Promise<string | null> {
-  const { rows } = await query(
-    `SELECT id FROM profiles WHERE auth_user_id = $1`,
-    [authUserId]
-  );
-  return rows.length > 0 ? rows[0].id : null;
-}
-
-/**
  * GET /api/v1/meta/state — Get full meta progression state
  */
 router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const profileId = await getProfileId(req.authUserId as string);
+    const profileId = await getProfileId(req.authUserId!);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const { rows } = await query(
-      `SELECT meta_coins, upgrades, total_runs_completed, total_meta_coins_earned
-       FROM meta_progression WHERE profile_id = $1`,
-      [profileId]
-    );
+    const db = getDb();
+    const rows = await db
+      .select({
+        metaCoins: metaProgression.metaCoins,
+        upgrades: metaProgression.upgrades,
+        totalRunsCompleted: metaProgression.totalRunsCompleted,
+        totalMetaCoinsEarned: metaProgression.totalMetaCoinsEarned,
+      })
+      .from(metaProgression)
+      .where(eq(metaProgression.profileId, profileId))
+      .limit(1);
 
     if (rows.length === 0) {
       // Auto-create if missing (edge case: profile created before migration)
-      await query(
-        `INSERT INTO meta_progression (profile_id) VALUES ($1) ON CONFLICT (profile_id) DO NOTHING`,
-        [profileId]
-      );
+      await db
+        .insert(metaProgression)
+        .values({ profileId })
+        .onConflictDoNothing();
+
       res.json({
         metaCoins: 0,
         upgrades: {},
@@ -69,13 +68,7 @@ router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Respons
       return;
     }
 
-    const row = rows[0];
-    res.json({
-      metaCoins: Number(row.meta_coins),
-      upgrades: row.upgrades,
-      totalRunsCompleted: row.total_runs_completed,
-      totalMetaCoinsEarned: Number(row.total_meta_coins_earned),
-    });
+    res.json(rows[0]);
   } catch (error) {
     Logger.error('[MetaProgression] State error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -84,7 +77,6 @@ router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Respons
 
 /**
  * POST /api/v1/meta/purchase — Purchase a meta upgrade
- * Body: { upgradeId: string }
  */
 router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -95,27 +87,27 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId as string);
+    const profileId = await getProfileId(req.authUserId!);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
     const def = META_UPGRADE_DEFS[upgradeId];
+    const db = getDb();
 
     // Get current level to determine cost
-    const { rows: stateRows } = await query(
-      `SELECT COALESCE((upgrades->>$2)::INTEGER, 0) AS current_level
-       FROM meta_progression WHERE profile_id = $1`,
-      [profileId, upgradeId]
+    const stateResult = await db.execute(
+      sql`SELECT COALESCE((upgrades->>${upgradeId})::INTEGER, 0) AS current_level
+          FROM meta_progression WHERE profile_id = ${profileId}`
     );
 
-    if (stateRows.length === 0) {
+    if (stateResult.rows.length === 0) {
       res.status(404).json({ error: 'Meta progression not found' });
       return;
     }
 
-    const currentLevel = stateRows[0].current_level as number;
+    const currentLevel = (stateResult.rows[0] as { current_level: number }).current_level;
     if (currentLevel >= def.maxLevel) {
       res.status(409).json({ error: 'Already at max level' });
       return;
@@ -124,23 +116,22 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
     const cost = def.costPerLevel[currentLevel];
 
     // Atomic purchase via DB function
-    const { rows } = await query(
-      `SELECT * FROM purchase_meta_upgrade($1, $2, $3, $4)`,
-      [profileId, upgradeId, cost, def.maxLevel]
+    const result = await db.execute(
+      sql`SELECT * FROM purchase_meta_upgrade(${profileId}, ${upgradeId}, ${cost}, ${def.maxLevel})`
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       res.status(500).json({ error: 'Purchase failed' });
       return;
     }
 
-    const result = rows[0];
-    Logger.info(`[MetaProgression] ${profileId} purchased ${upgradeId} → level ${result.new_level}`);
+    const row = result.rows[0] as { upgrade_id: string; new_level: number; new_meta_coins: string };
+    Logger.info(`[MetaProgression] ${profileId} purchased ${upgradeId} → level ${row.new_level}`);
 
     res.json({
-      upgradeId: result.upgrade_id,
-      newLevel: result.new_level,
-      newMetaCoins: Number(result.new_meta_coins),
+      upgradeId: row.upgrade_id,
+      newLevel: row.new_level,
+      newMetaCoins: Number(row.new_meta_coins),
       cost,
     });
   } catch (error) {
@@ -160,8 +151,6 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
 
 /**
  * POST /api/v1/meta/transfer — Transfer run coins to meta wallet
- * Body: { earnedCoins: number }
- * Called by session verify flow or client post-game.
  */
 router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -172,30 +161,35 @@ router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId as string);
+    const profileId = await getProfileId(req.authUserId!);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const { rows } = await query(
-      `SELECT * FROM transfer_meta_coins($1, $2)`,
-      [profileId, Math.floor(earnedCoins)]
+    const db = getDb();
+    const result = await db.execute(
+      sql`SELECT * FROM transfer_meta_coins(${profileId}, ${Math.floor(earnedCoins)})`
     );
 
-    if (rows.length === 0) {
+    if (result.rows.length === 0) {
       res.status(500).json({ error: 'Transfer failed' });
       return;
     }
 
-    const result = rows[0];
-    Logger.info(`[MetaProgression] ${profileId} transferred ${result.meta_share} meta coins`);
+    const row = result.rows[0] as {
+      meta_share: string;
+      new_meta_balance: string;
+      new_total_earned: string;
+      new_runs_completed: number;
+    };
+    Logger.info(`[MetaProgression] ${profileId} transferred ${row.meta_share} meta coins`);
 
     res.json({
-      metaShare: Number(result.meta_share),
-      newMetaBalance: Number(result.new_meta_balance),
-      newTotalEarned: Number(result.new_total_earned),
-      newRunsCompleted: result.new_runs_completed,
+      metaShare: Number(row.meta_share),
+      newMetaBalance: Number(row.new_meta_balance),
+      newTotalEarned: Number(row.new_total_earned),
+      newRunsCompleted: row.new_runs_completed,
     });
   } catch (error) {
     Logger.error('[MetaProgression] Transfer error:', error);
@@ -208,12 +202,13 @@ router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Res
  */
 router.get('/leaderboard', asyncHandler(async (_req: Request, res: Response) => {
   try {
-    const { rows } = await query(
-      `SELECT * FROM v_meta_leaderboard LIMIT 100`
+    const db = getDb();
+    const result = await db.execute(
+      sql`SELECT * FROM v_meta_leaderboard LIMIT 100`
     );
 
     res.json({
-      entries: rows.map(r => ({
+      entries: result.rows.map((r: Record<string, unknown>) => ({
         nickname: r.nickname,
         avatarUrl: r.avatar_url,
         metaCoins: Number(r.meta_coins),

@@ -1,7 +1,9 @@
 import { Router, type Request, type Response } from 'express';
+import { eq } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
-import { query } from '../db/pool';
+import { getDb } from '../db';
+import { profiles, virtualAccounts } from '../db/schema';
 import { Logger } from '../utils/logger';
 
 const router = Router();
@@ -11,25 +13,26 @@ const router = Router();
  */
 router.get('/balance', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    // Find profile by auth user id
-    const { rows: profiles } = await query(
-      `SELECT id FROM profiles WHERE auth_user_id = $1`,
-      [req.authUserId]
-    );
+    const db = getDb();
 
-    if (profiles.length === 0) {
+    const profile = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.authUserId, req.authUserId!))
+      .limit(1);
+
+    if (profile.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const profileId = profiles[0].id;
+    const account = await db
+      .select({ goldBalance: virtualAccounts.goldBalance })
+      .from(virtualAccounts)
+      .where(eq(virtualAccounts.profileId, profile[0].id))
+      .limit(1);
 
-    const { rows } = await query(
-      `SELECT gold_balance FROM virtual_accounts WHERE profile_id = $1`,
-      [profileId]
-    );
-
-    const balance = rows.length > 0 ? Number(rows[0].gold_balance) : 0;
+    const balance = account[0]?.goldBalance ?? 0;
 
     res.json({ balance });
   } catch (error) {

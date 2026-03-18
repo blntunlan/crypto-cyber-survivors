@@ -1,9 +1,12 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
+import { eq, and, sql, gt } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
-import { query } from '../db/pool';
-import { Logger } from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
+import { getDb } from '../db';
+import { dailyChallenges, challengeCompletions, challengeSeedLog } from '../db/schema';
+import { getProfileId } from '../db/helpers';
+import { Logger } from '../utils/logger';
 
 const router = Router();
 
@@ -86,91 +89,82 @@ const WEEKLY_TEMPLATES: ChallengeTemplate[] = [
   },
 ];
 
-/**
- * Deterministic seed from a date string.
- */
 function hashDate(dateStr: string): number {
   const hash = crypto.createHash('sha256').update(dateStr).digest();
-  // Use first 6 bytes as a number (safe for JS integers)
   return hash.readUIntBE(0, 6);
 }
 
-/**
- * Deterministic template selection from seed.
- */
 function selectTemplate(templates: ChallengeTemplate[], seed: number): ChallengeTemplate {
   return templates[seed % templates.length];
 }
 
-/**
- * Helper: resolve profile_id from auth_user_id
- */
-async function getProfileId(authUserId: string): Promise<string | null> {
-  const { rows } = await query(
-    `SELECT id FROM profiles WHERE auth_user_id = $1`,
-    [authUserId]
-  );
-  return rows.length > 0 ? rows[0].id : null;
+type ChallengeRow = typeof dailyChallenges.$inferSelect;
+
+function formatChallenge(row: ChallengeRow) {
+  return {
+    id: row.id,
+    type: row.type,
+    name: row.name,
+    description: row.description,
+    constraints: row.constraints,
+    objectives: row.objectives,
+    reward: row.reward,
+    expiresAt: row.expiresAt,
+    seed: row.seed,
+    isActive: row.isActive,
+  };
 }
 
 /**
  * GET /api/v1/challenges/today — Get today's daily challenge
- * Auto-generates if not yet created for today.
  */
 router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // "2026-03-17"
+    const today = new Date().toISOString().split('T')[0]!;
     const challengeId = `${today}-daily`;
+    const db = getDb();
 
-    // Check if already exists
-    const { rows: existing } = await query(
-      `SELECT * FROM daily_challenges WHERE id = $1`,
-      [challengeId]
-    );
+    const existing = await db
+      .select()
+      .from(dailyChallenges)
+      .where(eq(dailyChallenges.id, challengeId))
+      .limit(1);
 
     if (existing.length > 0) {
       res.json(formatChallenge(existing[0]));
       return;
     }
 
-    // Generate from template
     const seed = hashDate(today);
     const template = selectTemplate(DAILY_TEMPLATES, seed);
     const expiresAt = new Date(`${today}T23:59:59.999Z`);
 
-    const { rows } = await query(
-      `INSERT INTO daily_challenges (id, type, name, description, constraints, objectives, reward, expires_at, seed)
-       VALUES ($1, 'daily', $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (id) DO NOTHING
-       RETURNING *`,
-      [
-        challengeId,
-        template.name,
-        template.description,
-        JSON.stringify(template.constraints),
-        JSON.stringify(template.objectives),
-        JSON.stringify(template.reward),
-        expiresAt.toISOString(),
+    const rows = await db
+      .insert(dailyChallenges)
+      .values({
+        id: challengeId,
+        type: 'daily',
+        name: template.name,
+        description: template.description,
+        constraints: template.constraints,
+        objectives: template.objectives,
+        reward: template.reward,
+        expiresAt,
         seed,
-      ]
-    );
+      })
+      .onConflictDoNothing()
+      .returning();
 
     // Log seed for audit
-    await query(
-      `INSERT INTO challenge_seed_log (challenge_date, challenge_type, seed, challenge_id)
-       VALUES ($1, 'daily', $2, $3)
-       ON CONFLICT (challenge_date, challenge_type) DO NOTHING`,
-      [today, seed, challengeId]
-    );
+    await db
+      .insert(challengeSeedLog)
+      .values({ challengeDate: today, challengeType: 'daily', seed, challengeId })
+      .onConflictDoNothing();
 
     if (rows.length > 0) {
       res.json(formatChallenge(rows[0]));
     } else {
-      // Race condition: another request created it
-      const { rows: retry } = await query(
-        `SELECT * FROM daily_challenges WHERE id = $1`,
-        [challengeId]
-      );
+      const retry = await db.select().from(dailyChallenges).where(eq(dailyChallenges.id, challengeId)).limit(1);
       res.json(formatChallenge(retry[0]));
     }
   } catch (error) {
@@ -185,17 +179,18 @@ router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
 router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
   try {
     const now = new Date();
-    // ISO week: Monday-based
-    const dayOfWeek = now.getUTCDay() || 7; // 1=Mon, 7=Sun
+    const dayOfWeek = now.getUTCDay() || 7;
     const monday = new Date(now);
     monday.setUTCDate(now.getUTCDate() - dayOfWeek + 1);
-    const weekStr = monday.toISOString().split('T')[0];
+    const weekStr = monday.toISOString().split('T')[0]!;
     const challengeId = `${weekStr}-weekly`;
+    const db = getDb();
 
-    const { rows: existing } = await query(
-      `SELECT * FROM daily_challenges WHERE id = $1`,
-      [challengeId]
-    );
+    const existing = await db
+      .select()
+      .from(dailyChallenges)
+      .where(eq(dailyChallenges.id, challengeId))
+      .limit(1);
 
     if (existing.length > 0) {
       res.json(formatChallenge(existing[0]));
@@ -204,42 +199,35 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
 
     const seed = hashDate(weekStr + '-weekly');
     const template = selectTemplate(WEEKLY_TEMPLATES, seed);
-    // Expires Sunday 23:59:59
     const sunday = new Date(monday);
     sunday.setUTCDate(monday.getUTCDate() + 6);
     const expiresAt = new Date(`${sunday.toISOString().split('T')[0]}T23:59:59.999Z`);
 
-    const { rows } = await query(
-      `INSERT INTO daily_challenges (id, type, name, description, constraints, objectives, reward, expires_at, seed)
-       VALUES ($1, 'weekly', $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (id) DO NOTHING
-       RETURNING *`,
-      [
-        challengeId,
-        template.name,
-        template.description,
-        JSON.stringify(template.constraints),
-        JSON.stringify(template.objectives),
-        JSON.stringify(template.reward),
-        expiresAt.toISOString(),
+    const rows = await db
+      .insert(dailyChallenges)
+      .values({
+        id: challengeId,
+        type: 'weekly',
+        name: template.name,
+        description: template.description,
+        constraints: template.constraints,
+        objectives: template.objectives,
+        reward: template.reward,
+        expiresAt,
         seed,
-      ]
-    );
+      })
+      .onConflictDoNothing()
+      .returning();
 
-    await query(
-      `INSERT INTO challenge_seed_log (challenge_date, challenge_type, seed, challenge_id)
-       VALUES ($1, 'weekly', $2, $3)
-       ON CONFLICT (challenge_date, challenge_type) DO NOTHING`,
-      [weekStr, seed, challengeId]
-    );
+    await db
+      .insert(challengeSeedLog)
+      .values({ challengeDate: weekStr, challengeType: 'weekly', seed, challengeId })
+      .onConflictDoNothing();
 
     if (rows.length > 0) {
       res.json(formatChallenge(rows[0]));
     } else {
-      const { rows: retry } = await query(
-        `SELECT * FROM daily_challenges WHERE id = $1`,
-        [challengeId]
-      );
+      const retry = await db.select().from(dailyChallenges).where(eq(dailyChallenges.id, challengeId)).limit(1);
       res.json(formatChallenge(retry[0]));
     }
   } catch (error) {
@@ -250,18 +238,11 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
 
 /**
  * POST /api/v1/challenges/complete — Submit challenge completion
- * Body: { challengeId, sessionId, score, survivalSeconds, kills, levelReached, objectivesCompleted }
  */
 router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const {
-      challengeId,
-      sessionId,
-      score,
-      survivalSeconds,
-      kills,
-      levelReached,
-      objectivesCompleted,
+      challengeId, sessionId, score, survivalSeconds, kills, levelReached, objectivesCompleted,
     } = req.body as {
       challengeId?: string;
       sessionId?: string;
@@ -277,17 +258,26 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId as string);
+    const profileId = await getProfileId(req.authUserId!);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
+    const db = getDb();
+
     // Verify challenge exists and is active
-    const { rows: challenges } = await query(
-      `SELECT * FROM daily_challenges WHERE id = $1 AND is_active = true AND expires_at > now()`,
-      [challengeId]
-    );
+    const challenges = await db
+      .select()
+      .from(dailyChallenges)
+      .where(
+        and(
+          eq(dailyChallenges.id, challengeId),
+          eq(dailyChallenges.isActive, true),
+          gt(dailyChallenges.expiresAt, sql`now()`)
+        )
+      )
+      .limit(1);
 
     if (challenges.length === 0) {
       res.status(404).json({ error: 'Challenge not found or expired' });
@@ -295,35 +285,35 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
     }
 
     // Insert completion (UNIQUE constraint prevents duplicates)
-    const { rows } = await query(
-      `INSERT INTO challenge_completions
-         (profile_id, challenge_id, session_id, score, survival_seconds, kills, level_reached, objectives_completed)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (profile_id, challenge_id) DO UPDATE SET
-         score = GREATEST(challenge_completions.score, EXCLUDED.score),
-         survival_seconds = GREATEST(challenge_completions.survival_seconds, EXCLUDED.survival_seconds),
-         kills = GREATEST(challenge_completions.kills, EXCLUDED.kills),
-         level_reached = GREATEST(challenge_completions.level_reached, EXCLUDED.level_reached)
-       RETURNING id, score`,
-      [
+    const rows = await db
+      .insert(challengeCompletions)
+      .values({
         profileId,
         challengeId,
-        sessionId ?? null,
-        score ?? 0,
-        survivalSeconds ?? 0,
-        kills ?? 0,
-        levelReached ?? 1,
-        JSON.stringify(objectivesCompleted ?? []),
-      ]
-    );
+        sessionId: sessionId ?? null,
+        score: score ?? 0,
+        survivalSeconds: survivalSeconds ?? 0,
+        kills: kills ?? 0,
+        levelReached: levelReached ?? 1,
+        objectivesCompleted: objectivesCompleted ?? [],
+      })
+      .onConflictDoUpdate({
+        target: [challengeCompletions.profileId, challengeCompletions.challengeId],
+        set: {
+          score: sql`GREATEST(${challengeCompletions.score}, EXCLUDED.score)`,
+          survivalSeconds: sql`GREATEST(${challengeCompletions.survivalSeconds}, EXCLUDED.survival_seconds)`,
+          kills: sql`GREATEST(${challengeCompletions.kills}, EXCLUDED.kills)`,
+          levelReached: sql`GREATEST(${challengeCompletions.levelReached}, EXCLUDED.level_reached)`,
+        },
+      })
+      .returning({ id: challengeCompletions.id, score: challengeCompletions.score });
 
     // Credit meta coin reward
     const challenge = challenges[0];
     const reward = challenge.reward as { metaCoins?: number; bonusXp?: number };
     if (reward.metaCoins && reward.metaCoins > 0) {
-      await query(
-        `SELECT * FROM transfer_meta_coins($1, $2, 1.0)`,
-        [profileId, reward.metaCoins]
+      await db.execute(
+        sql`SELECT * FROM transfer_meta_coins(${profileId}, ${reward.metaCoins}, 1.0)`
       );
     }
 
@@ -346,17 +336,15 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
 router.get('/:challengeId/leaderboard', asyncHandler(async (req: Request, res: Response) => {
   try {
     const { challengeId } = req.params;
+    const db = getDb();
 
-    const { rows } = await query(
-      `SELECT * FROM v_challenge_leaderboard
-       WHERE challenge_id = $1
-       LIMIT 100`,
-      [challengeId]
+    const result = await db.execute(
+      sql`SELECT * FROM v_challenge_leaderboard WHERE challenge_id = ${challengeId} LIMIT 100`
     );
 
     res.json({
       challengeId,
-      entries: rows.map(r => ({
+      entries: result.rows.map((r: Record<string, unknown>) => ({
         nickname: r.nickname,
         avatarUrl: r.avatar_url,
         score: r.score,
@@ -377,24 +365,25 @@ router.get('/:challengeId/leaderboard', asyncHandler(async (req: Request, res: R
  */
 router.get('/status', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const profileId = await getProfileId(req.authUserId as string);
+    const profileId = await getProfileId(req.authUserId!);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const { rows } = await query(
-      `SELECT cc.challenge_id, cc.score, cc.completed_at, dc.type, dc.name
-       FROM challenge_completions cc
-       JOIN daily_challenges dc ON cc.challenge_id = dc.id
-       WHERE cc.profile_id = $1
-         AND dc.expires_at > now()
-       ORDER BY cc.completed_at DESC`,
-      [profileId]
+    const db = getDb();
+
+    const result = await db.execute(
+      sql`SELECT cc.challenge_id, cc.score, cc.completed_at, dc.type, dc.name
+          FROM challenge_completions cc
+          JOIN daily_challenges dc ON cc.challenge_id = dc.id
+          WHERE cc.profile_id = ${profileId}
+            AND dc.expires_at > now()
+          ORDER BY cc.completed_at DESC`
     );
 
     res.json({
-      completions: rows.map(r => ({
+      completions: result.rows.map((r: Record<string, unknown>) => ({
         challengeId: r.challenge_id,
         type: r.type,
         name: r.name,
@@ -407,22 +396,5 @@ router.get('/status', requireAuth, asyncHandler(async (req: Request, res: Respon
     res.status(500).json({ error: 'Internal server error' });
   }
 }));
-
-// ── Helpers ──────────────────────────────────────────────────
-
-function formatChallenge(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    type: row.type,
-    name: row.name,
-    description: row.description,
-    constraints: row.constraints,
-    objectives: row.objectives,
-    reward: row.reward,
-    expiresAt: row.expires_at,
-    seed: Number(row.seed),
-    isActive: row.is_active,
-  };
-}
 
 export default router;

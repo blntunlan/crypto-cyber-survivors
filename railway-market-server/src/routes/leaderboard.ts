@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
-import { query } from '../db/pool';
+import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../utils/asyncHandler';
+import { getDb } from '../db';
 import { Logger } from '../utils/logger';
 
 const router = Router();
@@ -18,25 +19,22 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const allowedSorts = ['max_survival_time', 'total_kills', 'high_score', 'total_sessions'] as const;
     const sortParam = req.query.sort as string | undefined;
     const sort = allowedSorts.includes(sortParam as typeof allowedSorts[number])
-      ? sortParam
+      ? sortParam!
       : 'max_survival_time';
 
-    let sql = `SELECT * FROM v_leaderboard`;
-    const params: unknown[] = [];
-    let paramIdx = 1;
+    const db = getDb();
 
-    if (pair) {
-      sql += ` WHERE pair = $${paramIdx++}`;
-      params.push(pair);
-    }
+    // View queries stay as raw SQL since Drizzle views are read-only and
+    // dynamic ORDER BY with whitelisted column names is safer this way
+    const result = pair
+      ? await db.execute(
+          sql`SELECT * FROM v_leaderboard WHERE pair = ${pair} ORDER BY ${sql.raw(sort)} DESC LIMIT ${limit} OFFSET ${offset}`
+        )
+      : await db.execute(
+          sql`SELECT * FROM v_leaderboard ORDER BY ${sql.raw(sort)} DESC LIMIT ${limit} OFFSET ${offset}`
+        );
 
-    sql += ` ORDER BY ${sort} DESC`;
-    sql += ` LIMIT $${paramIdx++} OFFSET $${paramIdx}`;
-    params.push(limit, offset);
-
-    const { rows } = await query(sql, params);
-
-    res.json({ data: rows, limit, offset, sort });
+    res.json({ data: result.rows, limit, offset, sort });
   } catch (error) {
     Logger.error('[Leaderboard] Error:', error);
     res.status(500).json({ error: 'Internal server error' });

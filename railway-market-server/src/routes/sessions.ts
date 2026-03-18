@@ -1,8 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
+import { eq, or, sql } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
-import { query, withTransaction } from '../db/pool';
+import { getDb } from '../db';
+import { profiles, sessions } from '../db/schema';
+import { startSessionSchema, verifySessionSchema, syncSessionSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
 import { RewardCalculator, type ExitType, type PortalType } from '../shared/RewardCalculator';
 
@@ -13,57 +16,61 @@ const router = Router();
  */
 router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { pair, leverage, position, userId } = req.body as {
-      pair?: string;
-      leverage?: number;
-      position?: string;
-      userId?: string;
-    };
-
-    if (!pair || !leverage || !position) {
-      res.status(400).json({ error: 'pair, leverage, and position are required' });
+    const parsed = startSessionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'pair, leverage, and position are required' });
       return;
     }
 
+    const { pair, leverage, position, userId } = parsed.data;
+    const db = getDb();
+
     // Look up profile: prefer JWT auth_user_id, fall back to nickname from body
-    const authUserId = req.authUserId ?? '';
-    let profileQuery: string;
-    let profileParams: string[];
+    const authUserId = req.authUserId!;
+    let profileRows;
 
     if (userId) {
-      // Client sends nickname as userId — search by nickname OR auth_user_id from JWT
-      profileQuery = `SELECT id FROM profiles WHERE auth_user_id = $1::uuid OR nickname = $2`;
-      profileParams = [authUserId, userId];
+      profileRows = await db
+        .select({ id: profiles.id })
+        .from(profiles)
+        .where(or(eq(profiles.authUserId, authUserId), eq(profiles.nickname, userId)))
+        .limit(1);
     } else {
-      profileQuery = `SELECT id FROM profiles WHERE auth_user_id = $1::uuid`;
-      profileParams = [authUserId];
+      profileRows = await db
+        .select({ id: profiles.id })
+        .from(profiles)
+        .where(eq(profiles.authUserId, authUserId))
+        .limit(1);
     }
 
-    const { rows: profiles } = await query(profileQuery, profileParams);
-    if (profiles.length === 0) {
+    if (profileRows.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const profileId = profiles[0].id;
-
-    // Generate session secret
+    const profileId = profileRows[0].id;
     const sessionSecret = crypto.randomBytes(32).toString('hex');
 
-    const { rows } = await query(
-      `INSERT INTO sessions (profile_id, pair, position, leverage, session_secret)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, created_at`,
-      [profileId, pair, position, leverage, sessionSecret]
-    );
+    const rows = await db
+      .insert(sessions)
+      .values({
+        profileId,
+        pair,
+        position,
+        leverage,
+        sessionSecret,
+      })
+      .returning({
+        id: sessions.id,
+        createdAt: sessions.createdAt,
+      });
 
     const session = rows[0];
-
     Logger.info(`[Sessions] Started session ${session.id} for profile ${profileId}`);
 
     res.json({
       sessionId: session.id,
-      startTime: session.created_at,
+      startTime: session.createdAt,
       sessionSecret,
     });
   } catch (error) {
@@ -74,38 +81,38 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
 
 /**
  * POST /api/v1/sessions/verify — Verify game results and credit rewards
- * Ported from supabase/functions/verify-game/index.ts
  */
 router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { sessionId, signature, payload } = req.body as {
-      sessionId?: string;
-      signature?: string;
-      payload?: Record<string, unknown>;
-    };
-
-    if (!sessionId || !signature || !payload) {
-      res.status(400).json({ error: 'sessionId, signature, and payload are required' });
+    const parsed = verifySessionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'sessionId, signature, and payload are required' });
       return;
     }
 
-    // 1. Session exists + not verified (JOIN profile to avoid N+1)
-    const { rows: sessions } = await query(
-      `SELECT s.id, s.profile_id, s.session_secret, s.is_verified
-       FROM sessions s
-       JOIN profiles p ON s.profile_id = p.id
-       WHERE s.id = $1`,
-      [sessionId]
-    );
+    const { sessionId, signature, payload } = parsed.data;
+    const db = getDb();
 
-    if (sessions.length === 0) {
+    // 1. Session exists + not verified
+    const sessionRows = await db
+      .select({
+        id: sessions.id,
+        profileId: sessions.profileId,
+        sessionSecret: sessions.sessionSecret,
+        isVerified: sessions.isVerified,
+      })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    if (sessionRows.length === 0) {
       res.status(404).json({ error: 'Session not found' });
       return;
     }
 
-    const session = sessions[0];
+    const session = sessionRows[0];
 
-    if (session.is_verified) {
+    if (session.isVerified) {
       res.status(409).json({ error: 'Already verified' });
       return;
     }
@@ -127,7 +134,7 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     });
 
     const expectedSignature = crypto
-      .createHmac('sha256', session.session_secret)
+      .createHmac('sha256', session.sessionSecret)
       .update(verificationPayload)
       .digest('hex');
 
@@ -138,7 +145,7 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     }
 
     // 3. Duration check
-    const duration = Number(payload.survivalSeconds) || 0;
+    const duration = payload.survivalSeconds;
     if (duration < 5) {
       res.status(400).json({ error: 'Session too short' });
       return;
@@ -148,9 +155,9 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     const calculator = new RewardCalculator();
     const calculation = calculator.calculate({
       survivalTimeSeconds: duration,
-      kills: Number(payload.kills) || 0,
-      level: Number(payload.level) || 1,
-      pnl: Number(payload.claimedPnL) || 0,
+      kills: payload.kills,
+      level: payload.level,
+      pnl: payload.claimedPnL,
       maxStreak: 0,
       exitType: payload.exitType as ExitType | undefined,
       portalType: payload.portalType as PortalType | undefined,
@@ -159,64 +166,42 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     const reward = Math.min(50000, calculation.total);
 
     // 5. Atomic transaction: credit coins + mark verified + transfer meta
-    const txResult = await withTransaction(async (client) => {
-      // 5a. Atomic coin crediting
-      const { rows: creditResult } = await client.query(
-        `SELECT * FROM credit_coins($1, $2, $3, $4, $5)`,
-        [
-          session.profile_id,
-          Math.floor(reward),
-          'game_reward',
-          sessionId,
-          JSON.stringify({
-            pnl: payload.claimedPnL,
-            kills: payload.kills,
-            duration,
-          }),
-        ]
+    const txResult = await db.transaction(async (tx) => {
+      // 5a. Atomic coin crediting (PG function)
+      const creditResult = await tx.execute(
+        sql`SELECT * FROM credit_coins(${session.profileId}, ${Math.floor(reward)}, 'game_reward', ${sessionId}, ${JSON.stringify({ pnl: payload.claimedPnL, kills: payload.kills, duration })}::jsonb)`
       );
 
-      if (creditResult.length === 0) {
+      if (creditResult.rows.length === 0) {
         throw new Error(`Failed to credit coins for session ${sessionId}`);
       }
 
       // 5b. Mark session verified
-      await client.query(
-        `UPDATE sessions SET
-           exit_price = $1,
-           survival_seconds = $2,
-           is_verified = true,
-           reward_amount = $3,
-           kills = $4,
-           level = $5,
-           exit_type = $6,
-           portal_type = $7,
-           verified_at = now()
-         WHERE id = $8`,
-        [
-          payload.claimedExitPrice,
-          Math.floor(duration),
-          Math.floor(reward),
-          payload.kills,
-          payload.level,
-          payload.exitType,
-          payload.portalType,
-          sessionId,
-        ]
-      );
+      await tx
+        .update(sessions)
+        .set({
+          exitPrice: payload.claimedExitPrice,
+          survivalSeconds: Math.floor(duration),
+          isVerified: true,
+          rewardAmount: Math.floor(reward),
+          kills: payload.kills,
+          level: payload.level,
+          exitType: payload.exitType ?? null,
+          portalType: payload.portalType ?? null,
+          verifiedAt: sql`now()`,
+        })
+        .where(eq(sessions.id, sessionId));
 
       // 5c. Transfer meta coins (15% of reward → meta wallet)
       let metaShare = 0;
       try {
-        const { rows: metaResult } = await client.query(
-          `SELECT * FROM transfer_meta_coins($1, $2)`,
-          [session.profile_id, Math.floor(reward)]
+        const metaResult = await tx.execute(
+          sql`SELECT * FROM transfer_meta_coins(${session.profileId}, ${Math.floor(reward)})`
         );
-        if (metaResult.length > 0) {
-          metaShare = Number(metaResult[0].meta_share);
+        if (metaResult.rows.length > 0) {
+          metaShare = Number((metaResult.rows[0] as { meta_share: string }).meta_share);
         }
       } catch (metaErr) {
-        // Non-critical: log but don't rollback the whole transaction
         Logger.warn(`[Sessions] Meta coin transfer failed for ${sessionId}:`, metaErr);
       }
 
@@ -244,15 +229,13 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
  */
 router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
   try {
-    const { sessionId, sessionData } = req.body as {
-      sessionId?: string;
-      sessionData?: Record<string, unknown>;
-    };
-
-    if (!sessionData) {
-      res.status(400).json({ error: 'sessionData is required' });
+    const parsed = syncSessionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'sessionData is required' });
       return;
     }
+
+    const { sessionId, sessionData } = parsed.data;
 
     // Strict column whitelist — only safe columns for client sync
     // SECURITY: is_verified, session_secret, verified_at excluded (server-only via /verify)
@@ -263,11 +246,10 @@ router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
       exit_type: true, portal_type: true,
     };
 
-    const requestedColumns = Object.keys(sessionData);
     const columns: string[] = [];
     const values: unknown[] = [];
 
-    for (const col of requestedColumns) {
+    for (const col of Object.keys(sessionData)) {
       if (col in COLUMN_MAP) {
         columns.push(col);
         values.push(sessionData[col]);
@@ -279,6 +261,8 @@ router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
       return;
     }
 
+    // Sync uses raw SQL since it has dynamic column names
+    const { query } = await import('../db/pool');
     let resultId: string | null = null;
 
     // If sessionId provided and valid UUID, try UPDATE first

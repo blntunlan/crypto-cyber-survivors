@@ -1,6 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { query } from '../db/pool';
+import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../utils/asyncHandler';
+import { getDb } from '../db';
+import { errorReports, cheatAttempts, deviceProfiles, performanceMetrics } from '../db/schema';
 import { Logger } from '../utils/logger';
 
 const router = Router();
@@ -18,33 +20,21 @@ router.post('/errors', asyncHandler(async (req: Request, res: Response) => {
       return;
     }
 
-    // Batch insert (max 50 per request) — single multi-row INSERT
     const batch = reports.slice(0, 50);
-    const values: unknown[] = [];
-    const placeholders: string[] = [];
+    const db = getDb();
 
-    for (let i = 0; i < batch.length; i++) {
-      const report = batch[i];
-      const offset = i * 8;
-      placeholders.push(
-        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, 'new')`
-      );
-      values.push(
-        report.errorType ?? report.error_type ?? 'unknown',
-        report.errorMessage ?? report.message ?? 'No message',
-        report.stackTrace ?? report.stack_trace ?? null,
-        report.severity ?? 'medium',
-        report.category ?? 'runtime',
-        report.url ?? report.page_url ?? null,
-        report.userAgent ?? report.browser_info ?? null,
-        JSON.stringify(report.context ?? report.context_data ?? {}),
-      );
-    }
-
-    await query(
-      `INSERT INTO error_reports (error_type, message, stack_trace, severity, category, page_url, browser_info, context_data, status)
-       VALUES ${placeholders.join(', ')}`,
-      values
+    await db.insert(errorReports).values(
+      batch.map((report: Record<string, unknown>) => ({
+        errorType: (report.errorType ?? report.error_type ?? 'unknown') as string,
+        message: (report.errorMessage ?? report.message ?? 'No message') as string,
+        stackTrace: (report.stackTrace ?? report.stack_trace ?? null) as string | null,
+        severity: (report.severity ?? 'medium') as string,
+        category: (report.category ?? 'runtime') as string,
+        pageUrl: (report.url ?? report.page_url ?? null) as string | null,
+        browserInfo: (report.userAgent ?? report.browser_info ?? null) as string | null,
+        contextData: report.context ?? report.context_data ?? {},
+        status: 'new',
+      }))
     );
 
     res.json({ accepted: batch.length });
@@ -72,17 +62,15 @@ router.post('/cheat-reports', asyncHandler(async (req: Request, res: Response) =
       return;
     }
 
-    await query(
-      `INSERT INTO cheat_attempts (profile_id, session_id, cheat_type, details, severity)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        profileId ?? null,
-        sessionId ?? null,
-        cheatType,
-        JSON.stringify(details ?? {}),
-        severity ?? 'medium',
-      ]
-    );
+    const db = getDb();
+
+    await db.insert(cheatAttempts).values({
+      profileId: profileId ?? null,
+      sessionId: sessionId ?? null,
+      cheatType,
+      details: details ?? {},
+      severity: severity ?? 'medium',
+    });
 
     res.json({ accepted: true });
   } catch (error) {
@@ -113,31 +101,35 @@ router.post('/device-profiles', asyncHandler(async (req: Request, res: Response)
       return;
     }
 
-    await query(
-      `INSERT INTO device_profiles (fingerprint, device_type, browser, screen_width, screen_height, hardware_concurrency, device_memory, recommended_profile, benchmark_score, first_seen_at, last_seen_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-       ON CONFLICT (fingerprint) DO UPDATE SET
-         device_type = COALESCE(EXCLUDED.device_type, device_profiles.device_type),
-         browser = COALESCE(EXCLUDED.browser, device_profiles.browser),
-         screen_width = COALESCE(EXCLUDED.screen_width, device_profiles.screen_width),
-         screen_height = COALESCE(EXCLUDED.screen_height, device_profiles.screen_height),
-         hardware_concurrency = COALESCE(EXCLUDED.hardware_concurrency, device_profiles.hardware_concurrency),
-         device_memory = COALESCE(EXCLUDED.device_memory, device_profiles.device_memory),
-         recommended_profile = COALESCE(EXCLUDED.recommended_profile, device_profiles.recommended_profile),
-         benchmark_score = COALESCE(EXCLUDED.benchmark_score, device_profiles.benchmark_score),
-         last_seen_at = NOW()`,
-      [
-        fingerprint,
-        device_type ?? null,
-        browser ?? null,
-        screen_width ?? null,
-        screen_height ?? null,
-        hardware_concurrency ?? null,
-        device_memory ?? null,
-        recommended_profile ?? null,
-        benchmark_score ?? null,
-      ]
-    );
+    const db = getDb();
+
+    await db
+      .insert(deviceProfiles)
+      .values({
+        fingerprint: fingerprint as string,
+        deviceType: (device_type as string) ?? null,
+        browser: (browser as string) ?? null,
+        screenWidth: (screen_width as number) ?? null,
+        screenHeight: (screen_height as number) ?? null,
+        hardwareConcurrency: (hardware_concurrency as number) ?? null,
+        deviceMemory: (device_memory as string) ?? null,
+        recommendedProfile: (recommended_profile as string) ?? null,
+        benchmarkScore: (benchmark_score as string) ?? null,
+      })
+      .onConflictDoUpdate({
+        target: deviceProfiles.fingerprint,
+        set: {
+          deviceType: sql`COALESCE(EXCLUDED.device_type, ${deviceProfiles.deviceType})`,
+          browser: sql`COALESCE(EXCLUDED.browser, ${deviceProfiles.browser})`,
+          screenWidth: sql`COALESCE(EXCLUDED.screen_width, ${deviceProfiles.screenWidth})`,
+          screenHeight: sql`COALESCE(EXCLUDED.screen_height, ${deviceProfiles.screenHeight})`,
+          hardwareConcurrency: sql`COALESCE(EXCLUDED.hardware_concurrency, ${deviceProfiles.hardwareConcurrency})`,
+          deviceMemory: sql`COALESCE(EXCLUDED.device_memory, ${deviceProfiles.deviceMemory})`,
+          recommendedProfile: sql`COALESCE(EXCLUDED.recommended_profile, ${deviceProfiles.recommendedProfile})`,
+          benchmarkScore: sql`COALESCE(EXCLUDED.benchmark_score, ${deviceProfiles.benchmarkScore})`,
+          lastSeenAt: sql`now()`,
+        },
+      });
 
     res.json({ accepted: true });
   } catch (error) {
@@ -151,43 +143,25 @@ router.post('/device-profiles', asyncHandler(async (req: Request, res: Response)
  */
 router.post('/performance-metrics', asyncHandler(async (req: Request, res: Response) => {
   try {
-    const {
-      profile_id,
-      session_id,
-      device_platform,
-      device_model,
-      os_info,
-      memory_gb,
-      cpu_cores,
-      avg_fps,
-      min_fps,
-      max_fps,
-      frame_drops,
-      resolution,
-      gpu_info,
-      metadata,
-    } = req.body as Record<string, unknown>;
+    const body = req.body as Record<string, unknown>;
+    const db = getDb();
 
-    await query(
-      `INSERT INTO performance_metrics (profile_id, session_id, device_platform, device_model, os_info, memory_gb, cpu_cores, avg_fps, min_fps, max_fps, frame_drops, resolution, gpu_info, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-      [
-        profile_id ?? null,
-        session_id ?? null,
-        device_platform ?? null,
-        device_model ?? null,
-        os_info ?? null,
-        memory_gb ?? null,
-        cpu_cores ?? null,
-        avg_fps ?? null,
-        min_fps ?? null,
-        max_fps ?? null,
-        frame_drops ?? 0,
-        resolution ?? null,
-        gpu_info ?? null,
-        JSON.stringify(metadata ?? {}),
-      ]
-    );
+    await db.insert(performanceMetrics).values({
+      profileId: (body.profile_id as string) ?? null,
+      sessionId: (body.session_id as string) ?? null,
+      devicePlatform: (body.device_platform as string) ?? null,
+      deviceModel: (body.device_model as string) ?? null,
+      osInfo: (body.os_info as string) ?? null,
+      memoryGb: (body.memory_gb as string) ?? null,
+      cpuCores: (body.cpu_cores as number) ?? null,
+      avgFps: (body.avg_fps as string) ?? null,
+      minFps: (body.min_fps as string) ?? null,
+      maxFps: (body.max_fps as string) ?? null,
+      frameDrops: (body.frame_drops as number) ?? 0,
+      resolution: (body.resolution as string) ?? null,
+      gpuInfo: (body.gpu_info as string) ?? null,
+      metadata: body.metadata ?? {},
+    });
 
     res.json({ accepted: true });
   } catch (error) {
