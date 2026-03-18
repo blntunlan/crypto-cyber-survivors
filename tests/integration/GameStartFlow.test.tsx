@@ -72,6 +72,41 @@ vi.mock('../../services/auth/UserPersistenceService', () => ({
   },
 }));
 
+// Mock analytics and tracking services to prevent real fetch requests during integration test
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: vi.fn(() => ({
+      captureError: vi.fn(),
+      captureMessage: vi.fn(),
+      isInitialized: true,
+    })),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    getInstance: vi.fn(() => ({
+      initializePlayer: vi.fn().mockResolvedValue(true),
+      trackGameStart: vi.fn(),
+      trackGameEnd: vi.fn(),
+      trackEvent: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+  RailwayClient: {
+    getInstance: vi.fn(() => ({
+      get: vi.fn().mockResolvedValue({ success: true, data: [] }),
+      post: vi.fn().mockResolvedValue({ success: true }),
+    })),
+  },
+}));
+
 // Mock hooks
 vi.mock('../../hooks/useMarketData', () => ({
   useMarketData: () => ({

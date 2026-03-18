@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 
 // Mock SecurityUtils module to simulate non-local environment
@@ -26,6 +26,12 @@ describe('Registration Flow (Integration with MSW)', () => {
       },
       writable: true,
     });
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it.skipIf(isCI)('should register a new nickname and store it locally', async () => {
