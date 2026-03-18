@@ -18,10 +18,43 @@ async function getAuthToken(): Promise<string | null> {
   if (!isSupabaseConfigured()) return null;
   try {
     const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token ?? null;
+    return data.session?.access_token ?? null;
   } catch {
     return null;
   }
+}
+
+/** Force-refresh the Supabase session and return a fresh access token. */
+async function refreshAuthToken(): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session) return null;
+    return data.session.access_token;
+  } catch {
+    return null;
+  }
+}
+
+async function doFetch(
+  method: string,
+  url: string,
+  token: string | null,
+  body?: unknown
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return fetch(url, {
+    method,
+    headers,
+    body: body != null ? JSON.stringify(body) : undefined,
+  });
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -32,19 +65,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const url = `${BASE_URL}${path}`;
   const token = await getAuthToken();
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  let res = await doFetch(method, url, token, body);
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  // On 401, try refreshing the token once and retry
+  if (res.status === 401 && token) {
+    const freshToken = await refreshAuthToken();
+    if (freshToken && freshToken !== token) {
+      res = await doFetch(method, url, freshToken, body);
+    }
   }
-
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body != null ? JSON.stringify(body) : undefined,
-  });
 
   if (!res.ok) {
     let errorMsg = `HTTP ${res.status}`;

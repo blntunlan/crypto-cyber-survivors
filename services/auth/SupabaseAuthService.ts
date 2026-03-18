@@ -161,6 +161,11 @@ class SupabaseAuthServiceClass {
           session,
         });
         break;
+
+      case 'INITIAL_SESSION':
+        // Fired once on startup with the restored session (may be null)
+        Logger.info(`[SupabaseAuth] Initial session ${session ? 'restored' : 'empty'}`);
+        break;
     }
   }
 

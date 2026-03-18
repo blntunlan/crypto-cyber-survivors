@@ -5,9 +5,29 @@ import { UserProvider } from '../../contexts/UserContext';
 import { useUser } from '../../contexts/useUser';
 import { nanoid } from 'nanoid';
 
-const { mockIsSupabaseConfigured } = vi.hoisted(() => ({
-  mockIsSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
+// ── Hoisted mocks ──────────────────────────────────────────────────────────
+
+const { mockIsSupabaseConfigured, mockSupabaseAuth, mockRailwayClient } = vi.hoisted(
+  () => ({
+    mockIsSupabaseConfigured: vi.fn().mockReturnValue(true),
+    mockSupabaseAuth: {
+      initialize: vi.fn(),
+      getSession: vi.fn().mockResolvedValue(null),
+      getUser: vi.fn().mockResolvedValue(null),
+      signOut: vi.fn().mockResolvedValue({ success: true }),
+      signInAnonymously: vi.fn().mockResolvedValue({
+        success: true,
+        session: { access_token: 'test-tok' },
+      }),
+    },
+    mockRailwayClient: {
+      get: vi.fn(),
+      post: vi.fn(),
+      patch: vi.fn(),
+      del: vi.fn(),
+    },
+  })
+);
 
 vi.mock('../../services/supabase/client', () => ({
   supabase: {
@@ -23,17 +43,13 @@ vi.mock('../../services/supabase/client', () => ({
 }));
 
 vi.mock('../../services/auth/SupabaseAuthService', () => ({
-  SupabaseAuthService: {
-    initialize: vi.fn(),
-    getSession: vi.fn().mockResolvedValue(null),
-    signOut: vi.fn().mockResolvedValue({ success: true }),
-    signInAnonymously: vi
-      .fn()
-      .mockResolvedValue({ success: true, session: { access_token: 'test' } }),
-  },
+  SupabaseAuthService: mockSupabaseAuth,
 }));
 
-// Mock Logger
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: mockRailwayClient,
+}));
+
 vi.mock('../../services/system/Logger', () => ({
   Logger: {
     info: vi.fn(),
@@ -43,12 +59,12 @@ vi.mock('../../services/system/Logger', () => ({
   },
 }));
 
-// Mock nanoid
 vi.mock('nanoid', () => ({
   nanoid: vi.fn().mockReturnValue('mock-id-12345'),
 }));
 
-// Test component to access context
+// ── Helper component ───────────────────────────────────────────────────────
+
 const TestConsumer: React.FC<{
   onRender?: (ctx: ReturnType<typeof useUser>) => void;
 }> = ({ onRender }) => {
@@ -70,15 +86,17 @@ const TestConsumer: React.FC<{
   );
 };
 
+// ── Tests ──────────────────────────────────────────────────────────────────
+
 describe('UserContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     mockIsSupabaseConfigured.mockReturnValue(true);
 
-    // Mock hostname for local mode
+    // Default: local mode (hostname = localhost)
     Object.defineProperty(window, 'location', {
-      value: { hostname: 'localhost' },
+      value: { hostname: 'localhost', origin: 'http://localhost:3000' },
       configurable: true,
     });
   });
@@ -86,6 +104,10 @@ describe('UserContext', () => {
   afterEach(() => {
     localStorage.clear();
   });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Initial State
+  // ────────────────────────────────────────────────────────────────────────
 
   describe('Initial State', () => {
     it('should start with loading true and then false', async () => {
@@ -173,7 +195,11 @@ describe('UserContext', () => {
     });
   });
 
-  describe('Login', () => {
+  // ────────────────────────────────────────────────────────────────────────
+  // Local Mode Login
+  // ────────────────────────────────────────────────────────────────────────
+
+  describe('Login (local mode)', () => {
     it('should login in local mode and save to localStorage', async () => {
       render(
         <UserProvider>
@@ -194,15 +220,425 @@ describe('UserContext', () => {
         expect(screen.getByTestId('nickname').textContent).toBe('TestNick');
       });
 
-      // Check localStorage
       const stored = JSON.parse(localStorage.getItem('crypto_survivors_user')!);
       expect(stored.nickname).toBe('TestNick');
     });
   });
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Remote Mode Login
+  // ────────────────────────────────────────────────────────────────────────
+
+  describe('Login (remote mode)', () => {
+    beforeEach(() => {
+      // Switch to remote mode: configured + non-local hostname
+      mockIsSupabaseConfigured.mockReturnValue(true);
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'crypto-survivors.com',
+          origin: 'https://crypto-survivors.com',
+        },
+        configurable: true,
+      });
+    });
+
+    it('should authenticate via Supabase and create profile', async () => {
+      // No existing user/session
+      mockSupabaseAuth.getUser.mockResolvedValue(null);
+      mockSupabaseAuth.getSession.mockResolvedValue(null);
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: true,
+        session: { access_token: 'new-tok' },
+      });
+
+      // Profile doesn't exist → GET fails, POST creates
+      mockRailwayClient.get.mockRejectedValue(new Error('Not found'));
+      mockRailwayClient.post.mockResolvedValue({
+        id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+        nickname: 'TestNick',
+      });
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+        expect(screen.getByTestId('nickname').textContent).toBe('TestNick');
+        expect(screen.getByTestId('profileId').textContent).toBe(
+          'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
+        );
+      });
+
+      expect(mockSupabaseAuth.signOut).toHaveBeenCalled();
+      expect(mockSupabaseAuth.signInAnonymously).toHaveBeenCalledWith('TestNick');
+      expect(mockRailwayClient.post).toHaveBeenCalledWith('/api/v1/profile', {
+        nickname: 'TestNick',
+      });
+    });
+
+    it('should use existing valid session and fetch profile', async () => {
+      const fakeUser = { id: 'user-id-123' };
+      const fakeSession = { access_token: 'existing-tok' };
+
+      mockSupabaseAuth.getUser.mockResolvedValue(fakeUser);
+      mockSupabaseAuth.getSession.mockResolvedValue(fakeSession);
+
+      mockRailwayClient.get.mockResolvedValue({
+        id: 'existing-profile-id-1234-5678-9abc-def012345678',
+        nickname: 'TestNick',
+      });
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      });
+
+      // Should NOT call signInAnonymously since session is valid
+      expect(mockSupabaseAuth.signInAnonymously).not.toHaveBeenCalled();
+    });
+
+    it('should re-auth when existing session is stale (getUser returns null)', async () => {
+      // getUser returns null (session expired server-side)
+      mockSupabaseAuth.getUser.mockResolvedValue(null);
+      mockSupabaseAuth.getSession.mockResolvedValue(null);
+
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: true,
+        session: { access_token: 'fresh-tok' },
+      });
+
+      mockRailwayClient.get.mockRejectedValue(new Error('Not found'));
+      mockRailwayClient.post.mockResolvedValue({
+        id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
+        nickname: 'TestNick',
+      });
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      });
+
+      // Should sign out stale session and create fresh one
+      expect(mockSupabaseAuth.signOut).toHaveBeenCalled();
+      expect(mockSupabaseAuth.signInAnonymously).toHaveBeenCalledWith('TestNick');
+    });
+
+    it('should return error when signInAnonymously fails', async () => {
+      mockSupabaseAuth.getUser.mockResolvedValue(null);
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: false,
+        error: 'Anonymous sign-ins are disabled',
+      });
+
+      let loginResult: { success: boolean; error?: string } | null = null;
+
+      const LoginButton: React.FC = () => {
+        const { login, isLoading } = useUser();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading.toString()}</span>
+            <button
+              data-testid="login-btn"
+              onClick={() => {
+                void login('TestNick').then(r => {
+                  loginResult = r;
+                });
+              }}
+            >
+              Login
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <UserProvider>
+          <LoginButton />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login-btn'));
+      });
+
+      expect(loginResult).toEqual({
+        success: false,
+        error: 'Anonymous sign-ins are disabled',
+      });
+    });
+
+    it('should return Nickname already taken error', async () => {
+      mockSupabaseAuth.getUser.mockResolvedValue(null);
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: true,
+        session: { access_token: 'tok' },
+      });
+
+      mockRailwayClient.get.mockRejectedValue(new Error('Not found'));
+      mockRailwayClient.post.mockRejectedValue(new Error('Nickname already taken'));
+
+      let loginResult: { success: boolean; error?: string } | null = null;
+
+      const LoginButton: React.FC = () => {
+        const { login, isLoading } = useUser();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading.toString()}</span>
+            <button
+              data-testid="login-btn"
+              onClick={() => {
+                void login('TakenNick').then(r => {
+                  loginResult = r;
+                });
+              }}
+            >
+              Login
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <UserProvider>
+          <LoginButton />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login-btn'));
+      });
+
+      expect(loginResult).toEqual({
+        success: false,
+        error: 'Nickname already taken',
+      });
+    });
+
+    it('should return connection error on fetch failure', async () => {
+      mockSupabaseAuth.getUser.mockResolvedValue(null);
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: true,
+        session: { access_token: 'tok' },
+      });
+
+      // Both GET and POST fail with fetch error
+      mockRailwayClient.get.mockRejectedValue(new TypeError('fetch failed'));
+      mockRailwayClient.post.mockRejectedValue(new TypeError('fetch failed'));
+
+      let loginResult: { success: boolean; error?: string } | null = null;
+
+      const LoginButton: React.FC = () => {
+        const { login, isLoading } = useUser();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading.toString()}</span>
+            <button
+              data-testid="login-btn"
+              onClick={() => {
+                void login('Player').then(r => {
+                  loginResult = r;
+                });
+              }}
+            >
+              Login
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <UserProvider>
+          <LoginButton />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login-btn'));
+      });
+
+      expect(loginResult!.success).toBe(false);
+      expect(loginResult!.error).toContain('Connection to server failed');
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Remote Mode Init (session validation)
+  // ────────────────────────────────────────────────────────────────────────
+
+  describe('Init (remote mode — session validation)', () => {
+    beforeEach(() => {
+      mockIsSupabaseConfigured.mockReturnValue(true);
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'crypto-survivors.com',
+          origin: 'https://crypto-survivors.com',
+        },
+        configurable: true,
+      });
+    });
+
+    it('should keep user when Supabase user + Railway profile are valid', async () => {
+      const storedUser = {
+        profileId: '550e8400-e29b-41d4-a716-446655440000',
+        nickname: 'ValidUser',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      };
+      localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+
+      mockSupabaseAuth.getUser.mockResolvedValue({ id: 'auth-user-id' });
+      mockRailwayClient.get.mockResolvedValue({ id: storedUser.profileId });
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      expect(screen.getByTestId('nickname').textContent).toBe('ValidUser');
+    });
+
+    it('should clear user when Supabase session is invalid (getUser returns null)', async () => {
+      const storedUser = {
+        profileId: '550e8400-e29b-41d4-a716-446655440000',
+        nickname: 'ExpiredUser',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      };
+      localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+
+      // getUser returns null → session invalid
+      mockSupabaseAuth.getUser.mockResolvedValue(null);
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      expect(screen.getByTestId('authenticated').textContent).toBe('false');
+      expect(mockSupabaseAuth.signOut).toHaveBeenCalled();
+      expect(localStorage.getItem('crypto_survivors_user')).toBeNull();
+    });
+
+    it('should clear user when Railway profile not found', async () => {
+      const storedUser = {
+        profileId: '550e8400-e29b-41d4-a716-446655440000',
+        nickname: 'OrphanUser',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      };
+      localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+
+      mockSupabaseAuth.getUser.mockResolvedValue({ id: 'auth-user-id' });
+      mockRailwayClient.get.mockRejectedValue(new Error('Profile not found'));
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      expect(screen.getByTestId('authenticated').textContent).toBe('false');
+      expect(mockSupabaseAuth.signOut).toHaveBeenCalled();
+    });
+
+    it('should keep user on network error (offline support)', async () => {
+      const storedUser = {
+        profileId: '550e8400-e29b-41d4-a716-446655440000',
+        nickname: 'OfflineUser',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      };
+      localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+
+      // getUser throws network error
+      mockSupabaseAuth.getUser.mockRejectedValue(new TypeError('Failed to fetch'));
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      // Should keep the user (offline support)
+      expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      expect(screen.getByTestId('nickname').textContent).toBe('OfflineUser');
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Logout
+  // ────────────────────────────────────────────────────────────────────────
+
   describe('Logout', () => {
     it('should clear user on logout', async () => {
-      // Pre-populate storage
       const mockUser = {
         profileId: '550e8400-e29b-41d4-a716-446655440010',
         nickname: 'LogoutUser',
@@ -232,7 +668,75 @@ describe('UserContext', () => {
 
       expect(localStorage.getItem('crypto_survivors_user')).toBeNull();
     });
+
+    it('should call SupabaseAuthService.signOut on logout', async () => {
+      const mockUser = {
+        profileId: '550e8400-e29b-41d4-a716-446655440010',
+        nickname: 'LogoutUser2',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      };
+      localStorage.setItem('crypto_survivors_user', JSON.stringify(mockUser));
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('logout'));
+      });
+
+      expect(mockSupabaseAuth.signOut).toHaveBeenCalled();
+    });
+
+    it('should regenerate anon-ID after logout', async () => {
+      const mockUser = {
+        profileId: '550e8400-e29b-41d4-a716-446655440010',
+        nickname: 'LogoutUser3',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      };
+      localStorage.setItem('crypto_survivors_user', JSON.stringify(mockUser));
+
+      render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated').textContent).toBe('true');
+      });
+
+      // While authenticated, profileId = the stored user's UUID
+      expect(screen.getByTestId('profileId').textContent).toBe(
+        '550e8400-e29b-41d4-a716-446655440010'
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('logout'));
+      });
+
+      await waitFor(() => {
+        // After logout, profileId should be an anon_* string
+        expect(screen.getByTestId('profileId').textContent).toMatch(/^anon_/);
+        // And should not be the old UUID
+        expect(screen.getByTestId('profileId').textContent).not.toBe(
+          '550e8400-e29b-41d4-a716-446655440010'
+        );
+      });
+    });
   });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // useUser hook
+  // ────────────────────────────────────────────────────────────────────────
 
   describe('useUser hook', () => {
     it('should throw error when used outside provider', () => {

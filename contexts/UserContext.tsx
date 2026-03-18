@@ -103,15 +103,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         return;
       }
 
-      // Verify stored user against Railway API
+      // Verify stored user against Supabase (server call) + Railway API
       try {
-        const { railwayClient } = await import('../services/api/RailwayClient');
+        // getUser() makes a real server call — validates JWT isn't revoked/expired
+        const authUser = await SupabaseAuthService.getUser();
 
-        // Check if we have a valid Supabase session
-        const session = await SupabaseAuthService.getSession();
-
-        if (session) {
-          // Session exists — verify profile via Railway
+        if (authUser) {
+          // Valid Supabase session — verify profile exists on Railway
+          const { railwayClient } = await import('../services/api/RailwayClient');
           const profile = await railwayClient
             .get<{ id: string }>('/api/v1/profile')
             .catch(() => null);
@@ -126,9 +125,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             if (mounted) commitUser(null);
           }
         } else {
-          // No Supabase session — clear stored user (JWT expired/missing)
-          Logger.warn('[UserContext] No Supabase session. Clearing stored user.');
+          // No valid Supabase user — JWT expired/revoked
+          Logger.warn('[UserContext] Supabase session invalid. Clearing stored user.');
           UserPersistenceService.clear();
+          await SupabaseAuthService.signOut();
           if (mounted) commitUser(null);
         }
       } catch (err) {
@@ -159,11 +159,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       try {
-        // 1. Check if we already have a Supabase session
-        let session = await SupabaseAuthService.getSession();
+        // 1. Validate existing session via server call (not cache)
+        const user = await SupabaseAuthService.getUser();
+        let session = user ? await SupabaseAuthService.getSession() : null;
 
         if (!session) {
-          // 2. Create anonymous Supabase Auth user → gets a real JWT
+          // No valid session — sign out stale state and create fresh anonymous user
+          await SupabaseAuthService.signOut();
+
           const authResult = await SupabaseAuthService.signInAnonymously(nickname);
 
           if (!authResult.success || !authResult.session) {
@@ -176,7 +179,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           session = authResult.session;
         }
 
-        // 3. Create or fetch profile via Railway API (JWT is auto-attached)
+        // 2. Create or fetch profile via Railway API (JWT is auto-attached)
         const { railwayClient } = await import('../services/api/RailwayClient');
 
         type ProfileResponse = { id: string; nickname?: string; display_name?: string };
