@@ -25,20 +25,21 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
       return;
     }
 
-    // Look up profile by auth_user_id or nickname
+    // Look up profile: prefer JWT auth_user_id, fall back to nickname from body
+    const authUserId = req.authUserId ?? '';
     let profileQuery: string;
-    let profileParam: string;
+    let profileParams: string[];
 
     if (userId) {
-      // First try by nickname (legacy client sends nickname as userId)
-      profileQuery = `SELECT id FROM profiles WHERE nickname = $1 OR auth_user_id = $1`;
-      profileParam = userId;
+      // Client sends nickname as userId — search by nickname OR auth_user_id from JWT
+      profileQuery = `SELECT id FROM profiles WHERE auth_user_id = $1::uuid OR nickname = $2`;
+      profileParams = [authUserId, userId];
     } else {
-      profileQuery = `SELECT id FROM profiles WHERE auth_user_id = $1`;
-      profileParam = req.authUserId ?? '';
+      profileQuery = `SELECT id FROM profiles WHERE auth_user_id = $1::uuid`;
+      profileParams = [authUserId];
     }
 
-    const { rows: profiles } = await query(profileQuery, [profileParam]);
+    const { rows: profiles } = await query(profileQuery, profileParams);
     if (profiles.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
       return;
