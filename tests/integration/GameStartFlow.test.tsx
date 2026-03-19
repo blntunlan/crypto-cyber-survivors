@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -48,6 +48,32 @@ vi.mock('../../services/auth/GameSessionService', () => ({
     submitSession: vi.fn(),
     getCurrentSessionId: vi.fn(),
     getPlayerId: vi.fn().mockReturnValue('test-player-id'),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    getInstance: vi.fn(() => ({
+      trackSessionStart: vi.fn(),
+      trackSessionEnd: vi.fn(),
+      trackEvent: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureError: vi.fn(),
+    captureMessage: vi.fn(),
+    initialize: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue([]),
+    post: vi.fn().mockResolvedValue({}),
+    put: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -130,6 +156,16 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock.railway.app');
+
+    // Re-import RailwayClient so it picks up the newly stubbed env var
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {

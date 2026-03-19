@@ -146,7 +146,7 @@ export class PriceAnalyzerService {
         BTC: this.history.get('BTC')?.length ?? 0,
         ETH: this.history.get('ETH')?.length ?? 0,
         SOL: this.history.get('SOL')?.length ?? 0,
-        total: rows?.length ?? 0,
+        total: rows.length,
       });
     } catch (err) {
       Logger.warn('[PriceAnalyzer] Error loading from Supabase:', err);

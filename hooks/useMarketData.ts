@@ -744,7 +744,7 @@ export const useMarketData = (
             pair: expectedPair,
             position: currentPosition,
             price,
-            volume: update.volume ?? 0,
+            volume: update.volume,
             timestamp: tickTimestamp,
             rawPnl: pnlResult.rawPnl,
             level: playerLevel,
@@ -759,7 +759,7 @@ export const useMarketData = (
           const nextData = {
             ...prevMarketData,
             price,
-            volume: update.volume ?? 0,
+            volume: update.volume,
             pnl: pnlResult.rawPnl,
             effectivePnl: pnlResult.effectivePnl,
             leverage: currentLeverage,
