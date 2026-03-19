@@ -26,7 +26,7 @@ export class SupabaseCoinProvider implements ICoinProvider {
       const data = await railwayClient.get<{ balance: number }>(
         '/api/v1/wallet/balance'
       );
-      return data.balance ?? 0;
+      return data.balance;
     } catch (error) {
       Logger.warn('[SupabaseCoinProvider] Failed to fetch balance', error);
       return 0;

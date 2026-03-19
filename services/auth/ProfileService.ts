@@ -87,19 +87,17 @@ export class ProfileService {
       // Fetch profile from Railway API
       try {
         const profile = await railwayClient.get<DBProfile>('/api/v1/profile');
-        if (profile) {
-          this.currentProfile = this.mapToPlayerProfile(profile, user);
+        this.currentProfile = this.mapToPlayerProfile(profile, user);
 
-          // Update last_seen_at
-          await railwayClient.patch('/api/v1/profile', {}).catch(() => {});
+        // Update last_seen_at
+        await railwayClient.patch('/api/v1/profile', {}).catch(() => {});
 
-          this.isInitialized = true;
-          Logger.info(
-            '[ProfileService] Profile loaded:',
-            this.currentProfile.displayName
-          );
-          return { isValid: true, profile: this.currentProfile };
-        }
+        this.isInitialized = true;
+        Logger.info(
+          '[ProfileService] Profile loaded:',
+          this.currentProfile.displayName
+        );
+        return { isValid: true, profile: this.currentProfile };
       } catch {
         // Profile not found — new user flow
       }

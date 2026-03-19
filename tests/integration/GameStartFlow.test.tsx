@@ -71,7 +71,7 @@ vi.mock('../../services/analytics/ErrorTracker', () => ({
 
 vi.mock('../../services/api/RailwayClient', () => ({
   railwayClient: {
-    get: vi.fn().mockResolvedValue([]),
+    get: vi.fn().mockResolvedValue({ entries: [] }),
     post: vi.fn().mockResolvedValue({}),
     put: vi.fn().mockResolvedValue({}),
   },
