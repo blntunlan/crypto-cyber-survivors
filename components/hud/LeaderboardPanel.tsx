@@ -73,7 +73,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
         '/api/v1/leaderboard?limit=10&sort=high_score'
       );
 
-      const rankedEntries = (data.entries ?? [])
+      const rankedEntries = data.entries
         .map((entry, index) => {
           const name = (
             entry.display_name ??

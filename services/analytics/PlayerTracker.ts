@@ -77,18 +77,16 @@ export class PlayerTracker {
           return railwayClient.post<ProfileResponse>('/api/v1/profile', { nickname });
         });
 
-      if (profile) {
-        this.currentPlayer = {
-          id: profile.id,
-          displayName: profile.display_name ?? profile.nickname,
-          createdAt: profile.created_at ?? new Date().toISOString(),
-          lastSeenAt: profile.last_seen_at ?? new Date().toISOString(),
-          totalSessions: 1,
-          highScore: 0,
-        };
+      this.currentPlayer = {
+        id: profile.id,
+        displayName: profile.display_name,
+        createdAt: profile.created_at,
+        lastSeenAt: profile.last_seen_at,
+        totalSessions: 1,
+        highScore: 0,
+      };
 
-        Logger.info(`[PlayerTracker] Welcome, ${nickname}!`);
-      }
+      Logger.info(`[PlayerTracker] Welcome, ${nickname}!`);
 
       // Start heartbeat for active players
       this.startHeartbeat();

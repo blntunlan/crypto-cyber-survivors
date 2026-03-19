@@ -168,7 +168,7 @@ describe('ErrorTracker', () => {
 
       expect(mockFetchImpl).toHaveBeenCalled();
       const callBody = JSON.parse(
-        (mockFetchImpl.mock.calls[0]?.[1] as RequestInit)?.body as string
+        (mockFetchImpl.mock.calls[0][1] as RequestInit).body as string
       );
       expect(callBody.errorType).toBe('NetworkError');
 
