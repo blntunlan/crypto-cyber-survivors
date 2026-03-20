@@ -1,0 +1,3 @@
+## 2024-03-20 - [Pre-allocated ViewportBounds for Culling Optimization]
+**Learning:** Hot loops in rendering (`EntityRenderer`, `ProjectileRenderer`, `EffectRenderer`) and game logic (`CombatSystem.findNearestEnemy`) frequently query viewport bounds. Using `createViewportBounds` allocates a new `ViewportBounds` object every frame, leading to significant GC pressure and potential frame drops when entity counts are high.
+**Action:** Implemented a pre-allocated object pattern. Classes that need viewport bounds should instantiate a single `ViewportBounds` property via `createViewportBounds` in their constructor, and update it in-place every frame using a new `updateViewportBounds` mutator function. This ensures zero allocations for bounds checking in hot paths.
