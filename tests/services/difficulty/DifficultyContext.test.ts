@@ -127,6 +127,19 @@ describe('DifficultyContext', () => {
     expect(second.macd.histogram).toBe(0.75);
   });
 
+  it('resets on gameOver event (belt-and-suspenders)', () => {
+    // Simulate accumulated state
+    difficultyContext.updateInputs({ cycleFactor: 2.5, level: 10 });
+    expect(difficultyContext.inputs.cycleFactor).toBe(2.5);
+
+    EventBus.emit('gameOver', { finalLevel: 10, finalPnl: 0.5 });
+
+    const after = difficultyContext.inputs;
+    expect(after.cycleFactor).toBe(1);
+    expect(after.level).toBe(1);
+    expect(after.elapsedSeconds).toBe(0);
+  });
+
   it('returns to client indicator MACD after game reset', () => {
     EventBus.emit('marketRuntimeSnapshot', createRuntimeSnapshotEvent(1, 0.5));
     expect(difficultyContext.inputs.macd.value).toBe(0.5);

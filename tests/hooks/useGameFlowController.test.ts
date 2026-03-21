@@ -114,6 +114,13 @@ vi.mock('../../services/system/Logger', () => ({
   },
 }));
 
+vi.mock('../../services/difficulty/DifficultyContext', () => ({
+  difficultyContext: {
+    reset: vi.fn(),
+    updateInputs: vi.fn(),
+  },
+}));
+
 const makeCard = (): Card => ({
   id: 'card-1',
   name: 'Sharp Edge',
@@ -391,7 +398,9 @@ describe('useGameFlowController', () => {
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 
-  it('resetFlowState clears frozen pnl, cycle data, and upgrade choices', async () => {
+  it('resetFlowState clears frozen pnl, cycle data, upgrade choices, and resets difficulty', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
     const { result } = renderHook(() =>
@@ -430,5 +439,6 @@ describe('useGameFlowController', () => {
     expect(result.current.upgradeChoices).toEqual([]);
     expect(result.current.cycleData).toBeNull();
     expect(result.current.frozenPnlRef.current).toBe(0);
+    expect(difficultyContext.reset).toHaveBeenCalled();
   });
 });

@@ -80,6 +80,41 @@ describe('EventBus', () => {
     expect(EventBus.getTraceLog().length).toBe(0);
   });
 
+  it('should invalidate flat cache on subscribe/unsubscribe', () => {
+    let count = 0;
+    const handler = () => {
+      count++;
+    };
+    const unsub = EventBus.on('enemyKilled', handler);
+
+    // First emit builds cache
+    EventBus.emit('enemyKilled', { x: 1, y: 2 });
+    expect(count).toBe(1);
+
+    // Unsubscribe invalidates cache
+    unsub();
+    EventBus.emit('enemyKilled', { x: 3, y: 4 });
+    expect(count).toBe(1); // Should NOT increment
+  });
+
+  it('should invalidate flat cache on clearScope', () => {
+    let count = 0;
+    EventBus.on(
+      'enemyKilled',
+      () => {
+        count++;
+      },
+      { scope: 'gameplay' }
+    );
+
+    EventBus.emit('enemyKilled', { x: 1, y: 2 });
+    expect(count).toBe(1);
+
+    EventBus.clearScope('gameplay');
+    EventBus.emit('enemyKilled', { x: 3, y: 4 });
+    expect(count).toBe(1);
+  });
+
   it('should return listener counts', () => {
     const unsub1 = EventBus.on('enemyKilled', () => {});
     const unsub2 = EventBus.on('enemyKilled', () => {});

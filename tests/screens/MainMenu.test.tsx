@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '../test-utils';
 import { MainMenu } from '../../components/screens/MainMenu';
 import { GameMode } from '../../types/gameMode';
 
+const useDeviceMock = vi.hoisted(() =>
+  vi.fn(() => ({ isMobile: false, isTablet: false }))
+);
+
 // Mock audio
 vi.mock('../../services/audio', () => ({
   audio: {
@@ -11,6 +15,10 @@ vi.mock('../../services/audio', () => ({
     playButton: vi.fn(),
     playLevelUp: vi.fn(),
   },
+}));
+
+vi.mock('../../hooks/useDevice', () => ({
+  useDevice: useDeviceMock,
 }));
 
 describe('MainMenu', () => {
@@ -26,6 +34,7 @@ describe('MainMenu', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useDeviceMock.mockReturnValue({ isMobile: false, isTablet: false });
   });
 
   const renderMainMenu = (props = defaultProps) => {
@@ -122,10 +131,7 @@ describe('MainMenu', () => {
   });
 
   it('should render correctly on mobile', () => {
-    // Mock mobile device
-    vi.mock('../../hooks/useDevice', () => ({
-      useDevice: () => ({ isMobile: true, isTablet: false }),
-    }));
+    useDeviceMock.mockReturnValue({ isMobile: true, isTablet: false });
 
     renderMainMenu();
     // Mobile might have different class or smaller text, but same functionality
