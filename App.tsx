@@ -31,6 +31,7 @@ import { ExperienceService } from './services/gameplay/ExperienceService';
 import { TimeService } from './services/core/TimeService';
 import { WalletService } from './services/gameplay/WalletService';
 import { ComboSystem } from './services/combat/ComboSystem';
+import { CombatSystem } from './services/combat/CombatSystem';
 import { LeverageEngine } from './services/gameplay/LeverageEngine';
 import { SupabaseCoinProvider } from './services/gameplay/SupabaseCoinProvider';
 
@@ -76,7 +77,10 @@ const FallbackLoader = () => (
   <div
     style={{
       position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -322,6 +326,7 @@ const App: React.FC = () => {
       setLeverage(selectedLeverage);
       CoinService.resetSession();
       ComboSystem.startGame();
+      CombatSystem.resetDebugCounter();
 
       let success: boolean;
       try {
@@ -410,7 +415,6 @@ const App: React.FC = () => {
       patchIdentityState,
     ]
   );
-
 
   const cheatHandlers = useMemo(
     () => ({
