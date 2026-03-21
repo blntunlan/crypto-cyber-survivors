@@ -1,31 +1,11 @@
-# :GenesisEmblem: Neural AI Director
+# AIDirector (Deprecated Doc Alias)
 
-> **Status**: Production Ready | **Type**: Neural Network Service | **Domain**: Adaptive Difficulty & AI
+This file remains only to preserve older links.
 
-## :FileText: Logic Summary
-The "Director" layer is an artificial intelligence brain that dynamically modulates game difficulty based on the player's stress level, performance, and current market conditions. Instead of a linear difficulty increase, it uses market volatility to create high-adrenaline moments and strategic pauses.
+The live runtime does not use the older neural `AIDirector` design. Use `/docs/services/UnifiedDirector` for the current rule-based difficulty pipeline.
 
-## :Rocket: Key Features
-- **Neural Input Processing**: Concurrent processing of data from 9 different sensors (Market RSI, MACD, Player HP, PnL, etc.).
-- :Check: **Dynamic Pacing**: Adjusts enemy density and aggression within milliseconds based on player performance.
-- :GenesisEmblem: **Market-Driven Logic**: Specialized algorithms that transform real Bitcoin volatility into "in-game danger" factors.
+Key changes:
 
-## :Monitor: Internal Architecture
-```mermaid
-graph LR
-    Sensors[9 Inputs: RSI, HP, PnL, DPS...] --> Brain((6-Node Hidden Layer))
-    Brain --> Decisions[3 Outputs: Spawn Rate, Speed, Aggression]
-    Decisions --> Manager[DifficultyManager]
-```
-
-## :Settings: Technical Context
-- **Engine**: Multilayer Perceptron (MLP) architecture based on `synaptic.js`.
-- **Update Frequency**: Sensor data is "fed-forward" every 1000ms to generate new difficulty coefficients.
-- **Data Normalization**: Inputs are normalized to the [0, 1] range before being sent to the neural network.
-
-## :Zap: Performance & Security Level
-- **Performance**: Low-cost matrix calculations requiring no memory allocation.
-- **Security**: AI brain weights are generated in the server-side "Darwin" training pipeline, and only the ready model (JSON) is sent to the client.
-
----
-// END OF PROTOCOL
+- no MLP or `synaptic.js` model in the live client path
+- deterministic rule execution with reusable shared state
+- smoothing and output mapping handled by `UnifiedDirector` plus `DifficultyManager`

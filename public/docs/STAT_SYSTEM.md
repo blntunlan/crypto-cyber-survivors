@@ -1,37 +1,43 @@
-# :Activity: Stat System
+# Stat System
 
-> **Status**: LIVE | **Version**: v1.0 | **Owner**: Game Balancing
+Status: live
+Owner: gameplay balancing
 
-## :Activity: Overview
-The Stat System governs both the Player and Enemies. It is centrally managed to allow easy scaling and market-driven modifiers. All stats are structured to prevent infinite loops and cap out at defined engine limits.
+## Summary
 
-### Core Player Stats
-1. **MaxHP:** Total health pool.
-2. **Regen:** Health recovered per second.
-3. **MoveSpeed:** Base velocity scalar.
-4. **Damage:** Global multiplier applied to all weapons.
-5. **AttackSpeed:** Cooldown reduction percentage (caps at 90%).
-6. **MagnetRange:** Radius for pulling XP gems.
-7. **CritChance:** Percentage chance to deal double damage.
+The stat system combines base player values, upgrades, temporary modifiers, leverage pressure, and market-driven difficulty outputs.
 
-## :TrendingUp: Market Modifiers
-Because the game reads live crypto data, stats are dynamically multiplied.
+The goal is to keep combat readable while still letting the market meaningfully change pacing.
 
-`FinalStat = BaseStat * ProgressionModifier * MarketMultiplier`
+## Runtime layers
 
-*Example:* During extreme volatility, `MoveSpeed` might receive a temporary `1.15x` multiplier, making the game feel faster and more dangerous.
+### Base player stats
 
-## :Repeat: Meta-Progression
-Players can permanently increase base stats between runs using Gold extracted from gameplay.
-These upgrades are loaded from `Supabase` on login and injected into the initial `useGameStore` state before the `GameEngine` mounts.
+Core player values such as HP, move speed, damage, attack speed, crit chance, and magnet range start from the player definition and upgrade state.
 
-### Upgrade Path Example
-- **Magnetism Lv.1:** +15% Range (Cost: 100g)
-- **Magnetism Lv.2:** +35% Range (Cost: 250g)
-- **Magnetism Lv.3:** +60% Range (Cost: 600g)
+### Temporary modifiers
 
-*Values are tracked securely to ensure offline alterations cannot cheat the server's expected baseline.*
+Buffs, debuffs, event effects, and market pressure adjust those values during the run. These modifiers should be treated as runtime overlays, not permanent progression.
 
----
-// STATS: NORMALIZED
-// ENGINE CAPS: ENFORCED
+### Difficulty-driven pressure
+
+The live difficulty stack can influence effective stats indirectly through:
+
+- enemy speed and HP multipliers
+- damage pressure
+- gem and reward multipliers
+- leverage-sensitive survival tuning
+
+## Meta progression
+
+Between runs, persistent upgrades are part of the broader profile and meta progression surface.
+
+At the architecture level this means:
+
+- run-time stat mutation happens in client services
+- durable progression state is expected to come from the profile and meta progression backend surface
+- the game should bootstrap those values before a run starts instead of mutating them ad hoc mid-session
+
+## Design rule
+
+If a stat changes at 60 FPS, keep it in the runtime layer. If it persists across sessions, treat it as backend-owned progression state.

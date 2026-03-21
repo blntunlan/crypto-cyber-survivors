@@ -1,36 +1,42 @@
-# :Cpu: AI Training Workflow (Project Darwin)
+# AI Training Workflow
 
-> **Status**: active | **Type**: Neural Network Training Pipeline | **Domain**: Autonomous Balancing
+Status: live
+Type: backtest and tuning workflow
+Domain: difficulty tuning
 
-## :FileText: System Summary
-"Project Darwin" is an evolutionary algorithm pipeline used to train the neural network-based AIDirector model for Crypto Survivors. This system automatically determines the most balanced and engaging difficulty coefficients by running thousands of parallel simulations.
+## Summary
 
-## :Rocket: Training Workflow
-1. **Simulation Phase**: Dedicated workers run the game engine in headless mode at 100x speed.
-2. **Fitness Evaluation**: Scoring agents based on survival time, player stress markers, and "fun density".
-3. **Crossover & Mutation**: The best performing neural weights are merged and mutated for the next generation.
-4. **Export**: The final weights are exported as `brain_weights.json` for client-side execution.
+`Project Darwin` is now best understood as a backtest and tuning pipeline for the live rule-based difficulty stack, not as a client neural-network deployment path.
 
-## :Monitor: Training Architecture
-```mermaid
-graph TD
-    A[Global Weights] --> B[Population Spawn]
-    B --> C[Parallel Simulation]
-    C --> D[Fitness Scoring]
-    D --> E{Criteria Met?}
-    E -->|No| F[Evolution Process]
-    F --> B
-    E -->|Yes| G[Model Deployment]
-```
+The current workflow centers on `services/training/BacktestEngine.ts` and related tooling used to replay historical market conditions, score flow-state quality, and tune difficulty parameters.
 
-## :Settings: Technical Context
-- **Engine**: Node.js cluster-based simulation.
-- **Library**: `synaptic.js` for network topology.
-- **Iteration**: 100 generations per training cycle.
+## Current goals
 
-## :Zap: Performance & Security Level
-- **Performance**: High-concurrency worker threads.
-- **Security**: Weights are signed with a private key to prevent unauthorized brain modifications.
+The workflow is used to evaluate whether the runtime keeps players in a healthy pressure band while market conditions change.
 
----
-// END OF PROTOCOL
+Typical targets:
+
+- stable flow-state occupancy
+- acceptable death rate under leverage pressure
+- predictable reward and spawn curves
+- reproducible backtests across historical slices
+
+## Practical loop
+
+1. Load or synthesize historical market data.
+2. Run headless or simulated gameplay episodes.
+3. Measure flow-state, survival, kill pressure, and reward outcomes.
+4. Compare parameter sets.
+5. Promote tuned thresholds or rule constants back into the live difficulty stack.
+
+## What it is not
+
+The active gameplay runtime does not currently depend on a shipped MLP or `synaptic.js` brain for difficulty decisions. The live path is driven by `UnifiedDirector`, `DifficultyManager`, and the phase-based gameplay loop.
+
+## Relevant code
+
+- `services/training/BacktestEngine.ts`
+- `services/difficulty/UnifiedDirector.ts`
+- `services/gameplay/DifficultyManager.ts`
+- `docs/services/UnifiedDirector.md`
+- `docs/workflows/difficulty-pipeline.md`

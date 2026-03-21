@@ -1,37 +1,53 @@
-# :Cpu: General Architecture
+# General Architecture
 
-> **Status**: LIVE | **Version**: v1.0 | **Owner**: Core Engineering
+Status: live
+Owner: Core Engineering
 
-## :Cpu: The "GC-Free" Philosophy
-Crypto Survivors is built with a strict "Performance is Law" mindset. Because the game relies on HTML5 Canvas and React to render thousands of entities at 60 FPS, **Garbage Collection (GC)** spikes are the number one enemy of smooth gameplay.
+## GC-free runtime rules
 
-### Core Tenets:
-1. **Zero Allocations in the Render Loop**: Operations like `new Object()`, `Array.map()`, `Array.filter()`, or spreading arrays `[...arr]` are strictly forbidden inside the core `GameEngine.tsx` loop.
-2. **Pre-Allocation**: Arrays and data structures used for logic (e.g., enemy lists, bullet tracking) are pre-allocated during initialization.
-3. **Zustand for Decoupled React State**: React components do NOT rerender based on game loop state unless strictly necessary (e.g., updating health bars at a throttled rate). 
+Crypto Survivors is built around one non-negotiable constraint: the render loop must stay allocation-light and predictable.
 
-## :Repeat: The Object Pooling System
-Creating and destroying memory is slow. Instead of `new Bullet()` or `new Enemy()`, the architecture uses the `PoolManager`.
-- **Acquire:** `PoolManager.getInstance().spawn('bullet')` retrieves an inactive instance from the pool.
-- **Release:** When an entity dies or goes off-screen, its properties are zeroed out, and it is marked `inactive`. It remains in memory, ready for reuse.
+Core rules:
 
-## :Network: Communication (EventBus)
-The system avoids tight coupling between services (e.g., the `CombatService` does not need to import `AudioService` to play a hit sound). Instead, we use an **EventBus**.
-- **Emitting:** `EventBus.emit({ type: 'ENEMY_DEATH', payload: { ... } })`
-- **Listening:** Systems subscribe on initialization via `EventBus.on('ENEMY_DEATH', handleDeath)`.
+1. Do not allocate new objects or arrays inside the hot loop unless there is no practical alternative.
+2. Reuse pooled entities through `PoolManager`.
+3. Keep frame state in refs or service singletons, not React state.
+4. Use `TimeService` instead of raw timers when pause-aware behavior matters.
 
-## :Search: Spatial Hashing for Physics
-An `O(N^2)` collision check for 500 bullets and 1,000 enemies would crash the browser. 
-Instead, we divide the map into a 2D grid (`SpatialGrid`). Entities register their grid cell `[x/cellSize, y/cellSize]`. 
-When checking for collisions, a bullet only checks the enemies residing in its specific cell and immediately adjacent cells.
+## Communication model
 
-## :Cloud: Tech Stack Overview
-- **Client Render:** React 19 + HTML5 Canvas 2D
-- **State Management:** Zustand 5 (Modular Slices)
-- **Styling:** Tailwind CSS + Framer Motion
-- **Build Tool:** Vite 6
-- **Realtime / DB:** Supabase (PostgreSQL, Edge Functions)
-- **Market Data:** Standalone Node.js WebSocket Aggregator (Railway)
+Services communicate through `EventBus` and shared runtime state rather than direct UI coupling.
 
----
-// SYSTEM STATE: OPTIMIZED
+- Combat, audio, VFX, and progression emit events.
+- React screens subscribe at a lower rate than the loop.
+- Runtime services keep authoritative mutable state outside React.
+
+## Runtime phases
+
+The engine loop is no longer a single monolithic update function. `GameLoopCoordinator` executes explicit phases so behavior is easier to audit and profile:
+
+1. difficulty
+2. input
+3. combat
+4. spawn
+5. physics
+6. effects
+7. portal
+8. metrics
+
+## Data and backend topology
+
+- Client render: React 19 + Canvas 2D
+- State management: Zustand 5 for settings, progress, and session UI state
+- Market delivery: Railway APIs and streaming endpoints
+- Runtime persistence: IndexedDB/localStorage queues plus Railway session and telemetry endpoints
+- Auth and selected legacy integrations: Supabase clients still exist in parts of the identity flow
+
+## Core boundaries
+
+- `App.tsx` owns bootstrapping and screen-level orchestration.
+- `components/GameEngine.tsx` owns the hot loop.
+- `services/difficulty/**` owns rule evaluation and shared difficulty context.
+- `services/market/**` owns streaming, runtime snapshots, and sync queues.
+- `services/gameplay/**` owns reward math, portals, session-facing gameplay state, and loop phases.
+- `services/auth/**` owns nickname, profile, and session bootstrap flows.

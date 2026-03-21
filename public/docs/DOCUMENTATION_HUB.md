@@ -1,30 +1,36 @@
-# :FileText: Documentation Hub Protocol
+# Documentation Hub
 
-> **Status**: LIVE | **Version**: v1.0 | **Owner**: Core Engine Dev
+Status: live
+Owner: Core Engineering
 
-## :FileText: Protocol Summary
-The Documentation Hub is a premium, terminal-style interface designed to showcase the project's technical depth and engineering quality. It serves as a central knowledge hub for both internal architectural references and external player transparency.
+## Purpose
 
-## :Rocket: Internal Architecture
-The system follows a decoupled, file-based architecture:
-- **Source Files**: Markdown (`.md`) files located in the root `/docs` directory.
-- **Published Files**: Synced copies in `public/docs` for client-side accessibility.
-- **Navigation Registry**: `docs/navigation.json` acts as the single source of truth for the sidebar structure.
-- **Renderer Engine**: `DocScreen.tsx` utilizes a custom high-performance React component to transform raw Markdown into a premium "Cyber-Terminal" view.
+The documentation surface is split into two layers:
 
-## :Settings: How to Add Documents
-1. **Create Content**: Add a new `.md` file in the appropriate `docs/` subdirectory.
-2. **Update Registry**: Add the entry to `docs/navigation.json`.
-3. **Publish**: Sync the files from `docs/` to `public/docs/`.
-   - *Command*: `npm run docs:sync`
-4. **Verify**: Open the Documentation Terminal on the Landing Page to check formatting and links.
+- active docs in `docs/` that must match the running codebase
+- archived docs in `docs/archived/` that are preserved only for historical reference
 
-## :Target: Design Standards
-- **Headings**: Use `# :IconName: Title` for page titles and `## :IconName: Section` for sections.
-- **Icons**: Use the `:IconName:` syntax (e.g., `:Shield:`, `:Zap:`, `:Database:`) for visual markers.
-- **Formatting**: Use tables for specifications and bold text for core system tokens.
-- **Visuals**: Incorporate Mermaid diagrams for complex logic flows.
+`public/docs/` mirrors the same structure for the in-app documentation viewer.
 
----
-// SYSTEM STATE: READY
-// ENCRYPTION: ACTIVE (AES-256)
+## Maintenance rules
+
+1. Only current architecture, workflow, service, and setup docs stay in the active tree.
+2. Historical roadmaps, superseded migration plans, and replaced designs are moved to `docs/archived/`.
+3. `docs/navigation.json` should list only active documents that are still useful to engineers and operators.
+4. If a code symbol keeps a legacy name for compatibility, document that clearly instead of pretending the old backend still exists.
+
+## Update workflow
+
+1. Edit the source document in `docs/`.
+2. Mirror the change into `public/docs/`.
+3. Update `docs/navigation.json` and `public/docs/navigation.json` if the active surface changed.
+4. Archive or remove public-only orphan files when their source document no longer exists.
+
+## Archive policy
+
+Use the archive when a document is any of the following:
+
+- implementation plan that has been superseded
+- migration note tied to a retired backend path
+- design draft that no longer matches the shipped runtime
+- public mirror file with no matching source document

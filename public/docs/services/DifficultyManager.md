@@ -1,33 +1,47 @@
-# :Target: Difficulty Manager (V2 Architecture)
+# DifficultyManager
 
-> **Status**: Production Ready | **Type**: Orchestrator Service | **Domain**: Game Balance & Mapping
+Status: live
+Type: orchestrator service
+Domain: gameplay balance
 
-## :FileText: Logic Summary
-`DifficultyManager` is an orchestrator service that manages the game's difficulty parameters by combining market data and in-game metrics. This service transforms neural decisions from the "Director" layer into concrete coefficients (HP, Speed, Spawn Rate) that the game engine can understand.
+## Role in the runtime
 
-## :Rocket: Key Features
-- **Layered Difficulty V2**: Modular architecture consisting of Data Collection (Inputs), Analysis (Context), Decision (Director), and Implementation (Output) layers.
-- :Zap: **Leverage-Based Scaling**: Logarithmic difficulty and reward scaling based on the player's risk appetite (Leverage ratio).
-- :Alert: **Volatility Shock Engine**: Trigger system that translates sudden market fluctuations into visual screen shakes and intense enemy waves.
+`services/gameplay/DifficultyManager.ts` consumes the mutable state collected in `difficultyContext`, asks `UnifiedDirector` for smoothed rule outputs, and maps those values into concrete gameplay multipliers.
 
-## :Monitor: Internal Architecture
-```mermaid
-graph TD
-    Data[Market & Player Data] --> Context[DifficultyContext]
-    Context --> AI[Neural AIDirector]
-    AI --> Logic[DifficultyManager Logic]
-    Logic --> Engine[GameEngine: Enemy Stats]
-    Logic --> UI[GameUI: Warnings]
-```
+It is not the source of truth for market ingestion and it is no longer a wrapper around a neural network model.
 
-## :Settings: Technical Context
-- **Singleton**: `DifficultyManager.getInstance()`
-- **Output Mapping**: Maps neural coefficients (between 0.5 and 2.0) to specialized HP and speed multipliers for each enemy type.
-- **Liquidation Warnings**: Broadcasts "Liquidation Risk" alerts via `EventBus` to the UI layer when player HP falls to critical levels.
+## Inputs
 
-## :Zap: Performance & Security Level
-- **Performance**: Mathematical calculations are performed over cached values to minimize per-frame overhead.
-- **Security**: Difficulty coefficients are cross-checked with session duration and market data in the server-side `verify-game` function to prevent fraudulent "easy mode" attempts.
+DifficultyManager blends data from multiple sources:
 
----
-// END OF PROTOCOL
+- market indicators such as RSI, ATR, and normalized volume
+- player state such as HP, kill streak, dash rate, and recent damage taken
+- session context such as leverage, elapsed time, and active gem pressure
+- optional admin overrides from `useAdminConfigStore`
+
+## Outputs
+
+The service returns a `DifficultyOutput` containing values like:
+
+- spawn rate
+- enemy speed
+- enemy HP
+- enemy damage
+- gem drop rate
+- total aggregate difficulty
+- shock state and warning state
+
+These outputs are consumed by loop phases and gameplay systems, not by React directly.
+
+## Relationship to the director stack
+
+The live difficulty stack is:
+
+1. `difficultyContext` gathers hot-path inputs.
+2. `FlowStateManager` and related services shape player-pressure signals.
+3. `UnifiedDirector` applies ordered rules and smoothing.
+4. `DifficultyManager` maps the director output to concrete game values.
+
+## Loop integration
+
+`DifficultyPhase` is the phase entry point used by `GameLoopCoordinator`. It advances timers and keeps `difficultyContext` synchronized with game time before downstream phases consume the updated outputs.

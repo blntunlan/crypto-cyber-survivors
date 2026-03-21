@@ -1,42 +1,40 @@
-# :Slot: Lootbox & Inventory System
+# Lootbox and Inventory System
 
-> **Status**: Production Ready | **Type**: Rewards & Meta-Game | **Domain**: Monetization & Retention
+Status: live
+Type: rewards and inventory runtime
+Domain: loot, cosmetics, and consumables
 
-## :FileText: System Summary
-The lootbox system forms the meta-game layer of Crypto Survivors. Players earn crypto-themed crates for their in-game achievements (cycle completion, kill streaks). These crates contain character skins, consumable power-ups, and virtual game currency.
+## Summary
 
-## :Rocket: Key Features
-- **Themed Rewards**: Rewards inspired by crypto mythology (Flash Loan, Gas Boost, Whale Wallet).
-- :Check: **Weighted RNG Drops**: Fair drop rates optimized by rarity levels (Common, Rare, Epic, Legendary).
-- :Check: **Dynamic Inventory**: Instant rewards processing into the inventory and in-game usage (Consumables).
+The lootbox layer is currently implemented as a service-driven reward system centered on `LootboxService`, `InventoryService`, and `LootboxDropCalculator`.
 
-## :Monitor: Architecture
-```mermaid
-graph TD
-    Trigger[Game Achievement] --> LBS[LootboxService]
-    LBS --> Award[Award Box: player_lootboxes Table]
-    Award --> Open[Open UI]
-    Open --> Calc[DropCalculator: Weighted RNG]
-    Calc --> Reward[inventoryItemAdded Event]
-    Reward --> Inv[Player Inventory Table]
-```
+It supports:
 
-## :Trophy: Lootbox Tiers & Reward Pool
-| Rarity | Name | Theme | Icon |
-| :--- | :--- | :--- | :---: |
-| **Common** | Mining Crate | BTC Mining | ⛏️ |
-| **Rare** | Gas Fee Box | ETH Gas Fees | ⛽ |
-| **Epic** | Validator Vault | Staking & PoS | 🔐 |
-| **Legendary** | Whale Wallet | Large Investors | 🐋 |
+- earning boxes from gameplay milestones
+- opening boxes into skins, consumables, and token-like reward items
+- applying inventory updates through typed events instead of direct UI coupling
 
-## :Settings: Technical Context
-- **Services**: `LootboxService` (Rewards), `InventoryService` (Inventory management).
-- **RNG Engine**: Weighted random number generation via `LootboxDropCalculator`.
-- **Database**: Full synchronization with Supabase `player_lootboxes` and `player_inventory` tables.
+## Runtime flow
 
-## :Zap: Performance & Security Level
-- **Performance**: Lootbox opening animations are loaded via `LazyMotion` only when needed.
-- **Security**: While the opening process starts on the client, reward determination and registration are validated via server-side `verify-game` or database triggers.
+1. Gameplay events such as cycle completion, kill streaks, or market-aligned drops award a box.
+2. `LootboxService` records the box under the active player context.
+3. Opening the box runs weighted drop selection through `LootboxDropCalculator`.
+4. Resulting items are handed to `InventoryService` through `EventBus` events.
+5. UI surfaces react to inventory and lootbox events without owning the reward logic.
 
----
-// END OF PROTOCOL
+## Current state boundaries
+
+- Lootbox and inventory state are currently service-owned and local-first in the client runtime.
+- Drop chance can be influenced by difficulty outputs such as `lootboxDropChance` and trend alignment.
+- Durable backend inventory contracts should be documented only when the live route and schema are authoritative.
+
+## Important services
+
+- `services/lootbox/LootboxService.ts`
+- `services/lootbox/LootboxDropCalculator.ts`
+- `services/inventory/InventoryService.ts`
+- `services/difficulty/UnifiedDirector.ts`
+
+## Documentation rule
+
+Do not describe old `player_lootboxes`, `player_inventory`, or trigger-based persistence as active unless the current Railway backend owns those tables and routes. This page tracks the live client runtime only.

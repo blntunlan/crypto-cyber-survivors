@@ -1,47 +1,69 @@
-# :Layers: System Overview
+# System Overview
 
-> **Status**: LIVE | **Version**: v1.0 | **Owner**: Core Game Design
+Status: live
 
-## :Crosshair: Game Loop and Core Mechanics
+## Runtime shape
 
-Crypto Survivors operates on a heavily optimized, GC-free loop running at 60 FPS. The core system seamlessly merges top-down survival action (like Vampire Survivors) with live cryptocurrency market data (BTC/USD). 
+Crypto Survivors is a React + Canvas action game whose live difficulty comes from market data. The runtime is split into four layers:
 
-### 1. Market-Driven Gameplay
-The game's difficulty and pacing are fundamentally tied to real-world crypto fluctuations via the **Unified Director**:
-- **Bull Markets:** Trigger high-reward, high-density enemy waves. Drop rates increase, but elite enemies spawn more frequently.
-- **Bear Markets:** Introduce "stress" events. Survival becomes harder, health drops become scarce, and enemies gain aggressive modifiers.
-- **Volatility:** Sudden market spikes or crashes trigger instant map events (e.g., "Flash Crash" damage over time or "Short Squeeze" speed boosts).
+1. Shell and routing: `App.tsx`, `GameStateMachine`, onboarding, wallet refresh, and screen routing.
+2. Hot loop: `components/GameEngine.tsx` runs the phase-based RAF loop.
+3. Services: combat, difficulty, market, gameplay, auth, metrics, and sync services.
+4. Persistence and backend APIs: Railway session and telemetry endpoints, IndexedDB/localStorage queues, and Supabase auth-only integrations that still exist in selected flows.
 
-### 2. Combat & Survival Loop
-- **Auto-Attack System:** Weapons fire automatically based on proximity and cooldowns.
-- **Spatial Grid:** Efficient `O(1)` enemy lookup and collision detection using a 2D spatial hash grid.
-- **Progression:** Defeating enemies drops XP gems. Leveling up grants players the choice to pick new weapons, upgrade existing ones, or boost passive stats (e.g., movement speed, magnetism).
+## Boot and session gating
 
-## :Brain: Core Services
+`App.tsx` initializes market hooks, player state, theme, pause budget, and identity state before a run can start. The start flow is intentionally gated by:
 
-The backend logic of the client operates via decoupled Singleton services communicating through a central **EventBus**.
+- nickname availability from `UserSessionService`
+- live market price readiness from `useMarketData`
+- successful `GameStateManager.initializeNewGame(...)`
+- a valid `GameStateMachine` transition into `PLAYING`
 
-### :Swords: Combat System
-Handles all physics, damage calculation, and weapon behavior.
-- **Collision Detection:** Handled purely mathematically on the Canvas layer without heavy DOM manipulation.
-- **Damage Numbers:** Emitted via the EventBus and rendered as temporary canvas elements.
+This keeps onboarding, session creation, and run reset logic in one place instead of spreading it across UI screens.
 
-### :Ghost: Entity Spawning
-Controls how and when enemies appear on the screen.
-- **Wave Manager:** Dictates enemy types based on elapsed time and current market phase.
-- **Pool Manager:** Reuses enemy memory allocations (Object Pooling) to prevent garbage collection stutters.
+## Hot loop ownership
 
-### :Scale: Difficulty & Economy
-- **XP/Loot Formula:** Scales non-linearly.
-- **Lootboxes:** Players can extract extracted resources and open premium lootboxes with deterministic roll percentages, completely verified on the server (Supabase).
+`components/GameEngine.tsx` owns the per-frame update path. The loop is coordinated through `GameLoopCoordinator`, which runs deterministic phases in order:
 
-## :Link: System Integration Flow
+1. difficulty
+2. input
+3. combat
+4. spawn
+5. physics
+6. effects
+7. portal
+8. metrics
 
-1. **Market Server** (Railway/Node.js) streams live Binance/Coinbase data.
-2. **Client `MarketService`** ingests WebSocket data, smoothing out noise.
-3. **`UnifiedDirector`** translates smoothed prices into `Game Context` (Difficulty Multipliers, Wave Types).
-4. **`GameEngine`** updates the state of all entities at 60Hz.
-5. **React View** reads decoupled store state at a lower tick rate to render the UI (HUD, Damage overlays) without blocking the Canvas.
+The loop shares mutable refs and preallocated state so React does not rerender at 60 FPS.
 
----
-// END OF FILE
+## Market ingestion
+
+The gameplay path no longer consumes raw exchange sockets directly. `hooks/useMarketData.ts` uses `SSEMarketService` for Railway-delivered ticks, optional worker-backed runtime snapshots, and timeout escalation. `services/market/MarketService.ts` still exists as the direct WebSocket adapter used by admin tooling and tests.
+
+The market pipeline feeds:
+
+- live price and indicators into the HUD
+- `PriceMomentumEngine` and difficulty inputs
+- runtime snapshot checksums and sequence numbers
+- `MarketSyncQueue` so offline or delayed writes can still be flushed in order
+
+## Difficulty pipeline
+
+Difficulty comes from a rule-based stack, not the older neural director docs.
+
+- `difficultyContext` stores mutable, hot-path inputs.
+- `FlowStateManager` tracks engagement and frustration signals.
+- `UnifiedDirector` applies ordered rules and smoothing to shared outputs.
+- `DifficultyManager` maps those outputs into concrete spawn, HP, damage, and reward multipliers consumed by the loop.
+
+## Rewards and verification
+
+Reward state is intentionally split:
+
+- `CoinService` tracks local session totals and calls a provider.
+- `SupabaseCoinProvider` now acts as a Railway-backed optimistic provider despite its historical name.
+- `GameSessionService` starts and verifies runs with Railway session endpoints.
+- `MarketSyncQueue` is flushed before verification so the backend sees a complete audit trail.
+
+This means the client can show immediate reward feedback while the server remains the source of truth for verified rewards.

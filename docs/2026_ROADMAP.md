@@ -54,9 +54,9 @@
 | GameRenderer & GameStateManager tests | ⭐⭐⭐ | 2h | ✅ Completed |
 
 **Outputs:**
-- [x] FRONTEND_DB_MAPPING.md
-- [x] RAILWAY_SUPABASE_INTEGRATION.md
-- [x] DATA_FLOW_FIX_REPORT.md
+- [x] archived/reports/FRONTEND_DB_MAPPING.md
+- [x] archived/reports/RAILWAY_SUPABASE_INTEGRATION.md
+- [x] archived/reports/DATA_FLOW_FIX_REPORT.md
 - [x] TODO_LIST.md
 - [x] ARCHITECTURE.md
 - [x] 6 language support (EN, TR, ES, PT, HI, VI)
@@ -77,7 +77,7 @@
 | Anomaly detection rules | ⭐⭐⭐ | 4h | ⬜ |
 | Shadow ban system | ⭐⭐⭐ | 2h | ⬜ |
 
-**Details:** [ANTI_CHEAT_ROADMAP.md](./ANTI_CHEAT_ROADMAP.md)
+**Details:** [ANTI_CHEAT_ROADMAP.md](./archived/ANTI_CHEAT_ROADMAP.md)
 
 ---
 

@@ -1,34 +1,46 @@
-# :MarketChart: Market Engine (Real-time Price Service)
+# MarketService
 
-> **Status**: Production Ready | **Type**: Singleton Service | **Domain**: Market Data & Connectivity
+Status: live
+Type: service adapter
+Domain: market connectivity
 
-## :FileText: Engine Summary
-`MarketService` is a high-performance WebSocket client providing real-time Bitcoin (BTC) data to feed the game's core "price-driven difficulty" system. It processes incoming data from Binance and Coinbase, distributing synchronized price and volume information across the entire system.
+## What this service is now
 
-## :Rocket: Key Features
-- **Dual-Source Redundancy**: Uninterrupted data flow via Binance (Primary) and Coinbase (Fallback).
-- :Check: **Intelligent Connectivity**: Smart connection management with exponential backoff and Visibility API integration.
-- :Check: **Zero-Downtime Data Flow**: Sustains gameplay continuity during WebSocket disconnects using the last known healthy price (stale-price).
+`services/market/MarketService.ts` is the direct exchange WebSocket adapter for Binance and Coinbase. It is still useful for admin tooling, diagnostics, and test coverage, but the main gameplay path now consumes Railway-delivered data through `SSEMarketService` in `hooks/useMarketData.ts`.
 
-## :Monitor: Internal Architecture
-```mermaid
-graph TD
-    A[MarketService Init] --> B{Connect Binance}
-    B -->|Success| C[Live Data: BTC/USDT]
-    B -->|Failure| D[Activate Coinbase Fallback]
-    D --> E[Monitor Primary Recovery]
-    E -->|Binance Back| F[Switch to Primary]
-    C --> G[Broadcast via EventBus]
-```
+## Responsibilities
 
-## :Settings: Technical Context
-- **Singleton**: Global access via `MarketService.getInstance()`.
-- **EventBus**: Broadcasts price changes to the entire system every millisecond using the `priceUpdated` event.
-- **Visibility Sync**: Puts the connection into sleep mode when the browser tab is hidden to prevent unnecessary traffic.
+- connect to Binance as the primary stream
+- fail over to Coinbase when the primary feed is unhealthy
+- monitor heartbeat and data gaps
+- expose connection status to callers
+- emit fallback price updates from the last healthy sample when short gaps occur
 
-## :Zap: Performance & Security Level
-- **Performance**: Low-latency data processing and buffer management.
-- **Security**: "Sanity checks" filter out abnormal price fluctuations (fat-finger errors or manipulation).
+## Important runtime behavior
 
----
-// END OF PROTOCOL
+### Data gap monitor
+
+The service tracks `lastPriceTime`, `disconnectStartTime`, and `fatalDisconnectEmitted`.
+
+- After 5 seconds without data, fallback mode can reuse the last known price.
+- After 15 seconds without recovery, the disconnect is treated as fatal for consumers that care.
+- Visibility handling uses a grace period before pausing sockets so quick tab switches do not churn connections.
+
+### Status contract
+
+Callers can subscribe to a `ConnectionStatus` object containing:
+
+- Binance and Coinbase connection states
+- last price time
+- total disconnect duration
+- whether fallback data is currently being used
+
+## Relationship to gameplay runtime
+
+Gameplay no longer reads a `priceUpdated` EventBus broadcast from this service. Instead:
+
+- `hooks/useMarketData.ts` uses `SSEMarketService`
+- worker-backed runtime snapshots are coordinated by `MarketRuntimeController`
+- `GameEngine` consumes the resulting `marketData` object and emits `gameMarketUpdate` for hot-loop subscribers
+
+Use `MarketService` when you need direct exchange sockets. Use `SSEMarketService` and the runtime pipeline when you need gameplay-authoritative market data.
