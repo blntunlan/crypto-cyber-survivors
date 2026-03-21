@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
 import type { TutorialPosition } from '../../config/TutorialConfig';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/useTheme';
@@ -179,6 +179,7 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const { language, setLanguage } = useLanguage();
   const { setTheme, themeName, isRetro } = useTheme();
+  const stepDots = Array.from({ length: totalSteps }, (_, index) => index + 1);
   const [tooltipPos, setTooltipPos] = useState<TooltipPosition>({
     top: 0,
     left: 0,
@@ -226,7 +227,7 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
   const renderLanguageSelection = () => (
     <div className="tutorial-selection-grid">
       {SUPPORTED_LANGUAGES.map(lang => (
-        <motion.button
+        <m.button
           key={lang}
           className={`tutorial-selection-item ${language === lang ? 'active' : ''}`}
           onClick={() => setLanguage(lang)}
@@ -252,21 +253,21 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
                           : 'Русский'}
           </span>
           {language === lang && (
-            <motion.div
+            <m.div
               layoutId="active-lang"
               className="active-indicator"
               initial={false}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             />
           )}
-        </motion.button>
+        </m.button>
       ))}
     </div>
   );
 
   const renderThemeSelection = () => (
     <div className="tutorial-selection-grid theme-selection">
-      <motion.button
+      <m.button
         className={`tutorial-selection-item theme-cyberpunk ${themeName === 'cyberpunk' ? 'active' : ''}`}
         onClick={() => setTheme('cyberpunk' as ThemeName)}
         whileHover={{ scale: 1.02 }}
@@ -275,15 +276,15 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
         <div className="theme-preview cyberpunk-preview" />
         <span className="theme-label">Cyberpunk</span>
         {themeName === 'cyberpunk' && (
-          <motion.div
+          <m.div
             layoutId="active-theme"
             className="active-indicator"
             initial={false}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           />
         )}
-      </motion.button>
-      <motion.button
+      </m.button>
+      <m.button
         className={`tutorial-selection-item theme-retro-16bit ${themeName === 'retro-16bit' ? 'active' : ''}`}
         onClick={() => setTheme('retro-16bit' as ThemeName)}
         whileHover={{ scale: 1.02 }}
@@ -292,122 +293,123 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
         <div className="theme-preview retro-preview" />
         <span className="theme-label">Retro Pixel</span>
         {themeName === 'retro-16bit' && (
-          <motion.div
+          <m.div
             layoutId="active-theme"
             className="active-indicator"
             initial={false}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           />
         )}
-      </motion.button>
+      </m.button>
     </div>
   );
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          ref={tooltipRef}
-          className={`tutorial-tooltip theme-${themeName}`}
-          data-theme-name={themeName}
-          data-is-retro={isRetro}
-          style={{
-            top: tooltipPos.top,
-            left: tooltipPos.left,
-            transformOrigin: tooltipPos.transformOrigin,
-          }}
-          initial={{ opacity: 0, scale: 0.9, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: -15 }}
-          transition={{
-            opacity: { duration: 0.3 },
-            scale: { duration: 0.4 },
-            y: { duration: 0.4 },
-          }}
-        >
-          {/* Progress bar */}
-          <div className="tutorial-tooltip-progress">
-            <motion.div
-              className="tutorial-tooltip-progress-fill"
-              initial={{ width: 0 }}
-              animate={{ width: `${(stepNumber / totalSteps) * 100}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-            />
-          </div>
-
-          {/* Header */}
-          <div className="tutorial-tooltip-header">
-            {icon && <span className="tutorial-tooltip-icon">{icon}</span>}
-            <h3 className="tutorial-tooltip-title">{title}</h3>
-          </div>
-
-          {/* Content */}
-          <div className="tutorial-tooltip-body" style={{ minHeight: '120px' }}>
-            <p className="tutorial-tooltip-description">{description}</p>
-
-            {/* Special Selection UI */}
-            <div className="tutorial-extra-content">
-              {stepId === 'language-selection' && renderLanguageSelection()}
-              {stepId === 'theme-selection' && renderThemeSelection()}
+    <LazyMotion features={domAnimation}>
+      <AnimatePresence>
+        {isVisible && (
+          <m.div
+            ref={tooltipRef}
+            className={`tutorial-tooltip theme-${themeName}`}
+            data-theme-name={themeName}
+            data-is-retro={isRetro}
+            style={{
+              top: tooltipPos.top,
+              left: tooltipPos.left,
+              transformOrigin: tooltipPos.transformOrigin,
+            }}
+            initial={{ opacity: 0, scale: 0.9, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -15 }}
+            transition={{
+              opacity: { duration: 0.3 },
+              scale: { duration: 0.4 },
+              y: { duration: 0.4 },
+            }}
+          >
+            {/* Progress bar */}
+            <div className="tutorial-tooltip-progress">
+              <m.div
+                className="tutorial-tooltip-progress-fill"
+                initial={{ width: 0 }}
+                animate={{ width: `${(stepNumber / totalSteps) * 100}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="tutorial-tooltip-footer">
-            <span className="tutorial-tooltip-step">
-              {stepNumber} / {totalSteps}
-            </span>
+            {/* Header */}
+            <div className="tutorial-tooltip-header">
+              {icon && <span className="tutorial-tooltip-icon">{icon}</span>}
+              <h3 className="tutorial-tooltip-title">{title}</h3>
+            </div>
 
-            <div className="tutorial-tooltip-actions">
-              <motion.button
-                type="button"
-                className="tutorial-tooltip-btn tutorial-tooltip-btn-skip"
-                onClick={onSkip}
-                whileHover={{ scale: 1.05, opacity: 0.8 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {skipText}
-              </motion.button>
+            {/* Content */}
+            <div className="tutorial-tooltip-body" style={{ minHeight: '120px' }}>
+              <p className="tutorial-tooltip-description">{description}</p>
 
-              <div className="nav-group">
-                {showBack && onPrev && stepNumber > 1 && (
-                  <motion.button
+              {/* Special Selection UI */}
+              <div className="tutorial-extra-content">
+                {stepId === 'language-selection' && renderLanguageSelection()}
+                {stepId === 'theme-selection' && renderThemeSelection()}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="tutorial-tooltip-footer">
+              <span className="tutorial-tooltip-step">
+                {stepNumber} / {totalSteps}
+              </span>
+
+              <div className="tutorial-tooltip-actions">
+                <m.button
+                  type="button"
+                  className="tutorial-tooltip-btn tutorial-tooltip-btn-skip"
+                  onClick={onSkip}
+                  whileHover={{ scale: 1.05, opacity: 0.8 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {skipText}
+                </m.button>
+
+                <div className="nav-group">
+                  {showBack && onPrev && stepNumber > 1 && (
+                    <m.button
+                      type="button"
+                      className="tutorial-tooltip-btn tutorial-tooltip-btn-back"
+                      onClick={onPrev}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {backText}
+                    </m.button>
+                  )}
+
+                  <m.button
                     type="button"
-                    className="tutorial-tooltip-btn tutorial-tooltip-btn-back"
-                    onClick={onPrev}
+                    className="tutorial-tooltip-btn tutorial-tooltip-btn-next"
+                    onClick={onNext}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    {backText}
-                  </motion.button>
-                )}
-
-                <motion.button
-                  type="button"
-                  className="tutorial-tooltip-btn tutorial-tooltip-btn-next"
-                  onClick={onNext}
-                  autoFocus
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {isLastStep ? finishText : nextText}
-                </motion.button>
+                    {isLastStep ? finishText : nextText}
+                  </m.button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Step dots */}
-          <div className="tutorial-tooltip-dots">
-            {Array.from({ length: totalSteps }, (_, i) => (
-              <span
-                key={i}
-                className={`tutorial-tooltip-dot ${i + 1 === stepNumber ? 'active' : ''} ${i + 1 < stepNumber ? 'completed' : ''}`}
-              />
-            ))}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            {/* Step dots */}
+            <div className="tutorial-tooltip-dots">
+              {stepDots.map(step => (
+                <span
+                  key={`tutorial-step-${step}`}
+                  className={`tutorial-tooltip-dot ${step === stepNumber ? 'active' : ''} ${step < stepNumber ? 'completed' : ''}`}
+                />
+              ))}
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </LazyMotion>
   );
 };
 

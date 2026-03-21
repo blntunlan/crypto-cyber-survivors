@@ -25,7 +25,7 @@ const LegalPageLayout: React.FC<
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     transition={{ duration: 0.3 }}
-    className="fixed inset-0 z-[1000] overflow-hidden bg-[#020617] font-sans text-white selection:bg-[#d6b85c]/30"
+    className="fixed inset-0 z-[3300] overflow-hidden bg-[#020617] font-sans text-white selection:bg-[#d6b85c]/30"
   >
     {/* Background Architecture - Same as Landing Page */}
     <div className="pointer-events-none absolute inset-0 overflow-hidden">

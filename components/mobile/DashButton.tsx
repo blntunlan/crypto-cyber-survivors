@@ -5,7 +5,7 @@
  * Shows cooldown state visually.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { EventBus } from '../../services/core/EventBus';
 import { useTheme } from '../../contexts/useTheme';
 import { Zap } from 'lucide-react';
@@ -36,7 +36,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
   const { theme, isRetro } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [totalCooldownDuration, setTotalCooldownDuration] = useState(cooldownMs);
+  const totalCooldownDurationRef = useRef(cooldownMs);
 
   const isReady = cooldownRemaining <= 0 && !disabled;
   const accentColor = theme.colors.primary;
@@ -59,7 +59,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
   useEffect(() => {
     const unsub = EventBus.on('playerDash', data => {
       setCooldownRemaining(data.cooldown);
-      setTotalCooldownDuration(data.cooldown);
+      totalCooldownDurationRef.current = data.cooldown;
     });
     return unsub;
   }, []);
@@ -73,7 +73,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
       setIsPressed(true);
       // Fallback visual cooldown if engine event is delayed
       setCooldownRemaining(cooldownMs);
-      setTotalCooldownDuration(cooldownMs);
+      totalCooldownDurationRef.current = cooldownMs;
       onDash();
 
       // Haptic feedback (with safe check for unsupported browsers like Safari iOS)
@@ -94,7 +94,9 @@ export const DashButton: React.FC<DashButtonProps> = ({
 
   // Calculate cooldown percentage for visual
   const cooldownPercent =
-    totalCooldownDuration > 0 ? cooldownRemaining / totalCooldownDuration : 0;
+    totalCooldownDurationRef.current > 0
+      ? cooldownRemaining / totalCooldownDurationRef.current
+      : 0;
 
   // Styles
   const buttonStyle: React.CSSProperties = {

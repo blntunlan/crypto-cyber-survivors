@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo } from 'react';
+import { Z_LAYERS } from '../../../constants/ZIndex';
 import { type ErrorBoundaryState } from './types';
 
 interface ErrorBoundaryProps {
@@ -27,7 +28,10 @@ export class LevelUpErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-red-900/90 p-4">
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-red-900/90 p-4"
+          style={{ zIndex: Z_LAYERS.LEVEL_UP_SCREEN }}
+        >
           <div className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-sm border-2 border-red-500 bg-black/80 p-6 font-debug text-sm text-white">
             <h2 className="mb-4 text-2xl font-bold text-red-500">
               ⚠️ LevelUpScreen Error

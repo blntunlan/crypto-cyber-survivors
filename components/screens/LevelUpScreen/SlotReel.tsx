@@ -24,8 +24,8 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   const sizes = useThemeSize();
   const isRetro = useIsRetro();
   const [isStopped, setIsStopped] = useState(false);
-  const [displayIndex, setDisplayIndex] = useState(0);
   const [phase, setPhase] = useState<'spinning' | 'slowing' | 'stopped'>('spinning');
+  const [currentCard, setCurrentCard] = useState<Card>(finalCard);
 
   const spinCards = useMemo(() => {
     const pool = ALL_CARDS_FLAT.filter(c => c.id !== finalCard.id);
@@ -41,6 +41,9 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     let lastTickTime = 0;
     let isSlowing = false;
     let isDone = false;
+    let displayIndex = 0;
+    let lastRenderTime = 0;
+    const RENDER_THROTTLE = 120; // Throttle React re-renders to ~8fps (plenty for slot visual)
 
     const stopDelay =
       SLOT_CONFIG.SPIN_DURATION +
@@ -59,7 +62,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       if (elapsed >= totalDuration) {
         if (!isDone) {
           isDone = true;
-          setDisplayIndex(spinCards.length - 1);
+          setCurrentCard(finalCard);
           setPhase('stopped');
           setIsStopped(true);
         }
@@ -82,7 +85,15 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       // High-precision ticking for sounds and visual swaps
       if (now - lastTickTime > currentInterval) {
         lastTickTime = now;
-        setDisplayIndex(prev => (prev + 1) % (spinCards.length - 1));
+        displayIndex = (displayIndex + 1) % (spinCards.length - 1);
+
+        // Throttle React re-renders — update card state at most every RENDER_THROTTLE ms
+        if (now - lastRenderTime >= RENDER_THROTTLE) {
+          lastRenderTime = now;
+          const card = spinCards[displayIndex];
+          if (card) setCurrentCard(card);
+        }
+
         if (totalDuration - elapsed > 100) {
           audio.playSlotTick(isSlowing ? 0.8 : 1);
         }
@@ -93,7 +104,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
 
     rafId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafId);
-  }, [stopOrder, spinCards]);
+  }, [stopOrder, spinCards, finalCard]);
 
   const hasCalledOnStopped = useRef(false);
 
@@ -106,8 +117,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
     }
   }, [isStopped, onStopped, reelIndex]);
 
-  const displayCard =
-    (phase === 'stopped' ? finalCard : spinCards[displayIndex]) ?? finalCard;
+  const displayCard = phase === 'stopped' ? finalCard : currentCard;
   const tierConfig = TIER_CONFIG[displayCard.tier];
   const isSpinning = phase !== 'stopped';
   const isSlowingDown = phase === 'slowing';
@@ -197,12 +207,12 @@ export const SlotReel: React.FC<SlotReelProps> = ({
           className={`${sizes.tiny} mb-1 text-center font-black uppercase tracking-widest md:mb-2`}
           style={{ color: tierConfig.color }}
           animate={{
-            opacity: isSpinning ? [0.5, 1, 0.5] : 1,
+            opacity: isSpinning ? 0.7 : 1,
             scale: isSelected && isStopped ? [1, 1.1, 1] : 1,
           }}
           transition={{
-            duration: isSpinning ? 0.1 : 1,
-            repeat: Infinity,
+            duration: 1,
+            repeat: isSelected && isStopped ? Infinity : 0,
             ease: 'easeInOut',
           }}
         >
@@ -218,25 +228,17 @@ export const SlotReel: React.FC<SlotReelProps> = ({
               isRetro
                 ? {}
                 : {
-                    opacity: isSlowingDown
-                      ? [0.3, 0.6, 0.3]
-                      : isSpinning
-                        ? [0.1, 0.3, 0.1]
-                        : isSelected
-                          ? [0.4, 0.8, 0.4]
-                          : [0.1, 0.4, 0.1],
-                    scale: isSlowingDown
-                      ? [1, 1.3, 1]
-                      : isSpinning
-                        ? 1
-                        : isSelected
-                          ? [1, 1.5, 1]
-                          : [0.9, 1.2, 0.9],
+                    opacity: isSpinning
+                      ? 0.2
+                      : isSelected
+                        ? [0.4, 0.8, 0.4]
+                        : [0.1, 0.4, 0.1],
+                    scale: isSpinning ? 1 : isSelected ? [1, 1.5, 1] : [0.9, 1.2, 0.9],
                   }
             }
             transition={{
-              duration: isSlowingDown ? 0.3 : isSpinning ? 0.2 : 1.5,
-              repeat: Infinity,
+              duration: isStopped ? 1.5 : 0.3,
+              repeat: isStopped ? Infinity : 0,
             }}
           />
 
@@ -244,31 +246,19 @@ export const SlotReel: React.FC<SlotReelProps> = ({
             className="relative z-10"
             style={{ mixBlendMode: isRetro ? 'normal' : 'plus-lighter' }}
             animate={{
-              y: isSpinning ? (isSlowingDown ? [-10, 10] : [-20, 20]) : 0,
-              opacity: isSpinning ? (isSlowingDown ? [0.9, 1, 0.9] : [0.7, 1, 0.7]) : 1,
-              scale: isStopped
-                ? isSelected
-                  ? [1, 1.25, 1.15]
-                  : [0.8, 1.15, 1]
-                : isSlowingDown
-                  ? 1.05
-                  : 1,
+              y: isSpinning ? (isSlowingDown ? -5 : 0) : 0,
+              opacity: isSpinning ? 0.8 : 1,
+              scale: isStopped ? (isSelected ? [1, 1.25, 1.15] : [0.8, 1.15, 1]) : 1,
               rotate: isSelected ? [0, 5, -5, 0] : 0,
             }}
             transition={
-              isSpinning
+              isStopped
                 ? {
-                    duration: isSlowingDown ? 0.15 : 0.1,
-                    repeat: Infinity,
-                    ease: 'linear',
+                    duration: isSelected ? 2 : 0.4,
+                    repeat: isSelected ? Infinity : 0,
+                    ease: 'easeInOut',
                   }
-                : isStopped
-                  ? {
-                      duration: isSelected ? 2 : 0.4,
-                      repeat: isSelected ? Infinity : 0,
-                      ease: 'easeInOut',
-                    }
-                  : {}
+                : { duration: 0.15 }
             }
           >
             <CardIcon
@@ -304,7 +294,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
                   ]
                 : undefined,
           }}
-          transition={{ duration: 1, repeat: Infinity }}
+          transition={{ duration: 1, repeat: isSelected ? Infinity : 0 }}
         >
           {displayCard.name}
         </motion.div>

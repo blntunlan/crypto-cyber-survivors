@@ -26,6 +26,8 @@ export const TwitterCallback: React.FC<TwitterCallbackProps> = ({
   const [message, setMessage] = useState('Connecting to Twitter...');
 
   useEffect(() => {
+    let redirectTimer: ReturnType<typeof setTimeout> | null = null;
+
     const processCallback = async () => {
       // Parse URL parameters
       const params = new URLSearchParams(window.location.search);
@@ -41,7 +43,7 @@ export const TwitterCallback: React.FC<TwitterCallbackProps> = ({
         setMessage(errorDescription ?? error);
 
         // Redirect after delay
-        setTimeout(() => {
+        redirectTimer = setTimeout(() => {
           window.location.href = `${errorRedirect}?twitter_error=${encodeURIComponent(errorDescription ?? error)}`;
         }, 2000);
         return;
@@ -51,7 +53,7 @@ export const TwitterCallback: React.FC<TwitterCallbackProps> = ({
       if (!code || !state) {
         setStatus('error');
         setMessage('Missing authorization parameters');
-        setTimeout(() => {
+        redirectTimer = setTimeout(() => {
           window.location.href = `${errorRedirect}?twitter_error=missing_params`;
         }, 2000);
         return;
@@ -66,19 +68,23 @@ export const TwitterCallback: React.FC<TwitterCallbackProps> = ({
       if (result.success) {
         setStatus('success');
         setMessage('Twitter connected successfully!');
-        setTimeout(() => {
+        redirectTimer = setTimeout(() => {
           window.location.href = `${successRedirect}?twitter_linked=true`;
         }, 1500);
       } else {
         setStatus('error');
         setMessage(result.error ?? 'Failed to connect Twitter');
-        setTimeout(() => {
+        redirectTimer = setTimeout(() => {
           window.location.href = `${errorRedirect}?twitter_error=${encodeURIComponent(result.error ?? 'unknown')}`;
         }, 2000);
       }
     };
 
     void processCallback();
+
+    return () => {
+      if (redirectTimer) clearTimeout(redirectTimer);
+    };
   }, [successRedirect, errorRedirect]);
 
   return (

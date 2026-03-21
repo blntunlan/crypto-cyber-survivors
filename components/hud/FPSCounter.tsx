@@ -66,7 +66,7 @@ const MobileFPS: React.FC = () => {
 };
 
 export const FPSCounter: React.FC = memo(() => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
 
   useEffect(() => {
     const unsubscribe = screenService.onChange(() => {

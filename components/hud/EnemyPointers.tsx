@@ -37,8 +37,13 @@ const MobilePointer: React.FC = () => (
   </svg>
 );
 
+const POINTER_SLOTS = Array.from(
+  { length: 10 },
+  (_, index) => `enemy-pointer-${index}`
+);
+
 export const EnemyPointers: React.FC<EnemyPointersProps> = memo(({ containerRef }) => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
   const { rs } = useResponsiveUI();
 
   useEffect(() => {
@@ -56,13 +61,12 @@ export const EnemyPointers: React.FC<EnemyPointersProps> = memo(({ containerRef 
       id="enemy-pointer-container"
       className="absolute inset-0 z-[105]"
     >
-      {[...Array(10)].map((_, i) => (
+      {POINTER_SLOTS.map(pointerKey => (
         <div
-          key={i}
+          key={pointerKey}
           className={`absolute left-0 top-0 flex items-center justify-center transition-opacity duration-200`}
           style={{
             opacity: 0,
-            willChange: 'transform, opacity',
             width: pointerSize,
             height: pointerSize,
           }}

@@ -72,7 +72,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   // Desktop: Full info bar with wave phase, status, etc.
   return (
     <div
-      className={`hud-bottom-safe pointer-events-none fixed left-1/2 z-[1000] flex -translate-x-1/2 flex-col items-center transition-all duration-500 ${
+      className={`hud-bottom-safe pointer-events-none fixed left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center transition-all duration-500 ${
         isMobile ? (isSmallDevice ? 'w-[85%]' : 'w-[80%]') : 'bottom-10 w-[450px]'
       }`}
       style={

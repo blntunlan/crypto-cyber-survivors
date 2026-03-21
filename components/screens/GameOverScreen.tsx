@@ -71,11 +71,11 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   // Play game end sounds
   React.useEffect(() => {
     audio.playDeath();
-    if (isNewHighScore) {
-      setTimeout(() => {
-        audio.playAchievementGlint();
-      }, 1000);
-    }
+    if (!isNewHighScore) return;
+    const timerId = setTimeout(() => {
+      audio.playAchievementGlint();
+    }, 1000);
+    return () => clearTimeout(timerId);
   }, [isNewHighScore]);
 
   return (

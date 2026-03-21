@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback, useMemo, memo } from 'react';
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { useUser } from '../../contexts/useUser';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
@@ -45,7 +45,7 @@ const BackgroundEffects = memo(function BackgroundEffects({
           backgroundSize: isRetro ? '25px 25px' : '50px 50px',
         }}
       />
-      <motion.div
+      <m.div
         className={`absolute left-0 right-0 h-[2px] ${isRetro ? 'bg-white/10' : 'bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent'}`}
         animate={{ top: ['0%', '100%'] }}
         transition={{
@@ -81,7 +81,7 @@ const PanelChrome = memo(function PanelChrome({ isRetro }: { isRetro: boolean })
   if (isRetro) return null;
   return (
     <>
-      <motion.div
+      <m.div
         className="pointer-events-none absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
         animate={{ opacity: [0.7, 1, 0.7] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -103,7 +103,7 @@ const HeaderIcon = memo(function HeaderIcon({
   children: React.ReactNode;
 }) {
   return (
-    <motion.div
+    <m.div
       className={`inline-flex p-4 ${isRetro ? 'rounded-none border-2 border-cyan-400 bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'relative rounded-full border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-purple-500/10'}`}
       animate={{
         boxShadow: isRetro
@@ -117,7 +117,7 @@ const HeaderIcon = memo(function HeaderIcon({
       transition={{ duration: 2, repeat: Infinity }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 });
 
@@ -153,15 +153,6 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  // ============================================
-  // Effects
-  // ============================================
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // ============================================
   // Helpers
@@ -232,206 +223,204 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   // Render
   // ============================================
 
-  if (!isMounted) return null;
-
   return (
-    <div
-      className="fixed inset-0 flex items-start justify-center overflow-y-auto bg-slate-950 px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] font-mono sm:items-center sm:px-6"
-      style={{ zIndex: 3300 }}
-    >
-      {/* Background — memo'd, never re-renders on input */}
-      <BackgroundEffects isRetro={isRetro} />
-
-      <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="relative my-auto w-full max-w-md py-6 sm:py-0"
+    <LazyMotion features={domAnimation}>
+      <div
+        className="fixed inset-0 flex items-start justify-center overflow-y-auto bg-slate-950 px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] font-mono sm:items-center sm:px-6"
+        style={{ zIndex: 3300 }}
       >
-        {/* Corner decorations — memo'd */}
-        {!isRetro && <CornerDecorations />}
+        {/* Background — memo'd, never re-renders on input */}
+        <BackgroundEffects isRetro={isRetro} />
 
-        <ThemedPanel className="relative overflow-hidden p-5 transition-all sm:p-8">
-          {/* Panel chrome — memo'd */}
-          <PanelChrome isRetro={isRetro} />
+        <m.div
+          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="relative my-auto w-full max-w-md py-6 sm:py-0"
+        >
+          {/* Corner decorations — memo'd */}
+          {!isRetro && <CornerDecorations />}
 
-          <div className="relative z-10">
-            {/* Header */}
-            <header className="mb-6 space-y-2 text-center sm:mb-8 sm:space-y-3">
-              <HeaderIcon isRetro={isRetro}>{currentMode.icon}</HeaderIcon>
+          <ThemedPanel className="relative overflow-hidden p-5 transition-all sm:p-8">
+            {/* Panel chrome — memo'd */}
+            <PanelChrome isRetro={isRetro} />
 
-              <ThemedText
-                variant="h1"
-                className={`text-2xl font-black uppercase tracking-tight ${isRetro ? 'text-white' : 'italic text-white'}`}
-              >
-                {currentMode.title}
-                <span
-                  className={
-                    isRetro
-                      ? 'text-cyan-400'
-                      : 'bg-gradient-to-r from-[var(--color-primary)] to-white bg-clip-text text-transparent'
-                  }
-                >
-                  {currentMode.titleHighlight}
-                </span>
-              </ThemedText>
+            <div className="relative z-10">
+              {/* Header */}
+              <header className="mb-6 space-y-2 text-center sm:mb-8 sm:space-y-3">
+                <HeaderIcon isRetro={isRetro}>{currentMode.icon}</HeaderIcon>
 
-              <div className="space-y-1">
                 <ThemedText
-                  variant="mono"
-                  className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400"
+                  variant="h1"
+                  className={`text-2xl font-black uppercase tracking-tight ${isRetro ? 'text-white' : 'italic text-white'}`}
                 >
-                  {currentMode.subtitle}
-                </ThemedText>
-                <ThemedText
-                  variant="mono"
-                  className="text-[7px] uppercase tracking-[0.4em] text-cyan-500/50"
-                >
-                  {t('common.nickname_screen.dev_mode_hint')}
-                </ThemedText>
-              </div>
-            </header>
-
-            {/* Error / Success */}
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400"
-                >
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{error}</span>
-                </motion.div>
-              )}
-              {successMessage && (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-4 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400"
-                >
-                  <Zap className="h-4 w-4 flex-shrink-0" />
-                  <span>{successMessage}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* ===== NICKNAME SETUP (auth hidden) ===== */}
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                void handleNicknameSubmit();
-              }}
-              className="space-y-4 sm:space-y-6"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label
-                    htmlFor="nickname-input"
-                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
-                  >
-                    <Shield className="h-3 w-3" />{' '}
-                    {(t('common.nickname_screen.callsign') as string) || 'Callsign'}
-                  </label>
+                  {currentMode.title}
                   <span
-                    className={`text-[10px] font-black tracking-tighter transition-colors ${nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'}`}
+                    className={
+                      isRetro
+                        ? 'text-cyan-400'
+                        : 'bg-gradient-to-r from-[var(--color-primary)] to-white bg-clip-text text-transparent'
+                    }
                   >
-                    {nickname.length}/16
+                    {currentMode.titleHighlight}
                   </span>
-                </div>
+                </ThemedText>
 
-                <div className="group relative">
-                  {!isRetro && (
-                    <div className="pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
-                  )}
-                  <ThemedInput
-                    id="nickname-input"
-                    aria-label="Enter your nickname"
-                    autoFocus
-                    type="text"
-                    inputMode="text"
-                    enterKeyHint="go"
-                    value={nickname}
-                    onChange={e => {
-                      setNickname(e.target.value);
-                      if (error) clearMessages();
-                    }}
-                    onKeyDown={e => e.stopPropagation()}
-                    className={`min-h-[48px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 placeholder:font-normal focus:outline-none focus:ring-2 sm:px-5 sm:py-4 ${
-                      error
-                        ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                        : `text-white focus:border-cyan-500/60 focus:ring-cyan-500/40 ${!isRetro ? 'sm:hover:border-cyan-500/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
-                    } ${!isRetro ? 'font-semibold' : ''}`}
-                    placeholder={(() => {
-                      const p = t('common.nickname_screen.placeholder');
-                      return Array.isArray(p) ? p[0] : p;
-                    })()}
-                    maxLength={16}
-                    disabled={isSubmitting}
-                    autoComplete="off"
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                  />
-                  <motion.div
-                    className="absolute right-4 top-1/2 -translate-y-1/2"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{
-                      opacity: nickname.length >= 3 ? 1 : 0,
-                      scale: nickname.length >= 3 ? 1 : 0.5,
-                    }}
+                <div className="space-y-1">
+                  <ThemedText
+                    variant="mono"
+                    className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400"
                   >
-                    <Zap
-                      className={`h-5 w-5 fill-yellow-400 text-yellow-400 ${isRetro ? '' : 'drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`}
-                    />
-                  </motion.div>
+                    {currentMode.subtitle}
+                  </ThemedText>
+                  <ThemedText
+                    variant="mono"
+                    className="text-[7px] uppercase tracking-[0.4em] text-cyan-500/50"
+                  >
+                    {t('common.nickname_screen.dev_mode_hint')}
+                  </ThemedText>
                 </div>
-              </div>
+              </header>
 
-              <ThemedButton
-                type="submit"
-                intent="primary"
-                disabled={isSubmitting || nickname.length < 3}
-                className={`group relative flex min-h-[48px] w-full items-center justify-center gap-2 py-3 text-sm font-bold sm:py-4 sm:text-base ${
-                  nickname.length < 3 ? 'opacity-50 grayscale' : ''
-                }`}
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    <span>{t('auth.signing_in')}</span>
-                  </div>
-                ) : (
-                  <>
-                    <span>
-                      {(t('common.nickname_screen.enter_arena') as string) ||
-                        'Enter Arena'}
-                    </span>
-                    <ChevronRight className="h-4 w-4" />
-                  </>
+              {/* Error / Success */}
+              <AnimatePresence mode="wait">
+                {error && (
+                  <m.div
+                    key="error"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400"
+                  >
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{error}</span>
+                  </m.div>
                 )}
-              </ThemedButton>
-            </form>
+                {successMessage && (
+                  <m.div
+                    key="success"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-4 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400"
+                  >
+                    <Zap className="h-4 w-4 flex-shrink-0" />
+                    <span>{successMessage}</span>
+                  </m.div>
+                )}
+              </AnimatePresence>
 
-            {/* Footer — memo'd */}
-            <AuthFooter />
-          </div>
-        </ThemedPanel>
+              {/* ===== NICKNAME SETUP (auth hidden) ===== */}
+              <form
+                action={() => {
+                  void handleNicknameSubmit();
+                }}
+                className="space-y-4 sm:space-y-6"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <label
+                      htmlFor="nickname-input"
+                      className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
+                    >
+                      <Shield className="h-3 w-3" />{' '}
+                      {(t('common.nickname_screen.callsign') as string) || 'Callsign'}
+                    </label>
+                    <span
+                      className={`text-[10px] font-black tracking-tighter transition-colors ${nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'}`}
+                    >
+                      {nickname.length}/16
+                    </span>
+                  </div>
 
-        {/* Info hints */}
-        <div className="mt-4 flex justify-center gap-2">
-          <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
-            {t('auth.nickname_rules_length')}
+                  <div className="group relative">
+                    {!isRetro && (
+                      <div className="pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
+                    )}
+                    <ThemedInput
+                      id="nickname-input"
+                      aria-label="Enter your nickname"
+                      type="text"
+                      inputMode="text"
+                      enterKeyHint="go"
+                      value={nickname}
+                      onChange={e => {
+                        setNickname(e.target.value);
+                        if (error) clearMessages();
+                      }}
+                      onKeyDown={e => e.stopPropagation()}
+                      className={`min-h-[48px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 placeholder:font-normal focus:outline-none focus:ring-2 sm:px-5 sm:py-4 ${
+                        error
+                          ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
+                          : `text-white focus:border-cyan-500/60 focus:ring-cyan-500/40 ${!isRetro ? 'sm:hover:border-cyan-500/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
+                      } ${!isRetro ? 'font-semibold' : ''}`}
+                      placeholder={(() => {
+                        const p = t('common.nickname_screen.placeholder');
+                        return Array.isArray(p) ? p[0] : p;
+                      })()}
+                      maxLength={16}
+                      disabled={isSubmitting}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                    <m.div
+                      className="absolute right-4 top-1/2 -translate-y-1/2"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{
+                        opacity: nickname.length >= 3 ? 1 : 0,
+                        scale: nickname.length >= 3 ? 1 : 0.5,
+                      }}
+                    >
+                      <Zap
+                        className={`h-5 w-5 fill-yellow-400 text-yellow-400 ${isRetro ? '' : 'drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`}
+                      />
+                    </m.div>
+                  </div>
+                </div>
+
+                <ThemedButton
+                  type="submit"
+                  intent="primary"
+                  disabled={isSubmitting || nickname.length < 3}
+                  className={`group relative flex min-h-[48px] w-full items-center justify-center gap-2 py-3 text-sm font-bold sm:py-4 sm:text-base ${
+                    nickname.length < 3 ? 'opacity-50 grayscale' : ''
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      <span>{t('auth.signing_in')}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span>
+                        {(t('common.nickname_screen.enter_arena') as string) ||
+                          'Enter Arena'}
+                      </span>
+                      <ChevronRight className="h-4 w-4" />
+                    </>
+                  )}
+                </ThemedButton>
+              </form>
+
+              {/* Footer — memo'd */}
+              <AuthFooter />
+            </div>
+          </ThemedPanel>
+
+          {/* Info hints */}
+          <div className="mt-4 flex justify-center gap-2">
+            <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
+              {t('auth.nickname_rules_length')}
+            </div>
+            <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
+              {t('auth.nickname_rules_chars')}
+            </div>
           </div>
-          <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
-            {t('auth.nickname_rules_chars')}
-          </div>
-        </div>
-      </motion.div>
-    </div>
+        </m.div>
+      </div>
+    </LazyMotion>
   );
 };

@@ -30,7 +30,7 @@ interface BuffIndicatorProps {
 export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
   const [effects, setEffects] = useState<ActiveEffect[]>([]);
   const { isVeryNarrow } = useResponsiveUI();
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
 
   // Handle resizing
   useEffect(() => {

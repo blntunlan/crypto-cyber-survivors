@@ -62,12 +62,12 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
   const isLowBudget = isLimited && pauseSecondsRemaining <= 3;
 
   const containerClasses = cn(
-    `fixed inset-0 z-[${Z_LAYERS.PAUSE_MENU}] flex items-center justify-center overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,16px)] allow-scroll`,
+    'fixed inset-0 flex items-center justify-center overflow-y-auto p-4 pb-[env(safe-area-inset-bottom,16px)] allow-scroll',
     isRetro ? 'bg-black/90' : `${MODERN_SCREEN_OVERLAY} animate-fade-in`
   );
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} style={{ zIndex: Z_LAYERS.PAUSE_MENU }}>
       <div
         className={`my-auto w-full max-w-sm space-y-4 p-6 text-center transition-all md:p-8 ${sizes.gap} ${
           isRetro

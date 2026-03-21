@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS, COMPETITIVE_LIMITS } from '../../../constants';
+import { Z_LAYERS } from '../../../constants/ZIndex';
 import { audio } from '../../../services/audio';
 import { type LevelUpScreenProps } from './types';
 import { containerVariants, titleVariants } from './constants';
@@ -85,14 +86,14 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
 
   // Play win fanfare when all reels stopped
   useEffect(() => {
-    if (allStopped) {
-      // Wait for the last card to settle visually before playing the fanfare
-      setTimeout(() => {
-        audio.playSlotWin();
-        // TEST: Para yağmuru efekti (kaldırılabilir)
-        audio.playCoinShower();
-      }, 500);
-    }
+    if (!allStopped) return;
+    // Wait for the last card to settle visually before playing the fanfare
+    const timerId = setTimeout(() => {
+      audio.playSlotWin();
+      // TEST: Para yağmuru efekti (kaldırılabilir)
+      audio.playCoinShower();
+    }, 500);
+    return () => clearTimeout(timerId);
   }, [allStopped]);
 
   // Keyboard navigation
@@ -202,7 +203,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className={`allow-scroll fixed inset-0 z-[2000] flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
+          className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
+          style={{ zIndex: Z_LAYERS.LEVEL_UP_SCREEN }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -252,8 +254,8 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
               <motion.p
                 className={`font-bold uppercase ${sizes.tiny} mt-1 min-h-[1.5em] md:mt-2`}
                 style={{ color: allStopped ? COLORS.NEON_GREEN : COLORS.ELECTRIC_BLUE }}
-                animate={{ opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
+                animate={{ opacity: allStopped ? [0.7, 1, 0.7] : 0.8 }}
+                transition={{ duration: 0.8, repeat: allStopped ? Infinity : 0 }}
               >
                 {renderStatusText()}
               </motion.p>

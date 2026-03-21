@@ -162,7 +162,7 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
             position: 'fixed',
             inset: 0,
             pointerEvents: 'none',
-            zIndex: 1000,
+            zIndex: 500,
           }}
         >
           {/* Vignette Effect - Multi-layered for desktop depth */}

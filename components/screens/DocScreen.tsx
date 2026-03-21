@@ -460,7 +460,7 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex flex-col overflow-hidden border-t-2 border-[#b22222]/50 bg-[#020617] font-mono text-slate-300 shadow-[0_-10px_50px_rgba(178,34,34,0.2)] md:flex-row"
+        className="fixed inset-0 z-[3300] flex flex-col overflow-hidden border-t-2 border-[#b22222]/50 bg-[#020617] font-mono text-slate-300 shadow-[0_-10px_50px_rgba(178,34,34,0.2)] md:flex-row"
       >
         {/* Sidebar - Navigation */}
         <div className="flex w-full flex-col border-r border-[#b22222]/20 bg-black/40 backdrop-blur-xl md:w-80">

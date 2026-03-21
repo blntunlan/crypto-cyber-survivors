@@ -21,6 +21,16 @@ const text = (value: string | string[]): string =>
 export const NotificationSystem: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { t } = useLanguage();
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
 
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
     const id = Math.random().toString(36).substring(2, 11);
@@ -30,9 +40,11 @@ export const NotificationSystem: React.FC = () => {
 
     // Auto remove after specified duration or 5 seconds default
     const duration = notification.duration ?? 5000;
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
+      timersRef.current.delete(id);
     }, duration);
+    timersRef.current.set(id, timerId);
 
     if (notification.type === 'error') {
       // Logic removed to prevent infinite loop.

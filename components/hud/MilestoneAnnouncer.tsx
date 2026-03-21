@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
 import { COLORS } from '../../constants';
 import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
@@ -77,7 +77,7 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
                 width: '130%',
                 height: '240%',
                 transform: 'translate(-50%, -50%)',
-                filter: 'blur(30px)',
+                filter: 'blur(10px)',
                 opacity: 0.5,
                 backgroundColor: color,
               }}
@@ -103,74 +103,78 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
   const { rs, rfs } = useResponsiveUI();
 
   return (
-    <AnimatePresence>
-      {show && text && (
-        <motion.div
-          className="pointer-events-none fixed left-1/2 z-[125] flex -translate-x-1/2 flex-col items-center"
-          initial={{ opacity: 0, y: -20, scale: 0.8, x: '-50%' }}
-          animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
-          exit={{ opacity: 0, scale: 0.9, y: 10 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          style={{
-            top: '45%',
-            width: '100vw',
-          }}
-        >
-          <motion.div
-            className="text-center font-black uppercase italic tracking-tighter"
+    <LazyMotion features={domAnimation}>
+      <AnimatePresence>
+        {show && text && (
+          <m.div
+            className="pointer-events-none fixed left-1/2 z-[125] flex -translate-x-1/2 flex-col items-center"
+            initial={{ opacity: 0, y: -20, scale: 0.8, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             style={{
-              color: 'white',
-              textShadow: isRetro
-                ? '2px 2px 0 #000'
-                : `2px 2px 0 #000, 0 0 10px ${color}`,
-              fontSize: rfs(24),
+              top: '45%',
+              width: '100vw',
             }}
           >
-            {text}
-          </motion.div>
-
-          <motion.div
-            className="relative mt-2"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            <div
-              className={`relative flex items-center justify-center font-black italic ${
-                isRetro
-                  ? 'rounded-none border-4 border-white shadow-[4px_4px_0_#000]'
-                  : 'rounded-lg border-2 backdrop-blur-sm'
-              }`}
+            <m.div
+              className="text-center font-black uppercase italic tracking-tighter"
               style={{
-                color: COLORS.JACKPOT_YELLOW,
-                borderColor: isRetro ? 'white' : COLORS.CASINO_GOLD,
-                backgroundColor: isRetro ? COLORS.SLOT_BLACK : `${COLORS.SLOT_BLACK}E6`,
-                boxShadow: isRetro ? '4px 4px 0 #000' : `0 0 15px ${color}40`,
-                fontSize: rfs(12),
-                padding: `${rs(6)}px ${rs(20)}px`,
+                color: 'white',
+                textShadow: isRetro
+                  ? '2px 2px 0 #000'
+                  : `2px 2px 0 #000, 0 0 10px ${color}`,
+                fontSize: rfs(24),
               }}
             >
-              <span className="relative z-10 tracking-tight">
-                {t('hud.xp_multiplier_up')}
-              </span>
+              {text}
+            </m.div>
 
-              {/* Decorative elements for retro */}
-              {isRetro && (
-                <div className="absolute -left-1 -top-1 h-2 w-2 bg-yellow-400" />
-              )}
+            <m.div
+              className="relative mt-2"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div
+                className={`relative flex items-center justify-center font-black italic ${
+                  isRetro
+                    ? 'rounded-none border-4 border-white shadow-[4px_4px_0_#000]'
+                    : 'rounded-lg border-2 backdrop-blur-sm'
+                }`}
+                style={{
+                  color: COLORS.JACKPOT_YELLOW,
+                  borderColor: isRetro ? 'white' : COLORS.CASINO_GOLD,
+                  backgroundColor: isRetro
+                    ? COLORS.SLOT_BLACK
+                    : `${COLORS.SLOT_BLACK}E6`,
+                  boxShadow: isRetro ? '4px 4px 0 #000' : `0 0 15px ${color}40`,
+                  fontSize: rfs(12),
+                  padding: `${rs(6)}px ${rs(20)}px`,
+                }}
+              >
+                <span className="relative z-10 tracking-tight">
+                  {t('hud.xp_multiplier_up')}
+                </span>
 
-              {/* Simplified glow for mobile perf - hidden in retro */}
-              {!isRetro && (
-                <div
-                  className="absolute inset-0 -z-10 opacity-30 blur-lg"
-                  style={{ backgroundColor: color }}
-                />
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                {/* Decorative elements for retro */}
+                {isRetro && (
+                  <div className="absolute -left-1 -top-1 h-2 w-2 bg-yellow-400" />
+                )}
+
+                {/* Simplified glow for mobile perf - hidden in retro */}
+                {!isRetro && (
+                  <div
+                    className="absolute inset-0 -z-10 opacity-30 blur-lg"
+                    style={{ backgroundColor: color }}
+                  />
+                )}
+              </div>
+            </m.div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </LazyMotion>
   );
 };
 
@@ -178,7 +182,7 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
  * MilestoneAnnouncer - Adaptive entry point that decides which announcer to show.
  */
 export const MilestoneAnnouncer: React.FC<MilestoneAnnouncerProps> = memo(props => {
-  const [isMobile, setIsMobile] = useState(screenService.isMobile());
+  const [isMobile, setIsMobile] = useState(() => screenService.isMobile());
   const isRetro = useIsRetro();
 
   useEffect(() => {

@@ -13,6 +13,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EventBus } from '../../services/core/EventBus';
 import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
+import { Z_LAYERS } from '../../constants/ZIndex';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface CycleDecisionScreenProps {
@@ -69,6 +70,14 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
   const [selectedOption, setSelectedOption] = useState<'continue' | 'cashout' | null>(
     null
   );
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup transition timer on unmount
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
 
   // Use ref to avoid stale closure in timer
   const handleContinueRef = useRef<() => void>(() => {});
@@ -99,7 +108,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
       });
     } else {
       // Use delay in production
-      setTimeout(() => {
+      transitionTimerRef.current = setTimeout(() => {
         setIsVisible(false);
         setSelectedOption(null);
         onContinue?.();
@@ -124,7 +133,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
       });
     } else {
       // Use delay in production
-      setTimeout(() => {
+      transitionTimerRef.current = setTimeout(() => {
         setIsVisible(false);
         setSelectedOption(null);
         onCashOut?.();
@@ -196,7 +205,8 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 flex items-center justify-center"
+          style={{ zIndex: Z_LAYERS.CYCLE_COMPLETE }}
           style={{
             background:
               'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.9) 100%)',
