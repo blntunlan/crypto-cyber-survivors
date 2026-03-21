@@ -9,7 +9,7 @@
  * @see docs/DIFFICULTY_SYSTEM_V2.md
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { EventBus } from '../services/core/EventBus';
 
 export type CycleDecision = 'CONTINUE' | 'CASH_OUT';
@@ -65,6 +65,8 @@ export function useCycleDecision(): UseCycleDecisionReturn {
   }, []);
 
   // Listen for decision made events
+  const cashOutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const unsubDecision = EventBus.on(
       'cycleDecisionMade',
@@ -79,7 +81,7 @@ export function useCycleDecision(): UseCycleDecisionReturn {
         // If cash out, trigger game over
         if (data.decision === 'CASH_OUT') {
           // Small delay to let the animation play
-          setTimeout(() => {
+          cashOutTimerRef.current = setTimeout(() => {
             // Note: finalLevel and finalPnl will be overwritten by the game state manager
             EventBus.emit('gameOver', {
               finalLevel: 0,
@@ -91,7 +93,10 @@ export function useCycleDecision(): UseCycleDecisionReturn {
       }
     );
 
-    return unsubDecision;
+    return () => {
+      unsubDecision();
+      if (cashOutTimerRef.current) clearTimeout(cashOutTimerRef.current);
+    };
   }, []);
 
   // Reset on game reset

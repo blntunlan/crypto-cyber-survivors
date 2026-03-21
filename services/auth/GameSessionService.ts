@@ -73,7 +73,7 @@ export class GameSessionService {
         payload
       );
 
-      if (!data?.sessionId) {
+      if (!data.sessionId) {
         Logger.error('[GameSession] start-session returned empty data:', data);
         throw new Error('Invalid response from start-session');
       }

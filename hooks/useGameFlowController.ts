@@ -306,6 +306,7 @@ export const useGameFlowController = ({
     liquidationGraceUntilRef.current = 0;
     setCycleData(null);
     setUpgradeChoices([]);
+    difficultyContext.reset();
   }, []);
 
   const pauseMenuStats = useMemo<PauseMenuStats>(

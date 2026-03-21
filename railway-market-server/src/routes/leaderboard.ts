@@ -17,9 +17,12 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     const offset = Math.max(0, Number(req.query.offset) || 0);
 
     const allowedSorts = ['max_survival_time', 'total_kills', 'high_score', 'total_sessions'] as const;
+    type AllowedSort = (typeof allowedSorts)[number];
     const sortParam = req.query.sort as string | undefined;
-    const sort = allowedSorts.includes(sortParam as typeof allowedSorts[number])
-      ? sortParam!
+    const isAllowedSort = (value: string): value is AllowedSort =>
+      allowedSorts.includes(value as AllowedSort);
+    const sort = sortParam && isAllowedSort(sortParam)
+      ? sortParam
       : 'max_survival_time';
 
     const db = getDb();

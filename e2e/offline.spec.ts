@@ -38,7 +38,7 @@ test.describe('Offline Behavior', () => {
     const inGameSignals = [
       page.locator('canvas').first(),
       page.locator('#game-ui-overlay'),
-      page.locator('#wave-timer-text'),
+      page.locator('[data-testid="wave-timer-text"]'),
       page.getByText(/Survival|Live Feed/i).first(),
     ];
     const hasInGameSignal = await Promise.any(
@@ -94,7 +94,7 @@ test.describe('Offline Behavior', () => {
     const resumedSignals = [
       page.locator('canvas').first(),
       page.locator('#game-ui-overlay'),
-      page.locator('#wave-timer-text'),
+      page.locator('[data-testid="wave-timer-text"]'),
       page.getByText(/Survival|Live Feed/i).first(),
     ];
     const hasResumeSignal = await Promise.any(

@@ -10,7 +10,7 @@
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Menu Interactions and Theme Switching', () => {
+test.describe('Menu Interactions and Theme Switching @smoke', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage to start fresh
     await page.goto('/');
@@ -123,7 +123,7 @@ test.describe('Menu Interactions and Theme Switching', () => {
     page,
   }) => {
     // Ensure we are in menu (HUD timer should NOT be visible)
-    await expect(page.locator('#wave-timer-text')).not.toBeVisible();
+    await expect(page.locator('[data-testid="wave-timer-text"]')).not.toBeVisible();
 
     // Wait for price to load (ensures market connection is ready for game start)
     // Searching for text that looks like a dollar price
@@ -136,11 +136,15 @@ test.describe('Menu Interactions and Theme Switching', () => {
     await longButton.click();
 
     // gameplay HUD element (WaveTimer) should appear
-    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Check if the timer starts ticking (optional but good for robustness)
     await page.waitForTimeout(2000);
-    const updatedTime = await page.locator('#wave-timer-text').textContent();
+    const updatedTime = await page
+      .locator('[data-testid="wave-timer-text"]')
+      .textContent();
 
     // In a fast running test, it might still be 0:00 or 0:01/0:02
     console.log(`Game started. Timer at: ${updatedTime}`);

@@ -39,7 +39,9 @@ test.describe('Z-Index Screen Stacking', () => {
   test('Settings panel should appear above HUD elements', async ({ page }) => {
     // Start game
     await page.getByRole('button', { name: /Long/i }).click();
-    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Open pause menu first (Escape key)
     await page.keyboard.press('Escape');
@@ -72,7 +74,9 @@ test.describe('Z-Index Screen Stacking', () => {
   test('Pause menu should appear above gameplay HUD', async ({ page }) => {
     // Start game
     await page.getByRole('button', { name: /Long/i }).click();
-    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Open pause menu
     await page.keyboard.press('Escape');
@@ -85,13 +89,15 @@ test.describe('Z-Index Screen Stacking', () => {
 
     // Pause menu should close, game should continue
     await expect(page.getByText(/PAUSED/i)).not.toBeVisible();
-    await expect(page.locator('#wave-timer-text')).toBeVisible();
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible();
   });
 
   test('GameOver screen should appear above all HUD elements', async ({ page }) => {
     // Start game
     await page.getByRole('button', { name: /Long/i }).click();
-    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Trigger game over via test helper (cheat key '4' now changes luck)
     await expect
@@ -126,7 +132,9 @@ test.describe('Z-Index Screen Stacking', () => {
   test('LevelUp screen should appear above gameplay HUD', async ({ page }) => {
     // Start game
     await page.getByRole('button', { name: /Long/i }).click();
-    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Trigger level up via cheat (key 'L')
     await page.keyboard.press('L');

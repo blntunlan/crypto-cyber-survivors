@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { eq, and, desc } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { profiles, sessions, gameReplays } from '../db/schema';
@@ -16,6 +16,7 @@ const MAX_REPLAY_SIZE = 500_000; // 500KB
  */
 router.post('/save', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const {
       sessionId, score, durationMs, finalLevel, totalKills,
       pair, position, leverage, replayData,
@@ -36,7 +37,7 @@ router.post('/save', requireAuth, asyncHandler(async (req: Request, res: Respons
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId!);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
@@ -102,7 +103,8 @@ router.post('/save', requireAuth, asyncHandler(async (req: Request, res: Respons
  */
 router.get('/mine', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const profileId = await getProfileId(req.authUserId!);
+    const authUserId = getRequiredAuthUserId(req);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;

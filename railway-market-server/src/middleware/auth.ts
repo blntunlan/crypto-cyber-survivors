@@ -177,6 +177,18 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 }
 
 /**
+ * Returns the authenticated user id populated by `requireAuth`.
+ * Throws if a protected route is invoked without auth context.
+ */
+export function getRequiredAuthUserId(req: Request): string {
+  if (!req.authUserId) {
+    throw new Error('Authenticated request missing authUserId');
+  }
+
+  return req.authUserId;
+}
+
+/**
  * Shared error handler for JWT verification failures.
  */
 function handleJwtError(error: unknown, res: Response): void {

@@ -60,7 +60,7 @@ test.describe('HUD Elements E2E', () => {
     const inGameSignals = [
       page.locator('#game-ui-overlay'),
       page.locator('canvas').first(),
-      page.locator('#wave-timer-text'),
+      page.locator('[data-testid="wave-timer-text"]'),
       page.getByText(/Survival|LIQUIDATED|GAME OVER/i).first(),
     ];
 

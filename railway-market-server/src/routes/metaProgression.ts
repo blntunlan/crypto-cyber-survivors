@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { metaProgression } from '../db/schema';
@@ -34,7 +34,8 @@ const META_UPGRADE_DEFS: Record<string, { maxLevel: number; costPerLevel: number
  */
 router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const profileId = await getProfileId(req.authUserId!);
+    const authUserId = getRequiredAuthUserId(req);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
@@ -80,6 +81,7 @@ router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Respons
  */
 router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const { upgradeId } = req.body as { upgradeId?: string };
 
     if (!upgradeId || !META_UPGRADE_DEFS[upgradeId]) {
@@ -87,7 +89,7 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId!);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
@@ -154,6 +156,7 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
  */
 router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const { earnedCoins } = req.body as { earnedCoins?: number };
 
     if (typeof earnedCoins !== 'number' || earnedCoins < 0) {
@@ -161,7 +164,7 @@ router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId!);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;

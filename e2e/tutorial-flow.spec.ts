@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Tutorial Flow', () => {
+test.describe('Tutorial Flow @smoke', () => {
   // We want to test the tutorial, so we DO NOT set 'tutorial-completed' here.
   // We start with a fresh session.
 

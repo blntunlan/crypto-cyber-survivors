@@ -60,6 +60,11 @@ class EventBusClass {
 
   private static instance: EventBusClass | null = null;
 
+  // Flat callback cache: avoids iterating 4 scopes on every emit
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private flatCache: Map<GameEvent, EventCallback<any>[]> = new Map();
+  private flatCacheDirty = true;
+
   // Tracing support
   private tracingEnabled = false;
   private traceLog: EventTrace[] = [];
@@ -171,12 +176,14 @@ class EventBusClass {
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       callbacks.add(onceWrapper as any);
+      this.flatCacheDirty = true;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return () => this.unsubscribe(event, onceWrapper as any);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callbacks.add(callback as any);
+    this.flatCacheDirty = true;
 
     return () => this.unsubscribe(event, callback);
   }
@@ -207,7 +214,9 @@ class EventBusClass {
   unsubscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): void {
     this.listeners.forEach(scopeMap => {
       const callbacks = scopeMap.get(event);
-      callbacks?.delete(callback as EventCallback<GameEvent>);
+      if (callbacks?.delete(callback as EventCallback<GameEvent>)) {
+        this.flatCacheDirty = true;
+      }
 
       // Keep maps compact after removals
       if (callbacks?.size === 0) {
@@ -233,6 +242,7 @@ class EventBusClass {
     const scopeMap = this.listeners.get(scope);
     if (scopeMap) {
       scopeMap.clear();
+      this.flatCacheDirty = true;
       Logger.debug(`[EventBus] Scope '${scope}' cleared`);
     }
   }
@@ -243,10 +253,31 @@ class EventBusClass {
     this.listeners.forEach(scopeMap => {
       scopeMap.delete(event);
     });
+    this.flatCacheDirty = true;
   }
   // ===========================================================================
   // EMISSION API
   // ===========================================================================
+
+  /**
+   * Rebuild the flat callback cache from all scopes.
+   * Called lazily before emit when cache is dirty.
+   */
+  private rebuildFlatCache(): void {
+    this.flatCache.clear();
+    this.listeners.forEach(scopeMap => {
+      scopeMap.forEach((callbacks, event) => {
+        if (callbacks.size === 0) return;
+        let arr = this.flatCache.get(event);
+        if (!arr) {
+          arr = [];
+          this.flatCache.set(event, arr);
+        }
+        callbacks.forEach(cb => arr.push(cb));
+      });
+    });
+    this.flatCacheDirty = false;
+  }
 
   /**
    * Emit an event to all subscribers
@@ -254,47 +285,49 @@ class EventBusClass {
   emit<K extends GameEvent>(event: K, data: EventDataMap[K]): void {
     this.totalEmitCount++;
 
-    // GC-FREE OPTIMIZATION: Iterate directly without allocating intermediate array.
-    // Note: Listeners added *during* this emit will essentially be 'live' and might run.
+    if (this.flatCacheDirty) this.rebuildFlatCache();
+
+    const callbacks = this.flatCache.get(event);
+    if (!callbacks || callbacks.length === 0) {
+      if (this.tracingEnabled) {
+        this.logTrace(event, data, 0, 0);
+      }
+      return;
+    }
 
     // Check if we need performance profiling (only in Dev or excessive lag debugging)
     const shouldProfile =
       this.tracingEnabled || (import.meta.env.DEV && this.totalEmitCount % 100 === 0);
     const methodStart = shouldProfile ? performance.now() : 0;
-    let listenerCount = 0;
 
-    this.listeners.forEach(scopeMap => {
-      const callbacks = scopeMap.get(event);
-      if (callbacks && callbacks.size > 0) {
-        callbacks.forEach(callback => {
-          listenerCount++;
-          if (shouldProfile) {
-            const start = performance.now();
-            try {
-              callback(data);
-            } catch (error) {
-              Logger.error(`[EventBus] Error in handler for ${event}:`, error);
-            }
-            const duration = performance.now() - start;
-            if (duration > this.SLOW_LISTENER_THRESHOLD_MS) {
-              Logger.warn(
-                `[EventBus] Slow listener for '${event}': ${duration.toFixed(2)}ms`
-              );
-            }
-          } else {
-            // Fast path (Production)
-            try {
-              callback(data);
-            } catch (error) {
-              Logger.error(`[EventBus] Error in handler for ${event}:`, error);
-            }
-          }
-        });
+    if (shouldProfile) {
+      for (let i = 0; i < callbacks.length; i++) {
+        const start = performance.now();
+        try {
+          callbacks[i]!(data);
+        } catch (error) {
+          Logger.error(`[EventBus] Error in handler for ${event}:`, error);
+        }
+        const duration = performance.now() - start;
+        if (duration > this.SLOW_LISTENER_THRESHOLD_MS) {
+          Logger.warn(
+            `[EventBus] Slow listener for '${event}': ${duration.toFixed(2)}ms`
+          );
+        }
       }
-    });
+    } else {
+      // Fast path (Production): simple for-loop, zero closure allocation
+      for (let i = 0; i < callbacks.length; i++) {
+        try {
+          callbacks[i]!(data);
+        } catch (error) {
+          Logger.error(`[EventBus] Error in handler for ${event}:`, error);
+        }
+      }
+    }
 
     if (this.tracingEnabled) {
-      this.logTrace(event, data, listenerCount, performance.now() - methodStart);
+      this.logTrace(event, data, callbacks.length, performance.now() - methodStart);
     }
   }
 
@@ -349,6 +382,8 @@ class EventBusClass {
   clear(): void {
     this.listeners.forEach(m => m.clear());
     this.throttleMap.clear();
+    this.flatCache.clear();
+    this.flatCacheDirty = true;
   }
 
   static resetForTesting(): void {
@@ -357,6 +392,8 @@ class EventBusClass {
       this.instance.traceLog = [];
       this.instance.tracingEnabled = false;
       this.instance.totalEmitCount = 0;
+      this.instance.flatCache.clear();
+      this.instance.flatCacheDirty = true;
     }
   }
 }

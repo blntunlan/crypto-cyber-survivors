@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test('landing surfaces technology and team transparency blocks', async ({ page }) => {
+test('landing surfaces technology and team transparency blocks @smoke', async ({
+  page,
+}) => {
   await page.goto('/?no-sw=true');
   await page.evaluate(() => {
     localStorage.setItem('disable_sw', 'true');

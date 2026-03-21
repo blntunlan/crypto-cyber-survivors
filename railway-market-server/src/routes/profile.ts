@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { eq, sql } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { profiles } from '../db/schema';
@@ -14,11 +14,12 @@ const router = Router();
  */
 router.get('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const db = getDb();
     const rows = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.authUserId, req.authUserId!))
+      .where(eq(profiles.authUserId, authUserId))
       .limit(1);
 
     if (rows.length === 0) {
@@ -38,6 +39,7 @@ router.get('/', requireAuth, asyncHandler(async (req: Request, res: Response) =>
  */
 router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const parsed = createProfileSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
@@ -51,7 +53,7 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
     const existing = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.authUserId, req.authUserId!))
+      .where(eq(profiles.authUserId, authUserId))
       .limit(1);
 
     if (existing.length > 0) {
@@ -63,7 +65,7 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
     const rows = await db
       .insert(profiles)
       .values({
-        authUserId: req.authUserId!,
+        authUserId,
         nickname: nickname,
         displayName: nickname,
         avatarUrl: avatar_url ?? null,
@@ -92,6 +94,7 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
  */
 router.patch('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const parsed = updateProfileSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
@@ -114,7 +117,7 @@ router.patch('/', requireAuth, asyncHandler(async (req: Request, res: Response) 
     const rows = await db
       .update(profiles)
       .set(updateData)
-      .where(eq(profiles.authUserId, req.authUserId!))
+      .where(eq(profiles.authUserId, authUserId))
       .returning();
 
     if (rows.length === 0) {

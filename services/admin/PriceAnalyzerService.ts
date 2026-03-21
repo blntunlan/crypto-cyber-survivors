@@ -73,12 +73,12 @@ export class PriceAnalyzerService {
   }
 
   // ===========================================================================
-  // SUPABASE HISTORY LOADING
+  // RAILWAY HISTORY LOADING
   // ===========================================================================
 
   /**
-   * Load historical price data from Supabase price_logs table
-   * Call this when Admin Dashboard opens
+   * Load historical price data from the Railway market history API.
+   * Legacy method name retained so existing admin dashboard callers keep working.
    */
   async loadHistoryFromSupabase(): Promise<void> {
     if (this.isLoadingHistory || this.historyLoaded) {
@@ -111,7 +111,9 @@ export class PriceAnalyzerService {
       ] as { pair: string; price: number; timestamp: string | null }[] | null;
 
       if (!rows || rows.length === 0) {
-        Logger.info('[PriceAnalyzer] No historical data found in Supabase');
+        Logger.info(
+          '[PriceAnalyzer] No historical data returned by Railway history API'
+        );
         return;
       }
 
@@ -124,7 +126,7 @@ export class PriceAnalyzerService {
           pair,
           price: row.price,
           timestamp: row.timestamp ? new Date(row.timestamp).getTime() : Date.now(),
-          source: 'binance', // Column 'source' missing in price_logs table
+          source: 'binance', // Railway history payload does not include source, so default to Binance.
         };
 
         const pairHistory = this.history.get(pair) ?? [];
@@ -146,17 +148,17 @@ export class PriceAnalyzerService {
         BTC: this.history.get('BTC')?.length ?? 0,
         ETH: this.history.get('ETH')?.length ?? 0,
         SOL: this.history.get('SOL')?.length ?? 0,
-        total: rows?.length ?? 0,
+        total: rows.length,
       });
     } catch (err) {
-      Logger.warn('[PriceAnalyzer] Error loading from Supabase:', err);
+      Logger.warn('[PriceAnalyzer] Error loading from Railway history API:', err);
     } finally {
       this.isLoadingHistory = false;
     }
   }
 
   /**
-   * Check if history has been loaded from Supabase
+   * Check if history has been loaded from the Railway history API.
    */
   isHistoryLoaded(): boolean {
     return this.historyLoaded;

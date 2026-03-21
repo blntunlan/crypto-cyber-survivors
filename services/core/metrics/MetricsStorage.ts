@@ -5,7 +5,7 @@
  * - Load/save sessions to localStorage
  * - Quota exceeded handling with graceful degradation
  * - Session limiting
- * - Cloud sync to Supabase with retry logic
+ * - Railway session and telemetry sync with retry logic
  */
 
 import { Logger } from '../../system/Logger';
@@ -108,12 +108,13 @@ export class MetricsStorage {
 
     this.save();
 
-    // Sync to Supabase (fire and forget)
+    // Sync to Railway session and telemetry endpoints (fire and forget)
     void this.syncToSupabase(session);
   }
 
   /**
-   * Sync session to Supabase with retry logic
+   * Sync session to Railway with retry logic.
+   * Legacy method name retained because tests and bridges still call syncToSupabase().
    * Uses UPSERT logic: if serverSessionId exists, update the existing record.
    * Otherwise, insert a new record.
    */
@@ -311,8 +312,8 @@ export class MetricsStorage {
         Logger.debug('[MetricsStorage] Replay upload skipped (Railway migration)');
       }
 
-      // 5. Player stats are updated automatically via database trigger
-      // on the server when a record is inserted into 'game_sessions'.
+      // 5. Player stats are updated automatically on the Railway backend
+      // when the session row has been persisted.
     } catch (err) {
       // Don't retry on 402 (quota exhausted) — it won't help
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -324,11 +325,11 @@ export class MetricsStorage {
           (err as { code: string }).code === '402');
       if (isQuotaExhausted) {
         Logger.warn(
-          '[MetricsStorage] Supabase quota exhausted (402), skipping retries'
+          '[MetricsStorage] Railway sync quota exhausted (402), skipping retries'
         );
         EventBus.emit('sessionSyncFailed', {
           sessionId: session.sessionId,
-          error: 'Supabase quota exhausted (402)',
+          error: 'Railway sync quota exhausted (402)',
           retryCount,
         });
         return;
@@ -349,7 +350,7 @@ export class MetricsStorage {
 
       // Max retries exceeded
       Logger.error(
-        `[MetricsStorage] Supabase sync failed after ${MAX_SYNC_RETRIES} retries`,
+        `[MetricsStorage] Railway sync failed after ${MAX_SYNC_RETRIES} retries`,
         err
       );
 

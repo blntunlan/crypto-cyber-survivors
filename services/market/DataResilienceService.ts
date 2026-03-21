@@ -473,6 +473,21 @@ class DataResilienceServiceClass {
   }
 
   /**
+   * Generate a synthetic data point with neutral indicators.
+   * Uses last known price (or 0) and FALLBACK_DEFAULTS for all other fields.
+   */
+  generateSyntheticPoint(): MarketDataPoint {
+    return {
+      timestamp: Date.now(),
+      price: this.lastKnownData?.price ?? 0,
+      volume: RESILIENCE_CONFIG.FALLBACK_DEFAULTS.volume,
+      rsi: RESILIENCE_CONFIG.FALLBACK_DEFAULTS.rsi,
+      atr: 0,
+      atrPercent: RESILIENCE_CONFIG.FALLBACK_DEFAULTS.atrPercent,
+    };
+  }
+
+  /**
    * Reset quality metrics (call on game start)
    */
   resetQualityMetrics(): void {

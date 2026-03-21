@@ -73,6 +73,11 @@ class DifficultyContextManager {
     EventBus.on('gameReset', () => {
       this.reset();
     });
+
+    // Belt-and-suspenders: reset on gameOver regardless of which code path triggers it
+    EventBus.on('gameOver', () => {
+      this.reset();
+    });
   }
 
   public static getInstance(): DifficultyContextManager {

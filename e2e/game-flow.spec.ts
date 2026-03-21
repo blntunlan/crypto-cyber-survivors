@@ -23,7 +23,7 @@ async function launchFromLanding(page: import('@playwright/test').Page): Promise
   });
 }
 
-test.describe('Game Flow', () => {
+test.describe('Game Flow @smoke', () => {
   test.beforeEach(async ({ context, page }) => {
     // 1. Clear all state (localStorage + cookies) to start fresh ONLY on the first try
     // Use ?no-sw=true to skip service worker which causes reload loops in E2E
@@ -84,7 +84,9 @@ test.describe('Game Flow', () => {
     await longBtn.click();
 
     // 4. Confirm in-game
-    await expect(page.locator('#wave-timer-text')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
+      timeout: 15000,
+    });
     await expect(page.locator('canvas')).toBeVisible();
   });
 

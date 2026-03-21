@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { eq, and, sql, gt } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { dailyChallenges, challengeCompletions, challengeSeedLog } from '../db/schema';
@@ -98,6 +98,10 @@ function selectTemplate(templates: ChallengeTemplate[], seed: number): Challenge
   return templates[seed % templates.length];
 }
 
+function toIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 type ChallengeRow = typeof dailyChallenges.$inferSelect;
 
 function formatChallenge(row: ChallengeRow) {
@@ -120,7 +124,7 @@ function formatChallenge(row: ChallengeRow) {
  */
 router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
   try {
-    const today = new Date().toISOString().split('T')[0]!;
+    const today = toIsoDate(new Date());
     const challengeId = `${today}-daily`;
     const db = getDb();
 
@@ -182,7 +186,7 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
     const dayOfWeek = now.getUTCDay() || 7;
     const monday = new Date(now);
     monday.setUTCDate(now.getUTCDate() - dayOfWeek + 1);
-    const weekStr = monday.toISOString().split('T')[0]!;
+    const weekStr = toIsoDate(monday);
     const challengeId = `${weekStr}-weekly`;
     const db = getDb();
 
@@ -201,7 +205,7 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
     const template = selectTemplate(WEEKLY_TEMPLATES, seed);
     const sunday = new Date(monday);
     sunday.setUTCDate(monday.getUTCDate() + 6);
-    const expiresAt = new Date(`${sunday.toISOString().split('T')[0]}T23:59:59.999Z`);
+    const expiresAt = new Date(`${toIsoDate(sunday)}T23:59:59.999Z`);
 
     const rows = await db
       .insert(dailyChallenges)
@@ -241,6 +245,7 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
  */
 router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const {
       challengeId, sessionId, score, survivalSeconds, kills, levelReached, objectivesCompleted,
     } = req.body as {
@@ -258,7 +263,7 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    const profileId = await getProfileId(req.authUserId!);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
@@ -365,7 +370,8 @@ router.get('/:challengeId/leaderboard', asyncHandler(async (req: Request, res: R
  */
 router.get('/status', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const profileId = await getProfileId(req.authUserId!);
+    const authUserId = getRequiredAuthUserId(req);
+    const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;

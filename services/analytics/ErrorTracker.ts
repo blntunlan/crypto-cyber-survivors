@@ -10,7 +10,7 @@
  * - Global error handler (window.onerror + unhandledrejection)
  * - Network error tracking with request/response details
  * - Performance issue detection
- * - Supabase integration for centralized logging
+ * - Railway telemetry integration for centralized logging
  * - Rate limiting & error deduplication
  * - Offline queue support with localStorage persistence
  * - Privacy-safe error sanitization
@@ -68,7 +68,7 @@ export class ErrorTracker {
   private tags: string[] = [];
   private pendingPromises: Set<Promise<unknown>> = new Set();
 
-  /** Circuit breaker: stop sending when Supabase quota is exhausted (402) */
+  /** Circuit breaker: stop sending when Railway telemetry is rate limited (402/429). */
   private circuitOpen = false;
   private circuitOpenedAt = 0;
   private static readonly CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 min

@@ -633,9 +633,15 @@ export const useMarketData = (
 
         const price = update.price;
 
-        // Update last price time for timeout tracking
-        lastPriceTimeRef.current = Date.now();
-        if (timeoutTriggeredRef.current) {
+        // Synthetic updates don't reset timeout tracking — they are locally generated
+        if (sseUpdate.isSynthetic) {
+          // Still deliver data to keep the pipeline fed, but don't reset timeout
+          // Indicators are already neutral from SSEMarketService
+        } else {
+          // Update last price time for timeout tracking
+          lastPriceTimeRef.current = Date.now();
+        }
+        if (timeoutTriggeredRef.current && !sseUpdate.isSynthetic) {
           timeoutTriggeredRef.current = false;
           EventBus.emit('marketDataRecovered', { pair: pairRef.current });
           Logger.info(`[Market] Data recovered for ${update.pair}`);
@@ -744,7 +750,7 @@ export const useMarketData = (
             pair: expectedPair,
             position: currentPosition,
             price,
-            volume: update.volume ?? 0,
+            volume: update.volume,
             timestamp: tickTimestamp,
             rawPnl: pnlResult.rawPnl,
             level: playerLevel,
@@ -759,7 +765,7 @@ export const useMarketData = (
           const nextData = {
             ...prevMarketData,
             price,
-            volume: update.volume ?? 0,
+            volume: update.volume,
             pnl: pnlResult.rawPnl,
             effectivePnl: pnlResult.effectivePnl,
             leverage: currentLeverage,

@@ -26,6 +26,8 @@ export interface SSEMarketUpdate {
   trendStrength: number;
   trendDirection: string;
   timestamp: number;
+  /** True when this update was generated locally as a fallback during data gaps */
+  isSynthetic?: boolean;
 }
 
 export type SSEConnectionState = 'disconnected' | 'connecting' | 'connected';
@@ -173,10 +175,15 @@ export class SSEMarketService {
           return;
         }
 
-        // Use fallback data
+        // Use fallback data and emit synthetic updates
         if (!this.isUsingFallbackData && this.lastKnownPrice !== null) {
           this.isUsingFallbackData = true;
           Logger.info(`[SSE] Using fallback price: ${this.lastKnownPrice}`);
+        }
+
+        // Emit synthetic update every 1s so UnifiedDirector keeps receiving data
+        if (this.isUsingFallbackData && this.lastKnownPrice !== null) {
+          this.emitSyntheticUpdate();
         }
       } else {
         if (this.disconnectStartTime) {
@@ -187,6 +194,33 @@ export class SSEMarketService {
         this.fatalDisconnectEmitted = false;
       }
     }, 1000);
+  }
+
+  private emitSyntheticUpdate(): void {
+    if (this.lastKnownPrice === null) return;
+
+    const syntheticUpdate: SSEMarketUpdate = {
+      pair: this.pair,
+      price: this.lastKnownPrice,
+      volume: 0,
+      high: this.lastKnownPrice,
+      low: this.lastKnownPrice,
+      rsi: 50,
+      rsiState: 'NEUTRAL',
+      atrPercent: 0,
+      normalizedVolume: 0,
+      volumePercentile: 0,
+      whaleTier: 0,
+      spawnRateMultiplier: 1,
+      enemyAggroMultiplierLong: 1,
+      enemyAggroMultiplierShort: 1,
+      trendStrength: 0,
+      trendDirection: 'SIDEWAYS',
+      timestamp: Date.now(),
+      isSynthetic: true,
+    };
+
+    this.onDataCallback(syntheticUpdate);
   }
 
   private setupVisibilityHandler(): void {

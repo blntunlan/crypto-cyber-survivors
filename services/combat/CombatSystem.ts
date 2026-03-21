@@ -12,6 +12,11 @@ import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
 import { type IPlayerStats } from '../patterns/decorators/IPlayerStats';
 import { PredictiveTargeting } from '../../strategies/combat/PredictiveTargeting';
+import { Logger } from '../system/Logger';
+
+// Debug: track first N fires to diagnose "5 bullets at start" report
+let __debugFireCount = 0;
+const __DEBUG_FIRE_LOG_LIMIT = 10;
 
 /**
  * Interface representing target candidates for weapon auto-aiming.
@@ -55,6 +60,11 @@ export class CombatSystem implements ICombatSystem {
     CombatSystem.instance = null;
   }
 
+  /** Reset debug fire counter (call on game start) */
+  public static resetDebugCounter(): void {
+    __debugFireCount = 0;
+  }
+
   /**
    * Process main auto-fire logic for the player.
    * Finds the most suitable target within viewport and launches projectiles.
@@ -94,6 +104,14 @@ export class CombatSystem implements ICombatSystem {
     const nearest = this.findNearestEnemy(pool, player, screenWidth, screenHeight);
     if (!nearest) {
       return false;
+    }
+
+    // DEBUG: Log first N fires to diagnose rapid-fire bug
+    if (__debugFireCount < __DEBUG_FIRE_LOG_LIMIT) {
+      __debugFireCount++;
+      Logger.info(
+        `[CombatSystem DEBUG] Fire #${__debugFireCount}: projectiles=${effectiveProjectiles}, fireRate=${cappedFireRate}ms, fireTimer=${state.fireTimer.toFixed(1)}ms, deltaMs=${deltaMs.toFixed(1)}, player.projectiles=${player.projectiles}`
+      );
     }
 
     // Launch projectiles targeting the predicted position

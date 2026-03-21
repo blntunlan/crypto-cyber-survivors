@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { eq, or, sql } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { profiles, sessions } from '../db/schema';
@@ -26,7 +26,7 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
     const db = getDb();
 
     // Look up profile: prefer JWT auth_user_id, fall back to nickname from body
-    const authUserId = req.authUserId!;
+    const authUserId = getRequiredAuthUserId(req);
     let profileRows;
 
     if (userId) {

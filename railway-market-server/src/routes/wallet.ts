@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { profiles, virtualAccounts } from '../db/schema';
@@ -13,12 +13,13 @@ const router = Router();
  */
 router.get('/balance', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const db = getDb();
 
     const profile = await db
       .select({ id: profiles.id })
       .from(profiles)
-      .where(eq(profiles.authUserId, req.authUserId!))
+      .where(eq(profiles.authUserId, authUserId))
       .limit(1);
 
     if (profile.length === 0) {

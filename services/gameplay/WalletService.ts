@@ -33,7 +33,7 @@ export class WalletService {
       const data = await railwayClient.get<{ balance: number }>(
         '/api/v1/wallet/balance'
       );
-      return data.balance ?? 0;
+      return data.balance;
     } catch (err) {
       Logger.warn('[WalletService] Failed to fetch balance', err);
       return 0;

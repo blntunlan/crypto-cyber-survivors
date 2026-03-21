@@ -74,7 +74,7 @@ async function startGame(page: Page) {
         // Wait for any reliable gameplay transition signal.
         const gameplaySignals = [
           page.locator('canvas').first(),
-          page.locator('#wave-timer-text'),
+          page.locator('[data-testid="wave-timer-text"]'),
           page.getByText(/Survival|LIQUIDATED|GAME OVER/i).first(),
           page
             .getByRole('button', { name: /Back to Terminal|Return to Menu/i })

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { eq, and, sql } from 'drizzle-orm';
-import { requireAuth } from '../middleware/auth';
+import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { profiles, identities } from '../db/schema';
@@ -14,6 +14,7 @@ const router = Router();
  */
 router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const parsed = createIdentitySchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
@@ -26,7 +27,7 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
     const profile = await db
       .select({ id: profiles.id })
       .from(profiles)
-      .where(eq(profiles.authUserId, req.authUserId!))
+      .where(eq(profiles.authUserId, authUserId))
       .limit(1);
 
     if (profile.length === 0) {
@@ -79,12 +80,13 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
 router.delete('/:provider', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const { provider } = req.params;
+    const authUserId = getRequiredAuthUserId(req);
     const db = getDb();
 
     const profile = await db
       .select({ id: profiles.id })
       .from(profiles)
-      .where(eq(profiles.authUserId, req.authUserId!))
+      .where(eq(profiles.authUserId, authUserId))
       .limit(1);
 
     if (profile.length === 0) {
