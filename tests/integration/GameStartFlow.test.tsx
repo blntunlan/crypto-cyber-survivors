@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -56,6 +56,33 @@ vi.mock('../../services/auth/UserSessionService', () => ({
     getNickname: vi.fn().mockReturnValue('TestUser'),
     getProfileId: vi.fn().mockReturnValue('test-profile-id'),
     register: vi.fn(),
+  },
+}));
+
+// Mock background trackers to prevent hanging fetch calls causing test timeouts
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureException: vi.fn(),
+    captureMessage: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    trackEvent: vi.fn(),
+    startSession: vi.fn(),
+    endSession: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    fetch: vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    }),
+    get: vi.fn().mockResolvedValue({}),
+    post: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -130,6 +157,13 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://test.railway.app');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
