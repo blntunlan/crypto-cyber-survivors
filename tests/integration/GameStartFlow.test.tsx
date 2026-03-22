@@ -79,9 +79,9 @@ vi.mock('../../services/api/RailwayClient', () => ({
   railwayClient: {
     fetch: vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({}),
+      json: () => Promise.resolve({ entries: [] }),
     }),
-    get: vi.fn().mockResolvedValue({}),
+    get: vi.fn().mockResolvedValue({ entries: [] }),
     post: vi.fn().mockResolvedValue({}),
   },
 }));
