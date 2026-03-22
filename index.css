@@ -261,15 +261,17 @@ html[data-theme-switching='true'] body::before {
    CYBERPUNK THEME PREMIUM EFFECTS
    ======================================== */
 
-/* GPU-composited cyber glitch using pseudo-elements instead of text-shadow animation */
+/* GPU-composited cyber glitch - throttled to reduce CPU overhead.
+   Runs every 4s with a brief glitch burst, idle the rest of the time. */
 [data-theme='cyberpunk'] .cyber-glitch-text {
   position: relative;
   text-shadow:
     0.05em 0 0 rgba(255, 0, 80, 0.75),
     -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
     0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
-  animation: cyber-glitch-transform 500ms infinite steps(3);
+  animation: cyber-glitch-transform 4s ease-in-out infinite;
   will-change: transform;
+  contain: layout style paint;
 }
 
 [data-theme='cyberpunk'] .cyber-glass {
@@ -287,22 +289,25 @@ html[data-theme-switching='true'] body::before {
     inset 0 0 10px rgba(0, 255, 255, 0.1);
 }
 
-/* GPU-composited glitch effect using only transform */
+/* GPU-composited glitch effect - mostly idle, brief glitch burst.
+   Over 4s: idle 0-87%, glitch 88-96%, idle 97-100% */
 @keyframes cyber-glitch-transform {
   0%,
-  14% {
+  87% {
     transform: translate(0, 0);
   }
-  15%,
-  49% {
+  88% {
     transform: translate(-1px, 1px);
   }
-  50%,
-  99% {
+  92% {
     transform: translate(1px, -1px);
   }
-  100% {
+  96% {
     transform: translate(-0.5px, 0.5px);
+  }
+  97%,
+  100% {
+    transform: translate(0, 0);
   }
 }
 
@@ -738,16 +743,18 @@ canvas {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-/* Smooth slow motion sway for headers - Optimized for Compositor */
+/* Smooth slow motion sway for headers - Compositor-only animation.
+   text-shadow is static; only transform is animated (GPU-composited). */
 [data-theme='cyberpunk'] .cyber-sway-text {
   position: relative;
-  /* Static text shadow for RGB split effect */
   text-shadow:
     2px 0 0 rgba(255, 0, 80, 0.5),
     -1px -1px 0 rgba(0, 255, 0, 0.5),
     1px 1px 0 rgba(0, 0, 255, 0.5);
   animation: cyber-sway 8s ease-in-out infinite;
   will-change: transform;
+  /* Isolate paint layer so text-shadow doesn't repaint parent */
+  contain: layout style paint;
 }
 
 @keyframes cyber-sway {
@@ -1121,4 +1128,119 @@ canvas {
 [data-theme='retro-16bit'] .pwa-install-dismiss {
   border-radius: 0;
   font-family: var(--font-primary);
+}
+
+/* ========================================
+   LANDING BACKGROUND - GPU-composited CSS animations
+   Replace framer-motion JS animations with compositor-only CSS.
+   Only transform + opacity are animated (no layout/paint).
+   ======================================== */
+
+.landing-blob-gold {
+  animation: landing-blob-gold 24s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes landing-blob-gold {
+  0%,
+  100% {
+    transform: translate(-28px, 0) scale(1);
+    opacity: 0.26;
+  }
+  50% {
+    transform: translate(22px, 26px) scale(1.08);
+    opacity: 0.38;
+  }
+}
+
+.landing-blob-red {
+  animation: landing-blob-red 30s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes landing-blob-red {
+  0%,
+  100% {
+    transform: translate(18px, 0) scale(1.04);
+    opacity: 0.22;
+  }
+  50% {
+    transform: translate(-26px, -24px) scale(0.96);
+    opacity: 0.34;
+  }
+}
+
+.landing-grid-pulse {
+  animation: landing-grid-pulse 26s ease-in-out infinite;
+  will-change: opacity;
+}
+@keyframes landing-grid-pulse {
+  0%,
+  100% {
+    opacity: 0.16;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.landing-sweep-gold {
+  animation: landing-sweep-gold 18s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes landing-sweep-gold {
+  0%,
+  100% {
+    transform: translate(-24px, 0);
+    opacity: 0.14;
+  }
+  50% {
+    transform: translate(36px, 12px);
+    opacity: 0.3;
+  }
+}
+
+.landing-sweep-red {
+  animation: landing-sweep-red 21s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes landing-sweep-red {
+  0%,
+  100% {
+    transform: translate(18px, 0);
+    opacity: 0.12;
+  }
+  50% {
+    transform: translate(-26px, -16px);
+    opacity: 0.26;
+  }
+}
+
+.landing-rotate-circle {
+  animation: landing-rotate-circle 95s linear infinite;
+  will-change: transform;
+}
+@keyframes landing-rotate-circle {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ========================================
+   HUB MENU - CSS stagger animation
+   Replaces per-item framer-motion with a single CSS animation.
+   ======================================== */
+.hub-grid-item {
+  animation: hub-fade-in 0.4s ease-out both;
+}
+@keyframes hub-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -282,8 +282,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       />
       {/* --- 06. GLOBAL STYLE INJECTIONS --- */}
       <style>{`
-        @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
-        .animate-scanline { animation: scanline 9s linear infinite; opacity: 0.6; }
+        @keyframes scanline { 0% { transform: translateY(-10vh); } 100% { transform: translateY(110vh); } }
+        .animate-scanline { animation: scanline 9s linear infinite; opacity: 0.6; will-change: transform; }
         @media (max-width: 640px) {
           .animate-scanline { animation-duration: 12s; opacity: 0.35; }
         }

@@ -135,8 +135,8 @@ const LegalPageLayout: React.FC<
 
     {/* Global Styles */}
     <style>{`
-      @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
-      .animate-scanline { animation: scanline 8s linear infinite; }
+      @keyframes scanline { 0% { transform: translateY(-10vh); } 100% { transform: translateY(110vh); } }
+      .animate-scanline { animation: scanline 8s linear infinite; will-change: transform; }
       
       .legal-content h2 {
         font-size: 1.25rem;

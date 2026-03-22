@@ -99,7 +99,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={iconClass}
             color={COLORS.PUMP_GREEN}
             isRetro={isRetro}
-            isAnimated
+            isAnimated={false}
           />
         ),
         title: t('hub.play') as string,
@@ -117,7 +117,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={iconClass}
             color={COLORS.WHALE}
             isRetro={isRetro}
-            isAnimated
+            isAnimated={false}
           />
         ),
         title: t('hub.stash') as string,
@@ -137,7 +137,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={iconClass}
             color={COLORS.CASINO_GOLD}
             isRetro={isRetro}
-            isAnimated
+            isAnimated={false}
           />
         ),
         title: t('hub.loot') as string,
@@ -159,7 +159,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={iconClass}
             color="#9945FF"
             isRetro={isRetro}
-            isAnimated
+            isAnimated={false}
           />
         ),
         title: t('hub.skins') as string,
@@ -178,7 +178,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={iconClass}
             color={COLORS.NEON_ORANGE}
             isRetro={isRetro}
-            isAnimated
+            isAnimated={false}
           />
         ),
         title: t('hub.ranks') as string,
@@ -197,7 +197,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             className={iconClass}
             color="#94a3b8"
             isRetro={isRetro}
-            isAnimated
+            isAnimated={false}
           />
         ),
         title: t('hub.gear') as string,
@@ -363,11 +363,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         <PlayerProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
         {/* Player Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <div className="hub-grid-item" style={{ animationDelay: '0.1s' }}>
           <HubPlayerCard
             nickname={nickname}
             coins={coins}
@@ -378,21 +374,15 @@ export const HubMenu: React.FC<HubMenuProps> = ({
               setIsProfileOpen(true);
             }}
           />
-        </motion.div>
+        </div>
 
-        {/* Button Grid */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-5"
-        >
+        {/* Button Grid - CSS stagger instead of per-item framer-motion */}
+        <div className="hub-grid-stagger grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-5">
           {buttons.map((btn, index) => (
-            <motion.div
+            <div
               key={btn.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + index * 0.05 }}
+              className="hub-grid-item"
+              style={{ animationDelay: `${0.1 + index * 0.05}s` }}
             >
               <HubMenuButton
                 id={btn.id}
@@ -410,16 +400,14 @@ export const HubMenu: React.FC<HubMenuProps> = ({
                   onNavigate(btn.screen);
                 }}
               />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
         {/* Navigation Help */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
+        <div
           className={cn(
+            'hub-grid-item',
             'py-2 text-center lg:py-3 uppercase tracking-widest text-slate-500',
             isRetro
               ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[8px]'
@@ -427,7 +415,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           )}
         >
           {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );

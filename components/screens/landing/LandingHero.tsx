@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Play, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -9,6 +9,7 @@ interface LandingHeroProps {
 
 export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
   const { t } = useLanguage();
+  const timestamp = useMemo(() => new Date().toISOString(), []);
 
   return (
     <header className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 sm:pb-32 sm:pt-24">
@@ -86,7 +87,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
             </div>
             <div className="space-y-1 text-xs">
               <div className="tracking-tighter text-[#00ffff]">
-                [{new Date().toISOString()}] INITIALIZING_SUBSYSTEMS...
+                [{timestamp}] INITIALIZING_SUBSYSTEMS...
               </div>
               <div className="text-white">
                 {'>>'} POOL_MANAGER.SPAWN_PRESET(ENEMY_POOL_v4)
