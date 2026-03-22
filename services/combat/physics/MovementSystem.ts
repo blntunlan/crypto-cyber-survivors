@@ -65,9 +65,14 @@ export class MovementSystem implements IMovementSystem {
     // Check if this is a separation frame (throttled for performance)
     const shouldApplySeparation = this.frameCounter % SEPARATION.THROTTLE_FRAMES === 0;
 
-    pool.activeEnemies.forEach(e => {
+    // Optimization: Standard loop to avoid closure allocation and reduce GC pressure
+    const activeEnemies = pool.activeEnemies;
+    for (let i = 0, len = activeEnemies.length; i < len; i++) {
+      const e = activeEnemies[i];
+      if (!e) continue;
+
       if (e.isDying) {
-        return;
+        continue;
       }
 
       // Update spawn animation progress
@@ -100,14 +105,19 @@ export class MovementSystem implements IMovementSystem {
           e.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
       }
-    });
+    }
   }
 
   /**
    * Update speed line transparency and position.
    */
   private updateSpeedLines(pool: IPoolManager, dtFactor: number): void {
-    pool.activeSpeedLines.forEach(line => {
+    // Optimization: Standard loop to avoid closure allocation and reduce GC pressure
+    const activeSpeedLines = pool.activeSpeedLines;
+    for (let i = 0, len = activeSpeedLines.length; i < len; i++) {
+      const line = activeSpeedLines[i];
+      if (!line) continue;
+
       line.x += line.vx * dtFactor;
       line.y += line.vy * dtFactor;
       line.opacity -= line.decay * dtFactor;
@@ -115,7 +125,7 @@ export class MovementSystem implements IMovementSystem {
       if (line.opacity <= 0) {
         line.active = false;
       }
-    });
+    }
   }
 
   /**
@@ -131,7 +141,12 @@ export class MovementSystem implements IMovementSystem {
     const trailCfg = ParticleConfigService.trail;
     const particleMultiplier = perfConfig.particleMultiplier;
 
-    pool.activeBullets.forEach(bullet => {
+    // Optimization: Standard loop to avoid closure allocation and reduce GC pressure
+    const activeBullets = pool.activeBullets;
+    for (let i = 0, len = activeBullets.length; i < len; i++) {
+      const bullet = activeBullets[i];
+      if (!bullet) continue;
+
       bullet.x += bullet.vx * dtFactor;
       bullet.y += bullet.vy * dtFactor;
 
@@ -163,7 +178,7 @@ export class MovementSystem implements IMovementSystem {
       ) {
         bullet.active = false;
       }
-    });
+    }
   }
 
   /**
@@ -172,7 +187,12 @@ export class MovementSystem implements IMovementSystem {
   private updateParticles(pool: IPoolManager, dtFactor: number): void {
     const damping = Math.pow(GAME_ENGINE.PARTICLE_DAMPING, dtFactor);
 
-    pool.activeParticles.forEach(part => {
+    // Optimization: Standard loop to avoid closure allocation and reduce GC pressure
+    const activeParticles = pool.activeParticles;
+    for (let i = 0, len = activeParticles.length; i < len; i++) {
+      const part = activeParticles[i];
+      if (!part) continue;
+
       part.x += part.vx * dtFactor;
       part.y += part.vy * dtFactor;
 
@@ -184,27 +204,37 @@ export class MovementSystem implements IMovementSystem {
       if (part.life <= 0) {
         part.active = false;
       }
-    });
+    }
   }
 
   /**
    * Update floating text ascent and fading progress.
    */
   private updateFloatingTexts(pool: IPoolManager, dtFactor: number): void {
-    pool.activeFloatingTexts.forEach(text => {
+    // Optimization: Standard loop to avoid closure allocation and reduce GC pressure
+    const activeFloatingTexts = pool.activeFloatingTexts;
+    for (let i = 0, len = activeFloatingTexts.length; i < len; i++) {
+      const text = activeFloatingTexts[i];
+      if (!text) continue;
+
       text.y -= GAME_ENGINE.FLOATING_TEXT_SPEED * dtFactor;
       text.life -= GAME_ENGINE.FLOATING_TEXT_LIFE_DECAY * dtFactor;
       if (text.life <= 0) {
         text.active = false;
       }
-    });
+    }
   }
 
   /**
    * Update progress for enemies in the 'dying' state (death animation).
    */
   private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
-    pool.activeEnemies.forEach(enemy => {
+    // Optimization: Standard loop to avoid closure allocation and reduce GC pressure
+    const activeEnemies = pool.activeEnemies;
+    for (let i = 0, len = activeEnemies.length; i < len; i++) {
+      const enemy = activeEnemies[i];
+      if (!enemy) continue;
+
       if (enemy.isDying) {
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
@@ -215,7 +245,7 @@ export class MovementSystem implements IMovementSystem {
           enemy.deathProgress = 0;
         }
       }
-    });
+    }
   }
 
   /**
