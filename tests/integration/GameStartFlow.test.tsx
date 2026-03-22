@@ -1,4 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Must stub envs BEFORE any internal imports so static initialization works
+vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
+vi.stubEnv('VITE_RAILWAY_API_URL', 'https://test.railway.app');
+
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -157,13 +163,11 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
-    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
-    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://test.railway.app');
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
+    // Keep environment stubbed for static initializers if tests run in parallel/sequence
+    // vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
