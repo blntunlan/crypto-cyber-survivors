@@ -6,6 +6,31 @@ import { GameProvider } from '../../contexts/GameContext';
 import { LanguageProvider } from '../../contexts/LanguageContext';
 
 // Mock Language Context to bypass fetch and async loading
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+    patch: vi.fn().mockResolvedValue({}),
+    del: vi.fn().mockResolvedValue({}),
+  },
+}));
+
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  default: {
+    captureError: vi.fn(),
+    addBreadcrumb: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    trackEvent: vi.fn(),
+    getInstance: vi.fn().mockReturnValue({
+      trackEvent: vi.fn(),
+    }),
+  },
+}));
+
 vi.mock('../../contexts/LanguageContext', () => ({
   LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   SUPPORTED_LANGUAGES: ['en', 'tr', 'hi', 'vi', 'es', 'pt', 'zh', 'ru'],
