@@ -15,6 +15,8 @@ vi.mock('../../services/auth/SecurityUtils', () => ({
 // Skip in CI environment where MSW may not fully intercept Supabase calls.
 const isCI = process.env.CI === 'true';
 
+import { afterEach } from 'vitest';
+
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
     UserSessionService.clearUser();
@@ -26,6 +28,13 @@ describe('Registration Flow (Integration with MSW)', () => {
       },
       writable: true,
     });
+
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it.skipIf(isCI)('should register a new nickname and store it locally', async () => {
