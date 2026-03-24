@@ -144,7 +144,7 @@ vi.mock('../../services/analytics/PlayerTracker', () => ({
   },
 }));
 
-vi.mock('../../services/market/railwayClient', () => ({
+vi.mock('../../services/api/RailwayClient', () => ({
   railwayClient: {
     get: vi.fn().mockResolvedValue({ entries: [] }),
     post: vi.fn().mockResolvedValue({}),
