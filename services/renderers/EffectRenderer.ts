@@ -3,6 +3,7 @@ import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import {
   createViewportBounds,
+  updateViewportBounds,
   isCircleVisible,
   type ViewportBounds,
 } from './CullingUtils';
@@ -22,6 +23,12 @@ import { PriceMomentumEngine } from '../market/PriceMomentumEngine';
  * 4. Drawing dynamic speed lines to visualize player velocity/momentum.
  */
 export class EffectRenderer implements IRenderer {
+  private bounds: ViewportBounds;
+
+  constructor() {
+    this.bounds = createViewportBounds(0, 0, GAME_ENGINE.PARTICLE_CULLING_PADDING);
+  }
+
   /**
    * Primary render loop for cumulative visual effects.
    */
@@ -34,12 +41,14 @@ export class EffectRenderer implements IRenderer {
   ): void {
     const { width, height, graphics } = opts;
 
-    // Boundary Check: 30px padding sufficient for transient effects
-    const bounds = createViewportBounds(
+    // Boundary Check: Update existing bounds object
+    updateViewportBounds(
+      this.bounds,
       width,
       height,
       GAME_ENGINE.EFFECT_CULLING_PADDING
     );
+    const bounds = this.bounds;
 
     // 1. Combat Feedback (Bottom layer of effects)
     this.drawCritFlash(ctx, width, height, state);
