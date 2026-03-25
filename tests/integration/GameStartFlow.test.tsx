@@ -1,4 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Stub environment variables BEFORE any modules are imported so that static
+// assignments like `const BASE_URL = import.meta.env.VITE_RAILWAY_API_URL;`
+// pick up the mock value rather than `undefined`.
+vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock.railway.app');
+
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -150,18 +158,23 @@ vi.mock('../../services/api/railwayClient', () => ({
 }));
 
 describe('Game Entry Flow', () => {
+  let originalFetch: typeof fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
 
-    // Stub environment variables required for analytics and supabase tracking
-    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
-    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
-    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock.railway.app');
+    // Completely mock global fetch to prevent any unhandled MSW errors or hanging requests
+    originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+      text: vi.fn().mockResolvedValue(''),
+    });
   });
 
   afterEach(() => {
-    vi.unstubAllEnvs();
+    global.fetch = originalFetch;
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
