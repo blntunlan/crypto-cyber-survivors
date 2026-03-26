@@ -1,0 +1,3 @@
+## 2025-03-26 - Eliminate Array.prototype.forEach from Physics and Renderer loops
+**Learning:** High-frequency paths like `MovementSystem.update`, `EntityRenderer.render` and `EffectRenderer.render` can incur measurable GC pressure from anonymous closure allocations required by `Array.prototype.forEach()`. While `V8` inlines some of these, standard `for (let i = 0, len = pool.length; i < len; i++)` avoids this entirely and performs consistently well.
+**Action:** When working on systems iterating over large object pools every frame (60 FPS), prefer standard indexed `for` loops. Remember to translate `return` to `continue` when converting.

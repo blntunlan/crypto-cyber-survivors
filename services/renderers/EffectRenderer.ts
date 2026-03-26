@@ -376,10 +376,13 @@ export class EffectRenderer implements IRenderer {
     pool: IPoolManager,
     bounds: ViewportBounds
   ): void {
-    pool.activeFloatingTexts.forEach(t => {
+    for (let i = 0, len = pool.activeFloatingTexts.length; i < len; i++) {
+      const t = pool.activeFloatingTexts[i];
+      if (t === undefined) continue;
+
       // Culling (approximate based on size)
       if (!isCircleVisible(t.x, t.y, t.size * 2, bounds)) {
-        return;
+        continue;
       }
 
       ctx.save();
@@ -411,7 +414,7 @@ export class EffectRenderer implements IRenderer {
       ctx.fillText(t.text, displayX, displayY);
 
       ctx.restore();
-    });
+    }
 
     ctx.globalAlpha = 1;
   }
