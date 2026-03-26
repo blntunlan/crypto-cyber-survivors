@@ -126,6 +126,27 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureError: vi.fn(),
+    initialize: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    initializePlayer: vi.fn().mockResolvedValue(undefined),
+    getPlayerId: vi.fn().mockReturnValue('mock-player-id'),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -136,6 +157,8 @@ describe('Game Entry Flow', () => {
     vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
     vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:1234');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'http://localhost:1234');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'http://localhost:1234');
 
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
