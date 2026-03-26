@@ -154,6 +154,7 @@ describe('Game Entry Flow', () => {
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
+    window.scrollTo = vi.fn();
     vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost:54321');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
     vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:1234');
