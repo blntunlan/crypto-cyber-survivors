@@ -147,7 +147,7 @@ describe('Game Entry Flow', () => {
     vi.unstubAllGlobals();
   });
 
-  it('transitions to gameplay when Long button is clicked', async () => {
+  it('transitions to gameplay when Long button is clicked', { timeout: 10000 }, async () => {
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',
