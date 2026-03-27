@@ -1,0 +1,3 @@
+## 2024-05-19 - Avoid closure allocation in hot loops
+**Learning:** Using `Array.prototype.forEach` inside high-frequency update loops (e.g. 60 FPS physics systems) causes unnecessary closure function allocations per frame, adding significant pressure on the Garbage Collector and leading to stuttering. Standard `for` loops are much faster and zero-allocation.
+**Action:** Always replace `forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` in systems like `MovementSystem.ts` or renderers, and remember to include guard clauses (`if (item === undefined) continue;`) to safely handle sparse object pools.
