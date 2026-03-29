@@ -31,6 +31,29 @@ vi.mock('../../contexts/useTheme', () => ({
   }),
 }));
 
+// Mock background telemetry to prevent unhandled fetch requests/timeouts
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureError: vi.fn(),
+    init: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    track: vi.fn(),
+    trackEvent: vi.fn(),
+    init: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 // Mock dependencies
 vi.mock('../../services/audio', () => ({
   audio: {
