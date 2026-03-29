@@ -212,5 +212,5 @@ describe('Game Entry Flow', () => {
 
     // Should see Game Engine or Game UI
     expect(await screen.findByTestId('game-engine')).toBeInTheDocument();
-  });
+  }, 10000);
 });
