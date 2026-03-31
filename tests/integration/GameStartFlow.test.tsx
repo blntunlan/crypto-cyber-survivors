@@ -130,6 +130,13 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://mock-railway');
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://test-url.com');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
