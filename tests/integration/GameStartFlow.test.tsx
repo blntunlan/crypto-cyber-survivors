@@ -140,6 +140,8 @@ describe('Game Entry Flow', () => {
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'http://mock-cf');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'http://mock-cf');
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',

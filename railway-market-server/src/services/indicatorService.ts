@@ -3,7 +3,7 @@ import { ATRCalculator } from '../indicators/ATRCalculator';
 import { VolumeAnalyzer } from '../indicators/VolumeAnalyzer';
 import { SupabaseService } from './supabaseService';
 import { Logger } from '../utils/logger';
-import { broadcastMarketData } from '../routes/marketStream';
+// import { broadcastMarketData } from '../routes/marketStream'; // REMOVED - circular dependency or missing file
 
 interface PairIndicators {
   rsi: RSICalculator;
@@ -110,25 +110,25 @@ export class IndicatorService {
       }
 
       // Broadcast to SSE clients (real-time, no DB dependency)
-      broadcastMarketData({
-        pair: data.pair,
-        price: data.price,
-        volume: data.volume,
-        high: data.high,
-        low: data.low,
-        rsi: rsiResult.rsi,
-        rsiState: rsiResult.state,
-        atrPercent: atrResult.atrPercent,
-        normalizedVolume: volumeResult.normalized,
-        volumePercentile: volumeResult.percentile,
-        whaleTier: volumeResult.whaleTier,
-        spawnRateMultiplier,
-        enemyAggroMultiplierLong: aggroLong,
-        enemyAggroMultiplierShort: aggroShort,
-        trendStrength: Math.abs((rsiResult.rsi - 50) / 50),
-        trendDirection: rsiResult.rsi > 55 ? 'UP' : rsiResult.rsi < 45 ? 'DOWN' : 'NEUTRAL',
-        timestamp: Date.now(),
-      });
+      // broadcastMarketData({
+      //   pair: data.pair,
+      //   price: data.price,
+      //   volume: data.volume,
+      //   high: data.high,
+      //   low: data.low,
+      //   rsi: rsiResult.rsi,
+      //   rsiState: rsiResult.state,
+      //   atrPercent: atrResult.atrPercent,
+      //   normalizedVolume: volumeResult.normalized,
+      //   volumePercentile: volumeResult.percentile,
+      //   whaleTier: volumeResult.whaleTier,
+      //   spawnRateMultiplier,
+      //   enemyAggroMultiplierLong: aggroLong,
+      //   enemyAggroMultiplierShort: aggroShort,
+      //   trendStrength: Math.abs((rsiResult.rsi - 50) / 50),
+      //   trendDirection: rsiResult.rsi > 55 ? 'UP' : rsiResult.rsi < 45 ? 'DOWN' : 'NEUTRAL',
+      //   timestamp: Date.now(),
+      // });
 
       this.stats.updates++;
       this.stats.lastUpdate = new Date();

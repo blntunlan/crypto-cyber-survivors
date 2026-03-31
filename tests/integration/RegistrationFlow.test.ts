@@ -10,11 +10,6 @@ vi.mock('../../services/auth/SecurityUtils', () => ({
   },
 }));
 
-// These tests require full MSW integration with Supabase mock responses.
-// They work locally but have timing issues in CI due to module hoisting.
-// Skip in CI environment where MSW may not fully intercept Supabase calls.
-const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
     UserSessionService.clearUser();
