@@ -11,21 +11,22 @@ import {
 import { EventBus } from '../../../services/core/EventBus';
 import { TimeService } from '../../../services/core/TimeService';
 
-// Mock EventBus
-vi.mock('../../../services/core/EventBus', () => ({
-  EventBus: {
-    emit: vi.fn(),
-    on: vi.fn(() => vi.fn()),
-    off: vi.fn(),
-  },
-}));
+type PortalTestGlobals = {
+  __portalTestHandlers?: Record<string, ((...args: unknown[]) => void)[]>;
+};
 
-// Mock TimeService
-vi.mock('../../../services/core/TimeService', () => ({
-  TimeService: {
-    getGameTimeSeconds: vi.fn(() => 0),
-  },
-}));
+// Use globalThis to avoid TDZ issues with vi.mock hoisting
+const _g = globalThis as unknown as PortalTestGlobals;
+_g.__portalTestHandlers ??= {};
+
+/** Simulate an EventBus event by calling all registered handlers */
+function simulateEvent(event: string, data: unknown): void {
+  const g = globalThis as unknown as PortalTestGlobals;
+  const handlers = g.__portalTestHandlers?.[event] ?? [];
+  for (const handler of handlers) {
+    handler(data);
+  }
+}
 
 // Mock Logger
 vi.mock('../../../services/system/Logger', () => ({
@@ -37,11 +38,40 @@ vi.mock('../../../services/system/Logger', () => ({
   },
 }));
 
+// Mock TimeService
+vi.mock('../../../services/core/TimeService', () => ({
+  TimeService: {
+    getGameTimeSeconds: vi.fn(() => 0),
+    getGameTime: vi.fn(() => 0),
+  },
+}));
+
+// Mock EventBus — capture handlers via globalThis
+vi.mock('../../../services/core/EventBus', () => {
+  const g = globalThis as unknown as PortalTestGlobals;
+  const handlerMap = g.__portalTestHandlers ?? (g.__portalTestHandlers = {});
+  return {
+    EventBus: {
+      emit: vi.fn(),
+      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+        (handlerMap[event] ??= []).push(handler);
+        return vi.fn();
+      }),
+      off: vi.fn(),
+    },
+  };
+});
+
 describe('PortalSystemV2', () => {
   let portalSystem: ReturnType<typeof createPortalSystemV2>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear captured handlers before creating a new instance registers fresh ones
+    const handlerMap = _g.__portalTestHandlers ?? (_g.__portalTestHandlers = {});
+    Object.keys(handlerMap).forEach(key => {
+      delete handlerMap[key];
+    });
     portalSystem = createPortalSystemV2();
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(0);
   });
@@ -361,6 +391,117 @@ describe('PortalSystemV2', () => {
       portalSystem.enterPortal();
 
       expect(portalSystem.isFinalPortal()).toBe(true);
+    });
+  });
+
+  describe('Kill Counting', () => {
+    it('should start kill count at 0', () => {
+      expect(portalSystem.getKillCount()).toBe(0);
+    });
+
+    it('should increment kill count on enemyKilled event', () => {
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      expect(portalSystem.getKillCount()).toBe(1);
+    });
+
+    it('should correctly count after multiple kills', () => {
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      simulateEvent('enemyKilled', { enemyType: 'elite' });
+      simulateEvent('enemyKilled', { enemyType: 'whale', coinDrop: 50 });
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      expect(portalSystem.getKillCount()).toBe(5);
+    });
+  });
+
+  describe('Level Tracking', () => {
+    it('should start at level 1', () => {
+      expect(portalSystem.getCurrentLevel()).toBe(1);
+    });
+
+    it('should update on playerLevelUp event', () => {
+      simulateEvent('playerLevelUp', { level: 5 });
+      expect(portalSystem.getCurrentLevel()).toBe(5);
+    });
+
+    it('should track the latest level', () => {
+      simulateEvent('playerLevelUp', { level: 2 });
+      simulateEvent('playerLevelUp', { level: 3 });
+      simulateEvent('playerLevelUp', { level: 7 });
+      expect(portalSystem.getCurrentLevel()).toBe(7);
+    });
+  });
+
+  describe('Reset Behavior for Kill and Level', () => {
+    it('should zero killCount on reset', () => {
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      expect(portalSystem.getKillCount()).toBe(2);
+
+      portalSystem.reset();
+      expect(portalSystem.getKillCount()).toBe(0);
+    });
+
+    it('should reset currentLevel to 1 on reset', () => {
+      simulateEvent('playerLevelUp', { level: 10 });
+      expect(portalSystem.getCurrentLevel()).toBe(10);
+
+      portalSystem.reset();
+      expect(portalSystem.getCurrentLevel()).toBe(1);
+    });
+  });
+
+  describe('Reward Calculation Uses Exact Kills/Level', () => {
+    it('enterPortal() passes killCount and currentLevel to calculator', () => {
+      // Accumulate kills and levels
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      simulateEvent('enemyKilled', { enemyType: 'basic' });
+      simulateEvent('playerLevelUp', { level: 4 });
+
+      // Spawn a portal so enterPortal works with an active portal
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(350);
+      portalSystem.update(16, 0.15, 800, 600);
+
+      const result = portalSystem.enterPortal();
+
+      // With 3 kills at 5 coins/kill = 15 kill bonus (before portal modifier)
+      // TAKE_PROFIT gives +20% bonus on base+kills+market
+      // Level 4 * 50 = 200 level bonus
+      // Verify kill bonus is derived from exactly 3 kills
+      // base killBonus before portal modifier = 3 * 5 = 15
+      // TAKE_PROFIT doesn't modify killBonus directly, so raw = killBonus = 15
+      expect(result.breakdown.raw).toBe(15); // raw maps to killBonus = kills * perKill
+      expect(result.exitType).toBe('portal');
+      expect(result.portalType).toBe('TAKE_PROFIT');
+    });
+
+    it('onPlayerDeath() passes killCount and currentLevel to calculator', () => {
+      // Accumulate kills and levels
+      for (let i = 0; i < 10; i++) {
+        simulateEvent('enemyKilled', { enemyType: 'basic' });
+      }
+      simulateEvent('playerLevelUp', { level: 3 });
+      vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(300);
+
+      const result = portalSystem.onPlayerDeath(false);
+
+      // Death: killBonus = floor(10 * 5 * 0.5) = 25, levelBonus = floor(3 * 50 * 0.5) = 75
+      // base = 0, market = 0, streak = 0
+      expect(result.breakdown.raw).toBe(25); // killBonus after death penalty
+      expect(result.total).toBe(25 + 75); // killBonus + levelBonus
+      expect(result.exitType).toBe('death');
+    });
+
+    it('onPlayerDeath(afk) gives zero regardless of kills/level', () => {
+      for (let i = 0; i < 20; i++) {
+        simulateEvent('enemyKilled', { enemyType: 'basic' });
+      }
+      simulateEvent('playerLevelUp', { level: 10 });
+
+      const result = portalSystem.onPlayerDeath(true);
+      expect(result.total).toBe(0);
+      expect(result.exitType).toBe('afk_death');
     });
   });
 
