@@ -8,7 +8,11 @@ import { Logger } from '../system/Logger';
 import { UserSessionService } from './UserSessionService';
 import { type MarketPosition } from '../../types';
 import { type CryptoPair } from '../../types/crypto';
-import { signPayload } from '../../utils/crypto';
+import {
+  type RewardPayload,
+  type RewardVerificationResponse,
+} from '../../types/reward';
+import { signPayload, createSignablePayload } from '../../utils/crypto';
 import { getMarketSyncQueue } from '../market/sync';
 import { railwayClient } from '../api/RailwayClient';
 
@@ -141,22 +145,32 @@ export class GameSessionService {
   /**
    * Submit session results for verification and reward processing.
    */
-  static async submitSession(results: {
-    level: number;
-    kills: number;
-    survivalTimeMs: number;
-    entryPrice: number;
-    exitPrice: number;
-    pnlPercent: number;
-    pair: CryptoPair;
-    position: MarketPosition;
-    leverage: number;
-    endReason: string;
-    exitType?: 'portal' | 'death' | 'afk_death' | 'cycle_complete';
-    portalType?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED' | null;
-    replayData?: unknown;
-    performance?: unknown;
-  }): Promise<{ success: boolean; reward?: number; error?: string }> {
+  static async submitSession(
+    results: {
+      level: number;
+      kills: number;
+      survivalTimeMs: number;
+      entryPrice: number;
+      exitPrice: number;
+      pnlPercent: number;
+      pair: CryptoPair;
+      position: MarketPosition;
+      leverage: number;
+      endReason: string;
+      exitType?: 'portal' | 'death' | 'afk_death' | 'cycle_complete';
+      portalType?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED' | null;
+      maxStreak?: number;
+      replayData?: unknown;
+      performance?: unknown;
+    },
+    rewardPayload?: RewardPayload
+  ): Promise<{
+    success: boolean;
+    reward?: number;
+    metaShare?: number;
+    verified?: boolean;
+    error?: string;
+  }> {
     if (!this.currentSessionId || !this.currentSessionSecret) {
       Logger.warn('[GameSession] Cannot submit: No active session found');
       return { success: false, error: 'NO_ACTIVE_SESSION' };
@@ -184,24 +198,32 @@ export class GameSessionService {
         claimedEntryPrice: results.entryPrice,
         claimedExitPrice: results.exitPrice,
         claimedPnL: results.pnlPercent,
-        kills: results.kills,
-        level: results.level,
-        survivalSeconds: Math.floor(results.survivalTimeMs / 1000),
-        exitType: results.exitType ?? 'death',
-        portalType: results.portalType ?? null,
+        kills: rewardPayload?.kills ?? results.kills,
+        level: rewardPayload?.level ?? results.level,
+        survivalSeconds:
+          rewardPayload?.survivalSeconds ?? Math.floor(results.survivalTimeMs / 1000),
+        exitType: rewardPayload?.exitType ?? results.exitType ?? 'death',
+        portalType: rewardPayload?.portalType ?? results.portalType ?? null,
+        maxStreak: rewardPayload?.maxStreak ?? results.maxStreak ?? 0,
+        // Reward coin fields (included when rewardPayload is provided)
+        ...(rewardPayload && {
+          rawCoins: rewardPayload.rawCoins,
+          enemyDropCoins: rewardPayload.enemyDropCoins,
+          totalCoins: rewardPayload.totalCoins,
+          pnlPercent: rewardPayload.pnlPercent,
+          breakdown: rewardPayload.breakdown,
+        }),
       };
 
-      // Generate HMAC signature
+      // Generate HMAC signature over deterministic field subset (must match server)
       const signature = await signPayload(
-        JSON.stringify(payload),
+        createSignablePayload(payload as unknown as Record<string, unknown>),
         this.currentSessionSecret
       );
 
-      const data = await railwayClient.post<{
-        verified: boolean;
-        reward: number;
-        pnl: number;
-      }>('/api/v1/sessions/verify', {
+      const data = await railwayClient.post<
+        RewardVerificationResponse & { pnl?: number }
+      >('/api/v1/sessions/verify', {
         sessionId: this.currentSessionId,
         signature,
         payload,
@@ -213,7 +235,9 @@ export class GameSessionService {
 
       return {
         success: true,
+        verified: data.verified,
         reward: data.reward,
+        metaShare: data.metaShare,
       };
     } catch (error) {
       Logger.error('[GameSession] Failed to submit session results', error);

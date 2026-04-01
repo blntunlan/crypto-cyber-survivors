@@ -23,6 +23,7 @@ import {
 } from './lootbox';
 import { type CanonicalMarketPayload } from './marketCanonical';
 import { type InventoryItemType } from './inventory';
+import { type WeaponId } from './weapons';
 
 // =============================================================================
 // EVENT NAMES
@@ -166,7 +167,24 @@ export type GameEvent =
   // Elite enemy events
   | 'eliteAbilityActivated'
   | 'eliteChainExplosion'
-  | 'eliteSpawned';
+  | 'eliteSpawned'
+  // Weapon System events
+  | 'weaponAcquired'
+  | 'weaponUpgraded'
+  | 'weaponEvolution'
+  | 'weaponFired'
+  // Meta Progression events
+  | 'metaUpgradePurchased'
+  | 'metaCoinsTransferred'
+  | 'metaStateLoaded'
+  // Challenge events
+  | 'challengeObjectiveUpdate'
+  | 'challengeCompleted'
+  | 'challengeStarted'
+  // Replay events
+  | 'replaySaved'
+  | 'replayLoaded'
+  | 'replayTick';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -178,6 +196,7 @@ export interface EnemyKilledEvent {
   y: number;
   type?: string;
   enemyType?: string; // Legacy/Compat
+  enemyId?: string;
   coinDrop?: number;
   isCrit?: boolean;
 }
@@ -822,7 +841,20 @@ export interface EventDataMap {
     portalNumber: number;
     pnlPercent: number;
   };
-  portalExtraction: { totalCoins: number; rawCoins: number; bonus: number };
+  portalExtraction: {
+    totalCoins: number;
+    rawCoins: number;
+    bonus: number;
+    // RewardPayload fields (optional for backward compat)
+    kills?: number;
+    level?: number;
+    survivalSeconds?: number;
+    pnlPercent?: number;
+    maxStreak?: number;
+    exitType?: 'portal' | 'death' | 'afk_death' | 'cycle_complete';
+    portalType?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED' | null;
+    enemyDropCoins?: number;
+  };
   marketConnectionStateChanged: {
     state: 'connected' | 'degraded' | 'disconnected' | 'reconnecting';
   };
@@ -901,6 +933,23 @@ export interface EventDataMap {
   eliteAbilityActivated: EliteAbilityActivatedEvent;
   eliteChainExplosion: EliteChainExplosionEvent;
   eliteSpawned: EliteSpawnedEvent;
+  // Weapon System events
+  weaponAcquired: WeaponAcquiredEvent;
+  weaponUpgraded: WeaponUpgradedEvent;
+  weaponEvolution: WeaponEvolutionEvent;
+  weaponFired: WeaponFiredEvent;
+  // Meta Progression events
+  metaUpgradePurchased: MetaUpgradePurchasedEvent;
+  metaCoinsTransferred: MetaCoinsTransferredEvent;
+  metaStateLoaded: MetaStateLoadedEvent;
+  // Challenge events
+  challengeObjectiveUpdate: ChallengeObjectiveUpdateEvent;
+  challengeCompleted: ChallengeCompletedEvent;
+  challengeStarted: ChallengeStartedEvent;
+  // Replay events
+  replaySaved: ReplaySavedEvent;
+  replayLoaded: ReplayLoadedEvent;
+  replayTick: ReplayTickEvent;
 }
 
 export interface NotificationEvent {
@@ -962,4 +1011,93 @@ export interface AuthStateChangedEvent {
     | 'passwordRecovery';
   user: unknown | null;
   session?: unknown | null;
+}
+
+// =============================================================================
+// WEAPON SYSTEM EVENTS
+// =============================================================================
+
+export interface WeaponAcquiredEvent {
+  weaponId: string;
+  slot: number;
+}
+
+export interface WeaponUpgradedEvent {
+  weaponId: string;
+  newLevel: number;
+}
+
+export interface WeaponEvolutionEvent {
+  from: [string, string];
+  to: string;
+}
+
+export interface WeaponFiredEvent {
+  weaponId: WeaponId;
+  x: number;
+  y: number;
+  damage: number;
+  level?: number;
+}
+
+// =============================================================================
+// META PROGRESSION EVENTS
+// =============================================================================
+
+export interface MetaUpgradePurchasedEvent {
+  id: string;
+  newLevel: number;
+  cost: number;
+}
+
+export interface MetaCoinsTransferredEvent {
+  metaShare: number;
+  newBalance: number;
+}
+
+export interface MetaStateLoadedEvent {
+  metaCoins: number;
+  upgrades: Record<string, number>;
+}
+
+// =============================================================================
+// CHALLENGE EVENTS
+// =============================================================================
+
+export interface ChallengeObjectiveUpdateEvent {
+  type: string;
+  current: number;
+  target: number;
+  completed: boolean;
+}
+
+export interface ChallengeCompletedEvent {
+  challengeId: string;
+  reward: { metaCoins: number; bonusXp: number };
+}
+
+export interface ChallengeStartedEvent {
+  challengeId: string;
+  type: 'daily' | 'weekly';
+}
+
+// =============================================================================
+// REPLAY EVENTS
+// =============================================================================
+
+export interface ReplaySavedEvent {
+  replayId: string;
+  sessionId: string;
+  size: number;
+}
+
+export interface ReplayLoadedEvent {
+  replayId: string;
+  duration: number;
+  totalKills: number;
+}
+
+export interface ReplayTickEvent {
+  progress: number;
+  currentTimeMs: number;
 }

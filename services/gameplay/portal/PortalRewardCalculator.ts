@@ -14,26 +14,29 @@ export class PortalRewardCalculator {
    * @param exitType How the player exited (portal, death, afk_death)
    * @param portalType Type of portal used (or null for death)
    * @param currentPnL Current PnL ratio
-   * @param rawCoins Raw coins accumulated
-   * @param enemyDropCoins Coins from enemy drops
+   * @param rawCoins Raw coins accumulated (unused, kept for caller compat)
+   * @param enemyDropCoins Coins from enemy drops (unused, kept for caller compat)
    * @param maxStreak Max kill streak achieved
+   * @param kills Exact kill count
+   * @param level Current player level
    */
   calculate(
     exitType: 'portal' | 'death' | 'afk_death',
     portalType: PortalType | null,
     currentPnL: number,
-    rawCoins: number,
-    enemyDropCoins: number,
-    maxStreak: number
+    _rawCoins: number,
+    _enemyDropCoins: number,
+    maxStreak: number,
+    kills: number = 0,
+    level: number = 1
   ): CoinRewardResult {
     const survivalTime = TimeService.getGameTimeSeconds();
-    const approximateKills = Math.floor((rawCoins + enemyDropCoins) / 5);
 
     const calculator = new RewardCalculator();
     const result = calculator.calculate({
       survivalTimeSeconds: survivalTime,
-      kills: approximateKills,
-      level: 1,
+      kills,
+      level,
       pnl: currentPnL,
       maxStreak,
       exitType,

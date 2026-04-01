@@ -41,6 +41,21 @@ export const verifySessionSchema = z.object({
     survivalSeconds: z.coerce.number().min(0),
     exitType: z.string().optional(),
     portalType: z.string().optional(),
+    maxStreak: z.coerce.number().int().min(0).default(0),
+    rawCoins: z.coerce.number().int().min(0).optional(),
+    enemyDropCoins: z.coerce.number().int().min(0).optional(),
+    totalCoins: z.coerce.number().int().min(0).optional(),
+    pnlPercent: z.coerce.number().optional(),
+    breakdown: z
+      .object({
+        base: z.number(),
+        survival: z.number(),
+        kill: z.number(),
+        level: z.number(),
+        streak: z.number(),
+        portal: z.number(),
+      })
+      .optional(),
   }),
 });
 

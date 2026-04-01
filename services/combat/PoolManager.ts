@@ -8,7 +8,11 @@ import {
   MarketPosition,
   type CryptoPair,
 } from '../../types';
-import { enemyFactory, type GameEnemy } from '../../factories/EnemyFactory';
+import {
+  EnemyFactory,
+  enemyFactory,
+  type GameEnemy,
+} from '../../factories/EnemyFactory';
 import { Logger } from '../system/Logger';
 import {
   WHALE_TIER_CONFIGS,
@@ -705,6 +709,7 @@ export class PoolManager implements IPoolManager {
     this.speedLines.clear();
     this.interactables.clear();
     this.trimFreeLists(POOL.TRIM_SIZE);
+    EnemyFactory.resetIdCounter();
   }
 
   /**

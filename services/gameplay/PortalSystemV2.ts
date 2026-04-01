@@ -131,10 +131,17 @@ class PortalSystemV2Class {
   private currentPnL = 0;
   private currentFlowState: FlowState = 'flow';
 
+  // Kill & level tracking
+  private killCount = 0;
+  private currentLevel = 1;
+
   private constructor() {
     EventBus.on('gameReset', () => this.reset());
     EventBus.on('enemyKilled', data => this.onEnemyKilled(data));
     EventBus.on('flowStateChanged', data => this.onFlowStateChanged(data.newState));
+    EventBus.on('playerLevelUp', data => {
+      this.currentLevel = data.level;
+    });
 
     // Flash crash detection from legacy event
     EventBus.on('clientIndicatorsUpdated', data => {
@@ -264,7 +271,9 @@ class PortalSystemV2Class {
         this.currentPnL,
         this.rawCoins,
         this.enemyDropCoins,
-        this.maxStreak
+        this.maxStreak,
+        this.killCount,
+        this.currentLevel
       );
     }
 
@@ -286,7 +295,9 @@ class PortalSystemV2Class {
       this.currentPnL,
       this.rawCoins,
       this.enemyDropCoins,
-      this.maxStreak
+      this.maxStreak,
+      this.killCount,
+      this.currentLevel
     );
   }
 
@@ -299,7 +310,9 @@ class PortalSystemV2Class {
       this.currentPnL,
       this.rawCoins,
       this.enemyDropCoins,
-      this.maxStreak
+      this.maxStreak,
+      this.killCount,
+      this.currentLevel
     );
   }
 
@@ -318,6 +331,7 @@ class PortalSystemV2Class {
   // =========================================================================
 
   private onEnemyKilled(data: { enemyType?: string; coinDrop?: number }): void {
+    this.killCount++;
     if (data.coinDrop && data.coinDrop > 0) {
       this.enemyDropCoins += data.coinDrop;
     } else if (data.enemyType === 'whale') {
@@ -377,6 +391,12 @@ class PortalSystemV2Class {
     return this.penaltyManager.getDifficultyPenalty();
   }
 
+  getKillCount(): number {
+    return this.killCount;
+  }
+  getCurrentLevel(): number {
+    return this.currentLevel;
+  }
   getRawCoins(): number {
     return this.rawCoins;
   }
@@ -410,6 +430,8 @@ class PortalSystemV2Class {
     this.maxStreak = 0;
     this.currentPnL = 0;
     this.currentFlowState = 'flow';
+    this.killCount = 0;
+    this.currentLevel = 1;
     this.penaltyManager.reset();
     Logger.debug('[PortalSystemV2] Reset');
   }
@@ -425,6 +447,8 @@ class PortalSystemV2Class {
       portalsRemaining: this.getPortalsRemaining(),
       cooldown:
         PORTAL_V2_CONFIG.PORTAL_COOLDOWN + this.penaltyManager.getCooldownExtension(),
+      killCount: this.killCount,
+      currentLevel: this.currentLevel,
       rawCoins: this.rawCoins,
       enemyDrops: this.enemyDropCoins,
       pnl: `${(this.currentPnL * 100).toFixed(1)}%`,

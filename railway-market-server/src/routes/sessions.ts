@@ -118,7 +118,8 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     }
 
     // 2. HMAC verification
-    const verificationPayload = JSON.stringify({
+    // Build signable payload — reward fields appended only when present (matches client createSignablePayload)
+    const baseFields: Record<string, unknown> = {
       sessionId: payload.sessionId,
       pair: payload.pair,
       position: payload.position,
@@ -131,14 +132,50 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       survivalSeconds: payload.survivalSeconds,
       exitType: payload.exitType,
       portalType: payload.portalType,
-    });
+      maxStreak: payload.maxStreak,
+    };
+
+    // Append reward fields only when present (backward compat with older clients)
+    if (payload.rawCoins !== undefined) baseFields.rawCoins = payload.rawCoins;
+    if (payload.enemyDropCoins !== undefined) baseFields.enemyDropCoins = payload.enemyDropCoins;
+    if (payload.totalCoins !== undefined) baseFields.totalCoins = payload.totalCoins;
+    if (payload.pnlPercent !== undefined) baseFields.pnlPercent = payload.pnlPercent;
+
+    const verificationPayload = JSON.stringify(baseFields);
 
     const expectedSignature = crypto
       .createHmac('sha256', session.sessionSecret)
       .update(verificationPayload)
       .digest('hex');
 
-    if (signature !== expectedSignature) {
+    let signatureValid = signature === expectedSignature;
+    if (!signatureValid) {
+      // Fallback: old clients don't include exitType/portalType/maxStreak/reward fields in HMAC
+      const legacyPayload = JSON.stringify({
+        sessionId: payload.sessionId,
+        pair: payload.pair,
+        position: payload.position,
+        leverage: payload.leverage,
+        claimedEntryPrice: payload.claimedEntryPrice,
+        claimedExitPrice: payload.claimedExitPrice,
+        claimedPnL: payload.claimedPnL,
+        kills: payload.kills,
+        level: payload.level,
+        survivalSeconds: payload.survivalSeconds,
+        exitType: payload.exitType,
+        portalType: payload.portalType,
+      });
+      const legacyExpected = crypto
+        .createHmac('sha256', session.sessionSecret)
+        .update(legacyPayload)
+        .digest('hex');
+      signatureValid = signature === legacyExpected;
+      if (signatureValid) {
+        Logger.warn(`[Security] Session ${sessionId} used legacy HMAC format (missing maxStreak/reward fields)`);
+      }
+    }
+
+    if (!signatureValid) {
       Logger.error(`[Security] Invalid signature for session ${sessionId}`);
       res.status(403).json({ error: 'Invalid security signature' });
       return;
@@ -158,18 +195,27 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       kills: payload.kills,
       level: payload.level,
       pnl: payload.claimedPnL,
-      maxStreak: 0,
+      maxStreak: payload.maxStreak,
       exitType: payload.exitType as ExitType | undefined,
       portalType: payload.portalType as PortalType | undefined,
     });
 
     const reward = Math.min(50000, calculation.total);
 
+    // Discrepancy logging: warn if client-claimed totalCoins diverges from server calculation
+    if (payload.totalCoins !== undefined) {
+      const diff = Math.abs(reward - payload.totalCoins);
+      const threshold = reward * 0.1;
+      if (diff > threshold) {
+        Logger.warn(`[verify] Reward discrepancy: client=${payload.totalCoins} server=${reward} diff=${diff} session=${sessionId}`);
+      }
+    }
+
     // 5. Atomic transaction: credit coins + mark verified + transfer meta
     const txResult = await db.transaction(async (tx) => {
       // 5a. Atomic coin crediting (PG function)
       const creditResult = await tx.execute(
-        sql`SELECT * FROM credit_coins(${session.profileId}, ${Math.floor(reward)}, 'game_reward', ${sessionId}, ${JSON.stringify({ pnl: payload.claimedPnL, kills: payload.kills, duration })}::jsonb)`
+        sql`SELECT * FROM credit_coins(${session.profileId}, ${Math.floor(reward)}, 'game_reward', ${sessionId}, ${JSON.stringify({ pnl: payload.claimedPnL, kills: payload.kills, level: payload.level, exitType: payload.exitType, portalType: payload.portalType, duration })}::jsonb)`
       );
 
       if (creditResult.rows.length === 0) {

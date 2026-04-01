@@ -129,6 +129,7 @@ class CoinServiceClass {
   private provider: ICoinProvider = new MockCoinProvider();
   private calculator = new RewardCalculator();
   private sessionCoins: number = 0;
+  private pendingVerifications: Map<string, number> = new Map();
 
   /**
    * Set the coin provider (mock, blockchain, etc.)
@@ -165,7 +166,11 @@ class CoinServiceClass {
   }
 
   /**
-   * Credit coins to user
+   * Credit coins to user.
+   *
+   * When `VITE_VERIFY_COINS_ONLY=true`, rewards are queued for
+   * server-side verification instead of being credited immediately.
+   * Call {@link processVerificationResponse} once the server responds.
    */
   async creditCoins(
     amount: number,
@@ -175,6 +180,23 @@ class CoinServiceClass {
     if (!Number.isFinite(amount) || amount <= 0) {
       Logger.warn(`[CoinService] Invalid coin amount: ${amount}`);
       return false;
+    }
+
+    const verifyOnly = import.meta.env.VITE_VERIFY_COINS_ONLY === 'true';
+
+    if (verifyOnly) {
+      const sessionId =
+        (metadata?.['sessionId'] as string | undefined) ?? crypto.randomUUID();
+      this.pendingVerifications.set(sessionId, amount);
+
+      EventBus.emit('verification:queued', { sessionId, amount, source });
+
+      Logger.debug(
+        `[CoinService] Queued ${amount} coins (session ${sessionId}) for verification. Pending: ${this.pendingVerifications.size}`
+      );
+
+      // Return true so callers treat the queued reward as accepted
+      return true;
     }
 
     const success = await this.provider.credit(amount, source, metadata);
@@ -191,6 +213,58 @@ class CoinServiceClass {
     }
 
     return success;
+  }
+
+  /**
+   * Process a verification response from the server.
+   * Credits the server-approved amount when verified, or discards the pending reward.
+   */
+  async processVerificationResponse(
+    sessionId: string,
+    response: { verified: boolean; reward: number; metaShare: number }
+  ): Promise<void> {
+    const pending = this.pendingVerifications.get(sessionId);
+    this.pendingVerifications.delete(sessionId);
+
+    if (response.verified) {
+      const success = await this.provider.credit(response.reward, 'cycle_complete', {
+        sessionId,
+        metaShare: response.metaShare,
+        serverVerified: true,
+      });
+
+      if (success) {
+        this.sessionCoins += response.reward;
+        EventBus.emit('xpGained', { amount: response.reward });
+      }
+
+      EventBus.emit('verification:success', {
+        sessionId,
+        requestedAmount: pending ?? 0,
+        verifiedAmount: response.reward,
+        metaShare: response.metaShare,
+      });
+
+      Logger.info(
+        `[CoinService] Verification succeeded for session ${sessionId}: credited ${response.reward} (requested ${pending ?? 0})`
+      );
+    } else {
+      EventBus.emit('verification:failed', {
+        sessionId,
+        requestedAmount: pending ?? 0,
+      });
+
+      Logger.warn(
+        `[CoinService] Verification failed for session ${sessionId}. Discarded ${pending ?? 0} pending coins.`
+      );
+    }
+  }
+
+  /**
+   * Number of rewards awaiting server verification.
+   */
+  getPendingVerifications(): number {
+    return this.pendingVerifications.size;
   }
 
   /**
@@ -212,6 +286,7 @@ class CoinServiceClass {
    */
   resetSession(): void {
     this.sessionCoins = 0;
+    this.pendingVerifications.clear();
   }
 
   /**

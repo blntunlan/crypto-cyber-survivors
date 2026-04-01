@@ -35,8 +35,8 @@ export async function signPayload(payload: string, secret: string): Promise<stri
  * Minimal sanity check before transmission.
  */
 export function createSignablePayload(data: Record<string, unknown>): string {
-  // Must match supabase/functions/verify-game verificationPayload field order exactly.
-  const criticalFields = {
+  // Must match railway-market-server/src/routes/sessions.ts verificationPayload field order exactly.
+  const criticalFields: Record<string, unknown> = {
     sessionId: String(data.sessionId ?? ''),
     pair: String(data.pair ?? ''),
     position: String(data.position ?? ''),
@@ -46,8 +46,29 @@ export function createSignablePayload(data: Record<string, unknown>): string {
     claimedPnL: Number(data.claimedPnL ?? 0),
     kills: Number(data.kills ?? 0),
     level: Number(data.level ?? 0),
-    survivalSeconds: Math.floor(Number(data.survivalTimeMs ?? 0) / 1000),
+    survivalSeconds:
+      data.survivalSeconds != null
+        ? Math.floor(Number(data.survivalSeconds))
+        : Math.floor(Number(data.survivalTimeMs ?? 0) / 1000),
+    exitType: String(data.exitType ?? 'death'),
+    portalType: data.portalType ?? null,
+    maxStreak: Number(data.maxStreak ?? 0),
   };
+
+  // Append reward fields only when present (backward compat: old payloads without these
+  // fields produce the same signature as before).
+  if (data.rawCoins !== undefined) {
+    criticalFields.rawCoins = Number(data.rawCoins);
+  }
+  if (data.enemyDropCoins !== undefined) {
+    criticalFields.enemyDropCoins = Number(data.enemyDropCoins);
+  }
+  if (data.totalCoins !== undefined) {
+    criticalFields.totalCoins = Number(data.totalCoins);
+  }
+  if (data.pnlPercent !== undefined) {
+    criticalFields.pnlPercent = Number(data.pnlPercent);
+  }
 
   return JSON.stringify(criticalFields);
 }

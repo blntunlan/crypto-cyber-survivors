@@ -17,6 +17,9 @@ import { type RSIEnemyModifier, NEUTRAL_ENEMY_MODIFIER } from '../types/indicato
 import { ELITE_CONFIG, canBeElite, getEliteAbility } from '../config/EliteConfig';
 import { EventBus } from '../services/core/EventBus';
 
+/** Module-level counter for unique enemy IDs. Reset via EnemyFactory.resetIdCounter(). */
+let enemyIdCounter = 0;
+
 /**
  * Enemy configuration blueprint (now matches Registry)
  */
@@ -48,6 +51,13 @@ export class EnemyFactory {
    */
   static getInstance(): EnemyFactory {
     return (EnemyFactory.instance ??= new EnemyFactory());
+  }
+
+  /**
+   * Resets the enemy ID counter. Call on game-over / new game.
+   */
+  static resetIdCounter(): void {
+    enemyIdCounter = 0;
   }
 
   /**
@@ -118,6 +128,7 @@ export class EnemyFactory {
 
     const enemyObj = target ?? ({} as GameEnemy);
 
+    enemyObj.id = `enemy-${++enemyIdCounter}`;
     enemyObj.active = true;
     enemyObj.x = x;
     enemyObj.y = y;

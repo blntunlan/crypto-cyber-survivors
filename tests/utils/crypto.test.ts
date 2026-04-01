@@ -98,6 +98,9 @@ describe('crypto utilities', () => {
         kills: 50,
         level: 0,
         survivalSeconds: 120,
+        exitType: 'death',
+        portalType: null,
+        maxStreak: 0,
       });
     });
 
@@ -118,6 +121,9 @@ describe('crypto utilities', () => {
         kills: 0,
         level: 0,
         survivalSeconds: 0,
+        exitType: 'death',
+        portalType: null,
+        maxStreak: 0,
       });
     });
 
@@ -141,6 +147,9 @@ describe('crypto utilities', () => {
         kills: 0,
         level: 0,
         survivalSeconds: 0,
+        exitType: 'death',
+        portalType: null,
+        maxStreak: 0,
       });
     });
 
@@ -153,6 +162,74 @@ describe('crypto utilities', () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.survivalSeconds).toBe(61); // Floor to seconds
+    });
+
+    it('should include reward fields only when present', () => {
+      const data = {
+        sessionId: 'session-456',
+        pair: 'BTCUSDT',
+        position: 'long',
+        leverage: 10,
+        claimedEntryPrice: 50000,
+        claimedExitPrice: 51000,
+        claimedPnL: 20,
+        kills: 100,
+        level: 5,
+        survivalSeconds: 300,
+        exitType: 'portal',
+        portalType: 'TAKE_PROFIT',
+        maxStreak: 15,
+        rawCoins: 500,
+        enemyDropCoins: 200,
+        totalCoins: 700,
+        pnlPercent: 2.5,
+      };
+
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.rawCoins).toBe(500);
+      expect(parsed.enemyDropCoins).toBe(200);
+      expect(parsed.totalCoins).toBe(700);
+      expect(parsed.pnlPercent).toBe(2.5);
+    });
+
+    it('should omit reward fields when not present for backward compat', () => {
+      const data = {
+        sessionId: 'session-789',
+        pair: 'BTCUSDT',
+        position: 'short',
+        leverage: 3,
+        claimedEntryPrice: 40000,
+        claimedExitPrice: 39000,
+        claimedPnL: -2.5,
+        kills: 20,
+        level: 2,
+        survivalSeconds: 60,
+        exitType: 'death',
+        portalType: null,
+        maxStreak: 3,
+      };
+
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
+      const parsed = JSON.parse(result);
+
+      expect(parsed).not.toHaveProperty('rawCoins');
+      expect(parsed).not.toHaveProperty('enemyDropCoins');
+      expect(parsed).not.toHaveProperty('totalCoins');
+      expect(parsed).not.toHaveProperty('pnlPercent');
+    });
+
+    it('should prefer survivalSeconds over survivalTimeMs when both present', () => {
+      const data = {
+        survivalSeconds: 120,
+        survivalTimeMs: 999999,
+      };
+
+      const result = createSignablePayload(data as unknown as Record<string, unknown>);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.survivalSeconds).toBe(120);
     });
   });
 });

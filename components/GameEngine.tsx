@@ -37,6 +37,7 @@ import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
 import { CoinService } from '../services/gameplay/CoinService';
+import { type RewardPayload } from '../types/reward';
 import { GAME_MODE_CONFIGS, GameMode } from '../types/gameMode';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
@@ -44,6 +45,7 @@ import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
 import { LeverageEngine } from '../services/gameplay/LeverageEngine';
 import type {
   MutableRef,
+  PhaseName,
   PoolLikeRef,
   TickContext,
 } from '../services/gameplay/contracts';
@@ -61,6 +63,10 @@ import {
 import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketEventAnnouncer } from '../services/market/MarketEventAnnouncer';
 import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
+import { WeaponSystem } from '../services/combat/WeaponSystem';
+import { WEAPON_REGISTRY } from '../config/WeaponRegistry';
+import { type WeaponId } from '../types/weapons';
+import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 
@@ -102,6 +108,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   gameMode = GameMode.COMPETITIVE,
 }) => {
   const { t } = useLanguage();
+  const tRef = useRef(t);
+  tRef.current = t;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
 
@@ -213,6 +221,23 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     completedPhaseIds: [] as string[],
     errorCount: 0,
   });
+  // Pre-allocated tick context to avoid per-frame object creation
+  const tickContextRef = useRef<TickContext>({
+    clock: { frame: 0, nowMs: 0, deltaMs: 0, elapsedMs: 0 },
+    status: GameStatus.PLAYING,
+    dimensions: { width: 0, height: 0 },
+    world: {
+      player: { current: null } as MutableRef<Player | null>,
+      gameState: { current: null } as unknown as MutableRef<GameState>,
+      pool: { current: null } as unknown as MutableRef<PoolLikeRef>,
+    },
+    marketData: {} as MarketData,
+    telemetry: {
+      phaseDurationsMs: {},
+      counters: {},
+      marks: {},
+    },
+  });
 
   const gameLoopCoordinatorRef = useLazyRef(() => {
     const difficultyPhase = new DifficultyPhase();
@@ -224,10 +249,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     const portalPhase = new PortalPhase();
     const metricsPhase = new MetricsPhase();
 
-    const wrapPhase = (phase: {
-      phase: string;
+    const wrapPhase = <T extends PhaseName>(phase: {
+      phase: T;
       execute: (args: {
-        phase: string;
+        phase: T;
         context: TickContext;
         shared: Record<string, never>;
       }) => { shared?: Record<string, unknown> };
@@ -568,6 +593,67 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return unsubscribe;
   }, []);
 
+  // Spawn projectiles when weapons fire
+  useEffect(() => {
+    const unsub = EventBus.on('weaponFired', data => {
+      const cfg = WEAPON_REGISTRY[data.weaponId as WeaponId];
+
+      // Skip complex weapon types for Phase 1C
+      if (cfg.id === 'laser' || cfg.id === 'boomerang' || cfg.id === 'orbit_shield') {
+        return;
+      }
+
+      // Find nearest enemy from active enemies
+      const poolManager = pool.current;
+      const enemies = poolManager.activeEnemies;
+      let bestX = 0;
+      let bestY = 0;
+      let bestDistSq = Infinity;
+      let found = false;
+
+      for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i]!;
+        if (enemy.isDying || !enemy.active) continue;
+        const dx = enemy.x - data.x;
+        const dy = enemy.y - data.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < bestDistSq) {
+          bestX = enemy.x;
+          bestY = enemy.y;
+          bestDistSq = distSq;
+          found = true;
+        }
+      }
+
+      if (!found) return;
+
+      const baseAngle = Math.atan2(bestY - data.y, bestX - data.x);
+      const count = cfg.projectileCount;
+      const spreadAngle = 0.15; // radians between spread projectiles
+
+      for (let i = 0; i < count; i++) {
+        const angleOffset = (i - (count - 1) / 2) * spreadAngle;
+        const finalAngle = baseAngle + angleOffset;
+        const vx = Math.cos(finalAngle) * cfg.projectileSpeed;
+        const vy = Math.sin(finalAngle) * cfg.projectileSpeed;
+
+        poolManager.getBullet(
+          data.x,
+          data.y,
+          vx,
+          vy,
+          data.damage,
+          cfg.projectileRadius,
+          COLORS.BULLET,
+          false,
+          false
+        );
+      }
+    });
+
+    return unsub;
+  }, []);
+
   // Expose concise state snapshot for Playwright smoke validation.
   useEffect(() => {
     if (!DEBUG_API_ENABLED) {
@@ -779,20 +865,50 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             // V2: enterPortal() calculates rewards and closes portal internally
             const coinReward = PortalSystemV2.enterPortal();
 
+            // Build RewardPayload from CoinRewardResult + service data
+            const rewardPayload: RewardPayload = {
+              kills: PortalSystemV2.getKillCount(),
+              level: PortalSystemV2.getCurrentLevel(),
+              survivalSeconds: TimeService.getGameTimeSeconds(),
+              pnlPercent: marketDataRef.current.pnl,
+              maxStreak: ComboSystem.getMaxStreak(),
+              exitType: coinReward.exitType,
+              portalType: coinReward.portalType,
+              rawCoins: coinReward.breakdown.raw,
+              enemyDropCoins: coinReward.breakdown.enemyDrops,
+              totalCoins: coinReward.total,
+              breakdown: {
+                base: coinReward.breakdown.survivalBonus,
+                survival: coinReward.breakdown.survivalBonus,
+                kill: coinReward.breakdown.raw,
+                level: 0,
+                streak: coinReward.breakdown.comboBonus,
+                portal: coinReward.breakdown.portalBonus,
+              },
+            };
+
             // Credit coins to player via CoinService
             if (coinReward.total > 0) {
               void CoinService.creditCoins(coinReward.total, 'cycle_complete', {
-                exitType: coinReward.exitType,
-                portalType: coinReward.portalType,
+                exitType: rewardPayload.exitType,
+                portalType: rewardPayload.portalType,
                 breakdown: coinReward.breakdown,
               });
             }
 
             EventBus.emit('portalExtraction', {
-              totalCoins: coinReward.total,
-              rawCoins: coinReward.breakdown.raw,
+              totalCoins: rewardPayload.totalCoins,
+              rawCoins: rewardPayload.rawCoins,
               bonus:
                 coinReward.breakdown.portalBonus + coinReward.breakdown.survivalBonus,
+              kills: rewardPayload.kills,
+              level: rewardPayload.level,
+              survivalSeconds: rewardPayload.survivalSeconds,
+              pnlPercent: rewardPayload.pnlPercent,
+              maxStreak: rewardPayload.maxStreak,
+              exitType: rewardPayload.exitType,
+              portalType: rewardPayload.portalType,
+              enemyDropCoins: rewardPayload.enemyDropCoins,
             });
 
             Logger.info('[GameEngine] Portal extraction complete', {
@@ -850,41 +966,39 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
         }
 
-        phaseSharedRef.current = {
-          deltaTime,
-          dtFactor,
-          timeMs: time,
-          width,
-          height,
-          deviceIsMobile: device.isMobile,
-          combatSystem: combatSystem.current,
-          getMovementVector,
-          isDashPressed: isSpacePressed,
-          isDashFreshPress: isSpaceFreshPress,
-          consumeDash,
-        };
+        // Mutate pre-allocated shared object instead of creating new one each frame
+        const shared = phaseSharedRef.current;
+        shared.deltaTime = deltaTime;
+        shared.dtFactor = dtFactor;
+        shared.timeMs = time;
+        shared.width = width;
+        shared.height = height;
+        shared.deviceIsMobile = device.isMobile;
+        shared.combatSystem = combatSystem.current;
+        shared.getMovementVector = getMovementVector;
+        shared.isDashPressed = isSpacePressed;
+        shared.isDashFreshPress = isSpaceFreshPress;
+        shared.consumeDash = consumeDash;
 
-        const phaseTickResult = gameLoopCoordinatorRef.current.runTickSync({
-          clock: {
-            frame: gameplayFrameRef.current,
-            nowMs: time,
-            deltaMs: deltaTime,
-            elapsedMs: TimeService.getGameTime(),
-          },
-          status,
-          dimensions: { width, height },
-          world: {
-            player: playerRef as unknown as MutableRef<Player | null>,
-            gameState: state as unknown as MutableRef<GameState>,
-            pool: pool as unknown as MutableRef<PoolLikeRef>,
-          },
-          marketData: marketDataRef.current,
-          telemetry: {
-            phaseDurationsMs: {},
-            counters: {},
-            marks: {},
-          },
-        });
+        // Reuse pre-allocated tick context to avoid per-frame GC pressure
+        const tick = tickContextRef.current;
+        tick.clock.frame = gameplayFrameRef.current;
+        tick.clock.nowMs = time;
+        tick.clock.deltaMs = deltaTime;
+        tick.clock.elapsedMs = TimeService.getGameTime();
+        tick.status = status;
+        tick.dimensions.width = width;
+        tick.dimensions.height = height;
+        tick.world.player = playerRef as unknown as MutableRef<Player | null>;
+        tick.world.gameState = state as unknown as MutableRef<GameState>;
+        tick.world.pool = pool as unknown as MutableRef<PoolLikeRef>;
+        tick.marketData = marketDataRef.current;
+        // Reset telemetry (reassign to avoid V8 hidden-class deopt from delete)
+        tick.telemetry.phaseDurationsMs = {};
+        tick.telemetry.counters = {};
+        tick.telemetry.marks = {};
+
+        const phaseTickResult = gameLoopCoordinatorRef.current.runTickSync(tick);
         lastPhaseTickRef.current = {
           completedPhaseIds: phaseTickResult.completedPhaseIds,
           errorCount: phaseTickResult.errors.length,
@@ -1042,8 +1156,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           // Only show supply drop notifications in development mode
           if (import.meta.env.DEV) {
             EventBus.emit('gameNotification', {
-              title: t('hud.announcer.supply_drop') as string,
-              message: t('hud.announcer.loot_crate_appeared') as string,
+              title: tRef.current('hud.announcer.supply_drop') as string,
+              message: tRef.current('hud.announcer.loot_crate_appeared') as string,
               type: 'success',
             });
           }
@@ -1063,6 +1177,24 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           onGameOver
         );
         FPSMonitor.recordPhysics(performance.now() - physStart);
+
+        // Update Weapon System (market-driven weapon firing)
+        WeaponSystem.update(deltaTime, player.x, player.y, player.baseDamage, {
+          atrPercent: marketDataRef.current.atrPercent ?? 0,
+          rsiState: marketDataRef.current.rsiState ?? 'NEUTRAL',
+          pnl: marketDataRef.current.pnl,
+          volumeNorm: marketDataRef.current.difficulty,
+          isFavorable: marketDataRef.current.pnl >= 0,
+        });
+
+        // Record replay snapshot (every 500ms internally)
+        ReplayRecorderService.tick(
+          deltaTime,
+          player.x,
+          player.y,
+          player.hp,
+          player.level
+        );
 
         // Only update React state if meaningful stats changed AND enough time passed (Throttle 100ms)
         // Exception: Always update immediately on Level Up
@@ -1127,7 +1259,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       speedLineSpawner,
       gameLoopCoordinatorRef,
       pair,
-      t,
       gameMode,
     ]
   );

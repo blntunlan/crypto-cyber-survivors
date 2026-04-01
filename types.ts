@@ -112,6 +112,7 @@ export interface Enemy extends Entity {
   maxHealth: number;
   damage: number;
   type: EnemyId;
+  id?: string;
   valueMultiplier?: number;
   // Death animation
   isDying?: boolean;

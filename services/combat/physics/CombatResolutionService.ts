@@ -45,6 +45,7 @@ export class CombatResolutionService {
       x: enemy.x,
       y: enemy.y,
       type: enemy.type,
+      enemyId: enemy.id,
       isCrit: isSuperCrit,
     });
 
