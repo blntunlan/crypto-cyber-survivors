@@ -130,6 +130,17 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+
+    // Stub env vars to prevent integration tests from failing due to external service dependencies
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock-url.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock-railway-api.co');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://mock-oracle.co');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://mock-validator.co');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
