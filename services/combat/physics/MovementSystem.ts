@@ -65,6 +65,7 @@ export class MovementSystem implements IMovementSystem {
     // Check if this is a separation frame (throttled for performance)
     const shouldApplySeparation = this.frameCounter % SEPARATION.THROTTLE_FRAMES === 0;
 
+    // ⚡ Bolt Optimization: Replaced .forEach with standard for loop to avoid closure allocation per frame
     for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
       const e = pool.activeEnemies[i];
       if (e === undefined) continue;
@@ -110,6 +111,7 @@ export class MovementSystem implements IMovementSystem {
    * Update speed line transparency and position.
    */
   private updateSpeedLines(pool: IPoolManager, dtFactor: number): void {
+    // ⚡ Bolt Optimization: Replaced .forEach with standard for loop to avoid closure allocation per frame
     for (let i = 0, len = pool.activeSpeedLines.length; i < len; i++) {
       const line = pool.activeSpeedLines[i];
       if (line === undefined) continue;
@@ -137,6 +139,7 @@ export class MovementSystem implements IMovementSystem {
     const trailCfg = ParticleConfigService.trail;
     const particleMultiplier = perfConfig.particleMultiplier;
 
+    // ⚡ Bolt Optimization: Replaced .forEach with standard for loop to avoid closure allocation per frame
     for (let i = 0, len = pool.activeBullets.length; i < len; i++) {
       const bullet = pool.activeBullets[i];
       if (bullet === undefined) continue;
@@ -181,6 +184,7 @@ export class MovementSystem implements IMovementSystem {
   private updateParticles(pool: IPoolManager, dtFactor: number): void {
     const damping = Math.pow(GAME_ENGINE.PARTICLE_DAMPING, dtFactor);
 
+    // ⚡ Bolt Optimization: Replaced .forEach with standard for loop to avoid closure allocation per frame
     for (let i = 0, len = pool.activeParticles.length; i < len; i++) {
       const part = pool.activeParticles[i];
       if (part === undefined) continue;
@@ -203,6 +207,7 @@ export class MovementSystem implements IMovementSystem {
    * Update floating text ascent and fading progress.
    */
   private updateFloatingTexts(pool: IPoolManager, dtFactor: number): void {
+    // ⚡ Bolt Optimization: Replaced .forEach with standard for loop to avoid closure allocation per frame
     for (let i = 0, len = pool.activeFloatingTexts.length; i < len; i++) {
       const text = pool.activeFloatingTexts[i];
       if (text === undefined) continue;
@@ -219,6 +224,7 @@ export class MovementSystem implements IMovementSystem {
    * Update progress for enemies in the 'dying' state (death animation).
    */
   private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
+    // ⚡ Bolt Optimization: Replaced .forEach with standard for loop to avoid closure allocation per frame
     for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
       const enemy = pool.activeEnemies[i];
       if (enemy === undefined) continue;
