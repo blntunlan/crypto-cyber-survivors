@@ -92,6 +92,35 @@ vi.mock('../../stores/useAuthStore', () => ({
   })),
 }));
 
+// Mock error and telemetry trackers to prevent hanging fetch calls in CI
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureException: vi.fn(),
+    captureMessage: vi.fn(),
+    sendError: vi.fn(),
+    initialize: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    trackEvent: vi.fn(),
+    trackGameStart: vi.fn(),
+    trackGameOver: vi.fn(),
+    initializePlayer: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
+// Mock window.scrollTo to prevent Not implemented error
+Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true });
+
 // Mock simple components to avoid canvas issues
 vi.mock('../../components/GameEngine', () => ({
   __esModule: true,
