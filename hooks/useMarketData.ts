@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useMarketDataTimeout } from './useMarketDataTimeout';
 import {
   MarketPosition,
   type MarketData,
@@ -51,10 +52,7 @@ type MarketUpdate = SSEMarketUpdate & { source: 'sse' };
 // 10-15s: Warning UI indicator, still playing with fallback data
 // 15-20s: Critical warning, emit timeout event → DATA_DISCONNECTED pause
 // 30s+:   Fatal disconnect → GAMEOVER
-const MARKET_DATA_TIMEOUT_MS = 15_000; // 15s: emit timeout → pause (DATA_DISCONNECTED)
-const MARKET_WARNING_MS = 10_000; // 10s: initial warning
-const MARKET_CRITICAL_MS = 13_000; // 13s: critical warning
-const TIMEOUT_CHECK_INTERVAL_MS = 1_000; // Check every 1 second for responsive detection
+// Timeout constants moved to useMarketDataTimeout.ts
 const RUNTIME_TELEMETRY_LOG_INTERVAL_MS = 5_000;
 const MAX_RUNTIME_PENDING_TICKS = 256;
 
@@ -208,67 +206,13 @@ export const useMarketData = (
     }
   }, [gameStatus]);
 
-  // Market data timeout checker
-  useEffect(() => {
-    const checkTimeout = () => {
-      const currentStatus = gameStatusRef.current;
-
-      // Only check during active gameplay or DATA_DISCONNECTED (for escalation to GAMEOVER)
-      if (
-        currentStatus !== GameStatus.PLAYING &&
-        currentStatus !== GameStatus.DATA_DISCONNECTED
-      ) {
-        timeoutTriggeredRef.current = false;
-        return;
-      }
-
-      const timeSinceLastPrice = Date.now() - lastPriceTimeRef.current;
-
-      // Critical warning at 13s (UI indicator)
-      if (
-        timeSinceLastPrice > MARKET_CRITICAL_MS &&
-        timeSinceLastPrice <= MARKET_DATA_TIMEOUT_MS
-      ) {
-        EventBus.emit('marketTimeoutWarning', {
-          level: 'critical',
-          remainingMs: MARKET_DATA_TIMEOUT_MS - timeSinceLastPrice,
-          disconnectedDuration: timeSinceLastPrice,
-        });
-      }
-      // Initial warning at 10s (UI indicator)
-      else if (
-        timeSinceLastPrice > MARKET_WARNING_MS &&
-        timeSinceLastPrice <= MARKET_CRITICAL_MS
-      ) {
-        EventBus.emit('marketTimeoutWarning', {
-          level: 'warning',
-          remainingMs: MARKET_DATA_TIMEOUT_MS - timeSinceLastPrice,
-          disconnectedDuration: timeSinceLastPrice,
-        });
-      }
-
-      // 15s+ → emit timeout (first hit pauses via DATA_DISCONNECTED)
-      // Keep emitting so useMarketTimeout can escalate to GAMEOVER at 30s
-      if (timeSinceLastPrice > MARKET_DATA_TIMEOUT_MS) {
-        if (!timeoutTriggeredRef.current) {
-          timeoutTriggeredRef.current = true;
-          Logger.error(
-            `[Market] Data timeout - no price updates for ${timeSinceLastPrice}ms`
-          );
-        }
-
-        EventBus.emit('marketDataTimeout', {
-          lastPriceTime: lastPriceTimeRef.current,
-          disconnectedDuration: timeSinceLastPrice,
-          pair: pairRef.current,
-          reason: 'market_timeout',
-        });
-      }
-    };
-
-    const intervalId = setInterval(checkTimeout, TIMEOUT_CHECK_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, []);
+  // Extracted market data timeout checker
+  useMarketDataTimeout({
+    gameStatusRef,
+    lastPriceTimeRef,
+    timeoutTriggeredRef,
+    pairRef,
+  });
 
   // NOTE: MarketStateService subscription removed — SSE provides indicators inline.
 

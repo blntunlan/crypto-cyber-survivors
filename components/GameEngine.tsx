@@ -66,8 +66,7 @@ import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketEventAnnouncer } from '../services/market/MarketEventAnnouncer';
 import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
 import { WeaponSystem } from '../services/combat/WeaponSystem';
-import { WEAPON_REGISTRY } from '../config/WeaponRegistry';
-import { type WeaponId } from '../types/weapons';
+import { useGameEngineEvents } from '../hooks/useGameEngineEvents';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
@@ -539,122 +538,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return undefined;
   }, [status, pair, position]);
 
-  // Hit Stop Event Listener (freeze frame on impact)
-  useEffect(() => {
-    const unsubscribe = EventBus.on('hitStop', data => {
-      const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      const adjustedDuration = hitStopGovernorRef.current.getAdjustedDuration(
-        data,
-        nowMs
-      );
-
-      if (adjustedDuration <= 0) return;
-
-      // Take the max duration, but cap chained freeze for smoothness.
-      state.current.hitStopTimer = Math.min(
-        GAME_ENGINE.HIT_STOP_CHAIN_CAP_MS,
-        Math.max(state.current.hitStopTimer, adjustedDuration)
-      );
-    });
-
-    return unsubscribe;
-  }, []);
-
-  // Listen for high-frequency market updates directly to avoid React re-render overhead
-  useEffect(() => {
-    let lastAnnouncerUpdate = 0;
-    const ANNOUNCER_THROTTLE_MS = 500;
-
-    const unsub = EventBus.on('gameMarketUpdate', (data: MarketData) => {
-      marketDataRef.current = data;
-
-      // Feed PriceMomentumEngine with every price tick
-      if (data.price > 0) {
-        PriceMomentumEngine.update(data.price, Date.now());
-      }
-
-      // Feed MarketEventAnnouncer, throttled to ~500ms
-      const now = Date.now();
-      if (now - lastAnnouncerUpdate >= ANNOUNCER_THROTTLE_MS) {
-        lastAnnouncerUpdate = now;
-        MarketEventAnnouncer.update(data, position);
-      }
-    });
-    return unsub;
-  }, [position]);
-
-  // Near Miss Event Listener (Matrix slow-mo effect)
-  useEffect(() => {
-    const unsubscribe = EventBus.on('nearMiss', () => {
-      if (state.current.nearMissCooldown <= 0) {
-        state.current.nearMissTimer = GAME_ENGINE.NEAR_MISS_DURATION;
-        state.current.nearMissCooldown = GAME_ENGINE.NEAR_MISS_COOLDOWN;
-        audio.playWhoosh();
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  // Spawn projectiles when weapons fire
-  useEffect(() => {
-    const unsub = EventBus.on('weaponFired', data => {
-      const cfg = WEAPON_REGISTRY[data.weaponId as WeaponId];
-
-      // Skip complex weapon types for Phase 1C
-      if (cfg.id === 'laser' || cfg.id === 'boomerang' || cfg.id === 'orbit_shield') {
-        return;
-      }
-
-      // Find nearest enemy from active enemies
-      const poolManager = pool.current;
-      const enemies = poolManager.activeEnemies;
-      let bestX = 0;
-      let bestY = 0;
-      let bestDistSq = Infinity;
-      let found = false;
-
-      for (let i = 0; i < enemies.length; i++) {
-        const enemy = enemies[i]!;
-        if (enemy.isDying || !enemy.active) continue;
-        const dx = enemy.x - data.x;
-        const dy = enemy.y - data.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-          bestX = enemy.x;
-          bestY = enemy.y;
-          bestDistSq = distSq;
-          found = true;
-        }
-      }
-
-      if (!found) return;
-
-      const baseAngle = Math.atan2(bestY - data.y, bestX - data.x);
-      const count = cfg.projectileCount;
-      const spreadAngle = 0.15; // radians between spread projectiles
-
-      for (let i = 0; i < count; i++) {
-        const angleOffset = (i - (count - 1) / 2) * spreadAngle;
-        const finalAngle = baseAngle + angleOffset;
-        const vx = Math.cos(finalAngle) * cfg.projectileSpeed;
-        const vy = Math.sin(finalAngle) * cfg.projectileSpeed;
-
-        poolManager.getBullet(
-          data.x,
-          data.y,
-          vx,
-          vy,
-          data.damage,
-          cfg.projectileRadius,
-          COLORS.BULLET,
-          false,
-          false
-        );
-      }
-    });
-
-    return unsub;
-  }, []);
+  // Extracted EventBus listeners: hitStop, gameMarketUpdate, nearMiss, weaponFired
+  useGameEngineEvents({
+    stateRef: state,
+    marketDataRef,
+    poolRef: pool,
+    hitStopGovernorRef,
+    position,
+  });
 
   // Expose concise state snapshot for Playwright smoke validation.
   useEffect(() => {
