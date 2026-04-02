@@ -117,6 +117,7 @@ vi.mock('../../services/system/Logger', () => ({
 vi.mock('../../services/difficulty/DifficultyContext', () => ({
   difficultyContext: {
     reset: vi.fn(),
+    resetForCycleContinue: vi.fn(),
     updateInputs: vi.fn(),
   },
 }));
@@ -396,6 +397,151 @@ describe('useGameFlowController', () => {
     expect(ComboSystem.getMaxStreak).toHaveBeenCalled();
     expect(CoinService.creditCoins).toHaveBeenCalledWith(100, 'cycle_complete');
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
+  });
+
+  it('ignores duplicate cycleComplete events with same cycleNumber', async () => {
+    const playerRef = { current: makePlayer({ level: 5 }) };
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.35, effectivePnl: 0.4 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 22,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
+    });
+
+    await waitFor(() => {
+      expect(result.current.cycleData).not.toBeNull();
+    });
+
+    expect(result.current.cycleData?.cycleNumber).toBe(2);
+    expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.CYCLE_COMPLETE);
+
+    // Clear the mock to track new calls
+    vi.mocked(GameStateMachine.transition).mockClear();
+
+    // Emit duplicate cycleComplete with same cycleNumber
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
+    });
+
+    // GameStateMachine.transition should NOT have been called again
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(
+      GameStatus.CYCLE_COMPLETE
+    );
+  });
+
+  it('handleGameOver calls difficultyContext.reset()', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
+    const playerRef = { current: makePlayer() };
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 5,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    expect(difficultyContext.reset).toHaveBeenCalled();
+  });
+
+  it('handleCashOut calls difficultyContext.reset() before ending run', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
+    const playerRef = { current: makePlayer({ level: 4 }) };
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.15, effectivePnl: 0.2 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 19,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 180 });
+    });
+
+    await waitFor(() => {
+      expect(result.current.cycleData).not.toBeNull();
+    });
+
+    await act(async () => {
+      await result.current.handleCashOut();
+    });
+
+    expect(difficultyContext.reset).toHaveBeenCalled();
+  });
+
+  it('handleContinue calls resetForCycleContinue then applies new cycleFactor', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
+    const playerRef = { current: makePlayer({ level: 4 }) };
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.15, effectivePnl: 0.2 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 19,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 2, totalElapsedSeconds: 300 });
+    });
+
+    await waitFor(() => {
+      expect(result.current.cycleData).not.toBeNull();
+    });
+
+    act(() => {
+      result.current.handleContinue();
+    });
+
+    expect(difficultyContext.resetForCycleContinue).toHaveBeenCalled();
+    expect(difficultyContext.updateInputs).toHaveBeenCalledWith({ cycleFactor: 2 });
   });
 
   it('resetFlowState clears frozen pnl, cycle data, upgrade choices, and resets difficulty', async () => {

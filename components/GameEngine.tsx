@@ -36,9 +36,11 @@ import { EventBus } from '../services/core/EventBus';
 import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
+import { checkPortalCollision } from '../services/gameplay/portal/portalCollision';
 import { CoinService } from '../services/gameplay/CoinService';
 import { type RewardPayload } from '../types/reward';
-import { GAME_MODE_CONFIGS, GameMode } from '../types/gameMode';
+import { GameMode } from '../types/gameMode';
+import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
@@ -860,8 +862,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           }
 
           // Portal Collision Check (Extraction)
-          const pDist = Math.hypot(player.x - portal.x, player.y - portal.y);
-          if (pDist < player.radius + portal.radius * 0.4) {
+          const portalHit = checkPortalCollision(
+            player.x,
+            player.y,
+            player.radius,
+            portal.x,
+            portal.y,
+            portal.radius
+          );
+          if (portalHit.collides) {
             // V2: enterPortal() calculates rewards and closes portal internally
             const coinReward = PortalSystemV2.enterPortal();
 
@@ -922,20 +931,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         }
 
         // Cycle Timer: auto-emit cycleComplete at cycle boundaries (COMPETITIVE mode)
-        if (gameMode === GameMode.COMPETITIVE) {
-          const cycleDuration =
-            GAME_MODE_CONFIGS[GameMode.COMPETITIVE].cycleDurationSeconds;
+        {
           const elapsed = TimeService.getGameTimeSeconds();
-          const currentCycle = Math.floor(elapsed / cycleDuration) + 1;
-          const lastEmittedCycle = lastCycleRef.current;
-
-          if (currentCycle > lastEmittedCycle) {
-            lastCycleRef.current = currentCycle;
+          const cycle = evaluateCycleTimer(elapsed, lastCycleRef.current, gameMode);
+          if (cycle.shouldEmit) {
+            lastCycleRef.current = cycle.currentCycle;
             Logger.info(
-              `[GameEngine] Cycle ${currentCycle} complete at ${elapsed.toFixed(0)}s`
+              `[GameEngine] Cycle ${cycle.currentCycle} complete at ${elapsed.toFixed(0)}s`
             );
             EventBus.emit('cycleComplete', {
-              cycleNumber: currentCycle,
+              cycleNumber: cycle.currentCycle,
               totalElapsedSeconds: elapsed,
             });
           }
