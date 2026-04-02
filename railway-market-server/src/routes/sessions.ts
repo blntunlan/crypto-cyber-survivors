@@ -188,6 +188,22 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       return;
     }
 
+    // 3b. Field range sanity checks (advisory — log only, don't reject)
+    const MAX_KILLS_PER_SECOND = 5;
+    const maxPlausibleKills = Math.ceil(duration * MAX_KILLS_PER_SECOND);
+    if (payload.kills > maxPlausibleKills) {
+      Logger.warn(`[verify] Suspicious kill rate: ${payload.kills} kills in ${duration}s (max plausible: ${maxPlausibleKills}) session=${sessionId}`);
+    }
+    if (payload.level > 1 && payload.kills > 0 && payload.kills < (payload.level - 1) * 2) {
+      Logger.warn(`[verify] Level/kill mismatch: level=${payload.level} kills=${payload.kills} session=${sessionId}`);
+    }
+    if (payload.maxStreak > payload.kills) {
+      Logger.warn(`[verify] Streak exceeds kills: streak=${payload.maxStreak} kills=${payload.kills} session=${sessionId}`);
+    }
+    if (duration > 86400) {
+      Logger.warn(`[verify] Abnormally long session: ${duration}s session=${sessionId}`);
+    }
+
     // 4. Reward calculation
     const calculator = new RewardCalculator();
     const calculation = calculator.calculate({

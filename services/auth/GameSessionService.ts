@@ -15,6 +15,8 @@ import {
 import { signPayload, createSignablePayload } from '../../utils/crypto';
 import { getMarketSyncQueue } from '../market/sync';
 import { railwayClient } from '../api/RailwayClient';
+import { SessionValidator } from '../validators/SessionValidator';
+import { type SessionValidationInput } from '../validators/types';
 
 export interface ServerSessionResponse {
   sessionId: string;
@@ -214,6 +216,29 @@ export class GameSessionService {
           breakdown: rewardPayload.breakdown,
         }),
       };
+
+      // Run client-side validators (advisory — never blocks submission)
+      const validationInput: SessionValidationInput = {
+        kills: payload.kills as number,
+        level: payload.level as number,
+        survivalSeconds: payload.survivalSeconds as number,
+        entryPrice: results.entryPrice,
+        exitPrice: results.exitPrice,
+        pnlPercent: results.pnlPercent,
+        leverage: results.leverage,
+        maxStreak: payload.maxStreak as number,
+        exitType: payload.exitType as string,
+        totalCoins: rewardPayload?.totalCoins,
+        rawCoins: rewardPayload?.rawCoins,
+        enemyDropCoins: rewardPayload?.enemyDropCoins,
+        breakdown: rewardPayload?.breakdown,
+      };
+      const validation = SessionValidator.validate(validationInput);
+      if (validation.severity === 'fail') {
+        Logger.warn('[GameSession] Client validation failed (advisory)', {
+          findings: validation.findings.filter(f => f.severity === 'fail'),
+        });
+      }
 
       // Generate HMAC signature over deterministic field subset (must match server)
       const signature = await signPayload(
