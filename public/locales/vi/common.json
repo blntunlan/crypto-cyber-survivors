@@ -37,7 +37,10 @@
       "lev_safe": "AN TOÀN",
       "lev_standard": "TIÊU CHUẨN",
       "lev_risky": "RỦI RO",
-      "lev_degen": "DEGEN"
+      "lev_degen": "DEGEN",
+      "upgrades": "NÂNG CẤP",
+      "challenges": "THỬ THÁCH",
+      "replays": "XEM LẠI"
     },
     "long": "LONG",
     "short": "SHORT",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "BỊ THANH KHOẢN",
+      "run_summary": "Tổng kết trận",
       "new_high_score": "Kỷ lục mới!",
       "pnl": "P&L",
       "time": "Thời gian",

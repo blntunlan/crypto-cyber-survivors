@@ -55,6 +55,11 @@ class LeverageStateProviderClass {
     Object.assign(this.slice, defaults);
   }
 
+  /** Reset only per-cycle state; preserve session-level leverage/position/entryPrice */
+  resetCycleState(): void {
+    this.slice.cycleFactor = 1.0;
+  }
+
   private static getDefaultSlice(): LeverageInputSlice {
     return {
       leverage: 5,

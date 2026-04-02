@@ -156,8 +156,8 @@
   -moz-osx-font-smoothing: unset;
 }
 
-/* Smooth transitions (Cyberpunk) */
-.theme-smooth * {
+/* Smooth transitions (Cyberpunk) - exclude framer-motion animated elements */
+.theme-smooth *:not([style*='transform']):not([style*='opacity']) {
   transition:
     color 0.2s ease,
     background-color 0.2s ease,

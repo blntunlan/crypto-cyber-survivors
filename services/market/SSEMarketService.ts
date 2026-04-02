@@ -81,9 +81,13 @@ export class SSEMarketService {
   }
 
   private createEventSource(): void {
-    const baseUrl = import.meta.env.VITE_RAILWAY_API_URL as string | undefined;
+    // Use dedicated aggregator URL if set, otherwise fall back to API URL
+    const baseUrl = (import.meta.env.VITE_MARKET_AGGREGATOR_URL ??
+      import.meta.env.VITE_RAILWAY_API_URL) as string | undefined;
     if (!baseUrl) {
-      Logger.error('[SSE] VITE_RAILWAY_API_URL not configured');
+      Logger.error(
+        '[SSE] VITE_MARKET_AGGREGATOR_URL / VITE_RAILWAY_API_URL not configured'
+      );
       this.updateState('disconnected');
       return;
     }

@@ -208,6 +208,44 @@ describe('useCycleDecision', () => {
     });
   });
 
+  describe('Duplicate Event Prevention', () => {
+    it('should ignore duplicate cycleComplete with same cycleNumber', () => {
+      const { result } = renderHook(() => useCycleDecision());
+
+      // Emit cycleComplete with cycleNumber 1
+      act(() => {
+        EventBus.emit('cycleComplete', {
+          cycleNumber: 1,
+          totalElapsedSeconds: 300,
+        });
+      });
+
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.cycleNumber).toBe(1);
+
+      // Clear pending via decision
+      act(() => {
+        EventBus.emit('cycleDecisionMade', {
+          decision: 'CONTINUE',
+          cycleNumber: 1,
+        });
+      });
+
+      expect(result.current.isPending).toBe(false);
+
+      // Emit same cycleNumber again (duplicate)
+      act(() => {
+        EventBus.emit('cycleComplete', {
+          cycleNumber: 1,
+          totalElapsedSeconds: 300,
+        });
+      });
+
+      // Should remain false - duplicate was ignored
+      expect(result.current.isPending).toBe(false);
+    });
+  });
+
   describe('gameReset Event', () => {
     it('should reset state on gameReset', () => {
       const { result } = renderHook(() => useCycleDecision());

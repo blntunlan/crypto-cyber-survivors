@@ -47,11 +47,15 @@ export function useCycleDecision(): UseCycleDecisionReturn {
     hasCashedOut: false,
   });
 
+  const lastProcessedCycleRef = useRef<number>(0);
+
   // Listen for cycle complete events
   useEffect(() => {
     const unsubComplete = EventBus.on(
       'cycleComplete',
       (data: { cycleNumber: number }) => {
+        if (data.cycleNumber <= lastProcessedCycleRef.current) return;
+        lastProcessedCycleRef.current = data.cycleNumber;
         setState(prev => ({
           ...prev,
           isPending: true,
@@ -102,6 +106,7 @@ export function useCycleDecision(): UseCycleDecisionReturn {
   // Reset on game reset
   useEffect(() => {
     const unsubReset = EventBus.on('gameReset', () => {
+      lastProcessedCycleRef.current = 0;
       setState({
         isPending: false,
         cycleNumber: 0,
@@ -133,6 +138,7 @@ export function useCycleDecision(): UseCycleDecisionReturn {
   }, [state.cycleNumber]);
 
   const reset = useCallback(() => {
+    lastProcessedCycleRef.current = 0;
     setState({
       isPending: false,
       cycleNumber: 0,

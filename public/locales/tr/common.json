@@ -37,7 +37,10 @@
       "lev_safe": "GÜVENLİ",
       "lev_standard": "STANDART",
       "lev_risky": "RİSKLİ",
-      "lev_degen": "DEGEN"
+      "lev_degen": "DEGEN",
+      "upgrades": "GELİŞTİRMELER",
+      "challenges": "GÖREVLER",
+      "replays": "TEKRARLAR"
     },
     "long": "LONG",
     "short": "SHORT",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "TASFİYE EDİLDİN",
+      "run_summary": "Koşu Özeti",
       "new_high_score": "Yeni Rekor!",
       "pnl": "K/Z (PnL)",
       "time": "Süre",

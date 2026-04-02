@@ -16,6 +16,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
+import { trackRender } from '../../utils/trackRender';
 import { Menu, X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { type Language } from '../../contexts/LanguageConstants';
@@ -41,6 +42,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewPrivacy,
   onViewTerms,
 }) => {
+  trackRender('LandingPage');
   const { t, language, setLanguage } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const originalLanguageRef = useRef<Language>(language);

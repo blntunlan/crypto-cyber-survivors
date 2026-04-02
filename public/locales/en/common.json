@@ -37,7 +37,10 @@
       "lev_safe": "SAFE",
       "lev_standard": "STANDARD",
       "lev_risky": "RISKY",
-      "lev_degen": "DEGEN"
+      "lev_degen": "DEGEN",
+      "upgrades": "UPGRADES",
+      "challenges": "CHALLENGES",
+      "replays": "REPLAYS"
     },
     "long": "LONG",
     "short": "SHORT",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "LIQUIDATED",
+      "run_summary": "Run Summary",
       "new_high_score": "New High Score!",
       "pnl": "P&L",
       "time": "Time",

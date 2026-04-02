@@ -37,7 +37,10 @@
       "lev_safe": "सुरक्षित",
       "lev_standard": "मानक",
       "lev_risky": "जोखिम भरा",
-      "lev_degen": "डेजन"
+      "lev_degen": "डेजन",
+      "upgrades": "अपग्रेड",
+      "challenges": "चुनौतियाँ",
+      "replays": "रीप्ले"
     },
     "long": "LONG",
     "short": "SHORT",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "लिक्विडेटेड",
+      "run_summary": "रन सारांश",
       "new_high_score": "नया हाई स्कोर!",
       "pnl": "P&L",
       "time": "समय",

@@ -276,6 +276,15 @@ class DifficultyContextManager {
     this._elapsedSeconds = 0;
     this._composedInputs = getDefaultInputs();
   }
+
+  /** Reset per-cycle state on continue; preserve session-level state (leverage, market, time) */
+  public resetForCycleContinue(): void {
+    MarketInputAggregator.resetForCycleContinue();
+    PlayerMetricsAggregator.resetForCycleContinue();
+    LeverageStateProvider.resetCycleState();
+    // Do NOT reset _elapsedSeconds — total run time persists across cycles
+    // Do NOT reset _composedInputs — will be recomposed on next .inputs access
+  }
 }
 
 export const difficultyContext = DifficultyContextManager.getInstance();

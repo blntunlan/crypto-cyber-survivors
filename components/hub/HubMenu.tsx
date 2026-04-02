@@ -10,33 +10,29 @@
  * - GEAR: Settings
  *
  * Supports Cyberpunk and Retro 16-bit themes.
- * Responsive: 2-column grid on all screens.
+ * Responsive: 2-column grid on mobile/tablet, 3-column grid on xl desktops.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { trackRender } from '../../utils/trackRender';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
 import { audio } from '../../services/audio';
-import { HubMenuButton, type HubButtonId } from './HubMenuButton.tsx';
+import { HubMenuButton } from './HubMenuButton.tsx';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useDevice } from '../../hooks/useDevice';
 import { OptimizationBadge } from '../ui/OptimizationBadge';
 import { cn } from '../../utils/classnames';
+import { ThemedPanel } from '../themed/ThemedPanel';
+import { OverlayBackButton } from '../ui/OverlayChrome';
 
 import { HubPlayerCard } from './HubPlayerCard.tsx';
 import { PlayerProfile } from './PlayerProfile';
 import { LootboxService } from '../../services/lootbox';
 import { InventoryService } from '../../services/inventory';
-import {
-  HubIconPlay,
-  HubIconStash,
-  HubIconLoot,
-  HubIconSkins,
-  HubIconRanks,
-  HubIconGear,
-} from './HubIcons.tsx';
+import { useHubButtons, type HubButtonConfig } from './useHubButtons.tsx';
 
 export type HubScreen = 'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear';
 
@@ -48,23 +44,13 @@ interface HubMenuProps {
   onBack?: () => void;
 }
 
-interface HubButtonConfig {
-  id: HubButtonId;
-  icon: React.ReactNode;
-  title: string;
-  getSubtitle: () => string;
-  getBadge: () => number;
-  accentColor: string;
-  screen: HubScreen;
-  disabled?: boolean;
-}
-
 export const HubMenu: React.FC<HubMenuProps> = ({
   nickname,
   coins,
   onNavigate,
   onBack,
 }) => {
+  trackRender('HubMenu');
   const { isRetro } = useTheme();
   const { t } = useLanguage();
   const sizes = useThemeSize();
@@ -90,127 +76,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   const iconClass = 'w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12';
 
   // Hub button configurations with theme-aware icons
-  const buttons: HubButtonConfig[] = React.useMemo(
-    () => [
-      {
-        id: 'play',
-        icon: (
-          <HubIconPlay
-            className={iconClass}
-            color={COLORS.PUMP_GREEN}
-            isRetro={isRetro}
-            isAnimated={false}
-          />
-        ),
-        title: t('hub.play') as string,
-        getSubtitle: () => t('hub.play_subtitle') as string,
-
-        getBadge: () => 0,
-
-        accentColor: COLORS.PUMP_GREEN,
-        screen: 'play',
-      },
-      {
-        id: 'stash',
-        icon: (
-          <HubIconStash
-            className={iconClass}
-            color={COLORS.WHALE}
-            isRetro={isRetro}
-            isAnimated={false}
-          />
-        ),
-        title: t('hub.stash') as string,
-        getSubtitle: () =>
-          t('hub.stash_subtitle', { count: consumableCount }) as string,
-
-        getBadge: () => 0,
-
-        accentColor: COLORS.WHALE,
-        screen: 'stash',
-        disabled: true,
-      },
-      {
-        id: 'loot',
-        icon: (
-          <HubIconLoot
-            className={iconClass}
-            color={COLORS.CASINO_GOLD}
-            isRetro={isRetro}
-            isAnimated={false}
-          />
-        ),
-        title: t('hub.loot') as string,
-        getSubtitle: () =>
-          lootboxCount > 0
-            ? (t('hub.loot_subtitle') as string)
-            : (t('hub.no_crates') as string),
-
-        getBadge: () => lootboxCount,
-
-        accentColor: COLORS.CASINO_GOLD,
-        screen: 'loot',
-        disabled: true,
-      },
-      {
-        id: 'skins',
-        icon: (
-          <HubIconSkins
-            className={iconClass}
-            color="#9945FF"
-            isRetro={isRetro}
-            isAnimated={false}
-          />
-        ),
-        title: t('hub.skins') as string,
-        getSubtitle: () => t('hub.skins_subtitle') as string,
-
-        getBadge: () => 0,
-
-        accentColor: '#9945FF',
-        screen: 'skins',
-        disabled: true,
-      },
-      {
-        id: 'ranks',
-        icon: (
-          <HubIconRanks
-            className={iconClass}
-            color={COLORS.NEON_ORANGE}
-            isRetro={isRetro}
-            isAnimated={false}
-          />
-        ),
-        title: t('hub.ranks') as string,
-        getSubtitle: () => t('hub.ranks_subtitle') as string,
-
-        getBadge: () => 0,
-
-        accentColor: COLORS.NEON_ORANGE,
-        screen: 'ranks',
-        disabled: true,
-      },
-      {
-        id: 'gear',
-        icon: (
-          <HubIconGear
-            className={iconClass}
-            color="#94a3b8"
-            isRetro={isRetro}
-            isAnimated={false}
-          />
-        ),
-        title: t('hub.gear') as string,
-        getSubtitle: () => t('hub.gear_subtitle') as string,
-
-        getBadge: () => 0,
-
-        accentColor: '#64748b',
-        screen: 'gear',
-      },
-    ],
-    [consumableCount, lootboxCount, iconClass, isRetro, t]
-  );
+  const buttons: HubButtonConfig[] = useHubButtons({
+    consumableCount,
+    lootboxCount,
+    iconClass,
+    isRetro,
+    t,
+  });
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
@@ -303,22 +175,16 @@ export const HubMenu: React.FC<HubMenuProps> = ({
       `}
     >
       {/* Container - pt-14 creates safe space below fixed back button on mobile */}
-      <div className="relative w-full max-w-xl space-y-4 pt-12 sm:space-y-8 sm:pt-0">
+      <div className="relative w-full max-w-4xl space-y-4 pt-12 sm:space-y-8 sm:pt-0 lg:max-w-5xl">
         {/* Back Button (Top Left) */}
         {onBack && (
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={onBack}
-            className="fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
-            style={{
-              top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
-              left: `calc(1rem + env(safe-area-inset-left, 0px))`,
-            }}
-            title="Return to Landing"
-          >
-            ← {!device.isMobile && 'BİLGİ'}
-          </motion.button>
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <OverlayBackButton
+              onClick={onBack}
+              label={!device.isMobile ? 'Info' : undefined}
+              className={device.isMobile ? 'top-auto' : undefined}
+            />
+          </motion.div>
         )}
 
         {/* Title */}
@@ -362,60 +228,78 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         {/* Player Profile Modal */}
         <PlayerProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
-        {/* Player Card */}
-        <div className="hub-grid-item" style={{ animationDelay: '0.1s' }}>
-          <HubPlayerCard
-            nickname={nickname}
-            coins={coins}
-            cryptoBalance={{ btc: 0, eth: 0, sol: 0 }}
-            equippedSkin={equippedSkin}
-            onAvatarClick={() => {
-              audio.playButton();
-              setIsProfileOpen(true);
-            }}
-          />
-        </div>
-
-        {/* Button Grid - CSS stagger instead of per-item framer-motion */}
-        <div className="hub-grid-stagger grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-5">
-          {buttons.map((btn, index) => (
-            <div
-              key={btn.id}
-              className="hub-grid-item"
-              style={{ animationDelay: `${0.1 + index * 0.05}s` }}
-            >
-              <HubMenuButton
-                id={btn.id}
-                icon={btn.icon}
-                title={btn.title}
-                subtitle={btn.getSubtitle()}
-                badge={btn.getBadge()}
-                badgeColor={btn.accentColor}
-                accentColor={btn.accentColor}
-                isSelected={selectedIndex === index}
-                disabled={btn.disabled}
-                onClick={() => {
-                  if (btn.disabled) return;
-                  audio.playButton();
-                  onNavigate(btn.screen);
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Navigation Help */}
-        <div
+        <ThemedPanel
           className={cn(
-            'hub-grid-item',
-            'py-2 text-center lg:py-3 uppercase tracking-widest text-slate-500',
-            isRetro
-              ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[8px]'
-              : 'font-cyber text-xs lg:text-sm'
+            'relative space-y-4 p-4 sm:space-y-5 sm:p-6 lg:p-7',
+            !isRetro &&
+              'bg-slate-900/78 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-xl'
           )}
         >
-          {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
-        </div>
+          {!isRetro && (
+            <>
+              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
+              <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
+              <div className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent shadow-[0_0_20px_rgba(34,211,238,0.25)]" />
+            </>
+          )}
+
+          {/* Player Card */}
+          <div
+            className="hub-grid-item relative z-10"
+            style={{ animationDelay: '0.1s' }}
+          >
+            <HubPlayerCard
+              nickname={nickname}
+              coins={coins}
+              cryptoBalance={{ btc: 0, eth: 0, sol: 0 }}
+              equippedSkin={equippedSkin}
+              onAvatarClick={() => {
+                audio.playButton();
+                setIsProfileOpen(true);
+              }}
+            />
+          </div>
+
+          {/* Button Grid - CSS stagger instead of per-item framer-motion */}
+          <div className="hub-grid-stagger relative z-10 grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-5 xl:grid-cols-3 xl:gap-6">
+            {buttons.map((btn, index) => (
+              <div
+                key={btn.id}
+                className="hub-grid-item"
+                style={{ animationDelay: `${0.1 + index * 0.05}s` }}
+              >
+                <HubMenuButton
+                  id={btn.id}
+                  icon={btn.icon}
+                  title={btn.title}
+                  subtitle={btn.getSubtitle()}
+                  badge={btn.getBadge()}
+                  badgeColor={btn.accentColor}
+                  accentColor={btn.accentColor}
+                  isSelected={selectedIndex === index}
+                  disabled={btn.disabled}
+                  onClick={() => {
+                    if (btn.disabled) return;
+                    audio.playButton();
+                    onNavigate(btn.screen);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Navigation Help */}
+          <div
+            className={cn(
+              'hub-grid-item relative z-10 py-2 text-center lg:py-3 uppercase tracking-widest text-slate-500',
+              isRetro
+                ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[8px]'
+                : 'font-cyber text-xs lg:text-sm'
+            )}
+          >
+            {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
+          </div>
+        </ThemedPanel>
       </div>
     </motion.div>
   );

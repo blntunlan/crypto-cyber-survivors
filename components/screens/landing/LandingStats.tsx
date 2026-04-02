@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { trackRender } from '../../../utils/trackRender';
 import { Check, Cpu, Zap, Activity } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { AnimatedCounter } from './AnimatedCounter';
 import { staggerContainer, fadeInUp } from './motionVariants';
 
 export const LandingStats: React.FC = () => {
+  trackRender('LandingStats');
   const { t } = useLanguage();
 
   return (

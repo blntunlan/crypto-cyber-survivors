@@ -27,10 +27,10 @@ vi.mock('../../../services/system/Logger', () => ({
 // ── Setup ──────────────────────────────────────────────────────────────────
 
 let railwayClient: {
-  get: ReturnType<typeof vi.fn>;
-  post: ReturnType<typeof vi.fn>;
-  patch: ReturnType<typeof vi.fn>;
-  del: ReturnType<typeof vi.fn>;
+  get<T>(path: string): Promise<T>;
+  post<T>(path: string, body?: unknown): Promise<T>;
+  patch<T>(path: string, body?: unknown): Promise<T>;
+  del<T>(path: string): Promise<T>;
 };
 let fetchSpy: ReturnType<typeof vi.fn>;
 
@@ -140,7 +140,7 @@ describe('RailwayClient', () => {
 
       await railwayClient.get('/api/v1/leaderboard');
 
-      const headers = fetchSpy.mock.calls[0][1].headers;
+      const headers = fetchSpy.mock.calls[0]![1].headers;
       expect(headers.Authorization).toBeUndefined();
     });
 
@@ -150,7 +150,7 @@ describe('RailwayClient', () => {
 
       await railwayClient.get('/api/v1/leaderboard');
 
-      const headers = fetchSpy.mock.calls[0][1].headers;
+      const headers = fetchSpy.mock.calls[0]![1].headers;
       expect(headers.Authorization).toBeUndefined();
     });
 
@@ -160,7 +160,7 @@ describe('RailwayClient', () => {
 
       await railwayClient.get('/api/v1/leaderboard');
 
-      const headers = fetchSpy.mock.calls[0][1].headers;
+      const headers = fetchSpy.mock.calls[0]![1].headers;
       expect(headers.Authorization).toBeUndefined();
     });
   });
@@ -179,7 +179,7 @@ describe('RailwayClient', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
 
       // Second call should use the refreshed token
-      const secondCallHeaders = fetchSpy.mock.calls[1][1].headers;
+      const secondCallHeaders = fetchSpy.mock.calls[1]![1].headers;
       expect(secondCallHeaders.Authorization).toBe('Bearer tok-refreshed');
     });
 

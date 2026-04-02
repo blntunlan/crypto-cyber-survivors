@@ -68,10 +68,39 @@ import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { LandingPage } from './components/screens/LandingPage';
 import { DocScreen } from './components/screens/DocScreen';
 import { GameScreenRouter } from './components/GameScreenRouter';
+import { MetaProgressionService } from './services/progression/MetaProgressionService';
+import { ChallengeService } from './services/challenges/ChallengeService';
+import { ReplayRecorderService } from './services/replay/ReplayRecorderService';
+
+// Lazy-load feature screens
+const MetaUpgradeScreen = React.lazy(() =>
+  import('./components/screens/MetaUpgradeScreen').then(m => ({
+    default: m.MetaUpgradeScreen,
+  }))
+);
+const ChallengeScreen = React.lazy(() =>
+  import('./components/screens/ChallengeScreen').then(m => ({
+    default: m.ChallengeScreen,
+  }))
+);
+const ReplayListScreen = React.lazy(() =>
+  import('./components/screens/ReplayListScreen').then(m => ({
+    default: m.ReplayListScreen,
+  }))
+);
 import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
 
 // Lazy load Evolution Viewer for Project Darwin
 const EvolutionViewer = React.lazy(() => import('./components/admin/EvolutionViewer'));
+
+// DEV-only performance overlay
+const DevPerformanceOverlay = import.meta.env.DEV
+  ? React.lazy(() =>
+      import('./components/DevPerformanceOverlay').then(m => ({
+        default: m.DevPerformanceOverlay,
+      }))
+    )
+  : null;
 
 const FallbackLoader = () => (
   <div
@@ -173,6 +202,9 @@ const App: React.FC = () => {
   const [position, setPosition] = useState<MarketPosition>(MarketPosition.LONG);
   const [entryPrice, setEntryPrice] = useState<number>(0);
   const [leverage, setLeverage] = useState<LeverageOption>(10);
+  const [featureOverlay, setFeatureOverlay] = useState<
+    'none' | 'upgrades' | 'challenges' | 'replays'
+  >('none');
   const [selectedPair, setSelectedPair] = useState<CryptoPair>('BTC');
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const {
@@ -323,6 +355,11 @@ const App: React.FC = () => {
       }
 
       resetPlayer();
+
+      // Apply meta progression bonuses before game starts
+      const boosted = MetaProgressionService.applyBonuses(playerRef.current);
+      Object.assign(playerRef.current, boosted);
+
       setLeverage(selectedLeverage);
       CoinService.resetSession();
       ComboSystem.startGame();
@@ -390,6 +427,17 @@ const App: React.FC = () => {
       GameStateMachine.transition(GameStatus.PLAYING);
       MilestoneService.startSession();
       audio.playLevelUp();
+
+      // Start challenge tracking if active
+      ChallengeService.startTracking();
+
+      // Start replay recording
+      ReplayRecorderService.startRecording(
+        `replay-${Date.now()}`,
+        selectedLeverage,
+        choice,
+        selectedPair
+      );
 
       void import('./services/analytics/PerformanceTracker').then(
         ({ PerformanceTracker }) => {
@@ -482,6 +530,11 @@ const App: React.FC = () => {
   return (
     <UserProvider>
       <LazyMotionProvider>
+        {DevPerformanceOverlay && (
+          <React.Suspense fallback={null}>
+            <DevPerformanceOverlay />
+          </React.Suspense>
+        )}
         <div
           className={cn(
             'relative h-screen w-full font-mono',
@@ -627,7 +680,33 @@ const App: React.FC = () => {
                 shouldShowNicknameEntry={shouldShowNicknameEntry}
                 patchIdentityState={patchIdentityState}
                 tutorial={tutorial}
+                onOpenUpgrades={() => setFeatureOverlay('upgrades')}
+                onOpenChallenges={() => setFeatureOverlay('challenges')}
+                onOpenReplays={() => setFeatureOverlay('replays')}
               />
+            )}
+
+            {/* Feature Overlay Screens */}
+            {featureOverlay === 'upgrades' && (
+              <React.Suspense fallback={null}>
+                <MetaUpgradeScreen onBack={() => setFeatureOverlay('none')} />
+              </React.Suspense>
+            )}
+            {featureOverlay === 'challenges' && (
+              <React.Suspense fallback={null}>
+                <ChallengeScreen onBack={() => setFeatureOverlay('none')} />
+              </React.Suspense>
+            )}
+            {featureOverlay === 'replays' && (
+              <React.Suspense fallback={null}>
+                <ReplayListScreen
+                  onBack={() => setFeatureOverlay('none')}
+                  onWatch={id => {
+                    setFeatureOverlay('none');
+                    Logger.info(`[App] Watch replay: ${id}`);
+                  }}
+                />
+              </React.Suspense>
             )}
 
             {/* Legal Modals */}

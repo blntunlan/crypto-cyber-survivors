@@ -5,7 +5,7 @@
  * Handles cleanup on unmount.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { CheatManager } from '../services/system/CheatManager';
 import { GameStatus } from '../types';
 import { EventBus } from '../services/core/EventBus';
@@ -30,6 +30,12 @@ export function useCheatManager(
   handlers: CheatHandlers,
   enabled = import.meta.env.DEV
 ): void {
+  const handlersRef = useRef(handlers);
+  const gameStatusRef = useRef(gameStatus);
+  handlersRef.current = handlers;
+  gameStatusRef.current = gameStatus;
+
+  // Init/destroy only on mount/unmount or enabled change
   useEffect(() => {
     const isCheatEnabled = import.meta.env.DEV && enabled;
     CheatManager.setEnabled(isCheatEnabled);
@@ -40,16 +46,16 @@ export function useCheatManager(
 
     CheatManager.init({
       onLevelUp: () => {
-        if (gameStatus === GameStatus.PLAYING) {
-          handlers.onLevelUp();
+        if (gameStatusRef.current === GameStatus.PLAYING) {
+          handlersRef.current.onLevelUp();
         }
       },
-      onHeal: handlers.onHeal,
+      onHeal: () => handlersRef.current.onHeal(),
       onKillAll: () => EventBus.emit('killAll', {}),
       onToggleGodMode: () => {},
-      onSetLuck: handlers.onSetLuck,
-      onAddExp: handlers.onAddExp,
-      onRestart: handlers.onRestart,
+      onSetLuck: (luck: number) => handlersRef.current.onSetLuck(luck),
+      onAddExp: (amount: number) => handlersRef.current.onAddExp(amount),
+      onRestart: () => handlersRef.current.onRestart(),
       onAddComboKill: (count: number) => {
         for (let i = 0; i < count; i++) {
           EventBus.emit('enemyKilled', { x: 0, y: 0, type: 'cheat', isCrit: false });
@@ -58,5 +64,5 @@ export function useCheatManager(
     });
 
     return () => CheatManager.destroy();
-  }, [gameStatus, handlers, enabled]);
+  }, [enabled]);
 }

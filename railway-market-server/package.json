@@ -1,7 +1,7 @@
 {
   "name": "railway-market-server",
-  "version": "2.0.0",
-  "description": "Real-time crypto market data + game API server",
+  "version": "3.0.0",
+  "description": "Game API server (stateless REST). Market data moved to railway-market-aggregator.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",

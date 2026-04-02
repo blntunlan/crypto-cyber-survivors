@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion'; // 📦 [Import Cost]: 32.4KB (gzipped: 10.8KB)
+import { trackRender } from '../../utils/trackRender';
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { CryptoSelector } from '../ui/CryptoSelector';
 import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
@@ -19,6 +20,9 @@ interface MainMenuProps {
   price: number;
   onStart: (choice: MarketPosition, leverage: LeverageOption) => void | Promise<void>;
   onOpenSettings: () => void;
+  onOpenUpgrades?: () => void;
+  onOpenChallenges?: () => void;
+  onOpenReplays?: () => void;
   selectedPair: CryptoPair;
   onPairChange: (pair: CryptoPair) => void;
   selectedMode: GameMode;
@@ -29,11 +33,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   price,
   onStart,
   onOpenSettings,
+  onOpenUpgrades,
+  onOpenChallenges,
+  onOpenReplays,
   selectedPair,
   onPairChange,
   selectedMode,
   onModeChange,
 }) => {
+  trackRender('MainMenu');
   const { isRetro } = useTheme();
   const sizes = useThemeSize();
   const { t } = useLanguage();
@@ -556,6 +564,36 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           >
             {t('common.settings')}
           </ThemedButton>
+          {/* Feature buttons row */}
+          <div className="mt-3 flex w-full gap-2">
+            {onOpenUpgrades && (
+              <ThemedButton
+                intent="secondary"
+                onClick={onOpenUpgrades}
+                className="min-h-[36px] flex-1 touch-manipulation py-2 text-[10px] font-bold uppercase tracking-wider active:scale-[0.98] sm:text-xs"
+              >
+                {t('menu.upgrades') as string}
+              </ThemedButton>
+            )}
+            {onOpenChallenges && (
+              <ThemedButton
+                intent="secondary"
+                onClick={onOpenChallenges}
+                className="min-h-[36px] flex-1 touch-manipulation py-2 text-[10px] font-bold uppercase tracking-wider active:scale-[0.98] sm:text-xs"
+              >
+                {t('menu.challenges') as string}
+              </ThemedButton>
+            )}
+            {onOpenReplays && (
+              <ThemedButton
+                intent="secondary"
+                onClick={onOpenReplays}
+                className="min-h-[36px] flex-1 touch-manipulation py-2 text-[10px] font-bold uppercase tracking-wider active:scale-[0.98] sm:text-xs"
+              >
+                {t('menu.replays') as string}
+              </ThemedButton>
+            )}
+          </div>
           <div
             className={`pt-1 uppercase tracking-wider sm:pt-2 sm:tracking-widest ${isRetro ? 'font-retro-pixel text-[10px] text-[#7558A4] landscape:text-[9px]' : 'font-display text-[9px] text-slate-500 sm:text-[10px]'}`}
           >

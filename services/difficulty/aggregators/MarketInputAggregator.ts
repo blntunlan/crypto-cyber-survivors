@@ -110,6 +110,11 @@ class MarketInputAggregatorClass {
     this.slice.pnlHistory.length = 0;
   }
 
+  /** Clear per-cycle PnL history but preserve live market indicators from SSE */
+  resetForCycleContinue(): void {
+    this.slice.pnlHistory.length = 0;
+  }
+
   private static getDefaultSlice(): MarketInputSlice {
     return {
       pnlPercent: 0,

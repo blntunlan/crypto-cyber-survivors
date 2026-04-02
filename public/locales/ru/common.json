@@ -37,7 +37,10 @@
       "lev_safe": "БЕЗОПАСНО",
       "lev_standard": "СТАНДАРТ",
       "lev_risky": "РИСК",
-      "lev_degen": "ДЕГЕН"
+      "lev_degen": "ДЕГЕН",
+      "upgrades": "УЛУЧШЕНИЯ",
+      "challenges": "ИСПЫТАНИЯ",
+      "replays": "ПОВТОРЫ"
     },
     "long": "ЛОНГ",
     "short": "ШОРТ",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "ЛИКВИДИРОВАН",
+      "run_summary": "Сводка забега",
       "new_high_score": "Новый Рекорд!",
       "pnl": "P&L",
       "time": "Время",

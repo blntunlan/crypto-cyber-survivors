@@ -53,6 +53,11 @@ class PlayerMetricsAggregatorClass {
     this.slice.stress.nearDeathDuration = 0;
   }
 
+  /** All player metrics are per-cycle, so delegate to full reset */
+  resetForCycleContinue(): void {
+    this.reset();
+  }
+
   private static getDefaultSlice(): PlayerInputSlice {
     return {
       level: 1,

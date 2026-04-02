@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackRender } from '../../../utils/trackRender';
 import { COLORS, COMPETITIVE_LIMITS } from '../../../constants';
 import { Z_LAYERS } from '../../../constants/ZIndex';
 import { audio } from '../../../services/audio';
@@ -25,6 +26,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   onSelect,
   gameMode,
 }) => {
+  trackRender('LevelUpScreen');
   const sizes = useThemeSize();
   const { t } = useLanguage();
 

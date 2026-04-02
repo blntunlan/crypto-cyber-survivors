@@ -24,7 +24,7 @@ import GameEngine from './GameEngine';
 import { GameUI } from './GameUI';
 import { NicknameEntryScreen } from './screens/NicknameEntryScreen';
 import { TutorialOverlay } from './screens/TutorialOverlay';
-import { HubMenu } from './hub';
+import { HubMenu, type HubScreen } from './hub';
 import { MainMenu } from './screens/MainMenu';
 import { CycleCompleteScreen } from './screens/CycleCompleteScreen';
 import { MarketDisconnectedScreen } from './screens/MarketDisconnectedScreen';
@@ -34,6 +34,7 @@ import { UserSessionService } from '../services/auth/UserSessionService';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { CoinService } from '../services/gameplay/CoinService';
 import { useDevice } from '../hooks/useDevice';
+import { OverlayBackButton } from './ui/OverlayChrome';
 
 const UIFallback = () => null;
 const FallbackLoader = () => (
@@ -102,8 +103,8 @@ export interface GameScreenRouterProps {
   audioState: { isMuted: boolean };
   toggleMute: () => void;
   walletBalance: number;
-  hubScreen: string;
-  setHubScreen: (s: string) => void;
+  hubScreen: HubScreen;
+  setHubScreen: (s: HubScreen) => void;
   showSettings: boolean;
   setShowSettings: (v: boolean) => void;
   handleReturnToLanding: () => void;
@@ -113,6 +114,9 @@ export interface GameScreenRouterProps {
   shouldShowNicknameEntry: boolean;
   patchIdentityState: (patch: { hasNickname: boolean }) => void;
   tutorial: TutorialState;
+  onOpenUpgrades?: () => void;
+  onOpenChallenges?: () => void;
+  onOpenReplays?: () => void;
 }
 
 export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
@@ -152,8 +156,18 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   shouldShowNicknameEntry,
   patchIdentityState,
   tutorial,
+  onOpenUpgrades,
+  onOpenChallenges,
+  onOpenReplays,
 }) => {
   const device = useDevice();
+  const [useHubV2, setUseHubV2] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    setUseHubV2(params.get('hubV2') === '1');
+  }, []);
 
   return (
     <>
@@ -242,18 +256,33 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
 
         {gameStatus === GameStatus.MENU && hubScreen === 'hub' && (
           <React.Suspense fallback={<UIFallback />}>
-            <HubMenu
-              nickname={UserSessionService.getNickname() ?? 'Survivor'}
-              coins={walletBalance}
-              onNavigate={screen => {
-                if (screen === 'gear') {
-                  setShowSettings(true);
-                } else {
-                  setHubScreen(screen);
-                }
-              }}
-              onBack={handleReturnToLanding}
-            />
+            {useHubV2 ? (
+              <HubMenuV2
+                nickname={UserSessionService.getNickname() ?? 'Survivor'}
+                coins={walletBalance}
+                onNavigate={screen => {
+                  if (screen === 'gear') {
+                    setShowSettings(true);
+                  } else {
+                    setHubScreen(screen);
+                  }
+                }}
+                onBack={handleReturnToLanding}
+              />
+            ) : (
+              <HubMenu
+                nickname={UserSessionService.getNickname() ?? 'Survivor'}
+                coins={walletBalance}
+                onNavigate={screen => {
+                  if (screen === 'gear') {
+                    setShowSettings(true);
+                  } else {
+                    setHubScreen(screen);
+                  }
+                }}
+                onBack={handleReturnToLanding}
+              />
+            )}
           </React.Suspense>
         )}
 
@@ -263,21 +292,18 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
               price={marketData.price}
               onStart={(c, l) => void startGame(c, l)}
               onOpenSettings={() => setShowSettings(true)}
+              onOpenUpgrades={onOpenUpgrades}
+              onOpenChallenges={onOpenChallenges}
+              onOpenReplays={onOpenReplays}
               selectedPair={selectedPair}
               onPairChange={setSelectedPair}
               selectedMode={gameMode}
               onModeChange={setGameMode}
             />
-            <button
+            <OverlayBackButton
               onClick={() => setHubScreen('hub')}
-              className="fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-mono text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95"
-              style={{
-                top: `calc(${device.isMobile ? '2.5rem' : '1rem'} + env(safe-area-inset-top, 0px))`,
-                left: `calc(1rem + env(safe-area-inset-left, 0px))`,
-              }}
-            >
-              ← {!device.isMobile && 'HUB'}
-            </button>
+              label={!device.isMobile ? 'Hub' : undefined}
+            />
           </React.Suspense>
         )}
 

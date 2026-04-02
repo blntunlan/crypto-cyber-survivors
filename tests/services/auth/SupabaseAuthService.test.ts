@@ -112,7 +112,7 @@ describe('SupabaseAuthService', () => {
       const svc = freshService();
       svc.initialize();
 
-      const callback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const callback = mockAuth.onAuthStateChange.mock.calls[0]![0];
       callback('SIGNED_IN', fakeSession);
 
       expect(EventBus.emit).toHaveBeenCalledWith('authStateChanged', {
@@ -126,7 +126,7 @@ describe('SupabaseAuthService', () => {
       const svc = freshService();
       svc.initialize();
 
-      const callback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const callback = mockAuth.onAuthStateChange.mock.calls[0]![0];
       callback('SIGNED_OUT', null);
 
       expect(EventBus.emit).toHaveBeenCalledWith('authStateChanged', {
@@ -140,7 +140,7 @@ describe('SupabaseAuthService', () => {
       const svc = freshService();
       svc.initialize();
 
-      const callback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const callback = mockAuth.onAuthStateChange.mock.calls[0]![0];
       callback('TOKEN_REFRESHED', fakeSession);
 
       expect(EventBus.emit).toHaveBeenCalledWith('authStateChanged', {
@@ -154,7 +154,7 @@ describe('SupabaseAuthService', () => {
       const svc = freshService();
       svc.initialize();
 
-      const callback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const callback = mockAuth.onAuthStateChange.mock.calls[0]![0];
       callback('INITIAL_SESSION', null);
 
       expect(EventBus.emit).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('SupabaseAuthService', () => {
       const svc = freshService();
       svc.initialize();
 
-      const callback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const callback = mockAuth.onAuthStateChange.mock.calls[0]![0];
       callback('USER_UPDATED', fakeSession);
 
       expect(EventBus.emit).toHaveBeenCalledWith('authStateChanged', {
@@ -178,7 +178,7 @@ describe('SupabaseAuthService', () => {
       const svc = freshService();
       svc.initialize();
 
-      const callback = mockAuth.onAuthStateChange.mock.calls[0][0];
+      const callback = mockAuth.onAuthStateChange.mock.calls[0]![0];
       callback('PASSWORD_RECOVERY', fakeSession);
 
       expect(EventBus.emit).toHaveBeenCalledWith('authStateChanged', {

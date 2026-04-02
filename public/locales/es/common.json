@@ -37,7 +37,10 @@
       "lev_safe": "SEGURO",
       "lev_standard": "ESTÁNDAR",
       "lev_risky": "RIESGOSO",
-      "lev_degen": "DEGEN"
+      "lev_degen": "DEGEN",
+      "upgrades": "MEJORAS",
+      "challenges": "DESAFÍOS",
+      "replays": "REPETICIONES"
     },
     "long": "LONG",
     "short": "SHORT",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "LIQUIDADO",
+      "run_summary": "Resumen de la partida",
       "new_high_score": "¡Nuevo Récord!",
       "pnl": "P&L",
       "time": "Tiempo",

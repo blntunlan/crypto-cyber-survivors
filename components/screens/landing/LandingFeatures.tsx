@@ -1,10 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { trackRender } from '../../../utils/trackRender';
 import { Shield, Cpu, Activity } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { staggerContainer, fadeInUp } from './motionVariants';
 
 export const LandingFeatures: React.FC = () => {
+  trackRender('LandingFeatures');
   const { t } = useLanguage();
 
   return (

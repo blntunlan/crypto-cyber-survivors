@@ -114,11 +114,16 @@ export class GameLoopCoordinator<TContext extends TickContext = TickContext> {
     return result;
   }
 
+  // Pre-allocated result object for runTickSync to avoid per-frame allocation
+  private _syncResult: GameLoopTickResult<TContext> = {
+    completedPhaseIds: [],
+    errors: [],
+  };
+
   public runTickSync(context: TContext): GameLoopTickResult<TContext> {
-    const result: GameLoopTickResult<TContext> = {
-      completedPhaseIds: [],
-      errors: [],
-    };
+    const result = this._syncResult;
+    result.completedPhaseIds.length = 0;
+    result.errors.length = 0;
 
     for (const phase of this.phases) {
       this.invokeBeforePhaseSync(phase, context, result);

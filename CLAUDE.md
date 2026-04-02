@@ -69,16 +69,18 @@ The `UnifiedDirector` is the runtime difficulty pipeline introduced in the lates
 ### Client ↔ Server Architecture
 ```
 Client --[supabase-js]--> Supabase Auth (login/signup/JWT only)
-Client --[SSE]----------> Railway Server /api/v1/market/stream (price + indicators, ~1s)
-Client --[fetch]--------> Railway API /api/v1/* (profile, sessions, wallet, leaderboard, telemetry)
-Railway --[WebSocket]---> Binance/Coinbase (single source of truth for prices)
-Railway --[pg]----------> Railway PostgreSQL (all data tables)
+Client --[SSE]----------> Market Aggregator /api/v1/market/stream (price + indicators, ~1s)
+Client --[fetch]--------> API Server /api/v1/* (profile, sessions, wallet, leaderboard, telemetry)
+Market Aggregator --[WebSocket]---> Binance/Coinbase (single source of truth for prices)
+Market Aggregator --[pg]----------> Railway PostgreSQL (market_state, price_history)
+API Server --------[pg]----------> Railway PostgreSQL (all data tables)
 ```
 
 - **`services/api/RailwayClient.ts`**: HTTP client, auto-attaches Supabase JWT
-- **`services/market/SSEMarketService.ts`**: EventSource client, replaces WebSocket MarketService
-- **`railway-market-server/src/routes/`**: Express API routes (profile, sessions, wallet, leaderboard, telemetry, identities, marketStream)
-- **`railway-market-server/src/db/`**: PostgreSQL pool + schema (10 tables, 1 view, 3 functions)
+- **`services/market/SSEMarketService.ts`**: EventSource client, connects to aggregator (`VITE_MARKET_AGGREGATOR_URL`, falls back to `VITE_RAILWAY_API_URL`)
+- **`railway-market-server/`**: Stateless REST API server (profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays)
+- **`railway-market-aggregator/`**: Stateful market data pipeline (Binance/Coinbase WS → Indicators → SSE stream + DB writes + Cleanup cron)
+- **`railway-market-server/src/db/`**: PostgreSQL pool + schema (16 tables, 3 views, 6 functions)
 
 ### Key Design Patterns
 - **EventBus** (Observer): `EventBus.on('eventName', handler)` / `EventBus.emit('eventName', data)` - decoupled cross-system communication
@@ -153,7 +155,8 @@ Three active issues to be aware of when touching related code:
 ## Backend
 
 - **Supabase**: Auth only (login/signup/JWT). No DB or edge functions.
-- **Railway PostgreSQL**: All data tables (profiles, sessions, virtual_accounts, ledger, etc.). Schema in `railway-market-server/src/db/schema.sql`.
-- **Railway Market Server**: Full API + SSE market stream + WebSocket aggregator in `railway-market-server/` (separate TypeScript project)
-- **Deployment**: Railway auto-deploys on push to main
-- **Env vars**: `DATABASE_URL` (Railway PG), `SUPABASE_JWT_SECRET` (for auth middleware), `VITE_RAILWAY_API_URL` (client-side)
+- **Railway PostgreSQL**: All data tables (16 tables, 3 views, 6 functions). Schema in `railway-market-server/src/db/schema.sql`.
+- **Railway API Server** (`railway-market-server/`): Stateless REST API — profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays
+- **Railway Market Aggregator** (`railway-market-aggregator/`): Stateful market pipeline — Binance/Coinbase WS → Indicator calc → SSE stream to clients + price_history/market_state DB writes + Cleanup cron. Deploy independently from API.
+- **Deployment**: Railway auto-deploys on push to main. API Server and Market Aggregator are separate Railway services sharing the same Postgres.
+- **Env vars**: `DATABASE_URL` (Railway PG), `SUPABASE_JWT_SECRET` (for auth middleware), `VITE_RAILWAY_API_URL` (client-side API), `VITE_MARKET_AGGREGATOR_URL` (client-side SSE, optional — falls back to `VITE_RAILWAY_API_URL`)

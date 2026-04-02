@@ -1,16 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { BinanceService } from './services/binanceService';
 import { SupabaseService } from './services/supabaseService';
-import { PriceLogger } from './services/priceLogger';
-import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import twitterAuthRouter from './services/twitterAuth';
 import { closePool, getPool } from './db/pool';
 import { runMigrations } from './db/migrate';
-import { startHeartbeat, getSSEClientCount } from './routes/marketStream';
 import { asyncHandler } from './utils/asyncHandler';
 
 // API Routes
@@ -20,7 +16,6 @@ import walletRouter from './routes/wallet';
 import leaderboardRouter from './routes/leaderboard';
 import telemetryRouter from './routes/telemetry';
 import identitiesRouter from './routes/identities';
-import marketStreamRouter from './routes/marketStream';
 import metaProgressionRouter from './routes/metaProgression';
 import challengesRouter from './routes/challenges';
 import replaysRouter from './routes/replays';
@@ -69,7 +64,6 @@ app.use('/api/v1/wallet', walletRouter);
 app.use('/api/v1/leaderboard', leaderboardRouter);
 app.use('/api/v1/telemetry', telemetryRouter);
 app.use('/api/v1/identities', identitiesRouter);
-app.use('/api/v1/market', marketStreamRouter);
 app.use('/api/v1/meta', metaProgressionRouter);
 app.use('/api/v1/challenges', challengesRouter);
 app.use('/api/v1/replays', replaysRouter);
@@ -77,38 +71,33 @@ app.use('/api/v1/replays', replaysRouter);
 // ---- Monitoring endpoints ----
 
 app.get('/health', asyncHandler(async (_req: express.Request, res: express.Response) => {
-  const binance = BinanceService.getInstance();
   const db = await SupabaseService.getInstance().checkHealth();
   res.json({
-    status: binance.isConnected() && db ? 'ok' : 'degraded',
+    status: db ? 'ok' : 'degraded',
+    service: 'api-server',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    binanceConnected: binance.isConnected(),
     dbConnected: db,
-    sseClients: getSSEClientCount(),
   });
 }));
 
 app.get('/stats', (_req, res) => {
-  const priceStats = PriceLogger.getInstance().getStats();
-  const cleanupStats = CleanupCron.getInstance().getStats();
   res.json({
-    price: priceStats,
-    cleanup: cleanupStats,
-    sseClients: getSSEClientCount(),
+    service: 'api-server',
+    uptime: Math.round(process.uptime()),
+    memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
   });
 });
 
 /**
  * GET /debug — Full system diagnostics for production monitoring.
- * Returns DB table counts, pool stats, pipeline health, and sync status.
+ * Returns DB table counts, pool stats, and activity metrics.
  */
 app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Response) => {
-  const binance = BinanceService.getInstance();
   const pool = getPool();
   const dbHealthy = await SupabaseService.getInstance().checkHealth();
 
-  // DB table row counts (exact counts, individually to handle missing tables)
+  // DB table row counts
   let tableCounts: Record<string, number> = {};
   try {
     const tables = [
@@ -118,13 +107,12 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
       'identities', 'meta_progression', 'daily_challenges',
       'challenge_completions', 'challenge_seed_log', 'game_replays',
     ];
-    // Count each table individually to avoid one missing table breaking all counts
     for (const t of tables) {
       try {
         const { rows: r } = await pool.query<{ count: string }>(`SELECT COUNT(*)::TEXT AS count FROM ${t}`);
         tableCounts[t] = Number(r[0]?.count ?? 0);
       } catch {
-        tableCounts[t] = -1; // table doesn't exist
+        tableCounts[t] = -1;
       }
     }
   } catch {
@@ -138,7 +126,7 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
     waitingCount: pool.waitingCount,
   };
 
-  // Recent errors: count + last 10 details
+  // Recent errors
   let recentErrors = 0;
   type ErrorRow = { error_type: string; message: string; severity: string; category: string; created_at: string };
   let recentErrorDetails: ErrorRow[] = [];
@@ -157,7 +145,7 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
     recentErrorDetails = detailRows;
   } catch { /* ignore */ }
 
-  // Check for recent cheat attempts (last 24h)
+  // Recent cheat attempts
   let recentCheats = 0;
   try {
     const { rows } = await pool.query<{ count: string }>(
@@ -166,7 +154,7 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
     recentCheats = Number(rows[0]?.count ?? 0);
   } catch { /* ignore */ }
 
-  // Verified vs unverified sessions (last 24h)
+  // Session stats
   type SessionStat = { is_verified: boolean; count: string };
   let sessionStats: Record<string, number> = {};
   try {
@@ -181,41 +169,18 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
     };
   } catch { /* ignore */ }
 
-  // Market data freshness
-  type MarketRow = { pair: string; price: number; updated_at: string };
-  let marketFreshness: Record<string, unknown>[] = [];
-  try {
-    const { rows } = await pool.query<MarketRow>(
-      `SELECT pair, price, updated_at FROM market_state ORDER BY pair`
-    );
-    marketFreshness = rows.map(r => ({
-      pair: r.pair,
-      price: r.price,
-      updatedAt: r.updated_at,
-      staleSeconds: Math.round((Date.now() - new Date(r.updated_at).getTime()) / 1000),
-    }));
-  } catch { /* ignore */ }
-
-  const priceStats = PriceLogger.getInstance().getStats();
-  const cleanupStats = CleanupCron.getInstance().getStats();
-
   res.json({
     timestamp: new Date().toISOString(),
+    service: 'api-server',
     server: {
       uptime: Math.round(process.uptime()),
       memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
       nodeVersion: process.version,
     },
-    pipeline: {
-      binanceConnected: binance.isConnected(),
-      dbConnected: dbHealthy,
-      sseClients: getSSEClientCount(),
-      priceStats,
-    },
     database: {
+      connected: dbHealthy,
       pool: poolStats,
       tableCounts,
-      marketFreshness,
     },
     activity: {
       sessionStats,
@@ -223,20 +188,19 @@ app.get('/debug', asyncHandler(async (_req: express.Request, res: express.Respon
       recentErrorDetails,
       recentCheats_24h: recentCheats,
     },
-    cleanup: cleanupStats,
   });
 }));
 
 app.get('/', (_req, res) => {
   res.json({
-    name: 'Railway Market Server',
-    version: '2.0.0',
-    description: 'Real-time crypto market data + game API server',
+    name: 'Railway API Server',
+    version: '3.0.0',
+    description: 'Game API server (stateless REST)',
+    note: 'Market data (SSE/WebSocket) moved to market-aggregator service',
     endpoints: {
       health: '/health',
       stats: '/stats',
       debug: '/debug',
-      marketStream: '/api/v1/market/stream?pair=BTC',
       profile: '/api/v1/profile',
       sessions: '/api/v1/sessions',
       wallet: '/api/v1/wallet',
@@ -248,18 +212,11 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.post('/cleanup', (_req, res) => {
-  void CleanupCron.getInstance()
-    .runCleanup()
-    .then(result => res.json(result))
-    .catch(error => res.status(500).json({ error: (error as Error).message }));
-});
-
 async function startServer(): Promise<void> {
   ErrorReporter.initGlobalHandlers();
 
   try {
-    Logger.info('🚀 Starting Railway Market Server v2.0...');
+    Logger.info('🚀 Starting Railway API Server v3.0...');
 
     // Initialize database service (validates DATABASE_URL)
     SupabaseService.getInstance();
@@ -267,33 +224,15 @@ async function startServer(): Promise<void> {
     // Run pending database migrations
     await runMigrations();
 
-    BinanceService.getInstance();
-
-    // Start price logging
-    const priceLogger = PriceLogger.getInstance();
-    await priceLogger.start();
-
-    // Start cleanup cron
-    const cleanupCron = CleanupCron.getInstance();
-    cleanupCron.start();
-
-    // Start SSE heartbeat (every 5 seconds)
-    const heartbeatTimer = startHeartbeat(5000);
-
     // Start HTTP server
     app.listen(PORT, () => {
-      Logger.info(`🚀 Server ready at http://localhost:${PORT}`);
+      Logger.info(`🚀 API Server ready at http://localhost:${PORT}`);
     });
 
     // Graceful shutdown
     const shutdown = (signal: string) => {
       Logger.info(`${signal} received, shutting down gracefully...`);
-      clearInterval(heartbeatTimer);
-      cleanupCron.stop();
-      void priceLogger
-        .stop()
-        .then(() => closePool())
-        .finally(() => process.exit(0));
+      void closePool().finally(() => process.exit(0));
     };
 
     process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -11,6 +11,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackRender } from '../../utils/trackRender';
 import { EventBus } from '../../services/core/EventBus';
 import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { Z_LAYERS } from '../../constants/ZIndex';
@@ -57,6 +58,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
   visible: externalVisible,
   testMode = false,
 }) => {
+  trackRender('CycleDecisionScreen');
   const { t } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<DecisionState>({
@@ -71,12 +73,22 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
     null
   );
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastProcessedCycleRef = useRef<number>(0);
 
   // Cleanup transition timer on unmount
   useEffect(() => {
     return () => {
       if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
     };
+  }, []);
+
+  // Reset on game reset
+  useEffect(() => {
+    const unsubReset = EventBus.on('gameReset', () => {
+      lastProcessedCycleRef.current = 0;
+    });
+
+    return unsubReset;
   }, []);
 
   // Use ref to avoid stale closure in timer
@@ -155,6 +167,8 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
     const unsubscribe = EventBus.on(
       'cycleComplete',
       (data: { cycleNumber: number; totalElapsedSeconds?: number }) => {
+        if (data.cycleNumber <= lastProcessedCycleRef.current) return;
+        lastProcessedCycleRef.current = data.cycleNumber;
         const cycleNumber = data.cycleNumber;
         const currentDifficulty = DifficultyManager.getLatestOutput()?.total ?? 1;
 
@@ -206,8 +220,8 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
           className="fixed inset-0 flex items-center justify-center"
-          style={{ zIndex: Z_LAYERS.CYCLE_COMPLETE }}
           style={{
+            zIndex: Z_LAYERS.CYCLE_COMPLETE,
             background:
               'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.9) 100%)',
             backdropFilter: 'blur(8px)',

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { trackRender } from '../../../utils/trackRender';
 import { Play, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -8,6 +9,7 @@ interface LandingHeroProps {
 }
 
 export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
+  trackRender('LandingHero');
   const { t } = useLanguage();
   const timestamp = useMemo(() => new Date().toISOString(), []);
 

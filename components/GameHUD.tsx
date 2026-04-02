@@ -32,6 +32,7 @@ import {
   ComboPanel,
   MarketAnnouncementBanner,
 } from './hud';
+import { ChallengeProgressHUD } from './hud/ChallengeProgressHUD';
 
 // Import animations
 import './hud/hud-animations.css';
@@ -120,6 +121,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       {layout.elements.achievementPopup.visible && (
         <AchievementPopup achievement={achievement} />
       )}
+      <ChallengeProgressHUD />
     </div>
   );
 };

@@ -43,8 +43,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   const cyberStyles = {
     base: `
       relative overflow-hidden
-      bg-slate-900/40 border border-white/10
-      cyber-glass rounded-2xl
+      bg-white/5 border border-white/10
+      rounded-sm
       transition-all duration-300 ease-out
       hover:bg-white/10 hover:border-white/30
       hover:shadow-[var(--hub-shadow-hover)]

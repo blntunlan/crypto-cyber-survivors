@@ -37,7 +37,10 @@
       "lev_safe": "安全",
       "lev_standard": "标准",
       "lev_risky": "风险",
-      "lev_degen": "赌徒 (DEGEN)"
+      "lev_degen": "赌徒 (DEGEN)",
+      "upgrades": "升级",
+      "challenges": "挑战",
+      "replays": "回放"
     },
     "long": "做多 (LONG)",
     "short": "做空 (SHORT)",
@@ -148,6 +151,7 @@
     },
     "game_over_screen": {
       "liquidated": "已爆仓 (LIQUIDATED)",
+      "run_summary": "回合总结",
       "new_high_score": "新高分！",
       "pnl": "盈亏 (P&L)",
       "time": "时间",

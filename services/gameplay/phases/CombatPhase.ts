@@ -5,6 +5,7 @@ import {
   type BaselinePhaseResult,
   type IGameplayPhase,
 } from './IGameplayPhase';
+import { WeaponSystem } from '../../combat/WeaponSystem';
 
 interface CombatPhaseSharedContract {
   deltaTime: number;
@@ -51,14 +52,17 @@ export class CombatPhase implements IGameplayPhase<'combat'> {
       return result;
     }
 
-    shared.didAttack = shared.combatSystem.processAutoFire(
-      pool,
-      player,
-      s,
-      shared.deltaTime,
-      shared.width,
-      shared.height
-    );
+    const hasWeapons = WeaponSystem.getWeapons().length > 0;
+    if (!hasWeapons) {
+      shared.didAttack = shared.combatSystem.processAutoFire(
+        pool,
+        player,
+        s,
+        shared.deltaTime,
+        shared.width,
+        shared.height
+      );
+    }
 
     return result;
   }

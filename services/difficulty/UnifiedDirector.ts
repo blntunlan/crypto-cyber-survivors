@@ -107,21 +107,33 @@ class RuleBasedDirector {
     this.smoothedOutputs = { ...this.outputs };
   }
 
+  // Pre-computed numeric keys to avoid Object.keys() allocation per frame
+  private static readonly NUMERIC_KEYS: Array<keyof UnifiedOutputs> = [
+    'spawnRate',
+    'enemySpeed',
+    'enemyHP',
+    'enemyDamage',
+    'gemDropRate',
+    'enemyVariety',
+    'chaosLevel',
+    'mercyFactor',
+    'pressureIntensity',
+    'whaleProbability',
+    'xpMultiplier',
+    'lootboxDropChance',
+  ];
+
   private applySmoothing(): void {
     const LERP_SPEED = 0.05; // 5% approach per frame to prevent jerky game feel
+    const s = this.smoothedOutputs as unknown as Record<string, number>;
+    const o = this.outputs as unknown as Record<string, number>;
 
-    const keys = Object.keys(this.outputs) as Array<keyof UnifiedOutputs>;
-    for (const key of keys) {
-      const val = this.outputs[key];
-      if (typeof val === 'number') {
-        (this.smoothedOutputs as Record<string, number>)[key as string] =
-          (this.smoothedOutputs[key] as number) +
-          (val - (this.smoothedOutputs[key] as number)) * LERP_SPEED;
-      } else {
-        // Non-numeric fields (trendAlignment) - copy directly
-        (this.smoothedOutputs as Record<string, unknown>)[key as string] = val;
-      }
+    for (let i = 0; i < RuleBasedDirector.NUMERIC_KEYS.length; i++) {
+      const key = RuleBasedDirector.NUMERIC_KEYS[i] as string;
+      s[key] = s[key]! + (o[key]! - s[key]!) * LERP_SPEED;
     }
+    // Non-numeric: copy directly
+    this.smoothedOutputs.trendAlignment = this.outputs.trendAlignment;
   }
 
   public getOutputs(): UnifiedOutputs {

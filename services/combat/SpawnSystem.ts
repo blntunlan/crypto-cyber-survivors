@@ -215,8 +215,11 @@ export class SpawnSystem implements ISpawnSystem {
       eventBoost *
       (deltaTime / frameTargetMs);
 
-    // Count active whales
-    const activeWhales = pool.activeEnemies.filter(e => e.type === 'whale').length;
+    // Count active whales (avoid .filter() allocation in hot path)
+    let activeWhales = 0;
+    for (let i = 0; i < pool.activeEnemies.length; i++) {
+      if (pool.activeEnemies[i]!.type === 'whale') activeWhales++;
+    }
 
     if (
       this.whaleCooldownTimer <= 0 &&
@@ -317,26 +320,30 @@ export class SpawnSystem implements ISpawnSystem {
     }
 
     // Ultra-rare 51% Attack boss spawn (difficulty >= 5)
-    if (
-      difficulty >= 5 &&
-      this.attackCooldownTimer <= 0 &&
-      Math.random() < 0.008 &&
-      pool.activeEnemies.filter(e => e.type === '51_attack').length === 0
-    ) {
-      const bossPos = this.getRandomSpawnPosition(width, height);
-      pool.getEnemy(
-        bossPos.x,
-        bossPos.y,
-        difficulty,
-        position,
-        '51_attack',
-        undefined,
-        damageMultiplier,
-        speedMultiplier,
-        rsiModifier
-      );
-      this.attackCooldownTimer = SpawnSystem.ATTACK_51_COOLDOWN_MS;
-      Logger.info('[SpawnSystem] 51% Attack boss spawned!');
+    if (difficulty >= 5 && this.attackCooldownTimer <= 0 && Math.random() < 0.008) {
+      let has51Attack = false;
+      for (let i = 0; i < pool.activeEnemies.length; i++) {
+        if (pool.activeEnemies[i]!.type === '51_attack') {
+          has51Attack = true;
+          break;
+        }
+      }
+      if (!has51Attack) {
+        const bossPos = this.getRandomSpawnPosition(width, height);
+        pool.getEnemy(
+          bossPos.x,
+          bossPos.y,
+          difficulty,
+          position,
+          '51_attack',
+          undefined,
+          damageMultiplier,
+          speedMultiplier,
+          rsiModifier
+        );
+        this.attackCooldownTimer = SpawnSystem.ATTACK_51_COOLDOWN_MS;
+        Logger.info('[SpawnSystem] 51% Attack boss spawned!');
+      }
     }
 
     pool.getEnemy(

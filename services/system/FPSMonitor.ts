@@ -34,10 +34,16 @@ class FPSMonitorClass {
     DeviceProfile.ULTRA,
   ];
 
-  // Performance Timings
-  private updateDurations: number[] = [];
-  private renderDurations: number[] = [];
-  private physicsDurations: number[] = [];
+  // Performance Timings (circular buffers to avoid .shift() O(n))
+  private updateDurations: Float64Array = new Float64Array(CONFIG.SAMPLE_SIZE);
+  private renderDurations: Float64Array = new Float64Array(CONFIG.SAMPLE_SIZE);
+  private physicsDurations: Float64Array = new Float64Array(CONFIG.SAMPLE_SIZE);
+  private updateIdx = 0;
+  private renderIdx = 0;
+  private physicsIdx = 0;
+  private updateCount = 0;
+  private renderCount = 0;
+  private physicsCount = 0;
 
   constructor() {
     // FIXED: Listen to gameReset to clear state between games
@@ -49,13 +55,18 @@ class FPSMonitorClass {
    */
   public reset(): void {
     this.frames = [];
-    this.updateDurations = [];
-    this.renderDurations = [];
-    this.physicsDurations = [];
+    this.updateDurations.fill(0);
+    this.renderDurations.fill(0);
+    this.physicsDurations.fill(0);
+    this.updateIdx = 0;
+    this.renderIdx = 0;
+    this.physicsIdx = 0;
+    this.updateCount = 0;
+    this.renderCount = 0;
+    this.physicsCount = 0;
     this.lastTime = 0;
     this.lastCheckTime = 0;
     this.smoothedFps = 0;
-    // Note: Don't stop monitoring, just clear accumulated data
     Logger.debug('[FPSMonitor] State reset for new game');
   }
 
@@ -65,9 +76,15 @@ class FPSMonitorClass {
   public start() {
     this.isMonitoring = true;
     this.frames = [];
-    this.updateDurations = [];
-    this.renderDurations = [];
-    this.physicsDurations = [];
+    this.updateDurations.fill(0);
+    this.renderDurations.fill(0);
+    this.physicsDurations.fill(0);
+    this.updateIdx = 0;
+    this.renderIdx = 0;
+    this.physicsIdx = 0;
+    this.updateCount = 0;
+    this.renderCount = 0;
+    this.physicsCount = 0;
     this.lastTime = performance.now();
     this.lastCheckTime = performance.now();
     this.smoothedFps = 0;
@@ -83,36 +100,50 @@ class FPSMonitorClass {
 
   public recordUpdate(duration: number) {
     if (!this.isMonitoring) return;
-    this.updateDurations.push(duration);
-    if (this.updateDurations.length > CONFIG.SAMPLE_SIZE) this.updateDurations.shift();
+    this.updateDurations[this.updateIdx] = duration;
+    this.updateIdx = (this.updateIdx + 1) % CONFIG.SAMPLE_SIZE;
+    if (this.updateCount < CONFIG.SAMPLE_SIZE) this.updateCount++;
   }
 
   public recordRender(duration: number) {
     if (!this.isMonitoring) return;
-    this.renderDurations.push(duration);
-    if (this.renderDurations.length > CONFIG.SAMPLE_SIZE) this.renderDurations.shift();
+    this.renderDurations[this.renderIdx] = duration;
+    this.renderIdx = (this.renderIdx + 1) % CONFIG.SAMPLE_SIZE;
+    if (this.renderCount < CONFIG.SAMPLE_SIZE) this.renderCount++;
   }
 
   public recordPhysics(duration: number) {
     if (!this.isMonitoring) return;
-    this.physicsDurations.push(duration);
-    if (this.physicsDurations.length > CONFIG.SAMPLE_SIZE) {
-      this.physicsDurations.shift();
-    }
+    this.physicsDurations[this.physicsIdx] = duration;
+    this.physicsIdx = (this.physicsIdx + 1) % CONFIG.SAMPLE_SIZE;
+    if (this.physicsCount < CONFIG.SAMPLE_SIZE) this.physicsCount++;
+  }
+
+  private avgTyped(arr: Float64Array, count: number): number {
+    if (count === 0) return 0;
+    let sum = 0;
+    for (let i = 0; i < count; i++) sum += arr[i]!;
+    return sum / count;
+  }
+
+  private maxTyped(arr: Float64Array, count: number): number {
+    if (count === 0) return 0;
+    let m = 0;
+    for (let i = 0; i < count; i++) if (arr[i]! > m) m = arr[i]!;
+    return m;
   }
 
   public getStats() {
     const avg = (arr: number[]) =>
       arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-    const max = (arr: number[]) => (arr.length ? Math.max(...arr) : 0);
 
     return {
       fps: this.smoothedFps || avg(this.frames),
-      updateAvg: avg(this.updateDurations),
-      updateMax: max(this.updateDurations),
-      renderAvg: avg(this.renderDurations),
-      renderMax: max(this.renderDurations),
-      physicsAvg: avg(this.physicsDurations),
+      updateAvg: this.avgTyped(this.updateDurations, this.updateCount),
+      updateMax: this.maxTyped(this.updateDurations, this.updateCount),
+      renderAvg: this.avgTyped(this.renderDurations, this.renderCount),
+      renderMax: this.maxTyped(this.renderDurations, this.renderCount),
+      physicsAvg: this.avgTyped(this.physicsDurations, this.physicsCount),
       activeEnemies: this.activeEnemies,
       activeBullets: this.activeBullets,
       activeParticles: this.activeParticles,

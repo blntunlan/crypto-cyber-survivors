@@ -6,7 +6,7 @@ import { screenService } from '../../services/system/ScreenService';
 import { DeviceBenchmarkService } from '../../services/system/DeviceBenchmarkService';
 import { DeviceProfile } from '../../types/DeviceProfile';
 import { useIsRetro, useTheme } from '../../contexts/useTheme';
-import { COLORS } from '../../constants';
+import { COLORS } from '../../config/Colors';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { cn } from '../../utils/classnames';
 import {

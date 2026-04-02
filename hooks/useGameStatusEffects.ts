@@ -13,6 +13,7 @@ import { GameStatus, type Player } from '../types';
 import { type PoolManager } from '../services/combat/PoolManager';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
+import { WeaponSystem } from '../services/combat/WeaponSystem';
 import type { GameState } from '../types';
 
 interface UseGameStatusEffectsParams {
@@ -53,6 +54,7 @@ export function useGameStatusEffects({
       state.current.shake = 0;
       state.current.critFlash = 0;
       BuffManager.reset();
+      WeaponSystem.reset();
     }
 
     // Initialize BuffManager when game starts

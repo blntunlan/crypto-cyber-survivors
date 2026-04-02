@@ -126,10 +126,10 @@ export const AnalyticsDashboard: React.FC = () => {
       const updates: Partial<DashboardState> = {};
 
       updates.summary = {
-        total_players: debugData.database.tableCounts.profiles,
+        total_players: debugData.database.tableCounts.profiles ?? 0,
         active_players_24h: 0,
         active_players_7d: 0,
-        total_sessions: debugData.database.tableCounts.sessions,
+        total_sessions: debugData.database.tableCounts.sessions ?? 0,
         sessions_today:
           debugData.activity.sessionStats.verified_24h +
           debugData.activity.sessionStats.unverified_24h,

@@ -6,6 +6,7 @@
  */
 
 import { type Card } from './types';
+import { WeaponSystem } from '../combat/WeaponSystem';
 
 // =============================================================================
 // COMMON CARDS
@@ -157,6 +158,28 @@ export const RARE_CARDS: Card[] = [
     ],
   },
   {
+    id: 'weapon_laser',
+    name: 'Volatility Laser',
+    description: 'Adds Laser weapon (ATR bonus)',
+    icon: '⚡',
+    tier: 'rare',
+    effect: player => {
+      WeaponSystem.addWeapon('laser');
+      return player;
+    },
+  },
+  {
+    id: 'weapon_boomerang',
+    name: 'RSI Boomerang',
+    description: 'Adds Boomerang weapon (RSI bonus)',
+    icon: '🪃',
+    tier: 'rare',
+    effect: player => {
+      WeaponSystem.addWeapon('boomerang');
+      return player;
+    },
+  },
+  {
     id: 'exec_r1',
     name: 'Short Squeeze',
     description: '+12 Damage, +3% Crit',
@@ -255,6 +278,28 @@ export const EPIC_CARDS: Card[] = [
     icon: '🎲',
     tier: 'epic',
     modifiers: [{ stat: 'baseDamage', value: 35, type: 'add' }],
+  },
+  {
+    id: 'weapon_spread',
+    name: 'Spread Shot',
+    description: 'Adds SpreadShot weapon (Volume bonus)',
+    icon: '🔫',
+    tier: 'epic',
+    effect: player => {
+      WeaponSystem.addWeapon('spread_shot');
+      return player;
+    },
+  },
+  {
+    id: 'weapon_aoe',
+    name: 'AOE Nuke',
+    description: 'Adds AOE Nuke weapon (PnL bonus)',
+    icon: '💥',
+    tier: 'epic',
+    effect: player => {
+      WeaponSystem.addWeapon('aoe_nuke');
+      return player;
+    },
   },
   {
     id: 'banano_e1',
@@ -364,6 +409,17 @@ export const LEGENDARY_CARDS: Card[] = [
       { stat: 'baseDamage', value: 35, type: 'add' },
       { stat: 'maxHp', value: 20, type: 'add' },
     ],
+  },
+  {
+    id: 'weapon_orbit',
+    name: 'Orbit Shield',
+    description: 'Adds orbiting shield weapon',
+    icon: '🛡️',
+    tier: 'legendary',
+    effect: player => {
+      WeaponSystem.addWeapon('orbit_shield');
+      return player;
+    },
   },
   {
     id: 'gas_l1',

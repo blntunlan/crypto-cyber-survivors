@@ -33,6 +33,9 @@ import { ComboSystem } from '../services/combat/ComboSystem';
 import { Logger } from '../services/system/Logger';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { type CryptoPair } from '../types/crypto';
+import { MetaProgressionService } from '../services/progression/MetaProgressionService';
+import { ChallengeService } from '../services/challenges/ChallengeService';
+import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
 
 interface UseGameFlowControllerParams {
   gameMode: GameMode;
@@ -89,6 +92,8 @@ export const useGameFlowController = ({
   const isGameOverProcessingRef = useRef(false);
   const frozenPnlRef = useRef<number>(0);
   const liquidationGraceUntilRef = useRef<number>(0);
+
+  const lastProcessedCycleRef = useRef<number>(0);
 
   const cycleSnapshotRef = useRef({
     totalKills: runStatsTotalKills,
@@ -208,6 +213,7 @@ export const useGameFlowController = ({
             position,
             leverage,
             endReason: reason,
+            maxStreak: ComboSystem.getMaxStreak(),
             replayData: metrics.replayData,
             performance: metrics.performance,
           });
@@ -216,9 +222,21 @@ export const useGameFlowController = ({
             Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
             await CoinService.creditCoins(submission.reward, 'achievement');
           }
+
+          // Meta Progression: transfer 15% of coins
+          const sessionCoins = submission.reward ?? 0;
+          if (sessionCoins > 0) {
+            void MetaProgressionService.transferRunCoins(sessionCoins);
+          }
+
+          // Replay: save recording
+          void ReplayRecorderService.saveReplay(submission.reward ?? 0);
         } catch (error) {
           Logger.error('[App] Critical error during session submission:', error);
         }
+
+        // Challenge: end tracking
+        ChallengeService.onRunEnd();
       })();
     },
     [
@@ -249,6 +267,8 @@ export const useGameFlowController = ({
     }) => {
       Logger.debug(`[App] handleCycleComplete triggered. Mode=${gameMode}`, data);
       if (gameMode !== GameMode.COMPETITIVE) return;
+      if (data.cycleNumber <= lastProcessedCycleRef.current) return;
+      lastProcessedCycleRef.current = data.cycleNumber;
 
       const snapshot = cycleSnapshotRef.current;
       setCycleData({
@@ -286,6 +306,8 @@ export const useGameFlowController = ({
 
   const handleContinue = useCallback(() => {
     if (cycleData) {
+      // Reset per-cycle state before applying new cycle factor to prevent compounding
+      difficultyContext.resetForCycleContinue();
       // Apply difficulty multiplier for continuing (risk/reward)
       const cycleFactor = cycleData.continueMultiplier;
       difficultyContext.updateInputs({ cycleFactor });
@@ -304,6 +326,7 @@ export const useGameFlowController = ({
     isGameOverProcessingRef.current = false;
     frozenPnlRef.current = 0;
     liquidationGraceUntilRef.current = 0;
+    lastProcessedCycleRef.current = 0;
     setCycleData(null);
     setUpgradeChoices([]);
     difficultyContext.reset();

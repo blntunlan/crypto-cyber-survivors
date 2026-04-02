@@ -1,6 +1,6 @@
 import React from 'react';
 import { m } from 'framer-motion';
-import { COLORS } from '../../constants';
+import { COLORS } from '../../config/Colors';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { useGameStore } from '../../stores/gameStore';
 import { useThemeSize } from '../../hooks/useThemeSize';
@@ -11,6 +11,8 @@ import { audio } from '../../services/audio';
 import { cn } from '../../utils/classnames';
 import { CoinService, type CoinCalculation } from '../../services/gameplay/CoinService';
 import { ComboSystem } from '../../services/combat/ComboSystem';
+import { ThemedButton } from '../themed/ThemedButton';
+import { OverlayChrome, OverlaySectionRail } from '../ui/OverlayChrome';
 
 interface GameOverScreenProps {
   level: number;
@@ -18,7 +20,6 @@ interface GameOverScreenProps {
   survivalTime: number;
   kills: number;
   onRestart: () => void;
-  /** Server-verified reward coins (from session submission) */
   coinsEarned?: number;
 }
 
@@ -39,7 +40,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   const [coinCalc, setCoinCalc] = React.useState<CoinCalculation | null>(null);
   const [showBreakdown, setShowBreakdown] = React.useState(false);
 
-  // Record this game to progress on mount
   React.useEffect(() => {
     if (hasRecordedRef.current) return;
     hasRecordedRef.current = true;
@@ -49,7 +49,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
     );
     recordGameEnd(score, level, survivalTime, kills);
 
-    // Calculate coin breakdown for display
     const calc = CoinService.calculateCycleReward({
       survivalTimeSeconds: survivalTime,
       kills,
@@ -68,7 +67,6 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
 
   const isNewHighScore = Math.floor(kills * 10 + survivalTime) > progress.highScore;
 
-  // Play game end sounds
   React.useEffect(() => {
     audio.playDeath();
     if (!isNewHighScore) return;
@@ -79,167 +77,120 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
   }, [isNewHighScore]);
 
   return (
-    <m.div
-      className="allow-scroll fixed inset-0 flex flex-col items-center justify-center overflow-y-auto bg-slate-950 p-4 text-center"
-      style={{ zIndex: Z_LAYERS.GAME_OVER }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+    <OverlayChrome
+      zIndex={Z_LAYERS.GAME_OVER}
+      maxWidthClassName="max-w-3xl"
+      title={t('common.game_over_screen.liquidated') as string}
+      subtitle={t('common.session_halted') as string}
+      accentColor={COLORS.CASINO_RED}
+      contentClassName="space-y-6"
     >
-      {/* Glitch Title */}
-      <m.h2
-        className={cn(
-          isRetro ? 'font-retro-pixel' : 'cyber-glitch-text font-cyber',
-          sizes.title,
-          'relative my-auto mb-4 font-black italic tracking-tighter text-white md:text-8xl'
-        )}
-        initial={{ scale: 2, opacity: 0, filter: 'blur(10px)' }}
-        animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-        transition={{
-          type: 'spring',
-          stiffness: 100,
-          damping: 15,
-          delay: 0.2,
-        }}
-      >
-        <m.span
-          animate={{
-            textShadow: [
-              `2px 0 ${COLORS.CASINO_RED}, -2px 0 ${COLORS.ELECTRIC_BLUE}`,
-              `-2px 0 ${COLORS.CASINO_RED}, 2px 0 ${COLORS.ELECTRIC_BLUE}`,
-              `2px 0 ${COLORS.CASINO_RED}, -2px 0 ${COLORS.ELECTRIC_BLUE}`,
-            ],
-          }}
-          transition={{ duration: 0.1, repeat: 3 }}
+      {isNewHighScore && (
+        <m.div
+          className="flex items-center justify-center gap-2 rounded-sm border border-yellow-500/50 bg-yellow-500/10 px-4 py-2 text-center"
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
         >
-          {t('common.game_over_screen.liquidated')}
-        </m.span>
-      </m.h2>
+          <IconTrophy className="h-4 w-4" color={isRetro ? '#ffd600' : '#eab308'} />
+          <span className="font-cyber text-sm font-black uppercase tracking-[0.22em] text-yellow-500">
+            {t('common.game_over_screen.new_high_score')}
+          </span>
+        </m.div>
+      )}
 
-      {/* Stats Card */}
-      <m.div
-        className={cn(
-          'mb-auto w-full max-w-md space-y-6 p-6 transition-all md:p-10',
-          isRetro
-            ? 'rounded-none border-4 border-[var(--color-primary)] bg-zinc-900'
-            : 'cyber-glass rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)]'
-        )}
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 100, damping: 15, delay: 0.4 }}
-      >
-        {/* New High Score Badge */}
-        {isNewHighScore && (
-          <m.div
-            className="flex items-center justify-center gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-4 py-2 text-center"
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 200, delay: 0.8 }}
-          >
-            <IconTrophy className="h-4 w-4" color={isRetro ? '#ffd600' : '#eab308'} />
-            <span
-              className={`font-black text-yellow-500 ${sizes.small} uppercase tracking-widest`}
-            >
-              {t('common.game_over_screen.new_high_score')}
-            </span>
-          </m.div>
-        )}
-
-        {/* Stats Grid */}
-        <div className={cn('grid grid-cols-2 text-left', sizes.gap)}>
+      <section className="space-y-3">
+        <OverlaySectionRail
+          label={
+            t('common.game_over_screen.run_summary', {
+              defaultValue: 'Run Summary',
+            }) as string
+          }
+          color={COLORS.CASINO_RED}
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatItem
             label={t('common.level_label', { defaultValue: 'Level' }) as string}
             value={`L${level}`}
-            delay={0.5}
+            color={COLORS.TEXT}
             sizes={sizes}
             isRetro={isRetro}
           />
-
           <StatItem
             label={t('common.game_over_screen.pnl') as string}
             value={`${(finalPnl * 100).toFixed(2)}%`}
             color={finalPnl >= 0 ? COLORS.PUMP_GREEN : COLORS.DUMP_ORANGE}
-            delay={0.6}
             sizes={sizes}
             isRetro={isRetro}
           />
           <StatItem
             label={t('common.game_over_screen.time') as string}
             value={formatTime(survivalTime)}
-            delay={0.7}
+            color={COLORS.TEXT}
             sizes={sizes}
             isRetro={isRetro}
           />
           <StatItem
             label={t('common.game_over_screen.kills') as string}
             value={kills.toString()}
-            delay={0.8}
+            color={COLORS.TEXT}
             sizes={sizes}
             isRetro={isRetro}
           />
         </div>
+      </section>
 
-        {/* Coin Earnings Section */}
-        {coinCalc && (
-          <m.div
+      {coinCalc && (
+        <section className="space-y-3">
+          <OverlaySectionRail
+            label={
+              t('common.game_over_screen.coins_earned', {
+                defaultValue: 'Coins Earned',
+              }) as string
+            }
+            color={COLORS.JACKPOT_YELLOW}
+          />
+          <div
             className={cn(
-              'mb-4 p-4',
+              'space-y-3 p-4',
               isRetro
-                ? 'border-2 border-yellow-500/50 bg-zinc-900'
-                : 'rounded-lg border border-yellow-500/20 bg-yellow-500/5'
+                ? 'border-2 border-yellow-500/50 bg-[#0a0a12]/80'
+                : 'rounded-sm border border-yellow-500/20 bg-yellow-500/5'
             )}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <span
-                className={cn(
-                  sizes.small,
-                  'font-black uppercase tracking-widest',
-                  isRetro ? 'font-retro-text' : ''
-                )}
-                style={{ color: COLORS.JACKPOT_YELLOW }}
-              >
-                🪙{' '}
-                {t('common.game_over_screen.coins_earned', {
-                  defaultValue: 'Coins Earned',
-                })}
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-cyber text-sm font-black uppercase tracking-[0.18em] text-slate-300">
+                Reward breakdown
               </span>
               <button
                 onClick={() => setShowBreakdown(prev => !prev)}
-                className="text-xs text-slate-400 underline transition-colors hover:text-white"
+                className="text-xs uppercase tracking-[0.18em] text-slate-400 underline"
               >
-                {showBreakdown ? '▲' : '▼'}
+                {showBreakdown ? 'Hide' : 'Details'}
               </button>
             </div>
 
-            {/* Total */}
             <div
               className={cn(
-                sizes.heading,
-                'font-black',
-                isRetro ? 'font-retro-pixel' : 'font-cyber'
+                isRetro ? 'font-retro-pixel' : 'font-cyber',
+                'text-2xl font-black'
               )}
               style={{ color: COLORS.JACKPOT_YELLOW }}
             >
               +{(coinsEarned > 0 ? coinsEarned : coinCalc.total).toLocaleString()}
             </div>
 
-            {/* Breakdown */}
             {showBreakdown && (
-              <m.div
-                className="mt-3 space-y-1.5 border-t border-white/10 pt-3"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-              >
+              <div className="space-y-2 border-t border-white/10 pt-3">
                 {Object.entries(coinCalc.breakdown).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-xs">
-                    <span className="text-slate-400">{key}</span>
+                  <div key={key} className="flex justify-between text-sm">
+                    <span className="uppercase tracking-[0.12em] text-slate-500">
+                      {key}
+                    </span>
                     <span
                       className={cn(
-                        'font-bold',
-                        isRetro ? 'font-retro-text' : 'font-numbers'
+                        isRetro ? 'font-retro-pixel' : 'font-numbers',
+                        'font-bold'
                       )}
                       style={{ color: value > 0 ? COLORS.PUMP_GREEN : '#64748b' }}
                     >
@@ -247,120 +198,90 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({
                     </span>
                   </div>
                 ))}
-              </m.div>
+              </div>
             )}
-          </m.div>
-        )}
-
-        {/* Career Stats */}
-        <m.div
-          className="border-t border-white/10 pt-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-        >
-          <p
-            className={cn(
-              sizes.tiny,
-              'mb-3 font-black uppercase tracking-widest text-slate-500'
-            )}
-          >
-            {t('common.game_over_screen.career_stats') as string}
-          </p>
-
-          <div className={cn('grid grid-cols-3 text-center', sizes.gap)}>
-            <div>
-              <p className={`${sizes.stat} font-black text-white`}>
-                {progress.totalGamesPlayed}
-              </p>
-
-              <p className={`${sizes.tiny} uppercase text-slate-500`}>
-                {t('common.game_over_screen.games') as string}
-              </p>
-            </div>
-
-            <div>
-              <p className={`${sizes.stat} font-black text-white`}>
-                {progress.totalKills}
-              </p>
-
-              <p className={`${sizes.tiny} uppercase text-slate-500`}>
-                {t('common.game_over_screen.total_kills') as string}
-              </p>
-            </div>
-
-            <div>
-              <p className={`${sizes.stat} font-black text-white`}>
-                L{progress.highestLevel}
-              </p>
-
-              <p className={`${sizes.tiny} uppercase text-slate-500`}>
-                {t('common.game_over_screen.best_level') as string}
-              </p>
-            </div>
           </div>
-        </m.div>
+        </section>
+      )}
 
-        {/* Restart Button */}
-        <m.button
-          onClick={onRestart}
-          className={cn(
-            'w-full rounded-lg bg-white font-black uppercase tracking-[0.2em] text-black transition-all hover:bg-yellow-500',
-            sizes.buttonLg
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {t('common.game_over_screen.back_to_menu') as string}
-        </m.button>
-      </m.div>
-    </m.div>
+      <section className="space-y-3">
+        <OverlaySectionRail
+          label={t('common.game_over_screen.career_stats') as string}
+          color={COLORS.ELECTRIC_BLUE}
+        />
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <MiniMetric
+            label={t('common.game_over_screen.games') as string}
+            value={progress.totalGamesPlayed.toString()}
+          />
+          <MiniMetric
+            label={t('common.game_over_screen.total_kills') as string}
+            value={progress.totalKills.toString()}
+          />
+          <MiniMetric
+            label={t('common.game_over_screen.best_level') as string}
+            value={`L${progress.highestLevel}`}
+          />
+        </div>
+      </section>
+
+      <ThemedButton
+        intent="primary"
+        onClick={onRestart}
+        className="min-h-[52px] w-full text-sm font-black uppercase tracking-[0.24em]"
+      >
+        {t('common.game_over_screen.back_to_menu') as string}
+      </ThemedButton>
+    </OverlayChrome>
   );
 };
 
-// Stat Item Component
 interface StatItemProps {
   label: string;
   value: string;
-  color?: string;
-  delay: number;
+  color: string;
   sizes: ReturnType<typeof useThemeSize>;
+  isRetro?: boolean;
 }
 
-const StatItem: React.FC<StatItemProps & { isRetro?: boolean }> = ({
-  label,
-  value,
-  color = '#ffffff',
-  delay,
-  sizes,
-  isRetro,
-}) => (
+const StatItem: React.FC<StatItemProps> = ({ label, value, color, sizes, isRetro }) => (
   <m.div
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ delay }}
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    className={cn(
+      'space-y-2 p-4',
+      isRetro
+        ? 'border-2 border-[#39FF14]/30 bg-[#0a0a12]/80'
+        : 'rounded-sm border border-white/10 bg-white/5'
+    )}
   >
     <p
       className={cn(
-        'text-slate-500 font-black uppercase',
+        isRetro ? 'font-retro-pixel' : 'font-cyber',
         sizes.tiny,
-        isRetro ? 'font-retro-text' : ''
+        'font-black uppercase tracking-[0.2em] text-slate-500'
       )}
     >
       {label}
     </p>
     <p
       className={cn(
+        isRetro ? 'font-retro-pixel' : 'font-cyber',
         sizes.heading,
-        'font-black',
-        isRetro ? 'font-retro-text' : 'font-cyber'
+        'font-black tracking-tight'
       )}
-      style={{ color: isRetro && color === '#ffffff' ? '#ffffff' : color }}
+      style={{ color }}
     >
       {value}
     </p>
   </m.div>
+);
+
+const MiniMetric: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="rounded-sm border border-white/10 bg-white/5 px-3 py-4">
+    <p className="font-cyber text-lg font-black text-white">{value}</p>
+    <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-500">
+      {label}
+    </p>
+  </div>
 );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackRender } from '../../utils/trackRender';
 import { EventBus } from '../../services/core/EventBus';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Z_LAYERS } from '../../constants/ZIndex';
@@ -19,6 +20,7 @@ const text = (value: string | string[]): string =>
   Array.isArray(value) ? value.join(' ') : value;
 
 export const NotificationSystem: React.FC = () => {
+  trackRender('NotificationSystem');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { t } = useLanguage();
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());

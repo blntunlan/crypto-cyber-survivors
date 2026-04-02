@@ -298,6 +298,78 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
+-- FUNCTION: cleanup_old_error_reports (30-day retention)
+-- ============================================================
+CREATE OR REPLACE FUNCTION cleanup_old_error_reports(
+  p_days_ago INTEGER DEFAULT 30,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM error_reports
+    WHERE id IN (
+      SELECT id FROM error_reports
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- FUNCTION: cleanup_old_performance_metrics (30-day retention)
+-- ============================================================
+CREATE OR REPLACE FUNCTION cleanup_old_performance_metrics(
+  p_days_ago INTEGER DEFAULT 30,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM performance_metrics
+    WHERE id IN (
+      SELECT id FROM performance_metrics
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- FUNCTION: cleanup_old_cheat_attempts (60-day retention)
+-- ============================================================
+CREATE OR REPLACE FUNCTION cleanup_old_cheat_attempts(
+  p_days_ago INTEGER DEFAULT 60,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM cheat_attempts
+    WHERE id IN (
+      SELECT id FROM cheat_attempts
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
 -- 12. meta_progression (server-side persistent upgrades)
 -- ============================================================
 
