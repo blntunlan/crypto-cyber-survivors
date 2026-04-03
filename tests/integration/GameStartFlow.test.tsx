@@ -92,6 +92,29 @@ vi.mock('../../stores/useAuthStore', () => ({
   })),
 }));
 
+// Mock background trackers that cause dangling promises or fetch calls
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureError: vi.fn(),
+  }
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    initializePlayer: vi.fn().mockResolvedValue(true),
+    updateActivity: vi.fn(),
+    updatePlayTime: vi.fn(),
+  }
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  }
+}));
+
 // Mock simple components to avoid canvas issues
 vi.mock('../../components/GameEngine', () => ({
   __esModule: true,
