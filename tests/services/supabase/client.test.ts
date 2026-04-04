@@ -21,11 +21,17 @@ describe('Supabase Client Configuration', () => {
   });
 
   it('should initialize with correct PWA persistence settings', async () => {
+    // Need to provide dummy env vars otherwise createClient won't be called because `isConfigured` will be false.
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+
     const { supabase: _supabase } = await import('../../../services/supabase/client');
     const { createClient } = await import('@supabase/supabase-js');
 
     expect(createClient).toHaveBeenCalled();
     const options = (createClient as any).mock.calls[0][2];
+
+    vi.unstubAllEnvs();
 
     expect(options.auth.persistSession).toBe(true);
     expect(options.auth.autoRefreshToken).toBe(true);

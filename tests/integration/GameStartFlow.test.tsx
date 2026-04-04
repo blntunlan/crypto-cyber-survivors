@@ -126,6 +126,29 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+// Mock telemetry/analytics to prevent unhandled MSW fetch calls that cause timeouts
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureException: vi.fn(),
+    captureMessage: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    init: vi.fn(),
+    trackEvent: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/market/railwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
