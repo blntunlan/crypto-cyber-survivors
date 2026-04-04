@@ -135,6 +135,20 @@ vi.mock('../../services/analytics/ErrorTracker', () => ({
   },
 }));
 
+vi.mock('../../services/api/RailwayClient', () => {
+  return {
+    RailwayClient: vi.fn().mockImplementation(() => ({
+      get: vi.fn().mockResolvedValue({ entries: [] }),
+      post: vi.fn().mockResolvedValue({}),
+      put: vi.fn().mockResolvedValue({}),
+    })),
+    railwayClient: {
+      get: vi.fn().mockResolvedValue({ entries: [] }),
+      post: vi.fn().mockResolvedValue({}),
+    }
+  };
+});
+
 vi.mock('../../services/analytics/PlayerTracker', () => ({
   PlayerTracker: {
     init: vi.fn(),
