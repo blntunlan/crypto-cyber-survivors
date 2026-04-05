@@ -105,8 +105,12 @@ export class UserSessionService {
 
       // Clear any existing Supabase session to prevent 401 errors from stale tokens on local
       const { supabase } = await import('../core/Supabase');
-      if (supabase.auth) {
-        void supabase.auth.signOut().catch(() => {});
+      try {
+        if (typeof supabase.auth.signOut === 'function') {
+          void supabase.auth.signOut().catch(() => {});
+        }
+      } catch {
+        // Fallback for mock environments
       }
 
       return { success: true };

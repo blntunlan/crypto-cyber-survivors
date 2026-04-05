@@ -9,23 +9,19 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isConfigured) {
-  if (Logger?.warn) {
+  try {
     Logger.warn(
       '[Supabase] Missing credentials! Backend features are DISABLED. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
     );
-  } else {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[Supabase] Missing credentials! Backend features are DISABLED. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
-    );
+  } catch {
+    // Fallback for tests where Logger mock may be incomplete
   }
 } else {
   if (import.meta.env.DEV) {
-    if (Logger?.info) {
+    try {
       Logger.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
-    } else {
-      // eslint-disable-next-line no-console
-      console.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
+    } catch {
+      // Fallback
     }
   }
 }
