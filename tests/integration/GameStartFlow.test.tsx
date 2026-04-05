@@ -31,6 +31,29 @@ vi.mock('../../contexts/useTheme', () => ({
   }),
 }));
 
+// Memory: Ensure we mock telemetry and external clients
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureMessage: vi.fn(),
+    captureException: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    init: vi.fn(),
+    trackEvent: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 // Mock dependencies
 vi.mock('../../services/audio', () => ({
   audio: {
