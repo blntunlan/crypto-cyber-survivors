@@ -138,8 +138,8 @@ describe('Game Entry Flow', () => {
 
     // Mock railway client to prevent leaderboards from throwing
     const { railwayClient } = await import('../../services/api/RailwayClient');
-    vi.spyOn(railwayClient, 'get').mockResolvedValue({ entries: [] });
-    vi.spyOn(railwayClient, 'post').mockResolvedValue({});
+    vi.spyOn(railwayClient, 'get').mockResolvedValue({ entries: [] } as any);
+    vi.spyOn(railwayClient, 'post').mockResolvedValue({} as any);
 
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
