@@ -1,7 +1,9 @@
-# General Architecture
+# :Cpu: General Architecture
 
-Status: live
-Owner: Core Engineering
+> **Status** live
+> Owner: Core Engineering
+
+
 
 ## GC-free runtime rules
 

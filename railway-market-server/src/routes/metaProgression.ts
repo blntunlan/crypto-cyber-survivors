@@ -6,6 +6,7 @@ import { getDb } from '../db';
 import { metaProgression } from '../db/schema';
 import { getProfileId } from '../db/helpers';
 import { Logger } from '../utils/logger';
+import { logAudit, getClientInfo } from '../utils/auditLogger';
 
 const router = Router();
 
@@ -130,6 +131,16 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
     const row = result.rows[0] as { upgrade_id: string; new_level: number; new_meta_coins: string };
     Logger.info(`[MetaProgression] ${profileId} purchased ${upgradeId} → level ${row.new_level}`);
 
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'wallet.spend',
+      resource: '/api/v1/meta/purchase',
+      details: { upgradeId, newLevel: row.new_level, cost },
+      ipAddress,
+      userAgent,
+    });
+
     res.json({
       upgradeId: row.upgrade_id,
       newLevel: row.new_level,
@@ -187,6 +198,16 @@ router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Res
       new_runs_completed: number;
     };
     Logger.info(`[MetaProgression] ${profileId} transferred ${row.meta_share} meta coins`);
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'wallet.credit',
+      resource: '/api/v1/meta/transfer',
+      details: { earnedCoins, metaShare: Number(row.meta_share) },
+      ipAddress,
+      userAgent,
+    });
 
     res.json({
       metaShare: Number(row.meta_share),

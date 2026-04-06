@@ -41,6 +41,14 @@ vi.mock('../../../services/audio', () => ({
   },
 }));
 
+const resizeWindow = (width: number) => {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: width,
+  });
+  window.dispatchEvent(new Event('resize'));
+};
+
 /**
  * Main test suite for the Hub Menu navigation.
  */
@@ -51,6 +59,7 @@ describe('HubMenu', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resizeWindow(1024);
   });
 
   it('renders correctly with all 6 buttons', () => {
@@ -99,11 +108,12 @@ describe('HubMenu', () => {
   });
 
   it('handles keyboard navigation (Arrow keys)', () => {
+    resizeWindow(800);
     render(
       <HubMenu nickname={mockNickname} coins={mockCoins} onNavigate={mockOnNavigate} />
     );
 
-    // Grid layout is 2 columns:
+    // Grid layout uses 2 columns for this viewport (>= sm breakpoint):
     // [0: PLAY]    [1: STASH*]
     // [2: LOOT*]   [3: SKINS*]
     // [4: RANKS*]  [5: GEAR]

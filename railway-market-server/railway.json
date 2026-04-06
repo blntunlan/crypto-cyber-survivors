@@ -4,6 +4,7 @@
     "startCommand": "npm start",
     "restartPolicyType": "ON_FAILURE",
     "healthcheckPath": "/health",
-    "numReplicas": 1
+    "numReplicas": 1,
+    "region": "europe-west4"
   }
 }

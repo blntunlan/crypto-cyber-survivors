@@ -9,6 +9,7 @@ import { type ChallengeDefinition, type ChallengeStatus } from '../../types/chal
 import { useTheme } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { ThemedButton } from '../themed/ThemedButton';
+import { ThemedPanel } from '../themed/ThemedPanel';
 import {
   OverlayBackButton,
   OverlayChrome,
@@ -16,6 +17,7 @@ import {
 } from '../ui/OverlayChrome';
 import { COLORS } from '../../config/Colors';
 import { cn } from '../../utils/classnames';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ChallengeScreenProps {
   onBack: () => void;
@@ -28,19 +30,25 @@ const ChallengeCard: React.FC<{
 }> = ({ challenge, completed, onSelect }) => {
   const { isRetro } = useTheme();
   const sizes = useThemeSize();
+  const { t } = useLanguage();
   const accentColor = challenge.type === 'daily' ? COLORS.CASINO_GOLD : COLORS.WHALE;
+  const contractLabel =
+    challenge.type === 'daily'
+      ? (t('menu_pages.challenges.daily_contract') as string)
+      : (t('menu_pages.challenges.weekly_contract') as string);
 
   return (
-    <div
+    <ThemedPanel
       className={cn(
-        'relative overflow-hidden p-4 transition-all sm:p-5',
-        isRetro
-          ? 'border-2 border-[#39FF14]/40 bg-[#0a0a12]/80'
-          : 'rounded-sm border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]'
+        'relative overflow-hidden p-4 transition-all duration-200 sm:p-5',
+        isRetro ? 'font-retro-pixel' : 'font-cyber',
+        completed && !isRetro && 'ring-1 ring-emerald-400/50'
       )}
       style={{
-        borderColor: completed ? COLORS.PUMP_GREEN : undefined,
-        backgroundColor: !isRetro ? `${accentColor}08` : undefined,
+        borderColor: completed && isRetro ? COLORS.PUMP_GREEN : undefined,
+        background: !isRetro
+          ? `linear-gradient(135deg, ${accentColor}12, rgba(2,6,23,0.85))`
+          : undefined,
       }}
     >
       {!isRetro && (
@@ -50,11 +58,7 @@ const ChallengeCard: React.FC<{
         />
       )}
 
-      <OverlaySectionRail
-        label={challenge.type === 'daily' ? 'Daily Contract' : 'Weekly Contract'}
-        color={accentColor}
-        className="mb-3"
-      />
+      <OverlaySectionRail label={contractLabel} color={accentColor} className="mb-3" />
 
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
@@ -78,7 +82,7 @@ const ChallengeCard: React.FC<{
             )}
             style={{ color: COLORS.PUMP_GREEN }}
           >
-            Cleared
+            {t('menu_pages.challenges.cleared')}
           </span>
         )}
       </div>
@@ -122,10 +126,13 @@ const ChallengeCard: React.FC<{
 
       <div className="mb-4 flex items-center justify-between rounded-sm border border-white/10 bg-slate-950/50 px-3 py-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-          Reward
+          {t('menu_pages.challenges.reward_label')}
         </span>
         <span className="font-cyber text-sm font-black uppercase tracking-[0.12em] text-[#FFD600]">
-          {challenge.reward.metaCoins} Meta + {challenge.reward.bonusXp} XP
+          {t('menu_pages.challenges.reward_value', {
+            meta: challenge.reward.metaCoins.toLocaleString(),
+            xp: challenge.reward.bonusXp.toLocaleString(),
+          })}
         </span>
       </div>
 
@@ -135,14 +142,14 @@ const ChallengeCard: React.FC<{
           onClick={() => onSelect(challenge)}
           className="min-h-[46px] w-full text-xs font-black uppercase tracking-[0.22em]"
         >
-          Activate
+          {t('menu_pages.challenges.activate')}
         </ThemedButton>
       ) : (
         <div className="text-center text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
-          Challenge completed
+          {t('menu_pages.challenges.completed_label')}
         </div>
       )}
-    </div>
+    </ThemedPanel>
   );
 };
 
@@ -154,6 +161,7 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
     weeklyCompleted: false,
   });
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const load = async () => {
@@ -173,7 +181,7 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
   const selectChallenge = (challenge: ChallengeDefinition) => {
     ChallengeService.setActiveChallenge(challenge);
     EventBus.emit('gameNotification', {
-      title: 'Challenge Active',
+      title: t('menu_pages.challenges.toast_title') as string,
       message: challenge.name,
       type: 'info',
     });
@@ -186,15 +194,15 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
       <OverlayChrome
         zIndex={200}
         maxWidthClassName="max-w-5xl"
-        title="Challenges"
-        subtitle="Live contracts aligned with the main terminal"
+        title={t('menu.challenges') as string}
+        subtitle={t('menu_pages.challenges.subtitle') as string}
       >
         <div className="space-y-5">
           <div className="grid gap-4 lg:grid-cols-2">
             {loading && (
-              <div className="rounded-sm border border-white/10 bg-white/5 px-4 py-10 text-center text-slate-500 lg:col-span-2">
-                Loading challenges...
-              </div>
+              <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500 lg:col-span-2">
+                {t('menu_pages.challenges.loading')}
+              </ThemedPanel>
             )}
             {!loading && daily && (
               <ChallengeCard
@@ -213,9 +221,9 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
           </div>
 
           {!loading && !daily && !weekly && (
-            <div className="rounded-sm border border-white/10 bg-white/5 px-4 py-10 text-center text-slate-500">
-              No challenges available.
-            </div>
+            <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500">
+              {t('menu_pages.challenges.empty_state')}
+            </ThemedPanel>
           )}
         </div>
       </OverlayChrome>

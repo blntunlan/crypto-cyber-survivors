@@ -1,6 +1,27 @@
 {
   "sidebar": [
     {
+      "text": "Survivor Manual",
+      "items": [
+        {
+          "text": "How to Play",
+          "link": "/docs/manual/HOW_TO_PLAY"
+        },
+        {
+          "text": "Market Mechanics",
+          "link": "/docs/manual/MARKET_MECHANICS"
+        },
+        {
+          "text": "Weapon Arsenal",
+          "link": "/docs/manual/WEAPON_ARMORY"
+        },
+        {
+          "text": "Threat Database",
+          "link": "/docs/manual/THREAT_DATABASE"
+        }
+      ]
+    },
+    {
       "text": "Getting Started",
       "items": [
         {
@@ -21,6 +42,14 @@
           "link": "/docs/ARCHITECTURE"
         },
         {
+          "text": "Spatial Physics & Memory",
+          "link": "/docs/architecture/SPATIAL_PHYSICS_ENGINE"
+        },
+        {
+          "text": "Audio Architecture",
+          "link": "/docs/systems/AUDIO_ARCHITECTURE"
+        },
+        {
           "text": "Database Schema",
           "link": "/docs/DATABASE_SCHEMA"
         },
@@ -29,12 +58,20 @@
           "link": "/docs/architecture/BACKEND_DB_ARCHITECTURE"
         },
         {
+          "text": "Market Server Infrastructure",
+          "link": "/docs/architecture/MARKET_SERVER_INFRASTRUCTURE"
+        },
+        {
           "text": "Runtime Session Pipeline",
           "link": "/docs/services/runtime/SESSION_PIPELINE"
         },
         {
           "text": "Runtime Observability",
           "link": "/docs/services/runtime/OBSERVABILITY"
+        },
+        {
+          "text": "Replay & Validation",
+          "link": "/docs/architecture/REPLAY_AND_VALIDATION"
         },
         {
           "text": "Security & Anti-Cheat",
@@ -60,6 +97,10 @@
         {
           "text": "Rewards & Verification",
           "link": "/docs/workflows/rewards-and-verification"
+        },
+        {
+          "text": "Testing & QA Strategy",
+          "link": "/docs/workflows/TESTING_STRATEGY"
         }
       ]
     },
@@ -75,12 +116,20 @@
           "link": "/docs/ENEMY_SYSTEM"
         },
         {
+          "text": "Weapon & Skill System",
+          "link": "/docs/WEAPON_SYSTEM"
+        },
+        {
           "text": "Stat System",
           "link": "/docs/STAT_SYSTEM"
         },
         {
           "text": "Lootbox & Inventory",
           "link": "/docs/LOOTBOX_SYSTEM"
+        },
+        {
+          "text": "Mobile Input System",
+          "link": "/docs/systems/MOBILE_INPUT_SYSTEM"
         }
       ]
     },

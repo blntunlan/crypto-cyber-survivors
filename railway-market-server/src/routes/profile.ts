@@ -6,6 +6,7 @@ import { getDb } from '../db';
 import { profiles } from '../db/schema';
 import { createProfileSchema, updateProfileSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
+import { logAudit, getClientInfo } from '../utils/auditLogger';
 
 const router = Router();
 
@@ -77,6 +78,17 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
       .returning();
 
     Logger.info(`[Profile] Created profile for ${nickname}`);
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId: rows[0]?.id,
+      action: 'profile.create',
+      resource: '/api/v1/profile',
+      details: { nickname },
+      ipAddress,
+      userAgent,
+    });
+
     res.status(201).json(rows[0]);
   } catch (error) {
     // Unique constraint violation on nickname
@@ -124,6 +136,16 @@ router.patch('/', requireAuth, asyncHandler(async (req: Request, res: Response) 
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId: rows[0]?.id,
+      action: 'profile.update',
+      resource: '/api/v1/profile',
+      details: { fields: Object.keys(parsed.data) },
+      ipAddress,
+      userAgent,
+    });
 
     res.json(rows[0]);
   } catch (error) {

@@ -6,6 +6,8 @@ import { getDb } from '../db';
 import { profiles, identities } from '../db/schema';
 import { createIdentitySchema } from '../db/validation';
 import { Logger } from '../utils/logger';
+import { logAudit, getClientInfo } from '../utils/auditLogger';
+import { encryptToken } from '../utils/tokenEncryption';
 
 const router = Router();
 
@@ -45,16 +47,16 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
         provider: data.provider,
         providerUserId: data.provider_user_id,
         providerUsername: data.provider_username ?? null,
-        accessToken: data.access_token ?? null,
-        refreshToken: data.refresh_token ?? null,
+        accessToken: data.access_token ? encryptToken(data.access_token) : null,
+        refreshToken: data.refresh_token ? encryptToken(data.refresh_token) : null,
         tokenExpiresAt: data.token_expires_at ? new Date(data.token_expires_at) : null,
       })
       .onConflictDoUpdate({
         target: [identities.provider, identities.providerUserId],
         set: {
           providerUsername: sql`EXCLUDED.provider_username`,
-          accessToken: sql`EXCLUDED.access_token`,
-          refreshToken: sql`EXCLUDED.refresh_token`,
+          accessToken: data.access_token ? encryptToken(data.access_token) : sql`EXCLUDED.access_token`,
+          refreshToken: data.refresh_token ? encryptToken(data.refresh_token) : sql`EXCLUDED.refresh_token`,
           tokenExpiresAt: sql`EXCLUDED.token_expires_at`,
           updatedAt: sql`now()`,
         },
@@ -66,6 +68,16 @@ router.post('/', requireAuth, asyncHandler(async (req: Request, res: Response) =
         providerUsername: identities.providerUsername,
         createdAt: identities.createdAt,
       });
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'identity.link',
+      resource: '/api/v1/identities',
+      details: { provider: data.provider, providerUsername: data.provider_username },
+      ipAddress,
+      userAgent,
+    });
 
     res.json(rows[0]);
   } catch (error) {
@@ -94,11 +106,24 @@ router.delete('/:provider', requireAuth, asyncHandler(async (req: Request, res: 
       return;
     }
 
+    const profileId = profile[0].id;
+
+    // Prevent unlinking the last identity
+    const identityCount = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(identities)
+      .where(eq(identities.profileId, profileId));
+
+    if ((identityCount[0]?.count ?? 0) <= 1) {
+      res.status(400).json({ error: 'Cannot unlink the last identity provider' });
+      return;
+    }
+
     const deleted = await db
       .delete(identities)
       .where(
         and(
-          eq(identities.profileId, profile[0].id),
+          eq(identities.profileId, profileId),
           eq(identities.provider, provider)
         )
       )
@@ -108,6 +133,16 @@ router.delete('/:provider', requireAuth, asyncHandler(async (req: Request, res: 
       res.status(404).json({ error: 'Identity not found' });
       return;
     }
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'identity.unlink',
+      resource: `/api/v1/identities/${provider}`,
+      details: { provider },
+      ipAddress,
+      userAgent,
+    });
 
     res.json({ deleted: true });
   } catch (error) {

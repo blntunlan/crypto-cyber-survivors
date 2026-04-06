@@ -1,6 +1,9 @@
-# Runtime Observability
+# :Eye: Runtime Observability
 
-Status: live
+> **Status** live
+> Owner: Backend & Data Engineering
+
+
 Domain: telemetry, market health, and operator visibility
 
 ## Client telemetry

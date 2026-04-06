@@ -1,6 +1,9 @@
-# Runtime Session Pipeline
+# :Activity: Runtime Session Pipeline
 
-Status: live
+> **Status** live
+> Owner: Backend & Data Engineering
+
+
 Domain: session lifecycle, persistence, and verification
 
 ## Scope

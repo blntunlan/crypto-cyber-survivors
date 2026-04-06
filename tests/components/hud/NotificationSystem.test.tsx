@@ -28,7 +28,8 @@ vi.mock('../../../services/system/Logger', () => ({
 }));
 
 describe('NotificationSystem', () => {
-  let eventHandlers: Record<string, (data: any) => void> = {};
+  let eventHandlers: Partial<Record<string, (data: any) => void>> = {};
+  const originalDev = import.meta.env.DEV;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -46,7 +47,27 @@ describe('NotificationSystem', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    (import.meta.env as any).DEV = originalDev;
   });
+
+  const ensureHandler = async (event: string) => {
+    const existingHandler = eventHandlers[event];
+    if (existingHandler) return;
+    await act(async () => {
+      await Promise.resolve();
+    });
+    if (!eventHandlers[event]) {
+      throw new Error(`No handler registered for ${event}`);
+    }
+  };
+
+  const emitEvent = async (event: string, payload?: any) => {
+    await ensureHandler(event);
+    await act(async () => {
+      eventHandlers[event]?.(payload);
+      await Promise.resolve();
+    });
+  };
 
   it('renders nothing initially', () => {
     render(<NotificationSystem />);
@@ -58,14 +79,10 @@ describe('NotificationSystem', () => {
   it('responds to gameNotification events', async () => {
     render(<NotificationSystem />);
 
-    const handler = eventHandlers['gameNotification'];
-
-    await act(async () => {
-      handler?.({
-        title: 'Test Notification',
-        message: 'This is a test message',
-        type: 'success',
-      });
+    await emitEvent('gameNotification', {
+      title: 'Test Notification',
+      message: 'This is a test message',
+      type: 'success',
     });
 
     expect(screen.getByText('Test Notification')).toBeInTheDocument();
@@ -75,11 +92,7 @@ describe('NotificationSystem', () => {
   it('responds to rsiStateChanged events', async () => {
     render(<NotificationSystem />);
 
-    const handler = eventHandlers['rsiStateChanged'];
-
-    await act(async () => {
-      handler?.({ state: 'OVERSOLD', rsi: 25.5 });
-    });
+    await emitEvent('rsiStateChanged', { state: 'OVERSOLD', rsi: 25.5 });
 
     // In test environment, it might show the i18n key or a mock translation
     // From logs it seems it shows "hud.announcer.oversold"
@@ -91,11 +104,7 @@ describe('NotificationSystem', () => {
   it('responds to whaleTierChanged events', async () => {
     render(<NotificationSystem />);
 
-    const handler = eventHandlers['whaleTierChanged'];
-
-    await act(async () => {
-      handler?.({ tier: 2 }); // MEGA whale
-    });
+    await emitEvent('whaleTierChanged', { tier: 2 }); // MEGA whale
 
     // Should find the title with whale in it
     expect(screen.getAllByText(/whale/i).length).toBeGreaterThan(0);
@@ -104,14 +113,10 @@ describe('NotificationSystem', () => {
   it('removes notification after duration', async () => {
     render(<NotificationSystem />);
 
-    const handler = eventHandlers['gameNotification'];
-
-    await act(async () => {
-      handler?.({
-        title: 'Temporary',
-        message: 'Bye bye',
-        duration: 1000,
-      });
+    await emitEvent('gameNotification', {
+      title: 'Temporary',
+      message: 'Bye bye',
+      duration: 1000,
     });
 
     expect(screen.getByText('Temporary')).toBeInTheDocument();
@@ -126,13 +131,9 @@ describe('NotificationSystem', () => {
   it('removes notification when close button is clicked', async () => {
     render(<NotificationSystem />);
 
-    const handler = eventHandlers['gameNotification'];
-
-    await act(async () => {
-      handler?.({
-        title: 'Closable',
-        message: 'Click me',
-      });
+    await emitEvent('gameNotification', {
+      title: 'Closable',
+      message: 'Click me',
     });
 
     expect(screen.getByText('Closable')).toBeInTheDocument();
@@ -150,14 +151,84 @@ describe('NotificationSystem', () => {
   it('supports multiple notifications at once', async () => {
     render(<NotificationSystem />);
 
-    const handler = eventHandlers['gameNotification'];
-
-    await act(async () => {
-      handler?.({ title: 'First', message: '1' });
-      handler?.({ title: 'Second', message: '2' });
-    });
+    await emitEvent('gameNotification', { title: 'First', message: '1' });
+    await emitEvent('gameNotification', { title: 'Second', message: '2' });
 
     expect(screen.getByText('First')).toBeInTheDocument();
     expect(screen.getByText('Second')).toBeInTheDocument();
+  });
+
+  it('gates warning/error notifications outside dev mode', async () => {
+    (import.meta.env as any).DEV = false;
+    render(<NotificationSystem />);
+
+    await emitEvent('gameNotification', {
+      title: 'Warn Title',
+      message: 'Warn msg',
+      type: 'warning',
+    });
+    expect(screen.queryByText('Warn Title')).not.toBeInTheDocument();
+
+    await emitEvent('gameNotification', {
+      title: 'Info Title',
+      message: 'Info msg',
+      type: 'info',
+    });
+    expect(screen.getByText('Info Title')).toBeInTheDocument();
+
+    (import.meta.env as any).DEV = true;
+    await emitEvent('gameNotification', {
+      title: 'Dev Warn',
+      message: 'Dev warn msg',
+      type: 'warning',
+    });
+    expect(screen.getByText('Dev Warn')).toBeInTheDocument();
+  });
+
+  const getCardCount = () => document.querySelectorAll('.notification-card').length;
+
+  it('only shows market micro-events in dev mode but allows duplicates there', async () => {
+    (import.meta.env as any).DEV = false;
+    render(<NotificationSystem />);
+
+    await emitEvent('gameMarketEvent', {
+      type: 'FLASH_CRASH',
+      intensity: 1,
+      durationMs: 2000,
+    });
+    expect(getCardCount()).toBe(0);
+
+    (import.meta.env as any).DEV = true;
+    await emitEvent('gameMarketEvent', {
+      type: 'FLASH_CRASH',
+      intensity: 1,
+      durationMs: 2000,
+    });
+    await emitEvent('gameMarketEvent', {
+      type: 'FLASH_CRASH',
+      intensity: 1,
+      durationMs: 2000,
+    });
+    expect(getCardCount()).toBe(2);
+  });
+
+  it('clears notifications immediately on game reset', async () => {
+    (import.meta.env as any).DEV = true;
+    render(<NotificationSystem />);
+
+    await emitEvent('gameNotification', {
+      title: 'Save Complete',
+      message: 'All good',
+    });
+    await emitEvent('rsiStateChanged', { state: 'OVERSOLD', rsi: 20 });
+    await emitEvent('whaleTierChanged', { tier: 2 });
+    expect(screen.getByText('Save Complete')).toBeInTheDocument();
+    expect(screen.getByText(/hud\.announcer\.oversold/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/whale/i).length).toBeGreaterThan(0);
+
+    await emitEvent('gameReset');
+    expect(screen.queryByText('Save Complete')).not.toBeInTheDocument();
+    expect(screen.queryByText(/hud\.announcer\.oversold/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/whale/i)).not.toBeInTheDocument();
   });
 });

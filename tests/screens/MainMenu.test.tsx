@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '../test-utils';
+import { render, screen, fireEvent, act } from '../test-utils';
 import { MainMenu } from '../../components/screens/MainMenu';
 import { GameMode } from '../../types/gameMode';
+import { audio } from '../../services/audio';
 
 const useDeviceMock = vi.hoisted(() =>
   vi.fn(() => ({ isMobile: false, isTablet: false }))
@@ -149,5 +150,81 @@ describe('MainMenu', () => {
     const leverage1 = screen.getAllByText('common.menu.lev_spot')[0]!;
     fireEvent.click(leverage1);
     expect(screen.getAllByText('common.menu.lev_spot').length).toBeGreaterThan(0);
+  });
+
+  it('scrolls leverage strip on mount and starts with newly selected leverage', () => {
+    vi.useFakeTimers();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    const onStart = vi.fn();
+    render(<MainMenu {...defaultProps} onStart={onStart} />);
+
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '25x' }));
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByRole('button', { name: /common\.long/i }));
+    expect(onStart).toHaveBeenCalledWith('LONG', 25);
+
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
+    vi.useRealTimers();
+  });
+
+  it('ignores keyboard shortcuts while an input is focused', () => {
+    const onModeChange = vi.fn();
+    render(<MainMenu {...defaultProps} onModeChange={onModeChange} />);
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(onModeChange).not.toHaveBeenCalled();
+    expect(audio.playSelectionTick).not.toHaveBeenCalled();
+
+    input.remove();
+  });
+
+  it('uses keyboard-selected leverage when starting a run', () => {
+    const onStart = vi.fn();
+    render(<MainMenu {...defaultProps} onStart={onStart} />);
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByText('common.menu.lev_risky')).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    expect(audio.playLevelUp).toHaveBeenCalled();
+    expect(onStart).toHaveBeenCalledWith('LONG', 25);
+  });
+
+  it('wraps asset selection left from BTC to SOL via keyboard', () => {
+    const onPairChange = vi.fn();
+    render(
+      <MainMenu {...defaultProps} selectedPair="BTC" onPairChange={onPairChange} />
+    );
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+
+    expect(onPairChange).toHaveBeenCalledWith('SOL');
+    expect(audio.playPairSelect).toHaveBeenCalled();
   });
 });

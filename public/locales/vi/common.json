@@ -42,6 +42,66 @@
       "challenges": "THỬ THÁCH",
       "replays": "XEM LẠI"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} Meta có sẵn",
+        "tagline": "Tích lũy buff vĩnh viễn trước mỗi lần chạy thị trường.",
+        "summary_helper": "Lợi thế mạng vĩnh viễn",
+        "search_label": "Tìm nâng cấp",
+        "search_placeholder": "Tìm nâng cấp: chí mạng, kinh tế, giáp...",
+        "filters_label": "Danh mục",
+        "affordable_label": "Chỉ hiển thị mua được",
+        "no_results": "Không có nâng cấp phù hợp với bộ lọc.",
+        "maxed_label": "Đã tối đa",
+        "progress_label": "Tiến độ",
+        "buy_label": "Mua",
+        "categories": {
+          "all": "Tất cả",
+          "combat": "Chiến đấu",
+          "survival": "Sinh tồn",
+          "economy": "Kinh tế",
+          "special": "Đặc biệt"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Tín dụng Meta",
+            "helper": "Số dư có thể dùng"
+          },
+          "runs": {
+            "label": "Lượt hoàn thành",
+            "helper": "Phiên đã kết thúc"
+          },
+          "lifetime": {
+            "label": "Meta tích lũy",
+            "helper": "Tổng kiếm được"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "Hợp đồng trực tiếp đồng bộ với terminal chính",
+        "daily_contract": "Hợp đồng hằng ngày",
+        "weekly_contract": "Hợp đồng hằng tuần",
+        "cleared": "Đã hoàn thành",
+        "reward_label": "Phần thưởng",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "Kích hoạt",
+        "completed_label": "Thử thách đã hoàn thành",
+        "loading": "Đang tải thử thách...",
+        "empty_state": "Không có thử thách khả dụng.",
+        "toast_title": "Thử thách đang hoạt động"
+      },
+      "replays": {
+        "subtitle": "Xem lại các lượt chơi cũ mà không rời lớp terminal",
+        "section_saved": "Phiên đã lưu",
+        "loading": "Đang tải replay...",
+        "empty_state": "Chưa có replay. Hoàn thành một lượt để lưu lại.",
+        "score": "Điểm {{value}}",
+        "duration": "Thời lượng {{value}}",
+        "level": "Cấp {{value}}",
+        "kills": "{{value}} hạ gục",
+        "watch": "Xem"
+      }
+    },
     "long": "LONG",
     "short": "SHORT",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "Về Trang chủ",
         "error_occurred": "Đã xảy ra lỗi"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "Đang đăng nhập...",
+      "creating_account": "Đang tạo tài khoản...",
+      "sending": "Đang gửi...",
+      "verifying": "Đang xác minh...",
+      "connect_phantom": "Kết nối Phantom",
+      "install_phantom": "Cài đặt Phantom",
+      "verification_code": "Mã xác minh",
+      "otp_verify_desc": "Nhập mã 6 chữ số đã được gửi tới",
+      "nickname_placeholder": "NHẬP_KHÓA_TRUY_CẬP",
+      "access_granted": "ĐÃ CẤP QUYỀN TRUY CẬP",
+      "initialize_profile": "KHỞI_TẠO_HỒ_SƠ",
+      "footer_systems_online": "HỆ_THỐNG_TRỰC_TUYẾN",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 KÝ TỰ",
+      "nickname_rules_chars": "CHO PHÉP A-Z, 0-9",
+      "forgot_password_desc": "Nhập email của bạn và chúng tôi sẽ gửi liên kết đặt lại mật khẩu.",
+      "send_reset_link": "Gửi liên kết đặt lại",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "P&L",
       "time": "Thời gian",
       "kills": "Hạ gục",
+      "coins_earned": "Xu Kiếm Được",
       "career_stats": "Thống kê sự nghiệp",
       "games": "Số trận",
       "total_kills": "Tổng hạ gục",
@@ -372,12 +433,16 @@
     "cat_ui": "Giao diện",
     "cat_alerts": "Cảnh báo",
     "cat_slots": "Vòng quay",
+    "cat_music": "Âm nhạc",
+    "cat_sfx": "Hiệu ứng âm thanh",
     "desc_combat": "Bắn, chí mạng, trúng đòn",
     "desc_feedback": "Ngọc, lên cấp, combo",
     "desc_movement": "Lướt, vút",
     "desc_ui": "Nút bấm, menu",
     "desc_alerts": "HP thấp, hy sinh",
     "desc_slots": "Vòng quay lên cấp",
+    "desc_music": "Nhịp điệu thị trường và âm nền",
+    "desc_sfx": "Tất cả hiệu ứng âm thanh chung trong game",
     "visuals": "Hình ảnh",
     "particles": "Hạt hiệu ứng",
     "screen_shake": "Rung màn hình",

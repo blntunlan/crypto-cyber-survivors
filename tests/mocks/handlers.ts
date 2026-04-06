@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw';
+import { supabaseHandlers } from './supabase-handlers';
 
 export const handlers = [
   // Supabase Auth Mock
@@ -27,6 +28,9 @@ export const handlers = [
       },
     });
   }),
+
+  // Generic Supabase handlers (placed after auth overrides so the overrides take precedence)
+  ...supabaseHandlers,
 
   // Profiles Table - Select (Check existing)
   http.get('*/rest/v1/profiles', ({ request }) => {

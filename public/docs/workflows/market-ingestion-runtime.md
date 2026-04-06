@@ -1,4 +1,8 @@
-# Market Ingestion Runtime
+# :LineChart: Market Ingestion Runtime
+
+> **Status** live
+> Owner: Backend & Data Engineering
+
 
 ## Purpose
 

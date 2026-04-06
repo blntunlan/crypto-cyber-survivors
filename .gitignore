@@ -1,3 +1,28 @@
+# ============================================
+# Environment files with secrets
+# ============================================
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+!.env.example
+
+# Railway market server env
+railway-market-server/.env
+railway-market-server/.env.local
+!railway-market-server/.env.example
+
+# Railway market aggregator env
+railway-market-aggregator/.env
+railway-market-aggregator/.env.local
+!railway-market-aggregator/.env.example
+
+# MCP config (may contain tokens in future)
+.mcp.json
+
+# ============================================
+
 # Logs
 logs
 *.log
@@ -53,17 +78,7 @@ lint_results.txt
 # Generated documentation
 docs/api/
 
-# Environment files (contain secrets)
-.env
-.env.local
-.env.*.local
-.env.production
-.env.development
-
-# Railway server environment files
-railway-market-server/.env
-railway-market-server/.env.local
-railway-market-server/.env.*.local
+# (env rules moved to top of file)
 
 # Remotion video project (separate project)
 remotion-video/

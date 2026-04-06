@@ -42,6 +42,66 @@
       "challenges": "挑战",
       "replays": "回放"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} Meta 余额可用",
+        "tagline": "在每次市场战局前叠加永久增益。",
+        "summary_helper": "永久网络优势",
+        "search_label": "搜索升级",
+        "search_placeholder": "搜索升级：暴击、经济、防御...",
+        "filters_label": "分类",
+        "affordable_label": "仅显示可购买",
+        "no_results": "没有符合筛选条件的升级。",
+        "maxed_label": "已满级",
+        "progress_label": "进度",
+        "buy_label": "购买",
+        "categories": {
+          "all": "全部",
+          "combat": "战斗",
+          "survival": "生存",
+          "economy": "经济",
+          "special": "特殊"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Meta 额度",
+            "helper": "可用余额"
+          },
+          "runs": {
+            "label": "完成的战局",
+            "helper": "已结束的会话"
+          },
+          "lifetime": {
+            "label": "累计 Meta",
+            "helper": "历史总收益"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "与主终端同步的实时合约",
+        "daily_contract": "每日合约",
+        "weekly_contract": "每周合约",
+        "cleared": "已完成",
+        "reward_label": "奖励",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "激活",
+        "completed_label": "挑战已完成",
+        "loading": "正在加载挑战...",
+        "empty_state": "暂无可用挑战。",
+        "toast_title": "挑战已激活"
+      },
+      "replays": {
+        "subtitle": "无需离开终端层即可回看历史战局",
+        "section_saved": "已保存的会话",
+        "loading": "正在加载回放...",
+        "empty_state": "暂无回放。完成一局即可保存。",
+        "score": "得分 {{value}}",
+        "duration": "时长 {{value}}",
+        "level": "等级 {{value}}",
+        "kills": "{{value}} 次击杀",
+        "watch": "观看"
+      }
+    },
     "long": "做多 (LONG)",
     "short": "做空 (SHORT)",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "返回首页",
         "error_occurred": "发生错误"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "正在登录...",
+      "creating_account": "正在创建账户...",
+      "sending": "正在发送...",
+      "verifying": "正在验证...",
+      "connect_phantom": "连接 Phantom",
+      "install_phantom": "安装 Phantom",
+      "verification_code": "验证码",
+      "otp_verify_desc": "输入发送到的6位代码",
+      "nickname_placeholder": "输入_访问_密钥",
+      "access_granted": "访问授权成功",
+      "initialize_profile": "初始化档案",
+      "footer_systems_online": "系统_在线",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 个字符",
+      "nickname_rules_chars": "允许 A-Z，0-9",
+      "forgot_password_desc": "输入邮箱地址，我们会发送密码重置链接。",
+      "send_reset_link": "发送重置链接",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "盈亏 (P&L)",
       "time": "时间",
       "kills": "击杀",
+      "coins_earned": "获得的金币",
       "career_stats": "生涯统计",
       "games": "场次",
       "total_kills": "总击杀",
@@ -372,12 +433,16 @@
     "cat_ui": "界面",
     "cat_alerts": "警报",
     "cat_slots": "老虎机",
+    "cat_music": "音乐",
+    "cat_sfx": "音效",
     "desc_combat": "射击，暴击，命中",
     "desc_feedback": "宝石，升级，连击",
     "desc_movement": "冲刺，风声",
     "desc_ui": "按钮，菜单",
     "desc_alerts": "低血量，死亡",
     "desc_slots": "升级抽奖",
+    "desc_music": "市场节拍与氛围音色",
+    "desc_sfx": "所有通用的游戏内音效",
     "visuals": "画面",
     "particles": "粒子效果",
     "screen_shake": "屏幕震动",
@@ -550,7 +615,13 @@
         "本地进度保存",
         "支持离线模式"
       ],
-      "comp_items": ["全球排行榜", "反作弊验证", "重放录制", "成就追踪", "赛季排名"]
+      "comp_items": [
+        "全球排行榜",
+        "反作弊验证",
+        "重放录制",
+        "成就追踪",
+        "赛季排名"
+      ]
     },
     "roadmap": {
       "title": "开发时间轴",
@@ -558,16 +629,32 @@
       "active_tag": "进行中",
       "phase1": "2026 Q1",
       "phase1_title": "基础",
-      "phase1_items": ["核心游戏循环", "60 FPS Canvas 引擎", "Supabase 集成"],
+      "phase1_items": [
+        "核心游戏循环",
+        "60 FPS Canvas 引擎",
+        "Supabase 集成"
+      ],
       "phase2": "2026 Q2",
       "phase2_title": "实时市场",
-      "phase2_items": ["Binance/Coinbase WSS", "神经 AI 总监", "反作弊系统"],
+      "phase2_items": [
+        "Binance/Coinbase WSS",
+        "神经 AI 总监",
+        "反作弊系统"
+      ],
       "phase3": "2026 Q3",
       "phase3_title": "社交",
-      "phase3_items": ["全球排行榜", "重放分享", "成就徽章"],
+      "phase3_items": [
+        "全球排行榜",
+        "重放分享",
+        "成就徽章"
+      ],
       "phase4": "2026 Q4",
       "phase4_title": "扩张",
-      "phase4_items": ["多币种支持", "每日挑战", "季节性活动"]
+      "phase4_items": [
+        "多币种支持",
+        "每日挑战",
+        "季节性活动"
+      ]
     },
     "faq": {
       "title": "常见问题",

@@ -8,6 +8,7 @@ import { profiles, sessions } from '../db/schema';
 import { startSessionSchema, verifySessionSchema, syncSessionSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
 import { RewardCalculator, type ExitType, type PortalType } from '../shared/RewardCalculator';
+import { logAudit, getClientInfo } from '../utils/auditLogger';
 
 const router = Router();
 
@@ -67,6 +68,16 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
 
     const session = rows[0];
     Logger.info(`[Sessions] Started session ${session.id} for profile ${profileId}`);
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'session.start',
+      resource: '/api/v1/sessions/start',
+      details: { sessionId: session.id, pair, position, leverage },
+      ipAddress,
+      userAgent,
+    });
 
     res.json({
       sessionId: session.id,
@@ -191,17 +202,34 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     // 3b. Field range sanity checks (advisory — log only, don't reject)
     const MAX_KILLS_PER_SECOND = 5;
     const maxPlausibleKills = Math.ceil(duration * MAX_KILLS_PER_SECOND);
+    const suspiciousFlags: string[] = [];
     if (payload.kills > maxPlausibleKills) {
       Logger.warn(`[verify] Suspicious kill rate: ${payload.kills} kills in ${duration}s (max plausible: ${maxPlausibleKills}) session=${sessionId}`);
+      suspiciousFlags.push('kill_rate');
     }
     if (payload.level > 1 && payload.kills > 0 && payload.kills < (payload.level - 1) * 2) {
       Logger.warn(`[verify] Level/kill mismatch: level=${payload.level} kills=${payload.kills} session=${sessionId}`);
+      suspiciousFlags.push('level_kill_mismatch');
     }
     if (payload.maxStreak > payload.kills) {
       Logger.warn(`[verify] Streak exceeds kills: streak=${payload.maxStreak} kills=${payload.kills} session=${sessionId}`);
+      suspiciousFlags.push('streak_exceeds_kills');
     }
     if (duration > 86400) {
       Logger.warn(`[verify] Abnormally long session: ${duration}s session=${sessionId}`);
+      suspiciousFlags.push('abnormal_duration');
+    }
+
+    if (suspiciousFlags.length > 0) {
+      const { ipAddress: susIp, userAgent: susUa } = getClientInfo(req);
+      await logAudit({
+        profileId: session.profileId,
+        action: 'session.suspicious',
+        resource: '/api/v1/sessions/verify',
+        details: { sessionId, flags: suspiciousFlags, kills: payload.kills, level: payload.level, duration },
+        ipAddress: susIp,
+        userAgent: susUa,
+      });
     }
 
     // 4. Reward calculation
@@ -273,6 +301,16 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     Logger.info(
       `[Sessions] Verified session ${sessionId}: reward=${Math.floor(reward)}, metaShare=${txResult.metaShare}`
     );
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId: session.profileId,
+      action: 'session.verify',
+      resource: '/api/v1/sessions/verify',
+      details: { sessionId, reward: Math.floor(reward), metaShare: txResult.metaShare, duration, kills: payload.kills, level: payload.level },
+      ipAddress,
+      userAgent,
+    });
 
     res.json({
       verified: true,
@@ -361,6 +399,81 @@ router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
     }
     Logger.error('[Sessions] Sync error:', error);
     res.status(500).json({ error: 'Failed to sync session' });
+  }
+}));
+
+/**
+ * GET /api/v1/sessions/:id/recover — Recover session secret for unverified sessions
+ * Only the session owner can recover their own session secret.
+ */
+router.get('/:id/recover', requireAuth, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const { id: sessionId } = req.params;
+    const authUserId = getRequiredAuthUserId(req);
+    const db = getDb();
+
+    // Find user's profile
+    const profileRows = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.authUserId, authUserId))
+      .limit(1);
+
+    if (profileRows.length === 0) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
+
+    const profileId = profileRows[0].id;
+
+    // Find session — must belong to this profile and not yet verified
+    const sessionRows = await db
+      .select({
+        id: sessions.id,
+        profileId: sessions.profileId,
+        sessionSecret: sessions.sessionSecret,
+        isVerified: sessions.isVerified,
+      })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    if (sessionRows.length === 0) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    const session = sessionRows[0];
+
+    // Ownership check
+    if (session.profileId !== profileId) {
+      res.status(403).json({ error: 'Not authorized to access this session' });
+      return;
+    }
+
+    // Already verified — secret is no longer useful
+    if (session.isVerified) {
+      res.status(410).json({ error: 'Session already verified' });
+      return;
+    }
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'session.recover',
+      resource: `/api/v1/sessions/${sessionId}/recover`,
+      details: { sessionId, recovered: true },
+      ipAddress,
+      userAgent,
+    });
+
+    res.json({
+      sessionId: session.id,
+      sessionSecret: session.sessionSecret,
+    });
+  } catch (error) {
+    Logger.error('[Sessions] Recover error:', error);
+    res.status(500).json({ error: 'Failed to recover session' });
   }
 }));
 

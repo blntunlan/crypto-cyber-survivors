@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, startTransition } from 'react';
 import { motion } from 'framer-motion';
 import {
   type Card,
@@ -26,6 +26,7 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   const [isStopped, setIsStopped] = useState(false);
   const [phase, setPhase] = useState<'spinning' | 'slowing' | 'stopped'>('spinning');
   const [currentCard, setCurrentCard] = useState<Card>(finalCard);
+  const currentCardRef = useRef(finalCard);
 
   const spinCards = useMemo(() => {
     const pool = ALL_CARDS_FLAT.filter(c => c.id !== finalCard.id);
@@ -37,13 +38,23 @@ export const SlotReel: React.FC<SlotReelProps> = ({
   }, [finalCard]);
 
   useEffect(() => {
+    currentCardRef.current = finalCard;
+  }, [finalCard]);
+
+  useEffect(() => {
     const startTime = Date.now();
     let lastTickTime = 0;
     let isSlowing = false;
     let isDone = false;
     let displayIndex = 0;
     let lastRenderTime = 0;
-    const RENDER_THROTTLE = 120; // Throttle React re-renders to ~8fps (plenty for slot visual)
+    let soundTickCount = 0;
+    const SOUND_SKIP = 2; // Play sound every Nth tick during fast spin
+    const minRenderIntervalSource =
+      typeof SLOT_CONFIG.MIN_RENDER_INTERVAL === 'number'
+        ? SLOT_CONFIG.MIN_RENDER_INTERVAL
+        : SLOT_CONFIG.SPIN_INTERVAL;
+    const minRenderInterval = Math.max(16, minRenderIntervalSource);
 
     const stopDelay =
       SLOT_CONFIG.SPIN_DURATION +
@@ -62,7 +73,10 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       if (elapsed >= totalDuration) {
         if (!isDone) {
           isDone = true;
-          setCurrentCard(finalCard);
+          startTransition(() => {
+            currentCardRef.current = finalCard;
+            setCurrentCard(finalCard);
+          });
           setPhase('stopped');
           setIsStopped(true);
         }
@@ -86,16 +100,26 @@ export const SlotReel: React.FC<SlotReelProps> = ({
       if (now - lastTickTime > currentInterval) {
         lastTickTime = now;
         displayIndex = (displayIndex + 1) % (spinCards.length - 1);
+        soundTickCount++;
 
-        // Throttle React re-renders — update card state at most every RENDER_THROTTLE ms
-        if (now - lastRenderTime >= RENDER_THROTTLE) {
+        // Throttle React re-renders — update card state at most every minRenderInterval ms
+        if (now - lastRenderTime >= minRenderInterval) {
           lastRenderTime = now;
           const card = spinCards[displayIndex];
-          if (card) setCurrentCard(card);
+          if (card && card.id !== currentCardRef.current.id) {
+            currentCardRef.current = card;
+            startTransition(() => {
+              setCurrentCard(card);
+            });
+          }
         }
 
+        // Throttle sound ticks: every Nth during fast spin, every tick during slowdown
         if (totalDuration - elapsed > 100) {
-          audio.playSlotTick(isSlowing ? 0.8 : 1);
+          const shouldPlaySound = isSlowing || soundTickCount % SOUND_SKIP === 0;
+          if (shouldPlaySound) {
+            audio.playSlotTick(isSlowing ? 0.8 : 1);
+          }
         }
       }
 

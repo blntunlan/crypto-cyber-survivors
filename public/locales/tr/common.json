@@ -42,6 +42,66 @@
       "challenges": "GÖREVLER",
       "replays": "TEKRARLAR"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} META kredi hazır",
+        "tagline": "Kalıcı güçlendirmelerle her koşuyu daha güçlü başlat.",
+        "summary_helper": "Kalıcı ağ avantajları",
+        "search_label": "Yükseltme ara",
+        "search_placeholder": "Yükseltme ara: kritik, ekonomi, zırh...",
+        "filters_label": "Kategori",
+        "affordable_label": "Sadece satın alınabilir",
+        "no_results": "Bu filtrelere uyan bir yükseltme yok.",
+        "maxed_label": "Maksimum seviye",
+        "progress_label": "Seviye ilerleme",
+        "buy_label": "Satın al",
+        "categories": {
+          "all": "Tümü",
+          "combat": "Çatışma",
+          "survival": "Hayatta Kalma",
+          "economy": "Ekonomi",
+          "special": "Özel"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Meta Kredi",
+            "helper": "Harcanabilir bakiye"
+          },
+          "runs": {
+            "label": "Tamamlanan koşu",
+            "helper": "Başarılı çıkış"
+          },
+          "lifetime": {
+            "label": "Toplam Meta",
+            "helper": "Tüm zamanların kazancı"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "Ana terminalle senkron canlı kontratlar",
+        "daily_contract": "Günlük Kontrat",
+        "weekly_contract": "Haftalık Kontrat",
+        "cleared": "Tamamlandı",
+        "reward_label": "Ödül",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "Aktifleştir",
+        "completed_label": "Görev tamamlandı",
+        "loading": "Görevler yükleniyor...",
+        "empty_state": "Görev mevcut değil.",
+        "toast_title": "Görev Aktif"
+      },
+      "replays": {
+        "subtitle": "Terminal katmanından çıkmadan önceki koşuları incele",
+        "section_saved": "Kaydedilen Oturumlar",
+        "loading": "Tekrarlar yükleniyor...",
+        "empty_state": "Henüz tekrar yok. Bir koşu tamamlayarak kaydet.",
+        "score": "Skor {{value}}",
+        "duration": "Süre {{value}}",
+        "level": "Seviye {{value}}",
+        "kills": "{{value}} öldürme",
+        "watch": "İzle"
+      }
+    },
     "long": "LONG",
     "short": "SHORT",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "Ana Sayfaya Dön",
         "error_occurred": "Bir hata oluştu"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "Giriş yapılıyor...",
+      "creating_account": "Hesap oluşturuluyor...",
+      "sending": "Gönderiliyor...",
+      "verifying": "Doğrulanıyor...",
+      "connect_phantom": "Phantom'u Bağla",
+      "install_phantom": "Phantom'u Yükle",
+      "verification_code": "Doğrulama Kodu",
+      "otp_verify_desc": "Gönderilen 6 haneli kodu gir",
+      "nickname_placeholder": "ERİŞİM_ANAHTARINI_GİR",
+      "access_granted": "ERİŞİM_ONAYLANDI",
+      "initialize_profile": "PROFİLİ_BAŞLAT",
+      "footer_systems_online": "SİSTEMLER_AKTİF",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 KARAKTER",
+      "nickname_rules_chars": "A-Z, 0-9 İZİN VERİLİR",
+      "forgot_password_desc": "E-posta adresini gir, şifreni sıfırlaman için bir bağlantı gönderelim.",
+      "send_reset_link": "Sıfırlama bağlantısını gönder",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "K/Z (PnL)",
       "time": "Süre",
       "kills": "Öldürme",
+      "coins_earned": "Kazanılan Coin",
       "career_stats": "Kariyer İstatistikleri",
       "games": "Maçlar",
       "total_kills": "Toplam Öldürme",
@@ -582,7 +643,11 @@
       ],
       "phase3": "2026 Q3",
       "phase3_title": "Sosyal",
-      "phase3_items": ["Dünya sıralamaları", "Tekrar paylaşımı", "Başarım rozetleri"],
+      "phase3_items": [
+        "Dünya sıralamaları",
+        "Tekrar paylaşımı",
+        "Başarım rozetleri"
+      ],
       "phase4": "2026 Q4",
       "phase4_title": "Genişleme",
       "phase4_items": [

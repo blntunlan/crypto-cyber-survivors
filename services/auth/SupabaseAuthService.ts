@@ -14,22 +14,24 @@
 
 import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
-import { EventBus } from '../core/EventBus';
-import type { AuthChangeEvent, Session, User, Provider } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
+import { mapAuthError } from './AuthErrorMapper';
+import { AuthEventHandler } from './AuthEventHandler';
+import { OAuthFlowManager } from './OAuthFlowManager';
 
 // ============================================
 // Types
 // ============================================
 
-export interface AuthResult {
+export type AuthResult = {
   success: boolean;
   user?: User;
   session?: Session;
   error?: string;
   needsEmailConfirmation?: boolean;
-}
+};
 
-export interface ProfileData {
+export type ProfileData = {
   id: string;
   authUserId: string | null;
   email: string | null;
@@ -45,7 +47,7 @@ export interface ProfileData {
   createdAt: string;
   lastSeenAt: string;
   updatedAt: string;
-}
+};
 
 export type AuthProvider =
   | 'twitter'
@@ -55,23 +57,23 @@ export type AuthProvider =
   | 'apple'
   | 'twitch';
 
-export interface SignUpOptions {
+export type SignUpOptions = {
   email: string;
   password: string;
   displayName?: string;
   redirectTo?: string;
-}
+};
 
-export interface SignInOptions {
+export type SignInOptions = {
   email: string;
   password: string;
-}
+};
 
-export interface OAuthOptions {
+export type OAuthOptions = {
   provider: AuthProvider;
   redirectTo?: string;
   scopes?: string;
-}
+};
 
 // ============================================
 // Service Class
@@ -79,7 +81,17 @@ export interface OAuthOptions {
 
 class SupabaseAuthServiceClass {
   private static instance: SupabaseAuthServiceClass | null = null;
-  private unsubscribe: (() => void) | null = null;
+  private readonly eventHandler = new AuthEventHandler();
+  private readonly oauthManager = new OAuthFlowManager();
+
+  constructor() {
+    // Wire the updateLastSeen callback into the event handler
+    this.eventHandler.setOnSignedIn((userId: string) => {
+      void this.updateLastSeen(userId).catch(err =>
+        Logger.error('[SupabaseAuth] Failed to update last seen:', err)
+      );
+    });
+  }
 
   static getInstance(): SupabaseAuthServiceClass {
     return (SupabaseAuthServiceClass.instance ??= new SupabaseAuthServiceClass());
@@ -94,79 +106,7 @@ class SupabaseAuthServiceClass {
    * Call this once when app starts
    */
   initialize(): void {
-    if (!isSupabaseConfigured()) {
-      Logger.warn('[SupabaseAuth] Not configured - auth features disabled');
-      return;
-    }
-
-    // Set up auth state listener
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      this.handleAuthStateChange(event, session);
-    });
-
-    this.unsubscribe = () => data.subscription.unsubscribe();
-
-    Logger.info('[SupabaseAuth] Initialized and listening for auth changes');
-  }
-
-  /**
-   * Handle auth state changes
-   */
-  private handleAuthStateChange(event: AuthChangeEvent, session: Session | null): void {
-    Logger.info(`[SupabaseAuth] Auth state changed: ${event}`);
-
-    switch (event) {
-      case 'SIGNED_IN':
-        EventBus.emit('authStateChanged', {
-          type: 'signIn',
-          user: session?.user ?? null,
-          session,
-        });
-        if (session?.user) {
-          void this.updateLastSeen(session.user.id).catch(err =>
-            Logger.error('[SupabaseAuth] Failed to update last seen:', err)
-          );
-        }
-
-        break;
-
-      case 'SIGNED_OUT':
-        EventBus.emit('authStateChanged', {
-          type: 'signOut',
-          user: null,
-          session: null,
-        });
-        break;
-
-      case 'TOKEN_REFRESHED':
-        EventBus.emit('authStateChanged', {
-          type: 'tokenRefreshed',
-          user: session?.user ?? null,
-          session,
-        });
-        break;
-
-      case 'USER_UPDATED':
-        EventBus.emit('authStateChanged', {
-          type: 'userUpdated',
-          user: session?.user ?? null,
-          session,
-        });
-        break;
-
-      case 'PASSWORD_RECOVERY':
-        EventBus.emit('authStateChanged', {
-          type: 'passwordRecovery',
-          user: session?.user ?? null,
-          session,
-        });
-        break;
-
-      case 'INITIAL_SESSION':
-        // Fired once on startup with the restored session (may be null)
-        Logger.info(`[SupabaseAuth] Initial session ${session ? 'restored' : 'empty'}`);
-        break;
-    }
+    this.eventHandler.initialize();
   }
 
   // ============================================
@@ -198,7 +138,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] SignUp error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       // Check if email confirmation is required
@@ -245,7 +185,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] SignIn error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       Logger.info('[SupabaseAuth] SignIn successful');
@@ -281,7 +221,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] Anonymous SignIn error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       Logger.info('[SupabaseAuth] Anonymous SignIn successful');
@@ -321,7 +261,7 @@ class SupabaseAuthServiceClass {
   }
 
   // ============================================
-  // OAuth Authentication
+  // OAuth Authentication (delegated)
   // ============================================
 
   /**
@@ -331,43 +271,7 @@ class SupabaseAuthServiceClass {
   async signInWithOAuth(
     options: OAuthOptions
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured()) {
-      return { success: false, error: 'Auth service not configured' };
-    }
-
-    const { provider, redirectTo, scopes } = options;
-
-    // Default scopes per provider
-    const defaultScopes: Record<AuthProvider, string> = {
-      twitter: 'tweet.read users.read',
-      google: 'email profile',
-      discord: 'identify email',
-      github: 'read:user user:email',
-      apple: 'email name',
-      twitch: 'user:read:email',
-    };
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: provider as Provider,
-        options: {
-          redirectTo: redirectTo ?? `${window.location.origin}/auth/callback`,
-          scopes: scopes ?? defaultScopes[provider],
-        },
-      });
-
-      if (error) {
-        Logger.error(`[SupabaseAuth] ${provider} OAuth error:`, error);
-        return { success: false, error: error.message };
-      }
-
-      // OAuth redirects, so we won't reach here normally
-      Logger.info(`[SupabaseAuth] Redirecting to ${provider} OAuth...`);
-      return { success: true };
-    } catch (err) {
-      Logger.error(`[SupabaseAuth] ${provider} OAuth exception:`, err);
-      return { success: false, error: 'OAuth failed' };
-    }
+    return this.oauthManager.signInWithOAuth(options);
   }
 
   /**
@@ -376,18 +280,26 @@ class SupabaseAuthServiceClass {
   async linkOAuthProvider(
     provider: AuthProvider
   ): Promise<{ success: boolean; error?: string }> {
-    if (!isSupabaseConfigured()) {
-      return { success: false, error: 'Auth service not configured' };
-    }
-
     const user = await this.getUser();
-    if (!user) {
-      return { success: false, error: 'Must be signed in to link providers' };
-    }
+    return this.oauthManager.linkOAuthProvider(provider, user);
+  }
 
-    // For now, linking is done by signing in with the provider
-    // Supabase will automatically link if the email matches
-    return this.signInWithOAuth({ provider });
+  /**
+   * Get list of linked OAuth providers for current user
+   */
+  async getLinkedProviders(): Promise<AuthProvider[]> {
+    const user = await this.getUser();
+    return this.oauthManager.getLinkedProviders(user);
+  }
+
+  /**
+   * Unlink an OAuth provider from current user
+   * Note: Supabase doesn't directly support unlinking, so this is limited
+   */
+  async unlinkProvider(
+    provider: AuthProvider
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.oauthManager.unlinkProvider(provider);
   }
 
   // ============================================
@@ -415,7 +327,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] Magic link error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       Logger.info('[SupabaseAuth] Magic link sent');
@@ -444,7 +356,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] Send OTP error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       Logger.info('[SupabaseAuth] OTP code sent');
@@ -472,7 +384,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] Verify OTP error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       if (data.session && data.user) {
@@ -513,7 +425,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] Reset password error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       Logger.info('[SupabaseAuth] Password reset email sent');
@@ -541,7 +453,7 @@ class SupabaseAuthServiceClass {
 
       if (error) {
         Logger.error('[SupabaseAuth] Update password error:', error);
-        return { success: false, error: this.mapAuthError(error.message) };
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       Logger.info('[SupabaseAuth] Password updated');
@@ -696,57 +608,6 @@ class SupabaseAuthServiceClass {
   }
 
   /**
-   * Get list of linked OAuth providers for current user
-   */
-  async getLinkedProviders(): Promise<AuthProvider[]> {
-    if (!isSupabaseConfigured()) return [];
-
-    try {
-      const user = await this.getUser();
-      if (!user) return [];
-
-      // Get identities from Supabase auth
-      const identities = user.identities ?? [];
-
-      // Map to AuthProvider type
-      const providers: AuthProvider[] = identities
-        .map(identity => identity.provider as AuthProvider)
-        .filter(provider =>
-          [
-            'email',
-            'twitter',
-            'google',
-            'discord',
-            'github',
-            'apple',
-            'twitch',
-          ].includes(provider)
-        );
-
-      return providers;
-    } catch (err) {
-      Logger.error('[SupabaseAuth] Get linked providers error:', err);
-      return [];
-    }
-  }
-
-  /**
-   * Unlink an OAuth provider from current user
-   * Note: Supabase doesn't directly support unlinking, so this is limited
-   */
-  async unlinkProvider(
-    _provider: AuthProvider
-  ): Promise<{ success: boolean; error?: string }> {
-    // Supabase doesn't have a direct unlink API
-    // This would require a custom Edge Function
-    Logger.warn('[SupabaseAuth] Unlink provider not fully implemented yet');
-    return {
-      success: false,
-      error: 'Provider unlinking requires backend implementation',
-    };
-  }
-
-  /**
    * Update profile with linked profile data after OAuth callback
    */
   async updateProfileWithAuth(
@@ -826,27 +687,6 @@ class SupabaseAuthServiceClass {
     }
   }
 
-  /**
-   * Map Supabase auth errors to user-friendly messages
-   */
-  private mapAuthError(message: string): string {
-    const errorMap: Record<string, string> = {
-      'Invalid login credentials': 'Email veya şifre hatalı',
-      'Email not confirmed': 'Lütfen email adresinizi doğrulayın',
-      'User already registered': 'Bu email zaten kayıtlı',
-      'Password should be at least 6 characters': 'Şifre en az 6 karakter olmalı',
-      'Unable to validate email address: invalid format': 'Geçersiz email formatı',
-      'For security purposes, you can only request this once every 60 seconds':
-        'Güvenlik nedeniyle 60 saniye beklemeniz gerekiyor',
-      'Email rate limit exceeded': 'Çok fazla deneme yaptınız, lütfen bekleyin',
-      'New password should be different from the old password':
-        'Yeni şifre eskisinden farklı olmalı',
-      'Auth session missing!': 'Oturum bulunamadı, lütfen tekrar giriş yapın',
-    };
-
-    return errorMap[message] ?? message;
-  }
-
   // ============================================
   // Cleanup
   // ============================================
@@ -855,10 +695,7 @@ class SupabaseAuthServiceClass {
    * Dispose auth listener (call on app unmount)
    */
   dispose(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
+    this.eventHandler.dispose();
   }
 
   /**

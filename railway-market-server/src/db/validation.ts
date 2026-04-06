@@ -6,13 +6,20 @@ import { z } from 'zod';
 
 // ── Profile ──────────────────────────────────────────────────────────────────
 
+const nicknameSchema = z
+  .string()
+  .trim()
+  .min(3, 'Nickname must be at least 3 characters')
+  .max(16, 'Nickname must be at most 16 characters')
+  .regex(/^[a-zA-Z0-9_-]{3,16}$/, 'Nickname may only contain letters, digits, underscores, and hyphens');
+
 export const createProfileSchema = z.object({
-  nickname: z.string().trim().min(1).max(30),
+  nickname: nicknameSchema,
   avatar_url: z.string().url().nullish(),
 });
 
 export const updateProfileSchema = z.object({
-  nickname: z.string().trim().min(1).max(30).optional(),
+  nickname: nicknameSchema.optional(),
   avatar_url: z.string().url().nullish(),
 });
 

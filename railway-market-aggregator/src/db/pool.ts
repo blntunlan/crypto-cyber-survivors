@@ -18,6 +18,8 @@ export function getPool(): pg.Pool {
     max: 5, // Aggregator needs fewer connections than the API server
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
+    // Railway internal networking uses private network — rejectUnauthorized:false
+    // is acceptable for internal connections. For external PG, use proper CA certs.
     ssl: connectionString.includes('railway.app')
       ? { rejectUnauthorized: false }
       : undefined,
@@ -26,6 +28,34 @@ export function getPool(): pg.Pool {
   pool.on('error', err => {
     Logger.error('[DB] Unexpected pool error:', err);
   });
+
+  pool.on('connect', () => {
+    Logger.info('[Pool] New client connected');
+  });
+
+  pool.on('remove', () => {
+    Logger.info('[Pool] Client removed from pool');
+  });
+
+  // Pool health monitoring — log warnings when pool usage is high
+  const POOL_CHECK_INTERVAL = 30_000;
+  const monitoredPool = pool;
+  setInterval(() => {
+    const total = monitoredPool.totalCount;
+    const idle = monitoredPool.idleCount;
+    const waiting = monitoredPool.waitingCount;
+    const active = total - idle;
+    const usage = total > 0 ? active / total : 0;
+
+    if (usage > 0.8) {
+      Logger.warn(
+        `[Pool] High usage: ${active}/${total} active, ${waiting} waiting (${Math.round(usage * 100)}%)`
+      );
+    }
+    if (waiting > 0) {
+      Logger.warn(`[Pool] ${waiting} queries waiting for connection`);
+    }
+  }, POOL_CHECK_INTERVAL).unref();
 
   Logger.info('✅ PostgreSQL connection pool created (max: 5)');
   return pool;

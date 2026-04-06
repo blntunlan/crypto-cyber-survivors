@@ -175,5 +175,87 @@ describe('UserPersistenceService', () => {
       expect(res1).toBeNull();
       expect(res2).toBeNull();
     });
+
+    it('should reject non-UUID profileId from localStorage', async () => {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          profileId: 'legacy-nanoid-abc123',
+          nickname: 'BadId',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
+        })
+      );
+
+      const initPromise = UserPersistenceService.initialize();
+      await vi.advanceTimersByTimeAsync(200);
+
+      const user = await initPromise;
+      expect(user).toBeNull();
+    });
+
+    it('should reject non-UUID profileId from cookie', async () => {
+      const badUser = {
+        profileId: 'not-a-uuid',
+        nickname: 'CookieBad',
+        createdAt: 1000,
+        lastSeenAt: 2000,
+      };
+      const content = btoa(JSON.stringify(badUser));
+      document.cookie = `${COOKIE_NAME}=${content}; path=/`;
+
+      const initPromise = UserPersistenceService.initialize();
+      await vi.advanceTimersByTimeAsync(200);
+
+      const user = await initPromise;
+      expect(user).toBeNull();
+    });
+  });
+
+  describe('createOrUpdateUser', () => {
+    it('should create a new user with random UUID', async () => {
+      const user = await UserPersistenceService.createOrUpdateUser('NewPlayer');
+
+      expect(user.nickname).toBe('NewPlayer');
+      expect(user.profileId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      );
+      expect(user.createdAt).toBeGreaterThan(0);
+      expect(user.lastSeenAt).toBeGreaterThan(0);
+      // Should be persisted
+      expect(UserPersistenceService.getLegacyStoredUser()?.nickname).toBe('NewPlayer');
+    });
+
+    it('should create a deterministic dev UUID when isDev is true', async () => {
+      const user = await UserPersistenceService.createOrUpdateUser('DevPlayer', true);
+
+      expect(user.profileId).toBe('00000000-0000-0000-0000-000000000000');
+      expect(user.nickname).toBe('DevPlayer');
+    });
+
+    it('should update existing user nickname and lastSeenAt', async () => {
+      // Create initial user
+      const original = await UserPersistenceService.createOrUpdateUser('Original');
+      const originalCreatedAt = original.createdAt;
+
+      // Advance time
+      vi.advanceTimersByTime(5000);
+
+      // Update
+      const updated = await UserPersistenceService.createOrUpdateUser('Updated');
+
+      expect(updated.profileId).toBe(original.profileId);
+      expect(updated.nickname).toBe('Updated');
+      expect(updated.createdAt).toBe(originalCreatedAt);
+      expect(updated.lastSeenAt).toBeGreaterThanOrEqual(original.lastSeenAt);
+    });
+
+    it('should persist to localStorage and cookie after create', async () => {
+      await UserPersistenceService.createOrUpdateUser('Persisted');
+
+      const stored = localStorage.getItem(STORAGE_KEY);
+      expect(stored).toContain('Persisted');
+      expect(document.cookie).toContain(COOKIE_NAME);
+    });
   });
 });

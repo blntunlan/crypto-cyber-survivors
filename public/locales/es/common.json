@@ -42,6 +42,66 @@
       "challenges": "DESAFÍOS",
       "replays": "REPETICIONES"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} créditos meta disponibles",
+        "tagline": "Acumula mejoras permanentes antes de cada corrida de mercado.",
+        "summary_helper": "Ventaja permanente de la red",
+        "search_label": "Buscar mejoras",
+        "search_placeholder": "Busca mejoras: crítico, economía, armadura...",
+        "filters_label": "Categoría",
+        "affordable_label": "Solo asequibles",
+        "no_results": "Ninguna mejora coincide con tus filtros.",
+        "maxed_label": "Nivel máximo",
+        "progress_label": "Progreso",
+        "buy_label": "Comprar",
+        "categories": {
+          "all": "Todas",
+          "combat": "Combate",
+          "survival": "Supervivencia",
+          "economy": "Economía",
+          "special": "Especial"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Créditos Meta",
+            "helper": "Saldo disponible"
+          },
+          "runs": {
+            "label": "Partidas completadas",
+            "helper": "Sesiones finalizadas"
+          },
+          "lifetime": {
+            "label": "Meta total",
+            "helper": "Ganado históricamente"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "Contratos en vivo alineados con el terminal principal",
+        "daily_contract": "Contrato diario",
+        "weekly_contract": "Contrato semanal",
+        "cleared": "Completado",
+        "reward_label": "Recompensa",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "Activar",
+        "completed_label": "Desafío completado",
+        "loading": "Cargando desafíos...",
+        "empty_state": "No hay desafíos disponibles.",
+        "toast_title": "Desafío activo"
+      },
+      "replays": {
+        "subtitle": "Revisa partidas anteriores sin salir de la capa del terminal",
+        "section_saved": "Sesiones guardadas",
+        "loading": "Cargando repeticiones...",
+        "empty_state": "Aún no hay repeticiones. Completa una partida para guardar una.",
+        "score": "Puntuación {{value}}",
+        "duration": "Duración {{value}}",
+        "level": "Nivel {{value}}",
+        "kills": "{{value}} bajas",
+        "watch": "Ver"
+      }
+    },
     "long": "LONG",
     "short": "SHORT",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "Volver al Inicio",
         "error_occurred": "Ocurrió un error"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "Iniciando sesión...",
+      "creating_account": "Creando cuenta...",
+      "sending": "Enviando...",
+      "verifying": "Verificando...",
+      "connect_phantom": "Conectar Phantom",
+      "install_phantom": "Instalar Phantom",
+      "verification_code": "Código de verificación",
+      "otp_verify_desc": "Ingresa el código de 6 dígitos enviado a",
+      "nickname_placeholder": "INGRESA_CLAVE_DE_ACCESO",
+      "access_granted": "ACCESO_CONCEDIDO",
+      "initialize_profile": "INICIALIZAR_PERFIL",
+      "footer_systems_online": "SISTEMAS_EN_LÍNEA",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 CARACTERES",
+      "nickname_rules_chars": "A-Z, 0-9 PERMITIDOS",
+      "forgot_password_desc": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.",
+      "send_reset_link": "Enviar enlace de restablecimiento",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "P&L",
       "time": "Tiempo",
       "kills": "Eliminaciones",
+      "coins_earned": "Monedas Ganadas",
       "career_stats": "Estadísticas de Carrera",
       "games": "Partidas",
       "total_kills": "Total Eliminaciones",
@@ -372,12 +433,16 @@
     "cat_ui": "Interfaz",
     "cat_alerts": "Alertas",
     "cat_slots": "Slots",
+    "cat_music": "Música",
+    "cat_sfx": "Efectos de Sonido",
     "desc_combat": "Disparos, críticos, impactos",
     "desc_feedback": "Gemas, niveles, combos",
     "desc_movement": "Dash, ráfaga",
     "desc_ui": "Botones, menús",
     "desc_alerts": "Vida baja, muerte",
     "desc_slots": "Máquina de niveles",
+    "desc_music": "Ritmos del mercado y tonos ambientales",
+    "desc_sfx": "Todos los efectos de sonido generales del juego",
     "visuals": "Visuales",
     "particles": "Partículas",
     "screen_shake": "Sacudida de Pantalla",

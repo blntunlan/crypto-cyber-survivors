@@ -18,6 +18,10 @@ import { useHubButtons, type HubButtonConfig } from './useHubButtons.tsx';
 import { audio } from '../../services/audio';
 import { COLORS } from '../../config/Colors';
 import { type HubScreen } from './HubMenu';
+import {
+  useResponsiveHubColumns,
+  useHubGridClassName,
+} from './useResponsiveHubColumns.ts';
 
 interface HubMenuV2Props {
   nickname: string;
@@ -38,7 +42,8 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
   const sizes = useThemeSize();
   const device = useDevice();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [gridColumns, setGridColumns] = useState(2);
+  const columnCount = useResponsiveHubColumns();
+  const hubGridClass = useHubGridClassName();
 
   const [lootboxCount, setLootboxCount] = useState(0);
   const [consumableCount, setConsumableCount] = useState(0);
@@ -53,17 +58,6 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
     updateCounts();
   }, []);
 
-  useEffect(() => {
-    const computeColumns = () =>
-      typeof window !== 'undefined' && window.innerWidth >= 1280 ? 3 : 2;
-
-    setGridColumns(computeColumns());
-
-    const handleResize = () => setGridColumns(computeColumns());
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const iconClass = 'w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14';
 
   const buttons: HubButtonConfig[] = useHubButtons({
@@ -76,9 +70,10 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      const rows = Math.ceil(buttons.length / gridColumns);
-      const currentRow = Math.floor(selectedIndex / gridColumns);
-      const currentCol = selectedIndex % gridColumns;
+      const cols = columnCount || 1;
+      const rows = Math.ceil(buttons.length / cols);
+      const currentRow = Math.floor(selectedIndex / cols);
+      const currentCol = selectedIndex % cols;
 
       switch (event.key) {
         case 'ArrowUp':
@@ -86,7 +81,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
         case 'W':
           event.preventDefault();
           if (currentRow > 0) {
-            setSelectedIndex(prev => prev - gridColumns);
+            setSelectedIndex(prev => prev - cols);
             audio.playSelectionTick();
           }
           break;
@@ -96,7 +91,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
         case 'S':
           event.preventDefault();
           if (currentRow < rows - 1) {
-            const newIndex = selectedIndex + gridColumns;
+            const newIndex = selectedIndex + cols;
             if (newIndex < buttons.length) {
               setSelectedIndex(newIndex);
               audio.playSelectionTick();
@@ -118,7 +113,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
         case 'd':
         case 'D':
           event.preventDefault();
-          if (currentCol < gridColumns - 1 && selectedIndex < buttons.length - 1) {
+          if (currentCol < cols - 1 && selectedIndex < buttons.length - 1) {
             setSelectedIndex(prev => prev + 1);
             audio.playSelectionTick();
           }
@@ -137,7 +132,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           break;
       }
     },
-    [buttons, gridColumns, onNavigate, selectedIndex]
+    [buttons, columnCount, onNavigate, selectedIndex]
   );
 
   useEffect(() => {
@@ -175,11 +170,16 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4 }}
       className={cn(
-        'allow-scroll absolute inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-3 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6',
+        'allow-scroll absolute inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-5',
         isRetro ? 'bg-[#0a0a12]/80' : 'bg-slate-950/60 backdrop-blur-lg'
       )}
     >
-      <div className="relative w-full max-w-5xl space-y-5 py-4 text-center sm:space-y-8 sm:py-0">
+      <div
+        className={cn(
+          'relative w-full max-w-xl space-y-5 py-2 text-center sm:space-y-7 sm:py-0',
+          onBack && 'pt-10 sm:pt-0'
+        )}
+      >
         {onBack && (
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             <OverlayBackButton
@@ -198,7 +198,9 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
         >
           <h1
             className={cn(
-              isRetro ? 'font-retro-pixel text-[#FFD600]' : 'cyber-sway-text font-cyber',
+              isRetro
+                ? 'font-retro-pixel text-[#FFD600]'
+                : 'cyber-sway-text font-cyber',
               sizes.title,
               'leading-relaxed tracking-tight text-white'
             )}
@@ -207,7 +209,9 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
             <br />
             <span
               className={cn(
-                isRetro ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]' : 'text-pump-green'
+                isRetro
+                  ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]'
+                  : 'text-pump-green'
               )}
               style={{ color: isRetro ? COLORS.ELECTRIC_BLUE : COLORS.PUMP_GREEN }}
             >
@@ -232,7 +236,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
 
         <ThemedPanel
           className={cn(
-            'relative space-y-5 overflow-hidden p-4 sm:p-6 lg:p-8',
+            'relative space-y-5 overflow-hidden p-4 sm:p-5',
             !isRetro &&
               'bg-slate-900/85 !rounded-[1.75rem] border border-white/15 shadow-[0_30px_80px_rgba(2,6,23,0.85)] backdrop-blur-2xl'
           )}
@@ -245,7 +249,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
             </>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+          <div className="grid gap-4 lg:grid-cols-2">
             <div className="hub-grid-item">
               <HubPlayerCard
                 nickname={nickname}
@@ -258,7 +262,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
                 }}
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="hub-grid-item grid gap-3 sm:grid-cols-2">
               {statusCards.map(card => (
                 <HubMetricCard
                   key={card.label}
@@ -271,11 +275,11 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-5 xl:grid-cols-3">
+          <div className={cn(hubGridClass, 'relative z-10')}>
             {buttons.map((btn, index) => (
               <div
                 key={btn.id}
-                className="hub-grid-item"
+                className="hub-grid-item h-full"
                 style={{ animationDelay: `${0.1 + index * 0.05}s` }}
               >
                 <HubMenuButton
@@ -300,8 +304,10 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
 
           <div
             className={cn(
-              'hub-grid-item relative z-10 py-2 text-center text-xs uppercase tracking-[0.35em] text-slate-400 sm:text-sm',
-              isRetro && 'font-retro-pixel text-[9px]'
+              'hub-grid-item relative z-10 pt-1 text-center uppercase tracking-widest text-slate-400',
+              isRetro
+                ? 'font-retro-pixel text-[9px]'
+                : 'font-display text-[9px] sm:text-[10px]'
             )}
           >
             {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}
@@ -327,14 +333,16 @@ const HubMetricCard: React.FC<HubMetricCardProps> = ({
 }) => (
   <div
     className={cn(
-      'flex flex-col justify-between rounded-xl border border-white/5 p-3 text-left transition-shadow duration-300',
+      'flex flex-col justify-between rounded-xl border border-white/5 p-2.5 text-left transition-shadow duration-300 sm:p-3',
       !isRetro && 'bg-white/5 hover:shadow-[0_0_25px_rgba(148,163,184,0.25)]',
       isRetro && 'border-2 border-[#39FF14]/30 bg-zinc-900/70'
     )}
   >
     <span
       className={cn(
-        isRetro ? 'font-retro-pixel text-[9px]' : 'font-cyber text-xs uppercase tracking-[0.25em]',
+        isRetro
+          ? 'font-retro-pixel text-[9px]'
+          : 'font-cyber text-xs uppercase tracking-[0.25em]',
         'text-slate-400'
       )}
     >

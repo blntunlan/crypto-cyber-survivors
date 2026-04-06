@@ -18,11 +18,25 @@ export type MetaUpgradeId =
 
 export type MetaUpgradeCategory = 'combat' | 'survival' | 'economy' | 'special';
 
+export type MetaUpgradeIconId =
+  | 'combat-damage'
+  | 'combat-crit'
+  | 'combat-projectile'
+  | 'survival-hp'
+  | 'survival-armor'
+  | 'survival-dash'
+  | 'economy-magnet'
+  | 'economy-luck'
+  | 'economy-xp'
+  | 'special-headstart'
+  | 'special-quad'
+  | 'special-grace';
+
 export interface MetaUpgradeDef {
   id: MetaUpgradeId;
   name: string;
   description: string;
-  icon: string;
+  icon: MetaUpgradeIconId;
   category: MetaUpgradeCategory;
   maxLevel: number;
   costPerLevel: number[];

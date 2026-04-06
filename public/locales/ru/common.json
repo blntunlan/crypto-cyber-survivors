@@ -42,6 +42,66 @@
       "challenges": "ИСПЫТАНИЯ",
       "replays": "ПОВТОРЫ"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} мета-кредитов доступно",
+        "tagline": "Накопите постоянные усиления перед каждым рыночным забегом.",
+        "summary_helper": "Постоянное преимущество сети",
+        "search_label": "Поиск улучшений",
+        "search_placeholder": "Ищите улучшения: крит, экономика, броня...",
+        "filters_label": "Категория",
+        "affordable_label": "Только доступные",
+        "no_results": "Нет улучшений, подходящих под фильтры.",
+        "maxed_label": "Максимальный уровень",
+        "progress_label": "Прогресс",
+        "buy_label": "Купить",
+        "categories": {
+          "all": "Все",
+          "combat": "Бой",
+          "survival": "Выживание",
+          "economy": "Экономика",
+          "special": "Особые"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Мета-кредиты",
+            "helper": "Доступный баланс"
+          },
+          "runs": {
+            "label": "Пройдено забегов",
+            "helper": "Завершённые сессии"
+          },
+          "lifetime": {
+            "label": "Всего мета",
+            "helper": "Заработано за всё время"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "Живые контракты, синхронизированные с главным терминалом",
+        "daily_contract": "Дневной контракт",
+        "weekly_contract": "Недельный контракт",
+        "cleared": "Завершено",
+        "reward_label": "Награда",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "Активировать",
+        "completed_label": "Испытание выполнено",
+        "loading": "Загружаем испытания...",
+        "empty_state": "Нет доступных испытаний.",
+        "toast_title": "Испытание активно"
+      },
+      "replays": {
+        "subtitle": "Смотрите прошлые забеги, не покидая слой терминала",
+        "section_saved": "Сохранённые сессии",
+        "loading": "Загружаем повторы...",
+        "empty_state": "Пока нет повторов. Завершите забег, чтобы сохранить его.",
+        "score": "Счёт {{value}}",
+        "duration": "Длительность {{value}}",
+        "level": "Уровень {{value}}",
+        "kills": "{{value}} убийств",
+        "watch": "Смотреть"
+      }
+    },
     "long": "ЛОНГ",
     "short": "ШОРТ",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "Вернуться на главную",
         "error_occurred": "Произошла ошибка"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "Выполняется вход...",
+      "creating_account": "Создаём аккаунт...",
+      "sending": "Отправка...",
+      "verifying": "Проверка...",
+      "connect_phantom": "Подключить Phantom",
+      "install_phantom": "Установить Phantom",
+      "verification_code": "Код подтверждения",
+      "otp_verify_desc": "Введите 6-значный код, отправленный на",
+      "nickname_placeholder": "ВВЕДИТЕ_КЛЮЧ_ДОСТУПА",
+      "access_granted": "ДОСТУП РАЗРЕШЕН",
+      "initialize_profile": "ИНИЦИАЛИЗАЦИЯ_ПРОФИЛЯ",
+      "footer_systems_online": "СИСТЕМЫ_АКТИВНЫ",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 СИМВОЛОВ",
+      "nickname_rules_chars": "ДОПУСТИМЫ A-Z, 0-9",
+      "forgot_password_desc": "Введите свой email, и мы отправим ссылку для сброса пароля.",
+      "send_reset_link": "Отправить ссылку для сброса",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "P&L",
       "time": "Время",
       "kills": "Убийства",
+      "coins_earned": "Заработанные монеты",
       "career_stats": "Статистика карьеры",
       "games": "Игры",
       "total_kills": "Всего убийств",
@@ -372,12 +433,16 @@
     "cat_ui": "Интерфейс",
     "cat_alerts": "Тревога",
     "cat_slots": "Слоты",
+    "cat_music": "Музыка",
+    "cat_sfx": "Звуковые эффекты",
     "desc_combat": "Выстрелы, криты, удары",
     "desc_feedback": "Гемы, уровень, комбо",
     "desc_movement": "Рывок, свист ветра",
     "desc_ui": "Кнопки, меню",
     "desc_alerts": "Мало HP, смерть",
     "desc_slots": "Машина уровня",
+    "desc_music": "Ритмы рынка и атмосферные тоны",
+    "desc_sfx": "Все общие внутриигровые звуки",
     "visuals": "Визуал",
     "particles": "Частицы",
     "screen_shake": "Тряска экрана",

@@ -1,6 +1,9 @@
-# MarketService
+# :Activity: MarketService
 
-Status: live
+> **Status** live
+> Owner: Data Engineering
+
+
 Type: service adapter
 Domain: market connectivity
 
@@ -18,7 +21,7 @@ Domain: market connectivity
 
 ## Important runtime behavior
 
-### Data gap monitor
+**Data gap monitor**
 
 The service tracks `lastPriceTime`, `disconnectStartTime`, and `fatalDisconnectEmitted`.
 
@@ -26,7 +29,7 @@ The service tracks `lastPriceTime`, `disconnectStartTime`, and `fatalDisconnectE
 - After 15 seconds without recovery, the disconnect is treated as fatal for consumers that care.
 - Visibility handling uses a grace period before pausing sockets so quick tab switches do not churn connections.
 
-### Status contract
+**Status contract**
 
 Callers can subscribe to a `ConnectionStatus` object containing:
 

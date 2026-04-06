@@ -44,6 +44,55 @@ describe('PauseMenu', () => {
     expect(screen.getByText(/1:00/)).toBeDefined();
   });
 
+  it('shows limited pause UI when seconds remaining are low', () => {
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(95);
+
+    const { container } = render(
+      <PauseMenu
+        runStats={mockStats}
+        onResume={() => {}}
+        onRestart={() => {}}
+        onMainMenu={() => {}}
+        onOpenSettings={() => {}}
+        isMuted={false}
+        onToggleMute={() => {}}
+        pauseSecondsRemaining={2.2}
+        pauseSecondsMax={10}
+      />
+    );
+
+    expect(
+      screen.getByText(content => content.includes('common.auto_resume'))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(content => content.includes('common.limited_pause'))
+    ).toBeInTheDocument();
+    expect(screen.getByText('3s')).toBeInTheDocument();
+
+    const progress = container.querySelector('[style*="width: 22"]');
+    expect(progress).not.toBeNull();
+  });
+
+  it('hides limited pause UI when remaining seconds are null', () => {
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(125);
+
+    render(
+      <PauseMenu
+        runStats={mockStats}
+        onResume={() => {}}
+        onRestart={() => {}}
+        onMainMenu={() => {}}
+        onOpenSettings={() => {}}
+        isMuted={false}
+        onToggleMute={() => {}}
+        pauseSecondsRemaining={null}
+      />
+    );
+
+    expect(screen.queryByText('common.auto_resume')).not.toBeInTheDocument();
+    expect(screen.queryByText('common.limited_pause')).not.toBeInTheDocument();
+  });
+
   it('should call onResume when Resume button is clicked', () => {
     vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
     const onResume = vi.fn();
@@ -78,5 +127,32 @@ describe('PauseMenu', () => {
     );
     fireEvent.click(screen.getByText(/Restart/i));
     expect(onRestart).toHaveBeenCalled();
+  });
+
+  it('routes main menu / settings / mute callbacks and shows muted label', () => {
+    vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(60);
+    const onMainMenu = vi.fn();
+    const onOpenSettings = vi.fn();
+    const onToggleMute = vi.fn();
+
+    render(
+      <PauseMenu
+        runStats={mockStats}
+        onResume={() => {}}
+        onRestart={() => {}}
+        onMainMenu={onMainMenu}
+        onOpenSettings={onOpenSettings}
+        isMuted={true}
+        onToggleMute={onToggleMute}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'common.settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'settings.muted' }));
+
+    expect(onMainMenu).toHaveBeenCalledTimes(1);
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(onToggleMute).toHaveBeenCalledTimes(1);
   });
 });

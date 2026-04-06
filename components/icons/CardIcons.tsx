@@ -446,6 +446,547 @@ export const IconBanano: React.FC<IconProps> = ({ className, color = '#FBDD11' }
 );
 
 /**
+ * Support: Life Buoy
+ */
+export const IconLifeBuoy: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2.5" />
+    <circle cx="12" cy="12" r="4.5" stroke={color} strokeWidth="2" />
+    <path d="M12 3V7M12 17V21M3 12H7M17 12H21" stroke={color} strokeWidth="2.5" />
+    <path
+      d="M6 6L9 9M15 15L18 18M15 9L18 6M6 18L9 15"
+      stroke={color}
+      strokeWidth="1.5"
+    />
+  </svg>
+);
+
+/**
+ * Farming: Yield Wheat
+ */
+export const IconWheat: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="M12 4V21" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M12 7C10.5 7 9.5 5.5 9.5 5.5M12 10C13.5 10 14.5 8.5 14.5 8.5M12 13C10.5 13 9.5 11.5 9.5 11.5M12 16C13.5 16 14.5 14.5 14.5 14.5"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M12 7C13.5 7 14.5 5.5 14.5 5.5M12 10C10.5 10 9.5 8.5 9.5 8.5M12 13C13.5 13 14.5 11.5 14.5 11.5M12 16C10.5 16 9.5 14.5 9.5 14.5"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Defense: Stop Loss (Octagon)
+ */
+export const IconStopLoss: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M8 3H16L21 8V16L16 21H8L3 16V8L8 3Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 9L15 15M15 9L9 15"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Strategy: Repeat / Rebalance
+ */
+export const IconRepeat: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M4 10H16C18.2091 10 20 11.7909 20 14V14"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <path
+      d="M13 6L17 10L13 14"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <path
+      d="M20 14H8C5.79086 14 4 15.7909 4 18V18"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <path
+      d="M11 18L7 22L11 22"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Economy: Dollar Orbit
+ */
+export const IconDollarCircle: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2.5" />
+    <path
+      d="M10 11C10 9.89543 10.8954 9 12 9C13.1046 9 14 9.89543 14 11C14 12.1046 13.1046 13 12 13C10.8954 13 10 13.8954 10 15C10 16.1046 10.8954 17 12 17C13.1046 17 14 16.1046 14 15"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path d="M12 7V9M12 17V19" stroke={color} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * Utility: Duplicate
+ */
+export const IconDuplicate: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect x="4" y="8" width="10" height="12" rx="2" stroke={color} strokeWidth="2.5" />
+    <rect
+      x="10"
+      y="4"
+      width="10"
+      height="12"
+      rx="2"
+      stroke={color}
+      strokeWidth="2.5"
+      opacity="0.6"
+    />
+    <path d="M12 14H16M14 12V16" stroke={color} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * Utility: Key
+ */
+export const IconKey: React.FC<IconProps> = ({ className, color = 'currentColor' }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle cx="8" cy="12" r="4" stroke={color} strokeWidth="2.5" />
+    <path
+      d="M12 12H22M17 12V15M20 12V14"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Economy: Coins stack
+ */
+export const IconCoins: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <ellipse cx="12" cy="6" rx="6" ry="3" stroke={color} strokeWidth="2.5" />
+    <path
+      d="M6 6V12C6 13.6569 8.68629 15 12 15C15.3137 15 18 13.6569 18 12V6"
+      stroke={color}
+      strokeWidth="2.5"
+    />
+    <path
+      d="M6 12V16C6 17.6569 8.68629 19 12 19C15.3137 19 18 17.6569 18 16V12"
+      stroke={color}
+      strokeWidth="2.5"
+    />
+  </svg>
+);
+
+/**
+ * Economy: Wallet
+ */
+export const IconWallet: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect x="3" y="6" width="18" height="12" rx="2" stroke={color} strokeWidth="2.5" />
+    <path
+      d="M17 11H21V13H17C16.4477 13 16 12.5523 16 12C16 11.4477 16.4477 11 17 11Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M6 6V4L18 6" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * Balance: Scale (2D)
+ */
+export const IconScale: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path d="M12 3V20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M5 9L9 17C9 18.6569 7.65685 20 6 20C4.34315 20 3 18.6569 3 17L7 9H5Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M19 9L15 17C15 18.6569 16.3431 20 18 20C19.6569 20 21 18.6569 21 17L17 9H19Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M6 9H18" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * Balance: Scale 3D / leverage
+ */
+export const IconScale3D: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M12 3L3 9L12 15L21 9L12 3Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M6 11L6 15.5C6 16.3284 6.67157 17 7.5 17H16.5C17.3284 17 18 16.3284 18 15.5V11"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <path d="M12 15V21" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * Damage: Flame Burst
+ */
+export const IconFlame: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M8 21C6.34315 21 5 19.6569 5 18C5 15 8 13 8 10C8 7 6 5 6 5C10 6 12 9 12 12C12 9 14 7 14 7C15.3333 8.33333 17 11 17 14C17 17.866 13.866 21 10 21H8Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+/**
+ * Tech: Smart Contract (code)
+ */
+export const IconCode: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M15 2H7C5.89543 2 5 2.89543 5 4V20C5 21.1046 5.89543 22 7 22H17C18.1046 22 19 21.1046 19 20V8L15 2Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+    <path d="M15 2V8H19" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
+    <path d="M9 11L7 13L9 15" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M15 11L17 13L15 15"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Luck: Dice
+ */
+export const IconDice: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <rect x="4" y="4" width="16" height="16" rx="3" stroke={color} strokeWidth="2.5" />
+    <circle cx="9" cy="9" r="1.5" fill={color} />
+    <circle cx="15" cy="15" r="1.5" fill={color} />
+    <circle cx="15" cy="9" r="1.5" fill={color} />
+    <circle cx="9" cy="15" r="1.5" fill={color} />
+  </svg>
+);
+
+/**
+ * Weapon: Boomerang
+ */
+export const IconBoomerang: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M4 4C4 4 14 4 19 9C24 14 20 20 20 20C20 20 13 16 9 12C5 8 4 4 4 4Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M7 7L9 9M12 12L14 14"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Weapon: Explosion / Nuke
+ */
+export const IconExplosion: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M12 2L14.5 8.5L21 9L16 13.5L17.5 20L12 16.5L6.5 20L8 13.5L3 9L9.5 8.5L12 2Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+/**
+ * Weapon: Spread Shot
+ */
+export const IconSpreadShot: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M5 19L10 5L12 11L14 5L19 19"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M12 11L12 19" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * Utility: Time Lock
+ */
+export const IconTimeLock: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle cx="12" cy="13" r="6" stroke={color} strokeWidth="2.5" />
+    <path d="M12 13L15 11" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M9 3H15V7H9V3Z" stroke={color} strokeWidth="2.5" strokeLinejoin="round" />
+    <path d="M9 5H15" stroke={color} strokeWidth="2.5" />
+  </svg>
+);
+
+/**
+ * Collection: Rainbow
+ */
+export const IconRainbow: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M4 16C4 11.5817 7.58172 8 12 8C16.4183 8 20 11.5817 20 16"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+    <path
+      d="M6 16C6 12.6863 8.68629 10 12 10C15.3137 10 18 12.6863 18 16"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 16C8 13.7909 9.79086 12 12 12C14.2091 12 16 13.7909 16 16"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/**
+ * Trade: swap arrows
+ */
+export const IconSwapArrows: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M7 5L11 9L7 13"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M11 9H4" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <path
+      d="M17 19L13 15L17 11"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M13 15H20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+/**
  * UI: Volume Control
  */
 export const IconVolume: React.FC<IconProps> = ({

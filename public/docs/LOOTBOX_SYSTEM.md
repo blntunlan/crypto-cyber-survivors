@@ -1,6 +1,9 @@
-# Lootbox and Inventory System
+# :Package: Lootbox and Inventory System
 
-Status: live
+> **Status** live
+> Owner: Core Game Design
+
+
 Type: rewards and inventory runtime
 Domain: loot, cosmetics, and consumables
 

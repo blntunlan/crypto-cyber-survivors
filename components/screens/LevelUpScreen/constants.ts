@@ -6,6 +6,7 @@ export const SLOT_CONFIG = {
   STOP_DELAY_BASE: 600, // Base delay for first reel
   STOP_DELAY_INCREMENT: 600, // Each subsequent reel adds this much delay (cumulative)
   SLOWDOWN_DURATION: 400, // Duration of the slowdown effect before stopping
+  MIN_RENDER_INTERVAL: 32, // Clamp UI updates to ~30fps so spins feel fluid
 };
 
 // Animation variants

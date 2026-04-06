@@ -1,6 +1,9 @@
-# DifficultyManager
+# :Gauge: DifficultyManager
 
-Status: live
+> **Status** live
+> Owner: Game Design
+
+
 Type: orchestrator service
 Domain: gameplay balance
 

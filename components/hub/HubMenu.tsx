@@ -33,6 +33,10 @@ import { PlayerProfile } from './PlayerProfile';
 import { LootboxService } from '../../services/lootbox';
 import { InventoryService } from '../../services/inventory';
 import { useHubButtons, type HubButtonConfig } from './useHubButtons.tsx';
+import {
+  useResponsiveHubColumns,
+  useHubGridClassName,
+} from './useResponsiveHubColumns.ts';
 
 export type HubScreen = 'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear';
 
@@ -60,6 +64,8 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   const [lootboxCount, setLootboxCount] = useState(0);
   const [consumableCount, setConsumableCount] = useState(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const columnCount = useResponsiveHubColumns();
+  const hubGridClass = useHubGridClassName();
 
   // Update counts from services
   useEffect(() => {
@@ -87,7 +93,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      const cols = 2;
+      const cols = columnCount || 1;
       const rows = Math.ceil(buttons.length / cols);
       const currentRow = Math.floor(selectedIndex / cols);
       const currentCol = selectedIndex % cols;
@@ -148,7 +154,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         }
       }
     },
-    [selectedIndex, buttons, onNavigate]
+    [selectedIndex, buttons, onNavigate, columnCount]
   );
 
   useEffect(() => {
@@ -169,13 +175,17 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         allow-scroll absolute inset-0
         z-[100] flex flex-col items-center
         justify-start overflow-y-auto overscroll-contain
-        scroll-smooth p-3 pb-[calc(0.75rem+var(--sab))]
-        sm:justify-center sm:p-6
+        scroll-smooth p-2.5 pb-[calc(0.75rem+var(--sab))]
+        sm:justify-center sm:p-5
         ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/60 backdrop-blur-sm'}
       `}
     >
-      {/* Container - pt-14 creates safe space below fixed back button on mobile */}
-      <div className="relative w-full max-w-4xl space-y-4 pt-12 sm:space-y-8 sm:pt-0 lg:max-w-5xl">
+      <div
+        className={cn(
+          'relative w-full max-w-xl space-y-4 py-2 text-center sm:space-y-6 sm:py-0',
+          onBack && 'pt-10 sm:pt-0'
+        )}
+      >
         {/* Back Button (Top Left) */}
         {onBack && (
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
@@ -230,7 +240,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
         <ThemedPanel
           className={cn(
-            'relative space-y-4 p-4 sm:space-y-5 sm:p-6 lg:p-7',
+            'relative space-y-4 p-4 sm:space-y-5 sm:p-5',
             !isRetro &&
               'bg-slate-900/78 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-xl'
           )}
@@ -261,11 +271,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           </div>
 
           {/* Button Grid - CSS stagger instead of per-item framer-motion */}
-          <div className="hub-grid-stagger relative z-10 grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-5 xl:grid-cols-3 xl:gap-6">
+          <div className={cn('relative z-10', hubGridClass)}>
             {buttons.map((btn, index) => (
               <div
                 key={btn.id}
-                className="hub-grid-item"
+                className="hub-grid-item h-full"
                 style={{ animationDelay: `${0.1 + index * 0.05}s` }}
               >
                 <HubMenuButton
@@ -291,10 +301,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           {/* Navigation Help */}
           <div
             className={cn(
-              'hub-grid-item relative z-10 py-2 text-center lg:py-3 uppercase tracking-widest text-slate-500',
+              'hub-grid-item relative z-10 pt-1 text-center uppercase tracking-widest text-slate-500',
               isRetro
-                ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[8px]'
-                : 'font-cyber text-xs lg:text-sm'
+                ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[9px]'
+                : 'font-display text-[9px] sm:text-[10px]'
             )}
           >
             {isRetro ? t('hub.nav_help_retro') : t('hub.nav_help_modern')}

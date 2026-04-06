@@ -438,3 +438,24 @@ export const challengeSeedLog = pgTable(
     unique('challenge_seed_log_date_type_key').on(table.challengeDate, table.challengeType),
   ]
 );
+
+// ── 17. audit_log ───────────────────────────────────────────────────────────
+
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    action: text('action').notNull(),
+    resource: text('resource').notNull(),
+    details: jsonb('details').default({}),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index('idx_audit_log_profile').on(table.profileId),
+    index('idx_audit_log_action').on(table.action),
+    index('idx_audit_log_created').on(table.createdAt),
+  ]
+);

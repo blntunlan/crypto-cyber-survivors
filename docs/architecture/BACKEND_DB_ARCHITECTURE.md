@@ -1,5 +1,8 @@
 # :Database: Backend & DB Architecture
 
+> **Status** live
+> Owner: Backend & Data Engineering
+
 > **Status**: LIVE | **Reviewed**: 2026-03-19 | **Primary Runtime**: `railway-market-server`
 > **Authoritative Sources**: `railway-market-server/src/index.ts`, `railway-market-server/src/routes/*.ts`, `railway-market-server/src/db/schema.ts`, `railway-market-server/src/db/migrate.ts`
 
@@ -64,7 +67,7 @@ Railway PostgreSQL
 
 ## :Link: API Surface Summary
 
-### Authenticated route cluster
+**Authenticated route cluster**
 
 | Route Prefix | Auth | Primary Tables | Notes |
 |---|---|---|---|
@@ -76,7 +79,7 @@ Railway PostgreSQL
 | `/api/v1/replays/save`, `/mine` | Required | `sessions`, `game_replays` | Replay ownership checks and per-user listing |
 | `/api/v1/sessions/start` | Required | `profiles`, `sessions` | Session bootstrap and secret issuance |
 
-### Mixed or public route cluster
+**Mixed or public route cluster**
 
 | Route Prefix | Auth | Primary Tables / Runtime | Notes |
 |---|---|---|---|
@@ -91,7 +94,7 @@ Railway PostgreSQL
 
 ## :Flow: Core Runtime Flows
 
-### 1. Authenticated profile lookup
+**1. Authenticated profile lookup**
 
 ```text
 Client JWT
@@ -101,7 +104,7 @@ Client JWT
   -> profile-scoped table access
 ```
 
-### 2. Session verification and reward crediting
+**2. Session verification and reward crediting**
 
 ```text
 POST /api/v1/sessions/start
@@ -120,7 +123,7 @@ POST /api/v1/sessions/verify
        |- transfer_meta_coins(profile_id, amount)
 ```
 
-### 3. Market ingestion and streaming
+**3. Market ingestion and streaming**
 
 ```text
 Binance/Coinbase services
@@ -131,7 +134,7 @@ Binance/Coinbase services
   -> broadcast SSE payloads to clients
 ```
 
-### 4. Telemetry intake
+**4. Telemetry intake**
 
 ```text
 Client reports
@@ -144,7 +147,7 @@ Client reports
 
 ## :Table: Database Domain Map
 
-### Identity and account domain
+**Identity and account domain**
 
 - `profiles`
 - `identities`
@@ -152,7 +155,7 @@ Client reports
 - `ledger`
 - `meta_progression`
 
-### Session and gameplay domain
+**Session and gameplay domain**
 
 - `sessions`
 - `game_replays`
@@ -160,7 +163,7 @@ Client reports
 - `challenge_completions`
 - `challenge_seed_log`
 
-### Market and analytics domain
+**Market and analytics domain**
 
 - `market_state`
 - `price_history`

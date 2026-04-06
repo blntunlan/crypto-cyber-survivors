@@ -1,6 +1,9 @@
-# UnifiedDirector
+# :Brain: UnifiedDirector
 
-Status: live
+> **Status** live
+> Owner: AI Engineering
+
+
 Type: deterministic rule pipeline
 Domain: adaptive difficulty
 

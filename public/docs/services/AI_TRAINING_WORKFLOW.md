@@ -1,6 +1,9 @@
-# AI Training Workflow
+# :Dna: AI Training Workflow
 
-Status: live
+> **Status** live
+> Owner: AI Engineering
+
+
 Type: backtest and tuning workflow
 Domain: difficulty tuning
 

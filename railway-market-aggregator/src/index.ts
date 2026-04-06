@@ -10,6 +10,7 @@ import { ErrorReporter } from './utils/errorReporter';
 import { closePool, getPool } from './db/pool';
 import { startHeartbeat, getSSEClientCount } from './routes/marketStream';
 import { asyncHandler } from './utils/asyncHandler';
+import { globalLimiter } from './middleware/rateLimit';
 
 // SSE Market Stream route
 import marketStreamRouter from './routes/marketStream';
@@ -47,6 +48,12 @@ app.use(
 );
 app.use(express.json({ limit: '256kb' }));
 
+// Trust Railway's proxy so X-Forwarded-For is used for rate-limit keys
+app.set('trust proxy', 1);
+
+// Global rate limiter — 60 req/min per IP
+app.use(globalLimiter);
+
 // ---- Market Stream route ----
 app.use('/api/v1/market', marketStreamRouter);
 
@@ -57,14 +64,23 @@ app.get(
   asyncHandler(async (_req: express.Request, res: express.Response) => {
     const binance = BinanceService.getInstance();
     const db = await DatabaseService.getInstance().checkHealth();
+    const priceStats = PriceLogger.getInstance().getStats();
+
+    const lastDataAge = priceStats.lastLogTime
+      ? Math.round((Date.now() - new Date(priceStats.lastLogTime).getTime()) / 1000)
+      : null;
+    const dataFresh = lastDataAge !== null && lastDataAge < 30;
+
     res.json({
-      status: binance.isConnected() && db ? 'ok' : 'degraded',
+      status: binance.isConnected() && db && dataFresh ? 'ok' : 'degraded',
       service: 'market-aggregator',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       binanceConnected: binance.isConnected(),
       dbConnected: db,
       sseClients: getSSEClientCount(),
+      lastDataAgeSec: lastDataAge,
+      totalPricesLogged: priceStats.totalLogged,
     });
   })
 );
@@ -80,8 +96,27 @@ app.get('/stats', (_req, res) => {
   });
 });
 
+const ADMIN_API_SECRET = process.env.ADMIN_API_SECRET;
+function requireAdmin(
+  req: express.Request,
+  res: express.Response,
+  next: () => void
+): void {
+  if (!ADMIN_API_SECRET) {
+    next();
+    return;
+  }
+  const auth = req.headers['authorization'];
+  if (auth !== `Bearer ${ADMIN_API_SECRET}`) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  next();
+}
+
 app.get(
   '/debug',
+  requireAdmin,
   asyncHandler(async (_req: express.Request, res: express.Response) => {
     const binance = BinanceService.getInstance();
     const pool = getPool();
@@ -164,7 +199,7 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.post('/cleanup', (_req, res) => {
+app.post('/cleanup', requireAdmin, (_req, res) => {
   void CleanupCron.getInstance()
     .runCleanup()
     .then(result => res.json(result))
@@ -195,19 +230,28 @@ async function startServer(): Promise<void> {
     const heartbeatTimer = startHeartbeat(5000);
 
     // Start HTTP server
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       Logger.info(`🚀 Market Aggregator ready at http://localhost:${PORT}`);
     });
 
-    // Graceful shutdown
+    // Graceful shutdown — drain in-flight requests, stop pipeline, close pool
+    const SHUTDOWN_TIMEOUT_MS = 10_000;
     const shutdown = (signal: string) => {
       Logger.info(`${signal} received, shutting down gracefully...`);
       clearInterval(heartbeatTimer);
       cleanupCron.stop();
-      void priceLogger
-        .stop()
-        .then(() => closePool())
-        .finally(() => process.exit(0));
+      server.close(() => {
+        Logger.info('HTTP server closed, stopping pipeline...');
+        void priceLogger
+          .stop()
+          .then(() => closePool())
+          .finally(() => process.exit(0));
+      });
+      // Force exit if graceful shutdown takes too long
+      setTimeout(() => {
+        Logger.warn('Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT_MS).unref();
     };
 
     process.on('SIGTERM', () => shutdown('SIGTERM'));

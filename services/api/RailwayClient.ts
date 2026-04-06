@@ -54,7 +54,15 @@ async function doFetch(
     method,
     headers,
     body: body != null ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10_000),
   });
+}
+
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const MAX_RETRIES = 2;
+
+async function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -63,30 +71,53 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
 
   const url = `${BASE_URL}${path}`;
-  const token = await getAuthToken();
+  let lastError: Error | null = null;
 
-  let res = await doFetch(method, url, token, body);
-
-  // On 401, try refreshing the token once and retry
-  if (res.status === 401 && token) {
-    const freshToken = await refreshAuthToken();
-    if (freshToken && freshToken !== token) {
-      res = await doFetch(method, url, freshToken, body);
-    }
-  }
-
-  if (!res.ok) {
-    let errorMsg = `HTTP ${res.status}`;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const errorBody = await res.json();
-      errorMsg = (errorBody as { error?: string }).error ?? errorMsg;
-    } catch {
-      // ignore parse error
+      const token = await getAuthToken();
+      let res = await doFetch(method, url, token, body);
+
+      // On 401, try refreshing the token once and retry
+      if (res.status === 401 && token) {
+        const freshToken = await refreshAuthToken();
+        if (freshToken && freshToken !== token) {
+          res = await doFetch(method, url, freshToken, body);
+        }
+      }
+
+      // Retry on transient server errors
+      if (RETRYABLE_STATUSES.has(res.status) && attempt < MAX_RETRIES) {
+        const backoff = Math.min(1000 * 2 ** attempt, 4000);
+        await delay(backoff);
+        continue;
+      }
+
+      if (!res.ok) {
+        let errorMsg = `HTTP ${res.status}`;
+        try {
+          const errorBody = await res.json();
+          errorMsg = (errorBody as { error?: string }).error ?? errorMsg;
+        } catch {
+          // ignore parse error
+        }
+        throw new Error(errorMsg);
+      }
+
+      return (await res.json()) as T;
+    } catch (error) {
+      lastError = error as Error;
+      // Retry on network errors (TypeError from fetch), not on application errors
+      if (error instanceof TypeError && attempt < MAX_RETRIES) {
+        const backoff = Math.min(1000 * 2 ** attempt, 4000);
+        await delay(backoff);
+        continue;
+      }
+      throw error;
     }
-    throw new Error(errorMsg);
   }
 
-  return (await res.json()) as T;
+  throw lastError ?? new Error('Request failed after retries');
 }
 
 export const railwayClient = {

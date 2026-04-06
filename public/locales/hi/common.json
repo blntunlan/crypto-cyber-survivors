@@ -42,6 +42,66 @@
       "challenges": "चुनौतियाँ",
       "replays": "रीप्ले"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} मेटा क्रेडिट उपलब्ध",
+        "tagline": "हर रन से पहले स्थायी बूस्ट जोड़ें।",
+        "summary_helper": "स्थायी नेटवर्क लाभ",
+        "search_label": "अपग्रेड खोजें",
+        "search_placeholder": "अपग्रेड खोजें: क्रिट, अर्थव्यवस्था, आर्मर...",
+        "filters_label": "श्रेणी",
+        "affordable_label": "केवल खरीदे जा सकें",
+        "no_results": "इन फ़िल्टरों से कोई अपग्रेड मेल नहीं खाता।",
+        "maxed_label": "अधिकतम स्तर",
+        "progress_label": "प्रगति",
+        "buy_label": "खरीदें",
+        "categories": {
+          "all": "सभी",
+          "combat": "कॉम्बैट",
+          "survival": "जीवित रहना",
+          "economy": "अर्थव्यवस्था",
+          "special": "विशेष"
+        },
+        "tiles": {
+          "balance": {
+            "label": "मेटा क्रेडिट",
+            "helper": "उपलब्ध शेष"
+          },
+          "runs": {
+            "label": "पूर्ण रन",
+            "helper": "सम्पन्न सत्र"
+          },
+          "lifetime": {
+            "label": "आजीवन मेटा",
+            "helper": "कुल अर्जित"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "मुख्य टर्मिनल से संरेखित लाइव कॉन्ट्रैक्ट",
+        "daily_contract": "दैनिक कॉन्ट्रैक्ट",
+        "weekly_contract": "साप्ताहिक कॉन्ट्रैक्ट",
+        "cleared": "पूरा",
+        "reward_label": "इनाम",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "सक्रिय करें",
+        "completed_label": "चुनौती पूरी हुई",
+        "loading": "चुनौतियाँ लोड हो रही हैं...",
+        "empty_state": "कोई चुनौती उपलब्ध नहीं।",
+        "toast_title": "चुनौती सक्रिय"
+      },
+      "replays": {
+        "subtitle": "टर्मिनल लेयर छोड़े बिना पिछले रन देखें",
+        "section_saved": "सहेजे गए सत्र",
+        "loading": "रीप्ले लोड हो रहे हैं...",
+        "empty_state": "अभी तक कोई रीप्ले नहीं। एक रन पूरा कर इसे सहेजें।",
+        "score": "स्कोर {{value}}",
+        "duration": "अवधि {{value}}",
+        "level": "स्तर {{value}}",
+        "kills": "{{value}} हत्‍या",
+        "watch": "देखें"
+      }
+    },
     "long": "LONG",
     "short": "SHORT",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "होम पर वापस जाएँ",
         "error_occurred": "एक त्रुटि हुई"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "साइन इन जारी है...",
+      "creating_account": "खाता बनाया जा रहा है...",
+      "sending": "भेजा जा रहा है...",
+      "verifying": "सत्यापन जारी है...",
+      "connect_phantom": "Phantom से कनेक्ट करें",
+      "install_phantom": "Phantom इंस्टॉल करें",
+      "verification_code": "सत्यापन कोड",
+      "otp_verify_desc": "भेजे गए 6-अंकीय कोड को दर्ज करें",
+      "nickname_placeholder": "प्रवेश_कुंजी_दर्ज_करें",
+      "access_granted": "प्रवेश स्वीकृत",
+      "initialize_profile": "प्रोफ़ाइल आरंभ करें",
+      "footer_systems_online": "सिस्टम_ऑनलाइन",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 वर्ण",
+      "nickname_rules_chars": "A-Z, 0-9 अनुमत",
+      "forgot_password_desc": "अपना ईमेल पता दर्ज करें और हम आपको पासवर्ड रीसेट लिंक भेजेंगे।",
+      "send_reset_link": "रीसेट लिंक भेजें",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "P&L",
       "time": "समय",
       "kills": "शिकार",
+      "coins_earned": "कमाए गए सिक्के",
       "career_stats": "करियर आँकड़े",
       "games": "खेल",
       "total_kills": "कुल शिकार",
@@ -372,12 +433,16 @@
     "cat_ui": "UI",
     "cat_alerts": "अलर्ट",
     "cat_slots": "स्लॉट",
+    "cat_music": "संगीत",
+    "cat_sfx": "ध्वनि प्रभाव",
     "desc_combat": "गोलीबारी, हिट",
     "desc_feedback": "रत्न, लेवल अप, कॉम्बो",
     "desc_movement": "डैश, वूश",
     "desc_ui": "बटन, मेनू",
     "desc_alerts": "कम HP, मृत्यु",
     "desc_slots": "लेवल अप स्लॉट मशीन",
+    "desc_music": "मार्केट बीट्स और वातावरणीय सुर",
+    "desc_sfx": "सभी सामान्य इन-गेम ध्वनि प्रभाव",
     "visuals": "विजुअल",
     "particles": "पार्टिकल्स",
     "screen_shake": "स्क्रीन शेक",
@@ -564,7 +629,11 @@
       "active_tag": "सक्रिय",
       "phase1": "Q1 2026",
       "phase1_title": "नींव",
-      "phase1_items": ["कोर गेमप्ले लूप", "60 FPS कैनवास इंजन", "सुपर्बेस एकीकरण"],
+      "phase1_items": [
+        "कोर गेमप्ले लूप",
+        "60 FPS कैनवास इंजन",
+        "सुपर्बेस एकीकरण"
+      ],
       "phase2": "Q2 2026",
       "phase2_title": "लाइव मार्केट",
       "phase2_items": [
@@ -574,10 +643,18 @@
       ],
       "phase3": "Q3 2026",
       "phase3_title": "सामाजिक",
-      "phase3_items": ["वैश्विक लीडरबोर्ड", "रिप्ले शेयरिंग", "उपलब्धि बैज"],
+      "phase3_items": [
+        "वैश्विक लीडरबोर्ड",
+        "रिप्ले शेयरिंग",
+        "उपलब्धि बैज"
+      ],
       "phase4": "Q4 2026",
       "phase4_title": "विस्तार",
-      "phase4_items": ["मल्टी-क्रिप्टो सपोर्ट", "दैनिक चुनौतियां", "मौसमी कार्यक्रम"]
+      "phase4_items": [
+        "मल्टी-क्रिप्टो सपोर्ट",
+        "दैनिक चुनौतियां",
+        "मौसमी कार्यक्रम"
+      ]
     },
     "faq": {
       "title": "सामान्य प्रश्न",

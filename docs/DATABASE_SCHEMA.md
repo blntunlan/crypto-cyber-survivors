@@ -1,4 +1,7 @@
-# Database Schema Reference
+# :Database: Database Schema Reference
+
+> **Status** live
+> Owner: Backend & Data Engineering
 
 > **Status**: LIVE | **Version**: v2.0 | **Database**: Railway PostgreSQL
 > **Schema Source**: `railway-market-server/src/db/schema.sql`
@@ -26,7 +29,7 @@ Client (React + Vite)
 
 ## Table Reference
 
-### 1. profiles
+**1. profiles**
 
 Central identity table. Every authenticated user has one profile. Auto-creates `virtual_accounts` and `meta_progression` rows via triggers.
 
@@ -49,7 +52,7 @@ Central identity table. Every authenticated user has one profile. Auto-creates `
 
 ---
 
-### 2. identities
+**2. identities**
 
 OAuth provider connections. One profile can link multiple providers (Twitter, Google, etc.).
 
@@ -72,7 +75,7 @@ OAuth provider connections. One profile can link multiple providers (Twitter, Go
 
 ---
 
-### 3. virtual_accounts
+**3. virtual_accounts**
 
 Gold (in-game currency) balance per player. Auto-created by `on_profile_created` trigger. Modified atomically via `credit_coins()` function.
 
@@ -88,7 +91,7 @@ Gold (in-game currency) balance per player. Auto-created by `on_profile_created`
 
 ---
 
-### 4. ledger
+**4. ledger**
 
 Immutable transaction history. Every gold credit/debit is recorded. Written by `credit_coins()` function only.
 
@@ -108,7 +111,7 @@ Immutable transaction history. Every gold credit/debit is recorded. Written by `
 
 ---
 
-### 5. sessions
+**5. sessions**
 
 Game session records. Created at game start, verified at game end. Core table for leaderboard and anti-cheat.
 
@@ -137,7 +140,7 @@ Game session records. Created at game start, verified at game end. Core table fo
 
 ---
 
-### 6. market_state
+**6. market_state**
 
 Live market indicators. One row per trading pair. Updated every ~1s by the price pipeline via `supabaseService.updateMarketState()`.
 
@@ -170,7 +173,7 @@ Live market indicators. One row per trading pair. Updated every ~1s by the price
 
 ---
 
-### 7. price_history
+**7. price_history**
 
 Rolling 24h price log for anti-cheat verification and indicator warmup. Cleaned by `cleanup_old_price_history()` cron.
 
@@ -189,7 +192,7 @@ Rolling 24h price log for anti-cheat verification and indicator warmup. Cleaned 
 
 ---
 
-### 8. error_reports
+**8. error_reports**
 
 Client-side error logging. Public endpoint, no auth required.
 
@@ -212,7 +215,7 @@ Client-side error logging. Public endpoint, no auth required.
 
 ---
 
-### 9. cheat_attempts
+**9. cheat_attempts**
 
 Cheat detection reports. Logged by client, not currently queried or acted upon.
 
@@ -231,7 +234,7 @@ Cheat detection reports. Logged by client, not currently queried or acted upon.
 
 ---
 
-### 10. device_profiles
+**10. device_profiles**
 
 Device analytics and performance profiling. UPSERT on fingerprint.
 
@@ -255,7 +258,7 @@ Device analytics and performance profiling. UPSERT on fingerprint.
 
 ---
 
-### 11. performance_metrics
+**11. performance_metrics**
 
 Per-session FPS and hardware analytics.
 
@@ -283,7 +286,7 @@ Per-session FPS and hardware analytics.
 
 ---
 
-### 12. meta_progression
+**12. meta_progression**
 
 Server-side persistent upgrades. One row per player. Auto-created by trigger. Modified atomically via `purchase_meta_upgrade()` and `transfer_meta_coins()` functions.
 
@@ -303,7 +306,7 @@ Server-side persistent upgrades. One row per player. Auto-created by trigger. Mo
 
 ---
 
-### 13. daily_challenges
+**13. daily_challenges**
 
 Challenge definitions. Auto-generated with deterministic seeds from date hashes.
 
@@ -326,7 +329,7 @@ Challenge definitions. Auto-generated with deterministic seeds from date hashes.
 
 ---
 
-### 14. challenge_completions
+**14. challenge_completions**
 
 Player challenge results. One completion per player per challenge.
 
@@ -349,7 +352,7 @@ Player challenge results. One completion per player per challenge.
 
 ---
 
-### 15. game_replays
+**15. game_replays**
 
 Compressed binary replay storage. Auto-pruned to top 5 per player by trigger.
 
@@ -376,7 +379,7 @@ Compressed binary replay storage. Auto-pruned to top 5 per player by trigger.
 
 ---
 
-### 16. challenge_seed_log
+**16. challenge_seed_log**
 
 Audit trail for deterministic challenge generation. Ensures reproducibility.
 
@@ -396,7 +399,7 @@ Audit trail for deterministic challenge generation. Ensures reproducibility.
 
 ## Views
 
-### v_leaderboard
+**v_leaderboard**
 
 Aggregated per-player leaderboard. One row per player per pair. Only verified sessions.
 
@@ -422,7 +425,7 @@ ORDER BY max_survival_time DESC;
 **Output columns**: `profile_id`, `display_name`, `avatar_url`, `primary_auth_provider`, `pair`, `max_survival_time`, `total_kills`, `high_score`, `total_sessions`, `last_played_at`
 **Used by**: `leaderboard.ts` (GET /, filterable by `pair`, sortable by `max_survival_time|total_kills|high_score|total_sessions`)
 
-### v_challenge_leaderboard
+**v_challenge_leaderboard**
 
 Per-challenge rankings by score.
 
@@ -438,7 +441,7 @@ ORDER BY cc.challenge_id, cc.score DESC;
 
 **Used by**: `challenges.ts` (GET /:challengeId/leaderboard)
 
-### v_meta_leaderboard
+**v_meta_leaderboard**
 
 Global meta progression rankings by lifetime coins earned.
 
@@ -456,39 +459,39 @@ ORDER BY mp.total_meta_coins_earned DESC;
 
 ## Functions
 
-### credit_coins(profile_id, amount, transaction_type, reference_id?, metadata?)
+**credit_coins(profile_id, amount, transaction_type, reference_id?, metadata?)**
 
 Atomic gold crediting. Updates `virtual_accounts.gold_balance` and inserts `ledger` row in one transaction. Auto-creates virtual_account if missing.
 
 - **Returns**: `new_balance BIGINT`
 - **Called by**: `sessions.ts` POST /verify
 
-### handle_new_profile() [TRIGGER]
+**handle_new_profile() [TRIGGER]**
 
 Auto-creates `virtual_accounts` row with `gold_balance = 0` when a new profile is inserted.
 
 - **Trigger**: `AFTER INSERT ON profiles`
 
-### handle_new_meta_progression() [TRIGGER]
+**handle_new_meta_progression() [TRIGGER]**
 
 Auto-creates `meta_progression` row when a new profile is inserted.
 
 - **Trigger**: `AFTER INSERT ON profiles`
 
-### cleanup_old_price_history(cutoff, batch_size?)
+**cleanup_old_price_history(cutoff, batch_size?)**
 
 Deletes `price_history` rows older than cutoff in batches. Used by cron job for 24h retention.
 
 - **Returns**: `deleted_count BIGINT`
 
-### purchase_meta_upgrade(profile_id, upgrade_id, cost, max_level)
+**purchase_meta_upgrade(profile_id, upgrade_id, cost, max_level)**
 
 Atomic meta upgrade purchase. Validates balance and max level, deducts coins, increments upgrade level in JSONB.
 
 - **Returns**: `new_meta_coins, new_level, upgrade_id`
 - **Called by**: `metaProgression.ts` POST /purchase
 
-### transfer_meta_coins(profile_id, earned_coins, transfer_rate?)
+**transfer_meta_coins(profile_id, earned_coins, transfer_rate?)**
 
 Transfers percentage of run earnings to meta wallet. Upserts meta_progression row.
 
@@ -496,7 +499,7 @@ Transfers percentage of run earnings to meta wallet. Upserts meta_progression ro
 - **Default rate**: 15%
 - **Called by**: `sessions.ts` POST /verify, `challenges.ts` POST /complete
 
-### prune_old_replays() [TRIGGER]
+**prune_old_replays() [TRIGGER]**
 
 Keeps only top 5 replays per player (by score). Fires after each replay insert.
 
@@ -566,16 +569,16 @@ device_profiles (standalone)
 
 ## Migration Guide
 
-### Running Migrations
+**Running Migrations**
 
 ```bash
-# Apply to Railway PostgreSQL
+## Apply to Railway PostgreSQL
 psql $DATABASE_URL -f railway-market-server/src/db/schema.sql        # Full schema (idempotent)
 psql $DATABASE_URL -f railway-market-server/src/db/migrations/001_meta_challenges_replays.sql
 psql $DATABASE_URL -f railway-market-server/src/db/migrations/002_fix_leaderboard_view.sql
 ```
 
-### Adding New Tables
+**Adding New Tables**
 
 1. Add `CREATE TABLE` to `schema.sql` with `IF NOT EXISTS`
 2. Create numbered migration in `migrations/` (e.g., `003_my_feature.sql`)
@@ -584,7 +587,7 @@ psql $DATABASE_URL -f railway-market-server/src/db/migrations/002_fix_leaderboar
 5. Add route in `railway-market-server/src/routes/`
 6. Run `cd railway-market-server && npm run validate` to typecheck
 
-### Known Issues
+**Known Issues**
 
 1. **Reward divergence**: `credit_coins()` is called optimistically in session verify. If client crashes before verify, coins may be miscredited. Don't add more optimistic credit calls.
 2. **cheat_attempts write-only**: Table is populated but never queried. No automated ban/flag system exists yet.

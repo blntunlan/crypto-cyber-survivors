@@ -36,6 +36,8 @@ export function useHubButtons({
   isRetro,
   t,
 }: UseHubButtonsOptions): HubButtonConfig[] {
+  const shouldAnimateIcons = true;
+
   return React.useMemo(
     () => [
       {
@@ -45,7 +47,7 @@ export function useHubButtons({
             className={iconClass}
             color={COLORS.PUMP_GREEN}
             isRetro={isRetro}
-            isAnimated={false}
+            isAnimated={shouldAnimateIcons}
           />
         ),
         title: t('hub.play') as string,
@@ -61,7 +63,7 @@ export function useHubButtons({
             className={iconClass}
             color={COLORS.WHALE}
             isRetro={isRetro}
-            isAnimated={false}
+            isAnimated={shouldAnimateIcons}
           />
         ),
         title: t('hub.stash') as string,
@@ -79,7 +81,7 @@ export function useHubButtons({
             className={iconClass}
             color={COLORS.CASINO_GOLD}
             isRetro={isRetro}
-            isAnimated={false}
+            isAnimated={shouldAnimateIcons}
           />
         ),
         title: t('hub.loot') as string,
@@ -99,7 +101,7 @@ export function useHubButtons({
             className={iconClass}
             color="#9945FF"
             isRetro={isRetro}
-            isAnimated={false}
+            isAnimated={shouldAnimateIcons}
           />
         ),
         title: t('hub.skins') as string,
@@ -116,7 +118,7 @@ export function useHubButtons({
             className={iconClass}
             color={COLORS.NEON_ORANGE}
             isRetro={isRetro}
-            isAnimated={false}
+            isAnimated={shouldAnimateIcons}
           />
         ),
         title: t('hub.ranks') as string,
@@ -133,7 +135,7 @@ export function useHubButtons({
             className={iconClass}
             color="#94a3b8"
             isRetro={isRetro}
-            isAnimated={false}
+            isAnimated={shouldAnimateIcons}
           />
         ),
         title: t('hub.gear') as string,
@@ -143,6 +145,6 @@ export function useHubButtons({
         screen: 'gear',
       },
     ],
-    [consumableCount, iconClass, isRetro, lootboxCount, t]
+    [consumableCount, iconClass, isRetro, lootboxCount, shouldAnimateIcons, t]
   );
 }

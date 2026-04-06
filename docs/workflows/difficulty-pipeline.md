@@ -1,4 +1,8 @@
-# Difficulty Pipeline
+# :TrendingUp: Difficulty Pipeline
+
+> **Status** live
+> Owner: Game Design
+
 
 ## Purpose
 

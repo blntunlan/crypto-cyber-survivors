@@ -42,6 +42,66 @@
       "challenges": "CHALLENGES",
       "replays": "REPLAYS"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} meta credits available",
+        "tagline": "Stack permanent boosts before every market run.",
+        "summary_helper": "Permanent network advantage",
+        "search_label": "Search upgrades",
+        "search_placeholder": "Search upgrades: crit, economy, armor...",
+        "filters_label": "Category",
+        "affordable_label": "Only affordable",
+        "no_results": "No upgrades match your filters.",
+        "maxed_label": "Maxed out",
+        "progress_label": "Progress",
+        "buy_label": "Buy",
+        "categories": {
+          "all": "All",
+          "combat": "Combat",
+          "survival": "Survival",
+          "economy": "Economy",
+          "special": "Special"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Meta Credits",
+            "helper": "Spendable balance"
+          },
+          "runs": {
+            "label": "Runs Cleared",
+            "helper": "Finished sessions"
+          },
+          "lifetime": {
+            "label": "Lifetime Meta",
+            "helper": "All-time earned"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "Live contracts aligned with the main terminal",
+        "daily_contract": "Daily Contract",
+        "weekly_contract": "Weekly Contract",
+        "cleared": "Cleared",
+        "reward_label": "Reward",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "Activate",
+        "completed_label": "Challenge completed",
+        "loading": "Loading challenges...",
+        "empty_state": "No challenges available.",
+        "toast_title": "Challenge Active"
+      },
+      "replays": {
+        "subtitle": "Review previous runs without leaving the terminal layer",
+        "section_saved": "Saved Sessions",
+        "loading": "Loading replays...",
+        "empty_state": "No replays yet. Complete a run to save one.",
+        "score": "Score {{value}}",
+        "duration": "Duration {{value}}",
+        "level": "Level {{value}}",
+        "kills": "{{value}} kills",
+        "watch": "Watch"
+      }
+    },
     "long": "LONG",
     "short": "SHORT",
     "nickname_screen": {

@@ -1,4 +1,8 @@
-# Rewards and Verification
+# :Award: Rewards and Verification
+
+> **Status** live
+> Owner: Backend & Data Engineering
+
 
 ## Purpose
 

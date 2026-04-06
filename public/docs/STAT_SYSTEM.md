@@ -1,7 +1,9 @@
-# Stat System
+# :BarChart: Stat System
 
-Status: live
-Owner: gameplay balancing
+> **Status** live
+> Owner: Core Game Design
+
+
 
 ## Summary
 
@@ -11,15 +13,15 @@ The goal is to keep combat readable while still letting the market meaningfully 
 
 ## Runtime layers
 
-### Base player stats
+**Base player stats**
 
 Core player values such as HP, move speed, damage, attack speed, crit chance, and magnet range start from the player definition and upgrade state.
 
-### Temporary modifiers
+**Temporary modifiers**
 
 Buffs, debuffs, event effects, and market pressure adjust those values during the run. These modifiers should be treated as runtime overlays, not permanent progression.
 
-### Difficulty-driven pressure
+**Difficulty-driven pressure**
 
 The live difficulty stack can influence effective stats indirectly through:
 

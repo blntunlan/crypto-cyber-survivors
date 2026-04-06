@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 # Run lint-staged for code quality
 npx lint-staged
 

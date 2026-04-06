@@ -183,20 +183,23 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     );
   };
 
-  // Debug info for error boundary
-  const debugInfo = JSON.stringify(
-    {
-      choicesCount: upgradeChoices.length,
-      choiceIds: upgradeChoices.map(c => c.id),
-      choiceNames: upgradeChoices.map(c => c.name),
-      stoppedCount,
-      allStopped,
-      stopOrder,
-      selectedIndex,
-      timestamp: new Date().toISOString(),
-    },
-    null,
-    2
+  // Debug info for error boundary (memoized to avoid JSON.stringify on every spin render)
+  const debugInfo = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          choicesCount: upgradeChoices.length,
+          choiceIds: upgradeChoices.map(c => c.id),
+          choiceNames: upgradeChoices.map(c => c.name),
+          stoppedCount,
+          allStopped,
+          stopOrder,
+          selectedIndex,
+        },
+        null,
+        2
+      ),
+    [upgradeChoices, stoppedCount, allStopped, stopOrder, selectedIndex]
   );
 
   const isRetro = useIsRetro();
@@ -205,7 +208,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : 'bg-slate-950/40 backdrop-blur-sm'}`}
+          className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : 'bg-slate-950/85'}`}
           style={{ zIndex: Z_LAYERS.LEVEL_UP_SCREEN }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -144,12 +144,14 @@ interface OverlayBackButtonProps {
   onClick: () => void;
   label?: string;
   className?: string;
+  zIndex?: number;
 }
 
 export const OverlayBackButton: React.FC<OverlayBackButtonProps> = ({
   onClick,
   label,
   className,
+  zIndex = 260,
 }) => {
   const { t } = useLanguage();
   const translated = t('common.back');
@@ -159,12 +161,13 @@ export const OverlayBackButton: React.FC<OverlayBackButtonProps> = ({
     <button
       onClick={onClick}
       className={cn(
-        'fixed z-[110] flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-cyber text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95',
+        'fixed flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-cyber text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95',
         className
       )}
       style={{
         top: 'calc(1rem + env(safe-area-inset-top, 0px))',
         left: 'calc(1rem + env(safe-area-inset-left, 0px))',
+        zIndex,
       }}
     >
       ← {text}

@@ -100,7 +100,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       whileHover={!isRetro ? { scale: 1.02 } : undefined}
       whileTap={!isRetro ? { scale: 0.98 } : undefined}
       className={cn(
-        'flex min-h-[110px] w-full touch-manipulation flex-col items-center justify-center p-4 sm:min-h-[140px] sm:p-6 lg:p-8',
+        'flex h-full min-h-[104px] w-full touch-manipulation flex-col items-center justify-center p-3.5 sm:min-h-[140px] sm:p-5 lg:min-h-[150px] lg:p-6',
         styles.base,
         isSelected && styles.selected,
         disabled && styles.disabled
@@ -133,16 +133,12 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Badge (for lootbox count etc.) */}
       {badge !== undefined && badge > 0 && (
         <div
-          className={`
-            absolute right-2 top-2
-            px-2 py-0.5
-            text-[10px] font-black sm:text-xs
-            ${
-              isRetro
-                ? 'border-2 border-zinc-900 font-retro-pixel text-[8px]'
-                : 'rounded-full font-cyber'
-            }
-          `}
+          className={cn(
+            'absolute top-1.5 right-1.5 sm:top-2 sm:right-2 px-1.5 py-0.5 text-[9px] font-black sm:text-xs',
+            isRetro
+              ? 'border-2 border-zinc-900 font-retro-pixel text-[8px]'
+              : 'rounded-full font-cyber'
+          )}
           style={{
             backgroundColor: badgeColor,
             color: isRetro ? '#000' : '#000',
@@ -158,7 +154,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Icon */}
       <div
         className={`
-          mb-2 text-3xl sm:mb-3
+          mb-2 text-2xl sm:mb-3
           sm:text-4xl lg:text-5xl
           ${isRetro ? '' : 'drop-shadow-lg filter'}
         `}

@@ -1,4 +1,8 @@
-# Game Session Lifecycle
+# :Power: Game Session Lifecycle
+
+> **Status** live
+> Owner: Core Engineering
+
 
 ## Purpose
 

@@ -42,6 +42,66 @@
       "challenges": "DESAFIOS",
       "replays": "REPLAYS"
     },
+    "menu_pages": {
+      "upgrades": {
+        "subtitle": "{{meta}} créditos meta disponíveis",
+        "tagline": "Empilhe reforços permanentes antes de cada corrida de mercado.",
+        "summary_helper": "Vantagem permanente de rede",
+        "search_label": "Buscar melhorias",
+        "search_placeholder": "Busque melhorias: crítico, economia, armadura...",
+        "filters_label": "Categoria",
+        "affordable_label": "Somente compráveis",
+        "no_results": "Nenhuma melhoria corresponde aos seus filtros.",
+        "maxed_label": "Nível máximo",
+        "progress_label": "Progresso",
+        "buy_label": "Comprar",
+        "categories": {
+          "all": "Todas",
+          "combat": "Combate",
+          "survival": "Sobrevivência",
+          "economy": "Economia",
+          "special": "Especial"
+        },
+        "tiles": {
+          "balance": {
+            "label": "Créditos Meta",
+            "helper": "Saldo disponível"
+          },
+          "runs": {
+            "label": "Partidas concluídas",
+            "helper": "Sessões finalizadas"
+          },
+          "lifetime": {
+            "label": "Meta vitalícia",
+            "helper": "Total ganho"
+          }
+        }
+      },
+      "challenges": {
+        "subtitle": "Contratos ao vivo alinhados com o terminal principal",
+        "daily_contract": "Contrato diário",
+        "weekly_contract": "Contrato semanal",
+        "cleared": "Concluído",
+        "reward_label": "Recompensa",
+        "reward_value": "{{meta}} Meta + {{xp}} XP",
+        "activate": "Ativar",
+        "completed_label": "Desafio concluído",
+        "loading": "Carregando desafios...",
+        "empty_state": "Nenhum desafio disponível.",
+        "toast_title": "Desafio ativo"
+      },
+      "replays": {
+        "subtitle": "Revise corridas anteriores sem sair da camada do terminal",
+        "section_saved": "Sessões salvas",
+        "loading": "Carregando replays...",
+        "empty_state": "Ainda não há replays. Conclua uma partida para salvar.",
+        "score": "Pontuação {{value}}",
+        "duration": "Duração {{value}}",
+        "level": "Nível {{value}}",
+        "kills": "{{value}} abates",
+        "watch": "Assistir"
+      }
+    },
     "long": "LONG",
     "short": "SHORT",
     "nickname_screen": {
@@ -117,23 +177,23 @@
         "return_home": "Voltar ao Início",
         "error_occurred": "Ocorreu um erro"
       },
-      "signing_in": "Signing in...",
-      "creating_account": "Creating account...",
-      "sending": "Sending...",
-      "verifying": "Verifying...",
-      "connect_phantom": "Connect Phantom",
-      "install_phantom": "Install Phantom",
-      "verification_code": "Verification Code",
-      "otp_verify_desc": "Enter the 6-digit code sent to",
-      "nickname_placeholder": "ENTER_ACCESS_KEY",
-      "access_granted": "ACCESS GRANTED",
-      "initialize_profile": "INITIALIZE PROFILE",
-      "footer_systems_online": "SYSTEMS_ONLINE",
+      "signing_in": "Entrando...",
+      "creating_account": "Criando conta...",
+      "sending": "Enviando...",
+      "verifying": "Verificando...",
+      "connect_phantom": "Conectar Phantom",
+      "install_phantom": "Instalar Phantom",
+      "verification_code": "Código de verificação",
+      "otp_verify_desc": "Digite o código de 6 dígitos enviado para",
+      "nickname_placeholder": "DIGITE_CHAVE_DE_ACESSO",
+      "access_granted": "ACESSO_LIBERADO",
+      "initialize_profile": "INICIALIZAR_PERFIL",
+      "footer_systems_online": "SISTEMAS_ATIVOS",
       "footer_title": "CRYPTO_SURVIVORS",
-      "nickname_rules_length": "3-16 CHARACTERS",
-      "nickname_rules_chars": "A-Z, 0-9 ALLOWED",
-      "forgot_password_desc": "Enter your email address and we'll send you a link to reset your password.",
-      "send_reset_link": "Send Reset Link",
+      "nickname_rules_length": "3-16 CARACTERES",
+      "nickname_rules_chars": "A-Z, 0-9 PERMITIDOS",
+      "forgot_password_desc": "Informe seu e-mail e enviaremos um link para redefinir sua senha.",
+      "send_reset_link": "Enviar link de redefinição",
       "providers": {
         "twitter": "Twitter/X",
         "google": "Google",
@@ -156,6 +216,7 @@
       "pnl": "P&L",
       "time": "Tempo",
       "kills": "Abates",
+      "coins_earned": "Moedas Ganhas",
       "career_stats": "Estatísticas de Carreira",
       "games": "Partidas",
       "total_kills": "Total de Abates",
@@ -372,12 +433,16 @@
     "cat_ui": "Interface",
     "cat_alerts": "Alertas",
     "cat_slots": "Slots",
+    "cat_music": "Música",
+    "cat_sfx": "Efeitos Sonoros",
     "desc_combat": "Tiros, críticos, acertos",
     "desc_feedback": "Gemas, subir nível, combos",
     "desc_movement": "Dash, vento",
     "desc_ui": "Botões, menus",
     "desc_alerts": "Vida baixa, morte",
     "desc_slots": "Máquina de subir nível",
+    "desc_music": "Batidas do mercado e tons ambientes",
+    "desc_sfx": "Todos os efeitos sonoros gerais do jogo",
     "visuals": "Visuais",
     "particles": "Partículas",
     "screen_shake": "Tremor de Tela",
@@ -585,7 +650,11 @@
       ],
       "phase4": "Q4 2026",
       "phase4_title": "Expansão",
-      "phase4_items": ["Suporte multi-cripto", "Desafios diários", "Eventos sazonais"]
+      "phase4_items": [
+        "Suporte multi-cripto",
+        "Desafios diários",
+        "Eventos sazonais"
+      ]
     },
     "faq": {
       "title": "Perguntas Frequentes",

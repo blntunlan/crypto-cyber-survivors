@@ -37,8 +37,12 @@ interface SSEClient {
   pair: string;
 }
 
+const MAX_SSE_PER_IP = 3;
+const MAX_SSE_TOTAL = 500;
+
 let nextClientId = 0;
 const clients: Map<number, SSEClient> = new Map();
+const sseConnectionsPerIp: Map<string, number> = new Map();
 
 const router = Router();
 
@@ -48,6 +52,28 @@ const router = Router();
  */
 router.get('/stream', (req: Request, res: Response) => {
   const pair = (req.query.pair as string | undefined) ?? 'BTC';
+
+  // --- DoS protection: per-IP and global connection limits ---
+  const forwarded = req.headers['x-forwarded-for'];
+  const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  const clientIp = forwardedStr?.split(',')[0]?.trim() ?? req.ip ?? 'unknown';
+
+  if (clients.size >= MAX_SSE_TOTAL) {
+    Logger.warn(
+      `[SSE] Global connection limit reached (${MAX_SSE_TOTAL}), rejecting ${clientIp}`
+    );
+    res.status(429).json({ error: 'Too many SSE connections' });
+    return;
+  }
+
+  const currentIpCount = sseConnectionsPerIp.get(clientIp) ?? 0;
+  if (currentIpCount >= MAX_SSE_PER_IP) {
+    Logger.warn(`[SSE] Per-IP limit reached for ${clientIp} (${MAX_SSE_PER_IP})`);
+    res.status(429).json({ error: 'Too many SSE connections from this IP' });
+    return;
+  }
+
+  sseConnectionsPerIp.set(clientIp, currentIpCount + 1);
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -63,11 +89,20 @@ router.get('/stream', (req: Request, res: Response) => {
   clients.set(clientId, client);
 
   Logger.info(
-    `[SSE] Client ${clientId} connected for ${pair} (total: ${clients.size})`
+    `[SSE] Client ${clientId} connected for ${pair} from ${clientIp} (total: ${clients.size})`
   );
 
   req.on('close', () => {
     clients.delete(clientId);
+
+    // Decrement per-IP counter
+    const count = sseConnectionsPerIp.get(clientIp) ?? 1;
+    if (count <= 1) {
+      sseConnectionsPerIp.delete(clientIp);
+    } else {
+      sseConnectionsPerIp.set(clientIp, count - 1);
+    }
+
     Logger.info(`[SSE] Client ${clientId} disconnected (total: ${clients.size})`);
   });
 });
