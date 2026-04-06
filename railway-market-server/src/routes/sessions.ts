@@ -377,8 +377,13 @@ router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
       }
     }
 
-    // If no result from update, INSERT
+    // If no result from update, INSERT (generate session_secret server-side)
     if (!resultId) {
+      // session_secret is NOT NULL — generate one for sync-created sessions
+      if (!columns.includes('session_secret')) {
+        columns.push('session_secret');
+        values.push(crypto.randomBytes(32).toString('hex'));
+      }
       const colNames = columns.join(', ');
       const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
       const { rows } = await query(

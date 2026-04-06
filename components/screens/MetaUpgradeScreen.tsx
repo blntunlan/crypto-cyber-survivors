@@ -47,13 +47,6 @@ const CATEGORY_COLORS: Record<MetaUpgradeCategory, string> = {
   special: COLORS.WHALE,
 };
 
-const CATEGORY_ICON_MAP: Record<MetaUpgradeCategory, UpgradeIconComponent> = {
-  combat: IconFlashPulse,
-  survival: IconLifeBuoy,
-  economy: IconMarketChart,
-  special: IconRocket,
-};
-
 type UpgradeIconComponent = React.ComponentType<{ className?: string; color?: string }>;
 type UpgradeCategoryView = MetaUpgradeCategory | 'all';
 
@@ -148,9 +141,9 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
         return false;
       }
 
-      const currentLevel = upgrades[definition.id] ?? 0;
+      const currentLevel = upgrades[definition.id] as number;
       const isMaxed = currentLevel >= definition.maxLevel;
-      const nextCost = definition.costPerLevel[currentLevel] ?? 0;
+      const nextCost = definition.costPerLevel[currentLevel] as number;
 
       if (onlyAffordable && (isMaxed || metaCoins < nextCost)) {
         return false;
@@ -192,7 +185,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
 
             <div className="grid gap-3">
               {summaryTiles.map(tile => {
-                const IconRef = tile.Icon ?? IconSparkles;
+                const IconRef = tile.Icon as UpgradeIconComponent;
                 return (
                   <div
                     key={tile.label}
@@ -318,12 +311,10 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
                             isRetro && '!rounded-none'
                           )}
                         >
-                          {IconComponent && (
-                            <IconComponent
-                              className="h-6 w-6"
-                              color={isRetro ? '#39FF14' : accent}
-                            />
-                          )}
+                          <IconComponent
+                            className="h-6 w-6"
+                            color={isRetro ? '#39FF14' : accent}
+                          />
                         </div>
                         <div>
                           <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">

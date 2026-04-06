@@ -89,7 +89,7 @@
     "use-railway": {
       "source": "railwayapp/railway-skills",
       "sourceType": "github",
-      "computedHash": "e4d9059f05854c83b63e13160871e56ea610b28b643dd8cd1e4149a679a0b2b6"
+      "computedHash": "276b1889ce15a894d12d0c6d9aa434aea228a41b5565c69f2b214871b540f063"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",

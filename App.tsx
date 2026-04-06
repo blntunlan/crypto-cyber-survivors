@@ -22,6 +22,7 @@ import { EventBus } from './services/core/EventBus';
 import { GameMode } from './types/gameMode';
 import { CoinService } from './services/gameplay/CoinService';
 import { GameStateManager } from './services/core/GameStateManager';
+import { GameSessionService } from './services/auth/GameSessionService';
 import { MilestoneService } from './services/gameplay/MilestoneService';
 import { GameStateMachine } from './services/core/GameStateMachine';
 import { ImagePreloader } from './services/system/ImagePreloader';
@@ -431,9 +432,13 @@ const App: React.FC = () => {
       // Start challenge tracking if active
       ChallengeService.startTracking();
 
-      // Start replay recording
+      // Start replay recording with server session UUID
+      // GameStateManager.initializeNewGame emits 'gameInitialized' with sessionId
+      // We listen for that to get the real UUID, but also need it here synchronously.
+      // GameSessionService caches the last started session ID.
+      const serverSessionId = GameSessionService.getCurrentSessionId();
       ReplayRecorderService.startRecording(
-        `replay-${Date.now()}`,
+        serverSessionId ?? `replay-${Date.now()}`,
         selectedLeverage,
         choice,
         selectedPair
