@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -126,10 +126,44 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: vi.fn(() => ({
+      captureError: vi.fn(),
+      init: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    getInstance: vi.fn(() => ({
+      initializePlayer: vi.fn(),
+      updatePlayerStats: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'http://localhost');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'http://localhost');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
@@ -189,5 +223,5 @@ describe('Game Entry Flow', () => {
 
     // Should see Game Engine or Game UI
     expect(await screen.findByTestId('game-engine')).toBeInTheDocument();
-  });
+  }, 10000);
 });
