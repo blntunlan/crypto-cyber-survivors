@@ -126,13 +126,48 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureError: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    initializePlayer: vi.fn().mockResolvedValue({ id: 'test-player' }),
+    getInstance: vi.fn(() => ({
+      trackSessionStart: vi.fn(),
+      trackSessionEnd: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+
+    // Stub environment variables required for backend and tracking services
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock.railway.app');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://mock.oracle.com');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://mock.validator.com');
   });
 
-  it('transitions to gameplay when Long button is clicked', async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('transitions to gameplay when Long button is clicked', { timeout: 10000 }, async () => {
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',
