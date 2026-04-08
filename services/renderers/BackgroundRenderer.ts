@@ -128,16 +128,18 @@ export class BackgroundRenderer implements IRenderer {
 
     // Group candles by color to minimize fillStyle changes
     const candlesByColor: Record<string, typeof state.bgCandles> = {};
-    state.bgCandles.forEach(c => {
+    for (let i = 0, len = state.bgCandles.length; i < len; i++) {
+      const c = state.bgCandles[i]!;
       (candlesByColor[c.color] ??= []).push(c);
-    });
+    }
 
     for (const color in candlesByColor) {
       ctx.fillStyle = color;
       const group = candlesByColor[color]!;
 
       // Batch Body
-      group.forEach(c => {
+      for (let i = 0, len = group.length; i < len; i++) {
+        const c = group[i]!;
         const sizeRatio = (c.w / 8) * (c.z ?? 1);
         ctx.globalAlpha =
           opacityBase + sizeRatio * GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_STEP;
@@ -148,10 +150,11 @@ export class BackgroundRenderer implements IRenderer {
         const rh = Math.max(rounding * 2, Math.round(c.h / rounding) * rounding);
 
         ctx.fillRect(rx, ry, rw, rh);
-      });
+      }
 
       // Batch Wicks (drawn with 50% alpha of the body)
-      group.forEach(c => {
+      for (let i = 0, len = group.length; i < len; i++) {
+        const c = group[i]!;
         const sizeRatio = (c.w / 8) * (c.z ?? 1);
         ctx.globalAlpha =
           (opacityBase + sizeRatio * GAME_ENGINE.BG_RETRO_CANDLE_OPACITY_STEP) * 0.5;
@@ -164,7 +167,7 @@ export class BackgroundRenderer implements IRenderer {
         const wickX = rx + rw / 2 - 1;
         ctx.fillRect(wickX, ry - 4, 2, 4);
         ctx.fillRect(wickX, ry + rh, 2, 4);
-      });
+      }
     }
 
     ctx.globalAlpha = 1.0;
@@ -228,7 +231,8 @@ export class BackgroundRenderer implements IRenderer {
     ctx.fillRect(0, 0, width, height);
 
     // Render smooth neon candles
-    state.bgCandles.forEach(c => {
+    for (let i = 0, len = state.bgCandles.length; i < len; i++) {
+      const c = state.bgCandles[i]!;
       const sizeRatio = (c.w / 8) * (c.z ?? 1); // Changed || to ??
       const baseOpacity =
         (this.isMobileDevice
@@ -276,7 +280,7 @@ export class BackgroundRenderer implements IRenderer {
         wickWidth,
         rh + GAME_ENGINE.BG_CANDLE_WICK_H_EXTRA
       );
-    });
+    }
   }
 
   /**
@@ -312,7 +316,8 @@ export class BackgroundRenderer implements IRenderer {
     const threshold = GAME_ENGINE.BG_CANDLE_WRAP_THRESHOLD;
     const candles = state.bgCandles;
 
-    candles.forEach(c => {
+    for (let i = 0, len = candles.length; i < len; i++) {
+      const c = candles[i]!;
       // Final velocity calculation
       const volatilitySpeed = c.speed * waveSpeedMult;
       c.y += volatilitySpeed * trendMultiplier * dtFactor;
@@ -336,7 +341,7 @@ export class BackgroundRenderer implements IRenderer {
       } else if (c.x < -threshold) {
         c.x = width + threshold;
       }
-    });
+    }
   }
 
   /**
