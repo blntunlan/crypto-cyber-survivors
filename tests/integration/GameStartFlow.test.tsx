@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -72,6 +72,41 @@ vi.mock('../../services/auth/UserPersistenceService', () => ({
   },
 }));
 
+// Mock analytics and tracking services to prevent real fetch requests during integration test
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: vi.fn(() => ({
+      captureError: vi.fn(),
+      captureMessage: vi.fn(),
+      isInitialized: true,
+    })),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    getInstance: vi.fn(() => ({
+      initializePlayer: vi.fn().mockResolvedValue(true),
+      trackGameStart: vi.fn(),
+      trackGameEnd: vi.fn(),
+      trackEvent: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+  RailwayClient: {
+    getInstance: vi.fn(() => ({
+      get: vi.fn().mockResolvedValue({ success: true, data: [] }),
+      post: vi.fn().mockResolvedValue({ success: true }),
+    })),
+  },
+}));
+
 // Mock hooks
 vi.mock('../../hooks/useMarketData', () => ({
   useMarketData: () => ({
@@ -130,6 +165,13 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock.railway.app');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {

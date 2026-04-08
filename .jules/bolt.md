@@ -1,0 +1,3 @@
+## 2024-05-18 - Zero-allocation Viewport Bounds
+**Learning:** Returning new object literals (`{ left, right, top, bottom }`) from frequently called utility functions like `createViewportBounds` in 60 FPS hot loops (such as culling checks in multiple renderers and spatial lookups in CombatSystem) creates immense object churn, triggering unnecessary garbage collection pauses that degrade rendering performance.
+**Action:** Implemented a new `updateViewportBounds` utility that mutates an existing bound object in-place. State-heavy managers and renderers should maintain private bounds instances (`_viewportBounds`) and mutate them instead of instantiating new ones. This completely eliminates allocation overhead on hot paths.
