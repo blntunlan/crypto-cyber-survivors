@@ -92,6 +92,35 @@ vi.mock('../../stores/useAuthStore', () => ({
   })),
 }));
 
+// Mock error and telemetry trackers to prevent hanging fetch calls in CI
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureException: vi.fn(),
+    captureMessage: vi.fn(),
+    sendError: vi.fn(),
+    initialize: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    trackEvent: vi.fn(),
+    trackGameStart: vi.fn(),
+    trackGameOver: vi.fn(),
+    initializePlayer: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
+// Mock window.scrollTo to prevent Not implemented error
+Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true });
+
 // Mock simple components to avoid canvas issues
 vi.mock('../../components/GameEngine', () => ({
   __esModule: true,
@@ -130,9 +159,20 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+
+    // Stub env vars to prevent integration tests from failing due to external service dependencies
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock-url.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock-railway-api.co');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://mock-oracle.co');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://mock-validator.co');
   });
 
-  it('transitions to gameplay when Long button is clicked', async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('transitions to gameplay when Long button is clicked', { timeout: 10000 }, async () => {
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',
