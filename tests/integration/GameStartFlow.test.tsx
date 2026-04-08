@@ -59,6 +59,25 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
+// Prevent unhandled errors from causing test timeouts in MSW interception
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: vi.fn(() => ({
+      captureError: vi.fn(),
+      installGlobalHandlers: vi.fn(),
+    })),
+    captureError: vi.fn(),
+  }
+}));
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    getInstance: vi.fn(() => ({
+      initializePlayer: vi.fn().mockResolvedValue(true),
+      trackSurvivalTime: vi.fn(),
+    })),
+  }
+}));
+
 // Mock UserPersistenceService to handle initialization
 vi.mock('../../services/auth/UserPersistenceService', () => ({
   UserPersistenceService: {
@@ -71,6 +90,7 @@ vi.mock('../../services/auth/UserPersistenceService', () => ({
     saveUser: vi.fn(),
   },
 }));
+
 
 // Mock hooks
 vi.mock('../../hooks/useMarketData', () => ({
@@ -130,9 +150,19 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://mock-railway');
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://test-url.com');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'http://mock-cf');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'http://mock-cf');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
+
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',
