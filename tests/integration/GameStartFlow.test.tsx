@@ -133,6 +133,14 @@ describe('Game Entry Flow', () => {
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
+    // Stub environment variable required to prevent railway Client from throwing due to unconnected API
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:8080');
+
+    // Mock railway client to prevent leaderboards from throwing
+    const { railwayClient } = await import('../../services/api/RailwayClient');
+    vi.spyOn(railwayClient, 'get').mockResolvedValue({ entries: [] } as any);
+    vi.spyOn(railwayClient, 'post').mockResolvedValue({} as any);
+
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',

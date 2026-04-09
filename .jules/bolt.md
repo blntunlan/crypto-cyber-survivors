@@ -1,0 +1,3 @@
+## 2025-04-06 - High Frequency Update Loop Array Iteration Overheads
+**Learning:** In high-frequency 60 FPS update loops (like those found in physics systems like `MovementSystem.ts`), the usage of `Array.prototype.forEach` creates significant but silent garbage collection overhead by instantiating anonymous closure functions for every active entity being iterated over, which can cause frame stuttering in games/visuals.
+**Action:** Replace `Array.prototype.forEach` with standard `for (let i = 0, len = array.length; i < len; i++)` loops in hot loops. When iterating sparse arrays manually (like active entity object pools), remember to add explicit guard checks (e.g. `if (e === undefined) continue;`) to prevent runtime TypeErrors.
