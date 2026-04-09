@@ -31,6 +31,29 @@ vi.mock('../../contexts/useTheme', () => ({
   }),
 }));
 
+// Memory: Ensure we mock telemetry and external clients
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureMessage: vi.fn(),
+    captureException: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    init: vi.fn(),
+    trackEvent: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 // Mock dependencies
 vi.mock('../../services/audio', () => ({
   audio: {
@@ -130,6 +153,15 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock.railway.app');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://mock.oracle.com');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://mock.validator.com');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
