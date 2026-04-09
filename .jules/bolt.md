@@ -1,0 +1,3 @@
+## 2024-04-03 - [MovementSystem Optimization]
+**Learning:** Replaced `Array.prototype.forEach` with standard `for` loops in hot code paths like `MovementSystem.ts` update loops to minimize garbage collection pressure by avoiding closure allocations per entity.
+**Action:** Always prefer standard `for` loops (e.g. `for (let i = 0, len = arr.length; i < len; i++)`) over `Array.prototype.forEach` in high-frequency functions (like game logic loops executed 60 FPS), taking care to replace inner `return` statements with `continue` and applying guard clauses for pooled entities (`if (entity === undefined) continue;`).

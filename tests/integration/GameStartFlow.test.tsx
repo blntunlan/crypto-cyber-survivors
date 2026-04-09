@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
@@ -92,6 +92,29 @@ vi.mock('../../stores/useAuthStore', () => ({
   })),
 }));
 
+// Mock background trackers that cause dangling promises or fetch calls
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureError: vi.fn(),
+  }
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    initializePlayer: vi.fn().mockResolvedValue(true),
+    updateActivity: vi.fn(),
+    updatePlayTime: vi.fn(),
+  }
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({ success: true }),
+  }
+}));
+
 // Mock simple components to avoid canvas issues
 vi.mock('../../components/GameEngine', () => ({
   __esModule: true,
@@ -130,6 +153,17 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+
+    // Stub environment variables required by various background trackers (e.g. railway client)
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'dummy-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://api.example.com');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://oracle.example.com');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://validator.example.com');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
