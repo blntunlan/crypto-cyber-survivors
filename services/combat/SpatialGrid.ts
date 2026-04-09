@@ -106,8 +106,9 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
     const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
 
     for (let dx = -radius; dx <= radius; dx++) {
+      const shiftedCellX = (cellX + dx) << 16;
       for (let dy = -radius; dy <= radius; dy++) {
-        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const key = shiftedCellX | (cellY + dy);
         const cell = this.grid.get(key);
         if (cell) {
           const len = cell.length;
