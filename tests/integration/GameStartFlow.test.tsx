@@ -126,6 +126,29 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+// Mock missing dependencies that might cause timeouts due to unhandled fetch requests
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    init: vi.fn(),
+    captureError: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    init: vi.fn(),
+    identify: vi.fn(),
+    track: vi.fn(),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();

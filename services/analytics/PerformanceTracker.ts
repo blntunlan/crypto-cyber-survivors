@@ -128,7 +128,9 @@ export class PerformanceTracker {
     this.lastFrameTime = performance.now();
     this.currentFps = 60;
 
-    this.loop();
+    if (typeof requestAnimationFrame !== 'undefined') {
+      this.loop();
+    }
     Logger.info('[PerformanceTracker] Started');
   }
 
@@ -140,7 +142,9 @@ export class PerformanceTracker {
 
     this.isActive = false;
     if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
+      if (typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(this.animationId);
+      }
       this.animationId = null;
     }
     Logger.info('[PerformanceTracker] Stopped');
@@ -184,7 +188,9 @@ export class PerformanceTracker {
       this.lastSampleTime = now;
     }
 
-    this.animationId = requestAnimationFrame(this.loop);
+    if (typeof requestAnimationFrame !== 'undefined') {
+      this.animationId = requestAnimationFrame(this.loop);
+    }
   };
 
   /**
