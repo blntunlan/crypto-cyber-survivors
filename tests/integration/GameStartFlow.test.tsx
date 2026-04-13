@@ -126,10 +126,31 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+vi.stubEnv('VITE_SUPABASE_URL', 'https://example.supabase.co');
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
+vi.stubEnv('VITE_RAILWAY_API_URL', 'https://test.railway.app');
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+
+    // Explicitly stub Cloudflare and Railway API URLs to prevent async hang
+    // due to fetch calls triggered by unhandled MSW endpoints in background tasks
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://example.cloudflare.workers.dev/price');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://example.cloudflare.workers.dev/session');
+
+    // Prevent Tracker/telemetry from making unmocked POST fetch calls
+    // which leads to unhandled rejection timeouts or "clone is not a function"
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+      clone: function() { return this; }
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
