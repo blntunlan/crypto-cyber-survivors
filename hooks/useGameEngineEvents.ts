@@ -88,12 +88,31 @@ export function useGameEngineEvents({
   useEffect(() => {
     const unsub = EventBus.on('weaponFired', data => {
       const cfg = WEAPON_REGISTRY[data.weaponId as WeaponId];
+      const poolManager = poolRef.current;
 
-      if (cfg.id === 'laser' || cfg.id === 'boomerang' || cfg.id === 'orbit_shield') {
+      // Orbit Shield: burst projectiles in all directions (no target needed)
+      if (cfg.id === 'orbit_shield') {
+        const count = cfg.projectileCount + (data.level - 1);
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2;
+          const vx = Math.cos(angle) * cfg.projectileSpeed;
+          const vy = Math.sin(angle) * cfg.projectileSpeed;
+          poolManager.getBullet(
+            data.x,
+            data.y,
+            vx,
+            vy,
+            data.damage,
+            cfg.projectileRadius,
+            '#44ddff',
+            false,
+            false
+          );
+        }
         return;
       }
 
-      const poolManager = poolRef.current;
+      // All other weapons need a target enemy
       const enemies = poolManager.activeEnemies;
       let bestX = 0;
       let bestY = 0;

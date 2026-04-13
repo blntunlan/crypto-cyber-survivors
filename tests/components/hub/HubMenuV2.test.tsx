@@ -48,7 +48,11 @@ describe('HubMenuV2', () => {
 
   it('renders all hub buttons', () => {
     render(
-      <HubMenuV2 nickname={mockNickname} coins={mockCoins} onNavigate={mockOnNavigate} />
+      <HubMenuV2
+        nickname={mockNickname}
+        coins={mockCoins}
+        onNavigate={mockOnNavigate}
+      />
     );
 
     expect(screen.getAllByText('hub.play').length).toBeGreaterThan(0);
@@ -61,7 +65,11 @@ describe('HubMenuV2', () => {
 
   it('emits navigation when enabled tile clicked', () => {
     render(
-      <HubMenuV2 nickname={mockNickname} coins={mockCoins} onNavigate={mockOnNavigate} />
+      <HubMenuV2
+        nickname={mockNickname}
+        coins={mockCoins}
+        onNavigate={mockOnNavigate}
+      />
     );
 
     fireEvent.click(screen.getByText('hub.play'));

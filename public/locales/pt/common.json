@@ -650,11 +650,7 @@
       ],
       "phase4": "Q4 2026",
       "phase4_title": "Expansão",
-      "phase4_items": [
-        "Suporte multi-cripto",
-        "Desafios diários",
-        "Eventos sazonais"
-      ]
+      "phase4_items": ["Suporte multi-cripto", "Desafios diários", "Eventos sazonais"]
     },
     "faq": {
       "title": "Perguntas Frequentes",

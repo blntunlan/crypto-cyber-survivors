@@ -615,13 +615,7 @@
         "本地进度保存",
         "支持离线模式"
       ],
-      "comp_items": [
-        "全球排行榜",
-        "反作弊验证",
-        "重放录制",
-        "成就追踪",
-        "赛季排名"
-      ]
+      "comp_items": ["全球排行榜", "反作弊验证", "重放录制", "成就追踪", "赛季排名"]
     },
     "roadmap": {
       "title": "开发时间轴",
@@ -629,32 +623,16 @@
       "active_tag": "进行中",
       "phase1": "2026 Q1",
       "phase1_title": "基础",
-      "phase1_items": [
-        "核心游戏循环",
-        "60 FPS Canvas 引擎",
-        "Supabase 集成"
-      ],
+      "phase1_items": ["核心游戏循环", "60 FPS Canvas 引擎", "Supabase 集成"],
       "phase2": "2026 Q2",
       "phase2_title": "实时市场",
-      "phase2_items": [
-        "Binance/Coinbase WSS",
-        "神经 AI 总监",
-        "反作弊系统"
-      ],
+      "phase2_items": ["Binance/Coinbase WSS", "神经 AI 总监", "反作弊系统"],
       "phase3": "2026 Q3",
       "phase3_title": "社交",
-      "phase3_items": [
-        "全球排行榜",
-        "重放分享",
-        "成就徽章"
-      ],
+      "phase3_items": ["全球排行榜", "重放分享", "成就徽章"],
       "phase4": "2026 Q4",
       "phase4_title": "扩张",
-      "phase4_items": [
-        "多币种支持",
-        "每日挑战",
-        "季节性活动"
-      ]
+      "phase4_items": ["多币种支持", "每日挑战", "季节性活动"]
     },
     "faq": {
       "title": "常见问题",

@@ -643,11 +643,7 @@
       ],
       "phase3": "2026 Q3",
       "phase3_title": "Sosyal",
-      "phase3_items": [
-        "Dünya sıralamaları",
-        "Tekrar paylaşımı",
-        "Başarım rozetleri"
-      ],
+      "phase3_items": ["Dünya sıralamaları", "Tekrar paylaşımı", "Başarım rozetleri"],
       "phase4": "2026 Q4",
       "phase4_title": "Genişleme",
       "phase4_items": [
