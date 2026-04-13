@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 // Shared key generator — respects proxied IPs
 const keyGenerator = (req: {
@@ -7,7 +7,9 @@ const keyGenerator = (req: {
 }) => {
   const forwarded = req.headers['x-forwarded-for'];
   const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return forwardedStr?.split(',')[0]?.trim() ?? req.ip ?? 'unknown';
+  const ip = forwardedStr?.split(',')[0]?.trim() ?? req.ip ?? 'unknown';
+  // Use ipKeyGenerator helper for proper IPv6 handling (required by express-rate-limit v8.3+)
+  return ipKeyGenerator(ip);
 };
 
 // Global rate limiter - 60 req/min per IP (aggregator has fewer endpoints)
