@@ -17,6 +17,10 @@ const isCI = process.env.CI === 'true';
 
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://mock-url.com');
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://mock-url.com');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-key');
+
     UserSessionService.clearUser();
 
     // Bypass localhost check to trigger real-world-like Supabase path
