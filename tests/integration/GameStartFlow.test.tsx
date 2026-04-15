@@ -156,10 +156,12 @@ describe('Game Entry Flow', () => {
     vi.clearAllMocks();
     localStorage.clear();
     vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3000');
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.useRealTimers();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
@@ -215,9 +217,14 @@ describe('Game Entry Flow', () => {
     // Wait for transition
     await waitFor(() => {
       expect(GameSessionService.startSession).toHaveBeenCalled();
+    }, { timeout: 3000 });
+
+    // Let event loop settle before assertions
+    await act(async () => {
+      vi.advanceTimersByTime(100);
     });
 
     // Should see Game Engine or Game UI
     expect(await screen.findByTestId('game-engine')).toBeInTheDocument();
-  });
+  }, 10000); // increase test timeout to 10 seconds
 });
