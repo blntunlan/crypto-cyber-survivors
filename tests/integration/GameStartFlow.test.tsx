@@ -130,6 +130,11 @@ describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3000');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {

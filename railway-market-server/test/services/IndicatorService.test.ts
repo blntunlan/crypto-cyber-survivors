@@ -1,4 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../../src/routes/marketStream', () => ({
+  broadcastMarketData: vi.fn(),
+  startHeartbeat: vi.fn(),
+  getSSEClientCount: vi.fn(),
+}));
+
 import { IndicatorService } from '../../src/services/indicatorService';
 import { Logger } from '../../src/utils/logger';
 
