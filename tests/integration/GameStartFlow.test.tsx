@@ -120,6 +120,31 @@ vi.mock('../../services/gameplay/WalletService', () => ({
   },
 }));
 
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: () => ({
+      captureError: vi.fn(),
+      init: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    getInstance: () => ({
+      initializePlayer: vi.fn(),
+      trackEvent: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 vi.mock('../../components/gameplay/LeverageEngine', () => ({
   LeverageEngine: {
     getMultipliers: vi.fn(() => ({ maxHpScale: 1.0 })),
