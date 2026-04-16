@@ -142,8 +142,14 @@ export class CombatSystem implements ICombatSystem {
         ? createViewportBounds(screenWidth, screenHeight, 0)
         : null;
 
-    let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
-      null;
+    // Performance Optimization (Bolt):
+    // Use primitive local variables instead of allocating an intermediate `bestCandidate` object
+    // on every loop iteration. This prevents object allocation and GC pressure in a hot path
+    // that is called very frequently (often every frame per weapon/player).
+    let bestX = 0;
+    let bestY = 0;
+    let bestDistSq = Infinity;
+    let bestSpeed = 0;
 
     // Architectural Optimization: Use SpatialGrid for nearby enemy search
     // Step 1: Check 3x3 grid (immediate surroundings)
@@ -165,14 +171,16 @@ export class CombatSystem implements ICombatSystem {
       const dy = enemy.y - player.y;
       const distSq = dx * dx + dy * dy;
 
-      if (!bestCandidate || distSq < bestCandidate.distSq) {
-        bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+      if (distSq < bestDistSq) {
+        bestX = enemy.x;
+        bestY = enemy.y;
+        bestDistSq = distSq;
+        bestSpeed = enemy.speed;
       }
     });
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!bestCandidate) {
+    if (bestDistSq === Infinity) {
       enemyGrid.forEachInRange(player.x, player.y, 3, enemy => {
         if (enemy.isDying || !enemy.active) return;
 
@@ -186,16 +194,18 @@ export class CombatSystem implements ICombatSystem {
         const dy = enemy.y - player.y;
         const distSq = dx * dx + dy * dy;
 
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+        if (distSq < bestDistSq) {
+          bestX = enemy.x;
+          bestY = enemy.y;
+          bestDistSq = distSq;
+          bestSpeed = enemy.speed;
         }
       });
     }
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
     // This handles edge cases where enemies are at the very edges of wide viewports.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!bestCandidate) {
+    if (bestDistSq === Infinity) {
       const enemies = pool.activeEnemies;
       for (let i = 0; i < enemies.length; i++) {
         const enemy = enemies[i]!;
@@ -213,18 +223,21 @@ export class CombatSystem implements ICombatSystem {
         const dx = enemy.x - player.x;
         const dy = enemy.y - player.y;
         const distSq = dx * dx + dy * dy;
-        if (!bestCandidate || distSq < bestCandidate.distSq) {
-          bestCandidate = { x: enemy.x, y: enemy.y, distSq, speed: enemy.speed };
+        if (distSq < bestDistSq) {
+          bestX = enemy.x;
+          bestY = enemy.y;
+          bestDistSq = distSq;
+          bestSpeed = enemy.speed;
         }
       }
     }
 
-    return bestCandidate
+    return bestDistSq !== Infinity
       ? {
-          x: bestCandidate.x,
-          y: bestCandidate.y,
-          dist: Math.sqrt(bestCandidate.distSq),
-          speed: bestCandidate.speed,
+          x: bestX,
+          y: bestY,
+          dist: Math.sqrt(bestDistSq),
+          speed: bestSpeed,
         }
       : null;
   }
