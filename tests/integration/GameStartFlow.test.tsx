@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
@@ -133,6 +134,12 @@ describe('Game Entry Flow', () => {
   });
 
   it('transitions to gameplay when Long button is clicked', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.com');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'https://api.example.com');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'https://api.example.com');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'https://api.example.com');
+
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',
@@ -189,5 +196,7 @@ describe('Game Entry Flow', () => {
 
     // Should see Game Engine or Game UI
     expect(await screen.findByTestId('game-engine')).toBeInTheDocument();
+
+    vi.unstubAllEnvs();
   });
 });
