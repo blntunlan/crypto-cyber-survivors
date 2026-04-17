@@ -128,6 +128,17 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
 
 describe('Game Entry Flow', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key');
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost');
+    vi.stubEnv('VITE_CF_PRICE_ORACLE_URL', 'http://localhost');
+    vi.stubEnv('VITE_CF_SESSION_VALIDATOR_URL', 'http://localhost');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+  beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
