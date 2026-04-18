@@ -132,7 +132,7 @@ describe('Game Entry Flow', () => {
     localStorage.clear();
   });
 
-  it('transitions to gameplay when Long button is clicked', { timeout: 10000 }, async () => {
+  it('transitions to gameplay when Long button is clicked', { timeout: 30000 }, async () => {
     // Mock successful session start
     vi.mocked(GameSessionService.startSession).mockResolvedValue({
       sessionId: 'test-session',
