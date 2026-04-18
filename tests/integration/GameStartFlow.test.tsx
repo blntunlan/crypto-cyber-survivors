@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
+import { railwayClient } from '../../services/api/RailwayClient';
+import { ErrorTracker } from '../../services/analytics/ErrorTracker';
+import { PlayerTracker } from '../../services/analytics/PlayerTracker';
 import { GameProvider } from '../../contexts/GameContext';
 import { LanguageProvider } from '../../contexts/LanguageContext';
 
@@ -127,8 +130,17 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
 }));
 
 describe('Game Entry Flow', () => {
+  beforeAll(() => { window.requestAnimationFrame = vi.fn(); window.cancelAnimationFrame = vi.fn(); });
   beforeEach(() => {
+    vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost');
+  });
+  afterEach(() => { vi.unstubAllEnvs(); });
+  beforeEach(() => {
+    localStorage.setItem('crypto-survivors-user', JSON.stringify({ nickname: 'test-player-123', profileId: 'uuid' }));
     vi.clearAllMocks();
+    vi.spyOn(railwayClient, 'get').mockResolvedValue({ entries: [] });
+    ErrorTracker.captureError = vi.fn();
+    PlayerTracker.initializePlayer = vi.fn().mockResolvedValue();
     localStorage.clear();
   });
 
