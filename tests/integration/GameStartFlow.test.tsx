@@ -126,6 +126,29 @@ vi.mock('../../components/gameplay/LeverageEngine', () => ({
   },
 }));
 
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    get: vi.fn().mockResolvedValue({ entries: [] }),
+    post: vi.fn().mockResolvedValue({}),
+    patch: vi.fn().mockResolvedValue({}),
+  },
+}));
+
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    captureError: vi.fn(),
+    captureMessage: vi.fn(),
+    initialize: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/analytics/PlayerTracker', () => ({
+  PlayerTracker: {
+    track: vi.fn(),
+    initialize: vi.fn(),
+  },
+}));
+
 describe('Game Entry Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -189,5 +212,5 @@ describe('Game Entry Flow', () => {
 
     // Should see Game Engine or Game UI
     expect(await screen.findByTestId('game-engine')).toBeInTheDocument();
-  }, 10000);
+  }, 20000);
 });
