@@ -65,9 +65,13 @@ export class MovementSystem implements IMovementSystem {
     // Check if this is a separation frame (throttled for performance)
     const shouldApplySeparation = this.frameCounter % SEPARATION.THROTTLE_FRAMES === 0;
 
-    pool.activeEnemies.forEach(e => {
+    const enemies = pool.activeEnemies;
+    for (let i = 0, len = enemies.length; i < len; i++) {
+      const e = enemies[i];
+      if (e === undefined) continue;
+
       if (e.isDying) {
-        return;
+        continue;
       }
 
       // Update spawn animation progress
@@ -100,7 +104,7 @@ export class MovementSystem implements IMovementSystem {
           e.spawnTimer = GAME_ENGINE.SPAWN_ANIMATION_INITIAL;
         }
       }
-    });
+    }
   }
 
   /**
@@ -131,7 +135,11 @@ export class MovementSystem implements IMovementSystem {
     const trailCfg = ParticleConfigService.trail;
     const particleMultiplier = perfConfig.particleMultiplier;
 
-    pool.activeBullets.forEach(bullet => {
+    const bullets = pool.activeBullets;
+    for (let i = 0, len = bullets.length; i < len; i++) {
+      const bullet = bullets[i];
+      if (bullet === undefined) continue;
+
       bullet.x += bullet.vx * dtFactor;
       bullet.y += bullet.vy * dtFactor;
 
@@ -163,7 +171,7 @@ export class MovementSystem implements IMovementSystem {
       ) {
         bullet.active = false;
       }
-    });
+    }
   }
 
   /**
@@ -204,7 +212,11 @@ export class MovementSystem implements IMovementSystem {
    * Update progress for enemies in the 'dying' state (death animation).
    */
   private updateDyingEnemies(pool: IPoolManager, dtFactor: number): void {
-    pool.activeEnemies.forEach(enemy => {
+    const enemies = pool.activeEnemies;
+    for (let i = 0, len = enemies.length; i < len; i++) {
+      const enemy = enemies[i];
+      if (enemy === undefined) continue;
+
       if (enemy.isDying) {
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
@@ -215,7 +227,7 @@ export class MovementSystem implements IMovementSystem {
           enemy.deathProgress = 0;
         }
       }
-    });
+    }
   }
 
   /**

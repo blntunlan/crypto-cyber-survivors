@@ -1,0 +1,3 @@
+## 2026-04-19 - Zero-allocation loops in hot physics/render paths
+**Learning:** In 60 FPS update loops like `EntityRenderer.ts` and `MovementSystem.ts`, iterating over high-frequency pooled arrays (enemies, bullets, particles, etc) with `Array.prototype.forEach` creates closure function allocations that generate excessive garbage collection pressure, leading to frame drops.
+**Action:** Replace `forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops and use `if (item === undefined) continue;` guard clauses for safety when iterating over standard object pools. Continue this pattern for any new high-frequency systems.
