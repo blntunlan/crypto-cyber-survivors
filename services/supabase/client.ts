@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/supabase';
-import { Logger } from '../system/Logger';
+// import { Logger } from '../system/Logger'; // Removed to avoid circular dependency in test/SSR environments
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -9,12 +9,14 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isConfigured) {
-  Logger.warn(
+  // eslint-disable-next-line no-console
+  console.warn(
     '[Supabase] Missing credentials! Backend features are DISABLED. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
   );
 } else {
   if (import.meta.env.DEV) {
-    Logger.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
+    // eslint-disable-next-line no-console
+    console.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
   }
 }
 

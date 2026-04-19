@@ -7,7 +7,7 @@ import React, {
   useRef,
 } from 'react';
 import { type LegacyStoredUser } from '../services/auth/types';
-import { Logger } from '../services/system/Logger';
+// import { Logger } from '../services/system/Logger'; // Removed to avoid circular dependency
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 import { SecurityUtils } from '../services/auth/SecurityUtils';
@@ -119,20 +119,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             if (mounted) commitUser(storedUser);
           } else {
             // Profile not found on server — clear local session
-            Logger.warn('[UserContext] Profile not found on server. Clearing session.');
+            // eslint-disable-next-line no-console
+            console.warn('[UserContext] Profile not found on server. Clearing session.');
             UserPersistenceService.clear();
             await SupabaseAuthService.signOut();
             if (mounted) commitUser(null);
           }
         } else {
           // No valid Supabase user — JWT expired/revoked
-          Logger.warn('[UserContext] Supabase session invalid. Clearing stored user.');
+          // eslint-disable-next-line no-console
+          console.warn('[UserContext] Supabase session invalid. Clearing stored user.');
           UserPersistenceService.clear();
           await SupabaseAuthService.signOut();
           if (mounted) commitUser(null);
         }
       } catch (err) {
-        Logger.error('[UserContext] Failed to verify session', err);
+        // eslint-disable-next-line no-console
+        console.error('[UserContext] Failed to verify session', err);
         // Keep stored user on network errors (offline support)
         if (mounted) commitUser(storedUser);
       }
@@ -151,7 +154,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const login = useCallback(
     async (nickname: string): Promise<{ success: boolean; error?: string }> => {
       if (!isRemoteMode()) {
-        Logger.warn('[UserContext] Local environment detected, using local-only mode');
+        // eslint-disable-next-line no-console
+        console.warn('[UserContext] Local environment detected, using local-only mode');
         const localUser = createLegacyUser(LOCAL_DEV_PROFILE_ID, nickname);
         UserPersistenceService.saveUser(localUser);
         commitUser(localUser);
@@ -200,12 +204,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         UserPersistenceService.saveUser(legacyUser);
         commitUser(legacyUser);
 
-        Logger.info(`[UserContext] Login successful: ${nickname} (${profile.id})`);
+        // eslint-disable-next-line no-console
+        console.info(`[UserContext] Login successful: ${nickname} (${profile.id})`);
         return { success: true };
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
 
-        Logger.error(`[UserContext] Login error: ${errorMsg}`, error);
+        // eslint-disable-next-line no-console
+        console.error(`[UserContext] Login error: ${errorMsg}`, error);
 
         // Handle specific errors
         if (errorMsg.includes('Nickname already taken')) {
@@ -257,7 +263,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         });
       }
     } catch (error) {
-      Logger.error('[UserContext] Failed to update lastSeenAt', error);
+      // eslint-disable-next-line no-console
+      console.error('[UserContext] Failed to update lastSeenAt', error);
     }
   }, [commitUser]);
 
