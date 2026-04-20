@@ -62,6 +62,9 @@ const FallbackLoader = () => (
 const LeaderboardPanel = React.lazy(() =>
   import('./hud/LeaderboardPanel').then(m => ({ default: m.LeaderboardPanel }))
 );
+const LeaderboardScreen = React.lazy(() =>
+  import('./screens/LeaderboardScreen').then(m => ({ default: m.LeaderboardScreen }))
+);
 const PauseMenu = React.lazy(() =>
   import('./screens/PauseMenu').then(m => ({ default: m.PauseMenu }))
 );
@@ -162,6 +165,10 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
 }) => {
   const device = useDevice();
   const [useHubV2, setUseHubV2] = React.useState(false);
+  const isMenuRoute = gameStatus === GameStatus.MENU;
+  const showLiveGameScene = !isMenuRoute;
+  const showDesktopLeaderboardPanel =
+    isMenuRoute && hubScreen === 'play' && !device.isMobile;
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -171,7 +178,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
 
   return (
     <>
-      <NotificationSystem />
+      {showLiveGameScene && <NotificationSystem />}
 
       {shouldShowNicknameEntry && (
         <NicknameEntryScreen
@@ -196,23 +203,25 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
             />
           )}
 
-        <React.Suspense fallback={<FallbackLoader />}>
-          <GameEngine
-            status={gameStatus}
-            position={position}
-            pair={selectedPair}
-            marketData={marketData}
-            onGameOver={handleGameOver}
-            onLevelUp={handleLevelUp}
-            updatePlayerStats={setUiStats}
-            playerRef={playerRef}
-            width={dimensions.width}
-            height={dimensions.height}
-            gameMode={gameMode}
-          />
-        </React.Suspense>
+        {showLiveGameScene && (
+          <React.Suspense fallback={<FallbackLoader />}>
+            <GameEngine
+              status={gameStatus}
+              position={position}
+              pair={selectedPair}
+              marketData={marketData}
+              onGameOver={handleGameOver}
+              onLevelUp={handleLevelUp}
+              updatePlayerStats={setUiStats}
+              playerRef={playerRef}
+              width={dimensions.width}
+              height={dimensions.height}
+              gameMode={gameMode}
+            />
+          </React.Suspense>
+        )}
 
-        {gameStatus !== GameStatus.MENU && (
+        {showLiveGameScene && (
           <React.Suspense fallback={<UIFallback />}>
             <GameUI
               position={position}
@@ -286,7 +295,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
           </React.Suspense>
         )}
 
-        {gameStatus === GameStatus.MENU && hubScreen === 'play' && (
+        {isMenuRoute && hubScreen === 'play' && (
           <React.Suspense fallback={<UIFallback />}>
             <MainMenu
               price={marketData.price}
@@ -323,12 +332,21 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
           </React.Suspense>
         )}
 
-        {gameStatus === GameStatus.MENU &&
-          (hubScreen === 'ranks' || hubScreen === 'play') && (
-            <React.Suspense fallback={null}>
-              <LeaderboardPanel />
-            </React.Suspense>
-          )}
+        {isMenuRoute && hubScreen === 'ranks' && (
+          <React.Suspense fallback={<UIFallback />}>
+            <LeaderboardScreen />
+            <OverlayBackButton
+              onClick={() => setHubScreen('hub')}
+              label={!device.isMobile ? 'Hub' : undefined}
+            />
+          </React.Suspense>
+        )}
+
+        {showDesktopLeaderboardPanel && (
+          <React.Suspense fallback={null}>
+            <LeaderboardPanel isVisible={showDesktopLeaderboardPanel} />
+          </React.Suspense>
+        )}
 
         {showSettings && (
           <React.Suspense fallback={<UIFallback />}>

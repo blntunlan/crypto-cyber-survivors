@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion'; // 📦 [Import Cost]: 32.4KB (gzipped: 10.8KB)
 import { trackRender } from '../../utils/trackRender';
 import { MarketPosition, type LeverageOption, LEVERAGE_OPTIONS } from '../../types';
 import { CryptoSelector } from '../ui/CryptoSelector';
@@ -210,22 +209,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
-      className={`allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6 sm:pb-6 landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2 ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/60 backdrop-blur-sm'}`}
+    <div
+      className={`allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6 sm:pb-6 landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2 ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/92'}`}
     >
       <div className="w-full max-w-xl space-y-4 py-2 text-center sm:space-y-8 sm:py-0 landscape:space-y-2">
-        <motion.header
-          className="space-y-2.5 sm:space-y-5"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <header className="space-y-2.5 sm:space-y-5">
           <h1
-            className={`${isRetro ? 'font-retro-pixel text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]' : 'cyber-sway-text font-cyber'} ${sizes.title} leading-relaxed tracking-tight ${!isRetro ? 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]' : ''}`}
+            className={`${isRetro ? 'font-retro-pixel text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]' : 'font-cyber'} ${sizes.title} leading-relaxed tracking-tight ${!isRetro ? 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]' : ''}`}
           >
             {t('common.menu.title')}
             <br />
@@ -250,10 +240,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
             <OptimizationBadge sizes={sizes} />
           </div>
-        </motion.header>
+        </header>
 
         <ThemedPanel
-          className={`relative p-3.5 transition-all duration-700 sm:p-6 ${!isRetro ? 'bg-slate-900/78 overflow-hidden !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-xl' : ''}`}
+          className={`relative p-3.5 transition-colors duration-200 sm:p-6 ${!isRetro ? 'bg-slate-900/92 overflow-hidden !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]' : ''}`}
         >
           {!isRetro && (
             <>
@@ -264,10 +254,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
           {/* Top Dynamic Border Accent */}
           {!isRetro && (
-            <motion.div
+            <div
               className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-              animate={{ backgroundColor: pairConfig.color }}
-              style={{ boxShadow: `0 0 20px ${pairConfig.color}40` }}
+              style={{
+                backgroundColor: pairConfig.color,
+                boxShadow: `0 0 20px ${pairConfig.color}40`,
+              }}
             />
           )}
           <div className="mb-3 space-y-2.5 sm:mb-5">
@@ -362,8 +354,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
                     {/* Active Indicator Line */}
                     {!isRetro && isActive && (
-                      <motion.div
-                        layoutId="mode-active-bar"
+                      <div
                         className="absolute bottom-0 left-0 right-0 h-[2px]"
                         style={{ backgroundColor: modeColor }}
                       />
@@ -601,6 +592,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
         </ThemedPanel>
       </div>
-    </motion.div>
+    </div>
   );
 };

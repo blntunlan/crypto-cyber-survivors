@@ -1,11 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../test';
+import { goToMainMenuFromHub } from '../support/game-helpers';
 
 test.describe('Performance Metrics', () => {
   test.beforeEach(async ({ page }) => {
     // Capture console for debugging
     page.on('console', msg => console.log(`BROWSER [${msg.type()}]: ${msg.text()}`));
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',
@@ -32,9 +33,7 @@ test.describe('Performance Metrics', () => {
     }
 
     // 2b. Handle Hub Menu (Click PLAY)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     // 3. Start game (Select LONG position)
     // Wait for price > 0 (button enabled). The button might be disabled initially.
@@ -125,7 +124,7 @@ test.describe('Performance Metrics', () => {
 
   test('should not have memory leaks', async ({ page }) => {
     // 1. Navigate
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // 2. Handle Nickname Screen if it still appears (fallback)
     const enterButton = page.getByText(/Enter the Arena/i);
@@ -136,11 +135,8 @@ test.describe('Performance Metrics', () => {
       await expect(enterButton).toBeHidden({ timeout: 10000 });
     }
 
-    // 2b. Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
-    }
+    // Use the shared helper so WebKit/Firefox do not get stuck on the hub surface.
+    await goToMainMenuFromHub(page);
 
     // 3. Start game (Select LONG position)
     // Wait for price > 0 (button enabled). The button might be disabled initially.

@@ -5,7 +5,12 @@
  * and all interactive elements remain clickable.
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './test';
+import {
+  goToMainMenuFromHub,
+  resolveNicknameIfNeeded,
+  startGameFromMainMenu,
+} from './support/game-helpers';
 
 // Mobile viewport configurations (all in landscape for gameplay)
 const VIEWPORTS = {
@@ -20,7 +25,17 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem('has_seen_landing', 'true');
     localStorage.setItem('tutorial-completed', 'true');
     localStorage.setItem('has_seen_landing', 'true');
+    localStorage.setItem(
+      'crypto_survivors_user',
+      JSON.stringify({
+        profileId: '00000000-0000-4000-a000-000000000000',
+        nickname: 'MobileHudTester',
+        createdAt: Date.now(),
+        lastSeenAt: Date.now(),
+      })
+    );
   });
+  await page.reload();
 });
 
 /**
@@ -31,26 +46,9 @@ async function navigateToGame(page: Page): Promise<boolean> {
     // Wait for initial load
     await page.waitForLoadState('domcontentloaded');
 
-    // Handle identity screen if present
-    const nicknameInput = page.locator('input[type="text"]').first();
-    if (await nicknameInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await nicknameInput.fill('E2ETest');
-      await page.keyboard.press('Enter');
-    }
-
-    // Hub Menu -> Play
-    const playBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
-    await expect(playBtn).toBeVisible({ timeout: 10000 });
-    await playBtn.click();
-
-    // Main Menu -> Start Game
-    const longBtn = page.getByRole('button', { name: /long/i }).first();
-    await expect(longBtn).toBeVisible({ timeout: 10000 });
-    await longBtn.click();
-
-    // Check if game UI overlay is now visible
-    const gameUI = page.locator('#game-ui-overlay');
-    await expect(gameUI).toBeVisible({ timeout: 10000 });
+    await resolveNicknameIfNeeded(page, 'E2ETest');
+    await goToMainMenuFromHub(page);
+    await startGameFromMainMenu(page, 'LONG');
     return true;
   } catch {
     return false;
@@ -64,7 +62,7 @@ test.describe('Mobile HUD Layout', () => {
     });
 
     test('Game UI should render without errors', async ({ page }) => {
-      await page.goto('/');
+      await page.goto('/?no-sw=true');
 
       // Just verify the app loads without crashing
       await expect(page).toHaveTitle(/Crypto|Survivors/i, { timeout: 10000 });
@@ -83,7 +81,7 @@ test.describe('Mobile HUD Layout', () => {
     });
 
     test('HUD panels should be constrained with maxWidth', async ({ page }) => {
-      await page.goto('/');
+      await page.goto('/?no-sw=true');
       const gameStarted = await navigateToGame(page);
 
       if (gameStarted) {
@@ -138,7 +136,7 @@ test.describe('Mobile HUD Layout', () => {
     });
 
     test('App should handle very small viewport', async ({ page }) => {
-      await page.goto('/');
+      await page.goto('/?no-sw=true');
 
       // Just verify the app loads without crashing on tiny screen
       await expect(page).toHaveTitle(/Crypto|Survivors/i, { timeout: 10000 });
@@ -155,7 +153,7 @@ test.describe('Mobile HUD Layout', () => {
     for (const [_key, viewport] of Object.entries(VIEWPORTS)) {
       test(`App loads on ${viewport.name}`, async ({ page }) => {
         await page.setViewportSize(viewport);
-        await page.goto('/');
+        await page.goto('/?no-sw=true');
 
         // Title should contain our app name
         await expect(page).toHaveTitle(/Crypto|Survivors/i, { timeout: 10000 });

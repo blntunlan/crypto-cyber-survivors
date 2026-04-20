@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('Cycle Complete Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -33,9 +34,7 @@ test.describe('Cycle Complete Flow', () => {
     console.error(`PROJECT NAME: ${testInfo.project.name}`);
 
     // 1b. Handle Hub Menu (Click PLAY)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     // 1. Wait for Main Menu to load (network-independent signal).
     await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({

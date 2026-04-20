@@ -84,6 +84,7 @@ class DebugServiceClass {
    * Make debug functions available globally for console access
    */
   private setupGlobalAccess(): void {
+    if (!import.meta.env.DEV) return;
     if (typeof window !== 'undefined') {
       window.gameDebug = {
         // Raporlama

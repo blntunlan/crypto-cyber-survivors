@@ -9,7 +9,8 @@
  * 5. Touch gestures during gameplay
  */
 
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './test';
+import { goToMainMenuFromHub, startGameFromMainMenu } from './support/game-helpers';
 
 // Mobile device configurations
 const MOBILE_DEVICES = {
@@ -26,7 +27,7 @@ async function setupMobileSession(
   viewport: { width: number; height: number }
 ) {
   await page.setViewportSize(viewport);
-  await page.goto('/');
+  await page.goto('/?no-sw=true');
   await page.evaluate(() => {
     localStorage.setItem('has_seen_landing', 'true');
     localStorage.setItem('tutorial-completed', 'true');
@@ -43,58 +44,17 @@ async function setupMobileSession(
   });
   await page.reload();
 
-  // Handle Hub Menu (Click PLAY)
-  const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-  await expect(playHubBtn).toBeVisible();
-  await playHubBtn.click();
-
-  // Wait for the UI to transition instead of hard timeout
-  await expect(page.locator('canvas')).toBeVisible();
+  await goToMainMenuFromHub(page);
 }
 
 // Helper to start a game
 async function startGame(page: Page) {
-  // Wait for main menu
-  await page.waitForTimeout(3000);
-
-  // Click any visible LONG or SHORT button to start game
-  const startButtons = page.locator('button');
-  const count = await startButtons.count();
-
-  for (let i = 0; i < count; i++) {
-    const button = startButtons.nth(i);
-    const text = await button.textContent();
-
-    if (
-      text &&
-      (text.includes('LONG') || text.includes('SHORT') || text.includes('START'))
-    ) {
-      if (await button.isVisible()) {
-        await button.tap().catch(() => button.click());
-        // Wait for any reliable gameplay transition signal.
-        const gameplaySignals = [
-          page.locator('canvas').first(),
-          page.locator('[data-testid="wave-timer-text"]'),
-          page.getByText(/Survival|LIQUIDATED|GAME OVER/i).first(),
-          page
-            .getByRole('button', { name: /Back to Terminal|Return to Menu/i })
-            .first(),
-        ];
-
-        const started = await Promise.any(
-          gameplaySignals.map(locator =>
-            locator.waitFor({ state: 'visible', timeout: 10000 }).then(() => true)
-          )
-        ).catch(() => false);
-
-        if (started) {
-          return true;
-        }
-      }
-    }
+  try {
+    await startGameFromMainMenu(page, 'LONG');
+    return true;
+  } catch {
+    return false;
   }
-
-  return false;
 }
 
 test.describe('Mobile Touch Controls - iPhone SE', () => {
@@ -380,7 +340,7 @@ test.describe('Mobile Settings', () => {
 
   test('should load mobile settings from localStorage', async ({ page }) => {
     // Set mobile settings before loading
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',
@@ -408,9 +368,9 @@ test.describe('Mobile Settings', () => {
     await page.reload();
 
     // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
+    const playHubButton = page.getByRole('button', { name: /PLAY|hub\.play/i }).first();
+    if (await playHubButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await goToMainMenuFromHub(page);
     }
 
     await page.waitForTimeout(2000);
@@ -593,7 +553,7 @@ test.describe('Edge Cases - Session State', () => {
   });
 
   test('should handle expired session gracefully', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Set an expired/invalid session
     await page.evaluate(() => {
@@ -611,9 +571,9 @@ test.describe('Edge Cases - Session State', () => {
     await page.reload();
 
     // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
+    const playHubButton = page.getByRole('button', { name: /PLAY|hub\.play/i }).first();
+    if (await playHubButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await goToMainMenuFromHub(page);
     }
 
     // App should handle this gracefully (either show login or auto-refresh)
@@ -621,7 +581,7 @@ test.describe('Edge Cases - Session State', () => {
   });
 
   test('should handle missing session data', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Clear all session data
     await page.evaluate(() => {
@@ -632,9 +592,9 @@ test.describe('Edge Cases - Session State', () => {
     await page.reload();
 
     // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: 'PLAY' });
-    if (await playHubButton.isVisible({ timeout: 5000 })) {
-      await playHubButton.click();
+    const playHubButton = page.getByRole('button', { name: /PLAY|hub\.play/i }).first();
+    if (await playHubButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await goToMainMenuFromHub(page);
     }
 
     // Should show nickname entry screen
@@ -642,7 +602,7 @@ test.describe('Edge Cases - Session State', () => {
   });
 
   test('should handle corrupted localStorage', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Set corrupted data
     await page.evaluate(() => {
@@ -710,6 +670,13 @@ test.describe('Edge Cases - Network Conditions', () => {
   // Skip this test as it can cause timeout issues
   test('should handle slow network', async ({ page }) => {
     test.slow();
+
+    const browserName = page.context().browser()?.browserType().name();
+    test.skip(
+      browserName !== 'chromium',
+      'CDP network throttling is only available in Chromium.'
+    );
+
     // Simulate 3G
     const client = await page.context().newCDPSession(page);
     await client.send('Network.emulateNetworkConditions', {
@@ -772,7 +739,7 @@ test.describe('Edge Cases - Viewport Changes', () => {
   test('should handle extreme viewport sizes', async ({ page }) => {
     // Very small viewport (like a watch)
     await page.setViewportSize({ width: 150, height: 150 });
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(2000);
     await expect(page.locator('body')).toBeVisible();
 
@@ -794,9 +761,7 @@ test.describe('Edge Cases - Viewport Changes', () => {
       await page.keyboard.press('Enter');
     }
 
-    await expect(playHubBtn).toBeVisible({ timeout: 15000 });
-    await playHubBtn.click();
-
+    await goToMainMenuFromHub(page);
     await page.waitForTimeout(2000);
     await expect(page.locator('body')).toBeVisible();
   });
@@ -840,7 +805,7 @@ test.describe('Edge Cases - Input Interruption', () => {
     await page.touchscreen.tap(187, 333);
 
     // Navigate during touch
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(1000);
 
     // Page should load properly

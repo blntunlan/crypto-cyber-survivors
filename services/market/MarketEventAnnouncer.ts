@@ -7,7 +7,6 @@
  * Detected events:
  * - PRICE_SHOCK_UP / PRICE_SHOCK_DOWN: +/-2% price move in 60s
  * - RSI_OVERSOLD / RSI_OVERBOUGHT: RSI state transitions
- * - WHALE_DETECTED: volumeNorm > 0.95
  * - LIQUIDATION_WARNING: effectivePnl < -60%
  * - FAVORABLE_MARKET: RSI aligned with player position
  *
@@ -40,8 +39,6 @@ const ANNOUNCER_CONFIG = {
   RSI_OVERSOLD_THRESHOLD: 20,
   /** RSI threshold for overbought announcement */
   RSI_OVERBOUGHT_THRESHOLD: 80,
-  /** Volume norm threshold for whale detection */
-  WHALE_VOLUME_THRESHOLD: 0.95,
   /** Effective PnL threshold for liquidation warning (fraction, e.g. -0.60 = -60%) */
   LIQUIDATION_PNL_THRESHOLD: -0.6,
   /** Minimum interval between same-type announcements (ms) */
@@ -50,7 +47,6 @@ const ANNOUNCER_CONFIG = {
   DURATION: {
     PRICE_SHOCK: 4000,
     RSI: 3500,
-    WHALE: 4000,
     LIQUIDATION: 5000,
     FAVORABLE: 3000,
   },
@@ -65,7 +61,6 @@ type AnnouncementType =
   | 'PRICE_SHOCK_DOWN'
   | 'RSI_OVERSOLD'
   | 'RSI_OVERBOUGHT'
-  | 'WHALE_DETECTED'
   | 'LIQUIDATION_WARNING'
   | 'FAVORABLE_MARKET';
 
@@ -135,7 +130,7 @@ class MarketEventAnnouncerClass {
     // Check each event type
     this.checkPriceShock(data, now);
     this.checkRsiTransition(data, position, now);
-    this.checkWhaleDetection(data, now);
+    // Whale detection removed — screen shake already communicates whale spawns
     this.checkLiquidationWarning(data, now);
     this.checkFavorableMarket(data, position, now);
   }
@@ -283,29 +278,7 @@ class MarketEventAnnouncerClass {
     }
   }
 
-  private checkWhaleDetection(data: MarketData, now: number): void {
-    const volumeNorm = data.whaleTier !== undefined && data.whaleTier >= 3 ? 0.96 : 0;
-    // Use whaleTier >= 3 (MEGA_WHALE) as proxy for volumeNorm > 0.95
-    // since volumeNorm is not directly on MarketData
-    if (data.whaleTier !== undefined && data.whaleTier >= 3) {
-      this.emit('WHALE_DETECTED', now, {
-        message: 'MEGA WHALE DETECTED - Volume Spike',
-        color: '#cc44ff',
-        icon: '\u{1F433}',
-        duration: ANNOUNCER_CONFIG.DURATION.WHALE,
-        priority: 7,
-      });
-    } else if (volumeNorm > ANNOUNCER_CONFIG.WHALE_VOLUME_THRESHOLD) {
-      // Fallback: won't trigger since volumeNorm is set above, but keeps logic clear
-      this.emit('WHALE_DETECTED', now, {
-        message: 'WHALE DETECTED - Volume Surge',
-        color: '#cc44ff',
-        icon: '\u{1F433}',
-        duration: ANNOUNCER_CONFIG.DURATION.WHALE,
-        priority: 7,
-      });
-    }
-  }
+  // checkWhaleDetection removed — whale spawn is communicated via screen shake
 
   private checkLiquidationWarning(data: MarketData, now: number): void {
     const effectivePnlFraction = data.effectivePnl / 100; // effectivePnl is percentage

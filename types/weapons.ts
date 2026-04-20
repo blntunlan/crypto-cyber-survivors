@@ -26,6 +26,36 @@ export interface WeaponMarketContext {
   isFavorable: boolean;
 }
 
+/**
+ * Discriminated union of per-weapon visual profiles.
+ *
+ * Phase 0: every registered weapon uses `renderKind: 'default'` so nothing
+ * changes visually. Later phases will swap individual weapons over to their
+ * bespoke kinds (quantum/spread/boomerang/laser/nuke/orbit), at which point
+ * the optional params below will start being read by ProjectileRenderer.
+ *
+ * Keep this loosely typed: exact param shapes are renderer-owned and may
+ * evolve as we port VFX Lab previews. Until then, `params` is intentionally
+ * permissive (string-keyed primitives) so extending one kind's visual config
+ * doesn't ripple type changes across the codebase.
+ */
+export type WeaponRenderKind =
+  | 'default'
+  | 'quantum'
+  | 'spread'
+  | 'boomerang'
+  | 'laser'
+  | 'nuke'
+  | 'orbit';
+
+export type WeaponVisualParam = string | number | boolean;
+
+export interface WeaponVisualConfig {
+  renderKind: WeaponRenderKind;
+  /** Optional renderer-specific tunables (colors, trail length, glow, etc.). */
+  params?: Readonly<Record<string, WeaponVisualParam>>;
+}
+
 export interface WeaponConfig {
   id: WeaponId;
   name: string;
@@ -41,4 +71,6 @@ export interface WeaponConfig {
   marketBonus: (ctx: WeaponMarketContext) => number;
   evolutionPair?: WeaponId;
   evolutionResult?: string;
+  /** Phase 0: visual profile. All existing weapons ship with `'default'`. */
+  visual?: WeaponVisualConfig;
 }

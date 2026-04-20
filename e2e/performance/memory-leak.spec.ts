@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../test';
+import { goToMainMenuFromHub, startGameFromMainMenu } from '../support/game-helpers';
 
 test.describe('Memory Leak Detection', () => {
   test('should stabilize memory usage after multiple game cycles', async ({ page }) => {
@@ -21,7 +22,7 @@ test.describe('Memory Leak Detection', () => {
       );
     });
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Helper to get heap size
     const getHeapSize = async () => {
@@ -36,48 +37,57 @@ test.describe('Memory Leak Detection', () => {
       // 1. Recover Logic: Check where we are
       const hubPlayBtn = page.getByRole('button', { name: /PLAY/i }).first();
       const longBtn = page.getByRole('button', { name: /long/i }).first();
-      const nicknameInput = page.locator('input');
+      const nicknameInput = page.locator('#nickname-input');
+      const loadingLabel = page.getByText('LOADING ENGINE...');
+
+      const waitForEntryState = async () =>
+        Promise.any([
+          hubPlayBtn.waitFor({ state: 'visible', timeout: 30000 }),
+          longBtn.waitFor({ state: 'visible', timeout: 30000 }),
+          nicknameInput.waitFor({ state: 'visible', timeout: 30000 }),
+          loadingLabel.waitFor({ state: 'visible', timeout: 30000 }),
+        ]);
 
       try {
-        await expect(
-          hubPlayBtn
-            .or(longBtn)
-            .or(nicknameInput)
-            .or(page.getByText('LOADING ENGINE...'))
-        ).toBeVisible({ timeout: 30000 });
+        await waitForEntryState();
 
         // If loading, wait for it to disappear
-        await expect(page.getByText('LOADING ENGINE...')).toBeHidden({
+        await expect(loadingLabel).toBeHidden({
           timeout: 30000,
         });
       } catch (_e) {
         console.log('Navigation invalid state, reloading...');
         await page.reload();
-        await expect(hubPlayBtn.or(longBtn).or(nicknameInput)).toBeVisible({
-          timeout: 30000,
-        });
+        await Promise.any([
+          hubPlayBtn.waitFor({ state: 'visible', timeout: 30000 }),
+          longBtn.waitFor({ state: 'visible', timeout: 30000 }),
+          nicknameInput.waitFor({ state: 'visible', timeout: 30000 }),
+        ]);
       }
 
       // Handle Nickname Screen (Unexpected but possible)
       if (await nicknameInput.isVisible()) {
         console.log('Nickname entry appeared, recovering...');
         await nicknameInput.fill('MemTester');
-        await page.keyboard.press('Enter');
+        const enterArenaBtn = page.getByRole('button', { name: /Enter the Arena/i });
+        if (await enterArenaBtn.isVisible().catch(() => false)) {
+          await enterArenaBtn.click();
+        } else {
+          await page.keyboard.press('Enter');
+        }
         await expect(hubPlayBtn).toBeVisible();
       }
 
       // If Hub is visible, click Play
       if (await hubPlayBtn.isVisible()) {
-        await hubPlayBtn.click();
+        await goToMainMenuFromHub(page);
       }
 
-      // 2. Start Game from Main Menu (LONG)
-      await expect(longBtn).toBeVisible({ timeout: 10000 });
-      await longBtn.click();
+      if (!(await hubPlayBtn.isVisible().catch(() => false))) {
+        await expect(longBtn).toBeVisible({ timeout: 10000 });
+      }
 
-      // Wait for game to load/run
-      // Wait for canvas to ensure game is rendering
-      await expect(page.locator('canvas')).toBeVisible({ timeout: 10000 });
+      await startGameFromMainMenu(page, 'LONG');
 
       await page.waitForTimeout(2000); // Run for 2 seconds
 
@@ -92,6 +102,10 @@ test.describe('Memory Leak Detection', () => {
       } else {
         // Fallback: reload (resets to Hub due to localStorage)
         await page.reload();
+        await Promise.any([
+          hubPlayBtn.waitFor({ state: 'visible', timeout: 30000 }),
+          longBtn.waitFor({ state: 'visible', timeout: 30000 }),
+        ]);
       }
 
       await page.waitForTimeout(1000); // Allow GC to potentially run

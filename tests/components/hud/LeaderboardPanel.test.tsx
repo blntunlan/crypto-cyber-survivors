@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '../../test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LeaderboardPanel from '../../../components/hud/LeaderboardPanel';
+import { LeaderboardService } from '../../../services/leaderboard/LeaderboardService';
 
 // Mock Framer Motion to avoid animation issues in tests
 vi.mock('framer-motion', () => {
@@ -58,6 +59,7 @@ vi.mock('../../../services/api/RailwayClient', () => ({
 // Mock UserSessionService
 vi.mock('../../../services/auth/UserSessionService', () => ({
   UserSessionService: {
+    getProfileId: vi.fn().mockReturnValue('1'),
     getNickname: vi.fn().mockReturnValue('Player1'),
   },
 }));
@@ -100,7 +102,9 @@ describe('LeaderboardPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    LeaderboardService.invalidateCache();
     mockRailwayGet.mockResolvedValue({ entries: mockEntries });
+    mockUseTheme.mockReturnValue({ isRetro: false });
   });
 
   afterEach(() => {
@@ -200,9 +204,6 @@ describe('LeaderboardPanel', () => {
     });
 
     expect(screen.getByText('10,000')).toBeInTheDocument();
-
-    // Reset mock for other tests
-    mockUseTheme.mockReturnValue({ isRetro: false });
   });
 
   it('should handle anonymous players correctly', async () => {

@@ -123,7 +123,9 @@ class LoggerClass {
   security(message: string, data?: unknown): void {
     const entry = this.createEntry('warn', `[SECURITY] ${message}`, data);
     this.store(entry);
-    console.warn(`🛡️ ${this.formatMessage(entry)}`, data);
+    if (this.isDev) {
+      console.warn(`🛡️ ${this.formatMessage(entry)}`, data);
+    }
   }
 
   /**

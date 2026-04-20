@@ -4,7 +4,8 @@
  * Tests touch-specific functionality and keyboard shortcuts.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('Mobile Touch Interactions', () => {
   test.use({
@@ -13,7 +14,7 @@ test.describe('Mobile Touch Interactions', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',
@@ -30,7 +31,7 @@ test.describe('Mobile Touch Interactions', () => {
 
   test('should handle touch tap on buttons', async ({ page }) => {
     // Wait for the Hub Menu to load
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i }).first();
     await expect(playHubBtn).toBeVisible({ timeout: 10000 });
 
     // Tap the button (Hub -> Main Menu)
@@ -56,7 +57,7 @@ test.describe('Mobile Touch Interactions', () => {
 
 test.describe('Keyboard Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',
@@ -71,9 +72,7 @@ test.describe('Keyboard Navigation', () => {
     await page.reload();
 
     // GO to main menu for keyboard tests
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
   });
 
   test('should support keyboard shortcuts in Main Menu', async ({ page }) => {
@@ -98,7 +97,7 @@ test.describe('Keyboard Navigation', () => {
 
 test.describe('Accessibility Meta', () => {
   test('should have proper document title', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     const title = await page.title();
     expect(title.length).toBeGreaterThan(0);
   });

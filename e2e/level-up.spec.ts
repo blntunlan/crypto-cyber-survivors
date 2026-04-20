@@ -1,11 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('Level Up Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Capture console for debugging
     page.on('console', msg => console.log(`BROWSER [${msg.type()}]: ${msg.text()}`));
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
@@ -24,9 +25,7 @@ test.describe('Level Up Flow', () => {
 
   test('should show level up screen when XP is gained', async ({ page }) => {
     // Handle Hub Menu (Click PLAY)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     const playButton = page.getByRole('button', { name: /LONG/i });
     await expect(playButton).toBeVisible();
@@ -69,9 +68,7 @@ test.describe('Level Up Flow', () => {
 
   test('should allow selecting a card and resume game', async ({ page }) => {
     // Handle Hub Menu (Click PLAY)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     const playButton = page.getByRole('button', { name: /LONG/i });
     await expect(playButton).toBeVisible();

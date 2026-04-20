@@ -8,12 +8,13 @@
  * 4. RTL/Special character rendering checks
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('Localization (i18n) System', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage to start fresh
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.clear();
       // Set a valid user session to bypass nickname entry
@@ -40,9 +41,7 @@ test.describe('Localization (i18n) System', () => {
     });
 
     // Enter Hub -> Click Play to get to Main Menu
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 15000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     // Wait for ANY main menu element to confirm load
     await expect(
@@ -128,7 +127,7 @@ test.describe('Localization (i18n) System', () => {
     // 3. Navigate back to Main Menu (Hub -> Play)
     const playHubBtn = page.getByRole('button', { name: /PLAY|开始/i }).first();
     if (await playHubBtn.isVisible().catch(() => false)) {
-      await playHubBtn.click();
+      await goToMainMenuFromHub(page);
     }
 
     // Let's check the controls hint in the footer

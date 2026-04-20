@@ -4,11 +4,12 @@
  * Tests UI consistency and visual elements
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('Visual Elements', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',
@@ -23,9 +24,7 @@ test.describe('Visual Elements', () => {
     await page.reload();
 
     // Navigate from Hub to Main Menu (since visual tests expect BTC/badges on Main Menu)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     await page.waitForTimeout(2000);
   });
@@ -98,7 +97,7 @@ test.describe('Dark Mode', () => {
   test('should respect system color scheme', async ({ page }) => {
     // Test with dark mode preference
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(2000);
 
     // Check background color is dark
@@ -113,7 +112,7 @@ test.describe('Dark Mode', () => {
 
   test('should work in light mode', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(2000);
 
     const bgColor = await page.evaluate(
@@ -128,7 +127,7 @@ test.describe('Dark Mode', () => {
 
 test.describe('Font Loading', () => {
   test('should load custom fonts', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(3000); // Wait for fonts to load
 
     const fonts = await page.evaluate(async () => {
@@ -148,7 +147,7 @@ test.describe('Font Loading', () => {
 
 test.describe('Canvas Rendering', () => {
   test('should have WebGL support', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     const hasWebGL = await page.evaluate(() => {
       const canvas = document.createElement('canvas');
@@ -161,7 +160,7 @@ test.describe('Canvas Rendering', () => {
   });
 
   test('should have Canvas 2D support', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     const hasCanvas2D = await page.evaluate(() => {
       const canvas = document.createElement('canvas');

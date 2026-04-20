@@ -1,4 +1,9 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium, type FullConfig } from '@playwright/test';
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const runtimeMocksPath = path.join(currentDir, 'support', 'runtime-mocks.js');
 
 async function globalSetup(config: FullConfig) {
   const project = config.projects[0];
@@ -9,6 +14,7 @@ async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
+  await page.addInitScript({ path: runtimeMocksPath });
 
   await page.goto(baseURL as string, {
     waitUntil: 'domcontentloaded',

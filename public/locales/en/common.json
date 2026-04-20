@@ -673,5 +673,18 @@
       "discord_soon": "Discord (Coming Soon)",
       "twitter_soon": "Twitter/X (Coming Soon)"
     }
+  },
+  "leaderboard": {
+    "global_rankings": "Global Rankings",
+    "sort_score": "Score",
+    "sort_time": "Time",
+    "sort_kills": "Kills",
+    "sort_sessions": "Runs",
+    "survived": "survived",
+    "total": "total",
+    "runs": "runs",
+    "all_players": "All Players",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing..."
   }
 }

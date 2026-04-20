@@ -8,12 +8,13 @@
  * 4. Game Start Flow
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('Menu Interactions and Theme Switching @smoke', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage to start fresh
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem('disable_sw', 'true');
@@ -33,9 +34,7 @@ test.describe('Menu Interactions and Theme Switching @smoke', () => {
     await page.reload();
 
     // Verify Hub Menu is shown and click PLAY
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     // Wait for the main menu content to be fully loaded
     // "Market Sentiment Engine" is a static text in the MainMenu
@@ -99,9 +98,7 @@ test.describe('Menu Interactions and Theme Switching @smoke', () => {
     await page.reload();
 
     // Handle Hub Menu
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
       timeout: 15000,

@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
 import { cn } from '../../utils/classnames';
@@ -45,7 +44,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       relative overflow-hidden
       bg-white/5 border border-white/10
       rounded-sm
-      transition-all duration-300 ease-out
+      transition-[background-color,border-color,transform] duration-150 ease-out
       hover:bg-white/10 hover:border-white/30
       hover:shadow-[var(--hub-shadow-hover)]
       active:scale-[0.98]
@@ -70,7 +69,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       bg-zinc-950/90
       border-2 border-[#39FF14]/30
       rounded-none
-      transition-all duration-100
+      transition-[background-color,border-color,transform] duration-100
       hover:border-[#39FF14]/60 hover:bg-[#39FF14]/10
       active:translate-x-[2px] active:translate-y-[2px]
       shadow-[4px_4px_0px_rgba(57,255,20,0.15)]
@@ -94,11 +93,9 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   } as React.CSSProperties;
 
   return (
-    <motion.button
+    <button
       onClick={onClick}
       disabled={disabled}
-      whileHover={!isRetro ? { scale: 1.02 } : undefined}
-      whileTap={!isRetro ? { scale: 0.98 } : undefined}
       className={cn(
         'flex h-full min-h-[104px] w-full touch-manipulation flex-col items-center justify-center p-3.5 sm:min-h-[140px] sm:p-5 lg:min-h-[150px] lg:p-6',
         styles.base,
@@ -156,7 +153,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
         className={`
           mb-2 text-2xl sm:mb-3
           sm:text-4xl lg:text-5xl
-          ${isRetro ? '' : 'drop-shadow-lg filter'}
+          ${isRetro ? '' : ''}
         `}
         style={{
           textShadow: !isRetro ? `0 0 20px ${accentColor}60` : undefined,
@@ -195,8 +192,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
 
       {/* Cyberpunk: Bottom accent line when selected */}
       {!isRetro && isSelected && (
-        <motion.div
-          layoutId="hub-selected-bar"
+        <div
           className="absolute bottom-0 left-0 right-0 h-1 lg:h-1.5"
           style={{
             backgroundColor: accentColor,
@@ -214,6 +210,6 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
           ▶
         </div>
       )}
-    </motion.button>
+    </button>
   );
 };

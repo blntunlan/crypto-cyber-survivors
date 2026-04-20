@@ -59,6 +59,16 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
+vi.mock('../../services/analytics/ErrorTracker', () => ({
+  ErrorTracker: {
+    getInstance: vi.fn(() => ({
+      init: vi.fn(),
+      captureAppError: vi.fn(),
+      flush: vi.fn(),
+    })),
+  },
+}));
+
 // Mock UserPersistenceService to handle initialization
 vi.mock('../../services/auth/UserPersistenceService', () => ({
   UserPersistenceService: {

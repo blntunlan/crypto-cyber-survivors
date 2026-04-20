@@ -92,12 +92,12 @@ export function useGameEngineEvents({
 
       // Orbit Shield: burst projectiles in all directions (no target needed)
       if (cfg.id === 'orbit_shield') {
-        const count = cfg.projectileCount + (data.level - 1);
+        const count = cfg.projectileCount + ((data.level ?? 1) - 1);
         for (let i = 0; i < count; i++) {
           const angle = (i / count) * Math.PI * 2;
           const vx = Math.cos(angle) * cfg.projectileSpeed;
           const vy = Math.sin(angle) * cfg.projectileSpeed;
-          poolManager.getBullet(
+          const bullet = poolManager.getBullet(
             data.x,
             data.y,
             vx,
@@ -108,6 +108,7 @@ export function useGameEngineEvents({
             false,
             false
           );
+          bullet.weaponId = cfg.id;
         }
         return;
       }
@@ -145,7 +146,7 @@ export function useGameEngineEvents({
         const vx = Math.cos(finalAngle) * cfg.projectileSpeed;
         const vy = Math.sin(finalAngle) * cfg.projectileSpeed;
 
-        poolManager.getBullet(
+        const bullet = poolManager.getBullet(
           data.x,
           data.y,
           vx,
@@ -156,6 +157,7 @@ export function useGameEngineEvents({
           false,
           false
         );
+        bullet.weaponId = cfg.id;
       }
     });
 

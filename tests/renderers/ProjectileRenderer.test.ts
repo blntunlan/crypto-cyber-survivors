@@ -3,6 +3,7 @@ import { ProjectileRenderer } from '../../services/renderers/ProjectileRenderer'
 import { ThemeService } from '../../services/system/ThemeService';
 import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { type GameState, type Player, GameStatus } from '../../types';
+import { difficultyContext } from '../../services/difficulty/DifficultyContext';
 
 describe('ProjectileRenderer', () => {
   let renderer: ProjectileRenderer;
@@ -27,6 +28,9 @@ describe('ProjectileRenderer', () => {
       arc: vi.fn(),
       fillRect: vi.fn(),
       createLinearGradient: vi.fn(() => ({
+        addColorStop: vi.fn(),
+      })),
+      createRadialGradient: vi.fn(() => ({
         addColorStop: vi.fn(),
       })),
       fillStyle: '',
@@ -201,6 +205,200 @@ describe('ProjectileRenderer', () => {
 
     // In retro mode, fillRect is used for squares
     expect(mockCtx.fillRect).toHaveBeenCalledTimes(3);
+  });
+
+  it('should render quantum_bullet without throwing and use radial gradient + trail', () => {
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 5,
+        vy: 0,
+        radius: 5,
+        color: '#22d3ee',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'quantum_bullet',
+        trail: [
+          { x: 80, y: 100, age: 160 },
+          { x: 90, y: 100, age: 80 },
+          { x: 100, y: 100, age: 0 },
+        ],
+      },
+    ];
+
+    expect(() =>
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+        width: 800,
+        height: 600,
+        status: GameStatus.PLAYING,
+        graphics: {
+          showParticles: true,
+          showDamageNumbers: true,
+          showScreenShake: true,
+        },
+      })
+    ).not.toThrow();
+
+    // Quantum path uses a radial gradient for the glow + arcs for core/glow.
+    expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+    expect(mockCtx.arc).toHaveBeenCalled();
+    // Trail polyline strokes segments between points.
+    expect(mockCtx.stroke).toHaveBeenCalled();
+    // Quantum path does NOT use the cyberpunk rotate/translate path.
+    expect(mockCtx.rotate).not.toHaveBeenCalled();
+  });
+
+  it('should handle quantum_bullet with no trail (first-tick lazy init)', () => {
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 5,
+        vy: 0,
+        radius: 5,
+        color: '#22d3ee',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'quantum_bullet',
+        // trail intentionally undefined
+      },
+    ];
+
+    expect(() =>
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+        width: 800,
+        height: 600,
+        status: GameStatus.PLAYING,
+        graphics: {
+          showParticles: true,
+          showDamageNumbers: true,
+          showScreenShake: true,
+        },
+      })
+    ).not.toThrow();
+
+    // Glow + core still render even without trail.
+    expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+  });
+
+  it('should render spread_shot without throwing (cool state, heat <= threshold)', () => {
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 5,
+        vy: 0,
+        radius: 4,
+        color: '#ffd060',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'spread_shot',
+        trail: [
+          { x: 80, y: 100, age: 180 },
+          { x: 90, y: 100, age: 90 },
+          { x: 100, y: 100, age: 0 },
+        ],
+      },
+    ];
+
+    // Force cool heat via DifficultyContext singleton.
+    difficultyContext.updateInputs({ normalizedVolume: 0.3 });
+
+    expect(() =>
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+        width: 800,
+        height: 600,
+        status: GameStatus.PLAYING,
+        graphics: {
+          showParticles: true,
+          showDamageNumbers: true,
+          showScreenShake: true,
+        },
+      })
+    ).not.toThrow();
+
+    expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+    expect(mockCtx.stroke).toHaveBeenCalled();
+    expect(mockCtx.arc).toHaveBeenCalled();
+    // Spread uses pellet drawing, not the rotated cyberpunk laser path.
+    expect(mockCtx.rotate).not.toHaveBeenCalled();
+  });
+
+  it('should render spread_shot without throwing (hot state, heat > threshold)', () => {
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 5,
+        vy: 0,
+        radius: 4,
+        color: '#ffff88',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'spread_shot',
+        trail: [
+          { x: 80, y: 100, age: 180 },
+          { x: 90, y: 100, age: 90 },
+          { x: 100, y: 100, age: 0 },
+        ],
+      },
+    ];
+
+    difficultyContext.updateInputs({ normalizedVolume: 0.9 });
+
+    expect(() =>
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+        width: 800,
+        height: 600,
+        status: GameStatus.PLAYING,
+        graphics: {
+          showParticles: true,
+          showDamageNumbers: true,
+          showScreenShake: true,
+        },
+      })
+    ).not.toThrow();
+
+    expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+    expect(mockCtx.stroke).toHaveBeenCalled();
+  });
+
+  it('should handle spread_shot with no trail (first-tick lazy init)', () => {
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 5,
+        vy: 0,
+        radius: 4,
+        color: '#ffd060',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'spread_shot',
+        // trail intentionally undefined
+      },
+    ];
+
+    expect(() =>
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+        width: 800,
+        height: 600,
+        status: GameStatus.PLAYING,
+        graphics: {
+          showParticles: true,
+          showDamageNumbers: true,
+          showScreenShake: true,
+        },
+      })
+    ).not.toThrow();
+
+    expect(mockCtx.createRadialGradient).toHaveBeenCalled();
   });
 
   it('should cull projectiles in retro mode', () => {

@@ -55,9 +55,7 @@ export const NotificationSystem: React.FC = () => {
   }, []);
 
   const lastRSINotificationTime = useRef<number>(0);
-  const lastWhaleNotificationTime = useRef<number>(0);
   const RSI_NOTIFICATION_COOLDOWN = 10000; // 10 seconds
-  const WHALE_NOTIFICATION_COOLDOWN = 5000; // 5 seconds
 
   useEffect(() => {
     // Handle Market RSI Events
@@ -93,30 +91,7 @@ export const NotificationSystem: React.FC = () => {
       }
     };
 
-    // Handle Whale Events
-    const handleWhale = (data: { tier: number }) => {
-      // Only show whale detection notifications in development mode
-      if (!import.meta.env.DEV) return;
-
-      const now = Date.now();
-      if (now - lastWhaleNotificationTime.current < WHALE_NOTIFICATION_COOLDOWN) {
-        return;
-      }
-
-      if (data.tier > 0) {
-        lastWhaleNotificationTime.current = now;
-        const tierKeys = ['', 'baby', 'mega', 'giga'];
-        const tierKey = tierKeys[data.tier];
-        const tierName = text(t(`hud.announcer.tiers.${tierKey}`));
-        addNotification({
-          type: 'market',
-          title: text(t('hud.announcer.whale_spotted', { tier: tierName })),
-          message: text(t('hud.announcer.whale_volume')),
-          color: '#fbbf24',
-          icon: '🐋',
-        });
-      }
-    };
+    // Whale notifications removed — screen shake communicates whale spawns
 
     // Handle Generic Notifications
     const handleNotification = (data: {
@@ -172,21 +147,13 @@ export const NotificationSystem: React.FC = () => {
       if (!import.meta.env.DEV) return;
 
       const configs = {
-        VOLUME_SPIKE: {
-          title: text(t('hud.announcer.volume_spike')) || 'Volume Spike',
-          icon: '🔥',
-          color: '#f59e0b',
-        },
+        VOLUME_SPIKE: null, // Removed — screen shake communicates this
         PRICE_BREAKOUT: {
           title: text(t('hud.announcer.breakout')) || 'Trend Breakout',
           icon: '🚀',
           color: '#10b981',
         },
-        WHALE_ALERT: {
-          title: text(t('hud.announcer.whale_alert')) || 'Whale Arrival',
-          icon: '🐋',
-          color: '#8b5cf6',
-        },
+        WHALE_ALERT: null, // Removed — screen shake communicates this
         CONSOLIDATION: {
           title: text(t('hud.announcer.consolidation')) || 'Consolidation',
           icon: '💤',
@@ -200,6 +167,7 @@ export const NotificationSystem: React.FC = () => {
       };
 
       const config = configs[data.type];
+      if (!config) return; // Skip removed event types (VOLUME_SPIKE, WHALE_ALERT)
       addNotification({
         type: 'market',
         title: config.title,
@@ -213,14 +181,12 @@ export const NotificationSystem: React.FC = () => {
     };
 
     const unsubRSI = EventBus.on('rsiStateChanged', handleRSI);
-    const unsubWhale = EventBus.on('whaleTierChanged', handleWhale);
     const unsubNotify = EventBus.on('gameNotification', handleNotification);
     const unsubMarketEvent = EventBus.on('gameMarketEvent', handleMarketEvent);
     const unsubReset = EventBus.on('gameReset', () => setNotifications([]));
 
     return () => {
       unsubRSI();
-      unsubWhale();
       unsubNotify();
       unsubMarketEvent();
       unsubReset();

@@ -126,7 +126,6 @@ export function useHubButtons({
         getBadge: () => 0,
         accentColor: COLORS.NEON_ORANGE,
         screen: 'ranks',
-        disabled: true,
       },
       {
         id: 'gear',

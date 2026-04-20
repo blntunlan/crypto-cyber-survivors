@@ -5,6 +5,9 @@ import { createViewportBounds, isCircleVisible } from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
+import { WEAPON_REGISTRY } from '../../config/WeaponRegistry';
+import { type WeaponRenderKind } from '../../types/weapons';
+import { difficultyContext } from '../difficulty/DifficultyContext';
 
 /**
  * ProjectileRenderer - Visualizes player bullets and projectiles.
@@ -125,6 +128,10 @@ export class ProjectileRenderer implements IRenderer {
         }
       }
     } else {
+      // Read market heat once per frame (singleton, zero-alloc). Used by
+      // volume-reactive weapon visuals (e.g. spread_shot). `normalizedVolume`
+      // is already 0..1 from the market aggregator.
+      const heat = difficultyContext.inputs.normalizedVolume;
       const activeBullets = pool.activeBullets;
       const count = activeBullets.length;
       for (let i = 0; i < count; i++) {
@@ -139,7 +146,10 @@ export class ProjectileRenderer implements IRenderer {
         ) {
           continue;
         }
-        this.renderCyberpunkProjectile(ctx, b, normalCoreColor, superCritColor);
+        // Phase 0 VFX dispatch: route to per-kind renderer. All kinds
+        // currently fall through to the default path so visuals are
+        // unchanged. Later phases will swap individual kinds over.
+        this.dispatchCyberpunkRender(ctx, b, normalCoreColor, superCritColor, heat);
       }
     }
 
@@ -147,6 +157,61 @@ export class ProjectileRenderer implements IRenderer {
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1.0;
     }
+  }
+
+  /**
+   * Phase 0 VFX dispatch. Reads `bullet.weaponId` -> WeaponRegistry visual
+   * config -> renderKind, then routes to the per-kind renderer. All kinds
+   * fall through to the default path until later phases port in the VFX
+   * Lab preview implementations.
+   *
+   * Zero-allocation: this is a plain switch with no object creation.
+   */
+  private dispatchCyberpunkRender(
+    ctx: CanvasRenderingContext2D,
+    b: Bullet,
+    cachedCoreColor: string,
+    superCritGlow: string,
+    heat: number
+  ): void {
+    const kind = this.resolveRenderKind(b);
+    switch (kind) {
+      case 'quantum':
+        this.renderQuantum(ctx, b);
+        return;
+      case 'spread':
+        this.renderSpread(ctx, b, heat);
+        return;
+      // All kinds currently share the default visual. When a Phase-N port
+      // lands, add a dedicated `renderXyzProjectile(...)` call on that case.
+      case 'boomerang':
+      case 'laser':
+      case 'nuke':
+      case 'orbit':
+      case 'default':
+      default:
+        this.renderCyberpunkProjectile(ctx, b, cachedCoreColor, superCritGlow);
+        return;
+    }
+  }
+
+  /**
+   * Resolves the visual kind for a bullet via its owning weapon config.
+   * Falls back to `'default'` when `weaponId` is unknown or unset.
+   */
+  private resolveRenderKind(b: Bullet): WeaponRenderKind {
+    const wid = b.weaponId;
+    if (wid === undefined) return 'default';
+    // `WEAPON_REGISTRY` is keyed by `WeaponId`, but `bullet.weaponId` is a
+    // plain string. Index through `Partial<...>` so the runtime lookup can
+    // safely return `undefined` for stale/unknown IDs without a lint warning.
+    const cfg = (
+      WEAPON_REGISTRY as Partial<
+        Record<string, { visual?: { renderKind: WeaponRenderKind } }>
+      >
+    )[wid];
+    if (cfg === undefined) return 'default';
+    return cfg.visual?.renderKind ?? 'default';
   }
 
   /**
@@ -273,4 +338,112 @@ export class ProjectileRenderer implements IRenderer {
 
     ctx.restore();
   }
+
+  /**
+   * Phase 1 VFX — QuantumBullet: cyan trail polyline + radial glow + bright core.
+   *
+   * Ported from `components/vfx-lab/previews/QuantumBulletPreview.ts`. The
+   * trail is populated and aged by `MovementSystem.updateBullets`; this
+   * method is read-only on the bullet. No allocations beyond the radial
+   * gradient (unavoidable for the glow — the gradient cache doesn't cover
+   * per-bullet origins at this revision).
+   */
+  private renderQuantum(ctx: CanvasRenderingContext2D, b: Bullet): void {
+    const trail = b.trail;
+    // 1. Trail polyline (drawn first so it sits behind the glow/core).
+    if (trail !== undefined && trail.length > 1) {
+      ctx.lineCap = 'round';
+      for (let i = 1; i < trail.length; i++) {
+        const p0 = trail[i - 1]!;
+        const p1 = trail[i]!;
+        const alpha = Math.max(0, 1 - p1.age / QUANTUM_TRAIL_LIFE_MS);
+        if (alpha <= 0) continue;
+        ctx.strokeStyle = `rgba(34,211,238,${alpha * 0.7})`;
+        ctx.lineWidth = 2 * alpha + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
+    }
+
+    // 2. Radial glow.
+    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 9);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.4, 'rgba(34,211,238,0.8)');
+    grad.addColorStop(1, 'rgba(34,211,238,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Bright white core.
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  /**
+   * Phase 2 VFX — SpreadShot pellet: volume-reactive trail + radial gradient.
+   *
+   * Ported from `components/vfx-lab/previews/SpreadShotPreview.ts`. The
+   * per-pellet trail is populated and aged by `MovementSystem.updateBullets`;
+   * this method is read-only on the bullet. `heat` is the market
+   * `normalizedVolume` (0..1) captured once per frame in `render()`.
+   *
+   * When heat crosses `SPREAD_HEAT_THRESHOLD` (0.7) the pellet swaps to
+   * a brighter yellow core + trail tint, matching the volume-surge feedback
+   * loop from the preview.
+   */
+  private renderSpread(ctx: CanvasRenderingContext2D, b: Bullet, heat: number): void {
+    const isHot = heat > SPREAD_HEAT_THRESHOLD;
+    const coreColor = isHot ? SPREAD_HOT_COLOR : SPREAD_COOL_COLOR;
+    const trailRgb = isHot ? SPREAD_HOT_TRAIL_RGB : SPREAD_COOL_TRAIL_RGB;
+    const trailAlphaScale = 0.5 + heat * 0.5;
+
+    // 1. Trail polyline (drawn first so it sits behind the pellet).
+    const trail = b.trail;
+    if (trail !== undefined && trail.length > 1) {
+      ctx.lineCap = 'round';
+      for (let i = 1; i < trail.length; i++) {
+        const p0 = trail[i - 1]!;
+        const p1 = trail[i]!;
+        const alpha = Math.max(0, 1 - p1.age / SPREAD_TRAIL_LIFE_MS);
+        if (alpha <= 0) continue;
+        ctx.strokeStyle = `rgba(${trailRgb},${alpha * trailAlphaScale})`;
+        ctx.lineWidth = 2.2 * alpha + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
+    }
+
+    // 2. Radial-gradient pellet (white center -> coreColor -> fading trailRgb).
+    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 7);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.4, coreColor);
+    grad.addColorStop(1, `rgba(${trailRgb},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 3. Tiny bright white core dot.
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
+
+/** Matches `MovementSystem` tunable of the same name. */
+const QUANTUM_TRAIL_LIFE_MS = 180;
+/** Matches `MovementSystem` SPREAD_TRAIL_LIFE_MS and WeaponRegistry params. */
+const SPREAD_TRAIL_LIFE_MS = 200;
+const SPREAD_HEAT_THRESHOLD = 0.7;
+const SPREAD_COOL_COLOR = '#ffd060';
+const SPREAD_HOT_COLOR = '#ffff88';
+const SPREAD_COOL_TRAIL_RGB = '255,180,80';
+const SPREAD_HOT_TRAIL_RGB = '255,220,120';

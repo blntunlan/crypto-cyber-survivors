@@ -8,6 +8,31 @@ import { type IMovementSystem } from '../../interfaces/IPhysicsSubsystems';
 import { enemyGrid } from '../SpatialGrid';
 
 /**
+ * Phase 1 VFX — QuantumBullet trail tunables.
+ *
+ * Kept co-located with the update loop so the zero-alloc contract is obvious:
+ * these constants never allocate and are read by the MovementSystem tick only.
+ * Keep in sync with `WEAPON_REGISTRY.quantum_bullet.visual.params` until a
+ * renderer-owned config module unifies both ends (later phases).
+ */
+const QUANTUM_TRAIL_LIFE_MS = 180;
+const SPREAD_TRAIL_LIFE_MS = 200;
+const TRAIL_MAX_POINTS = 16;
+/** 1000ms / 60fps ≈ 16.667ms per engine-normalized frame. */
+const QUANTUM_TRAIL_MS_PER_FRAME = 1000 / 60;
+
+/**
+ * Returns the trail life-ms for a bullet whose weapon uses a trail-producing
+ * renderKind. Returns 0 for bullets that don't need a trail. Zero-alloc:
+ * plain string compare + number return.
+ */
+function trailLifeMsFor(weaponId: string | undefined): number {
+  if (weaponId === 'quantum_bullet') return QUANTUM_TRAIL_LIFE_MS;
+  if (weaponId === 'spread_shot') return SPREAD_TRAIL_LIFE_MS;
+  return 0;
+}
+
+/**
  * MovementSystem - Handles positional updates for all physics-enabled entities.
  *
  * This system is responsible for:
@@ -130,10 +155,40 @@ export class MovementSystem implements IMovementSystem {
   ): void {
     const trailCfg = ParticleConfigService.trail;
     const particleMultiplier = perfConfig.particleMultiplier;
+    // Convert engine-normalized dtFactor (1.0 == one 60fps frame) to ms for
+    // time-based trail aging. Avoids reading raw timestamps (pause-safe).
+    const dtMs = dtFactor * QUANTUM_TRAIL_MS_PER_FRAME;
 
     pool.activeBullets.forEach(bullet => {
       bullet.x += bullet.vx * dtFactor;
       bullet.y += bullet.vy * dtFactor;
+
+      // --- Phase 1+2 VFX: per-weapon bullet trails ---
+      // Per-weapon trail sampling. Lazy-init on first tick (pool recycle
+      // resets `trail` to undefined so this fires once per new projectile).
+      // Zero-allocation steady-state: exactly one push per frame, plus one
+      // shift when oldest points age out. No filter/map/new in the loop.
+      const trailLifeMs = trailLifeMsFor(bullet.weaponId);
+      if (trailLifeMs > 0) {
+        let trail = bullet.trail;
+        if (trail === undefined) {
+          trail = [];
+          bullet.trail = trail;
+        }
+        // Age existing points in-place.
+        for (let i = 0; i < trail.length; i++) {
+          trail[i]!.age += dtMs;
+        }
+        // Drop aged-out points from the head (FIFO ring behavior).
+        while (trail.length > 0 && trail[0]!.age > trailLifeMs) {
+          trail.shift();
+        }
+        // Cap on total points as a belt-and-braces bound in case of lag spikes.
+        while (trail.length >= TRAIL_MAX_POINTS) {
+          trail.shift();
+        }
+        trail.push({ x: bullet.x, y: bullet.y, age: 0 });
+      }
 
       // Spawn trail particles based on performance settings
       if (Math.random() < trailCfg.spawnChance * particleMultiplier) {

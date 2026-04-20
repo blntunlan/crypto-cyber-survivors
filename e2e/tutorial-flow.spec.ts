@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
 
 test.describe('Tutorial Flow @smoke', () => {
   // We want to test the tutorial, so we DO NOT set 'tutorial-completed' here.

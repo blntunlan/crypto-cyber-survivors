@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 /**
  * @deprecated AI Director V2: Wave system removed
@@ -15,7 +16,7 @@ test.describe('Difficulty System (AI Director V2)', () => {
     });
 
     // Set localStorage to skip nickname entry and start with a known state
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',
@@ -30,9 +31,7 @@ test.describe('Difficulty System (AI Director V2)', () => {
     await page.reload();
 
     // Handle Hub Menu (Click PLAY)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
   });
 
   test('should display static "Active" phase (AI Director V2)', async ({ page }) => {

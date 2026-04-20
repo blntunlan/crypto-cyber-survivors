@@ -493,6 +493,33 @@ export class PoolManager implements IPoolManager {
         obj.color = color;
         obj.isCrit = isCrit;
         obj.isSuperCrit = isSuperCrit;
+        // --- Phase 0 VFX scaffolding: clear optional state on recycle ---
+        // Critical: recycled bullets otherwise leak weapon-specific state
+        // (trails, phases, orbit flags, hit-sets) across unrelated weapons.
+        obj.weaponId = undefined;
+        obj.age = undefined;
+        obj.maxAge = undefined;
+        if (obj.trail !== undefined) {
+          // Preserve the existing array (avoid GC churn) but drop contents.
+          obj.trail.length = 0;
+          obj.trail = undefined;
+        }
+        obj.spawnX = undefined;
+        obj.spawnY = undefined;
+        obj.isOrbiter = undefined;
+        obj.orbitAngle = undefined;
+        obj.orbitRadius = undefined;
+        obj.orbitSpeed = undefined;
+        obj.phase = undefined;
+        obj.phaseMs = undefined;
+        obj.shockwaveRadius = undefined;
+        obj.shockwaveMaxRadius = undefined;
+        obj.beamAngle = undefined;
+        obj.beamLength = undefined;
+        if (obj.hitSet !== undefined) {
+          obj.hitSet.clear();
+          obj.hitSet = undefined;
+        }
       }
     );
   }

@@ -1,8 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
 
 test.describe('PWA Functionality', () => {
   test('should have a valid manifest link', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     const manifestLink = page.locator('link[rel="manifest"]');
     await expect(manifestLink).toBeAttached();
     const href = await manifestLink.getAttribute('href');
@@ -10,7 +10,7 @@ test.describe('PWA Functionality', () => {
   });
 
   test('should have a service worker registration', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Check if service worker is registered
     await page.evaluate(async () => {
@@ -32,7 +32,7 @@ test.describe('PWA Functionality', () => {
   });
 
   test('should have correct theme color meta tag', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     const themeColor = page.locator('meta[name="theme-color"]');
     await expect(themeColor).toBeAttached();
     const content = await themeColor.getAttribute('content');

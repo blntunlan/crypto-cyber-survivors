@@ -139,12 +139,54 @@ export interface Enemy extends Entity {
   eliteAbility?: string;
 }
 
+export interface BulletTrailPoint {
+  x: number;
+  y: number;
+  age: number;
+}
+
+export type BulletPhase =
+  | 'flight'
+  | 'detonate'
+  | 'shockwave'
+  | 'charge'
+  | 'fire'
+  | 'cooldown';
+
 export interface Bullet extends Entity {
   vx: number;
   vy: number;
   damage: number;
   isCrit: boolean;
   isSuperCrit?: boolean;
+  // --- Phase 0 VFX scaffolding (optional; all default-undefined & non-breaking) ---
+  /** Weapon that spawned this bullet; drives per-weapon visual dispatch. */
+  weaponId?: string;
+  /** Elapsed lifetime in ms, updated by motion/physics systems that need it. */
+  age?: number;
+  /** Maximum lifetime in ms; bullet despawns once `age >= maxAge`. */
+  maxAge?: number;
+  /** Ring of past positions for trail rendering. */
+  trail?: BulletTrailPoint[];
+  /** Spawn origin (used by boomerang to compute return path). */
+  spawnX?: number;
+  spawnY?: number;
+  /** Orbit shield metadata. */
+  isOrbiter?: boolean;
+  orbitAngle?: number;
+  orbitRadius?: number;
+  orbitSpeed?: number;
+  /** Phased weapons (laser / nuke). */
+  phase?: BulletPhase;
+  phaseMs?: number;
+  /** Nuke shockwave metadata. */
+  shockwaveRadius?: number;
+  shockwaveMaxRadius?: number;
+  /** Laser beam metadata. */
+  beamAngle?: number;
+  beamLength?: number;
+  /** Tracks which enemies have already been hit by this projectile/shockwave. */
+  hitSet?: Set<number>;
 }
 
 export interface SpeedLine extends Entity {

@@ -14,7 +14,6 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { trackRender } from '../../utils/trackRender';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
@@ -166,18 +165,14 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   const equippedSkin = InventoryService.getEquippedSkin();
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
+    <div
       className={`
         allow-scroll absolute inset-0
         z-[100] flex flex-col items-center
         justify-start overflow-y-auto overscroll-contain
         scroll-smooth p-2.5 pb-[calc(0.75rem+var(--sab))]
         sm:justify-center sm:p-5
-        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/60 backdrop-blur-sm'}
+        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/92'}
       `}
     >
       <div
@@ -188,25 +183,20 @@ export const HubMenu: React.FC<HubMenuProps> = ({
       >
         {/* Back Button (Top Left) */}
         {onBack && (
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <div>
             <OverlayBackButton
               onClick={onBack}
               label={!device.isMobile ? 'Info' : undefined}
               className={device.isMobile ? 'top-auto' : undefined}
             />
-          </motion.div>
+          </div>
         )}
 
         {/* Title */}
-        <motion.header
-          className="space-y-3 text-center sm:space-y-5"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <header className="space-y-3 text-center sm:space-y-5">
           <h1
             className={cn(
-              isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber',
+              isRetro ? 'font-retro-pixel' : 'font-cyber',
               sizes.title,
               'leading-relaxed tracking-tight',
               isRetro
@@ -233,7 +223,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
             <OptimizationBadge sizes={sizes} />
           </div>
-        </motion.header>
+        </header>
 
         {/* Player Profile Modal */}
         <PlayerProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
@@ -242,7 +232,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           className={cn(
             'relative space-y-4 p-4 sm:space-y-5 sm:p-5',
             !isRetro &&
-              'bg-slate-900/78 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-xl'
+              'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
           )}
         >
           {!isRetro && (
@@ -254,10 +244,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           )}
 
           {/* Player Card */}
-          <div
-            className="hub-grid-item relative z-10"
-            style={{ animationDelay: '0.1s' }}
-          >
+          <div className="relative z-10">
             <HubPlayerCard
               nickname={nickname}
               coins={coins}
@@ -270,14 +257,10 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             />
           </div>
 
-          {/* Button Grid - CSS stagger instead of per-item framer-motion */}
+          {/* Button Grid */}
           <div className={cn('relative z-10', hubGridClass)}>
             {buttons.map((btn, index) => (
-              <div
-                key={btn.id}
-                className="hub-grid-item h-full"
-                style={{ animationDelay: `${0.1 + index * 0.05}s` }}
-              >
+              <div key={btn.id} className="h-full">
                 <HubMenuButton
                   id={btn.id}
                   icon={btn.icon}
@@ -301,7 +284,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           {/* Navigation Help */}
           <div
             className={cn(
-              'hub-grid-item relative z-10 pt-1 text-center uppercase tracking-widest text-slate-500',
+              'relative z-10 pt-1 text-center uppercase tracking-widest text-slate-500',
               isRetro
                 ? 'border-b-2 border-t-2 border-[#39FF14]/20 font-retro-pixel text-[9px]'
                 : 'font-display text-[9px] sm:text-[10px]'
@@ -311,6 +294,6 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           </div>
         </ThemedPanel>
       </div>
-    </motion.div>
+    </div>
   );
 };

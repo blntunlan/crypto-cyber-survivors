@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../test';
+import { goToMainMenuFromHub } from '../support/game-helpers';
 import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Accessibility (A11y) Checks', () => {
@@ -17,7 +18,7 @@ test.describe('Accessibility (A11y) Checks', () => {
 
     // Depending on bootstrap path, first surface can be Nickname or Hub.
     const nicknameInput = page.locator('input').first();
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
+    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i }).first();
     const nicknameVisible = await nicknameInput.isVisible().catch(() => false);
     if (!nicknameVisible) {
       await expect(playHubBtn).toBeVisible({ timeout: 10000 });
@@ -67,9 +68,7 @@ test.describe('Accessibility (A11y) Checks', () => {
     await page.goto('/?no-sw=true');
 
     // 2. Handle Hub Menu (Click PLAY)
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
 
     // 3. Wait for Main Menu
     await expect(page.locator('button', { hasText: 'Long' }).first()).toBeVisible({

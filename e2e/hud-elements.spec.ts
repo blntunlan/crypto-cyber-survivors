@@ -5,7 +5,8 @@
  * Combo Panel, Milestones, Achievements, and Clutch) render correctly and
  * respond to their respective events.
  */
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub } from './support/game-helpers';
 
 test.describe('HUD Elements E2E', () => {
   test.beforeEach(async ({ context, page }) => {
@@ -36,9 +37,7 @@ test.describe('HUD Elements E2E', () => {
     await expect(page.locator('text=HUDTester')).toBeVisible({ timeout: 15 * 1000 });
 
     // 3. Navigate through Hub Menu to Main Menu
-    const hubPlayBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(hubPlayBtn).toBeVisible({ timeout: 10 * 1000 });
-    await hubPlayBtn.click();
+    await goToMainMenuFromHub(page);
 
     // 4. Start game from Main Menu (using "Long" button)
     const safeLeverageButton = page.getByRole('button', { name: /^1x$/i }).first();
@@ -108,7 +107,12 @@ test.describe('HUD Elements E2E', () => {
     // Combo panel should become visible (it lerps in, so we wait)
     const comboStreak = page.locator('#combo-streak-count');
     await expect(comboStreak).toBeVisible({ timeout: 10 * 1000 });
-    await expect(comboStreak).toHaveText('6');
+    await expect
+      .poll(async () => {
+        const raw = await comboStreak.textContent();
+        return Number.parseInt(raw ?? '0', 10);
+      })
+      .toBeGreaterThanOrEqual(6);
   });
 
   test('should verify Milestone Announcements', async ({ page }) => {

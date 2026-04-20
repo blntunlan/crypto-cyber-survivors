@@ -9,6 +9,7 @@
 import { GameStatus } from '../../types';
 import { TimeService } from './TimeService';
 import { EventBus } from './EventBus';
+import { Logger } from '../system/Logger';
 
 export interface StateTransition {
   from: GameStatus;
@@ -71,7 +72,7 @@ class GameStateMachineClass {
     const validTargets = this.VALID_TRANSITIONS.get(this.currentState);
 
     if (!validTargets?.includes(newState)) {
-      console.warn(
+      Logger.warn(
         `[GameStateMachine] Invalid transition: ${this.currentState} -> ${newState}`
       );
       return false;
@@ -160,7 +161,7 @@ class GameStateMachineClass {
    * Primarily for testing or recovery scenarios.
    */
   forceState(state: GameStatus): void {
-    console.warn(`[GameStateMachine] Force setting state to: ${state}`);
+    Logger.warn(`[GameStateMachine] Force setting state to: ${state}`);
     const oldState = this.currentState;
     this.currentState = state;
     this.syncTimeService(state);

@@ -5,7 +5,8 @@
  * stack above gameplay HUD elements.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub, waitForMainMenu } from './support/game-helpers';
 
 test.describe('Z-Index Screen Stacking', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,9 +29,7 @@ test.describe('Z-Index Screen Stacking', () => {
     await page.reload();
 
     // Navigate to Main Menu
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
     await expect(page.getByText(/Market Sentiment Engine/i)).toBeVisible({
       timeout: 15000,
     });
@@ -123,10 +122,8 @@ test.describe('Z-Index Screen Stacking', () => {
     await expect(backButton).toBeVisible();
     await backButton.click();
 
-    // Should be back at Hub Menu
-    await expect(page.getByRole('button', { name: 'PLAY' })).toBeVisible({
-      timeout: 10000,
-    });
+    // resetGame() returns to the playable main menu, not the hub landing.
+    await waitForMainMenu(page, 10_000);
   });
 
   test('LevelUp screen should appear above gameplay HUD', async ({ page }) => {

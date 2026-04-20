@@ -4,13 +4,19 @@
  * Tests how the app handles network conditions
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
 
 test.describe('Network Conditions', () => {
   // This test is skipped by default as it can be flaky due to network simulation
   test('should handle slow network gracefully', async ({ page, context }) => {
     // Increase timeout for slow network simulation
     test.slow();
+
+    const browserName = page.context().browser()?.browserType().name();
+    test.skip(
+      browserName !== 'chromium',
+      'CDP network throttling is only available in Chromium.'
+    );
 
     // Simulate 3G (1Mbps)
     const client = await context.newCDPSession(page);
@@ -21,7 +27,7 @@ test.describe('Network Conditions', () => {
       latency: 200, // 200ms latency
     });
 
-    await page.goto('/', { timeout: 120000 });
+    await page.goto('/?no-sw=true', { timeout: 120000 });
 
     // Should still load (slowly)
     await expect(page.locator('body')).toBeVisible({ timeout: 60000 });
@@ -29,7 +35,7 @@ test.describe('Network Conditions', () => {
 
   test('should show loading state initially', async ({ page }) => {
     // Go to page but don't wait for full load to catch the loading state
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/?no-sw=true', { waitUntil: 'domcontentloaded' });
 
     // The loading indicator might be gone very quickly on fast machines
     // We don't fail if it's already gone, but we check body is eventually visible
@@ -40,7 +46,7 @@ test.describe('Network Conditions', () => {
     // Block WebSocket connections
     await page.route('wss://**', async route => route.abort());
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(5000);
 
     // App should still work (offline mode)
@@ -59,7 +65,7 @@ test.describe('Network Conditions', () => {
       });
     });
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(3000);
 
     // App should still render
@@ -69,7 +75,7 @@ test.describe('Network Conditions', () => {
 
 test.describe('Local Storage', () => {
   test('should persist session data', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Fill nickname if visible
     const input = page.locator('input').first();
@@ -100,7 +106,7 @@ test.describe('Local Storage', () => {
   });
 
   test('should handle localStorage quota exceeded', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(2000);
 
     // Fill localStorage with garbage data
@@ -129,7 +135,7 @@ test.describe('Error Handling', () => {
       errors.push(error.message);
     });
 
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
 
     // Inject an error (simulating a bug)
     await page.evaluate(() => {
@@ -150,7 +156,7 @@ test.describe('Error Handling', () => {
   });
 
   test('should display error boundary for component crashes', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForTimeout(2000);
 
     // Check if error boundary UI elements exist (might not be visible unless there's an error)
@@ -161,7 +167,7 @@ test.describe('Error Handling', () => {
 
 test.describe('Memory Management', () => {
   test('should not leak memory on navigation', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
         'crypto_survivors_user',

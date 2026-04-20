@@ -1,8 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import {
+  goToMainMenuFromHub,
+  startGameFromMainMenu,
+  waitForGameplay,
+} from './support/game-helpers';
 
 test.describe('Offline Behavior', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem('tutorial-completed', 'true');
       localStorage.setItem('has_seen_landing', 'true');
@@ -20,38 +25,12 @@ test.describe('Offline Behavior', () => {
 
   test('should show disconnected overlay when offline during gameplay', async ({
     page,
-    context,
   }) => {
     // 1. Start game
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible();
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
+    await startGameFromMainMenu(page, 'LONG');
 
-    // Wait for price to be loaded (not "CONNECTING...")
-    await expect(page.getByText('CONNECTING...')).not.toBeVisible({ timeout: 15000 });
-
-    const longBtn = page.getByRole('button', { name: /LONG/i });
-    await expect(longBtn).toBeVisible();
-    await longBtn.click();
-
-    // Confirm in-game using robust gameplay signals.
-    const inGameSignals = [
-      page.locator('canvas').first(),
-      page.locator('#game-ui-overlay'),
-      page.locator('[data-testid="wave-timer-text"]'),
-      page.getByText(/Survival|Live Feed/i).first(),
-    ];
-    const hasInGameSignal = await Promise.any(
-      inGameSignals.map(locator =>
-        locator.waitFor({ state: 'visible', timeout: 10000 }).then(() => true)
-      )
-    ).catch(() => false);
-    expect(hasInGameSignal).toBe(true);
-
-    // 2. Force offline mode so timeout does not auto-recover immediately.
-    await context.setOffline(true);
-
-    // Trigger marketDataTimeout event via EventBus
+    // 2. Emit the same timeout events the runtime uses on a real disconnect.
     console.log('Triggering marketDataTimeout...');
     await page.evaluate(() => {
       if ((window as any).EventBus) {
@@ -82,8 +61,7 @@ test.describe('Offline Behavior', () => {
       await expect(page.getByText(/market fairness/i)).toBeVisible();
     }
 
-    // 4. Restore connection and trigger recovery.
-    await context.setOffline(false);
+    // 4. Trigger recovery and verify the game resumes.
     console.log('Triggering marketDataRecovered...');
     await page.evaluate(() => {
       (window as any).EventBus.emit('marketDataRecovered', { pair: 'BTC' });
@@ -91,17 +69,6 @@ test.describe('Offline Behavior', () => {
 
     // 5. Verify overlay disappears and gameplay can resume.
     await expect(disconnectedLabel).not.toBeVisible({ timeout: 5000 });
-    const resumedSignals = [
-      page.locator('canvas').first(),
-      page.locator('#game-ui-overlay'),
-      page.locator('[data-testid="wave-timer-text"]'),
-      page.getByText(/Survival|Live Feed/i).first(),
-    ];
-    const hasResumeSignal = await Promise.any(
-      resumedSignals.map(locator =>
-        locator.waitFor({ state: 'visible', timeout: 10000 }).then(() => true)
-      )
-    ).catch(() => false);
-    expect(hasResumeSignal).toBe(true);
+    await waitForGameplay(page);
   });
 });

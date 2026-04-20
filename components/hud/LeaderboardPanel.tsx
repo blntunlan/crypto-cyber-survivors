@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -23,7 +22,7 @@ import {
   ChevronDown,
   RefreshCw,
 } from 'lucide-react';
-import { railwayClient } from '../../services/api/RailwayClient';
+import { LeaderboardService } from '../../services/leaderboard/LeaderboardService';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/system/Logger';
 import { COLORS } from '../../config/Colors';
@@ -39,17 +38,6 @@ interface LeaderboardEntry {
   rank?: number;
   avatar_url?: string | null;
   auth_provider?: AuthProvider | 'email' | 'nickname' | null;
-}
-
-interface VLeaderboardEntry {
-  display_name: string | null;
-  profile_id: string | null;
-  high_score: number | null;
-  max_survival_time: number | null;
-  avatar_url?: string | null;
-  primary_auth_provider?: string | null;
-  total_kills?: number | null;
-  total_sessions?: number | null;
 }
 
 interface LeaderboardPanelProps {
@@ -69,35 +57,21 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const data = await railwayClient.get<{ entries: VLeaderboardEntry[] }>(
-        '/api/v1/leaderboard?limit=10&sort=high_score'
-      );
+      const result = await LeaderboardService.getLeaderboard('high_score', 10);
 
-      const rankedEntries = data.entries
-        .map((entry, index) => {
-          const name = (
-            entry.display_name ??
-            ((t('hud.anonymous') as string) || 'Anonymous')
-          ).trim();
-          return {
-            id: entry.profile_id ?? `entry-${index}`,
-            player_name: name,
-            score: entry.high_score ?? 0,
-            survival_time_ms: (entry.max_survival_time ?? 0) * 1000,
-            created_at: new Date().toISOString(),
-            rank: index + 1,
-            avatar_url: entry.avatar_url,
-            auth_provider: entry.primary_auth_provider as
-              | AuthProvider
-              | 'email'
-              | 'nickname'
-              | null,
-          } as LeaderboardEntry;
-        })
-        .filter(entry => entry.player_name !== '');
+      const rankedEntries: LeaderboardEntry[] = result.entries.map(entry => ({
+        id: entry.profileId,
+        player_name: entry.displayName,
+        score: entry.highScore,
+        survival_time_ms: entry.maxSurvivalTime * 1000,
+        created_at: new Date().toISOString(),
+        rank: entry.rank,
+        avatar_url: entry.avatarUrl,
+        auth_provider: entry.authProvider,
+      }));
 
       setEntries(rankedEntries);
-      setLastUpdated(new Date());
+      setLastUpdated(result.lastUpdated);
       Logger.debug('[Leaderboard] Fetched', { count: rankedEntries.length });
     } catch (err) {
       Logger.error('[Leaderboard] Fetch failed', err);
@@ -105,11 +79,11 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   // Initial fetch and interval
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || isCollapsed) return;
 
     void fetchLeaderboard();
     const interval = setInterval(() => {
@@ -117,7 +91,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(interval);
-  }, [fetchLeaderboard, isVisible]);
+  }, [fetchLeaderboard, isVisible, isCollapsed]);
 
   // Format survival time
   const formatTime = (ms: number): string => {
@@ -203,12 +177,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
   if (!isVisible) return null;
 
   return (
-    <m.div
-      className={`fixed right-4 top-20 z-[100] hidden w-72 lg:block`}
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, delay: 0.5 }}
-    >
+    <div className={`fixed right-4 top-20 z-[100] hidden w-72 lg:block`}>
       {/* Header - Glassmorphism */}
       <ThemedPanel
         className="group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-b-none border-b-0 px-4 py-3 transition-all hover:bg-slate-900/50"
@@ -232,6 +201,7 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
           <button
             onClick={e => {
               e.stopPropagation();
+              LeaderboardService.invalidateCache();
               void fetchLeaderboard();
             }}
             className="group/refresh rounded p-1 transition-colors hover:bg-white/10"
@@ -250,175 +220,163 @@ export const LeaderboardPanel: React.FC<LeaderboardPanelProps> = ({
       </ThemedPanel>
 
       {/* Content */}
-      <AnimatePresence>
-        {!isCollapsed && (
-          <m.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* ThemedPanel wrapper for correct styling of the list container */}
-            <ThemedPanel className="relative overflow-hidden rounded-t-none border-t-0 !shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
-              {!isRetro && (
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-[0.03]"
-                  style={{
-                    backgroundImage: `repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 2px)`,
-                    backgroundSize: '100% 2px',
-                  }}
-                />
-              )}
-              {loading && entries.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-500" />
-                </div>
-              ) : entries.length === 0 ? (
-                <div className="px-4 py-8 text-center">
-                  <TrendingUp className="mx-auto mb-2 h-8 w-8 text-slate-600" />
-                  <ThemedText className="text-sm text-slate-500">
-                    {t('hud.no_scores')}
-                  </ThemedText>
-                  <ThemedText className="mt-1 text-xs text-slate-600">
-                    {t('hud.claim_top')}
-                  </ThemedText>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/50">
-                  {entries.map((entry, index) => {
-                    const isCurrentPlayer = entry.player_name === currentNickname;
+      {!isCollapsed && (
+        <div>
+          {/* ThemedPanel wrapper for correct styling of the list container */}
+          <ThemedPanel className="relative overflow-hidden rounded-t-none border-t-0 !shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+            {!isRetro && (
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.03]"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 2px)`,
+                  backgroundSize: '100% 2px',
+                }}
+              />
+            )}
+            {loading && entries.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-500" />
+              </div>
+            ) : entries.length === 0 ? (
+              <div className="px-4 py-8 text-center">
+                <TrendingUp className="mx-auto mb-2 h-8 w-8 text-slate-600" />
+                <ThemedText className="text-sm text-slate-500">
+                  {t('hud.no_scores')}
+                </ThemedText>
+                <ThemedText className="mt-1 text-xs text-slate-600">
+                  {t('hud.claim_top')}
+                </ThemedText>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-800/50">
+                {entries.map(entry => {
+                  const isCurrentPlayer = entry.player_name === currentNickname;
 
-                    return (
-                      <m.div
-                        key={entry.id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`group/item relative flex items-center gap-3 px-4 py-3 transition-all ${
-                          isCurrentPlayer
-                            ? isRetro
-                              ? 'retro-player-highlight border-l-4'
-                              : 'border-l-2 border-cyan-400 bg-cyan-500/10 shadow-[inset_10px_0_20px_rgba(34,211,238,0.05)]'
-                            : 'hover:bg-white/[0.03]'
-                        }`}
-                      >
-                        {!isRetro && isCurrentPlayer && (
-                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent" />
-                        )}
-                        {/* Rank */}
-                        {getRankDisplay(entry.rank!)}
+                  return (
+                    <div
+                      key={entry.id}
+                      className={`group/item relative flex items-center gap-3 px-4 py-3 transition-all ${
+                        isCurrentPlayer
+                          ? isRetro
+                            ? 'retro-player-highlight border-l-4'
+                            : 'border-l-2 border-cyan-400 bg-cyan-500/10 shadow-[inset_10px_0_20px_rgba(34,211,238,0.05)]'
+                          : 'hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      {!isRetro && isCurrentPlayer && (
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent" />
+                      )}
+                      {/* Rank */}
+                      {getRankDisplay(entry.rank!)}
 
-                        {/* Avatar */}
-                        <UserAvatar
-                          avatarUrl={entry.avatar_url}
-                          displayName={entry.player_name}
-                          size="sm"
-                          provider={entry.auth_provider}
-                          showProviderBadge={!isRetro}
-                        />
+                      {/* Avatar */}
+                      <UserAvatar
+                        avatarUrl={entry.avatar_url}
+                        displayName={entry.player_name}
+                        size="sm"
+                        provider={entry.auth_provider}
+                        showProviderBadge={!isRetro}
+                      />
 
-                        {/* Player Info */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <ThemedText
-                              variant={isRetro ? 'body' : 'h2'}
-                              className={`truncate text-sm font-semibold ${
-                                isCurrentPlayer
-                                  ? isRetro
-                                    ? 'text-yellow-400'
-                                    : 'text-cyan-300'
-                                  : 'text-white'
-                              }`}
-                            >
-                              {entry.player_name}
-                            </ThemedText>
-                            {isCurrentPlayer && (
-                              <span
-                                className={`px-1.5 py-0.5 text-[9px] ${isRetro ? 'bg-yellow-500/20 font-display text-yellow-500' : 'rounded bg-cyan-500/20 font-bold uppercase text-cyan-400'}`}
-                              >
-                                {t('hud.you')}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2">
-                            {entry.crypto_pair && (
-                              <span
-                                className={`px-1.5 py-0.5 text-[9px] font-black uppercase ${isRetro ? 'border border-current' : 'rounded-sm tracking-wider'}`}
-                                style={{
-                                  backgroundColor: isRetro
-                                    ? 'transparent'
-                                    : entry.crypto_pair === 'BTC'
-                                      ? '#F7931A30'
-                                      : entry.crypto_pair === 'ETH'
-                                        ? '#627EEA30'
-                                        : entry.crypto_pair === 'SOL'
-                                          ? '#9945FF30'
-                                          : '#64748b30',
-                                  color:
-                                    entry.crypto_pair === 'BTC'
-                                      ? '#F7931A'
-                                      : entry.crypto_pair === 'ETH'
-                                        ? '#627EEA'
-                                        : entry.crypto_pair === 'SOL'
-                                          ? '#9945FF'
-                                          : '#94a3b8',
-                                  border: isRetro
-                                    ? undefined
-                                    : `1px solid currentColor`,
-                                }}
-                              >
-                                {entry.crypto_pair}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                              <Clock className="h-3 w-3" />
-                              {formatTime(entry.survival_time_ms)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Score */}
-                        <div className="text-right">
+                      {/* Player Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
                           <ThemedText
-                            variant={isRetro ? 'h1' : 'h2'}
-                            className={`text-sm font-black tracking-tight ${
-                              entry.rank === 1
-                                ? 'text-yellow-400'
-                                : entry.rank === 2
-                                  ? 'text-slate-300'
-                                  : entry.rank === 3
-                                    ? 'text-amber-500'
-                                    : isRetro
-                                      ? 'text-white'
-                                      : 'text-cyan-400'
+                            variant={isRetro ? 'body' : 'h2'}
+                            className={`truncate text-sm font-semibold ${
+                              isCurrentPlayer
+                                ? isRetro
+                                  ? 'text-yellow-400'
+                                  : 'text-cyan-300'
+                                : 'text-white'
                             }`}
                           >
-                            {entry.score.toLocaleString()}
+                            {entry.player_name}
                           </ThemedText>
-                          <ThemedText
-                            variant="mono"
-                            className="text-[9px] font-bold uppercase tracking-tighter text-slate-500"
-                          >
-                            {t('hud.points')}
-                          </ThemedText>
+                          {isCurrentPlayer && (
+                            <span
+                              className={`px-1.5 py-0.5 text-[9px] ${isRetro ? 'bg-yellow-500/20 font-display text-yellow-500' : 'rounded bg-cyan-500/20 font-bold uppercase text-cyan-400'}`}
+                            >
+                              {t('hud.you')}
+                            </span>
+                          )}
                         </div>
-                      </m.div>
-                    );
-                  })}
-                </div>
-              )}
+                        <div className="mt-0.5 flex items-center gap-2">
+                          {entry.crypto_pair && (
+                            <span
+                              className={`px-1.5 py-0.5 text-[9px] font-black uppercase ${isRetro ? 'border border-current' : 'rounded-sm tracking-wider'}`}
+                              style={{
+                                backgroundColor: isRetro
+                                  ? 'transparent'
+                                  : entry.crypto_pair === 'BTC'
+                                    ? '#F7931A30'
+                                    : entry.crypto_pair === 'ETH'
+                                      ? '#627EEA30'
+                                      : entry.crypto_pair === 'SOL'
+                                        ? '#9945FF30'
+                                        : '#64748b30',
+                                color:
+                                  entry.crypto_pair === 'BTC'
+                                    ? '#F7931A'
+                                    : entry.crypto_pair === 'ETH'
+                                      ? '#627EEA'
+                                      : entry.crypto_pair === 'SOL'
+                                        ? '#9945FF'
+                                        : '#94a3b8',
+                                border: isRetro ? undefined : `1px solid currentColor`,
+                              }}
+                            >
+                              {entry.crypto_pair}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500">
+                            <Clock className="h-3 w-3" />
+                            {formatTime(entry.survival_time_ms)}
+                          </span>
+                        </div>
+                      </div>
 
-              {/* Footer */}
-              {lastUpdated && (
-                <div className="border-t border-slate-800/50 px-4 py-2 text-center font-mono text-[8px] uppercase tracking-widest text-slate-600">
-                  &lt; {t('hud.sync_complete')}: {lastUpdated.toLocaleTimeString()} &gt;
-                </div>
-              )}
-            </ThemedPanel>
-          </m.div>
-        )}
-      </AnimatePresence>
-    </m.div>
+                      {/* Score */}
+                      <div className="text-right">
+                        <ThemedText
+                          variant={isRetro ? 'h1' : 'h2'}
+                          className={`text-sm font-black tracking-tight ${
+                            entry.rank === 1
+                              ? 'text-yellow-400'
+                              : entry.rank === 2
+                                ? 'text-slate-300'
+                                : entry.rank === 3
+                                  ? 'text-amber-500'
+                                  : isRetro
+                                    ? 'text-white'
+                                    : 'text-cyan-400'
+                          }`}
+                        >
+                          {entry.score.toLocaleString()}
+                        </ThemedText>
+                        <ThemedText
+                          variant="mono"
+                          className="text-[9px] font-bold uppercase tracking-tighter text-slate-500"
+                        >
+                          {t('hud.points')}
+                        </ThemedText>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Footer */}
+            {lastUpdated && (
+              <div className="border-t border-slate-800/50 px-4 py-2 text-center font-mono text-[8px] uppercase tracking-widest text-slate-600">
+                &lt; {t('hud.sync_complete')}: {lastUpdated.toLocaleTimeString()} &gt;
+              </div>
+            )}
+          </ThemedPanel>
+        </div>
+      )}
+    </div>
   );
 };
 

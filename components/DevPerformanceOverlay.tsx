@@ -275,12 +275,27 @@ export const DevPerformanceOverlay = memo(() => {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
 
-    // Always set up console interceptor and observers (even when overlay hidden)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && e.key === 'p') {
+        e.preventDefault();
+        setVisible(v => !v);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !visible) return;
+
     cleanupConsoleRef.current = setupConsoleInterceptor();
     longTaskObserverRef.current = setupLongTaskObserver();
     layoutShiftObserverRef.current = setupLayoutShiftObserver();
+    startMotionTracking();
 
-    // Log initial diagnostics
     // eslint-disable-next-line no-console
     console.info(
       '%c[DEV PERF] Performance overlay ready. Press Alt+P to toggle.',
@@ -292,8 +307,7 @@ export const DevPerformanceOverlay = memo(() => {
       'color: #fbbf24'
     );
 
-    // Check for known perf issues on load
-    setTimeout(() => {
+    const warningTimeout = setTimeout(() => {
       const motionEls = countMotionElements();
       if (motionEls > 15) {
         console.warn(
@@ -310,30 +324,16 @@ export const DevPerformanceOverlay = memo(() => {
       }
     }, 2000);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key === 'p') {
-        e.preventDefault();
-        setVisible(v => !v);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(warningTimeout);
       cleanupConsoleRef.current?.();
+      cleanupConsoleRef.current = null;
       longTaskObserverRef.current?.disconnect();
+      longTaskObserverRef.current = null;
       layoutShiftObserverRef.current?.disconnect();
+      layoutShiftObserverRef.current = null;
       stopMotionTracking();
     };
-  }, []);
-
-  // Start/stop motion tracking based on visibility
-  useEffect(() => {
-    if (visible) {
-      startMotionTracking();
-    } else {
-      stopMotionTracking();
-    }
   }, [visible]);
 
   if (!import.meta.env.DEV) return null;

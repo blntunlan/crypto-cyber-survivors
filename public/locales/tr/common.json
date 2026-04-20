@@ -677,5 +677,18 @@
       "discord_soon": "Discord (Çok Yakında)",
       "twitter_soon": "Twitter/X (Çok Yakında)"
     }
+  },
+  "leaderboard": {
+    "global_rankings": "Dünya Sıralaması",
+    "sort_score": "Skor",
+    "sort_time": "Süre",
+    "sort_kills": "Öldürme",
+    "sort_sessions": "Koşular",
+    "survived": "hayatta kaldı",
+    "total": "toplam",
+    "runs": "koşu",
+    "all_players": "Tüm Oyuncular",
+    "refresh": "Yenile",
+    "refreshing": "Yenileniyor..."
   }
 }

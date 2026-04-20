@@ -103,6 +103,15 @@ const DevPerformanceOverlay = import.meta.env.DEV
     )
   : null;
 
+// DEV-only VFX preview lab (Ctrl+Shift+V)
+const VfxLabScreen = import.meta.env.DEV
+  ? React.lazy(() =>
+      import('./components/vfx-lab/VfxLabScreen').then(m => ({
+        default: m.VfxLabScreen,
+      }))
+    )
+  : null;
+
 const FallbackLoader = () => (
   <div
     style={{
@@ -231,8 +240,12 @@ const App: React.FC = () => {
   // Initialization & Utility Hooks
   // ========================================
   const { isInitialized } = useAppInitialization();
-  const { showAnalytics: _showAnalytics, showAdminDashboard: _showAdminDashboard } =
-    useDevShortcuts();
+  const {
+    showAnalytics: _showAnalytics,
+    showAdminDashboard: _showAdminDashboard,
+    showVfxLab,
+    closeVfxLab,
+  } = useDevShortcuts();
   const tutorial = useTutorial({ enabled: !showLanding });
   const { t, language } = useLanguage();
   const { isRetro } = useTheme();
@@ -759,6 +772,13 @@ const App: React.FC = () => {
                   }
                 }}
               />
+            )}
+
+            {/* DEV-only VFX Preview Lab (Ctrl+Shift+V) */}
+            {import.meta.env.DEV && showVfxLab && VfxLabScreen && (
+              <React.Suspense fallback={null}>
+                <VfxLabScreen onClose={closeVfxLab} />
+              </React.Suspense>
             )}
           </ErrorBoundary>
         </div>

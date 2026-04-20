@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../test';
+import { goToMainMenuFromHub } from '../support/game-helpers';
 
 test.describe('Chaos Monkey Stability Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -207,9 +208,7 @@ test.describe('Chaos Monkey Stability Tests', () => {
     await page.goto('/?no-sw=true');
 
     // Navigate to Main Menu if on Hub
-    const playHubBtn = page.getByRole('button', { name: 'PLAY' });
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
+    await goToMainMenuFromHub(page);
   });
 
   test('should survive random input spam in Main Menu', async ({ page }) => {

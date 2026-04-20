@@ -8,7 +8,8 @@
  * 4. Game Start
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './test';
+import { goToMainMenuFromHub, startGameFromMainMenu } from './support/game-helpers';
 
 async function launchFromLanding(page: import('@playwright/test').Page): Promise<void> {
   const launchButton = page
@@ -70,24 +71,11 @@ test.describe('Game Flow @smoke', () => {
   });
 
   test('should navigate from hub to main menu and start game', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await launchFromLanding(page);
 
-    // 2. Hub Menu -> Main Menu
-    const playHubBtn = page.getByRole('button', { name: /play/i }).first();
-    await expect(playHubBtn).toBeVisible({ timeout: 10000 });
-    await playHubBtn.click();
-
-    // 3. Main Menu -> Start Game
-    const longBtn = page.getByRole('button', { name: /long/i }).first();
-    await expect(longBtn).toBeVisible({ timeout: 10000 });
-    await longBtn.click();
-
-    // 4. Confirm in-game
-    await expect(page.locator('[data-testid="wave-timer-text"]')).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(page.locator('canvas')).toBeVisible();
+    await goToMainMenuFromHub(page);
+    await startGameFromMainMenu(page, 'LONG');
   });
 
   test('should display crypto pair selection on main menu', async ({ page }) => {
@@ -108,7 +96,7 @@ test.describe('Game Flow @smoke', () => {
     await page.reload();
 
     // Hub -> Main
-    await page.getByRole('button', { name: /play/i }).first().click();
+    await goToMainMenuFromHub(page);
 
     // Check for pair selection (BTC, ETH, SOL)
     await expect(page.getByRole('button', { name: /^BTC$/i }).first()).toBeVisible();
@@ -120,7 +108,7 @@ test.describe('Game Flow @smoke', () => {
 test.describe('Performance', () => {
   test('should load within reasonable time', async ({ page }) => {
     const startTime = Date.now();
-    await page.goto('/');
+    await page.goto('/?no-sw=true');
     await page.waitForLoadState('domcontentloaded');
     const loadTime = Date.now() - startTime;
     console.log(`Page load time: ${loadTime}ms`);

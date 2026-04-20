@@ -20,6 +20,15 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     marketBonus: () => 1.0,
     evolutionPair: 'laser',
     evolutionResult: 'hyper_cannon',
+    visual: {
+      renderKind: 'quantum',
+      params: {
+        trailLifeMs: 180,
+        coreColor: '#22d3ee',
+        glowColor: '#22d3ee',
+        trailMaxPoints: 16,
+      },
+    },
   },
   spread_shot: {
     id: 'spread_shot',
@@ -34,6 +43,18 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.2,
     cooldownPerLevel: 0.08,
     marketBonus: ({ volumeNorm }) => 1.0 + (volumeNorm > 0.7 ? 0.3 : 0),
+    visual: {
+      renderKind: 'spread',
+      params: {
+        trailLifeMs: 200,
+        coolColor: '#ffd060',
+        hotColor: '#ffff88',
+        coolTrailRgb: '255,180,80',
+        hotTrailRgb: '255,220,120',
+        trailMaxPoints: 16,
+        heatThreshold: 0.7,
+      },
+    },
   },
   laser: {
     id: 'laser',
@@ -50,6 +71,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     marketBonus: ({ atrPercent }) => 0.5 + Math.min(atrPercent / 0.03, 1) * 1.5,
     evolutionPair: 'quantum_bullet',
     evolutionResult: 'hyper_cannon',
+    visual: { renderKind: 'default' },
   },
   boomerang: {
     id: 'boomerang',
@@ -64,6 +86,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.2,
     cooldownPerLevel: 0.1,
     marketBonus: ({ isFavorable }) => (isFavorable ? 2.0 : 1.0),
+    visual: { renderKind: 'default' },
   },
   aoe_nuke: {
     id: 'aoe_nuke',
@@ -78,6 +101,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.15,
     cooldownPerLevel: 0.06,
     marketBonus: ({ pnl }) => (pnl < -0.3 ? 1.5 : 1.0),
+    visual: { renderKind: 'default' },
   },
   orbit_shield: {
     id: 'orbit_shield',
@@ -92,6 +116,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.25,
     cooldownPerLevel: 0.05,
     marketBonus: ({ pnl }) => (pnl > 0 ? 1.3 : 1.0),
+    visual: { renderKind: 'default' },
   },
 };
 

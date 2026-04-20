@@ -101,13 +101,14 @@ describe('NotificationSystem', () => {
     expect(screen.getByText(/rsi_message/i)).toBeInTheDocument();
   });
 
-  it('responds to whaleTierChanged events', async () => {
+  it('does not subscribe to removed whaleTierChanged notifications', async () => {
     render(<NotificationSystem />);
 
-    await emitEvent('whaleTierChanged', { tier: 2 }); // MEGA whale
+    await act(async () => {
+      await Promise.resolve();
+    });
 
-    // Should find the title with whale in it
-    expect(screen.getAllByText(/whale/i).length).toBeGreaterThan(0);
+    expect(eventHandlers.whaleTierChanged).toBeUndefined();
   });
 
   it('removes notification after duration', async () => {
@@ -221,14 +222,18 @@ describe('NotificationSystem', () => {
       message: 'All good',
     });
     await emitEvent('rsiStateChanged', { state: 'OVERSOLD', rsi: 20 });
-    await emitEvent('whaleTierChanged', { tier: 2 });
+    await emitEvent('gameMarketEvent', {
+      type: 'FLASH_CRASH',
+      intensity: 1,
+      durationMs: 2000,
+    });
     expect(screen.getByText('Save Complete')).toBeInTheDocument();
     expect(screen.getByText(/hud\.announcer\.oversold/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/whale/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('hud.announcer.flash_crash')).toBeInTheDocument();
 
     await emitEvent('gameReset');
     expect(screen.queryByText('Save Complete')).not.toBeInTheDocument();
     expect(screen.queryByText(/hud\.announcer\.oversold/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/whale/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('hud.announcer.flash_crash')).not.toBeInTheDocument();
   });
 });
