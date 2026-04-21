@@ -156,6 +156,11 @@ vi.stubGlobal('import.meta', {
   },
 });
 
+// Since some tests import the code directly, we also want to stub via vi.stubEnv
+// so that initializers that read import.meta.env directly get the right value.
+vi.stubEnv('VITE_SUPABASE_URL', 'https://nymgxiyrpaqcdlxqmhhd.supabase.co');
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'mock-key');
+
 // Polyfill for Response.clone if missing in some JSDOM versions used by MSW
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (typeof Response !== 'undefined' && !Response.prototype.clone) {
