@@ -1,0 +1,1 @@
+## 2024-05-14 - Optimize viewport bounds allocation\n**Learning:** Creating a new `ViewportBounds` object every frame for rendering and combat systems creates unnecessary GC pressure.\n**Action:** Re-use a single `ViewportBounds` instance in systems and renderers via an `updateViewportBounds` function.
