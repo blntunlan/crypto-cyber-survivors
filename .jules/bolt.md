@@ -1,0 +1,3 @@
+## 2024-04-24 - Zero-Allocation Iteration in Hot Render/Physics Loops
+**Learning:** Manual loop unrolling can cause de-optimization in V8, but using standard `for (let i = 0, len = arr.length; i < len; i++)` loops instead of `Array.prototype.forEach` prevents function closure allocations and reduces garbage collection (GC) pressure in high-frequency 60 FPS update loops (like in `MovementSystem.ts` and `EntityRenderer.ts`).
+**Action:** Always replace `.forEach` with standard `for` loops in hot paths that iterate over object pools, ensuring to include a guard clause (`if (entity === undefined) continue;`) to handle sparse arrays from concurrent pool modifications. Translate `return` to `continue` when converting.
