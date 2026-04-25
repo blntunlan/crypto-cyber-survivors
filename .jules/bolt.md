@@ -1,0 +1,3 @@
+## 2026-04-25 - Replaced forEach with standard loops in MovementSystem.ts
+**Learning:** Using `Array.prototype.forEach` inside hot code paths like 60 FPS update loops creates unnecessary closure function allocations per iteration. This results in significant garbage collection pressure which can cause dropped frames. Standard `for` loops with guard clauses (`if (item === undefined) continue;`) to handle sparse arrays or pooled object changes provide zero-allocation iteration.
+**Action:** Always replace `forEach` with standard `for` loops when writing or optimizing code that runs per-frame (e.g., render loops, physics systems).
