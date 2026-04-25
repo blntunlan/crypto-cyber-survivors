@@ -18,6 +18,8 @@ describe('Supabase Client Configuration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://test-project.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
   });
 
   it('should initialize with correct PWA persistence settings', async () => {
