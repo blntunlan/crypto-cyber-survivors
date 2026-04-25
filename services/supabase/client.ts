@@ -9,12 +9,13 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undef
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isConfigured) {
-  Logger.warn(
+  console.warn(
     '[Supabase] Missing credentials! Backend features are DISABLED. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
   );
 } else {
   if (import.meta.env.DEV) {
-    Logger.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
+    // eslint-disable-next-line no-console
+    console.info(`[Supabase] Initializing connection to project: ${supabaseUrl}`);
   }
 }
 
