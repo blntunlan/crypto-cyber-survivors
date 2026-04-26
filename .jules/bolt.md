@@ -1,0 +1,3 @@
+## 2024-05-18 - Replacing forEach with for loops in hot paths
+**Learning:** Replaced `forEach` loops with standard `for` loops in hot code paths like `MovementSystem` and `EntityRenderer` loops to avoid constant closure function allocations per frame, which relieves GC pressure and results in more stable frame rates without degrading readability significantly.
+**Action:** In rendering or physics update loops targeting 60FPS, default to standard `for` loops (`for (let i = 0, len = arr.length; i < len; i++)`) for iterating over standard arrays. Maintain sparse-array safety with `if (element === undefined) continue;` when needed.
