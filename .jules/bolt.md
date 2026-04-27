@@ -1,0 +1,3 @@
+## 2024-05-19 - Replace forEach with for loops in hot paths
+**Learning:** In high-frequency 60 FPS update loops (like MovementSystem.ts), the allocation overhead of closures created by Array.prototype.forEach causes measurable GC pressure over time, especially when iterating over large entity pools. The array indexing approach using standard `for` loops performs significantly better without closure allocations.
+**Action:** Always replace standard array.forEach with standard `for` loops (`for (let i = 0, len = arr.length; i < len; i++)`) in tight update and render loops. Remember to translate inner `return` statements to `continue` statements to preserve logic when unrolling.
