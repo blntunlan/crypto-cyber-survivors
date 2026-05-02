@@ -30,14 +30,21 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
 
   /**
    * Clear the grid for a new frame.
-   * Reuses the arrays in the pool to avoid GC pressure.
+   * Uses a hybrid approach: empty cells are removed and pooled,
+   * while populated cells are kept and cleared (length = 0).
+   * This reduces Map thrashing and prevents unbounded map growth.
    */
   public clear(): void {
-    for (const cell of this.grid.values()) {
-      cell.length = 0; // Empty the array without deallocating
-      this.arrayPool.push(cell);
+    for (const [key, cell] of this.grid.entries()) {
+      if (cell.length === 0) {
+        // Cell was empty last frame, remove it to prevent unbounded map growth
+        this.arrayPool.push(cell);
+        this.grid.delete(key);
+      } else {
+        // Cell was used, clear it for reuse this frame
+        cell.length = 0;
+      }
     }
-    this.grid.clear();
   }
 
   /**
