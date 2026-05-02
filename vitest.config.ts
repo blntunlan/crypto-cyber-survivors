@@ -15,6 +15,8 @@ export default defineConfig({
     ],
     env: {
       SKIP_INTEGRATION: 'true',
+      VITE_SUPABASE_URL: 'https://nymgxiyrpaqcdlxqmhhd.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'mock-key',
     },
     coverage: {
       provider: 'v8',
