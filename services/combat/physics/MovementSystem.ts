@@ -93,9 +93,7 @@ export class MovementSystem implements IMovementSystem {
     const enemies = pool.activeEnemies;
     for (let i = 0, len = enemies.length; i < len; i++) {
       const e = enemies[i];
-      if (e === undefined) continue;
-
-      if (e.isDying) {
+      if (!e || e.isDying) {
         continue;
       }
 
@@ -282,9 +280,8 @@ export class MovementSystem implements IMovementSystem {
     const enemies = pool.activeEnemies;
     for (let i = 0, len = enemies.length; i < len; i++) {
       const enemy = enemies[i];
-      if (enemy === undefined) continue;
 
-      if (enemy.isDying) {
+      if (enemy?.isDying) {
         enemy.deathProgress =
           (enemy.deathProgress ?? 0) + GAME_ENGINE.ENEMY_DEATH_POP_SPEED * dtFactor;
 
