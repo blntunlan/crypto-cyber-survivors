@@ -22,6 +22,8 @@ const FATAL_DISCONNECT_THRESHOLD_MS = 30_000; // 30 seconds
 interface UseMarketTimeoutParams {
   /** Player reference */
   playerRef: RefObject<Player>;
+  /** Optional central game-over handler for fatal disconnects */
+  onFatalDisconnect?: () => void | Promise<void>;
 }
 
 /**
@@ -32,7 +34,10 @@ interface UseMarketTimeoutParams {
  * - Subsequent events with duration >= 30s → GAMEOVER
  * - marketDataRecovered → auto-resume to PLAYING
  */
-export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
+export function useMarketTimeout({
+  playerRef,
+  onFatalDisconnect,
+}: UseMarketTimeoutParams): void {
   const gameEndedByDisconnectRef = useRef(false);
 
   useEffect(() => {
@@ -68,8 +73,11 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
             reason: 'DISCONNECT',
           });
 
-          // Transition to GAMEOVER state
-          GameStateMachine.transition(GameStatus.GAMEOVER);
+          if (onFatalDisconnect) {
+            void onFatalDisconnect();
+          } else {
+            GameStateMachine.transition(GameStatus.GAMEOVER);
+          }
         }
 
         // Report fatal error for analytics
@@ -137,5 +145,5 @@ export function useMarketTimeout({ playerRef }: UseMarketTimeoutParams): void {
       unsubscribe();
       subRecovered();
     };
-  }, [playerRef]);
+  }, [onFatalDisconnect, playerRef]);
 }

@@ -75,6 +75,7 @@ describe('GameSessionService', () => {
         '/api/v1/sessions/start',
         expect.objectContaining({ pair: 'BTC', leverage: 10 })
       );
+      expect((railwayPostMock.mock.calls[0] ?? [])[1]).not.toHaveProperty('userId');
     });
 
     it('should throw NICKNAME_REQUIRED if no nickname found', async () => {

@@ -4,9 +4,10 @@ import { eq, and, sql, gt } from 'drizzle-orm';
 import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
-import { dailyChallenges, challengeCompletions, challengeSeedLog } from '../db/schema';
+import { dailyChallenges, challengeCompletions, challengeSeedLog, sessions } from '../db/schema';
 import { getProfileId } from '../db/helpers';
 import { Logger } from '../utils/logger';
+import { logAudit, getClientInfo } from '../utils/auditLogger';
 
 const router = Router();
 
@@ -258,8 +259,8 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
       objectivesCompleted?: unknown[];
     };
 
-    if (!challengeId || !score) {
-      res.status(400).json({ error: 'challengeId and score are required' });
+    if (!challengeId || !sessionId || !score) {
+      res.status(400).json({ error: 'challengeId, sessionId, and score are required' });
       return;
     }
 
@@ -270,6 +271,25 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
     }
 
     const db = getDb();
+
+    const sessionRows = await db
+      .select({
+        id: sessions.id,
+        profileId: sessions.profileId,
+      })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    if (sessionRows.length === 0) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    if (sessionRows[0].profileId !== profileId) {
+      res.status(403).json({ error: 'Not authorized to use this session' });
+      return;
+    }
 
     // Verify challenge exists and is active
     const challenges = await db
@@ -289,44 +309,97 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
       return;
     }
 
-    // Insert completion (UNIQUE constraint prevents duplicates)
+    const challenge = challenges[0];
+    const reward = challenge.reward as { metaCoins?: number; bonusXp?: number };
+
+    const submittedScore = score ?? 0;
+    const submittedSurvivalSeconds = survivalSeconds ?? 0;
+    const submittedKills = kills ?? 0;
+    const submittedLevelReached = levelReached ?? 1;
+    const submittedObjectivesCompleted = objectivesCompleted ?? [];
+
     const rows = await db
       .insert(challengeCompletions)
       .values({
         profileId,
         challengeId,
         sessionId: sessionId ?? null,
-        score: score ?? 0,
-        survivalSeconds: survivalSeconds ?? 0,
-        kills: kills ?? 0,
-        levelReached: levelReached ?? 1,
-        objectivesCompleted: objectivesCompleted ?? [],
+        score: submittedScore,
+        survivalSeconds: submittedSurvivalSeconds,
+        kills: submittedKills,
+        levelReached: submittedLevelReached,
+        objectivesCompleted: submittedObjectivesCompleted,
       })
-      .onConflictDoUpdate({
-        target: [challengeCompletions.profileId, challengeCompletions.challengeId],
-        set: {
-          score: sql`GREATEST(${challengeCompletions.score}, EXCLUDED.score)`,
-          survivalSeconds: sql`GREATEST(${challengeCompletions.survivalSeconds}, EXCLUDED.survival_seconds)`,
-          kills: sql`GREATEST(${challengeCompletions.kills}, EXCLUDED.kills)`,
-          levelReached: sql`GREATEST(${challengeCompletions.levelReached}, EXCLUDED.level_reached)`,
-        },
-      })
+      .onConflictDoNothing()
       .returning({ id: challengeCompletions.id, score: challengeCompletions.score });
 
-    // Credit meta coin reward
-    const challenge = challenges[0];
-    const reward = challenge.reward as { metaCoins?: number; bonusXp?: number };
+    const insertedCompletion = rows[0];
+
+    if (!insertedCompletion) {
+      const updatedRows = await db
+        .update(challengeCompletions)
+        .set({
+          score: sql`GREATEST(${challengeCompletions.score}, ${submittedScore})`,
+          survivalSeconds: sql`GREATEST(${challengeCompletions.survivalSeconds}, ${submittedSurvivalSeconds})`,
+          kills: sql`GREATEST(${challengeCompletions.kills}, ${submittedKills})`,
+          levelReached: sql`GREATEST(${challengeCompletions.levelReached}, ${submittedLevelReached})`,
+        })
+        .where(
+          and(
+            eq(challengeCompletions.profileId, profileId),
+            eq(challengeCompletions.challengeId, challengeId)
+          )
+        )
+        .returning({ id: challengeCompletions.id, score: challengeCompletions.score });
+
+      const updatedCompletion = updatedRows[0];
+      if (!updatedCompletion) {
+        res.status(409).json({ error: 'Challenge completion could not be updated' });
+        return;
+      }
+
+      res.json({
+        success: true,
+        alreadyCompleted: true,
+        completionId: updatedCompletion.id,
+        score: updatedCompletion.score,
+        reward: {
+          metaCoins: 0,
+          bonusXp: 0,
+        },
+      });
+      return;
+    }
+
+    const completion = insertedCompletion;
+
     if (reward.metaCoins && reward.metaCoins > 0) {
       await db.execute(
         sql`SELECT * FROM transfer_meta_coins(${profileId}, ${reward.metaCoins}, 1.0)`
       );
     }
 
-    Logger.info(`[Challenges] ${profileId} completed ${challengeId} with score ${rows[0].score}`);
+    Logger.info(`[Challenges] ${profileId} completed ${challengeId} with score ${completion.score}`);
+
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'challenge.complete',
+      resource: '/api/v1/challenges/complete',
+      details: {
+        challengeId,
+        sessionId,
+        score: completion.score,
+        reward,
+      },
+      ipAddress,
+      userAgent,
+    });
 
     res.json({
-      completionId: rows[0].id,
-      score: rows[0].score,
+      success: true,
+      completionId: completion.id,
+      score: completion.score,
       reward,
     });
   } catch (error) {

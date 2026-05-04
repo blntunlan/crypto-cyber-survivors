@@ -24,7 +24,7 @@ import GameEngine from './GameEngine';
 import { GameUI } from './GameUI';
 import { NicknameEntryScreen } from './screens/NicknameEntryScreen';
 import { TutorialOverlay } from './screens/TutorialOverlay';
-import { HubMenu, type HubScreen } from './hub';
+import { HubMenu, HubMenuV2, type HubScreen } from './hub';
 import { MainMenu } from './screens/MainMenu';
 import { CycleCompleteScreen } from './screens/CycleCompleteScreen';
 import { MarketDisconnectedScreen } from './screens/MarketDisconnectedScreen';

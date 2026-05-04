@@ -161,9 +161,10 @@ class DifficultyManagerClass {
       ? inputs.normalizedVolume
       : 0.5;
 
+    const previousLeveragedPnL = this.lastPnL;
     const currentLeveragedPnL = pnl * inputs.leverage;
     this.pnlMomentum =
-      this.pnlMomentum * 0.8 + (currentLeveragedPnL - this.lastPnL) * 0.2;
+      this.pnlMomentum * 0.8 + (currentLeveragedPnL - previousLeveragedPnL) * 0.2;
     this.volumeMomentum =
       this.volumeMomentum * 0.8 + (marketVolume - this.lastVolume) * 0.2;
 
@@ -172,6 +173,10 @@ class DifficultyManagerClass {
 
     const nowMs = TimeService.getGameTime();
     const elapsedTime = nowMs / 1000;
+
+    if (this.windowStartTime === 0) {
+      this.windowStartTime = nowMs;
+    }
 
     if (nowMs - this.windowStartTime > 5000) {
       this.dashCount = 0;
@@ -188,7 +193,7 @@ class DifficultyManagerClass {
       rsiMomentum: (marketRSI - 50) / 50,
       atrPercent: marketAtrPercent,
       volumeNorm: marketVolume,
-      priceChange: (pnl - this.lastPnL) * 10,
+      priceChange: (currentLeveragedPnL - previousLeveragedPnL) * 10,
       trendStrength: Math.abs(marketRSI - 50) / 25,
       hpPercent: inputs.hpPercent,
       pnlRatio: clamp(currentLeveragedPnL, -1, 1),
@@ -352,6 +357,10 @@ class DifficultyManagerClass {
     this.lastVolume = 0;
     this.pnlMomentum = 0;
     this.volumeMomentum = 0;
+    this.dashCount = 0;
+    this.damageTakenSum = 0;
+    this.killsInWindow = 0;
+    this.windowStartTime = 0;
 
     difficultyContext.reset();
     UnifiedDirector.reset();

@@ -5,6 +5,7 @@
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
 import { railwayClient } from '../api/RailwayClient';
+import { GameSessionService } from '../auth/GameSessionService';
 import {
   type ChallengeDefinition,
   type ChallengeObjective,
@@ -150,16 +151,26 @@ class ChallengeServiceClass {
     const objectives = [...this.objectives.values()];
     const score =
       this.survivalTimer * objectives.reduce((sum, o) => sum + o.current, 0);
+    const sessionId = GameSessionService.getCurrentSessionId();
 
     const killObj = this.objectives.get('kill_count');
     const levelObj = this.objectives.get('reach_level');
 
+    if (!sessionId) {
+      Logger.warn(
+        '[ChallengeService] Skipping challenge completion without active session'
+      );
+      return;
+    }
+
     try {
       const result = await railwayClient.post<{
         success: boolean;
+        alreadyCompleted?: boolean;
         reward: { metaCoins: number; bonusXp: number };
       }>('/api/v1/challenges/complete', {
         challengeId,
+        sessionId,
         score,
         survivalSeconds: this.survivalTimer,
         kills: killObj?.current ?? 0,
@@ -170,6 +181,7 @@ class ChallengeServiceClass {
       });
 
       if (result.success) {
+        if (result.alreadyCompleted) return;
         EventBus.emit('challengeCompleted', { challengeId, reward: result.reward });
         EventBus.emit('gameNotification', {
           title: 'Challenge Complete!',

@@ -98,6 +98,8 @@ vi.mock('../services/auth/UserSessionService', () => ({
 function createMockSession(overrides: Partial<SessionMetrics> = {}): SessionMetrics {
   return {
     sessionId: `session_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    serverSessionId: '11111111-1111-4111-8111-111111111111',
+    serverSigningKey: 'test-signing-key',
     sessionTimestamp: Date.now(),
     gameEndReason: GameEndReason.DEATH,
     pair: 'BTC',

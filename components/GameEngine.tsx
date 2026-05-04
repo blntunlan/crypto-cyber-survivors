@@ -51,7 +51,11 @@ import type {
   PoolLikeRef,
   TickContext,
 } from '../services/gameplay/contracts';
-import { GameLoopCoordinator, type GameLoopPhase } from '../services/gameplay/loop';
+import {
+  GameLoopCoordinator,
+  PhaseProfiler,
+  type GameLoopPhase,
+} from '../services/gameplay/loop';
 import {
   InputPhase,
   CombatPhase,
@@ -218,6 +222,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const gameplayFrameRef = useRef(0);
   const phaseSharedRef = useRef<Record<string, unknown>>({});
   const lastPhaseErrorLogTimeRef = useRef(0);
+  const phaseProfilerRef = useLazyRef(() => new PhaseProfiler());
   const lastPhaseTickRef = useRef({
     completedPhaseIds: [] as string[],
     errorCount: 0,
@@ -363,7 +368,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return new GameLoopCoordinator<TickContext>(phases, {
       errorPolicy: 'collect',
       hooks: {
+        beforePhase: (phase, context) => {
+          phaseProfilerRef.current.beforePhase(phase, context);
+        },
+        afterPhase: (phase, context, phaseHadError) => {
+          phaseProfilerRef.current.afterPhase(phase, context, phaseHadError);
+        },
         onError: phaseError => {
+          phaseProfilerRef.current.recordError(phaseError);
           Logger.warn('[GameLoopCoordinator] Phase execution error', {
             phaseId: phaseError.phaseId,
             stage: phaseError.stage,
@@ -398,14 +410,17 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   useEffect(() => {
     if (status !== GameStatus.PLAYING) {
       hitStopGovernorRef.current.reset();
-      coreLoopRef.current.reset();
+      phaseProfilerRef.current.reset();
       MarketAudioReactor.stop();
       MarketEventAnnouncer.reset();
+    }
+    if (status === GameStatus.GAMEOVER || status === GameStatus.MENU) {
+      coreLoopRef.current.reset();
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
     }
-  }, [status]);
+  }, [phaseProfilerRef, status]);
 
   // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
@@ -587,6 +602,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         phases: {
           completed: lastPhaseTickRef.current.completedPhaseIds,
           errorCount: lastPhaseTickRef.current.errorCount,
+          profiler: phaseProfilerRef.current.getSnapshot(),
         },
       });
     };
@@ -594,7 +610,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return () => {
       delete window.render_game_to_text;
     };
-  }, [playerRef, pool, state, status]);
+  }, [phaseProfilerRef, playerRef, pool, state, status]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;

@@ -11,11 +11,14 @@ export type AuditAction =
   | 'identity.link'
   | 'identity.unlink'
   | 'wallet.credit'
+  | 'wallet.credit_blocked'
   | 'wallet.spend'
   | 'session.start'
+  | 'session.sync'
   | 'session.verify'
   | 'session.suspicious'
-  | 'session.recover';
+  | 'session.recover'
+  | 'challenge.complete';
 
 interface AuditEntry {
   profileId?: string | null;

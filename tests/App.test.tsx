@@ -1,6 +1,34 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../App';
+
+const {
+  transitionMock,
+  forceStateMock,
+  useGameStatusMock,
+  usePauseBudgetMock,
+  autoResumeCallbackRef,
+} = vi.hoisted(() => ({
+  transitionMock: vi.fn(),
+  forceStateMock: vi.fn(),
+  useGameStatusMock: vi.fn(() => ({
+    gameStatus: 'MENU',
+    handlePauseToggle: vi.fn(),
+  })),
+  usePauseBudgetMock: vi.fn((_mode, _status, onAutoResume?: () => void) => {
+    autoResumeCallbackRef.current = onAutoResume ?? null;
+    return {
+      pauseBudget: 100,
+      isOutOfPauseBudget: false,
+      consumePauseBudget: vi.fn(),
+      remainingSeconds: 30,
+      maxSeconds: 30,
+    };
+  }),
+  autoResumeCallbackRef: {
+    current: null as null | (() => void),
+  },
+}));
 
 // Mock Services
 vi.mock('../services/audio', () => ({
@@ -56,8 +84,8 @@ vi.mock('../services/gameplay/DifficultyManager', () => ({
 
 vi.mock('../services/core/GameStateMachine', () => ({
   GameStateMachine: {
-    transition: vi.fn(),
-    forceState: vi.fn(),
+    transition: transitionMock,
+    forceState: forceStateMock,
   },
 }));
 
@@ -106,7 +134,7 @@ vi.mock('../hooks/useWindowDimensions', () => ({
 }));
 
 vi.mock('../hooks/useGameStatus', () => ({
-  useGameStatus: () => ({ gameStatus: 'MENU', handlePauseToggle: vi.fn() }),
+  useGameStatus: useGameStatusMock,
 }));
 
 vi.mock('../hooks/useRunStats', () => ({
@@ -169,11 +197,7 @@ vi.mock('../hooks/useTutorial', () => ({
 }));
 
 vi.mock('../hooks/usePauseBudget', () => ({
-  usePauseBudget: () => ({
-    pauseBudget: 100,
-    isOutOfPauseBudget: false,
-    consumePauseBudget: vi.fn(),
-  }),
+  usePauseBudget: usePauseBudgetMock,
 }));
 
 vi.mock('../contexts/LanguageContext', () => ({
@@ -246,7 +270,21 @@ vi.mock('../components/screens/MainMenu', () => ({
 }));
 
 vi.mock('../components/screens/PauseMenu', () => ({
-  PauseMenu: () => <div>PauseMenu</div>,
+  PauseMenu: ({ onOpenSettings }: { onOpenSettings: () => void }) => (
+    <div>
+      <div>PauseMenu</div>
+      <button onClick={onOpenSettings}>Open Settings</button>
+    </div>
+  ),
+}));
+
+vi.mock('../components/settings/SettingsPanel', () => ({
+  SettingsPanel: ({ onClose }: { onClose: () => void }) => (
+    <div>
+      <div>SettingsPanel</div>
+      <button onClick={onClose}>Close Settings</button>
+    </div>
+  ),
 }));
 
 vi.mock('../components/screens/GameOverScreen', () => ({
@@ -272,6 +310,11 @@ describe('App', () => {
     vi.clearAllMocks();
     localStorage.clear();
     sessionStorage.clear();
+    autoResumeCallbackRef.current = null;
+    useGameStatusMock.mockReturnValue({
+      gameStatus: 'MENU',
+      handlePauseToggle: vi.fn(),
+    });
   });
 
   it('exports root app component', () => {
@@ -302,5 +345,27 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByText('MainMenu')).toBeInTheDocument();
     });
+  });
+
+  it('closes settings before auto-resuming from pause budget depletion', async () => {
+    localStorage.setItem('has_seen_landing', 'true');
+    useGameStatusMock.mockReturnValue({
+      gameStatus: 'PAUSED',
+      handlePauseToggle: vi.fn(),
+    });
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Open Settings'));
+    expect(await screen.findByText('SettingsPanel')).toBeInTheDocument();
+
+    act(() => {
+      autoResumeCallbackRef.current?.();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('SettingsPanel')).not.toBeInTheDocument();
+    });
+    expect(transitionMock).toHaveBeenCalledWith('PLAYING');
   });
 });

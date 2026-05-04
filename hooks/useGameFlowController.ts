@@ -224,9 +224,9 @@ export const useGameFlowController = ({
           }
 
           // Meta Progression: transfer 15% of coins
-          const sessionCoins = submission.reward ?? 0;
-          if (sessionCoins > 0) {
-            void MetaProgressionService.transferRunCoins(sessionCoins);
+          const metaShare = submission.metaShare ?? 0;
+          if (metaShare > 0) {
+            MetaProgressionService.applyVerifiedTransfer(metaShare);
           }
 
           // Replay: save recording

@@ -13,6 +13,19 @@ import { type Player } from '../../types';
 class MetaProgressionServiceClass {
   private initialized = false;
 
+  applyVerifiedTransfer(metaShare: number): number {
+    const trustedShare = Math.max(0, Math.floor(metaShare));
+    if (trustedShare <= 0) return 0;
+
+    useMetaProgressionStore.getState().addMetaCoins(trustedShare);
+    EventBus.emit('metaCoinsTransferred', {
+      metaShare: trustedShare,
+      newBalance: useMetaProgressionStore.getState().metaCoins,
+    });
+
+    return trustedShare;
+  }
+
   async initialize(): Promise<void> {
     if (this.initialized) return;
     try {
@@ -29,32 +42,11 @@ class MetaProgressionServiceClass {
   }
 
   async transferRunCoins(earnedCoins: number): Promise<number> {
-    const metaShare = Math.floor(earnedCoins * 0.15);
-    if (metaShare <= 0) return 0;
-
-    try {
-      const result = await railwayClient.post<{
-        metaShare: number;
-        newMetaBalance: number;
-        newTotalEarned: number;
-        newRunsCompleted: number;
-      }>('/api/v1/meta/transfer', { earnedCoins });
-      // Sanity-check server response to prevent inflated credits
-      const trustedShare = Math.min(result.metaShare, metaShare * 2);
-      useMetaProgressionStore.getState().addMetaCoins(trustedShare);
-      EventBus.emit('metaCoinsTransferred', {
-        metaShare: trustedShare,
-        newBalance: result.newMetaBalance,
-      });
-      return trustedShare;
-    } catch {
-      useMetaProgressionStore.getState().addMetaCoins(metaShare);
-      EventBus.emit('metaCoinsTransferred', {
-        metaShare,
-        newBalance: useMetaProgressionStore.getState().metaCoins,
-      });
-      return metaShare;
-    }
+    Logger.warn(
+      '[MetaProgression] transferRunCoins() is deprecated; apply server-verified metaShare instead',
+      { earnedCoins }
+    );
+    return 0;
   }
 
   async purchaseUpgrade(id: MetaUpgradeId): Promise<boolean> {

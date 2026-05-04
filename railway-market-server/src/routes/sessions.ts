@@ -1,14 +1,16 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
-import { eq, or, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { profiles, sessions } from '../db/schema';
+import { getProfileId } from '../db/helpers';
 import { startSessionSchema, verifySessionSchema, syncSessionSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
 import { RewardCalculator, type ExitType, type PortalType } from '../shared/RewardCalculator';
 import { logAudit, getClientInfo } from '../utils/auditLogger';
+import { deriveTrustedSessionMetrics } from '../utils/trustedSessionMetrics';
 
 const router = Router();
 
@@ -23,26 +25,16 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
       return;
     }
 
-    const { pair, leverage, position, userId } = parsed.data;
+    const { pair, leverage, position } = parsed.data;
     const db = getDb();
 
-    // Look up profile: prefer JWT auth_user_id, fall back to nickname from body
+    // Session ownership is bound to the authenticated Supabase user only.
     const authUserId = getRequiredAuthUserId(req);
-    let profileRows;
-
-    if (userId) {
-      profileRows = await db
-        .select({ id: profiles.id })
-        .from(profiles)
-        .where(or(eq(profiles.authUserId, authUserId), eq(profiles.nickname, userId)))
-        .limit(1);
-    } else {
-      profileRows = await db
-        .select({ id: profiles.id })
-        .from(profiles)
-        .where(eq(profiles.authUserId, authUserId))
-        .limit(1);
-    }
+    const profileRows = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.authUserId, authUserId))
+      .limit(1);
 
     if (profileRows.length === 0) {
       res.status(404).json({ error: 'Profile not found' });
@@ -93,8 +85,9 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
 /**
  * POST /api/v1/sessions/verify — Verify game results and credit rewards
  */
-router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
+router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const parsed = verifySessionSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'sessionId, signature, and payload are required' });
@@ -103,6 +96,12 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
 
     const { sessionId, signature, payload } = parsed.data;
     const db = getDb();
+    const authProfileId = await getProfileId(authUserId);
+
+    if (!authProfileId) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
 
     // 1. Session exists + not verified
     const sessionRows = await db
@@ -111,6 +110,14 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
         profileId: sessions.profileId,
         sessionSecret: sessions.sessionSecret,
         isVerified: sessions.isVerified,
+        pair: sessions.pair,
+        position: sessions.position,
+        leverage: sessions.leverage,
+        entryPrice: sessions.entryPrice,
+        exitPrice: sessions.exitPrice,
+        survivalSeconds: sessions.survivalSeconds,
+        kills: sessions.kills,
+        level: sessions.level,
       })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
@@ -123,8 +130,25 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
 
     const session = sessionRows[0];
 
+    if (session.profileId !== authProfileId) {
+      res.status(403).json({ error: 'Not authorized to verify this session' });
+      return;
+    }
+
     if (session.isVerified) {
       res.status(409).json({ error: 'Already verified' });
+      return;
+    }
+
+    if (
+      payload.pair !== session.pair ||
+      payload.position !== session.position ||
+      payload.leverage !== session.leverage
+    ) {
+      Logger.warn(
+        `[Security] Session ${sessionId} payload mismatch: pair/position/leverage diverged from server state`
+      );
+      res.status(400).json({ error: 'Session payload does not match server state' });
       return;
     }
 
@@ -192,41 +216,49 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       return;
     }
 
-    // 3. Duration check
-    const duration = payload.survivalSeconds;
-    if (duration < 5) {
-      res.status(400).json({ error: 'Session too short' });
-      return;
-    }
-
-    // 3b. Field range sanity checks (advisory — log only, don't reject)
-    const MAX_KILLS_PER_SECOND = 5;
-    const maxPlausibleKills = Math.ceil(duration * MAX_KILLS_PER_SECOND);
-    const suspiciousFlags: string[] = [];
-    if (payload.kills > maxPlausibleKills) {
-      Logger.warn(`[verify] Suspicious kill rate: ${payload.kills} kills in ${duration}s (max plausible: ${maxPlausibleKills}) session=${sessionId}`);
-      suspiciousFlags.push('kill_rate');
-    }
-    if (payload.level > 1 && payload.kills > 0 && payload.kills < (payload.level - 1) * 2) {
-      Logger.warn(`[verify] Level/kill mismatch: level=${payload.level} kills=${payload.kills} session=${sessionId}`);
-      suspiciousFlags.push('level_kill_mismatch');
-    }
-    if (payload.maxStreak > payload.kills) {
-      Logger.warn(`[verify] Streak exceeds kills: streak=${payload.maxStreak} kills=${payload.kills} session=${sessionId}`);
-      suspiciousFlags.push('streak_exceeds_kills');
-    }
-    if (duration > 86400) {
-      Logger.warn(`[verify] Abnormally long session: ${duration}s session=${sessionId}`);
-      suspiciousFlags.push('abnormal_duration');
-    }
+    const { metrics: trustedMetrics, suspiciousFlags } = deriveTrustedSessionMetrics(payload, {
+      entryPrice: session.entryPrice,
+      exitPrice: session.exitPrice,
+      survivalSeconds: session.survivalSeconds,
+      kills: session.kills,
+      level: session.level,
+    });
 
     if (suspiciousFlags.length > 0) {
+      Logger.warn(`[verify] Session ${sessionId} required metric normalization`, {
+        claimed: {
+          entryPrice: payload.claimedEntryPrice,
+          exitPrice: payload.claimedExitPrice,
+          survivalSeconds: payload.survivalSeconds,
+          kills: payload.kills,
+          level: payload.level,
+          maxStreak: payload.maxStreak,
+          pnl: payload.claimedPnL,
+        },
+        trusted: trustedMetrics,
+        suspiciousFlags,
+      });
       const { ipAddress: susIp, userAgent: susUa } = getClientInfo(req);
       await logAudit({
         profileId: session.profileId,
         action: 'session.suspicious',
         resource: '/api/v1/sessions/verify',
-        details: { sessionId, flags: suspiciousFlags, kills: payload.kills, level: payload.level, duration },
+        details: {
+          sessionId,
+          flags: suspiciousFlags,
+          claimed: {
+            kills: payload.kills,
+            level: payload.level,
+            duration: payload.survivalSeconds,
+            pnl: payload.claimedPnL,
+          },
+          trusted: {
+            kills: trustedMetrics.kills,
+            level: trustedMetrics.level,
+            duration: trustedMetrics.survivalSeconds,
+            pnl: trustedMetrics.pnl,
+          },
+        },
         ipAddress: susIp,
         userAgent: susUa,
       });
@@ -235,11 +267,11 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
     // 4. Reward calculation
     const calculator = new RewardCalculator();
     const calculation = calculator.calculate({
-      survivalTimeSeconds: duration,
-      kills: payload.kills,
-      level: payload.level,
-      pnl: payload.claimedPnL,
-      maxStreak: payload.maxStreak,
+      survivalTimeSeconds: trustedMetrics.survivalSeconds,
+      kills: trustedMetrics.kills,
+      level: trustedMetrics.level,
+      pnl: trustedMetrics.pnl,
+      maxStreak: trustedMetrics.maxStreak,
       exitType: payload.exitType as ExitType | undefined,
       portalType: payload.portalType as PortalType | undefined,
     });
@@ -257,9 +289,39 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
 
     // 5. Atomic transaction: credit coins + mark verified + transfer meta
     const txResult = await db.transaction(async (tx) => {
+      const lockedResult = await tx.execute(
+        sql`SELECT id, profile_id, is_verified FROM sessions WHERE id = ${sessionId} FOR UPDATE`
+      );
+
+      if (lockedResult.rows.length === 0) {
+        throw new Error('SESSION_NOT_FOUND');
+      }
+
+      const lockedSession = lockedResult.rows[0] as {
+        id: string;
+        profile_id: string;
+        is_verified: boolean;
+      };
+      if (lockedSession.profile_id !== authProfileId) {
+        throw new Error('SESSION_FORBIDDEN');
+      }
+
+      if (lockedSession.is_verified) {
+        throw new Error('ALREADY_VERIFIED');
+      }
+
       // 5a. Atomic coin crediting (PG function)
       const creditResult = await tx.execute(
-        sql`SELECT * FROM credit_coins(${session.profileId}, ${Math.floor(reward)}, 'game_reward', ${sessionId}, ${JSON.stringify({ pnl: payload.claimedPnL, kills: payload.kills, level: payload.level, exitType: payload.exitType, portalType: payload.portalType, duration })}::jsonb)`
+        sql`SELECT * FROM credit_coins(${session.profileId}, ${Math.floor(reward)}, 'game_reward', ${sessionId}, ${JSON.stringify({
+          pnl: trustedMetrics.pnl,
+          kills: trustedMetrics.kills,
+          level: trustedMetrics.level,
+          maxStreak: trustedMetrics.maxStreak,
+          exitType: payload.exitType,
+          portalType: payload.portalType,
+          duration: trustedMetrics.survivalSeconds,
+          suspiciousFlags,
+        })}::jsonb)`
       );
 
       if (creditResult.rows.length === 0) {
@@ -267,20 +329,26 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       }
 
       // 5b. Mark session verified
-      await tx
+      const updatedRows = await tx
         .update(sessions)
         .set({
-          exitPrice: payload.claimedExitPrice,
-          survivalSeconds: Math.floor(duration),
+          entryPrice: trustedMetrics.entryPrice,
+          exitPrice: trustedMetrics.exitPrice,
+          survivalSeconds: trustedMetrics.survivalSeconds,
           isVerified: true,
           rewardAmount: Math.floor(reward),
-          kills: payload.kills,
-          level: payload.level,
+          kills: trustedMetrics.kills,
+          level: trustedMetrics.level,
           exitType: payload.exitType ?? null,
           portalType: payload.portalType ?? null,
           verifiedAt: sql`now()`,
         })
-        .where(eq(sessions.id, sessionId));
+        .where(and(eq(sessions.id, sessionId), eq(sessions.isVerified, false)))
+        .returning({ id: sessions.id });
+
+      if (updatedRows.length === 0) {
+        throw new Error('ALREADY_VERIFIED');
+      }
 
       // 5c. Transfer meta coins (15% of reward → meta wallet)
       let metaShare = 0;
@@ -307,7 +375,15 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       profileId: session.profileId,
       action: 'session.verify',
       resource: '/api/v1/sessions/verify',
-      details: { sessionId, reward: Math.floor(reward), metaShare: txResult.metaShare, duration, kills: payload.kills, level: payload.level },
+      details: {
+        sessionId,
+        reward: Math.floor(reward),
+        metaShare: txResult.metaShare,
+        duration: trustedMetrics.survivalSeconds,
+        kills: trustedMetrics.kills,
+        level: trustedMetrics.level,
+        normalized: suspiciousFlags.length > 0,
+      },
       ipAddress,
       userAgent,
     });
@@ -316,33 +392,103 @@ router.post('/verify', asyncHandler(async (req: Request, res: Response) => {
       verified: true,
       reward: Math.floor(reward),
       metaShare: txResult.metaShare,
-      pnl: payload.claimedPnL,
+      pnl: trustedMetrics.pnl,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'ALREADY_VERIFIED') {
+      res.status(409).json({ error: 'Already verified' });
+      return;
+    }
+    if (message === 'SESSION_FORBIDDEN') {
+      res.status(403).json({ error: 'Not authorized to verify this session' });
+      return;
+    }
+    if (message === 'SESSION_NOT_FOUND') {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+    if (message === 'SESSION_TOO_SHORT') {
+      res.status(400).json({ error: 'Session too short' });
+      return;
+    }
+    if (message === 'SESSION_DURATION_IMPLAUSIBLE') {
+      res.status(400).json({ error: 'Session duration is not plausible' });
+      return;
+    }
+    if (message === 'KILL_RATE_IMPLAUSIBLE') {
+      res.status(400).json({ error: 'Kill count is not plausible for session duration' });
+      return;
+    }
+    if (message === 'STREAK_EXCEEDS_KILLS') {
+      res.status(400).json({ error: 'Max streak cannot exceed total kills' });
+      return;
+    }
+    if (message === 'INVALID_PRICE_DATA') {
+      res.status(400).json({ error: 'Invalid price data supplied for verification' });
+      return;
+    }
     Logger.error('[Sessions] Verify error:', error);
     res.status(500).json({ error: 'Verification failed' });
   }
 }));
 
 /**
- * POST /api/v1/sessions/sync — Sync session metrics (update or insert)
+ * POST /api/v1/sessions/sync — Sync mutable session metrics for the owner
  */
-router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
+router.post('/sync', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
+    const authUserId = getRequiredAuthUserId(req);
     const parsed = syncSessionSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'sessionData is required' });
       return;
     }
 
-    const { sessionId, sessionData } = parsed.data;
+    const profileId = await getProfileId(authUserId);
+    if (!profileId) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
 
-    // Strict column whitelist — only safe columns for client sync
-    // SECURITY: is_verified, session_secret, verified_at excluded (server-only via /verify)
+    const { sessionId, sessionData } = parsed.data;
+    if (!sessionId || sessionId.startsWith('local-')) {
+      res.status(400).json({ error: 'Valid server sessionId is required' });
+      return;
+    }
+
+    const db = getDb();
+    const existingRows = await db
+      .select({
+        id: sessions.id,
+        profileId: sessions.profileId,
+        isVerified: sessions.isVerified,
+      })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    if (existingRows.length === 0) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    const existing = existingRows[0];
+    if (existing.profileId !== profileId) {
+      res.status(403).json({ error: 'Not authorized to sync this session' });
+      return;
+    }
+
+    if (existing.isVerified) {
+      res.status(409).json({ error: 'Verified sessions cannot be mutated' });
+      return;
+    }
+
+    // Strict column whitelist — only runtime metrics can be synced after start.
+    // SECURITY: ownership, start-time trade terms, rewards, verification state, and secrets are server-only.
     const COLUMN_MAP: Record<string, true> = {
-      profile_id: true, pair: true, position: true, leverage: true,
       entry_price: true, exit_price: true, survival_seconds: true,
-      reward_amount: true, kills: true, level: true,
+      kills: true, level: true,
       exit_type: true, portal_type: true,
     };
 
@@ -363,39 +509,28 @@ router.post('/sync', asyncHandler(async (req: Request, res: Response) => {
 
     // Sync uses raw SQL since it has dynamic column names
     const { query } = await import('../db/pool');
-    let resultId: string | null = null;
+    const paramPlaceholders = columns.map((col, i) => `${col} = $${i + 3}`).join(', ');
+    const { rows } = await query(
+      `UPDATE sessions SET ${paramPlaceholders} WHERE id = $1 AND profile_id = $2 AND is_verified = false RETURNING id`,
+      [sessionId, profileId, ...values]
+    );
 
-    // If sessionId provided and valid UUID, try UPDATE first
-    if (sessionId && !sessionId.startsWith('local-')) {
-      const paramPlaceholders = columns.map((col, i) => `${col} = $${i + 2}`).join(', ');
-      const { rows } = await query(
-        `UPDATE sessions SET ${paramPlaceholders} WHERE id = $1 RETURNING id`,
-        [sessionId, ...values]
-      );
-      if (rows.length > 0) {
-        resultId = rows[0].id;
-      }
+    if (rows.length === 0) {
+      res.status(409).json({ error: 'Session sync rejected' });
+      return;
     }
 
-    // If no result from update, INSERT (generate session_secret server-side)
-    if (!resultId) {
-      // session_secret is NOT NULL — generate one for sync-created sessions
-      if (!columns.includes('session_secret')) {
-        columns.push('session_secret');
-        values.push(crypto.randomBytes(32).toString('hex'));
-      }
-      const colNames = columns.join(', ');
-      const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
-      const { rows } = await query(
-        `INSERT INTO sessions (${colNames}) VALUES (${placeholders}) RETURNING id`,
-        values
-      );
-      if (rows.length > 0) {
-        resultId = rows[0].id;
-      }
-    }
+    const { ipAddress, userAgent } = getClientInfo(req);
+    await logAudit({
+      profileId,
+      action: 'session.sync',
+      resource: '/api/v1/sessions/sync',
+      details: { sessionId, updatedFields: columns },
+      ipAddress,
+      userAgent,
+    });
 
-    res.json({ id: resultId });
+    res.json({ id: rows[0].id });
   } catch (error) {
     // PostgreSQL unique constraint violation (replay protection)
     if ((error as { code?: string }).code === '23505') {

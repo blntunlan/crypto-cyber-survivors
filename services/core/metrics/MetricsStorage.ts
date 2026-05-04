@@ -140,51 +140,56 @@ export class MetricsStorage {
       const profileId = UserSessionService.getProfileId();
       const nickname = UserSessionService.getNickname();
       const isAnonymous = profileId.startsWith('anon_');
+      const serverSessionId = session.serverSessionId;
+      const hasValidServerUuid =
+        !!serverSessionId && !serverSessionId.startsWith('local-');
+
+      if (isAnonymous) {
+        Logger.debug('[MetricsStorage] Skipping Railway sync for anonymous session');
+        return;
+      }
+
+      if (!hasValidServerUuid) {
+        Logger.debug(
+          '[MetricsStorage] Skipping Railway sync without server session UUID',
+          {
+            sessionId: session.sessionId,
+            serverSessionId: serverSessionId ?? 'none',
+          }
+        );
+        return;
+      }
 
       // Log detailed state for debugging
       Logger.info('[MetricsStorage] Attempting sync with player state', {
-        profileId: isAnonymous ? 'anonymous' : profileId.substring(0, 8) + '...',
+        profileId: profileId.substring(0, 8) + '...',
         hasNickname: !!nickname,
-        isAnonymous,
+        isAnonymous: false,
         sessionId: session.sessionId,
         survivalTimeMs: session.player.survivalTimeMs,
         totalKills: session.player.totalKills,
       });
 
-      // Session data to save (mapped to 'sessions' table schema)
-      // Note: Only include 'id' if we have a valid server UUID
-      // Local session IDs are NOT UUIDs and will cause a 400 error
-      const hasValidServerUuid =
-        session.serverSessionId && !session.serverSessionId.startsWith('local-');
-
+      // Runtime-only session data; immutable trade terms are bound at /sessions/start.
       const sessionData: Record<string, unknown> = {
-        profile_id: isAnonymous ? null : profileId,
-        pair: session.pair,
-        position: session.bitcoin.positionChosen,
-        leverage: session.bitcoin.leverage,
         entry_price: session.bitcoin.priceAtStart,
         exit_price: session.bitcoin.priceAtEnd,
         survival_seconds: Math.floor(session.player.survivalTimeMs / 1000),
         kills: session.player.totalKills,
       };
 
-      // Only set explicit ID if we have a valid server-generated UUID
-      if (hasValidServerUuid) {
-        sessionData.id = session.serverSessionId;
-      }
-
       let gameSession: { id: string } | null = null;
       let sessionError: Error | null = null;
 
       try {
         Logger.debug('[MetricsStorage] Syncing session to Railway', {
-          serverSessionId: session.serverSessionId ?? 'none',
+          serverSessionId,
         });
 
         const result = await railwayClient.post<{ id: string }>(
           '/api/v1/sessions/sync',
           {
-            sessionId: hasValidServerUuid ? session.serverSessionId : undefined,
+            sessionId: serverSessionId,
             sessionData,
           }
         );
@@ -211,34 +216,31 @@ export class MetricsStorage {
       }
 
       // Get the actual session ID (from server or local)
-      const actualSessionId =
-        gameSession?.id ?? session.serverSessionId ?? session.sessionId;
+      const actualSessionId = gameSession?.id ?? serverSessionId;
 
       // 1b. Enqueue for server-side verification (rewards & anti-cheat)
-      if (!isAnonymous && profileId && actualSessionId) {
-        void VerificationQueue.enqueue(
-          {
-            userId: profileId, // verify-game expects profile UUID
-            startTime: session.sessionTimestamp,
-            endTime: session.sessionTimestamp + session.player.survivalTimeMs,
-            pair: session.pair,
-            position: session.bitcoin.positionChosen,
-            leverage: session.bitcoin.leverage,
-            claimedEntryPrice: session.bitcoin.priceAtStart,
-            claimedExitPrice: session.bitcoin.priceAtEnd,
-            claimedPnL: session.bitcoin.pnlAtDeath, // Percentage
-            kills: session.player.totalKills,
-            level: session.player.maxLevel,
-            goldCollected: 0, // Not tracked yet
-            survivalTimeMs: session.player.survivalTimeMs,
-            optimisticReward: 0, // No client-side optimistic reward yet
-            sessionId: actualSessionId,
-            replayData: session.replayData,
-            metadata: session.replayMetadata,
-          },
-          session.serverSigningKey
-        );
-      }
+      void VerificationQueue.enqueue(
+        {
+          userId: profileId, // verify-game expects profile UUID
+          startTime: session.sessionTimestamp,
+          endTime: session.sessionTimestamp + session.player.survivalTimeMs,
+          pair: session.pair,
+          position: session.bitcoin.positionChosen,
+          leverage: session.bitcoin.leverage,
+          claimedEntryPrice: session.bitcoin.priceAtStart,
+          claimedExitPrice: session.bitcoin.priceAtEnd,
+          claimedPnL: session.bitcoin.pnlAtDeath, // Percentage
+          kills: session.player.totalKills,
+          level: session.player.maxLevel,
+          goldCollected: 0, // Not tracked yet
+          survivalTimeMs: session.player.survivalTimeMs,
+          optimisticReward: 0, // No client-side optimistic reward yet
+          sessionId: actualSessionId,
+          replayData: session.replayData,
+          metadata: session.replayMetadata,
+        },
+        session.serverSigningKey
+      );
 
       Logger.info('[MetricsStorage] Game session synced', {
         sessionId: actualSessionId,
@@ -256,7 +258,7 @@ export class MetricsStorage {
         try {
           await railwayClient.post('/api/v1/telemetry/performance-metrics', {
             session_id: actualSessionId,
-            profile_id: isAnonymous ? null : profileId,
+            profile_id: profileId,
             avg_fps: session.performance.avgFps,
             min_fps: session.performance.minFps,
             max_fps: session.performance.maxFps ?? session.performance.avgFps,

@@ -66,7 +66,6 @@ export class GameSessionService {
 
     try {
       const payload = {
-        userId: nickname,
         pair,
         leverage,
         position,
@@ -216,6 +215,26 @@ export class GameSessionService {
           breakdown: rewardPayload.breakdown,
         }),
       };
+
+      try {
+        await railwayClient.post<{ id: string }>('/api/v1/sessions/sync', {
+          sessionId: this.currentSessionId,
+          sessionData: {
+            entry_price: payload.claimedEntryPrice,
+            exit_price: payload.claimedExitPrice,
+            survival_seconds: payload.survivalSeconds,
+            kills: payload.kills,
+            level: payload.level,
+            exit_type: payload.exitType,
+            portal_type: payload.portalType,
+          },
+        });
+      } catch (error) {
+        Logger.warn('[GameSession] Final session sync failed before verification', {
+          sessionId: this.currentSessionId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       // Run client-side validators (advisory — never blocks submission)
       const validationInput: SessionValidationInput = {

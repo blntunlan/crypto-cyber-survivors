@@ -168,52 +168,27 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
 router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
     const authUserId = getRequiredAuthUserId(req);
-    const { earnedCoins } = req.body as { earnedCoins?: number };
-
-    if (typeof earnedCoins !== 'number' || earnedCoins < 0) {
-      res.status(400).json({ error: 'earnedCoins must be a non-negative number' });
-      return;
-    }
-
     const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const db = getDb();
-    const result = await db.execute(
-      sql`SELECT * FROM transfer_meta_coins(${profileId}, ${Math.floor(earnedCoins)})`
-    );
-
-    if (result.rows.length === 0) {
-      res.status(500).json({ error: 'Transfer failed' });
-      return;
-    }
-
-    const row = result.rows[0] as {
-      meta_share: string;
-      new_meta_balance: string;
-      new_total_earned: string;
-      new_runs_completed: number;
-    };
-    Logger.info(`[MetaProgression] ${profileId} transferred ${row.meta_share} meta coins`);
-
     const { ipAddress, userAgent } = getClientInfo(req);
     await logAudit({
       profileId,
-      action: 'wallet.credit',
+      action: 'wallet.credit_blocked',
       resource: '/api/v1/meta/transfer',
-      details: { earnedCoins, metaShare: Number(row.meta_share) },
+      details: {
+        reason: 'deprecated_endpoint',
+        message: 'Meta progression rewards are applied during session verification',
+      },
       ipAddress,
       userAgent,
     });
 
-    res.json({
-      metaShare: Number(row.meta_share),
-      newMetaBalance: Number(row.new_meta_balance),
-      newTotalEarned: Number(row.new_total_earned),
-      newRunsCompleted: row.new_runs_completed,
+    res.status(410).json({
+      error: 'Meta progression rewards are applied during session verification',
     });
   } catch (error) {
     Logger.error('[MetaProgression] Transfer error:', error);

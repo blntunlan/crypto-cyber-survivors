@@ -60,6 +60,8 @@ describe('MetricsSyncBridge Integration', () => {
 
     const mockSession = {
       sessionId: 'test-session-123',
+      serverSessionId: '22222222-2222-4222-8222-222222222222',
+      serverSigningKey: 'test-signing-key',
       sessionTimestamp: Date.now(),
       gameEndReason: GameEndReason.DEATH,
       pair: 'BTC' as const,
@@ -108,9 +110,14 @@ describe('MetricsSyncBridge Integration', () => {
     );
     expect(sessionCall).toBeDefined();
     expect(sessionCall?.[1].sessionData).toMatchObject({
-      pair: 'BTC',
-      position: MarketPosition.LONG,
+      entry_price: 50000,
+      exit_price: 51000,
+      survival_seconds: 300,
+      kills: 100,
     });
+    expect(sessionCall?.[1].sessionData).not.toHaveProperty('pair');
+    expect(sessionCall?.[1].sessionData).not.toHaveProperty('position');
+    expect(sessionCall?.[1].sessionData).not.toHaveProperty('leverage');
 
     // 2. Verify performance metrics call
     const perfCall = mockPost.mock.calls.find(
