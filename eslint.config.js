@@ -32,6 +32,8 @@ export default tseslint.config(
       'scripts/**',
       'e2e/**', // Playwright tests - separate environment
       'remotion-video/**',
+      '.tmp-codex-push-repo-2/**',
+      'googleerror/**',
     ],
   },
 

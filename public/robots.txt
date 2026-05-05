@@ -1,22 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /a/
-Disallow: /*.json$
-Disallow: /sw.js
 Disallow: /health
-
-# AI Crawlers - Allow indexing for SGE (Search Generative Experience)
-User-agent: GPTBot
-Allow: /
-Allow: /docs
-
-User-agent: CCBot
-Allow: /
-Allow: /docs
-
-User-agent: Google-Extended
-Allow: /
 
 # Block WordPress/CMS attack paths
 Disallow: /wp-admin/
@@ -36,19 +21,10 @@ Disallow: /debug/
 
 # Crawl-delay for polite bots
 Crawl-delay: 1
+Clean-param: utm_source&utm_medium&utm_campaign&utm_term&utm_content&utm_referrer&utm_media&utm_group&utm_expid&yclid&ysclid&yrclid&gclid&fbclid&ref
 
 # Sitemaps
 Sitemap: https://crypto-survivors.com/sitemap.xml
-
-# Google specific
-User-agent: Googlebot
-Allow: /
-Disallow: /api/
-
-# Bing specific  
-User-agent: Bingbot
-Allow: /
-Crawl-delay: 1
 
 # Social Media Bots (for link previews)
 User-agent: Twitterbot

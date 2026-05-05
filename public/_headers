@@ -41,6 +41,7 @@
 /a/*
   Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
+  X-Robots-Tag: noindex
 
 # Legacy assets path (redirect to /a/)
 /assets/*
@@ -61,15 +62,31 @@
 # Localization files - short cache (may change)
 /locales/*
   Cache-Control: public, max-age=3600
+  X-Robots-Tag: noindex
 
 # Documentation - moderate caching
 /docs/*
   Cache-Control: public, max-age=3600
 
+/docs/*.md
+  X-Robots-Tag: noindex
+
+/docs/navigation.json
+  X-Robots-Tag: noindex
+
 # Service Worker - no cache
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
+  X-Robots-Tag: noindex
 
 # Manifest - short cache
 /manifest.json
   Cache-Control: public, max-age=3600
+  X-Robots-Tag: noindex
+
+/README.md
+  X-Robots-Tag: noindex
+
+/7f74f2a3a02f4e1b8e9a6c5d4b3a2190.txt
+  Cache-Control: public, max-age=86400
+  X-Robots-Tag: noindex

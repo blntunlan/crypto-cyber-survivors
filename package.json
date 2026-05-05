@@ -33,6 +33,7 @@
     "supabase:functions:deploy": "npx supabase functions deploy --project-ref nymgxiyrpaqcdlxqmhhd",
     "supabase:functions:serve": "npx supabase functions serve --no-verify-jwt",
     "security:check": "node scripts/security-check.js",
+    "indexnow:submit": "node scripts/submit-indexnow.mjs",
     "deploy": "git push origin main",
     "train:ai": "tsx simulation/evolution/Trainer.ts --watch"
   },

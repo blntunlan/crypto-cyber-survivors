@@ -15,6 +15,7 @@ import { URL } from 'url';
 
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = join(process.cwd(), 'dist');
+const BASE_URL = 'https://crypto-survivors.com';
 
 // =============================================================================
 // SECURITY: Blocked Paths (WordPress vulnerability scanners, bots, etc.)
@@ -142,28 +143,36 @@ const BLOCKED_EXTENSIONS = [
 ];
 
 // =============================================================================
-// SEO: Dynamic Meta Tags for Legal Pages
+// SEO: Dynamic Meta Tags for Public SPA Routes
 // =============================================================================
 const SEO_PAGES = {
+  '/': {
+    title: 'Crypto Survivors - Free Bitcoin Survival Game',
+    description:
+      'Play Crypto Survivors, a free browser survival game where live Bitcoin market volatility shapes enemy waves, rewards, and rogue-lite strategy.',
+    canonical: BASE_URL,
+  },
   '/privacy': {
     title: 'Privacy Policy | Crypto Survivors',
     description:
       'Privacy Policy for Crypto Survivors game. Learn how we collect, use, and protect your data. We value your privacy and never sell your information.',
-    canonical: 'https://crypto-survivors.com/privacy',
+    canonical: `${BASE_URL}/privacy`,
   },
   '/terms': {
     title: 'Terms of Service | Crypto Survivors',
     description:
       'Terms of Service for Crypto Survivors game. Read our rules about game mechanics, anti-cheat policy, and intellectual property.',
-    canonical: 'https://crypto-survivors.com/terms',
+    canonical: `${BASE_URL}/terms`,
   },
   '/docs': {
     title: 'Documentation | Crypto Survivors',
     description:
       'Official documentation for Crypto Survivors. Game guides, API reference, and development resources.',
-    canonical: 'https://crypto-survivors.com/docs',
+    canonical: `${BASE_URL}/docs`,
   },
 };
+
+const PUBLIC_SPA_ROUTES = new Set(Object.keys(SEO_PAGES));
 
 // MIME types for static files
 const MIME_TYPES = {
@@ -191,6 +200,7 @@ const MIME_TYPES = {
   '.ogg': 'audio/ogg',
   '.txt': 'text/plain; charset=utf-8',
   '.xml': 'application/xml',
+  '.md': 'text/markdown; charset=utf-8',
   '.pdf': 'application/pdf',
   '.zip': 'application/zip',
   '.wasm': 'application/wasm',
@@ -314,12 +324,20 @@ function handleRequest(req, res) {
     'unknown';
 
   // Parse URL
+  let parsedUrl;
   let urlPath;
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    urlPath = decodeURIComponent(url.pathname);
+    parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+    urlPath = decodeURIComponent(parsedUrl.pathname);
   } catch {
     sendResponse(res, 400, 'Bad Request');
+    return;
+  }
+
+  const canonicalPath = getCanonicalPath(urlPath);
+  if (canonicalPath) {
+    logRequest(ip, req.method, urlPath, 301, Date.now() - startTime);
+    sendRedirect(res, canonicalPath + parsedUrl.search);
     return;
   }
 
@@ -376,6 +394,10 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
   // Check if this is an SEO page that needs dynamic meta tags
   const seoConfig = SEO_PAGES[urlPath];
 
+  if (PUBLIC_SPA_ROUTES.has(urlPath)) {
+    filePath = join(DIST_DIR, 'index.html');
+  }
+
   // Check if path exists
   if (!existsSync(filePath)) {
     // Try with index.html for SPA routing
@@ -407,37 +429,12 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
   try {
     let content = readFileSync(filePath);
 
-    // Inject dynamic SEO meta tags for legal/doc pages
+    // Inject route-specific SEO tags before crawlers render the SPA.
     if (seoConfig && ext === '.html') {
-      let html = content.toString('utf-8');
-
-      // Replace default meta tags with page-specific ones
-      html = html.replace(/<title>[^<]*<\/title>/, `<title>${seoConfig.title}</title>`);
-      html = html.replace(
-        /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
-        `<meta name="description" content="${seoConfig.description}" />`
+      content = Buffer.from(
+        injectSeoTags(content.toString('utf-8'), seoConfig),
+        'utf-8'
       );
-      html = html.replace(
-        /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
-        `<meta property="og:title" content="${seoConfig.title}" />`
-      );
-      html = html.replace(
-        /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
-        `<meta property="og:description" content="${seoConfig.description}" />`
-      );
-      html = html.replace(
-        /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
-        `<meta property="og:url" content="${seoConfig.canonical}" />`
-      );
-      // Add canonical link if not present
-      if (!html.includes('rel="canonical"')) {
-        html = html.replace(
-          '</head>',
-          `  <link rel="canonical" href="${seoConfig.canonical}" />\n  </head>`
-        );
-      }
-
-      content = Buffer.from(html, 'utf-8');
     }
 
     const headers = {
@@ -453,6 +450,10 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
       headers['Cache-Control'] = 'public, max-age=86400';
     } else {
       headers['Cache-Control'] = 'no-cache, must-revalidate';
+    }
+
+    if (shouldNoIndexStaticResource(urlPath, ext)) {
+      headers['X-Robots-Tag'] = 'noindex';
     }
 
     res.writeHead(200, headers);
@@ -472,6 +473,119 @@ function sendResponse(res, statusCode, message) {
   };
   res.writeHead(statusCode, headers);
   res.end(message);
+}
+
+function sendRedirect(res, location) {
+  const headers = {
+    Location: location,
+    'Cache-Control': 'public, max-age=3600',
+    ...getSecurityHeaders(false),
+  };
+  res.writeHead(301, headers);
+  res.end(`Redirecting to ${location}`);
+}
+
+function getCanonicalPath(urlPath) {
+  if (urlPath.length > 1 && PUBLIC_SPA_ROUTES.has(urlPath.slice(0, -1))) {
+    return urlPath.slice(0, -1);
+  }
+
+  if (urlPath.startsWith('/docs/') && extname(urlPath) === '') {
+    return '/docs';
+  }
+
+  return null;
+}
+
+function escapeHtmlAttribute(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function upsertHeadTag(html, matcher, tag) {
+  if (matcher.test(html)) {
+    return html.replace(matcher, tag);
+  }
+
+  return html.replace('</head>', `  ${tag}\n  </head>`);
+}
+
+function injectSeoTags(html, seoConfig) {
+  const title = escapeHtmlAttribute(seoConfig.title);
+  const description = escapeHtmlAttribute(seoConfig.description);
+  const canonical = escapeHtmlAttribute(seoConfig.canonical);
+  const image = `${BASE_URL}/icons/icon-512.png`;
+
+  let nextHtml = html.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="description" content="${description}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/,
+    '<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />'
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/,
+    `<link rel="canonical" href="${canonical}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:title" content="${title}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:description" content="${description}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:url" content="${canonical}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/,
+    `<meta property="og:image" content="${image}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:title" content="${title}" />`
+  );
+  nextHtml = upsertHeadTag(
+    nextHtml,
+    /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/,
+    `<meta name="twitter:description" content="${description}" />`
+  );
+
+  return nextHtml;
+}
+
+function shouldNoIndexStaticResource(urlPath, ext) {
+  if (urlPath === '/7f74f2a3a02f4e1b8e9a6c5d4b3a2190.txt') {
+    return true;
+  }
+
+  if (ext === '.html' || ext === '.xml' || ext === '.txt') {
+    return false;
+  }
+
+  return (
+    urlPath === '/manifest.json' ||
+    urlPath === '/sw.js' ||
+    urlPath === '/README.md' ||
+    urlPath.startsWith('/locales/') ||
+    urlPath.startsWith('/docs/') ||
+    urlPath.startsWith('/a/')
+  );
 }
 
 function logRequest(ip, method, path, status, duration) {

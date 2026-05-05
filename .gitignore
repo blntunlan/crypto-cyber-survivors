@@ -121,6 +121,10 @@ Desktop.ini
 *.sqlite3
 *.db
 
+# Temporary / tool-generated directories
+.tmp-codex-push-repo-2/
+googleerror/
+
 # Vitest cache
 .vitest
 
