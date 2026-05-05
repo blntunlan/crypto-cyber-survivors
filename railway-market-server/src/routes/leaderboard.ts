@@ -3,14 +3,22 @@ import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
 import { Logger } from '../utils/logger';
+import { cacheMiddleware, cacheInvalidator } from '../middleware/responseCache';
+import { LeaderboardCache } from '../services/cacheService';
 
 const router = Router();
+
+// Invalidate HTTP response cache on any write to this router
+router.use(cacheInvalidator);
 
 /**
  * GET /api/v1/leaderboard — Public leaderboard (aggregated per player)
  * Query params: ?pair=BTC&limit=50&offset=0&sort=max_survival_time
+ *
+ * Cached for 60 s at the service layer; HTTP response also carries
+ * Cache-Control: public, max-age=60 via cacheMiddleware.
  */
-router.get('/', asyncHandler(async (req: Request, res: Response) => {
+router.get('/', cacheMiddleware(60), asyncHandler(async (req: Request, res: Response) => {
   try {
     const pair = req.query.pair as string | undefined;
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
@@ -25,6 +33,14 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       ? sortParam
       : 'max_survival_time';
 
+    // Service-level cache key encodes all query dimensions
+    const cacheKey = `leaderboard:${pair ?? 'all'}:${sort}:${limit}:${offset}`;
+    const cached = LeaderboardCache.get<{ data: unknown[]; limit: number; offset: number; sort: string }>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const db = getDb();
 
     // View queries stay as raw SQL since Drizzle views are read-only and
@@ -37,7 +53,9 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
           sql`SELECT * FROM v_leaderboard ORDER BY ${sql.raw(sort)} DESC LIMIT ${limit} OFFSET ${offset}`
         );
 
-    res.json({ data: result.rows, limit, offset, sort });
+    const payload = { data: result.rows, limit, offset, sort };
+    LeaderboardCache.set(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     Logger.error('[Leaderboard] Error:', error);
     res.status(500).json({ error: 'Internal server error' });

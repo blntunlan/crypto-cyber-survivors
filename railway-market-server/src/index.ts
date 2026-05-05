@@ -15,6 +15,8 @@ import {
   telemetryLimiter,
   leaderboardLimiter,
 } from './middleware/rateLimit';
+import { getCacheMetrics, evictAllExpired } from './services/cacheService';
+import { getCacheSize } from './middleware/responseCache';
 
 // API Routes
 import profileRouter from './routes/profile';
@@ -307,6 +309,10 @@ app.get(
         pool: poolStats,
         tableCounts,
       },
+      cache: {
+        httpResponseCacheSize: getCacheSize(),
+        serviceCaches: getCacheMetrics(),
+      },
       activity: {
         sessionStats,
         recentErrors_1h: recentErrors,
@@ -350,6 +356,11 @@ async function startServer(): Promise<void> {
 
     // Run pending database migrations
     await runMigrations();
+
+    // Periodic cache eviction — remove stale entries every 60 s
+    setInterval(() => {
+      evictAllExpired();
+    }, 60_000).unref();
 
     // Start HTTP server
     const server = app.listen(PORT, () => {

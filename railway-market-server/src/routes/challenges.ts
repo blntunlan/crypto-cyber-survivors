@@ -8,8 +8,13 @@ import { dailyChallenges, challengeCompletions, challengeSeedLog, sessions } fro
 import { getProfileId } from '../db/helpers';
 import { Logger } from '../utils/logger';
 import { logAudit, getClientInfo } from '../utils/auditLogger';
+import { cacheMiddleware, cacheInvalidator } from '../middleware/responseCache';
+import { ChallengeCache, LeaderboardCache } from '../services/cacheService';
 
 const router = Router();
+
+// Invalidate HTTP response cache on any write to this router
+router.use(cacheInvalidator);
 
 // ── Challenge template pool (server generates from these) ─────────
 
@@ -122,11 +127,20 @@ function formatChallenge(row: ChallengeRow) {
 
 /**
  * GET /api/v1/challenges/today — Get today's daily challenge
+ *
+ * Cached for 30 s — the challenge definition is stable for the whole day.
  */
-router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
+router.get('/today', cacheMiddleware(30), asyncHandler(async (_req: Request, res: Response) => {
   try {
     const today = toIsoDate(new Date());
     const challengeId = `${today}-daily`;
+
+    const cached = ChallengeCache.get(challengeId);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const db = getDb();
 
     const existing = await db
@@ -136,7 +150,9 @@ router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
       .limit(1);
 
     if (existing.length > 0) {
-      res.json(formatChallenge(existing[0]));
+      const formatted = formatChallenge(existing[0]);
+      ChallengeCache.set(challengeId, formatted);
+      res.json(formatted);
       return;
     }
 
@@ -167,10 +183,14 @@ router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
       .onConflictDoNothing();
 
     if (rows.length > 0) {
-      res.json(formatChallenge(rows[0]));
+      const formatted = formatChallenge(rows[0]);
+      ChallengeCache.set(challengeId, formatted);
+      res.json(formatted);
     } else {
       const retry = await db.select().from(dailyChallenges).where(eq(dailyChallenges.id, challengeId)).limit(1);
-      res.json(formatChallenge(retry[0]));
+      const formatted = formatChallenge(retry[0]);
+      ChallengeCache.set(challengeId, formatted);
+      res.json(formatted);
     }
   } catch (error) {
     Logger.error('[Challenges] Today error:', error);
@@ -180,8 +200,10 @@ router.get('/today', asyncHandler(async (_req: Request, res: Response) => {
 
 /**
  * GET /api/v1/challenges/weekly — Get this week's weekly challenge
+ *
+ * Cached for 30 s — the challenge definition is stable for the whole week.
  */
-router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
+router.get('/weekly', cacheMiddleware(30), asyncHandler(async (_req: Request, res: Response) => {
   try {
     const now = new Date();
     const dayOfWeek = now.getUTCDay() || 7;
@@ -189,6 +211,13 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
     monday.setUTCDate(now.getUTCDate() - dayOfWeek + 1);
     const weekStr = toIsoDate(monday);
     const challengeId = `${weekStr}-weekly`;
+
+    const cached = ChallengeCache.get(challengeId);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const db = getDb();
 
     const existing = await db
@@ -198,7 +227,9 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
       .limit(1);
 
     if (existing.length > 0) {
-      res.json(formatChallenge(existing[0]));
+      const formatted = formatChallenge(existing[0]);
+      ChallengeCache.set(challengeId, formatted);
+      res.json(formatted);
       return;
     }
 
@@ -230,10 +261,14 @@ router.get('/weekly', asyncHandler(async (_req: Request, res: Response) => {
       .onConflictDoNothing();
 
     if (rows.length > 0) {
-      res.json(formatChallenge(rows[0]));
+      const formatted = formatChallenge(rows[0]);
+      ChallengeCache.set(challengeId, formatted);
+      res.json(formatted);
     } else {
       const retry = await db.select().from(dailyChallenges).where(eq(dailyChallenges.id, challengeId)).limit(1);
-      res.json(formatChallenge(retry[0]));
+      const formatted = formatChallenge(retry[0]);
+      ChallengeCache.set(challengeId, formatted);
+      res.json(formatted);
     }
   } catch (error) {
     Logger.error('[Challenges] Weekly error:', error);
@@ -410,17 +445,27 @@ router.post('/complete', requireAuth, asyncHandler(async (req: Request, res: Res
 
 /**
  * GET /api/v1/challenges/:challengeId/leaderboard — Challenge leaderboard
+ *
+ * Cached for 60 s — leaderboard rankings change slowly relative to request rate.
  */
-router.get('/:challengeId/leaderboard', asyncHandler(async (req: Request, res: Response) => {
+router.get('/:challengeId/leaderboard', cacheMiddleware(60), asyncHandler(async (req: Request, res: Response) => {
   try {
     const { challengeId } = req.params;
+
+    const cacheKey = `challenge:leaderboard:${challengeId}`;
+    const cached = LeaderboardCache.get<{ challengeId: string; entries: unknown[] }>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const db = getDb();
 
     const result = await db.execute(
       sql`SELECT * FROM v_challenge_leaderboard WHERE challenge_id = ${challengeId} LIMIT 100`
     );
 
-    res.json({
+    const payload = {
       challengeId,
       entries: result.rows.map((r: Record<string, unknown>) => ({
         nickname: r.nickname,
@@ -431,7 +476,9 @@ router.get('/:challengeId/leaderboard', asyncHandler(async (req: Request, res: R
         levelReached: r.level_reached,
         completedAt: r.completed_at,
       })),
-    });
+    };
+    LeaderboardCache.set(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     Logger.error('[Challenges] Leaderboard error:', error);
     res.status(500).json({ error: 'Internal server error' });
