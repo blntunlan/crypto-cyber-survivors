@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { sql } from 'drizzle-orm';
 import { Logger } from '../utils/logger';
 import { asyncHandler } from '../utils/asyncHandler';
-import { getDb } from '../db';
+import { cacheMiddleware } from '../middleware/responseCache';
+import { getPriceHistory } from '../db/queries';
 
 /**
  * SSE Market Data Stream
@@ -119,23 +119,17 @@ export function getSSEClientCount(): number {
 /**
  * GET /api/v1/market/history?pair=BTC&limit=300
  * Returns recent price history for indicator warmup.
+ *
+ * Cached for 10 s — price history is append-only and changes slowly
+ * relative to the SSE stream, so a short TTL is safe.
  */
-router.get('/history', asyncHandler(async (req: Request, res: Response) => {
+router.get('/history', cacheMiddleware(10), asyncHandler(async (req: Request, res: Response) => {
   try {
     const pair = (req.query.pair as string) ?? 'BTC';
     const limit = Math.min(Number(req.query.limit) || 300, 1000);
 
-    const db = getDb();
-    const result = await db.execute(
-      sql`SELECT price, volume, timestamp
-          FROM price_history
-          WHERE pair = ${pair}
-          ORDER BY timestamp DESC
-          LIMIT ${limit}`
-    );
-
-    // Reverse to chronological order
-    res.json(result.rows.reverse());
+    const rows = await getPriceHistory(pair, limit);
+    res.json(rows);
   } catch (error) {
     Logger.error('[Market] History fetch failed:', error);
     res.status(500).json({ error: 'Failed to fetch price history' });

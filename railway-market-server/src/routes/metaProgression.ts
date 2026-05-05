@@ -7,8 +7,13 @@ import { metaProgression } from '../db/schema';
 import { getProfileId } from '../db/helpers';
 import { Logger } from '../utils/logger';
 import { logAudit, getClientInfo } from '../utils/auditLogger';
+import { cacheMiddleware, cacheInvalidator } from '../middleware/responseCache';
+import { UserCache, LeaderboardCache } from '../services/cacheService';
 
 const router = Router();
+
+// Invalidate HTTP response cache on any write to this router
+router.use(cacheInvalidator);
 
 // Valid upgrade IDs and their max levels + cost tables
 const META_UPGRADE_DEFS: Record<string, { maxLevel: number; costPerLevel: number[] }> = {
@@ -32,6 +37,8 @@ const META_UPGRADE_DEFS: Record<string, { maxLevel: number; costPerLevel: number
 
 /**
  * GET /api/v1/meta/state — Get full meta progression state
+ *
+ * Cached for 30 s per user. Invalidated on purchase/transfer.
  */
 router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
@@ -39,6 +46,18 @@ router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Respons
     const profileId = await getProfileId(authUserId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
+
+    const cacheKey = `${profileId}:meta:state`;
+    const cached = UserCache.get<{
+      metaCoins: number;
+      upgrades: unknown;
+      totalRunsCompleted: number;
+      totalMetaCoinsEarned: number;
+    }>(cacheKey);
+    if (cached) {
+      res.json(cached);
       return;
     }
 
@@ -61,15 +80,18 @@ router.get('/state', requireAuth, asyncHandler(async (req: Request, res: Respons
         .values({ profileId })
         .onConflictDoNothing();
 
-      res.json({
+      const empty = {
         metaCoins: 0,
         upgrades: {},
         totalRunsCompleted: 0,
         totalMetaCoinsEarned: 0,
-      });
+      };
+      UserCache.set(cacheKey, empty);
+      res.json(empty);
       return;
     }
 
+    UserCache.set(cacheKey, rows[0]);
     res.json(rows[0]);
   } catch (error) {
     Logger.error('[MetaProgression] State error:', error);
@@ -130,6 +152,9 @@ router.post('/purchase', requireAuth, asyncHandler(async (req: Request, res: Res
 
     const row = result.rows[0] as { upgrade_id: string; new_level: number; new_meta_coins: string };
     Logger.info(`[MetaProgression] ${profileId} purchased ${upgradeId} → level ${row.new_level}`);
+
+    // Invalidate cached state so the next GET /state reflects the purchase
+    UserCache.invalidateProfile(profileId);
 
     const { ipAddress, userAgent } = getClientInfo(req);
     await logAudit({
@@ -198,15 +223,24 @@ router.post('/transfer', requireAuth, asyncHandler(async (req: Request, res: Res
 
 /**
  * GET /api/v1/meta/leaderboard — Top players by total meta coins earned
+ *
+ * Cached for 60 s — ranking data changes infrequently.
  */
-router.get('/leaderboard', asyncHandler(async (_req: Request, res: Response) => {
+router.get('/leaderboard', cacheMiddleware(60), asyncHandler(async (_req: Request, res: Response) => {
   try {
+    const cacheKey = 'meta:leaderboard';
+    const cached = LeaderboardCache.get<{ entries: unknown[] }>(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const db = getDb();
     const result = await db.execute(
       sql`SELECT * FROM v_meta_leaderboard LIMIT 100`
     );
 
-    res.json({
+    const payload = {
       entries: result.rows.map((r: Record<string, unknown>) => ({
         nickname: r.nickname,
         avatarUrl: r.avatar_url,
@@ -214,7 +248,9 @@ router.get('/leaderboard', asyncHandler(async (_req: Request, res: Response) => 
         totalRunsCompleted: r.total_runs_completed,
         totalMetaCoinsEarned: Number(r.total_meta_coins_earned),
       })),
-    });
+    };
+    LeaderboardCache.set(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     Logger.error('[MetaProgression] Leaderboard error:', error);
     res.status(500).json({ error: 'Internal server error' });
