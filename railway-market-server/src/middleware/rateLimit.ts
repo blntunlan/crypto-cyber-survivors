@@ -1,11 +1,4 @@
-import rateLimit from 'express-rate-limit';
-
-// Shared key generator — respects proxied IPs
-const keyGenerator = (req: { headers: Record<string, string | string[] | undefined>; ip?: string }) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return forwardedStr?.split(',')[0]?.trim() || req.ip || 'unknown';
-};
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 // Global rate limiter - 100 req/min per IP
 export const globalLimiter = rateLimit({
@@ -14,7 +7,7 @@ export const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
-  keyGenerator,
+  keyGenerator: ipKeyGenerator,
 });
 
 // Auth routes - stricter: 20 req/min per IP
@@ -24,7 +17,7 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many auth attempts, please try again later' },
-  keyGenerator,
+  keyGenerator: ipKeyGenerator,
 });
 
 // Write routes - 50 req/min per IP
@@ -34,7 +27,7 @@ export const writeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many write requests, please try again later' },
-  keyGenerator,
+  keyGenerator: ipKeyGenerator,
 });
 
 // Telemetry - 10 req/min per IP
@@ -44,7 +37,7 @@ export const telemetryLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many telemetry requests' },
-  keyGenerator,
+  keyGenerator: ipKeyGenerator,
 });
 
 // Leaderboard - 30 req/min per IP
@@ -54,5 +47,5 @@ export const leaderboardLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many leaderboard requests' },
-  keyGenerator,
+  keyGenerator: ipKeyGenerator,
 });
