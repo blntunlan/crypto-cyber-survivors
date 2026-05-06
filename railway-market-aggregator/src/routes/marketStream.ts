@@ -161,12 +161,23 @@ export function getSSEClientCount(): number {
  * GET /api/v1/market/history?pair=BTC&limit=300
  * Returns recent price history for indicator warmup.
  */
+const historyCache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL_MS = 10000; // 10 seconds
+
 router.get(
   '/history',
   asyncHandler(async (req: Request, res: Response) => {
     try {
       const pair = (req.query.pair as string | undefined) ?? 'BTC';
       const limit = Math.min(Number(req.query.limit) || 300, 1000);
+
+      const cacheKey = `${pair}_${limit}`;
+      const cached = historyCache.get(cacheKey);
+
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        res.json(cached.data);
+        return;
+      }
 
       const db = getDb();
       const result = await db.execute(
@@ -177,7 +188,10 @@ router.get(
           LIMIT ${limit}`
       );
 
-      res.json(result.rows.reverse());
+      const responseData = result.rows.reverse();
+      historyCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+
+      res.json(responseData);
     } catch (error) {
       Logger.error('[Market] History fetch failed:', error);
       res.status(500).json({ error: 'Failed to fetch price history' });

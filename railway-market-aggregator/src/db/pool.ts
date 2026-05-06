@@ -15,9 +15,10 @@ export function getPool(): pg.Pool {
 
   pool = new Pool({
     connectionString,
-    max: 5, // Aggregator needs fewer connections than the API server
+    max: 30, // Increased for connection pooling
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
+    statement_timeout: 5000, // Query timeout of 5s max
     // Railway internal networking uses private network — rejectUnauthorized:false
     // is acceptable for internal connections. For external PG, use proper CA certs.
     ssl: connectionString.includes('railway.app')
@@ -57,7 +58,7 @@ export function getPool(): pg.Pool {
     }
   }, POOL_CHECK_INTERVAL).unref();
 
-  Logger.info('✅ PostgreSQL connection pool created (max: 5)');
+  Logger.info('✅ PostgreSQL connection pool created (max: 30)');
   return pool;
 }
 

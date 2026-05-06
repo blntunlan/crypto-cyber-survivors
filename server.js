@@ -12,6 +12,7 @@ import { createServer } from 'http';
 import { readFileSync, existsSync, statSync } from 'fs';
 import { join, extname } from 'path';
 import { URL } from 'url';
+import { gzipSync, brotliCompressSync } from 'zlib';
 
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = join(process.cwd(), 'dist');
@@ -439,7 +440,6 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
 
     const headers = {
       'Content-Type': mimeType,
-      'Content-Length': content.length,
       ...getSecurityHeaders(isAsset),
     };
 
@@ -455,6 +455,24 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
     if (shouldNoIndexStaticResource(urlPath, ext)) {
       headers['X-Robots-Tag'] = 'noindex';
     }
+
+    // Apply compression
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    
+    // Don't compress already compressed formats (images, audio, video)
+    const isCompressible = !mimeType.startsWith('image/') && !mimeType.startsWith('audio/') && !mimeType.startsWith('video/') && ext !== '.zip' && ext !== '.pdf' && ext !== '.wasm';
+
+    if (isCompressible) {
+      if (acceptEncoding.includes('br')) {
+        content = brotliCompressSync(content);
+        headers['Content-Encoding'] = 'br';
+      } else if (acceptEncoding.includes('gzip')) {
+        content = gzipSync(content);
+        headers['Content-Encoding'] = 'gzip';
+      }
+    }
+    
+    headers['Content-Length'] = content.length;
 
     res.writeHead(200, headers);
     res.end(content);

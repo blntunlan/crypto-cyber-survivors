@@ -40,10 +40,14 @@ import { getMarketRuntimeConfig } from './config/marketRuntime';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { LandingPage } from './components/screens/LandingPage';
-import { DocScreen } from './components/screens/DocScreen';
 import { GameAppShell } from './components/GameAppShell';
 
 // Lazy-load feature screens
+const DocScreen = React.lazy(() =>
+  import('./components/screens/DocScreen').then(m => ({
+    default: m.DocScreen,
+  }))
+);
 const MetaUpgradeScreen = React.lazy(() =>
   import('./components/screens/MetaUpgradeScreen').then(m => ({
     default: m.MetaUpgradeScreen,
@@ -59,7 +63,17 @@ const ReplayListScreen = React.lazy(() =>
     default: m.ReplayListScreen,
   }))
 );
-import { PrivacyPolicy, TermsOfService } from './components/screens/LegalModals';
+
+const PrivacyPolicy = React.lazy(() =>
+  import('./components/screens/LegalModals').then(m => ({
+    default: m.PrivacyPolicy,
+  }))
+);
+const TermsOfService = React.lazy(() =>
+  import('./components/screens/LegalModals').then(m => ({
+    default: m.TermsOfService,
+  }))
+);
 
 // Lazy load Evolution Viewer for Project Darwin
 const EvolutionViewer = React.lazy(() => import('./components/admin/EvolutionViewer'));
@@ -372,49 +386,55 @@ const App: React.FC = () => {
 
             {/* Legal Modals */}
             {showPrivacy && (
-              <PrivacyPolicy
-                onClose={() => {
-                  patchLegalRoute({ showPrivacy: false });
-                  if (window.location.pathname === '/privacy') {
-                    window.history.pushState(null, '', '/');
-                  }
-                }}
-                onViewTerms={() => {
-                  patchLegalRoute({
-                    showPrivacy: false,
-                    showTerms: true,
-                  });
-                  window.history.pushState(null, '', '/terms');
-                }}
-              />
+              <React.Suspense fallback={null}>
+                <PrivacyPolicy
+                  onClose={() => {
+                    patchLegalRoute({ showPrivacy: false });
+                    if (window.location.pathname === '/privacy') {
+                      window.history.pushState(null, '', '/');
+                    }
+                  }}
+                  onViewTerms={() => {
+                    patchLegalRoute({
+                      showPrivacy: false,
+                      showTerms: true,
+                    });
+                    window.history.pushState(null, '', '/terms');
+                  }}
+                />
+              </React.Suspense>
             )}
             {showTerms && (
-              <TermsOfService
-                onClose={() => {
-                  patchLegalRoute({ showTerms: false });
-                  if (window.location.pathname === '/terms') {
-                    window.history.pushState(null, '', '/');
-                  }
-                }}
-                onViewPrivacy={() => {
-                  patchLegalRoute({
-                    showTerms: false,
-                    showPrivacy: true,
-                  });
-                  window.history.pushState(null, '', '/privacy');
-                }}
-              />
+              <React.Suspense fallback={null}>
+                <TermsOfService
+                  onClose={() => {
+                    patchLegalRoute({ showTerms: false });
+                    if (window.location.pathname === '/terms') {
+                      window.history.pushState(null, '', '/');
+                    }
+                  }}
+                  onViewPrivacy={() => {
+                    patchLegalRoute({
+                      showTerms: false,
+                      showPrivacy: true,
+                    });
+                    window.history.pushState(null, '', '/privacy');
+                  }}
+                />
+              </React.Suspense>
             )}
             {showDocs && (
-              <DocScreen
-                onClose={() => {
-                  patchLegalRoute({ showDocs: false });
-                  window.location.hash = '';
-                  if (window.location.pathname === '/docs') {
-                    window.history.pushState(null, '', '/');
-                  }
-                }}
-              />
+              <React.Suspense fallback={null}>
+                <DocScreen
+                  onClose={() => {
+                    patchLegalRoute({ showDocs: false });
+                    window.location.hash = '';
+                    if (window.location.pathname === '/docs') {
+                      window.history.pushState(null, '', '/');
+                    }
+                  }}
+                />
+              </React.Suspense>
             )}
 
             {/* DEV-only VFX Preview Lab (Ctrl+Shift+V) */}

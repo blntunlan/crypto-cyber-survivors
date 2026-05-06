@@ -1,4 +1,0 @@
-interface:
-  display_name: 'Test Freshness Auditor'
-  short_description: 'Audit and refresh outdated or missing tests'
-  default_prompt: 'Use $test-freshness-auditor to inspect files one by one, detect stale or missing tests, and apply safe test updates.'
