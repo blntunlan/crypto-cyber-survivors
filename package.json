@@ -38,7 +38,7 @@
     "train:ai": "tsx simulation/evolution/Trainer.ts --watch"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.89.0",
+    "@supabase/supabase-js": "2.105.3",
     "ami": "^1.0.0",
     "bs58": "^6.0.0",
     "clsx": "^2.1.1",
