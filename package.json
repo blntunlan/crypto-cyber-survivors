@@ -90,7 +90,7 @@
     "typedoc": "^0.28.15",
     "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.50.0",
+    "typescript-eslint": "^8.59.2",
     "vite": "^6.4.1",
     "vitest": "^4.0.16"
   },
