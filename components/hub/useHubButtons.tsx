@@ -1,6 +1,7 @@
 import React from 'react';
 import { COLORS } from '../../config/Colors';
 import { type HubButtonId } from './HubMenuButton.tsx';
+import { type HubScreen } from './HubMenu';
 import {
   HubIconPlay,
   HubIconStash,
@@ -17,7 +18,7 @@ export interface HubButtonConfig {
   getSubtitle: () => string;
   getBadge: () => number;
   accentColor: string;
-  screen: string;
+  screen: HubScreen;
   disabled?: boolean;
 }
 
@@ -26,7 +27,7 @@ interface UseHubButtonsOptions {
   lootboxCount: number;
   iconClass: string;
   isRetro: boolean;
-  t: (key: string, vars?: Record<string, unknown>) => string | string[];
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
 export function useHubButtons({

@@ -426,7 +426,7 @@ export const LeaderboardScreen: React.FC = () => {
   const listEntries = entries.slice(3);
   const currentPlayerEntry = entries.find(e => e.isCurrentPlayer);
   const stickyCurrentPlayerEntry =
-    currentPlayerEntry?.rank > 10 ? currentPlayerEntry : null;
+    currentPlayerEntry && currentPlayerEntry.rank > 10 ? currentPlayerEntry : null;
 
   return (
     <m.div

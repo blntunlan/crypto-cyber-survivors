@@ -1,5 +1,14 @@
 /**
- * WeaponSystem — Manages weapon inventory, upgrades, and firing
+ * WeaponSystem — Manages weapon inventory, upgrades, and firing.
+ *
+ * Weapons fire through the shared WeaponFiringPipeline, which provides:
+ *   - SpatialGrid-based targeting with viewport culling
+ *   - Predictive aiming (leading shots)
+ *   - Behavior-specific projectile patterns (targeted/spread/burst)
+ *
+ * This ensures every weapon (base + extras) uses the exact same core
+ * targeting and aiming logic — no more divergence between CombatSystem
+ * base fire and WeaponSystem extra weapons.
  */
 
 import { EventBus } from '../core/EventBus';
@@ -11,6 +20,8 @@ import {
   type WeaponInstance,
   type WeaponMarketContext,
 } from '../../types/weapons';
+import { type IPoolManager } from '../interfaces/IPoolManager';
+import { WeaponFiringPipeline } from './WeaponFiringPipeline';
 
 class WeaponSystemClass {
   private weapons: WeaponInstance[] = [];
@@ -60,12 +71,27 @@ class WeaponSystemClass {
     }
   }
 
+  /**
+   * Tick all weapon cooldowns and fire through the shared pipeline.
+   *
+   * @param deltaTime - Frame delta in ms
+   * @param playerX - Player world X
+   * @param playerY - Player world Y
+   * @param playerDamageMultiplier - Global damage multiplier (from stats)
+   * @param marketCtx - Current market context for bonus calculation
+   * @param pool - Pool manager for spawning projectiles
+   * @param screenWidth - Viewport width for targeting culling
+   * @param screenHeight - Viewport height for targeting culling
+   */
   update(
     deltaTime: number,
     playerX: number,
     playerY: number,
     playerDamageMultiplier: number,
-    marketCtx: WeaponMarketContext
+    marketCtx: WeaponMarketContext,
+    pool: IPoolManager,
+    screenWidth: number,
+    screenHeight: number
   ): void {
     for (const weapon of this.weapons) {
       weapon.cooldownTimer = Math.max(0, weapon.cooldownTimer - deltaTime);
@@ -77,13 +103,29 @@ class WeaponSystemClass {
           cfg.marketBonus(marketCtx) *
           playerDamageMultiplier;
 
-        EventBus.emit('weaponFired', {
-          weaponId: weapon.id,
-          x: playerX,
-          y: playerY,
+        // Fire through the shared pipeline — same targeting, aiming, and
+        // viewport logic as the base weapon in CombatSystem
+        const fired = WeaponFiringPipeline.fire({
+          playerX,
+          playerY,
           damage,
           level: weapon.level,
+          config: cfg,
+          pool,
+          screenWidth,
+          screenHeight,
         });
+
+        if (fired) {
+          // Emit event for audio/UI feedback only (no longer drives spawning)
+          EventBus.emit('weaponFired', {
+            weaponId: weapon.id,
+            x: playerX,
+            y: playerY,
+            damage,
+            level: weapon.level,
+          });
+        }
 
         const cooldown = Math.max(
           50,

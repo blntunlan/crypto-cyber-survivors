@@ -1,33 +1,33 @@
 import { useEffect } from 'react';
 import { EventBus } from '../services/core/EventBus';
-import { type MarketData, type MarketPosition } from '../types';
-import { type GameState } from '../types/gameState';
-import { COLORS, GAME_ENGINE } from '../constants';
-import { WEAPON_REGISTRY } from '../config/WeaponRegistry';
-import { type WeaponId } from '../types/weapons';
+import { type MarketData, type MarketPosition, type GameState } from '../types';
+import { GAME_ENGINE } from '../constants';
 import { audio } from '../services/audio';
 import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketEventAnnouncer } from '../services/market/MarketEventAnnouncer';
 import { type HitStopGovernor } from '../services/gameplay/HitStopGovernor';
-import { type PoolManager } from '../services/combat/PoolManager';
 
 interface UseGameEngineEventsParams {
   stateRef: React.RefObject<GameState>;
   marketDataRef: React.RefObject<MarketData>;
-  poolRef: React.RefObject<PoolManager>;
   hitStopGovernorRef: React.RefObject<HitStopGovernor>;
   position: MarketPosition;
 }
 
 /**
  * Extracted EventBus listeners from GameEngine.
- * Handles: hitStop, gameMarketUpdate, nearMiss, weaponFired events.
+ * Handles: hitStop, gameMarketUpdate, nearMiss events.
+ *
+ * NOTE: weaponFired projectile spawning has been moved to the service layer
+ * (WeaponSystem → WeaponFiringPipeline). The weaponFired event is now only
+ * used for audio/UI feedback, which is handled directly in useGameEngineEvents
+ * via a lightweight listener.
+ *
  * All listeners are cleaned up on unmount.
  */
 export function useGameEngineEvents({
   stateRef,
   marketDataRef,
-  poolRef,
   hitStopGovernorRef,
   position,
 }: UseGameEngineEventsParams): void {
@@ -84,83 +84,13 @@ export function useGameEngineEvents({
     return unsubscribe;
   }, [stateRef]);
 
-  // Spawn projectiles when weapons fire
+  // weaponFired audio feedback — laser fires frequently so skip shoot sound for it
   useEffect(() => {
     const unsub = EventBus.on('weaponFired', data => {
-      const cfg = WEAPON_REGISTRY[data.weaponId as WeaponId];
-      const poolManager = poolRef.current;
-
-      // Orbit Shield: burst projectiles in all directions (no target needed)
-      if (cfg.id === 'orbit_shield') {
-        const count = cfg.projectileCount + ((data.level ?? 1) - 1);
-        for (let i = 0; i < count; i++) {
-          const angle = (i / count) * Math.PI * 2;
-          const vx = Math.cos(angle) * cfg.projectileSpeed;
-          const vy = Math.sin(angle) * cfg.projectileSpeed;
-          const bullet = poolManager.getBullet(
-            data.x,
-            data.y,
-            vx,
-            vy,
-            data.damage,
-            cfg.projectileRadius,
-            '#44ddff',
-            false,
-            false
-          );
-          bullet.weaponId = cfg.id;
-        }
-        return;
-      }
-
-      // All other weapons need a target enemy
-      const enemies = poolManager.activeEnemies;
-      let bestX = 0;
-      let bestY = 0;
-      let bestDistSq = Infinity;
-      let found = false;
-
-      for (let i = 0; i < enemies.length; i++) {
-        const enemy = enemies[i]!;
-        if (enemy.isDying || !enemy.active) continue;
-        const dx = enemy.x - data.x;
-        const dy = enemy.y - data.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-          bestX = enemy.x;
-          bestY = enemy.y;
-          bestDistSq = distSq;
-          found = true;
-        }
-      }
-
-      if (!found) return;
-
-      const baseAngle = Math.atan2(bestY - data.y, bestX - data.x);
-      const count = cfg.projectileCount;
-      const spreadAngle = 0.15;
-
-      for (let i = 0; i < count; i++) {
-        const angleOffset = (i - (count - 1) / 2) * spreadAngle;
-        const finalAngle = baseAngle + angleOffset;
-        const vx = Math.cos(finalAngle) * cfg.projectileSpeed;
-        const vy = Math.sin(finalAngle) * cfg.projectileSpeed;
-
-        const bullet = poolManager.getBullet(
-          data.x,
-          data.y,
-          vx,
-          vy,
-          data.damage,
-          cfg.projectileRadius,
-          COLORS.BULLET,
-          false,
-          false
-        );
-        bullet.weaponId = cfg.id;
-      }
+      // Skip audio for very-fast-firing weapons to prevent sound overlap
+      if (data.weaponId === 'laser') return;
+      audio.playShoot(0.6, 1);
     });
-
     return unsub;
-  }, [poolRef]);
+  }, []);
 }

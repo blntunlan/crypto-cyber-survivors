@@ -18,6 +18,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.25,
     cooldownPerLevel: 0.08,
     marketBonus: () => 1.0,
+    behavior: 'targeted',
     evolutionPair: 'laser',
     evolutionResult: 'hyper_cannon',
     visual: {
@@ -43,6 +44,8 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.2,
     cooldownPerLevel: 0.08,
     marketBonus: ({ volumeNorm }) => 1.0 + (volumeNorm > 0.7 ? 0.3 : 0),
+    behavior: 'spread',
+    spreadAngle: 0.4,
     visual: {
       renderKind: 'spread',
       params: {
@@ -61,14 +64,15 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     name: 'Volatility Laser',
     icon: '⚡',
     description: 'Rapid-fire beam, ATR-driven damage',
-    baseDamage: 8,
-    baseCooldown: 100,
-    projectileSpeed: 25,
+    baseDamage: 6,
+    baseCooldown: 250,
+    projectileSpeed: 14,
     projectileRadius: 3,
     projectileCount: 1,
-    damagePerLevel: 0.3,
+    damagePerLevel: 0.2,
     cooldownPerLevel: 0,
-    marketBonus: ({ atrPercent }) => 0.5 + Math.min(atrPercent / 0.03, 1) * 1.5,
+    marketBonus: ({ atrPercent }) => 0.7 + Math.min(atrPercent / 0.03, 1) * 0.8,
+    behavior: 'targeted',
     evolutionPair: 'quantum_bullet',
     evolutionResult: 'hyper_cannon',
     visual: { renderKind: 'default' },
@@ -86,6 +90,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.2,
     cooldownPerLevel: 0.1,
     marketBonus: ({ isFavorable }) => (isFavorable ? 2.0 : 1.0),
+    behavior: 'targeted',
     visual: { renderKind: 'default' },
   },
   aoe_nuke: {
@@ -101,6 +106,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.15,
     cooldownPerLevel: 0.06,
     marketBonus: ({ pnl }) => (pnl < -0.3 ? 1.5 : 1.0),
+    behavior: 'targeted',
     visual: { renderKind: 'default' },
   },
   orbit_shield: {
@@ -116,6 +122,7 @@ export const WEAPON_REGISTRY: Record<WeaponId, WeaponConfig> = {
     damagePerLevel: 0.25,
     cooldownPerLevel: 0.05,
     marketBonus: ({ pnl }) => (pnl > 0 ? 1.3 : 1.0),
+    behavior: 'burst',
     visual: { renderKind: 'default' },
   },
 };

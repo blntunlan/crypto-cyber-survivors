@@ -10,6 +10,26 @@ updates:
     assignees:
       - 'blntunlan'
 
+  - package-ecosystem: 'npm'
+    directory: '/railway-market-server'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'blntunlan'
+    assignees:
+      - 'blntunlan'
+
+  - package-ecosystem: 'npm'
+    directory: '/railway-market-aggregator'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'blntunlan'
+    assignees:
+      - 'blntunlan'
+
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:

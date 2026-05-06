@@ -1,11 +1,14 @@
 import rateLimit from 'express-rate-limit';
 
-// Shared key generator — respects proxied IPs
-const keyGenerator = (req: { headers: Record<string, string | string[] | undefined>; ip?: string }) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return forwardedStr?.split(',')[0]?.trim() || req.ip || 'unknown';
-};
+/**
+ * Rate limiters for API routes.
+ *
+ * No custom keyGenerator is needed — Express's `trust proxy` setting (set in
+ * index.ts) ensures `req.ip` already resolves the real client IP from
+ * X-Forwarded-For. express-rate-limit v7+ uses `req.ip` by default and
+ * validates IPv6 addresses internally; a custom keyGenerator that manually
+ * parses X-Forwarded-For triggers ERR_ERL_KEY_GEN_IPV6 on Railway's IPv6 infra.
+ */
 
 // Global rate limiter - 100 req/min per IP
 export const globalLimiter = rateLimit({
@@ -14,7 +17,6 @@ export const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
-  keyGenerator,
 });
 
 // Auth routes - stricter: 20 req/min per IP
@@ -24,7 +26,6 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many auth attempts, please try again later' },
-  keyGenerator,
 });
 
 // Write routes - 50 req/min per IP
@@ -34,7 +35,6 @@ export const writeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many write requests, please try again later' },
-  keyGenerator,
 });
 
 // Telemetry - 10 req/min per IP
@@ -44,7 +44,6 @@ export const telemetryLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many telemetry requests' },
-  keyGenerator,
 });
 
 // Leaderboard - 30 req/min per IP
@@ -54,5 +53,4 @@ export const leaderboardLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many leaderboard requests' },
-  keyGenerator,
 });

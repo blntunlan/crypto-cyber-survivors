@@ -553,11 +553,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return undefined;
   }, [status, pair, position]);
 
-  // Extracted EventBus listeners: hitStop, gameMarketUpdate, nearMiss, weaponFired
+  // Extracted EventBus listeners: hitStop, gameMarketUpdate, nearMiss, weaponFired audio
   useGameEngineEvents({
     stateRef: state,
     marketDataRef,
-    poolRef: pool,
     hitStopGovernorRef,
     position,
   });
@@ -1090,14 +1089,23 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         );
         FPSMonitor.recordPhysics(performance.now() - physStart);
 
-        // Update Weapon System (market-driven weapon firing)
-        WeaponSystem.update(deltaTime, player.x, player.y, player.baseDamage, {
-          atrPercent: marketDataRef.current.atrPercent ?? 0,
-          rsiState: marketDataRef.current.rsiState ?? 'NEUTRAL',
-          pnl: marketDataRef.current.pnl,
-          volumeNorm: marketDataRef.current.difficulty,
-          isFavorable: marketDataRef.current.pnl >= 0,
-        });
+        // Update Weapon System (market-driven weapon firing via shared pipeline)
+        WeaponSystem.update(
+          deltaTime,
+          player.x,
+          player.y,
+          player.baseDamage,
+          {
+            atrPercent: marketDataRef.current.atrPercent ?? 0,
+            rsiState: marketDataRef.current.rsiState ?? 'NEUTRAL',
+            pnl: marketDataRef.current.pnl,
+            volumeNorm: marketDataRef.current.difficulty,
+            isFavorable: marketDataRef.current.pnl >= 0,
+          },
+          pool.current,
+          width,
+          height
+        );
 
         // Record replay snapshot (every 500ms internally)
         ReplayRecorderService.tick(

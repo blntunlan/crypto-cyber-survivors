@@ -126,7 +126,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
             const btn = buttons[selectedIndex];
             if (btn && !btn.disabled) {
               audio.playButton();
-              onNavigate(btn.screen as HubScreen);
+              onNavigate(btn.screen);
             }
           }
           break;
@@ -295,7 +295,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
                   onClick={() => {
                     if (btn.disabled) return;
                     audio.playButton();
-                    onNavigate(btn.screen as HubScreen);
+                    onNavigate(btn.screen);
                   }}
                 />
               </div>

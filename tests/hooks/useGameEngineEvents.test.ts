@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useGameEngineEvents } from '../../hooks/useGameEngineEvents';
 import { EventBus } from '../../services/core/EventBus';
-import { type MarketData, MarketPosition } from '../../types';
+import { type HitStopGovernor } from '../../services/gameplay/HitStopGovernor';
+import { type GameState, type MarketData, MarketPosition } from '../../types';
 
 vi.mock('../../services/audio', () => ({
-  audio: { playWhoosh: vi.fn() },
+  audio: { playWhoosh: vi.fn(), playShoot: vi.fn() },
 }));
 
 vi.mock('../../services/market/PriceMomentumEngine', () => ({
@@ -16,46 +17,29 @@ vi.mock('../../services/market/MarketEventAnnouncer', () => ({
   MarketEventAnnouncer: { update: vi.fn() },
 }));
 
-vi.mock('../../config/WeaponRegistry', () => ({
-  WEAPON_REGISTRY: {
-    pistol: {
-      id: 'pistol',
-      projectileCount: 1,
-      projectileSpeed: 10,
-      projectileRadius: 4,
-    },
-    laser: {
-      id: 'laser',
-      projectileCount: 1,
-      projectileSpeed: 10,
-      projectileRadius: 4,
-    },
-  },
-}));
-
 describe('useGameEngineEvents', () => {
-  const makeRefs = () => ({
-    stateRef: {
+  const makeRefs = () => {
+    const stateRef = {
       current: {
         hitStopTimer: 0,
         nearMissCooldown: 0,
         nearMissTimer: 0,
-      },
-    } as never,
-    marketDataRef: { current: {} as MarketData },
-    poolRef: {
-      current: {
-        activeEnemies: [],
-        getBullet: vi.fn(),
-      },
-    } as never,
-    hitStopGovernorRef: {
+      } as GameState,
+    };
+    const marketDataRef = { current: {} as MarketData };
+    const hitStopGovernorRef = {
       current: {
         getAdjustedDuration: vi.fn(() => 50),
-      },
-    } as never,
-    position: MarketPosition.LONG,
-  });
+      } as unknown as HitStopGovernor,
+    };
+
+    return {
+      stateRef,
+      marketDataRef,
+      hitStopGovernorRef,
+      position: MarketPosition.LONG,
+    };
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,10 +58,8 @@ describe('useGameEngineEvents', () => {
     renderHook(() => useGameEngineEvents(refs));
 
     EventBus.emit('hitStop', {
-      type: 'bullet',
-      damage: 10,
-      isCritical: false,
-      enemyType: 'basic',
+      duration: 50,
+      isCrit: false,
     });
 
     expect(refs.hitStopGovernorRef.current.getAdjustedDuration).toHaveBeenCalled();
@@ -98,12 +80,28 @@ describe('useGameEngineEvents', () => {
     const refs = makeRefs();
     renderHook(() => useGameEngineEvents(refs));
 
-    EventBus.emit('nearMiss', {});
+    EventBus.emit('nearMiss', { enemyType: 'basic' });
 
     expect(audio.playWhoosh).toHaveBeenCalledTimes(1);
   });
 
-  it('skips laser weapon type in weaponFired', () => {
+  it('weaponFired event triggers audio feedback (non-laser)', async () => {
+    const { audio } = await import('../../services/audio');
+    const refs = makeRefs();
+    renderHook(() => useGameEngineEvents(refs));
+
+    EventBus.emit('weaponFired', {
+      weaponId: 'spread_shot',
+      x: 0,
+      y: 0,
+      damage: 10,
+    });
+
+    expect(audio.playShoot).toHaveBeenCalledTimes(1);
+  });
+
+  it('weaponFired event skips audio for laser weapon', async () => {
+    const { audio } = await import('../../services/audio');
     const refs = makeRefs();
     renderHook(() => useGameEngineEvents(refs));
 
@@ -114,7 +112,7 @@ describe('useGameEngineEvents', () => {
       damage: 10,
     });
 
-    expect(refs.poolRef.current.getBullet).not.toHaveBeenCalled();
+    expect(audio.playShoot).not.toHaveBeenCalled();
   });
 
   it('cleans up subscriptions on unmount', () => {
@@ -126,10 +124,8 @@ describe('useGameEngineEvents', () => {
     // After unmount, events should not trigger handlers
     const spy = vi.spyOn(refs.hitStopGovernorRef.current, 'getAdjustedDuration');
     EventBus.emit('hitStop', {
-      type: 'bullet',
-      damage: 10,
-      isCritical: false,
-      enemyType: 'basic',
+      duration: 50,
+      isCrit: false,
     });
     expect(spy).not.toHaveBeenCalled();
   });

@@ -56,6 +56,14 @@ export interface WeaponVisualConfig {
   params?: Readonly<Record<string, WeaponVisualParam>>;
 }
 
+/**
+ * Weapon behavior strategy discriminator.
+ * - `'targeted'`: Standard aimed shot at nearest on-screen enemy (predictive aiming).
+ * - `'spread'`: Fan-pattern aimed shot with wider spread angle.
+ * - `'burst'`: 360° radial burst, no target needed.
+ */
+export type WeaponBehavior = 'targeted' | 'spread' | 'burst';
+
 export interface WeaponConfig {
   id: WeaponId;
   name: string;
@@ -69,6 +77,10 @@ export interface WeaponConfig {
   damagePerLevel: number;
   cooldownPerLevel: number;
   marketBonus: (ctx: WeaponMarketContext) => number;
+  /** Firing pattern strategy (defaults to 'targeted' if omitted). */
+  behavior?: WeaponBehavior;
+  /** Spread angle between projectiles (radians). Only used by 'spread' behavior. */
+  spreadAngle?: number;
   evolutionPair?: WeaponId;
   evolutionResult?: string;
   /** Phase 0: visual profile. All existing weapons ship with `'default'`. */

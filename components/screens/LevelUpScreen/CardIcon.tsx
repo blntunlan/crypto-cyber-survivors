@@ -56,22 +56,21 @@ interface CardIconProps {
   scaleDown?: boolean;
 }
 
+type LucideIconComponent = React.ComponentType<{
+  size?: number;
+  color?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}>;
+
 // Cache Lucide icon lookups to avoid repeated string conversion on every render
-const lucideIconCache = new Map<
-  string,
-  React.ComponentType<{ size?: number; color?: string; className?: string }> | null
->();
+const lucideIconCache = new Map<string, LucideIconComponent | null>();
 
 const getLucideIcon = (iconName: string) => {
   if (lucideIconCache.has(iconName)) return lucideIconCache.get(iconName)!;
   const pascalName = toPascalCase(iconName);
   const icon =
-    (
-      LucideIcons as unknown as Record<
-        string,
-        React.ComponentType<{ size?: number; color?: string; className?: string }>
-      >
-    )[pascalName] ?? null;
+    (LucideIcons as unknown as Record<string, LucideIconComponent>)[pascalName] ?? null;
   lucideIconCache.set(iconName, icon);
   return icon;
 };
