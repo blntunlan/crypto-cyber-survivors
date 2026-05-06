@@ -1,0 +1,3 @@
+## 2026-05-06 - Zero-Allocation Loops in Physics Subsystems
+**Learning:** High-frequency loop paths in physics systems like MovementSystem.ts can suffer from garbage collection pressure due to Array.prototype.forEach allocating closure function objects on every frame (60 FPS).
+**Action:** Replace Array.prototype.forEach with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in hot render and physics loops. Always include guard clauses (`if (entity === undefined) continue;`) when iterating over object pools to prevent runtime TypeErrors from sparse arrays, and translate `return` to `continue` to preserve logic.
