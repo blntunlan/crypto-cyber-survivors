@@ -30,10 +30,31 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
+    // If it's a dynamic import failure (usually due to a new deployment replacing old chunks),
+    // we can attempt an automatic page reload once to fetch the new index.html and chunks.
+    if (
+      error.message &&
+      (error.message.includes('Failed to fetch dynamically imported module') ||
+        error.message.includes('Importing a module script failed'))
+    ) {
+      // Use sessionStorage to prevent an infinite reload loop if the new chunk is TRULY missing
+      const isReloading = sessionStorage.getItem('app-chunk-reload');
+      if (!isReloading) {
+        sessionStorage.setItem('app-chunk-reload', 'true');
+        window.location.reload();
+        return { hasError: false, error: null }; // Returning false because we are reloading
+      } else {
+        // If we already reloaded and it STILL failed, clear the flag and show error
+        sessionStorage.removeItem('app-chunk-reload');
+      }
+    }
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // Clear the reload flag on successful load without chunk errors
+    // Actually, it's better to clear it elsewhere, but componentDidCatch only runs on error.
+
     Logger.error('React Error Boundary caught an error', {
       error: error.message,
       stack: error.stack,
@@ -41,6 +62,11 @@ export class ErrorBoundary extends Component<Props, State> {
     });
 
     this.setState({ errorInfo });
+  }
+
+  componentDidMount() {
+    // Clear the chunk reload flag when the app loads successfully
+    sessionStorage.removeItem('app-chunk-reload');
   }
 
   handleRetry = (): void => {
