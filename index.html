@@ -114,6 +114,23 @@
     translate="no"
   >
     <div id="root"></div>
+
+    <!-- Vite Chunk Loading Error Handler (Root Fix) -->
+    <script>
+      window.addEventListener('vite:preloadError', (event) => {
+        const isReloading = sessionStorage.getItem('vite-chunk-reload');
+        if (!isReloading) {
+          sessionStorage.setItem('vite-chunk-reload', 'true');
+          window.location.reload();
+        } else {
+          console.error('[App] Failed to load chunks even after reloading.');
+        }
+      });
+      window.addEventListener('load', () => {
+        sessionStorage.removeItem('vite-chunk-reload');
+      });
+    </script>
+
     <script type="module" src="/index.tsx"></script>
 
     <!-- Service Worker Registration -->
