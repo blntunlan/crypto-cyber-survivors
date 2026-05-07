@@ -458,9 +458,15 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
 
     // Apply compression
     const acceptEncoding = req.headers['accept-encoding'] || '';
-    
+
     // Don't compress already compressed formats (images, audio, video)
-    const isCompressible = !mimeType.startsWith('image/') && !mimeType.startsWith('audio/') && !mimeType.startsWith('video/') && ext !== '.zip' && ext !== '.pdf' && ext !== '.wasm';
+    const isCompressible =
+      !mimeType.startsWith('image/') &&
+      !mimeType.startsWith('audio/') &&
+      !mimeType.startsWith('video/') &&
+      ext !== '.zip' &&
+      ext !== '.pdf' &&
+      ext !== '.wasm';
 
     if (isCompressible) {
       if (acceptEncoding.includes('br')) {
@@ -471,7 +477,7 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
         headers['Content-Encoding'] = 'gzip';
       }
     }
-    
+
     headers['Content-Length'] = content.length;
 
     res.writeHead(200, headers);
