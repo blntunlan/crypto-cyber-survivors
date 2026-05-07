@@ -183,6 +183,8 @@ describe('useGameFlowController', () => {
     vi.clearAllMocks();
     EventBus.clearEvent('cycleComplete');
     EventBus.clearEvent('levelUpComplete');
+    EventBus.clearEvent('levelUp');
+    EventBus.clearEvent('playerLevelUp');
 
     vi.mocked(CardSystem.generateChoices).mockReturnValue([makeCard()]);
     vi.mocked(ExperienceService.getRequiredExp).mockReturnValue(150);
@@ -271,6 +273,8 @@ describe('useGameFlowController', () => {
     expect(MetricsService.trackLevelUp).toHaveBeenCalledWith(3, 'Sharp Edge', 'common');
     expect(setUiStats).toHaveBeenCalled();
     expect(emitSpy).toHaveBeenCalledWith('levelUpComplete', { newLevel: 3 });
+    expect(emitSpy).toHaveBeenCalledWith('levelUp', { level: 3 });
+    expect(emitSpy).toHaveBeenCalledWith('playerLevelUp', { level: 3 });
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
   });
 

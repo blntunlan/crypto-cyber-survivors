@@ -39,6 +39,11 @@ export interface ISpawnSystem {
       rsi?: number;
       rsiState?: string;
       whaleTier?: number;
+      playerPower?: number;
+      offensePower?: number;
+      counterPressure?: number;
+      rangedPressure?: number;
+      screenPressure?: number;
     }
   ): number;
 

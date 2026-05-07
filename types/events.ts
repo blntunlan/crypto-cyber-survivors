@@ -532,6 +532,10 @@ export interface HitStopEvent {
 export interface NearMissEvent {
   /** Source enemy type */
   enemyType: string;
+  /** Gap between collision radius and enemy position, in pixels */
+  distance?: number;
+  /** Optional reward hook for future near-miss bonuses */
+  bonusXp?: number;
 }
 
 /** Lootbox earned event data */
@@ -797,6 +801,9 @@ export interface EventDataMap {
   liquidationWarning: {
     level: 'NONE' | 'CAUTION' | 'DANGER' | 'CRITICAL';
     distance: number;
+    distanceToLiquidation?: number;
+    effectivePnl?: number;
+    fovReduction?: number;
   };
   secondElapsed: { totalSeconds: number };
   fpsUpdated: { avgFps: number };

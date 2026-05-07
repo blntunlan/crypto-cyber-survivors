@@ -87,6 +87,30 @@ describe('PoolManager', () => {
       expect(whale.active).toBe(true);
       expect(pool.activeEnemies.length).toBe(1);
     });
+
+    it('should apply dynamic response metadata and HP scaling', () => {
+      const enemy = pool.getEnemy(
+        0,
+        0,
+        1,
+        MarketPosition.LONG,
+        'mev_bot',
+        undefined,
+        1,
+        1,
+        undefined,
+        1.5,
+        'ranged',
+        2
+      );
+
+      expect(enemy.health).toBe(25 * 1.5);
+      expect(enemy.maxHealth).toBe(enemy.health);
+      expect(enemy.intent).toBe('ranged');
+      expect(enemy.combatRole).toBe('ranged');
+      expect(enemy.powerTier).toBe(2);
+      expect(enemy.canShoot).toBe(false);
+    });
   });
 
   describe('getGem', () => {

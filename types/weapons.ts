@@ -4,6 +4,7 @@
 
 export type WeaponId =
   | 'quantum_bullet'
+  | 'hyper_cannon'
   | 'spread_shot'
   | 'laser'
   | 'boomerang'
@@ -60,9 +61,19 @@ export interface WeaponVisualConfig {
  * Weapon behavior strategy discriminator.
  * - `'targeted'`: Standard aimed shot at nearest on-screen enemy (predictive aiming).
  * - `'spread'`: Fan-pattern aimed shot with wider spread angle.
- * - `'burst'`: 360° radial burst, no target needed.
+ * - `'boomerang'`: Curved outbound/return projectile that can hit on each leg.
+ * - `'laser'`: Short-lived segmented beam line toward the target.
+ * - `'nuke'`: Slow projectile that detonates into a splash shockwave.
+ * - `'orbit'`: Persistent orbiters around the player.
  */
-export type WeaponBehavior = 'targeted' | 'spread' | 'burst';
+export type WeaponBehavior =
+  | 'targeted'
+  | 'spread'
+  | 'burst'
+  | 'boomerang'
+  | 'laser'
+  | 'nuke'
+  | 'orbit';
 
 export interface WeaponConfig {
   id: WeaponId;
@@ -82,7 +93,7 @@ export interface WeaponConfig {
   /** Spread angle between projectiles (radians). Only used by 'spread' behavior. */
   spreadAngle?: number;
   evolutionPair?: WeaponId;
-  evolutionResult?: string;
+  evolutionResult?: WeaponId;
   /** Phase 0: visual profile. All existing weapons ship with `'default'`. */
   visual?: WeaponVisualConfig;
 }

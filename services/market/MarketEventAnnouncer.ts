@@ -281,13 +281,13 @@ class MarketEventAnnouncerClass {
   // checkWhaleDetection removed — whale spawn is communicated via screen shake
 
   private checkLiquidationWarning(data: MarketData, now: number): void {
-    const effectivePnlFraction = data.effectivePnl / 100; // effectivePnl is percentage
+    const effectivePnlFraction = data.effectivePnl;
 
     if (effectivePnlFraction <= ANNOUNCER_CONFIG.LIQUIDATION_PNL_THRESHOLD) {
       if (!this.liquidationWarningActive) {
         this.liquidationWarningActive = true;
         this.emit('LIQUIDATION_WARNING', now, {
-          message: `LIQUIDATION DANGER - PnL ${data.effectivePnl.toFixed(1)}%`,
+          message: `LIQUIDATION DANGER - PnL ${(data.effectivePnl * 100).toFixed(1)}%`,
           color: '#ff0000',
           icon: '\u{26A0}\u{FE0F}',
           duration: ANNOUNCER_CONFIG.DURATION.LIQUIDATION,

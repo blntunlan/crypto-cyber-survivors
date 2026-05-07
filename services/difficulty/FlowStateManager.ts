@@ -203,7 +203,7 @@ class FlowStateManagerClass {
     EventBus.on('playerHit', data => this.recordDamageTaken(data.damage));
     EventBus.on('critHit', data => this.recordDamageDealt(data.damage));
     EventBus.on('playerDash', () => this.recordDash());
-    EventBus.on('levelUp', data => this.recordLevelUp(data.level));
+    EventBus.on('levelUpComplete', data => this.recordLevelUp(data.newLevel));
 
     Logger.debug('[FlowStateManager] Initialized');
   }

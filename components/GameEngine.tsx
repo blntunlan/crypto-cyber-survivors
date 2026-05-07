@@ -44,6 +44,7 @@ import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
+import { PlayerPowerAnalyzer } from '../services/difficulty/PlayerPowerAnalyzer';
 import { LeverageEngine } from '../services/gameplay/LeverageEngine';
 import type {
   MutableRef,
@@ -70,6 +71,7 @@ import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketEventAnnouncer } from '../services/market/MarketEventAnnouncer';
 import { MarketAudioReactor } from '../services/audio/MarketAudioReactor';
 import { WeaponSystem } from '../services/combat/WeaponSystem';
+import { eliteAbilitySystem } from '../services/combat/EliteAbilitySystem';
 import { useGameEngineEvents } from '../hooks/useGameEngineEvents';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -216,8 +218,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   // Ref for market data to avoid loop restarts while keeping data fresh
   const marketDataRef = useRef(marketData);
-  const hitStopGovernorRef = useRef(new HitStopGovernor());
-  const coreLoopRef = useRef(new CoreGameplayLoop());
+  const hitStopGovernorRef = useLazyRef(() => new HitStopGovernor());
+  const coreLoopRef = useLazyRef(() => new CoreGameplayLoop());
+  const playerPowerAnalyzerRef = useLazyRef(() => new PlayerPowerAnalyzer());
   const lastWhaleTierRef = useRef<0 | 1 | 2 | 3>(0);
   const gameplayFrameRef = useRef(0);
   const phaseSharedRef = useRef<Record<string, unknown>>({});
@@ -401,6 +404,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     rsi: 0,
     rsiState: 'NEUTRAL' as string,
     whaleTier: 0 as 0 | 1 | 2 | 3,
+    playerPower: 0,
+    offensePower: 0,
+    counterPressure: 0,
+    rangedPressure: 0,
+    screenPressure: 0,
   });
 
   useEffect(() => {
@@ -416,11 +424,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     }
     if (status === GameStatus.GAMEOVER || status === GameStatus.MENU) {
       coreLoopRef.current.reset();
+      playerPowerAnalyzerRef.current.reset();
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
     }
-  }, [phaseProfilerRef, status]);
+  }, [
+    phaseProfilerRef,
+    status,
+    coreLoopRef,
+    hitStopGovernorRef,
+    playerPowerAnalyzerRef,
+  ]);
 
   // DEBUG: Key '6' triggers force cycle complete (DEV ONLY)
   useEffect(() => {
@@ -587,12 +602,20 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           isDashing: currentState.isDashing,
           shake: Number(currentState.shake.toFixed(2)),
         },
-        enemies: currentPool.activeEnemies.slice(0, 12).map(enemy => ({
-          x: Number(enemy.x.toFixed(1)),
-          y: Number(enemy.y.toFixed(1)),
-          hp: Number(enemy.health.toFixed(1)),
-          type: enemy.type,
-        })),
+        enemies: (() => {
+          const maxEnemies = Math.min(12, currentPool.activeEnemies.length);
+          const enemiesList = new Array(maxEnemies);
+          for (let i = 0; i < maxEnemies; i++) {
+            const enemy = currentPool.activeEnemies[i]!;
+            enemiesList[i] = {
+              x: Number(enemy.x.toFixed(1)),
+              y: Number(enemy.y.toFixed(1)),
+              hp: Number(enemy.health.toFixed(1)),
+              type: enemy.type,
+            };
+          }
+          return enemiesList;
+        })(),
         counts: {
           enemies: currentPool.activeEnemies.length,
           bullets: currentPool.activeBullets.length,
@@ -1028,10 +1051,30 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         state.current.marketPosition = position;
 
         // 1. Update Sub-systems (Physics, Spawning, etc.)
+        const playerPowerState = playerPowerAnalyzerRef.current.updateFromValues(
+          player,
+          p.activeEnemies.length,
+          maxEnemies,
+          killStreak,
+          WeaponSystem.getWeapons(),
+          coreLoopOutput.flowState
+        );
+        difficultyContext.updatePlayerPower(
+          playerPowerState.playerPower,
+          playerPowerState.offensePower,
+          playerPowerState.counterPressure,
+          playerPowerState.rangedPressure
+        );
+
         const spawnOpts = spawnOptionsRef.current;
         spawnOpts.rsi = marketDataRef.current.rsi;
         spawnOpts.rsiState = marketDataRef.current.rsiState ?? 'NEUTRAL';
         spawnOpts.whaleTier = marketDataRef.current.whaleTier ?? 0;
+        spawnOpts.playerPower = playerPowerState.playerPower;
+        spawnOpts.offensePower = playerPowerState.offensePower;
+        spawnOpts.counterPressure = playerPowerState.counterPressure;
+        spawnOpts.rangedPressure = playerPowerState.rangedPressure;
+        spawnOpts.screenPressure = playerPowerState.screenPressure;
 
         spawnSystemRef.current.update(
           deltaTime,
@@ -1078,6 +1121,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Update Physics & Collisions
         const physStart = performance.now();
         physicsSystem.current.updateEntities(p, dtFactor, width, height, player);
+        eliteAbilitySystem.update(
+          deltaTime / 1000,
+          p.activeEnemies,
+          player,
+          p,
+          p.activeEnemies
+        );
         physicsSystem.current.handleCollisions(
           p,
           player,
@@ -1180,6 +1230,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       gameLoopCoordinatorRef,
       pair,
       gameMode,
+      coreLoopRef,
+      playerPowerAnalyzerRef,
     ]
   );
 

@@ -5,7 +5,7 @@
  * Makes it easy to add new enemy types without modifying client code.
  */
 
-import { type Enemy, MarketPosition } from '../types';
+import { type Enemy, type EnemyIntent, MarketPosition } from '../types';
 import { COLORS } from '../constants';
 import { ENEMY_DEFINITIONS, type EnemyId } from '../config/EnemyRegistry';
 import {
@@ -70,6 +70,9 @@ export class EnemyFactory {
    * @param position Player's market position (LONG/SHORT)
    * @param rsiModifier Full RSI-based behavior modifier
    * @param damageMultiplier Global damage multiplier
+   * @param hpMultiplier Dynamic player-power HP response multiplier
+   * @param intent Director-assigned enemy pressure intent
+   * @param powerTier 0-3 snapshot of player-power response tier
    * @param target Existing enemy object for pooling
    */
   createEnemy(
@@ -80,6 +83,9 @@ export class EnemyFactory {
     position: MarketPosition,
     rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER,
     damageMultiplier: number = 1.0,
+    hpMultiplier: number = 1.0,
+    intent?: EnemyIntent,
+    powerTier: number = 0,
     target?: GameEnemy
   ): GameEnemy {
     const config = (ENEMY_DEFINITIONS[type as EnemyId] ??
@@ -136,7 +142,8 @@ export class EnemyFactory {
     enemyObj.radius = config.radius;
 
     // Health scaled by difficulty AND RSI modifier
-    const healthScale = (1 + (difficulty - 1) * 0.2) * rsiModifier.healthMultiplier;
+    const healthScale =
+      (1 + (difficulty - 1) * 0.2) * rsiModifier.healthMultiplier * hpMultiplier;
     enemyObj.health = config.baseHealth * healthScale;
     enemyObj.maxHealth = enemyObj.health;
 
@@ -147,6 +154,17 @@ export class EnemyFactory {
     enemyObj.speed = modifiedSpeed;
     enemyObj.color = color;
     enemyObj.behavior = behavior;
+    enemyObj.intent = intent ?? this.getDefaultIntent(type as EnemyId);
+    enemyObj.combatRole = config.combatRole ?? 'contact';
+    enemyObj.powerTier = Math.max(0, Math.min(3, Math.round(powerTier)));
+    enemyObj.canShoot = config.canShoot === true;
+    enemyObj.shootCooldownMs = config.shootCooldownMs;
+    enemyObj.shootRange = config.shootRange;
+    enemyObj.projectileSpeed = config.projectileSpeed;
+    enemyObj.projectileDamage =
+      config.projectileDamageMultiplier !== undefined
+        ? enemyObj.damage * config.projectileDamageMultiplier
+        : undefined;
     enemyObj.spawnTimer = 0;
     enemyObj.hasEnteredScreen = false;
     enemyObj.isDying = false;
@@ -168,6 +186,7 @@ export class EnemyFactory {
     // Elite roll: non-boss enemies have a chance to become elite
     if (canBeElite(type) && Math.random() < ELITE_CONFIG.spawnChance) {
       enemyObj.isElite = true;
+      enemyObj.intent = 'elite';
       enemyObj.eliteAbility = getEliteAbility(type);
       enemyObj.health *= ELITE_CONFIG.hpMultiplier;
       enemyObj.maxHealth = enemyObj.health;
@@ -193,7 +212,10 @@ export class EnemyFactory {
     difficulty: number,
     position: MarketPosition,
     rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER,
-    damageMultiplier: number = 1.0
+    damageMultiplier: number = 1.0,
+    hpMultiplier: number = 1.0,
+    intent?: EnemyIntent,
+    powerTier: number = 0
   ): GameEnemy {
     const roll = Math.random() * this.totalWeight;
     let cumulative = 0;
@@ -208,7 +230,10 @@ export class EnemyFactory {
           difficulty,
           position,
           rsiModifier,
-          damageMultiplier
+          damageMultiplier,
+          hpMultiplier,
+          intent,
+          powerTier
         );
       }
     }
@@ -220,8 +245,29 @@ export class EnemyFactory {
       difficulty,
       position,
       rsiModifier,
-      damageMultiplier
+      damageMultiplier,
+      hpMultiplier,
+      intent,
+      powerTier
     );
+  }
+
+  private getDefaultIntent(type: EnemyId): EnemyIntent {
+    if (type === 'whale' || type === 'market_maker' || type === '51_attack') {
+      return 'boss';
+    }
+    if (
+      type === 'liquidator' ||
+      type === 'gatekeeper' ||
+      type === 'rugpull' ||
+      type === 'mev_bot' ||
+      type === 'flash_loan' ||
+      type === 'sandwich'
+    ) {
+      return 'counter';
+    }
+    if (type === 'rsi') return 'ranged';
+    return 'pressure';
   }
 
   /**

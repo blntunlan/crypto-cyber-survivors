@@ -13,6 +13,7 @@
 
 import { EventBus } from '../core/EventBus';
 import { Logger } from '../system/Logger';
+import { PLAYER_STATS } from '../../config/PlayerConfig';
 import { WEAPON_REGISTRY } from '../../config/WeaponRegistry';
 import {
   type WeaponId,
@@ -55,19 +56,21 @@ class WeaponSystemClass {
     const b = this.weapons[1];
     if (!a || !b) return;
     const cfgA = WEAPON_REGISTRY[a.id];
-    if (
-      a.level === 5 &&
-      b.level === 5 &&
-      cfgA.evolutionPair === b.id &&
-      cfgA.evolutionResult
-    ) {
+    const cfgB = WEAPON_REGISTRY[b.id];
+    const evolutionResult =
+      cfgA.evolutionPair === b.id
+        ? cfgA.evolutionResult
+        : cfgB.evolutionPair === a.id
+          ? cfgB.evolutionResult
+          : undefined;
+
+    if (a.level === 5 && b.level === 5 && evolutionResult) {
+      this.weapons = [{ id: evolutionResult, level: 5, cooldownTimer: 0 }];
       EventBus.emit('weaponEvolution', {
         from: [a.id, b.id],
-        to: cfgA.evolutionResult,
+        to: evolutionResult,
       });
-      Logger.info(
-        `[WeaponSystem] Evolution: ${a.id} + ${b.id} → ${cfgA.evolutionResult}`
-      );
+      Logger.info(`[WeaponSystem] Evolution: ${a.id} + ${b.id} → ${evolutionResult}`);
     }
   }
 
@@ -93,6 +96,11 @@ class WeaponSystemClass {
     screenWidth: number,
     screenHeight: number
   ): void {
+    const normalizedDamageMultiplier =
+      playerDamageMultiplier > 5
+        ? playerDamageMultiplier / PLAYER_STATS.INITIAL_DAMAGE
+        : playerDamageMultiplier;
+
     for (const weapon of this.weapons) {
       weapon.cooldownTimer = Math.max(0, weapon.cooldownTimer - deltaTime);
       if (weapon.cooldownTimer <= 0) {
@@ -101,7 +109,7 @@ class WeaponSystemClass {
           cfg.baseDamage *
           (1 + weapon.level * cfg.damagePerLevel) *
           cfg.marketBonus(marketCtx) *
-          playerDamageMultiplier;
+          normalizedDamageMultiplier;
 
         // Fire through the shared pipeline — same targeting, aiming, and
         // viewport logic as the base weapon in CombatSystem

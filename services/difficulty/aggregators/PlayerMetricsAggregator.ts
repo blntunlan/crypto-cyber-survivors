@@ -38,6 +38,19 @@ class PlayerMetricsAggregatorClass {
     this.slice.level = level;
   }
 
+  /** Update dynamic power pressure signals */
+  updatePower(
+    playerPower: number,
+    offensePower: number,
+    counterPressure: number,
+    rangedPressure: number
+  ): void {
+    this.slice.playerPower = playerPower;
+    this.slice.offensePower = offensePower;
+    this.slice.counterPressure = counterPressure;
+    this.slice.rangedPressure = rangedPressure;
+  }
+
   /** Batch update for partial slice data */
   updatePartial(updates: Partial<PlayerInputSlice>): void {
     Object.assign(this.slice, updates);
@@ -68,6 +81,10 @@ class PlayerMetricsAggregatorClass {
       damageTakenFrequency: 0,
       performanceScore: 1.0,
       dps: 0,
+      playerPower: 0,
+      offensePower: 0,
+      counterPressure: 0,
+      rangedPressure: 0,
       enemyHealthPool: 0,
       screenDensity: 0,
       upgradeEfficiency: 0.5,

@@ -103,7 +103,10 @@ describe('SpawnSystem', () => {
       1, // tier
       expect.any(Number), // damageMultiplier
       expect.any(Number), // speedMultiplier
-      expect.any(Object) // rsiModifier
+      expect.any(Object), // rsiModifier
+      expect.any(Number), // hpMultiplier
+      expect.any(String), // intent
+      expect.any(Number) // powerTier
     );
   });
 
@@ -121,7 +124,10 @@ describe('SpawnSystem', () => {
       undefined,
       expect.any(Number), // damageMultiplier
       expect.any(Number), // speedMultiplier
-      expect.any(Object) // rsiModifier
+      expect.any(Object), // rsiModifier
+      expect.any(Number), // hpMultiplier
+      expect.any(String), // intent
+      expect.any(Number) // powerTier
     );
 
     // LONG + Profit = Bull
@@ -135,7 +141,10 @@ describe('SpawnSystem', () => {
       undefined,
       expect.any(Number), // damageMultiplier
       expect.any(Number), // speedMultiplier
-      expect.any(Object) // rsiModifier
+      expect.any(Object), // rsiModifier
+      expect.any(Number), // hpMultiplier
+      expect.any(String), // intent
+      expect.any(Number) // powerTier
     );
   });
 
@@ -160,7 +169,45 @@ describe('SpawnSystem', () => {
       undefined,
       expect.any(Number), // damageMultiplier
       expect.any(Number), // speedMultiplier
-      expect.any(Object) // rsiModifier
+      expect.any(Object), // rsiModifier
+      expect.any(Number), // hpMultiplier
+      expect.any(String), // intent
+      expect.any(Number) // powerTier
     );
+  });
+
+  it('should scale enemies from player power signals', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.95);
+
+    spawnSystem.update(
+      1100,
+      1.0,
+      800,
+      600,
+      MarketPosition.LONG,
+      mockPool,
+      0,
+      undefined,
+      undefined,
+      'BTC',
+      1.0,
+      1.0,
+      {
+        playerPower: 0.9,
+        offensePower: 0.85,
+        counterPressure: 0.8,
+        rangedPressure: 0.8,
+        screenPressure: 0.1,
+      }
+    );
+
+    const calls = vi.mocked(mockPool.getEnemy).mock.calls;
+    const call = calls[calls.length - 1]!;
+    expect(call[4]).toBe('mev_bot');
+    expect(call[6]).toBeGreaterThan(1);
+    expect(call[7]).toBeGreaterThan(1);
+    expect(call[9]).toBeGreaterThan(1);
+    expect(call[10]).toBe('ranged');
+    expect(call[11]).toBe(3);
   });
 });

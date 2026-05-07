@@ -23,6 +23,8 @@ describe('ProjectileRenderer', () => {
       beginPath: vi.fn(),
       moveTo: vi.fn(),
       lineTo: vi.fn(),
+      quadraticCurveTo: vi.fn(),
+      closePath: vi.fn(),
       stroke: vi.fn(),
       fill: vi.fn(),
       arc: vi.fn(),
@@ -39,6 +41,7 @@ describe('ProjectileRenderer', () => {
       globalAlpha: 1,
       lineCap: '',
       shadowBlur: 0,
+      shadowColor: '',
     };
 
     mockPool = {
@@ -399,6 +402,92 @@ describe('ProjectileRenderer', () => {
     ).not.toThrow();
 
     expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+  });
+
+  it('should render dedicated lab-matched VFX for laser, boomerang, nuke, and orbit', () => {
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 0,
+        vy: 0,
+        radius: 8,
+        color: '#ff78c8',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'laser',
+        phase: 'fire',
+        age: 20,
+        maxAge: 160,
+        beamAngle: 0,
+        beamLength: 44,
+      },
+      {
+        x: 160,
+        y: 100,
+        vx: 3,
+        vy: 0,
+        radius: 8,
+        color: '#a855f7',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'boomerang',
+        age: 80,
+        trail: [
+          { x: 130, y: 100, age: 120 },
+          { x: 145, y: 100, age: 60 },
+          { x: 160, y: 100, age: 0 },
+        ],
+      },
+      {
+        x: 220,
+        y: 100,
+        vx: 3,
+        vy: 0,
+        radius: 10,
+        color: '#ffbb44',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'aoe_nuke',
+        phase: 'flight',
+        age: 100,
+      },
+      {
+        x: 280,
+        y: 100,
+        vx: 0,
+        vy: 0,
+        radius: 11,
+        color: '#44ddff',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'orbit_shield',
+        isOrbiter: true,
+        orbitAngle: 0,
+        orbitRadius: 55,
+      },
+    ];
+
+    expect(() =>
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+        width: 800,
+        height: 600,
+        status: GameStatus.PLAYING,
+        graphics: {
+          showParticles: true,
+          showDamageNumbers: true,
+          showScreenShake: true,
+        },
+      })
+    ).not.toThrow();
+
+    expect(mockCtx.quadraticCurveTo).toHaveBeenCalled();
+    expect(mockCtx.createRadialGradient).toHaveBeenCalled();
+    expect(mockCtx.stroke).toHaveBeenCalled();
   });
 
   it('should cull projectiles in retro mode', () => {

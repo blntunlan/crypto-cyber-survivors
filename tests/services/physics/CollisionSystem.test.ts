@@ -477,6 +477,39 @@ describe('CollisionSystem', () => {
       // I-frames from hit (not dodge)
       expect(mockPlayer.invulnerabilityTimer).toBe(400);
     });
+
+    it('should emit nearMiss when an enemy narrowly misses the player', () => {
+      const enemy = {
+        x: 45,
+        y: 0,
+        radius: 10,
+        type: 'bear',
+        active: true,
+        damage: 10,
+        maxHealth: 100,
+        isDying: false,
+        hasEnteredScreen: true,
+        hasTriggeredNearMiss: false,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      const nearMissCalls = vi
+        .mocked(EventBus.emit)
+        .mock.calls.filter(call => call[0] === 'nearMiss');
+      expect(nearMissCalls).toHaveLength(1);
+      expect(nearMissCalls[0]).toEqual([
+        'nearMiss',
+        expect.objectContaining({
+          enemyType: 'bear',
+          distance: expect.any(Number),
+        }),
+      ]);
+      expect(enemy.hasTriggeredNearMiss).toBe(true);
+    });
   });
 
   describe('Bullet-Enemy Collision', () => {
@@ -679,6 +712,79 @@ describe('CollisionSystem', () => {
         expect.any(Number)
       );
       expect(enemy.damageBuffer).toBe(0);
+    });
+
+    it('should keep boomerang active and prevent repeated same-leg hits', () => {
+      const enemy = {
+        id: 'enemy-1',
+        x: 100,
+        y: 100,
+        radius: 20,
+        active: true,
+        health: 100,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+      const bullet = {
+        x: 100,
+        y: 100,
+        radius: 8,
+        active: true,
+        damage: 10,
+        vx: 0,
+        vy: 0,
+        weaponId: 'boomerang',
+        phase: 'flight',
+        hitSet: new Set<string | number>(),
+      } as Bullet;
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(enemy.health).toBe(90);
+      expect(bullet.active).toBe(true);
+    });
+
+    it('should detonate nuke projectiles into active shockwaves on impact', () => {
+      const enemy = {
+        id: 'enemy-1',
+        x: 100,
+        y: 100,
+        radius: 20,
+        active: true,
+        health: 100,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+      const bullet = {
+        x: 100,
+        y: 100,
+        radius: 10,
+        active: true,
+        damage: 50,
+        vx: 3,
+        vy: 0,
+        weaponId: 'aoe_nuke',
+        phase: 'flight',
+        hitSet: new Set<string | number>(),
+      } as Bullet;
+      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
+        (_x: number, _y: number, callback: (b: any) => void) => {
+          callback(bullet);
+        }
+      );
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(enemy.health).toBe(50);
+      expect(bullet.active).toBe(true);
+      expect(bullet.phase).toBe('shockwave');
+      expect(bullet.radius).toBe(5);
     });
   });
 });

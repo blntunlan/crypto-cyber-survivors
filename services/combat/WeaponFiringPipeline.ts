@@ -13,7 +13,10 @@
  * Behavior strategies:
  *   - 'targeted': Standard aimed shot at nearest enemy
  *   - 'spread': Fan-pattern with wider spread angle
- *   - 'burst': 360° radial burst, no target needed
+ *   - 'boomerang': Curved outbound/return projectile
+ *   - 'laser': Short-lived segmented beam
+ *   - 'nuke': Slow projectile that expands into a shockwave
+ *   - 'orbit': Persistent orbiters around the player
  */
 
 import { type IPoolManager } from '../interfaces/IPoolManager';
@@ -61,6 +64,18 @@ const DEFAULT_SPREAD_ANGLE = 0.15;
 
 /** Viewport padding for weapon targeting (px) */
 const TARGETING_VIEWPORT_PADDING = 100;
+const LASER_SEGMENT_SPACING = 30;
+const LASER_SEGMENT_LENGTH = 44;
+const LASER_LIFE_MS = 160;
+const LASER_MAX_SEGMENTS = 18;
+const BOOMERANG_LIFE_MS = 1550;
+const BOOMERANG_SPREAD_ANGLE = 0.22;
+const NUKE_FLIGHT_MAX_MS = 2400;
+const NUKE_SHOCKWAVE_RADIUS = 68;
+const NUKE_SHOCKWAVE_RADIUS_PER_LEVEL = 8;
+const ORBIT_RADIUS = 55;
+const ORBIT_RADIUS_PER_LEVEL = 3;
+const ORBIT_SPEED = 0.0035;
 
 // ─── Pipeline ───────────────────────────────────────────────────────────
 
@@ -81,6 +96,14 @@ export const WeaponFiringPipeline = {
     switch (behavior) {
       case 'burst':
         return fireBurst(ctx);
+      case 'boomerang':
+        return fireBoomerang(ctx);
+      case 'laser':
+        return fireLaser(ctx);
+      case 'nuke':
+        return fireNuke(ctx);
+      case 'orbit':
+        return fireOrbit(ctx);
       case 'spread':
       case 'targeted':
         return fireTargeted(ctx, behavior);
@@ -135,6 +158,200 @@ function fireTargeted(
 
   spawnProjectileFan(ctx, baseAngle, count, spreadAngle);
   return true;
+}
+
+// ─── Behavior: Boomerang ────────────────────────────────────────────────
+
+function fireBoomerang(ctx: WeaponFireContext): boolean {
+  const target = findNearestEnemy(
+    ctx.pool,
+    ctx.playerX,
+    ctx.playerY,
+    ctx.screenWidth,
+    ctx.screenHeight
+  );
+  if (!target) return false;
+
+  const interceptPos = PredictiveTargeting.calculateIntercept(
+    { x: ctx.playerX, y: ctx.playerY },
+    target
+  );
+  const baseAngle = Math.atan2(
+    interceptPos.y - ctx.playerY,
+    interceptPos.x - ctx.playerX
+  );
+  const count = ctx.config.projectileCount + Math.floor(Math.max(0, ctx.level - 1) / 2);
+
+  for (let i = 0; i < count; i++) {
+    const angleOffset = (i - (count - 1) / 2) * BOOMERANG_SPREAD_ANGLE;
+    const finalAngle = baseAngle + angleOffset;
+    const bullet = ctx.pool.getBullet(
+      ctx.playerX,
+      ctx.playerY,
+      Math.cos(finalAngle) * ctx.config.projectileSpeed,
+      Math.sin(finalAngle) * ctx.config.projectileSpeed,
+      ctx.damage,
+      ctx.config.projectileRadius,
+      '#a855f7',
+      false,
+      false
+    );
+    bullet.weaponId = ctx.config.id;
+    bullet.spawnX = ctx.playerX;
+    bullet.spawnY = ctx.playerY;
+    bullet.targetX = interceptPos.x;
+    bullet.targetY = interceptPos.y;
+    bullet.age = 0;
+    bullet.maxAge = BOOMERANG_LIFE_MS;
+    bullet.phase = 'flight';
+    bullet.curveSign = i % 2 === 0 ? 1 : -1;
+    bullet.hitSet = new Set<string | number>();
+  }
+  return true;
+}
+
+// ─── Behavior: Laser ────────────────────────────────────────────────────
+
+function fireLaser(ctx: WeaponFireContext): boolean {
+  const target = findNearestEnemy(
+    ctx.pool,
+    ctx.playerX,
+    ctx.playerY,
+    ctx.screenWidth,
+    ctx.screenHeight
+  );
+  if (!target) return false;
+
+  const interceptPos = PredictiveTargeting.calculateIntercept(
+    { x: ctx.playerX, y: ctx.playerY },
+    target
+  );
+  const angle = Math.atan2(interceptPos.y - ctx.playerY, interceptPos.x - ctx.playerX);
+  const ux = Math.cos(angle);
+  const uy = Math.sin(angle);
+  const beamDistance = Math.min(
+    target.dist + LASER_SEGMENT_SPACING,
+    Math.hypot(ctx.screenWidth, ctx.screenHeight) + LASER_SEGMENT_SPACING
+  );
+  const segmentCount = Math.max(
+    3,
+    Math.min(LASER_MAX_SEGMENTS, Math.ceil(beamDistance / LASER_SEGMENT_SPACING))
+  );
+
+  for (let i = 1; i <= segmentCount; i++) {
+    const d = i * LASER_SEGMENT_SPACING;
+    const bullet = ctx.pool.getBullet(
+      ctx.playerX + ux * d,
+      ctx.playerY + uy * d,
+      0,
+      0,
+      ctx.damage,
+      ctx.config.projectileRadius,
+      '#ff78c8',
+      false,
+      false
+    );
+    bullet.weaponId = ctx.config.id;
+    bullet.age = 0;
+    bullet.maxAge = LASER_LIFE_MS;
+    bullet.phase = 'fire';
+    bullet.beamAngle = angle;
+    bullet.beamLength = LASER_SEGMENT_LENGTH;
+    bullet.hitSet = new Set<string | number>();
+  }
+  return true;
+}
+
+// ─── Behavior: Nuke ─────────────────────────────────────────────────────
+
+function fireNuke(ctx: WeaponFireContext): boolean {
+  const target = findNearestEnemy(
+    ctx.pool,
+    ctx.playerX,
+    ctx.playerY,
+    ctx.screenWidth,
+    ctx.screenHeight
+  );
+  if (!target) return false;
+
+  const interceptPos = PredictiveTargeting.calculateIntercept(
+    { x: ctx.playerX, y: ctx.playerY },
+    target
+  );
+  const angle = Math.atan2(interceptPos.y - ctx.playerY, interceptPos.x - ctx.playerX);
+  const bullet = ctx.pool.getBullet(
+    ctx.playerX,
+    ctx.playerY,
+    Math.cos(angle) * ctx.config.projectileSpeed,
+    Math.sin(angle) * ctx.config.projectileSpeed,
+    ctx.damage,
+    ctx.config.projectileRadius,
+    '#ffbb44',
+    false,
+    false
+  );
+  bullet.weaponId = ctx.config.id;
+  bullet.age = 0;
+  bullet.maxAge = NUKE_FLIGHT_MAX_MS;
+  bullet.phase = 'flight';
+  bullet.spawnX = ctx.playerX;
+  bullet.spawnY = ctx.playerY;
+  bullet.targetX = interceptPos.x;
+  bullet.targetY = interceptPos.y;
+  bullet.shockwaveRadius = ctx.config.projectileRadius;
+  bullet.shockwaveMaxRadius =
+    NUKE_SHOCKWAVE_RADIUS +
+    Math.max(0, ctx.level - 1) * NUKE_SHOCKWAVE_RADIUS_PER_LEVEL;
+  bullet.hitSet = new Set<string | number>();
+  return true;
+}
+
+// ─── Behavior: Orbit ────────────────────────────────────────────────────
+
+function fireOrbit(ctx: WeaponFireContext): boolean {
+  const desiredCount = ctx.config.projectileCount + ctx.level;
+  const orbitRadius =
+    ORBIT_RADIUS + Math.max(0, ctx.level - 1) * ORBIT_RADIUS_PER_LEVEL;
+  const bullets = ctx.pool.activeBullets;
+  let existing = 0;
+
+  for (let i = 0; i < bullets.length; i++) {
+    const bullet = bullets[i]!;
+    if (bullet.active && bullet.weaponId === ctx.config.id && bullet.isOrbiter) {
+      bullet.damage = ctx.damage;
+      bullet.radius = ctx.config.projectileRadius;
+      bullet.orbitRadius = orbitRadius;
+      bullet.orbitSpeed = ORBIT_SPEED;
+      bullet.orbitAngle ??= (existing / desiredCount) * Math.PI * 2;
+      existing++;
+    }
+  }
+
+  let spawned = false;
+  for (let i = existing; i < desiredCount; i++) {
+    const angle = (i / desiredCount) * Math.PI * 2;
+    const bullet = ctx.pool.getBullet(
+      ctx.playerX + Math.cos(angle) * orbitRadius,
+      ctx.playerY + Math.sin(angle) * orbitRadius,
+      0,
+      0,
+      ctx.damage,
+      ctx.config.projectileRadius,
+      '#44ddff',
+      false,
+      false
+    );
+    bullet.weaponId = ctx.config.id;
+    bullet.isOrbiter = true;
+    bullet.orbitAngle = angle;
+    bullet.orbitRadius = orbitRadius;
+    bullet.orbitSpeed = ORBIT_SPEED;
+    bullet.phase = 'flight';
+    bullet.hitSet = new Set<string | number>();
+    spawned = true;
+  }
+
+  return spawned;
 }
 
 // ─── Behavior: Burst ────────────────────────────────────────────────────

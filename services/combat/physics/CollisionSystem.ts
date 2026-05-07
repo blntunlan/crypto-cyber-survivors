@@ -151,8 +151,9 @@ export class CollisionSystem implements ICollisionSystem {
 
       // 5. Interaction Checks
       // Only check player-enemy collision if player is vulnerable and alive
+      let hitResult: 'none' | 'hit' | 'dodge' = 'none';
       if (isVulnerable && player.hp > 0) {
-        const hitResult = this.checkPlayerEnemyCollision(
+        hitResult = this.checkPlayerEnemyCollision(
           pool,
           player,
           enemy,
@@ -162,6 +163,9 @@ export class CollisionSystem implements ICollisionSystem {
         );
         if (hitResult === 'hit') frameDamageDealt = true;
         else if (hitResult === 'dodge') frameDodged = true;
+      }
+      if (hitResult === 'none' && player.hp > 0) {
+        this.checkNearMiss(player, enemy);
       }
       this.processBulletCollisions(
         pool,
@@ -225,7 +229,13 @@ export class CollisionSystem implements ICollisionSystem {
 
           if (distSq < combinedRadiusSq) {
             // Hit!
-            bullet.active = false;
+            this.primeWeaponStateOnHit(bullet);
+            if (this.shouldSkipRepeatedHit(obj, bullet, 'interactable')) {
+              return;
+            }
+            if (!this.shouldKeepBulletActiveAfterHit(bullet)) {
+              bullet.active = false;
+            }
             obj.health -= bullet.damage;
             obj.isHit = true;
             obj.hitTimer = 0.2; // 200ms flash
@@ -392,6 +402,37 @@ export class CollisionSystem implements ICollisionSystem {
     return 'hit';
   }
 
+  private checkNearMiss(player: Player, enemy: Enemy): void {
+    if (!enemy.active || enemy.isDying || !enemy.hasEnteredScreen) {
+      return;
+    }
+    if (enemy.hasTriggeredNearMiss) {
+      return;
+    }
+
+    const dx = player.x - enemy.x;
+    const dy = player.y - enemy.y;
+    const distSq = dx * dx + dy * dy;
+    const collisionRadius = GAME_ENGINE.PLAYER_HIT_BOX_RADIUS + enemy.radius;
+    const collisionRadiusSq = collisionRadius * collisionRadius;
+
+    if (distSq <= collisionRadiusSq) {
+      return;
+    }
+
+    const nearMissRadius = collisionRadius + this.ctx.constants.NEAR_MISS_THRESHOLD;
+    if (distSq > nearMissRadius * nearMissRadius) {
+      return;
+    }
+
+    enemy.hasTriggeredNearMiss = true;
+    EventBus.emit('nearMiss', {
+      enemyType: enemy.type,
+      distance: Math.max(0, Math.sqrt(distSq) - collisionRadius),
+      bonusXp: 0,
+    });
+  }
+
   /**
    * Spatial grid assisted collision check for bullets near a specific enemy.
    * Optimized to reduce iterator overhead and use squared distance comparisons.
@@ -448,9 +489,16 @@ export class CollisionSystem implements ICollisionSystem {
     dtFactor: number,
     particleMultiplier: number
   ): void {
+    this.primeWeaponStateOnHit(bullet);
+    if (this.shouldSkipRepeatedHit(enemy, bullet, 'enemy')) {
+      return;
+    }
+
     // Apply Damage
     enemy.health -= bullet.damage;
-    bullet.active = false;
+    if (!this.shouldKeepBulletActiveAfterHit(bullet)) {
+      bullet.active = false;
+    }
 
     // Visual/Physics Feedback
     this.spawnImpactParticles(pool, bullet, particleMultiplier);
@@ -486,6 +534,57 @@ export class CollisionSystem implements ICollisionSystem {
         !!bullet.isSuperCrit
       );
     }
+  }
+
+  private primeWeaponStateOnHit(bullet: Bullet): void {
+    if (bullet.weaponId !== 'aoe_nuke' || bullet.phase === 'shockwave') {
+      return;
+    }
+
+    bullet.phase = 'shockwave';
+    bullet.age = 0;
+    bullet.vx = 0;
+    bullet.vy = 0;
+    bullet.shockwaveRadius = 5;
+    bullet.radius = 5;
+    bullet.hitSet?.clear();
+  }
+
+  private shouldKeepBulletActiveAfterHit(bullet: Bullet): boolean {
+    return (
+      bullet.weaponId === 'boomerang' ||
+      bullet.weaponId === 'laser' ||
+      bullet.weaponId === 'aoe_nuke' ||
+      bullet.weaponId === 'orbit_shield'
+    );
+  }
+
+  private shouldSkipRepeatedHit(
+    entity: { id?: string; poolIndex?: number; x: number; y: number },
+    bullet: Bullet,
+    namespace: string
+  ): boolean {
+    if (!this.shouldKeepBulletActiveAfterHit(bullet)) {
+      return false;
+    }
+
+    let hitSet = bullet.hitSet;
+    if (hitSet === undefined) {
+      hitSet = new Set<string | number>();
+      bullet.hitSet = hitSet;
+    }
+
+    const id =
+      entity.id ??
+      entity.poolIndex ??
+      `${Math.round(entity.x)}:${Math.round(entity.y)}`;
+    const key = `${namespace}:${id}`;
+    if (hitSet.has(key)) {
+      return true;
+    }
+
+    hitSet.add(key);
+    return false;
   }
 
   /**

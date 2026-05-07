@@ -23,8 +23,7 @@ export class SupabaseUtils {
    * @param critical If true, triggers local storage clearing on "Not Found"
    */
   static async safeFetchSingle<T>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    query: any,
+    query: { maybeSingle: () => PromiseLike<{ data: unknown; error: unknown }> },
     resourceName: string,
     critical: boolean = false
   ): Promise<Result<T, DatabaseError>> {

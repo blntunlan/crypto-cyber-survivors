@@ -11,6 +11,7 @@ import {
   clamp,
   UnifiedDirector,
   type UnifiedInputs,
+  type LiquidationWarning,
 } from '../difficulty';
 import { PoolManager } from '../combat/PoolManager';
 import { type DifficultyOutput } from './DifficultyTypes';
@@ -36,6 +37,9 @@ class DifficultyManagerClass {
   private lastVolume: number = 0;
   private pnlMomentum: number = 0;
   private volumeMomentum: number = 0;
+  private lastLiquidationWarning: LiquidationWarning = 'NONE';
+  private lastLiquidationWarningDistance: number = 100;
+  private lastLiquidationWarningEmitTime: number = -Infinity;
 
   // AI Director V2 Sensors
   private dashCount: number = 0;
@@ -216,6 +220,7 @@ class DifficultyManagerClass {
       UnifiedDirector.snapToTargets();
     }
     const uo = UnifiedDirector.getOutputs();
+    const liquidation = this.calculateLiquidationWarning(currentLeveragedPnL);
 
     // Convert old shock logic context
     let isShockActive = false;
@@ -252,8 +257,8 @@ class DifficultyManagerClass {
       gemDropRate: uo.gemDropRate,
       total,
       wavePhase: 'active',
-      liquidationWarning: 'NONE',
-      fovReduction: 0,
+      liquidationWarning: liquidation.level,
+      fovReduction: liquidation.fovReduction,
       shockActive: isShockActive,
       enemyVariety: uo.enemyVariety,
       chaosLevel: uo.chaosLevel,
@@ -264,6 +269,7 @@ class DifficultyManagerClass {
     };
 
     this.latestOutput = output;
+    this.emitLiquidationWarning(liquidation, currentLeveragedPnL, nowMs);
 
     const isGracePeriod = TimeService.getGameTimeSeconds() < 5;
 
@@ -348,6 +354,56 @@ class DifficultyManagerClass {
     }
   }
 
+  private calculateLiquidationWarning(effectivePnl: number): {
+    level: LiquidationWarning;
+    distance: number;
+    fovReduction: number;
+  } {
+    const distance = clamp((1 + effectivePnl) * 100, 0, 100);
+
+    if (effectivePnl <= -0.95) {
+      return { level: 'CRITICAL', distance, fovReduction: 0.55 };
+    }
+    if (effectivePnl <= -0.8) {
+      return { level: 'DANGER', distance, fovReduction: 0.35 };
+    }
+    if (effectivePnl <= -0.6) {
+      return { level: 'CAUTION', distance, fovReduction: 0.18 };
+    }
+
+    return { level: 'NONE', distance, fovReduction: 0 };
+  }
+
+  private emitLiquidationWarning(
+    liquidation: { level: LiquidationWarning; distance: number; fovReduction: number },
+    effectivePnl: number,
+    nowMs: number
+  ): void {
+    const distanceDelta = Math.abs(
+      liquidation.distance - this.lastLiquidationWarningDistance
+    );
+    const levelChanged = liquidation.level !== this.lastLiquidationWarning;
+    const shouldRefreshActive =
+      liquidation.level !== 'NONE' &&
+      (nowMs - this.lastLiquidationWarningEmitTime >= 1000 || distanceDelta >= 1);
+
+    if (!levelChanged && !shouldRefreshActive) {
+      return;
+    }
+
+    this.lastLiquidationWarning = liquidation.level;
+    this.lastLiquidationWarningDistance = liquidation.distance;
+    this.lastLiquidationWarningEmitTime = nowMs;
+
+    EventBus.emit('liquidationWarning', {
+      level: liquidation.level,
+      distance: liquidation.distance,
+      distanceToLiquidation: liquidation.distance,
+      effectivePnl,
+      fovReduction: liquidation.fovReduction,
+    });
+  }
+
   reset(): void {
     this.killStreak = 0;
     this.lastKillStreakTime = 0;
@@ -357,6 +413,9 @@ class DifficultyManagerClass {
     this.lastVolume = 0;
     this.pnlMomentum = 0;
     this.volumeMomentum = 0;
+    this.lastLiquidationWarning = 'NONE';
+    this.lastLiquidationWarningDistance = 100;
+    this.lastLiquidationWarningEmitTime = -Infinity;
     this.dashCount = 0;
     this.damageTakenSum = 0;
     this.killsInWindow = 0;

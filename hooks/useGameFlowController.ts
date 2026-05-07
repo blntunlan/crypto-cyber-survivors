@@ -144,6 +144,8 @@ export const useGameFlowController = ({
       playerRef.current = nextPlayer;
       setUiStats({ ...nextPlayer });
       EventBus.emit('levelUpComplete', { newLevel: nextPlayer.level });
+      EventBus.emit('levelUp', { level: nextPlayer.level });
+      EventBus.emit('playerLevelUp', { level: nextPlayer.level });
 
       if (nextPlayer.exp >= nextPlayer.nextLevelExp) {
         handleLevelUp();

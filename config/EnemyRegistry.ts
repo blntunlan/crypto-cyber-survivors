@@ -12,6 +12,12 @@ export interface EnemyDefinition {
   baseDamage: number;
   color: string;
   spawnWeight: number; // Higher = more likely to spawn
+  combatRole?: 'contact' | 'ranged' | 'hybrid';
+  canShoot?: boolean;
+  shootCooldownMs?: number;
+  shootRange?: number;
+  projectileSpeed?: number;
+  projectileDamageMultiplier?: number;
   isOppositeColor?: boolean; // If true, color depends on MarketPosition
   description?: string;
 }
@@ -101,6 +107,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     baseDamage: 6,
     color: COLORS.ELECTRIC_BLUE,
     spawnWeight: 10,
+    combatRole: 'ranged',
     isOppositeColor: true,
     description: 'Momentum-based entities that spawn during RSI extremes.',
   },
@@ -151,6 +158,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     baseDamage: 6,
     color: COLORS.MEV_CYAN,
     spawnWeight: 8,
+    combatRole: 'ranged',
     isOppositeColor: false,
     description:
       'Algorithmic predators that anticipate player movement. Front-runners.',
@@ -177,6 +185,7 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
     baseDamage: 10,
     color: COLORS.SANDWICH_PINK,
     spawnWeight: 6,
+    combatRole: 'hybrid',
     isOppositeColor: false,
     description:
       'Pincer attack units that spawn in pairs and converge from opposite sides.',

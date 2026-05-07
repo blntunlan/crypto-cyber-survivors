@@ -2,7 +2,7 @@
  * ReplayOverlay — Playback controls during replay
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { EventBus } from '../../services/core/EventBus';
 import { ReplayPlayerService } from '../../services/replay/ReplayPlayerService';
 
@@ -11,15 +11,9 @@ interface ReplayOverlayProps {
 }
 
 export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
-  const [progress, setProgress] = useState(0);
   const [speed, setSpeed] = useState(1);
-
-  useEffect(() => {
-    const unsub = EventBus.on('replayTick', data => {
-      setProgress(data.progress);
-    });
-    return () => unsub();
-  }, []);
+  const progressTextRef = useRef<HTMLSpanElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   const formatTime = (pct: number) => {
     const replay = ReplayPlayerService.getReplay();
@@ -37,6 +31,19 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
     const m = Math.floor(s / 60);
     return `${m}:${String(s % 60).padStart(2, '0')}`;
   };
+
+  useEffect(() => {
+    const unsub = EventBus.on('replayTick', data => {
+      const pct = data.progress;
+      if (progressTextRef.current) {
+        progressTextRef.current.textContent = `${formatTime(pct)} / ${totalTime()}`;
+      }
+      if (progressBarRef.current) {
+        progressBarRef.current.style.width = `${Math.min(100, pct * 100)}%`;
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const setPlaybackSpeed = (s: number) => {
     setSpeed(s);
@@ -65,8 +72,8 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
     >
       <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>REPLAY</span>
 
-      <span style={{ color: '#64748b' }}>
-        {formatTime(progress)} / {totalTime()}
+      <span ref={progressTextRef} style={{ color: '#64748b' }}>
+        0:00 / {totalTime()}
       </span>
 
       {/* Progress bar */}
@@ -74,9 +81,10 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
         style={{ width: 120, height: 4, backgroundColor: '#1e293b', borderRadius: 2 }}
       >
         <div
+          ref={progressBarRef}
           style={{
             height: '100%',
-            width: `${Math.min(100, progress * 100)}%`,
+            width: '0%',
             backgroundColor: '#8b5cf6',
             borderRadius: 2,
           }}

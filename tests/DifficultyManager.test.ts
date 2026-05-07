@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
+import { EventBus } from '../services/core/EventBus';
 
 // Mock TimeService
 let mockGameTimeSeconds = 0;
@@ -241,6 +242,45 @@ describe('DifficultyManager', () => {
       expect(difficulty.total).toBeGreaterThanOrEqual(0.3);
     });
   });
+
+  describe('Liquidation Warnings', () => {
+    it('should emit warning state from leveraged effective PnL', () => {
+      const emitSpy = vi.spyOn(EventBus, 'emit');
+      DifficultyManager.startGame(10);
+
+      const output = DifficultyManager.calculate(-0.085, 0.02, 1, 1.0, undefined, true);
+
+      expect(output.liquidationWarning).toBe('DANGER');
+      expect(output.fovReduction).toBeGreaterThan(0);
+      expect(emitSpy).toHaveBeenCalledWith(
+        'liquidationWarning',
+        expect.objectContaining({
+          level: 'DANGER',
+          distance: expect.any(Number),
+          distanceToLiquidation: expect.any(Number),
+          effectivePnl: expect.any(Number),
+        })
+      );
+    });
+
+    it('should emit NONE when liquidation pressure clears', () => {
+      const emitSpy = vi.spyOn(EventBus, 'emit');
+      DifficultyManager.startGame(10);
+
+      DifficultyManager.calculate(-0.085, 0.02, 1, 1.0, undefined, true);
+      mockGameTimeSeconds = 2;
+      const output = DifficultyManager.calculate(0, 0.02, 1, 1.0, undefined, true);
+
+      expect(output.liquidationWarning).toBe('NONE');
+      expect(emitSpy).toHaveBeenCalledWith(
+        'liquidationWarning',
+        expect.objectContaining({
+          level: 'NONE',
+        })
+      );
+    });
+  });
+
   describe('Cycle Scaling', () => {
     it('should increase difficulty in subsequent cycles', () => {
       // Scale is +20% per cycle

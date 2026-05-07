@@ -2,7 +2,7 @@
  * DashButton - Touch Button for Dash Action
  *
  * A large touch-friendly button for triggering dash.
- * Shows cooldown state visually.
+ * Shows cooldown state visually via requestAnimationFrame (no React state loop).
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -35,52 +35,95 @@ export const DashButton: React.FC<DashButtonProps> = ({
 }) => {
   const { theme, isRetro } = useTheme();
   const [isPressed, setIsPressed] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const totalCooldownDurationRef = useRef(cooldownMs);
+  const [isReady, setIsReady] = useState(!disabled);
 
-  const isReady = cooldownRemaining <= 0 && !disabled;
+  const cooldownEndRef = useRef<number>(0);
+  const totalCooldownDurationRef = useRef(cooldownMs);
+  const cooldownOverlayRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<number>(0);
+
   const accentColor = theme.colors.primary;
   const accentColorRgb = theme.colors.primary.startsWith('#')
     ? hexToRgb(theme.colors.primary)
     : '34, 211, 238';
 
-  // Cooldown timer
+  // Update isReady if disabled prop changes
   useEffect(() => {
-    if (cooldownRemaining <= 0) return;
+    setIsReady(!disabled && performance.now() >= cooldownEndRef.current);
+  }, [disabled]);
 
-    const interval = setInterval(() => {
-      setCooldownRemaining(prev => Math.max(0, prev - 50));
-    }, 50);
+  const updateCooldownVisual = useCallback(() => {
+    const now = performance.now();
+    const remaining = Math.max(0, cooldownEndRef.current - now);
 
-    return () => clearInterval(interval);
-  }, [cooldownRemaining]);
+    if (remaining <= 0) {
+      if (cooldownOverlayRef.current) {
+        cooldownOverlayRef.current.style.display = 'none';
+        cooldownOverlayRef.current.style.height = '0%';
+      }
+      setIsReady(!disabled);
+      return; // Stop animation loop
+    }
+
+    const percent =
+      totalCooldownDurationRef.current > 0
+        ? remaining / totalCooldownDurationRef.current
+        : 0;
+
+    if (cooldownOverlayRef.current) {
+      cooldownOverlayRef.current.style.display = 'block';
+      cooldownOverlayRef.current.style.height = `${percent * 100}%`;
+    }
+
+    frameRef.current = requestAnimationFrame(updateCooldownVisual);
+  }, [disabled]);
+
+  const startCooldown = useCallback(
+    (duration: number) => {
+      cooldownEndRef.current = performance.now() + duration;
+      totalCooldownDurationRef.current = duration;
+      setIsReady(false);
+
+      if (cooldownOverlayRef.current) {
+        cooldownOverlayRef.current.style.display = 'block';
+        cooldownOverlayRef.current.style.height = '100%';
+      }
+
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+      frameRef.current = requestAnimationFrame(updateCooldownVisual);
+    },
+    [updateCooldownVisual]
+  );
 
   // Listen for global engine dash events to sync cooldown visuals
   useEffect(() => {
     const unsub = EventBus.on('playerDash', data => {
-      setCooldownRemaining(data.cooldown);
-      totalCooldownDurationRef.current = data.cooldown;
+      startCooldown(data.cooldown);
     });
-    return unsub;
-  }, []);
+    return () => {
+      unsub();
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, [startCooldown]);
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       e.preventDefault();
 
-      if (disabled) return;
+      if (disabled || !isReady) return;
 
       setIsPressed(true);
-      // Fallback visual cooldown if engine event is delayed
-      setCooldownRemaining(cooldownMs);
-      totalCooldownDurationRef.current = cooldownMs;
+      // Visual fallback
+      startCooldown(cooldownMs);
       onDash();
 
       // Haptic feedback (with safe check for unsupported browsers like Safari iOS)
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- navigator.vibrate doesn't exist on Safari iOS
       if (hapticFeedback) navigator.vibrate?.(20);
     },
-    [onDash, hapticFeedback, disabled, cooldownMs]
+    [onDash, hapticFeedback, disabled, isReady, startCooldown, cooldownMs]
   );
 
   const handleTouchEnd = useCallback(
@@ -91,12 +134,6 @@ export const DashButton: React.FC<DashButtonProps> = ({
     },
     [onDashRelease]
   );
-
-  // Calculate cooldown percentage for visual
-  const cooldownPercent =
-    totalCooldownDurationRef.current > 0
-      ? cooldownRemaining / totalCooldownDurationRef.current
-      : 0;
 
   // Styles
   const buttonStyle: React.CSSProperties = {
@@ -139,9 +176,9 @@ export const DashButton: React.FC<DashButtonProps> = ({
     bottom: 0,
     left: 0,
     width: '100%',
-    height: `${cooldownPercent * 100}%`,
+    height: '0%', // Managed by ref
+    display: 'none',
     background: 'rgba(0, 0, 0, 0.5)',
-    transition: 'height 0.05s linear',
     pointerEvents: 'none',
   };
 
@@ -167,7 +204,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      {cooldownRemaining > 0 && <div style={cooldownOverlayStyle} />}
+      <div ref={cooldownOverlayRef} style={cooldownOverlayStyle} />
       <Zap style={iconStyle} />
       <span style={labelStyle}>DASH</span>
     </div>

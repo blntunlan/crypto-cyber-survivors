@@ -7,6 +7,7 @@ import {
   type Interactable,
   MarketPosition,
   type CryptoPair,
+  type EnemyIntent,
 } from '../../types';
 import {
   EnemyFactory,
@@ -363,7 +364,10 @@ export class PoolManager implements IPoolManager {
     _pair?: CryptoPair,
     damageMultiplier: number = 1.0,
     speedMultiplier: number = 1.0,
-    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER
+    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER,
+    hpMultiplier: number = 1.0,
+    intent?: EnemyIntent,
+    powerTier: number = 0
   ): GameEnemy {
     const currentEnemyType = enemyType ?? 'bear';
 
@@ -376,7 +380,10 @@ export class PoolManager implements IPoolManager {
           difficulty,
           position,
           rsiModifier,
-          damageMultiplier
+          damageMultiplier,
+          hpMultiplier,
+          intent,
+          powerTier
         ),
       obj => {
         enemyFactory.createEnemy(
@@ -387,6 +394,9 @@ export class PoolManager implements IPoolManager {
           position,
           rsiModifier,
           damageMultiplier,
+          hpMultiplier,
+          intent,
+          powerTier,
           obj
         );
         // Apply extra speed multiplier if provided (e.g. from global effects)
@@ -406,7 +416,10 @@ export class PoolManager implements IPoolManager {
     tier: WhaleTier,
     damageMultiplier: number = 1.0,
     speedMultiplier: number = 1.0,
-    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER
+    rsiModifier: RSIEnemyModifier = NEUTRAL_ENEMY_MODIFIER,
+    hpMultiplier: number = 1.0,
+    intent: EnemyIntent = 'boss',
+    powerTier: number = 0
   ): GameEnemy {
     const tierConfig = WHALE_TIER_CONFIGS[tier];
     audio.playWhaleArrival();
@@ -420,7 +433,10 @@ export class PoolManager implements IPoolManager {
           difficulty,
           position,
           rsiModifier,
-          damageMultiplier
+          damageMultiplier,
+          hpMultiplier,
+          intent,
+          powerTier
         );
         if (tierConfig) {
           e.radius *= tierConfig.sizeMultiplier;
@@ -441,6 +457,9 @@ export class PoolManager implements IPoolManager {
           position,
           rsiModifier,
           damageMultiplier,
+          hpMultiplier,
+          intent,
+          powerTier,
           obj
         );
 
@@ -506,6 +525,9 @@ export class PoolManager implements IPoolManager {
         }
         obj.spawnX = undefined;
         obj.spawnY = undefined;
+        obj.targetX = undefined;
+        obj.targetY = undefined;
+        obj.curveSign = undefined;
         obj.isOrbiter = undefined;
         obj.orbitAngle = undefined;
         obj.orbitRadius = undefined;

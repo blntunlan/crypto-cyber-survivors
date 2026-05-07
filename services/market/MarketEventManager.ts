@@ -46,10 +46,6 @@ class MarketEventManagerClass {
   }
 
   private analyze(state: MarketState): void {
-    // Market micro-events are only consumed by dev-mode UI notifications.
-    // Skip analysis entirely in production to save CPU.
-    if (!import.meta.env.DEV) return;
-
     const now = Date.now();
 
     // 1. VOLUME SPIKE -> "Flash Mob"

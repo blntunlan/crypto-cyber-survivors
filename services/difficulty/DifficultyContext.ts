@@ -121,6 +121,10 @@ class DifficultyContextManager {
     c.damageTakenFrequency = p.damageTakenFrequency;
     c.performanceScore = p.performanceScore;
     c.dps = p.dps;
+    c.playerPower = p.playerPower;
+    c.offensePower = p.offensePower;
+    c.counterPressure = p.counterPressure;
+    c.rangedPressure = p.rangedPressure;
     c.enemyHealthPool = p.enemyHealthPool;
     c.screenDensity = p.screenDensity;
     c.upgradeEfficiency = p.upgradeEfficiency;
@@ -177,6 +181,10 @@ class DifficultyContextManager {
     p.damageTakenFrequency = base.damageTakenFrequency;
     p.performanceScore = base.performanceScore;
     p.dps = base.dps;
+    p.playerPower = base.playerPower;
+    p.offensePower = base.offensePower;
+    p.counterPressure = base.counterPressure;
+    p.rangedPressure = base.rangedPressure;
     p.enemyHealthPool = base.enemyHealthPool;
     p.screenDensity = base.screenDensity;
     p.upgradeEfficiency = base.upgradeEfficiency;
@@ -243,6 +251,18 @@ class DifficultyContextManager {
       PlayerMetricsAggregator.slice.timeSinceLastKill = updates.timeSinceLastKill;
     }
     if (updates.dps !== undefined) PlayerMetricsAggregator.slice.dps = updates.dps;
+    if (updates.playerPower !== undefined) {
+      PlayerMetricsAggregator.slice.playerPower = updates.playerPower;
+    }
+    if (updates.offensePower !== undefined) {
+      PlayerMetricsAggregator.slice.offensePower = updates.offensePower;
+    }
+    if (updates.counterPressure !== undefined) {
+      PlayerMetricsAggregator.slice.counterPressure = updates.counterPressure;
+    }
+    if (updates.rangedPressure !== undefined) {
+      PlayerMetricsAggregator.slice.rangedPressure = updates.rangedPressure;
+    }
     if (updates.screenDensity !== undefined) {
       PlayerMetricsAggregator.slice.screenDensity = updates.screenDensity;
     }
@@ -267,6 +287,20 @@ class DifficultyContextManager {
 
   public updateCombatState(killStreak: number, timeSinceLastKill: number): void {
     PlayerMetricsAggregator.updateCombatState(killStreak, timeSinceLastKill);
+  }
+
+  public updatePlayerPower(
+    playerPower: number,
+    offensePower: number,
+    counterPressure: number,
+    rangedPressure: number
+  ): void {
+    PlayerMetricsAggregator.updatePower(
+      playerPower,
+      offensePower,
+      counterPressure,
+      rangedPressure
+    );
   }
 
   public reset(): void {

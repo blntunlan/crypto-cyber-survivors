@@ -24,7 +24,7 @@ import { PortalRewardCalculator } from './portal/PortalRewardCalculator';
 // =============================================================================
 
 export const PORTAL_V2_CONFIG = {
-  FIRST_PORTAL_MIN_TIME: 300,
+  FIRST_PORTAL_MIN_TIME: 120,
   MAX_GAME_TIME: 600,
   PORTAL_COOLDOWN: 180,
   PORTAL_DURATION: 25,
@@ -139,6 +139,9 @@ class PortalSystemV2Class {
     EventBus.on('gameReset', () => this.reset());
     EventBus.on('enemyKilled', data => this.onEnemyKilled(data));
     EventBus.on('flowStateChanged', data => this.onFlowStateChanged(data.newState));
+    EventBus.on('levelUpComplete', data => {
+      this.currentLevel = data.newLevel;
+    });
     EventBus.on('playerLevelUp', data => {
       this.currentLevel = data.level;
     });

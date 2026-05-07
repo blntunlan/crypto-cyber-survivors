@@ -35,7 +35,7 @@ export class ProjectileRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     pool: IPoolManager,
     _state: GameState,
-    _player: Player,
+    player: Player,
     opts: RenderOptions
   ): void {
     const bounds = createViewportBounds(
@@ -149,7 +149,14 @@ export class ProjectileRenderer implements IRenderer {
         // Phase 0 VFX dispatch: route to per-kind renderer. All kinds
         // currently fall through to the default path so visuals are
         // unchanged. Later phases will swap individual kinds over.
-        this.dispatchCyberpunkRender(ctx, b, normalCoreColor, superCritColor, heat);
+        this.dispatchCyberpunkRender(
+          ctx,
+          b,
+          normalCoreColor,
+          superCritColor,
+          heat,
+          player
+        );
       }
     }
 
@@ -172,7 +179,8 @@ export class ProjectileRenderer implements IRenderer {
     b: Bullet,
     cachedCoreColor: string,
     superCritGlow: string,
-    heat: number
+    heat: number,
+    player: Player
   ): void {
     const kind = this.resolveRenderKind(b);
     switch (kind) {
@@ -182,12 +190,18 @@ export class ProjectileRenderer implements IRenderer {
       case 'spread':
         this.renderSpread(ctx, b, heat);
         return;
-      // All kinds currently share the default visual. When a Phase-N port
-      // lands, add a dedicated `renderXyzProjectile(...)` call on that case.
       case 'boomerang':
+        this.renderBoomerang(ctx, b);
+        return;
       case 'laser':
+        this.renderLaser(ctx, b);
+        return;
       case 'nuke':
+        this.renderNuke(ctx, b);
+        return;
       case 'orbit':
+        this.renderOrbit(ctx, b, player);
+        return;
       case 'default':
       default:
         this.renderCyberpunkProjectile(ctx, b, cachedCoreColor, superCritGlow);
@@ -436,6 +450,194 @@ export class ProjectileRenderer implements IRenderer {
     ctx.arc(b.x, b.y, 2, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  private renderBoomerang(ctx: CanvasRenderingContext2D, b: Bullet): void {
+    const trail = b.trail;
+    if (trail !== undefined && trail.length >= 2) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(192,38,211,0.2)';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(trail[0]!.x, trail[0]!.y);
+      for (let i = 1; i < trail.length; i++) {
+        ctx.lineTo(trail[i]!.x, trail[i]!.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      for (let i = 1; i < trail.length; i++) {
+        const p0 = trail[i - 1]!;
+        const p1 = trail[i]!;
+        const alpha = Math.max(0, 1 - p1.age / BOOMERANG_TRAIL_LIFE_MS);
+        ctx.strokeStyle = `rgba(168,85,247,${alpha * 0.9})`;
+        ctx.lineWidth = 3 * alpha + 1;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
+    }
+
+    const rotation = (b.age ?? 0) * 0.022;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(rotation);
+    this.drawBoomerangBlade(ctx, -Math.PI / 4);
+    this.drawBoomerangBlade(ctx, Math.PI / 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  private drawBoomerangBlade(ctx: CanvasRenderingContext2D, angle: number): void {
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.shadowColor = '#c026d3';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = '#a855f7';
+    ctx.beginPath();
+    ctx.moveTo(-2, -2);
+    ctx.quadraticCurveTo(10, -5, 16, -1);
+    ctx.quadraticCurveTo(18, 0, 16, 1);
+    ctx.quadraticCurveTo(10, 5, -2, 2);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#f0abfc';
+    ctx.beginPath();
+    ctx.moveTo(0, -1);
+    ctx.quadraticCurveTo(8, -2.5, 13, -0.5);
+    ctx.quadraticCurveTo(14, 0, 13, 0.5);
+    ctx.quadraticCurveTo(8, 2.5, 0, 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  private renderLaser(ctx: CanvasRenderingContext2D, b: Bullet): void {
+    const angle = b.beamAngle ?? Math.atan2(b.vy, b.vx);
+    const length = b.beamLength ?? 44;
+    const lifeFrac =
+      b.maxAge !== undefined && b.maxAge > 0
+        ? Math.max(0, 1 - (b.age ?? 0) / b.maxAge)
+        : 1;
+    const fade = Math.max(0.2, lifeFrac);
+
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(angle);
+    ctx.lineCap = 'round';
+
+    ctx.strokeStyle = `rgba(255,100,180,${0.35 * fade})`;
+    ctx.lineWidth = 22 * fade + 8;
+    ctx.beginPath();
+    ctx.moveTo(-length / 2, 0);
+    ctx.lineTo(length / 2, 0);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(255,180,230,${0.85 * fade})`;
+    ctx.lineWidth = 8 * fade + 3;
+    ctx.beginPath();
+    ctx.moveTo(-length / 2, 0);
+    ctx.lineTo(length / 2, 0);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(255,255,255,${fade})`;
+    ctx.lineWidth = 3 * fade + 1;
+    ctx.beginPath();
+    ctx.moveTo(-length / 2, 0);
+    ctx.lineTo(length / 2, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private renderNuke(ctx: CanvasRenderingContext2D, b: Bullet): void {
+    if (b.phase === 'shockwave') {
+      const radius = b.shockwaveRadius ?? b.radius;
+      const alpha = Math.max(0, 1 - (b.age ?? 0) / NUKE_SHOCKWAVE_LIFE_MS);
+
+      ctx.strokeStyle = `rgba(255,160,60,${alpha * 0.9})`;
+      ctx.lineWidth = 4 * alpha + 1;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const grad = ctx.createRadialGradient(
+        b.x,
+        b.y,
+        Math.max(0, radius - 10),
+        b.x,
+        b.y,
+        radius
+      );
+      grad.addColorStop(0, 'rgba(255,200,120,0)');
+      grad.addColorStop(1, `rgba(255,180,80,${alpha * 0.35})`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+
+    const pulse = 0.7 + 0.3 * Math.sin(((b.age ?? 0) / 150) * Math.PI * 2);
+    const glow = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 22 * pulse);
+    glow.addColorStop(0, '#ffdd66');
+    glow.addColorStop(0.5, 'rgba(255,140,50,0.6)');
+    glow.addColorStop(1, 'rgba(255,100,30,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 22 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    const tx = b.x - b.vx * 8;
+    const ty = b.y - b.vy * 8;
+    const trailGrad = ctx.createLinearGradient(b.x, b.y, tx, ty);
+    trailGrad.addColorStop(0, 'rgba(255,150,60,0.5)');
+    trailGrad.addColorStop(1, 'rgba(100,60,40,0)');
+    ctx.strokeStyle = trailGrad;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
+  }
+
+  private renderOrbit(ctx: CanvasRenderingContext2D, b: Bullet, player: Player): void {
+    const orbitRadius = b.orbitRadius;
+    if (orbitRadius !== undefined && b.orbitAngle !== undefined) {
+      ctx.strokeStyle = 'rgba(68,221,255,0.035)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, orbitRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    const glowR = b.radius + 8;
+    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, glowR);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.4, 'rgba(68,221,255,0.8)');
+    grad.addColorStop(1, 'rgba(68,221,255,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, glowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 /** Matches `MovementSystem` tunable of the same name. */
@@ -447,3 +649,5 @@ const SPREAD_COOL_COLOR = '#ffd060';
 const SPREAD_HOT_COLOR = '#ffff88';
 const SPREAD_COOL_TRAIL_RGB = '255,180,80';
 const SPREAD_HOT_TRAIL_RGB = '255,220,120';
+const BOOMERANG_TRAIL_LIFE_MS = 380;
+const NUKE_SHOCKWAVE_LIFE_MS = 650;

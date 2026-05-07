@@ -1,4 +1,4 @@
-import { MarketPosition, type CryptoPair } from '../../types';
+import { MarketPosition, type CryptoPair, type EnemyIntent } from '../../types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { ENEMY_SPAWN } from '../../config';
 import { useAdminConfigStore } from '../../stores/admin/configStore';
@@ -21,6 +21,25 @@ export interface SpawnMarketSignals {
   rsi?: number;
   rsiState?: string;
   whaleTier?: number;
+  playerPower?: number;
+  offensePower?: number;
+  counterPressure?: number;
+  rangedPressure?: number;
+  screenPressure?: number;
+}
+
+interface EnemyResponseProfile {
+  playerPower: number;
+  offensePower: number;
+  counterPressure: number;
+  rangedPressure: number;
+  screenPressure: number;
+  spawnMultiplier: number;
+  damageMultiplier: number;
+  speedMultiplier: number;
+  hpMultiplier: number;
+  intent: EnemyIntent;
+  powerTier: number;
 }
 
 /**
@@ -37,6 +56,19 @@ export class SpawnSystem implements ISpawnSystem {
     new Map();
   private previousRSIState: RSIState = 'NEUTRAL';
   private rsiSpawnCooldownTimer: number = 0;
+  private readonly enemyResponse: EnemyResponseProfile = {
+    playerPower: 0,
+    offensePower: 0,
+    counterPressure: 0,
+    rangedPressure: 0,
+    screenPressure: 0,
+    spawnMultiplier: 1,
+    damageMultiplier: 1,
+    speedMultiplier: 1,
+    hpMultiplier: 1,
+    intent: 'pressure',
+    powerTier: 0,
+  };
   private static readonly RSI_SPAWN_COOLDOWN_MS = 4000; // 4s cooldown per design spec
   private static readonly MAX_ACTIVE_WHALES = 3;
 
@@ -88,6 +120,7 @@ export class SpawnSystem implements ISpawnSystem {
     const rsiState = this.resolveRSIState(marketSignals);
     const whaleTier = this.resolveWhaleTier(marketSignals?.whaleTier);
     const enemyModifier = getEnemyModifierFromRSI(rsiState, position);
+    const response = this.resolveEnemyResponse(marketSignals);
 
     this.spawnTimer += deltaTime;
     this.whaleCooldownTimer = Math.max(0, this.whaleCooldownTimer - deltaTime);
@@ -132,7 +165,8 @@ export class SpawnSystem implements ISpawnSystem {
         damageMultiplier,
         speedMultiplier,
         whaleAlert?.intensity ?? 0,
-        enemyModifier
+        enemyModifier,
+        response
       );
     }
 
@@ -144,7 +178,8 @@ export class SpawnSystem implements ISpawnSystem {
     // Use AI multiplier if provided, otherwise fallback to standard difficulty
     const effectiveMultiplier = Math.max(0.01, spawnRateMultiplier ?? difficulty);
     const spawnThreshold =
-      config.baseInterval / (effectiveMultiplier * eventSpawnMultiplier);
+      config.baseInterval /
+      (effectiveMultiplier * eventSpawnMultiplier * response.spawnMultiplier);
 
     let burstCount = 0;
     while (this.spawnTimer > spawnThreshold && burstCount < 5) {
@@ -159,7 +194,8 @@ export class SpawnSystem implements ISpawnSystem {
           damageMultiplier,
           speedMultiplier,
           rsiState,
-          enemyModifier
+          enemyModifier,
+          response
         );
       }
       this.spawnTimer -= spawnThreshold;
@@ -202,7 +238,8 @@ export class SpawnSystem implements ISpawnSystem {
     damageMultiplier: number,
     speedMultiplier: number,
     eventIntensity: number,
-    rsiModifier: RSIEnemyModifier
+    rsiModifier: RSIEnemyModifier,
+    response: EnemyResponseProfile
   ) {
     const whaleConfig = WHALE_TIER_CONFIGS[whaleTier];
     if (!whaleConfig) return;
@@ -234,9 +271,12 @@ export class SpawnSystem implements ISpawnSystem {
         difficulty,
         position,
         whaleTier,
-        damageMultiplier,
-        speedMultiplier,
-        rsiModifier
+        damageMultiplier * response.damageMultiplier,
+        speedMultiplier * response.speedMultiplier,
+        rsiModifier,
+        response.hpMultiplier,
+        'boss',
+        response.powerTier
       );
       this.whaleCooldownTimer = 20000;
     }
@@ -255,15 +295,18 @@ export class SpawnSystem implements ISpawnSystem {
     damageMultiplier: number,
     speedMultiplier: number,
     rsiState: RSIState,
-    rsiModifier: RSIEnemyModifier
+    rsiModifier: RSIEnemyModifier,
+    response: EnemyResponseProfile
   ) {
     const { x, y } = this.getRandomSpawnPosition(width, height);
     const roll = Math.random();
     let enemyType: EnemyId = 'bear';
+    let canAdaptEnemyType = true;
 
     if (this.activeEvents.has('FLASH_CRASH')) {
       // Flash Crash: liquidators + fud + flash_loan
       enemyType = roll < 0.5 ? 'liquidator' : roll < 0.75 ? 'fud' : 'flash_loan';
+      canAdaptEnemyType = false;
     } else if (this.activeEvents.has('VOLUME_SPIKE') && roll < 0.25) {
       // Volume Spike: chance for sandwich pair spawn
       this.spawnSandwichPair(
@@ -272,9 +315,10 @@ export class SpawnSystem implements ISpawnSystem {
         position,
         width,
         height,
-        damageMultiplier,
-        speedMultiplier,
-        rsiModifier
+        damageMultiplier * response.damageMultiplier,
+        speedMultiplier * response.speedMultiplier,
+        rsiModifier,
+        response
       );
       return;
     } else if (
@@ -319,6 +363,12 @@ export class SpawnSystem implements ISpawnSystem {
                     : 'flash_loan';
     }
 
+    if (canAdaptEnemyType) {
+      enemyType = this.selectAdaptiveEnemyType(enemyType, roll, response);
+    }
+    const responseDamageMultiplier = damageMultiplier * response.damageMultiplier;
+    const responseSpeedMultiplier = speedMultiplier * response.speedMultiplier;
+
     // Ultra-rare 51% Attack boss spawn (difficulty >= 5)
     if (difficulty >= 5 && this.attackCooldownTimer <= 0 && Math.random() < 0.008) {
       let has51Attack = false;
@@ -337,9 +387,12 @@ export class SpawnSystem implements ISpawnSystem {
           position,
           '51_attack',
           undefined,
-          damageMultiplier,
-          speedMultiplier,
-          rsiModifier
+          responseDamageMultiplier,
+          responseSpeedMultiplier,
+          rsiModifier,
+          response.hpMultiplier,
+          'boss',
+          response.powerTier
         );
         this.attackCooldownTimer = SpawnSystem.ATTACK_51_COOLDOWN_MS;
         Logger.info('[SpawnSystem] 51% Attack boss spawned!');
@@ -353,9 +406,12 @@ export class SpawnSystem implements ISpawnSystem {
       position,
       enemyType,
       undefined,
-      damageMultiplier,
-      speedMultiplier,
-      rsiModifier
+      responseDamageMultiplier,
+      responseSpeedMultiplier,
+      rsiModifier,
+      response.hpMultiplier,
+      this.resolveEnemyIntent(enemyType, response),
+      response.powerTier
     );
   }
 
@@ -370,7 +426,8 @@ export class SpawnSystem implements ISpawnSystem {
     height: number,
     damageMultiplier: number,
     speedMultiplier: number,
-    rsiModifier: RSIEnemyModifier
+    rsiModifier: RSIEnemyModifier,
+    response: EnemyResponseProfile
   ) {
     // Spawn from opposite edges
     const isHorizontal = Math.random() > 0.5;
@@ -404,7 +461,10 @@ export class SpawnSystem implements ISpawnSystem {
       undefined,
       damageMultiplier,
       speedMultiplier,
-      rsiModifier
+      rsiModifier,
+      response.hpMultiplier,
+      'counter',
+      response.powerTier
     );
     pool.getEnemy(
       x2,
@@ -415,8 +475,105 @@ export class SpawnSystem implements ISpawnSystem {
       undefined,
       damageMultiplier,
       speedMultiplier,
-      rsiModifier
+      rsiModifier,
+      response.hpMultiplier,
+      'counter',
+      response.powerTier
     );
+  }
+
+  private resolveEnemyResponse(
+    marketSignals?: SpawnMarketSignals
+  ): EnemyResponseProfile {
+    const playerPower = this.clamp01(marketSignals?.playerPower ?? 0);
+    const offensePower = this.clamp01(marketSignals?.offensePower ?? playerPower);
+    const counterPressure = this.clamp01(
+      marketSignals?.counterPressure ?? playerPower * 0.65
+    );
+    const rangedPressure = this.clamp01(marketSignals?.rangedPressure ?? 0);
+    const screenPressure = this.clamp01(marketSignals?.screenPressure ?? 0);
+
+    const profile = this.enemyResponse;
+    profile.playerPower = playerPower;
+    profile.offensePower = offensePower;
+    profile.counterPressure = counterPressure;
+    profile.rangedPressure = rangedPressure;
+    profile.screenPressure = screenPressure;
+    profile.spawnMultiplier = this.clamp(
+      1 + counterPressure * 0.24 - screenPressure * 0.18,
+      0.82,
+      1.24
+    );
+    profile.hpMultiplier = this.clamp(
+      1 + playerPower * 0.42 + offensePower * 0.28 - screenPressure * 0.1,
+      0.9,
+      1.7
+    );
+    profile.speedMultiplier = this.clamp(1 + counterPressure * 0.16, 0.95, 1.16);
+    profile.damageMultiplier = this.clamp(1 + counterPressure * 0.12, 0.95, 1.12);
+    profile.intent =
+      rangedPressure > 0.62
+        ? 'ranged'
+        : counterPressure > 0.58
+          ? 'counter'
+          : playerPower > 0.36
+            ? 'pressure'
+            : 'fodder';
+    profile.powerTier = Math.min(3, Math.floor(playerPower * 4));
+
+    return profile;
+  }
+
+  private selectAdaptiveEnemyType(
+    baseType: EnemyId,
+    roll: number,
+    response: EnemyResponseProfile
+  ): EnemyId {
+    if (response.rangedPressure > 0.7) {
+      if (roll > 0.84) return 'mev_bot';
+      if (roll > 0.72) return 'rsi';
+    }
+
+    if (response.counterPressure > 0.68) {
+      if (roll > 0.9) return 'flash_loan';
+      if (roll > 0.82) return 'rugpull';
+      if (roll > 0.74) return 'sandwich';
+    }
+
+    if (response.playerPower > 0.58 && roll > 0.88) return 'pumpdump';
+
+    return baseType;
+  }
+
+  private resolveEnemyIntent(
+    enemyType: EnemyId,
+    response: EnemyResponseProfile
+  ): EnemyIntent {
+    if (
+      enemyType === 'whale' ||
+      enemyType === 'market_maker' ||
+      enemyType === '51_attack'
+    ) {
+      return 'boss';
+    }
+
+    if (
+      response.intent === 'ranged' &&
+      (enemyType === 'rsi' || enemyType === 'mev_bot')
+    ) {
+      return 'ranged';
+    }
+
+    if (
+      enemyType === 'liquidator' ||
+      enemyType === 'rugpull' ||
+      enemyType === 'flash_loan' ||
+      enemyType === 'sandwich'
+    ) {
+      return 'counter';
+    }
+
+    return response.intent;
   }
 
   private resolveRSIState(marketSignals?: SpawnMarketSignals): RSIState {
@@ -450,6 +607,14 @@ export class SpawnSystem implements ISpawnSystem {
     }
 
     return WhaleTier.NONE;
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  private clamp01(value: number): number {
+    return this.clamp(value, 0, 1);
   }
 
   private getRandomSpawnPosition(width: number, height: number) {

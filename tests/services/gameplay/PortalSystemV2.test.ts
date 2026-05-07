@@ -94,7 +94,7 @@ describe('PortalSystemV2', () => {
     it('should have correct config values', () => {
       expect(PORTAL_V2_CONFIG.MAX_PORTALS).toBe(3);
       expect(PORTAL_V2_CONFIG.MAX_REJECTIONS).toBe(3);
-      expect(PORTAL_V2_CONFIG.FIRST_PORTAL_MIN_TIME).toBe(300);
+      expect(PORTAL_V2_CONFIG.FIRST_PORTAL_MIN_TIME).toBe(120);
       expect(PORTAL_V2_CONFIG.MAX_GAME_TIME).toBe(600);
     });
 
@@ -419,15 +419,15 @@ describe('PortalSystemV2', () => {
       expect(portalSystem.getCurrentLevel()).toBe(1);
     });
 
-    it('should update on playerLevelUp event', () => {
-      simulateEvent('playerLevelUp', { level: 5 });
+    it('should update on levelUpComplete event', () => {
+      simulateEvent('levelUpComplete', { newLevel: 5 });
       expect(portalSystem.getCurrentLevel()).toBe(5);
     });
 
     it('should track the latest level', () => {
-      simulateEvent('playerLevelUp', { level: 2 });
-      simulateEvent('playerLevelUp', { level: 3 });
-      simulateEvent('playerLevelUp', { level: 7 });
+      simulateEvent('levelUpComplete', { newLevel: 2 });
+      simulateEvent('levelUpComplete', { newLevel: 3 });
+      simulateEvent('levelUpComplete', { newLevel: 7 });
       expect(portalSystem.getCurrentLevel()).toBe(7);
     });
   });
@@ -443,7 +443,7 @@ describe('PortalSystemV2', () => {
     });
 
     it('should reset currentLevel to 1 on reset', () => {
-      simulateEvent('playerLevelUp', { level: 10 });
+      simulateEvent('levelUpComplete', { newLevel: 10 });
       expect(portalSystem.getCurrentLevel()).toBe(10);
 
       portalSystem.reset();
@@ -457,7 +457,7 @@ describe('PortalSystemV2', () => {
       simulateEvent('enemyKilled', { enemyType: 'basic' });
       simulateEvent('enemyKilled', { enemyType: 'basic' });
       simulateEvent('enemyKilled', { enemyType: 'basic' });
-      simulateEvent('playerLevelUp', { level: 4 });
+      simulateEvent('levelUpComplete', { newLevel: 4 });
 
       // Spawn a portal so enterPortal works with an active portal
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(350);
@@ -481,7 +481,7 @@ describe('PortalSystemV2', () => {
       for (let i = 0; i < 10; i++) {
         simulateEvent('enemyKilled', { enemyType: 'basic' });
       }
-      simulateEvent('playerLevelUp', { level: 3 });
+      simulateEvent('levelUpComplete', { newLevel: 3 });
       vi.mocked(TimeService.getGameTimeSeconds).mockReturnValue(300);
 
       const result = portalSystem.onPlayerDeath(false);
@@ -497,7 +497,7 @@ describe('PortalSystemV2', () => {
       for (let i = 0; i < 20; i++) {
         simulateEvent('enemyKilled', { enemyType: 'basic' });
       }
-      simulateEvent('playerLevelUp', { level: 10 });
+      simulateEvent('levelUpComplete', { newLevel: 10 });
 
       const result = portalSystem.onPlayerDeath(true);
       expect(result.total).toBe(0);

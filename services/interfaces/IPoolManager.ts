@@ -7,6 +7,7 @@ import {
   type SpeedLine,
   type Interactable,
   type CryptoPair,
+  type EnemyIntent,
 } from '../../types';
 import { type GameEnemy } from '../../factories/EnemyFactory';
 import { type WhaleTier, type RSIEnemyModifier } from '../../types/indicators';
@@ -42,7 +43,10 @@ export interface IPoolManager {
     pair?: CryptoPair,
     damageMultiplier?: number,
     speedMultiplier?: number,
-    rsiModifier?: RSIEnemyModifier
+    rsiModifier?: RSIEnemyModifier,
+    hpMultiplier?: number,
+    intent?: EnemyIntent,
+    powerTier?: number
   ): GameEnemy;
 
   getWhaleEnemy(
@@ -53,7 +57,10 @@ export interface IPoolManager {
     tier: WhaleTier,
     damageMultiplier?: number,
     speedMultiplier?: number,
-    rsiModifier?: RSIEnemyModifier
+    rsiModifier?: RSIEnemyModifier,
+    hpMultiplier?: number,
+    intent?: EnemyIntent,
+    powerTier?: number
   ): GameEnemy;
 
   getBullet(

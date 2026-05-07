@@ -28,6 +28,10 @@ export interface PlayerInputSlice {
   damageTakenFrequency: number;
   performanceScore: number;
   dps: number;
+  playerPower: number;
+  offensePower: number;
+  counterPressure: number;
+  rangedPressure: number;
   enemyHealthPool: number;
   screenDensity: number;
   upgradeEfficiency: number;
@@ -103,6 +107,10 @@ export interface DifficultyInputs {
 
   // --- Neural / AI Metrics ---
   dps: number; // Current Damage Per Second dealt
+  playerPower: number; // 0-1 composite of player combat + survivability scaling
+  offensePower: number; // 0-1 weapon/stat offensive pressure
+  counterPressure: number; // 0-1 enemy response pressure after flow relief
+  rangedPressure: number; // 0-1 readiness for ranged/hybrid enemy composition
   enemyHealthPool: number; // Total HP of active enemies
   screenDensity: number; // Normalized 0-1 (activeEnemies / limit)
   upgradeEfficiency: number; // CoinsSpent / TotalCoins (0-1)

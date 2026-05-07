@@ -106,6 +106,17 @@ export interface Player extends Omit<Entity, 'active'>, PlayerStats {
 
 import { type EnemyId } from './config/EnemyRegistry';
 
+export type EnemyIntent =
+  | 'fodder'
+  | 'pressure'
+  | 'counter'
+  | 'ranged'
+  | 'elite'
+  | 'boss'
+  | 'reward';
+
+export type EnemyCombatRole = 'contact' | 'ranged' | 'hybrid';
+
 export interface Enemy extends Entity {
   speed: number;
   health: number;
@@ -114,6 +125,16 @@ export interface Enemy extends Entity {
   type: EnemyId;
   id?: string;
   valueMultiplier?: number;
+  // Dynamic enemy response metadata. Current enemies still deal contact damage;
+  // future projectile enemies can consume canShoot/shoot* fields directly.
+  intent?: EnemyIntent;
+  combatRole?: EnemyCombatRole;
+  powerTier?: number;
+  canShoot?: boolean;
+  shootCooldownMs?: number;
+  shootRange?: number;
+  projectileSpeed?: number;
+  projectileDamage?: number;
   // Death animation
   isDying?: boolean;
   deathProgress?: number;
@@ -147,6 +168,7 @@ export interface BulletTrailPoint {
 
 export type BulletPhase =
   | 'flight'
+  | 'return'
   | 'detonate'
   | 'shockwave'
   | 'charge'
@@ -171,6 +193,11 @@ export interface Bullet extends Entity {
   /** Spawn origin (used by boomerang to compute return path). */
   spawnX?: number;
   spawnY?: number;
+  /** Fixed target anchor for arcing/splash weapons. */
+  targetX?: number;
+  targetY?: number;
+  /** Side of a curved projectile arc. */
+  curveSign?: number;
   /** Orbit shield metadata. */
   isOrbiter?: boolean;
   orbitAngle?: number;
@@ -186,7 +213,7 @@ export interface Bullet extends Entity {
   beamAngle?: number;
   beamLength?: number;
   /** Tracks which enemies have already been hit by this projectile/shockwave. */
-  hitSet?: Set<number>;
+  hitSet?: Set<string | number>;
 }
 
 export interface SpeedLine extends Entity {
