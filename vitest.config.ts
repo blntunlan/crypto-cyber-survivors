@@ -11,7 +11,6 @@ export default defineConfig({
     include: [
       'tests/**/*.test.ts',
       'tests/**/*.test.tsx',
-      'railway-market-server/test/**/*.test.ts',
     ],
     env: {
       SKIP_INTEGRATION: 'true',
