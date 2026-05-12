@@ -1,0 +1,3 @@
+## 2025-02-24 - SpatialGrid Iteration Optimization
+**Learning:** In a hot loop (like a physics/collision system running 60 times a second), clearing out active structures while pushing objects into an array pool works okay, but completely destroying all map keys causes massive GC spikes over time. A hybrid approach where we only pool empty arrays (`length === 0`) and delete their keys, while reusing active arrays (`length = 0`), provides huge benefits without unbounded map growth.
+**Action:** Use a hybrid clearing strategy to reuse arrays for active cells and pool only completely empty cells in `SpatialGrid`.
