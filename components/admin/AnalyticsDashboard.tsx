@@ -19,6 +19,7 @@ import {
   Gamepad2,
 } from 'lucide-react';
 import { Logger } from '../../services/system/Logger';
+import { railwayClient } from '../../services/api/RailwayClient';
 
 interface DashboardSummary {
   total_players: number;
@@ -112,8 +113,6 @@ export const AnalyticsDashboard: React.FC = () => {
   const fetchData = useCallback(async () => {
     dispatch({ loading: true });
     try {
-      const { railwayClient } = await import('../../services/api/RailwayClient');
-
       // Fetch debug endpoint for analytics data
       const debugData = await railwayClient.get<{
         activity: {

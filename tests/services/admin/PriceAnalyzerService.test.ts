@@ -1,8 +1,8 @@
 import { vi } from 'vitest';
 
-const mockRailwayClient = {
+const mockRailwayClient = vi.hoisted(() => ({
   get: vi.fn(),
-};
+}));
 
 vi.mock('../../../services/api/RailwayClient', () => ({
   railwayClient: mockRailwayClient,

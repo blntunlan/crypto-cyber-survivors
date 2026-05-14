@@ -1,5 +1,6 @@
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
+import { railwayClient } from '../api/RailwayClient';
 
 export interface WalletTransaction {
   id: string;
@@ -29,7 +30,6 @@ export class WalletService {
     if (profileId.startsWith('anon_')) return 0;
 
     try {
-      const { railwayClient } = await import('../api/RailwayClient');
       const data = await railwayClient.get<{ balance: number }>(
         '/api/v1/wallet/balance'
       );

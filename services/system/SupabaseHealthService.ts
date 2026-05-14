@@ -7,6 +7,7 @@
  */
 
 import { Logger } from './Logger';
+import { railwayClient } from '../api/RailwayClient';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -44,7 +45,6 @@ class SupabaseHealthServiceClass {
    */
   async runHealthCheck(): Promise<HealthCheckResult> {
     try {
-      const { railwayClient } = await import('../api/RailwayClient');
       const debug = await railwayClient.get<{
         pipeline: { binanceConnected: boolean; dbConnected: boolean };
         database: {
@@ -103,7 +103,6 @@ class SupabaseHealthServiceClass {
   async ping(): Promise<{ ok: boolean; latencyMs: number }> {
     try {
       const start = performance.now();
-      const { railwayClient } = await import('../api/RailwayClient');
       await railwayClient.get('/health');
       return { ok: true, latencyMs: performance.now() - start };
     } catch {

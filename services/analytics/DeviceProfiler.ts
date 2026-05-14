@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import { SecurityUtils } from '../auth/SecurityUtils';
+import { railwayClient } from '../api/RailwayClient';
 
 export interface DeviceProfile {
   fingerprint: string;
@@ -82,7 +83,6 @@ export class DeviceProfiler {
     const profile = this.getProfile();
 
     try {
-      const { railwayClient } = await import('../api/RailwayClient');
       await railwayClient.post('/api/v1/telemetry/device-profiles', {
         fingerprint: profile.fingerprint,
         device_type: window.innerWidth < 768 ? 'mobile' : 'desktop',

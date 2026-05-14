@@ -10,6 +10,8 @@ import { type LegacyStoredUser } from './types';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from './UserPersistenceService';
 import { SecurityUtils } from './SecurityUtils';
+import { SupabaseAuthService } from './SupabaseAuthService';
+import { railwayClient } from '../api/RailwayClient';
 
 export class UserSessionService {
   private static instance: UserSessionService | null = null;
@@ -111,8 +113,6 @@ export class UserSessionService {
     }
 
     try {
-      const { SupabaseAuthService } = await import('./SupabaseAuthService');
-
       // Use Anonymous Sign-In for production
       // This creates a proper auth user and triggers the profile creation via database triggers
       const result = await SupabaseAuthService.signInAnonymously(nickname);
@@ -151,7 +151,6 @@ export class UserSessionService {
 
       if (!SecurityUtils.isLocalEnvironment()) {
         try {
-          const { railwayClient } = await import('../api/RailwayClient');
           await railwayClient.patch('/api/v1/profile', {});
         } catch (err) {
           Logger.error('[UserSession] Profile update exception:', err);

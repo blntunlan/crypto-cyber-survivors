@@ -3,6 +3,7 @@ import { UserSessionService } from '../auth/UserSessionService';
 import { AchievementService } from '../gameplay/AchievementService';
 import { type FullProfileData, type PlayerStats } from '../../types/profile';
 import { SupabaseAuthService, type AuthProvider } from '../auth/SupabaseAuthService';
+import { railwayClient } from '../api/RailwayClient';
 
 /**
  * ProfileStatsService - Aggregates player statistics and achievements
@@ -82,8 +83,6 @@ export class ProfileStatsService {
     };
 
     try {
-      const { railwayClient } = await import('../api/RailwayClient');
-
       // Fetch balance
       const balanceData = await railwayClient
         .get<{ balance: number }>('/api/v1/wallet/balance')

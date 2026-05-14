@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
+import { DeviceProfiler } from '../services/analytics/DeviceProfiler';
 interface UseAppInitializationResult {
   /** Whether initialization is complete */
   isInitialized: boolean;
@@ -34,9 +35,7 @@ export function useAppInitialization(): UseAppInitializationResult {
       void import('../services/analytics/PlayerTracker');
 
       // 2. Sync device profile
-      void import('../services/analytics/DeviceProfiler').then(({ DeviceProfiler }) => {
-        void DeviceProfiler.syncToSupabase();
-      });
+      void DeviceProfiler.syncToSupabase();
 
       // 3. Run device benchmark
       void DeviceBenchmarkService.runBenchmark();

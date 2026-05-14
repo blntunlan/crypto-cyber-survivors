@@ -13,6 +13,7 @@ import type {
   PriceSource,
 } from '../../types/admin';
 import { Logger } from '../system/Logger';
+import { railwayClient } from '../api/RailwayClient';
 
 // =============================================================================
 // CONFIGURATION
@@ -89,8 +90,6 @@ export class PriceAnalyzerService {
 
     try {
       // Fetch price history from Railway API
-      const { railwayClient } = await import('../api/RailwayClient');
-
       type PriceRow = { price: number; volume: number; timestamp: string };
       const [btcData, ethData, solData] = await Promise.all([
         railwayClient

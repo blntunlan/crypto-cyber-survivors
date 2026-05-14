@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SupabaseHealthService } from '../../../services/system/SupabaseHealthService';
 
-const mockRailwayClient = {
+const mockRailwayClient = vi.hoisted(() => ({
   get: vi.fn(),
-};
+}));
 
 vi.mock('../../../services/api/RailwayClient', () => ({
   railwayClient: mockRailwayClient,

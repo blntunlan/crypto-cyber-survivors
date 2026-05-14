@@ -18,6 +18,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { mapAuthError } from './AuthErrorMapper';
 import { AuthEventHandler } from './AuthEventHandler';
 import { OAuthFlowManager } from './OAuthFlowManager';
+import { railwayClient } from '../api/RailwayClient';
 
 // ============================================
 // Types
@@ -544,7 +545,6 @@ class SupabaseAuthServiceClass {
       const user = await this.getUser();
       if (!user) return null;
 
-      const { railwayClient } = await import('../api/RailwayClient');
       const profileData =
         await railwayClient.get<Record<string, unknown>>('/api/v1/profile');
       return this.mapProfileData(profileData);
@@ -587,7 +587,6 @@ class SupabaseAuthServiceClass {
       if (updates.avatarUrl) patchData.avatar_url = updates.avatarUrl;
 
       if (Object.keys(patchData).length > 0) {
-        const { railwayClient } = await import('../api/RailwayClient');
         await railwayClient.patch('/api/v1/profile', patchData);
       }
 
@@ -627,7 +626,6 @@ class SupabaseAuthServiceClass {
       if (updates.displayName) patchData.nickname = updates.displayName;
       if (updates.avatarUrl) patchData.avatar_url = updates.avatarUrl;
 
-      const { railwayClient } = await import('../api/RailwayClient');
       const data = await railwayClient.patch<Record<string, unknown>>(
         '/api/v1/profile',
         patchData
@@ -680,7 +678,6 @@ class SupabaseAuthServiceClass {
    */
   private async updateLastSeen(_authUserId: string): Promise<void> {
     try {
-      const { railwayClient } = await import('../api/RailwayClient');
       await railwayClient.patch('/api/v1/profile', {});
     } catch {
       // Silent fail - not critical

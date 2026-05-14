@@ -9,11 +9,11 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
-const mockRailwayClient = {
+const mockRailwayClient = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
-};
+}));
 
 vi.mock('../../services/api/RailwayClient', () => ({
   railwayClient: mockRailwayClient,

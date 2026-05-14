@@ -20,6 +20,7 @@ import { MarketEventManager } from '../services/market/MarketEventManager';
 import { MetaProgressionService } from '../services/progression/MetaProgressionService';
 import { ChallengeService } from '../services/challenges/ChallengeService';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
+import { PerformanceTracker } from '../services/analytics/PerformanceTracker';
 import { audio } from '../services/audio';
 import { useMarketData } from '../hooks/useMarketData';
 import { usePlayerState } from '../hooks/usePlayerState';
@@ -317,11 +318,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
           selectedPair
         );
 
-        void import('../services/analytics/PerformanceTracker').then(
-          ({ PerformanceTracker }) => {
-            PerformanceTracker.getInstance().start();
-          }
-        );
+        PerformanceTracker.getInstance().start();
       },
       [
         marketData.price,

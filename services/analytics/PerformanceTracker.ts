@@ -12,6 +12,9 @@
  */
 
 import { Logger } from '../system/Logger';
+import { railwayClient } from '../api/RailwayClient';
+import { UserSessionService } from '../auth/UserSessionService';
+import { DeviceProfiler } from './DeviceProfiler';
 
 export interface PerformanceSnapshot {
   timestamp: number;
@@ -310,10 +313,6 @@ export class PerformanceTracker {
   async syncToSupabase(sessionId?: string): Promise<void> {
     const stats = this.getStats();
     const snapshot = this.getSnapshot();
-
-    const { railwayClient } = await import('../api/RailwayClient');
-    const { UserSessionService } = await import('../auth/UserSessionService');
-    const { DeviceProfiler } = await import('./DeviceProfiler');
 
     const profileId = UserSessionService.getProfileId();
     const device = DeviceProfiler.getProfile();

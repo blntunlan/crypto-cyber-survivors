@@ -14,6 +14,7 @@ import { SecurityUtils } from '../services/auth/SecurityUtils';
 import { isSupabaseConfigured } from '../services/supabase/client';
 import { SupabaseAuthService } from '../services/auth/SupabaseAuthService';
 import { NicknameValidator } from '../services/auth/NicknameValidator';
+import { railwayClient } from '../services/api/RailwayClient';
 
 // ============================================================================
 // Types
@@ -125,7 +126,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
         if (authUser) {
           // Valid Supabase session — verify profile exists on Railway
-          const { railwayClient } = await import('../services/api/RailwayClient');
           const profile = await railwayClient
             .get<RemoteProfileResponse>('/api/v1/profile')
             .catch(() => null);
@@ -222,8 +222,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
 
         // 2. Create or fetch profile via Railway API (JWT is auto-attached)
-        const { railwayClient } = await import('../services/api/RailwayClient');
-
         let profile: RemoteProfileResponse;
 
         try {
@@ -297,7 +295,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     try {
       if (isRemoteMode()) {
-        const { railwayClient } = await import('../services/api/RailwayClient');
         void railwayClient.patch('/api/v1/profile', {}).catch(() => {
           // Silent — not critical
         });

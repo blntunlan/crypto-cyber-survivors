@@ -13,6 +13,7 @@ import { audio } from '../services/audio';
 import { COLORS } from '../constants';
 import { type PoolManager } from '../services/combat/PoolManager';
 import { spawnSystem } from '../services/combat/SpawnSystem';
+import { CombatResolutionService } from '../services/combat/physics/CombatResolutionService';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { GAME_STATE_DEFAULTS } from '../services/core/GameStateManager';
@@ -85,11 +86,7 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
       const { intensity } = data;
 
       // 1. Affect the physics/entities
-      void import('../services/combat/physics/CombatResolutionService').then(
-        ({ CombatResolutionService }) => {
-          CombatResolutionService.triggerShockwave(pool.current, intensity);
-        }
-      );
+      CombatResolutionService.triggerShockwave(pool.current, intensity);
 
       // 2. Visual feedback
       state.current.shake = 15 * intensity;
