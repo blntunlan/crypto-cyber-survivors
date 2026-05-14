@@ -1,0 +1,3 @@
+## $(date +%Y-%m-%d) - Array.forEach to for loops in hot paths
+**Learning:** In high-frequency game engine loops (like 60 FPS update paths in `MovementSystem.ts` and `EntityRenderer.ts`), `Array.prototype.forEach` causes unnecessary closure function allocations per entity, per frame, leading to increased GC pressure and micro-stutters.
+**Action:** Replace `Array.prototype.forEach` with standard `for` loops (`for (let i = 0, len = arr.length; i < len; i++)`) in engine subsystems. Ensure `return` is converted to `continue` and guard against sparse arrays with `if (arr[i] === undefined) continue;`.
