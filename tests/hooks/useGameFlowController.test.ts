@@ -20,6 +20,9 @@ import { ExperienceService } from '../../services/gameplay/ExperienceService';
 import { MetricsService } from '../../services/core/MetricsService';
 import { CoinService } from '../../services/gameplay/CoinService';
 import { ComboSystem } from '../../services/combat/ComboSystem';
+import { MetaProgressionService } from '../../services/progression/MetaProgressionService';
+import { GameSessionService } from '../../services/auth/GameSessionService';
+import { type RewardPayload } from '../../types/reward';
 
 vi.mock('../../services/cards/CardApplicator', () => ({
   applyCardEffect: vi.fn(),
@@ -60,6 +63,7 @@ vi.mock('../../services/gameplay/CoinService', () => ({
   CoinService: {
     calculateCycleReward: vi.fn(),
     creditCoins: vi.fn(),
+    creditVerifiedCoins: vi.fn(),
   },
 }));
 
@@ -72,6 +76,13 @@ vi.mock('../../services/auth/GameSessionService', () => ({
 vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getTotalElapsedSeconds: vi.fn(() => 123),
+  },
+}));
+
+vi.mock('../../services/progression/MetaProgressionService', () => ({
+  MetaProgressionService: {
+    getCardChoiceCount: vi.fn(() => 3),
+    applyVerifiedTransfer: vi.fn(),
   },
 }));
 
@@ -187,6 +198,7 @@ describe('useGameFlowController', () => {
     EventBus.clearEvent('playerLevelUp');
 
     vi.mocked(CardSystem.generateChoices).mockReturnValue([makeCard()]);
+    vi.mocked(MetaProgressionService.getCardChoiceCount).mockReturnValue(3);
     vi.mocked(ExperienceService.getRequiredExp).mockReturnValue(150);
     vi.mocked(applyCardEffect).mockImplementation(player => ({ ...player }));
     vi.mocked(MetricsService.endSession).mockReturnValue(null);
@@ -201,6 +213,7 @@ describe('useGameFlowController', () => {
       breakdown: {},
     });
     vi.mocked(CoinService.creditCoins).mockResolvedValue(true);
+    vi.mocked(CoinService.creditVerifiedCoins).mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -234,7 +247,7 @@ describe('useGameFlowController', () => {
 
     expect(healFull).toHaveBeenCalledTimes(1);
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.LEVEL_UP);
-    expect(CardSystem.generateChoices).toHaveBeenCalledWith(6, 4);
+    expect(CardSystem.generateChoices).toHaveBeenCalledWith(6, 4, 3);
     expect(audio.playLevelUp).toHaveBeenCalledTimes(1);
     expect(result.current.upgradeChoices).toHaveLength(1);
   });
@@ -366,8 +379,12 @@ describe('useGameFlowController', () => {
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
   });
 
-  it('handleCashOut pays cycle rewards and then ends run', async () => {
+  it('handleCashOut submits cycle reward payload without optimistic credit', async () => {
     const playerRef = { current: makePlayer({ level: 4 }) };
+    vi.mocked(MetricsService.endSession).mockReturnValue({
+      replayData: { events: [] },
+      performance: { avgFps: 60 },
+    } as any);
 
     const { result } = renderHook(() =>
       useGameFlowController({
@@ -399,8 +416,33 @@ describe('useGameFlowController', () => {
 
     expect(CoinService.calculateCycleReward).toHaveBeenCalled();
     expect(ComboSystem.getMaxStreak).toHaveBeenCalled();
-    expect(CoinService.creditCoins).toHaveBeenCalledWith(100, 'cycle_complete');
+    expect(CoinService.creditCoins).not.toHaveBeenCalled();
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.GAMEOVER);
+
+    await waitFor(() => {
+      expect(GameSessionService.submitSession).toHaveBeenCalled();
+    });
+
+    expect(GameSessionService.submitSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endReason: GameEndReason.CYCLE_COMPLETE,
+        exitType: 'cycle_complete',
+        portalType: null,
+        kills: 19,
+        level: 4,
+        maxStreak: 7,
+      }),
+      expect.objectContaining({
+        exitType: 'cycle_complete',
+        portalType: null,
+        totalCoins: 100,
+        rawCoins: 20,
+        breakdown: expect.objectContaining({
+          market: 15,
+          streak: 5,
+        }),
+      })
+    );
   });
 
   it('ignores duplicate cycleComplete events with same cycleNumber', async () => {
@@ -473,6 +515,111 @@ describe('useGameFlowController', () => {
     });
 
     expect(difficultyContext.reset).toHaveBeenCalled();
+  });
+
+  it('handleGameOver submits portal reward payload for server reconciliation', async () => {
+    const playerRef = { current: makePlayer({ level: 6 }) };
+    const rewardPayload: RewardPayload = {
+      kills: 33,
+      level: 6,
+      survivalSeconds: 180,
+      pnlPercent: 0.12,
+      maxStreak: 18,
+      exitType: 'portal',
+      portalType: 'TAKE_PROFIT',
+      rawCoins: 33,
+      enemyDropCoins: 5,
+      totalCoins: 180,
+      breakdown: {
+        base: 60,
+        survival: 60,
+        kill: 33,
+        level: 0,
+        market: 0,
+        streak: 25,
+        portal: 62,
+      },
+    };
+
+    vi.mocked(MetricsService.endSession).mockReturnValue({
+      replayData: { events: [] },
+      performance: { avgFps: 60 },
+    } as any);
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.11, effectivePnl: 0.2 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 12,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.PORTAL, rewardPayload);
+    });
+
+    await waitFor(() => {
+      expect(GameSessionService.submitSession).toHaveBeenCalled();
+    });
+
+    expect(GameSessionService.submitSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endReason: GameEndReason.PORTAL,
+        exitType: 'portal',
+        portalType: 'TAKE_PROFIT',
+        kills: 33,
+        level: 6,
+        maxStreak: 18,
+      }),
+      rewardPayload
+    );
+  });
+
+  it('does not credit verified coins when server response is not verified', async () => {
+    const playerRef = { current: makePlayer({ level: 6 }) };
+    vi.mocked(MetricsService.endSession).mockReturnValue({
+      replayData: { events: [] },
+      performance: { avgFps: 60 },
+    } as any);
+    vi.mocked(GameSessionService.submitSession).mockResolvedValueOnce({
+      success: true,
+      verified: false,
+      reward: 999,
+      metaShare: 0,
+    });
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.11, effectivePnl: 0.2 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 12,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    await waitFor(() => {
+      expect(GameSessionService.submitSession).toHaveBeenCalled();
+    });
+    expect(CoinService.creditVerifiedCoins).not.toHaveBeenCalled();
   });
 
   it('handleCashOut calls difficultyContext.reset() before ending run', async () => {

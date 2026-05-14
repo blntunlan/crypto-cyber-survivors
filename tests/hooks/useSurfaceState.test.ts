@@ -1,22 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSurfaceState } from '../../hooks/useSurfaceState';
-import { UserPersistenceService } from '../../services/auth/UserPersistenceService';
-import { UserSessionService } from '../../services/auth/UserSessionService';
-
-vi.mock('../../services/auth/UserPersistenceService', () => ({
-  UserPersistenceService: {
-    initialize: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/auth/UserSessionService', () => ({
-  UserSessionService: {
-    getNickname: vi.fn(),
-  },
-}));
-
-type StoredUser = Awaited<ReturnType<typeof UserPersistenceService.initialize>>;
 
 describe('useSurfaceState', () => {
   beforeEach(() => {
@@ -25,8 +9,6 @@ describe('useSurfaceState', () => {
     sessionStorage.clear();
     window.history.pushState(null, '', '/');
     window.location.hash = '';
-    vi.mocked(UserPersistenceService.initialize).mockResolvedValue(null);
-    vi.mocked(UserSessionService.getNickname).mockReturnValue(null);
   });
 
   it('skips landing when has_seen_landing is true', () => {
@@ -49,29 +31,7 @@ describe('useSurfaceState', () => {
     expect(result.current.showTerms).toBe(false);
   });
 
-  it('falls back to session nickname when persistence initialize fails', async () => {
-    vi.mocked(UserPersistenceService.initialize).mockRejectedValue(
-      new Error('storage_unavailable')
-    );
-    vi.mocked(UserSessionService.getNickname).mockReturnValue('BackupNick');
-
-    const { result } = renderHook(() => useSurfaceState());
-
-    await waitFor(() => {
-      expect(result.current.isIdentityReady).toBe(true);
-    });
-    expect(result.current.hasNickname).toBe(true);
-  });
-
   it('persists hub screen to session storage when setHubScreen is called', async () => {
-    const user: StoredUser = {
-      profileId: '00000000-0000-0000-0000-000000000000',
-      nickname: 'Neo',
-      createdAt: 1,
-      lastSeenAt: 1,
-    };
-    vi.mocked(UserPersistenceService.initialize).mockResolvedValue(user);
-
     const { result } = renderHook(() => useSurfaceState());
 
     act(() => {

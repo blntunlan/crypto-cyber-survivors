@@ -84,7 +84,7 @@ export class GameRenderer implements IGameRenderer {
 
       // this.drawDamageIndicators(ctx, state, player);
 
-      // Near Miss Vignette Overlay (Visual feedback for slow-mo)
+      // Near Miss Vignette Overlay
       if (state.nearMissTimer > 0) {
         const isRetro = ThemeService.isRetro();
         // Calculate intensity based on timer progress

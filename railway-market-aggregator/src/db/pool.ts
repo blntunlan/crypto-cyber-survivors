@@ -5,6 +5,16 @@ const { Pool } = pg;
 
 let pool: pg.Pool | null = null;
 
+const DEFAULT_POOL_MAX = 5;
+
+export function getPoolMax(): number {
+  const configured = Number(process.env.PG_POOL_MAX);
+  if (Number.isInteger(configured) && configured > 0) {
+    return configured;
+  }
+  return DEFAULT_POOL_MAX;
+}
+
 export function getPool(): pg.Pool {
   if (pool) return pool;
 
@@ -13,9 +23,11 @@ export function getPool(): pg.Pool {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
+  const poolMax = getPoolMax();
+
   pool = new Pool({
     connectionString,
-    max: 30, // Increased for connection pooling
+    max: poolMax,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     statement_timeout: 5000, // Query timeout of 5s max
@@ -58,7 +70,7 @@ export function getPool(): pg.Pool {
     }
   }, POOL_CHECK_INTERVAL).unref();
 
-  Logger.info('✅ PostgreSQL connection pool created (max: 30)');
+  Logger.info(`✅ PostgreSQL connection pool created (max: ${poolMax})`);
   return pool;
 }
 

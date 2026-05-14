@@ -7,7 +7,7 @@
 import { test, expect } from './test';
 
 test.describe('Network Conditions', () => {
-  // This test is skipped by default as it can be flaky due to network simulation
+  // CDP network emulation is Chromium-only; other browser projects skip via guard.
   test('should handle slow network gracefully', async ({ page, context }) => {
     // Increase timeout for slow network simulation
     test.slow();

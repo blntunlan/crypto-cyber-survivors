@@ -87,6 +87,8 @@ export interface CoinRewardResult {
     raw: number;
     enemyDrops: number;
     survivalBonus: number;
+    levelBonus: number;
+    marketBonus: number;
     portalBonus: number;
     comboBonus: number;
   };

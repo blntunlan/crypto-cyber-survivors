@@ -67,6 +67,9 @@ export const calculateRawPnlFromPrices = (
   return pnl;
 };
 
+export const calculateLeveragedRewardPnl = (rawPnl: number, leverage: number): number =>
+  Math.max(-1, rawPnl * leverage);
+
 export const deriveTrustedSessionMetrics = (
   payload: VerifyPayload,
   snapshot: SessionSnapshot

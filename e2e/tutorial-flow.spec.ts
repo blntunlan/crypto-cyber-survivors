@@ -1,4 +1,5 @@
 import { test, expect } from './test';
+import { resolveNicknameIfNeeded } from './support/game-helpers';
 
 test.describe('Tutorial Flow @smoke', () => {
   // We want to test the tutorial, so we DO NOT set 'tutorial-completed' here.
@@ -21,6 +22,8 @@ test.describe('Tutorial Flow @smoke', () => {
   });
 
   test('should guide new user through full tutorial', async ({ page }) => {
+    await resolveNicknameIfNeeded(page, 'TutorialUser', 10_000);
+
     // 1. Tutorial Step 1: Language Selection
     await expect(page.locator('.tutorial-overlay')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/Select Language|Language/i).first()).toBeVisible();
@@ -71,6 +74,8 @@ test.describe('Tutorial Flow @smoke', () => {
   });
 
   test('should allow skipping tutorial immediately', async ({ page }) => {
+    await resolveNicknameIfNeeded(page, 'SkipUser', 10_000);
+
     // 1. Wait for Tutorial
     await expect(page.locator('.tutorial-overlay')).toBeVisible({ timeout: 10000 });
 

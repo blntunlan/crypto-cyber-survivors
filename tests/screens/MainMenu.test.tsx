@@ -23,6 +23,9 @@ vi.mock('../../hooks/useDevice', () => ({
 }));
 
 describe('MainMenu', () => {
+  const formatPrice = (price: number) =>
+    `$${price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
   const defaultProps = {
     price: 50000,
     onStart: vi.fn(),
@@ -44,7 +47,7 @@ describe('MainMenu', () => {
 
   it('should render price when available', () => {
     renderMainMenu();
-    expect(screen.getByText(/\$50,000/)).toBeInTheDocument();
+    expect(screen.getByText(formatPrice(defaultProps.price))).toBeInTheDocument();
   });
 
   it('should render connecting status when price is 0', () => {

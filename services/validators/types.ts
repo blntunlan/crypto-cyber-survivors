@@ -30,8 +30,10 @@ export type SessionValidationInput = {
   exitPrice: number;
   pnlPercent: number;
   leverage: number;
+  position?: 'LONG' | 'SHORT';
   maxStreak: number;
   exitType: string;
+  portalType?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED' | null;
   totalCoins?: number;
   rawCoins?: number;
   enemyDropCoins?: number;

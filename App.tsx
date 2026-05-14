@@ -156,12 +156,9 @@ const App: React.FC = () => {
     showPrivacy,
     showTerms,
     showDocs,
-    isIdentityReady,
-    hasNickname,
     setHubScreen,
     setShowSettings,
     patchLegalRoute,
-    patchIdentityState,
     handleLaunchGame,
     handleReturnToLanding,
   } = useSurfaceState();
@@ -348,12 +345,9 @@ const App: React.FC = () => {
                 showSettings={showSettings}
                 setShowSettings={setShowSettings}
                 handleReturnToLanding={handleReturnToLanding}
-                isIdentityReady={isIdentityReady}
-                hasNickname={hasNickname}
                 showDocs={showDocs}
                 showPrivacy={showPrivacy}
                 showTerms={showTerms}
-                patchIdentityState={patchIdentityState}
                 tutorial={tutorial}
                 onOpenUpgrades={() => setFeatureOverlay('upgrades')}
                 onOpenChallenges={() => setFeatureOverlay('challenges')}

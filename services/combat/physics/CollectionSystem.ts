@@ -136,10 +136,14 @@ export class CollectionSystem implements ICollectionSystem {
     const levMult = LeverageEngine.getMultipliers();
     const momMult = PriceMomentumEngine.getLatest();
     const adjustedGemValue = gem.value * levMult.gemValue * momMult.gemValueMod;
+    const expMultiplier = player.expMultiplier ?? 1;
 
     // Apply leverage XP gain multiplier (higher leverage = faster leveling)
     const xpGain = Math.floor(
-      adjustedGemValue * this.ctx.combo.getXpMultiplier() * levMult.xpGain
+      adjustedGemValue *
+        this.ctx.combo.getXpMultiplier() *
+        levMult.xpGain *
+        expMultiplier
     );
 
     if (!isNaN(xpGain) && xpGain > 0) {

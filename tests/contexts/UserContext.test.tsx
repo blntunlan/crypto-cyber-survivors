@@ -3,6 +3,7 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import React from 'react';
 import { UserProvider } from '../../contexts/UserContext';
 import { useUser } from '../../contexts/useUser';
+import { UserPersistenceService } from '../../services/auth/UserPersistenceService';
 import { nanoid } from 'nanoid';
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
@@ -12,6 +13,7 @@ const { mockIsSupabaseConfigured, mockSupabaseAuth, mockRailwayClient } = vi.hoi
     mockIsSupabaseConfigured: vi.fn().mockReturnValue(true),
     mockSupabaseAuth: {
       initialize: vi.fn(),
+      dispose: vi.fn(),
       getSession: vi.fn().mockResolvedValue(null),
       getUser: vi.fn().mockResolvedValue(null),
       signOut: vi.fn().mockResolvedValue({ success: true }),
@@ -92,6 +94,7 @@ describe('UserContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    UserPersistenceService.clear();
     mockIsSupabaseConfigured.mockReturnValue(true);
 
     // Default: local mode (hostname = localhost)
@@ -110,6 +113,22 @@ describe('UserContext', () => {
   // ────────────────────────────────────────────────────────────────────────
 
   describe('Initial State', () => {
+    it('should dispose Supabase auth listener on unmount', async () => {
+      const { unmount } = render(
+        <UserProvider>
+          <TestConsumer />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      unmount();
+
+      expect(mockSupabaseAuth.dispose).toHaveBeenCalledOnce();
+    });
+
     it('should start with loading true and then false', async () => {
       render(
         <UserProvider>
@@ -287,15 +306,117 @@ describe('UserContext', () => {
       });
     });
 
-    it('should use existing valid session and fetch profile', async () => {
-      const fakeUser = { id: 'user-id-123' };
-      const fakeSession = { access_token: 'existing-tok' };
+    it('should validate nickname before creating Supabase session', async () => {
+      let loginResult: { success: boolean; error?: string } | null = null;
 
-      mockSupabaseAuth.getUser.mockResolvedValue(fakeUser);
-      mockSupabaseAuth.getSession.mockResolvedValue(fakeSession);
+      const LoginButton: React.FC = () => {
+        const { login, isLoading } = useUser();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading.toString()}</span>
+            <button
+              data-testid="login-btn"
+              onClick={() => {
+                void login('ab').then(r => {
+                  loginResult = r;
+                });
+              }}
+            >
+              Login
+            </button>
+          </div>
+        );
+      };
 
-      mockRailwayClient.get.mockResolvedValue({
-        id: 'existing-profile-id-1234-5678-9abc-def012345678',
+      render(
+        <UserProvider>
+          <LoginButton />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login-btn'));
+      });
+
+      expect(loginResult).toEqual({
+        success: false,
+        error: 'Nickname must be at least 3 characters',
+      });
+      expect(mockSupabaseAuth.signInAnonymously).not.toHaveBeenCalled();
+      expect(mockRailwayClient.post).not.toHaveBeenCalled();
+    });
+
+    it('should trim nickname before anonymous auth and profile creation', async () => {
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: true,
+        session: { access_token: 'new-tok' },
+      });
+      mockRailwayClient.get.mockRejectedValue(new Error('Not found'));
+      mockRailwayClient.post.mockResolvedValue({
+        id: 'd4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a',
+        nickname: 'TrimNick',
+      });
+
+      let loginResult: { success: boolean; error?: string } | null = null;
+
+      const LoginButton: React.FC = () => {
+        const { login, isLoading } = useUser();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading.toString()}</span>
+            <button
+              data-testid="login-btn"
+              onClick={() => {
+                void login('  TrimNick  ').then(r => {
+                  loginResult = r;
+                });
+              }}
+            >
+              Login
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <UserProvider>
+          <LoginButton />
+        </UserProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('login-btn'));
+      });
+
+      expect(loginResult).toEqual({ success: true });
+      expect(mockSupabaseAuth.signInAnonymously).toHaveBeenCalledWith('TrimNick');
+      expect(mockRailwayClient.post).toHaveBeenCalledWith('/api/v1/profile', {
+        nickname: 'TrimNick',
+      });
+
+      const stored = JSON.parse(localStorage.getItem('crypto_survivors_user')!);
+      expect(stored.nickname).toBe('TrimNick');
+    });
+
+    it('should start fresh when nickname setup has no local identity', async () => {
+      mockSupabaseAuth.getUser.mockResolvedValue({ id: 'stale-user-id' });
+      mockSupabaseAuth.getSession.mockResolvedValue({ access_token: 'stale-tok' });
+      mockSupabaseAuth.signInAnonymously.mockResolvedValue({
+        success: true,
+        session: { access_token: 'fresh-tok' },
+      });
+
+      mockRailwayClient.get.mockRejectedValue(new Error('Not found'));
+      mockRailwayClient.post.mockResolvedValue({
+        id: 'c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f',
         nickname: 'TestNick',
       });
 
@@ -317,8 +438,12 @@ describe('UserContext', () => {
         expect(screen.getByTestId('authenticated').textContent).toBe('true');
       });
 
-      // Should NOT call signInAnonymously since session is valid
-      expect(mockSupabaseAuth.signInAnonymously).not.toHaveBeenCalled();
+      expect(mockSupabaseAuth.getUser).not.toHaveBeenCalled();
+      expect(mockSupabaseAuth.signOut).toHaveBeenCalled();
+      expect(mockSupabaseAuth.signInAnonymously).toHaveBeenCalledWith('TestNick');
+      expect(mockRailwayClient.post).toHaveBeenCalledWith('/api/v1/profile', {
+        nickname: 'TestNick',
+      });
     });
 
     it('should re-auth when existing session is stale (getUser returns null)', async () => {

@@ -10,7 +10,10 @@ import { startSessionSchema, verifySessionSchema, syncSessionSchema } from '../d
 import { Logger } from '../utils/logger';
 import { RewardCalculator, type ExitType, type PortalType } from '../shared/RewardCalculator';
 import { logAudit, getClientInfo } from '../utils/auditLogger';
-import { deriveTrustedSessionMetrics } from '../utils/trustedSessionMetrics';
+import {
+  calculateLeveragedRewardPnl,
+  deriveTrustedSessionMetrics,
+} from '../utils/trustedSessionMetrics';
 
 const router = Router();
 
@@ -164,7 +167,7 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       claimedPnL: payload.claimedPnL,
       kills: payload.kills,
       level: payload.level,
-      survivalSeconds: payload.survivalSeconds,
+      survivalSeconds: Math.floor(payload.survivalSeconds),
       exitType: payload.exitType,
       portalType: payload.portalType,
       maxStreak: payload.maxStreak,
@@ -196,7 +199,7 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
         claimedPnL: payload.claimedPnL,
         kills: payload.kills,
         level: payload.level,
-        survivalSeconds: payload.survivalSeconds,
+        survivalSeconds: Math.floor(payload.survivalSeconds),
         exitType: payload.exitType,
         portalType: payload.portalType,
       });
@@ -266,11 +269,15 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
 
     // 4. Reward calculation
     const calculator = new RewardCalculator();
+    const rewardPnl = calculateLeveragedRewardPnl(
+      trustedMetrics.pnl,
+      payload.leverage
+    );
     const calculation = calculator.calculate({
       survivalTimeSeconds: trustedMetrics.survivalSeconds,
       kills: trustedMetrics.kills,
       level: trustedMetrics.level,
-      pnl: trustedMetrics.pnl,
+      pnl: rewardPnl,
       maxStreak: trustedMetrics.maxStreak,
       exitType: payload.exitType as ExitType | undefined,
       portalType: payload.portalType as PortalType | undefined,

@@ -25,6 +25,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const JWKS_URL = SUPABASE_URL
   ? `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`
   : null;
+const EXPECTED_ISSUER = SUPABASE_URL ? `${SUPABASE_URL}/auth/v1` : undefined;
+const EXPECTED_AUDIENCE = 'authenticated';
 
 // HS256 fallback (legacy Supabase projects)
 const RAW_SECRET = process.env.SUPABASE_JWT_SECRET;
@@ -133,6 +135,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
       .then(publicKey => {
         const decoded = jwt.verify(token, publicKey, {
           algorithms: ['ES256'],
+          issuer: EXPECTED_ISSUER,
+          audience: EXPECTED_AUDIENCE,
         }) as jwt.JwtPayload;
 
         const sub = decoded.sub;
@@ -157,6 +161,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     try {
       const decoded = jwt.verify(token, HS256_SECRET, {
         algorithms: ['HS256'],
+        issuer: EXPECTED_ISSUER,
+        audience: EXPECTED_AUDIENCE,
       }) as jwt.JwtPayload;
       const sub = decoded.sub;
 

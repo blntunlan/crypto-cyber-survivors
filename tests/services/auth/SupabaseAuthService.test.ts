@@ -101,6 +101,15 @@ describe('SupabaseAuthService', () => {
       expect(mockAuth.onAuthStateChange).toHaveBeenCalledOnce();
     });
 
+    it('does not register duplicate listeners when initialized twice', () => {
+      const svc = freshService();
+
+      svc.initialize();
+      svc.initialize();
+
+      expect(mockAuth.onAuthStateChange).toHaveBeenCalledOnce();
+    });
+
     it('skips init when Supabase is not configured', () => {
       mockIsConfigured.mockReturnValue(false);
       const svc = freshService();

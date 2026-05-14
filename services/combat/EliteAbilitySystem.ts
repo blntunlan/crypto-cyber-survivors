@@ -5,7 +5,7 @@
  * death-triggered effects like death_split and chain_explosion.
  */
 
-import { type Enemy, type Player } from '../../types';
+import { MarketPosition, type Enemy, type Player } from '../../types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { EventBus } from '../core/EventBus';
 import { ELITE_CONFIG, type EliteAbilityId } from '../../config/EliteConfig';
@@ -83,9 +83,9 @@ export class EliteAbilitySystem {
    * Handle elite-specific death effects.
    *
    * @param enemy - The elite enemy that died
-   * @param _pool - Pool manager for spawning split enemies
+   * @param pool - Pool manager for spawning split enemies and applying explosions
    */
-  onEliteDeath(enemy: Enemy, _pool: IPoolManager): void {
+  onEliteDeath(enemy: Enemy, pool: IPoolManager): void {
     if (!enemy.isElite || !enemy.eliteAbility) {
       return;
     }
@@ -94,10 +94,10 @@ export class EliteAbilitySystem {
 
     switch (ability) {
       case 'death_split':
-        this.triggerDeathSplit(enemy);
+        this.triggerDeathSplit(enemy, pool);
         break;
       case 'chain_explosion':
-        this.triggerChainExplosion(enemy);
+        this.triggerChainExplosion(enemy, pool);
         break;
       default:
         break;
@@ -200,10 +200,37 @@ export class EliteAbilitySystem {
   // DEATH-TRIGGERED ABILITIES
   // =========================================================================
 
-  private triggerDeathSplit(enemy: Enemy): void {
+  private triggerDeathSplit(enemy: Enemy, pool: IPoolManager): void {
     Logger.info(`[EliteAbility] death_split triggered at (${enemy.x}, ${enemy.y})`);
 
-    // Emit event for SpawnSystem to handle actual minion creation
+    const count = ELITE_CONFIG.deathSplitCount;
+    const spawnRadius = Math.max(enemy.radius * 1.5, 24);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const minion = pool.getEnemy(
+        enemy.x + Math.cos(angle) * spawnRadius,
+        enemy.y + Math.sin(angle) * spawnRadius,
+        1,
+        MarketPosition.LONG,
+        'bear',
+        undefined,
+        0.65,
+        1.15
+      );
+
+      minion.isElite = false;
+      minion.eliteAbility = undefined;
+      minion.intent = 'fodder';
+      minion.valueMultiplier = 1;
+      minion.radius = Math.max(8, minion.radius * 0.75);
+      minion.maxHealth = Math.max(
+        1,
+        enemy.maxHealth * ELITE_CONFIG.deathSplitHealthFraction
+      );
+      minion.health = minion.maxHealth;
+      minion.damage = Math.max(1, enemy.damage * 0.35);
+    }
+
     EventBus.emit('eliteAbilityActivated', {
       type: 'death_split',
       x: enemy.x,
@@ -211,14 +238,35 @@ export class EliteAbilitySystem {
     });
   }
 
-  private triggerChainExplosion(enemy: Enemy): void {
+  private triggerChainExplosion(enemy: Enemy, pool: IPoolManager): void {
     Logger.info(`[EliteAbility] chain_explosion triggered at (${enemy.x}, ${enemy.y})`);
+
+    const radiusSq =
+      ELITE_CONFIG.chainExplosionRadius * ELITE_CONFIG.chainExplosionRadius;
+    let damagedCount = 0;
+
+    for (const target of pool.activeEnemies) {
+      if (!target.active || target.isDying || target === enemy) {
+        continue;
+      }
+
+      const dx = target.x - enemy.x;
+      const dy = target.y - enemy.y;
+      if (dx * dx + dy * dy > radiusSq) {
+        continue;
+      }
+
+      target.health = Math.max(1, target.health - ELITE_CONFIG.chainExplosionDamage);
+      target.hitFlashTimer = 8;
+      damagedCount++;
+    }
 
     EventBus.emit('eliteChainExplosion', {
       x: enemy.x,
       y: enemy.y,
       radius: ELITE_CONFIG.chainExplosionRadius,
       damage: ELITE_CONFIG.chainExplosionDamage,
+      damagedCount,
     });
   }
 }

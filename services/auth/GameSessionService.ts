@@ -191,6 +191,10 @@ export class GameSessionService {
 
       await this.flushRuntimeAuditQueue('before_submit');
 
+      const survivalSeconds = Math.floor(
+        rewardPayload?.survivalSeconds ?? Math.floor(results.survivalTimeMs / 1000)
+      );
+
       const payload = {
         sessionId: this.currentSessionId,
         pair: results.pair,
@@ -201,8 +205,7 @@ export class GameSessionService {
         claimedPnL: results.pnlPercent,
         kills: rewardPayload?.kills ?? results.kills,
         level: rewardPayload?.level ?? results.level,
-        survivalSeconds:
-          rewardPayload?.survivalSeconds ?? Math.floor(results.survivalTimeMs / 1000),
+        survivalSeconds,
         exitType: rewardPayload?.exitType ?? results.exitType ?? 'death',
         portalType: rewardPayload?.portalType ?? results.portalType ?? null,
         maxStreak: rewardPayload?.maxStreak ?? results.maxStreak ?? 0,
@@ -245,8 +248,10 @@ export class GameSessionService {
         exitPrice: results.exitPrice,
         pnlPercent: results.pnlPercent,
         leverage: results.leverage,
+        position: results.position,
         maxStreak: payload.maxStreak as number,
         exitType: payload.exitType as string,
+        portalType: payload.portalType,
         totalCoins: rewardPayload?.totalCoins,
         rawCoins: rewardPayload?.rawCoins,
         enemyDropCoins: rewardPayload?.enemyDropCoins,

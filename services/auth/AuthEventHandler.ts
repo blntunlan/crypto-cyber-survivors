@@ -29,6 +29,11 @@ export class AuthEventHandler {
       return;
     }
 
+    if (this.unsubscribe) {
+      Logger.debug('[SupabaseAuth] Auth listener already initialized');
+      return;
+    }
+
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       this.handleAuthStateChange(event, session);
     });

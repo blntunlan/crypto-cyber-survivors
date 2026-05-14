@@ -9,6 +9,12 @@ import { useMetaProgressionStore } from '../../stores/metaProgressionStore';
 import { META_UPGRADE_REGISTRY } from '../../config/MetaUpgradeRegistry';
 import { type MetaUpgradeId, type PlayerMetaState } from '../../types/metaProgression';
 import { type Player } from '../../types';
+import { GameplayValidator } from '../gameplay/validators';
+
+const DEFAULT_CARD_CHOICE_COUNT = 3;
+const QUAD_CARD_CHOICE_COUNT = 4;
+const GRACE_EXTENSION_MS = 8_000;
+const MIN_DASH_COOLDOWN_MULTIPLIER = 0.4;
 
 class MetaProgressionServiceClass {
   private initialized = false;
@@ -54,10 +60,21 @@ class MetaProgressionServiceClass {
     const def = META_UPGRADE_REGISTRY[id];
     const currentLevel = store.upgrades[id];
 
-    if (currentLevel >= def.maxLevel) return false;
-    if (currentLevel >= def.costPerLevel.length) return false;
+    const preflight = GameplayValidator.validateMetaUpgradePurchase({
+      upgradeId: id,
+      currentLevel,
+      metaCoins: store.metaCoins,
+    });
+    if (!preflight.valid) {
+      Logger.warn('[MetaProgression] Purchase rejected by gameplay validator', {
+        id,
+        issues: preflight.issues,
+      });
+      return false;
+    }
+
     const cost = def.costPerLevel[currentLevel];
-    if (cost === undefined || store.metaCoins < cost) return false;
+    if (cost === undefined) return false;
 
     try {
       const result = await railwayClient.post<{
@@ -66,6 +83,23 @@ class MetaProgressionServiceClass {
         newMetaCoins: number;
         cost: number;
       }>('/api/v1/meta/purchase', { upgradeId: id });
+
+      const serverValidation = GameplayValidator.validateMetaUpgradePurchase({
+        upgradeId: id,
+        currentLevel,
+        metaCoins: store.metaCoins,
+        serverNewLevel: result.newLevel,
+        serverNewMetaCoins: result.newMetaCoins,
+        serverCost: result.cost,
+      });
+      if (!serverValidation.valid) {
+        Logger.warn('[MetaProgression] Purchase server response rejected', {
+          id,
+          result,
+          issues: serverValidation.issues,
+        });
+        return false;
+      }
 
       store.spendMetaCoins(cost);
       store.setUpgradeLevel(id, result.newLevel);
@@ -98,16 +132,42 @@ class MetaProgressionServiceClass {
       p.hp = p.maxHp;
     }
     if (lvl('ARMOR_PLATING')) p.armor += lvl('ARMOR_PLATING');
+    if (lvl('DASH_COOLDOWN')) {
+      p.dashCooldownMultiplier = Math.max(
+        MIN_DASH_COOLDOWN_MULTIPLIER,
+        1 - lvl('DASH_COOLDOWN') * 0.2
+      );
+    }
 
     // Economy
     if (lvl('COIN_MAGNET')) p.magnet += lvl('COIN_MAGNET') * 25;
     if (lvl('LUCK_GENE')) p.luck += lvl('LUCK_GENE') * 3;
+    if (lvl('XP_ACCELERATOR')) {
+      p.expMultiplier = 1 + lvl('XP_ACCELERATOR') * 0.1;
+    }
+
+    // Special
+    if (lvl('STARTING_LEVEL_2')) {
+      p.level = Math.max(p.level, 2);
+    }
 
     return p;
   }
 
   getUpgradeLevel(id: MetaUpgradeId): number {
     return useMetaProgressionStore.getState().upgrades[id];
+  }
+
+  getCardChoiceCount(): number {
+    return this.getUpgradeLevel('QUAD_CARD_CHOICE') > 0
+      ? QUAD_CARD_CHOICE_COUNT
+      : DEFAULT_CARD_CHOICE_COUNT;
+  }
+
+  getStartingLiquidationGraceMs(baseMs: number): number {
+    return this.getUpgradeLevel('GRACE_EXTENSION') > 0
+      ? Math.max(baseMs, GRACE_EXTENSION_MS)
+      : baseMs;
   }
 
   reset(): void {

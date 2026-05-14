@@ -49,6 +49,8 @@ export class PortalRewardCalculator {
         raw: result.killBonus,
         enemyDrops: 0,
         survivalBonus: result.base,
+        levelBonus: result.levelBonus,
+        marketBonus: result.marketBonus,
         portalBonus: result.portalBonus,
         comboBonus: result.streakBonus,
       },

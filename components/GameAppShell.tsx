@@ -31,11 +31,13 @@ import { useMarketTimeout } from '../hooks/useMarketTimeout';
 import { usePauseBudget } from '../hooks/usePauseBudget';
 import { useGameFlowController } from '../hooks/useGameFlowController';
 import { useGameStore } from '../stores/gameStore';
+import { useMetaProgressionStore } from '../stores/metaProgressionStore';
 import { type WindowDimensions } from '../hooks/useWindowDimensions';
 import { type MarketRuntimeMode } from '../config/marketRuntime';
 import { type HubScreen } from './hub';
 import { GameScreenRouter } from './GameScreenRouter';
 import { type useTutorial } from '../hooks/useTutorial';
+import { useUser } from '../contexts/useUser';
 import { EventBus } from '../services/core/EventBus';
 import { GameEndReason } from '../types/metrics';
 
@@ -53,12 +55,9 @@ interface GameAppShellProps {
   showSettings: boolean;
   setShowSettings: (showSettings: boolean) => void;
   handleReturnToLanding: () => void;
-  isIdentityReady: boolean;
-  hasNickname: boolean;
   showDocs: boolean;
   showPrivacy: boolean;
   showTerms: boolean;
-  patchIdentityState: (patch: { hasNickname: boolean }) => void;
   tutorial: TutorialState;
   onOpenUpgrades: () => void;
   onOpenChallenges: () => void;
@@ -76,20 +75,22 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
     showSettings,
     setShowSettings,
     handleReturnToLanding,
-    isIdentityReady,
-    hasNickname,
     showDocs,
     showPrivacy,
     showTerms,
-    patchIdentityState,
     tutorial,
     onOpenUpgrades,
     onOpenChallenges,
     onOpenReplays,
   }) => {
     const { runStats, resetRunStats } = useRunStats();
+    const { isLoading: isIdentityLoading, nickname, logout } = useUser();
+    const hasNickname = Boolean(nickname);
     const audioState = useGameStore(state => state.audio);
     const toggleMute = useGameStore(state => state.toggleMute);
+    const graceExtensionLevel = useMetaProgressionStore(
+      state => state.upgrades.GRACE_EXTENSION
+    );
 
     const [gameMode, setGameMode] = useState<GameMode>(GameMode.COMPETITIVE);
     const [position, setPosition] = useState<MarketPosition>(MarketPosition.LONG);
@@ -140,12 +141,14 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
     }, []);
 
     useEffect(() => {
-      if (gameStatus === GameStatus.MENU) {
+      if (gameStatus === GameStatus.MENU && hasNickname) {
         void WalletService.getInstance()
           .getBalance()
           .then(balance => setWalletBalance(balance));
+      } else if (!hasNickname) {
+        setWalletBalance(0);
       }
-    }, [gameStatus]);
+    }, [gameStatus, hasNickname]);
 
     const { playerRef, uiStats, setUiStats, resetPlayer, healFull, setPositionColor } =
       usePlayerState(dimensions.width, dimensions.height);
@@ -159,6 +162,13 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       selectedPair,
       marketRuntimeMode
     );
+
+    const startOfRunLiquidationGraceMs =
+      graceExtensionLevel > 0
+        ? MetaProgressionService.getStartingLiquidationGraceMs(
+            START_OF_RUN_LIQUIDATION_GRACE_MS
+          )
+        : START_OF_RUN_LIQUIDATION_GRACE_MS;
 
     const {
       upgradeChoices,
@@ -184,7 +194,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       playerRef,
       setUiStats,
       healFull,
-      startOfRunLiquidationGraceMs: START_OF_RUN_LIQUIDATION_GRACE_MS,
+      startOfRunLiquidationGraceMs,
     });
 
     useMarketTimeout({
@@ -259,7 +269,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
               message: 'Please set your nickname to continue.',
               type: 'info',
             });
-            patchIdentityState({ hasNickname: false });
+            logout();
             setHubScreen('hub');
             return;
           }
@@ -317,10 +327,10 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         marketData.price,
         gameStatus,
         hasNickname,
+        logout,
         resetPlayer,
         setHubScreen,
         selectedPair,
-        patchIdentityState,
         playerRef,
         gameMode,
         setPositionColor,
@@ -360,8 +370,10 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
 
     useBeforeUnload(gameStatus);
 
+    const handleNicknameComplete = useCallback(() => undefined, []);
+
     const shouldShowNicknameEntry =
-      isIdentityReady &&
+      !isIdentityLoading &&
       !hasNickname &&
       !showDocs &&
       !showPrivacy &&
@@ -380,7 +392,9 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         uiStats={uiStats}
         setUiStats={setUiStats}
         dimensions={dimensions}
-        handleGameOver={() => void handleGameOver()}
+        handleGameOver={(reason, rewardPayload) =>
+          void handleGameOver(reason, rewardPayload)
+        }
         handleLevelUp={handleLevelUp}
         handlePauseToggle={handlePauseToggle}
         handleCashOut={handleCashOut}
@@ -404,7 +418,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
         setSelectedPair={setSelectedPair}
         setGameMode={setGameMode}
         shouldShowNicknameEntry={shouldShowNicknameEntry}
-        patchIdentityState={patchIdentityState}
+        onNicknameComplete={handleNicknameComplete}
         tutorial={tutorial}
         onOpenUpgrades={onOpenUpgrades}
         onOpenChallenges={onOpenChallenges}

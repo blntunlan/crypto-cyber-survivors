@@ -5,6 +5,18 @@ import { screenService } from '../../../services/system/ScreenService';
 import { EventBus } from '../../../services/core/EventBus';
 import { type MarketData } from '../../../types';
 
+const formatCurrency = (value: number, decimals = 2) =>
+  `$${value.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}`;
+
+const formatWholeNumber = (value: number) =>
+  value.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+
 // Mocks
 vi.mock('../../../services/system/ScreenService', () => ({
   screenService: {
@@ -99,10 +111,10 @@ describe('LiveFeed', () => {
 
     // Static info rows
     expect(screen.getByText('hud.entry')).toBeInTheDocument();
-    expect(screen.getByText('$48,000.00')).toBeInTheDocument();
+    expect(screen.getByText(formatCurrency(48000))).toBeInTheDocument();
 
     expect(screen.getByText('hud.liquidation')).toBeInTheDocument();
-    expect(screen.getByText('$45,000.00')).toBeInTheDocument();
+    expect(screen.getByText(formatCurrency(45000))).toBeInTheDocument();
 
     // Tickers should be present
     expect(screen.getAllByTestId('ticker-price')).toHaveLength(1);
@@ -124,7 +136,9 @@ describe('LiveFeed', () => {
 
     // Compact indicators
     expect(screen.getByText(/hud.entry_short/)).toBeInTheDocument();
-    expect(screen.getByText(/48,000/)).toBeInTheDocument();
+    expect(
+      screen.getByText(content => content.includes(formatWholeNumber(48000)))
+    ).toBeInTheDocument();
   });
 
   it('should update server state via EventBus', () => {
@@ -251,7 +265,7 @@ describe('LiveFeed', () => {
 
     // The liquidation row should have red text and bold font
     // We look for the value since the row component applies class to the value
-    const liqValue = screen.getByText('$45,000.00');
+    const liqValue = screen.getByText(formatCurrency(45000));
     expect(liqValue).toHaveClass('text-red-500');
     expect(liqValue).toHaveClass('font-bold');
   });

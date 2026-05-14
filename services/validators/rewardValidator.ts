@@ -11,6 +11,37 @@ const REWARD_DIVERGENCE_FAIL_PERCENT = 0.5; // 50%
 
 const calculator = new RewardCalculator();
 
+function getBreakdownNumber(breakdown: Record<string, number>, key: string): number {
+  const value = breakdown[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function sumRewardBreakdown(breakdown: Record<string, number>): number {
+  const hasKnownRewardKeys =
+    'base' in breakdown ||
+    'survival' in breakdown ||
+    'kill' in breakdown ||
+    'level' in breakdown ||
+    'market' in breakdown ||
+    'streak' in breakdown ||
+    'portal' in breakdown;
+
+  if (!hasKnownRewardKeys) {
+    return Object.values(breakdown).reduce((a, b) => a + b, 0);
+  }
+
+  return (
+    ('survival' in breakdown
+      ? getBreakdownNumber(breakdown, 'survival')
+      : getBreakdownNumber(breakdown, 'base')) +
+    getBreakdownNumber(breakdown, 'kill') +
+    getBreakdownNumber(breakdown, 'level') +
+    getBreakdownNumber(breakdown, 'market') +
+    getBreakdownNumber(breakdown, 'streak') +
+    getBreakdownNumber(breakdown, 'portal')
+  );
+}
+
 /**
  * Validate that claimed rewards are within plausible range.
  * Uses shared RewardCalculator to compute expected values.
@@ -32,7 +63,7 @@ export function validateReward(input: SessionValidationInput): ValidationFinding
     maxStreak: input.maxStreak,
     exitType: input.exitType as ExitType | undefined,
     portalType: (input.exitType === 'portal'
-      ? 'TAKE_PROFIT'
+      ? (input.portalType ?? null)
       : null) as PortalType | null,
   });
 
@@ -63,7 +94,7 @@ export function validateReward(input: SessionValidationInput): ValidationFinding
 
   // Check breakdown sums to total (if provided)
   if (input.breakdown && input.totalCoins > 0) {
-    const breakdownSum = Object.values(input.breakdown).reduce((a, b) => a + b, 0);
+    const breakdownSum = sumRewardBreakdown(input.breakdown);
     if (Math.abs(breakdownSum - input.totalCoins) > 1) {
       findings.push({
         validator: 'reward_breakdown',

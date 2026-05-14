@@ -23,6 +23,7 @@ describe('LootboxDropCalculator', () => {
       if (drop.category === 'coins') {
         const amountMatch = drop.name.match(/(\d+)/);
         expect(amountMatch).not.toBeNull();
+        expect(drop.amount).toBeTypeOf('number');
       }
 
       randomSpy.mockRestore();

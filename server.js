@@ -17,6 +17,7 @@ import { gzipSync, brotliCompressSync } from 'zlib';
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = join(process.cwd(), 'dist');
 const BASE_URL = 'https://crypto-survivors.com';
+const BYTES_PER_MB = 1024 * 1024;
 
 // =============================================================================
 // SECURITY: Blocked Paths (WordPress vulnerability scanners, bots, etc.)
@@ -317,6 +318,18 @@ setInterval(() => {
 // =============================================================================
 // REQUEST HANDLER
 // =============================================================================
+function getMemoryStats() {
+  const memory = process.memoryUsage();
+  return {
+    rssMB: Math.round(memory.rss / BYTES_PER_MB),
+    heapUsedMB: Math.round(memory.heapUsed / BYTES_PER_MB),
+    heapTotalMB: Math.round(memory.heapTotal / BYTES_PER_MB),
+    externalMB: Math.round(memory.external / BYTES_PER_MB),
+    arrayBuffersMB: Math.round(memory.arrayBuffers / BYTES_PER_MB),
+    uptimeSec: Math.round(process.uptime()),
+  };
+}
+
 function handleRequest(req, res) {
   const startTime = Date.now();
   const ip =
@@ -359,13 +372,10 @@ function handleRequest(req, res) {
     return;
   }
 
-  // Block malicious paths with random delay (confuses timing attacks)
+  // Block malicious paths immediately to avoid holding sockets/timers under scans.
   if (isBlockedPath || isBlockedExt) {
-    const delay = Math.floor(Math.random() * 500) + 100; // 100-600ms random delay
-    setTimeout(() => {
-      logRequest(ip, req.method, urlPath, 418, Date.now() - startTime);
-      sendResponse(res, 418, "I'm a teapot 🫖");
-    }, delay);
+    logRequest(ip, req.method, urlPath, 418, Date.now() - startTime);
+    sendResponse(res, 418, "I'm a teapot 🫖");
     return;
   }
 
@@ -373,7 +383,30 @@ function handleRequest(req, res) {
   if (urlPath === '/health') {
     logRequest(ip, req.method, urlPath, 200, Date.now() - startTime);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }));
+    res.end(
+      JSON.stringify({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        service: 'crypto-survivors',
+      })
+    );
+    return;
+  }
+
+  if (urlPath === '/stats') {
+    logRequest(ip, req.method, urlPath, 200, Date.now() - startTime);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        service: 'crypto-survivors',
+        runtime: {
+          nodeEnv: process.env.NODE_ENV || 'unset',
+          nodeVersion: process.version,
+          memory: getMemoryStats(),
+          rateLimitEntries: rateLimitMap.size,
+        },
+      })
+    );
     return;
   }
 

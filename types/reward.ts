@@ -20,6 +20,7 @@ export type RewardBreakdown = {
   survival: number;
   kill: number;
   level: number;
+  market: number;
   streak: number;
   portal: number;
 };

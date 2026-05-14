@@ -79,8 +79,11 @@ export function validateFieldRanges(
 
   // PnL vs entry/exit price consistency
   if (input.entryPrice > 0 && input.exitPrice > 0 && input.leverage > 0) {
-    const expectedPnl =
-      ((input.exitPrice - input.entryPrice) / input.entryPrice) * input.leverage;
+    const rawMove =
+      input.position === 'SHORT'
+        ? (input.entryPrice - input.exitPrice) / input.entryPrice
+        : (input.exitPrice - input.entryPrice) / input.entryPrice;
+    const expectedPnl = rawMove * input.leverage;
     const pnlDiff = Math.abs(input.pnlPercent - expectedPnl);
     // Allow 5% tolerance for rounding/timing
     if (pnlDiff > 0.05) {

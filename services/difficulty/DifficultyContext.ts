@@ -151,7 +151,7 @@ class DifficultyContextManager {
   set inputs(value: DifficultyInputs) {
     const base = getDefaultInputs();
     Object.assign(base, value);
-    // Ensure nested objects exist even if value was cast with `as any`
+    // Ensure nested objects exist for legacy partial input assignments.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     base.macd ??= { histogram: 0, signal: 0, macd: 0, value: 0 };
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

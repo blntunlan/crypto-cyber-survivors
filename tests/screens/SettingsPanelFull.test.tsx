@@ -61,7 +61,6 @@ vi.mock('../../services/system/DeviceBenchmarkService', () => ({
 
 // Mock useTheme hook
 const mockToggleTheme = vi.fn();
-const mockSetTheme = vi.fn(); // Added
 const mockTheme = {
   colors: { primary: '#00ff00' },
   displayName: 'Cyberpunk',
@@ -71,7 +70,7 @@ vi.mock('../../contexts/useTheme', () => ({
   useTheme: () => ({
     themeName: 'cyberpunk',
     toggleTheme: mockToggleTheme,
-    setTheme: mockSetTheme, // Added
+    setTheme: vi.fn(),
     theme: mockTheme,
     isRetro: false,
   }),
@@ -227,17 +226,16 @@ describe('SettingsPanel Full Test Suite', () => {
 
   // --- Theme Section Tests ---
   describe('Theme Settings', () => {
-    // TODO: Retro theme temporarily disabled - this test is skipped
-    it.skip('should attempt to toggle theme', () => {
+    it('should show cyberpunk as the only selectable production theme', () => {
       render(<SettingsPanel onClose={() => {}} />);
 
-      const retroBtn = screen.getByText('settings.theme_retro');
-      const button = retroBtn.closest('button');
+      const cyberBtn = screen.getByText('settings.theme_cyber');
+      const button = cyberBtn.closest('button');
       expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
 
-      fireEvent.click(button!);
-
-      expect(mockSetTheme).toHaveBeenCalled();
+      expect(screen.queryByText('settings.theme_retro')).not.toBeInTheDocument();
+      expect(mockToggleTheme).not.toHaveBeenCalled();
     });
 
     it('should display cyberpunk theme as active', () => {

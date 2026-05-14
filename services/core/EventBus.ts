@@ -48,21 +48,21 @@ export interface SubscriptionOptions {
   once?: boolean;
 }
 
+type StoredEventCallback = (data: unknown) => void;
+
 // =============================================================================
 // EVENT BUS CLASS
 // =============================================================================
 
 class EventBusClass {
   // Scoped storage: Scope -> Event -> Set of Callbacks
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private listeners: Map<EventScope, Map<GameEvent, Set<EventCallback<any>>>> =
+  private listeners: Map<EventScope, Map<GameEvent, Set<StoredEventCallback>>> =
     new Map();
 
   private static instance: EventBusClass | null = null;
 
   // Flat callback cache: avoids iterating 4 scopes on every emit
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private flatCache: Map<GameEvent, EventCallback<any>[]> = new Map();
+  private flatCache: Map<GameEvent, StoredEventCallback[]> = new Map();
   private flatCacheDirty = true;
 
   // Tracing support
@@ -170,19 +170,15 @@ class EventBusClass {
 
     if (options.once) {
       const onceWrapper = (data: EventDataMap[K]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.unsubscribe(event, onceWrapper as any);
+        this.unsubscribe(event, onceWrapper);
         callback(data);
       };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      callbacks.add(onceWrapper as any);
+      callbacks.add(onceWrapper as unknown as StoredEventCallback);
       this.flatCacheDirty = true;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return () => this.unsubscribe(event, onceWrapper as any);
+      return () => this.unsubscribe(event, onceWrapper);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    callbacks.add(callback as any);
+    callbacks.add(callback as unknown as StoredEventCallback);
     this.flatCacheDirty = true;
 
     return () => this.unsubscribe(event, callback);
@@ -212,9 +208,10 @@ class EventBusClass {
    * Unsubscribe a specific callback
    */
   unsubscribe<K extends GameEvent>(event: K, callback: EventCallback<K>): void {
+    const storedCallback = callback as unknown as StoredEventCallback;
     this.listeners.forEach(scopeMap => {
       const callbacks = scopeMap.get(event);
-      if (callbacks?.delete(callback as EventCallback<GameEvent>)) {
+      if (callbacks?.delete(storedCallback)) {
         this.flatCacheDirty = true;
       }
 

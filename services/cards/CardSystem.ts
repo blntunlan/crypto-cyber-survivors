@@ -62,20 +62,44 @@ class CardSystemClass {
     return card ?? tierCards[0]!;
   }
 
+  private isTierAvailable(tier: CardTier, playerLevel: number): boolean {
+    if (tier === 'legendary') return playerLevel >= 10;
+    if (tier === 'epic') return playerLevel >= 6;
+    if (tier === 'rare') return playerLevel >= 3;
+    return true;
+  }
+
   /**
-   * Generate 3 card choices for level up
+   * Generate card choices for level up.
    */
-  generateChoices(playerLuck: number, playerLevel: number): Card[] {
+  generateChoices(playerLuck: number, playerLevel: number, choiceCount = 3): Card[] {
     const choices: Card[] = [];
     const usedIds = new Set<string>();
+    const availableCards = ALL_CARDS_FLAT.filter(card =>
+      this.isTierAvailable(card.tier, playerLevel)
+    );
+    const targetCount = Math.max(1, Math.min(choiceCount, availableCards.length));
+    const maxAttempts = targetCount * 20;
+    let attempts = 0;
 
-    while (choices.length < 3) {
+    while (choices.length < targetCount && attempts < maxAttempts) {
+      attempts += 1;
       const tier = this.rollTier(playerLuck, playerLevel);
       const card = this.getRandomCardFromTier(tier);
 
       if (!usedIds.has(card.id)) {
         choices.push(card);
         usedIds.add(card.id);
+      }
+    }
+
+    if (choices.length < targetCount) {
+      for (const card of availableCards) {
+        if (!usedIds.has(card.id)) {
+          choices.push(card);
+          usedIds.add(card.id);
+        }
+        if (choices.length === targetCount) break;
       }
     }
 

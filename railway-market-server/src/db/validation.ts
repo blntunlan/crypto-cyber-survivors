@@ -4,6 +4,9 @@
  */
 import { z } from 'zod';
 
+const exitTypeSchema = z.enum(['portal', 'death', 'afk_death', 'cycle_complete']);
+const portalTypeSchema = z.enum(['TAKE_PROFIT', 'STOP_LOSS', 'FLOW_EXIT', 'FORCED']);
+
 // ── Profile ──────────────────────────────────────────────────────────────────
 
 const nicknameSchema = z
@@ -46,8 +49,8 @@ export const verifySessionSchema = z.object({
     kills: z.coerce.number().int().min(0),
     level: z.coerce.number().int().min(1),
     survivalSeconds: z.coerce.number().min(0),
-    exitType: z.string().optional(),
-    portalType: z.string().optional(),
+    exitType: exitTypeSchema.optional(),
+    portalType: portalTypeSchema.nullish(),
     maxStreak: z.coerce.number().int().min(0).default(0),
     rawCoins: z.coerce.number().int().min(0).optional(),
     enemyDropCoins: z.coerce.number().int().min(0).optional(),
@@ -59,6 +62,7 @@ export const verifySessionSchema = z.object({
         survival: z.number(),
         kill: z.number(),
         level: z.number(),
+        market: z.number(),
         streak: z.number(),
         portal: z.number(),
       })

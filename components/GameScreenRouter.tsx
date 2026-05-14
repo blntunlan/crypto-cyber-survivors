@@ -16,6 +16,8 @@ import {
 } from '../types';
 import { type CryptoPair } from '../types/crypto';
 import { type GameMode, type CycleCompleteData } from '../types/gameMode';
+import { type GameEndReason } from '../types/metrics';
+import { type RewardPayload } from '../types/reward';
 import { type Card } from '../services/cards/types';
 import { type PauseBudgetState } from '../hooks/usePauseBudget';
 import { type PauseMenuStats } from '../hooks/useGameFlowController';
@@ -89,7 +91,7 @@ export interface GameScreenRouterProps {
   setUiStats: Dispatch<SetStateAction<Player>>;
   dimensions: { width: number; height: number };
 
-  handleGameOver: () => void;
+  handleGameOver: (reason?: GameEndReason, rewardPayload?: RewardPayload) => void;
   handleLevelUp: () => void;
   handlePauseToggle: () => void;
   handleCashOut: () => Promise<void>;
@@ -115,7 +117,7 @@ export interface GameScreenRouterProps {
   setGameMode: (m: GameMode) => void;
 
   shouldShowNicknameEntry: boolean;
-  patchIdentityState: (patch: { hasNickname: boolean }) => void;
+  onNicknameComplete: () => void;
   tutorial: TutorialState;
   onOpenUpgrades?: () => void;
   onOpenChallenges?: () => void;
@@ -157,7 +159,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   setSelectedPair,
   setGameMode,
   shouldShowNicknameEntry,
-  patchIdentityState,
+  onNicknameComplete,
   tutorial,
   onOpenUpgrades,
   onOpenChallenges,
@@ -181,14 +183,13 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
       {showLiveGameScene && <NotificationSystem />}
 
       {shouldShowNicknameEntry && (
-        <NicknameEntryScreen
-          onComplete={() => patchIdentityState({ hasNickname: true })}
-        />
+        <NicknameEntryScreen onComplete={onNicknameComplete} />
       )}
 
       <React.Suspense fallback={<FallbackLoader />}>
         {tutorial.showTutorial &&
           gameStatus === GameStatus.MENU &&
+          !shouldShowNicknameEntry &&
           hubScreen === 'hub' && (
             <TutorialOverlay
               step={tutorial.currentStep}

@@ -126,6 +126,7 @@ export interface CoinDrop extends BaseDrop {
   category: 'coins';
   minAmount: number;
   maxAmount: number;
+  amount?: number;
 }
 
 // Consumable item drops

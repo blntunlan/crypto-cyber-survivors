@@ -98,6 +98,8 @@ export interface Player extends Omit<Entity, 'active'>, PlayerStats {
   hp: number;
   maxHp: number;
   invulnerabilityTimer: number; // For I-Frames
+  dashCooldownMultiplier?: number;
+  expMultiplier?: number;
   pnl?: number;
   score?: number;
 }

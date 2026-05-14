@@ -72,7 +72,7 @@ export function useGameEngineEvents({
     return unsub;
   }, [position, marketDataRef]);
 
-  // Near Miss Event Listener (Matrix slow-mo effect)
+  // Near Miss Event Listener (visual/audio feedback only)
   useEffect(() => {
     const unsubscribe = EventBus.on('nearMiss', () => {
       if (stateRef.current.nearMissCooldown <= 0) {

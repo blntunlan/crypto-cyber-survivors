@@ -666,8 +666,8 @@ test.describe('Edge Cases - Network Conditions', () => {
     await context.setOffline(false);
   });
 
-  // CDP-based network throttling may not work on all browser configurations
-  // Skip this test as it can cause timeout issues
+  // CDP-based network throttling is Chromium-only, so non-Chromium projects
+  // skip this scenario through the guard below.
   test('should handle slow network', async ({ page }) => {
     test.slow();
 

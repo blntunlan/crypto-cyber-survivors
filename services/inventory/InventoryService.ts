@@ -24,6 +24,7 @@ import {
 } from '../../types/inventory';
 import { type CharacterSkinId, type ConsumableEffectType } from '../../types/lootbox';
 import { nanoid } from 'nanoid';
+import { GameplayValidator } from '../gameplay/validators';
 
 // =============================================================================
 // INVENTORY SERVICE CLASS
@@ -89,6 +90,22 @@ class InventoryServiceClass {
       return false;
     }
 
+    const validation = GameplayValidator.validateInventoryGrant({
+      itemType,
+      itemId,
+      quantity,
+      allowFractionalQuantity: itemType === 'crypto_token',
+    });
+    if (!validation.valid) {
+      Logger.warn('[InventoryService] Rejected invalid inventory grant', {
+        itemType,
+        itemId,
+        quantity,
+        issues: validation.issues,
+      });
+      return false;
+    }
+
     switch (itemType) {
       case 'consumable':
         return this.addConsumable(inventory, itemId, quantity);
@@ -118,6 +135,22 @@ class InventoryServiceClass {
 
     // Find existing stack
     const existing = inventory.consumables.find(c => c.itemId === itemId);
+    const validation = GameplayValidator.validateInventoryGrant({
+      itemType: 'consumable',
+      itemId,
+      quantity,
+      currentQuantity: existing?.quantity ?? 0,
+      maxStack: definition.maxStack,
+    });
+    if (!validation.valid) {
+      Logger.warn('[InventoryService] Rejected invalid consumable grant', {
+        itemId,
+        quantity,
+        issues: validation.issues,
+      });
+      return false;
+    }
+
     if (existing) {
       // Check max stack
       const newQuantity = Math.min(existing.quantity + quantity, definition.maxStack);
@@ -227,7 +260,11 @@ class InventoryServiceClass {
     if (!inventory) return false;
 
     const item = inventory.consumables.find(c => c.itemId === itemId && c.quantity > 0);
-    if (!item) {
+    const validation = GameplayValidator.validateConsumableUse({
+      itemId,
+      currentQuantity: item?.quantity ?? 0,
+    });
+    if (!item || !validation.valid) {
       Logger.warn(`[InventoryService] Consumable not available: ${itemId}`);
       return false;
     }
@@ -363,8 +400,11 @@ class InventoryServiceClass {
     const inventory = this.getInventory();
     if (!inventory) return false;
 
-    // Check if default or owned
-    if (skinId !== 'default' && !inventory.skins.some(s => s.skinId === skinId)) {
+    const validation = GameplayValidator.validateSkinEquip({
+      skinId,
+      ownedSkinIds: this.getOwnedSkins(),
+    });
+    if (!validation.valid) {
       Logger.warn(`[InventoryService] Skin not owned: ${skinId}`);
       return false;
     }

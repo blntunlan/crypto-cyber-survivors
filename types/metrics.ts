@@ -22,6 +22,8 @@ export enum MetricCategory {
 
 export enum GameEndReason {
   DEATH = 'death',
+  PORTAL = 'portal',
+  CYCLE_COMPLETE = 'cycle_complete',
   LIQUIDATION = 'liquidation',
   QUIT = 'quit',
   DISCONNECT = 'disconnect',

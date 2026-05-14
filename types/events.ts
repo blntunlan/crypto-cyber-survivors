@@ -506,6 +506,8 @@ export interface EliteChainExplosionEvent {
   radius: number;
   /** Explosion damage */
   damage: number;
+  /** Number of active enemies damaged by the explosion */
+  damagedCount?: number;
 }
 
 /** Elite enemy spawned event data */

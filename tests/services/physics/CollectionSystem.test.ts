@@ -69,6 +69,16 @@ describe('CollectionSystem', () => {
       expect(mockContext.audio.playGem).toHaveBeenCalled();
     });
 
+    it('should apply player XP multiplier when collecting gems', () => {
+      player.expMultiplier = 1.5;
+      const gem: Gem = { x: 5, y: 5, radius: 5, value: 10, active: true } as any;
+      (mockPool as any).activeGems = [gem];
+
+      system.update(mockPool, player, state, 1);
+
+      expect(player.exp).toBe(15);
+    });
+
     it('should keep base collection particles at low leverage', () => {
       vi.mocked(LeverageEngine.getLeverage).mockReturnValue(10);
       const gem: Gem = { x: 5, y: 5, radius: 5, value: 10, active: true } as any;

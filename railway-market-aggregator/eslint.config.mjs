@@ -23,8 +23,8 @@ export default tseslint.config(
       // Prevent missing imports (catches cors-like issues)
       '@typescript-eslint/no-require-imports': 'error',
 
-      // Strict type checking - warn instead of error for existing code
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // Strict type checking
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off', // Too noisy
       '@typescript-eslint/no-non-null-assertion': 'warn', // Allow with warning

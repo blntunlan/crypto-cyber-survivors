@@ -24,8 +24,7 @@ export interface VfxPreviewSimContext {
   enemies: ReadonlyArray<{ x: number; y: number; radius: number; id: number }>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface VfxPreviewModule<TState = any> {
+export interface VfxPreviewModule<TState = unknown> {
   id: string;
   category: VfxCategory;
   label: string;

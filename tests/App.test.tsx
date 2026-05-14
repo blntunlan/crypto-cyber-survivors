@@ -59,6 +59,7 @@ vi.mock('../services/gameplay/CoinService', () => ({
     resetSession: vi.fn(),
     calculateCycleReward: vi.fn(),
     creditCoins: vi.fn(),
+    creditVerifiedCoins: vi.fn(),
     setProvider: vi.fn(),
   },
 }));

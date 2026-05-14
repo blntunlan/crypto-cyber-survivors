@@ -57,8 +57,17 @@ export class RewardCalculator {
     const survivalTimeSeconds = Math.max(0, params.survivalTimeSeconds || 0);
     const kills = Math.max(0, params.kills || 0);
     const level = Math.max(0, params.level || 0);
-    const pnl = params.pnl;
-    const maxStreak = Math.max(0, params.maxStreak);
+    let pnl = params.pnl;
+    if (!pnl) {
+      pnl = 0;
+    }
+
+    let maxStreakInput = params.maxStreak;
+    if (!maxStreakInput) {
+      maxStreakInput = 0;
+    }
+    const maxStreak = Math.max(0, maxStreakInput);
+
     const exitType = params.exitType ?? 'cycle_complete';
     const portalType = params.portalType ?? null;
 

@@ -36,6 +36,7 @@ import { type CryptoPair } from '../types/crypto';
 import { MetaProgressionService } from '../services/progression/MetaProgressionService';
 import { ChallengeService } from '../services/challenges/ChallengeService';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
+import { type RewardPayload } from '../types/reward';
 
 interface UseGameFlowControllerParams {
   gameMode: GameMode;
@@ -65,7 +66,10 @@ interface UseGameFlowControllerResult {
   frozenPnlRef: { current: number };
   handleLevelUp: () => void;
   selectUpgrade: (card: Card) => void;
-  handleGameOver: (reason?: GameEndReason) => Promise<void>;
+  handleGameOver: (
+    reason?: GameEndReason,
+    rewardPayload?: RewardPayload
+  ) => Promise<void>;
   handleCashOut: () => Promise<void>;
   handleContinue: () => void;
   markRunStarted: () => void;
@@ -114,7 +118,8 @@ export const useGameFlowController = ({
     GameStateMachine.transition(GameStatus.LEVEL_UP);
     const choices = CardSystem.generateChoices(
       playerRef.current.luck,
-      playerRef.current.level
+      playerRef.current.level,
+      MetaProgressionService.getCardChoiceCount()
     );
     setUpgradeChoices(choices);
     audio.playLevelUp();
@@ -157,7 +162,10 @@ export const useGameFlowController = ({
   );
 
   const handleGameOver = useCallback(
-    async (reason: GameEndReason = GameEndReason.DEATH) => {
+    async (
+      reason: GameEndReason = GameEndReason.DEATH,
+      rewardPayload?: RewardPayload
+    ) => {
       if (isGameOverProcessingRef.current) return;
       isGameOverProcessingRef.current = true;
 
@@ -204,25 +212,48 @@ export const useGameFlowController = ({
 
       void (async () => {
         try {
-          const submission = await GameSessionService.submitSession({
-            level: playerRef.current.level,
-            kills: runStatsTotalKills,
-            survivalTimeMs: DifficultyManager.getTotalElapsedSeconds() * 1000,
-            entryPrice,
-            exitPrice: marketData.price,
-            pnlPercent: marketData.pnl,
-            pair: selectedPair,
-            position,
-            leverage,
-            endReason: reason,
-            maxStreak: ComboSystem.getMaxStreak(),
-            replayData: metrics.replayData,
-            performance: metrics.performance,
-          });
+          const maxStreak = rewardPayload?.maxStreak ?? ComboSystem.getMaxStreak();
+          const submission = await GameSessionService.submitSession(
+            {
+              level: rewardPayload?.level ?? playerRef.current.level,
+              kills: rewardPayload?.kills ?? runStatsTotalKills,
+              survivalTimeMs:
+                (rewardPayload?.survivalSeconds ??
+                  DifficultyManager.getTotalElapsedSeconds()) * 1000,
+              entryPrice,
+              exitPrice: marketData.price,
+              pnlPercent: marketData.pnl,
+              pair: selectedPair,
+              position,
+              leverage,
+              endReason: reason,
+              exitType:
+                rewardPayload?.exitType ??
+                (reason === GameEndReason.PORTAL
+                  ? 'portal'
+                  : reason === GameEndReason.CYCLE_COMPLETE
+                    ? 'cycle_complete'
+                    : 'death'),
+              portalType: rewardPayload?.portalType ?? null,
+              maxStreak,
+              replayData: metrics.replayData,
+              performance: metrics.performance,
+            },
+            rewardPayload
+          );
 
-          if (submission.success && submission.reward && submission.reward > 0) {
+          if (
+            submission.success &&
+            submission.verified === true &&
+            submission.reward &&
+            submission.reward > 0
+          ) {
             Logger.info(`[App] Session verified! Reward: ${submission.reward}`);
-            await CoinService.creditCoins(submission.reward, 'achievement');
+            await CoinService.creditVerifiedCoins(submission.reward, 'cycle_complete', {
+              exitType: rewardPayload?.exitType,
+              portalType: rewardPayload?.portalType,
+              serverVerified: true,
+            });
           }
 
           // Meta Progression: transfer 15% of coins
@@ -293,17 +324,39 @@ export const useGameFlowController = ({
   const handleCashOut = useCallback(async () => {
     if (!cycleData) return;
 
+    const maxStreak = ComboSystem.getMaxStreak();
     const rewards = CoinService.calculateCycleReward({
       survivalTimeSeconds: cycleData.survivalTimeSeconds,
       kills: cycleData.totalKills,
       level: cycleData.level,
       pnl: cycleData.effectivePnl,
-      maxStreak: ComboSystem.getMaxStreak(),
+      maxStreak,
     });
 
-    await CoinService.creditCoins(rewards.total, 'cycle_complete');
+    const rewardPayload: RewardPayload = {
+      kills: cycleData.totalKills,
+      level: cycleData.level,
+      survivalSeconds: cycleData.survivalTimeSeconds,
+      pnlPercent: cycleData.effectivePnl,
+      maxStreak,
+      exitType: 'cycle_complete',
+      portalType: null,
+      rawCoins: rewards.killBonus,
+      enemyDropCoins: 0,
+      totalCoins: rewards.total,
+      breakdown: {
+        base: rewards.base,
+        survival: rewards.base,
+        kill: rewards.killBonus,
+        level: rewards.levelBonus,
+        market: rewards.marketBonus,
+        streak: rewards.streakBonus,
+        portal: rewards.portalBonus,
+      },
+    };
+
     difficultyContext.reset();
-    void handleGameOver(GameEndReason.DEATH);
+    await handleGameOver(GameEndReason.CYCLE_COMPLETE, rewardPayload);
   }, [cycleData, handleGameOver]);
 
   const handleContinue = useCallback(() => {

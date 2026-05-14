@@ -5,7 +5,7 @@ import { SupabaseService } from './services/supabaseService';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import twitterAuthRouter from './services/twitterAuth';
-import { closePool, getPool } from './db/pool';
+import { closePool, getPool, getPoolMax } from './db/pool';
 import { runMigrations } from './db/migrate';
 import { asyncHandler } from './utils/asyncHandler';
 import {
@@ -31,6 +31,7 @@ import adminRouter from './routes/admin';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
+const BYTES_PER_MB = 1024 * 1024;
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -89,6 +90,18 @@ app.use('/api/v1/admin', adminRouter);
 
 // ---- Monitoring endpoints ----
 
+function getMemoryStats(): Record<string, number> {
+  const memory = process.memoryUsage();
+  return {
+    rssMB: Math.round(memory.rss / BYTES_PER_MB),
+    heapUsedMB: Math.round(memory.heapUsed / BYTES_PER_MB),
+    heapTotalMB: Math.round(memory.heapTotal / BYTES_PER_MB),
+    externalMB: Math.round(memory.external / BYTES_PER_MB),
+    arrayBuffersMB: Math.round(memory.arrayBuffers / BYTES_PER_MB),
+    uptimeSec: Math.round(process.uptime()),
+  };
+}
+
 app.get(
   '/health',
   asyncHandler(async (_req: express.Request, res: express.Response) => {
@@ -120,10 +133,24 @@ app.get(
 );
 
 app.get('/stats', (_req, res) => {
+  const pool = getPool();
   res.json({
     service: 'api-server',
     uptime: Math.round(process.uptime()),
     memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    runtime: {
+      nodeEnv: process.env.NODE_ENV ?? 'unset',
+      nodeVersion: process.version,
+      memory: getMemoryStats(),
+    },
+    database: {
+      pool: {
+        max: getPoolMax(),
+        totalCount: pool.totalCount,
+        idleCount: pool.idleCount,
+        waitingCount: pool.waitingCount,
+      },
+    },
   });
 });
 
@@ -300,11 +327,15 @@ app.get(
       server: {
         uptime: Math.round(process.uptime()),
         memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        memory: getMemoryStats(),
         nodeVersion: process.version,
       },
       database: {
         connected: dbHealthy,
-        pool: poolStats,
+        pool: {
+          max: getPoolMax(),
+          ...poolStats,
+        },
         tableCounts,
       },
       activity: {

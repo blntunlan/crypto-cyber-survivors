@@ -99,6 +99,21 @@ describe('validateFieldRanges', () => {
       expect(pnl).toHaveLength(0);
     });
 
+    it('passes when SHORT PnL matches entry/exit/leverage', () => {
+      // short gains when price falls: entry=50000, exit=49500 → 1% raw, 10x → 10%
+      const findings = validateFieldRanges(
+        makeInput({
+          position: 'SHORT',
+          entryPrice: 50000,
+          exitPrice: 49500,
+          pnlPercent: 0.1,
+          leverage: 10,
+        })
+      );
+      const pnl = findings.filter(f => f.validator === 'pnl');
+      expect(pnl).toHaveLength(0);
+    });
+
     it('warns when PnL diverges from price calculation', () => {
       const findings = validateFieldRanges(
         makeInput({

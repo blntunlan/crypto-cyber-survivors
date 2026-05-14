@@ -82,6 +82,7 @@ const sampleBreakdown: RewardBreakdown = {
   survival: 20,
   kill: 30,
   level: 15,
+  market: 35,
   streak: 5,
   portal: 25,
 };
@@ -174,6 +175,36 @@ describe('GameSessionService.submitSession', () => {
     expect(payload.totalCoins).toBe(140);
     expect(payload.pnlPercent).toBe(3.5);
     expect(payload.breakdown).toEqual(sampleBreakdown);
+  });
+
+  it('normalizes fractional reward survival seconds before sync and verify', async () => {
+    await seedSession();
+
+    railwayPostMock.mockResolvedValueOnce({
+      id: 'sess-42',
+    });
+    railwayPostMock.mockResolvedValueOnce({
+      verified: true,
+      reward: 140,
+      metaShare: 14,
+    });
+
+    await GameSessionService.submitSession(baseResults, {
+      ...sampleRewardPayload,
+      survivalSeconds: 90.75,
+    });
+
+    const syncCall = getPostCall('/api/v1/sessions/sync');
+    const sessionData = (syncCall[1] as { sessionData: Record<string, unknown> })
+      .sessionData;
+    expect(sessionData.survival_seconds).toBe(90);
+
+    const verifyCall = getPostCall('/api/v1/sessions/verify');
+    const payload = (verifyCall[1] as Record<string, unknown>).payload as Record<
+      string,
+      unknown
+    >;
+    expect(payload.survivalSeconds).toBe(90);
   });
 
   // ---- b. Backward compat without RewardPayload ----

@@ -37,8 +37,8 @@ import { EngineRegistry } from '../services/core/EngineRegistry';
 import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
 import { checkPortalCollision } from '../services/gameplay/portal/portalCollision';
-import { CoinService } from '../services/gameplay/CoinService';
 import { type RewardPayload } from '../types/reward';
+import { GameEndReason } from '../types/metrics';
 import { GameMode } from '../types/gameMode';
 import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
 import { VisualEffectService } from '../services/gameplay/VisualEffectService';
@@ -76,6 +76,7 @@ import { useGameEngineEvents } from '../hooks/useGameEngineEvents';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
+import { updateNearMissFeedbackTimers } from '../services/gameplay/NearMissTiming';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -92,7 +93,7 @@ interface GameEngineProps {
   position: MarketPosition;
   pair: CryptoPair;
   marketData: MarketData;
-  onGameOver: () => void;
+  onGameOver: (reason?: GameEndReason, rewardPayload?: RewardPayload) => void;
   onLevelUp: () => void;
   updatePlayerStats: (player: Player) => void;
   playerRef: React.RefObject<Player>;
@@ -662,16 +663,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
       const deltaTime = TimeService.update(time);
 
-      // Update Near Miss Timers (Decremented by real time, but affects game time)
-      if (s.nearMissCooldown > 0) s.nearMissCooldown -= deltaTime;
-
-      let timeScale = 1.0;
-      if (s.nearMissTimer > 0) {
-        s.nearMissTimer -= deltaTime;
-        timeScale = GAME_ENGINE.NEAR_MISS_SLOWMO;
-      }
-
-      const dtFactor = (deltaTime / GAME_ENGINE.TARGET_FRAME_TIME) * timeScale;
+      const dtFactor = updateNearMissFeedbackTimers(s, deltaTime);
       s.lastTime = time;
 
       gameplayFrameRef.current += 1;
@@ -819,20 +811,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
                 base: coinReward.breakdown.survivalBonus,
                 survival: coinReward.breakdown.survivalBonus,
                 kill: coinReward.breakdown.raw,
-                level: 0,
+                level: coinReward.breakdown.levelBonus,
+                market: coinReward.breakdown.marketBonus,
                 streak: coinReward.breakdown.comboBonus,
                 portal: coinReward.breakdown.portalBonus,
               },
             };
-
-            // Credit coins to player via CoinService
-            if (coinReward.total > 0) {
-              void CoinService.creditCoins(coinReward.total, 'cycle_complete', {
-                exitType: rewardPayload.exitType,
-                portalType: rewardPayload.portalType,
-                breakdown: coinReward.breakdown,
-              });
-            }
 
             EventBus.emit('portalExtraction', {
               totalCoins: rewardPayload.totalCoins,
@@ -855,7 +839,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
               portalType: coinReward.portalType,
             });
 
-            onGameOver(); // Exit run
+            onGameOver(GameEndReason.PORTAL, rewardPayload); // Exit run
           }
         }
 
@@ -1267,7 +1251,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           onMove={setTouchMovement}
           onDash={() => setTouchDash(true)}
           onDashRelease={() => setTouchDash(false)}
-          dashCooldownMs={GAME_ENGINE.DASH_COOLDOWN}
+          dashCooldownMs={
+            GAME_ENGINE.DASH_COOLDOWN * (playerRef.current.dashCooldownMultiplier ?? 1)
+          }
         />
       )}
     </div>

@@ -1,7 +1,5 @@
 import { useReducer, useEffect, useCallback } from 'react';
 import { type HubScreen } from '../components/hub';
-import { UserPersistenceService } from '../services/auth/UserPersistenceService';
-import { UserSessionService } from '../services/auth/UserSessionService';
 
 const HUB_SCREEN_STORAGE_KEY = 'ui_hub_screen';
 const ACTIVE_SURFACE_STORAGE_KEY = 'ui_active_surface';
@@ -22,17 +20,11 @@ interface LegalRouteState {
   showDocs: boolean;
 }
 
-interface IdentityState {
-  isReady: boolean;
-  hasNickname: boolean;
-}
-
 interface SurfaceState {
   showLanding: boolean;
   showSettings: boolean;
   hubScreen: HubScreen;
   legalRoute: LegalRouteState;
-  identityState: IdentityState;
 }
 
 export type SurfaceAction =
@@ -40,9 +32,7 @@ export type SurfaceAction =
   | { type: 'set_show_settings'; showSettings: boolean }
   | { type: 'set_show_landing'; showLanding: boolean }
   | { type: 'set_legal_route'; legalRoute: LegalRouteState }
-  | { type: 'patch_legal_route'; legalRoute: Partial<LegalRouteState> }
-  | { type: 'set_identity_state'; identityState: IdentityState }
-  | { type: 'patch_identity_state'; identityState: Partial<IdentityState> };
+  | { type: 'patch_legal_route'; legalRoute: Partial<LegalRouteState> };
 
 const isHubScreen = (value: string | null): value is HubScreen => {
   return value !== null && HUB_SCREENS.includes(value as HubScreen);
@@ -113,10 +103,6 @@ const createInitialSurfaceState = (): SurfaceState => ({
     showTerms: false,
     showDocs: false,
   },
-  identityState: {
-    isReady: false,
-    hasNickname: false,
-  },
 });
 
 const surfaceReducer = (state: SurfaceState, action: SurfaceAction): SurfaceState => {
@@ -134,13 +120,6 @@ const surfaceReducer = (state: SurfaceState, action: SurfaceAction): SurfaceStat
         ...state,
         legalRoute: { ...state.legalRoute, ...action.legalRoute },
       };
-    case 'set_identity_state':
-      return { ...state, identityState: action.identityState };
-    case 'patch_identity_state':
-      return {
-        ...state,
-        identityState: { ...state.identityState, ...action.identityState },
-      };
     default:
       return state;
   }
@@ -153,12 +132,9 @@ interface UseSurfaceStateResult {
   showPrivacy: boolean;
   showTerms: boolean;
   showDocs: boolean;
-  isIdentityReady: boolean;
-  hasNickname: boolean;
   setHubScreen: (hubScreen: HubScreen) => void;
   setShowSettings: (showSettings: boolean) => void;
   patchLegalRoute: (legalRoute: Partial<LegalRouteState>) => void;
-  patchIdentityState: (identityState: Partial<IdentityState>) => void;
   handleLaunchGame: () => void;
   handleReturnToLanding: () => void;
 }
@@ -181,10 +157,8 @@ export const useSurfaceState = (): UseSurfaceStateResult => {
     createInitialSurfaceState
   );
 
-  const { showLanding, showSettings, hubScreen, legalRoute, identityState } =
-    surfaceState;
+  const { showLanding, showSettings, hubScreen, legalRoute } = surfaceState;
   const { showPrivacy, showTerms, showDocs } = legalRoute;
-  const { isReady: isIdentityReady, hasNickname } = identityState;
   const setHubScreen = useCallback((nextHubScreen: HubScreen) => {
     dispatchSurface({ type: 'set_hub_screen', hubScreen: nextHubScreen });
   }, []);
@@ -196,16 +170,6 @@ export const useSurfaceState = (): UseSurfaceStateResult => {
   const patchLegalRoute = useCallback((nextLegalRoute: Partial<LegalRouteState>) => {
     dispatchSurface({ type: 'patch_legal_route', legalRoute: nextLegalRoute });
   }, []);
-
-  const patchIdentityState = useCallback(
-    (nextIdentityState: Partial<IdentityState>) => {
-      dispatchSurface({
-        type: 'patch_identity_state',
-        identityState: nextIdentityState,
-      });
-    },
-    []
-  );
 
   useEffect(() => {
     const handleNavigation = () => {
@@ -222,37 +186,6 @@ export const useSurfaceState = (): UseSurfaceStateResult => {
     return () => {
       window.removeEventListener('hashchange', handleNavigation);
       window.removeEventListener('popstate', handleNavigation);
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const initIdentity = async () => {
-      let hasNicknameVal = false;
-      try {
-        const user = await UserPersistenceService.initialize();
-        if (!cancelled) {
-          hasNicknameVal = Boolean(user?.nickname);
-        }
-      } catch {
-        if (!cancelled) {
-          hasNicknameVal = Boolean(UserSessionService.getNickname());
-        }
-      } finally {
-        if (!cancelled) {
-          dispatchSurface({
-            type: 'set_identity_state',
-            identityState: { isReady: true, hasNickname: hasNicknameVal },
-          });
-        }
-      }
-    };
-
-    void initIdentity();
-
-    return () => {
-      cancelled = true;
     };
   }, []);
 
@@ -292,12 +225,9 @@ export const useSurfaceState = (): UseSurfaceStateResult => {
     showPrivacy,
     showTerms,
     showDocs,
-    isIdentityReady,
-    hasNickname,
     setHubScreen,
     setShowSettings,
     patchLegalRoute,
-    patchIdentityState,
     handleLaunchGame,
     handleReturnToLanding,
   };

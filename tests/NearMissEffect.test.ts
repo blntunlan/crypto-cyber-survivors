@@ -1,11 +1,11 @@
 /**
  * Near Miss Effect Logic Tests
  *
- * Verifies the timing, cooldown, and timeScale calculations for the
- * near-miss (slow-mo) mechanic.
+ * Verifies the timing and cooldown calculations for the near-miss feedback mechanic.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GAME_ENGINE } from '../constants';
+import { updateNearMissFeedbackTimers } from '../services/gameplay/NearMissTiming';
 
 /**
  * Main test suite for Near Miss Logic.
@@ -54,17 +54,12 @@ describe('GameEngine - Near Miss Logic', () => {
     expect(gameState.nearMissCooldown).toBe(500);
   });
 
-  it('should apply slow-mo timeScale when near miss is active', () => {
+  it('should not slow gameplay when near miss feedback is active', () => {
     gameState.nearMissTimer = 300;
 
-    // Logic from GameEngine update loop
-    let timeScale = 1.0;
-    if (gameState.nearMissTimer > 0) {
-      gameState.nearMissTimer -= deltaTime;
-      timeScale = GAME_ENGINE.NEAR_MISS_SLOWMO;
-    }
+    const dtFactor = updateNearMissFeedbackTimers(gameState, deltaTime);
 
-    expect(timeScale).toBe(GAME_ENGINE.NEAR_MISS_SLOWMO);
+    expect(dtFactor).toBeCloseTo(deltaTime / GAME_ENGINE.TARGET_FRAME_TIME);
     expect(gameState.nearMissTimer).toBeLessThan(300);
   });
 

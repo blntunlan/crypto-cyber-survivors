@@ -36,6 +36,18 @@ describe('validateReward', () => {
     expect(reward).toHaveLength(0);
   });
 
+  it('uses the submitted portal type instead of assuming take-profit', () => {
+    const findings = validateReward(
+      makeInput({
+        exitType: 'portal',
+        portalType: 'STOP_LOSS',
+        totalCoins: 525,
+      })
+    );
+    const reward = findings.filter(f => f.validator === 'reward');
+    expect(reward).toHaveLength(0);
+  });
+
   it('warns when totalCoins diverges by >10% from expected', () => {
     const findings = validateReward(makeInput({ totalCoins: 2200 }));
     const reward = findings.find(f => f.validator === 'reward');
@@ -64,6 +76,25 @@ describe('validateReward', () => {
       makeInput({
         totalCoins: 300,
         breakdown: { base: 100, kill: 100, level: 100 },
+      })
+    );
+    const breakdown = findings.filter(f => f.validator === 'reward_breakdown');
+    expect(breakdown).toHaveLength(0);
+  });
+
+  it('treats base and survival as aliases when validating payload breakdowns', () => {
+    const findings = validateReward(
+      makeInput({
+        totalCoins: 1765,
+        breakdown: {
+          base: 240,
+          survival: 240,
+          kill: 250,
+          level: 250,
+          market: 1000,
+          streak: 25,
+          portal: 0,
+        },
       })
     );
     const breakdown = findings.filter(f => f.validator === 'reward_breakdown');

@@ -7,8 +7,12 @@ import { PriceLogger } from './services/priceLogger';
 import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
-import { closePool, getPool } from './db/pool';
-import { startHeartbeat, getSSEClientCount } from './routes/marketStream';
+import { closePool, getPool, getPoolMax } from './db/pool';
+import {
+  startHeartbeat,
+  getSSEClientCount,
+  getHistoryCacheSize,
+} from './routes/marketStream';
 import { asyncHandler } from './utils/asyncHandler';
 import { globalLimiter } from './middleware/rateLimit';
 
@@ -17,6 +21,7 @@ import marketStreamRouter from './routes/marketStream';
 
 const app = express();
 const PORT = process.env.PORT ?? 3002;
+const BYTES_PER_MB = 1024 * 1024;
 
 // Allowed origins for CORS (same as API server)
 const ALLOWED_ORIGINS = [
@@ -59,6 +64,18 @@ app.use('/api/v1/market', marketStreamRouter);
 
 // ---- Monitoring endpoints ----
 
+function getMemoryStats(): Record<string, number> {
+  const memory = process.memoryUsage();
+  return {
+    rssMB: Math.round(memory.rss / BYTES_PER_MB),
+    heapUsedMB: Math.round(memory.heapUsed / BYTES_PER_MB),
+    heapTotalMB: Math.round(memory.heapTotal / BYTES_PER_MB),
+    externalMB: Math.round(memory.external / BYTES_PER_MB),
+    arrayBuffersMB: Math.round(memory.arrayBuffers / BYTES_PER_MB),
+    uptimeSec: Math.round(process.uptime()),
+  };
+}
+
 app.get(
   '/health',
   asyncHandler(async (_req: express.Request, res: express.Response) => {
@@ -88,11 +105,26 @@ app.get(
 app.get('/stats', (_req, res) => {
   const priceStats = PriceLogger.getInstance().getStats();
   const cleanupStats = CleanupCron.getInstance().getStats();
+  const pool = getPool();
   res.json({
     service: 'market-aggregator',
+    runtime: {
+      nodeEnv: process.env.NODE_ENV ?? 'unset',
+      nodeVersion: process.version,
+      memory: getMemoryStats(),
+    },
     price: priceStats,
     cleanup: cleanupStats,
     sseClients: getSSEClientCount(),
+    historyCacheSize: getHistoryCacheSize(),
+    database: {
+      pool: {
+        max: getPoolMax(),
+        totalCount: pool.totalCount,
+        idleCount: pool.idleCount,
+        waitingCount: pool.waitingCount,
+      },
+    },
   });
 });
 
@@ -161,17 +193,20 @@ app.get(
       server: {
         uptime: Math.round(process.uptime()),
         memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        memory: getMemoryStats(),
         nodeVersion: process.version,
       },
       pipeline: {
         binanceConnected: binance.isConnected(),
         dbConnected: dbHealthy,
         sseClients: getSSEClientCount(),
+        historyCacheSize: getHistoryCacheSize(),
         priceStats,
         priceHistoryCount,
       },
       database: {
         pool: {
+          max: getPoolMax(),
           totalCount: pool.totalCount,
           idleCount: pool.idleCount,
           waitingCount: pool.waitingCount,

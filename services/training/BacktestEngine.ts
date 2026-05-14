@@ -43,6 +43,11 @@ export class HistoricalDataLoader {
 import { Logger } from '../system/Logger';
 import { EventBus } from '../core/EventBus';
 
+const FALLBACK_DATA_MAX_POINTS = 7200;
+const FALLBACK_DATA_MIN_POINTS = 1000;
+const FALLBACK_DATA_INTERVAL_MS = 60_000;
+const FALLBACK_BASE_PRICE = 50_000;
+
 /**
  * Backtest configuration
  */
@@ -203,6 +208,50 @@ class BacktestEngineClass {
     return (BacktestEngineClass.instance ??= new BacktestEngineClass());
   }
 
+  private createFallbackMarketData(daysBack: number, endDate: Date): PriceDataPoint[] {
+    const requestedMinutes = Math.floor(daysBack * 24 * 60);
+    const count = Math.max(
+      FALLBACK_DATA_MIN_POINTS,
+      Math.min(FALLBACK_DATA_MAX_POINTS, requestedMinutes)
+    );
+    const startTime = endDate.getTime() - count * FALLBACK_DATA_INTERVAL_MS;
+    const data: PriceDataPoint[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const trend = i * 0.8;
+      const slowCycle = Math.sin(i / 180) * 750;
+      const fastCycle = Math.sin(i / 24) * 250;
+      const price = Math.max(1000, FALLBACK_BASE_PRICE + trend + slowCycle + fastCycle);
+
+      data.push({
+        timestamp: startTime + i * FALLBACK_DATA_INTERVAL_MS,
+        price,
+      });
+    }
+
+    return data;
+  }
+
+  private createFallbackIndicators(data: PriceDataPoint[]): IndicatorSnapshot[] {
+    return data.map((point, index) => {
+      const previous = data[Math.max(0, index - 14)] ?? point;
+      const priceChange = point.price - previous.price;
+      const relativeChange = priceChange / Math.max(previous.price, 1);
+      const rsi = Math.max(5, Math.min(95, 50 + relativeChange * 2000));
+      const atrPercent = Math.max(
+        0.1,
+        Math.min(5, Math.abs(relativeChange) * 100 + 0.5)
+      );
+
+      return {
+        rsi,
+        atrPercent,
+        normalizedVolume: Math.max(0, Math.min(1, 0.5 + Math.sin(index / 20) * 0.35)),
+        macdHistogram: Math.sin(index / 30) * 10 + priceChange / 100,
+      };
+    });
+  }
+
   /**
    * Supabase'den eğitim verisi yükle
    */
@@ -215,19 +264,30 @@ class BacktestEngineClass {
 
     Logger.info(`[BacktestEngine] Loading ${daysBack} days of data...`);
 
-    this.marketData = await this.dataLoader.fetchPriceHistory(
+    const loadedData = await this.dataLoader.fetchPriceHistory(
       pair,
       startDate,
       endDate,
       50000 // Max points
     );
 
-    if (this.marketData.length === 0) {
-      Logger.warn('[BacktestEngine] No data loaded, using mock data');
+    if (loadedData.length === 0) {
+      Logger.warn('[BacktestEngine] No data loaded, using deterministic fallback data');
+      this.marketData = this.createFallbackMarketData(daysBack, endDate);
+    } else {
+      this.marketData = loadedData;
     }
 
     // Calculate indicators
-    this.indicators = this.dataLoader.calculateIndicators(this.marketData);
+    const calculatedIndicators = this.dataLoader.calculateIndicators(this.marketData);
+    if (calculatedIndicators.length === this.marketData.length) {
+      this.indicators = calculatedIndicators;
+    } else {
+      Logger.warn(
+        '[BacktestEngine] Indicator loader returned incomplete data, using fallback indicators'
+      );
+      this.indicators = this.createFallbackIndicators(this.marketData);
+    }
 
     Logger.info(`[BacktestEngine] Loaded ${this.marketData.length} data points`);
     return this.marketData.length;
@@ -761,6 +821,8 @@ class BacktestEngineClass {
     this.isTraining = false;
     this.currentEpisode = 0;
     this.bestReward = -Infinity;
+    this.marketData = [];
+    this.indicators = [];
     Logger.debug('[BacktestEngine] Reset');
   }
 }

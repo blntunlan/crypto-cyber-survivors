@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   CardSystem,
   type CardTier,
+  ALL_CARDS,
   ALL_CARDS_FLAT,
   type Card,
 } from '../services/cards/CardSystem';
@@ -72,6 +73,17 @@ describe('CardSystem', () => {
     it('should return exactly 3 cards', () => {
       const choices = CardSystem.generateChoices(0, 5);
       expect(choices).toHaveLength(3);
+    });
+
+    it('should support upgraded 4-card choices', () => {
+      const choices = CardSystem.generateChoices(0, 5, 4);
+      expect(choices).toHaveLength(4);
+    });
+
+    it('should cap requested choices to cards available at the current level', () => {
+      const choices = CardSystem.generateChoices(0, 1, 99);
+      expect(choices).toHaveLength(ALL_CARDS.common.length);
+      expect(choices.every(c => c.tier === 'common')).toBe(true);
     });
 
     it('should return unique cards (no duplicates)', () => {

@@ -40,6 +40,7 @@ describe('PortalRewardCalculator', () => {
       // base = 120 * 2 = 240, killBonus = 47 * 5 = 235, marketBonus = floor(0.05 * 100 * 100) = 500
       // portalBonus = floor((240 + 235 + 500) * 0.2) = floor(975 * 0.2) = 195
       expect(result.breakdown.raw).toBe(235);
+      expect(result.breakdown.marketBonus).toBe(500);
     });
 
     it('passes exact level to RewardCalculator', () => {
@@ -54,10 +55,11 @@ describe('PortalRewardCalculator', () => {
         7 // exact level
       );
 
-      // levelBonus = 7 * 50 = 350 (included in total but not in breakdown directly)
+      // levelBonus = 7 * 50 = 350
       // base = 240, killBonus = 0, marketBonus = 0
       // portalBonus = floor((240 + 0 + 0) * 0.2) = 48
       // total = 240 + 0 + 350 + 0 + 0 + 48 = 638
+      expect(result.breakdown.levelBonus).toBe(350);
       expect(result.total).toBe(638);
     });
 
@@ -95,6 +97,7 @@ describe('PortalRewardCalculator', () => {
       // levelBonus = 5*50 = 250
       // portalBonus = floor((240+100+300)*0.2) = floor(128) = 128
       expect(result.breakdown.portalBonus).toBe(128);
+      expect(result.breakdown.marketBonus).toBe(300);
       expect(result.breakdown.portalBonus).toBeGreaterThan(0);
       expect(result.total).toBe(240 + 100 + 250 + 300 + 25 + 128);
     });

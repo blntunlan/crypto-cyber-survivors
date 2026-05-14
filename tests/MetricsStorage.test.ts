@@ -43,35 +43,26 @@ const localStorageMock = (() => {
   };
 })();
 
-// Mock Supabase
-const mockSupabaseInsert = vi.fn();
-const mockSupabaseSelect = vi.fn();
-const mockSupabaseUpdate = vi.fn();
-let supabaseConfigured = false;
+const mockRailwayPost = vi.fn();
+const mockVerificationEnqueue = vi.fn();
+const mockEventBusEmit = vi.fn();
 
-vi.mock('../services/supabase/client', () => ({
-  get supabase() {
-    if (!supabaseConfigured) return null;
-    return {
-      from: (table: string) => ({
-        insert: (data: unknown) => ({
-          select: (fields: string) => ({
-            single: () => mockSupabaseInsert(table, data, fields),
-          }),
-        }),
-        select: (fields: string) => ({
-          eq: (field: string, value: string) => ({
-            single: () => mockSupabaseSelect(table, fields, field, value),
-          }),
-        }),
-        update: (data: unknown) => ({
-          eq: (field: string, value: string) =>
-            mockSupabaseUpdate(table, data, field, value),
-        }),
-      }),
-    };
+vi.mock('../services/api/RailwayClient', () => ({
+  railwayClient: {
+    post: (...args: unknown[]) => mockRailwayPost(...args),
   },
-  isSupabaseConfigured: () => supabaseConfigured,
+}));
+
+vi.mock('../services/verification/VerificationQueue', () => ({
+  VerificationQueue: {
+    enqueue: (...args: unknown[]) => mockVerificationEnqueue(...args),
+  },
+}));
+
+vi.mock('../services/core/EventBus', () => ({
+  EventBus: {
+    emit: (...args: unknown[]) => mockEventBusEmit(...args),
+  },
 }));
 
 // Mock Logger
@@ -91,6 +82,7 @@ vi.stubEnv('VITE_ENABLE_ANALYTICS', 'true');
 vi.mock('../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getProfileId: vi.fn(() => 'test-profile-id'),
+    getNickname: vi.fn(() => 'test-player'),
   },
 }));
 
@@ -202,7 +194,10 @@ describe('MetricsStorage', () => {
     vi.clearAllMocks();
     localStorageMock.clear();
     quotaExceeded = false;
-    supabaseConfigured = false;
+    vi.stubEnv('VITE_RAILWAY_API_URL', '');
+    vi.stubEnv('VITE_ENABLE_ANALYTICS', 'true');
+    mockRailwayPost.mockResolvedValue({ id: 'game-session-123' });
+    mockVerificationEnqueue.mockResolvedValue(undefined);
 
     // Replace global localStorage
     Object.defineProperty(global, 'localStorage', {
@@ -475,83 +470,92 @@ describe('MetricsStorage', () => {
     });
   });
 
-  describe('Supabase Integration', () => {
-    it('should skip Supabase sync when not configured', async () => {
-      supabaseConfigured = false;
+  describe('Railway Integration', () => {
+    it('should skip Railway sync when not configured', async () => {
       const storage = new MetricsStorage();
       const session = createMockSession();
 
-      // This should not throw even though supabase is null
       storage.addSession(session);
 
-      // Verify session was still added locally
       expect(storage.getCount()).toBe(1);
-      // Verify Supabase was not called
-      expect(mockSupabaseInsert).not.toHaveBeenCalled();
+      expect(mockRailwayPost).not.toHaveBeenCalled();
     });
 
-    it.skip('should sync to Supabase when configured', async () => {
-      supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({
-        data: { id: 'game-session-123' },
-        error: null,
-      });
-
+    it('should sync session data to Railway when configured', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
       const storage = new MetricsStorage();
       const session = createMockSession();
 
       storage.addSession(session);
 
-      // Wait for async sync - increase timeout to ensure completion
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await vi.waitFor(() => {
+        expect(mockRailwayPost).toHaveBeenCalledWith(
+          '/api/v1/sessions/sync',
+          expect.objectContaining({
+            sessionId: session.serverSessionId,
+            sessionData: expect.objectContaining({
+              entry_price: session.bitcoin.priceAtStart,
+              exit_price: session.bitcoin.priceAtEnd,
+              survival_seconds: Math.floor(session.player.survivalTimeMs / 1000),
+              kills: session.player.totalKills,
+            }),
+          })
+        );
+      });
 
-      expect(mockSupabaseInsert).toHaveBeenCalled();
+      expect(mockVerificationEnqueue).toHaveBeenCalled();
+      expect(mockEventBusEmit).toHaveBeenCalledWith('sessionSynced', {
+        sessionId: 'game-session-123',
+        profileId: 'test-profile-id',
+      });
     });
 
-    it('should handle Supabase insert error gracefully', async () => {
-      supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({
-        data: null,
-        error: { message: 'Insert failed', code: '500' },
-      });
-
+    it('should handle Railway quota errors gracefully', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
+      mockRailwayPost.mockRejectedValueOnce(
+        Object.assign(new Error('402 quota exhausted'), { code: '402' })
+      );
       const storage = new MetricsStorage();
       const session = createMockSession();
 
-      // Should not throw
       storage.addSession(session);
 
-      // Session should still be added locally
       expect(storage.getCount()).toBe(1);
+
+      await vi.waitFor(() => {
+        expect(mockEventBusEmit).toHaveBeenCalledWith(
+          'sessionSyncFailed',
+          expect.objectContaining({
+            sessionId: session.sessionId,
+            retryCount: 0,
+          })
+        );
+      });
     });
 
     it('should handle duplicate session (replay attack) silently', async () => {
-      supabaseConfigured = true;
-      // PostgreSQL unique constraint violation
-      mockSupabaseInsert.mockResolvedValue({
-        data: null,
-        error: { message: 'Duplicate key', code: '23505' },
-      });
-
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
+      mockRailwayPost.mockRejectedValueOnce(
+        Object.assign(new Error('Duplicate key'), { code: '23505' })
+      );
       const storage = new MetricsStorage();
       const session = createMockSession();
 
       storage.addSession(session);
 
-      // Wait for async sync - increase timeout to ensure completion
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Should still add locally
       expect(storage.getCount()).toBe(1);
+
+      await vi.waitFor(() => {
+        expect(mockRailwayPost).toHaveBeenCalledWith(
+          '/api/v1/sessions/sync',
+          expect.any(Object)
+        );
+      });
+      expect(mockVerificationEnqueue).not.toHaveBeenCalled();
     });
 
-    it.skip('should sync performance metrics when available', async () => {
-      supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({
-        data: { id: 'game-session-123' },
-        error: null,
-      });
-
+    it('should sync performance metrics when available', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
       const storage = new MetricsStorage();
       const session = createMockSession({
         performance: {
@@ -570,30 +574,22 @@ describe('MetricsStorage', () => {
 
       storage.addSession(session);
 
-      // Wait for async sync
-      await new Promise(resolve => setTimeout(resolve, 20));
-
-      // Main session insert should have been called
-      expect(mockSupabaseInsert).toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(mockRailwayPost).toHaveBeenCalledWith(
+          '/api/v1/telemetry/performance-metrics',
+          expect.objectContaining({
+            session_id: 'game-session-123',
+            profile_id: 'test-profile-id',
+            avg_fps: 60,
+            min_fps: 55,
+            frame_drops: 2,
+          })
+        );
+      });
     });
 
-    it.skip('should update player stats for non-anonymous users', async () => {
-      supabaseConfigured = true;
-      mockSupabaseInsert.mockResolvedValue({
-        data: { id: 'game-session-123' },
-        error: null,
-      });
-      mockSupabaseSelect.mockResolvedValue({
-        data: {
-          high_score: 100000,
-          total_kills: 500,
-          total_playtime_ms: 3600000,
-          best_pnl_percent: 10,
-        },
-        error: null,
-      });
-      mockSupabaseUpdate.mockResolvedValue({ error: null });
-
+    it('should persist non-anonymous run totals through the Railway session sync', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
       const storage = new MetricsStorage();
       const session = createMockSession({
         player: {
@@ -605,11 +601,17 @@ describe('MetricsStorage', () => {
 
       storage.addSession(session);
 
-      // Wait for async sync
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // Session should have been synced
-      expect(mockSupabaseInsert).toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(mockRailwayPost).toHaveBeenCalledWith(
+          '/api/v1/sessions/sync',
+          expect.objectContaining({
+            sessionData: expect.objectContaining({
+              survival_seconds: 150,
+              kills: 75,
+            }),
+          })
+        );
+      });
     });
   });
 

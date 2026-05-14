@@ -4,8 +4,6 @@
  * Features:
  * - Display name editing
  * - Avatar display (OAuth providers)
- * - Linked providers management
- * - Account upgrade (nickname → OAuth)
  */
 
 import React, { useEffect, useReducer, useRef, useState } from 'react';
@@ -15,21 +13,12 @@ import {
   Edit2,
   Save,
   X,
-  Link,
-  Unlink,
   Mail,
-  Shield,
   CheckCircle,
   AlertCircle,
   Loader,
-  Search,
-  AtSign,
-  Disc,
-  Code2,
-  type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../../contexts/useTheme';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedText } from '../themed/ThemedText';
 import { UserAvatar } from '../ui/UserAvatar';
@@ -57,37 +46,18 @@ type ProfileSettingsUiState = {
   isEditingName: boolean;
   newDisplayName: string;
   isSaving: boolean;
-  linkedProviders: AuthProvider[];
-  linkingProvider: AuthProvider | null;
 };
 
 type ProfileSettingsUiAction =
   | { type: 'loadStart' }
-  | {
-      type: 'loadSuccess';
-      payload: { linkedProviders: AuthProvider[]; newDisplayName: string };
-    }
+  | { type: 'loadSuccess'; payload: { newDisplayName: string } }
   | { type: 'loadEnd' }
   | { type: 'setError'; payload: string | null }
   | { type: 'setSuccessMessage'; payload: string | null }
   | { type: 'setEditingName'; payload: boolean }
   | { type: 'setNewDisplayName'; payload: string }
   | { type: 'saveStart' }
-  | { type: 'saveEnd' }
-  | { type: 'setLinkedProviders'; payload: AuthProvider[] }
-  | { type: 'setLinkingProvider'; payload: AuthProvider | null };
-
-const OAUTH_PROVIDERS: {
-  id: AuthProvider;
-  name: string;
-  icon: LucideIcon;
-  color: string;
-}[] = [
-  { id: 'google', name: 'Google', icon: Search, color: '#4285F4' },
-  { id: 'twitter', name: 'Twitter/X', icon: AtSign, color: '#000000' },
-  { id: 'discord', name: 'Discord', icon: Disc, color: '#5865F2' },
-  { id: 'github', name: 'GitHub', icon: Code2, color: '#333333' },
-];
+  | { type: 'saveEnd' };
 
 const INITIAL_PROFILE_SETTINGS_UI_STATE: ProfileSettingsUiState = {
   isLoading: true,
@@ -96,8 +66,6 @@ const INITIAL_PROFILE_SETTINGS_UI_STATE: ProfileSettingsUiState = {
   isEditingName: false,
   newDisplayName: '',
   isSaving: false,
-  linkedProviders: [],
-  linkingProvider: null,
 };
 
 function profileSettingsUiReducer(
@@ -115,7 +83,6 @@ function profileSettingsUiReducer(
       return {
         ...state,
         error: null,
-        linkedProviders: action.payload.linkedProviders,
         newDisplayName: action.payload.newDisplayName,
       };
     case 'loadEnd':
@@ -153,16 +120,6 @@ function profileSettingsUiReducer(
       return {
         ...state,
         isSaving: false,
-      };
-    case 'setLinkedProviders':
-      return {
-        ...state,
-        linkedProviders: action.payload,
-      };
-    case 'setLinkingProvider':
-      return {
-        ...state,
-        linkingProvider: action.payload,
       };
     default:
       return state;
@@ -364,7 +321,6 @@ export const ProfileSettingsContent: React.FC<{
   onProfileUpdate?: (profile: ProfileData) => void;
 }> = ({ onProfileUpdate }) => {
   const { isRetro } = useTheme();
-  const { t } = useLanguage();
 
   // State
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -372,16 +328,8 @@ export const ProfileSettingsContent: React.FC<{
     profileSettingsUiReducer,
     INITIAL_PROFILE_SETTINGS_UI_STATE
   );
-  const {
-    isLoading,
-    error,
-    successMessage,
-    isEditingName,
-    newDisplayName,
-    isSaving,
-    linkedProviders,
-    linkingProvider,
-  } = uiState;
+  const { isLoading, error, successMessage, isEditingName, newDisplayName, isSaving } =
+    uiState;
 
   // Track success message timers for cleanup
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -406,11 +354,9 @@ export const ProfileSettingsContent: React.FC<{
 
       if (result) {
         setProfile(result);
-        const providers = await SupabaseAuthService.getLinkedProviders();
         dispatch({
           type: 'loadSuccess',
           payload: {
-            linkedProviders: providers,
             newDisplayName: result.displayName,
           },
         });
@@ -457,66 +403,6 @@ export const ProfileSettingsContent: React.FC<{
     }
   };
 
-  const handleLinkProvider = async (provider: AuthProvider) => {
-    dispatch({ type: 'setLinkingProvider', payload: provider });
-    dispatch({ type: 'setError', payload: null });
-
-    try {
-      const result = await SupabaseAuthService.linkOAuthProvider(provider);
-
-      if (!result.success) {
-        dispatch({
-          type: 'setError',
-          payload: result.error ?? 'Failed to link provider',
-        });
-      }
-      // OAuth will redirect, so no need to update state here
-    } catch (err) {
-      Logger.error('[ProfileSettings] Link provider error:', err);
-      dispatch({ type: 'setError', payload: 'An error occurred' });
-      dispatch({ type: 'setLinkingProvider', payload: null });
-    }
-  };
-
-  const handleUnlinkProvider = async (provider: AuthProvider) => {
-    if (linkedProviders.length <= 1) {
-      dispatch({ type: 'setError', payload: 'Cannot unlink your only login method' });
-      return;
-    }
-
-    dispatch({ type: 'setLinkingProvider', payload: provider });
-    dispatch({ type: 'setError', payload: null });
-
-    try {
-      const result = await SupabaseAuthService.unlinkProvider(provider);
-
-      if (result.success) {
-        dispatch({
-          type: 'setLinkedProviders',
-          payload: linkedProviders.filter(
-            linkedProvider => linkedProvider !== provider
-          ),
-        });
-        dispatch({ type: 'setSuccessMessage', payload: `${provider} unlinked` });
-        if (successTimerRef.current) clearTimeout(successTimerRef.current);
-        successTimerRef.current = setTimeout(
-          () => dispatch({ type: 'setSuccessMessage', payload: null }),
-          3000
-        );
-      } else {
-        dispatch({
-          type: 'setError',
-          payload: result.error ?? 'Failed to unlink provider',
-        });
-      }
-    } catch (err) {
-      Logger.error('[ProfileSettings] Unlink provider error:', err);
-      dispatch({ type: 'setError', payload: 'An error occurred' });
-    } finally {
-      dispatch({ type: 'setLinkingProvider', payload: null });
-    }
-  };
-
   return (
     <div className="space-y-6 p-4">
       {isLoading ? (
@@ -544,79 +430,6 @@ export const ProfileSettingsContent: React.FC<{
             }}
             onStartEdit={() => dispatch({ type: 'setEditingName', payload: true })}
           />
-
-          {/* Linked Providers */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-cyan-400" />
-              <ThemedText
-                variant="h2"
-                className="text-sm font-semibold uppercase tracking-wide"
-              >
-                {t('settings.linked_accounts')}
-              </ThemedText>
-            </div>
-
-            <div className="grid gap-2">
-              {OAUTH_PROVIDERS.map(provider => {
-                const isLinked = linkedProviders.includes(provider.id);
-                const isLinking = linkingProvider === provider.id;
-                const ProviderIcon = provider.icon;
-
-                return (
-                  <div
-                    key={provider.id}
-                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                      isLinked
-                        ? 'border-green-500/30 bg-green-500/10'
-                        : 'border-white/10 bg-white/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-md bg-white/10"
-                        style={{ color: provider.color }}
-                      >
-                        <ProviderIcon className="h-5 w-5" />
-                      </span>
-                      <span className="font-medium text-white">{provider.name}</span>
-                      {isLinked && <CheckCircle className="h-4 w-4 text-green-400" />}
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (isLinked) {
-                          void handleUnlinkProvider(provider.id);
-                        } else {
-                          void handleLinkProvider(provider.id);
-                        }
-                      }}
-                      disabled={isLinking}
-                      className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                        isLinked
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                          : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
-                      } disabled:opacity-50`}
-                    >
-                      {isLinking ? (
-                        <Loader className="h-4 w-4 animate-spin" />
-                      ) : isLinked ? (
-                        <>
-                          <Unlink className="h-4 w-4" />
-                          Unlink
-                        </>
-                      ) : (
-                        <>
-                          <Link className="h-4 w-4" />
-                          Link
-                        </>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
           <ProfileMessages error={error} successMessage={successMessage} />
         </>

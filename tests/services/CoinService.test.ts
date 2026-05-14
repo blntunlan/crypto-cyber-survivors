@@ -224,6 +224,21 @@ describe('CoinService System', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
+    it('creditVerifiedCoins credits immediately even when verification queue is enabled', async () => {
+      const spy = vi.fn();
+      EventBus.on('xpGained', spy);
+
+      const result = await CoinService.creditVerifiedCoins(120, 'cycle_complete', {
+        sessionId: 'verified-session',
+      });
+
+      expect(result).toBe(true);
+      expect(await CoinService.getBalance()).toBe(120);
+      expect(CoinService.getSessionCoins()).toBe(120);
+      expect(CoinService.getPendingVerifications()).toBe(0);
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ amount: 120 }));
+    });
+
     it('generates a sessionId when metadata lacks one', async () => {
       const spy = vi.fn();
       EventBus.on('verification:queued', spy);

@@ -35,10 +35,14 @@ interface SSEClient {
   id: number;
   res: Response;
   pair: string;
+  ip: string;
 }
 
 const MAX_SSE_PER_IP = 3;
-const MAX_SSE_TOTAL = 500;
+const MAX_SSE_TOTAL = 150;
+const ALLOWED_PAIRS = ['BTC', 'ETH', 'SOL'] as const;
+
+type MarketPair = (typeof ALLOWED_PAIRS)[number];
 
 let nextClientId = 0;
 const clients: Map<number, SSEClient> = new Map();
@@ -46,12 +50,44 @@ const sseConnectionsPerIp: Map<string, number> = new Map();
 
 const router = Router();
 
+function normalizeMarketPair(input: unknown): MarketPair | null {
+  const raw = typeof input === 'string' && input.trim() ? input : 'BTC';
+  const pair = raw.trim().toUpperCase();
+  return (ALLOWED_PAIRS as readonly string[]).includes(pair)
+    ? (pair as MarketPair)
+    : null;
+}
+
+function decrementIpConnection(clientIp: string): void {
+  const count = sseConnectionsPerIp.get(clientIp) ?? 1;
+  if (count <= 1) {
+    sseConnectionsPerIp.delete(clientIp);
+  } else {
+    sseConnectionsPerIp.set(clientIp, count - 1);
+  }
+}
+
+function removeClient(clientId: number): boolean {
+  const client = clients.get(clientId);
+  if (!client) {
+    return false;
+  }
+
+  clients.delete(clientId);
+  decrementIpConnection(client.ip);
+  return true;
+}
+
 /**
  * GET /api/v1/market/stream?pair=BTC
  * Content-Type: text/event-stream
  */
 router.get('/stream', (req: Request, res: Response) => {
-  const pair = (req.query.pair as string | undefined) ?? 'BTC';
+  const pair = normalizeMarketPair(req.query.pair);
+  if (!pair) {
+    res.status(400).json({ error: 'Unsupported market pair' });
+    return;
+  }
 
   // --- DoS protection: per-IP and global connection limits ---
   const forwarded = req.headers['x-forwarded-for'];
@@ -85,7 +121,7 @@ router.get('/stream', (req: Request, res: Response) => {
   res.write(`data: ${JSON.stringify({ type: 'connected', pair })}\n\n`);
 
   const clientId = nextClientId++;
-  const client: SSEClient = { id: clientId, res, pair };
+  const client: SSEClient = { id: clientId, res, pair, ip: clientIp };
   clients.set(clientId, client);
 
   Logger.info(
@@ -93,17 +129,9 @@ router.get('/stream', (req: Request, res: Response) => {
   );
 
   req.on('close', () => {
-    clients.delete(clientId);
-
-    // Decrement per-IP counter
-    const count = sseConnectionsPerIp.get(clientIp) ?? 1;
-    if (count <= 1) {
-      sseConnectionsPerIp.delete(clientIp);
-    } else {
-      sseConnectionsPerIp.set(clientIp, count - 1);
+    if (removeClient(clientId)) {
+      Logger.info(`[SSE] Client ${clientId} disconnected (total: ${clients.size})`);
     }
-
-    Logger.info(`[SSE] Client ${clientId} disconnected (total: ${clients.size})`);
   });
 });
 
@@ -118,7 +146,7 @@ export function broadcastMarketData(data: SSEMarketPayload): void {
       try {
         client.res.write(payload);
       } catch {
-        clients.delete(client.id);
+        removeClient(client.id);
         try {
           client.res.end();
         } catch {
@@ -139,7 +167,7 @@ export function startHeartbeat(intervalMs: number = 5000): NodeJS.Timeout {
       try {
         client.res.write(heartbeat);
       } catch {
-        clients.delete(client.id);
+        removeClient(client.id);
         try {
           client.res.end();
         } catch {
@@ -163,12 +191,52 @@ export function getSSEClientCount(): number {
  */
 const historyCache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL_MS = 10000; // 10 seconds
+const MAX_HISTORY_CACHE_KEYS = 64;
+
+function pruneHistoryCache(now: number = Date.now()): void {
+  for (const [key, cached] of historyCache.entries()) {
+    if (now - cached.timestamp >= CACHE_TTL_MS) {
+      historyCache.delete(key);
+    }
+  }
+
+  while (historyCache.size > MAX_HISTORY_CACHE_KEYS) {
+    let oldestKey: string | null = null;
+    let oldestTimestamp = Number.POSITIVE_INFINITY;
+
+    for (const [key, cached] of historyCache.entries()) {
+      if (cached.timestamp < oldestTimestamp) {
+        oldestTimestamp = cached.timestamp;
+        oldestKey = key;
+      }
+    }
+
+    if (!oldestKey) {
+      break;
+    }
+    historyCache.delete(oldestKey);
+  }
+}
+
+setInterval(() => {
+  pruneHistoryCache();
+}, CACHE_TTL_MS).unref();
+
+export function getHistoryCacheSize(): number {
+  pruneHistoryCache();
+  return historyCache.size;
+}
 
 router.get(
   '/history',
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const pair = (req.query.pair as string | undefined) ?? 'BTC';
+      const pair = normalizeMarketPair(req.query.pair);
+      if (!pair) {
+        res.status(400).json({ error: 'Unsupported market pair' });
+        return;
+      }
+
       const limit = Math.min(Number(req.query.limit) || 300, 1000);
 
       const cacheKey = `${pair}_${limit}`;
@@ -190,6 +258,7 @@ router.get(
 
       const responseData = result.rows.reverse();
       historyCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+      pruneHistoryCache();
 
       res.json(responseData);
     } catch (error) {

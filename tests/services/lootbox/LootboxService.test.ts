@@ -156,6 +156,28 @@ describe('LootboxService', () => {
       vi.restoreAllMocks();
     });
 
+    it('should prefer typed coin amount over display name parsing', async () => {
+      const emitSpy = vi.spyOn(EventBus, 'emit');
+
+      vi.spyOn(dropCalculator, 'calculateDrop').mockReturnValue({
+        id: 'typed_coins',
+        category: 'coins',
+        name: 'Coin Bundle',
+        icon: 'coin',
+        rarity: 'rare',
+        description: 'Typed amount reward',
+        minAmount: 100,
+        maxAmount: 300,
+        amount: 250,
+      });
+
+      const box = LootboxService.earnLootbox('gas_box', 'achievement');
+      await LootboxService.openLootbox(box!.id);
+
+      expect(emitSpy).toHaveBeenCalledWith('xpGained', { amount: 250 });
+      vi.restoreAllMocks();
+    });
+
     it('should emit inventoryItemAdded for consumables', async () => {
       const emitSpy = vi.spyOn(EventBus, 'emit');
 

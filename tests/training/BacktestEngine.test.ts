@@ -76,9 +76,9 @@ import {
   TRAINING_CONFIG,
 } from '../../services/training/BacktestEngine';
 
-describe.skip('BacktestEngine', () => {
+describe('BacktestEngine', () => {
   beforeEach(() => {
-    createBacktestEngine();
+    BacktestEngine.reset();
   });
 
   afterEach(() => {
@@ -107,9 +107,12 @@ describe.skip('BacktestEngine', () => {
       expect(count).toBeGreaterThan(0);
     });
 
-    it('should handle empty data gracefully', async () => {
-      // Will be skipped - empty data handling is tested elsewhere
-      expect(true).toBe(true);
+    it('should use fallback data when remote history is unavailable', async () => {
+      const count = await BacktestEngine.loadTrainingData(7);
+      const state = BacktestEngine.getTrainingState();
+
+      expect(count).toBeGreaterThanOrEqual(1000);
+      expect(state.dataPointsLoaded).toBe(count);
     });
   });
 
@@ -253,9 +256,11 @@ describe.skip('BacktestEngine', () => {
       expect(Number.isNaN(result.avgReward) || result.avgReward === 0).toBe(true);
     });
 
-    it('should handle insufficient data gracefully', async () => {
-      // Will be skipped - need proper mock reset for this
-      expect(true).toBe(true);
+    it('should train with generated fallback data when no remote data is loaded', async () => {
+      const result = await BacktestEngine.train(1);
+
+      expect(Number.isFinite(result.avgReward)).toBe(true);
+      expect(Number.isFinite(result.bestReward)).toBe(true);
     });
   });
 });

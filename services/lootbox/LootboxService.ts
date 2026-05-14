@@ -316,10 +316,8 @@ class LootboxServiceClass {
   private async processDropReward(drop: LootboxDrop): Promise<void> {
     switch (drop.category) {
       case 'coins': {
-        const coinMatch = drop.name.match(/(\d+)/);
-        const matchedAmount = coinMatch?.[1];
-        if (matchedAmount) {
-          const amount = parseInt(matchedAmount, 10);
+        const amount = this.getCoinDropAmount(drop);
+        if (amount > 0) {
           EventBus.emit('xpGained', { amount });
         }
         break;
@@ -340,6 +338,18 @@ class LootboxServiceClass {
         Logger.warn('[LootboxService] Crypto token dropped - this should not happen!');
         break;
     }
+  }
+
+  private getCoinDropAmount(drop: LootboxDrop): number {
+    if (drop.category !== 'coins') return 0;
+
+    if (typeof drop.amount === 'number' && Number.isFinite(drop.amount)) {
+      return Math.max(0, Math.floor(drop.amount));
+    }
+
+    const coinMatch = drop.name.match(/(\d+)/);
+    const matchedAmount = coinMatch?.[1];
+    return matchedAmount ? Math.max(0, parseInt(matchedAmount, 10)) : 0;
   }
 
   private hasSessionFlag(key: string): boolean {

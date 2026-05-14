@@ -63,6 +63,15 @@ export class InputPhase implements IGameplayPhase<'input'> {
     const width = shared.width;
     const height = shared.height;
     const isMobile = shared.deviceIsMobile;
+    const dashCooldownMultiplier = player.dashCooldownMultiplier ?? 1;
+    const dashCooldown = Math.max(
+      1,
+      GAME_ENGINE.DASH_COOLDOWN * dashCooldownMultiplier
+    );
+    const doubleDashCooldown = Math.max(
+      1,
+      GAME_ENGINE.DOUBLE_DASH_COOLDOWN * dashCooldownMultiplier
+    );
 
     // Dash Logic Timers
     if (s.dashTimer > 0) {
@@ -98,12 +107,12 @@ export class InputPhase implements IGameplayPhase<'input'> {
             s.dashTimer = effectiveDashDuration;
             s.doubleDashQueued = false;
             s.doubleDashUsed = true;
-            s.dashCooldownTimer = GAME_ENGINE.DOUBLE_DASH_COOLDOWN;
+            s.dashCooldownTimer = doubleDashCooldown;
             audio.playDash();
             s.shake = 10;
             EventBus.emit('playerDash', {
               duration: effectiveDashDuration,
-              cooldown: GAME_ENGINE.DOUBLE_DASH_COOLDOWN,
+              cooldown: doubleDashCooldown,
               isDoubleDash: true,
             });
 
@@ -159,14 +168,14 @@ export class InputPhase implements IGameplayPhase<'input'> {
 
       s.isDashing = true;
       s.dashTimer = effectiveDashDuration;
-      s.dashCooldownTimer = GAME_ENGINE.DASH_COOLDOWN;
+      s.dashCooldownTimer = dashCooldown;
       s.doubleDashQueued = false;
       s.doubleDashUsed = false;
       audio.playDash();
       shared.consumeDash();
       EventBus.emit('playerDash', {
         duration: effectiveDashDuration,
-        cooldown: GAME_ENGINE.DASH_COOLDOWN,
+        cooldown: dashCooldown,
         isDoubleDash: false,
       });
 

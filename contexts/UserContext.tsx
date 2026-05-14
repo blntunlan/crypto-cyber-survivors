@@ -13,6 +13,7 @@ import { UserPersistenceService } from '../services/auth/UserPersistenceService'
 import { SecurityUtils } from '../services/auth/SecurityUtils';
 import { isSupabaseConfigured } from '../services/supabase/client';
 import { SupabaseAuthService } from '../services/auth/SupabaseAuthService';
+import { NicknameValidator } from '../services/auth/NicknameValidator';
 
 // ============================================================================
 // Types
@@ -58,6 +59,20 @@ const createLegacyUser = (
   createdAt: timestamp,
   lastSeenAt: timestamp,
 });
+
+type RemoteProfileResponse = {
+  id: string;
+  nickname?: string | null;
+  display_name?: string | null;
+};
+
+const getProfileNickname = (
+  profile: RemoteProfileResponse,
+  fallback: string
+): string => {
+  const candidate = profile.nickname ?? profile.display_name ?? fallback;
+  return candidate.trim() || fallback;
+};
 
 // ============================================================================
 // Context
@@ -112,11 +127,24 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           // Valid Supabase session — verify profile exists on Railway
           const { railwayClient } = await import('../services/api/RailwayClient');
           const profile = await railwayClient
-            .get<{ id: string }>('/api/v1/profile')
+            .get<RemoteProfileResponse>('/api/v1/profile')
             .catch(() => null);
 
           if (profile) {
-            if (mounted) commitUser(storedUser);
+            const reconciledUser: LegacyStoredUser = {
+              ...storedUser,
+              profileId: profile.id,
+              nickname: getProfileNickname(profile, storedUser.nickname),
+            };
+
+            if (
+              reconciledUser.profileId !== storedUser.profileId ||
+              reconciledUser.nickname !== storedUser.nickname
+            ) {
+              UserPersistenceService.saveUser(reconciledUser);
+            }
+
+            if (mounted) commitUser(reconciledUser);
           } else {
             // Profile not found on server — clear local session
             Logger.warn('[UserContext] Profile not found on server. Clearing session.');
@@ -144,30 +172,44 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     return () => {
       mounted = false;
+      SupabaseAuthService.dispose();
     };
   }, [commitUser]);
 
   // Login / Register
   const login = useCallback(
     async (nickname: string): Promise<{ success: boolean; error?: string }> => {
+      const normalizedNickname = nickname.trim();
+      const validationError = NicknameValidator.validate(normalizedNickname);
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
+
       if (!isRemoteMode()) {
         Logger.warn('[UserContext] Local environment detected, using local-only mode');
-        const localUser = createLegacyUser(LOCAL_DEV_PROFILE_ID, nickname);
+        const localUser = createLegacyUser(LOCAL_DEV_PROFILE_ID, normalizedNickname);
         UserPersistenceService.saveUser(localUser);
         commitUser(localUser);
         return { success: true };
       }
 
       try {
-        // 1. Validate existing session via server call (not cache)
-        const user = await SupabaseAuthService.getUser();
-        let session = user ? await SupabaseAuthService.getSession() : null;
+        const hasLocalIdentity =
+          userRef.current !== null ||
+          UserPersistenceService.getLegacyStoredUser() !== null;
+
+        // 1. Validate existing session only when it belongs to a restored local identity.
+        // A bare anonymous Supabase session without local identity is treated as stale so
+        // the nickname setup flow always binds the nickname the player just entered.
+        const authUser = hasLocalIdentity ? await SupabaseAuthService.getUser() : null;
+        let session = authUser ? await SupabaseAuthService.getSession() : null;
 
         if (!session) {
           // No valid session — sign out stale state and create fresh anonymous user
           await SupabaseAuthService.signOut();
 
-          const authResult = await SupabaseAuthService.signInAnonymously(nickname);
+          const authResult =
+            await SupabaseAuthService.signInAnonymously(normalizedNickname);
 
           if (!authResult.success || !authResult.session) {
             return {
@@ -182,25 +224,29 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         // 2. Create or fetch profile via Railway API (JWT is auto-attached)
         const { railwayClient } = await import('../services/api/RailwayClient');
 
-        type ProfileResponse = { id: string; nickname?: string; display_name?: string };
-        let profile: ProfileResponse;
+        let profile: RemoteProfileResponse;
 
         try {
           // Try to get existing profile first
-          profile = await railwayClient.get<ProfileResponse>('/api/v1/profile');
+          profile = await railwayClient.get<RemoteProfileResponse>('/api/v1/profile');
         } catch {
           // Profile doesn't exist — create it
-          profile = await railwayClient.post<ProfileResponse>('/api/v1/profile', {
-            nickname: nickname.trim(),
+          profile = await railwayClient.post<RemoteProfileResponse>('/api/v1/profile', {
+            nickname: normalizedNickname,
           });
         }
 
         // 4. Store locally
-        const legacyUser = createLegacyUser(profile.id, nickname.trim());
+        const legacyUser = createLegacyUser(
+          profile.id,
+          getProfileNickname(profile, normalizedNickname)
+        );
         UserPersistenceService.saveUser(legacyUser);
         commitUser(legacyUser);
 
-        Logger.info(`[UserContext] Login successful: ${nickname} (${profile.id})`);
+        Logger.info(
+          `[UserContext] Login successful: ${legacyUser.nickname} (${profile.id})`
+        );
         return { success: true };
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);

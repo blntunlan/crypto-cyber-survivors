@@ -52,6 +52,15 @@ describe('InventoryService', () => {
       expect(InventoryService.getConsumableCount('staking_reward')).toBe(def!.maxStack);
     });
 
+    it('should reject invalid inventory grant quantities', () => {
+      expect(InventoryService.addItem('consumable', 'staking_reward', -2)).toBe(false);
+      expect(InventoryService.addItem('consumable', 'staking_reward', Number.NaN)).toBe(
+        false
+      );
+      expect(InventoryService.addItem('consumable', 'staking_reward', 1.5)).toBe(false);
+      expect(InventoryService.getConsumableCount('staking_reward')).toBe(0);
+    });
+
     it('should use consumables and apply effects', () => {
       InventoryService.addItem('consumable', 'staking_reward', 5);
 
@@ -97,6 +106,35 @@ describe('InventoryService', () => {
       const success = InventoryService.equipSkin('satoshi_ghost');
       expect(success).toBe(false);
       expect(InventoryService.getEquippedSkin()).toBe('default');
+    });
+
+    it('should reject unknown skin grants without mutating inventory', () => {
+      InventoryService.setPlayer('p1');
+
+      expect(InventoryService.addItem('character_skin', 'not_real_skin', 1)).toBe(
+        false
+      );
+      expect(InventoryService.getOwnedSkins()).toEqual(['default']);
+    });
+  });
+
+  describe('Crypto Tokens', () => {
+    it('should allow fractional token grants and reject negative grants', () => {
+      InventoryService.setPlayer('p1');
+
+      expect(InventoryService.addItem('crypto_token', 'BTC', 0.001)).toBe(true);
+      expect(InventoryService.addItem('crypto_token', 'BTC', -0.5)).toBe(false);
+
+      expect(InventoryService.getCryptoTokens()).toEqual([
+        { tokenType: 'BTC', amount: 0.001 },
+      ]);
+    });
+
+    it('should reject unknown token grants', () => {
+      InventoryService.setPlayer('p1');
+
+      expect(InventoryService.addItem('crypto_token', 'DOGE', 1)).toBe(false);
+      expect(InventoryService.getCryptoTokens()).toEqual([]);
     });
   });
 

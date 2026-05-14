@@ -31,6 +31,8 @@ export const PLAYER_DEFAULTS = {
 
   // I-Frame timer (must start at 0 for damage to work)
   invulnerabilityTimer: 0,
+  dashCooldownMultiplier: 1,
+  expMultiplier: 1,
 
   // Directly from Registry
   ...(Object.values(STAT_DEFINITIONS).reduce((acc, stat) => {

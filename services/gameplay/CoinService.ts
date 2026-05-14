@@ -216,6 +216,37 @@ class CoinServiceClass {
   }
 
   /**
+   * Credit a reward that has already been approved by the authoritative server.
+   * This bypasses the client verification queue to avoid re-queuing verified payouts.
+   */
+  async creditVerifiedCoins(
+    amount: number,
+    source: CoinSource,
+    metadata?: Record<string, unknown>
+  ): Promise<boolean> {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Logger.warn(`[CoinService] Invalid verified coin amount: ${amount}`);
+      return false;
+    }
+
+    const success = await this.provider.credit(amount, source, {
+      ...metadata,
+      serverVerified: true,
+    });
+
+    if (success) {
+      this.sessionCoins += amount;
+      EventBus.emit('xpGained', { amount });
+
+      Logger.debug(
+        `[CoinService] Credited ${amount} verified coins. Session total: ${this.sessionCoins}`
+      );
+    }
+
+    return success;
+  }
+
+  /**
    * Process a verification response from the server.
    * Credits the server-approved amount when verified, or discards the pending reward.
    */

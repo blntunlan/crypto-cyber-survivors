@@ -5,6 +5,16 @@ const { Pool } = pg;
 
 let pool: pg.Pool | null = null;
 
+const DEFAULT_POOL_MAX = 10;
+
+export function getPoolMax(): number {
+  const configured = Number(process.env.PG_POOL_MAX);
+  if (Number.isInteger(configured) && configured > 0) {
+    return configured;
+  }
+  return DEFAULT_POOL_MAX;
+}
+
 export function getPool(): pg.Pool {
   if (pool) return pool;
 
@@ -13,9 +23,11 @@ export function getPool(): pg.Pool {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
+  const poolMax = getPoolMax();
+
   pool = new Pool({
     connectionString,
-    max: 10,
+    max: poolMax,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     // Railway internal networking uses private network — rejectUnauthorized:false
@@ -55,7 +67,7 @@ export function getPool(): pg.Pool {
     }
   }, POOL_CHECK_INTERVAL).unref(); // .unref() so it doesn't prevent process exit
 
-  Logger.info('✅ PostgreSQL connection pool created');
+  Logger.info(`✅ PostgreSQL connection pool created (max: ${poolMax})`);
   return pool;
 }
 

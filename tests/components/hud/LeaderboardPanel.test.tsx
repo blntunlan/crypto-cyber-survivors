@@ -83,6 +83,8 @@ vi.mock('../../../services/system/Logger', () => ({
 }));
 
 describe('LeaderboardPanel', () => {
+  const formatScore = (score: number) => score.toLocaleString();
+
   const mockEntries = [
     {
       profile_id: '1',
@@ -123,8 +125,8 @@ describe('LeaderboardPanel', () => {
       expect(screen.getByText('Player2')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('10,000')).toBeInTheDocument();
-    expect(screen.getByText('5,000')).toBeInTheDocument();
+    expect(screen.getByText(formatScore(10000))).toBeInTheDocument();
+    expect(screen.getByText(formatScore(5000))).toBeInTheDocument();
 
     // Check for "You" badge for Player1 (mocked as current user)
     const youBadge = screen.getByText('hud.you');
@@ -203,7 +205,7 @@ describe('LeaderboardPanel', () => {
       expect(screen.getByText('Player1')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('10,000')).toBeInTheDocument();
+    expect(screen.getByText(formatScore(10000))).toBeInTheDocument();
   });
 
   it('should handle anonymous players correctly', async () => {

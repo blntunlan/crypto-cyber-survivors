@@ -144,6 +144,7 @@ export class LootboxDropCalculator {
       const amount = Math.floor(coinItem.minAmount + Math.random() * range);
       return {
         ...coinItem,
+        amount,
         name: `${amount} Coins`,
         description: `You received ${amount} coins!`,
       };
