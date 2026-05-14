@@ -31,6 +31,18 @@ describe('useSurfaceState', () => {
     expect(result.current.showTerms).toBe(false);
   });
 
+  it('syncs localized legal routes from URL path', async () => {
+    window.history.pushState(null, '', '/tr/docs');
+
+    const { result } = renderHook(() => useSurfaceState());
+
+    await waitFor(() => {
+      expect(result.current.showDocs).toBe(true);
+    });
+    expect(result.current.showPrivacy).toBe(false);
+    expect(result.current.showTerms).toBe(false);
+  });
+
   it('persists hub screen to session storage when setHubScreen is called', async () => {
     const { result } = renderHook(() => useSurfaceState());
 
@@ -80,5 +92,43 @@ describe('useSurfaceState', () => {
     expect(window.location.pathname).toBe('/');
     expect(localStorage.getItem('has_seen_landing')).toBeNull();
     expect(sessionStorage.getItem('ui_active_surface')).toBe('landing');
+  });
+
+  it('handleReturnToLanding preserves a localized home path', async () => {
+    window.history.pushState(null, '', '/tr/privacy');
+
+    const { result } = renderHook(() => useSurfaceState());
+
+    await waitFor(() => {
+      expect(result.current.showPrivacy).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleReturnToLanding();
+    });
+
+    await waitFor(() => {
+      expect(result.current.showLanding).toBe(true);
+    });
+    expect(window.location.pathname).toBe('/tr/');
+  });
+
+  it('handleReturnToLanding uses the stored route language when app URL is unprefixed', async () => {
+    localStorage.setItem('has_seen_landing', 'true');
+    localStorage.setItem('game_lang', 'tr');
+    window.history.pushState(null, '', '/');
+
+    const { result } = renderHook(() => useSurfaceState());
+
+    expect(result.current.showLanding).toBe(false);
+
+    act(() => {
+      result.current.handleReturnToLanding();
+    });
+
+    await waitFor(() => {
+      expect(result.current.showLanding).toBe(true);
+    });
+    expect(window.location.pathname).toBe('/tr/');
   });
 });

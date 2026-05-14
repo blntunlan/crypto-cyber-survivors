@@ -1,6 +1,19 @@
 import React, { useEffect } from 'react';
+import {
+  DEFAULT_LANGUAGE,
+  isSupportedLanguage,
+  type Language,
+} from '../contexts/LanguageConstants';
+import {
+  getCanonicalUrl,
+  getHreflangAlternates,
+  isPublicRoutePath,
+  normalizeRoutePath,
+  SEO_BASE_URL,
+  type PublicRoutePath,
+} from '../utils/seoRoutes';
 
-interface SEOProps {
+type SEOProps = {
   title?: string;
   description?: string;
   canonicalPath?: string;
@@ -8,13 +21,13 @@ interface SEOProps {
   noindex?: boolean;
   lang?: string;
   themeColor?: string;
-  structuredData?: Record<string, unknown>;
+  structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
   breadcrumbs?: Array<{ name: string; item: string }>;
-}
+};
 
 /**
  * SEO Component for React 19 Metadata Hoisting
- * Upgraded for 2026 SEO Standards (GEO/AI Discovery & structured data)
+ * Emits route-level canonical, hreflang, social, robots, and JSON-LD metadata.
  */
 export const SEO: React.FC<SEOProps> = ({
   title,
@@ -28,18 +41,18 @@ export const SEO: React.FC<SEOProps> = ({
   breadcrumbs,
 }) => {
   const siteTitle = 'Crypto Survivors';
-  const fullTitle = title
-    ? `${title} | ${siteTitle}`
-    : `${siteTitle} - Free Bitcoin Survival Game 🚀`;
+  const fullTitle = title ?? `${siteTitle} - Free Bitcoin Survival Game`;
   const defaultDescription =
-    '🎮 Crypto Survivors: Free browser game with real-time Bitcoin price action! Vampire Survivors meets crypto trading. Play now - no download required!';
-  const baseUrl = 'https://crypto-survivors.com';
-
-  const cleanPath = canonicalPath?.startsWith('/')
-    ? canonicalPath
-    : `/${canonicalPath ?? ''}`;
-  const canonicalUrl =
-    canonicalPath === '/' ? baseUrl : `${baseUrl}${cleanPath === '/' ? '' : cleanPath}`;
+    'Play Crypto Survivors, a free browser survival game where live Bitcoin market volatility shapes enemy waves, rewards, and rogue-lite strategy.';
+  const language: Language = isSupportedLanguage(lang) ? lang : DEFAULT_LANGUAGE;
+  const normalizedCanonicalPath = normalizeRoutePath(canonicalPath ?? '/');
+  const publicRoutePath: PublicRoutePath = isPublicRoutePath(normalizedCanonicalPath)
+    ? normalizedCanonicalPath
+    : '/';
+  const canonicalUrl = getCanonicalUrl(publicRoutePath, language);
+  const hreflangAlternates = noindex ? [] : getHreflangAlternates(publicRoutePath);
+  const resolvedDescription = description ?? defaultDescription;
+  const resolvedOgImage = ogImage ?? `${SEO_BASE_URL}/icons/icon-512.png`;
 
   // Generate Breadcrumb Schema if provided
   const breadcrumbSchema = breadcrumbs
@@ -50,14 +63,16 @@ export const SEO: React.FC<SEOProps> = ({
           '@type': 'ListItem',
           position: index + 1,
           name: crumb.name,
-          item: crumb.item.startsWith('http') ? crumb.item : `${baseUrl}${crumb.item}`,
+          item: crumb.item.startsWith('http')
+            ? crumb.item
+            : `${SEO_BASE_URL}${crumb.item}`,
         })),
       }
     : null;
 
   useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
+    document.documentElement.lang = language;
+  }, [language]);
 
   useEffect(() => {
     let themeMeta = document.querySelector('meta[name="theme-color"]');
@@ -72,13 +87,17 @@ export const SEO: React.FC<SEOProps> = ({
   return (
     <>
       <title>{fullTitle}</title>
-      <meta name="description" content={description ?? defaultDescription} />
+      <meta name="description" content={resolvedDescription} />
       <meta name="author" content="Crypto Survivors Team" />
       <link rel="canonical" href={canonicalUrl} />
-
-      {/* 2026 AI Discovery (GEO) Meta Tags */}
-      <meta name="ai-discovery" content="indexed" />
-      <meta name="sge-content" content="authorized" />
+      {hreflangAlternates.map(alternate => (
+        <link
+          key={alternate.hreflang}
+          rel="alternate"
+          hrefLang={alternate.hreflang}
+          href={alternate.href}
+        />
+      ))}
 
       {/* Robots Control */}
       {noindex ? (
@@ -93,16 +112,17 @@ export const SEO: React.FC<SEOProps> = ({
       {/* Open Graph */}
       <meta property="og:site_name" content={siteTitle} />
       <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description ?? defaultDescription} />
+      <meta property="og:description" content={resolvedDescription} />
       <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:image" content={ogImage ?? `${baseUrl}/icons/icon-512.png`} />
+      <meta property="og:image" content={resolvedOgImage} />
       <meta property="og:type" content="website" />
+      <meta property="og:locale" content={language} />
 
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description ?? defaultDescription} />
-      <meta name="twitter:image" content={ogImage ?? `${baseUrl}/icons/icon-512.png`} />
+      <meta name="twitter:description" content={resolvedDescription} />
+      <meta name="twitter:image" content={resolvedOgImage} />
 
       {/* Structured Data (JSON-LD) */}
       {structuredData && (

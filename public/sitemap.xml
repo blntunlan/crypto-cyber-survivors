@@ -1,26 +1,482 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://crypto-survivors.com/</loc>
-    <lastmod>2026-05-05</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/tr/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/hi/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/vi/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/es/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/pt/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/zh/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/ru/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
+    <lastmod>2026-05-14</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://crypto-survivors.com/privacy</loc>
-    <lastmod>2026-05-05</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/tr/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/hi/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/vi/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/es/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/pt/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/zh/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/ru/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/privacy" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/privacy" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/privacy" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/privacy" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/privacy" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/privacy" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/privacy" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/privacy" />
+    <lastmod>2026-05-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://crypto-survivors.com/terms</loc>
-    <lastmod>2026-05-05</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/tr/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/hi/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/vi/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/es/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/pt/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/zh/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/ru/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/terms" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/terms" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/terms" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/terms" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/terms" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/terms" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/terms" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/terms" />
+    <lastmod>2026-05-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://crypto-survivors.com/docs</loc>
-    <lastmod>2026-05-05</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/tr/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/hi/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/vi/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/es/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/pt/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/zh/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crypto-survivors.com/ru/docs</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crypto-survivors.com/docs" />
+    <xhtml:link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/docs" />
+    <xhtml:link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/docs" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/docs" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/docs" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/docs" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/docs" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/docs" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />
+    <lastmod>2026-05-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -16,9 +16,10 @@ vi.stubGlobal('fetch', mockFetch);
 
 // Test component that uses useLanguage hook
 const TestComponent = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   return (
     <div>
+      <span data-testid="language">{language}</span>
       <span data-testid="loading-text">{t('common.loading_engine')}</span>
     </div>
   );
@@ -28,6 +29,7 @@ describe('LanguageProvider - Blank Screen Bug', () => {
   beforeEach(() => {
     mockFetch.mockClear();
     localStorage.clear();
+    window.history.pushState(null, '', '/');
   });
 
   it('should show fallback text when translations fail to load', async () => {
@@ -120,5 +122,78 @@ describe('LanguageProvider - Blank Screen Bug', () => {
       },
       { timeout: 2000 }
     );
+  });
+
+  it('uses the language prefix from the current URL before stored preferences', async () => {
+    localStorage.setItem('game_lang', 'en');
+    window.history.pushState(null, '', '/tr/privacy');
+    mockFetch.mockResolvedValue({
+      json: () =>
+        Promise.resolve({
+          common: {
+            loading_engine: 'MOTOR YUKLENIYOR...',
+          },
+        }),
+    });
+
+    render(
+      <LanguageProvider>
+        <TestComponent />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language')).toHaveTextContent('tr');
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-text')).toHaveTextContent('MOTOR');
+    });
+  });
+
+  it('keeps unprefixed public legal routes in the default language', async () => {
+    localStorage.setItem('game_lang', 'tr');
+    window.history.pushState(null, '', '/privacy');
+    mockFetch.mockResolvedValue({
+      json: () =>
+        Promise.resolve({
+          common: {
+            loading_engine: 'LOADING ENGINE...',
+          },
+        }),
+    });
+
+    render(
+      <LanguageProvider>
+        <TestComponent />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language')).toHaveTextContent('en');
+    });
+  });
+
+  it('keeps the stored language on the app root after landing has been seen', async () => {
+    localStorage.setItem('game_lang', 'tr');
+    localStorage.setItem('has_seen_landing', 'true');
+    window.history.pushState(null, '', '/');
+    mockFetch.mockResolvedValue({
+      json: () =>
+        Promise.resolve({
+          common: {
+            loading_engine: 'MOTOR',
+          },
+        }),
+    });
+
+    render(
+      <LanguageProvider>
+        <TestComponent />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language')).toHaveTextContent('tr');
+    });
   });
 });

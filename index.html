@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Crypto Survivors - Free Bitcoin Survival Game</title>
@@ -11,7 +11,16 @@
       name="robots"
       content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     />
-    <link rel="canonical" href="https://crypto-survivors.com" />
+    <link rel="canonical" href="https://crypto-survivors.com/" />
+    <link rel="alternate" hreflang="en" href="https://crypto-survivors.com/" />
+    <link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />
+    <link rel="alternate" hreflang="hi" href="https://crypto-survivors.com/hi/" />
+    <link rel="alternate" hreflang="vi" href="https://crypto-survivors.com/vi/" />
+    <link rel="alternate" hreflang="es" href="https://crypto-survivors.com/es/" />
+    <link rel="alternate" hreflang="pt" href="https://crypto-survivors.com/pt/" />
+    <link rel="alternate" hreflang="zh" href="https://crypto-survivors.com/zh/" />
+    <link rel="alternate" hreflang="ru" href="https://crypto-survivors.com/ru/" />
+    <link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/" />
     <meta property="og:site_name" content="Crypto Survivors" />
     <meta property="og:title" content="Crypto Survivors - Free Bitcoin Survival Game" />
     <meta
@@ -47,11 +56,6 @@
     />
     <meta name="google" content="notranslate" />
 
-    <!-- 2026 AI Discovery & GEO Optimization -->
-    <meta name="ai-discovery" content="index" />
-    <meta name="sge-content" content="authorized" />
-    <meta name="answerengine" content="index" />
-
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#020617" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -65,22 +69,46 @@
       content="Xhz5KIT2oqkB5oOGJYhamm3mETI03xOXmqLth9m9QYM"
     />
 
-    <!-- Minimal Fallback JSON-LD (Detailed schemas moved to App.tsx) -->
+    <!-- Fallback JSON-LD for crawlers before the SPA renders -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Crypto Survivors",
-        "url": "https://crypto-survivors.com"
-      }
-    </script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Crypto Survivors Team",
-        "url": "https://crypto-survivors.com",
-        "logo": "https://crypto-survivors.com/icons/icon-512.png"
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://crypto-survivors.com/#website",
+            "name": "Crypto Survivors",
+            "url": "https://crypto-survivors.com/",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://crypto-survivors.com/#organization",
+            "name": "Crypto Survivors Team",
+            "url": "https://crypto-survivors.com/",
+            "logo": "https://crypto-survivors.com/icons/icon-512.png"
+          },
+          {
+            "@type": ["VideoGame", "SoftwareApplication", "WebApplication"],
+            "@id": "https://crypto-survivors.com/#game",
+            "name": "Crypto Survivors",
+            "url": "https://crypto-survivors.com/",
+            "description": "Play Crypto Survivors, a free browser survival game where live Bitcoin market volatility shapes enemy waves, rewards, and rogue-lite strategy.",
+            "genre": ["Survival", "Rogue-lite", "Simulation", "Arcade"],
+            "gamePlatform": ["Web Browser", "Mobile Browser", "PWA"],
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web Browser",
+            "playMode": "SinglePlayer",
+            "publisher": {
+              "@id": "https://crypto-survivors.com/#organization"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        ]
       }
     </script>
 
@@ -117,7 +145,7 @@
 
     <!-- Vite Chunk Loading Error Handler (Root Fix) -->
     <script>
-      window.addEventListener('vite:preloadError', (event) => {
+      window.addEventListener('vite:preloadError', event => {
         const isReloading = sessionStorage.getItem('vite-chunk-reload');
         if (!isReloading) {
           sessionStorage.setItem('vite-chunk-reload', 'true');

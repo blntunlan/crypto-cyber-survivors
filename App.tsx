@@ -35,6 +35,13 @@ import { UserProvider } from './contexts/UserContext';
 import { cn } from './utils/classnames';
 import { SEO } from './components/SEO';
 import { getMarketRuntimeConfig } from './config/marketRuntime';
+import { getSeoContent } from './config/seo';
+import {
+  getLocalizedPath,
+  getPublicRoutePath,
+  SEO_BASE_URL,
+  type PublicRoutePath,
+} from './utils/seoRoutes';
 
 // Lazy load heavy components for performance optimization
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -178,6 +185,20 @@ const App: React.FC = () => {
   const tutorial = useTutorial({ enabled: !showLanding });
   const { t, language } = useLanguage();
   const { isRetro } = useTheme();
+  const homeSeo = getSeoContent('home', language);
+  const docsSeo = getSeoContent('docs', language);
+  const privacySeo = getSeoContent('privacy', language);
+  const termsSeo = getSeoContent('terms', language);
+  const getLocalizedPublicPath = (routePath: PublicRoutePath): string =>
+    getLocalizedPath(routePath, language);
+  const navigateToPublicRoute = (routePath: PublicRoutePath): void => {
+    window.history.pushState(null, '', getLocalizedPublicPath(routePath));
+  };
+  const closePublicRoute = (routePath: PublicRoutePath): void => {
+    if (getPublicRoutePath(window.location.pathname) === routePath) {
+      window.history.pushState(null, '', getLocalizedPublicPath('/'));
+    }
+  };
 
   useEffect(() => {
     Logger.info('[MarketRuntime] Mode initialized', {
@@ -218,6 +239,99 @@ const App: React.FC = () => {
     return <FallbackLoader />;
   }
 
+  const seoMetadata = showDocs ? (
+    <SEO
+      title={docsSeo.title}
+      description={docsSeo.description}
+      canonicalPath="/docs"
+      lang={language}
+      breadcrumbs={[
+        { name: 'Home', item: getLocalizedPublicPath('/') },
+        { name: 'Documentation', item: getLocalizedPublicPath('/docs') },
+      ]}
+    />
+  ) : showPrivacy ? (
+    <SEO
+      title={privacySeo.title}
+      description={privacySeo.description}
+      canonicalPath="/privacy"
+      lang={language}
+      breadcrumbs={[
+        { name: 'Home', item: getLocalizedPublicPath('/') },
+        { name: 'Privacy', item: getLocalizedPublicPath('/privacy') },
+      ]}
+    />
+  ) : showTerms ? (
+    <SEO
+      title={termsSeo.title}
+      description={termsSeo.description}
+      canonicalPath="/terms"
+      lang={language}
+      breadcrumbs={[
+        { name: 'Home', item: getLocalizedPublicPath('/') },
+        { name: 'Terms', item: getLocalizedPublicPath('/terms') },
+      ]}
+    />
+  ) : showLanding ? (
+    <SEO
+      title={homeSeo.title}
+      description={homeSeo.description}
+      canonicalPath="/"
+      lang={language}
+      themeColor={isRetro ? '#334155' : '#020617'}
+      structuredData={{
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'WebSite',
+            '@id': `${SEO_BASE_URL}/#website`,
+            name: 'Crypto Survivors',
+            url: `${SEO_BASE_URL}/`,
+            inLanguage: language,
+          },
+          {
+            '@type': 'Organization',
+            '@id': `${SEO_BASE_URL}/#organization`,
+            name: 'Crypto Survivors Team',
+            url: `${SEO_BASE_URL}/`,
+            logo: `${SEO_BASE_URL}/icons/icon-512.png`,
+          },
+          {
+            '@type': ['VideoGame', 'SoftwareApplication', 'WebApplication'],
+            '@id': `${SEO_BASE_URL}/#game`,
+            name: 'Crypto Survivors',
+            url: `${SEO_BASE_URL}${getLocalizedPublicPath('/')}`,
+            description: homeSeo.description,
+            genre: ['Survival', 'Rogue-lite', 'Simulation', 'Arcade'],
+            gamePlatform: ['Web Browser', 'Mobile Browser', 'PWA'],
+            applicationCategory: 'GameApplication',
+            operatingSystem: 'Web Browser',
+            playMode: 'SinglePlayer',
+            publisher: {
+              '@id': `${SEO_BASE_URL}/#organization`,
+            },
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'USD',
+            },
+          },
+        ],
+      }}
+      breadcrumbs={[{ name: 'Home', item: getLocalizedPublicPath('/') }]}
+    />
+  ) : (
+    <SEO
+      title={
+        gameStatus === GameStatus.PLAYING
+          ? 'Live Session | Crypto Survivors'
+          : `${t('hub.play')} | Crypto Survivors`
+      }
+      noindex={true}
+      lang={language}
+    />
+  );
+
   // Main Game App
   return (
     <UserProvider>
@@ -237,84 +351,8 @@ const App: React.FC = () => {
           )}
         >
           <ErrorBoundary>
-            {/* Dynamic 2026 SEO & AI Discovery Meta Tags */}
-            {showLanding ? (
-              <SEO
-                title={
-                  (t('landing.hero.title_top') as string) +
-                  ' ' +
-                  (t('landing.hero.title_highlight') as string)
-                }
-                description={t('landing.hero.description') as string}
-                canonicalPath="/"
-                lang={language}
-                themeColor={isRetro ? '#334155' : '#020617'}
-                structuredData={{
-                  '@context': 'https://schema.org',
-                  '@type': 'VideoGame',
-                  name: 'Crypto Survivors',
-                  description: t('landing.hero.description') as string,
-                  genre: ['Survival', 'Rogue-lite', 'Simulation', 'Arcade'],
-                  gamePlatform: ['Web Browser', 'Mobile Browser', 'PWA'],
-                  applicationCategory: 'Game',
-                  operatingSystem: 'Any',
-                  playMode: 'SinglePlayer',
-                  author: {
-                    '@type': 'Person',
-                    name: 'blntunlan',
-                  },
-                  offers: {
-                    '@type': 'Offer',
-                    price: '0',
-                    priceCurrency: 'USD',
-                  },
-                }}
-                breadcrumbs={[{ name: 'Home', item: '/' }]}
-              />
-            ) : showDocs ? (
-              <SEO
-                title={t('landing.nav.docs') as string}
-                description="Complete technical protocol documentation for the Crypto Survivors engine, mechanics, and architecture."
-                canonicalPath="/docs"
-                lang={language}
-                breadcrumbs={[
-                  { name: 'Home', item: '/' },
-                  { name: 'Documentation', item: '/docs' },
-                ]}
-              />
-            ) : showPrivacy ? (
-              <SEO
-                title={t('landing.footer.privacy') as string}
-                description="Our commitment to protecting your privacy and gaming data."
-                canonicalPath="/privacy"
-                lang={language}
-                breadcrumbs={[
-                  { name: 'Home', item: '/' },
-                  { name: 'Privacy', item: '/privacy' },
-                ]}
-              />
-            ) : showTerms ? (
-              <SEO
-                title={t('landing.footer.terms') as string}
-                description="Official terms and conditions for playing Crypto Survivors."
-                canonicalPath="/terms"
-                lang={language}
-                breadcrumbs={[
-                  { name: 'Home', item: '/' },
-                  { name: 'Terms', item: '/terms' },
-                ]}
-              />
-            ) : (
-              <SEO
-                title={
-                  gameStatus === GameStatus.PLAYING
-                    ? '🔴 LIVE SESSION'
-                    : (t('hub.play') as string)
-                }
-                noindex={true}
-                lang={language}
-              />
-            )}
+            {/* Dynamic public-route SEO metadata */}
+            {seoMetadata}
 
             {showLanding ? (
               <LandingPage
@@ -323,15 +361,25 @@ const App: React.FC = () => {
                   patchLegalRoute({
                     showPrivacy: true,
                     showTerms: false,
+                    showDocs: false,
                   });
-                  window.history.pushState(null, '', '/privacy');
+                  navigateToPublicRoute('/privacy');
                 }}
                 onViewTerms={() => {
                   patchLegalRoute({
                     showTerms: true,
                     showPrivacy: false,
+                    showDocs: false,
                   });
-                  window.history.pushState(null, '', '/terms');
+                  navigateToPublicRoute('/terms');
+                }}
+                onViewDocs={() => {
+                  patchLegalRoute({
+                    showDocs: true,
+                    showPrivacy: false,
+                    showTerms: false,
+                  });
+                  navigateToPublicRoute('/docs');
                 }}
               />
             ) : (
@@ -384,16 +432,14 @@ const App: React.FC = () => {
                 <PrivacyPolicy
                   onClose={() => {
                     patchLegalRoute({ showPrivacy: false });
-                    if (window.location.pathname === '/privacy') {
-                      window.history.pushState(null, '', '/');
-                    }
+                    closePublicRoute('/privacy');
                   }}
                   onViewTerms={() => {
                     patchLegalRoute({
                       showPrivacy: false,
                       showTerms: true,
                     });
-                    window.history.pushState(null, '', '/terms');
+                    navigateToPublicRoute('/terms');
                   }}
                 />
               </React.Suspense>
@@ -403,16 +449,14 @@ const App: React.FC = () => {
                 <TermsOfService
                   onClose={() => {
                     patchLegalRoute({ showTerms: false });
-                    if (window.location.pathname === '/terms') {
-                      window.history.pushState(null, '', '/');
-                    }
+                    closePublicRoute('/terms');
                   }}
                   onViewPrivacy={() => {
                     patchLegalRoute({
                       showTerms: false,
                       showPrivacy: true,
                     });
-                    window.history.pushState(null, '', '/privacy');
+                    navigateToPublicRoute('/privacy');
                   }}
                 />
               </React.Suspense>
@@ -423,9 +467,7 @@ const App: React.FC = () => {
                   onClose={() => {
                     patchLegalRoute({ showDocs: false });
                     window.location.hash = '';
-                    if (window.location.pathname === '/docs') {
-                      window.history.pushState(null, '', '/');
-                    }
+                    closePublicRoute('/docs');
                   }}
                 />
               </React.Suspense>

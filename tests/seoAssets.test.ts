@@ -8,11 +8,19 @@ const readProjectFile = (path: string): string =>
 describe('SEO crawl assets', () => {
   it('keeps only canonical public URLs in the sitemap', () => {
     const sitemap = readProjectFile('public/sitemap.xml');
+    const xml = new DOMParser().parseFromString(sitemap, 'application/xml');
+    const parseError = xml.querySelector('parsererror');
 
     expect(sitemap).toContain('<loc>https://crypto-survivors.com/</loc>');
+    expect(sitemap).toContain('<loc>https://crypto-survivors.com/tr/</loc>');
     expect(sitemap).toContain('<loc>https://crypto-survivors.com/docs</loc>');
+    expect(sitemap).toContain('<loc>https://crypto-survivors.com/tr/docs</loc>');
+    expect(sitemap).toContain(
+      '<xhtml:link rel="alternate" hreflang="x-default" href="https://crypto-survivors.com/docs" />'
+    );
+    expect(sitemap).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
     expect(sitemap).not.toContain('?lang=');
-    expect(sitemap).not.toContain('xhtml:link');
+    expect(parseError).toBeNull();
   });
 
   it('does not block render-critical assets in robots.txt', () => {
@@ -21,8 +29,10 @@ describe('SEO crawl assets', () => {
     expect(robots).not.toContain('Disallow: /a/');
     expect(robots).not.toContain('Disallow: /*.json$');
     expect(robots).toContain('Disallow: /api/');
-    expect(robots).toContain('Clean-param:');
-    expect(robots).toContain('yclid');
+    expect(robots).toContain('Disallow: /health');
+    expect(robots).not.toContain('Clean-param:');
+    expect(robots).not.toContain('Crawl-delay:');
+    expect(robots).toContain('Allow: /locales/');
     expect(robots).toContain('Sitemap: https://crypto-survivors.com/sitemap.xml');
   });
 
@@ -30,8 +40,23 @@ describe('SEO crawl assets', () => {
     const server = readProjectFile('server.js');
 
     expect(server).toContain('PUBLIC_SPA_ROUTES');
+    expect(server).toContain('getHreflangAlternates');
+    expect(server).toContain('getCanonicalOriginRedirect');
     expect(server).toContain("urlPath.startsWith('/docs/')");
     expect(server).toContain("'X-Robots-Tag'");
+  });
+
+  it('does not ship unsupported AI discovery meta tags in base HTML', () => {
+    const html = readProjectFile('index.html');
+
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain(
+      '<link rel="alternate" hreflang="tr" href="https://crypto-survivors.com/tr/" />'
+    );
+    expect(html).toContain('"applicationCategory": "GameApplication"');
+    expect(html).not.toContain('name="ai-discovery"');
+    expect(html).not.toContain('name="sge-content"');
+    expect(html).not.toContain('name="answerengine"');
   });
 
   it('publishes an IndexNow verification key and submit script', () => {

@@ -14,12 +14,11 @@
  * - Transition: 300ms cubic-bezier (Professional "Snap")
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { trackRender } from '../../utils/trackRender';
 import { Menu, X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { type Language } from '../../contexts/LanguageConstants';
 import { LandingHero } from './landing/LandingHero';
 import { LandingStats } from './landing/LandingStats';
 import { LandingFeatures } from './landing/LandingFeatures';
@@ -35,17 +34,18 @@ interface LandingPageProps {
   onLaunch: () => void;
   onViewPrivacy: () => void;
   onViewTerms: () => void;
+  onViewDocs: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onLaunch,
   onViewPrivacy,
   onViewTerms,
+  onViewDocs,
 }) => {
   trackRender('LandingPage');
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const originalLanguageRef = useRef<Language>(language);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -53,22 +53,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     return () => {
       root.removeAttribute('data-landing-active');
     };
-  }, []);
-
-  useEffect(() => {
-    originalLanguageRef.current = language;
-    if (language !== 'en') {
-      setLanguage('en');
-    }
-
-    return () => {
-      const originalLanguage = originalLanguageRef.current;
-      if (originalLanguage !== 'en') {
-        setLanguage(originalLanguage);
-      }
-    };
-    // Landing is intentionally forced to English while mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const navLabel = (key: string): string =>
@@ -144,7 +128,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </a>
           <button
             id="docs-nav-link"
-            onClick={() => (window.location.hash = '#docs')}
+            onClick={onViewDocs}
             className={`${framedNavButtonClass} w-[146px]`}
           >
             <span className={desktopNavLabelClass}>{navLabel('landing.nav.docs')}</span>
@@ -227,7 +211,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
                 <button
                   onClick={() => {
-                    window.location.hash = '#docs';
+                    onViewDocs();
                     setIsMobileMenuOpen(false);
                   }}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"

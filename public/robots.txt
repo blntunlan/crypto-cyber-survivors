@@ -1,9 +1,16 @@
 User-agent: *
 Allow: /
+Allow: /assets/
+Allow: /icons/
+Allow: /locales/
+Allow: /index.css
+Allow: /manifest.json
 Disallow: /api/
 Disallow: /health
-
-# Block WordPress/CMS attack paths
+Disallow: /stats
+Disallow: /debug/
+Disallow: /admin/
+Disallow: /administrator/
 Disallow: /wp-admin/
 Disallow: /wp-content/
 Disallow: /wp-includes/
@@ -11,22 +18,13 @@ Disallow: /wordpress/
 Disallow: /wp-login.php
 Disallow: /xmlrpc.php
 Disallow: /phpmyadmin/
-Disallow: /administrator/
-Disallow: /admin/
 Disallow: /backup/
 Disallow: /.env
 Disallow: /.git/
 Disallow: /config/
-Disallow: /debug/
 
-# Crawl-delay for polite bots
-Crawl-delay: 1
-Clean-param: utm_source&utm_medium&utm_campaign&utm_term&utm_content&utm_referrer&utm_media&utm_group&utm_expid&yclid&ysclid&yrclid&gclid&fbclid&ref
-
-# Sitemaps
 Sitemap: https://crypto-survivors.com/sitemap.xml
 
-# Social Media Bots (for link previews)
 User-agent: Twitterbot
 Allow: /
 

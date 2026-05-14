@@ -6,9 +6,15 @@ import React, {
   type ReactNode,
 } from 'react';
 import { LanguageContext } from './LanguageContextDefinition';
-import { SUPPORTED_LANGUAGES, type Language } from './LanguageConstants';
+import {
+  DEFAULT_LANGUAGE,
+  SUPPORTED_LANGUAGES,
+  type Language,
+} from './LanguageConstants';
+import { getLanguageRouteInfo, isPublicRoutePath } from '../utils/seoRoutes';
 
 const LANGUAGE_STORAGE_KEY = 'game_lang';
+const HAS_SEEN_LANDING_STORAGE_KEY = 'has_seen_landing';
 
 async function fetchLanguageTranslations(
   language: Language
@@ -21,6 +27,15 @@ async function fetchLanguageTranslations(
 }
 
 const getInitialLanguage = (): Language => {
+  try {
+    const routeLanguage = getRouteLanguageOverride();
+    if (routeLanguage !== null) {
+      return routeLanguage;
+    }
+  } catch {
+    // Ignore location access errors in non-browser environments.
+  }
+
   try {
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
     if (saved && SUPPORTED_LANGUAGES.includes(saved)) {
@@ -40,6 +55,32 @@ const getInitialLanguage = (): Language => {
   }
 
   return 'en';
+};
+
+const hasSeenLanding = (): boolean => {
+  try {
+    return localStorage.getItem(HAS_SEEN_LANDING_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const getRouteLanguageOverride = (): Language | null => {
+  const routeInfo = getLanguageRouteInfo(window.location.pathname);
+
+  if (routeInfo.hasLanguagePrefix) {
+    return routeInfo.language;
+  }
+
+  if (routeInfo.routePath === '/') {
+    return hasSeenLanding() ? null : DEFAULT_LANGUAGE;
+  }
+
+  if (isPublicRoutePath(routeInfo.routePath)) {
+    return DEFAULT_LANGUAGE;
+  }
+
+  return null;
 };
 
 const resolveTranslationValue = (
@@ -77,6 +118,22 @@ const applyTranslationParams = (
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => getInitialLanguage());
   const [translations, setTranslations] = useState<Record<string, unknown>>({});
+
+  useEffect(() => {
+    const syncLanguageFromPath = () => {
+      const routeLanguage = getRouteLanguageOverride();
+      if (routeLanguage !== null && routeLanguage !== language) {
+        setLanguageState(routeLanguage);
+      }
+    };
+
+    window.addEventListener('popstate', syncLanguageFromPath);
+    syncLanguageFromPath();
+
+    return () => {
+      window.removeEventListener('popstate', syncLanguageFromPath);
+    };
+  }, [language]);
 
   useEffect(() => {
     let isCancelled = false;

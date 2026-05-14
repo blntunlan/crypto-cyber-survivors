@@ -1,9 +1,17 @@
 import { useReducer, useEffect, useCallback } from 'react';
 import { type HubScreen } from '../components/hub';
+import {
+  getLanguageRouteInfo,
+  getLocalizedPath,
+  getPublicRoutePath,
+  type PublicRoutePath,
+} from '../utils/seoRoutes';
+import { isRouteLanguage } from '../contexts/LanguageConstants';
 
 const HUB_SCREEN_STORAGE_KEY = 'ui_hub_screen';
 const ACTIVE_SURFACE_STORAGE_KEY = 'ui_active_surface';
-const LEGAL_PATHS = new Set(['/privacy', '/terms', '/docs']);
+const LANGUAGE_STORAGE_KEY = 'game_lang';
+const LEGAL_PATHS = new Set<PublicRoutePath>(['/privacy', '/terms', '/docs']);
 const HUB_SCREENS: readonly HubScreen[] = [
   'hub',
   'play',
@@ -64,11 +72,23 @@ const persistActiveSurface = (surface: 'landing' | 'app'): void => {
   }
 };
 
+const readRouteLanguagePreference = (): string | null => {
+  try {
+    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
 const readInitialLandingVisibility = (): boolean => {
   const searchParams = new URLSearchParams(window.location.search);
+  const publicRoutePath = getPublicRoutePath(window.location.pathname);
 
   // Deep links to legal/docs routes should open their own page, not landing.
-  if (LEGAL_PATHS.has(window.location.pathname) || window.location.hash === '#docs') {
+  if (
+    (publicRoutePath !== null && LEGAL_PATHS.has(publicRoutePath)) ||
+    window.location.hash === '#docs'
+  ) {
     return false;
   }
 
@@ -141,12 +161,12 @@ interface UseSurfaceStateResult {
 
 const getLegalRouteFromLocation = (): LegalRouteState => {
   const isHashDocs = window.location.hash === '#docs';
-  const path = window.location.pathname;
+  const publicRoutePath = getPublicRoutePath(window.location.pathname);
 
   return {
-    showDocs: isHashDocs || path === '/docs',
-    showPrivacy: path === '/privacy',
-    showTerms: path === '/terms',
+    showDocs: isHashDocs || publicRoutePath === '/docs',
+    showPrivacy: publicRoutePath === '/privacy',
+    showTerms: publicRoutePath === '/terms',
   };
 };
 
@@ -196,6 +216,15 @@ export const useSurfaceState = (): UseSurfaceStateResult => {
   }, []);
 
   const handleReturnToLanding = useCallback(() => {
+    const routeInfo = getLanguageRouteInfo(window.location.pathname);
+    const storedLanguage = readRouteLanguagePreference();
+    const homeLanguage = routeInfo.hasLanguagePrefix
+      ? routeInfo.language
+      : storedLanguage && isRouteLanguage(storedLanguage)
+        ? storedLanguage
+        : routeInfo.language;
+    const homePath = getLocalizedPath('/', homeLanguage);
+
     // User explicitly requested landing; keep it sticky across refresh.
     localStorage.removeItem('has_seen_landing');
     persistActiveSurface('landing');
@@ -205,8 +234,8 @@ export const useSurfaceState = (): UseSurfaceStateResult => {
       legalRoute: { showDocs: false, showPrivacy: false, showTerms: false },
     });
 
-    if (window.location.pathname !== '/' || window.location.hash) {
-      window.history.pushState(null, '', '/');
+    if (window.location.pathname !== homePath || window.location.hash) {
+      window.history.pushState(null, '', homePath);
     }
   }, []);
 
