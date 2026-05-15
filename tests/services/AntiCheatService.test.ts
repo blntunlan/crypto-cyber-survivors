@@ -36,6 +36,53 @@ describe('AntiCheatService', () => {
       AntiCheatService.init();
       expect(spy).toHaveBeenCalledWith(expect.stringContaining('Already initialized'));
     });
+
+    it('should remove browser listeners on destroy', () => {
+      const windowRemoveSpy = vi.spyOn(window, 'removeEventListener');
+      const documentRemoveSpy = vi.spyOn(document, 'removeEventListener');
+
+      AntiCheatService.init({
+        detectDevTools: true,
+        detectDebugger: false,
+        detectSpeedHack: false,
+        enableIntegrityChecks: false,
+        reportToServer: false,
+        debugMode: false,
+      });
+
+      AntiCheatService.destroy();
+
+      expect(windowRemoveSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+      expect(documentRemoveSpy).toHaveBeenCalledWith(
+        'contextmenu',
+        expect.any(Function)
+      );
+    });
+
+    it('should cancel and stop speed hack detection on destroy', () => {
+      let frameCallback: FrameRequestCallback | null = null;
+      const requestSpy = vi
+        .spyOn(globalThis, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          frameCallback = callback;
+          return 123;
+        });
+      const cancelSpy = vi.spyOn(globalThis, 'cancelAnimationFrame');
+
+      AntiCheatService.init({
+        detectDevTools: false,
+        detectDebugger: false,
+        detectSpeedHack: true,
+        enableIntegrityChecks: false,
+        debugMode: true,
+      });
+
+      AntiCheatService.destroy();
+      frameCallback?.(performance.now());
+
+      expect(cancelSpy).toHaveBeenCalledWith(123);
+      expect(requestSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Memory Integrity Checks', () => {

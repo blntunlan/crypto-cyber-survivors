@@ -35,11 +35,9 @@ export const startSessionSchema = z.object({
   userId: z.string().optional(),
 });
 
-export const verifySessionSchema = z.object({
-  sessionId: z.string().uuid(),
-  signature: z.string().min(1),
-  payload: z.object({
-    sessionId: z.string(),
+const verifyPayloadSchema = z
+  .object({
+    sessionId: z.string().uuid(),
     pair: z.string(),
     position: z.string(),
     leverage: z.coerce.number(),
@@ -49,9 +47,9 @@ export const verifySessionSchema = z.object({
     kills: z.coerce.number().int().min(0),
     level: z.coerce.number().int().min(1),
     survivalSeconds: z.coerce.number().min(0),
-    exitType: exitTypeSchema.optional(),
+    exitType: exitTypeSchema,
     portalType: portalTypeSchema.nullish(),
-    maxStreak: z.coerce.number().int().min(0).default(0),
+    maxStreak: z.coerce.number().int().min(0),
     rawCoins: z.coerce.number().int().min(0).optional(),
     enemyDropCoins: z.coerce.number().int().min(0).optional(),
     totalCoins: z.coerce.number().int().min(0).optional(),
@@ -67,12 +65,81 @@ export const verifySessionSchema = z.object({
         portal: z.number(),
       })
       .optional(),
-  }),
+  })
+  .superRefine((payload, ctx) => {
+    if (payload.exitType === 'portal' && payload.portalType == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['portalType'],
+        message: 'portalType is required for portal exits',
+      });
+    }
+
+    if (payload.exitType !== 'portal' && payload.portalType != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['portalType'],
+        message: 'portalType is only valid for portal exits',
+      });
+    }
+  });
+
+export const verifySessionSchema = z.object({
+  sessionId: z.string().uuid(),
+  signature: z.string().min(1),
+  payload: verifyPayloadSchema,
+}).superRefine((body, ctx) => {
+  if (body.payload.sessionId !== body.sessionId) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['payload', 'sessionId'],
+      message: 'payload.sessionId must match sessionId',
+    });
+  }
 });
 
+const syncSessionDataSchema = z
+  .object({
+    entry_price: z.coerce.number().positive().optional(),
+    exit_price: z.coerce.number().positive().optional(),
+    survival_seconds: z.coerce.number().int().min(0).max(86_400).optional(),
+    kills: z.coerce.number().int().min(0).optional(),
+    level: z.coerce.number().int().min(1).optional(),
+    exit_type: exitTypeSchema.optional(),
+    portal_type: portalTypeSchema.nullish().optional(),
+  })
+  .strict()
+  .superRefine((sessionData, ctx) => {
+    if (
+      Object.keys(sessionData).length === 0 ||
+      Object.values(sessionData).every(value => value === undefined)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'sessionData must include at least one syncable field',
+      });
+    }
+
+    if (sessionData.exit_type === 'portal' && sessionData.portal_type == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['portal_type'],
+        message: 'portal_type is required for portal exits',
+      });
+    }
+
+    if (sessionData.exit_type !== 'portal' && sessionData.portal_type != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['portal_type'],
+        message: 'portal_type is only valid for portal exits',
+      });
+    }
+  });
+
 export const syncSessionSchema = z.object({
-  sessionId: z.string().optional(),
-  sessionData: z.record(z.string(), z.unknown()),
+  sessionId: z.string().uuid(),
+  sessionData: syncSessionDataSchema,
 });
 
 // ── Identities ───────────────────────────────────────────────────────────────

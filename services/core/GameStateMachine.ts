@@ -28,10 +28,7 @@ class GameStateMachineClass {
 
   // Define valid transitions
   private readonly VALID_TRANSITIONS: Map<GameStatus, GameStatus[]> = new Map([
-    [
-      GameStatus.MENU,
-      [GameStatus.PLAYING, GameStatus.CYCLE_COMPLETE, GameStatus.DATA_DISCONNECTED],
-    ],
+    [GameStatus.MENU, [GameStatus.PLAYING, GameStatus.DATA_DISCONNECTED]],
     [
       GameStatus.PLAYING,
       [
@@ -59,9 +56,17 @@ class GameStateMachineClass {
 
   private setupListeners(): void {
     EventBus.on('gameReset', () => {
+      const oldState = this.currentState;
       this.currentState = GameStatus.MENU;
       this.stateHistory = [];
+      this.publishStateChange(GameStatus.MENU, oldState);
     });
+  }
+
+  private publishStateChange(newState: GameStatus, oldState: GameStatus): void {
+    this.syncTimeService(newState);
+    this.listeners.forEach(cb => cb(newState, oldState));
+    EventBus.emit('settingsUpdate', { gameStatus: newState });
   }
 
   /**
@@ -93,14 +98,7 @@ class GameStateMachineClass {
       this.stateHistory.shift();
     }
 
-    // Coordinate TimeService
-    this.syncTimeService(newState);
-
-    // Notify listeners
-    this.listeners.forEach(cb => cb(newState, oldState));
-
-    // Emit event for other systems
-    EventBus.emit('settingsUpdate', { gameStatus: newState });
+    this.publishStateChange(newState, oldState);
 
     return true;
   }
@@ -164,8 +162,7 @@ class GameStateMachineClass {
     Logger.warn(`[GameStateMachine] Force setting state to: ${state}`);
     const oldState = this.currentState;
     this.currentState = state;
-    this.syncTimeService(state);
-    this.listeners.forEach(cb => cb(state, oldState));
+    this.publishStateChange(state, oldState);
   }
 }
 

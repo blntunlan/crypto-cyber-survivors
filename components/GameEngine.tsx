@@ -575,6 +575,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     marketDataRef,
     hitStopGovernorRef,
     position,
+    status,
   });
 
   // Expose concise state snapshot for Playwright smoke validation.
@@ -1153,11 +1154,12 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         // Only update React state if meaningful stats changed AND enough time passed (Throttle 100ms)
         // Exception: Always update immediately on Level Up
         const shouldSync =
-          player.level !== lastSyncedStats.current.level ||
-          (time - lastSyncedStats.current.lastTime >
-            GAME_ENGINE.STATS_SYNC_THROTTLE_MS &&
-            (player.hp !== lastSyncedStats.current.hp ||
-              player.exp !== lastSyncedStats.current.exp));
+          !TimeService.isClockPaused() &&
+          (player.level !== lastSyncedStats.current.level ||
+            (time - lastSyncedStats.current.lastTime >
+              GAME_ENGINE.STATS_SYNC_THROTTLE_MS &&
+              (player.hp !== lastSyncedStats.current.hp ||
+                player.exp !== lastSyncedStats.current.exp)));
 
         if (shouldSync) {
           updatePlayerStats({ ...player });

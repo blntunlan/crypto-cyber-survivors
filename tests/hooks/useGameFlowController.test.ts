@@ -42,7 +42,8 @@ vi.mock('../../services/audio', () => ({
 
 vi.mock('../../services/core/GameStateMachine', () => ({
   GameStateMachine: {
-    transition: vi.fn(),
+    canTransition: vi.fn(() => true),
+    transition: vi.fn(() => true),
   },
 }));
 
@@ -192,6 +193,8 @@ const makeMarketData = (
 describe('useGameFlowController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(GameStateMachine.canTransition).mockReturnValue(true);
+    vi.mocked(GameStateMachine.transition).mockReturnValue(true);
     EventBus.clearEvent('cycleComplete');
     EventBus.clearEvent('levelUpComplete');
     EventBus.clearEvent('levelUp');
@@ -250,6 +253,37 @@ describe('useGameFlowController', () => {
     expect(CardSystem.generateChoices).toHaveBeenCalledWith(6, 4, 3);
     expect(audio.playLevelUp).toHaveBeenCalledTimes(1);
     expect(result.current.upgradeChoices).toHaveLength(1);
+  });
+
+  it('handleLevelUp does not apply side effects when state transition is rejected', () => {
+    const healFull = vi.fn();
+    const playerRef = { current: makePlayer({ luck: 6, level: 4 }) };
+    vi.mocked(GameStateMachine.transition).mockReturnValueOnce(false);
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PAUSED,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 12,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull,
+      })
+    );
+
+    act(() => {
+      result.current.handleLevelUp();
+    });
+
+    expect(healFull).not.toHaveBeenCalled();
+    expect(CardSystem.generateChoices).not.toHaveBeenCalled();
+    expect(audio.playLevelUp).not.toHaveBeenCalled();
+    expect(result.current.upgradeChoices).toEqual([]);
   });
 
   it('selectUpgrade applies card, tracks level-up, emits event, and returns to PLAYING', () => {
@@ -329,6 +363,35 @@ describe('useGameFlowController', () => {
 
     expect(result.current.cycleData).toBeNull();
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
+  });
+
+  it('ignores cycleComplete events outside active gameplay', () => {
+    const playerRef = { current: makePlayer({ level: 5 }) };
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.MENU,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: 0.35, effectivePnl: 0.4 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 22,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    act(() => {
+      EventBus.emit('cycleComplete', { cycleNumber: 1, totalElapsedSeconds: 300 });
+    });
+
+    expect(result.current.cycleData).toBeNull();
+    expect(GameStateMachine.transition).not.toHaveBeenCalledWith(
+      GameStatus.CYCLE_COMPLETE
+    );
   });
 
   it('respects liquidation grace after markRunStarted and triggers game over after grace', () => {
@@ -515,6 +578,46 @@ describe('useGameFlowController', () => {
     });
 
     expect(difficultyContext.reset).toHaveBeenCalled();
+  });
+
+  it('handleGameOver does not submit session side effects when state transition is rejected', async () => {
+    const { difficultyContext } =
+      await import('../../services/difficulty/DifficultyContext');
+    const playerRef = { current: makePlayer() };
+    vi.mocked(GameStateMachine.transition)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PAUSED,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 5,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    expect(difficultyContext.reset).not.toHaveBeenCalled();
+    expect(MetricsService.endSession).not.toHaveBeenCalled();
+    expect(GameSessionService.submitSession).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(MetricsService.endSession).toHaveBeenCalled();
   });
 
   it('handleGameOver submits portal reward payload for server reconciliation', async () => {

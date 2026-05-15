@@ -24,6 +24,8 @@ export const DEFAULT_REWARD_RATES: CoinRates = {
   maxStreakBonus: 250,
 };
 
+export const MAX_REWARDABLE_LEVEL = 100;
+
 export type ExitType = 'portal' | 'death' | 'afk_death' | 'cycle_complete';
 export type PortalType = 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED';
 
@@ -54,7 +56,10 @@ export class RewardCalculator {
   public calculate(params: RewardCalculationParams): RewardCalculationResult {
     const survivalTimeSeconds = Math.max(0, params.survivalTimeSeconds || 0);
     const kills = Math.max(0, params.kills || 0);
-    const level = Math.max(0, params.level || 0);
+    const level = Math.min(
+      MAX_REWARDABLE_LEVEL,
+      Math.max(0, params.level || 0)
+    );
     const pnl = params.pnl || 0;
     const maxStreak = Math.max(0, params.maxStreak || 0);
     const exitType = params.exitType || 'cycle_complete';

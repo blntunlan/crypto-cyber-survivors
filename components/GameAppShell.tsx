@@ -307,7 +307,11 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
 
         TimeService.setMaxDeltaTime(gameMode === GameMode.COMPETITIVE ? 10000 : 50);
 
-        GameStateMachine.transition(GameStatus.PLAYING);
+        if (!GameStateMachine.transition(GameStatus.PLAYING)) {
+          Logger.warn('[GameAppShell] Game start transition rejected');
+          return;
+        }
+
         MilestoneService.startSession();
         audio.playLevelUp();
         void ChallengeService.startTracking();

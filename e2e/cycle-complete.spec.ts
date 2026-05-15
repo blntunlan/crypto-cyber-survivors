@@ -1,5 +1,5 @@
 import { test, expect } from './test';
-import { goToMainMenuFromHub } from './support/game-helpers';
+import { goToMainMenuFromHub, startGameFromMainMenu } from './support/game-helpers';
 
 test.describe('Cycle Complete Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,9 +28,7 @@ test.describe('Cycle Complete Flow', () => {
     // Enable console logs - print to stderr to bypass reporter buffering
     page.on('console', msg => console.error(`BROWSER LOG: ${msg.text()}`));
 
-    console.error(
-      'STEP 1: Starting Game (Skipping manual start, direct EventBus trigger)'
-    );
+    console.error('STEP 1: Starting Game before direct EventBus trigger');
     console.error(`PROJECT NAME: ${testInfo.project.name}`);
 
     // 1b. Handle Hub Menu (Click PLAY)
@@ -45,8 +43,8 @@ test.describe('Cycle Complete Flow', () => {
     });
     console.error('STEP 1: Main Menu Ready');
 
-    // Explicit wait for stability
-    await page.waitForTimeout(2000);
+    await startGameFromMainMenu(page, 'LONG');
+    console.error('STEP 1b: Gameplay Ready');
 
     const isDesktop =
       testInfo.project.name === 'chromium' ||

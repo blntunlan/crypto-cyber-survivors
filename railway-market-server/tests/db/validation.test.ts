@@ -3,6 +3,7 @@ import {
   createProfileSchema,
   updateProfileSchema,
   startSessionSchema,
+  syncSessionSchema,
   errorReportSchema,
   saveReplaySchema,
   purchaseUpgradeSchema,
@@ -111,6 +112,83 @@ describe('validation schemas', () => {
         leverage: 0,
         position: 'LONG',
       });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('syncSessionSchema', () => {
+    const sessionId = '11111111-1111-4111-8111-111111111111';
+
+    it('accepts valid runtime metric sync data', () => {
+      const result = syncSessionSchema.safeParse({
+        sessionId,
+        sessionData: {
+          entry_price: 50000,
+          exit_price: 51000,
+          survival_seconds: 180,
+          kills: 42,
+          level: 6,
+          exit_type: 'portal',
+          portal_type: 'TAKE_PROFIT',
+        },
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects server-owned fields', () => {
+      const result = syncSessionSchema.safeParse({
+        sessionId,
+        sessionData: {
+          reward_amount: 50000,
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects negative runtime metrics', () => {
+      const result = syncSessionSchema.safeParse({
+        sessionId,
+        sessionData: {
+          survival_seconds: -1,
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects portal type without a portal exit', () => {
+      const result = syncSessionSchema.safeParse({
+        sessionId,
+        sessionData: {
+          exit_type: 'death',
+          portal_type: 'TAKE_PROFIT',
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects portal exits without portal type', () => {
+      const result = syncSessionSchema.safeParse({
+        sessionId,
+        sessionData: {
+          exit_type: 'portal',
+        },
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects non-uuid session ids', () => {
+      const result = syncSessionSchema.safeParse({
+        sessionId: 'local-123',
+        sessionData: {
+          survival_seconds: 30,
+        },
+      });
+
       expect(result.success).toBe(false);
     });
   });

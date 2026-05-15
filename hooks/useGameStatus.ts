@@ -5,7 +5,7 @@
  * Handles pause toggle, keyboard shortcuts, and visibility change.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { GameStatus } from '../types';
 import { GameStateMachine } from '../services/core/GameStateMachine';
 
@@ -14,19 +14,20 @@ export interface UseGameStatusReturn {
   handlePauseToggle: () => void;
 }
 
+const subscribeToGameState = (onStoreChange: () => void): (() => void) =>
+  GameStateMachine.subscribe(() => onStoreChange());
+
+const getGameStateSnapshot = (): GameStatus => GameStateMachine.getState();
+
 /**
  * Hook to manage game status with GameStateMachine integration
  */
 export function useGameStatus(): UseGameStatusReturn {
-  const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.MENU);
-
-  // Subscribe to GameStateMachine for state sync
-  useEffect(() => {
-    const unsub = GameStateMachine.subscribe(newState => {
-      setGameStatus(newState);
-    });
-    return () => unsub();
-  }, []);
+  const gameStatus = useSyncExternalStore(
+    subscribeToGameState,
+    getGameStateSnapshot,
+    getGameStateSnapshot
+  );
 
   // Pause toggle handler
   const handlePauseToggle = useCallback(() => {

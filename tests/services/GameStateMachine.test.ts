@@ -107,5 +107,13 @@ describe('GameStateMachine', () => {
       GameStateMachine.forceState(GameStatus.PAUSED);
       expect(GameStateMachine.getState()).toBe(GameStatus.PAUSED);
     });
+
+    it('should emit settingsUpdate when forcing state', () => {
+      GameStateMachine.forceState(GameStatus.PAUSED);
+
+      expect(EventBus.emit).toHaveBeenCalledWith('settingsUpdate', {
+        gameStatus: GameStatus.PAUSED,
+      });
+    });
   });
 });

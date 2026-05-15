@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CoinService, MockCoinProvider } from '../../services/gameplay/CoinService';
-import { RewardCalculator } from '../../services/gameplay/RewardCalculator';
+import {
+  MAX_REWARDABLE_LEVEL,
+  RewardCalculator,
+} from '../../services/gameplay/RewardCalculator';
 import { EventBus } from '../../services/core/EventBus';
 
 describe('CoinService System', () => {
@@ -37,6 +40,19 @@ describe('CoinService System', () => {
       expect(result.killBonus).toBe(50);
       expect(result.levelBonus).toBe(200);
       expect(result.total).toBe(250);
+    });
+
+    it('should cap rewardable level bonus', () => {
+      const result = calculator.calculate({
+        survivalTimeSeconds: 0,
+        kills: 0,
+        level: MAX_REWARDABLE_LEVEL + 50,
+        pnl: 0,
+        maxStreak: 0,
+      });
+
+      expect(result.levelBonus).toBe(MAX_REWARDABLE_LEVEL * 100);
+      expect(result.total).toBe(MAX_REWARDABLE_LEVEL * 100);
     });
 
     it('should calculate market bonus only for positive PnL', () => {

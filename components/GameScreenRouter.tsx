@@ -169,6 +169,10 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   const [useHubV2, setUseHubV2] = React.useState(false);
   const isMenuRoute = gameStatus === GameStatus.MENU;
   const showLiveGameScene = !isMenuRoute;
+  const showGameUiOverlay =
+    gameStatus === GameStatus.PLAYING ||
+    gameStatus === GameStatus.PAUSED ||
+    gameStatus === GameStatus.LEVEL_UP;
   const showDesktopLeaderboardPanel =
     isMenuRoute && hubScreen === 'play' && !device.isMobile;
 
@@ -222,7 +226,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
           </React.Suspense>
         )}
 
-        {showLiveGameScene && (
+        {showGameUiOverlay && (
           <React.Suspense fallback={<UIFallback />}>
             <GameUI
               position={position}

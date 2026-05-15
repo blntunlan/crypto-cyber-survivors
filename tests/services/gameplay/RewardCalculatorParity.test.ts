@@ -64,6 +64,14 @@ const cases: Array<RewardCalculationParams | Record<string, unknown>> = [
     pnl: Number.NaN,
     maxStreak: Number.NaN,
   },
+  {
+    survivalTimeSeconds: 300,
+    kills: 100,
+    level: 10_000,
+    pnl: 0.1,
+    maxStreak: 40,
+    exitType: 'cycle_complete',
+  },
 ];
 
 describe('RewardCalculator parity', () => {

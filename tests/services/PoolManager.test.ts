@@ -4,7 +4,7 @@
  * Tests for object pooling, retrieval, and cleanup.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PoolManager } from '../../services/combat/PoolManager';
 import { MarketPosition } from '../../types';
 import { WhaleTier } from '../../types/indicators';
@@ -15,6 +15,10 @@ describe('PoolManager', () => {
   beforeEach(() => {
     pool = PoolManager.getInstance();
     pool.clearAll();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('preWarm', () => {
@@ -89,6 +93,8 @@ describe('PoolManager', () => {
     });
 
     it('should apply dynamic response metadata and HP scaling', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.99);
+
       const enemy = pool.getEnemy(
         0,
         0,

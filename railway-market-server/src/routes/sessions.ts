@@ -116,6 +116,7 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
         pair: sessions.pair,
         position: sessions.position,
         leverage: sessions.leverage,
+        createdAt: sessions.createdAt,
         entryPrice: sessions.entryPrice,
         exitPrice: sessions.exitPrice,
         survivalSeconds: sessions.survivalSeconds,
@@ -186,40 +187,14 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       .update(verificationPayload)
       .digest('hex');
 
-    let signatureValid = signature === expectedSignature;
-    if (!signatureValid) {
-      // Fallback: old clients don't include exitType/portalType/maxStreak/reward fields in HMAC
-      const legacyPayload = JSON.stringify({
-        sessionId: payload.sessionId,
-        pair: payload.pair,
-        position: payload.position,
-        leverage: payload.leverage,
-        claimedEntryPrice: payload.claimedEntryPrice,
-        claimedExitPrice: payload.claimedExitPrice,
-        claimedPnL: payload.claimedPnL,
-        kills: payload.kills,
-        level: payload.level,
-        survivalSeconds: Math.floor(payload.survivalSeconds),
-        exitType: payload.exitType,
-        portalType: payload.portalType,
-      });
-      const legacyExpected = crypto
-        .createHmac('sha256', session.sessionSecret)
-        .update(legacyPayload)
-        .digest('hex');
-      signatureValid = signature === legacyExpected;
-      if (signatureValid) {
-        Logger.warn(`[Security] Session ${sessionId} used legacy HMAC format (missing maxStreak/reward fields)`);
-      }
-    }
-
-    if (!signatureValid) {
+    if (signature !== expectedSignature) {
       Logger.error(`[Security] Invalid signature for session ${sessionId}`);
       res.status(403).json({ error: 'Invalid security signature' });
       return;
     }
 
     const { metrics: trustedMetrics, suspiciousFlags } = deriveTrustedSessionMetrics(payload, {
+      createdAt: session.createdAt,
       entryPrice: session.entryPrice,
       exitPrice: session.exitPrice,
       survivalSeconds: session.survivalSeconds,
@@ -501,11 +476,12 @@ router.post('/sync', requireAuth, asyncHandler(async (req: Request, res: Respons
 
     const columns: string[] = [];
     const values: unknown[] = [];
+    const syncValues = sessionData as Record<string, unknown>;
 
-    for (const col of Object.keys(sessionData)) {
+    for (const col of Object.keys(syncValues)) {
       if (col in COLUMN_MAP) {
         columns.push(col);
-        values.push(sessionData[col]);
+        values.push(syncValues[col]);
       }
     }
 
@@ -550,78 +526,13 @@ router.post('/sync', requireAuth, asyncHandler(async (req: Request, res: Respons
 }));
 
 /**
- * GET /api/v1/sessions/:id/recover — Recover session secret for unverified sessions
- * Only the session owner can recover their own session secret.
+ * GET /api/v1/sessions/:id/recover — disabled.
+ *
+ * Session secrets are bearer-capability signing keys. Returning them after the
+ * initial start response widens the replay window and undermines verification.
  */
-router.get('/:id/recover', requireAuth, asyncHandler(async (req: Request, res: Response) => {
-  try {
-    const { id: sessionId } = req.params;
-    const authUserId = getRequiredAuthUserId(req);
-    const db = getDb();
-
-    // Find user's profile
-    const profileRows = await db
-      .select({ id: profiles.id })
-      .from(profiles)
-      .where(eq(profiles.authUserId, authUserId))
-      .limit(1);
-
-    if (profileRows.length === 0) {
-      res.status(404).json({ error: 'Profile not found' });
-      return;
-    }
-
-    const profileId = profileRows[0].id;
-
-    // Find session — must belong to this profile and not yet verified
-    const sessionRows = await db
-      .select({
-        id: sessions.id,
-        profileId: sessions.profileId,
-        sessionSecret: sessions.sessionSecret,
-        isVerified: sessions.isVerified,
-      })
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
-
-    if (sessionRows.length === 0) {
-      res.status(404).json({ error: 'Session not found' });
-      return;
-    }
-
-    const session = sessionRows[0];
-
-    // Ownership check
-    if (session.profileId !== profileId) {
-      res.status(403).json({ error: 'Not authorized to access this session' });
-      return;
-    }
-
-    // Already verified — secret is no longer useful
-    if (session.isVerified) {
-      res.status(410).json({ error: 'Session already verified' });
-      return;
-    }
-
-    const { ipAddress, userAgent } = getClientInfo(req);
-    await logAudit({
-      profileId,
-      action: 'session.recover',
-      resource: `/api/v1/sessions/${sessionId}/recover`,
-      details: { sessionId, recovered: true },
-      ipAddress,
-      userAgent,
-    });
-
-    res.json({
-      sessionId: session.id,
-      sessionSecret: session.sessionSecret,
-    });
-  } catch (error) {
-    Logger.error('[Sessions] Recover error:', error);
-    res.status(500).json({ error: 'Failed to recover session' });
-  }
-}));
+router.get('/:id/recover', requireAuth, (_req: Request, res: Response) => {
+  res.status(410).json({ error: 'Session secret recovery is disabled' });
+});
 
 export default router;

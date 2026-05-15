@@ -48,6 +48,15 @@ interface AntiCheatConfig {
   debugMode: boolean;
 }
 
+const DEFAULT_ANTI_CHEAT_CONFIG: AntiCheatConfig = {
+  detectDevTools: true,
+  detectDebugger: true,
+  enableIntegrityChecks: true,
+  detectSpeedHack: true,
+  reportToServer: true,
+  debugMode: import.meta.env.DEV,
+};
+
 // =============================================================================
 // ANTI-CHEAT SERVICE
 // =============================================================================
@@ -56,14 +65,7 @@ class AntiCheatServiceClass {
   private static instance: AntiCheatServiceClass | null = null;
 
   // Configuration
-  private config: AntiCheatConfig = {
-    detectDevTools: true,
-    detectDebugger: true,
-    enableIntegrityChecks: true,
-    detectSpeedHack: true,
-    reportToServer: true,
-    debugMode: import.meta.env.DEV,
-  };
+  private config: AntiCheatConfig = { ...DEFAULT_ANTI_CHEAT_CONFIG };
 
   // State
   private initialized = false;
@@ -76,7 +78,10 @@ class AntiCheatServiceClass {
   private devToolsInterval: ReturnType<typeof setInterval> | null = null;
   private debuggerInterval: ReturnType<typeof setInterval> | null = null;
   private integrityInterval: ReturnType<typeof setInterval> | null = null;
-  private speedHackInterval: ReturnType<typeof setInterval> | null = null;
+  private speedHackAnimationFrameId: number | null = null;
+  private speedHackDetectionActive = false;
+  private devToolsResizeHandler: (() => void) | null = null;
+  private contextMenuHandler: ((event: MouseEvent) => void) | null = null;
 
   // Thresholds
   private readonly DEVTOOLS_THRESHOLD = 160; // px difference
@@ -195,8 +200,25 @@ class AntiCheatServiceClass {
     if (this.devToolsInterval) clearInterval(this.devToolsInterval);
     if (this.debuggerInterval) clearInterval(this.debuggerInterval);
     if (this.integrityInterval) clearInterval(this.integrityInterval);
-    if (this.speedHackInterval) clearInterval(this.speedHackInterval);
+    if (this.speedHackAnimationFrameId !== null) {
+      cancelAnimationFrame(this.speedHackAnimationFrameId);
+    }
 
+    if (this.devToolsResizeHandler) {
+      window.removeEventListener('resize', this.devToolsResizeHandler);
+    }
+
+    if (this.contextMenuHandler) {
+      document.removeEventListener('contextmenu', this.contextMenuHandler);
+    }
+
+    this.devToolsInterval = null;
+    this.debuggerInterval = null;
+    this.integrityInterval = null;
+    this.speedHackAnimationFrameId = null;
+    this.speedHackDetectionActive = false;
+    this.devToolsResizeHandler = null;
+    this.contextMenuHandler = null;
     this.initialized = false;
     Logger.info('[AntiCheat] Destroyed');
   }
@@ -207,6 +229,8 @@ class AntiCheatServiceClass {
   static resetForTesting(): void {
     if (this.instance) {
       this.instance.destroy();
+      this.instance.config = { ...DEFAULT_ANTI_CHEAT_CONFIG };
+      this.instance.fingerprint = '';
       this.instance.criticalValues.clear();
       this.instance.warningCounts.clear();
       this.instance.speedHackSamples = [];
@@ -231,7 +255,8 @@ class AntiCheatServiceClass {
     };
 
     // Check on resize and periodically
-    window.addEventListener('resize', check);
+    this.devToolsResizeHandler = check;
+    window.addEventListener('resize', this.devToolsResizeHandler);
     this.devToolsInterval = setInterval(check, 1000);
   }
 
@@ -287,8 +312,13 @@ class AntiCheatServiceClass {
    */
   private setupSpeedHackDetection(): void {
     let lastTime = performance.now();
+    this.speedHackDetectionActive = true;
 
     const frameCallback = (): void => {
+      if (!this.speedHackDetectionActive) {
+        return;
+      }
+
       const now = performance.now();
       const delta = now - lastTime;
       lastTime = now;
@@ -315,20 +345,21 @@ class AntiCheatServiceClass {
         }
       }
 
-      requestAnimationFrame(frameCallback);
+      this.speedHackAnimationFrameId = requestAnimationFrame(frameCallback);
     };
 
-    requestAnimationFrame(frameCallback);
+    this.speedHackAnimationFrameId = requestAnimationFrame(frameCallback);
   }
 
   /**
    * Disable right-click context menu
    */
   private disableContextMenu(): void {
-    document.addEventListener('contextmenu', e => {
-      e.preventDefault();
+    this.contextMenuHandler = event => {
+      event.preventDefault();
       this.onCheatWarning('CONSOLE_MANIPULATION', 'Context menu access attempted');
-    });
+    };
+    document.addEventListener('contextmenu', this.contextMenuHandler);
   }
 
   // ===========================================================================

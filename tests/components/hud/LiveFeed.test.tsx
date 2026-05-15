@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { LiveFeed } from '../../../components/hud/LiveFeed';
 import { screenService } from '../../../services/system/ScreenService';
@@ -141,7 +141,7 @@ describe('LiveFeed', () => {
     ).toBeInTheDocument();
   });
 
-  it('should update server state via EventBus', () => {
+  it('should update server state via EventBus', async () => {
     let updateCallback: (data: any) => void;
     (EventBus.on as any).mockImplementation((event: string, cb: any) => {
       if (event === 'marketStateUpdated') updateCallback = cb;
@@ -164,11 +164,13 @@ describe('LiveFeed', () => {
       updateCallback(mockServerState);
     });
 
-    expect(screen.getByText(/RSI/)).toBeInTheDocument();
-    expect(screen.getByText('50.0')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/RSI/)).toBeInTheDocument();
+      expect(screen.getByText('50.0')).toBeInTheDocument();
+    });
   });
 
-  it('should show Whale Warning when whale tier > 0', () => {
+  it('should show Whale Warning when whale tier > 0', async () => {
     let updateCallback: (data: any) => void;
     (EventBus.on as any).mockImplementation((event: string, cb: any) => {
       if (event === 'marketStateUpdated') updateCallback = cb;
@@ -187,11 +189,13 @@ describe('LiveFeed', () => {
       updateCallback({ ...mockServerState, whaleTier: 2 });
     });
 
-    expect(screen.getByText(/hud.whale_detected/)).toBeInTheDocument();
-    expect(screen.getByText(/(T2)/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/hud.whale_detected/)).toBeInTheDocument();
+      expect(screen.getByText(/(T2)/)).toBeInTheDocument();
+    });
   });
 
-  it('should format RSI color correctly', () => {
+  it('should format RSI color correctly', async () => {
     let updateCallback: (data: any) => void;
     (EventBus.on as any).mockImplementation((event: string, cb: any) => {
       if (event === 'marketStateUpdated') updateCallback = cb;
@@ -210,19 +214,25 @@ describe('LiveFeed', () => {
     act(() => {
       updateCallback({ ...mockServerState, rsi: 50 });
     });
-    expect(screen.getByText('50.0')).toHaveClass('text-slate-200');
+    await waitFor(() => {
+      expect(screen.getByText('50.0')).toHaveClass('text-slate-200');
+    });
 
     // Overbought
     act(() => {
       updateCallback({ ...mockServerState, rsi: 75 });
     });
-    expect(screen.getByText('75.0')).toHaveClass('text-red-400');
+    await waitFor(() => {
+      expect(screen.getByText('75.0')).toHaveClass('text-red-400');
+    });
 
     // Oversold
     act(() => {
       updateCallback({ ...mockServerState, rsi: 25 });
     });
-    expect(screen.getByText('25.0')).toHaveClass('text-green-400');
+    await waitFor(() => {
+      expect(screen.getByText('25.0')).toHaveClass('text-green-400');
+    });
   });
 
   it('should show DEGEN badge for high leverage', () => {

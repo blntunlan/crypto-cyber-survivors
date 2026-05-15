@@ -36,6 +36,7 @@ export const MarketAnnouncementBanner: React.FC = memo(() => {
   const [current, setCurrent] = useState<QueuedAnnouncement | null>(null);
   const queueRef = useRef<QueuedAnnouncement[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingEventTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -69,31 +70,36 @@ export const MarketAnnouncementBanner: React.FC = memo(() => {
 
   useEffect(() => {
     const unsub = EventBus.on('marketAnnouncement', (data: MarketAnnouncementEvent) => {
-      const announcement: QueuedAnnouncement = {
-        ...data,
-        id: nextAnnouncementId++,
-        expiresAt: Date.now() + data.duration,
-      };
+      const eventTimer = setTimeout(() => {
+        pendingEventTimersRef.current.delete(eventTimer);
 
-      // High priority (>=10) interrupts current announcement
-      if (data.priority >= 10 && current !== null) {
-        clearTimer();
-        // Push current back to queue if it hasn't expired
-        queueRef.current.unshift({
-          ...current,
-          duration: Math.max(0, current.expiresAt - Date.now()),
-        });
+        const announcement: QueuedAnnouncement = {
+          ...data,
+          id: nextAnnouncementId++,
+          expiresAt: Date.now() + data.duration,
+        };
+
+        // High priority (>=10) interrupts current announcement
+        if (data.priority >= 10 && current !== null) {
+          clearTimer();
+          // Push current back to queue if it hasn't expired
+          queueRef.current.unshift({
+            ...current,
+            duration: Math.max(0, current.expiresAt - Date.now()),
+          });
+          queueRef.current.push(announcement);
+          showNext();
+          return;
+        }
+
         queueRef.current.push(announcement);
-        showNext();
-        return;
-      }
 
-      queueRef.current.push(announcement);
-
-      // If nothing is currently showing, start display
-      if (current === null) {
-        showNext();
-      }
+        // If nothing is currently showing, start display
+        if (current === null) {
+          showNext();
+        }
+      }, 0);
+      pendingEventTimersRef.current.add(eventTimer);
     });
 
     return () => {
@@ -104,8 +110,11 @@ export const MarketAnnouncementBanner: React.FC = memo(() => {
 
   // Cleanup on unmount
   useEffect(() => {
+    const pendingEventTimers = pendingEventTimersRef.current;
     return () => {
       clearTimer();
+      pendingEventTimers.forEach(timer => clearTimeout(timer));
+      pendingEventTimers.clear();
       queueRef.current = [];
     };
   }, [clearTimer]);

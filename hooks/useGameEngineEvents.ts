@@ -1,8 +1,14 @@
 import { useEffect } from 'react';
 import { EventBus } from '../services/core/EventBus';
-import { type MarketData, type MarketPosition, type GameState } from '../types';
+import {
+  GameStatus,
+  type MarketData,
+  type MarketPosition,
+  type GameState,
+} from '../types';
 import { GAME_ENGINE } from '../constants';
 import { audio } from '../services/audio';
+import { TimeService } from '../services/core/TimeService';
 import { PriceMomentumEngine } from '../services/market/PriceMomentumEngine';
 import { MarketEventAnnouncer } from '../services/market/MarketEventAnnouncer';
 import { type HitStopGovernor } from '../services/gameplay/HitStopGovernor';
@@ -12,6 +18,7 @@ interface UseGameEngineEventsParams {
   marketDataRef: React.RefObject<MarketData>;
   hitStopGovernorRef: React.RefObject<HitStopGovernor>;
   position: MarketPosition;
+  status: GameStatus;
 }
 
 /**
@@ -30,6 +37,7 @@ export function useGameEngineEvents({
   marketDataRef,
   hitStopGovernorRef,
   position,
+  status,
 }: UseGameEngineEventsParams): void {
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
@@ -59,6 +67,10 @@ export function useGameEngineEvents({
     const unsub = EventBus.on('gameMarketUpdate', (data: MarketData) => {
       marketDataRef.current = data;
 
+      if (status !== GameStatus.PLAYING || TimeService.isClockPaused()) {
+        return;
+      }
+
       if (data.price > 0) {
         PriceMomentumEngine.update(data.price, Date.now());
       }
@@ -70,7 +82,7 @@ export function useGameEngineEvents({
       }
     });
     return unsub;
-  }, [position, marketDataRef]);
+  }, [position, marketDataRef, status]);
 
   // Near Miss Event Listener (visual/audio feedback only)
   useEffect(() => {

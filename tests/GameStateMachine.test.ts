@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameStateMachine } from '../services/core/GameStateMachine';
+import { EventBus } from '../services/core/EventBus';
 import { GameStatus } from '../types';
 
 describe('GameStateMachine', () => {
@@ -83,6 +84,13 @@ describe('GameStateMachine', () => {
       expect(GameStateMachine.getState()).toBe(GameStatus.MENU);
     });
 
+    it('should reject transition from MENU to CYCLE_COMPLETE', () => {
+      const result = GameStateMachine.transition(GameStatus.CYCLE_COMPLETE);
+
+      expect(result).toBe(false);
+      expect(GameStateMachine.getState()).toBe(GameStatus.MENU);
+    });
+
     it('should reject transition from GAMEOVER to PLAYING', () => {
       GameStateMachine.transition(GameStatus.PLAYING);
       GameStateMachine.transition(GameStatus.GAMEOVER);
@@ -147,6 +155,22 @@ describe('GameStateMachine', () => {
       GameStateMachine.transition(GameStatus.PLAYING);
 
       expect(notifiedState).toBe(GameStatus.PLAYING);
+
+      unsubscribe();
+    });
+
+    it('notifies subscribers when gameReset forces MENU', () => {
+      GameStateMachine.transition(GameStatus.PLAYING);
+      let notifiedState: GameStatus | null = null;
+
+      const unsubscribe = GameStateMachine.subscribe(newState => {
+        notifiedState = newState;
+      });
+
+      EventBus.emit('gameReset', {});
+
+      expect(GameStateMachine.getState()).toBe(GameStatus.MENU);
+      expect(notifiedState).toBe(GameStatus.MENU);
 
       unsubscribe();
     });

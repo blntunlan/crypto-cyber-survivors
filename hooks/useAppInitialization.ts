@@ -12,6 +12,7 @@
 import { useEffect, useState } from 'react';
 import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
 import { DeviceProfiler } from '../services/analytics/DeviceProfiler';
+import { AntiCheatService } from '../services/system/AntiCheatService';
 interface UseAppInitializationResult {
   /** Whether initialization is complete */
   isInitialized: boolean;
@@ -23,11 +24,9 @@ interface UseAppInitializationResult {
  */
 export function useAppInitialization(): UseAppInitializationResult {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [hasStartedInit, setHasStartedInit] = useState<boolean>(false);
 
   useEffect(() => {
-    if (hasStartedInit) return;
-    setHasStartedInit(true);
+    let isMounted = true;
 
     const init = async () => {
       // 1. Initialize core analytics services
@@ -40,13 +39,22 @@ export function useAppInitialization(): UseAppInitializationResult {
       // 3. Run device benchmark
       void DeviceBenchmarkService.runBenchmark();
 
-      // 4. Market state now handled by SSE via useMarketData hook
+      // 4. Initialize client integrity checks and cheat telemetry
+      AntiCheatService.init();
 
-      setIsInitialized(true);
+      // 5. Market state now handled by SSE via useMarketData hook
+      if (isMounted) {
+        setIsInitialized(true);
+      }
     };
 
     void init();
-  }, [hasStartedInit]);
+
+    return () => {
+      isMounted = false;
+      AntiCheatService.destroy();
+    };
+  }, []);
 
   return {
     isInitialized,

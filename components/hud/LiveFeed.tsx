@@ -527,6 +527,9 @@ const MobileLiveFeed: React.FC<
 };
 
 export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
+  const pendingDispatchTimersRef = React.useRef<Set<ReturnType<typeof setTimeout>>>(
+    new Set()
+  );
   const [state, dispatch] = React.useReducer(
     (
       prev: {
@@ -549,19 +552,34 @@ export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
   );
 
   useEffect(() => {
+    const pendingDispatchTimers = pendingDispatchTimersRef.current;
+    const scheduleDispatch = (
+      update: Partial<{
+        isMobile: boolean;
+        serverState: MarketStateData | null;
+        clientIndicators: ClientIndicatorsUpdatedEvent | null;
+      }>
+    ) => {
+      const timer = setTimeout(() => {
+        pendingDispatchTimers.delete(timer);
+        dispatch(update);
+      }, 0);
+      pendingDispatchTimers.add(timer);
+    };
+
     // Screen resize listener
     const unsubscribeScreen = screenService.onChange(() => {
-      dispatch({ isMobile: screenService.isMobile() });
+      scheduleDispatch({ isMobile: screenService.isMobile() });
     });
 
     // Server state listener
     const handleMarketUpdate = (data: MarketStateData) => {
-      dispatch({ serverState: data });
+      scheduleDispatch({ serverState: data });
     };
 
     // Client indicators listener
     const handleClientIndicators = (data: ClientIndicatorsUpdatedEvent) => {
-      dispatch({ clientIndicators: data });
+      scheduleDispatch({ clientIndicators: data });
     };
 
     const unsubscribeBus = EventBus.on('marketStateUpdated', handleMarketUpdate);
@@ -585,6 +603,8 @@ export const LiveFeed: React.FC<LiveFeedProps> = memo(props => {
       unsubscribeScreen();
       unsubscribeBus();
       unsubscribeIndicators();
+      pendingDispatchTimers.forEach(timer => clearTimeout(timer));
+      pendingDispatchTimers.clear();
     };
   }, [props.marketData.pair]);
 

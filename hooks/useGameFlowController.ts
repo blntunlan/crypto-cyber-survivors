@@ -114,8 +114,9 @@ export const useGameFlowController = ({
   }, [runStatsTotalKills, marketData.pnl, marketData.effectivePnl]);
 
   const handleLevelUp = useCallback(() => {
+    if (!GameStateMachine.transition(GameStatus.LEVEL_UP)) return;
+
     healFull();
-    GameStateMachine.transition(GameStatus.LEVEL_UP);
     const choices = CardSystem.generateChoices(
       playerRef.current.luck,
       playerRef.current.level,
@@ -169,9 +170,13 @@ export const useGameFlowController = ({
       if (isGameOverProcessingRef.current) return;
       isGameOverProcessingRef.current = true;
 
+      if (!GameStateMachine.transition(GameStatus.GAMEOVER)) {
+        isGameOverProcessingRef.current = false;
+        return;
+      }
+
       frozenPnlRef.current = marketData.pnl;
       difficultyContext.reset();
-      GameStateMachine.transition(GameStatus.GAMEOVER);
 
       const tracker = PerformanceTracker.getInstance();
       tracker.stop();
@@ -300,10 +305,13 @@ export const useGameFlowController = ({
     }) => {
       Logger.debug(`[App] handleCycleComplete triggered. Mode=${gameMode}`, data);
       if (gameMode !== GameMode.COMPETITIVE) return;
+      if (gameStatus !== GameStatus.PLAYING) return;
       if (data.cycleNumber <= lastProcessedCycleRef.current) return;
-      lastProcessedCycleRef.current = data.cycleNumber;
+      if (!GameStateMachine.canTransition(GameStatus.CYCLE_COMPLETE)) return;
 
       const snapshot = cycleSnapshotRef.current;
+      const previousProcessedCycle = lastProcessedCycleRef.current;
+      lastProcessedCycleRef.current = data.cycleNumber;
       setCycleData({
         cycleNumber: data.cycleNumber,
         survivalTimeSeconds: data.totalElapsedSeconds,
@@ -314,12 +322,16 @@ export const useGameFlowController = ({
         coinsEarned: 0,
         continueMultiplier: 1 + data.cycleNumber * 0.5,
       });
-      GameStateMachine.transition(GameStatus.CYCLE_COMPLETE);
+
+      if (!GameStateMachine.transition(GameStatus.CYCLE_COMPLETE)) {
+        lastProcessedCycleRef.current = previousProcessedCycle;
+        setCycleData(null);
+      }
     };
 
     const unsubscribe = EventBus.on('cycleComplete', handleCycleComplete);
     return () => unsubscribe();
-  }, [gameMode, playerRef]);
+  }, [gameMode, gameStatus, playerRef]);
 
   const handleCashOut = useCallback(async () => {
     if (!cycleData) return;

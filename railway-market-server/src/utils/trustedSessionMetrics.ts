@@ -11,6 +11,7 @@ const PNL_TOLERANCE = 0.005;
 export type VerifyPayload = z.infer<typeof verifySessionSchema>['payload'];
 
 export interface SessionSnapshot {
+  createdAt?: Date | string | null;
   entryPrice: number | null;
   exitPrice: number | null;
   survivalSeconds: number | null;
@@ -33,6 +34,10 @@ export interface TrustedMetricsResult {
   suspiciousFlags: string[];
 }
 
+interface TrustedMetricsOptions {
+  nowMs?: number;
+}
+
 const hasPositiveNumber = (value: number | null | undefined): value is number => {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 };
@@ -48,6 +53,24 @@ const isWithinTolerance = (
 ): boolean => {
   const baseline = Math.max(Math.abs(left), Math.abs(right), 1);
   return Math.abs(left - right) <= baseline * toleranceRatio;
+};
+
+const getSessionAgeSeconds = (
+  createdAt: Date | string | null | undefined,
+  nowMs: number
+): number | null => {
+  if (!createdAt) {
+    return null;
+  }
+
+  const createdAtMs =
+    createdAt instanceof Date ? createdAt.getTime() : Date.parse(createdAt);
+
+  if (!Number.isFinite(createdAtMs)) {
+    return null;
+  }
+
+  return Math.max(0, Math.floor((nowMs - createdAtMs) / 1000));
 };
 
 export const calculateRawPnlFromPrices = (
@@ -72,7 +95,8 @@ export const calculateLeveragedRewardPnl = (rawPnl: number, leverage: number): n
 
 export const deriveTrustedSessionMetrics = (
   payload: VerifyPayload,
-  snapshot: SessionSnapshot
+  snapshot: SessionSnapshot,
+  options: TrustedMetricsOptions = {}
 ): TrustedMetricsResult => {
   const suspiciousFlags: string[] = [];
 
@@ -97,9 +121,17 @@ export const deriveTrustedSessionMetrics = (
     throw new Error('STREAK_EXCEEDS_KILLS');
   }
 
-  const maxPlausibleKills = Math.ceil(survivalSeconds * MAX_KILLS_PER_SECOND);
-  if (kills > maxPlausibleKills) {
-    throw new Error('KILL_RATE_IMPLAUSIBLE');
+  const sessionAgeSeconds = getSessionAgeSeconds(
+    snapshot.createdAt,
+    options.nowMs ?? Date.now()
+  );
+  if (sessionAgeSeconds !== null) {
+    const maxServerBackedDuration =
+      sessionAgeSeconds + SYNC_DURATION_GRACE_SECONDS;
+    if (survivalSeconds > maxServerBackedDuration) {
+      survivalSeconds = Math.max(MIN_SESSION_SECONDS, maxServerBackedDuration);
+      suspiciousFlags.push('duration_clamped_to_server_age');
+    }
   }
 
   if (
@@ -140,6 +172,11 @@ export const deriveTrustedSessionMetrics = (
   if (trustedLevelSnapshot !== null && level > trustedLevelSnapshot) {
     level = trustedLevelSnapshot;
     suspiciousFlags.push('level_clamped_to_sync');
+  }
+
+  const maxPlausibleKills = Math.ceil(survivalSeconds * MAX_KILLS_PER_SECOND);
+  if (kills > maxPlausibleKills) {
+    throw new Error('KILL_RATE_IMPLAUSIBLE');
   }
 
   if (maxStreak > kills) {

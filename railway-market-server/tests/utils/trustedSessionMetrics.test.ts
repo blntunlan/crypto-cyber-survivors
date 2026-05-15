@@ -60,6 +60,80 @@ describe('trustedSessionMetrics', () => {
     expect(result.suspiciousFlags).not.toContain('level_clamped_to_sync');
   });
 
+  it('clamps survival duration to server session age', () => {
+    const createdAtMs = Date.parse('2026-01-01T00:00:00.000Z');
+    const result = deriveTrustedSessionMetrics(
+      {
+        ...basePayload,
+        survivalSeconds: 120,
+      },
+      {
+        createdAt: new Date(createdAtMs),
+        entryPrice: null,
+        exitPrice: null,
+        survivalSeconds: null,
+        kills: null,
+        level: null,
+      },
+      {
+        nowMs: createdAtMs + 20_000,
+      }
+    );
+
+    expect(result.metrics.survivalSeconds).toBe(25);
+    expect(result.suspiciousFlags).toContain('duration_clamped_to_server_age');
+  });
+
+  it('does not let synced duration exceed server session age', () => {
+    const createdAtMs = Date.parse('2026-01-01T00:00:00.000Z');
+    const result = deriveTrustedSessionMetrics(
+      {
+        ...basePayload,
+        survivalSeconds: 120,
+      },
+      {
+        createdAt: new Date(createdAtMs),
+        entryPrice: null,
+        exitPrice: null,
+        survivalSeconds: 110,
+        kills: null,
+        level: null,
+      },
+      {
+        nowMs: createdAtMs + 20_000,
+      }
+    );
+
+    expect(result.metrics.survivalSeconds).toBe(25);
+    expect(result.suspiciousFlags).toEqual(['duration_clamped_to_server_age']);
+  });
+
+  it('rejects kill rates against final clamped duration', () => {
+    const createdAtMs = Date.parse('2026-01-01T00:00:00.000Z');
+
+    expect(() =>
+      deriveTrustedSessionMetrics(
+        {
+          ...basePayload,
+          survivalSeconds: 120,
+          kills: 1_000,
+          maxStreak: 50,
+        },
+        {
+          createdAt: new Date(createdAtMs),
+          entryPrice: null,
+          exitPrice: null,
+          survivalSeconds: null,
+          kills: null,
+          level: null,
+        },
+        {
+          nowMs: createdAtMs + 20_000,
+        }
+      )
+    ).toThrowError('KILL_RATE_IMPLAUSIBLE');
+  });
+
   it('preserves high levels that are valid for market-boosted gameplay', () => {
     const result = deriveTrustedSessionMetrics(
       {
