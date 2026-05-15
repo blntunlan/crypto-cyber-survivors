@@ -6,7 +6,7 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { updateViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
@@ -38,6 +38,7 @@ interface NearestEnemy {
  */
 export class CombatSystem implements ICombatSystem {
   private static instance: CombatSystem | null = null;
+  private _viewportBounds: ViewportBounds = { left: 0, right: 0, top: 0, bottom: 0 };
   private audio: IAudioService;
 
   /**
@@ -137,10 +138,11 @@ export class CombatSystem implements ICombatSystem {
     screenHeight?: number
   ): NearestEnemy | null {
     // Cache viewport bounds calculation to avoid redundant math in the loop
-    const viewportBounds =
-      screenWidth !== undefined && screenHeight !== undefined
-        ? createViewportBounds(screenWidth, screenHeight, 0)
-        : null;
+    let viewportBounds: ViewportBounds | null = null;
+    if (screenWidth !== undefined && screenHeight !== undefined) {
+      updateViewportBounds(this._viewportBounds, screenWidth, screenHeight, 0);
+      viewportBounds = this._viewportBounds;
+    }
 
     let bestCandidate: { x: number; y: number; distSq: number; speed: number } | null =
       null;

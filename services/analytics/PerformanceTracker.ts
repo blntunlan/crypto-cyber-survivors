@@ -143,7 +143,9 @@ export class PerformanceTracker {
 
     this.isActive = false;
     if (this.animationId !== null) {
-      cancelAnimationFrame(this.animationId);
+      if (typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(this.animationId);
+      }
       this.animationId = null;
     }
     Logger.info('[PerformanceTracker] Stopped');
@@ -187,7 +189,9 @@ export class PerformanceTracker {
       this.lastSampleTime = now;
     }
 
-    this.animationId = requestAnimationFrame(this.loop);
+    if (typeof requestAnimationFrame !== 'undefined') {
+      this.animationId = requestAnimationFrame(this.loop);
+    }
   };
 
   /**
