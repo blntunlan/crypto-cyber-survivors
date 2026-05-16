@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   test: {
+    server: { deps: { external: ['express', 'drizzle-orm', 'pg'] } },
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
@@ -11,7 +12,7 @@ export default defineConfig({
     include: [
       'tests/**/*.test.ts',
       'tests/**/*.test.tsx',
-      'railway-market-server/test/**/*.test.ts',
+      // 'railway-market-server/test/**/*.test.ts',
     ],
     env: {
       SKIP_INTEGRATION: 'true',

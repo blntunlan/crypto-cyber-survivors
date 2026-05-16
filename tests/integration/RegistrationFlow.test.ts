@@ -18,6 +18,8 @@ const isCI = process.env.CI === 'true';
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
     UserSessionService.clearUser();
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
 
     // Bypass localhost check to trigger real-world-like Supabase path
     Object.defineProperty(window, 'location', {
