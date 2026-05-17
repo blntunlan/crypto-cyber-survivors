@@ -22,6 +22,11 @@ import { difficultyContext } from '../difficulty/DifficultyContext';
 export class ProjectileRenderer implements IRenderer {
   private static instance: ProjectileRenderer | null = null;
 
+  // Reusable arrays for Retro mode batching to prevent per-frame GC allocation
+  private batchSuperCrits: Bullet[] = [];
+  private batchCrits: Bullet[] = [];
+  private batchNormals: Bullet[] = [];
+
   public static getInstance(): ProjectileRenderer {
     return (ProjectileRenderer.instance ??= new ProjectileRenderer());
   }
@@ -54,14 +59,16 @@ export class ProjectileRenderer implements IRenderer {
     // 2. Optimized Rendering Path
     if (isRetro) {
       // Group by tier for batching fillStyle in retro mode
-
-      // Group by tier for batching fillStyle in retro mode
       const bullets = pool.activeBullets;
       const count = bullets.length;
 
-      const superCrits: Bullet[] = [];
-      const crits: Bullet[] = [];
-      const normals: Bullet[] = [];
+      // Reuse arrays to prevent GC overhead
+      this.batchSuperCrits.length = 0;
+      this.batchCrits.length = 0;
+      this.batchNormals.length = 0;
+      const superCrits = this.batchSuperCrits;
+      const crits = this.batchCrits;
+      const normals = this.batchNormals;
 
       for (let i = 0; i < count; i++) {
         const b = bullets[i]!;
