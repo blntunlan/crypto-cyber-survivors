@@ -1,0 +1,3 @@
+## 2024-05-17 - SpatialGrid Hybrid Clearing Strategy
+**Learning:** Re-inserting elements into a `Map` every frame causes unnecessary allocations and lookup overhead compared to keeping the keys around. However, keeping all keys indefinitely causes unbounded Map growth.
+**Action:** Use a hybrid clearing strategy for frame-based spatial grids. Iterate `Map.entries()`. If a cell is empty (meaning it had length 0 from the *previous* frame and wasn't populated this frame), `Map.delete(key)` and return the array to the pool. If it has elements, just set `length = 0`. This eliminates `Map.set` overhead for stationary/slow-moving objects without causing memory leaks.
