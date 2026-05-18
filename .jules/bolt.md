@@ -1,0 +1,3 @@
+## 2024-04-21 - SpatialGrid Hybrid Clearing Strategy
+**Learning:** In SpatialGrid, clearing the entire map and re-inserting every frame can cause unbounded Map growth or unnecessary deletion/re-insertion overhead. We have a directive: "To reduce GC pressure and iteration overhead in SpatialGrid, use a hybrid clearing strategy: reuse arrays for active cells (.length = 0), and for empty cells (.length === 0 from the previous frame) push them back to an array pool and delete their keys (map.delete(key)). This prevents unbounded map growth while maintaining fast iteration."
+**Action:** Implement this hybrid clearing strategy in SpatialGrid.ts.
