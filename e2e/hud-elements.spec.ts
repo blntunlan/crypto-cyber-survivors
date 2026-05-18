@@ -86,8 +86,16 @@ test.describe('HUD Elements E2E', () => {
       await expect(page.locator('text=/DMG/i').first()).toBeVisible();
     } else {
       // Mobile HUD uses compact labels; verify persistent health/status anchors.
-      await expect(page.getByText(/^LEVEL$/i).first()).toBeVisible();
-      await expect(page.getByText(/^P&L$/i).first()).toBeVisible();
+      const overlay = page.locator('#game-ui-overlay');
+      await expect(overlay.getByText(/^(LV|LVL|LEVEL)$/i).first()).toBeVisible();
+      await expect(overlay.getByText(/^Active$/i).first()).toBeVisible();
+      await expect(
+        overlay
+          .getByText(
+            /^(EQUITY SECURE|MARGIN CAUTION|MARGIN PRESSURE|LIQUIDATION RISK)$/i
+          )
+          .first()
+      ).toBeVisible();
     }
   });
 

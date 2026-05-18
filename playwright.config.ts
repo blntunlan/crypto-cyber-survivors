@@ -28,8 +28,9 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Limit workers
-  workers: process.env.CI ? 1 : '50%',
+  // Limit workers. The full browser matrix is resource-heavy enough that 50%
+  // local parallelism can starve the Vite dev server and produce connection flakes.
+  workers: process.env.CI ? 1 : 4,
 
   // Reporter
   reporter: [['html', { open: 'never' }], ['list']],
@@ -70,6 +71,7 @@ export default defineConfig({
 
     {
       name: 'firefox',
+      workers: 1,
       use: { ...devices['Desktop Firefox'] },
     },
     {

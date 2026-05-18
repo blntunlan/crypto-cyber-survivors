@@ -29,3 +29,27 @@ export function trackRender(componentName: string) {
     console.warn(`[PERF] ${componentName} has rendered ${count} times`);
   }
 }
+
+export interface RenderDiagnosticsEntry {
+  component: string;
+  renders: number;
+}
+
+export interface RenderDiagnosticsSnapshot {
+  totalRenders: number;
+  rendersSinceLastCheck: number;
+  topComponents: RenderDiagnosticsEntry[];
+}
+
+export function getRenderDiagnosticsSnapshot(
+  limit: number = 20
+): RenderDiagnosticsSnapshot {
+  return {
+    totalRenders,
+    rendersSinceLastCheck,
+    topComponents: [...renderCounts.entries()]
+      .map(([component, renders]) => ({ component, renders }))
+      .sort((a, b) => b.renders - a.renders)
+      .slice(0, limit),
+  };
+}

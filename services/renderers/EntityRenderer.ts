@@ -43,7 +43,8 @@ export class EntityRenderer implements IRenderer {
     opts: RenderOptions
   ): void {
     const perfConfig = DeviceBenchmarkService.getPerformanceConfig();
-    const shadowsEnabled = perfConfig.shadowsEnabled && !this.isMobileDevice;
+    const shadowsEnabled =
+      perfConfig.shadowsEnabled && !opts.graphics.disableGlow && !this.isMobileDevice;
 
     // Boundary Check: 50px padding to ensure smooth entry into screen
     const bounds = createViewportBounds(

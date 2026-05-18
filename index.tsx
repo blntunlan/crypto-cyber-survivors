@@ -10,6 +10,9 @@ if (import.meta.env.DEV) {
 
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { applyRuntimeDebugDocumentFlags } from './config/RuntimeDebugFlags';
+
+applyRuntimeDebugDocumentFlags();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

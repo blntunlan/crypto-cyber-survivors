@@ -4,6 +4,7 @@ import { trackRender } from '../../utils/trackRender';
 import { EventBus } from '../../services/core/EventBus';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Z_LAYERS } from '../../constants/ZIndex';
+import { RuntimeDiagnosticsService } from '../../services/system/RuntimeDiagnosticsService';
 import './hud-animations.css';
 
 interface Notification {
@@ -19,40 +20,140 @@ interface Notification {
 const text = (value: string | string[]): string =>
   Array.isArray(value) ? value.join(' ') : value;
 
-export const NotificationSystem: React.FC = () => {
+const MAX_VISIBLE_NOTIFICATIONS = 5;
+const DUPLICATE_NOTIFICATION_COOLDOWN_MS = 5000;
+
+const NotificationSystemComponent: React.FC = () => {
   trackRender('NotificationSystem');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { t } = useLanguage();
+  const notificationsRef = useRef<Notification[]>([]);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const lastNotificationByKeyRef = useRef<Map<string, number>>(new Map());
 
   // Cleanup all timers on unmount
   useEffect(() => {
     const timers = timersRef.current;
+    const lastNotificationByKey = lastNotificationByKeyRef.current;
     return () => {
       timers.forEach(timer => clearTimeout(timer));
       timers.clear();
+      notificationsRef.current = [];
+      lastNotificationByKey.clear();
     };
   }, []);
 
-  const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
-    const id = Math.random().toString(36).substring(2, 11);
-    const newNotification = { ...notification, id };
-
-    setNotifications(prev => [...prev, newNotification]);
-
-    // Auto remove after specified duration or 5 seconds default
-    const duration = notification.duration ?? 5000;
-    const timerId = setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
+  const removeNotification = useCallback((id: string) => {
+    const timer = timersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
       timersRef.current.delete(id);
-    }, duration);
-    timersRef.current.set(id, timerId);
-
-    if (notification.type === 'error') {
-      // Logic removed to prevent infinite loop.
-      // Errors are already logged before reaching here via the Logger -> App -> Notification bridge.
     }
+    const next = notificationsRef.current.filter(n => n.id !== id);
+    notificationsRef.current = next;
+    setNotifications(next);
   }, []);
+
+  const clearNotifications = useCallback(() => {
+    timersRef.current.forEach(timer => clearTimeout(timer));
+    timersRef.current.clear();
+    lastNotificationByKeyRef.current.clear();
+    notificationsRef.current = [];
+    setNotifications([]);
+  }, []);
+
+  const addNotification = useCallback(
+    (notification: Omit<Notification, 'id'>) => {
+      const now = Date.now();
+      const notificationKey = `${notification.type}|${notification.title}|${notification.message}`;
+      const lastSeenAt = lastNotificationByKeyRef.current.get(notificationKey);
+
+      for (const [key, seenAt] of lastNotificationByKeyRef.current) {
+        if (now - seenAt > DUPLICATE_NOTIFICATION_COOLDOWN_MS) {
+          lastNotificationByKeyRef.current.delete(key);
+        }
+      }
+
+      if (
+        lastSeenAt !== undefined &&
+        now - lastSeenAt < DUPLICATE_NOTIFICATION_COOLDOWN_MS
+      ) {
+        RuntimeDiagnosticsService.recordDebugSignal({
+          source: 'NotificationSystem',
+          code: 'NOTIFICATION_DEDUPED',
+          message: `${notification.title}: ${notification.message}`,
+          count: 1,
+          metadata: {
+            type: notification.type,
+            cooldownMs: DUPLICATE_NOTIFICATION_COOLDOWN_MS,
+          },
+        });
+        return;
+      }
+
+      lastNotificationByKeyRef.current.set(notificationKey, now);
+      const id = Math.random().toString(36).substring(2, 11);
+      const newNotification = { ...notification, id };
+      const duration = notification.duration ?? 5000;
+
+      RuntimeDiagnosticsService.recordDebugSignal({
+        source: 'NotificationSystem',
+        code: 'NOTIFICATION_ADDED',
+        message: `${notification.title}: ${notification.message}`,
+        count: 1,
+        metadata: {
+          type: notification.type,
+          durationMs: duration,
+        },
+      });
+
+      const nextWithNewNotification = [...notificationsRef.current, newNotification];
+      const dropCount = Math.max(
+        0,
+        nextWithNewNotification.length - MAX_VISIBLE_NOTIFICATIONS
+      );
+      if (dropCount > 0) {
+        const dropped = nextWithNewNotification.slice(0, dropCount);
+        for (let i = 0; i < dropped.length; i += 1) {
+          const droppedNotification = dropped[i];
+          if (!droppedNotification) continue;
+          const timer = timersRef.current.get(droppedNotification.id);
+          if (timer) {
+            clearTimeout(timer);
+            timersRef.current.delete(droppedNotification.id);
+          }
+          RuntimeDiagnosticsService.recordDebugSignal({
+            source: 'NotificationSystem',
+            code: 'NOTIFICATION_DROPPED',
+            message: `${droppedNotification.title}: ${droppedNotification.message}`,
+            count: 1,
+            metadata: {
+              type: droppedNotification.type,
+              visibleLimit: MAX_VISIBLE_NOTIFICATIONS,
+            },
+          });
+        }
+      }
+      const nextNotifications =
+        dropCount > 0
+          ? nextWithNewNotification.slice(dropCount)
+          : nextWithNewNotification;
+      notificationsRef.current = nextNotifications;
+      setNotifications(nextNotifications);
+
+      // Auto remove after specified duration or 5 seconds default
+      const timerId = setTimeout(() => {
+        removeNotification(id);
+      }, duration);
+      timersRef.current.set(id, timerId);
+
+      if (notification.type === 'error') {
+        // Logic removed to prevent infinite loop.
+        // Errors are already logged before reaching here via the Logger -> App -> Notification bridge.
+      }
+    },
+    [removeNotification]
+  );
 
   const lastRSINotificationTime = useRef<number>(0);
   const RSI_NOTIFICATION_COOLDOWN = 10000; // 10 seconds
@@ -183,7 +284,7 @@ export const NotificationSystem: React.FC = () => {
     const unsubRSI = EventBus.on('rsiStateChanged', handleRSI);
     const unsubNotify = EventBus.on('gameNotification', handleNotification);
     const unsubMarketEvent = EventBus.on('gameMarketEvent', handleMarketEvent);
-    const unsubReset = EventBus.on('gameReset', () => setNotifications([]));
+    const unsubReset = EventBus.on('gameReset', clearNotifications);
 
     return () => {
       unsubRSI();
@@ -191,7 +292,7 @@ export const NotificationSystem: React.FC = () => {
       unsubMarketEvent();
       unsubReset();
     };
-  }, [t, addNotification]);
+  }, [t, addNotification, clearNotifications]);
 
   return (
     <div className="notification-system-container">
@@ -214,9 +315,7 @@ export const NotificationSystem: React.FC = () => {
             </div>
             <button
               className="notification-close"
-              onClick={() =>
-                setNotifications(prev => prev.filter(n => n.id !== notification.id))
-              }
+              onClick={() => removeNotification(notification.id)}
             >
               ×
             </button>
@@ -324,3 +423,7 @@ export const NotificationSystem: React.FC = () => {
     </div>
   );
 };
+
+NotificationSystemComponent.displayName = 'NotificationSystem';
+
+export const NotificationSystem = React.memo(NotificationSystemComponent);

@@ -60,6 +60,7 @@ export class GameRenderer implements IGameRenderer {
       showParticles: true,
       showDamageNumbers: true,
       showScreenShake: true,
+      disableGlow: false,
     }
   ): void {
     ctx.save();
@@ -124,12 +125,16 @@ export class GameRenderer implements IGameRenderer {
       }
     }
 
-    this.drawPortal(ctx, state);
+    this.drawPortal(ctx, state, Boolean(graphics.disableGlow));
 
     ctx.restore();
   }
 
-  private drawPortal(ctx: CanvasRenderingContext2D, _state: GameState): void {
+  private drawPortal(
+    ctx: CanvasRenderingContext2D,
+    _state: GameState,
+    disableGlow: boolean
+  ): void {
     const portal = portalSystem.getState();
     if (!portal.isActive) return;
 
@@ -171,8 +176,10 @@ export class GameRenderer implements IGameRenderer {
     ctx.beginPath();
     ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
     ctx.fillStyle = '#000000';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = type === 'TAKE_PROFIT' ? '#00FF88' : '#FF4444';
+    if (!disableGlow) {
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = type === 'TAKE_PROFIT' ? '#00FF88' : '#FF4444';
+    }
     ctx.fill();
 
     // 3. Extraction Progress Text (Optional/Visual)

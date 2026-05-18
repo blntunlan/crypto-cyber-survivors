@@ -199,6 +199,11 @@ const App: React.FC = () => {
       window.history.pushState(null, '', getLocalizedPublicPath('/'));
     }
   };
+  const isLiveGameSurface =
+    !showLanding &&
+    (gameStatus === GameStatus.PLAYING ||
+      gameStatus === GameStatus.PAUSED ||
+      gameStatus === GameStatus.LEVEL_UP);
 
   useEffect(() => {
     Logger.info('[MarketRuntime] Mode initialized', {
@@ -342,6 +347,7 @@ const App: React.FC = () => {
           </React.Suspense>
         )}
         <div
+          data-runtime-gameplay-active={isLiveGameSurface ? 'true' : 'false'}
           className={cn(
             'relative h-screen w-full font-mono',
             showLanding ? 'bg-transparent' : 'bg-slate-950',

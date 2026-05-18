@@ -11,11 +11,30 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   await page.reload();
 
   const topNav = page.locator('nav').first();
-  const desktopNav = topNav.locator('div.hidden.lg\\:flex');
-  const navTexts = await desktopNav.locator('a,button').allTextContents();
+  const navTexts = await topNav.locator('a,button').allTextContents();
   const hasNumericPrefix = navTexts.some(text => /^\s*\d+\./.test(text.trim()));
   expect(hasNumericPrefix).toBe(false);
-  expect(navTexts.some(text => /TEAM/i.test(text))).toBe(true);
+  const viewportWidth = page.viewportSize()?.width ?? 0;
+  if (viewportWidth >= 1024) {
+    await expect(topNav.getByRole('link', { name: /^TEAM$/i })).toBeVisible();
+  } else {
+    const openMenu = topNav.getByRole('button', { name: /^Open menu$/i });
+    await expect(openMenu).toBeVisible();
+    await openMenu.click();
+
+    const mobileMenu = page.getByRole('navigation').filter({
+      has: page.getByRole('button', { name: /^Close menu$/i }),
+    });
+    await expect(mobileMenu.getByRole('link', { name: /^TEAM$/i })).toBeVisible();
+    const mobileNavTexts = await mobileMenu.locator('a,button').allTextContents();
+    const mobileHasNumericPrefix = mobileNavTexts.some(text =>
+      /^\s*\d+\./.test(text.trim())
+    );
+    expect(mobileHasNumericPrefix).toBe(false);
+
+    await mobileMenu.getByRole('button', { name: /^Close menu$/i }).click();
+    await expect(mobileMenu).toBeHidden();
+  }
   await topNav.screenshot({ path: 'output/startup-audit-nav.png' });
 
   await expect(page.getByText('Technology / How It Works')).toBeVisible();

@@ -22,6 +22,7 @@ import { EventBus } from '../core/EventBus';
 import { Logger } from './Logger';
 import { type CheatType } from '../../types/events';
 import { railwayClient } from '../api/RailwayClient';
+import { RuntimeDiagnosticsService } from './RuntimeDiagnosticsService';
 
 // =============================================================================
 // TYPES
@@ -52,7 +53,7 @@ const DEFAULT_ANTI_CHEAT_CONFIG: AntiCheatConfig = {
   detectDevTools: true,
   detectDebugger: true,
   enableIntegrityChecks: true,
-  detectSpeedHack: true,
+  detectSpeedHack: import.meta.env.VITE_ANTI_CHEAT_SPEED_HACK_ENABLED === 'true',
   reportToServer: true,
   debugMode: import.meta.env.DEV,
 };
@@ -72,7 +73,15 @@ class AntiCheatServiceClass {
   private fingerprint: string = '';
   private criticalValues: Map<string, CriticalValue> = new Map();
   private warningCounts: Map<CheatType, number> = new Map();
+  private lastWarningAtByType: Map<CheatType, number> = new Map();
+  private escalatedWarnings: Set<CheatType> = new Set();
   private speedHackSamples: number[] = [];
+  private speedHackSortedSamples: number[] = [];
+  private speedHackSampleCount = 0;
+  private speedHackSampleWriteIndex = 0;
+  private speedHackSampleTotal = 0;
+  private speedHackSamplesSinceAnalysis = 0;
+  private speedHackBaselineMs = 0;
 
   // Intervals
   private devToolsInterval: ReturnType<typeof setInterval> | null = null;
@@ -86,7 +95,14 @@ class AntiCheatServiceClass {
   // Thresholds
   private readonly DEVTOOLS_THRESHOLD = 160; // px difference
   private readonly DEBUGGER_PAUSE_THRESHOLD = 100; // ms
-  private readonly SPEED_HACK_TOLERANCE = 0.15; // 15% deviation
+  private readonly SPEED_HACK_TOLERANCE = 0.35; // 35% faster than local baseline
+  private readonly SPEED_HACK_BASELINE_PERCENTILE = 0.2;
+  private readonly SPEED_HACK_BASELINE_SAMPLE_COUNT = 60;
+  private readonly SPEED_HACK_SAMPLE_WINDOW = 90;
+  private readonly SPEED_HACK_ANALYSIS_INTERVAL_SAMPLES = 15;
+  private readonly SPEED_HACK_MAX_REASONABLE_DELTA_MS = 250;
+  private readonly SPEED_HACK_MIN_BASELINE_MS = 4;
+  private readonly WARNING_COOLDOWN_MS = 10000;
   private readonly MAX_WARNINGS = 3;
 
   private constructor() {
@@ -217,6 +233,8 @@ class AntiCheatServiceClass {
     this.integrityInterval = null;
     this.speedHackAnimationFrameId = null;
     this.speedHackDetectionActive = false;
+    this.resetSpeedHackSamples();
+    this.speedHackBaselineMs = 0;
     this.devToolsResizeHandler = null;
     this.contextMenuHandler = null;
     this.initialized = false;
@@ -233,7 +251,10 @@ class AntiCheatServiceClass {
       this.instance.fingerprint = '';
       this.instance.criticalValues.clear();
       this.instance.warningCounts.clear();
-      this.instance.speedHackSamples = [];
+      this.instance.lastWarningAtByType.clear();
+      this.instance.escalatedWarnings.clear();
+      this.instance.resetSpeedHackSamples();
+      this.instance.speedHackBaselineMs = 0;
     }
   }
 
@@ -323,24 +344,54 @@ class AntiCheatServiceClass {
       const delta = now - lastTime;
       lastTime = now;
 
-      // Collect samples
-      this.speedHackSamples.push(delta);
-      if (this.speedHackSamples.length > 60) {
-        this.speedHackSamples.shift();
+      if (
+        (typeof document !== 'undefined' && document.hidden) ||
+        delta <= 0 ||
+        delta > this.SPEED_HACK_MAX_REASONABLE_DELTA_MS
+      ) {
+        this.speedHackAnimationFrameId = requestAnimationFrame(frameCallback);
+        return;
       }
 
-      // Analyze after collecting enough samples
-      if (this.speedHackSamples.length >= 30) {
-        const avgDelta =
-          this.speedHackSamples.reduce((a, b) => a + b, 0) /
-          this.speedHackSamples.length;
-        const expectedDelta = 1000 / 60; // ~16.67ms for 60fps
+      this.recordSpeedHackSample(delta);
 
-        // Check if game is running too fast
-        if (avgDelta < expectedDelta * (1 - this.SPEED_HACK_TOLERANCE)) {
+      if (
+        this.speedHackBaselineMs === 0 &&
+        this.speedHackSampleCount >= this.SPEED_HACK_BASELINE_SAMPLE_COUNT
+      ) {
+        this.speedHackBaselineMs = Math.max(
+          this.SPEED_HACK_MIN_BASELINE_MS,
+          this.calculateSpeedHackPercentile(this.SPEED_HACK_BASELINE_PERCENTILE)
+        );
+        this.speedHackSamplesSinceAnalysis = 0;
+      }
+
+      if (this.speedHackBaselineMs > 0) {
+        const avgDelta = this.calculateSpeedHackAverage();
+        if (
+          this.speedHackSamplesSinceAnalysis >=
+          this.SPEED_HACK_ANALYSIS_INTERVAL_SAMPLES
+        ) {
+          const rollingBaseline = Math.max(
+            this.SPEED_HACK_MIN_BASELINE_MS,
+            this.calculateSpeedHackPercentile(this.SPEED_HACK_BASELINE_PERCENTILE)
+          );
+          if (
+            rollingBaseline < this.speedHackBaselineMs &&
+            rollingBaseline >=
+              this.speedHackBaselineMs * (1 - this.SPEED_HACK_TOLERANCE)
+          ) {
+            this.speedHackBaselineMs = rollingBaseline;
+          }
+          this.speedHackSamplesSinceAnalysis = 0;
+        }
+
+        // RAF cadence is not hard proof of cheating; treat it as telemetry only.
+        if (avgDelta < this.speedHackBaselineMs * (1 - this.SPEED_HACK_TOLERANCE)) {
           this.onCheatWarning(
             'SPEED_HACK',
-            `Abnormal game speed detected (${avgDelta.toFixed(2)}ms avg)`
+            `Abnormal game speed detected (${avgDelta.toFixed(2)}ms avg)`,
+            { cooldownMs: this.WARNING_COOLDOWN_MS, escalate: false }
           );
         }
       }
@@ -369,7 +420,34 @@ class AntiCheatServiceClass {
   /**
    * Handle soft detection (warning)
    */
-  private onCheatWarning(type: CheatType, message: string): void {
+  private onCheatWarning(
+    type: CheatType,
+    message: string,
+    options: { cooldownMs?: number; escalate?: boolean } = {}
+  ): void {
+    if (this.escalatedWarnings.has(type)) {
+      RuntimeDiagnosticsService.recordDebugSignal({
+        source: 'AntiCheatService',
+        code: 'ANTI_CHEAT_WARNING',
+        message,
+        count: this.warningCounts.get(type) ?? this.MAX_WARNINGS,
+        metadata: {
+          type,
+          suppressedAfterDetection: true,
+        },
+      });
+      return;
+    }
+
+    const now = Date.now();
+    if (options.cooldownMs) {
+      const lastWarningAt = this.lastWarningAtByType.get(type);
+      if (lastWarningAt !== undefined && now - lastWarningAt < options.cooldownMs) {
+        return;
+      }
+      this.lastWarningAtByType.set(type, now);
+    }
+
     const count = (this.warningCounts.get(type) ?? 0) + 1;
     this.warningCounts.set(type, count);
 
@@ -383,8 +461,23 @@ class AntiCheatServiceClass {
       warningCount: count,
     });
 
+    RuntimeDiagnosticsService.recordDebugSignal({
+      source: 'AntiCheatService',
+      code: 'ANTI_CHEAT_WARNING',
+      message,
+      count,
+      metadata: {
+        type,
+      },
+    });
+
     // Escalate to detection if too many warnings
-    if (count >= this.MAX_WARNINGS) {
+    if (
+      (options.escalate ?? true) &&
+      count >= this.MAX_WARNINGS &&
+      !this.escalatedWarnings.has(type)
+    ) {
+      this.escalatedWarnings.add(type);
       this.onCheatDetected(type, message, 5);
     }
   }
@@ -394,6 +487,17 @@ class AntiCheatServiceClass {
    */
   private onCheatDetected(type: CheatType, details: string, severity: number): void {
     Logger.error(`[AntiCheat] CHEAT DETECTED: ${type} - ${details}`);
+
+    RuntimeDiagnosticsService.recordDebugSignal({
+      source: 'AntiCheatService',
+      code: 'ANTI_CHEAT_DETECTED',
+      message: details,
+      count: severity,
+      metadata: {
+        type,
+        severity,
+      },
+    });
 
     const eventData = {
       type,
@@ -481,6 +585,62 @@ class AntiCheatServiceClass {
       hash = hash & hash;
     }
     return hash;
+  }
+
+  private recordSpeedHackSample(deltaMs: number): void {
+    const writeIndex =
+      this.speedHackSampleCount < this.SPEED_HACK_SAMPLE_WINDOW
+        ? this.speedHackSampleCount
+        : this.speedHackSampleWriteIndex;
+
+    if (this.speedHackSampleCount >= this.SPEED_HACK_SAMPLE_WINDOW) {
+      this.speedHackSampleTotal -= this.speedHackSamples[writeIndex] ?? 0;
+    } else {
+      this.speedHackSampleCount += 1;
+    }
+
+    this.speedHackSamples[writeIndex] = deltaMs;
+    this.speedHackSampleTotal += deltaMs;
+    this.speedHackSamplesSinceAnalysis += 1;
+
+    if (this.speedHackSampleCount >= this.SPEED_HACK_SAMPLE_WINDOW) {
+      this.speedHackSampleWriteIndex = (writeIndex + 1) % this.SPEED_HACK_SAMPLE_WINDOW;
+    }
+  }
+
+  private resetSpeedHackSamples(): void {
+    this.speedHackSamples.length = 0;
+    this.speedHackSortedSamples.length = 0;
+    this.speedHackSampleCount = 0;
+    this.speedHackSampleWriteIndex = 0;
+    this.speedHackSampleTotal = 0;
+    this.speedHackSamplesSinceAnalysis = 0;
+  }
+
+  private calculateSpeedHackAverage(): number {
+    if (this.speedHackSampleCount === 0) {
+      return 0;
+    }
+
+    return this.speedHackSampleTotal / this.speedHackSampleCount;
+  }
+
+  private calculateSpeedHackPercentile(percentile: number): number {
+    if (this.speedHackSampleCount === 0) {
+      return 0;
+    }
+
+    for (let i = 0; i < this.speedHackSampleCount; i += 1) {
+      this.speedHackSortedSamples[i] = this.speedHackSamples[i] ?? 0;
+    }
+    this.speedHackSortedSamples.length = this.speedHackSampleCount;
+    this.speedHackSortedSamples.sort((a, b) => a - b);
+
+    const index = Math.min(
+      this.speedHackSortedSamples.length - 1,
+      Math.max(0, Math.ceil(this.speedHackSortedSamples.length * percentile) - 1)
+    );
+    return this.speedHackSortedSamples[index] ?? 0;
   }
 }
 

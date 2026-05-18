@@ -43,10 +43,7 @@ export class DeviceBenchmarkServiceClass {
 
   constructor() {
     // Try to load from localStorage first
-    const hasStoredManualProfile = this.loadManualProfile();
-    if (hasStoredManualProfile) {
-      this.isManualMode = true;
-    }
+    this.isManualMode = this.loadManualProfile();
   }
 
   /**
@@ -62,7 +59,7 @@ export class DeviceBenchmarkServiceClass {
     };
     this.listeners.clear();
     this.cachedConfig = null;
-    this.loadManualProfile();
+    this.isManualMode = this.loadManualProfile();
   }
 
   /**
@@ -76,6 +73,7 @@ export class DeviceBenchmarkServiceClass {
       if (stored && Object.values(DeviceProfile).includes(stored as DeviceProfile)) {
         const profile = stored as DeviceProfile;
         this.cachedConfig = getPerformanceConfig(profile);
+        this.isManualMode = true;
         Logger.info('[Benchmark] Manual profile loaded from localStorage', { profile });
         return true;
       }
@@ -83,6 +81,17 @@ export class DeviceBenchmarkServiceClass {
       Logger.error('[Benchmark] Failed to load manual profile', err);
     }
     return false;
+  }
+
+  /**
+   * Returns true when a manual override is active in memory or persisted storage.
+   */
+  private hasManualOverride(): boolean {
+    if (this.isManualMode) {
+      return true;
+    }
+
+    return this.loadManualProfile();
   }
 
   /**
@@ -116,8 +125,6 @@ export class DeviceBenchmarkServiceClass {
    * @param forceRun If true, ignores cached results and runs full test
    */
   public async runBenchmark(forceRun = false): Promise<BenchmarkResult> {
-    const hasManualProfile = localStorage.getItem(MANUAL_PROFILE_KEY) !== null;
-
     // Check cache first (unless forced)
     if (!forceRun) {
       const cached = this.loadFromCache();
@@ -126,7 +133,7 @@ export class DeviceBenchmarkServiceClass {
         this.state.status = BenchmarkStatus.CACHED;
 
         // If NO manual profile exists, use benchmark result for active config
-        if (!hasManualProfile) {
+        if (!this.hasManualOverride()) {
           this.cachedConfig = getPerformanceConfig(cached.profile);
           Logger.info('[Benchmark] Using cached benchmark result for config', {
             profile: cached.profile,
@@ -150,7 +157,7 @@ export class DeviceBenchmarkServiceClass {
       this.state.progress = 100;
 
       // If NO manual profile exists, use benchmark result for active config
-      if (!hasManualProfile) {
+      if (!this.hasManualOverride()) {
         this.cachedConfig = getPerformanceConfig(result.profile);
       }
 
@@ -232,6 +239,7 @@ export class DeviceBenchmarkServiceClass {
       this.state.result = null;
       this.state.status = BenchmarkStatus.IDLE;
       this.cachedConfig = null;
+      this.isManualMode = false;
       this.notifyListeners();
     } catch {
       // ignore

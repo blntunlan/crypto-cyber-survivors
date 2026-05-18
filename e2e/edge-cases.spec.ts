@@ -142,11 +142,7 @@ test.describe('Edge Cases', () => {
     });
     await page.reload();
 
-    // Handle Hub Menu (Click PLAY if present)
-    const playHubButton = page.getByRole('button', { name: /PLAY|hub\.play/i }).first();
-    if (await playHubButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await goToMainMenuFromHub(page);
-    }
+    await goToMainMenuFromHub(page, 30_000);
 
     // Wait for any market readiness signal (connecting text OR actionable asset/menu).
     const connectingLabel = page.getByText(/CONNECTING\.\.\./i).first();

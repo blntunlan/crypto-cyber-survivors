@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PerformanceTracker } from '../../../services/analytics/PerformanceTracker';
+import { RuntimeDiagnosticsService } from '../../../services/system/RuntimeDiagnosticsService';
 
 describe('PerformanceTracker', () => {
   let tracker: PerformanceTracker;
@@ -7,6 +8,8 @@ describe('PerformanceTracker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     PerformanceTracker.resetForTesting();
+    RuntimeDiagnosticsService.stop();
+    RuntimeDiagnosticsService.reset();
     tracker = PerformanceTracker.getInstance();
     vi.useFakeTimers();
 
@@ -20,6 +23,8 @@ describe('PerformanceTracker', () => {
 
   afterEach(() => {
     tracker.stop();
+    RuntimeDiagnosticsService.stop();
+    RuntimeDiagnosticsService.reset();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });

@@ -24,6 +24,7 @@
 
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
+import { RuntimeDiagnosticsService } from '../system/RuntimeDiagnosticsService';
 
 // Import from extracted modules
 import {
@@ -163,6 +164,10 @@ export class ErrorTracker {
     }
     this.recentErrors.set(fingerprint, now);
     Logger.debug(`[ErrorTracker] captureError: ${errorType}`);
+    const enrichedContext: Record<string, unknown> = {
+      ...(context ?? {}),
+      runtimeDiagnostics: RuntimeDiagnosticsService.getTelemetryContext(),
+    };
 
     // Build report
     const report: ErrorReport = {
@@ -179,7 +184,7 @@ export class ErrorTracker {
       sessionId: getSessionId(),
       deviceFingerprint: getDeviceFingerprint(),
       nickname: UserSessionService.getNickname() ?? undefined,
-      context: sanitizeContext(context),
+      context: sanitizeContext(enrichedContext),
       breadcrumbs: [...this.breadcrumbs],
       gameContext: { ...this.gameContext },
       reportedAt: new Date().toISOString(),

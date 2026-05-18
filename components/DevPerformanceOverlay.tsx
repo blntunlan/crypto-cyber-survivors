@@ -11,8 +11,11 @@
  * Toggle with Alt+P
  */
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { renderCounts, totalRenders, resetRenderCheck } from '../utils/trackRender';
+import { RuntimeDiagnosticsService } from '../services/system/RuntimeDiagnosticsService';
+
+type OverlayTab = 'metrics' | 'game' | 'stutters' | 'renders' | 'errors';
 
 // ── Framer-motion animation tracker ──
 const animationStats = {
@@ -54,29 +57,6 @@ function stopMotionTracking() {
   }
 }
 
-// ── Long task observer ──
-function setupLongTaskObserver() {
-  if (typeof PerformanceObserver === 'undefined') return null;
-
-  try {
-    const observer = new PerformanceObserver(list => {
-      for (const entry of list.getEntries()) {
-        if (entry.duration > 50) {
-          console.warn(
-            `[PERF] Long task detected: ${entry.duration.toFixed(1)}ms`,
-            entry.name !== 'unknown' ? `(${entry.name})` : ''
-          );
-        }
-      }
-    });
-    observer.observe({ type: 'longtask', buffered: false });
-    return observer;
-  } catch {
-    // longtask not supported in all browsers
-    return null;
-  }
-}
-
 // ── Layout shift observer ──
 function setupLayoutShiftObserver() {
   if (typeof PerformanceObserver === 'undefined') return null;
@@ -110,6 +90,13 @@ function setupLayoutShiftObserver() {
 const errorLog: Array<{ time: number; message: string; type: 'error' | 'warn' }> = [];
 const MAX_ERROR_LOG = 50;
 
+const severityColor = (severity: string): string => {
+  if (severity === 'hitch' || severity === 'error') return '#ff4444';
+  if (severity === 'stutter') return '#f97316';
+  if (severity === 'slow') return '#fbbf24';
+  return '#4ade80';
+};
+
 function setupConsoleInterceptor() {
   const originalError = console.error;
   const originalWarn = console.warn;
@@ -138,81 +125,40 @@ function setupConsoleInterceptor() {
 
 // ── Overlay Component ──
 const OverlayContent = memo(() => {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<'metrics' | 'renders' | 'errors'>('metrics');
+  const [tab, setTab] = useState<OverlayTab>('metrics');
+  const [rendersPerSec, setRendersPerSec] = useState('0.0');
+  const [, forceRefresh] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const updateMetrics = useCallback(() => {
-    if (!panelRef.current) return;
-
-    const rendersPerSec = resetRenderCheck().toFixed(1);
-
-    const motionCount = animationStats.activeAnimations;
-
-    // Memory (Chrome only)
-    let memoryStr = 'N/A';
-    const perfWithMemory = performance as Performance & {
-      memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
-    };
-    if (perfWithMemory.memory) {
-      const used = (perfWithMemory.memory.usedJSHeapSize / 1048576).toFixed(1);
-      const limit = (perfWithMemory.memory.jsHeapSizeLimit / 1048576).toFixed(0);
-      memoryStr = `${used}/${limit} MB`;
-    }
-
-    // DOM node count
-    const domNodes = document.querySelectorAll('*').length;
-
-    if (tab === 'metrics') {
-      panelRef.current.innerHTML = `
-        <div style="font-size:10px;line-height:1.6">
-          <div><b>Renders/sec:</b> <span style="color:${Number(rendersPerSec) > 60 ? '#ff4444' : '#4ade80'}">${rendersPerSec}</span></div>
-          <div><b>Total renders:</b> ${totalRenders}</div>
-          <div><b>Motion elements:</b> <span style="color:${motionCount > 20 ? '#ff4444' : motionCount > 10 ? '#fbbf24' : '#4ade80'}">${motionCount}</span></div>
-          <div><b>DOM nodes:</b> <span style="color:${domNodes > 3000 ? '#ff4444' : domNodes > 1500 ? '#fbbf24' : '#4ade80'}">${domNodes}</span></div>
-          <div><b>Memory:</b> ${memoryStr}</div>
-          <div><b>Errors:</b> <span style="color:${errorLog.filter(e => e.type === 'error').length > 0 ? '#ff4444' : '#4ade80'}">${errorLog.filter(e => e.type === 'error').length}</span></div>
-        </div>
-      `;
-    } else if (tab === 'renders') {
-      const sorted = [...renderCounts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15);
-      panelRef.current.innerHTML = `
-        <div style="font-size:9px;line-height:1.5;max-height:200px;overflow-y:auto">
-          ${sorted.length === 0 ? '<div style="color:#94a3b8">No tracked renders yet.<br/>Add trackRender() calls to components.</div>' : ''}
-          ${sorted
-            .map(
-              ([name, count]) =>
-                `<div><span style="color:${count > 100 ? '#ff4444' : count > 50 ? '#fbbf24' : '#4ade80'}">${count}x</span> ${name}</div>`
-            )
-            .join('')}
-        </div>
-      `;
-    } else {
-      const recent = errorLog.slice(-15).reverse();
-      panelRef.current.innerHTML = `
-        <div style="font-size:9px;line-height:1.4;max-height:200px;overflow-y:auto">
-          ${recent.length === 0 ? '<div style="color:#94a3b8">No errors captured.</div>' : ''}
-          ${recent
-            .map(
-              e =>
-                `<div style="color:${e.type === 'error' ? '#ff4444' : '#fbbf24'};margin-bottom:4px;word-break:break-all">${new Date(e.time).toLocaleTimeString()}: ${e.message}</div>`
-            )
-            .join('')}
-        </div>
-      `;
-    }
-  }, [tab]);
-
   useEffect(() => {
-    intervalRef.current = setInterval(updateMetrics, 500);
+    intervalRef.current = setInterval(() => {
+      setRendersPerSec(resetRenderCheck().toFixed(1));
+      forceRefresh(value => value + 1);
+    }, 500);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [updateMetrics]);
+  }, []);
 
-  const tabStyle = (t: string) => ({
+  const diagnostics = RuntimeDiagnosticsService.getSnapshot();
+  const exportReadiness = diagnostics.exportReadiness;
+  const summary = diagnostics.summary;
+  const latest = diagnostics.latest;
+  const environment = diagnostics.environment;
+  const runtimeDebug = environment.runtimeDebug;
+  const motionCount = animationStats.activeAnimations;
+  const errorCount = errorLog.filter(e => e.type === 'error').length;
+  const domNodes = document.querySelectorAll('*').length;
+  const perfWithMemory = performance as Performance & {
+    memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+  };
+  const memoryStr = perfWithMemory.memory
+    ? `${(perfWithMemory.memory.usedJSHeapSize / 1048576).toFixed(1)}/${(
+        perfWithMemory.memory.jsHeapSizeLimit / 1048576
+      ).toFixed(0)} MB`
+    : 'N/A';
+
+  const tabStyle = (t: OverlayTab) => ({
     padding: '2px 6px',
     fontSize: '9px',
     cursor: 'pointer' as const,
@@ -222,14 +168,256 @@ const OverlayContent = memo(() => {
     color: tab === t ? '#fff' : '#94a3b8',
   });
 
+  const metricLine = (label: string, value: string | number, color = '#e2e8f0') => (
+    <div>
+      <b>{label}:</b> <span style={{ color }}>{value}</span>
+    </div>
+  );
+  const handleExportDiagnostics = () => {
+    const exported = RuntimeDiagnosticsService.exportReport({
+      source: 'dev-performance-overlay',
+    });
+    if (exported) {
+      forceRefresh(value => value + 1);
+    }
+  };
+
+  const renderBody = () => {
+    if (tab === 'metrics') {
+      return (
+        <div style={{ fontSize: 10, lineHeight: 1.6 }}>
+          {metricLine(
+            'Renders/sec',
+            rendersPerSec,
+            Number(rendersPerSec) > 60 ? '#ff4444' : '#4ade80'
+          )}
+          {metricLine('Total renders', totalRenders)}
+          {metricLine(
+            'Motion elements',
+            motionCount,
+            motionCount > 20 ? '#ff4444' : motionCount > 10 ? '#fbbf24' : '#4ade80'
+          )}
+          {metricLine(
+            'DOM nodes',
+            domNodes,
+            domNodes > 3000 ? '#ff4444' : domNodes > 1500 ? '#fbbf24' : '#4ade80'
+          )}
+          {metricLine('Memory', memoryStr)}
+          {metricLine(
+            'Game FPS',
+            summary.avgFps || 'N/A',
+            summary.avgFps < 45 && summary.avgFps > 0
+              ? '#ff4444'
+              : summary.avgFps < 55 && summary.avgFps > 0
+                ? '#fbbf24'
+                : '#4ade80'
+          )}
+          {metricLine(
+            'Stutters',
+            summary.stutterFrames,
+            summary.stutterFrames > 0 ? '#f97316' : '#4ade80'
+          )}
+          {metricLine(
+            'Cadence / Comp',
+            `${summary.cadenceDropFrames} / ${summary.compositorPressureFrames}`,
+            summary.compositorPressureFrames > 0
+              ? '#ff4444'
+              : summary.cadenceDropFrames > 0
+                ? '#fbbf24'
+                : '#4ade80'
+          )}
+          {metricLine('Errors', errorCount, errorCount > 0 ? '#ff4444' : '#4ade80')}
+        </div>
+      );
+    }
+
+    if (tab === 'game') {
+      return (
+        <div style={{ fontSize: 10, lineHeight: 1.55 }}>
+          {metricLine('Active', summary.active ? 'yes' : 'no')}
+          {metricLine(
+            'FPS avg / 1%',
+            `${summary.avgFps} / ${summary.onePercentLowFps}`
+          )}
+          {metricLine(
+            'Frame avg / p95 / p99',
+            `${summary.avgFrameMs} / ${summary.p95FrameMs} / ${summary.p99FrameMs}ms`
+          )}
+          {metricLine(
+            'Update / Render',
+            `${summary.worstUpdateMs} / ${summary.worstRenderMs}ms`
+          )}
+          {metricLine(
+            'Physics / Phase',
+            `${summary.worstPhysicsMs} / ${summary.worstPhaseMs}ms`
+          )}
+          {metricLine(
+            'Entities',
+            latest
+              ? `${latest.totalEntities} total (${latest.enemies}e ${latest.bullets}b ${latest.particles}p)`
+              : 'N/A'
+          )}
+          {metricLine(
+            'Last issue',
+            summary.lastIssueCode,
+            severityColor(latest?.severity ?? 'none')
+          )}
+          {metricLine(
+            'Missed vsync max',
+            summary.maxMissedVsyncSlots,
+            summary.maxMissedVsyncSlots > 3 ? '#ff4444' : '#fbbf24'
+          )}
+          {metricLine(
+            'Canvas MP / DPR',
+            `${environment.canvasMegapixels} / ${environment.canvasDpr}`,
+            environment.canvasMegapixels > 4 ? '#ff4444' : '#4ade80'
+          )}
+          {metricLine(
+            'Debug flags',
+            runtimeDebug.activeFlags.length > 0
+              ? runtimeDebug.activeFlags.join(', ')
+              : 'none',
+            runtimeDebug.activeFlags.length > 0 ? '#fbbf24' : '#94a3b8'
+          )}
+          {metricLine(
+            'DOM / motion / blur',
+            `${environment.domNodes} / ${environment.motionElements} / ${environment.backdropFilterElements}`,
+            environment.motionElements > 30 || environment.backdropFilterElements > 0
+              ? '#fbbf24'
+              : '#4ade80'
+          )}
+          <div
+            style={{
+              borderTop: '1px solid #334155',
+              color: '#cbd5e1',
+              marginTop: 5,
+              paddingTop: 5,
+            }}
+          >
+            {diagnostics.phasePressure.length === 0
+              ? 'No phase pressure yet.'
+              : diagnostics.phasePressure.map(phase => (
+                  <div key={phase.phaseId}>
+                    <span
+                      style={{
+                        color:
+                          phase.maxMs > 5
+                            ? '#ff4444'
+                            : phase.maxMs > 3
+                              ? '#fbbf24'
+                              : '#4ade80',
+                      }}
+                    >
+                      {phase.phaseId}
+                    </span>{' '}
+                    max {phase.maxMs}ms avg {phase.avgMs}ms slow {phase.slowSamples}
+                  </div>
+                ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (tab === 'stutters') {
+      return (
+        <div
+          style={{ fontSize: 9, lineHeight: 1.45, maxHeight: 260, overflowY: 'auto' }}
+        >
+          {diagnostics.recentIssues.length === 0 ? (
+            <div style={{ color: '#94a3b8' }}>No gameplay stutter captured.</div>
+          ) : (
+            diagnostics.recentIssues.slice(0, 12).map(issue => (
+              <div
+                key={issue.id}
+                style={{
+                  color: severityColor(issue.severity),
+                  marginBottom: 6,
+                  wordBreak: 'break-word',
+                }}
+              >
+                <b>
+                  #{issue.id} {issue.severity}
+                </b>{' '}
+                {issue.code}
+                <br />
+                <span style={{ color: '#cbd5e1' }}>
+                  frame {issue.frameMs}ms | update {issue.updateMs}ms | render{' '}
+                  {issue.renderMs}ms | physics {issue.physicsMs}ms | phase{' '}
+                  {issue.slowestPhaseId}:{issue.slowestPhaseMs}ms | entities{' '}
+                  {issue.totalEntities}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      );
+    }
+
+    if (tab === 'renders') {
+      const sorted = [...renderCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15);
+      return (
+        <div
+          style={{ fontSize: 9, lineHeight: 1.5, maxHeight: 200, overflowY: 'auto' }}
+        >
+          {sorted.length === 0 ? (
+            <div style={{ color: '#94a3b8' }}>
+              No tracked renders yet.
+              <br />
+              Add trackRender() calls to components.
+            </div>
+          ) : (
+            sorted.map(([name, count]) => (
+              <div key={name}>
+                <span
+                  style={{
+                    color: count > 100 ? '#ff4444' : count > 50 ? '#fbbf24' : '#4ade80',
+                  }}
+                >
+                  {count}x
+                </span>{' '}
+                {name}
+              </div>
+            ))
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ fontSize: 9, lineHeight: 1.4, maxHeight: 200, overflowY: 'auto' }}>
+        {errorLog.length === 0 ? (
+          <div style={{ color: '#94a3b8' }}>No errors captured.</div>
+        ) : (
+          errorLog
+            .slice(-15)
+            .reverse()
+            .map(error => (
+              <div
+                key={`${error.time}-${error.message}`}
+                style={{
+                  color: error.type === 'error' ? '#ff4444' : '#fbbf24',
+                  marginBottom: 4,
+                  wordBreak: 'break-all',
+                }}
+              >
+                {new Date(error.time).toLocaleTimeString()}: {error.message}
+              </div>
+            ))
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       style={{
         position: 'fixed',
         top: 8,
         right: 8,
-        width: 200,
-        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+        width: 280,
+        backgroundColor: 'rgba(15, 23, 42, 0.97)',
         border: '1px solid rgba(100, 116, 139, 0.3)',
         borderRadius: 6,
         padding: 8,
@@ -237,12 +425,12 @@ const OverlayContent = memo(() => {
         fontFamily: 'monospace',
         color: '#e2e8f0',
         pointerEvents: 'auto',
-        backdropFilter: 'blur(4px)',
       }}
     >
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: 4,
           marginBottom: 6,
           borderBottom: '1px solid #334155',
@@ -252,6 +440,12 @@ const OverlayContent = memo(() => {
         <button onClick={() => setTab('metrics')} style={tabStyle('metrics')}>
           Metrics
         </button>
+        <button onClick={() => setTab('game')} style={tabStyle('game')}>
+          Game
+        </button>
+        <button onClick={() => setTab('stutters')} style={tabStyle('stutters')}>
+          Stutter
+        </button>
         <button onClick={() => setTab('renders')} style={tabStyle('renders')}>
           Renders
         </button>
@@ -259,7 +453,54 @@ const OverlayContent = memo(() => {
           Errors
         </button>
       </div>
-      <div ref={panelRef} />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '92px 1fr',
+          gap: 6,
+          alignItems: 'center',
+          borderBottom: '1px solid #334155',
+          marginBottom: 6,
+          paddingBottom: 6,
+        }}
+      >
+        <button
+          disabled={!exportReadiness.ready}
+          onClick={handleExportDiagnostics}
+          title={
+            exportReadiness.ready
+              ? 'Download runtime diagnostics JSON'
+              : exportReadiness.reason
+          }
+          style={{
+            border: '1px solid #475569',
+            borderRadius: 4,
+            backgroundColor: exportReadiness.ready ? '#14532d' : '#1e293b',
+            color: exportReadiness.ready ? '#dcfce7' : '#64748b',
+            cursor: exportReadiness.ready ? 'pointer' : 'not-allowed',
+            fontSize: 9,
+            padding: '4px 6px',
+          }}
+        >
+          Export JSON
+        </button>
+        <div style={{ color: exportReadiness.ready ? '#4ade80' : '#fbbf24' }}>
+          {exportReadiness.ready
+            ? exportReadiness.exportStatus.downloaded
+              ? `downloaded ${exportReadiness.exportStatus.downloadCount}x`
+              : 'ready'
+            : `${exportReadiness.collectedFrameSamples}/${exportReadiness.requiredFrameSamples} frames`}
+          {exportReadiness.exportStatus.lastDownloadedAtIso && (
+            <span style={{ color: '#94a3b8' }}>
+              {' '}
+              {new Date(
+                exportReadiness.exportStatus.lastDownloadedAtIso
+              ).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      </div>
+      {renderBody()}
     </div>
   );
 });
@@ -268,7 +509,6 @@ OverlayContent.displayName = 'OverlayContent';
 
 export const DevPerformanceOverlay = memo(() => {
   const [visible, setVisible] = useState(false);
-  const longTaskObserverRef = useRef<PerformanceObserver | null>(null);
   const layoutShiftObserverRef = useRef<PerformanceObserver | null>(null);
   const cleanupConsoleRef = useRef<(() => void) | null>(null);
 
@@ -292,7 +532,6 @@ export const DevPerformanceOverlay = memo(() => {
     if (!import.meta.env.DEV || !visible) return;
 
     cleanupConsoleRef.current = setupConsoleInterceptor();
-    longTaskObserverRef.current = setupLongTaskObserver();
     layoutShiftObserverRef.current = setupLayoutShiftObserver();
     startMotionTracking();
 
@@ -328,8 +567,6 @@ export const DevPerformanceOverlay = memo(() => {
       clearTimeout(warningTimeout);
       cleanupConsoleRef.current?.();
       cleanupConsoleRef.current = null;
-      longTaskObserverRef.current?.disconnect();
-      longTaskObserverRef.current = null;
       layoutShiftObserverRef.current?.disconnect();
       layoutShiftObserverRef.current = null;
       stopMotionTracking();

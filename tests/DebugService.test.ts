@@ -15,6 +15,7 @@ describe('DebugService', () => {
     expect(snapshot).toHaveProperty('timestamp');
     expect(snapshot).toHaveProperty('gameState');
     expect(snapshot).toHaveProperty('combo');
+    expect(snapshot).toHaveProperty('performance');
     expect(snapshot.browser.screenWidth).toBeTypeOf('number');
   });
 
@@ -41,6 +42,9 @@ describe('DebugService', () => {
     expect((window as any).gameDebug).toBeDefined();
 
     expect(typeof (window as any).gameDebug.snapshot).toBe('function');
+    expect(typeof (window as any).gameDebug.performance.snapshot).toBe('function');
+    expect(typeof (window as any).gameDebug.performance.exportReport).toBe('function');
+    expect((window as any).gameDebug.performance.start).toBeUndefined();
   });
 
   it('should handle exportSnapshot', () => {

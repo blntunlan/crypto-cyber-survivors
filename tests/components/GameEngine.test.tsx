@@ -287,6 +287,7 @@ describe('GameEngine', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.pushState({}, '', '/');
   });
 
   it('renders canvas and HUD', () => {
@@ -295,6 +296,19 @@ describe('GameEngine', () => {
     const canvas = document.querySelector('canvas');
     expect(canvas).toBeInTheDocument();
     expect(screen.getByTestId('game-hud')).toBeInTheDocument();
+  });
+
+  it('applies opt-in runtime DPR to the game canvas without changing CSS size', () => {
+    window.history.pushState({}, '', '/?runtimeDpr=1.5&noScreenShake=1&noGlow=1');
+
+    render(<GameEngine {...mockProps} />);
+
+    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+    expect(canvas.width).toBe(1200);
+    expect(canvas.height).toBe(900);
+    expect(canvas.style.width).toBe('800px');
+    expect(canvas.style.height).toBe('600px');
+    expect(canvas.dataset.runtimeCanvasDpr).toBe('1.5');
   });
 
   it('renders mobile controls on mobile device', async () => {

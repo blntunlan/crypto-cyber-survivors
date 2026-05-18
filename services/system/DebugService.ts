@@ -14,6 +14,10 @@ import {
   ParticleConfigService,
   type ParticleEffectConfig,
 } from '../system/ParticleConfigService';
+import {
+  RuntimeDiagnosticsService,
+  type RuntimeDiagnosticsSnapshot,
+} from './RuntimeDiagnosticsService';
 import { Logger } from './Logger';
 
 declare global {
@@ -23,6 +27,10 @@ declare global {
       exportSnapshot: () => void;
       logs: () => string[];
       clearLogs: () => void;
+      performance: {
+        snapshot: () => RuntimeDiagnosticsSnapshot;
+        exportReport: () => void;
+      };
       particles: {
         update: (
           group: 'trail' | 'impact' | 'collect',
@@ -66,6 +74,7 @@ export interface GameSnapshot {
     screenHeight: number;
     devicePixelRatio: number;
   };
+  performance: RuntimeDiagnosticsSnapshot;
 }
 
 class DebugServiceClass {
@@ -92,6 +101,10 @@ class DebugServiceClass {
         exportSnapshot: () => this.exportSnapshot(),
         logs: () => this.getLogs(),
         clearLogs: () => this.clearLogs(),
+        performance: {
+          snapshot: () => RuntimeDiagnosticsService.getSnapshot(),
+          exportReport: () => RuntimeDiagnosticsService.exportReport(),
+        },
 
         // Canlı Partikül Ayarları
         particles: {
@@ -124,6 +137,12 @@ class DebugServiceClass {
           console.log('--- Raporlama ---');
           console.log('gameDebug.snapshot() - Mevcut durumu JSON formatında verir.');
           console.log('gameDebug.exportSnapshot() - Durumu dosya olarak indirir.');
+          console.log(
+            'gameDebug.performance.snapshot() - Canli FPS/stutter teshis raporu.'
+          );
+          console.log(
+            'gameDebug.performance.exportReport() - Runtime diagnostics JSON indirir.'
+          );
           console.log('--- Kısayollar (Klavye) ---');
           console.log('L: Level Up | G: God Mode | K: Kill All | H: Heal');
           console.log('--- Kelime Kodları ---');
@@ -166,6 +185,7 @@ class DebugServiceClass {
         screenHeight: window.innerHeight,
         devicePixelRatio: window.devicePixelRatio,
       },
+      performance: RuntimeDiagnosticsService.getSnapshot(),
     };
   }
 

@@ -12,6 +12,11 @@
 import { test, expect, type Page } from './test';
 import { goToMainMenuFromHub, startGameFromMainMenu } from './support/game-helpers';
 
+test.skip(
+  ({ browserName }) => browserName === 'firefox',
+  'Firefox does not support Playwright isMobile contexts; mobile Chrome covers this suite.'
+);
+
 // Mobile device configurations
 const MOBILE_DEVICES = {
   iPhoneSE: { width: 375, height: 667 },

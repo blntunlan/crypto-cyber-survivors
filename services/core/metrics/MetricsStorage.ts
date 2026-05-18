@@ -12,6 +12,7 @@ import { Logger } from '../../system/Logger';
 import { type SessionMetrics } from '../../../types/metrics';
 import { railwayClient } from '../../api/RailwayClient';
 import { UserSessionService } from '../../auth/UserSessionService';
+import { RuntimeDiagnosticsService } from '../../system/RuntimeDiagnosticsService';
 import { VerificationQueue } from '../../verification/VerificationQueue';
 import { EventBus } from '../EventBus';
 
@@ -256,6 +257,8 @@ export class MetricsStorage {
       // 2. Insert performance metrics (if available)
       if (session.performance && actualSessionId) {
         try {
+          const runtimeDiagnostics = RuntimeDiagnosticsService.getTelemetryContext();
+
           await railwayClient.post('/api/v1/telemetry/performance-metrics', {
             session_id: actualSessionId,
             profile_id: profileId,
@@ -277,6 +280,12 @@ export class MetricsStorage {
               particle_count_avg: session.performance.particle_count_avg,
               optimization_profile: session.performance.optimizationProfile,
               device_fingerprint: session.performance.deviceFingerprint,
+              runtime_diagnostics: runtimeDiagnostics,
+              p95_frame_time_ms: runtimeDiagnostics.summary.p95FrameMs,
+              p99_frame_time_ms: runtimeDiagnostics.summary.p99FrameMs,
+              stutter_frames: runtimeDiagnostics.summary.stutterFrames,
+              hitch_frames: runtimeDiagnostics.summary.hitchFrames,
+              diagnostics_issue_counts: runtimeDiagnostics.summary.issueCountsByCode,
             },
           });
           Logger.debug('[MetricsStorage] Performance metrics synced');

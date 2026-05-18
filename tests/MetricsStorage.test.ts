@@ -62,6 +62,7 @@ vi.mock('../services/verification/VerificationQueue', () => ({
 vi.mock('../services/core/EventBus', () => ({
   EventBus: {
     emit: (...args: unknown[]) => mockEventBusEmit(...args),
+    on: vi.fn(() => vi.fn()),
   },
 }));
 
@@ -583,6 +584,13 @@ describe('MetricsStorage', () => {
             avg_fps: 60,
             min_fps: 55,
             frame_drops: 2,
+            metadata: expect.objectContaining({
+              runtime_diagnostics: expect.objectContaining({
+                summary: expect.objectContaining({
+                  totalFrames: expect.any(Number),
+                }),
+              }),
+            }),
           })
         );
       });

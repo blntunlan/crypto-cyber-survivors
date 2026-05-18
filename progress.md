@@ -648,3 +648,67 @@ TODO / Next suggestions
   - First run (`output/core-loop-smoke-epoch/`) confirmed landing-state capture + known SEO nesting console errors.
   - Second run (`output/core-loop-smoke-epoch2/`) used click-burst flow and produced screenshot + state + errors.
   - `state-0.json` currently shows `status: "MENU"` (run did not fully reach active PLAYING loop before market interruption/error), but `render_game_to_text` hook is wired and returning JSON.
+
+2026-05-16
+- New request: add a live gameplay diagnostics/debug system to understand FPS drops, stutter, smoothness problems, and runtime errors while playing.
+- Added `config/RuntimeDiagnosticsConfig.ts` with centralized frame, phase, memory, long-task, and entity-pressure thresholds.
+- Added `services/system/RuntimeDiagnosticsService.ts`:
+  - records real RAF frame delta, update/render/physics timings, phase timings, entity counts, heap deltas, browser long tasks, and phase errors;
+  - keeps bounded frame and issue ring buffers;
+  - classifies captured issues as `slow`, `stutter`, `hitch`, or `error`;
+  - attributes likely causes such as `physics`, `render`, `phase`, `entity_pressure`, `memory`, `main_thread`, or `scheduler`;
+  - exposes JSON report/export helpers.
+- Integrated in `components/GameEngine.tsx`:
+  - feeds diagnostics once per frame with a reused input object to avoid hot-loop allocation pressure;
+  - records early level-up-freeze and hit-stop frames as intentional freeze frames so they do not become false stutter issues;
+  - forwards GameLoopCoordinator phase errors to diagnostics;
+  - includes diagnostics summary in `window.render_game_to_text`.
+- Extended `services/system/DebugService.ts`:
+  - `gameDebug.performance.snapshot()`
+  - `gameDebug.performance.issues()`
+  - `gameDebug.performance.reportJSON()`
+  - `gameDebug.performance.exportReport()`
+  - `gameDebug.performance.start() / stop() / reset()`
+- Updated `components/DevPerformanceOverlay.tsx`:
+  - Alt+P overlay now has `Game` and `Stutter` tabs for live game-loop FPS, 1% low, worst frame/update/render/physics/phase timings, latest cause, recent issues, and recommendations.
+- Added/updated tests:
+  - `tests/services/system/RuntimeDiagnosticsService.test.ts`
+  - `tests/DebugService.test.ts`
+- Verification:
+  - `npx eslint config/RuntimeDiagnosticsConfig.ts services/system/RuntimeDiagnosticsService.ts services/system/DebugService.ts components/GameEngine.tsx components/DevPerformanceOverlay.tsx tests/services/system/RuntimeDiagnosticsService.test.ts tests/DebugService.test.ts` -> pass.
+  - `npx vitest run tests/services/system/RuntimeDiagnosticsService.test.ts tests/DebugService.test.ts` -> pass, 10/10.
+  - `npx vitest run tests/components/GameEngine.test.tsx tests/GameRenderer.test.ts tests/services/gameplay/loop/PhaseProfiler.test.ts tests/services/system/RuntimeDiagnosticsService.test.ts` -> pass, 22/22.
+  - `npm run lint` -> pass.
+  - `npm run build` -> pass.
+- Tooling notes:
+  - `npx tsc --noEmit --pretty false` still fails on pre-existing unrelated type issues in `components/vfx-lab/vfxCatalog.ts`, `tests/hooks/useGameEngineEvents.test.ts`, and `tests/services/AntiCheatService.test.ts`.
+  - `npx -y react-doctor@latest . --verbose --diff` failed because npm registry access was rejected (`EACCES`/network).
+  - Develop-web-game Playwright smoke failed before launch because the local Playwright Chromium binary is missing; would require `npx playwright install`.
+  - Dev server attempts reached Vite readiness, but the background process exited after the tool shell closed; a temporary PowerShell job verified `HTTP 200` while alive, but no persistent server remains running.
+
+2026-05-17
+- Implemented the live diagnostics roadmap cleanup:
+  - Converted runtime diagnostics from text-heavy cause/recommendation output to deterministic issue codes (`PHYSICS_OVER_BUDGET`, `RENDER_OVER_BUDGET`, `PHASE_OVER_BUDGET`, `ENTITY_PRESSURE`, `MAIN_THREAD_LONG_TASK`, `MEMORY_SPIKE`, `PHASE_ERROR`, `RAF_STALL`).
+  - Removed the extra manual `gameDebug.performance.start/stop/reset/issues/reportJSON` API surface; kept `snapshot()` and `exportReport()`.
+  - Kept RuntimeDiagnosticsService as the single long-task observer and removed the duplicate long-task observer from `DevPerformanceOverlay`.
+  - Rebuilt `DevPerformanceOverlay` with React JSX instead of `innerHTML` string rendering.
+  - Added p95/p99 frame time, slow/stutter/hitch counts, issue counts by code, last issue code, and bounded recent issues to diagnostics snapshots.
+- Integrated diagnostics into existing telemetry instead of adding a new backend table:
+  - `PerformanceTracker.syncToSupabase()` sends diagnostics summary in `performance-metrics.metadata`.
+  - `MetricsStorage` adds runtime diagnostics to session performance telemetry metadata.
+  - `ErrorTracker` attaches bounded runtime diagnostics context to error reports.
+  - `PerformanceTracker.getStats()` prefers RuntimeDiagnosticsService data when a live game session has frame samples, so game-over metrics use the actual game RAF path.
+- Updated tests:
+  - `tests/services/system/RuntimeDiagnosticsService.test.ts`
+  - `tests/DebugService.test.ts`
+  - `tests/MetricsStorage.test.ts`
+  - `tests/services/analytics/PerformanceTracker.test.ts`
+- Verification:
+  - `npx eslint config/RuntimeDiagnosticsConfig.ts services/system/RuntimeDiagnosticsService.ts services/system/DebugService.ts components/GameEngine.tsx components/DevPerformanceOverlay.tsx services/analytics/PerformanceTracker.ts services/analytics/ErrorTracker.ts services/core/metrics/MetricsStorage.ts tests/services/system/RuntimeDiagnosticsService.test.ts tests/DebugService.test.ts tests/services/analytics/PerformanceTracker.test.ts tests/MetricsStorage.test.ts` -> pass.
+  - `npx vitest run tests/services/system/RuntimeDiagnosticsService.test.ts tests/DebugService.test.ts tests/services/analytics/PerformanceTracker.test.ts tests/MetricsStorage.test.ts tests/services/analytics/ErrorTracker.test.ts` -> pass, 67/67.
+  - `npx vitest run tests/components/GameEngine.test.tsx tests/GameRenderer.test.ts` -> pass, 15/15.
+  - `npm run lint` -> pass.
+  - `npm run build` -> pass.
+  - `npm run test` -> pass, 246 files / 2455 tests.
+- Tooling note:
+  - `npx -y react-doctor@latest . --verbose --diff` still cannot run in this environment because npm registry access is rejected (`EACCES`).

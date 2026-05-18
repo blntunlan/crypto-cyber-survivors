@@ -14,6 +14,7 @@
 import { Logger } from '../system/Logger';
 import { railwayClient } from '../api/RailwayClient';
 import { UserSessionService } from '../auth/UserSessionService';
+import { RuntimeDiagnosticsService } from '../system/RuntimeDiagnosticsService';
 import { DeviceProfiler } from './DeviceProfiler';
 
 export interface PerformanceSnapshot {
@@ -219,6 +220,11 @@ export class PerformanceTracker {
    * Get aggregate performance statistics.
    */
   getStats(): PerformanceStats {
+    const runtimeStats = this.getRuntimeDiagnosticsStats();
+    if (runtimeStats) {
+      return runtimeStats;
+    }
+
     const history = this.fpsHistory.getAll();
     const frameTimes = this.frameTimes.getAll();
 
@@ -254,6 +260,37 @@ export class PerformanceTracker {
       avgFrameTime,
       maxFrameTime,
       sampleCount: history.length,
+    };
+  }
+
+  private getRuntimeDiagnosticsStats(): PerformanceStats | null {
+    const diagnostics = RuntimeDiagnosticsService.getSnapshot();
+    const summary = diagnostics.summary;
+
+    if (summary.totalFrames <= 0 || summary.avgFps <= 0) {
+      return null;
+    }
+
+    const avgFps = Math.round(summary.avgFps);
+    let minFps = Math.round(summary.onePercentLowFps || summary.avgFps);
+    let maxFps = avgFps;
+
+    for (let i = 0; i < diagnostics.recentFrames.length; i += 1) {
+      const frame = diagnostics.recentFrames[i];
+      if (!frame || frame.fps <= 0) continue;
+      const roundedFps = Math.round(frame.fps);
+      minFps = Math.min(minFps, roundedFps);
+      maxFps = Math.max(maxFps, roundedFps);
+    }
+
+    return {
+      avgFps,
+      minFps,
+      maxFps,
+      onePercentLow: Math.round(summary.onePercentLowFps || summary.avgFps),
+      avgFrameTime: summary.avgFrameMs,
+      maxFrameTime: summary.worstFrameMs,
+      sampleCount: summary.totalFrames,
     };
   }
 
@@ -313,6 +350,7 @@ export class PerformanceTracker {
   async syncToSupabase(sessionId?: string): Promise<void> {
     const stats = this.getStats();
     const snapshot = this.getSnapshot();
+    const runtimeDiagnostics = RuntimeDiagnosticsService.getTelemetryContext();
 
     const profileId = UserSessionService.getProfileId();
     const device = DeviceProfiler.getProfile();
@@ -359,6 +397,12 @@ export class PerformanceTracker {
           memoryUsedMB: snapshot.memoryUsedMB,
           onePercentLow: stats.onePercentLow,
           avgFrameTime: stats.avgFrameTime,
+          runtimeDiagnostics,
+          p95FrameMs: runtimeDiagnostics.summary.p95FrameMs,
+          p99FrameMs: runtimeDiagnostics.summary.p99FrameMs,
+          stutterFrames: runtimeDiagnostics.summary.stutterFrames,
+          hitchFrames: runtimeDiagnostics.summary.hitchFrames,
+          diagnosticsIssueCounts: runtimeDiagnostics.summary.issueCountsByCode,
         },
       });
       Logger.info('[PerformanceTracker] Metrics synced to Railway');

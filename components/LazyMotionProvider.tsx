@@ -6,7 +6,8 @@
  */
 
 import React from 'react';
-import { LazyMotion } from 'framer-motion';
+import { LazyMotion, MotionConfig } from 'framer-motion';
+import { getRuntimeDebugFlags } from '../config/RuntimeDebugFlags';
 
 // Dynamically import only the DOM animation features we need
 // This is tree-shakeable and loads async
@@ -17,5 +18,12 @@ interface LazyMotionProviderProps {
 }
 
 export const LazyMotionProvider: React.FC<LazyMotionProviderProps> = ({ children }) => {
-  return <LazyMotion features={loadFeatures}>{children}</LazyMotion>;
+  const runtimeDebugFlags = getRuntimeDebugFlags();
+  return (
+    <LazyMotion features={loadFeatures}>
+      <MotionConfig reducedMotion={runtimeDebugFlags.noMotion ? 'always' : 'user'}>
+        {children}
+      </MotionConfig>
+    </LazyMotion>
+  );
 };

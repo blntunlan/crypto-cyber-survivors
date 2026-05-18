@@ -133,11 +133,67 @@ describe('DeviceBenchmarkService', () => {
       expect(localStorage.getItem('ccs_manual_perf_profile')).toBe(DeviceProfile.LOW);
     });
 
+    it('should keep manual profile if selected while benchmark is running', async () => {
+      const benchmarkResult = {
+        gpuScore: 700,
+        cpuScore: 700,
+        combinedScore: 700,
+        profile: DeviceProfile.HIGH,
+        deviceMemory: 16,
+        hardwareConcurrency: 8,
+        gpuRenderer: null,
+        timestamp: Date.now(),
+        version: '1.0.0',
+      };
+      let resolveBenchmark!: (result: typeof benchmarkResult) => void;
+      vi.spyOn(DeviceBenchmarkService as any, 'executeBenchmark').mockReturnValue(
+        new Promise(resolve => {
+          resolveBenchmark = resolve;
+        })
+      );
+
+      const promise = DeviceBenchmarkService.runBenchmark(true);
+      DeviceBenchmarkService.setManualProfile(DeviceProfile.LOW);
+      resolveBenchmark(benchmarkResult);
+
+      const result = await promise;
+
+      expect(result.profile).toBe(DeviceProfile.HIGH);
+      expect(DeviceBenchmarkService.isInManualMode()).toBe(true);
+      expect(DeviceBenchmarkService.getPerformanceConfig().profile).toBe(
+        DeviceProfile.LOW
+      );
+    });
+
     it('should clear manual override on resetToAuto', async () => {
       DeviceBenchmarkService.setManualProfile(DeviceProfile.LOW);
       DeviceBenchmarkService.resetToAuto();
 
       expect(localStorage.getItem('ccs_manual_perf_profile')).toBeNull();
+    });
+
+    it('should clear stale manual mode when test state reloads without storage', () => {
+      DeviceBenchmarkService.setManualProfile(DeviceProfile.LOW);
+      localStorage.clear();
+
+      DeviceBenchmarkService.resetStateForTesting();
+
+      expect(DeviceBenchmarkService.isInManualMode()).toBe(false);
+      expect(DeviceBenchmarkService.getPerformanceConfig().profile).toBe(
+        DeviceProfile.MEDIUM
+      );
+    });
+
+    it('should leave auto mode after clearing benchmark cache', () => {
+      DeviceBenchmarkService.setManualProfile(DeviceProfile.LOW);
+
+      DeviceBenchmarkService.clearCache();
+
+      expect(DeviceBenchmarkService.isInManualMode()).toBe(false);
+      expect(localStorage.getItem('ccs_manual_perf_profile')).toBeNull();
+      expect(DeviceBenchmarkService.getPerformanceConfig().profile).toBe(
+        DeviceProfile.MEDIUM
+      );
     });
   });
 

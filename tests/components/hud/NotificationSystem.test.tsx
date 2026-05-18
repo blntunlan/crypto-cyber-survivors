@@ -1,7 +1,9 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '../../test-utils';
 import { NotificationSystem } from '../../../components/hud/NotificationSystem';
 import { EventBus } from '../../../services/core/EventBus';
+import { renderCounts } from '../../../utils/trackRender';
 
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
@@ -74,6 +76,33 @@ describe('NotificationSystem', () => {
     const container = document.querySelector('.notification-system-container');
     expect(container).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('does not rerender when its parent rerenders without notification changes', async () => {
+    const Parent = () => {
+      const [count, setCount] = React.useState(0);
+      return (
+        <>
+          <button onClick={() => setCount(value => value + 1)}>Parent {count}</button>
+          <NotificationSystem />
+        </>
+      );
+    };
+
+    renderCounts.delete('NotificationSystem');
+    render(<Parent />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const initialRenders = renderCounts.get('NotificationSystem') ?? 0;
+    const parentButton = screen.getByText('Parent 0');
+
+    await act(async () => {
+      fireEvent.click(parentButton);
+      await Promise.resolve();
+    });
+
+    expect(renderCounts.get('NotificationSystem')).toBe(initialRenders);
   });
 
   it('responds to gameNotification events', async () => {
@@ -188,7 +217,7 @@ describe('NotificationSystem', () => {
 
   const getCardCount = () => document.querySelectorAll('.notification-card').length;
 
-  it('only shows market micro-events in dev mode but allows duplicates there', async () => {
+  it('only shows market micro-events in dev mode and deduplicates repeats', async () => {
     (import.meta.env as any).DEV = false;
     render(<NotificationSystem />);
 
@@ -210,7 +239,23 @@ describe('NotificationSystem', () => {
       intensity: 1,
       durationMs: 2000,
     });
-    expect(getCardCount()).toBe(2);
+    expect(getCardCount()).toBe(1);
+  });
+
+  it('caps visible notifications to prevent render storms', async () => {
+    render(<NotificationSystem />);
+
+    for (let i = 0; i < 6; i += 1) {
+      await emitEvent('gameNotification', {
+        title: `Notice ${i}`,
+        message: `Message ${i}`,
+        type: 'info',
+      });
+    }
+
+    expect(getCardCount()).toBe(5);
+    expect(screen.queryByText('Notice 0')).not.toBeInTheDocument();
+    expect(screen.getByText('Notice 5')).toBeInTheDocument();
   });
 
   it('clears notifications immediately on game reset', async () => {

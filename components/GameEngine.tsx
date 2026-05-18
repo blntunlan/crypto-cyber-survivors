@@ -24,6 +24,10 @@ import { MobileControls } from './mobile';
 import { useDevice } from '../hooks/useDevice';
 import { DeviceBenchmarkService } from '../services/system/DeviceBenchmarkService';
 import { FPSMonitor } from '../services/system/FPSMonitor';
+import {
+  RuntimeDiagnosticsService,
+  type RuntimeDiagnosticsFrameInput,
+} from '../services/system/RuntimeDiagnosticsService';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
@@ -77,6 +81,10 @@ import { ReplayRecorderService } from '../services/replay/ReplayRecorderService'
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 import { updateNearMissFeedbackTimers } from '../services/gameplay/NearMissTiming';
+import {
+  getRuntimeDebugFlags,
+  resolveRuntimeCanvasDpr,
+} from '../config/RuntimeDebugFlags';
 
 import { useLazyRef } from '../hooks/useLazyRef';
 
@@ -120,6 +128,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   tRef.current = t;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number | undefined>(undefined);
+  const runtimeDebugFlagsRef = useRef(getRuntimeDebugFlags());
+  const runtimeDebugFlags = runtimeDebugFlagsRef.current;
+  const canvasDpr = resolveRuntimeCanvasDpr(runtimeDebugFlags);
+  const canvasPixelWidth = Math.max(1, Math.round(width * canvasDpr));
+  const canvasPixelHeight = Math.max(1, Math.round(height * canvasDpr));
 
   // Use singleton instances for heavy systems (Architectural Compliance)
   const pool = useRef(PoolManager.getInstance());
@@ -144,12 +157,16 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const graphicsRef = useRef({
     showParticles: graphicsSettings.showParticles,
     showDamageNumbers: graphicsSettings.showDamageNumbers,
-    showScreenShake: graphicsSettings.showScreenShake,
+    showScreenShake:
+      graphicsSettings.showScreenShake && !runtimeDebugFlags.noScreenShake,
+    disableGlow: runtimeDebugFlags.noGlow,
   });
   useEffect(() => {
     graphicsRef.current.showParticles = graphicsSettings.showParticles;
     graphicsRef.current.showDamageNumbers = graphicsSettings.showDamageNumbers;
-    graphicsRef.current.showScreenShake = graphicsSettings.showScreenShake;
+    graphicsRef.current.showScreenShake =
+      graphicsSettings.showScreenShake && !runtimeDebugFlagsRef.current.noScreenShake;
+    graphicsRef.current.disableGlow = runtimeDebugFlagsRef.current.noGlow;
   }, [graphicsSettings]);
 
   const state = useRef<GameState>({
@@ -226,10 +243,34 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const gameplayFrameRef = useRef(0);
   const phaseSharedRef = useRef<Record<string, unknown>>({});
   const lastPhaseErrorLogTimeRef = useRef(0);
+  const lastRawFrameTimeRef = useRef<number | null>(null);
   const phaseProfilerRef = useLazyRef(() => new PhaseProfiler());
   const lastPhaseTickRef = useRef({
     completedPhaseIds: [] as string[],
     errorCount: 0,
+  });
+  const diagnosticsFrameInputRef = useRef<RuntimeDiagnosticsFrameInput>({
+    frame: 0,
+    timestampMs: 0,
+    gameTimeMs: 0,
+    status: GameStatus.MENU,
+    rafDeltaMs: GAME_ENGINE.MS_PER_FRAME,
+    updateMs: 0,
+    renderMs: 0,
+    physicsMs: 0,
+    phaseDurationsMs: null,
+    entityCounts: {
+      enemies: 0,
+      bullets: 0,
+      particles: 0,
+      gems: 0,
+      floatingTexts: 0,
+      interactables: 0,
+    },
+    flags: {
+      hitStopActive: false,
+      levelUpFreezeActive: false,
+    },
   });
   // Pre-allocated tick context to avoid per-frame object creation
   const tickContextRef = useRef<TickContext>({
@@ -380,6 +421,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         },
         onError: phaseError => {
           phaseProfilerRef.current.recordError(phaseError);
+          RuntimeDiagnosticsService.recordPhaseError({
+            phaseId: phaseError.phaseId,
+            stage: phaseError.stage,
+            frame: phaseError.context.clock.frame,
+            timestampMs: phaseError.context.clock.nowMs,
+            gameTimeMs: phaseError.context.clock.elapsedMs,
+          });
           Logger.warn('[GameLoopCoordinator] Phase execution error', {
             phaseId: phaseError.phaseId,
             stage: phaseError.stage,
@@ -426,9 +474,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     if (status === GameStatus.GAMEOVER || status === GameStatus.MENU) {
       coreLoopRef.current.reset();
       playerPowerAnalyzerRef.current.reset();
+      RuntimeDiagnosticsService.stop();
     }
     if (status === GameStatus.MENU) {
       lastCycleRef.current = 1;
+      lastRawFrameTimeRef.current = null;
     }
   }, [
     phaseProfilerRef,
@@ -628,6 +678,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           errorCount: lastPhaseTickRef.current.errorCount,
           profiler: phaseProfilerRef.current.getSnapshot(),
         },
+        diagnostics: RuntimeDiagnosticsService.getSnapshot().summary,
       });
     };
 
@@ -636,12 +687,52 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     };
   }, [phaseProfilerRef, playerRef, pool, state, status]);
 
+  const recordRuntimeDiagnostics = useCallback(
+    (
+      frame: number,
+      timestampMs: number,
+      gameTimeMs: number,
+      currentStatus: GameStatus,
+      rafDeltaMs: number,
+      updateMs: number,
+      renderMs: number,
+      physicsMs: number,
+      phaseDurationsMs: Partial<Record<PhaseName, number>> | null,
+      hitStopActive: boolean,
+      levelUpFreezeActive: boolean
+    ) => {
+      const p = pool.current;
+      const input = diagnosticsFrameInputRef.current;
+      input.frame = frame;
+      input.timestampMs = timestampMs;
+      input.gameTimeMs = gameTimeMs;
+      input.status = currentStatus;
+      input.rafDeltaMs = rafDeltaMs;
+      input.updateMs = updateMs;
+      input.renderMs = renderMs;
+      input.physicsMs = physicsMs;
+      input.phaseDurationsMs = phaseDurationsMs;
+      input.entityCounts.enemies = p.activeEnemies.length;
+      input.entityCounts.bullets = p.activeBullets.length;
+      input.entityCounts.particles = p.activeParticles.length;
+      input.entityCounts.gems = p.activeGems.length;
+      input.entityCounts.floatingTexts = p.activeFloatingTexts.length;
+      input.entityCounts.interactables = p.activeInteractables.length;
+      input.flags.hitStopActive = hitStopActive;
+      input.flags.levelUpFreezeActive = levelUpFreezeActive;
+
+      RuntimeDiagnosticsService.recordFrame(input);
+    },
+    [pool]
+  );
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    ctx.setTransform(canvasDpr, 0, 0, canvasDpr, 0, 0);
     renderer.current.render(
       ctx,
       width,
@@ -652,11 +743,18 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       status,
       graphicsRef.current
     );
-  }, [width, height, status, playerRef, pool, renderer]);
+  }, [width, height, status, playerRef, pool, renderer, canvasDpr]);
 
   const update = useCallback(
     (time: number) => {
       const frameStart = performance.now();
+      const previousRawFrameTime = lastRawFrameTimeRef.current;
+      const rawFrameDeltaMs =
+        previousRawFrameTime === null
+          ? GAME_ENGINE.MS_PER_FRAME
+          : Math.max(0, time - previousRawFrameTime);
+      lastRawFrameTimeRef.current = time;
+      let physicsDurationMs = 0;
       FPSMonitor.tick();
       const s = state.current;
       const player = playerRef.current;
@@ -673,7 +771,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       VisualEffectService.update(deltaTime);
 
       // Apply volatility-driven shake only during active gameplay.
-      if (status === GameStatus.PLAYING) {
+      if (status === GameStatus.PLAYING && !runtimeDebugFlags.noScreenShake) {
         const shockIntensity = VisualEffectService.getIntensity();
         if (shockIntensity > 0) {
           const leverage = difficultyContext.inputs.leverage;
@@ -687,7 +785,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       }
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
-      if (status !== GameStatus.MENU) {
+      if (status !== GameStatus.MENU && !runtimeDebugFlags.noBackgroundCandles) {
         // Use PriceMomentumEngine for intensity-driven background
         const priceMom = PriceMomentumEngine.getLatest();
         // Amplify wave multiplier with market intensity (background moves faster in surging/crashing)
@@ -705,6 +803,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           width,
           height
         );
+      } else if (runtimeDebugFlags.noBackgroundCandles && s.bgCandles.length > 0) {
+        s.bgCandles.length = 0;
       }
 
       if (status === GameStatus.PLAYING) {
@@ -718,7 +818,25 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             onLevelUp();
           }
           // During freeze, skip physics updates but still draw
+          const freezeUpdateMs = performance.now() - frameStart;
+          FPSMonitor.recordUpdate(freezeUpdateMs);
+          const freezeRenderStart = performance.now();
           draw();
+          const freezeRenderMs = performance.now() - freezeRenderStart;
+          FPSMonitor.recordRender(freezeRenderMs);
+          recordRuntimeDiagnostics(
+            gameplayFrameRef.current,
+            time,
+            TimeService.getGameTime(),
+            status,
+            rawFrameDeltaMs,
+            freezeUpdateMs,
+            freezeRenderMs,
+            0,
+            null,
+            false,
+            true
+          );
           requestRef.current = requestAnimationFrame(update);
           return;
         }
@@ -727,12 +845,32 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         if (s.hitStopTimer > 0) {
           s.hitStopTimer -= deltaTime;
           // During hit stop: skip physics updates but still draw
+          const hitStopUpdateMs = performance.now() - frameStart;
+          FPSMonitor.recordUpdate(hitStopUpdateMs);
+          const hitStopRenderStart = performance.now();
           draw();
+          const hitStopRenderMs = performance.now() - hitStopRenderStart;
+          FPSMonitor.recordRender(hitStopRenderMs);
+          recordRuntimeDiagnostics(
+            gameplayFrameRef.current,
+            time,
+            TimeService.getGameTime(),
+            status,
+            rawFrameDeltaMs,
+            hitStopUpdateMs,
+            hitStopRenderMs,
+            0,
+            null,
+            true,
+            false
+          );
           requestRef.current = requestAnimationFrame(update);
           return;
         }
 
-        if (s.shake > 0) {
+        if (runtimeDebugFlags.noScreenShake) {
+          s.shake = 0;
+        } else if (s.shake > 0) {
           s.shake *= Math.pow(GAME_ENGINE.SHAKE_DECAY, dtFactor);
         }
         if (s.critFlash > 0) {
@@ -977,7 +1115,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           );
         }
 
-        if (coreLoopOutput.shakeBoost > 0) {
+        if (!runtimeDebugFlags.noScreenShake && coreLoopOutput.shakeBoost > 0) {
           s.shake = Math.max(s.shake, coreLoopOutput.shakeBoost);
         }
 
@@ -1122,7 +1260,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           height,
           onGameOver
         );
-        FPSMonitor.recordPhysics(performance.now() - physStart);
+        physicsDurationMs = performance.now() - physStart;
+        FPSMonitor.recordPhysics(physicsDurationMs);
 
         // Update Weapon System (market-driven weapon firing via shared pipeline)
         WeaponSystem.update(
@@ -1182,11 +1321,29 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       }
 
       const updateEnd = performance.now();
-      FPSMonitor.recordUpdate(updateEnd - frameStart);
+      const updateDurationMs = updateEnd - frameStart;
+      FPSMonitor.recordUpdate(updateDurationMs);
 
       const renderStart = performance.now();
       draw();
-      FPSMonitor.recordRender(performance.now() - renderStart);
+      const renderDurationMs = performance.now() - renderStart;
+      FPSMonitor.recordRender(renderDurationMs);
+
+      recordRuntimeDiagnostics(
+        gameplayFrameRef.current,
+        time,
+        TimeService.getGameTime(),
+        status,
+        rawFrameDeltaMs,
+        updateDurationMs,
+        renderDurationMs,
+        physicsDurationMs,
+        status === GameStatus.PLAYING
+          ? (tickContextRef.current.telemetry.phaseDurationsMs ?? null)
+          : null,
+        false,
+        false
+      );
 
       requestRef.current = requestAnimationFrame(update);
     },
@@ -1198,6 +1355,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       onLevelUp,
       onGameOver,
       draw,
+      recordRuntimeDiagnostics,
       playerRef,
       getMovementVector,
       isSpacePressed,
@@ -1218,6 +1376,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       gameMode,
       coreLoopRef,
       playerPowerAnalyzerRef,
+      runtimeDebugFlags,
     ]
   );
 
@@ -1237,7 +1396,15 @@ export const GameEngine: React.FC<GameEngineProps> = ({
 
   return (
     <div className="relative h-full w-full cursor-none">
-      <canvas ref={canvasRef} width={width} height={height} className="block" />
+      <canvas
+        ref={canvasRef}
+        width={canvasPixelWidth}
+        height={canvasPixelHeight}
+        style={{ width, height }}
+        className="block"
+        data-runtime-diagnostics-canvas="game"
+        data-runtime-canvas-dpr={canvasDpr}
+      />
       <GameHUD
         status={status}
         enemies={pool.current.activeEnemies}

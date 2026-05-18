@@ -83,6 +83,20 @@ describe('AntiCheatService', () => {
       expect(cancelSpy).toHaveBeenCalledWith(123);
       expect(requestSpy).toHaveBeenCalledTimes(1);
     });
+
+    it('should not start RAF speed detection by default', () => {
+      const requestSpy = vi.spyOn(globalThis, 'requestAnimationFrame');
+
+      AntiCheatService.init({
+        detectDevTools: false,
+        detectDebugger: false,
+        enableIntegrityChecks: false,
+        reportToServer: false,
+        debugMode: true,
+      });
+
+      expect(requestSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('Memory Integrity Checks', () => {
@@ -157,6 +171,51 @@ describe('AntiCheatService', () => {
         })
       );
     });
+
+    it('should only escalate a repeated warning type once', () => {
+      const detectionSpy = vi.fn();
+      EventBus.on('cheatDetected', detectionSpy);
+
+      AntiCheatService.init({ debugMode: true });
+
+      // @ts-expect-error: testing
+      AntiCheatService.onCheatWarning('CONSOLE_MANIPULATION', 'test');
+      // @ts-expect-error: testing
+      AntiCheatService.onCheatWarning('CONSOLE_MANIPULATION', 'test');
+      // @ts-expect-error: testing
+      AntiCheatService.onCheatWarning('CONSOLE_MANIPULATION', 'test');
+      // @ts-expect-error: testing
+      AntiCheatService.onCheatWarning('CONSOLE_MANIPULATION', 'test');
+      // @ts-expect-error: testing
+      AntiCheatService.onCheatWarning('CONSOLE_MANIPULATION', 'test');
+
+      expect(detectionSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep speed timing anomalies as telemetry warnings', () => {
+      const warningSpy = vi.fn();
+      const detectionSpy = vi.fn();
+      EventBus.on('cheatWarning', warningSpy);
+      EventBus.on('cheatDetected', detectionSpy);
+
+      AntiCheatService.init({ debugMode: true });
+
+      // @ts-expect-error: testing telemetry-only warning mode
+      AntiCheatService.onCheatWarning('SPEED_HACK', 'timing anomaly', {
+        escalate: false,
+      });
+      // @ts-expect-error: testing telemetry-only warning mode
+      AntiCheatService.onCheatWarning('SPEED_HACK', 'timing anomaly', {
+        escalate: false,
+      });
+      // @ts-expect-error: testing telemetry-only warning mode
+      AntiCheatService.onCheatWarning('SPEED_HACK', 'timing anomaly', {
+        escalate: false,
+      });
+
+      expect(warningSpy).toHaveBeenCalledTimes(3);
+      expect(detectionSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('Reporting', () => {
@@ -200,38 +259,111 @@ describe('AntiCheatService', () => {
   });
 
   describe('Negative Scenarios & Edge Cases', () => {
-    it('should handle speed hack detection with tolerance', () => {
+    it('should calibrate speed hack detection for high refresh-rate frames', () => {
       const warningSpy = vi.fn();
+      let nowMs = 0;
+      let frameCallback: FrameRequestCallback = () => undefined;
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: false,
+      });
+      vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+        frameCallback = callback;
+        return 1;
+      });
       EventBus.on('cheatWarning', warningSpy);
 
       AntiCheatService.init({
         detectSpeedHack: true,
+        detectDevTools: false,
+        detectDebugger: false,
+        enableIntegrityChecks: false,
         debugMode: true,
       });
 
-      // Simulate abnormally fast frames (short delta time)
-      // Normal frame @ 60fps is ~16.6ms
-      // We simulate 5ms frames (impossible naturally)
+      for (let i = 0; i < 80; i += 1) {
+        nowMs += 14.15;
+        frameCallback(nowMs);
+      }
 
-      // Inject fake samples directly if possible, or mock performance.now
-      // Since private speedHackSamples is hard to reach without casting,
-      // we'll rely on the public behavior if we can trigger the loop.
-      // However, loop uses requestAnimationFrame which is hard to control in Vitest without real browser.
-      // So we will verify the logic by mocking the internal state via "any" cast for this specific test
+      expect(warningSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'SPEED_HACK',
+        })
+      );
+    });
 
-      const service = AntiCheatService as any;
-      service.speedHackSamples = Array(30).fill(5); // 5ms average
+    it('should ignore normal 60fps after stuttered calibration samples', () => {
+      const warningSpy = vi.fn();
+      let nowMs = 0;
+      let frameCallback: FrameRequestCallback = () => undefined;
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: false,
+      });
+      vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+        frameCallback = callback;
+        return 1;
+      });
+      EventBus.on('cheatWarning', warningSpy);
 
-      // Trigger the check logic manually since we can't easily wait for RAF loop
-      // We'll mimic the check inside the loop
-      const avgDelta = 5;
-      const expectedDelta = 1000 / 60;
+      AntiCheatService.init({
+        detectSpeedHack: true,
+        detectDevTools: false,
+        detectDebugger: false,
+        enableIntegrityChecks: false,
+        debugMode: true,
+      });
 
-      if (avgDelta < expectedDelta * (1 - 0.15)) {
-        service.onCheatWarning(
-          'SPEED_HACK',
-          `Abnormal game speed detected (${avgDelta.toFixed(2)}ms avg)`
-        );
+      for (let i = 0; i < 30; i += 1) {
+        nowMs += 20;
+        frameCallback(nowMs);
+      }
+      for (let i = 0; i < 80; i += 1) {
+        nowMs += 16.45;
+        frameCallback(nowMs);
+      }
+
+      expect(warningSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'SPEED_HACK',
+        })
+      );
+    });
+
+    it('should warn when frames run implausibly faster than the calibrated baseline', () => {
+      const warningSpy = vi.fn();
+      let nowMs = 0;
+      let frameCallback: FrameRequestCallback = () => undefined;
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: false,
+      });
+      vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+        frameCallback = callback;
+        return 1;
+      });
+      EventBus.on('cheatWarning', warningSpy);
+
+      AntiCheatService.init({
+        detectSpeedHack: true,
+        detectDevTools: false,
+        detectDebugger: false,
+        enableIntegrityChecks: false,
+        debugMode: true,
+      });
+
+      for (let i = 0; i < 60; i += 1) {
+        nowMs += 16.67;
+        frameCallback(nowMs);
+      }
+
+      for (let i = 0; i < 70; i += 1) {
+        nowMs += 5;
+        frameCallback(nowMs);
       }
 
       expect(warningSpy).toHaveBeenCalledWith(
