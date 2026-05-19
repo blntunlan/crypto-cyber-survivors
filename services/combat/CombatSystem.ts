@@ -6,7 +6,12 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { createViewportBounds, updateViewportBounds, type ViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import {
+  createViewportBounds,
+  updateViewportBounds,
+  type ViewportBounds,
+  isCircleVisible,
+} from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';
@@ -182,7 +187,8 @@ export class CombatSystem implements ICombatSystem {
         if (useBounds) {
           const enemyRadius =
             enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, this._viewportBounds)) return;
+          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, this._viewportBounds))
+            return;
         }
 
         const dx = enemy.x - player.x;
