@@ -187,8 +187,9 @@ export class CombatSystem implements ICombatSystem {
         if (useBounds) {
           const enemyRadius =
             enemy.radius || COMBAT_CONFIG.DEFAULT_ENEMY_RADIUS_FALLBACK;
-          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, this._viewportBounds))
+          if (!isCircleVisible(enemy.x, enemy.y, enemyRadius, this._viewportBounds)) {
             return;
+          }
         }
 
         const dx = enemy.x - player.x;
