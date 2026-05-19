@@ -1,0 +1,3 @@
+## 2025-05-19 - Combat System Culling Performance Optimization
+**Learning:** In high-frequency render and combat loops, creating a new `ViewportBounds` object using `createViewportBounds()` each frame (or multiple times per frame) for off-screen culling creates significant garbage collection (GC) pressure and overhead.
+**Action:** Instead of allocating new objects, pre-allocate a single `ViewportBounds` instance in systems and renderers that run frequently. Update its values in-place using a new `updateViewportBounds()` function. This eliminates GC allocations for viewport calculations during combat targeting and entity rendering.
