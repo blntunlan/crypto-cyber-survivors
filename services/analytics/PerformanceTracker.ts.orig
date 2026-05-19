@@ -188,9 +188,7 @@ export class PerformanceTracker {
       this.lastSampleTime = now;
     }
 
-    if (typeof requestAnimationFrame !== 'undefined') {
-      this.animationId = requestAnimationFrame(this.loop);
-    }
+    this.animationId = requestAnimationFrame(this.loop);
   };
 
   /**

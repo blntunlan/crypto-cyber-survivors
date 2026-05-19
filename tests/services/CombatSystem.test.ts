@@ -10,6 +10,7 @@ import { COLORS, COMBAT } from '../../constants';
 // Mock dependencies
 vi.mock('../../services/renderers/CullingUtils', () => ({
   createViewportBounds: vi.fn(() => ({})),
+  updateViewportBounds: vi.fn(),
   isCircleVisible: vi.fn(x => x < 1000), // Mock visibility: invisible if x >= 1000
 }));
 

@@ -1,0 +1,13 @@
+--- services/analytics/PerformanceTracker.ts
++++ services/analytics/PerformanceTracker.ts
+@@ -188,7 +188,9 @@
+       this.checkThresholds(frameTime);
+     }
+
+-    this.animationId = requestAnimationFrame(this.loop);
++    if (typeof requestAnimationFrame !== 'undefined') {
++      this.animationId = requestAnimationFrame(this.loop);
++    }
+   };
+
+   /**
