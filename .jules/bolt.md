@@ -1,0 +1,3 @@
+## 2026-05-22 - Zero-Allocation Pattern for Stateless Modules
+**Learning:** For function-based or stateless pipeline files (like `WeaponFiringPipeline.ts`), object reuse is still achievable by instantiating module-level constant objects (e.g., `SHARED_VIEWPORT_BOUNDS`) and updating them in-place via utility functions (e.g., `updateViewportBounds`). Because JS is single-threaded and the pipeline is synchronous, this is a completely safe way to eliminate GC pressure without having to instantiate classes.
+**Action:** Always prefer module-level scoped reusable objects updated in-place over new allocations inside frequently called stateless functions, provided there are no `await`s in the critical execution path.

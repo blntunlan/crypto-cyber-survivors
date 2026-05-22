@@ -34,6 +34,22 @@ export function createViewportBounds(
 }
 
 /**
+ * Updates an existing viewport bounds object in-place to avoid allocation overhead.
+ * Modifying existing objects is faster in high-frequency rendering loops.
+ */
+export function updateViewportBounds(
+  bounds: ViewportBounds,
+  width: number,
+  height: number,
+  padding: number = 50
+): void {
+  bounds.left = -padding;
+  bounds.right = width + padding;
+  bounds.top = -padding;
+  bounds.bottom = height + padding;
+}
+
+/**
  * Check if a circular object is visible within the viewport
  * Uses AABB (Axis-Aligned Bounding Box) check for performance
  */

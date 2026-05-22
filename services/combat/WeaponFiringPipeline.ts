@@ -23,7 +23,7 @@ import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type WeaponConfig, type WeaponBehavior } from '../../types/weapons';
 import { COMBAT_CONFIG } from '../../config';
 import { COLORS } from '../../constants';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { updateViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
 import { enemyGrid } from './SpatialGrid';
 import { PredictiveTargeting } from '../../strategies/combat/PredictiveTargeting';
 
@@ -411,6 +411,8 @@ function spawnProjectileFan(
 
 // ─── Shared: Targeting (SpatialGrid + Viewport) ─────────────────────────
 
+const SHARED_VIEWPORT_BOUNDS: ViewportBounds = { left: 0, right: 0, top: 0, bottom: 0 };
+
 function findNearestEnemy(
   pool: IPoolManager,
   playerX: number,
@@ -418,10 +420,11 @@ function findNearestEnemy(
   screenWidth: number,
   screenHeight: number
 ): TargetCandidate | null {
-  const viewportBounds =
-    screenWidth > 0 && screenHeight > 0
-      ? createViewportBounds(screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING)
-      : null;
+  let viewportBounds: ViewportBounds | null = null;
+  if (screenWidth > 0 && screenHeight > 0) {
+    updateViewportBounds(SHARED_VIEWPORT_BOUNDS, screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING);
+    viewportBounds = SHARED_VIEWPORT_BOUNDS;
+  }
 
   let bestX = 0;
   let bestY = 0;
