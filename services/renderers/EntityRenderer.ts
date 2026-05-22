@@ -5,7 +5,6 @@ import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
 import {
-
   updateViewportBounds,
   isCircleVisible,
   type ViewportBounds,

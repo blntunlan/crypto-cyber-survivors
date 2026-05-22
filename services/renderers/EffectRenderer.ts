@@ -2,7 +2,6 @@ import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player } from '../../types';
 import {
-
   updateViewportBounds,
   isCircleVisible,
   type ViewportBounds,

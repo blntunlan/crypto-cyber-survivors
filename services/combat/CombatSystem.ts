@@ -6,7 +6,11 @@ import { COLORS, COMBAT_CONFIG, PLAYER_STATS } from '../../config';
 import { screenService } from '../system/ScreenService';
 import { ParticleConfigService } from '../system/ParticleConfigService';
 import { CheatManager } from '../system/CheatManager';
-import { updateViewportBounds, isCircleVisible, type ViewportBounds } from '../renderers/CullingUtils';
+import {
+  updateViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from '../renderers/CullingUtils';
 import { BuffManager } from '../patterns/decorators/BuffManager';
 import { enemyGrid } from './SpatialGrid';
 import { type ICombatSystem } from '../interfaces/ICombatSystem';

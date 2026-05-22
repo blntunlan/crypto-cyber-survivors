@@ -1,7 +1,11 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Bullet } from '../../types';
-import { updateViewportBounds, isCircleVisible, type ViewportBounds } from './CullingUtils';
+import {
+  updateViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
