@@ -68,4 +68,10 @@ describe('SEO crawl assets', () => {
     expect(key).toBe('7f74f2a3a02f4e1b8e9a6c5d4b3a2190');
     expect(packageJson).toContain('"indexnow:submit"');
   });
+
+  it('publishes the Bing Webmaster Tools verification file', () => {
+    const verification = readProjectFile('public/BingSiteAuth.xml');
+
+    expect(verification).toContain('<user>7C7BD0FE9B61F343A5E14971C00A449B</user>');
+  });
 });
