@@ -34,6 +34,34 @@ export function createViewportBounds(
 }
 
 /**
+ * Updates an existing ViewportBounds object in-place to avoid allocations.
+ * This is crucial for avoiding GC pressure in hot paths like the render loop.
+ */
+export function updateViewportBounds(
+  bounds: ViewportBounds,
+  width: number,
+  height: number,
+  padding: number = 50
+): ViewportBounds {
+  bounds.left = -padding;
+  bounds.right = width + padding;
+  bounds.top = -padding;
+  bounds.bottom = height + padding;
+  return bounds;
+}
+
+/**
+ * Shared viewport bounds instance for function-based modules without class state.
+ * Safe to use in synchronous execution flows.
+ */
+export const SHARED_VIEWPORT_BOUNDS: ViewportBounds = {
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+};
+
+/**
  * Check if a circular object is visible within the viewport
  * Uses AABB (Axis-Aligned Bounding Box) check for performance
  */

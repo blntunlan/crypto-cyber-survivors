@@ -23,7 +23,7 @@ import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type WeaponConfig, type WeaponBehavior } from '../../types/weapons';
 import { COMBAT_CONFIG } from '../../config';
 import { COLORS } from '../../constants';
-import { createViewportBounds, isCircleVisible } from '../renderers/CullingUtils';
+import { updateViewportBounds, isCircleVisible, SHARED_VIEWPORT_BOUNDS } from '../renderers/CullingUtils';
 import { enemyGrid } from './SpatialGrid';
 import { PredictiveTargeting } from '../../strategies/combat/PredictiveTargeting';
 
@@ -420,7 +420,7 @@ function findNearestEnemy(
 ): TargetCandidate | null {
   const viewportBounds =
     screenWidth > 0 && screenHeight > 0
-      ? createViewportBounds(screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING)
+      ? updateViewportBounds(SHARED_VIEWPORT_BOUNDS, screenWidth, screenHeight, TARGETING_VIEWPORT_PADDING)
       : null;
 
   let bestX = 0;

@@ -1,0 +1,3 @@
+## 2024-05-24 - Zero-Allocation Viewport Bounds
+**Learning:** Allocating new `ViewportBounds` objects per frame in hot render loops (`EntityRenderer`, `ProjectileRenderer`, `EffectRenderer`, `CombatSystem`) causes unnecessary garbage collection pressure and negatively impacts performance, especially at 60 FPS on mobile devices.
+**Action:** Use a pre-allocated `ViewportBounds` object and mutate it in-place using `updateViewportBounds` to achieve zero-allocation bounds updates. For function-based components like `WeaponFiringPipeline.ts`, use a module-level shared instance (`SHARED_VIEWPORT_BOUNDS`) safely due to JS single-threaded execution (no async yields).
