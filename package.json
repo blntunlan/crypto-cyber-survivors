@@ -14,6 +14,7 @@
     "lint:ui": "npx ts-node scripts/ui-consistency-audit.ts",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:audit": "node scripts/test-audit.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",

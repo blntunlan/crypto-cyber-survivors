@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { TimeService } from '../services/core/TimeService';
 
@@ -10,21 +10,21 @@ import { TimeService } from '../services/core/TimeService';
  * Phase will always show 'active' now. Difficulty driven by market conditions.
  */
 describe('5-Minute Cycle Yoyo Analysis (AI Director V2)', () => {
-  it('should simulate a 5-minute run with PnL fluctuations', () => {
-    console.log('\n=== 5-MINUTE RUN SIMULATION (AI DIRECTOR V2) ===\n');
-    console.log('NOTE: Wave phase system removed - always shows "active"');
-    console.log(
-      String('Time').padEnd(10),
-      String('Phase').padEnd(15),
-      String('PnL').padEnd(8),
-      String('Total Diff').padEnd(12),
-      String('SpawnRate').padEnd(10),
-      String('EnemyHP').padEnd(10)
-    );
-    console.log('-'.repeat(75));
+  beforeEach(() => {
+    DifficultyManager.reset();
+    TimeService.reset();
+  });
 
+  it('should keep difficulty bounded during a 5-minute yoyo run', () => {
     const leverage = 20;
     DifficultyManager.startGame(leverage);
+    const rows: {
+      sec: number;
+      pnl: number;
+      total: number;
+      spawnRate: number;
+      enemyHP: number;
+    }[] = [];
 
     // 5 dakika = 300 saniye, 15 saniyelik adımlarla gidelim
     for (let sec = 0; sec <= 300; sec += 15) {
@@ -42,25 +42,43 @@ describe('5-Minute Cycle Yoyo Analysis (AI Director V2)', () => {
       }
 
       const output = DifficultyManager.calculate(pnl, 0.02, 5, 0.8);
-
-      console.log(
-        `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`.padEnd(10),
-        'active'.padEnd(15),
-        (pnl * 100).toFixed(0).concat('%').padEnd(8),
-        output.total.toFixed(2).padEnd(12),
-        output.spawnRate.toFixed(2).padEnd(10),
-        output.enemyHP.toFixed(2).padEnd(10)
-      );
+      rows.push({
+        sec,
+        pnl,
+        total: output.total,
+        spawnRate: output.spawnRate,
+        enemyHP: output.enemyHP,
+      });
     }
 
+    expect(rows).toHaveLength(21);
+    expect(rows[0]?.sec).toBe(0);
+    expect(rows.at(-1)?.sec).toBe(300);
+    expect(Math.min(...rows.map(row => row.pnl))).toBeLessThan(0);
+
+    for (const row of rows) {
+      expect(Number.isFinite(row.total)).toBe(true);
+      expect(Number.isFinite(row.spawnRate)).toBe(true);
+      expect(Number.isFinite(row.enemyHP)).toBe(true);
+      expect(row.total).toBeGreaterThanOrEqual(0.2);
+      expect(row.total).toBeLessThanOrEqual(10);
+      expect(row.spawnRate).toBeGreaterThan(0);
+      expect(row.enemyHP).toBeGreaterThan(0);
+    }
+  });
+
+  it('should enter the second cycle after five minutes', () => {
     // Cycle 2 (Zorluk Artışı Kontrolü)
-    console.log('\n--- CYCLE 2 START (60% INCREASE) ---');
     TimeService.reset();
-    // @ts-expect-error: testing
-    TimeService.gameTimeSeconds = 301;
-    const c2Output = DifficultyManager.calculate(0, 0.02, 5, 1.0);
-    console.log(
-      `Cycle 2 Start Total Difficulty: ${c2Output.total.toFixed(2)} (vs Cycle 1 start)`
-    );
+    TimeService.setGameTime(301_000);
+
+    const output = DifficultyManager.calculate(0, 0.02, 5, 1.0);
+    const state = DifficultyManager.getDebugState();
+
+    expect(output.wavePhase).toBe('active');
+    expect(output.total).toBeGreaterThan(0);
+    expect(output.total).toBeLessThanOrEqual(10);
+    expect(state.cycleNumber).toBe(2);
+    expect(state.cycleProgress).toBeGreaterThan(0);
   });
 });

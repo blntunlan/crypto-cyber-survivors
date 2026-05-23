@@ -58,7 +58,7 @@ async function doFetch(
   });
 }
 
-const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const RETRYABLE_STATUSES = new Set([502, 503, 504]);
 const MAX_RETRIES = 2;
 
 async function delay(ms: number): Promise<void> {

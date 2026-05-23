@@ -320,15 +320,13 @@ describe('ClientIndicatorService', () => {
 
   describe('Pair and Position', () => {
     it('should allow setting trading pair', () => {
-      service.setPair('ETH');
-      // Should not throw
-      expect(true).toBe(true);
+      expect(() => service.setPair('ETH')).not.toThrow();
     });
 
     it('should allow setting position', () => {
-      service.setPosition(MarketPosition.SHORT);
-      // Should not throw
-      expect(true).toBe(true);
+      expect(() => service.setPosition(MarketPosition.SHORT)).not.toThrow();
+      expect(service.isFavorable()).toBe(false);
+      expect(service.isUnfavorable()).toBe(false);
     });
   });
 

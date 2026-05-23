@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { trackRender } from '../../../utils/trackRender';
 import { Play, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -17,22 +17,22 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
     <header className="relative z-10 mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 sm:pb-32 sm:pt-24">
       <div className="flex flex-col items-center gap-12 lg:flex-row lg:gap-16">
         {/* Main Messaging Sub-module */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
           className="relative z-20 flex-1"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded border-l-4 border-[#b22222] bg-[#b22222]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[#b22222] sm:mb-8 sm:text-xs">
+          <div className="mb-6 inline-flex items-center gap-2 rounded border border-[#b22222]/30 bg-[#b22222]/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[#b22222] shadow-[inset_3px_0_0_rgba(178,34,34,0.7)] sm:mb-8 sm:text-xs">
             {t('landing.hero.status')}
           </div>
 
-          <h1 className="mb-6 font-cyber text-3xl font-black italic leading-[0.95] tracking-tighter sm:mb-8 sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl">
+          <h1 className="mb-6 font-cyber text-3xl font-semibold italic leading-[0.95] tracking-tighter sm:mb-8 sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl">
             <span className="mb-4 block font-mono text-xs not-italic tracking-[0.5em] text-[#d6b85c] sm:text-sm">
               CRYPTO SURVIVORS
             </span>
             {t('landing.hero.title_top')} <br />
-            <span className="bg-gradient-to-r from-[#d6b85c] via-[#ffd600] to-white bg-clip-text pr-[0.15em] text-transparent">
+            <span className="pr-[0.15em] text-[#ffd600]">
               {t('landing.hero.title_highlight')}
             </span>
           </h1>
@@ -43,6 +43,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
 
           <div className="flex w-full flex-col items-center gap-4 sm:w-auto sm:flex-row">
             <button
+              type="button"
               onClick={onLaunch}
               className="group relative flex min-h-[48px] w-full items-center justify-center gap-3 overflow-hidden bg-[#d6b85c] px-6 py-4 text-lg font-black text-black transition-all duration-300 hover:bg-[#ffd600] hover:shadow-[0_0_40px_rgba(214,184,92,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:w-auto sm:px-10 sm:py-5 sm:text-xl md:text-2xl"
             >
@@ -58,7 +59,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
               className="flex min-h-[48px] w-full items-center justify-center gap-3 border border-[#b22222]/30 px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-300 transition-all duration-300 hover:bg-[#b22222]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] sm:w-auto sm:px-8 sm:py-5"
             >
               <svg
-                className="h-5 w-5 flex-shrink-0"
+                className="size-5 flex-shrink-0"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
@@ -67,29 +68,29 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
               {t('landing.hero.inspect')}
             </a>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Technical Terminal Sub-module */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1 }}
           className="w-full max-w-lg flex-1 lg:max-w-none"
         >
-          <div className="relative rounded-sm border-2 border-[#b22222]/30 bg-black p-6 font-mono text-sm leading-snug shadow-[0_0_50px_rgba(178,34,34,0.1)]">
+          <div className="relative rounded-sm border-2 border-[#b22222]/30 bg-[#05070d] p-6 font-mono text-sm leading-snug shadow-[0_0_50px_rgba(178,34,34,0.1)]">
             <div className="mb-4 flex items-center justify-between border-b border-[#b22222]/20 pb-2">
               <div className="flex gap-2">
-                <div className="h-2 w-2 bg-[#b22222]" />
-                <div className="h-2 w-2 bg-[#d6b85c]" />
-                <div className="h-2 w-2 bg-white/30" />
+                <div className="size-2 bg-[#b22222]" />
+                <div className="size-2 bg-[#d6b85c]" />
+                <div className="size-2 bg-white/30" />
               </div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-500">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400">
                 Core_Memory_Alloc: OK
               </div>
             </div>
             <div className="space-y-1 text-xs">
               <div className="tracking-tighter text-[#00ffff]">
-                [{timestamp}] INITIALIZING_SUBSYSTEMS...
+                [{timestamp}] INITIALIZING_SUBSYSTEMS&hellip;
               </div>
               <div className="text-white">
                 {'>>'} POOL_MANAGER.SPAWN_PRESET(ENEMY_POOL_v4)
@@ -105,7 +106,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
               </div>
               <div className="mt-4 flex items-center gap-4 border-t border-[#b22222]/10 pt-4">
                 <div className="h-1 flex-1 overflow-hidden bg-white/5">
-                  <motion.div
+                  <m.div
                     className="h-full bg-[#d6b85c]"
                     animate={{ width: ['0%', '100%', '0%'] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -117,7 +118,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onLaunch }) => {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </header>
   );

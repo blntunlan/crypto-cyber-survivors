@@ -383,29 +383,46 @@ describe('MetricsService', () => {
 
   describe('Storage Quota Handling', () => {
     it('should handle storage quota exceeded', () => {
-      // Fill storage with dummy sessions
-      // Fill storage with dummy sessions
-      // (Mocking setItem to throw handles the test case)
-
-      // Mock localStorage.setItem to throw QuotaExceededError
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
       setItemSpy.mockImplementationOnce(() => {
-        const err = new Error('QuotaExceeded');
-        err.name = 'QuotaExceededError';
-        throw err;
+        throw new DOMException('Quota exceeded', 'QuotaExceededError');
       });
 
       MetricsService.startSession(MarketPosition.LONG, 50000, 10, 'BTC');
-      MetricsService.endSession(GameEndReason.DEATH, createFinalData());
+      const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
 
-      // Should have retried logic (which includes slicing array)
-      // Ideally we'd inspect internal state, but here we can check logs or behavior
-      // or simply ensure it didn't crash
+      expect(session).not.toBeNull();
+      expect(MetricsService.getSessionCount()).toBe(1);
+      expect(setItemSpy).toHaveBeenCalledTimes(2);
+      setItemSpy.mockRestore();
     });
 
     it('should recover by clearing old sessions', () => {
-      // Hard to test exact internal recovery without access to private state
-      // But existing quota logic is complex, good to verify it runs without crashing
+      for (let index = 0; index < 12; index++) {
+        MetricsService.startSession(MarketPosition.LONG, 50000 + index, 10, 'BTC');
+        MetricsService.endSession(GameEndReason.DEATH, createFinalData());
+      }
+
+      const originalSetItem = window.localStorage.setItem;
+      const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+      setItemSpy
+        .mockImplementationOnce(() => {
+          throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        })
+        .mockImplementationOnce(() => {
+          throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        })
+        .mockImplementation(function (this: Storage, ...args) {
+          return originalSetItem.apply(this, args);
+        });
+
+      MetricsService.startSession(MarketPosition.LONG, 51000, 10, 'BTC');
+      const session = MetricsService.endSession(GameEndReason.DEATH, createFinalData());
+
+      expect(session).not.toBeNull();
+      expect(MetricsService.getSessionCount()).toBeLessThanOrEqual(5);
+      expect(setItemSpy).toHaveBeenCalledTimes(3);
+      setItemSpy.mockRestore();
     });
   });
 

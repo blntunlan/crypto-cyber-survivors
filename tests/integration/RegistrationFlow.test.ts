@@ -52,9 +52,4 @@ describe('Registration Flow (Integration with MSW)', () => {
     expect(storedUser?.nickname).toBe(nickname);
     expect(storedUser?.profileId).toBe('existing-uuid');
   });
-
-  it('should handle registration failures gracefully', async () => {
-    // Basic test case placeholder fixed
-    expect(true).toBe(true);
-  });
 });

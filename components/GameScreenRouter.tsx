@@ -26,12 +26,13 @@ import GameEngine from './GameEngine';
 import { GameUI } from './GameUI';
 import { NicknameEntryScreen } from './screens/NicknameEntryScreen';
 import { TutorialOverlay } from './screens/TutorialOverlay';
-import { HubMenu, HubMenuV2, type HubScreen } from './hub';
+import { HubMenu, type HubScreen } from './hub/HubMenu';
+import { HubMenuV2 } from './hub/HubMenuV2';
 import { MainMenu } from './screens/MainMenu';
 import { CycleCompleteScreen } from './screens/CycleCompleteScreen';
 import { MarketDisconnectedScreen } from './screens/MarketDisconnectedScreen';
-import { LevelUpScreen } from './screens/LevelUpScreen';
-import { NotificationSystem } from './hud';
+import { LevelUpScreen } from './screens/LevelUpScreen/LevelUpScreen';
+import { NotificationSystem } from './hud/NotificationSystem';
 import { UserSessionService } from '../services/auth/UserSessionService';
 import { DifficultyManager } from '../services/gameplay/DifficultyManager';
 import { CoinService } from '../services/gameplay/CoinService';
@@ -40,24 +41,8 @@ import { OverlayBackButton } from './ui/OverlayChrome';
 
 const UIFallback = () => null;
 const FallbackLoader = () => (
-  <div
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#020617',
-      color: '#eab308',
-      fontFamily: 'monospace',
-      fontSize: '14px',
-      letterSpacing: '0.1em',
-    }}
-  >
-    LOADING ENGINE...
+  <div className="fixed inset-0 flex items-center justify-center bg-[#020617] font-mono text-sm tracking-wide text-yellow-500">
+    LOADING ENGINE&hellip;
   </div>
 );
 
@@ -166,7 +151,11 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
   onOpenReplays,
 }) => {
   const device = useDevice();
-  const [useHubV2, setUseHubV2] = React.useState(false);
+  const [useHubV2] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('hubV2') === '1';
+  });
   const isMenuRoute = gameStatus === GameStatus.MENU;
   const showLiveGameScene = !isMenuRoute;
   const showGameUiOverlay =
@@ -175,12 +164,6 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
     gameStatus === GameStatus.LEVEL_UP;
   const showDesktopLeaderboardPanel =
     isMenuRoute && hubScreen === 'play' && !device.isMobile;
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    setUseHubV2(params.get('hubV2') === '1');
-  }, []);
 
   return (
     <>
@@ -287,6 +270,7 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
               <HubMenu
                 nickname={UserSessionService.getNickname() ?? 'Survivor'}
                 coins={walletBalance}
+                selectedPair={selectedPair}
                 onNavigate={screen => {
                   if (screen === 'gear') {
                     setShowSettings(true);

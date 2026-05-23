@@ -113,6 +113,46 @@ vi.mock('../../components/GameUI', () => ({
   GameUI: () => <div data-testid="game-ui">Game UI Running</div>,
 }));
 
+vi.mock('../../components/GameAppShell', async () => {
+  const React = (await vi.importActual('react')) as {
+    useState: <T>(initialState: T) => [T, (nextState: T) => void];
+  };
+
+  return {
+    GameAppShell: ({
+      hubScreen,
+      setHubScreen,
+    }: {
+      hubScreen: string;
+      setHubScreen: (screen: string) => void;
+    }) => {
+      const [hasStarted, setHasStarted] = React.useState(false);
+
+      if (hasStarted) {
+        return <div data-testid="game-engine">Game Engine Running</div>;
+      }
+
+      if (hubScreen === 'play') {
+        const handleStart = () => {
+          void import('../../services/auth/GameSessionService')
+            .then(({ GameSessionService }) => GameSessionService.startSession())
+            .then(() => setHasStarted(true));
+        };
+
+        return <button onClick={handleStart}>LONG</button>;
+      }
+
+      return (
+        <div>
+          <h1>CRYPTO</h1>
+          <p>SURVIVORS</p>
+          <button onClick={() => setHubScreen('play')}>PLAY</button>
+        </div>
+      );
+    },
+  };
+});
+
 vi.mock('../../components/screens/LandingPage', () => ({
   LandingPage: ({ onLaunch }: { onLaunch: () => void }) => (
     <div>

@@ -78,7 +78,8 @@ describe('AntiCheatService', () => {
       });
 
       AntiCheatService.destroy();
-      frameCallback?.(performance.now());
+      // TypeScript can't track closure assignments from mocks — cast to suppress narrowing
+      (frameCallback as FrameRequestCallback | null)?.(performance.now());
 
       expect(cancelSpy).toHaveBeenCalledWith(123);
       expect(requestSpy).toHaveBeenCalledTimes(1);
@@ -393,8 +394,7 @@ describe('AntiCheatService', () => {
       // Fast forward multiple times
       vi.advanceTimersByTime(500);
 
-      // No crash means pass
-      expect(true).toBe(true);
+      expect(AntiCheatService.getFingerprint()).toBeDefined();
     });
   });
 });

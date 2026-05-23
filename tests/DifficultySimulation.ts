@@ -7,7 +7,7 @@ import { TimeService } from '../services/core/TimeService';
  * zorluk katsayılarını (Spawn Rate, Speed vb.) gözlemleyebiliriz.
  */
 
-interface Scenario {
+type Scenario = {
   name: string;
   timeMins: number;
   pnl: number;
@@ -15,7 +15,14 @@ interface Scenario {
   atr: number;
   level: number;
   hp: number;
-}
+};
+
+export type DifficultySimulationResult = Scenario & {
+  total: number;
+  spawnRate: number;
+  enemySpeed: number;
+  enemyHP: number;
+};
 
 const scenarios: Scenario[] = [
   {
@@ -65,19 +72,25 @@ const scenarios: Scenario[] = [
   },
 ];
 
-export function runDifficultySimulation() {
-  console.log('\n=== DIFFICULTY MATHEMATICAL ANALYSIS ===\n');
-  console.log(
-    String('Scenario').padEnd(30),
-    String('Total').padEnd(8),
-    String('Spawn').padEnd(8),
-    String('Speed').padEnd(8),
-    String('HP').padEnd(8)
-  );
-  console.log('-'.repeat(70));
+export function runDifficultySimulation(options: { log?: boolean } = {}) {
+  const shouldLog = options.log ?? true;
+  const results: DifficultySimulationResult[] = [];
+
+  if (shouldLog) {
+    console.log('\n=== DIFFICULTY MATHEMATICAL ANALYSIS ===\n');
+    console.log(
+      String('Scenario').padEnd(30),
+      String('Total').padEnd(8),
+      String('Spawn').padEnd(8),
+      String('Speed').padEnd(8),
+      String('HP').padEnd(8)
+    );
+    console.log('-'.repeat(70));
+  }
 
   scenarios.forEach(s => {
     // Simüle edilen zamanı ayarla
+    DifficultyManager.reset();
     TimeService.reset();
     // @ts-expect-error:  Private method access for simulation
     TimeService.lastTime = 0;
@@ -87,14 +100,28 @@ export function runDifficultySimulation() {
     DifficultyManager.startGame(s.leverage);
 
     const output = DifficultyManager.calculate(s.pnl, s.atr, s.level, s.hp / 100);
+    results.push({
+      ...s,
+      total: output.total,
+      spawnRate: output.spawnRate,
+      enemySpeed: output.enemySpeed,
+      enemyHP: output.enemyHP,
+    });
 
-    console.log(
-      s.name.padEnd(30),
-      output.total.toFixed(2).padEnd(8),
-      output.spawnRate.toFixed(2).padEnd(8),
-      output.enemySpeed.toFixed(2).padEnd(8),
-      output.enemyHP.toFixed(2).padEnd(8)
-    );
+    if (shouldLog) {
+      console.log(
+        s.name.padEnd(30),
+        output.total.toFixed(2).padEnd(8),
+        output.spawnRate.toFixed(2).padEnd(8),
+        output.enemySpeed.toFixed(2).padEnd(8),
+        output.enemyHP.toFixed(2).padEnd(8)
+      );
+    }
   });
-  console.log('\n=========================================\n');
+
+  if (shouldLog) {
+    console.log('\n=========================================\n');
+  }
+
+  return results;
 }

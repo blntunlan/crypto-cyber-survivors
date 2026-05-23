@@ -40,10 +40,21 @@ vi.mock('../services/audio', () => ({
   },
 }));
 
+vi.mock('../services/audio/AudioService', () => ({
+  audio: {
+    getMuted: vi.fn(() => false),
+    toggleMute: vi.fn(),
+    playLevelUp: vi.fn(),
+    playButton: vi.fn(),
+    playSelectionTick: vi.fn(),
+  },
+}));
+
 vi.mock('../services/core/EventBus', () => ({
   EventBus: {
     emit: vi.fn(),
     on: vi.fn(() => vi.fn()),
+    subscribe: vi.fn(() => vi.fn()),
   },
 }));
 
@@ -262,8 +273,48 @@ vi.mock('../components/GameUI', () => ({
   GameUI: () => <div>GameUI</div>,
 }));
 
+vi.mock('../components/GameAppShell', () => ({
+  GameAppShell: ({
+    gameStatus,
+    hubScreen,
+    showSettings,
+    setShowSettings,
+  }: {
+    gameStatus: string;
+    hubScreen: string;
+    showSettings: boolean;
+    setShowSettings: (showSettings: boolean) => void;
+  }) => {
+    usePauseBudgetMock('COMPETITIVE', gameStatus, () => {
+      setShowSettings(false);
+      transitionMock('PLAYING');
+    });
+
+    return (
+      <div>
+        {gameStatus === 'PAUSED' ? (
+          <button onClick={() => setShowSettings(true)}>Open Settings</button>
+        ) : hubScreen === 'play' ? (
+          'MainMenu'
+        ) : (
+          'HubMenu'
+        )}
+        {showSettings && <div>SettingsPanel</div>}
+      </div>
+    );
+  },
+}));
+
 vi.mock('../components/hub', () => ({
   HubMenu: () => <div>HubMenu</div>,
+}));
+
+vi.mock('../components/hub/HubMenu', () => ({
+  HubMenu: () => <div>HubMenu</div>,
+}));
+
+vi.mock('../components/hub/HubMenuV2', () => ({
+  HubMenuV2: () => <div>HubMenuV2</div>,
 }));
 
 vi.mock('../components/screens/MainMenu', () => ({

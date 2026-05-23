@@ -10,14 +10,15 @@
  * - GEAR: Settings
  *
  * Supports Cyberpunk and Retro 16-bit themes.
- * Responsive: 2-column grid on mobile/tablet, 3-column grid on xl desktops.
+ * Responsive: compact 2-column grid on most phones, 3-column grid on xl desktops.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { trackRender } from '../../utils/trackRender';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
-import { audio } from '../../services/audio';
+import { CRYPTO_PAIRS, type CryptoPair } from '../../types/crypto';
+import { audio } from '../../services/audio/AudioService';
 import { HubMenuButton } from './HubMenuButton.tsx';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useThemeSize } from '../../hooks/useThemeSize';
@@ -29,8 +30,8 @@ import { OverlayBackButton } from '../ui/OverlayChrome';
 
 import { HubPlayerCard } from './HubPlayerCard.tsx';
 import { PlayerProfile } from './PlayerProfile';
-import { LootboxService } from '../../services/lootbox';
-import { InventoryService } from '../../services/inventory';
+import { LootboxService } from '../../services/lootbox/LootboxService';
+import { InventoryService } from '../../services/inventory/InventoryService';
 import { useHubButtons, type HubButtonConfig } from './useHubButtons.tsx';
 import {
   useResponsiveHubColumns,
@@ -43,6 +44,7 @@ interface HubMenuProps {
   nickname: string;
   coins: number;
   onNavigate: (screen: HubScreen) => void;
+  selectedPair?: CryptoPair;
   /** Return to Landing Page */
   onBack?: () => void;
 }
@@ -51,6 +53,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   nickname,
   coins,
   onNavigate,
+  selectedPair = 'BTC',
   onBack,
 }) => {
   trackRender('HubMenu');
@@ -59,26 +62,17 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   const sizes = useThemeSize();
   const device = useDevice();
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const pairConfig = CRYPTO_PAIRS[selectedPair];
+  const accentColor = isRetro ? COLORS.ELECTRIC_BLUE : pairConfig.color;
 
-  const [lootboxCount, setLootboxCount] = useState(0);
-  const [consumableCount, setConsumableCount] = useState(0);
+  const [lootboxCount] = useState(() => LootboxService.getTotalUnopenedCount());
+  const [consumableCount] = useState(() => InventoryService.getConsumables().length);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const columnCount = useResponsiveHubColumns();
   const hubGridClass = useHubGridClassName();
 
-  // Update counts from services
-  useEffect(() => {
-    const updateCounts = () => {
-      setLootboxCount(LootboxService.getTotalUnopenedCount());
-      setConsumableCount(InventoryService.getConsumables().length);
-    };
-
-    updateCounts();
-    // Could subscribe to events here for real-time updates
-  }, []);
-
   // Icon size class for consistency
-  const iconClass = 'w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12';
+  const iconClass = 'size-7 sm:size-10 lg:size-12';
 
   // Hub button configurations with theme-aware icons
   const buttons: HubButtonConfig[] = useHubButtons({
@@ -155,11 +149,17 @@ export const HubMenu: React.FC<HubMenuProps> = ({
     },
     [selectedIndex, buttons, onNavigate, columnCount]
   );
+  const handleKeyDownRef = useRef(handleKeyDown);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    handleKeyDownRef.current = handleKeyDown;
   }, [handleKeyDown]);
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => handleKeyDownRef.current(event);
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, []);
 
   // Get equipped skin from inventory
   const equippedSkin = InventoryService.getEquippedSkin();
@@ -167,33 +167,25 @@ export const HubMenu: React.FC<HubMenuProps> = ({
   return (
     <div
       className={`
-        allow-scroll absolute inset-0
-        z-[100] flex flex-col items-center
-        justify-start overflow-y-auto overscroll-contain
-        scroll-smooth p-2.5 pb-[calc(0.75rem+var(--sab))]
-        sm:justify-center sm:p-5
-        ${isRetro ? 'bg-zinc-950' : 'bg-slate-950/92'}
+        allow-scroll absolute inset-0 z-[100] flex flex-col items-center
+        justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))]
+        sm:justify-center sm:p-6 sm:pb-6
+        landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2
+        ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/92'}
       `}
     >
-      <div
-        className={cn(
-          'relative w-full max-w-xl space-y-4 py-2 text-center sm:space-y-6 sm:py-0',
-          onBack && 'pt-10 sm:pt-0'
-        )}
-      >
-        {/* Back Button (Top Left) */}
-        {onBack && (
-          <div>
-            <OverlayBackButton
-              onClick={onBack}
-              label={!device.isMobile ? 'Info' : undefined}
-              className={device.isMobile ? 'top-auto' : undefined}
-            />
-          </div>
-        )}
+      {/* Back Button (Top Left) */}
+      {onBack && (
+        <OverlayBackButton
+          onClick={onBack}
+          label={!device.isMobile ? 'Info' : undefined}
+          className={device.isMobile ? 'top-auto' : undefined}
+        />
+      )}
 
+      <div className="relative w-full max-w-xl space-y-4 py-2 text-center sm:space-y-8 sm:py-0 landscape:space-y-2">
         {/* Title */}
-        <header className="space-y-3 text-center sm:space-y-5">
+        <header className="space-y-2.5 text-center sm:space-y-5">
           <h1
             className={cn(
               isRetro ? 'font-retro-pixel' : 'font-cyber',
@@ -201,14 +193,18 @@ export const HubMenu: React.FC<HubMenuProps> = ({
               'leading-relaxed tracking-tight',
               isRetro
                 ? 'text-[#FFD600] drop-shadow-[0_0_10px_rgba(255,214,0,0.5)]'
-                : 'text-white'
+                : 'text-white sm:drop-shadow-[0_0_25px_rgba(255,255,255,0.15)]'
             )}
           >
             {t('common.menu.title')}
             <br />
             <span
-              className={cn(isRetro && 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]')}
-              style={{ color: isRetro ? COLORS.ELECTRIC_BLUE : COLORS.PUMP_GREEN }}
+              className={cn(
+                isRetro
+                  ? 'drop-shadow-[0_0_10px_rgba(0,191,255,0.5)]'
+                  : 'sm:drop-shadow-[0_0_20px_var(--tw-shadow-color)]'
+              )}
+              style={{ color: accentColor }}
             >
               {t('common.menu.subtitle')}
             </span>
@@ -216,7 +212,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
           <div className="flex flex-col items-center gap-2">
             <p
-              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber'} font-medium uppercase tracking-[0.2em] text-slate-500 ${sizes.tiny}`}
+              className={`${isRetro ? 'font-retro-pixel text-[10px] text-[#39FF14]' : 'font-cyber text-slate-500'} font-medium uppercase tracking-[0.2em] ${sizes.tiny}`}
             >
               HUB TERMINAL
             </p>
@@ -230,7 +226,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
         <ThemedPanel
           className={cn(
-            'relative space-y-4 p-4 sm:space-y-5 sm:p-5',
+            'relative space-y-3.5 overflow-hidden p-3.5 transition-colors duration-200 sm:space-y-5 sm:p-6',
             !isRetro &&
               'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
           )}
@@ -239,7 +235,13 @@ export const HubMenu: React.FC<HubMenuProps> = ({
             <>
               <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
               <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
-              <div className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent shadow-[0_0_20px_rgba(34,211,238,0.25)]" />
+              <div
+                className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                style={{
+                  backgroundColor: accentColor,
+                  boxShadow: `0 0 20px ${accentColor}40`,
+                }}
+              />
             </>
           )}
 
@@ -250,6 +252,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
               coins={coins}
               cryptoBalance={{ btc: 0, eth: 0, sol: 0 }}
               equippedSkin={equippedSkin}
+              variant="embedded"
               onAvatarClick={() => {
                 audio.playButton();
                 setIsProfileOpen(true);
@@ -258,6 +261,20 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           </div>
 
           {/* Button Grid */}
+          <div className="relative z-10 flex items-center gap-2">
+            <div
+              className={`h-px flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-r from-transparent to-white/10'}`}
+            />
+            <span
+              className={`text-[9px] uppercase sm:text-[10px] ${isRetro ? 'font-retro-pixel' : 'font-cyber'} font-bold tracking-[0.15em] sm:tracking-[0.2em]`}
+              style={{ color: isRetro ? COLORS.NEON_GREEN : accentColor }}
+            >
+              HUB ACCESS
+            </span>
+            <div
+              className={`h-px flex-1 ${isRetro ? 'bg-[#39FF14]/30' : 'bg-gradient-to-l from-transparent to-white/10'}`}
+            />
+          </div>
           <div className={cn('relative z-10', hubGridClass)}>
             {buttons.map((btn, index) => (
               <div key={btn.id} className="h-full">

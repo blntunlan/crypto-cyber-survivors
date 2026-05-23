@@ -3,7 +3,12 @@ import { renderHook } from '@testing-library/react';
 import { useGameEngineEvents } from '../../hooks/useGameEngineEvents';
 import { EventBus } from '../../services/core/EventBus';
 import { type HitStopGovernor } from '../../services/gameplay/HitStopGovernor';
-import { type GameState, type MarketData, MarketPosition } from '../../types';
+import {
+  type GameState,
+  type MarketData,
+  MarketPosition,
+  GameStatus,
+} from '../../types';
 
 vi.mock('../../services/audio', () => ({
   audio: { playWhoosh: vi.fn(), playShoot: vi.fn() },
@@ -38,6 +43,7 @@ describe('useGameEngineEvents', () => {
       marketDataRef,
       hitStopGovernorRef,
       position: MarketPosition.LONG,
+      status: GameStatus.PLAYING,
     };
   };
 

@@ -33,7 +33,7 @@ import { useTutorial } from './hooks/useTutorial';
 import { useSurfaceState } from './hooks/useSurfaceState';
 import { UserProvider } from './contexts/UserContext';
 import { cn } from './utils/classnames';
-import { SEO } from './components/SEO';
+import { SEO as SeoMetadata } from './components/SEO';
 import { getMarketRuntimeConfig } from './config/marketRuntime';
 import { getSeoContent } from './config/seo';
 import {
@@ -47,9 +47,13 @@ import {
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyMotionProvider } from './components/LazyMotionProvider';
 import { LandingPage } from './components/screens/LandingPage';
-import { GameAppShell } from './components/GameAppShell';
 
 // Lazy-load feature screens
+const GameAppShell = React.lazy(() =>
+  import('./components/GameAppShell').then(m => ({
+    default: m.GameAppShell,
+  }))
+);
 const DocScreen = React.lazy(() =>
   import('./components/screens/DocScreen').then(m => ({
     default: m.DocScreen,
@@ -104,26 +108,141 @@ const VfxLabScreen = import.meta.env.DEV
   : null;
 
 const FallbackLoader = () => (
-  <div
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#020617',
-      color: '#eab308',
-      fontFamily: 'monospace',
-      fontSize: '14px',
-      letterSpacing: '0.1em',
-    }}
-  >
-    LOADING ENGINE...
+  <div className="fixed inset-0 flex items-center justify-center bg-[#020617] font-mono text-sm tracking-wide text-yellow-500">
+    LOADING ENGINE&hellip;
   </div>
 );
+
+type AppSeoMetadataProps = {
+  surface: 'docs' | 'privacy' | 'terms' | 'landing' | 'game';
+  isRetro: boolean;
+  language: string;
+  gameStatus: GameStatus;
+  playLabel: string;
+  getLocalizedPublicPath: (routePath: PublicRoutePath) => string;
+};
+
+const AppSeoMetadata: React.FC<AppSeoMetadataProps> = ({
+  surface,
+  isRetro,
+  language,
+  gameStatus,
+  playLabel,
+  getLocalizedPublicPath,
+}) => {
+  if (surface === 'docs') {
+    const docsSeo = getSeoContent('docs', language);
+    return (
+      <SeoMetadata
+        title={docsSeo.title}
+        description={docsSeo.description}
+        canonicalPath="/docs"
+        lang={language}
+        breadcrumbs={[
+          { name: 'Home', item: getLocalizedPublicPath('/') },
+          { name: 'Documentation', item: getLocalizedPublicPath('/docs') },
+        ]}
+      />
+    );
+  }
+
+  if (surface === 'privacy') {
+    const privacySeo = getSeoContent('privacy', language);
+    return (
+      <SeoMetadata
+        title={privacySeo.title}
+        description={privacySeo.description}
+        canonicalPath="/privacy"
+        lang={language}
+        breadcrumbs={[
+          { name: 'Home', item: getLocalizedPublicPath('/') },
+          { name: 'Privacy', item: getLocalizedPublicPath('/privacy') },
+        ]}
+      />
+    );
+  }
+
+  if (surface === 'terms') {
+    const termsSeo = getSeoContent('terms', language);
+    return (
+      <SeoMetadata
+        title={termsSeo.title}
+        description={termsSeo.description}
+        canonicalPath="/terms"
+        lang={language}
+        breadcrumbs={[
+          { name: 'Home', item: getLocalizedPublicPath('/') },
+          { name: 'Terms', item: getLocalizedPublicPath('/terms') },
+        ]}
+      />
+    );
+  }
+
+  if (surface === 'landing') {
+    const homeSeo = getSeoContent('home', language);
+    return (
+      <SeoMetadata
+        title={homeSeo.title}
+        description={homeSeo.description}
+        canonicalPath="/"
+        lang={language}
+        themeColor={isRetro ? '#334155' : '#020617'}
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebSite',
+              '@id': `${SEO_BASE_URL}/#website`,
+              name: 'Crypto Survivors',
+              url: `${SEO_BASE_URL}/`,
+              inLanguage: language,
+            },
+            {
+              '@type': 'Organization',
+              '@id': `${SEO_BASE_URL}/#organization`,
+              name: 'Crypto Survivors Team',
+              url: `${SEO_BASE_URL}/`,
+              logo: `${SEO_BASE_URL}/icons/icon-512.png`,
+            },
+            {
+              '@type': ['VideoGame', 'SoftwareApplication', 'WebApplication'],
+              '@id': `${SEO_BASE_URL}/#game`,
+              name: 'Crypto Survivors',
+              url: `${SEO_BASE_URL}${getLocalizedPublicPath('/')}`,
+              description: homeSeo.description,
+              genre: ['Survival', 'Rogue-lite', 'Simulation', 'Arcade'],
+              gamePlatform: ['Web Browser', 'Mobile Browser', 'PWA'],
+              applicationCategory: 'GameApplication',
+              operatingSystem: 'Web Browser',
+              playMode: 'SinglePlayer',
+              publisher: {
+                '@id': `${SEO_BASE_URL}/#organization`,
+              },
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'USD',
+              },
+            },
+          ],
+        }}
+        breadcrumbs={[{ name: 'Home', item: getLocalizedPublicPath('/') }]}
+      />
+    );
+  }
+
+  return (
+    <SeoMetadata
+      title={
+        gameStatus === GameStatus.PLAYING
+          ? 'Live Session | Crypto Survivors'
+          : `${playLabel} | Crypto Survivors`
+      }
+      noindex={true}
+      lang={language}
+    />
+  );
+};
 
 // Preload card images AFTER initial render (non-blocking)
 setTimeout(() => {
@@ -136,13 +255,9 @@ const App: React.FC = () => {
   // ========================================
 
   // URL Check for Darwin Mode (Moved inside Component logic but return happens later)
-  const [isDarwinMode, setIsDarwinMode] = useState(false);
-  useEffect(() => {
-    // SECURE: Only allow in Dev environment
-    if (import.meta.env.DEV && window.location.search.includes('mode=darwin')) {
-      setIsDarwinMode(true);
-    }
-  }, []);
+  const [isDarwinMode] = useState(
+    () => import.meta.env.DEV && window.location.search.includes('mode=darwin')
+  );
 
   const dimensions = useWindowDimensions();
   const { gameStatus, handlePauseToggle } = useGameStatus();
@@ -185,12 +300,17 @@ const App: React.FC = () => {
   const tutorial = useTutorial({ enabled: !showLanding });
   const { t, language } = useLanguage();
   const { isRetro } = useTheme();
-  const homeSeo = getSeoContent('home', language);
-  const docsSeo = getSeoContent('docs', language);
-  const privacySeo = getSeoContent('privacy', language);
-  const termsSeo = getSeoContent('terms', language);
   const getLocalizedPublicPath = (routePath: PublicRoutePath): string =>
     getLocalizedPath(routePath, language);
+  const seoSurface = showDocs
+    ? 'docs'
+    : showPrivacy
+      ? 'privacy'
+      : showTerms
+        ? 'terms'
+        : showLanding
+          ? 'landing'
+          : 'game';
   const navigateToPublicRoute = (routePath: PublicRoutePath): void => {
     window.history.pushState(null, '', getLocalizedPublicPath(routePath));
   };
@@ -231,7 +351,9 @@ const App: React.FC = () => {
     return (
       <React.Suspense
         fallback={
-          <div className="bg-black p-4 text-green-500">Loading Project Darwin...</div>
+          <div className="bg-[#05070d] p-4 text-green-500">
+            Loading Project Darwin&hellip;
+          </div>
         }
       >
         <EvolutionViewer />
@@ -244,96 +366,14 @@ const App: React.FC = () => {
     return <FallbackLoader />;
   }
 
-  const seoMetadata = showDocs ? (
-    <SEO
-      title={docsSeo.title}
-      description={docsSeo.description}
-      canonicalPath="/docs"
-      lang={language}
-      breadcrumbs={[
-        { name: 'Home', item: getLocalizedPublicPath('/') },
-        { name: 'Documentation', item: getLocalizedPublicPath('/docs') },
-      ]}
-    />
-  ) : showPrivacy ? (
-    <SEO
-      title={privacySeo.title}
-      description={privacySeo.description}
-      canonicalPath="/privacy"
-      lang={language}
-      breadcrumbs={[
-        { name: 'Home', item: getLocalizedPublicPath('/') },
-        { name: 'Privacy', item: getLocalizedPublicPath('/privacy') },
-      ]}
-    />
-  ) : showTerms ? (
-    <SEO
-      title={termsSeo.title}
-      description={termsSeo.description}
-      canonicalPath="/terms"
-      lang={language}
-      breadcrumbs={[
-        { name: 'Home', item: getLocalizedPublicPath('/') },
-        { name: 'Terms', item: getLocalizedPublicPath('/terms') },
-      ]}
-    />
-  ) : showLanding ? (
-    <SEO
-      title={homeSeo.title}
-      description={homeSeo.description}
-      canonicalPath="/"
-      lang={language}
-      themeColor={isRetro ? '#334155' : '#020617'}
-      structuredData={{
-        '@context': 'https://schema.org',
-        '@graph': [
-          {
-            '@type': 'WebSite',
-            '@id': `${SEO_BASE_URL}/#website`,
-            name: 'Crypto Survivors',
-            url: `${SEO_BASE_URL}/`,
-            inLanguage: language,
-          },
-          {
-            '@type': 'Organization',
-            '@id': `${SEO_BASE_URL}/#organization`,
-            name: 'Crypto Survivors Team',
-            url: `${SEO_BASE_URL}/`,
-            logo: `${SEO_BASE_URL}/icons/icon-512.png`,
-          },
-          {
-            '@type': ['VideoGame', 'SoftwareApplication', 'WebApplication'],
-            '@id': `${SEO_BASE_URL}/#game`,
-            name: 'Crypto Survivors',
-            url: `${SEO_BASE_URL}${getLocalizedPublicPath('/')}`,
-            description: homeSeo.description,
-            genre: ['Survival', 'Rogue-lite', 'Simulation', 'Arcade'],
-            gamePlatform: ['Web Browser', 'Mobile Browser', 'PWA'],
-            applicationCategory: 'GameApplication',
-            operatingSystem: 'Web Browser',
-            playMode: 'SinglePlayer',
-            publisher: {
-              '@id': `${SEO_BASE_URL}/#organization`,
-            },
-            offers: {
-              '@type': 'Offer',
-              price: '0',
-              priceCurrency: 'USD',
-            },
-          },
-        ],
-      }}
-      breadcrumbs={[{ name: 'Home', item: getLocalizedPublicPath('/') }]}
-    />
-  ) : (
-    <SEO
-      title={
-        gameStatus === GameStatus.PLAYING
-          ? 'Live Session | Crypto Survivors'
-          : `${t('hub.play')} | Crypto Survivors`
-      }
-      noindex={true}
-      lang={language}
+  const seoMetadata = (
+    <AppSeoMetadata
+      surface={seoSurface}
+      isRetro={isRetro}
+      language={language}
+      gameStatus={gameStatus}
+      playLabel={t('hub.play')}
+      getLocalizedPublicPath={getLocalizedPublicPath}
     />
   );
 
@@ -389,24 +429,26 @@ const App: React.FC = () => {
                 }}
               />
             ) : (
-              <GameAppShell
-                dimensions={dimensions}
-                gameStatus={gameStatus}
-                handlePauseToggle={handlePauseToggle}
-                marketRuntimeMode={marketRuntimeConfig.mode}
-                hubScreen={hubScreen}
-                setHubScreen={setHubScreen}
-                showSettings={showSettings}
-                setShowSettings={setShowSettings}
-                handleReturnToLanding={handleReturnToLanding}
-                showDocs={showDocs}
-                showPrivacy={showPrivacy}
-                showTerms={showTerms}
-                tutorial={tutorial}
-                onOpenUpgrades={() => setFeatureOverlay('upgrades')}
-                onOpenChallenges={() => setFeatureOverlay('challenges')}
-                onOpenReplays={() => setFeatureOverlay('replays')}
-              />
+              <React.Suspense fallback={<FallbackLoader />}>
+                <GameAppShell
+                  dimensions={dimensions}
+                  gameStatus={gameStatus}
+                  handlePauseToggle={handlePauseToggle}
+                  marketRuntimeMode={marketRuntimeConfig.mode}
+                  hubScreen={hubScreen}
+                  setHubScreen={setHubScreen}
+                  showSettings={showSettings}
+                  setShowSettings={setShowSettings}
+                  handleReturnToLanding={handleReturnToLanding}
+                  showDocs={showDocs}
+                  showPrivacy={showPrivacy}
+                  showTerms={showTerms}
+                  tutorial={tutorial}
+                  onOpenUpgrades={() => setFeatureOverlay('upgrades')}
+                  onOpenChallenges={() => setFeatureOverlay('challenges')}
+                  onOpenReplays={() => setFeatureOverlay('replays')}
+                />
+              </React.Suspense>
             )}
 
             {/* Feature Overlay Screens */}

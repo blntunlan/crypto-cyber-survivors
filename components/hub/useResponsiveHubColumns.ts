@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
-const MOBILE_BREAKPOINT = 640; // Tailwind `sm`
+const COMPACT_GRID_BREAKPOINT = 380;
 const XL_BREAKPOINT = 1280; // Tailwind `xl`
 
 export const HUB_GRID_CLASS =
-  'grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:gap-4 xl:grid-cols-3';
+  'grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 sm:gap-3 lg:gap-4 xl:grid-cols-3';
 
 function computeColumnCount(): number {
   if (typeof window === 'undefined') {
@@ -13,7 +13,7 @@ function computeColumnCount(): number {
 
   const width = window.innerWidth;
   if (width >= XL_BREAKPOINT) return 3;
-  if (width >= MOBILE_BREAKPOINT) return 2;
+  if (width >= COMPACT_GRID_BREAKPOINT) return 2;
   return 1;
 }
 

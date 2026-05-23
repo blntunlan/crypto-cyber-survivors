@@ -642,7 +642,7 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
     };
 
     // Cache static assets aggressively
-    if (isAsset && urlPath.includes('/assets/')) {
+    if (isAsset && (urlPath.includes('/assets/') || urlPath.startsWith('/a/'))) {
       headers['Cache-Control'] = 'public, max-age=31536000, immutable';
     } else if (isAsset) {
       headers['Cache-Control'] = 'public, max-age=86400';

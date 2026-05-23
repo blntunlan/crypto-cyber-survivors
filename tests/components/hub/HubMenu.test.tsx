@@ -7,7 +7,7 @@
 import { render, screen, fireEvent } from '../../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HubMenu } from '../../../components/hub/HubMenu';
-import { audio } from '../../../services/audio';
+import { audio } from '../../../services/audio/AudioService';
 
 // Mock LanguageContext
 vi.mock('../../../contexts/LanguageContext', () => ({
@@ -21,20 +21,20 @@ vi.mock('../../../contexts/LanguageContext', () => ({
 }));
 
 // Mock Services
-vi.mock('../../../services/lootbox', () => ({
+vi.mock('../../../services/lootbox/LootboxService', () => ({
   LootboxService: {
     getTotalUnopenedCount: vi.fn().mockReturnValue(5),
   },
 }));
 
-vi.mock('../../../services/inventory', () => ({
+vi.mock('../../../services/inventory/InventoryService', () => ({
   InventoryService: {
     getConsumables: vi.fn().mockReturnValue([{}, {}, {}]),
     getEquippedSkin: vi.fn().mockReturnValue('default'),
   },
 }));
 
-vi.mock('../../../services/audio', () => ({
+vi.mock('../../../services/audio/AudioService', () => ({
   audio: {
     playButton: vi.fn(),
     playSelectionTick: vi.fn(),

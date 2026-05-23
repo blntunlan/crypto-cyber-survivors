@@ -12,12 +12,12 @@ const resizeWindow = (width: number) => {
 
 describe('useResponsiveHubColumns', () => {
   it('returns 1/2/3 columns for responsive breakpoints', () => {
-    resizeWindow(500);
+    resizeWindow(360);
     const { result } = renderHook(() => useResponsiveHubColumns());
     expect(result.current).toBe(1);
 
     act(() => {
-      resizeWindow(800);
+      resizeWindow(500);
     });
     expect(result.current).toBe(2);
 

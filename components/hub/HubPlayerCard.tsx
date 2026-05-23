@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useTheme } from '../../contexts/useTheme';
 import { COLORS } from '../../config/Colors';
 import { type CharacterSkinId } from '../../types/lootbox';
@@ -24,6 +24,7 @@ interface HubPlayerCardProps {
   };
   equippedSkin: CharacterSkinId;
   onAvatarClick?: () => void;
+  variant?: 'standalone' | 'embedded';
 }
 
 export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
@@ -32,9 +33,11 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
   cryptoBalance,
   equippedSkin,
   onAvatarClick,
+  variant = 'standalone',
 }) => {
   const { isRetro } = useTheme();
   const skinDef = CHARACTER_SKIN_DEFINITIONS[equippedSkin];
+  const isEmbedded = variant === 'embedded';
 
   const formatCoins = (amount: number): string => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -50,15 +53,20 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
   return (
     <div
       className={cn(
-        'flex w-full items-center gap-3 p-3 sm:gap-4 sm:p-4',
+        'relative flex w-full items-center gap-3 p-3 sm:gap-4 sm:p-4',
         isRetro
           ? PANEL_VARIANTS.retro
-          : 'rounded-2xl bg-slate-900/60 border border-white/10 cyber-glass'
+          : isEmbedded
+            ? 'rounded-sm border border-white/10 bg-white/[0.04]'
+            : 'rounded-2xl border border-white/10 bg-slate-900/60 cyber-glass'
       )}
     >
       {!isRetro && (
-        <motion.div
-          className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-white/20"
+        <m.div
+          className={cn(
+            'absolute left-0 right-0 top-0 h-1 bg-white/20',
+            isEmbedded ? 'rounded-t-sm opacity-70' : 'rounded-t-2xl'
+          )}
           style={{
             background: `linear-gradient(90deg, transparent, ${skinDef.color}80, transparent)`,
             boxShadow: `0 0 15px ${skinDef.color}40`,
@@ -67,7 +75,7 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
       )}
 
       {/* Avatar */}
-      <motion.div
+      <m.div
         whileHover={onAvatarClick && !isRetro ? { scale: 1.05 } : undefined}
         whileTap={onAvatarClick && !isRetro ? { scale: 0.95 } : undefined}
         className={`
@@ -101,7 +109,7 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
           `}
           style={{ backgroundColor: COLORS.PUMP_GREEN }}
         />
-      </motion.div>
+      </m.div>
 
       {/* Player Info */}
       <div className="min-w-0 flex-1">

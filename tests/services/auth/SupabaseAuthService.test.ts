@@ -808,8 +808,11 @@ describe('SupabaseAuthService', () => {
 
     it('is safe to call multiple times', () => {
       const svc = freshService();
-      svc.dispose();
-      svc.dispose(); // no throw
+
+      expect(() => {
+        svc.dispose();
+        svc.dispose();
+      }).not.toThrow();
     });
   });
 

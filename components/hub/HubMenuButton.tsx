@@ -26,6 +26,7 @@ interface HubMenuButtonProps {
 }
 
 export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
+  id,
   icon,
   title,
   subtitle,
@@ -37,29 +38,30 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   disabled = false,
 }) => {
   const { isRetro } = useTheme();
+  const isPrimary = id === 'play';
 
   // Cyberpunk styles
   const cyberStyles = {
     base: `
       relative overflow-hidden
-      bg-white/5 border border-white/10
+      bg-white/5 border border-transparent
       rounded-sm
-      transition-[background-color,border-color,transform] duration-150 ease-out
-      hover:bg-white/10 hover:border-white/30
-      hover:shadow-[var(--hub-shadow-hover)]
-      active:scale-[0.98]
-      lg:hover:scale-[1.03] lg:hover:bg-white/15
+      transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out
+      hover:bg-white/10 hover:border-white/20
+      sm:hover:shadow-[var(--hub-shadow-hover)]
+      active:scale-95
+      sm:hover:scale-[1.01]
       focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
       focus-visible:ring-[var(--hub-accent)]
     `,
     selected: `
-      !bg-white/[0.08]
-      !border-[var(--hub-accent)]/60
+      z-10 !bg-white/[0.08]
+      !border-[var(--hub-accent)]
       shadow-[var(--hub-shadow-selected)]
       scale-[1.02]
     `,
     disabled:
-      'opacity-50 cursor-not-allowed grayscale hover:scale-100 lg:hover:scale-100 bg-slate-950/50',
+      'cursor-not-allowed bg-white/[0.045] opacity-50 grayscale hover:scale-100 hover:border-transparent hover:bg-white/[0.045] sm:hover:shadow-none',
   };
 
   // Retro 16-bit styles - matching MainMenu's neon green aesthetic
@@ -80,7 +82,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       !border-[#39FF14]
       shadow-[4px_4px_0px_rgba(57,255,20,0.4)]
     `,
-    disabled: 'opacity-60 cursor-not-allowed saturate-50',
+    disabled: 'cursor-not-allowed opacity-50 saturate-50 hover:bg-zinc-950/90',
   };
 
   const styles = isRetro ? retroStyles : cyberStyles;
@@ -88,16 +90,18 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
   // Define dynamic CSS variables
   const dynamicVars = {
     '--hub-accent': accentColor,
-    '--hub-shadow-hover': `0 0 30px -5px ${accentColor}50, 0 4px 20px -4px rgba(0,0,0,0.3)`,
-    '--hub-shadow-selected': `0 0 40px -5px ${accentColor}70, 0 0 60px -10px ${accentColor}40`,
+    '--hub-shadow-hover': `0 0 24px -8px ${accentColor}50, 0 4px 18px -8px rgba(0,0,0,0.35)`,
+    '--hub-shadow-selected': `0 0 25px -4px ${accentColor}50, inset 0 0 10px ${accentColor}14`,
   } as React.CSSProperties;
 
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-full min-h-[104px] w-full touch-manipulation flex-col items-center justify-center p-3.5 sm:min-h-[140px] sm:p-5 lg:min-h-[150px] lg:p-6',
+        'group flex h-full min-h-[88px] w-full touch-manipulation flex-col items-center justify-center p-3 text-center sm:min-h-[116px] sm:p-4 lg:min-h-[132px] lg:p-5',
+        isPrimary && 'min-h-[96px] sm:min-h-[124px]',
         styles.base,
         isSelected && styles.selected,
         disabled && styles.disabled
@@ -111,7 +115,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
           : undefined,
         boxShadow:
           isSelected && !isRetro
-            ? `0 0 40px -5px ${accentColor}60, inset 0 0 20px ${accentColor}10`
+            ? `0 0 25px -4px ${accentColor}50, inset 0 0 10px ${accentColor}14`
             : isSelected && isRetro
               ? '4px 4px 0px rgba(0,0,0,0.8)'
               : undefined,
@@ -120,7 +124,10 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Cyberpunk: Gradient overlay on hover */}
       {!isRetro && (
         <div
-          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300"
+          className={cn(
+            'pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300',
+            !disabled && 'group-hover:opacity-100'
+          )}
           style={{
             background: `linear-gradient(135deg, ${accentColor}15 0%, transparent 60%), radial-gradient(ellipse at bottom, ${accentColor}08 0%, transparent 70%)`,
           }}
@@ -151,8 +158,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Icon */}
       <div
         className={`
-          mb-2 text-2xl sm:mb-3
-          sm:text-4xl lg:text-5xl
+          relative z-10 mb-1.5 text-xl sm:mb-2
+          sm:text-3xl lg:text-4xl
           ${isRetro ? '' : ''}
         `}
         style={{
@@ -165,8 +172,8 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Title */}
       <div
         className={`
-          text-xs font-black uppercase
-          tracking-wider sm:text-sm lg:text-base
+          relative z-10 text-[11px] font-black uppercase
+          tracking-tight sm:text-sm sm:tracking-wider lg:text-base
           ${isRetro ? 'font-retro-pixel text-[8px] sm:text-[10px]' : 'font-cyber'}
         `}
         style={{
@@ -180,7 +187,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {subtitle && (
         <div
           className={`
-            mt-1 text-[10px]
+            relative z-10 mt-1 max-w-full truncate text-[10px] leading-snug
             sm:text-xs
             ${isRetro ? 'font-retro-pixel text-[7px]' : 'font-cyber'}
             text-slate-400
@@ -193,7 +200,7 @@ export const HubMenuButton: React.FC<HubMenuButtonProps> = ({
       {/* Cyberpunk: Bottom accent line when selected */}
       {!isRetro && isSelected && (
         <div
-          className="absolute bottom-0 left-0 right-0 h-1 lg:h-1.5"
+          className="absolute bottom-0 left-0 right-0 h-[2px] lg:h-1"
           style={{
             backgroundColor: accentColor,
             boxShadow: `0 0 12px 2px ${accentColor}80`,
