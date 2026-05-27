@@ -1,0 +1,3 @@
+## 2024-05-24 - Pre-allocated ViewportBounds to prevent per-frame garbage collection
+**Learning:** Re-allocating `ViewportBounds` object primitives (`{ left: number, right: number, top: number, bottom: number }`) inside hot 60 FPS update loops (`render` calls and `findNearestEnemy` targeting checks) creates continuous garbage collection pressure, leading to frame stutters over time.
+**Action:** Always maintain a single, pre-allocated `ViewportBounds` instance (either as a private class property or a module-level constant) and mutate its properties in-place using a shared `updateViewportBounds` utility function.
