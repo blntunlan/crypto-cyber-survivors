@@ -21,10 +21,6 @@ vi.mock('../../src/utils/logger', () => ({
   },
 }));
 
-vi.mock('../../src/routes/marketStream', () => ({
-  broadcastMarketData: vi.fn(),
-}));
-
 describe('IndicatorService', () => {
   let service: IndicatorService;
 
