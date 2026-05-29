@@ -17,6 +17,12 @@ type QueryFn = <T extends pg.QueryResultRow = pg.QueryResultRow>(
 export class ErrorReporter {
   private static serviceName = 'railway-market-aggregator';
   private static queryFn: QueryFn | null = null;
+  private static inFlightReports = 0;
+  private static readonly maxInFlightReports = 2;
+  private static readonly failureCooldownMs = 30_000;
+  private static readonly failureLogCooldownMs = 60_000;
+  private static failureCooldownUntil = 0;
+  private static lastFailureLogAt = 0;
 
   static setQueryFn(fn: QueryFn): void {
     this.queryFn = fn;
@@ -24,6 +30,7 @@ export class ErrorReporter {
 
   static async report(options: ErrorReportOptions): Promise<void> {
     const { type, message, stack, severity = 'high', context = {} } = options;
+    const now = Date.now();
 
     try {
       if (!this.queryFn) {
@@ -31,6 +38,27 @@ export class ErrorReporter {
         return;
       }
 
+      if (now < this.failureCooldownUntil) {
+        Logger.debug('[ErrorReporter] Report suppressed during DB failure cooldown', {
+          type,
+          severity,
+        });
+        return;
+      }
+
+      if (this.inFlightReports >= this.maxInFlightReports) {
+        Logger.debug(
+          '[ErrorReporter] Report suppressed because reporter is saturated',
+          {
+            type,
+            severity,
+            inFlightReports: this.inFlightReports,
+          }
+        );
+        return;
+      }
+
+      this.inFlightReports++;
       await this.queryFn(
         `INSERT INTO error_reports (error_type, message, stack_trace, severity, category, page_url, browser_info, context_data, status)
          VALUES ($1, $2, $3, $4, 'server', $5, $6, $7, 'new')`,
@@ -50,7 +78,20 @@ export class ErrorReporter {
         ]
       );
     } catch (err) {
-      Logger.error('[ErrorReporter] Critical failure in ErrorReporter:', err);
+      this.failureCooldownUntil = Date.now() + this.failureCooldownMs;
+      if (Date.now() - this.lastFailureLogAt > this.failureLogCooldownMs) {
+        Logger.error(
+          '[ErrorReporter] DB write failed; suppressing reports briefly:',
+          err
+        );
+        this.lastFailureLogAt = Date.now();
+      } else {
+        Logger.debug('[ErrorReporter] DB write failure suppressed by cooldown');
+      }
+    } finally {
+      if (this.inFlightReports > 0) {
+        this.inFlightReports--;
+      }
     }
   }
 

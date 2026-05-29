@@ -10,4 +10,14 @@ describe('server.js hardening script', () => {
     expect(file).toContain('getSecurityHeaders');
     expect(file).toContain('createServer');
   });
+
+  it('blocks common credential probe paths before SPA fallback', () => {
+    const file = readFileSync(join(process.cwd(), 'server.js'), 'utf8');
+    expect(file).toContain("'/gcp-credentials.json'");
+    expect(file).toContain("'/google-credentials.json'");
+    expect(file).toContain("'/service-account.json'");
+    expect(file).toContain("'/secrets.json'");
+    expect(file).toContain("'/api/env'");
+    expect(file).toContain("'/api/config'");
+  });
 });

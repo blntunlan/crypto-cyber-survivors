@@ -1,7 +1,8 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
+    "builder": "RAILPACK",
+    "buildCommand": "npm run build",
     "watchPatterns": [
       "App.tsx",
       "index.tsx",
@@ -15,7 +16,6 @@
       "postcss.config.cjs",
       "tailwind.config.cjs",
       "metadata.json",
-      "nixpacks.toml",
       ".railwayignore",
       "public/**",
       "components/**",
@@ -32,21 +32,7 @@
       "scripts/sync-docs.js",
       "README.md",
       "railway.json"
-    ],
-    "nixpacksPlan": {
-      "providers": ["node"],
-      "phases": {
-        "setup": {
-          "nixPkgs": ["nodejs_20", "npm"]
-        },
-        "install": {
-          "cmds": ["npm ci"]
-        },
-        "build": {
-          "cmds": ["npm run build"]
-        }
-      }
-    }
+    ]
   },
   "deploy": {
     "startCommand": "npm start",

@@ -6,6 +6,13 @@ const { Pool } = pg;
 let pool: pg.Pool | null = null;
 
 const DEFAULT_POOL_MAX = 5;
+const POOL_CHECK_INTERVAL_MS = 30_000;
+const POOL_WARNING_COOLDOWN_MS = 60_000;
+const POOL_USAGE_WARN_THRESHOLD = 0.8;
+const DB_ERROR_LOG_COOLDOWN_MS = 10_000;
+
+let lastPoolWarningAt = 0;
+let lastQueryErrorLogAt = 0;
 
 export function getPoolMax(): number {
   const configured = Number(process.env.PG_POOL_MAX);
@@ -43,32 +50,37 @@ export function getPool(): pg.Pool {
   });
 
   pool.on('connect', () => {
-    Logger.info('[Pool] New client connected');
+    Logger.debug('[Pool] New client connected');
   });
 
   pool.on('remove', () => {
-    Logger.info('[Pool] Client removed from pool');
+    Logger.debug('[Pool] Client removed from pool');
   });
 
   // Pool health monitoring — log warnings when pool usage is high
-  const POOL_CHECK_INTERVAL = 30_000;
   const monitoredPool = pool;
   setInterval(() => {
+    const now = Date.now();
     const total = monitoredPool.totalCount;
     const idle = monitoredPool.idleCount;
     const waiting = monitoredPool.waitingCount;
     const active = total - idle;
     const usage = total > 0 ? active / total : 0;
 
-    if (usage > 0.8) {
+    if (
+      usage > POOL_USAGE_WARN_THRESHOLD &&
+      now - lastPoolWarningAt > POOL_WARNING_COOLDOWN_MS
+    ) {
       Logger.warn(
         `[Pool] High usage: ${active}/${total} active, ${waiting} waiting (${Math.round(usage * 100)}%)`
       );
+      lastPoolWarningAt = now;
     }
-    if (waiting > 0) {
+    if (waiting > 0 && now - lastPoolWarningAt > POOL_WARNING_COOLDOWN_MS) {
       Logger.warn(`[Pool] ${waiting} queries waiting for connection`);
+      lastPoolWarningAt = now;
     }
-  }, POOL_CHECK_INTERVAL).unref();
+  }, POOL_CHECK_INTERVAL_MS).unref();
 
   Logger.info(`✅ PostgreSQL connection pool created (max: ${poolMax})`);
   return pool;
@@ -85,7 +97,15 @@ export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
   try {
     return await p.query<T>(text, params);
   } catch (error) {
-    Logger.error('[DB] Query error:', { text: text.slice(0, 120), error });
+    const now = Date.now();
+    if (now - lastQueryErrorLogAt > DB_ERROR_LOG_COOLDOWN_MS) {
+      Logger.error('[DB] Query error:', { text: text.slice(0, 120), error });
+      lastQueryErrorLogAt = now;
+    } else {
+      Logger.debug('[DB] Query error suppressed by cooldown', {
+        text: text.slice(0, 120),
+      });
+    }
     throw error;
   }
 }

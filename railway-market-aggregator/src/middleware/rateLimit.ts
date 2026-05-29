@@ -1,13 +1,9 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import type { Request } from 'express';
 
-// Shared key generator — respects proxied IPs
-const keyGenerator = (req: {
-  headers: Record<string, string | string[] | undefined>;
-  ip?: string;
-}) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  const forwardedStr = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return forwardedStr?.split(',')[0]?.trim() ?? req.ip ?? 'unknown';
+// Shared key generator — Express resolves proxied IPs via app.set('trust proxy', 1).
+export const rateLimitKeyGenerator = (req: Request): string => {
+  return ipKeyGenerator(req.ip ?? 'unknown');
 };
 
 // Global rate limiter - 60 req/min per IP (aggregator has fewer endpoints)
@@ -17,7 +13,7 @@ export const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
-  keyGenerator,
+  keyGenerator: rateLimitKeyGenerator,
 });
 
 // History endpoint - 30 req/min per IP
@@ -27,5 +23,5 @@ export const historyLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many history requests, please try again later' },
-  keyGenerator,
+  keyGenerator: rateLimitKeyGenerator,
 });

@@ -31,6 +31,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.har
+*.heapsnapshot
 
 # Dependencies
 node_modules
@@ -65,18 +67,24 @@ coverage/
 # Test reports and results
 playwright-report/
 test-results/
+output/
+!output/.gitkeep
 output/market-sync-smoke/
 output/web-game/
 *.spec.js.map
 test-results.json
 test_results.json
+test_output*.json
 test_*.txt
+coverage_output*.txt
 coverage_report*.txt
 failures.txt
 lint_results.txt
+lint_results.json
 
 # Generated documentation
 docs/api/
+public/README.md
 .github/skills/test-freshness-auditor/report.json
 
 # (env rules moved to top of file)
@@ -90,6 +98,8 @@ setup_discord.py
 # Session logs and debugging
 sessionlog/
 Logtarayıcı/
+HARLAR/
+debugiçin/
 *.session.json
 crypto-survivors.com-Coverage-*/
 
