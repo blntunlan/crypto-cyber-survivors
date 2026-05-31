@@ -1,7 +1,7 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Bullet } from '../../types';
-import { createViewportBounds, isCircleVisible } from './CullingUtils';
+import { createViewportBounds, updateViewportBounds, isCircleVisible } from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
@@ -21,6 +21,7 @@ import { difficultyContext } from '../difficulty/DifficultyContext';
 
 export class ProjectileRenderer implements IRenderer {
   private static instance: ProjectileRenderer | null = null;
+  private viewportBounds = createViewportBounds(0, 0, 0);
 
   public static getInstance(): ProjectileRenderer {
     return (ProjectileRenderer.instance ??= new ProjectileRenderer());
@@ -38,7 +39,8 @@ export class ProjectileRenderer implements IRenderer {
     player: Player,
     opts: RenderOptions
   ): void {
-    const bounds = createViewportBounds(
+    const bounds = updateViewportBounds(
+      this.viewportBounds,
       opts.width,
       opts.height,
       GAME_ENGINE.BULLET_CULLING_PADDING

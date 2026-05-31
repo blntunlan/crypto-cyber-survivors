@@ -1,0 +1,3 @@
+## 2025-02-28 - Zero-Allocation Pattern for High-Frequency Viewport Checks
+**Learning:** In high-frequency render or gameplay loops (60 FPS), repeatedly allocating objects like `ViewportBounds` per frame (or per weapon fire/target acquisition) creates significant Garbage Collection (GC) pressure, which leads to micro-stutters.
+**Action:** Avoid allocating complex coordinate objects continuously inside tight loops. Use a "zero-allocation" pattern by pre-allocating state objects (e.g. class properties or module-level shared constants) and mutating them in-place with functions like `updateViewportBounds` instead of returning a new instance on every call.

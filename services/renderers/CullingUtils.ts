@@ -37,6 +37,24 @@ export function createViewportBounds(
  * Check if a circular object is visible within the viewport
  * Uses AABB (Axis-Aligned Bounding Box) check for performance
  */
+
+/**
+ * Update existing viewport bounds in-place with optional padding.
+ * Prevents object allocation in high-frequency loops (zero-allocation pattern).
+ */
+export function updateViewportBounds(
+  bounds: ViewportBounds,
+  width: number,
+  height: number,
+  padding: number = 50
+): ViewportBounds {
+  bounds.left = -padding;
+  bounds.right = width + padding;
+  bounds.top = -padding;
+  bounds.bottom = height + padding;
+  return bounds;
+}
+
 export function isCircleVisible(
   x: number,
   y: number,
