@@ -16,6 +16,9 @@ vi.mock('@supabase/supabase-js', () => ({
 
 describe('Supabase Client Configuration', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'http://localhost');
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
+
     vi.clearAllMocks();
     vi.resetModules();
   });

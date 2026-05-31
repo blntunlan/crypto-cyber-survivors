@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createViewportBounds,
+  updateViewportBounds,
   isCircleVisible,
   isPointVisible,
   isRectVisible,
@@ -23,6 +24,28 @@ describe('CullingUtils', () => {
     it('should use default padding if not provided', () => {
       const defaultBounds = createViewportBounds(800, 600);
       expect(defaultBounds.left).toBe(-50);
+    });
+  });
+
+
+  describe('updateViewportBounds', () => {
+    it('should update existing bounds in-place correctly', () => {
+      const originalBounds = createViewportBounds(0, 0, 0);
+      const returnedBounds = updateViewportBounds(originalBounds, 1000, 800, 100);
+
+      expect(returnedBounds).toBe(originalBounds); // same reference
+      expect(originalBounds).toEqual({
+        left: -100,
+        right: 1100,
+        top: -100,
+        bottom: 900,
+      });
+    });
+
+    it('should use default padding if not provided', () => {
+      const bounds = createViewportBounds(0, 0, 0);
+      updateViewportBounds(bounds, 800, 600);
+      expect(bounds.left).toBe(-50);
     });
   });
 
