@@ -10,6 +10,7 @@ const router = Router();
 
 // Webhook secret for verifying Supabase webhook requests
 const WEBHOOK_SECRET = process.env.SUPABASE_WEBHOOK_SECRET;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
  * Verify webhook signature from Supabase.
@@ -17,6 +18,10 @@ const WEBHOOK_SECRET = process.env.SUPABASE_WEBHOOK_SECRET;
  */
 function verifyWebhookSignature(req: Request): boolean {
   if (!WEBHOOK_SECRET) {
+    if (IS_PRODUCTION) {
+      Logger.error('[Webhook] SUPABASE_WEBHOOK_SECRET is not configured in production');
+      return false;
+    }
     Logger.warn(
       '[Webhook] SUPABASE_WEBHOOK_SECRET not configured — skipping verification'
     );

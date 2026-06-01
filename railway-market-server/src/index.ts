@@ -155,12 +155,18 @@ app.get('/stats', (_req, res) => {
 });
 
 const ADMIN_API_SECRET = process.env.ADMIN_API_SECRET;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 function requireAdmin(
   req: express.Request,
   res: express.Response,
   next: () => void
 ): void {
   if (!ADMIN_API_SECRET) {
+    if (IS_PRODUCTION) {
+      Logger.error('[Admin] ADMIN_API_SECRET is not configured in production');
+      res.status(503).json({ error: 'Admin API is not configured' });
+      return;
+    }
     next();
     return;
   }
