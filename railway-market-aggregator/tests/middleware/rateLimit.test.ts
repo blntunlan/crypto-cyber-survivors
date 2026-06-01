@@ -20,6 +20,6 @@ describe('Aggregator Rate Limiters', () => {
 
   it('uses express-rate-limit ipKeyGenerator for IPv6-safe keys', () => {
     const req = { ip: '2001:db8:abcd:0012::1' } as Request;
-    expect(rateLimitKeyGenerator(req)).toBe(ipKeyGenerator(req.ip));
+    expect(rateLimitKeyGenerator(req)).toBe(ipKeyGenerator(req.ip ?? ''));
   });
 });

@@ -3,7 +3,7 @@ import { render } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameEngine } from '../../components/GameEngine';
 import { GameStatus, MarketPosition, type LeverageOption } from '../../types';
-import { railwayClient } from '../../services/api/RailwayClient';
+import { marketApiClient } from '../../services/api/MarketApiClient';
 import { EventBus } from '../../services/core/EventBus';
 import { Logger } from '../../services/system/Logger';
 
@@ -161,6 +161,11 @@ vi.mock('../../services/api/RailwayClient', () => ({
     get: vi.fn().mockResolvedValue([]),
     post: vi.fn().mockResolvedValue({}),
     patch: vi.fn().mockResolvedValue({}),
+  },
+}));
+vi.mock('../../services/api/MarketApiClient', () => ({
+  marketApiClient: {
+    getHistory: vi.fn().mockResolvedValue([]),
   },
 }));
 vi.mock('../../services/indicators/ClientIndicatorService', () => ({
@@ -326,11 +331,9 @@ describe('GameEngine', () => {
   it('fetches market history on mount', async () => {
     const { unmount } = render(<GameEngine {...mockProps} />);
 
-    // Check that Railway API was called for market history
+    // Check that market aggregator API was called for market history
     await vi.waitFor(() =>
-      expect(railwayClient.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/market/history')
-      )
+      expect(marketApiClient.getHistory).toHaveBeenCalledWith('BTC', 300)
     );
 
     unmount();

@@ -13,7 +13,7 @@ import type {
   PriceSource,
 } from '../../types/admin';
 import { Logger } from '../system/Logger';
-import { railwayClient } from '../api/RailwayClient';
+import { marketApiClient } from '../api/MarketApiClient';
 
 // =============================================================================
 // CONFIGURATION
@@ -89,25 +89,17 @@ export class PriceAnalyzerService {
     this.isLoadingHistory = true;
 
     try {
-      // Fetch price history from Railway API
-      type PriceRow = { price: number; volume: number; timestamp: string };
       const [btcData, ethData, solData] = await Promise.all([
-        railwayClient
-          .get<PriceRow[]>('/api/v1/market/history?pair=BTC&limit=300')
-          .catch(() => []),
-        railwayClient
-          .get<PriceRow[]>('/api/v1/market/history?pair=ETH&limit=300')
-          .catch(() => []),
-        railwayClient
-          .get<PriceRow[]>('/api/v1/market/history?pair=SOL&limit=300')
-          .catch(() => []),
+        marketApiClient.getHistory('BTC', 300).catch(() => []),
+        marketApiClient.getHistory('ETH', 300).catch(() => []),
+        marketApiClient.getHistory('SOL', 300).catch(() => []),
       ]);
 
       const rows = [
         ...btcData.map(r => ({ pair: 'BTC', price: r.price, timestamp: r.timestamp })),
         ...ethData.map(r => ({ pair: 'ETH', price: r.price, timestamp: r.timestamp })),
         ...solData.map(r => ({ pair: 'SOL', price: r.price, timestamp: r.timestamp })),
-      ] as { pair: string; price: number; timestamp: string | null }[] | null;
+      ] as { pair: string; price: number; timestamp: number | null }[] | null;
 
       if (!rows || rows.length === 0) {
         Logger.info(

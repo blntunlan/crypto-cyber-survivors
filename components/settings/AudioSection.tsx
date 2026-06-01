@@ -5,7 +5,7 @@
  */
 
 import React, { memo } from 'react';
-import { audio } from '../../services/audio';
+import { applyAudioSettings } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
 
 import { IconVolume, IconVolumeMuted } from '../icons/CardIcons';
@@ -24,12 +24,12 @@ export const AudioSection = memo(({ focusedItem }: AudioSectionProps) => {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setMasterVolume(newVolume);
-    audio.setVolume(newVolume);
+    applyAudioSettings({ ...audioSettings, masterVolume: newVolume });
   };
 
   const handleMuteToggle = () => {
     toggleMute();
-    audio.toggleMute();
+    applyAudioSettings({ ...audioSettings, isMuted: !audioSettings.isMuted });
   };
 
   return (

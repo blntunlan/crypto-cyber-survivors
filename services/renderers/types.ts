@@ -5,6 +5,7 @@ export interface GraphicsConfig {
   showParticles: boolean;
   showDamageNumbers: boolean;
   showScreenShake: boolean;
+  reducedMotion?: boolean;
   disableGlow?: boolean;
 }
 

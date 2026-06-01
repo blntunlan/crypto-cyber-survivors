@@ -14,17 +14,36 @@ import { DeviceProfile } from '../../types/DeviceProfile';
 
 // --- Mocks ---
 
-// Mock AudioService
-vi.mock('../../services/audio', () => ({
-  audio: {
+const { mockAudio, mockApplyAudioSettings } = vi.hoisted(() => {
+  const audioMock = {
     setVolume: vi.fn(),
     getMuted: vi.fn().mockReturnValue(false),
     toggleMute: vi.fn(),
+    setMuted: vi.fn(),
     setCategoryVolume: vi.fn(),
     playToggle: vi.fn(),
     playKeystroke: vi.fn(),
     playSelectionTick: vi.fn(),
-  },
+  };
+
+  return {
+    mockAudio: audioMock,
+    mockApplyAudioSettings: vi.fn(settings => {
+      audioMock.setVolume(settings.masterVolume);
+      if (settings.isMuted !== audioMock.getMuted()) {
+        audioMock.setMuted(settings.isMuted);
+      }
+      Object.entries(settings.categoryVolumes).forEach(([category, volume]) => {
+        audioMock.setCategoryVolume(category, volume);
+      });
+    }),
+  };
+});
+
+// Mock AudioService
+vi.mock('../../services/audio', () => ({
+  audio: mockAudio,
+  applyAudioSettings: mockApplyAudioSettings,
 }));
 
 // Mock useDevice hook
@@ -158,7 +177,7 @@ describe('SettingsPanel Full Test Suite', () => {
       fireEvent.click(muteBtn);
 
       expect(useGameStore.getState().audio.isMuted).toBe(true);
-      expect(audio.toggleMute).toHaveBeenCalled();
+      expect(audio.setMuted).toHaveBeenCalledWith(true);
     });
   });
 

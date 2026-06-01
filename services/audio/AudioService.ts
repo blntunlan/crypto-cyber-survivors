@@ -17,6 +17,7 @@ import {
   type SoundCategory,
   type CategoryVolumes,
 } from './types';
+import { type WeaponId } from '../../types/weapons';
 
 // Import sound modules
 import * as GameSounds from './GameSounds';
@@ -39,6 +40,14 @@ export class AudioService implements IAudioService {
     const newState = synthEngine.toggleMute();
     howlerManager.setMuted(newState);
     return newState;
+  }
+
+  /**
+   * Set mute state explicitly.
+   */
+  setMuted(value: boolean): void {
+    synthEngine.setMuted(value);
+    howlerManager.setMuted(value);
   }
 
   /**
@@ -97,6 +106,36 @@ export class AudioService implements IAudioService {
    */
   playShoot(fireRate: number = 1, projectileCount: number = 1): void {
     GameSounds.playShoot(fireRate, projectileCount);
+  }
+
+  /**
+   * Play weapon-aware fire feedback without each caller duplicating cooldown rules.
+   */
+  playWeaponFire(weaponId: WeaponId, level: number = 1): void {
+    switch (weaponId) {
+      case 'laser':
+        GameSounds.playWeaponPulse(0.45, 0.7);
+        return;
+      case 'spread_shot':
+        GameSounds.playShoot(0.8, 3);
+        return;
+      case 'boomerang':
+        GameSounds.playWeaponPulse(0.7, 0.9);
+        return;
+      case 'aoe_nuke':
+        GameSounds.playWeaponPulse(0.25, 1.2);
+        return;
+      case 'orbit_shield':
+        GameSounds.playWeaponPulse(0.55, 0.65);
+        return;
+      case 'hyper_cannon':
+        GameSounds.playShoot(1.2 + level * 0.05, 5);
+        return;
+      case 'quantum_bullet':
+      default:
+        GameSounds.playShoot(0.6 + level * 0.03, 1);
+        return;
+    }
   }
 
   /**

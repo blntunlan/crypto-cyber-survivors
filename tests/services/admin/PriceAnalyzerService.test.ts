@@ -1,11 +1,11 @@
 import { vi } from 'vitest';
 
 const mockRailwayClient = vi.hoisted(() => ({
-  get: vi.fn(),
+  getHistory: vi.fn(),
 }));
 
-vi.mock('../../../services/api/RailwayClient', () => ({
-  railwayClient: mockRailwayClient,
+vi.mock('../../../services/api/MarketApiClient', () => ({
+  marketApiClient: mockRailwayClient,
 }));
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -59,8 +59,8 @@ describe('PriceAnalyzerService', () => {
       { price: 50000, volume: 200, timestamp: new Date().toISOString() },
     ];
 
-    mockRailwayClient.get.mockImplementation((url: string) => {
-      if (url.includes('pair=BTC')) return Promise.resolve(btcData);
+    mockRailwayClient.getHistory.mockImplementation((pair: string) => {
+      if (pair === 'BTC') return Promise.resolve(btcData);
       return Promise.resolve([]);
     });
 

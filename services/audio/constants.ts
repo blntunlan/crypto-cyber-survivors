@@ -70,6 +70,11 @@ export const SOUND_CATEGORY_MAP: Record<string, SoundCategory> = {
   whoosh: 'movement',
   // UI
   button: 'ui',
+  selection_tick: 'ui',
+  keystroke: 'ui',
+  toggle_switch: 'ui',
+  achievement_glint: 'ui',
+  pair_select: 'ui',
   // Alerts
   heartbeat: 'alerts',
   death: 'alerts',

@@ -26,6 +26,7 @@ export { SOUND_DEFAULTS, COOLDOWN_MS } from './constants';
 // Individual modules (for direct access if needed)
 export { synthEngine, SynthEngine } from './SynthEngine';
 export { howlerManager, HowlerManager } from './HowlerManager';
+export { applyAudioSettings, deriveAppliedCategoryVolumes } from './applyAudioSettings';
 
 // Sound function modules
 export * as GameSounds from './GameSounds';

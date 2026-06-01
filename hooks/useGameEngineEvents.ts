@@ -99,9 +99,7 @@ export function useGameEngineEvents({
   // weaponFired audio feedback — laser fires frequently so skip shoot sound for it
   useEffect(() => {
     const unsub = EventBus.on('weaponFired', data => {
-      // Skip audio for very-fast-firing weapons to prevent sound overlap
-      if (data.weaponId === 'laser') return;
-      audio.playShoot(0.6, 1);
+      audio.playWeaponFire(data.weaponId, data.level);
     });
     return unsub;
   }, []);

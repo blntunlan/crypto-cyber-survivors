@@ -4,6 +4,7 @@ import App from '../../App';
 import { GameSessionService } from '../../services/auth/GameSessionService';
 import { GameProvider } from '../../contexts/GameContext';
 import { LanguageProvider } from '../../contexts/LanguageContext';
+import { MarketPosition } from '../../types';
 
 // Mock Language Context to bypass fetch and async loading
 vi.mock('../../contexts/LanguageContext', () => ({
@@ -135,7 +136,9 @@ vi.mock('../../components/GameAppShell', async () => {
       if (hubScreen === 'play') {
         const handleStart = () => {
           void import('../../services/auth/GameSessionService')
-            .then(({ GameSessionService }) => GameSessionService.startSession())
+            .then(({ GameSessionService }) =>
+              GameSessionService.startSession('BTC', 1, MarketPosition.LONG)
+            )
             .then(() => setHasStarted(true));
         };
 

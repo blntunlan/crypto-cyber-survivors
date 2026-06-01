@@ -11,7 +11,7 @@ import {
 } from '../../types';
 
 vi.mock('../../services/audio', () => ({
-  audio: { playWhoosh: vi.fn(), playShoot: vi.fn() },
+  audio: { playWhoosh: vi.fn(), playWeaponFire: vi.fn() },
 }));
 
 vi.mock('../../services/market/PriceMomentumEngine', () => ({
@@ -91,7 +91,7 @@ describe('useGameEngineEvents', () => {
     expect(audio.playWhoosh).toHaveBeenCalledTimes(1);
   });
 
-  it('weaponFired event triggers audio feedback (non-laser)', async () => {
+  it('weaponFired event triggers weapon-aware audio feedback', async () => {
     const { audio } = await import('../../services/audio');
     const refs = makeRefs();
     renderHook(() => useGameEngineEvents(refs));
@@ -103,10 +103,10 @@ describe('useGameEngineEvents', () => {
       damage: 10,
     });
 
-    expect(audio.playShoot).toHaveBeenCalledTimes(1);
+    expect(audio.playWeaponFire).toHaveBeenCalledWith('spread_shot', undefined);
   });
 
-  it('weaponFired event skips audio for laser weapon', async () => {
+  it('weaponFired event routes laser to weapon-aware audio feedback', async () => {
     const { audio } = await import('../../services/audio');
     const refs = makeRefs();
     renderHook(() => useGameEngineEvents(refs));
@@ -118,7 +118,7 @@ describe('useGameEngineEvents', () => {
       damage: 10,
     });
 
-    expect(audio.playShoot).not.toHaveBeenCalled();
+    expect(audio.playWeaponFire).toHaveBeenCalledWith('laser', undefined);
   });
 
   it('cleans up subscriptions on unmount', () => {

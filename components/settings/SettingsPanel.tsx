@@ -1,5 +1,5 @@
 import React from 'react';
-import { audio } from '../../services/audio';
+import { applyAudioSettings } from '../../services/audio';
 import { useGameStore, selectAudio } from '../../stores/gameStore';
 import { useDevice } from '../../hooks/useDevice';
 import { screenService } from '../../services/system/ScreenService';
@@ -51,14 +51,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   // Sync audio service with store
   React.useEffect(() => {
-    // 🚀 [Turbo Console Log]: audioSettings sync
-    // console.log('SettingsPanel.tsx:37 ~ audioSettings:', audioSettings);
-
-    audio.setVolume(audioSettings.masterVolume);
-    if (audioSettings.isMuted !== audio.getMuted()) {
-      audio.toggleMute();
-    }
-  }, [audioSettings.masterVolume, audioSettings.isMuted]);
+    applyAudioSettings(audioSettings);
+  }, [audioSettings]);
 
   const showMobileSection = device.isMobile || device.isTablet;
 

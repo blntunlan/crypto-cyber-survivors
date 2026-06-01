@@ -23,6 +23,7 @@ import { UserSessionService } from './services/auth/UserSessionService';
 
 // Custom hooks
 import { useLanguage } from './contexts/LanguageContext';
+import { type Language } from './contexts/LanguageConstants';
 import { useWindowDimensions } from './hooks/useWindowDimensions';
 import { useGameStatus } from './hooks/useGameStatus';
 import { useAppInitialization } from './hooks/useAppInitialization';
@@ -31,6 +32,7 @@ import { useTheme } from './contexts/useTheme';
 import { useCloudflareSession } from './hooks/useCloudflareSession';
 import { useTutorial } from './hooks/useTutorial';
 import { useSurfaceState } from './hooks/useSurfaceState';
+import { useAudioSettingsSync } from './hooks/useAudioSettingsSync';
 import { UserProvider } from './contexts/UserContext';
 import { cn } from './utils/classnames';
 import { SEO as SeoMetadata } from './components/SEO';
@@ -116,7 +118,7 @@ const FallbackLoader = () => (
 type AppSeoMetadataProps = {
   surface: 'docs' | 'privacy' | 'terms' | 'landing' | 'game';
   isRetro: boolean;
-  language: string;
+  language: Language;
   gameStatus: GameStatus;
   playLabel: string;
   getLocalizedPublicPath: (routePath: PublicRoutePath) => string;
@@ -291,6 +293,7 @@ const App: React.FC = () => {
   // Initialization & Utility Hooks
   // ========================================
   const { isInitialized } = useAppInitialization();
+  useAudioSettingsSync();
   const {
     showAnalytics: _showAnalytics,
     showAdminDashboard: _showAdminDashboard,

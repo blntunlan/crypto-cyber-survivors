@@ -33,15 +33,22 @@ const {
 // Mock Services
 vi.mock('../services/audio', () => ({
   audio: {
+    setVolume: vi.fn(),
+    setMuted: vi.fn(),
+    setCategoryVolume: vi.fn(),
     getMuted: vi.fn(() => false),
     toggleMute: vi.fn(),
     playLevelUp: vi.fn(),
     playButton: vi.fn(),
   },
+  applyAudioSettings: vi.fn(),
 }));
 
 vi.mock('../services/audio/AudioService', () => ({
   audio: {
+    setVolume: vi.fn(),
+    setMuted: vi.fn(),
+    setCategoryVolume: vi.fn(),
     getMuted: vi.fn(() => false),
     toggleMute: vi.fn(),
     playLevelUp: vi.fn(),

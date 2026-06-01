@@ -36,9 +36,16 @@ const BLOCKED_PATHS = [
   // Environment/Config files
   '/.env',
   '/.git',
+  '/.aws',
+  '/.docker',
+  '/.idea',
+  '/.npmrc',
   '/.svn',
+  '/.vscode',
+  '/.yarnrc',
   '/.htaccess',
   '/.htpasswd',
+  '/composer.json',
   '/config.php',
   '/config.json',
   '/config.yml',
@@ -55,8 +62,14 @@ const BLOCKED_PATHS = [
   '/account.json',
   '/key.json',
   '/keyfile.json',
+  '/package.json',
+  '/package-lock.json',
+  '/pnpm-lock.yaml',
   '/secrets.json',
   '/service-account.json',
+  '/sftp.json',
+  '/sftp-config.json',
+  '/yarn.lock',
   // Admin panels
   '/admin.php',
   '/admin/',
@@ -69,6 +82,10 @@ const BLOCKED_PATHS = [
   '/manager/',
   // Shell/Backdoors
   '/shell',
+  '/id_dsa',
+  '/id_rsa',
+  '/private.key',
+  '/server.key',
   '/c99',
   '/r57',
   '/b374k',
@@ -156,6 +173,8 @@ const BLOCKED_EXTENSIONS = [
   '.conf',
   '.cfg',
 ];
+
+const ALLOWED_DOT_PATH_SEGMENTS = new Set(['.well-known']);
 
 // =============================================================================
 // SEO: Dynamic Meta Tags for Public SPA Routes
@@ -501,6 +520,19 @@ function getMemoryStats() {
   };
 }
 
+function hasBlockedDotPathSegment(normalizedPath) {
+  return normalizedPath
+    .split('/')
+    .filter(Boolean)
+    .some(
+      segment => segment.startsWith('.') && !ALLOWED_DOT_PATH_SEGMENTS.has(segment)
+    );
+}
+
+function shouldServeSpaFallback(urlPath) {
+  return PUBLIC_SPA_ROUTES.has(normalizeRoutePath(urlPath));
+}
+
 function handleRequest(req, res) {
   const startTime = Date.now();
   const ip =
@@ -538,20 +570,21 @@ function handleRequest(req, res) {
   const isBlockedPath = BLOCKED_PATHS.some(blocked =>
     normalizedPath.includes(blocked.toLowerCase())
   );
+  const isHiddenPathProbe = hasBlockedDotPathSegment(normalizedPath);
 
   // Check for blocked file extensions
   const ext = normalizedPath.slice(normalizedPath.lastIndexOf('.'));
   const isBlockedExt = BLOCKED_EXTENSIONS.includes(ext);
 
   // Rate limiting check
-  if (isRateLimited(ip, isBlockedPath || isBlockedExt)) {
+  if (isRateLimited(ip, isBlockedPath || isBlockedExt || isHiddenPathProbe)) {
     logRequest(ip, req.method, urlPath, 429, Date.now() - startTime);
     sendResponse(res, 429, 'Too Many Requests');
     return;
   }
 
   // Block malicious paths immediately to avoid holding sockets/timers under scans.
-  if (isBlockedPath || isBlockedExt) {
+  if (isBlockedPath || isBlockedExt || isHiddenPathProbe) {
     logRequest(ip, req.method, urlPath, 418, Date.now() - startTime);
     sendResponse(res, 418, "I'm a teapot 🫖");
     return;
@@ -612,6 +645,12 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
 
   // Check if path exists
   if (!existsSync(filePath)) {
+    if (!shouldServeSpaFallback(urlPath)) {
+      logRequest(ip, req.method, urlPath, 404, Date.now() - startTime);
+      sendResponse(res, 404, 'Not Found');
+      return;
+    }
+
     // Try with index.html for SPA routing
     filePath = join(DIST_DIR, 'index.html');
     if (!existsSync(filePath)) {

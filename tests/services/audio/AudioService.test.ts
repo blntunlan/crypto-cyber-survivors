@@ -48,6 +48,7 @@ vi.mock('../../../services/audio/GameSounds', () => ({
   playToggle: vi.fn(),
   playAchievementGlint: vi.fn(),
   playPairSelect: vi.fn(),
+  playWeaponPulse: vi.fn(),
 }));
 
 vi.mock('../../../services/audio/SlotMachineSounds', () => ({
@@ -97,6 +98,14 @@ describe('AudioService', () => {
     it('should dispatch playShoot correctly', () => {
       audio.playShoot(2, 3);
       expect(GameSounds.playShoot).toHaveBeenCalledWith(2, 3);
+    });
+
+    it('should dispatch weapon-aware fire sounds', () => {
+      audio.playWeaponFire('laser', 2);
+      audio.playWeaponFire('spread_shot', 1);
+
+      expect(GameSounds.playWeaponPulse).toHaveBeenCalledWith(0.45, 0.7);
+      expect(GameSounds.playShoot).toHaveBeenCalledWith(0.8, 3);
     });
 
     it('should dispatch simple game sounds', () => {

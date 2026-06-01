@@ -14,12 +14,43 @@ const DB_ERROR_LOG_COOLDOWN_MS = 10_000;
 let lastPoolWarningAt = 0;
 let lastQueryErrorLogAt = 0;
 
+type PoolUsageInput = Pick<pg.Pool, 'totalCount' | 'idleCount' | 'waitingCount'>;
+
+export type PoolUsageSnapshot = {
+  active: number;
+  total: number;
+  idle: number;
+  waiting: number;
+  capacityUsage: number;
+  shouldWarn: boolean;
+};
+
 export function getPoolMax(): number {
   const configured = Number(process.env.PG_POOL_MAX);
   if (Number.isInteger(configured) && configured > 0) {
     return configured;
   }
   return DEFAULT_POOL_MAX;
+}
+
+export function getPoolUsageSnapshot(
+  monitoredPool: PoolUsageInput,
+  poolMax: number
+): PoolUsageSnapshot {
+  const total = monitoredPool.totalCount;
+  const idle = monitoredPool.idleCount;
+  const waiting = monitoredPool.waitingCount;
+  const active = Math.max(total - idle, 0);
+  const capacityUsage = poolMax > 0 ? active / poolMax : 0;
+
+  return {
+    active,
+    total,
+    idle,
+    waiting,
+    capacityUsage,
+    shouldWarn: waiting > 0 || capacityUsage >= POOL_USAGE_WARN_THRESHOLD,
+  };
 }
 
 export function getPool(): pg.Pool {
@@ -61,23 +92,16 @@ export function getPool(): pg.Pool {
   const monitoredPool = pool;
   setInterval(() => {
     const now = Date.now();
-    const total = monitoredPool.totalCount;
-    const idle = monitoredPool.idleCount;
-    const waiting = monitoredPool.waitingCount;
-    const active = total - idle;
-    const usage = total > 0 ? active / total : 0;
+    const usage = getPoolUsageSnapshot(monitoredPool, poolMax);
 
-    if (
-      usage > POOL_USAGE_WARN_THRESHOLD &&
-      now - lastPoolWarningAt > POOL_WARNING_COOLDOWN_MS
-    ) {
+    if (usage.shouldWarn && now - lastPoolWarningAt > POOL_WARNING_COOLDOWN_MS) {
       Logger.warn(
-        `[Pool] High usage: ${active}/${total} active, ${waiting} waiting (${Math.round(usage * 100)}%)`
+        `[Pool] High usage: ${usage.active}/${poolMax} capacity, ${usage.total} created, ${usage.idle} idle, ${usage.waiting} waiting (${Math.round(usage.capacityUsage * 100)}%)`
       );
       lastPoolWarningAt = now;
     }
-    if (waiting > 0 && now - lastPoolWarningAt > POOL_WARNING_COOLDOWN_MS) {
-      Logger.warn(`[Pool] ${waiting} queries waiting for connection`);
+    if (usage.waiting > 0 && now - lastPoolWarningAt > POOL_WARNING_COOLDOWN_MS) {
+      Logger.warn(`[Pool] ${usage.waiting} queries waiting for connection`);
       lastPoolWarningAt = now;
     }
   }, POOL_CHECK_INTERVAL_MS).unref();

@@ -33,7 +33,7 @@ import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { SpeedLineSpawner } from '../services/spawners/SpeedLineSpawner';
 import { lerp } from '../utils/math';
 import { audio } from '../services/audio';
-import { railwayClient } from '../services/api/RailwayClient';
+import { marketApiClient } from '../services/api/MarketApiClient';
 import { ClientIndicatorService } from '../services/indicators/ClientIndicatorService';
 import { Logger } from '../services/system/Logger';
 import { EventBus } from '../services/core/EventBus';
@@ -45,7 +45,6 @@ import { type RewardPayload } from '../types/reward';
 import { GameEndReason } from '../types/metrics';
 import { GameMode } from '../types/gameMode';
 import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
-import { VisualEffectService } from '../services/gameplay/VisualEffectService';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
 import { PlayerPowerAnalyzer } from '../services/difficulty/PlayerPowerAnalyzer';
@@ -159,6 +158,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     showDamageNumbers: graphicsSettings.showDamageNumbers,
     showScreenShake:
       graphicsSettings.showScreenShake && !runtimeDebugFlags.noScreenShake,
+    reducedMotion: graphicsSettings.reducedMotion,
     disableGlow: runtimeDebugFlags.noGlow,
   });
   useEffect(() => {
@@ -166,6 +166,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     graphicsRef.current.showDamageNumbers = graphicsSettings.showDamageNumbers;
     graphicsRef.current.showScreenShake =
       graphicsSettings.showScreenShake && !runtimeDebugFlagsRef.current.noScreenShake;
+    graphicsRef.current.reducedMotion = graphicsSettings.reducedMotion;
     graphicsRef.current.disableGlow = runtimeDebugFlagsRef.current.noGlow;
   }, [graphicsSettings]);
 
@@ -539,10 +540,8 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           Logger.info('[GameEngine] Starting market sync flow...');
 
           // 1. Fetch historical data (Snapshot) from Railway API
-          const history = await railwayClient
-            .get<
-              Array<{ price: number; volume: number; timestamp: number }>
-            >(`/api/v1/market/history?pair=${pair}&limit=300`)
+          const history = await marketApiClient
+            .getHistory(pair, 300)
             .catch(
               () => [] as Array<{ price: number; volume: number; timestamp: number }>
             );
@@ -766,23 +765,6 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       s.lastTime = time;
 
       gameplayFrameRef.current += 1;
-
-      // Update Visual Effects Service (Decay intensities)
-      VisualEffectService.update(deltaTime);
-
-      // Apply volatility-driven shake only during active gameplay.
-      if (status === GameStatus.PLAYING && !runtimeDebugFlags.noScreenShake) {
-        const shockIntensity = VisualEffectService.getIntensity();
-        if (shockIntensity > 0) {
-          const leverage = difficultyContext.inputs.leverage;
-          const scaledShock = VisualEffectService.calculateLeverageScaledIntensity(
-            shockIntensity,
-            leverage
-          );
-          // Apply immediate shake boost - don't clamp here to allow high-leverage "chaos"
-          s.shake = Math.max(s.shake, scaledShock * 5);
-        }
-      }
 
       // Update background candles (even when paused for visual continuity, but skip if menu)
       if (status !== GameStatus.MENU && !runtimeDebugFlags.noBackgroundCandles) {
@@ -1031,6 +1013,9 @@ export const GameEngine: React.FC<GameEngineProps> = ({
         shared.width = width;
         shared.height = height;
         shared.deviceIsMobile = device.isMobile;
+        shared.screenShakeEnabled =
+          graphicsRef.current.showScreenShake && !runtimeDebugFlags.noScreenShake;
+        shared.reducedMotion = graphicsRef.current.reducedMotion;
         shared.combatSystem = combatSystem.current;
         shared.getMovementVector = getMovementVector;
         shared.isDashPressed = isSpacePressed;

@@ -17,7 +17,12 @@ describe('server.js hardening script', () => {
     expect(file).toContain("'/google-credentials.json'");
     expect(file).toContain("'/service-account.json'");
     expect(file).toContain("'/secrets.json'");
+    expect(file).toContain("'/.aws'");
+    expect(file).toContain("'/.vscode'");
+    expect(file).toContain("'/sftp.json'");
     expect(file).toContain("'/api/env'");
     expect(file).toContain("'/api/config'");
+    expect(file).toContain('hasBlockedDotPathSegment');
+    expect(file).toContain('shouldServeSpaFallback');
   });
 });

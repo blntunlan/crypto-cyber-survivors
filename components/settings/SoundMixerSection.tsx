@@ -11,7 +11,7 @@
  */
 
 import { memo, useEffect } from 'react';
-import { audio } from '../../services/audio';
+import { applyAudioSettings } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
 import { useIsRetro } from '../../contexts/useTheme';
 import { COLORS } from '../../constants';
@@ -73,21 +73,23 @@ interface SoundMixerSectionProps {
 
 export const SoundMixerSection = memo(({ focusedCategory }: SoundMixerSectionProps) => {
   const categoryVolumes = useGameStore(state => state.audio.categoryVolumes);
+  const audioSettings = useGameStore(state => state.audio);
   const setCategoryVolume = useGameStore(state => state.setCategoryVolume);
   const isRetro = useIsRetro();
   const { t } = useLanguage();
 
   // Sync category volumes to AudioService
   useEffect(() => {
-    CATEGORIES.forEach(category => {
-      const volume = categoryVolumes[category];
-      audio.setCategoryVolume(category, volume);
-    });
-  }, [categoryVolumes]);
+    applyAudioSettings(audioSettings);
+  }, [audioSettings]);
 
   const handleVolumeChange = (category: SoundCategory, value: number) => {
+    const nextCategoryVolumes = {
+      ...categoryVolumes,
+      [category]: value,
+    };
     setCategoryVolume(category, value);
-    audio.setCategoryVolume(category, value);
+    applyAudioSettings({ ...audioSettings, categoryVolumes: nextCategoryVolumes });
   };
 
   return (

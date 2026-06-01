@@ -55,15 +55,17 @@ export class EffectRenderer implements IRenderer {
     }
 
     // 5. Momentum Feedback (Top layer)
-    if (graphics.showParticles) {
+    if (graphics.showParticles && !graphics.reducedMotion) {
       this.drawSpeedLines(ctx, pool, player);
     }
 
     // 6. Market Intensity Overlay (Phase 3C)
-    this.drawMomentumOverlay(ctx, width, height);
+    if (!graphics.reducedMotion) {
+      this.drawMomentumOverlay(ctx, width, height);
+    }
 
     // 7. Market Ambiance Overlays (RSI/Whale)
-    this.drawMarketAmbiance(ctx, width, height, state);
+    this.drawMarketAmbiance(ctx, width, height, state, graphics.reducedMotion === true);
   }
 
   /**
@@ -73,7 +75,8 @@ export class EffectRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
-    state: GameState
+    state: GameState,
+    reducedMotion: boolean
   ): void {
     ctx.save();
     const isRetro = ThemeService.isRetro();
@@ -94,7 +97,7 @@ export class EffectRenderer implements IRenderer {
 
       // Retro uses subtle overlays; Modern uses a soft monitor glow / vignette
       // Reduced from 0.12 to 0.07 for cyberpunk to prevent green screen wash
-      const baseOpacity = isRetro ? 0.06 : 0.07;
+      const baseOpacity = (isRetro ? 0.06 : 0.07) * (reducedMotion ? 0.45 : 1);
       const opacity = baseOpacity * sessionFadeIn;
 
       ctx.globalAlpha = opacity;
@@ -132,7 +135,7 @@ export class EffectRenderer implements IRenderer {
     // Volatility Pulse (ATR)
     // Pulse the vignette opacity based on ATR and time
     // RETRO OPTIMIZATION: Use sharp rectangular vignette instead of radial gradient
-    if (state.atrPercent > 0.5) {
+    if (state.atrPercent > 0.5 && !reducedMotion) {
       const timeInGame = TimeService.getGameTimeSeconds();
       const sessionFadeIn = Math.min(1, timeInGame / 3.0); // 3 second slow fade for volatility
 
@@ -169,12 +172,14 @@ export class EffectRenderer implements IRenderer {
       }
     }
 
-    this.drawFlowPulse(ctx, width, height, state, isRetro);
+    if (!reducedMotion) {
+      this.drawFlowPulse(ctx, width, height, state, isRetro);
+    }
 
     // Whale Splash Effect
     if (state.whaleEventTimer > 0) {
       const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
-      ctx.globalAlpha = intensity * 0.2;
+      ctx.globalAlpha = intensity * (reducedMotion ? 0.06 : 0.2);
 
       if (isRetro) {
         // Retro: Solid full-screen flash then fade

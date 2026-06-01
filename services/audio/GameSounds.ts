@@ -54,6 +54,24 @@ export function playShoot(fireRate: number = 1, projectileCount: number = 1): vo
 }
 
 /**
+ * Play a short weapon identity pulse for low-rate or sustained weapons.
+ */
+export function playWeaponPulse(pitch: number = 0.6, weight: number = 1): void {
+  if (synthEngine.isOnCooldown('shoot')) return;
+  synthEngine.recordPlay('shoot');
+
+  const catVol = getCategoryVolumeMultiplier('shoot');
+  const pulsePreset = getPreset('dash');
+  if (pulsePreset) {
+    synthEngine.playPreset(pulsePreset, {
+      frequencyMultiplier: pitch,
+      volumeMultiplier: catVol * Math.max(0.4, Math.min(1.2, weight)),
+      durationMultiplier: 0.65,
+    });
+  }
+}
+
+/**
  * Play critical hit sound
  */
 export function playCrit(): void {

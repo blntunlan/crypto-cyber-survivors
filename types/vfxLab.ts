@@ -37,15 +37,11 @@ export interface VfxPreviewModule<TState = unknown> {
    */
   manageOwnScene?: boolean;
   /** Called once when preview starts/resets. Return mutable state. */
-  init: (sim: VfxPreviewSimContext) => TState;
+  init(sim: VfxPreviewSimContext): TState;
   /** Per-frame update. Mutate state in place. */
-  tick: (state: TState, sim: VfxPreviewSimContext, dtMs: number) => void;
+  tick(state: TState, sim: VfxPreviewSimContext, dtMs: number): void;
   /** Per-frame render. */
-  render: (
-    ctx: CanvasRenderingContext2D,
-    state: TState,
-    sim: VfxPreviewSimContext
-  ) => void;
+  render(ctx: CanvasRenderingContext2D, state: TState, sim: VfxPreviewSimContext): void;
 }
 
 export interface VfxStatusRecord {

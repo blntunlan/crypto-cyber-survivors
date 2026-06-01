@@ -60,13 +60,19 @@ export class GameRenderer implements IGameRenderer {
       showParticles: true,
       showDamageNumbers: true,
       showScreenShake: true,
+      reducedMotion: false,
       disableGlow: false,
     }
   ): void {
     ctx.save();
 
     // 1. Screen Shake (if enabled and intensity > 0)
-    if (status === GameStatus.PLAYING && graphics.showScreenShake && state.shake > 0) {
+    if (
+      status === GameStatus.PLAYING &&
+      graphics.showScreenShake &&
+      !graphics.reducedMotion &&
+      state.shake > 0
+    ) {
       ctx.translate(
         (Math.random() - GAME_ENGINE.SHAKE_CENTER_OFFSET) * state.shake,
         (Math.random() - GAME_ENGINE.SHAKE_CENTER_OFFSET) * state.shake

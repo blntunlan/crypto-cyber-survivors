@@ -133,6 +133,7 @@ export const GAME_ENGINE = {
   // Scaling Factors for Game Logic
   PNL_VISUAL_SCALE: 2.0,
   VOLATILITY_SHOCK_INTENSITY: 1.5,
+  VOLATILITY_SHOCK_SHAKE_MULT: 5,
 
   // Movement Physics
   FRICTION_AIR: 0.98,

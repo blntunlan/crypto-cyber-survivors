@@ -1,4 +1,5 @@
 import { type ComboMilestoneSound } from '../audio/types';
+import { type WeaponId } from '../../types/weapons';
 
 /**
  * Interface for the Audio Service.
@@ -6,11 +7,13 @@ import { type ComboMilestoneSound } from '../audio/types';
  */
 export interface IAudioService {
   toggleMute(): boolean;
+  setMuted(value: boolean): void;
   setVolume(value: number): void;
   getVolume(): number;
   getMuted(): boolean;
 
   playShoot(fireRate?: number, projectileCount?: number): void;
+  playWeaponFire(weaponId: WeaponId, level?: number): void;
   playCrit(): void;
   playHit(): void;
   playHeartbeat(): void;

@@ -99,6 +99,8 @@ export function playReelStop(reelNumber: number): void {
  */
 export function playSlotWin(): void {
   if (synthEngine.getMuted()) return;
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   // === Impact Hit at Start ===
   synthEngine.playPreset(
@@ -121,7 +123,7 @@ export function playSlotWin(): void {
         },
       ],
     },
-    { volumeMultiplier: 0.7 }
+    { volumeMultiplier: 0.7 * catVol }
   );
 
   // === C Major Chord Arpeggio ===
@@ -135,7 +137,7 @@ export function playSlotWin(): void {
       // Main note - balanced volume
       synthEngine.playPreset(winPreset, {
         frequencyMultiplier: freq / C_MAJOR.C5,
-        volumeMultiplier: 0.9 + i * 0.1, // Softer rising: 0.9, 1.0, 1.1, 1.2
+        volumeMultiplier: (0.9 + i * 0.1) * catVol, // Softer rising: 0.9, 1.0, 1.1, 1.2
         delay: 0.05 + i * 0.15,
       });
     }
@@ -146,7 +148,7 @@ export function playSlotWin(): void {
     if (winPreset) {
       synthEngine.playPreset(winPreset, {
         frequencyMultiplier: freq / C_MAJOR.C5,
-        volumeMultiplier: 0.6,
+        volumeMultiplier: 0.6 * catVol,
         delay: 0.7,
       });
     }
@@ -156,7 +158,7 @@ export function playSlotWin(): void {
   if (dingPreset) {
     synthEngine.playPreset(dingPreset, {
       frequencyMultiplier: 1.0,
-      volumeMultiplier: 0.4,
+      volumeMultiplier: 0.4 * catVol,
       delay: 0.75,
     });
   }
@@ -168,6 +170,8 @@ export function playSlotWin(): void {
  */
 export function playAnticipation(intensity: number = 1): void {
   if (synthEngine.getMuted()) return;
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   const anticipationPreset = getPreset('slotAnticipationTremolo');
 
@@ -175,7 +179,7 @@ export function playAnticipation(intensity: number = 1): void {
   if (anticipationPreset) {
     synthEngine.playPreset(anticipationPreset, {
       frequencyMultiplier: intensity,
-      volumeMultiplier: 0.6 * intensity,
+      volumeMultiplier: 0.6 * intensity * catVol,
     });
   }
 
@@ -191,7 +195,7 @@ export function playAnticipation(intensity: number = 1): void {
         },
       ],
     },
-    { volumeMultiplier: 0.5, delay: 0.05 }
+    { volumeMultiplier: 0.5 * catVol, delay: 0.05 }
   );
 }
 
@@ -200,9 +204,15 @@ export function playAnticipation(intensity: number = 1): void {
  * Metallic coin sounds in 16th note pattern
  */
 export function playCoinShower(): void {
+  playCoinShowerAt(0);
+}
+
+function playCoinShowerAt(startDelay: number): void {
   if (synthEngine.getMuted()) return;
   if (synthEngine.isOnCooldown('coinShower')) return;
   synthEngine.recordPlay('coinShower');
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   const coinCount = 12;
   const baseDelay = 0.04; // 16th note feel at ~150 BPM
@@ -210,13 +220,13 @@ export function playCoinShower(): void {
 
   for (let i = 0; i < coinCount; i++) {
     // Slight randomization for natural feel
-    const delay = i * baseDelay + Math.random() * 0.015;
+    const delay = startDelay + i * baseDelay + Math.random() * 0.015;
     const pitchVariation = 0.9 + Math.random() * 0.2; // ±10% pitch variation
 
     if (dingPreset) {
       synthEngine.playPreset(dingPreset, {
         frequencyMultiplier: pitchVariation,
-        volumeMultiplier: 0.4 + Math.random() * 0.2,
+        volumeMultiplier: (0.4 + Math.random() * 0.2) * catVol,
         delay,
       });
     }
@@ -226,8 +236,8 @@ export function playCoinShower(): void {
   if (dingPreset) {
     synthEngine.playPreset(dingPreset, {
       frequencyMultiplier: 0.7, // Lower pitch for "bigger" coin
-      volumeMultiplier: 0.8,
-      delay: coinCount * baseDelay + 0.1,
+      volumeMultiplier: 0.8 * catVol,
+      delay: startDelay + coinCount * baseDelay + 0.1,
     });
   }
 }
@@ -238,19 +248,21 @@ export function playCoinShower(): void {
  */
 export function playNearMiss(): void {
   if (synthEngine.getMuted()) return;
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   const nearMissPreset = getPreset('slotNearMissNote');
 
   if (nearMissPreset) {
     // Main descending tone
     synthEngine.playPreset(nearMissPreset, {
-      volumeMultiplier: 0.7,
+      volumeMultiplier: 0.7 * catVol,
     });
 
     // Echo for "wah-wah" effect
     synthEngine.playPreset(nearMissPreset, {
       frequencyMultiplier: 0.95, // Slight pitch down
-      volumeMultiplier: 0.4,
+      volumeMultiplier: 0.4 * catVol,
       delay: 0.15,
     });
   }
@@ -264,6 +276,8 @@ export function playMultiplierChime(level: number = 1): void {
   if (synthEngine.getMuted()) return;
   if (synthEngine.isOnCooldown('multiplierChime')) return;
   synthEngine.recordPlay('multiplierChime');
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   // Each level raises pitch by a semitone (about 6% per semitone)
   const pitchMultiplier = Math.pow(2, level / 12);
@@ -273,14 +287,14 @@ export function playMultiplierChime(level: number = 1): void {
     // Main bell
     synthEngine.playPreset(bellPreset, {
       frequencyMultiplier: pitchMultiplier,
-      volumeMultiplier: 0.6,
+      volumeMultiplier: 0.6 * catVol,
     });
 
     // Quick arpeggio for excitement (C-E-G)
     [0, 4, 7].forEach((semitone, i) => {
       synthEngine.playPreset(bellPreset, {
         frequencyMultiplier: pitchMultiplier * Math.pow(2, semitone / 12),
-        volumeMultiplier: 0.3,
+        volumeMultiplier: 0.3 * catVol,
         delay: 0.05 + i * 0.06,
       });
     });
@@ -295,12 +309,14 @@ export function playSlowdownTension(): void {
   if (synthEngine.getMuted()) return;
   if (synthEngine.isOnCooldown('slowdownTension')) return;
   synthEngine.recordPlay('slowdownTension');
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   const tensionPreset = getPreset('slotSlowdownTension');
 
   if (tensionPreset) {
     synthEngine.playPreset(tensionPreset, {
-      volumeMultiplier: 0.5,
+      volumeMultiplier: 0.5 * catVol,
     });
   }
 
@@ -315,7 +331,7 @@ export function playSlowdownTension(): void {
         },
       ],
     },
-    { volumeMultiplier: 0.3 }
+    { volumeMultiplier: 0.3 * catVol }
   );
 }
 
@@ -325,41 +341,37 @@ export function playSlowdownTension(): void {
  */
 export function playJackpot(): void {
   if (synthEngine.getMuted()) return;
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   // Play the standard win first
   playSlotWin();
 
-  // Add extended celebration after short delay
-  setTimeout(() => {
-    // Second arpeggio (higher octave)
-    const jackpotNotes = [C_MAJOR.C6, C_MAJOR.E6, C_MAJOR.G6, C_MAJOR.C7];
-    const winPreset = getPreset('slotWinNote');
-    const sparklePreset = getPreset('slotSparkle');
+  const jackpotNotes = [C_MAJOR.C6, C_MAJOR.E6, C_MAJOR.G6, C_MAJOR.C7];
+  const winPreset = getPreset('slotWinNote');
+  const sparklePreset = getPreset('slotSparkle');
 
-    jackpotNotes.forEach((freq, i) => {
-      if (winPreset) {
-        synthEngine.playPreset(winPreset, {
-          frequencyMultiplier: freq / C_MAJOR.C5,
-          volumeMultiplier: 0.8,
-          delay: i * 0.12,
-        });
-      }
-    });
-
-    // Extended coin shower
-    playCoinShower();
-
-    // Extra sparkle cascade
-    for (let i = 0; i < 8; i++) {
-      if (sparklePreset) {
-        synthEngine.playPreset(sparklePreset, {
-          frequencyMultiplier: 1 + Math.random() * 0.3,
-          volumeMultiplier: 0.3 + Math.random() * 0.2,
-          delay: 0.6 + i * 0.1 + Math.random() * 0.05,
-        });
-      }
+  jackpotNotes.forEach((freq, i) => {
+    if (winPreset) {
+      synthEngine.playPreset(winPreset, {
+        frequencyMultiplier: freq / C_MAJOR.C5,
+        volumeMultiplier: 0.8 * catVol,
+        delay: 0.6 + i * 0.12,
+      });
     }
-  }, 600);
+  });
+
+  playCoinShowerAt(0.6);
+
+  for (let i = 0; i < 8; i++) {
+    if (sparklePreset) {
+      synthEngine.playPreset(sparklePreset, {
+        frequencyMultiplier: 1 + Math.random() * 0.3,
+        volumeMultiplier: (0.3 + Math.random() * 0.2) * catVol,
+        delay: 1.2 + i * 0.1 + Math.random() * 0.05,
+      });
+    }
+  }
 }
 
 /**
@@ -367,6 +379,8 @@ export function playJackpot(): void {
  */
 export function playSpinStart(): void {
   if (synthEngine.getMuted()) return;
+  const catVol = getCategoryVolume();
+  if (catVol <= 0) return;
 
   synthEngine.playPreset(
     {
@@ -379,6 +393,6 @@ export function playSpinStart(): void {
         },
       ],
     },
-    { volumeMultiplier: 0.4 }
+    { volumeMultiplier: 0.4 * catVol }
   );
 }

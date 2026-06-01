@@ -10,14 +10,30 @@ import { SettingsPanel } from '../../components/settings/SettingsPanel';
 import { audio } from '../../services/audio';
 import { useGameStore } from '../../stores/gameStore';
 
-// Mock audio service
-vi.mock('../../services/audio', () => ({
-  audio: {
+const { mockAudio, mockApplyAudioSettings } = vi.hoisted(() => {
+  const audioMock = {
     setVolume: vi.fn(),
     getMuted: vi.fn().mockReturnValue(false),
     toggleMute: vi.fn(),
+    setMuted: vi.fn(),
     setCategoryVolume: vi.fn(),
-  },
+  };
+
+  return {
+    mockAudio: audioMock,
+    mockApplyAudioSettings: vi.fn(settings => {
+      audioMock.setVolume(settings.masterVolume);
+      if (settings.isMuted !== audioMock.getMuted()) {
+        audioMock.setMuted(settings.isMuted);
+      }
+    }),
+  };
+});
+
+// Mock audio service
+vi.mock('../../services/audio', () => ({
+  audio: mockAudio,
+  applyAudioSettings: mockApplyAudioSettings,
 }));
 
 // Mock LanguageContext
@@ -83,6 +99,6 @@ describe('SettingsPanel - Audio Sync', () => {
     render(<SettingsPanel onClose={() => {}} />);
 
     // Since they differ, toggleMute should be called
-    expect(audio.toggleMute).toHaveBeenCalled();
+    expect(audio.setMuted).toHaveBeenCalledWith(true);
   });
 });
