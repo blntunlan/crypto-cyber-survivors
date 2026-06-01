@@ -1,0 +1,3 @@
+## 2026-06-01 - Zero-Allocation Loops in Physics Systems
+**Learning:** High-frequency `.forEach()` array iterations inside physics components like `MovementSystem.ts` cause immense GC pressure due to closure allocation every frame. Replacing them with standard `for (let i = 0, len = arr.length; i < len; i++)` loops dramatically stabilizes framerates, but special care must be taken with sparse array pools by including an `if (entity === undefined) continue;` guard.
+**Action:** Always prefer standard zero-allocation `for` loops over `forEach` in any system that runs on a per-frame basis, and ensure strict sparse-array safety when iterating over entity pools.
