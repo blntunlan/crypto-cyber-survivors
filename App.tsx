@@ -300,7 +300,8 @@ const App: React.FC = () => {
     showVfxLab,
     closeVfxLab,
   } = useDevShortcuts();
-  const tutorial = useTutorial({ enabled: !showLanding });
+  const isPublicInfoSurface = showDocs || showPrivacy || showTerms;
+  const tutorial = useTutorial({ enabled: !showLanding && !isPublicInfoSurface });
   const { t, language } = useLanguage();
   const { isRetro } = useTheme();
   const getLocalizedPublicPath = (routePath: PublicRoutePath): string =>

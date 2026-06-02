@@ -115,6 +115,7 @@ function renderCodeBlock(key: string, code: string, language?: string) {
       </pre>
       <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
         <button
+          type="button"
           onClick={() => {
             void navigator.clipboard.writeText(code);
           }}
@@ -179,6 +180,7 @@ const DocContentRenderer: React.FC<DocContentRendererProps> = ({
           const url = urlMatch[1] ?? '#';
           parts.push(
             <button
+              type="button"
               key={nextKey('inline-link')}
               onClick={() => {
                 const target = cleanLink(url);
@@ -472,6 +474,8 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
               </span>
             </div>
             <button
+              type="button"
+              aria-label="Close documentation"
               onClick={onClose}
               className="rounded-full p-2 transition-colors hover:bg-white/5 md:hidden"
             >
@@ -484,6 +488,7 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
+                aria-label="Search documentation"
                 placeholder="Search Protocol..."
                 className="w-full rounded-sm border border-white/10 bg-white/5 py-2 pl-10 pr-4 text-xs transition-all focus:outline-none focus:ring-1 focus:ring-[#d6b85c]"
                 value={searchQuery}
@@ -507,6 +512,7 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
 
                     return (
                       <button
+                        type="button"
                         key={`item-${section.text}-${item.link}`}
                         onClick={() => handleDocSelect(item.link)}
                         className={`group flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-xs transition-all
@@ -549,10 +555,15 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
               <span>{selectedDoc}</span>
             </div>
             <div className="flex items-center gap-4">
-              <button className="group rounded-sm p-2 transition-colors hover:bg-white/5">
+              <button
+                type="button"
+                aria-label="Share documentation"
+                className="group rounded-sm p-2 transition-colors hover:bg-white/5"
+              >
                 <Share2 className="h-4 w-4 text-slate-500 group-hover:text-white" />
               </button>
               <button
+                type="button"
                 onClick={onClose}
                 className="flex items-center gap-2 border border-[#b22222]/30 bg-[#b22222]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#b22222] transition-all hover:bg-[#b22222]/40"
               >
@@ -603,10 +614,6 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
           .custom-scrollbar::-webkit-scrollbar-thumb { background: #b2222250; border-radius: 2px; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b2222290; }
 
-          @font-face {
-            font-family: 'Orbitron';
-            src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
-          }
           .font-display { font-family: 'Orbitron', sans-serif; }
         `}</style>
       </m.div>

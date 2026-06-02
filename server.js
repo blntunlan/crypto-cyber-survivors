@@ -413,7 +413,7 @@ function getSecurityHeaders(isAsset = false) {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     // Permissions policy (comprehensive list)
     'Permissions-Policy':
-      'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=()',
+      'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
     // HSTS (2 years with preload)
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
     // Prevent DNS prefetch to third parties
@@ -432,8 +432,8 @@ function getSecurityHeaders(isAsset = false) {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://cdn.jsdelivr.net",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://cdn.discordapp.com",
+      "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:",
+      "img-src 'self' data: blob: https://www.transparenttextures.com https://*.supabase.co https://lh3.googleusercontent.com https://avatars.githubusercontent.com https://cdn.discordapp.com",
       "connect-src 'self' wss://stream.binance.com wss://stream.binance.com:9443 wss://ws-feed.exchange.coinbase.com wss://stream.coinbase.com wss://*.coinbase.com https://*.supabase.co wss://*.supabase.co https://*.supabase.com https://*.workers.dev https://*.up.railway.app https://cloudflareinsights.com",
       "media-src 'self' blob: data:",
       "worker-src 'self' blob:",
@@ -555,6 +555,13 @@ function handleRequest(req, res) {
   if (canonicalOriginRedirect) {
     logRequest(ip, req.method, urlPath, 301, Date.now() - startTime);
     sendRedirect(res, canonicalOriginRedirect);
+    return;
+  }
+
+  const canonicalQueryRedirect = getCanonicalQueryRedirect(parsedUrl, urlPath);
+  if (canonicalQueryRedirect) {
+    logRequest(ip, req.method, urlPath, 301, Date.now() - startTime);
+    sendRedirect(res, canonicalQueryRedirect);
     return;
   }
 
@@ -890,6 +897,49 @@ function getUnsupportedLanguageRedirectPath(pathname) {
   }
 
   return isPublicRoutePath(routePath) ? routePath : '/';
+}
+
+function getPublicRoutePathForCanonicalQuery(urlPath) {
+  const routeInfo = getLanguageRouteInfo(urlPath);
+  if (isPublicRoutePath(routeInfo.routePath)) {
+    return routeInfo.routePath;
+  }
+
+  if (urlPath.startsWith('/docs/') && extname(urlPath) === '') {
+    return '/docs';
+  }
+
+  if (
+    routeInfo.hasLanguagePrefix &&
+    urlPath.includes('/docs/') &&
+    extname(urlPath) === ''
+  ) {
+    return '/docs';
+  }
+
+  return null;
+}
+
+function getCanonicalQueryRedirect(parsedUrl, urlPath) {
+  const hasCrawlNoiseParam =
+    parsedUrl.searchParams.has('q') || parsedUrl.searchParams.has('lang');
+
+  if (!hasCrawlNoiseParam) {
+    return null;
+  }
+
+  const publicRoutePath = getPublicRoutePathForCanonicalQuery(urlPath);
+  if (!publicRoutePath) {
+    return null;
+  }
+
+  const routeInfo = getLanguageRouteInfo(urlPath);
+  const requestedLanguage = parsedUrl.searchParams.get('lang');
+  const canonicalLanguage = SUPPORTED_LANGUAGES.includes(requestedLanguage)
+    ? requestedLanguage
+    : routeInfo.language;
+
+  return getLocalizedPath(publicRoutePath, canonicalLanguage);
 }
 
 function getCanonicalPath(urlPath) {

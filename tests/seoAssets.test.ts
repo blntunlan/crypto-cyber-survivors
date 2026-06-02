@@ -42,6 +42,9 @@ describe('SEO crawl assets', () => {
     expect(server).toContain('PUBLIC_SPA_ROUTES');
     expect(server).toContain('getHreflangAlternates');
     expect(server).toContain('getCanonicalOriginRedirect');
+    expect(server).toContain('getCanonicalQueryRedirect');
+    expect(server).toContain("parsedUrl.searchParams.has('q')");
+    expect(server).toContain("parsedUrl.searchParams.has('lang')");
     expect(server).toContain("urlPath.startsWith('/docs/')");
     expect(server).toContain("'X-Robots-Tag'");
   });
