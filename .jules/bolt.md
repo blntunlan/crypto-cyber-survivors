@@ -1,0 +1,3 @@
+## 2024-05-19 - Standard For-Loops in Hot Path Over Array.prototype.forEach
+**Learning:** Using `Array.prototype.forEach` creates closure function allocations that significantly increase Garbage Collection (GC) pressure inside hot execution paths like the 60 FPS update loops in `MovementSystem.ts` and `EntityRenderer.ts`. This negatively affects application performance on low-end devices and generates stuttering.
+**Action:** When manually iterating over object pools (e.g., `pool.activeEnemies`), always use standard `for (let i = 0, len = arr.length; i < len; i++)` loops. Include a guard clause `if (entity === undefined) continue;` to safely iterate without triggering `no-explicit-any` ESLint errors or GC allocations.
