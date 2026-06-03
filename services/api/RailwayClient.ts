@@ -11,7 +11,8 @@ import { Logger } from '../system/Logger';
 const BASE_URL = import.meta.env.VITE_RAILWAY_API_URL as string | undefined;
 
 if (!BASE_URL) {
-  Logger.warn('[RailwayClient] VITE_RAILWAY_API_URL not set. API calls will fail.');
+  // eslint-disable-next-line no-console
+  console.warn('[RailwayClient] VITE_RAILWAY_API_URL not set. API calls will fail.');
 }
 
 async function getAuthToken(): Promise<string | null> {
