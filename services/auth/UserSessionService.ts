@@ -107,7 +107,11 @@ export class UserSessionService {
 
       // Clear any existing Supabase session to prevent 401 errors from stale tokens on local
       const { supabase } = await import('../core/Supabase');
-      void supabase.auth.signOut().catch(() => {});
+      try {
+        void supabase.auth.signOut().catch(() => {});
+      } catch (_e) {
+        // Ignore errors if auth is not initialized
+      }
 
       return { success: true };
     }

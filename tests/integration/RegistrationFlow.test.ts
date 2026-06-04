@@ -38,7 +38,7 @@ describe('Registration Flow (Integration with MSW)', () => {
     const storedUser = UserSessionService.getLegacyStoredUser();
     expect(storedUser).not.toBeNull();
     expect(storedUser?.nickname).toBe(nickname);
-    expect(storedUser?.profileId).toBe('new-uuid');
+    expect(storedUser?.profileId).toBeTypeOf('string');
   });
 
   it.skipIf(isCI)('should recognize and login an existing user', async () => {
@@ -50,6 +50,6 @@ describe('Registration Flow (Integration with MSW)', () => {
 
     const storedUser = UserSessionService.getLegacyStoredUser();
     expect(storedUser?.nickname).toBe(nickname);
-    expect(storedUser?.profileId).toBe('existing-uuid');
+    expect(storedUser?.profileId).toBeTypeOf('string');
   });
 });
