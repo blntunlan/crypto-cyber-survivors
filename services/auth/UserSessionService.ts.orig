@@ -157,7 +157,7 @@ export class UserSessionService {
         try {
           await railwayClient.patch('/api/v1/profile', {});
         } catch (_err) {
-          Logger.error('[UserSession] Profile update exception:', _err);
+          Logger.error('[UserSession] Profile update exception:', err);
         }
       }
     }

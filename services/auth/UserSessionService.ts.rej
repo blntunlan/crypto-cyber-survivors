@@ -1,0 +1,15 @@
+--- UserSessionService.ts
++++ UserSessionService.ts
+@@ -107,9 +107,11 @@
+
+       // Clear any existing Supabase session to prevent 401 errors from stale tokens on local
+       const { supabase } = await import('../core/Supabase');
+-      if (supabase.auth) {
++      try {
+         void supabase.auth.signOut().catch(() => {});
++      } catch (_err) {
++        // Ignored
+       }
+
+       return { success: true };
+     }
