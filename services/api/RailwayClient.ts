@@ -6,12 +6,10 @@
  */
 
 import { supabase, isSupabaseConfigured } from '../supabase/client';
-import { Logger } from '../system/Logger';
 
 const BASE_URL = import.meta.env.VITE_RAILWAY_API_URL as string | undefined;
 
 if (!BASE_URL) {
-  // eslint-disable-next-line no-console
   console.warn('[RailwayClient] VITE_RAILWAY_API_URL not set. API calls will fail.');
 }
 
