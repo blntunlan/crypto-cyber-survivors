@@ -1,0 +1,3 @@
+## 2025-02-28 - Zero-Allocation Object Pool Iteration
+**Learning:** Iterating over object pools (e.g., `activeEnemies`, `activeParticles`) using `Array.prototype.forEach` causes closure function allocations inside high-frequency 60 FPS update loops, increasing Garbage Collection (GC) pressure.
+**Action:** Always use standard `for` loops (`for (let i = 0, len = arr.length; i < len; i++)`) for object pool iteration in physics and rendering systems to maintain zero-allocation paths. Always include a guard clause (`if (entity === undefined) continue;`) to prevent runtime TypeErrors from sparse arrays or concurrently modified pools.
