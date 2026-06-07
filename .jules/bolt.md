@@ -1,0 +1,3 @@
+## 2026-06-07 - Object Allocation in Hot Loops
+**Learning:** Returning or allocating an object map (e.g. `bestCandidate = {x,y,distSq}`) during high-frequency loop paths generates massive, unnecessary GC pressure. Replacing the transient objects with primitive local variables and only allocating the final returned result significantly improves performance and stability.
+**Action:** Always scan hot path iterators (such as inside `forEachInRange`, `update`, `render`) for inner-loop object and array allocations. Migrate to using primitive state trackers (`bestX`, `bestDistSq`, etc.) where possible to keep GC sweeps tight.
