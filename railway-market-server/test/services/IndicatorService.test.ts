@@ -13,6 +13,12 @@ vi.mock('../../src/services/supabaseService', () => ({
   },
 }));
 
+// Mock market stream to prevent "express" missing module errors
+vi.mock('../../src/routes/marketStream', () => ({
+  broadcastMarketData: vi.fn(),
+  startHeartbeat: vi.fn(),
+}));
+
 vi.mock('../../src/utils/logger', () => ({
   Logger: {
     info: vi.fn(),
