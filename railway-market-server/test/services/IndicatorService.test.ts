@@ -7,6 +7,12 @@ const mockSupabase = {
 };
 
 // Mock dependencies
+vi.mock('../../src/routes/marketStream', () => ({
+  broadcastMarketData: vi.fn(),
+  startHeartbeat: vi.fn(),
+  getSSEClientCount: vi.fn(),
+}));
+
 vi.mock('../../src/services/supabaseService', () => ({
   SupabaseService: {
     getInstance: vi.fn(() => mockSupabase),
