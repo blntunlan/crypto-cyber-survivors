@@ -69,9 +69,12 @@ export class EntityRenderer implements IRenderer {
     pool: IPoolManager,
     bounds: ViewportBounds
   ): void {
-    pool.activeInteractables.forEach(obj => {
+    for (let i = 0, len = pool.activeInteractables.length; i < len; i++) {
+      const obj = pool.activeInteractables[i];
+      if (obj === undefined) continue;
+
       if (!isCircleVisible(obj.x, obj.y, obj.radius + 10, bounds)) {
-        return;
+        continue;
       }
 
       ctx.save();
@@ -119,7 +122,7 @@ export class EntityRenderer implements IRenderer {
       }
 
       ctx.restore();
-    });
+    }
   }
 
   /**
@@ -131,13 +134,16 @@ export class EntityRenderer implements IRenderer {
     shadowsEnabled: boolean,
     bounds: ViewportBounds
   ): void {
-    pool.activeGems.forEach(g => {
+    for (let i = 0, len = pool.activeGems.length; i < len; i++) {
+      const g = pool.activeGems[i];
+      if (g === undefined) continue;
+
       if (!g.active) {
-        return;
+        continue;
       }
 
       if (!isCircleVisible(g.x, g.y, g.radius, bounds)) {
-        return;
+        continue;
       }
 
       // Calculate fade-out alpha based on lifetime
@@ -171,7 +177,7 @@ export class EntityRenderer implements IRenderer {
       ctx.fill();
 
       ctx.restore();
-    });
+    }
   }
 
   /**
@@ -185,14 +191,17 @@ export class EntityRenderer implements IRenderer {
     const buffGems = BuffGemSpawner.getActiveGems();
     const now = Date.now();
 
-    buffGems.forEach(gem => {
+    for (let i = 0, len = buffGems.length; i < len; i++) {
+      const gem = buffGems[i];
+      if (gem === undefined) continue;
+
       if (!gem.active) {
-        return;
+        continue;
       }
 
       // Culling with buffer for animations
       if (!isCircleVisible(gem.x, gem.y, gem.radius * 1.5 + 10, bounds)) {
-        return;
+        continue;
       }
 
       const lifetimeRatio = BuffGemSpawner.getGemLifetimeRatio(gem);
@@ -275,7 +284,7 @@ export class EntityRenderer implements IRenderer {
       }
 
       ctx.restore();
-    });
+    }
   }
 
   /**
@@ -289,7 +298,10 @@ export class EntityRenderer implements IRenderer {
     const isRetro = ThemeService.isRetro();
     const retroSizeMult = GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
 
-    pool.activeEnemies.forEach(e => {
+    for (let i = 0, len = pool.activeEnemies.length; i < len; i++) {
+      const e = pool.activeEnemies[i];
+      if (e === undefined) continue;
+
       // Visibility Check: Buffer for large spawn glows
       const spawnPadding =
         e.spawnTimer !== undefined &&
@@ -298,7 +310,7 @@ export class EntityRenderer implements IRenderer {
           : 0;
 
       if (!isCircleVisible(e.x, e.y, e.radius + 8 + spawnPadding, bounds)) {
-        return;
+        continue;
       }
 
       if (e.isDying && e.deathProgress !== undefined) {
@@ -306,7 +318,7 @@ export class EntityRenderer implements IRenderer {
       } else {
         this.renderEnemyLiving(ctx, e, isRetro, retroSizeMult);
       }
-    });
+    }
   }
 
   /**
@@ -557,7 +569,10 @@ export class EntityRenderer implements IRenderer {
     // 1. Render Dash Ghosting/Trail (Theme-aware)
     const isRetro = ThemeService.isRetro();
 
-    state.dashTrail.forEach((pos, i) => {
+    for (let i = 0, len = state.dashTrail.length; i < len; i++) {
+      const pos = state.dashTrail[i];
+      if (pos === undefined) continue;
+
       const progress = i / state.dashTrail.length;
       ctx.globalAlpha = progress * 0.4;
 
@@ -586,7 +601,7 @@ export class EntityRenderer implements IRenderer {
         );
         ctx.fill();
       }
-    });
+    }
     ctx.globalAlpha = 1;
 
     // 2. Dash Feedback Halo
