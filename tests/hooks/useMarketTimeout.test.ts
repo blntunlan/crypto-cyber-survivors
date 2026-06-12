@@ -149,4 +149,32 @@ describe('useMarketTimeout', () => {
 
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
   });
+
+  it('should allow a new fatal disconnect after gameReset', () => {
+    vi.spyOn(GameStateMachine, 'getState').mockReturnValue(GameStatus.PLAYING);
+    renderHook(() => useMarketTimeout({ playerRef: mockPlayerRef }));
+
+    const calls = (EventBus.on as any).mock.calls;
+    const timeoutHandler = calls.find((c: any) => c[0] === 'marketDataTimeout')?.[1];
+    const resetHandler = calls.find((c: any) => c[0] === 'gameReset')?.[1];
+
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 30000,
+      lastPriceTime: Date.now() - 30000,
+    });
+    resetHandler({});
+    timeoutHandler({
+      pair: 'BTC',
+      disconnectedDuration: 30000,
+      lastPriceTime: Date.now() - 30000,
+    });
+
+    expect(EventBus.emit).toHaveBeenCalledTimes(2);
+    expect(EventBus.emit).toHaveBeenNthCalledWith(
+      2,
+      'gameOver',
+      expect.objectContaining({ reason: 'DISCONNECT' })
+    );
+  });
 });

@@ -4,6 +4,10 @@ import {
   type MarketRunConstants,
   type MarketRuntimeSnapshot,
 } from '../../../types/marketRuntime';
+import {
+  getRSIStateWithHysteresis,
+  getWhaleTierFromVolume,
+} from '../../../types/indicators';
 import { createRuntimeSnapshot } from './RuntimeContractBuilder';
 
 const RSI_PERIOD = 14;
@@ -145,7 +149,7 @@ export interface ComputeRuntimeSnapshotInput {
 export const computeRuntimeSnapshot = (
   input: ComputeRuntimeSnapshotInput
 ): MarketComputeOutput => {
-  const { runConstants, tick, previousState } = input;
+  const { runConstants, tick, previousSnapshot, previousState } = input;
   const prevClose = previousState.prevClose;
   const priceDelta = prevClose === null ? 0 : tick.price - prevClose;
   const gain = Math.max(priceDelta, 0);
@@ -190,6 +194,11 @@ export const computeRuntimeSnapshot = (
     -VOLUME_WINDOW
   );
   const normalizedVolumeValue = toFixed(normalizeVolume(volumeWindow), 8);
+  const rsiState = getRSIStateWithHysteresis(
+    rsi,
+    previousSnapshot?.rsiState ?? 'NEUTRAL'
+  );
+  const whaleTier = getWhaleTierFromVolume(normalizedVolumeValue) as 0 | 1 | 2 | 3;
 
   const rawPnl = toFixed(calculateRawPnl(tick.price, runConstants), 8);
   const effectivePnl = toFixed(rawPnl * runConstants.leverage, 8);
@@ -208,9 +217,12 @@ export const computeRuntimeSnapshot = (
     effectivePnl,
     leverage: runConstants.leverage as MarketData['leverage'],
     rsi,
+    rsiState,
     difficulty: multipliers.difficulty,
     momentum: multipliers.momentum,
     atrPercent,
+    normalizedVolume: normalizedVolumeValue,
+    whaleTier,
     spawnRateMultiplier: multipliers.spawnRateMultiplier,
     enemyDamage: multipliers.enemyDamage,
     enemySpeed: multipliers.enemySpeed,

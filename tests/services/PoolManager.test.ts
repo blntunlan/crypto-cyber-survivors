@@ -6,6 +6,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PoolManager } from '../../services/combat/PoolManager';
+import { ResetOrchestrator } from '../../services/core/ResetOrchestrator';
 import { MarketPosition } from '../../types';
 import { WhaleTier } from '../../types/indicators';
 
@@ -195,6 +196,19 @@ describe('PoolManager', () => {
       expect(pool.activeBullets.length).toBe(0);
       expect(pool.activeEnemies.length).toBe(0);
       expect(pool.activeGems.length).toBe(0);
+    });
+
+    it('clears active pools through ResetOrchestrator without GameEngine mount', () => {
+      pool.getBullet(0, 0, 1, 1, 10, 4, '#fff', false, false);
+      pool.getEnemy(0, 0, 1, MarketPosition.LONG);
+
+      expect(pool.activeBullets.length).toBe(1);
+      expect(pool.activeEnemies.length).toBe(1);
+
+      ResetOrchestrator.orchestrateReset();
+
+      expect(pool.activeBullets.length).toBe(0);
+      expect(pool.activeEnemies.length).toBe(0);
     });
   });
 });

@@ -13,7 +13,6 @@ import { type SessionMetrics } from '../../../types/metrics';
 import { railwayClient } from '../../api/RailwayClient';
 import { UserSessionService } from '../../auth/UserSessionService';
 import { RuntimeDiagnosticsService } from '../../system/RuntimeDiagnosticsService';
-import { VerificationQueue } from '../../verification/VerificationQueue';
 import { EventBus } from '../EventBus';
 
 const METRICS_VERSION = '1.0.0';
@@ -201,46 +200,38 @@ export class MetricsStorage {
       }
 
       if (sessionError) {
-        // PostgreSQL unique constraint violation code: 23505 (Replay Attack Protection)
-        const pgError = sessionError as PostgresError;
-        if (pgError.code === '23505') {
-          Logger.warn(
-            '[MetricsStorage] Duplicate session detected - replay attack blocked',
+        if (this.isVerifiedSessionMutationError(sessionError)) {
+          Logger.debug(
+            '[MetricsStorage] Session already verified; skipping mutable sync',
             {
               sessionId: session.sessionId,
-              profileId,
+              serverSessionId,
             }
           );
-          return; // Silently ignore duplicate
+          gameSession = { id: serverSessionId };
+        } else {
+          // PostgreSQL unique constraint violation code: 23505 (Replay Attack Protection)
+          const pgError = sessionError as PostgresError;
+          if (pgError.code === '23505') {
+            Logger.warn(
+              '[MetricsStorage] Duplicate session detected - replay attack blocked',
+              {
+                sessionId: session.sessionId,
+                profileId,
+              }
+            );
+            return; // Silently ignore duplicate
+          }
+          throw sessionError;
         }
-        throw sessionError;
       }
 
       // Get the actual session ID (from server or local)
       const actualSessionId = gameSession?.id ?? serverSessionId;
 
-      // 1b. Enqueue for server-side verification (rewards & anti-cheat)
-      void VerificationQueue.enqueue(
-        {
-          userId: profileId, // verify-game expects profile UUID
-          startTime: session.sessionTimestamp,
-          endTime: session.sessionTimestamp + session.player.survivalTimeMs,
-          pair: session.pair,
-          position: session.bitcoin.positionChosen,
-          leverage: session.bitcoin.leverage,
-          claimedEntryPrice: session.bitcoin.priceAtStart,
-          claimedExitPrice: session.bitcoin.priceAtEnd,
-          claimedPnL: session.bitcoin.pnlAtDeath, // Percentage
-          kills: session.player.totalKills,
-          level: session.player.maxLevel,
-          goldCollected: 0, // Not tracked yet
-          survivalTimeMs: session.player.survivalTimeMs,
-          optimisticReward: 0, // No client-side optimistic reward yet
-          sessionId: actualSessionId,
-          replayData: session.replayData,
-          metadata: session.replayMetadata,
-        },
-        session.serverSigningKey
+      Logger.debug(
+        '[MetricsStorage] Legacy Supabase reward verification skipped; Railway submitSession is authoritative',
+        { sessionId: actualSessionId }
       );
 
       Logger.info('[MetricsStorage] Game session synced', {
@@ -379,6 +370,15 @@ export class MetricsStorage {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private isVerifiedSessionMutationError(error: Error): boolean {
+    const message = error.message.toLowerCase();
+    return (
+      message.includes('409') ||
+      (message.includes('verified') &&
+        (message.includes('mutated') || message.includes('mutation')))
+    );
   }
 
   /**

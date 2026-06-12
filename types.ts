@@ -56,6 +56,7 @@ export interface MarketData {
   liquidationPrice?: number;
   rsi: number;
   rsiState?: string;
+  normalizedVolume?: number;
   difficulty: number;
   pair?: CryptoPair;
   symbol?: string; // e.g. 'BTCUSDT'

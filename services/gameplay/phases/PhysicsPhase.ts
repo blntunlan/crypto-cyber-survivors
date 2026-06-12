@@ -7,8 +7,9 @@ import {
 
 export class PhysicsPhase implements IGameplayPhase<'physics'> {
   public readonly phase = 'physics' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
 
   public execute(_input: PhaseInput<'physics'>): BaselinePhaseResult<'physics'> {
-    return createBaselinePhaseResult(this.phase);
+    return this.result;
   }
 }

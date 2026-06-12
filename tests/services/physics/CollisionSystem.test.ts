@@ -86,6 +86,16 @@ describe('CollisionSystem', () => {
         forEachNearby: vi.fn((_x: number, _y: number, _callback: (b: any) => void) => {
           // Default: no bullets nearby
         }),
+        forEachNearbyWithContext: vi.fn(
+          (
+            _x: number,
+            _y: number,
+            _context: unknown,
+            _callback: (b: any, context: unknown) => void
+          ) => {
+            // Default: no bullets nearby
+          }
+        ),
       },
       constants: {
         GEM_MAGNET_BASE_RANGE: 100,
@@ -536,9 +546,14 @@ describe('CollisionSystem', () => {
       } as Bullet;
 
       // Mock spatial grid to call callback with our bullet
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 
@@ -570,9 +585,14 @@ describe('CollisionSystem', () => {
         vx: 0,
         vy: 0,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 
@@ -609,9 +629,14 @@ describe('CollisionSystem', () => {
         vy: 0,
         isCrit: true,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 
@@ -645,9 +670,14 @@ describe('CollisionSystem', () => {
         vx: 0,
         vy: 0,
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 
@@ -688,9 +718,14 @@ describe('CollisionSystem', () => {
         isSuperCrit: false,
         color: '#f00',
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 
@@ -737,9 +772,14 @@ describe('CollisionSystem', () => {
         phase: 'flight',
         hitSet: new Set<string | number>(),
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 
@@ -773,9 +813,14 @@ describe('CollisionSystem', () => {
         phase: 'flight',
         hitSet: new Set<string | number>(),
       } as Bullet;
-      vi.mocked(mockContext.bulletGrid.forEachNearby).mockImplementation(
-        (_x: number, _y: number, callback: (b: any) => void) => {
-          callback(bullet);
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
         }
       );
 

@@ -55,12 +55,15 @@ type MarketUpdate = SSEMarketUpdate & { source: 'sse' };
 // Timeout constants moved to useMarketDataTimeout.ts
 const RUNTIME_TELEMETRY_LOG_INTERVAL_MS = 5_000;
 const MAX_RUNTIME_PENDING_TICKS = 256;
+const RUNTIME_WORKER_ACK_TIMEOUT_MS = 250;
 
 interface RuntimePendingTickEntry {
   tick: MarketRuntimeTick;
   runConstants: MarketRunConstants;
   sourceUpdate: MarketUpdate;
   provisionalMarketData: MarketData;
+  localRuntimeSnapshot: MarketRuntimeSnapshot;
+  timeoutId?: ReturnType<typeof setTimeout>;
 }
 
 const toMarketPosition = (position: MarketRunConstants['position']): MarketPosition => {
@@ -87,6 +90,9 @@ const createRuntimeMarketData = (
     symbol: `${runConstants.pair}USDT`,
     momentum: snapshot.momentum,
     atrPercent: snapshot.atrPercent,
+    rsiState: snapshot.rsiState,
+    normalizedVolume: snapshot.normalizedVolume,
+    whaleTier: snapshot.whaleTier,
     spawnRateMultiplier: snapshot.spawnRateMultiplier,
     enemyDamage: snapshot.enemyDamage,
     enemySpeed: snapshot.enemySpeed,
@@ -156,6 +162,15 @@ export const useMarketData = (
   const lastRuntimeWorkerTelemetryAtRef = useRef(0);
   const marketPipelineRef = useRef(createMarketSignalPipeline());
 
+  const clearAllPendingRuntimeTicks = () => {
+    for (const entry of runtimePendingTickEntriesRef.current.values()) {
+      if (entry.timeoutId !== undefined) {
+        clearTimeout(entry.timeoutId);
+      }
+    }
+    runtimePendingTickEntriesRef.current.clear();
+  };
+
   useEffect(() => {
     gameStatusRef.current = gameStatus;
     positionRef.current = position;
@@ -177,7 +192,7 @@ export const useMarketData = (
       runtimeControllerRef.current = null;
       runtimeControllerRunIdRef.current = null;
       runtimeWorkerSnapshotRef.current = null;
-      runtimePendingTickEntriesRef.current.clear();
+      clearAllPendingRuntimeTicks();
     }
   }, [marketRuntimeMode]);
 
@@ -201,7 +216,7 @@ export const useMarketData = (
       runtimeComputeStateRef.current = createInitialMarketComputeState();
       runtimePreviousSnapshotRef.current = null;
       runtimeWorkerSnapshotRef.current = null;
-      runtimePendingTickEntriesRef.current.clear();
+      clearAllPendingRuntimeTicks();
       runtimeControllerRunIdRef.current = null;
     }
   }, [gameStatus]);
@@ -230,7 +245,7 @@ export const useMarketData = (
     runtimeComputeStateRef.current = createInitialMarketComputeState();
     runtimePreviousSnapshotRef.current = null;
     runtimeWorkerSnapshotRef.current = null;
-    runtimePendingTickEntriesRef.current.clear();
+    clearAllPendingRuntimeTicks();
     runtimeControllerRunIdRef.current = null;
 
     setMarketData(prev => ({
@@ -377,6 +392,15 @@ export const useMarketData = (
 
     const rememberPendingRuntimeTick = (entry: RuntimePendingTickEntry) => {
       const pending = runtimePendingTickEntriesRef.current;
+      entry.timeoutId = setTimeout(() => {
+        const current = runtimePendingTickEntriesRef.current.get(entry.tick.seq);
+        if (current !== entry) return;
+        Logger.warn('[MarketRuntime] Worker ack timed out, using local fallback', {
+          runId: entry.runConstants.runId,
+          seq: entry.tick.seq,
+        });
+        publishLocalRuntimeFallback(entry);
+      }, RUNTIME_WORKER_ACK_TIMEOUT_MS);
       pending.set(entry.tick.seq, entry);
 
       if (pending.size <= MAX_RUNTIME_PENDING_TICKS) return;
@@ -386,6 +410,10 @@ export const useMarketData = (
       for (let i = 0; i < excessCount; i += 1) {
         const seq = seqs[i];
         if (seq !== undefined) {
+          const stale = pending.get(seq);
+          if (stale?.timeoutId !== undefined) {
+            clearTimeout(stale.timeoutId);
+          }
           pending.delete(seq);
         }
       }
@@ -393,13 +421,57 @@ export const useMarketData = (
 
     const clearPendingRuntimeTick = (seq: number) => {
       const pending = runtimePendingTickEntriesRef.current;
+      const entry = pending.get(seq);
+      if (entry?.timeoutId !== undefined) {
+        clearTimeout(entry.timeoutId);
+      }
       pending.delete(seq);
 
       for (const key of pending.keys()) {
         if (key <= seq - 16) {
+          const stale = pending.get(key);
+          if (stale?.timeoutId !== undefined) {
+            clearTimeout(stale.timeoutId);
+          }
           pending.delete(key);
         }
       }
+    };
+
+    const publishLocalRuntimeFallback = (entry: RuntimePendingTickEntry) => {
+      const current = runtimePendingTickEntriesRef.current.get(entry.tick.seq);
+      if (current !== entry) return;
+
+      clearPendingRuntimeTick(entry.tick.seq);
+
+      const runtimeSnapshot = entry.localRuntimeSnapshot;
+      runtimePreviousSnapshotRef.current = runtimeSnapshot;
+
+      const runtimeMarketData = createRuntimeMarketData(
+        entry.provisionalMarketData,
+        entry.runConstants,
+        runtimeSnapshot
+      );
+
+      setMarketData(prev => {
+        if (
+          prev.runtimeRunId === runtimeSnapshot.runId &&
+          typeof prev.runtimeSeq === 'number' &&
+          prev.runtimeSeq > runtimeSnapshot.seq
+        ) {
+          return prev;
+        }
+
+        return createRuntimeMarketData(prev, entry.runConstants, runtimeSnapshot);
+      });
+
+      emitRuntimeArtifacts(
+        entry.runConstants,
+        entry.tick,
+        runtimeSnapshot,
+        runtimeMarketData,
+        entry.sourceUpdate
+      );
     };
 
     const ensureRuntimeController = (): MarketRuntimeController | null => {
@@ -461,6 +533,13 @@ export const useMarketData = (
         },
         onError: message => {
           Logger.warn('[MarketRuntime] Worker controller error', { message });
+          if (runtimeModeRef.current !== 'runtime') return;
+          const pendingEntries = [
+            ...runtimePendingTickEntriesRef.current.values(),
+          ].sort((a, b) => a.tick.seq - b.tick.seq);
+          for (const entry of pendingEntries) {
+            publishLocalRuntimeFallback(entry);
+          }
         },
       });
 
@@ -505,7 +584,7 @@ export const useMarketData = (
       runtimeComputeStateRef.current = createInitialMarketComputeState();
       runtimePreviousSnapshotRef.current = null;
       runtimeWorkerSnapshotRef.current = null;
-      runtimePendingTickEntriesRef.current.clear();
+      clearAllPendingRuntimeTicks();
       runtimeControllerRunIdRef.current = null;
 
       Logger.info('[MarketRuntime] Run constants locked', {
@@ -690,21 +769,67 @@ export const useMarketData = (
         const tickTimestamp = Date.now();
 
         setMarketData(prevMarketData => {
-          const pipelineResult = marketPipelineRef.current.processTick({
-            pair: expectedPair,
-            position: currentPosition,
-            price,
-            volume: update.volume,
-            timestamp: tickTimestamp,
-            rawPnl: pnlResult.rawPnl,
-            level: playerLevel,
-            hpPercent,
-            fallbackAtrPercent: prevMarketData.atrPercent ?? atrResult.atrPercent,
-            high: update.high,
-            low: update.low,
-          });
+          const runtimeMode = runtimeModeRef.current;
+          const pipelineResult =
+            runtimeMode === 'runtime'
+              ? null
+              : marketPipelineRef.current.processTick({
+                  pair: expectedPair,
+                  position: currentPosition,
+                  price,
+                  volume: update.volume,
+                  timestamp: tickTimestamp,
+                  rawPnl: pnlResult.rawPnl,
+                  level: playerLevel,
+                  hpPercent,
+                  fallbackAtrPercent: prevMarketData.atrPercent ?? atrResult.atrPercent,
+                  high: update.high,
+                  low: update.low,
+                });
 
-          const difficultyOutput = pipelineResult.gameplay.difficultyOutput;
+          const updateRsiState =
+            update.rsiState === 'OVERSOLD' ||
+            update.rsiState === 'OVERBOUGHT' ||
+            update.rsiState === 'NEUTRAL'
+              ? update.rsiState
+              : 'NEUTRAL';
+          const updateWhaleTier =
+            update.whaleTier === 1 || update.whaleTier === 2 || update.whaleTier === 3
+              ? update.whaleTier
+              : 0;
+          const updateAtrPercent = Number.isFinite(update.atrPercent)
+            ? update.atrPercent
+            : (prevMarketData.atrPercent ?? atrResult.atrPercent);
+          const updateNormalizedVolume = Number.isFinite(update.normalizedVolume)
+            ? update.normalizedVolume
+            : (prevMarketData.normalizedVolume ?? 0.5);
+
+          const updateRsi = Number.isFinite(Number(update.rsi))
+            ? Number(update.rsi)
+            : 50;
+          const rsi = pipelineResult?.indicators.rsi ?? updateRsi;
+          const rsiState = pipelineResult?.indicators.rsiState ?? updateRsiState;
+          const whaleTier = pipelineResult?.indicators.whaleTier ?? updateWhaleTier;
+          const atrPercent = pipelineResult?.indicators.atrPercent ?? updateAtrPercent;
+          const normalizedVolume =
+            pipelineResult?.indicators.normalizedVolume ?? updateNormalizedVolume;
+          const difficulty =
+            pipelineResult?.gameplay.totalDifficulty ?? prevMarketData.difficulty;
+          const spawnRateMultiplier =
+            pipelineResult?.gameplay.spawnRateMultiplier ??
+            (Number.isFinite(update.spawnRateMultiplier)
+              ? update.spawnRateMultiplier
+              : undefined) ??
+            prevMarketData.spawnRateMultiplier ??
+            1;
+          const enemyDamage =
+            pipelineResult?.gameplay.enemyDamage ?? prevMarketData.enemyDamage ?? 1;
+          const enemySpeed =
+            pipelineResult?.gameplay.enemySpeed ?? prevMarketData.enemySpeed ?? 1;
+          const gemValueMultiplier =
+            pipelineResult?.gameplay.gemValueMultiplier ??
+            prevMarketData.gemValueMultiplier ??
+            1;
 
           const nextData = {
             ...prevMarketData,
@@ -715,18 +840,19 @@ export const useMarketData = (
             leverage: currentLeverage,
             position: currentPosition,
             liquidationPrice: effectiveLiquidationPrice,
-            rsi: pipelineResult.indicators.rsi,
-            rsiState: pipelineResult.indicators.rsiState,
-            whaleTier: pipelineResult.indicators.whaleTier,
-            atrPercent: pipelineResult.indicators.atrPercent,
-            difficulty: pipelineResult.gameplay.totalDifficulty,
-            spawnRateMultiplier: pipelineResult.gameplay.spawnRateMultiplier,
-            enemyDamage: pipelineResult.gameplay.enemyDamage,
-            enemySpeed: pipelineResult.gameplay.enemySpeed,
-            gemValueMultiplier: pipelineResult.gameplay.gemValueMultiplier,
+            rsi,
+            rsiState,
+            normalizedVolume,
+            whaleTier,
+            atrPercent,
+            difficulty,
+            spawnRateMultiplier,
+            enemyDamage,
+            enemySpeed,
+            gemValueMultiplier,
             pair: expectedPair,
             symbol: expectedPair + 'USDT',
-            momentum: difficultyOutput.total > 0 ? pnlResult.effectivePnl * 0.1 : 0,
+            momentum: difficulty > 0 ? pnlResult.effectivePnl * 0.1 : 0,
           };
 
           if (runtimeRunConstants && shouldEmitRuntimeEvents) {
@@ -759,7 +885,6 @@ export const useMarketData = (
             }
             runtimeController?.pushTick(tick);
 
-            const runtimeMode = runtimeModeRef.current;
             const provisionalRuntimeData: MarketData = {
               ...nextData,
               leverage: runtimeRunConstants.leverage as LeverageOption,
@@ -775,11 +900,21 @@ export const useMarketData = (
             const workerAuthorityEnabled =
               runtimeMode === 'runtime' && runtimeController !== null;
             if (workerAuthorityEnabled) {
+              const localComputeResult = computeRuntimeSnapshot({
+                runConstants: runtimeRunConstants,
+                tick,
+                previousSnapshot: runtimePreviousSnapshotRef.current,
+                previousState: runtimeComputeStateRef.current,
+              });
+              runtimeComputeStateRef.current = localComputeResult.nextState;
+              runtimePreviousSnapshotRef.current = localComputeResult.snapshot;
+
               rememberPendingRuntimeTick({
                 tick,
                 runConstants: runtimeRunConstants,
                 sourceUpdate: update,
                 provisionalMarketData: provisionalRuntimeData,
+                localRuntimeSnapshot: localComputeResult.snapshot,
               });
               return provisionalRuntimeData;
             }
@@ -866,6 +1001,7 @@ export const useMarketData = (
       Logger.info(`[useMarketData] Reconnect requested for ${expectedPair}`);
       service.reconnect();
     });
+    const pendingRuntimeTickEntries = runtimePendingTickEntriesRef.current;
 
     return () => {
       // CRITICAL: Set cancelled flag BEFORE destroying service
@@ -876,6 +1012,12 @@ export const useMarketData = (
       runtimeControllerRef.current = null;
       runtimeControllerRunIdRef.current = null;
       runtimeWorkerSnapshotRef.current = null;
+      for (const entry of pendingRuntimeTickEntries.values()) {
+        if (entry.timeoutId !== undefined) {
+          clearTimeout(entry.timeoutId);
+        }
+      }
+      pendingRuntimeTickEntries.clear();
       Logger.info(`[useMarketData] Destroying SSEMarketService for ${expectedPair}`);
       service.destroy(); // Use destroy() instead of disconnect() for complete cleanup
     };

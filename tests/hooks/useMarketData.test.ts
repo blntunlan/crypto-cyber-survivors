@@ -4,6 +4,7 @@ import { useMarketData } from '../../hooks/useMarketData';
 import { GameStatus, MarketPosition, type MarketData, type Player } from '../../types';
 import { EventBus } from '../../services/core/EventBus';
 import { createRuntimeSnapshot } from '../../services/market/runtime/RuntimeContractBuilder';
+import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 
 // Use vi.hoisted to share state between mock factory and tests
 const { callbackRef } = vi.hoisted(() => ({
@@ -90,9 +91,12 @@ describe('useMarketData', () => {
           effectivePnl: 0.1,
           leverage: this.runConstants.leverage,
           rsi: 55,
+          rsiState: 'OVERBOUGHT',
           difficulty: 1.2,
           momentum: 0.02,
           atrPercent: 0.005,
+          normalizedVolume: 0.9,
+          whaleTier: 2,
           spawnRateMultiplier: 1.1,
           enemyDamage: 1.05,
           enemySpeed: 1.03,
@@ -268,6 +272,7 @@ describe('useMarketData', () => {
 
   it('should apply worker snapshot authority in runtime mode', async () => {
     const emitSpy = vi.spyOn(EventBus, 'emit');
+    const difficultySpy = vi.spyOn(DifficultyManager, 'calculate');
 
     const { result } = renderHook(() =>
       useMarketData(
@@ -296,6 +301,11 @@ describe('useMarketData', () => {
       expect(result.current.marketData.runtimeSeq).toBe(1);
       expect(result.current.marketData.runtimeChecksum).toBeTruthy();
     });
+
+    expect(result.current.marketData.rsiState).toBe('OVERBOUGHT');
+    expect(result.current.marketData.normalizedVolume).toBe(0.9);
+    expect(result.current.marketData.whaleTier).toBe(2);
+    expect(difficultySpy).not.toHaveBeenCalled();
 
     expect(emitSpy).toHaveBeenCalledWith(
       'marketRuntimeSnapshot',

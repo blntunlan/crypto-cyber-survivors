@@ -98,6 +98,30 @@ describe('Gameplay scaffold phases', () => {
     }
   );
 
+  it('reuses baseline result objects per phase instance to avoid hot-loop allocation', () => {
+    const inputPhase = new InputPhase();
+    const combatPhase = new CombatPhase();
+    const spawnPhase = new SpawnPhase();
+    const physicsPhase = new PhysicsPhase();
+    const effectsPhase = new EffectsPhase();
+
+    expect(inputPhase.execute(createPhaseInput('input'))).toBe(
+      inputPhase.execute(createPhaseInput('input'))
+    );
+    expect(combatPhase.execute(createPhaseInput('combat'))).toBe(
+      combatPhase.execute(createPhaseInput('combat'))
+    );
+    expect(spawnPhase.execute(createPhaseInput('spawn'))).toBe(
+      spawnPhase.execute(createPhaseInput('spawn'))
+    );
+    expect(physicsPhase.execute(createPhaseInput('physics'))).toBe(
+      physicsPhase.execute(createPhaseInput('physics'))
+    );
+    expect(effectsPhase.execute(createPhaseInput('effects'))).toBe(
+      effectsPhase.execute(createPhaseInput('effects'))
+    );
+  });
+
   it('combat phase writes didAttack into shared contract when runtime dependencies exist', () => {
     const context = createFakeTickContext();
     context.world.player.current = createInitialPlayer(100, 100, '#fff');

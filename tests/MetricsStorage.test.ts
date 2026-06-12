@@ -504,7 +504,7 @@ describe('MetricsStorage', () => {
         );
       });
 
-      expect(mockVerificationEnqueue).toHaveBeenCalled();
+      expect(mockVerificationEnqueue).not.toHaveBeenCalled();
       expect(mockEventBusEmit).toHaveBeenCalledWith('sessionSynced', {
         sessionId: 'game-session-123',
         profileId: 'test-profile-id',
@@ -553,6 +553,30 @@ describe('MetricsStorage', () => {
         );
       });
       expect(mockVerificationEnqueue).not.toHaveBeenCalled();
+    });
+
+    it('should treat verified session mutation conflicts as terminal sync skip', async () => {
+      vi.stubEnv('VITE_RAILWAY_API_URL', 'http://localhost:3001');
+      mockRailwayPost.mockRejectedValueOnce(
+        new Error('verified sessions cannot be mutated')
+      );
+      const storage = new MetricsStorage();
+      const session = createMockSession({ performance: undefined });
+
+      storage.addSession(session);
+
+      await vi.waitFor(() => {
+        expect(mockEventBusEmit).toHaveBeenCalledWith('sessionSynced', {
+          sessionId: session.serverSessionId,
+          profileId: 'test-profile-id',
+        });
+      });
+
+      expect(mockEventBusEmit).not.toHaveBeenCalledWith(
+        'sessionSyncFailed',
+        expect.any(Object)
+      );
+      expect(mockRailwayPost).toHaveBeenCalledTimes(1);
     });
 
     it('should sync performance metrics when available', async () => {

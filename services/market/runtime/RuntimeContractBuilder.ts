@@ -131,6 +131,19 @@ export const createRuntimeSnapshot = (
   const rawPnl = normalizeFloat(marketData.pnl, 8);
   const effectivePnl = normalizeFloat(marketData.effectivePnl, 8);
   const atrPercent = normalizeFloat(marketData.atrPercent ?? 0, 8);
+  const rsiState =
+    marketData.rsiState === 'OVERSOLD' ||
+    marketData.rsiState === 'OVERBOUGHT' ||
+    marketData.rsiState === 'NEUTRAL'
+      ? marketData.rsiState
+      : 'NEUTRAL';
+  const normalizedVolume = normalizeFloat(marketData.normalizedVolume ?? 0.5, 8);
+  const whaleTier =
+    marketData.whaleTier === 1 ||
+    marketData.whaleTier === 2 ||
+    marketData.whaleTier === 3
+      ? marketData.whaleTier
+      : 0;
 
   const snapshotCore = {
     runId: runConstants.runId,
@@ -153,6 +166,9 @@ export const createRuntimeSnapshot = (
       runConstants.position
     ),
     rsi: normalizeFloat(marketData.rsi, 4),
+    rsiState,
+    normalizedVolume,
+    whaleTier,
     atrPercent,
     atrBp: toBasisPoints(atrPercent),
     macd: normalizeFloat(input.macd ?? 0, 8),
@@ -175,6 +191,9 @@ export const createRuntimeSnapshot = (
       snapshotCore.rawPnlBp,
       snapshotCore.effectivePnlBp,
       snapshotCore.rsi,
+      snapshotCore.rsiState,
+      snapshotCore.normalizedVolume,
+      snapshotCore.whaleTier,
       snapshotCore.atrBp,
       snapshotCore.difficulty,
       snapshotCore.spawnRateMultiplier,

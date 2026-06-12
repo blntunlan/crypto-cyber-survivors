@@ -105,5 +105,10 @@ describe('MarketCompute', () => {
     expect(out2.snapshot.seq).toBe(2);
     expect(out2.snapshot.rawPnl).toBeLessThan(0);
     expect(out2.snapshot.isLiquidated).toBe(false);
+    expect(out2.snapshot.rsiState).toBe('OVERSOLD');
+    expect(out2.snapshot.normalizedVolume).toBeGreaterThanOrEqual(0);
+    expect(out2.snapshot.normalizedVolume).toBeLessThanOrEqual(1);
+    expect(out2.snapshot.whaleTier).toBeGreaterThanOrEqual(0);
+    expect(out2.snapshot.whaleTier).toBeLessThanOrEqual(3);
   });
 });

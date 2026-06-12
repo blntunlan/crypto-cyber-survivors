@@ -22,6 +22,7 @@ import { CoinService } from '../../services/gameplay/CoinService';
 import { ComboSystem } from '../../services/combat/ComboSystem';
 import { MetaProgressionService } from '../../services/progression/MetaProgressionService';
 import { GameSessionService } from '../../services/auth/GameSessionService';
+import { ChallengeService } from '../../services/challenges/ChallengeService';
 import { type RewardPayload } from '../../types/reward';
 
 vi.mock('../../services/cards/CardApplicator', () => ({
@@ -84,6 +85,12 @@ vi.mock('../../services/progression/MetaProgressionService', () => ({
   MetaProgressionService: {
     getCardChoiceCount: vi.fn(() => 3),
     applyVerifiedTransfer: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/challenges/ChallengeService', () => ({
+  ChallengeService: {
+    onRunEnd: vi.fn(),
   },
 }));
 
@@ -618,6 +625,83 @@ describe('useGameFlowController', () => {
 
     expect(difficultyContext.reset).toHaveBeenCalled();
     expect(MetricsService.endSession).toHaveBeenCalled();
+  });
+
+  it('handleGameOver clears processing when metrics are unavailable', async () => {
+    const playerRef = { current: makePlayer() };
+    vi.mocked(MetricsService.endSession).mockReturnValue(null);
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 5,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    expect(MetricsService.endSession).toHaveBeenCalledTimes(2);
+    expect(GameSessionService.submitSession).not.toHaveBeenCalled();
+    expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(2);
+  });
+
+  it('handleGameOver submits death payload defaults for server reconciliation', async () => {
+    const playerRef = { current: makePlayer({ level: 5 }) };
+    vi.mocked(MetricsService.endSession).mockReturnValue({
+      replayData: { events: [] },
+      performance: { avgFps: 60 },
+    } as any);
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData({ pnl: -0.2, price: 44000 }),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 9,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    await waitFor(() => {
+      expect(GameSessionService.submitSession).toHaveBeenCalled();
+    });
+
+    expect(GameSessionService.submitSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endReason: GameEndReason.DEATH,
+        exitType: 'death',
+        portalType: null,
+        kills: 9,
+        level: 5,
+        maxStreak: 7,
+      }),
+      undefined
+    );
   });
 
   it('handleGameOver submits portal reward payload for server reconciliation', async () => {

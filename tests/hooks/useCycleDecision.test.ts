@@ -100,6 +100,8 @@ describe('useCycleDecision', () => {
     });
 
     it('should set hasCashedOut when CASH_OUT decision is made', () => {
+      vi.useFakeTimers();
+      const emitSpy = vi.spyOn(EventBus, 'emit');
       const { result } = renderHook(() => useCycleDecision());
 
       act(() => {
@@ -119,6 +121,12 @@ describe('useCycleDecision', () => {
       expect(result.current.isPending).toBe(false);
       expect(result.current.lastDecision).toBe('CASH_OUT');
       expect(result.current.hasCashedOut).toBe(true);
+
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(emitSpy).not.toHaveBeenCalledWith('gameOver', expect.anything());
     });
   });
 

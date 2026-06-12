@@ -75,9 +75,12 @@ describe('RuntimeContractBuilder', () => {
       effectivePnl: 0.5,
       leverage: 10,
       rsi: 55,
+      rsiState: 'OVERBOUGHT',
       difficulty: 1.4,
       momentum: 0.04,
       atrPercent: 0.0125,
+      normalizedVolume: 0.86,
+      whaleTier: 2,
       spawnRateMultiplier: 1.2,
       enemyDamage: 1.1,
       enemySpeed: 1.05,
@@ -95,6 +98,9 @@ describe('RuntimeContractBuilder', () => {
     expect(snapshot.rawPnlBp).toBe(500);
     expect(snapshot.effectivePnlBp).toBe(5000);
     expect(snapshot.atrBp).toBe(125);
+    expect(snapshot.rsiState).toBe('OVERBOUGHT');
+    expect(snapshot.normalizedVolume).toBe(0.86);
+    expect(snapshot.whaleTier).toBe(2);
     expect(snapshot.isLiquidated).toBe(false);
     expect(snapshot.checksum).toHaveLength(8);
   });

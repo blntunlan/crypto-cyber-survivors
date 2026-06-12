@@ -17,6 +17,7 @@ import { PortalSystemV2 } from '../PortalSystemV2';
  */
 export class PortalPhase implements IGameplayPhase<'portal'> {
   public readonly phase = 'portal' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
 
   public execute(input: PhaseInput<'portal'>): BaselinePhaseResult<'portal'> {
     const { clock, dimensions, marketData } = input.context;
@@ -28,6 +29,6 @@ export class PortalPhase implements IGameplayPhase<'portal'> {
       dimensions.height
     );
 
-    return createBaselinePhaseResult(this.phase);
+    return this.result;
   }
 }

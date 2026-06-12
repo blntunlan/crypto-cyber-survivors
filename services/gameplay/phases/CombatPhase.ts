@@ -25,9 +25,10 @@ interface CombatPhaseSharedContract {
 
 export class CombatPhase implements IGameplayPhase<'combat'> {
   public readonly phase = 'combat' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
 
   public execute(input: PhaseInput<'combat'>): BaselinePhaseResult<'combat'> {
-    const result = createBaselinePhaseResult(this.phase);
+    const result = this.result;
     if (input.context.status !== GameStatus.PLAYING) {
       return result;
     }

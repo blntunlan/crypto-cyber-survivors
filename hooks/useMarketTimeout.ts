@@ -141,9 +141,18 @@ export function useMarketTimeout({
       }
     });
 
+    const resetDisconnectTracking = () => {
+      gameEndedByDisconnectRef.current = false;
+    };
+
+    const subGameReset = EventBus.on('gameReset', resetDisconnectTracking);
+    const subGameStart = EventBus.on('gameStart', resetDisconnectTracking);
+
     return () => {
       unsubscribe();
       subRecovered();
+      subGameReset();
+      subGameStart();
     };
   }, [onFatalDisconnect, playerRef]);
 }

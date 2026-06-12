@@ -10,6 +10,11 @@ import {
 
 export class EffectsPhase implements IGameplayPhase<'effects'> {
   public readonly phase = 'effects' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
+  private readonly metadata = {
+    volatilityShockIntensity: 0,
+    reducedMotion: false,
+  };
 
   public execute(input: PhaseInput<'effects'>): BaselinePhaseResult<'effects'> {
     const { context, shared } = input;
@@ -35,11 +40,9 @@ export class EffectsPhase implements IGameplayPhase<'effects'> {
       }
     }
 
-    const result = createBaselinePhaseResult(this.phase);
-    result.metadata = {
-      volatilityShockIntensity: VisualEffectService.getIntensity(),
-      reducedMotion,
-    };
-    return result;
+    this.metadata.volatilityShockIntensity = VisualEffectService.getIntensity();
+    this.metadata.reducedMotion = reducedMotion;
+    this.result.metadata = this.metadata;
+    return this.result;
   }
 }

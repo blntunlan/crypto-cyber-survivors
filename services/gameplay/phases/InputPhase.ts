@@ -27,9 +27,11 @@ interface InputPhaseSharedContract {
 
 export class InputPhase implements IGameplayPhase<'input'> {
   public readonly phase = 'input' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
+  private readonly inputVector = { dx: 0, dy: 0 };
 
   public execute(input: PhaseInput<'input'>): BaselinePhaseResult<'input'> {
-    const result = createBaselinePhaseResult(this.phase);
+    const result = this.result;
     if (input.context.status !== GameStatus.PLAYING) {
       return result;
     }
@@ -221,7 +223,9 @@ export class InputPhase implements IGameplayPhase<'input'> {
     const bottomMargin = isMobile ? player.radius + 40 : player.radius;
     player.y = Math.max(player.radius, Math.min(height - bottomMargin, player.y));
 
-    shared.inputVector = { dx, dy };
+    this.inputVector.dx = dx;
+    this.inputVector.dy = dy;
+    shared.inputVector = this.inputVector;
     return result;
   }
 }

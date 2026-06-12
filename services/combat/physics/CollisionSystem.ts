@@ -1,5 +1,11 @@
 import { type IPoolManager } from '../../interfaces/IPoolManager';
-import { type Player, type GameState, type Enemy, type Bullet } from '../../../types';
+import {
+  type Player,
+  type GameState,
+  type Enemy,
+  type Bullet,
+  type Interactable,
+} from '../../../types';
 import { type IPhysicsContext } from './PhysicsTypes';
 import { getPhysicsContext, physicsColors } from './PhysicsContext';
 import { EventBus } from '../../core/EventBus';
@@ -25,6 +31,13 @@ export class CollisionSystem implements ICollisionSystem {
   private static instance: CollisionSystem | null = null;
   private damageBufferUpdateCounter: number = 0;
   private readonly DAMAGE_BUFFER_UPDATE_INTERVAL: number = 3;
+  private nearbyPool: IPoolManager | null = null;
+  private nearbyEnemy: Enemy | null = null;
+  private nearbyInteractable: Interactable | null = null;
+  private nearbyPlayer: Player | null = null;
+  private nearbyState: GameState | null = null;
+  private nearbyDtFactor: number = 1;
+  private nearbyParticleMultiplier: number = 1;
 
   public static getInstance(): CollisionSystem {
     return (CollisionSystem.instance ??= new CollisionSystem());
@@ -217,73 +230,19 @@ export class CollisionSystem implements ICollisionSystem {
           if (obj.hitTimer <= 0) obj.isHit = false;
         }
 
-        // Batch collision check - get nearby bullets once
-        this.ctx.bulletGrid.forEachNearby(obj.x, obj.y, bullet => {
-          if (!bullet.active) return;
-
-          const dx = obj.x - bullet.x;
-          const dy = obj.y - bullet.y;
-          const distSq = dx * dx + dy * dy;
-          const combinedRadiusSq =
-            (obj.radius + bullet.radius) * (obj.radius + bullet.radius);
-
-          if (distSq < combinedRadiusSq) {
-            // Hit!
-            this.primeWeaponStateOnHit(bullet);
-            if (this.shouldSkipRepeatedHit(obj, bullet, 'interactable')) {
-              return;
-            }
-            if (!this.shouldKeepBulletActiveAfterHit(bullet)) {
-              bullet.active = false;
-            }
-            obj.health -= bullet.damage;
-            obj.isHit = true;
-            obj.hitTimer = 0.2; // 200ms flash
-
-            // Spawn chip particles
-            const count = Math.round(3 * perfConfig.particleMultiplier);
-            for (let p = 0; p < count; p++) {
-              pool.getParticle(
-                obj.x,
-                obj.y,
-                (Math.random() - 0.5) * 100,
-                (Math.random() - 0.5) * 100,
-                obj.color
-              ).life = 0.5;
-            }
-
-            if (obj.health <= 0) {
-              obj.active = false;
-              // Reward: Spawn a high-value Gem
-              // Mining Rig -> Large XP/Coin
-              // Loot Crate -> Buff or HP
-              const rewardValue = obj.type === 'MINING_RIG' ? 50 : 100;
-              const rewardColor = obj.type === 'MINING_RIG' ? '#FFD700' : '#A855F7';
-
-              pool.getGem(
-                obj.x,
-                obj.y,
-                rewardValue,
-                15, // larger radius
-                rewardColor,
-                true // isRare
-              );
-
-              this.ctx.audio.playCrit(); // Reuse nice sound
-
-              // Explosion effect
-              for (let ex = 0; ex < 15; ex++) {
-                pool.getParticle(
-                  obj.x,
-                  obj.y,
-                  (Math.random() - 0.5) * 300,
-                  (Math.random() - 0.5) * 300,
-                  rewardColor
-                ).life = 1.0;
-              }
-            }
-          }
-        });
+        this.nearbyPool = pool;
+        this.nearbyInteractable = obj;
+        this.nearbyParticleMultiplier = perfConfig.particleMultiplier;
+        try {
+          this.ctx.bulletGrid.forEachNearbyWithContext(
+            obj.x,
+            obj.y,
+            this,
+            CollisionSystem.processInteractableBulletCandidate
+          );
+        } finally {
+          this.clearNearbyContext();
+        }
       }
     }
   }
@@ -447,34 +406,119 @@ export class CollisionSystem implements ICollisionSystem {
   ): void {
     const ex = enemy.x;
     const ey = enemy.y;
-    const er = enemy.radius;
 
-    // Zero-allocation path using the grid's forEachNearby iterator
-    this.ctx.bulletGrid.forEachNearby(ex, ey, bullet => {
-      // 1. Double-check activity status for both participants
-      if (!enemy.active || !bullet.active) return;
+    this.nearbyPool = pool;
+    this.nearbyEnemy = enemy;
+    this.nearbyPlayer = player;
+    this.nearbyState = state;
+    this.nearbyDtFactor = dtFactor;
+    this.nearbyParticleMultiplier = particleMultiplier;
 
-      // 2. Squared distance calculation (dx*dx + dy*dy)
-      const dx = ex - bullet.x;
-      const dy = ey - bullet.y;
-      const distSq = dx * dx + dy * dy;
+    try {
+      this.ctx.bulletGrid.forEachNearbyWithContext(
+        ex,
+        ey,
+        this,
+        CollisionSystem.processEnemyBulletCandidate
+      );
+    } finally {
+      this.clearNearbyContext();
+    }
+  }
 
-      // 3. Combined radius squared for O(1) intersection check
-      const combinedRadius = er + bullet.radius;
-      const combinedRadiusSq = combinedRadius * combinedRadius;
+  private clearNearbyContext(): void {
+    this.nearbyPool = null;
+    this.nearbyEnemy = null;
+    this.nearbyInteractable = null;
+    this.nearbyPlayer = null;
+    this.nearbyState = null;
+    this.nearbyDtFactor = 1;
+    this.nearbyParticleMultiplier = 1;
+  }
 
-      if (distSq < combinedRadiusSq) {
-        this.resolveBulletHit(
-          pool,
-          enemy,
-          bullet,
-          player,
-          state,
-          dtFactor,
-          particleMultiplier
-        );
+  private static processEnemyBulletCandidate(
+    bullet: Bullet,
+    system: CollisionSystem
+  ): void {
+    const enemy = system.nearbyEnemy;
+    const pool = system.nearbyPool;
+    const player = system.nearbyPlayer;
+    const state = system.nearbyState;
+    if (!enemy?.active || !bullet.active || !pool || !player || !state) return;
+
+    const dx = enemy.x - bullet.x;
+    const dy = enemy.y - bullet.y;
+    const distSq = dx * dx + dy * dy;
+    const combinedRadius = enemy.radius + bullet.radius;
+
+    if (distSq < combinedRadius * combinedRadius) {
+      system.resolveBulletHit(
+        pool,
+        enemy,
+        bullet,
+        player,
+        state,
+        system.nearbyDtFactor,
+        system.nearbyParticleMultiplier
+      );
+    }
+  }
+
+  private static processInteractableBulletCandidate(
+    bullet: Bullet,
+    system: CollisionSystem
+  ): void {
+    const obj = system.nearbyInteractable;
+    const pool = system.nearbyPool;
+    if (!obj?.active || !bullet.active || !pool) return;
+
+    const dx = obj.x - bullet.x;
+    const dy = obj.y - bullet.y;
+    const distSq = dx * dx + dy * dy;
+    const combinedRadius = obj.radius + bullet.radius;
+
+    if (distSq >= combinedRadius * combinedRadius) return;
+
+    system.primeWeaponStateOnHit(bullet);
+    if (system.shouldSkipRepeatedHit(obj, bullet, 'interactable')) {
+      return;
+    }
+    if (!system.shouldKeepBulletActiveAfterHit(bullet)) {
+      bullet.active = false;
+    }
+    obj.health -= bullet.damage;
+    obj.isHit = true;
+    obj.hitTimer = 0.2;
+
+    const count = Math.round(3 * system.nearbyParticleMultiplier);
+    for (let p = 0; p < count; p++) {
+      pool.getParticle(
+        obj.x,
+        obj.y,
+        (Math.random() - 0.5) * 100,
+        (Math.random() - 0.5) * 100,
+        obj.color
+      ).life = 0.5;
+    }
+
+    if (obj.health <= 0) {
+      obj.active = false;
+      const rewardValue = obj.type === 'MINING_RIG' ? 50 : 100;
+      const rewardColor = obj.type === 'MINING_RIG' ? '#FFD700' : '#A855F7';
+
+      pool.getGem(obj.x, obj.y, rewardValue, 15, rewardColor, true);
+      system.ctx.audio.playCrit();
+
+      for (let ex = 0; ex < 15; ex++) {
+        pool.getParticle(
+          obj.x,
+          obj.y,
+          (Math.random() - 0.5) * 300,
+          (Math.random() - 0.5) * 300,
+          rewardColor
+        ).life = 1.0;
       }
-    });
+    }
   }
 
   /**
@@ -574,17 +618,35 @@ export class CollisionSystem implements ICollisionSystem {
       bullet.hitSet = hitSet;
     }
 
-    const id =
-      entity.id ??
-      entity.poolIndex ??
-      `${Math.round(entity.x)}:${Math.round(entity.y)}`;
-    const key = `${namespace}:${id}`;
+    const key = this.getRepeatedHitKey(entity, namespace);
     if (hitSet.has(key)) {
       return true;
     }
 
     hitSet.add(key);
     return false;
+  }
+
+  private getRepeatedHitKey(
+    entity: { id?: string; poolIndex?: number; x: number; y: number },
+    namespace: string
+  ): number {
+    const namespaceId = namespace === 'enemy' ? 1 : 2;
+    const entityId =
+      entity.poolIndex ??
+      (entity.id !== undefined
+        ? this.hashEntityId(entity.id)
+        : ((Math.round(entity.x) & 0xffff) << 16) | (Math.round(entity.y) & 0xffff));
+    return namespaceId * 0x100000000 + (entityId >>> 0);
+  }
+
+  private hashEntityId(id: string): number {
+    let hash = 2166136261;
+    for (let i = 0; i < id.length; i++) {
+      hash ^= id.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
   }
 
   /**

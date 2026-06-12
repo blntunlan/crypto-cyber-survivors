@@ -90,6 +90,19 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
   }
 
   /**
+   * Zero-allocation iterator variant that passes a stable context object.
+   * This lets hot paths reuse static callbacks instead of allocating closures.
+   */
+  public forEachNearbyWithContext<TContext>(
+    x: number,
+    y: number,
+    context: TContext,
+    callback: (entity: T, context: TContext) => void
+  ): void {
+    this.forEachInRangeWithContext(x, y, 1, context, callback);
+  }
+
+  /**
    * Zero-allocation iterator for entities within a specified cell range.
    * @param x Center X coordinate
    * @param y Center Y coordinate
@@ -113,6 +126,30 @@ export class SpatialGrid<T extends { x: number; y: number; active: boolean }> {
           const len = cell.length;
           for (let i = 0; i < len; i++) {
             callback(cell[i]!);
+          }
+        }
+      }
+    }
+  }
+
+  public forEachInRangeWithContext<TContext>(
+    x: number,
+    y: number,
+    radius: number,
+    context: TContext,
+    callback: (entity: T, context: TContext) => void
+  ): void {
+    const cellX = Math.floor(x / this.cellSize) + CELL_COORD_OFFSET;
+    const cellY = Math.floor(y / this.cellSize) + CELL_COORD_OFFSET;
+
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        const key = ((cellX + dx) << 16) | (cellY + dy);
+        const cell = this.grid.get(key);
+        if (cell) {
+          const len = cell.length;
+          for (let i = 0; i < len; i++) {
+            callback(cell[i]!, context);
           }
         }
       }

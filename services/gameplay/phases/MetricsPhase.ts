@@ -22,6 +22,7 @@ import { MetricsService } from '../../core/MetricsService';
  */
 export class MetricsPhase implements IGameplayPhase<'metrics'> {
   public readonly phase = 'metrics' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
 
   public execute(input: PhaseInput<'metrics'>): BaselinePhaseResult<'metrics'> {
     const { clock, marketData, world } = input.context;
@@ -51,6 +52,6 @@ export class MetricsPhase implements IGameplayPhase<'metrics'> {
       marketData.atrPercent ?? 0.01
     );
 
-    return createBaselinePhaseResult(this.phase);
+    return this.result;
   }
 }

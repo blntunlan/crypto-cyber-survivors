@@ -138,6 +138,12 @@ export interface ICheatProvider {
  */
 export interface ISpatialGrid<T> {
   forEachNearby(x: number, y: number, callback: (entity: T) => void): void;
+  forEachNearbyWithContext<TContext>(
+    x: number,
+    y: number,
+    context: TContext,
+    callback: (entity: T, context: TContext) => void
+  ): void;
 }
 
 // =============================================================================

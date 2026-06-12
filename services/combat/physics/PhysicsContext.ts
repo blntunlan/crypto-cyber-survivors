@@ -119,6 +119,12 @@ const cheatAdapter: ICheatProvider = {
 const bulletGridAdapter: ISpatialGrid<Bullet> = {
   forEachNearby: (x: number, y: number, callback: (entity: Bullet) => void) =>
     bulletGrid.forEachNearby(x, y, callback),
+  forEachNearbyWithContext: <TContext>(
+    x: number,
+    y: number,
+    context: TContext,
+    callback: (entity: Bullet, context: TContext) => void
+  ) => bulletGrid.forEachNearbyWithContext(x, y, context, callback),
 };
 
 /**

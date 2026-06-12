@@ -68,9 +68,6 @@ export function useCycleDecision(): UseCycleDecisionReturn {
     return unsubComplete;
   }, []);
 
-  // Listen for decision made events
-  const cashOutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     const unsubDecision = EventBus.on(
       'cycleDecisionMade',
@@ -81,26 +78,10 @@ export function useCycleDecision(): UseCycleDecisionReturn {
           lastDecision: data.decision,
           hasCashedOut: data.decision === 'CASH_OUT',
         }));
-
-        // If cash out, trigger game over
-        if (data.decision === 'CASH_OUT') {
-          // Small delay to let the animation play
-          cashOutTimerRef.current = setTimeout(() => {
-            // Note: finalLevel and finalPnl will be overwritten by the game state manager
-            EventBus.emit('gameOver', {
-              finalLevel: 0,
-              finalPnl: 0,
-              reason: 'CASH_OUT',
-            });
-          }, 500);
-        }
       }
     );
 
-    return () => {
-      unsubDecision();
-      if (cashOutTimerRef.current) clearTimeout(cashOutTimerRef.current);
-    };
+    return unsubDecision;
   }, []);
 
   // Reset on game reset

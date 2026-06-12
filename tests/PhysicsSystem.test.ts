@@ -67,12 +67,23 @@ vi.mock('../services/combat/SpatialGrid', () => ({
     forEachNearby: vi.fn((_x: number, _y: number, callback: (b: any) => void) => {
       mockBullets.forEach(callback);
     }),
+    forEachNearbyWithContext: vi.fn(
+      <TContext>(
+        _x: number,
+        _y: number,
+        context: TContext,
+        callback: (b: any, context: TContext) => void
+      ) => {
+        mockBullets.forEach(bullet => callback(bullet, context));
+      }
+    ),
   },
   enemyGrid: {
     clear: vi.fn(),
     insertAll: vi.fn(),
     getNearby: vi.fn(() => []),
     forEachNearby: vi.fn(),
+    forEachNearbyWithContext: vi.fn(),
   },
 }));
 

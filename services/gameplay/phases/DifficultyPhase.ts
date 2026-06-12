@@ -17,6 +17,7 @@ import { TimeService } from '../../core/TimeService';
  */
 export class DifficultyPhase implements IGameplayPhase<'difficulty'> {
   public readonly phase = 'difficulty' as const;
+  private readonly result = createBaselinePhaseResult(this.phase);
 
   public execute(input: PhaseInput<'difficulty'>): BaselinePhaseResult<'difficulty'> {
     const deltaTime = input.context.clock.deltaMs;
@@ -24,6 +25,6 @@ export class DifficultyPhase implements IGameplayPhase<'difficulty'> {
     DifficultyManager.updateWaveTimer(deltaTime);
     difficultyContext.updateTime(TimeService.getGameTimeSeconds());
 
-    return createBaselinePhaseResult(this.phase);
+    return this.result;
   }
 }

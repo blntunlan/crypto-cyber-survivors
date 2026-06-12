@@ -25,6 +25,7 @@ import { type IPoolManager } from '../interfaces/IPoolManager';
 import { audio } from '../audio';
 import { type EnemyId } from '../../config/EnemyRegistry';
 import { POOL } from '../../constants';
+import { RESET_PRIORITY, ResetOrchestrator } from '../core/ResetOrchestrator';
 
 /**
  * ObjectPool - A generic, high-performance object pooling container.
@@ -153,6 +154,7 @@ export class PoolManager implements IPoolManager {
   private floatingTexts: ObjectPool<FloatingText>;
   private speedLines: ObjectPool<SpeedLine>;
   private interactables: ObjectPool<Interactable>;
+  private unregisterResetHandler: (() => void) | null = null;
 
   private constructor() {
     this.enemies = new ObjectPool<GameEnemy>(POOL.MAX_ACTIVE.ENEMIES);
@@ -163,6 +165,11 @@ export class PoolManager implements IPoolManager {
     this.speedLines = new ObjectPool<SpeedLine>(POOL.MAX_ACTIVE.SPEED_LINES);
     // Use a conservative limit for interactables as they are sparse
     this.interactables = new ObjectPool<Interactable>(50);
+    this.unregisterResetHandler = ResetOrchestrator.registerResetHandler(
+      RESET_PRIORITY.GAME_SYSTEMS,
+      'PoolManager',
+      () => this.clearAll()
+    );
   }
 
   /**
@@ -176,6 +183,7 @@ export class PoolManager implements IPoolManager {
    * Resets the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
+    PoolManager.instance?.unregisterResetHandler?.();
     PoolManager.instance = null;
   }
 

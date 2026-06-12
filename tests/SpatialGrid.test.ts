@@ -83,6 +83,20 @@ describe('SpatialGrid', () => {
     });
   });
 
+  describe('context-aware iteration', () => {
+    it('passes stable context to nearby callbacks', () => {
+      const entity = createTestEntity('e1', 50, 50);
+      const context = { hits: [] as string[] };
+      grid.insert(entity);
+
+      grid.forEachNearbyWithContext(50, 50, context, (nearby, ctx) => {
+        ctx.hits.push(nearby.id);
+      });
+
+      expect(context.hits).toEqual(['e1']);
+    });
+  });
+
   // =====================
   // SECTION: clear()
   // =====================

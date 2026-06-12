@@ -67,6 +67,9 @@ export interface MarketRuntimeSnapshot {
   liquidationPrice: number;
   isLiquidated: boolean;
   rsi: number;
+  rsiState: 'OVERSOLD' | 'NEUTRAL' | 'OVERBOUGHT';
+  normalizedVolume: number;
+  whaleTier: 0 | 1 | 2 | 3;
   atrPercent: number;
   atrBp: number;
   macd: number;

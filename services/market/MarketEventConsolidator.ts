@@ -69,7 +69,10 @@ class MarketEventConsolidatorClass {
       this.payload.price = snapshot.price;
       this.payload.pnlPercent = snapshot.rawPnl;
       this.payload.rsi = snapshot.rsi;
+      this.payload.rsiState = snapshot.rsiState;
       this.payload.atrPercent = snapshot.atrPercent;
+      this.payload.normalizedVolume = snapshot.normalizedVolume;
+      this.payload.whaleTier = snapshot.whaleTier;
       if (typeof snapshot.macd === 'number') {
         this.payload.macd.value = snapshot.macd;
         this.payload.macd.signal = 0;

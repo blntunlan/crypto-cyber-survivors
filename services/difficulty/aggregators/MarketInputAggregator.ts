@@ -37,6 +37,9 @@ class MarketInputAggregatorClass {
       this.slice.pnlPercent = snapshot.rawPnl;
       this.slice.currentPrice = snapshot.price;
       this.slice.rsi = snapshot.rsi;
+      this.slice.rsiState = snapshot.rsiState;
+      this.slice.normalizedVolume = snapshot.normalizedVolume;
+      this.slice.whaleTier = snapshot.whaleTier;
       this.slice.atrPercent = snapshot.atrPercent;
       if (typeof snapshot.macd === 'number') {
         this.slice.macd.value = snapshot.macd;

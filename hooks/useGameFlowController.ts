@@ -213,7 +213,14 @@ export const useGameFlowController = ({
         pixelRatio: window.devicePixelRatio,
       });
 
-      if (!metrics) return;
+      if (!metrics) {
+        Logger.warn(
+          '[GameFlow] Metrics unavailable during game over; skipping session submission'
+        );
+        ChallengeService.onRunEnd();
+        isGameOverProcessingRef.current = false;
+        return;
+      }
 
       void (async () => {
         try {

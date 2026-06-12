@@ -123,9 +123,6 @@ describe('GameSessionService.submitSession', () => {
     await seedSession();
 
     railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
-    railwayPostMock.mockResolvedValueOnce({
       verified: true,
       reward: 140,
       metaShare: 14,
@@ -133,25 +130,9 @@ describe('GameSessionService.submitSession', () => {
 
     await GameSessionService.submitSession(baseResults, sampleRewardPayload);
 
-    const syncCall = getPostCall('/api/v1/sessions/sync');
-    expect(syncCall[0]).toBe('/api/v1/sessions/sync');
-    expect(syncCall[1]).toMatchObject({
-      sessionId: 'sess-42',
-      sessionData: {
-        entry_price: 50000,
-        exit_price: 51000,
-        survival_seconds: 90,
-        kills: 150,
-        level: 7,
-        exit_type: 'portal',
-        portal_type: 'TAKE_PROFIT',
-      },
-    });
-    const sessionData = (syncCall[1] as { sessionData: Record<string, unknown> })
-      .sessionData;
-    expect(sessionData).not.toHaveProperty('pair');
-    expect(sessionData).not.toHaveProperty('position');
-    expect(sessionData).not.toHaveProperty('leverage');
+    expect(
+      railwayPostMock.mock.calls.some(([path]) => path === '/api/v1/sessions/sync')
+    ).toBe(false);
 
     const verifyCall = getPostCall('/api/v1/sessions/verify');
     expect(verifyCall[0]).toBe('/api/v1/sessions/verify');
@@ -177,12 +158,9 @@ describe('GameSessionService.submitSession', () => {
     expect(payload.breakdown).toEqual(sampleBreakdown);
   });
 
-  it('normalizes fractional reward survival seconds before sync and verify', async () => {
+  it('normalizes fractional reward survival seconds before verify', async () => {
     await seedSession();
 
-    railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
     railwayPostMock.mockResolvedValueOnce({
       verified: true,
       reward: 140,
@@ -193,11 +171,6 @@ describe('GameSessionService.submitSession', () => {
       ...sampleRewardPayload,
       survivalSeconds: 90.75,
     });
-
-    const syncCall = getPostCall('/api/v1/sessions/sync');
-    const sessionData = (syncCall[1] as { sessionData: Record<string, unknown> })
-      .sessionData;
-    expect(sessionData.survival_seconds).toBe(90);
 
     const verifyCall = getPostCall('/api/v1/sessions/verify');
     const payload = (verifyCall[1] as Record<string, unknown>).payload as Record<
@@ -212,9 +185,6 @@ describe('GameSessionService.submitSession', () => {
   it('works without RewardPayload (backward compat)', async () => {
     await seedSession();
 
-    railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
     railwayPostMock.mockResolvedValueOnce({
       verified: true,
       reward: 50,
@@ -252,9 +222,6 @@ describe('GameSessionService.submitSession', () => {
     await seedSession();
 
     railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
-    railwayPostMock.mockResolvedValueOnce({
       verified: true,
       reward: 200,
       metaShare: 20,
@@ -277,9 +244,6 @@ describe('GameSessionService.submitSession', () => {
     await seedSession();
 
     railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
-    railwayPostMock.mockResolvedValueOnce({
       verified: false,
       reward: 0,
       metaShare: 0,
@@ -299,9 +263,6 @@ describe('GameSessionService.submitSession', () => {
 
     // Simulate production: import.meta.env.DEV is true in vitest by default,
     // so we need to check the DEV fallback path. In DEV mode, errors return success.
-    railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
     railwayPostMock.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const result = await GameSessionService.submitSession(baseResults);
@@ -316,9 +277,6 @@ describe('GameSessionService.submitSession', () => {
 
     // Override import.meta.env.DEV via the service's catch block behavior
     // Since vitest runs in DEV mode, we verify the fallback path
-    railwayPostMock.mockResolvedValueOnce({
-      id: 'sess-42',
-    });
     railwayPostMock.mockRejectedValueOnce(new Error('Server timeout'));
 
     const result = await GameSessionService.submitSession(baseResults);
