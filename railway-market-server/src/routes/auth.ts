@@ -59,7 +59,7 @@ router.post('/anonymous', asyncHandler(async (req: Request, res: Response): Prom
 
       await client.query(
         `INSERT INTO account_identities (account_id, provider, provider_subject, provider_username, metadata)
-         VALUES ($1, 'anonymous', $1, $2, $3::jsonb)
+         VALUES ($1::uuid, 'anonymous', $1::text, $2, $3::jsonb)
          ON CONFLICT (provider, provider_subject)
          DO UPDATE SET updated_at = now(), metadata = EXCLUDED.metadata`,
         [

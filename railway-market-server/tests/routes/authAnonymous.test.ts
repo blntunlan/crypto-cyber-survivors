@@ -72,4 +72,61 @@ describe('anonymous auth route', () => {
     }) as jwt.JwtPayload;
     expect(decoded.sub).toBe('550e8400-e29b-41d4-a716-446655440001');
   });
+
+  it('casts anonymous identity account id for uuid and text columns', async () => {
+    const queryCalls: { sql: string; params?: unknown[] }[] = [];
+    const client = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        queryCalls.push({ sql, params });
+
+        if (sql.includes('INSERT INTO accounts')) {
+          return { rows: [{ id: '550e8400-e29b-41d4-a716-446655440001' }] };
+        }
+
+        if (sql.includes('INSERT INTO profiles')) {
+          return {
+            rows: [
+              {
+                id: '550e8400-e29b-41d4-a716-446655440002',
+                display_name: 'anon_test',
+              },
+            ],
+          };
+        }
+
+        if (sql.includes('INSERT INTO wallets')) {
+          return {
+            rows: [
+              {
+                id: '550e8400-e29b-41d4-a716-446655440003',
+                balance: '0',
+                currency: 'gold',
+              },
+            ],
+          };
+        }
+
+        return { rows: [] };
+      }),
+    };
+
+    mocks.withTransaction.mockImplementation(async callback => callback(client));
+
+    const app = express();
+    app.use(express.json());
+    app.use('/api/v1/auth', authRouter);
+
+    const response = await request(app)
+      .post('/api/v1/auth/anonymous')
+      .send({ display_name: 'anon_test' });
+
+    expect(response.status).toBe(201);
+
+    const identityInsert = queryCalls.find(call =>
+      call.sql.includes('INSERT INTO account_identities')
+    );
+    expect(identityInsert?.sql).toContain('$1::uuid');
+    expect(identityInsert?.sql).toContain('$1::text');
+    expect(identityInsert?.params?.[0]).toBe('550e8400-e29b-41d4-a716-446655440001');
+  });
 });
