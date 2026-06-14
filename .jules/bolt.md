@@ -1,0 +1,3 @@
+## 2026-06-14 - [Optimize Array Methods in Render/Physics Loops]
+**Learning:** In very hot code paths (60 FPS loops) like MovementSystem and EntityRenderer, using standard `Array.prototype.forEach` causes severe garbage collection pressure due to callback function allocation per frame. This causes measurable frame drops over time as object pools scale up.
+**Action:** Always refactor `.forEach()` calls to standard `for (let i = 0, len = arr.length; i < len; i++)` loops when iterating over heavily populated object pools within the `requestAnimationFrame` bounds. Include a guard clause (`if (obj === undefined) continue;`) to ensure safety against sparse object pool arrays.
