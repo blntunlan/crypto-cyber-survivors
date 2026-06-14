@@ -3,7 +3,7 @@
  * Used by BOTH the client-side UI (CoinService) and server-side validation (verify-game)
  * Ensures consistency and prevents cheating.
  *
- * Ported from supabase/functions/_shared/RewardCalculator.ts
+ * Shared reward calculator for Railway-native session verification.
  */
 
 export interface CoinRates {

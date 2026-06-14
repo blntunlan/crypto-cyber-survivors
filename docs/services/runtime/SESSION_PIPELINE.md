@@ -42,6 +42,6 @@ This document describes the Railway-backed session flow shared by `GameSessionSe
 
 ## Notes
 
-- The `syncToSupabase()` method name inside `MetricsStorage` is now historical. The implementation syncs to Railway.
+- `MetricsStorage.syncToRailway()` posts session telemetry to Railway.
 - Optimistic reward UI is allowed, but the backend remains the source of truth for durable rewards.
 - Queue flushing before verification is mandatory if you want replayable, ordered audit data on the server.

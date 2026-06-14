@@ -1,7 +1,7 @@
 /**
  * GameSessionService - Manages game session lifecycle via Railway API.
  *
- * Migrated from Supabase Edge Functions to Railway Express endpoints.
+ * Railway Express endpoint client for game session verification.
  */
 
 import { Logger } from '../system/Logger';

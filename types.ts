@@ -148,6 +148,9 @@ export interface Enemy extends Entity {
   damageBuffer?: number;
   damageBufferTimer?: number;
   hitFlashTimer?: number;
+  hitImpactTimer?: number;
+  hitRecoilX?: number;
+  hitRecoilY?: number;
   damageBufferIsCrit?: boolean;
   damageBufferIsSuperCrit?: boolean;
   damageBufferCritCount?: number; // Number of crits in this stack
@@ -227,6 +230,13 @@ export interface SpeedLine extends Entity {
   decay: number;
   vx: number;
   vy: number;
+}
+
+export interface ImpactRing extends Entity {
+  startRadius: number;
+  maxRadius: number;
+  life: number;
+  lineWidth: number;
 }
 
 export interface Gem extends Entity {

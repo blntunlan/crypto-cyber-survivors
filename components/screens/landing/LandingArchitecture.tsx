@@ -78,7 +78,7 @@ export const LandingArchitecture: React.FC = () => {
               {[
                 'React 19',
                 'TSX Engine',
-                'Supabase',
+                'Railway',
                 'Framer Motion',
                 'Synaptic AI',
               ].map(tag => (

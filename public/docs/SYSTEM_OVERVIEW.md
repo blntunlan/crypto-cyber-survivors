@@ -12,7 +12,7 @@ Crypto Survivors is a React + Canvas action game whose live difficulty comes fro
 1. Shell and routing: `App.tsx`, `GameStateMachine`, onboarding, wallet refresh, and screen routing.
 2. Hot loop: `components/GameEngine.tsx` runs the phase-based RAF loop.
 3. Services: combat, difficulty, market, gameplay, auth, metrics, and sync services.
-4. Persistence and backend APIs: Railway session and telemetry endpoints, IndexedDB/localStorage queues, and Supabase auth-only integrations that still exist in selected flows.
+4. Persistence and backend APIs: Railway auth, session, telemetry, and economy endpoints plus IndexedDB/localStorage queues for offline buffering.
 
 ## Boot and session gating
 
@@ -65,7 +65,7 @@ Difficulty comes from a rule-based stack, not the older neural director docs.
 Reward state is intentionally split:
 
 - `CoinService` tracks local session totals and calls a provider.
-- `SupabaseCoinProvider` now acts as a Railway-backed optimistic provider despite its historical name.
+- `RailwayCoinProvider` acts as a Railway-backed optimistic provider.
 - `GameSessionService` starts and verifies runs with Railway session endpoints.
 - `MarketSyncQueue` is flushed before verification so the backend sees a complete audit trail.
 

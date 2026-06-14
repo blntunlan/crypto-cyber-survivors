@@ -558,6 +558,16 @@ function handleRequest(req, res) {
     return;
   }
 
+  const canonicalIndexFileRedirect = getCanonicalIndexFileRedirectPath(
+    parsedUrl,
+    urlPath
+  );
+  if (canonicalIndexFileRedirect) {
+    logRequest(ip, req.method, urlPath, 301, Date.now() - startTime);
+    sendRedirect(res, canonicalIndexFileRedirect);
+    return;
+  }
+
   const canonicalQueryRedirect = getCanonicalQueryRedirect(parsedUrl, urlPath);
   if (canonicalQueryRedirect) {
     logRequest(ip, req.method, urlPath, 301, Date.now() - startTime);
@@ -897,6 +907,35 @@ function getUnsupportedLanguageRedirectPath(pathname) {
   }
 
   return isPublicRoutePath(routePath) ? routePath : '/';
+}
+
+function getPublicIndexFileRouteInfo(urlPath) {
+  const normalizedPath = normalizeRoutePath(urlPath);
+  const lowerNormalizedPath = normalizedPath.toLowerCase();
+
+  if (!lowerNormalizedPath.endsWith('/index.html')) {
+    return null;
+  }
+
+  const parentPath =
+    normalizedPath.slice(0, normalizedPath.length - '/index.html'.length) || '/';
+  const routeInfo = getLanguageRouteInfo(parentPath);
+
+  return isPublicRoutePath(routeInfo.routePath) ? routeInfo : null;
+}
+
+function getCanonicalIndexFileRedirectPath(parsedUrl, urlPath) {
+  const routeInfo = getPublicIndexFileRouteInfo(urlPath);
+  if (!routeInfo) {
+    return null;
+  }
+
+  const requestedLanguage = parsedUrl.searchParams.get('lang');
+  const canonicalLanguage = SUPPORTED_LANGUAGES.includes(requestedLanguage)
+    ? requestedLanguage
+    : routeInfo.language;
+
+  return getLocalizedPath(routeInfo.routePath, canonicalLanguage);
 }
 
 function getPublicRoutePathForCanonicalQuery(urlPath) {

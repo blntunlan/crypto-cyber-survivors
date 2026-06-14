@@ -12,7 +12,7 @@
  * Keeping for backward compatibility with local storage.
  */
 export interface LegacyStoredUser {
-  profileId: string; // UUID from Supabase
+  profileId: string; // UUID from Railway profiles table
   nickname: string; // Display name (3-16 chars)
   createdAt: number; // First login timestamp
   lastSeenAt: number; // Last session timestamp
@@ -27,6 +27,8 @@ export interface LegacyStoredUser {
  */
 export type AuthProvider =
   | 'email'
+  | 'anonymous'
+  | 'nickname'
   | 'twitter'
   | 'google'
   | 'discord'
@@ -34,13 +36,47 @@ export type AuthProvider =
   | 'apple'
   | 'twitch';
 
+export interface AuthIdentity {
+  provider: AuthProvider | string;
+  [key: string]: unknown;
+}
+
+export interface AuthUser {
+  id: string;
+  aud?: string;
+  role?: string;
+  email?: string | null;
+  app_metadata?: {
+    provider?: string;
+    [key: string]: unknown;
+  };
+  user_metadata?: {
+    account_id?: string;
+    display_name?: string;
+    name?: string;
+    wallet_address?: string;
+    [key: string]: unknown;
+  };
+  identities?: AuthIdentity[];
+  created_at?: string;
+}
+
+export interface AuthSession {
+  access_token: string;
+  token_type: 'Bearer' | string;
+  expires_in: number;
+  expires_at?: number;
+  refresh_token: string;
+  user: AuthUser;
+}
+
 /**
  * Auth method types
  */
 export type AuthMethod = 'email_password' | 'magic_link' | 'oauth' | 'phone';
 
 /**
- * User profile from Supabase profiles table
+ * User profile from Railway profiles table
  */
 export interface UserProfile {
   id: string;

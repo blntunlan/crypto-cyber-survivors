@@ -9,6 +9,9 @@
 /.env  /404.html  404
 /.git/*  /404.html  404
 
+# Canonical public entrypoint
+/index.html  /  301
+
 # Block common vulnerability scanners
 /phpmyadmin/*  /404.html  404
 /phpMyAdmin/*  /404.html  404

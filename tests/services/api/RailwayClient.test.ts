@@ -1,19 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
-
-const { mockAuth, mockIsConfigured } = vi.hoisted(() => ({
-  mockAuth: {
-    getSession: vi.fn(),
-    refreshSession: vi.fn(),
-  },
-  mockIsConfigured: vi.fn().mockReturnValue(true),
-}));
-
-vi.mock('../../../services/supabase/client', () => ({
-  supabase: { auth: mockAuth },
-  isSupabaseConfigured: mockIsConfigured,
-}));
+import { type RailwayStoredAuth } from '../../../services/api/RailwayAuthTokenStore';
 
 vi.mock('../../../services/system/Logger', () => ({
   Logger: {
@@ -32,6 +18,10 @@ let railwayClient: {
   patch<T>(path: string, body?: unknown): Promise<T>;
   del<T>(path: string): Promise<T>;
 };
+let RailwayAuthTokenStore: {
+  save(auth: RailwayStoredAuth): void;
+  clear(): void;
+};
 let fetchSpy: ReturnType<typeof vi.fn>;
 
 function mockFetchResponse(status: number, body: unknown = {}): Response {
@@ -42,31 +32,32 @@ function mockFetchResponse(status: number, body: unknown = {}): Response {
   } as unknown as Response;
 }
 
+function saveRailwayAuth(overrides: Partial<RailwayStoredAuth> = {}): void {
+  RailwayAuthTokenStore.save({
+    accessToken: 'railway-token',
+    tokenType: 'Bearer',
+    expiresAt: Date.now() + 60_000,
+    account: { id: 'account-1', type: 'anonymous' },
+    profile: { id: 'profile-1', displayName: 'Player1' },
+    ...overrides,
+  });
+}
+
 describe('RailwayClient', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockIsConfigured.mockReturnValue(true);
+    localStorage.clear();
 
-    // Set env
+    vi.stubEnv('VITE_API_BASE_URL', '');
     vi.stubEnv('VITE_RAILWAY_API_URL', 'https://test-api.railway.app');
 
-    // Mock fetch
     fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    // Default: session with token
-    mockAuth.getSession.mockResolvedValue({
-      data: { session: { access_token: 'tok-original' } },
-    });
-    mockAuth.refreshSession.mockResolvedValue({
-      data: { session: { access_token: 'tok-refreshed' } },
-      error: null,
-    });
-
-    // Re-import to pick up env
     vi.resetModules();
     const mod = await import('../../../services/api/RailwayClient');
     railwayClient = mod.railwayClient;
+    RailwayAuthTokenStore = (await import('../../../services/api/RailwayAuthTokenStore')).RailwayAuthTokenStore;
   });
 
   afterEach(() => {
@@ -77,7 +68,8 @@ describe('RailwayClient', () => {
   // ── Basic requests ────────────────────────────────────────────────────
 
   describe('Basic HTTP methods', () => {
-    it('GET attaches Authorization header', async () => {
+    it('GET attaches Authorization header when Railway token exists', async () => {
+      saveRailwayAuth();
       fetchSpy.mockResolvedValue(mockFetchResponse(200, { id: '1' }));
 
       const result = await railwayClient.get<{ id: string }>('/api/v1/profile');
@@ -88,7 +80,7 @@ describe('RailwayClient', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            Authorization: 'Bearer tok-original',
+            Authorization: 'Bearer railway-token',
           }),
         })
       );
@@ -134,8 +126,7 @@ describe('RailwayClient', () => {
   // ── Auth token handling ───────────────────────────────────────────────
 
   describe('Auth token', () => {
-    it('sends request without auth header when no session', async () => {
-      mockAuth.getSession.mockResolvedValue({ data: { session: null } });
+    it('sends request without auth header when no Railway token exists', async () => {
       fetchSpy.mockResolvedValue(mockFetchResponse(200, {}));
 
       await railwayClient.get('/api/v1/leaderboard');
@@ -144,18 +135,18 @@ describe('RailwayClient', () => {
       expect(headers.Authorization).toBeUndefined();
     });
 
-    it('sends request without auth header when Supabase not configured', async () => {
-      mockIsConfigured.mockReturnValue(false);
+    it('uses stored Railway-native token', async () => {
+      saveRailwayAuth({ accessToken: 'stored-railway-token' });
       fetchSpy.mockResolvedValue(mockFetchResponse(200, {}));
 
-      await railwayClient.get('/api/v1/leaderboard');
+      await railwayClient.get('/api/v1/profile');
 
       const headers = fetchSpy.mock.calls[0]![1].headers;
-      expect(headers.Authorization).toBeUndefined();
+      expect(headers.Authorization).toBe('Bearer stored-railway-token');
     });
 
-    it('handles getSession exception gracefully', async () => {
-      mockAuth.getSession.mockRejectedValue(new Error('storage error'));
+    it('ignores expired Railway-native token', async () => {
+      saveRailwayAuth({ accessToken: 'expired-token', expiresAt: Date.now() - 1 });
       fetchSpy.mockResolvedValue(mockFetchResponse(200, {}));
 
       await railwayClient.get('/api/v1/leaderboard');
@@ -165,83 +156,26 @@ describe('RailwayClient', () => {
     });
   });
 
-  // ── 401 Retry with Token Refresh ──────────────────────────────────────
+  // ── 401 handling ──────────────────────────────────────────────────────
 
-  describe('401 retry with token refresh', () => {
-    it('retries with refreshed token on 401', async () => {
-      fetchSpy
-        .mockResolvedValueOnce(mockFetchResponse(401, { error: 'Token expired' }))
-        .mockResolvedValueOnce(mockFetchResponse(200, { id: 'success' }));
+  describe('401 handling', () => {
+    it('does not refresh or retry Railway token on 401', async () => {
+      saveRailwayAuth();
+      fetchSpy.mockResolvedValue(mockFetchResponse(401, { error: 'Token expired' }));
 
-      const result = await railwayClient.get<{ id: string }>('/api/v1/profile');
-
-      expect(result).toEqual({ id: 'success' });
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
-
-      // Second call should use the refreshed token
-      const secondCallHeaders = fetchSpy.mock.calls[1]![1].headers;
-      expect(secondCallHeaders.Authorization).toBe('Bearer tok-refreshed');
+      await expect(railwayClient.get('/api/v1/profile')).rejects.toThrow(
+        'Token expired'
+      );
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('does not retry when no original token (unauthenticated)', async () => {
-      mockAuth.getSession.mockResolvedValue({ data: { session: null } });
+    it('does not retry unauthenticated 401', async () => {
       fetchSpy.mockResolvedValue(mockFetchResponse(401, { error: 'Missing auth' }));
 
       await expect(railwayClient.get('/api/v1/profile')).rejects.toThrow(
         'Missing auth'
       );
       expect(fetchSpy).toHaveBeenCalledTimes(1);
-      expect(mockAuth.refreshSession).not.toHaveBeenCalled();
-    });
-
-    it('does not retry when refresh returns same token', async () => {
-      mockAuth.refreshSession.mockResolvedValue({
-        data: { session: { access_token: 'tok-original' } },
-        error: null,
-      });
-
-      fetchSpy.mockResolvedValue(mockFetchResponse(401, { error: 'Invalid token' }));
-
-      await expect(railwayClient.get('/api/v1/profile')).rejects.toThrow(
-        'Invalid token'
-      );
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not retry when refresh fails', async () => {
-      mockAuth.refreshSession.mockResolvedValue({
-        data: { session: null },
-        error: { message: 'refresh failed' },
-      });
-
-      fetchSpy.mockResolvedValue(mockFetchResponse(401, { error: 'Token expired' }));
-
-      await expect(railwayClient.get('/api/v1/profile')).rejects.toThrow(
-        'Token expired'
-      );
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not retry when refresh throws', async () => {
-      mockAuth.refreshSession.mockRejectedValue(new Error('network down'));
-
-      fetchSpy.mockResolvedValue(mockFetchResponse(401, { error: 'Token expired' }));
-
-      await expect(railwayClient.get('/api/v1/profile')).rejects.toThrow(
-        'Token expired'
-      );
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('throws original 401 error if retry also returns 401', async () => {
-      fetchSpy
-        .mockResolvedValueOnce(mockFetchResponse(401, { error: 'Token expired' }))
-        .mockResolvedValueOnce(mockFetchResponse(401, { error: 'Still invalid' }));
-
-      await expect(railwayClient.get('/api/v1/profile')).rejects.toThrow(
-        'Still invalid'
-      );
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -267,21 +201,22 @@ describe('RailwayClient', () => {
     it('throws with HTTP status when body is not JSON', async () => {
       fetchSpy.mockResolvedValue({
         ok: false,
-        status: 502,
+        status: 418,
         json: vi.fn().mockRejectedValue(new Error('not json')),
       } as unknown as Response);
 
-      await expect(railwayClient.get('/health')).rejects.toThrow('HTTP 502');
+      await expect(railwayClient.get('/health')).rejects.toThrow('HTTP 418');
     });
 
     it('throws when BASE_URL is not set', async () => {
+      vi.stubEnv('VITE_API_BASE_URL', '');
       vi.stubEnv('VITE_RAILWAY_API_URL', '');
 
       vi.resetModules();
       const mod = await import('../../../services/api/RailwayClient');
 
       await expect(mod.railwayClient.get('/api/v1/profile')).rejects.toThrow(
-        'VITE_RAILWAY_API_URL is not configured'
+        'VITE_API_BASE_URL / VITE_RAILWAY_API_URL is not configured'
       );
     });
   });

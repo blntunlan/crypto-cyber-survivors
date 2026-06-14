@@ -173,6 +173,9 @@ export class EnemyFactory {
     enemyObj.damageBuffer = 0;
     enemyObj.damageBufferTimer = 0;
     enemyObj.hitFlashTimer = 0;
+    enemyObj.hitImpactTimer = 0;
+    enemyObj.hitRecoilX = 0;
+    enemyObj.hitRecoilY = 0;
     enemyObj.damageBufferIsCrit = false;
     enemyObj.damageBufferIsSuperCrit = false;
     enemyObj.damageBufferCritCount = 0;

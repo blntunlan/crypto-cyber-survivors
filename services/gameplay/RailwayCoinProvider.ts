@@ -1,5 +1,5 @@
 /**
- * SupabaseCoinProvider - Persistent reward backend
+ * RailwayCoinProvider - persistent reward backend
  *
  * Implements ICoinProvider to bridge CoinService with Railway API.
  * Now acts primarily as an optimistic UI updater for gameplay events.
@@ -11,8 +11,14 @@ import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 import { railwayClient } from '../api/RailwayClient';
 
-export class SupabaseCoinProvider implements ICoinProvider {
-  readonly id = 'supabase';
+type EconomyWalletResponse = {
+  wallet: {
+    balance: number;
+  };
+};
+
+export class RailwayCoinProvider implements ICoinProvider {
+  readonly id = 'railway';
   readonly isRealCurrency = false; // "Gold" is in-game virtual currency
 
   /**
@@ -23,12 +29,12 @@ export class SupabaseCoinProvider implements ICoinProvider {
     if (!profileId || profileId.startsWith('anon_')) return 0;
 
     try {
-      const data = await railwayClient.get<{ balance: number }>(
-        '/api/v1/wallet/balance'
+      const data = await railwayClient.get<EconomyWalletResponse>(
+        '/api/v1/economy/wallet'
       );
-      return data.balance;
+      return data.wallet.balance;
     } catch (error) {
-      Logger.warn('[SupabaseCoinProvider] Failed to fetch balance', error);
+      Logger.warn('[RailwayCoinProvider] Failed to fetch balance', error);
       return 0;
     }
   }
@@ -48,7 +54,7 @@ export class SupabaseCoinProvider implements ICoinProvider {
     }
 
     Logger.info(
-      `[SupabaseCoinProvider] Optimistically allowing ${amount} coins from ${source}. CoinService will track session state.`
+      `[RailwayCoinProvider] Optimistically allowing ${amount} coins from ${source}. CoinService will track session state.`
     );
 
     return true;

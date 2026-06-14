@@ -5,6 +5,7 @@ import {
   type FloatingText,
   type MarketPosition,
   type SpeedLine,
+  type ImpactRing,
   type Interactable,
   type CryptoPair,
   type EnemyIntent,
@@ -24,6 +25,7 @@ export interface IPoolManager {
   readonly activeParticles: Particle[];
   readonly activeFloatingTexts: FloatingText[];
   readonly activeSpeedLines: SpeedLine[];
+  readonly activeImpactRings: ImpactRing[];
   readonly activeInteractables: Interactable[];
 
   preWarm(config?: {
@@ -113,6 +115,15 @@ export interface IPoolManager {
     opacity: number
   ): SpeedLine;
 
+  getImpactRing(
+    x: number,
+    y: number,
+    startRadius: number,
+    maxRadius: number,
+    color: string,
+    lineWidth: number
+  ): ImpactRing;
+
   getInteractable(
     type: 'MINING_RIG' | 'LOOT_CRATE' | 'GAS_STATION',
     x: number,
@@ -131,5 +142,6 @@ export interface IPoolManager {
   releaseParticle(particle: Particle): void;
   releaseFloatingText(text: FloatingText): void;
   releaseSpeedLine(line: SpeedLine): void;
+  releaseImpactRing(ring: ImpactRing): void;
   releaseInteractable(interactable: Interactable): void;
 }

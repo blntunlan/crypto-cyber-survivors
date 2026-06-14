@@ -109,16 +109,15 @@ export class MetricsStorage {
     this.save();
 
     // Sync to Railway session and telemetry endpoints (fire and forget)
-    void this.syncToSupabase(session);
+    void this.syncToRailway(session);
   }
 
   /**
    * Sync session to Railway with retry logic.
-   * Legacy method name retained because tests and bridges still call syncToSupabase().
    * Uses UPSERT logic: if serverSessionId exists, update the existing record.
    * Otherwise, insert a new record.
    */
-  private async syncToSupabase(session: SessionMetrics, retryCount = 0): Promise<void> {
+  private async syncToRailway(session: SessionMetrics, retryCount = 0): Promise<void> {
     // Skip sync if Railway API is not configured
     const railwayUrl = import.meta.env.VITE_RAILWAY_API_URL;
     if (!railwayUrl) {
@@ -230,7 +229,7 @@ export class MetricsStorage {
       const actualSessionId = gameSession?.id ?? serverSessionId;
 
       Logger.debug(
-        '[MetricsStorage] Legacy Supabase reward verification skipped; Railway submitSession is authoritative',
+        '[MetricsStorage] Edge reward verification skipped; Railway submitSession is authoritative',
         { sessionId: actualSessionId }
       );
 
@@ -347,7 +346,7 @@ export class MetricsStorage {
         );
 
         await this.sleep(delay);
-        return this.syncToSupabase(session, retryCount + 1);
+        return this.syncToRailway(session, retryCount + 1);
       }
 
       // Max retries exceeded

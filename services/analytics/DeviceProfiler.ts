@@ -72,9 +72,9 @@ export class DeviceProfiler {
   }
 
   /**
-   * Sync profile to Supabase.
+   * Sync profile to Railway.
    */
-  static async syncToSupabase(): Promise<void> {
+  static async syncToRailway(): Promise<void> {
     // Skip sync on local environments
     if (SecurityUtils.isLocalEnvironment()) {
       return;

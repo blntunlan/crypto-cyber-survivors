@@ -31,7 +31,7 @@ import { GameplayValidator } from '../gameplay/validators';
 // =============================================================================
 
 class InventoryServiceClass {
-  // In-memory storage (will be synced with Supabase later)
+  // In-memory storage (will be synced with Railway later)
   private inventories: Map<string, PlayerInventory> = new Map();
   private currentPlayerId: string | null = null;
 

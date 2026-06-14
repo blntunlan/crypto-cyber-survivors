@@ -16,6 +16,7 @@ vi.mock('../../services/combat/PoolManager', () => {
     activeParticles = [];
     activeFloatingTexts = [];
     activeSpeedLines = [];
+    activeImpactRings = [];
     activeInteractables = [];
     cleanup = vi.fn();
     preWarm = vi.fn();

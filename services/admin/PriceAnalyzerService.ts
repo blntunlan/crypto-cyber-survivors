@@ -79,9 +79,8 @@ export class PriceAnalyzerService {
 
   /**
    * Load historical price data from the Railway market history API.
-   * Legacy method name retained so existing admin dashboard callers keep working.
    */
-  async loadHistoryFromSupabase(): Promise<void> {
+  async loadHistoryFromRailway(): Promise<void> {
     if (this.isLoadingHistory || this.historyLoaded) {
       return;
     }

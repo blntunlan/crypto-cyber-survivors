@@ -10,8 +10,8 @@ import { type LegacyStoredUser } from './types';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from './UserPersistenceService';
 import { SecurityUtils } from './SecurityUtils';
-import { SupabaseAuthService } from './SupabaseAuthService';
-import { railwayClient } from '../api/RailwayClient';
+import { RailwayAuthService } from './RailwayAuthService';
+import { isRailwayApiConfigured, railwayClient } from '../api/RailwayClient';
 
 export class UserSessionService {
   private static instance: UserSessionService | null = null;
@@ -93,29 +93,21 @@ export class UserSessionService {
   }
 
   /**
-   * Register a new nickname in Supabase and save to local storage.
+   * Register a new nickname through Railway auth and save to local storage.
    */
   async registerNickname(
     nickname: string
   ): Promise<{ success: boolean; error?: string }> {
-    const { isSupabaseConfigured } = await import('../core/Supabase');
-
-    if (!isSupabaseConfigured() || SecurityUtils.isLocalEnvironment()) {
+    if (!isRailwayApiConfigured() || SecurityUtils.isLocalEnvironment()) {
       Logger.warn('[UserSession] Local environment detected, using local-only mode');
       const mockProfileId = '00000000-0000-4000-a000-000000000000';
       this.saveUser(mockProfileId, nickname);
-
-      // Clear any existing Supabase session to prevent 401 errors from stale tokens on local
-      const { supabase } = await import('../core/Supabase');
-      void supabase.auth.signOut().catch(() => {});
-
       return { success: true };
     }
 
     try {
-      // Use Anonymous Sign-In for production
-      // This creates a proper auth user and triggers the profile creation via database triggers
-      const result = await SupabaseAuthService.signInAnonymously(nickname);
+      // Use Railway anonymous auth for production.
+      const result = await RailwayAuthService.signInAnonymously(nickname);
 
       if (result.success && result.user) {
         this.saveUser(result.user.id, nickname);
@@ -139,7 +131,7 @@ export class UserSessionService {
   }
 
   /**
-   * Update the last seen timestamp in storage and optionally Supabase.
+   * Update the last seen timestamp in storage and Railway APIs.
    */
   async updateLastSeen(): Promise<void> {
     const user = this.getLegacyStoredUser();

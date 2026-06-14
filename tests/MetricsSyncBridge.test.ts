@@ -102,7 +102,7 @@ describe('MetricsSyncBridge Integration', () => {
 
     // Trigger sync
     // @ts-expect-error:  testing private/internal sync logic via addSession
-    await storage.syncToSupabase(mockSession);
+    await storage.syncToRailway(mockSession);
 
     // 1. Verify session sync call
     const sessionCall = mockPost.mock.calls.find(

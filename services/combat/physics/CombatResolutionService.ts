@@ -3,6 +3,7 @@ import { type Player, type Enemy } from '../../../types';
 import { DifficultyManager } from '../../gameplay/DifficultyManager';
 import { EventBus } from '../../core/EventBus';
 import { DeviceBenchmarkService } from '../../system/DeviceBenchmarkService';
+import { GAME_ENGINE } from '../../../constants';
 import { COLORS, COMBAT_CONFIG, ECONOMY_CONFIG, PLAYER_STATS } from '../../../config';
 import { BuffManager } from '../../patterns/decorators/BuffManager';
 import { Logger } from '../../system/Logger';
@@ -56,6 +57,7 @@ export class CombatResolutionService {
 
     // 4. Reward Generation
     this.spawnDeathParticles(pool, enemy, isSuperCrit);
+    this.spawnDeathRing(pool, enemy, isSuperCrit);
     this.spawnGemForEnemy(pool, enemy, player);
     this.processLifesteal(player, enemy);
     // this.spawnRSIBuffForEnemy(enemy); // Removed as per user request (random spawn only)
@@ -178,6 +180,32 @@ export class CombatResolutionService {
         pool.getParticle(enemy.x, enemy.y, vx, vy, enemy.color, false);
       }
     }
+  }
+
+  private static spawnDeathRing(
+    pool: IPoolManager,
+    enemy: Enemy,
+    isSuperCrit: boolean
+  ): void {
+    const maxRadius =
+      enemy.type === 'whale'
+        ? GAME_ENGINE.KILL_RING_RADIUS_WHALE
+        : isSuperCrit
+          ? GAME_ENGINE.KILL_RING_RADIUS_CRIT
+          : GAME_ENGINE.KILL_RING_RADIUS_NORMAL;
+    const lineWidth = isSuperCrit
+      ? GAME_ENGINE.KILL_RING_LINE_WIDTH_CRIT
+      : GAME_ENGINE.KILL_RING_LINE_WIDTH_NORMAL;
+    const color = isSuperCrit ? COLORS.SUPER_CRIT : enemy.color;
+
+    pool.getImpactRing(
+      enemy.x,
+      enemy.y,
+      GAME_ENGINE.KILL_RING_START_RADIUS,
+      maxRadius,
+      color,
+      lineWidth
+    );
   }
 
   /**

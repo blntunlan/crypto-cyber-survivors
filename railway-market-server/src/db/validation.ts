@@ -16,6 +16,11 @@ const nicknameSchema = z
   .max(16, 'Nickname must be at most 16 characters')
   .regex(/^[a-zA-Z0-9_-]{3,16}$/, 'Nickname may only contain letters, digits, underscores, and hyphens');
 
+export const anonymousAuthSchema = z.object({
+  display_name: nicknameSchema.optional(),
+  device_fingerprint: z.string().trim().min(8).max(128).optional(),
+});
+
 export const createProfileSchema = z.object({
   nickname: nicknameSchema,
   avatar_url: z.string().url().nullish(),
@@ -142,6 +147,13 @@ export const syncSessionSchema = z.object({
   sessionData: syncSessionDataSchema,
 });
 
+// ── Economy ─────────────────────────────────────────────────────────────────
+
+export const claimRunRewardSchema = z.object({
+  session_id: z.string().uuid(),
+  idempotency_key: z.string().trim().min(8).max(128),
+});
+
 // ── Identities ───────────────────────────────────────────────────────────────
 
 export const createIdentitySchema = z.object({
@@ -203,6 +215,24 @@ export const performanceMetricsSchema = z.object({
   resolution: z.string().optional(),
   gpu_info: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+// ── Market runtime audit ────────────────────────────────────────────────────
+
+const marketRuntimeJsonObjectSchema = z.record(z.string(), z.unknown());
+
+const marketRuntimeBatchItemSchema = z.object({
+  runId: z.string().trim().min(1).max(128),
+  seq: z.coerce.number().int().min(0).max(1_000_000),
+  runConstants: marketRuntimeJsonObjectSchema,
+  tick: marketRuntimeJsonObjectSchema,
+  snapshot: marketRuntimeJsonObjectSchema,
+});
+
+export const marketRuntimeBatchSchema = z.object({
+  runId: z.string().trim().min(1).max(128).nullable().optional(),
+  count: z.coerce.number().int().min(1).max(250),
+  items: z.array(marketRuntimeBatchItemSchema).min(1).max(250),
 });
 
 // ── Replays ──────────────────────────────────────────────────────────────────

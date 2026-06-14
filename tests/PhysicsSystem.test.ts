@@ -167,6 +167,7 @@ describe('PhysicsSystem', () => {
       activeParticles: [],
       activeFloatingTexts: [],
       activeSpeedLines: [],
+      activeImpactRings: [],
       activeEnemies: [],
       activeInteractables: [],
       activeGems: [],
@@ -193,6 +194,7 @@ describe('PhysicsSystem', () => {
         magnetized: false,
       })),
       getFloatingText: vi.fn(),
+      getImpactRing: vi.fn(),
     };
 
     // Mock Player

@@ -21,7 +21,7 @@ vi.mock('../../services/analytics/ErrorTracker', () => ({}));
 vi.mock('../../services/analytics/PlayerTracker', () => ({}));
 vi.mock('../../services/analytics/DeviceProfiler', () => ({
   DeviceProfiler: {
-    syncToSupabase: vi.fn(async () => undefined),
+    syncToRailway: vi.fn(async () => undefined),
   },
 }));
 

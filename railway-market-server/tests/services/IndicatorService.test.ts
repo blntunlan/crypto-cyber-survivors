@@ -2,14 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { IndicatorService } from '../../src/services/indicatorService';
 import { Logger } from '../../src/utils/logger';
 
-const mockSupabase = {
+const mockDatabase = {
   updateMarketState: vi.fn().mockResolvedValue(undefined),
 };
 
-// Mock dependencies
-vi.mock('../../src/services/supabaseService', () => ({
-  SupabaseService: {
-    getInstance: vi.fn(() => mockSupabase),
+vi.mock('../../src/services/databaseService', () => ({
+  DatabaseService: {
+    getInstance: vi.fn(() => mockDatabase),
   },
 }));
 
@@ -26,21 +25,20 @@ describe('IndicatorService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSupabase.updateMarketState.mockResolvedValue(undefined);
-    // Reset singleton instance
+    mockDatabase.updateMarketState.mockResolvedValue(undefined);
     (IndicatorService as any).instance = null;
     service = IndicatorService.getInstance();
   });
 
   it('should be a singleton', () => {
-    const s1 = IndicatorService.getInstance();
-    const s2 = IndicatorService.getInstance();
-    expect(s1).toBe(s2);
+    const firstService = IndicatorService.getInstance();
+    const secondService = IndicatorService.getInstance();
+    expect(firstService).toBe(secondService);
   });
 
   it('should initialize with supported pairs', () => {
     const stats = service.getStats();
-    const pairs = stats.pairs.map(p => p.pair);
+    const pairs = stats.pairs.map(pairStats => pairStats.pair);
     expect(pairs).toContain('BTC');
     expect(pairs).toContain('ETH');
     expect(pairs).toContain('SOL');
@@ -58,7 +56,7 @@ describe('IndicatorService', () => {
 
     await service.update(data);
 
-    expect(mockSupabase.updateMarketState).toHaveBeenCalled();
+    expect(mockDatabase.updateMarketState).toHaveBeenCalled();
 
     const stats = service.getStats();
     expect(stats.updates).toBe(1);
@@ -82,7 +80,7 @@ describe('IndicatorService', () => {
   });
 
   it('should handle update errors gracefully', async () => {
-    mockSupabase.updateMarketState.mockRejectedValueOnce(new Error('DB Error'));
+    mockDatabase.updateMarketState.mockRejectedValueOnce(new Error('DB Error'));
 
     const data = {
       pair: 'BTC',
@@ -101,11 +99,9 @@ describe('IndicatorService', () => {
 
   describe('Whale Event Logging', () => {
     it('should log significant whale events', async () => {
-      // Clear logger mocks to be sure
       vi.mocked(Logger.info).mockClear();
 
-      // Feed 30 baseline points to satisfy n >= 10 and build baseline
-      for (let i = 0; i < 30; i++) {
+      for (let index = 0; index < 30; index++) {
         await service.update({
           pair: 'BTC',
           price: 100,
@@ -115,7 +111,6 @@ describe('IndicatorService', () => {
         });
       }
 
-      // Spike volume
       await service.update({
         pair: 'BTC',
         price: 100,

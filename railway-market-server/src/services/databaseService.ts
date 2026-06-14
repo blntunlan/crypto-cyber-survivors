@@ -2,7 +2,6 @@
  * DatabaseService — PostgreSQL database operations
  *
  * Migrated from raw pg queries to Drizzle ORM.
- * Class name kept as SupabaseService for backward compatibility with existing consumers.
  */
 
 import { sql } from 'drizzle-orm';
@@ -12,8 +11,8 @@ import { query } from '../db/pool';
 import { Logger } from '../utils/logger';
 import { ErrorReporter } from '../utils/errorReporter';
 
-export class SupabaseService {
-  private static instance: SupabaseService | null = null;
+export class DatabaseService {
+  private static instance: DatabaseService | null = null;
 
   private constructor() {
     // Validate DATABASE_URL is present
@@ -27,8 +26,8 @@ export class SupabaseService {
     Logger.info('✅ PostgreSQL database service initialized');
   }
 
-  static getInstance(): SupabaseService {
-    return (SupabaseService.instance ??= new SupabaseService());
+  static getInstance(): DatabaseService {
+    return (DatabaseService.instance ??= new DatabaseService());
   }
 
   async insertPriceLog(data: {

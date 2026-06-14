@@ -51,4 +51,11 @@ export type RewardVerificationResponse = {
   verified: boolean;
   reward: number;
   metaShare: number;
+  claimId?: string | null;
+  ledgerEntryId?: string | null;
+  wallet?: {
+    id: string;
+    balance: number;
+    currency: string;
+  } | null;
 };

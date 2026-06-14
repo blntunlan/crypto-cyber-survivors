@@ -58,6 +58,10 @@
           "link": "/docs/architecture/BACKEND_DB_ARCHITECTURE"
         },
         {
+          "text": "Railway Native Platform",
+          "link": "/docs/architecture/RAILWAY_NATIVE_PLATFORM"
+        },
+        {
           "text": "Market Server Infrastructure",
           "link": "/docs/architecture/MARKET_SERVER_INFRASTRUCTURE"
         },
@@ -97,6 +101,10 @@
         {
           "text": "Rewards & Verification",
           "link": "/docs/workflows/rewards-and-verification"
+        },
+        {
+          "text": "Game Feel Juice Workflow",
+          "link": "/docs/workflows/game-feel-juice-workflow"
         },
         {
           "text": "Testing & QA Strategy",

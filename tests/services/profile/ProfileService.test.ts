@@ -1,29 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProfileService } from '../../../services/auth/ProfileService';
-import { supabase } from '../../../services/supabase/client';
+import { RailwayAuthTokenStore } from '../../../services/api/RailwayAuthTokenStore';
 
 // Mock RailwayClient
 const mockGet = vi.fn();
 const mockPost = vi.fn();
 const mockPatch = vi.fn();
+const { mockIsRailwayConfigured } = vi.hoisted(() => ({
+  mockIsRailwayConfigured: vi.fn().mockReturnValue(true),
+}));
 
 vi.mock('../../../services/api/RailwayClient', () => ({
+  isRailwayApiConfigured: mockIsRailwayConfigured,
   railwayClient: {
     get: (...args: unknown[]) => mockGet(...args),
     post: (...args: unknown[]) => mockPost(...args),
     patch: (...args: unknown[]) => mockPatch(...args),
   },
-}));
-
-// Mock Supabase client (only auth remains)
-vi.mock('../../../services/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-      getSession: vi.fn(),
-    },
-  },
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
 }));
 
 // Mock Logger
@@ -36,11 +29,23 @@ vi.mock('../../../services/system/Logger', () => ({
   },
 }));
 
+function saveRailwayAuth(): void {
+  RailwayAuthTokenStore.save({
+    accessToken: 'railway-token',
+    tokenType: 'Bearer',
+    expiresAt: Date.now() + 60_000,
+    account: { id: 'account-123', type: 'anonymous' },
+    profile: { id: 'profile-123', displayName: 'Survivor' },
+  });
+}
+
 describe('ProfileService', () => {
   let service: ProfileService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    mockIsRailwayConfigured.mockReturnValue(true);
     ProfileService.resetInstance();
     service = ProfileService.getInstance();
   });
@@ -55,17 +60,7 @@ describe('ProfileService', () => {
 
   describe('initialize', () => {
     it('should load profile for authenticated user', async () => {
-      const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        app_metadata: {},
-        user_metadata: {},
-      };
-
-      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { user: mockUser },
-        error: null,
-      });
+      saveRailwayAuth();
 
       const profileData = {
         id: 'prof-123',
@@ -87,17 +82,7 @@ describe('ProfileService', () => {
     });
 
     it('should handle missing profile by requiring nickname', async () => {
-      const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        app_metadata: {},
-        user_metadata: {},
-      };
-
-      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { user: mockUser },
-        error: null,
-      });
+      saveRailwayAuth();
 
       // Railway GET /profile returns 404
       mockGet.mockRejectedValueOnce(new Error('404'));
@@ -111,6 +96,7 @@ describe('ProfileService', () => {
 
   describe('createProfile', () => {
     it('should create a new profile successfully', async () => {
+      saveRailwayAuth();
       const params = {
         userId: 'user-123',
         displayName: 'NewPlayer',
@@ -125,11 +111,6 @@ describe('ProfileService', () => {
         last_seen_at: new Date().toISOString(),
       });
 
-      (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: { user: { id: 'user-123', app_metadata: {}, user_metadata: {} } },
-        error: null,
-      });
-
       const result = await service.createProfile(params);
 
       expect(result.isValid).toBe(true);
@@ -141,6 +122,7 @@ describe('ProfileService', () => {
     });
 
     it('should fail if nickname is taken', async () => {
+      saveRailwayAuth();
       const params = { userId: 'user-123', displayName: 'Taken' };
 
       mockPost.mockRejectedValueOnce(new Error('409'));

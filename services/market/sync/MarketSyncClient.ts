@@ -1,5 +1,5 @@
 import { type MarketSyncRecord } from './MarketSyncStore';
-import { supabase } from '../../supabase/client';
+import { RailwayAuthTokenStore } from '../../api/RailwayAuthTokenStore';
 
 export interface MarketSyncClientResult {
   ok: boolean;
@@ -27,14 +27,9 @@ export class MarketSyncClient {
       return { Authorization: `Bearer ${this.apiKey}` };
     }
 
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) {
-        return { Authorization: `Bearer ${token}` };
-      }
-    } catch {
-      // Ignore auth resolution errors and continue without Authorization.
+    const token = RailwayAuthTokenStore.getAccessToken();
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
     }
 
     return {};

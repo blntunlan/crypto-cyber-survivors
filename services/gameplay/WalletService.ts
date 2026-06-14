@@ -12,6 +12,12 @@ export interface WalletTransaction {
   createdAt: string;
 }
 
+type EconomyWalletResponse = {
+  wallet: {
+    balance: number;
+  };
+};
+
 export class WalletService {
   private static instance: WalletService | null = null;
 
@@ -30,10 +36,10 @@ export class WalletService {
     if (profileId.startsWith('anon_')) return 0;
 
     try {
-      const data = await railwayClient.get<{ balance: number }>(
-        '/api/v1/wallet/balance'
+      const data = await railwayClient.get<EconomyWalletResponse>(
+        '/api/v1/economy/wallet'
       );
-      return data.balance;
+      return data.wallet.balance;
     } catch (err) {
       Logger.warn('[WalletService] Failed to fetch balance', err);
       return 0;

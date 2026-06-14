@@ -8,9 +8,13 @@ import { nanoid } from 'nanoid';
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
-const { mockIsSupabaseConfigured, mockSupabaseAuth, mockRailwayClient } = vi.hoisted(
+const {
+  mockIsRailwayApiConfigured,
+  mockSupabaseAuth,
+  mockRailwayClient,
+} = vi.hoisted(
   () => ({
-    mockIsSupabaseConfigured: vi.fn().mockReturnValue(true),
+    mockIsRailwayApiConfigured: vi.fn().mockReturnValue(false),
     mockSupabaseAuth: {
       initialize: vi.fn(),
       dispose: vi.fn(),
@@ -31,24 +35,12 @@ const { mockIsSupabaseConfigured, mockSupabaseAuth, mockRailwayClient } = vi.hoi
   })
 );
 
-vi.mock('../../services/supabase/client', () => ({
-  supabase: {
-    auth: {
-      onAuthStateChange: vi
-        .fn()
-        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
-    },
-  },
-  isSupabaseConfigured: mockIsSupabaseConfigured,
-}));
-
-vi.mock('../../services/auth/SupabaseAuthService', () => ({
-  SupabaseAuthService: mockSupabaseAuth,
+vi.mock('../../services/auth/RailwayAuthService', () => ({
+  RailwayAuthService: mockSupabaseAuth,
 }));
 
 vi.mock('../../services/api/RailwayClient', () => ({
+  isRailwayApiConfigured: mockIsRailwayApiConfigured,
   railwayClient: mockRailwayClient,
 }));
 
@@ -88,6 +80,19 @@ const TestConsumer: React.FC<{
   );
 };
 
+function saveRailwayAuth(profileId = '550e8400-e29b-41d4-a716-446655440000'): void {
+  localStorage.setItem(
+    'crypto-survivors-railway-auth',
+    JSON.stringify({
+      accessToken: 'railway-token',
+      tokenType: 'Bearer',
+      expiresAt: Date.now() + 60_000,
+      account: { id: 'account-123', type: 'anonymous' },
+      profile: { id: profileId, displayName: 'ValidUser' },
+    })
+  );
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe('UserContext', () => {
@@ -95,7 +100,7 @@ describe('UserContext', () => {
     vi.clearAllMocks();
     localStorage.clear();
     UserPersistenceService.clear();
-    mockIsSupabaseConfigured.mockReturnValue(true);
+    mockIsRailwayApiConfigured.mockReturnValue(false);
 
     // Default: local mode (hostname = localhost)
     Object.defineProperty(window, 'location', {
@@ -251,7 +256,7 @@ describe('UserContext', () => {
   describe('Login (remote mode)', () => {
     beforeEach(() => {
       // Switch to remote mode: configured + non-local hostname
-      mockIsSupabaseConfigured.mockReturnValue(true);
+      mockIsRailwayApiConfigured.mockReturnValue(true);
       Object.defineProperty(window, 'location', {
         value: {
           hostname: 'crypto-survivors.com',
@@ -261,7 +266,7 @@ describe('UserContext', () => {
       });
     });
 
-    it('should authenticate via Supabase and create profile', async () => {
+    it('should authenticate via Railway and create profile', async () => {
       // No existing user/session
       mockSupabaseAuth.getUser.mockResolvedValue(null);
       mockSupabaseAuth.getSession.mockResolvedValue(null);
@@ -306,7 +311,7 @@ describe('UserContext', () => {
       });
     });
 
-    it('should validate nickname before creating Supabase session', async () => {
+    it('should validate nickname before creating remote session', async () => {
       let loginResult: { success: boolean; error?: string } | null = null;
 
       const LoginButton: React.FC = () => {
@@ -446,9 +451,7 @@ describe('UserContext', () => {
       });
     });
 
-    it('should re-auth when existing session is stale (getUser returns null)', async () => {
-      // getUser returns null (session expired server-side)
-      mockSupabaseAuth.getUser.mockResolvedValue(null);
+    it('should create Railway session when no local auth token exists', async () => {
       mockSupabaseAuth.getSession.mockResolvedValue(null);
 
       mockSupabaseAuth.signInAnonymously.mockResolvedValue({
@@ -641,7 +644,7 @@ describe('UserContext', () => {
 
   describe('Init (remote mode — session validation)', () => {
     beforeEach(() => {
-      mockIsSupabaseConfigured.mockReturnValue(true);
+      mockIsRailwayApiConfigured.mockReturnValue(true);
       Object.defineProperty(window, 'location', {
         value: {
           hostname: 'crypto-survivors.com',
@@ -651,7 +654,7 @@ describe('UserContext', () => {
       });
     });
 
-    it('should keep user when Supabase user + Railway profile are valid', async () => {
+    it('should keep user when Railway token + profile are valid', async () => {
       const storedUser = {
         profileId: '550e8400-e29b-41d4-a716-446655440000',
         nickname: 'ValidUser',
@@ -659,8 +662,8 @@ describe('UserContext', () => {
         lastSeenAt: Date.now(),
       };
       localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+      saveRailwayAuth(storedUser.profileId);
 
-      mockSupabaseAuth.getUser.mockResolvedValue({ id: 'auth-user-id' });
       mockRailwayClient.get.mockResolvedValue({ id: storedUser.profileId });
 
       render(
@@ -677,7 +680,7 @@ describe('UserContext', () => {
       expect(screen.getByTestId('nickname').textContent).toBe('ValidUser');
     });
 
-    it('should clear user when Supabase session is invalid (getUser returns null)', async () => {
+    it('should clear user when Railway auth token is missing', async () => {
       const storedUser = {
         profileId: '550e8400-e29b-41d4-a716-446655440000',
         nickname: 'ExpiredUser',
@@ -685,9 +688,6 @@ describe('UserContext', () => {
         lastSeenAt: Date.now(),
       };
       localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
-
-      // getUser returns null → session invalid
-      mockSupabaseAuth.getUser.mockResolvedValue(null);
 
       render(
         <UserProvider>
@@ -712,8 +712,8 @@ describe('UserContext', () => {
         lastSeenAt: Date.now(),
       };
       localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+      saveRailwayAuth(storedUser.profileId);
 
-      mockSupabaseAuth.getUser.mockResolvedValue({ id: 'auth-user-id' });
       mockRailwayClient.get.mockRejectedValue(new Error('Profile not found'));
 
       render(
@@ -738,9 +738,9 @@ describe('UserContext', () => {
         lastSeenAt: Date.now(),
       };
       localStorage.setItem('crypto_survivors_user', JSON.stringify(storedUser));
+      saveRailwayAuth(storedUser.profileId);
 
-      // getUser throws network error
-      mockSupabaseAuth.getUser.mockRejectedValue(new TypeError('Failed to fetch'));
+      mockRailwayClient.get.mockRejectedValue(new TypeError('Failed to fetch'));
 
       render(
         <UserProvider>
@@ -794,7 +794,7 @@ describe('UserContext', () => {
       expect(localStorage.getItem('crypto_survivors_user')).toBeNull();
     });
 
-    it('should call SupabaseAuthService.signOut on logout', async () => {
+    it('should call RailwayAuthService.signOut on logout', async () => {
       const mockUser = {
         profileId: '550e8400-e29b-41d4-a716-446655440010',
         nickname: 'LogoutUser2',

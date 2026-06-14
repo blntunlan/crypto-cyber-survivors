@@ -1,10 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 import crypto from 'crypto';
 import { and, eq, sql } from 'drizzle-orm';
-import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
+import { getRequiredAccountId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
-import { profiles, sessions } from '../db/schema';
+import { sessions } from '../db/schema';
 import { getProfileId } from '../db/helpers';
 import { startSessionSchema, verifySessionSchema, syncSessionSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
@@ -31,20 +31,15 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
     const { pair, leverage, position } = parsed.data;
     const db = getDb();
 
-    // Session ownership is bound to the authenticated Supabase user only.
-    const authUserId = getRequiredAuthUserId(req);
-    const profileRows = await db
-      .select({ id: profiles.id })
-      .from(profiles)
-      .where(eq(profiles.authUserId, authUserId))
-      .limit(1);
+    // Session ownership is bound to the authenticated Railway account.
+    const accountId = getRequiredAccountId(req);
+    const profileId = await getProfileId(accountId);
 
-    if (profileRows.length === 0) {
+    if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;
     }
 
-    const profileId = profileRows[0].id;
     const sessionSecret = crypto.randomBytes(32).toString('hex');
 
     const rows = await db
@@ -90,7 +85,7 @@ router.post('/start', requireAuth, asyncHandler(async (req: Request, res: Respon
  */
 router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const authUserId = getRequiredAuthUserId(req);
+    const accountId = getRequiredAccountId(req);
     const parsed = verifySessionSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'sessionId, signature, and payload are required' });
@@ -99,7 +94,7 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
 
     const { sessionId, signature, payload } = parsed.data;
     const db = getDb();
-    const authProfileId = await getProfileId(authUserId);
+    const authProfileId = await getProfileId(accountId);
 
     if (!authProfileId) {
       res.status(404).json({ error: 'Profile not found' });
@@ -269,7 +264,10 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       }
     }
 
-    // 5. Atomic transaction: credit coins + mark verified + transfer meta
+    const rewardAmount = Math.floor(reward);
+    const metaShare = Math.floor(rewardAmount * 0.15);
+
+    // 5. Atomic transaction: mark verified + credit Railway-native wallet ledger
     const txResult = await db.transaction(async (tx) => {
       const lockedResult = await tx.execute(
         sql`SELECT id, profile_id, is_verified FROM sessions WHERE id = ${sessionId} FOR UPDATE`
@@ -292,9 +290,20 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
         throw new Error('ALREADY_VERIFIED');
       }
 
-      // 5a. Atomic coin crediting (PG function)
-      const creditResult = await tx.execute(
-        sql`SELECT * FROM credit_coins(${session.profileId}, ${Math.floor(reward)}, 'game_reward', ${sessionId}, ${JSON.stringify({
+      await tx.execute(
+        sql`INSERT INTO accounts (id, account_type, status)
+            VALUES (${accountId}, 'registered', 'active')
+            ON CONFLICT (id)
+            DO UPDATE SET updated_at = now(), last_seen_at = now()`
+      );
+
+      let claimId: string | null = null;
+      let ledgerEntryId: string | null = null;
+      let wallet: { id: string; balance: number; currency: string } | null = null;
+
+      if (rewardAmount > 0) {
+        const rewardMetadata = {
+          source: 'session.verify',
           pnl: trustedMetrics.pnl,
           kills: trustedMetrics.kills,
           level: trustedMetrics.level,
@@ -303,11 +312,70 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
           portalType: payload.portalType,
           duration: trustedMetrics.survivalSeconds,
           suspiciousFlags,
-        })}::jsonb)`
-      );
+        };
+        const idempotencyKey = `session.verify:${sessionId}`;
 
-      if (creditResult.rows.length === 0) {
-        throw new Error(`Failed to credit coins for session ${sessionId}`);
+        const walletResult = await tx.execute(
+          sql`INSERT INTO wallets (account_id, profile_id, balance, currency)
+              VALUES (${accountId}, ${session.profileId}, 0, 'gold')
+              ON CONFLICT (account_id)
+              DO UPDATE SET profile_id = EXCLUDED.profile_id, updated_at = now()
+              RETURNING id, balance::TEXT AS balance, currency`
+        );
+        const walletRow = walletResult.rows[0] as
+          | { id: string; balance: string; currency: string }
+          | undefined;
+        if (!walletRow) {
+          throw new Error('WALLET_NOT_FOUND');
+        }
+
+        const updatedWalletResult = await tx.execute(
+          sql`UPDATE wallets
+              SET balance = balance + ${rewardAmount}, updated_at = now()
+              WHERE id = ${walletRow.id}
+              RETURNING id, balance::TEXT AS balance, currency`
+        );
+        const updatedWallet = updatedWalletResult.rows[0] as
+          | { id: string; balance: string; currency: string }
+          | undefined;
+        if (!updatedWallet) {
+          throw new Error('WALLET_UPDATE_FAILED');
+        }
+
+        const claimResult = await tx.execute(
+          sql`INSERT INTO reward_claims (
+                account_id, profile_id, session_id, amount, status, idempotency_key, metadata
+              )
+              VALUES (
+                ${accountId}, ${session.profileId}, ${sessionId}, ${rewardAmount},
+                'claimed', ${idempotencyKey}, ${JSON.stringify(rewardMetadata)}::jsonb
+              )
+              RETURNING id`
+        );
+        const claimRow = claimResult.rows[0] as { id: string } | undefined;
+        if (!claimRow) {
+          throw new Error('CLAIM_CREATE_FAILED');
+        }
+        claimId = claimRow.id;
+
+        const ledgerResult = await tx.execute(
+          sql`INSERT INTO ledger_entries (
+                account_id, wallet_id, profile_id, amount, balance_after,
+                entry_type, reference_type, reference_id, idempotency_key, metadata
+              )
+              VALUES (
+                ${accountId}, ${updatedWallet.id}, ${session.profileId}, ${rewardAmount},
+                ${Number(updatedWallet.balance)}, 'session_reward', 'session',
+                ${sessionId}, ${idempotencyKey}, ${JSON.stringify({ claimId })}::jsonb
+              )
+              RETURNING id`
+        );
+        ledgerEntryId = ((ledgerResult.rows[0] as { id?: string } | undefined)?.id ?? null);
+        wallet = {
+          id: updatedWallet.id,
+          balance: Number(updatedWallet.balance),
+          currency: updatedWallet.currency,
+        };
       }
 
       // 5b. Mark session verified
@@ -318,7 +386,7 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
           exitPrice: trustedMetrics.exitPrice,
           survivalSeconds: trustedMetrics.survivalSeconds,
           isVerified: true,
-          rewardAmount: Math.floor(reward),
+          rewardAmount,
           kills: trustedMetrics.kills,
           level: trustedMetrics.level,
           exitType: payload.exitType ?? null,
@@ -332,24 +400,11 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
         throw new Error('ALREADY_VERIFIED');
       }
 
-      // 5c. Transfer meta coins (15% of reward → meta wallet)
-      let metaShare = 0;
-      try {
-        const metaResult = await tx.execute(
-          sql`SELECT * FROM transfer_meta_coins(${session.profileId}, ${Math.floor(reward)})`
-        );
-        if (metaResult.rows.length > 0) {
-          metaShare = Number((metaResult.rows[0] as { meta_share: string }).meta_share);
-        }
-      } catch (metaErr) {
-        Logger.warn(`[Sessions] Meta coin transfer failed for ${sessionId}:`, metaErr);
-      }
-
-      return { metaShare };
+      return { claimId, ledgerEntryId, metaShare, wallet };
     });
 
     Logger.info(
-      `[Sessions] Verified session ${sessionId}: reward=${Math.floor(reward)}, metaShare=${txResult.metaShare}`
+      `[Sessions] Verified session ${sessionId}: reward=${rewardAmount}, metaShare=${txResult.metaShare}`
     );
 
     const { ipAddress, userAgent } = getClientInfo(req);
@@ -359,7 +414,7 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       resource: '/api/v1/sessions/verify',
       details: {
         sessionId,
-        reward: Math.floor(reward),
+        reward: rewardAmount,
         metaShare: txResult.metaShare,
         duration: trustedMetrics.survivalSeconds,
         kills: trustedMetrics.kills,
@@ -372,8 +427,11 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
 
     res.json({
       verified: true,
-      reward: Math.floor(reward),
+      reward: rewardAmount,
       metaShare: txResult.metaShare,
+      claimId: txResult.claimId,
+      ledgerEntryId: txResult.ledgerEntryId,
+      wallet: txResult.wallet,
       pnl: trustedMetrics.pnl,
     });
   } catch (error) {
@@ -420,14 +478,14 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
  */
 router.post('/sync', requireAuth, asyncHandler(async (req: Request, res: Response) => {
   try {
-    const authUserId = getRequiredAuthUserId(req);
+    const accountId = getRequiredAccountId(req);
     const parsed = syncSessionSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'sessionData is required' });
       return;
     }
 
-    const profileId = await getProfileId(authUserId);
+    const profileId = await getProfileId(accountId);
     if (!profileId) {
       res.status(404).json({ error: 'Profile not found' });
       return;

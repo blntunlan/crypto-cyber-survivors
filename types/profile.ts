@@ -2,7 +2,7 @@
  * Profile Types - Type definitions for player profiling and statistics
  */
 
-import { type AuthProvider } from '../services/auth/SupabaseAuthService';
+import { type AuthProvider } from '../services/auth/RailwayAuthService';
 
 export interface PlayerStats {
   totalKills: number;

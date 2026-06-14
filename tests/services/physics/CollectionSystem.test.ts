@@ -46,6 +46,7 @@ describe('CollectionSystem', () => {
       activeGems: [],
       getParticle: vi.fn().mockReturnValue({}),
       getFloatingText: vi.fn(),
+      getImpactRing: vi.fn(),
     } as any;
 
     player = { x: 0, y: 0, radius: 10, exp: 0, nextLevelExp: 100 } as any;
@@ -87,6 +88,63 @@ describe('CollectionSystem', () => {
       system.update(mockPool, player, state, 1);
 
       expect(mockPool.getParticle).toHaveBeenCalledTimes(10);
+    });
+
+    it('should spawn a collection ring when collecting a gem', () => {
+      const gem: Gem = {
+        x: 5,
+        y: 5,
+        radius: 5,
+        value: 10,
+        active: true,
+        color: '#ffd700',
+      } as any;
+      (mockPool as any).activeGems = [gem];
+
+      system.update(mockPool, player, state, 1);
+
+      expect(mockPool.getImpactRing).toHaveBeenCalledWith(
+        gem.x,
+        gem.y,
+        expect.any(Number),
+        expect.any(Number),
+        gem.color,
+        expect.any(Number)
+      );
+    });
+
+    it('should spawn a larger collection ring for rare gems', () => {
+      const normalGem: Gem = {
+        x: 5,
+        y: 5,
+        radius: 5,
+        value: 10,
+        active: true,
+        color: '#ffd700',
+        isRare: false,
+      } as any;
+      (mockPool as any).activeGems = [normalGem];
+
+      system.update(mockPool, player, state, 1);
+      const normalMaxRadius = (mockPool.getImpactRing as any).mock.calls[0][3];
+
+      (mockPool.getImpactRing as any).mockClear();
+      player.exp = 0;
+      const rareGem: Gem = {
+        x: 5,
+        y: 5,
+        radius: 5,
+        value: 10,
+        active: true,
+        color: '#ff10f0',
+        isRare: true,
+      } as any;
+      (mockPool as any).activeGems = [rareGem];
+
+      system.update(mockPool, player, state, 1);
+      const rareMaxRadius = (mockPool.getImpactRing as any).mock.calls[0][3];
+
+      expect(rareMaxRadius).toBeGreaterThan(normalMaxRadius);
     });
 
     it('should add jackpot particles on collection at high leverage', () => {
@@ -158,6 +216,14 @@ describe('CollectionSystem', () => {
       expect(addEffectSpy).toHaveBeenCalledWith('test-class');
       expect(mockContext.buffGems.collectGem).toHaveBeenCalledWith(buffGem);
       expect(mockPool.getFloatingText).toHaveBeenCalled();
+      expect(mockPool.getImpactRing).toHaveBeenCalledWith(
+        buffGem.x,
+        buffGem.y,
+        expect.any(Number),
+        expect.any(Number),
+        buffGem.color,
+        expect.any(Number)
+      );
 
       addEffectSpy.mockRestore();
     });

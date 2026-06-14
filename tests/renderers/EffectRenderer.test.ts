@@ -65,6 +65,7 @@ describe('EffectRenderer', () => {
       activeParticles: [],
       activeFloatingTexts: [],
       activeSpeedLines: [],
+      activeImpactRings: [],
     };
 
     mockState = {
@@ -181,6 +182,34 @@ describe('EffectRenderer', () => {
       });
 
       expect(mockCtx.arc).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('drawImpactRings', () => {
+    it('should draw active impact rings', () => {
+      mockPool.activeImpactRings = [
+        {
+          x: 400,
+          y: 300,
+          radius: 20,
+          maxRadius: 40,
+          color: '#ff0000',
+          lineWidth: 3,
+          life: 0.8,
+        },
+      ];
+
+      (renderer as any).drawImpactRings(mockCtx, mockPool, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      expect(mockCtx.strokeStyle).toBe('#ff0000');
+      expect(mockCtx.lineWidth).toBe(3);
+      expect(mockCtx.arc).toHaveBeenCalledWith(400, 300, 20, 0, Math.PI * 2);
+      expect(mockCtx.stroke).toHaveBeenCalled();
     });
   });
 

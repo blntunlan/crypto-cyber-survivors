@@ -43,7 +43,7 @@ The engine loop is no longer a single monolithic update function. `GameLoopCoord
 - State management: Zustand 5 for settings, progress, and session UI state
 - Market delivery: Railway APIs and streaming endpoints
 - Runtime persistence: IndexedDB/localStorage queues plus Railway session and telemetry endpoints
-- Auth and selected legacy integrations: Supabase clients still exist in parts of the identity flow
+- Auth and backend APIs: Railway-native auth, session, economy, telemetry, and profile routes
 
 ## Core boundaries
 

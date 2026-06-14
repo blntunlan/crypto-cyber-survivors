@@ -14,7 +14,7 @@ import { WalletService } from '../services/gameplay/WalletService';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { CombatSystem } from '../services/combat/CombatSystem';
 import { LeverageEngine } from '../services/gameplay/LeverageEngine';
-import { SupabaseCoinProvider } from '../services/gameplay/SupabaseCoinProvider';
+import { RailwayCoinProvider } from '../services/gameplay/RailwayCoinProvider';
 import { ErrorRecoveryService } from '../services/core/ErrorRecoveryService';
 import { MarketEventManager } from '../services/market/MarketEventManager';
 import { MetaProgressionService } from '../services/progression/MetaProgressionService';
@@ -136,7 +136,7 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
     }, [gameStatus, gameMode]);
 
     useEffect(() => {
-      CoinService.setProvider(new SupabaseCoinProvider());
+      CoinService.setProvider(new RailwayCoinProvider());
       void ErrorRecoveryService;
       void MarketEventManager;
     }, []);

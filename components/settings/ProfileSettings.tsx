@@ -23,10 +23,10 @@ import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedText } from '../themed/ThemedText';
 import { UserAvatar } from '../ui/UserAvatar';
 import {
-  SupabaseAuthService,
+  RailwayAuthService,
   type AuthProvider,
   type ProfileData,
-} from '../../services/auth/SupabaseAuthService';
+} from '../../services/auth/RailwayAuthService';
 import { Logger } from '../../services/system/Logger';
 
 // ============================================
@@ -350,7 +350,7 @@ export const ProfileSettingsContent: React.FC<{
     dispatch({ type: 'loadStart' });
 
     try {
-      const result = await SupabaseAuthService.getCurrentProfile();
+      const result = await RailwayAuthService.getCurrentProfile();
 
       if (result) {
         setProfile(result);
@@ -377,7 +377,7 @@ export const ProfileSettingsContent: React.FC<{
     dispatch({ type: 'saveStart' });
 
     try {
-      const result = await SupabaseAuthService.updateProfileWithAuth({
+      const result = await RailwayAuthService.updateProfileWithAuth({
         displayName: newDisplayName.trim(),
       });
 

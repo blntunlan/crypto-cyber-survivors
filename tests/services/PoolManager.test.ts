@@ -77,6 +77,21 @@ describe('PoolManager', () => {
       expect(pool.activeEnemies.length).toBe(1);
     });
 
+    it('should clear transient hit feedback when reusing enemies', () => {
+      const enemy1 = pool.getEnemy(0, 0, 1, MarketPosition.LONG);
+      enemy1.hitImpactTimer = 1;
+      enemy1.hitRecoilX = 5;
+      enemy1.hitRecoilY = -2;
+      enemy1.active = false;
+      pool.cleanup();
+
+      const enemy2 = pool.getEnemy(10, 20, 1, MarketPosition.LONG);
+
+      expect(enemy2.hitImpactTimer).toBe(0);
+      expect(enemy2.hitRecoilX).toBe(0);
+      expect(enemy2.hitRecoilY).toBe(0);
+    });
+
     it('should create a whale enemy with tier multipliers', () => {
       const whale = pool.getWhaleEnemy(
         100,
@@ -140,6 +155,22 @@ describe('PoolManager', () => {
       expect(particle.x).toBe(100);
       expect(particle.life).toBe(1);
       expect(particle.active).toBe(true);
+    });
+  });
+
+  describe('getImpactRing', () => {
+    it('should create an impact ring with correct properties', () => {
+      const ring = pool.getImpactRing(100, 120, 8, 40, '#00ffff', 3);
+
+      expect(ring.x).toBe(100);
+      expect(ring.y).toBe(120);
+      expect(ring.radius).toBe(8);
+      expect(ring.startRadius).toBe(8);
+      expect(ring.maxRadius).toBe(40);
+      expect(ring.color).toBe('#00ffff');
+      expect(ring.lineWidth).toBe(3);
+      expect(ring.life).toBe(1);
+      expect(ring.active).toBe(true);
     });
   });
 

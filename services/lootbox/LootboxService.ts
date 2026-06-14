@@ -25,7 +25,7 @@ import { type TrendAlignment } from '../../types/runtimeDifficulty';
  * LootboxServiceClass - Internal implementation for managing rewards
  */
 class LootboxServiceClass {
-  // In-memory storage (will be synced with Supabase later)
+  // In-memory storage (will be synced with Railway later)
   private playerLootboxes: Map<string, PlayerLootbox[]> = new Map();
   private currentProfileId: string | null = null;
   private sessionFlags: Set<string> = new Set();

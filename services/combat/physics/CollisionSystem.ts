@@ -127,6 +127,12 @@ export class CollisionSystem implements ICollisionSystem {
       if (enemy.hitFlashTimer && enemy.hitFlashTimer > 0) {
         enemy.hitFlashTimer = Math.max(0, enemy.hitFlashTimer - 1 * dtFactor);
       }
+      if (enemy.hitImpactTimer && enemy.hitImpactTimer > 0) {
+        enemy.hitImpactTimer = Math.max(
+          0,
+          enemy.hitImpactTimer - GAME_ENGINE.ENEMY_HIT_IMPACT_DECAY * dtFactor
+        );
+      }
 
       // 1. Boundary Check (Culling)
       if (this.isOffScreen(enemy, width, height)) {
@@ -178,7 +184,7 @@ export class CollisionSystem implements ICollisionSystem {
         else if (hitResult === 'dodge') frameDodged = true;
       }
       if (hitResult === 'none' && player.hp > 0) {
-        this.checkNearMiss(player, enemy);
+        this.checkNearMiss(pool, player, enemy);
       }
       this.processBulletCollisions(
         pool,
@@ -331,6 +337,9 @@ export class CollisionSystem implements ICollisionSystem {
     EventBus.emit('playerHit', {
       damage: finalDamage,
       remainingHp: player.hp,
+      sourceX: enemy.x,
+      sourceY: enemy.y,
+      enemyType: enemy.type,
     });
 
     EventBus.emit('playerHealthChange', {
@@ -346,6 +355,11 @@ export class CollisionSystem implements ICollisionSystem {
 
     // Visual Feedback (accumulate shake for multi-hit impact)
     state.shake = Math.max(state.shake, GAME_ENGINE.PLAYER_HIT_SHAKE);
+    state.damageIndicators.push({
+      sourceX: enemy.x,
+      sourceY: enemy.y,
+      timestamp: this.ctx.constants.getGameTime(),
+    });
 
     // Audio Feedback (Randomized to avoid spam/phasing)
     if (Math.random() > GAME_ENGINE.HIT_SOUND_PROBABILITY) {
@@ -361,7 +375,7 @@ export class CollisionSystem implements ICollisionSystem {
     return 'hit';
   }
 
-  private checkNearMiss(player: Player, enemy: Enemy): void {
+  private checkNearMiss(pool: IPoolManager, player: Player, enemy: Enemy): void {
     if (!enemy.active || enemy.isDying || !enemy.hasEnteredScreen) {
       return;
     }
@@ -385,6 +399,14 @@ export class CollisionSystem implements ICollisionSystem {
     }
 
     enemy.hasTriggeredNearMiss = true;
+    pool.getImpactRing(
+      player.x,
+      player.y,
+      GAME_ENGINE.NEAR_MISS_RING_START_RADIUS,
+      GAME_ENGINE.NEAR_MISS_RING_RADIUS,
+      physicsColors.BULLET,
+      GAME_ENGINE.NEAR_MISS_RING_LINE_WIDTH
+    );
     EventBus.emit('nearMiss', {
       enemyType: enemy.type,
       distance: Math.max(0, Math.sqrt(distSq) - collisionRadius),
@@ -544,7 +566,20 @@ export class CollisionSystem implements ICollisionSystem {
       bullet.active = false;
     }
 
+    EventBus.emit('enemyDamaged', {
+      damage: bullet.damage,
+      remainingHp: Math.max(0, enemy.health),
+      maxHp: enemy.maxHealth,
+      x: enemy.x,
+      y: enemy.y,
+      enemyId: enemy.id,
+      enemyType: enemy.type,
+      isCrit: !!bullet.isCrit,
+      isSuperCrit: !!bullet.isSuperCrit,
+    });
+
     // Visual/Physics Feedback
+    this.applyHitImpact(enemy, bullet);
     this.spawnImpactParticles(pool, bullet, particleMultiplier);
     this.applyKnockback(enemy, bullet, dtFactor);
     this.triggerCritEffects(bullet, state);
@@ -666,6 +701,33 @@ export class CollisionSystem implements ICollisionSystem {
     // Normalize direction vector and apply force
     enemy.x += (dx / dist) * strength * dtFactor;
     enemy.y += (dy / dist) * strength * dtFactor;
+  }
+
+  private applyHitImpact(enemy: Enemy, bullet: Bullet): void {
+    let dx = bullet.vx;
+    let dy = bullet.vy;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist === 0) {
+      dx = enemy.x - bullet.x;
+      dy = enemy.y - bullet.y;
+      dist = Math.sqrt(dx * dx + dy * dy);
+    }
+
+    if (dist === 0) {
+      enemy.hitRecoilX = 0;
+      enemy.hitRecoilY = 0;
+    } else {
+      const recoilDistance =
+        GAME_ENGINE.ENEMY_HIT_RECOIL_DISTANCE *
+        (bullet.isCrit || bullet.isSuperCrit
+          ? GAME_ENGINE.ENEMY_HIT_RECOIL_CRIT_MULT
+          : 1);
+      enemy.hitRecoilX = (dx / dist) * recoilDistance;
+      enemy.hitRecoilY = (dy / dist) * recoilDistance;
+    }
+
+    enemy.hitImpactTimer = 1;
   }
 
   /**

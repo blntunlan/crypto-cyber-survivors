@@ -1,5 +1,6 @@
 import { GameStatus, type Player, type GameState } from '../../types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
+import { TimeService } from '../core/TimeService';
 import {
   BackgroundRenderer,
   EntityRenderer,
@@ -89,7 +90,7 @@ export class GameRenderer implements IGameRenderer {
       this.entityRenderer.render(ctx, pool, state, player, opts);
       this.effectRenderer.render(ctx, pool, state, player, opts);
 
-      // this.drawDamageIndicators(ctx, state, player);
+      this.drawDamageIndicators(ctx, state, player, graphics.reducedMotion);
 
       // Near Miss Vignette Overlay
       if (state.nearMissTimer > 0) {
@@ -192,11 +193,11 @@ export class GameRenderer implements IGameRenderer {
     ctx.restore();
   }
 
-  /*
   private drawDamageIndicators(
     ctx: CanvasRenderingContext2D,
     state: GameState,
-    player: Player
+    player: Player,
+    reducedMotion: boolean = false
   ): void {
     const now = TimeService.getGameTime();
     const duration = GAME_ENGINE.DAMAGE_INDICATOR_DURATION;
@@ -219,6 +220,9 @@ export class GameRenderer implements IGameRenderer {
         indicator.sourceY - player.y,
         indicator.sourceX - player.x
       );
+      const radius = reducedMotion
+        ? GAME_ENGINE.DAMAGE_INDICATOR_RADIUS * 0.9
+        : GAME_ENGINE.DAMAGE_INDICATOR_RADIUS;
 
       ctx.save();
       ctx.translate(player.x, player.y);
@@ -229,7 +233,7 @@ export class GameRenderer implements IGameRenderer {
       ctx.arc(
         0,
         0,
-        GAME_ENGINE.DAMAGE_INDICATOR_RADIUS,
+        radius,
         -GAME_ENGINE.DAMAGE_INDICATOR_ARC_SWEEP,
         GAME_ENGINE.DAMAGE_INDICATOR_ARC_SWEEP
       );
@@ -256,7 +260,6 @@ export class GameRenderer implements IGameRenderer {
       ctx.restore();
     }
   }
-  */
 
   /**
    * Update background candle positions based on market trend and wave intensity.

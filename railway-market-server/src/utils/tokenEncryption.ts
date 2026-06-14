@@ -4,11 +4,15 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 
 /**
- * Derives a 256-bit encryption key from the JWT secret.
+ * Derives a 256-bit encryption key from Railway-native secrets.
  * Falls back to a fixed key for development when no secret is set.
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.SUPABASE_JWT_SECRET;
+  const secret =
+    process.env.TOKEN_ENCRYPTION_SECRET ??
+    process.env.API_JWT_SECRET ??
+    process.env.RAILWAY_JWT_SECRET ??
+    process.env.JWT_SECRET;
   if (!secret) {
     // Dev fallback — deterministic but not secure
     return createHash('sha256').update('dev-token-encryption-key').digest();

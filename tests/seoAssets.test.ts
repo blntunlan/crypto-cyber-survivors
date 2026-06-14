@@ -38,15 +38,18 @@ describe('SEO crawl assets', () => {
 
   it('guards public SPA routes and raw data resources on the production server', () => {
     const server = readProjectFile('server.js');
+    const redirects = readProjectFile('public/_redirects');
 
     expect(server).toContain('PUBLIC_SPA_ROUTES');
     expect(server).toContain('getHreflangAlternates');
     expect(server).toContain('getCanonicalOriginRedirect');
+    expect(server).toContain('getCanonicalIndexFileRedirectPath');
     expect(server).toContain('getCanonicalQueryRedirect');
     expect(server).toContain("parsedUrl.searchParams.has('q')");
     expect(server).toContain("parsedUrl.searchParams.has('lang')");
     expect(server).toContain("urlPath.startsWith('/docs/')");
     expect(server).toContain("'X-Robots-Tag'");
+    expect(redirects).toContain('/index.html  /  301');
   });
 
   it('does not ship unsupported AI discovery meta tags in base HTML', () => {

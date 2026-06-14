@@ -1,9 +1,7 @@
 /**
- * SupabaseHealthService - Health checker (stub)
+ * RailwayHealthService - Railway API health checker
  *
- * Supabase is now auth-only. All data tables are in Railway PostgreSQL.
  * Use the /debug endpoint on the Railway server for database health checks.
- * This service is kept as a stub for backward compatibility.
  */
 
 import { Logger } from './Logger';
@@ -32,12 +30,12 @@ export interface HealthCheckResult {
   recommendations: string[];
 }
 
-class SupabaseHealthServiceClass {
-  private static instance: SupabaseHealthServiceClass | null = null;
+class RailwayHealthServiceClass {
+  private static instance: RailwayHealthServiceClass | null = null;
   private lastHealthCheck: HealthCheckResult | null = null;
 
-  static getInstance(): SupabaseHealthServiceClass {
-    return (SupabaseHealthServiceClass.instance ??= new SupabaseHealthServiceClass());
+  static getInstance(): RailwayHealthServiceClass {
+    return (RailwayHealthServiceClass.instance ??= new RailwayHealthServiceClass());
   }
 
   /**
@@ -74,7 +72,7 @@ class SupabaseHealthServiceClass {
       this.lastHealthCheck = result;
       return result;
     } catch (error) {
-      Logger.error('[SupabaseHealth] Railway health check failed', error);
+      Logger.error('[RailwayHealth] Railway health check failed', error);
       return {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
@@ -125,4 +123,4 @@ class SupabaseHealthServiceClass {
   }
 }
 
-export const SupabaseHealthService = SupabaseHealthServiceClass.getInstance();
+export const RailwayHealthService = RailwayHealthServiceClass.getInstance();

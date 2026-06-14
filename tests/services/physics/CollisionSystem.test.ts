@@ -122,6 +122,7 @@ describe('CollisionSystem', () => {
       activeInteractables: [], // Added missing property
       getFloatingText: vi.fn(),
       getParticle: vi.fn(() => ({ life: 1 })),
+      getImpactRing: vi.fn(),
     };
 
     mockPlayer = {
@@ -249,8 +250,18 @@ describe('CollisionSystem', () => {
         expect.objectContaining({
           damage: expect.any(Number),
           remainingHp: mockPlayer.hp,
+          sourceX: enemy.x,
+          sourceY: enemy.y,
+          enemyType: enemy.type,
         })
       );
+      expect(mockState.damageIndicators).toEqual([
+        expect.objectContaining({
+          sourceX: enemy.x,
+          sourceY: enemy.y,
+          timestamp: 0,
+        }),
+      ]);
 
       expect(EventBus.emit).toHaveBeenCalledWith(
         'playerHealthChange',
@@ -518,6 +529,14 @@ describe('CollisionSystem', () => {
           distance: expect.any(Number),
         }),
       ]);
+      expect(mockPool.getImpactRing).toHaveBeenCalledWith(
+        mockPlayer.x,
+        mockPlayer.y,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(String),
+        expect.any(Number)
+      );
       expect(enemy.hasTriggeredNearMiss).toBe(true);
     });
   });
@@ -530,6 +549,8 @@ describe('CollisionSystem', () => {
         radius: 20,
         active: true,
         health: 100,
+        maxHealth: 100,
+        type: 'bear',
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [enemy];
@@ -561,6 +582,86 @@ describe('CollisionSystem', () => {
 
       expect(enemy.health).toBe(90);
       expect(bullet.active).toBe(false);
+      expect(enemy.hitImpactTimer).toBe(1);
+      expect(enemy.hitRecoilX).toBe(0);
+      expect(enemy.hitRecoilY).toBe(0);
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'enemyDamaged',
+        expect.objectContaining({
+          damage: 10,
+          remainingHp: 90,
+          maxHp: 100,
+          x: enemy.x,
+          y: enemy.y,
+          enemyType: expect.any(String),
+          isCrit: false,
+          isSuperCrit: false,
+        })
+      );
+    });
+
+    it('should apply directional enemy hit recoil from bullet velocity', () => {
+      const enemy = {
+        x: 100,
+        y: 100,
+        radius: 20,
+        active: true,
+        health: 100,
+        maxHealth: 100,
+        type: 'bear',
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+      const bullet = {
+        x: 100,
+        y: 100,
+        radius: 5,
+        active: true,
+        damage: 10,
+        vx: 10,
+        vy: 0,
+        color: '#fff',
+        isCrit: true,
+      } as Bullet;
+
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
+        }
+      );
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(enemy.hitImpactTimer).toBe(1);
+      expect(enemy.hitRecoilX).toBeGreaterThan(5);
+      expect(enemy.hitRecoilY).toBe(0);
+    });
+
+    it('should decay enemy hit impact timers', () => {
+      const enemy = {
+        x: 100,
+        y: 100,
+        radius: 20,
+        active: true,
+        health: 100,
+        maxHealth: 100,
+        type: 'bear',
+        hitImpactTimer: 1,
+        hitRecoilX: 5,
+        hitRecoilY: 0,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(enemy.hitImpactTimer).toBeLessThan(1);
+      expect(enemy.hitImpactTimer).toBeGreaterThan(0);
     });
 
     it('should show damage numbers immediately on hit', () => {

@@ -314,6 +314,27 @@ describe('MovementSystem', () => {
     });
   });
 
+  describe('Impact Ring Movement', () => {
+    it('should expand impact rings and decrease life', () => {
+      const ring = pool.getImpactRing(100, 100, 8, 40, '#ff0000', 3);
+
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+
+      expect(ring.radius).toBeGreaterThan(8);
+      expect(ring.life).toBeLessThan(1);
+      expect(ring.active).toBe(true);
+    });
+
+    it('should deactivate impact rings when life reaches zero', () => {
+      const ring = pool.getImpactRing(100, 100, 8, 40, '#ff0000', 3);
+      ring.life = 0.01;
+
+      movementSystem.update(pool, 1.0, 800, 600, createMockPlayer());
+
+      expect(ring.active).toBe(false);
+    });
+  });
+
   describe('Dying Enemy Animation', () => {
     it('should progress death animation for dying enemies', () => {
       const enemy = createMockEnemy({ isDying: true, deathProgress: 0 });

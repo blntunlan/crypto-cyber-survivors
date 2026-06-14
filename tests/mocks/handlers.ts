@@ -1,36 +1,34 @@
 import { http, HttpResponse } from 'msw';
-import { supabaseHandlers } from './supabase-handlers';
 
 export const handlers = [
-  // Supabase Auth Mock
-  http.post('*/auth/v1/token', () => {
-    return HttpResponse.json({
-      access_token: 'fake-token',
-      user: { id: 'test-user-id', email: 'test@example.com' },
-    });
-  }),
-
-  // Anonymous Sign-In Mock
-  http.post('*/auth/v1/signup', async ({ request }) => {
+  // Railway Anonymous Sign-In Mock
+  http.post('*/api/v1/auth/anonymous', async ({ request }) => {
     const body = (await request.json()) as any;
+    const displayName = body.display_name ?? 'Player';
+    const profileId = displayName === 'existing_user' ? 'existing-uuid' : 'new-uuid';
 
-    return HttpResponse.json({
-      access_token: 'fake-anon-token',
-      user: {
-        id: body.data?.display_name === 'existing_user' ? 'existing-uuid' : 'new-uuid',
-        email: null,
-        user_metadata: body.data ?? {},
-        is_anonymous: true,
+    return HttpResponse.json(
+      {
+        accessToken: 'fake-railway-token',
+        tokenType: 'Bearer',
+        expiresIn: 2_592_000,
+        account: {
+          id: profileId,
+          type: 'anonymous',
+        },
+        profile: {
+          id: profileId,
+          displayName,
+        },
+        wallet: {
+          id: 'wallet-id',
+          balance: 0,
+          currency: 'gold',
+        },
       },
-      session: {
-        access_token: 'fake-anon-token',
-        user: { id: 'new-uuid' },
-      },
-    });
+      { status: 201 }
+    );
   }),
-
-  // Generic Supabase handlers (placed after auth overrides so the overrides take precedence)
-  ...supabaseHandlers,
 
   // Profiles Table - Select (Check existing)
   http.get('*/rest/v1/profiles', ({ request }) => {
@@ -64,12 +62,12 @@ export const handlers = [
     return HttpResponse.json({ symbol: 'BTCUSDT', price: '50000.00' });
   }),
 
-  // Verification Function Mock
-  http.post('*/functions/v1/verify-game', () => {
+  // Verification endpoint mock
+  http.post('*/api/v1/sessions/verify', () => {
     return HttpResponse.json({ verified: true, reward: 100, verifiedPnL: 5.0 });
   }),
 
-  http.post('*/functions/v1/verify-replay', () => {
+  http.post('*/api/v1/replays/verify', () => {
     return HttpResponse.json({ verified: true, reward: 100 });
   }),
 

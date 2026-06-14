@@ -1,23 +1,4 @@
-// Mock Supabase
-import { vi } from 'vitest';
-vi.mock('../../../services/core/Supabase', () => ({
-  supabase: {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    ilike: vi.fn().mockReturnThis(),
-    single: vi.fn(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    rpc: vi.fn(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-  },
-  isSupabaseConfigured: vi.fn().mockReturnValue(true),
-}));
-
-import { describe, it, expect, beforeEach } from 'vitest';
-import { supabase } from '../../../services/core/Supabase';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UserSessionService } from '../../../services/auth/UserSessionService';
 import { UserPersistenceService } from '../../../services/auth/UserPersistenceService';
 
@@ -39,28 +20,33 @@ vi.mock('../../../services/system/Logger', () => ({
   },
 }));
 
-// Mock SupabaseAuthService
+// Mock RailwayAuthService
 const { mockAuthService } = vi.hoisted(() => ({
   mockAuthService: {
     signInAnonymously: vi.fn(),
   },
 }));
 
-vi.mock('../../../services/auth/SupabaseAuthService', () => ({
-  SupabaseAuthService: mockAuthService,
+const { mockIsRailwayConfigured } = vi.hoisted(() => ({
+  mockIsRailwayConfigured: vi.fn().mockReturnValue(true),
+}));
+
+vi.mock('../../../services/auth/RailwayAuthService', () => ({
+  RailwayAuthService: mockAuthService,
+}));
+
+vi.mock('../../../services/api/RailwayClient', () => ({
+  isRailwayApiConfigured: mockIsRailwayConfigured,
+  railwayClient: {
+    patch: vi.fn(),
+  },
 }));
 
 describe('UserSessionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     UserSessionService.resetForTesting();
-
-    // Reset individual results
-    ((supabase as any).single as any).mockReset();
-    ((supabase as any).rpc as any).mockReset();
-
-    // Default success for register check
-    ((supabase as any).single as any).mockResolvedValue({ data: null, error: null });
+    mockIsRailwayConfigured.mockReturnValue(true);
 
     // Mock hostname to bypass local-only check
     Object.defineProperty(window, 'location', {
@@ -115,7 +101,7 @@ describe('UserSessionService', () => {
   });
 
   describe('registerNickname', () => {
-    it('should register new profile in Supabase', async () => {
+    it('should register new profile through Railway auth', async () => {
       mockAuthService.signInAnonymously.mockResolvedValueOnce({
         success: true,
         user: { id: '550e8400-e29b-41d4-a716-446655440005' },
@@ -130,7 +116,7 @@ describe('UserSessionService', () => {
 
     it('should login as existing profile if nickname exists', async () => {
       // With the new Anonymous Sign-In flow, existing profiles are handled
-      // by Supabase (either linking or failing if it's not truly anonymous)
+      // by Railway auth (either linking or failing if it's not truly anonymous)
       // For this test, we just assume signInAnonymously succeeds
       mockAuthService.signInAnonymously.mockResolvedValueOnce({
         success: true,

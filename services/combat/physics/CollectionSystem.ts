@@ -154,6 +154,7 @@ export class CollectionSystem implements ICollectionSystem {
 
     this.spawnCollectionParticles(pool, gem, perfConfig.particleMultiplier);
     this.spawnLeverageJackpotParticles(pool, gem, perfConfig.particleMultiplier);
+    this.spawnCollectionRing(pool, gem);
 
     EventBus.emit('gemCollected', {
       value: gem.value,
@@ -250,6 +251,7 @@ export class CollectionSystem implements ICollectionSystem {
     state.shake = GAME_ENGINE.COLLECTION_SHAKE_NORMAL;
 
     this.spawnBuffParticles(pool, gem);
+    this.spawnBuffCollectionRing(pool, gem);
 
     pool.getFloatingText(
       gem.x,
@@ -321,6 +323,38 @@ export class CollectionSystem implements ICollectionSystem {
       part.life = GAME_ENGINE.BUFF_PARTICLE_LIFE;
       part.radius = GAME_ENGINE.GEM_PARTICLE_RADIUS;
     }
+  }
+
+  /**
+   * Spawns a lightweight pooled ring to make XP pickup confirmation more readable.
+   */
+  private spawnCollectionRing(pool: IPoolManager, gem: Gem): void {
+    pool.getImpactRing(
+      gem.x,
+      gem.y,
+      GAME_ENGINE.COLLECTION_RING_START_RADIUS,
+      gem.isRare
+        ? GAME_ENGINE.COLLECTION_RING_RADIUS_RARE
+        : GAME_ENGINE.COLLECTION_RING_RADIUS_NORMAL,
+      gem.color,
+      gem.isRare
+        ? GAME_ENGINE.COLLECTION_RING_LINE_WIDTH_RARE
+        : GAME_ENGINE.COLLECTION_RING_LINE_WIDTH_NORMAL
+    );
+  }
+
+  /**
+   * Buff gems use the stronger rare ring treatment because they are run-shaping pickups.
+   */
+  private spawnBuffCollectionRing(pool: IPoolManager, gem: BuffGem): void {
+    pool.getImpactRing(
+      gem.x,
+      gem.y,
+      GAME_ENGINE.COLLECTION_RING_START_RADIUS,
+      GAME_ENGINE.COLLECTION_RING_RADIUS_RARE,
+      gem.color,
+      GAME_ENGINE.COLLECTION_RING_LINE_WIDTH_RARE
+    );
   }
 
   /**

@@ -22,7 +22,7 @@ import { useTheme } from '../../contexts/useTheme';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ProfileStatsService } from '../../services/auth/ProfileStatsService';
 import { type FullProfileData } from '../../types/profile';
-import { type AuthProvider } from '../../services/auth/SupabaseAuthService';
+import { type AuthProvider } from '../../services/auth/RailwayAuthService';
 import { UserAvatar } from '../ui/UserAvatar';
 import { COLORS } from '../../config/Colors';
 import { PANEL_VARIANTS, TEXT_VARIANTS } from '../../config/themeVariants';

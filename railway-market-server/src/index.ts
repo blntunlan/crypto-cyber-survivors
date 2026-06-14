@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { SupabaseService } from './services/supabaseService';
+import { DatabaseService } from './services/databaseService';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import twitterAuthRouter from './services/twitterAuth';
@@ -17,16 +17,18 @@ import {
 } from './middleware/rateLimit';
 
 // API Routes
+import authRouter from './routes/auth';
 import profileRouter from './routes/profile';
 import sessionsRouter from './routes/sessions';
 import walletRouter from './routes/wallet';
+import economyRouter from './routes/economy';
 import leaderboardRouter from './routes/leaderboard';
 import telemetryRouter from './routes/telemetry';
 import identitiesRouter from './routes/identities';
 import metaProgressionRouter from './routes/metaProgression';
 import challengesRouter from './routes/challenges';
 import replaysRouter from './routes/replays';
-import webhookRouter from './routes/webhooks';
+import marketRuntimeRouter from './routes/marketRuntime';
 import adminRouter from './routes/admin';
 
 const app = express();
@@ -74,18 +76,20 @@ app.use(globalLimiter);
 app.use('/api/auth/twitter', authLimiter, twitterAuthRouter);
 
 // ---- API v1 routes ----
+app.use('/api/v1/auth', authLimiter, authRouter);
 app.use('/api/v1/profile', authLimiter, profileRouter);
 app.use('/api/v1/sessions', writeLimiter, sessionsRouter);
 app.use('/api/v1/wallet', writeLimiter, walletRouter);
+app.use('/api/v1/economy', writeLimiter, economyRouter);
 app.use('/api/v1/leaderboard', leaderboardLimiter, leaderboardRouter);
 app.use('/api/v1/telemetry', telemetryLimiter, telemetryRouter);
 app.use('/api/v1/identities', writeLimiter, identitiesRouter);
 app.use('/api/v1/meta', writeLimiter, metaProgressionRouter);
 app.use('/api/v1/challenges', writeLimiter, challengesRouter);
 app.use('/api/v1/replays', writeLimiter, replaysRouter);
+app.use('/api/v1/market', writeLimiter, marketRuntimeRouter);
 
-// ---- Webhooks & Admin (no rate limiter — secret-protected) ----
-app.use('/api/v1/webhooks', webhookRouter);
+// ---- Admin (no rate limiter — secret-protected) ----
 app.use('/api/v1/admin', adminRouter);
 
 // ---- Monitoring endpoints ----
@@ -105,29 +109,15 @@ function getMemoryStats(): Record<string, number> {
 app.get(
   '/health',
   asyncHandler(async (_req: express.Request, res: express.Response) => {
-    const db = await SupabaseService.getInstance().checkHealth();
-
-    // Check Supabase JWKS reachability
-    let jwksHealthy = false;
-    const supabaseUrl = process.env.SUPABASE_URL;
-    if (supabaseUrl) {
-      try {
-        const jwksRes = await fetch(`${supabaseUrl}/auth/v1/.well-known/jwks.json`, {
-          signal: AbortSignal.timeout(3000),
-        });
-        jwksHealthy = jwksRes.ok;
-      } catch {
-        jwksHealthy = false;
-      }
-    }
+    const db = await DatabaseService.getInstance().checkHealth();
 
     res.json({
-      status: db && jwksHealthy ? 'ok' : 'degraded',
+      status: db ? 'ok' : 'degraded',
       service: 'api-server',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       dbConnected: db,
-      jwksReachable: jwksHealthy,
+      authMode: 'railway-native',
     });
   })
 );
@@ -187,7 +177,7 @@ app.get(
   requireAdmin,
   asyncHandler(async (_req: express.Request, res: express.Response) => {
     const pool = getPool();
-    const dbHealthy = await SupabaseService.getInstance().checkHealth();
+    const dbHealthy = await DatabaseService.getInstance().checkHealth();
 
     // DB table row counts
     let tableCounts: Record<string, number> = {};
@@ -383,7 +373,7 @@ async function startServer(): Promise<void> {
     Logger.info('🚀 Starting Railway API Server v3.0...');
 
     // Initialize database service (validates DATABASE_URL)
-    SupabaseService.getInstance();
+    DatabaseService.getInstance();
 
     // Run pending database migrations
     await runMigrations();

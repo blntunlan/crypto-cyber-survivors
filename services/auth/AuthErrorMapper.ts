@@ -1,5 +1,5 @@
 /**
- * AuthErrorMapper - Maps Supabase auth error messages to user-friendly Turkish messages.
+ * AuthErrorMapper - Maps auth error messages to user-friendly Turkish messages.
  */
 
 const AUTH_ERROR_MAP: Record<string, string> = {

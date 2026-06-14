@@ -46,6 +46,7 @@ import { GameEndReason } from '../types/metrics';
 import { GameMode } from '../types/gameMode';
 import { evaluateCycleTimer } from '../services/gameplay/loop/cycleTimer';
 import { HitStopGovernor } from '../services/gameplay/HitStopGovernor';
+import { FeedbackService } from '../services/gameplay/FeedbackService';
 import { CoreGameplayLoop } from '../services/gameplay/CoreGameplayLoop';
 import { PlayerPowerAnalyzer } from '../services/difficulty/PlayerPowerAnalyzer';
 import { LeverageEngine } from '../services/gameplay/LeverageEngine';
@@ -169,6 +170,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     graphicsRef.current.reducedMotion = graphicsSettings.reducedMotion;
     graphicsRef.current.disableGlow = runtimeDebugFlagsRef.current.noGlow;
   }, [graphicsSettings]);
+
+  useEffect(() => {
+    FeedbackService.configure({
+      hapticsEnabled: mobileSettings.hapticFeedback,
+      isMobile: device.isMobile,
+      reducedMotion: graphicsSettings.reducedMotion,
+    });
+  }, [device.isMobile, graphicsSettings.reducedMotion, mobileSettings.hapticFeedback]);
 
   const state = useRef<GameState>({
     bgCandles: [] as Candle[],
@@ -626,6 +635,11 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     position,
     status,
   });
+
+  useEffect(() => {
+    FeedbackService.start();
+    return () => FeedbackService.stop();
+  }, []);
 
   // Expose concise state snapshot for Playwright smoke validation.
   useEffect(() => {

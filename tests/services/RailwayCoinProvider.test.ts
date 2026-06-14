@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SupabaseCoinProvider } from '../../services/gameplay/SupabaseCoinProvider';
+import { RailwayCoinProvider } from '../../services/gameplay/RailwayCoinProvider';
 import { UserSessionService } from '../../services/auth/UserSessionService';
 
 const { railwayGetMock } = vi.hoisted(() => ({
@@ -21,12 +21,12 @@ vi.mock('../../services/auth/UserSessionService', () => ({
   },
 }));
 
-describe('SupabaseCoinProvider', () => {
-  let provider: SupabaseCoinProvider;
+describe('RailwayCoinProvider', () => {
+  let provider: RailwayCoinProvider;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    provider = new SupabaseCoinProvider();
+    provider = new RailwayCoinProvider();
   });
 
   it('should fetch balance for logged in player', async () => {
@@ -34,11 +34,11 @@ describe('SupabaseCoinProvider', () => {
       '550e8400-e29b-41d4-a716-446655440001'
     );
 
-    railwayGetMock.mockResolvedValue({ balance: 500 });
+    railwayGetMock.mockResolvedValue({ wallet: { balance: 500 }, ledger: [] });
 
     const balance = await provider.getBalance();
     expect(balance).toBe(500);
-    expect(railwayGetMock).toHaveBeenCalledWith('/api/v1/wallet/balance');
+    expect(railwayGetMock).toHaveBeenCalledWith('/api/v1/economy/wallet');
   });
 
   it('should return 0 for anonymous players', async () => {

@@ -25,6 +25,9 @@ export async function runMigrations(): Promise<void> {
     { name: '002_fix_leaderboard_view', sql: MIGRATION_002 },
     { name: '003_pg_best_practices', sql: MIGRATION_003 },
     { name: '004_audit_log', sql: MIGRATION_004 },
+    { name: '005_railway_native_foundation', sql: MIGRATION_005 },
+    { name: '006_market_runtime_audit', sql: MIGRATION_006 },
+    { name: '007_railway_only_auth_defaults', sql: MIGRATION_007 },
   ];
 
   for (const migration of migrations) {
@@ -70,7 +73,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   display_name TEXT,
   avatar_url TEXT,
   wallet_address TEXT UNIQUE,
-  primary_auth_provider TEXT DEFAULT 'supabase',
+  primary_auth_provider TEXT DEFAULT 'railway',
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -748,4 +751,176 @@ BEGIN
   RETURN deleted_count;
 END;
 $$ LANGUAGE plpgsql;
+`;
+
+const MIGRATION_005 = `
+-- Migration 005: Railway-native platform foundation
+
+CREATE TABLE IF NOT EXISTS accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_type TEXT NOT NULL DEFAULT 'anonymous',
+  status TEXT NOT NULL DEFAULT 'active',
+  display_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_accounts_type CHECK (account_type IN ('anonymous', 'registered', 'service')),
+  CONSTRAINT ck_accounts_status CHECK (status IN ('active', 'suspended', 'deleted'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_accounts_type ON accounts(account_type);
+CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts(status);
+CREATE INDEX IF NOT EXISTS idx_accounts_last_seen ON accounts(last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS account_identities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  provider_subject TEXT NOT NULL,
+  provider_username TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(provider, provider_subject)
+);
+
+CREATE INDEX IF NOT EXISTS idx_account_identities_account ON account_identities(account_id);
+CREATE INDEX IF NOT EXISTS idx_account_identities_provider ON account_identities(provider);
+
+CREATE TABLE IF NOT EXISTS wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID UNIQUE NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  profile_id UUID UNIQUE REFERENCES profiles(id) ON DELETE SET NULL,
+  balance BIGINT NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'gold',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_wallets_balance_non_negative CHECK (balance >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallets_profile ON wallets(profile_id);
+
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  amount BIGINT NOT NULL,
+  balance_after BIGINT NOT NULL,
+  entry_type TEXT NOT NULL,
+  reference_type TEXT,
+  reference_id TEXT,
+  idempotency_key TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_ledger_entries_balance_after_non_negative CHECK (balance_after >= 0)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_entries_idempotency
+  ON ledger_entries(account_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_account_created ON ledger_entries(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet_created ON ledger_entries(wallet_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_reference ON ledger_entries(reference_type, reference_id);
+
+CREATE TABLE IF NOT EXISTS reward_claims (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID UNIQUE NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  amount BIGINT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'claimed',
+  idempotency_key TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_reward_claims_amount_non_negative CHECK (amount >= 0),
+  CONSTRAINT ck_reward_claims_status CHECK (status IN ('claimed', 'reversed', 'rejected'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reward_claims_idempotency
+  ON reward_claims(account_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_reward_claims_account_created ON reward_claims(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reward_claims_profile ON reward_claims(profile_id);
+
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  request_hash TEXT,
+  response_body JSONB,
+  status_code INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT now() + INTERVAL '24 hours',
+  UNIQUE(scope, key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_idempotency_keys_account ON idempotency_keys(account_id);
+CREATE INDEX IF NOT EXISTS idx_idempotency_keys_expires ON idempotency_keys(expires_at);
+
+CREATE TABLE IF NOT EXISTS audit_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  event_type TEXT NOT NULL,
+  resource TEXT,
+  severity TEXT NOT NULL DEFAULT 'info',
+  metadata JSONB NOT NULL DEFAULT '{}',
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_audit_events_severity CHECK (severity IN ('debug', 'info', 'warn', 'error', 'critical'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_events_account_created ON audit_events(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_profile_created ON audit_events(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_type_created ON audit_events(event_type, created_at DESC);
+`;
+
+const MIGRATION_006 = `
+-- Migration 006: Railway-native market runtime audit
+
+CREATE TABLE IF NOT EXISTS market_runtime_audit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  run_id TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  pair TEXT NOT NULL,
+  source TEXT,
+  run_constants JSONB NOT NULL,
+  tick JSONB NOT NULL,
+  snapshot JSONB NOT NULL,
+  tick_hash TEXT,
+  snapshot_checksum TEXT,
+  client_created_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_market_runtime_audit_seq CHECK (seq >= 0),
+  UNIQUE(account_id, run_id, seq)
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_account_run
+  ON market_runtime_audit(account_id, run_id, seq);
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_profile_created
+  ON market_runtime_audit(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_session_seq
+  ON market_runtime_audit(session_id, seq)
+  WHERE session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_pair_created
+  ON market_runtime_audit(pair, created_at DESC);
+`;
+
+const MIGRATION_007 = `
+-- Migration 007: Railway-only auth defaults
+
+ALTER TABLE profiles
+  ALTER COLUMN primary_auth_provider SET DEFAULT 'railway';
+
+UPDATE profiles
+SET primary_auth_provider = 'railway',
+    updated_at = now()
+WHERE primary_auth_provider IS NULL
+   OR primary_auth_provider = 'supabase';
 `;

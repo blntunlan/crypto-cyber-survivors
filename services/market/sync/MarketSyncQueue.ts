@@ -54,9 +54,15 @@ const resolveSyncEndpoint = (): string | undefined => {
     return endpoint;
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (typeof supabaseUrl === 'string' && supabaseUrl.length > 0) {
-    return `${supabaseUrl}/functions/v1/ingest-run-market-batch`;
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const railwayApiUrl = import.meta.env.VITE_RAILWAY_API_URL;
+  const configuredBaseUrl =
+    typeof apiBaseUrl === 'string' && apiBaseUrl.length > 0
+      ? apiBaseUrl
+      : railwayApiUrl;
+
+  if (typeof configuredBaseUrl === 'string' && configuredBaseUrl.length > 0) {
+    return `${configuredBaseUrl.replace(/\/$/, '')}/api/v1/market/runtime-batch`;
   }
 
   return undefined;

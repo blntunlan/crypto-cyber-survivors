@@ -354,18 +354,23 @@ export class EntityRenderer implements IRenderer {
     isRetro: boolean,
     retroSizeMult: number
   ): void {
-    const ex = Math.round(e.x);
-    const ey = Math.round(e.y);
+    const impact = e.hitImpactTimer ?? 0;
+    const recoilX = (e.hitRecoilX ?? 0) * impact;
+    const recoilY = (e.hitRecoilY ?? 0) * impact;
+    const ex = Math.round(e.x + recoilX);
+    const ey = Math.round(e.y + recoilY);
 
     // 1. Check if we need complex transforms (spawning or hit rotation)
     const isSpawning = e.spawnTimer !== undefined && e.spawnTimer > 0;
     const isHit = e.hitFlashTimer !== undefined && e.hitFlashTimer > 0;
+    const hasImpact = impact > 0;
 
     if (isRetro) {
-      if (isSpawning) {
+      if (isSpawning || hasImpact) {
         ctx.save();
         ctx.translate(ex, ey);
-        this.applyEnemySpawnTransform(ctx, e);
+        if (isSpawning) this.applyEnemySpawnTransform(ctx, e);
+        if (hasImpact) this.applyEnemyHitTransform(ctx, e);
         ctx.fillStyle = isHit ? '#FFFFFF' : e.color;
         if (isHit) ctx.globalAlpha = 0.8;
         const sizeRect = e.radius * retroSizeMult;
@@ -392,6 +397,7 @@ export class EntityRenderer implements IRenderer {
       ctx.save();
       ctx.translate(ex, ey);
       if (isSpawning) this.applyEnemySpawnTransform(ctx, e);
+      if (hasImpact) this.applyEnemyHitTransform(ctx, e);
 
       if (isHit) {
         ctx.fillStyle = '#FFFFFF';
@@ -415,6 +421,21 @@ export class EntityRenderer implements IRenderer {
     if (e.spawnTimer === undefined || e.spawnTimer < 0.7) {
       this.drawEnemyHealthBar(ctx, e, ex, ey);
     }
+  }
+
+  private applyEnemyHitTransform(ctx: CanvasRenderingContext2D, e: Enemy): void {
+    const impact = e.hitImpactTimer ?? 0;
+    if (impact <= 0) return;
+
+    const recoilX = e.hitRecoilX ?? 0;
+    const recoilY = e.hitRecoilY ?? 0;
+    const angle = Math.atan2(recoilY, recoilX);
+    const squashX = 1 + impact * GAME_ENGINE.ENEMY_HIT_SQUASH_X;
+    const squashY = 1 - impact * GAME_ENGINE.ENEMY_HIT_SQUASH_Y;
+
+    ctx.rotate(angle);
+    ctx.scale(squashX, squashY);
+    ctx.rotate(-angle);
   }
 
   /**

@@ -1,10 +1,10 @@
 /**
  * BacktestEngine - AI Director V2 Eğitim Motoru
  *
- * Supabase'den çekilen geçmiş market verileri ile UnifiedDirector'ı eğitir.
+ * Railway market history verileri ile UnifiedDirector'ı eğitir.
  *
  * Eğitim Süreci:
- * 1. Geçmiş market verilerini Supabase'den çek
+ * 1. Geçmiş market verilerini Railway API'den çek
  * 2. Oyun simülasyonu çalıştır
  * 3. Flow state'te kalma süresini ölç
  * 4. Reward hesapla
@@ -253,7 +253,7 @@ class BacktestEngineClass {
   }
 
   /**
-   * Supabase'den eğitim verisi yükle
+   * Railway API'den eğitim verisi yükle
    */
   async loadTrainingData(
     daysBack: number = 7,

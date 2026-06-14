@@ -12,9 +12,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock fetch
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+const { railwayPostMock, isRailwayApiConfiguredMock } = vi.hoisted(() => ({
+  railwayPostMock: vi.fn(),
+  isRailwayApiConfiguredMock: vi.fn(() => true),
+}));
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -64,14 +65,17 @@ vi.mock('../../services/core/EventBus', () => ({
   },
 }));
 
+vi.mock('../../services/api/RailwayClient', () => ({
+  railwayClient: {
+    post: railwayPostMock,
+  },
+  isRailwayApiConfigured: isRailwayApiConfiguredMock,
+}));
+
 // Dynamic import to avoid module caching issues
 async function getQueue() {
   // Clear module cache
   vi.resetModules();
-
-  // Set env vars
-  vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
-  vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
 
   const { VerificationQueue } =
     await import('../../services/verification/VerificationQueue');
@@ -95,6 +99,8 @@ function createTestData(overrides = {}) {
     goldCollected: 150,
     survivalTimeMs: 60000,
     optimisticReward: 100,
+    sessionId: '11111111-1111-4111-8111-111111111111',
+    signature: 'test-signature',
     ...overrides,
   };
 }
@@ -103,9 +109,9 @@ describe('VerificationQueue', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
-    vi.stubGlobal('fetch', mockFetch);
     localStorageMock.clear();
-    mockFetch.mockReset();
+    railwayPostMock.mockReset();
+    isRailwayApiConfiguredMock.mockReturnValue(true);
     mockOnline = true;
     uuidCounter = 0;
   });
@@ -119,9 +125,11 @@ describe('VerificationQueue', () => {
     it('should verify immediately if online', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ verified: true, reward: 100, verifiedPnL: 5.0 }),
+      railwayPostMock.mockResolvedValueOnce({
+        verified: true,
+        reward: 100,
+        metaShare: 15,
+        pnl: 5.0,
       });
 
       const result = await queue.enqueue(createTestData());
@@ -129,27 +137,32 @@ describe('VerificationQueue', () => {
       expect(result.verified).toBe(true);
       expect(result.reward).toBe(100);
       expect(result.verifiedPnL).toBe(5.0);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(railwayPostMock).toHaveBeenCalledTimes(1);
     });
 
-    it('should include correct headers in request', async () => {
+    it('should send Railway session verification payload', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ verified: true }),
+      railwayPostMock.mockResolvedValueOnce({
+        verified: true,
+        reward: 100,
+        metaShare: 15,
       });
 
       await queue.enqueue(createTestData());
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://test.supabase.co/functions/v1/verify-game',
+      expect(railwayPostMock).toHaveBeenCalledWith(
+        '/api/v1/sessions/verify',
         expect.objectContaining({
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer test-key',
-          },
+          sessionId: '11111111-1111-4111-8111-111111111111',
+          signature: 'test-signature',
+          payload: expect.objectContaining({
+            sessionId: '11111111-1111-4111-8111-111111111111',
+            position: 'LONG',
+            survivalSeconds: 60,
+            exitType: 'death',
+            portalType: null,
+          }),
         })
       );
     });
@@ -157,7 +170,7 @@ describe('VerificationQueue', () => {
     it('should queue for retry if immediate fails', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await queue.enqueue(createTestData());
 
@@ -172,13 +185,13 @@ describe('VerificationQueue', () => {
       const queue = await getQueue();
 
       // First attempt fails
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await queue.enqueue(createTestData());
 
       expect(queue.getStats().pendingCount).toBe(1);
 
       // Advance time past initial delay (1000ms) and trigger retry
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await vi.advanceTimersByTimeAsync(1100);
 
       // Still in queue after first retry (retry count = 1)
@@ -190,7 +203,7 @@ describe('VerificationQueue', () => {
 
       // Setup multiple failures
       for (let i = 0; i < 8; i++) {
-        mockFetch.mockRejectedValueOnce(new Error('Network error'));
+        railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       }
 
       await queue.enqueue(createTestData());
@@ -213,7 +226,7 @@ describe('VerificationQueue', () => {
 
       // Setup to fail all 6 attempts (initial + 5 retries)
       for (let i = 0; i < 6; i++) {
-        mockFetch.mockRejectedValueOnce(new Error('Server error'));
+        railwayPostMock.mockRejectedValueOnce(new Error('Server error'));
       }
 
       await queue.enqueue(createTestData());
@@ -235,7 +248,7 @@ describe('VerificationQueue', () => {
       const queue = await getQueue();
 
       // Add a failed request
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await queue.enqueue(createTestData());
 
       expect(queue.getStats().pendingCount).toBe(1);
@@ -244,9 +257,10 @@ describe('VerificationQueue', () => {
       mockOnline = false;
 
       // Advance time - should not process
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ verified: true }),
+      railwayPostMock.mockResolvedValueOnce({
+        verified: true,
+        reward: 50,
+        metaShare: 7,
       });
       await vi.advanceTimersByTimeAsync(5000);
 
@@ -270,11 +284,7 @@ describe('VerificationQueue', () => {
     it('should handle HTTP errors with error message', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: () => Promise.resolve({ error: 'Invalid session data' }),
-      });
+      railwayPostMock.mockRejectedValueOnce(new Error('Invalid session data'));
 
       const result = await queue.enqueue(createTestData());
 
@@ -286,11 +296,7 @@ describe('VerificationQueue', () => {
     it('should handle HTTP errors without error message', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.reject(new Error('JSON parse error')),
-      });
+      railwayPostMock.mockRejectedValueOnce(new Error('HTTP 500'));
 
       const result = await queue.enqueue(createTestData());
 
@@ -301,11 +307,7 @@ describe('VerificationQueue', () => {
     it('should handle 401 unauthorized errors', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: () => Promise.resolve({ error: 'Unauthorized' }),
-      });
+      railwayPostMock.mockRejectedValueOnce(new Error('Unauthorized'));
 
       const result = await queue.enqueue(createTestData());
 
@@ -318,7 +320,7 @@ describe('VerificationQueue', () => {
     it('should save queue to localStorage on failure', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await queue.enqueue(createTestData());
 
       const stored = localStorage.getItem('verification_queue');
@@ -350,7 +352,7 @@ describe('VerificationQueue', () => {
     it('should clear queue and storage', async () => {
       const queue = await getQueue();
 
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await queue.enqueue(createTestData());
 
       expect(queue.getStats().pendingCount).toBe(1);
@@ -387,7 +389,7 @@ describe('VerificationQueue', () => {
       const queue = await getQueue();
 
       const beforeTime = Date.now();
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await queue.enqueue(createTestData());
       const afterTime = Date.now();
 
@@ -402,15 +404,16 @@ describe('VerificationQueue', () => {
       const queue = await getQueue();
 
       // First attempt fails
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      railwayPostMock.mockRejectedValueOnce(new Error('Network error'));
       await queue.enqueue(createTestData());
 
       expect(queue.getStats().pendingCount).toBe(1);
 
       // Second attempt succeeds
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ verified: true, reward: 50 }),
+      railwayPostMock.mockResolvedValueOnce({
+        verified: true,
+        reward: 50,
+        metaShare: 7,
       });
 
       await vi.advanceTimersByTimeAsync(1100);
@@ -425,7 +428,7 @@ describe('VerificationQueue', () => {
       const queue = await getQueue();
 
       // Enqueue multiple failed requests
-      mockFetch.mockRejectedValue(new Error('Network error'));
+      railwayPostMock.mockRejectedValue(new Error('Network error'));
 
       await queue.enqueue(createTestData({ userId: 'user-1' }));
       await queue.enqueue(createTestData({ userId: 'user-2' }));

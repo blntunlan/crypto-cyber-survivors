@@ -44,11 +44,14 @@ describe('WalletService', () => {
       vi.mocked(UserSessionService.getProfileId).mockReturnValue(
         '00000000-0000-0000-0000-000000000001'
       );
-      mockRailwayClient.get.mockResolvedValue({ balance: 150 });
+      mockRailwayClient.get.mockResolvedValue({
+        wallet: { balance: 150 },
+        ledger: [],
+      });
 
       const balance = await WalletService.getInstance().getBalance();
       expect(balance).toBe(150);
-      expect(mockRailwayClient.get).toHaveBeenCalledWith('/api/v1/wallet/balance');
+      expect(mockRailwayClient.get).toHaveBeenCalledWith('/api/v1/economy/wallet');
     });
 
     it('should return 0 on error', async () => {

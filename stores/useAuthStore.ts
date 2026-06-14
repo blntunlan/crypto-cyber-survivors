@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type User, type Session } from '@supabase/supabase-js';
+import { type AuthUser, type AuthSession } from '../services/auth/types';
 
 /**
  * Stages of the authentication flow.
@@ -7,8 +7,8 @@ import { type User, type Session } from '@supabase/supabase-js';
 export type AuthStage = 'LOGIN' | 'OTP_VERIFY' | 'NICKNAME_SETUP' | 'COMPLETE';
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: AuthSession | null;
   loading: boolean;
   error: string | null;
   authStage: AuthStage;
@@ -17,7 +17,7 @@ interface AuthState {
   /**
    * Updates the current session and associated user.
    */
-  setSession: (session: Session | null) => void;
+  setSession: (session: AuthSession | null) => void;
 
   /**
    * Sets the loading state.

@@ -84,6 +84,7 @@ export class MovementSystem implements IMovementSystem {
     this.updateParticles(pool, dtFactor);
     this.updateFloatingTexts(pool, dtFactor);
     this.updateSpeedLines(pool, dtFactor);
+    this.updateImpactRings(pool, dtFactor);
     this.updateDyingEnemies(pool, dtFactor);
   }
 
@@ -150,6 +151,19 @@ export class MovementSystem implements IMovementSystem {
       if (line.opacity <= 0) {
         line.active = false;
       }
+    });
+  }
+
+  private updateImpactRings(pool: IPoolManager, dtFactor: number): void {
+    pool.activeImpactRings.forEach(ring => {
+      ring.life -= GAME_ENGINE.IMPACT_RING_LIFE_DECAY * dtFactor;
+      if (ring.life <= 0) {
+        ring.active = false;
+        return;
+      }
+
+      const progress = 1 - ring.life;
+      ring.radius = ring.startRadius + (ring.maxRadius - ring.startRadius) * progress;
     });
   }
 

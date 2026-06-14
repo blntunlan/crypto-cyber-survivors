@@ -38,6 +38,7 @@ export type GameEvent =
   | 'levelUpComplete'
   | 'gameOver'
   | 'critHit'
+  | 'enemyDamaged'
   | 'playerHit'
   | 'playerHealed'
   | 'bulletFired'
@@ -122,10 +123,10 @@ export type GameEvent =
   | 'portalClosed'
   | 'portalExtraction'
   | 'gameplayValidation'
-  // Supabase health events
-  | 'supabaseHealthCheck'
-  | 'supabaseConnectionLost'
-  | 'supabaseConnectionRestored'
+  // Railway health events
+  | 'railwayHealthCheck'
+  | 'railwayConnectionLost'
+  | 'railwayConnectionRestored'
   // Twitter auth events
   | 'twitterLoginSuccess'
   | 'twitterUnlinked'
@@ -160,7 +161,7 @@ export type GameEvent =
   | 'priceMomentumUpdate'
   // Consolidated market event (Step 3)
   | 'canonicalMarketUpdate'
-  // Supabase auth events
+  // Railway auth events
   | 'authStateChanged'
   // Market Event Announcements
   | 'marketAnnouncement'
@@ -234,10 +235,26 @@ export interface CritHitEvent {
   count?: number;
 }
 
+/** Enemy damaged event data */
+export interface EnemyDamagedEvent {
+  damage: number;
+  remainingHp: number;
+  maxHp: number;
+  x: number;
+  y: number;
+  enemyId?: string;
+  enemyType: string;
+  isCrit: boolean;
+  isSuperCrit: boolean;
+}
+
 /** Player hit event data */
 export interface PlayerHitEvent {
   damage: number;
   remainingHp: number;
+  sourceX?: number;
+  sourceY?: number;
+  enemyType?: string;
 }
 
 /** Bullet fired event data */
@@ -702,6 +719,7 @@ export interface EventDataMap {
   levelUpComplete: LevelUpCompleteEvent;
   gameOver: GameOverEvent;
   critHit: CritHitEvent;
+  enemyDamaged: EnemyDamagedEvent;
   playerHit: PlayerHitEvent;
   playerHealed: PlayerHealedEvent;
   bulletFired: BulletFiredEvent;
@@ -904,10 +922,10 @@ export interface EventDataMap {
 
   // Gameplay validation events
   gameplayValidation: GameplayValidationEvent;
-  // Supabase health events
-  supabaseHealthCheck: SupabaseHealthCheckEvent;
-  supabaseConnectionLost: { error: string; timestamp: string };
-  supabaseConnectionRestored: { latencyMs: number; timestamp: string };
+  // Railway health events
+  railwayHealthCheck: RailwayHealthCheckEvent;
+  railwayConnectionLost: { error: string; timestamp: string };
+  railwayConnectionRestored: { latencyMs: number; timestamp: string };
   // Twitter auth events
   twitterLoginSuccess: { username: string; displayName: string };
   twitterUnlinked: Record<string, never>;
@@ -934,7 +952,7 @@ export interface EventDataMap {
   priceMomentumUpdate: PriceMomentumUpdateEvent;
   // Consolidated market event (Step 3)
   canonicalMarketUpdate: CanonicalMarketPayload;
-  // Supabase auth state change event
+  // Railway auth state change event
   authStateChanged: AuthStateChangedEvent;
   // Market Event Announcements
   marketAnnouncement: MarketAnnouncementEvent;
@@ -979,7 +997,7 @@ export type EventCallback<K extends GameEvent> = (data: EventDataMap[K]) => void
 // SESSION SYNC EVENTS
 // =============================================================================
 
-/** Session successfully synced to Supabase */
+/** Session successfully synced to Railway */
 export interface SessionSyncedEvent {
   sessionId: string;
   profileId: string;
@@ -992,8 +1010,8 @@ export interface SessionSyncFailedEvent {
   retryCount: number;
 }
 
-/** Supabase health check result event */
-export interface SupabaseHealthCheckEvent {
+/** Railway health check result event */
+export interface RailwayHealthCheckEvent {
   status: 'healthy' | 'degraded' | 'unhealthy';
   latencyMs: number;
   recommendations: string[];
@@ -1009,7 +1027,7 @@ export interface MarketAnnouncementEvent {
   priority: number;
 }
 
-/** Auth state changed event (Supabase Auth) */
+/** Auth state changed event (Railway Auth) */
 export interface AuthStateChangedEvent {
   type:
     | 'signIn'

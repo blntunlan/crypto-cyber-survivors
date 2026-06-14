@@ -68,7 +68,6 @@ export default defineConfig(({ mode }) => {
             : 'assets/[name]-[hash].[ext]',
           manualChunks: {
             'vendor-react': ['react', 'react-dom'],
-            'vendor-supabase': ['@supabase/supabase-js'],
             'vendor-ui': ['framer-motion', 'lucide-react'],
             'vendor-utils': ['zod', 'zustand', 'howler', 'nanoid'],
           },

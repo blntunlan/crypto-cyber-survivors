@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SupabaseHealthService } from '../../../services/system/SupabaseHealthService';
+import { RailwayHealthService } from '../../../services/system/RailwayHealthService';
 
 const mockRailwayClient = vi.hoisted(() => ({
   get: vi.fn(),
@@ -18,10 +18,10 @@ vi.mock('../../../services/system/Logger', () => ({
   },
 }));
 
-describe('SupabaseHealthService', () => {
+describe('RailwayHealthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (SupabaseHealthService as any).reset();
+    (RailwayHealthService as any).reset();
   });
 
   it('should return healthy when Railway DB is connected', async () => {
@@ -30,7 +30,7 @@ describe('SupabaseHealthService', () => {
       database: { pool: { totalCount: 5, idleCount: 3, waitingCount: 0 } },
     });
 
-    const result = await SupabaseHealthService.runHealthCheck();
+    const result = await RailwayHealthService.runHealthCheck();
 
     expect(result.status).toBe('healthy');
     expect(result.summary).toContain('connected');
@@ -42,7 +42,7 @@ describe('SupabaseHealthService', () => {
       database: { pool: { totalCount: 0, idleCount: 0, waitingCount: 0 } },
     });
 
-    const result = await SupabaseHealthService.runHealthCheck();
+    const result = await RailwayHealthService.runHealthCheck();
 
     expect(result.status).toBe('unhealthy');
     expect(result.summary).toContain('disconnected');
@@ -51,7 +51,7 @@ describe('SupabaseHealthService', () => {
   it('should return unhealthy when Railway API is unreachable', async () => {
     mockRailwayClient.get.mockRejectedValue(new Error('Network error'));
 
-    const result = await SupabaseHealthService.runHealthCheck();
+    const result = await RailwayHealthService.runHealthCheck();
 
     expect(result.status).toBe('unhealthy');
     expect(result.summary).toContain('UNHEALTHY');
@@ -60,7 +60,7 @@ describe('SupabaseHealthService', () => {
   it('should ping Railway health endpoint', async () => {
     mockRailwayClient.get.mockResolvedValue({ status: 'ok' });
 
-    const result = await SupabaseHealthService.ping();
+    const result = await RailwayHealthService.ping();
 
     expect(result.ok).toBe(true);
     expect(result.latencyMs).toBeGreaterThanOrEqual(0);
@@ -69,30 +69,30 @@ describe('SupabaseHealthService', () => {
   it('should return failed ping when Railway is unreachable', async () => {
     mockRailwayClient.get.mockRejectedValue(new Error('Connection refused'));
 
-    const result = await SupabaseHealthService.ping();
+    const result = await RailwayHealthService.ping();
 
     expect(result.ok).toBe(false);
     expect(result.latencyMs).toBe(-1);
   });
 
   it('should validate individual tables (stub always returns valid)', async () => {
-    const result = await SupabaseHealthService.validateTable('profiles');
+    const result = await RailwayHealthService.validateTable('profiles');
 
     expect(result.valid).toBe(true);
     expect(result.issues).toHaveLength(0);
   });
 
   it('should store and return last health check result', async () => {
-    expect(SupabaseHealthService.getLastResult()).toBeNull();
+    expect(RailwayHealthService.getLastResult()).toBeNull();
 
     mockRailwayClient.get.mockResolvedValue({
       pipeline: { binanceConnected: true, dbConnected: true },
       database: { pool: { totalCount: 5, idleCount: 3, waitingCount: 0 } },
     });
 
-    await SupabaseHealthService.runHealthCheck();
+    await RailwayHealthService.runHealthCheck();
 
-    const lastResult = SupabaseHealthService.getLastResult();
+    const lastResult = RailwayHealthService.getLastResult();
     expect(lastResult).not.toBeNull();
     expect(lastResult?.status).toBe('healthy');
   });

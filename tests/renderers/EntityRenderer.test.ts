@@ -348,6 +348,39 @@ describe('EntityRenderer', () => {
       expect(renderEnemyLivingSpy).toHaveBeenCalled();
     });
 
+    it('should apply hit impact transform for damaged enemies', () => {
+      mockPool.activeEnemies = [
+        {
+          x: 300,
+          y: 300,
+          radius: 15,
+          color: '#ff0000',
+          health: 80,
+          maxHealth: 100,
+          isDying: false,
+          hitFlashTimer: 4,
+          hitImpactTimer: 1,
+          hitRecoilX: 5,
+          hitRecoilY: 0,
+        },
+      ];
+
+      (renderer as any).drawEnemies(mockCtx, mockPool, {
+        left: 0,
+        right: 800,
+        top: 0,
+        bottom: 600,
+      });
+
+      expect(mockCtx.translate).toHaveBeenCalledWith(305, 300);
+      expect(mockCtx.rotate).toHaveBeenCalled();
+      expect(mockCtx.scale).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockCtx.fillStyleSpy).toHaveBeenCalledWith('#FFFFFF');
+    });
+
     it('should draw dying enemies', () => {
       mockPool.activeEnemies = [
         {

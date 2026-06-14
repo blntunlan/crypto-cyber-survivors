@@ -9,11 +9,13 @@ import {
 import { MarketSyncClient } from '../../../services/market/sync/MarketSyncClient';
 import { type MarketSyncRecord } from '../../../services/market/sync/MarketSyncStore';
 
-vi.mock('../../../services/supabase/client', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(async () => ({ data: { session: null } })),
-    },
+const { getAccessTokenMock } = vi.hoisted(() => ({
+  getAccessTokenMock: vi.fn(() => null),
+}));
+
+vi.mock('../../../services/api/RailwayAuthTokenStore', () => ({
+  RailwayAuthTokenStore: {
+    getAccessToken: getAccessTokenMock,
   },
 }));
 
@@ -83,6 +85,8 @@ const createRecord = (runId: string, seq: number): MarketSyncRecord => {
 describe('MarketSyncClient', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    getAccessTokenMock.mockReset();
+    getAccessTokenMock.mockReturnValue(null);
   });
 
   it('returns retriable error when endpoint is missing', async () => {
@@ -126,5 +130,20 @@ describe('MarketSyncClient', () => {
     const [, options] = fetchSpy.mock.calls[0] ?? [];
     const headers = (options?.headers ?? {}) as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer test-api-key');
+  });
+
+  it('uses stored Railway auth token when apiKey is omitted', async () => {
+    getAccessTokenMock.mockReturnValue('railway-token');
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+
+    const client = new MarketSyncClient({ endpoint: 'https://example.com/sync' });
+    const result = await client.sendBatch([createRecord('run-a', 1)]);
+
+    expect(result.ok).toBe(true);
+    const [, options] = fetchSpy.mock.calls[0] ?? [];
+    const headers = (options?.headers ?? {}) as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer railway-token');
   });
 });

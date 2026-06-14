@@ -30,6 +30,49 @@ const bytea = customType<{ data: Buffer; driverValue: Buffer }>({
   },
 });
 
+// ── Railway-native accounts foundation ──────────────────────────────────────
+
+export const accounts = pgTable(
+  'accounts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountType: text('account_type').notNull().default('anonymous'),
+    status: text('status').notNull().default('active'),
+    displayName: text('display_name'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_accounts_type', sql`${table.accountType} IN ('anonymous', 'registered', 'service')`),
+    check('ck_accounts_status', sql`${table.status} IN ('active', 'suspended', 'deleted')`),
+    index('idx_accounts_type').on(table.accountType),
+    index('idx_accounts_status').on(table.status),
+    index('idx_accounts_last_seen').on(table.lastSeenAt),
+  ]
+);
+
+export const accountIdentities = pgTable(
+  'account_identities',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    providerSubject: text('provider_subject').notNull(),
+    providerUsername: text('provider_username'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique('account_identities_provider_subject_key').on(table.provider, table.providerSubject),
+    index('idx_account_identities_account').on(table.accountId),
+    index('idx_account_identities_provider').on(table.provider),
+  ]
+);
+
 // ── 1. profiles ──────────────────────────────────────────────────────────────
 
 export const profiles = pgTable(
@@ -41,7 +84,7 @@ export const profiles = pgTable(
     displayName: text('display_name'),
     avatarUrl: text('avatar_url'),
     walletAddress: text('wallet_address').unique(),
-    primaryAuthProvider: text('primary_auth_provider').default('supabase'),
+    primaryAuthProvider: text('primary_auth_provider').default('railway'),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -49,6 +92,128 @@ export const profiles = pgTable(
   (table) => [
     index('idx_profiles_auth_user_id').on(table.authUserId),
     index('idx_profiles_nickname').on(table.nickname),
+  ]
+);
+
+// ── Railway-native economy foundation ───────────────────────────────────────
+
+export const wallets = pgTable(
+  'wallets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id')
+      .unique()
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id')
+      .unique()
+      .references(() => profiles.id, { onDelete: 'set null' }),
+    balance: bigint('balance', { mode: 'number' }).notNull().default(0),
+    currency: text('currency').notNull().default('gold'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_wallets_balance_non_negative', sql`${table.balance} >= 0`),
+    index('idx_wallets_profile').on(table.profileId),
+  ]
+);
+
+export const ledgerEntries = pgTable(
+  'ledger_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    walletId: uuid('wallet_id')
+      .notNull()
+      .references(() => wallets.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    balanceAfter: bigint('balance_after', { mode: 'number' }).notNull(),
+    entryType: text('entry_type').notNull(),
+    referenceType: text('reference_type'),
+    referenceId: text('reference_id'),
+    idempotencyKey: text('idempotency_key'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_ledger_entries_balance_after_non_negative', sql`${table.balanceAfter} >= 0`),
+    unique('idx_ledger_entries_idempotency').on(table.accountId, table.idempotencyKey),
+    index('idx_ledger_entries_account_created').on(table.accountId, table.createdAt),
+    index('idx_ledger_entries_wallet_created').on(table.walletId, table.createdAt),
+    index('idx_ledger_entries_reference').on(table.referenceType, table.referenceId),
+  ]
+);
+
+export const rewardClaims = pgTable(
+  'reward_claims',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    sessionId: uuid('session_id')
+      .unique()
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    status: text('status').notNull().default('claimed'),
+    idempotencyKey: text('idempotency_key'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_reward_claims_amount_non_negative', sql`${table.amount} >= 0`),
+    check('ck_reward_claims_status', sql`${table.status} IN ('claimed', 'reversed', 'rejected')`),
+    unique('idx_reward_claims_idempotency').on(table.accountId, table.idempotencyKey),
+    index('idx_reward_claims_account_created').on(table.accountId, table.createdAt),
+    index('idx_reward_claims_profile').on(table.profileId),
+  ]
+);
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    scope: text('scope').notNull(),
+    requestHash: text('request_hash'),
+    responseBody: jsonb('response_body'),
+    statusCode: integer('status_code'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    unique('idempotency_keys_scope_key').on(table.scope, table.key),
+    index('idx_idempotency_keys_account').on(table.accountId),
+    index('idx_idempotency_keys_expires').on(table.expiresAt),
+  ]
+);
+
+export const auditEvents = pgTable(
+  'audit_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
+    profileId: uuid('profile_id').references(() => profiles.id, { onDelete: 'set null' }),
+    eventType: text('event_type').notNull(),
+    resource: text('resource'),
+    severity: text('severity').notNull().default('info'),
+    metadata: jsonb('metadata').notNull().default({}),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_audit_events_severity', sql`${table.severity} IN ('debug', 'info', 'warn', 'error', 'critical')`),
+    index('idx_audit_events_account_created').on(table.accountId, table.createdAt),
+    index('idx_audit_events_profile_created').on(table.profileId, table.createdAt),
+    index('idx_audit_events_type_created').on(table.eventType, table.createdAt),
   ]
 );
 
@@ -157,6 +322,54 @@ export const sessions = pgTable(
       table.pair,
       table.survivalSeconds
     ),
+  ]
+);
+
+// ── Railway-native market runtime audit ──────────────────────────────────────
+
+export const marketRuntimeAudit = pgTable(
+  'market_runtime_audit',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    profileId: uuid('profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    sessionId: uuid('session_id').references(() => sessions.id, {
+      onDelete: 'set null',
+    }),
+    runId: text('run_id').notNull(),
+    seq: integer('seq').notNull(),
+    pair: text('pair').notNull(),
+    source: text('source'),
+    runConstants: jsonb('run_constants').notNull(),
+    tick: jsonb('tick').notNull(),
+    snapshot: jsonb('snapshot').notNull(),
+    tickHash: text('tick_hash'),
+    snapshotChecksum: text('snapshot_checksum'),
+    clientCreatedAt: timestamp('client_created_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('ck_market_runtime_audit_seq', sql`${table.seq} >= 0`),
+    unique('market_runtime_audit_account_run_seq_key').on(
+      table.accountId,
+      table.runId,
+      table.seq
+    ),
+    index('idx_market_runtime_audit_account_run').on(
+      table.accountId,
+      table.runId,
+      table.seq
+    ),
+    index('idx_market_runtime_audit_profile_created').on(
+      table.profileId,
+      table.createdAt
+    ),
+    index('idx_market_runtime_audit_session_seq').on(table.sessionId, table.seq),
+    index('idx_market_runtime_audit_pair_created').on(table.pair, table.createdAt),
   ]
 );
 

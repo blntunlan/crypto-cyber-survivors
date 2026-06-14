@@ -21,7 +21,7 @@ import {
   User,
   type LucideIcon,
 } from 'lucide-react';
-import type { AuthProvider } from '../../services/auth/SupabaseAuthService';
+import type { AuthProvider } from '../../services/auth/RailwayAuthService';
 
 // ============================================
 // Types

@@ -7,21 +7,29 @@
  * - Synchronized with Railway API
  */
 
-import { supabase, isSupabaseConfigured } from '../supabase/client';
-import { railwayClient } from '../api/RailwayClient';
+import { isRailwayApiConfigured, railwayClient } from '../api/RailwayClient';
+import { RailwayAuthTokenStore } from '../api/RailwayAuthTokenStore';
 import { Logger } from '../system/Logger';
 
 interface DBProfile {
   id: string;
   auth_user_id?: string | null;
+  authUserId?: string | null;
   nickname?: string | null;
   display_name?: string | null;
+  displayName?: string | null;
   avatar_url?: string | null;
+  avatarUrl?: string | null;
   wallet_address?: string | null;
+  walletAddress?: string | null;
   primary_auth_provider?: string | null;
+  primaryAuthProvider?: string | null;
   last_seen_at?: string | null;
+  lastSeenAt?: string | null;
   created_at?: string | null;
+  createdAt?: string | null;
   updated_at?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface PlayerProfile {
@@ -68,21 +76,19 @@ export class ProfileService {
    * Initialize and validate the current user's profile
    */
   async initialize(): Promise<ProfileValidationResult> {
-    // Check if Supabase Auth is configured
-    if (!isSupabaseConfigured()) {
-      Logger.warn('[ProfileService] Supabase not configured');
+    const railwayAuth = RailwayAuthTokenStore.get();
+    if (!isRailwayApiConfigured()) {
+      Logger.warn('[ProfileService] Backend not configured');
       return { isValid: false, error: 'Backend not configured' };
     }
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    if (!railwayAuth) {
+      Logger.info('[ProfileService] No authenticated user found');
+      return { isValid: false, error: 'Not authenticated' };
+    }
 
-      if (!user) {
-        Logger.info('[ProfileService] No authenticated user found');
-        return { isValid: false, error: 'Not authenticated' };
-      }
+    try {
+      const user = this.createRailwayUserContext(railwayAuth);
 
       // Fetch profile from Railway API
       try {
@@ -126,8 +132,13 @@ export class ProfileService {
     emailVerified?: boolean;
     authProvider?: string;
   }): Promise<ProfileValidationResult> {
-    if (!isSupabaseConfigured()) {
+    if (!isRailwayApiConfigured()) {
       return { isValid: false, error: 'Backend not configured' };
+    }
+
+    const railwayAuth = RailwayAuthTokenStore.get();
+    if (!railwayAuth) {
+      return { isValid: false, error: 'User not found' };
     }
 
     try {
@@ -136,13 +147,7 @@ export class ProfileService {
         avatar_url: params.avatarUrl,
       });
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        return { isValid: false, error: 'User not found' };
-      }
+      const user = this.createRailwayUserContext(railwayAuth);
 
       this.currentProfile = this.mapToPlayerProfile(newProfile, user);
       this.isInitialized = true;
@@ -163,16 +168,13 @@ export class ProfileService {
    * Validate current session and profile
    */
   async validateSession(): Promise<ProfileValidationResult> {
-    if (!isSupabaseConfigured()) {
+    if (!isRailwayApiConfigured()) {
       return { isValid: false, error: 'Backend not configured' };
     }
 
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
+      const railwayAuth = RailwayAuthTokenStore.get();
+      if (!railwayAuth) {
         this.currentProfile = null;
         return { isValid: false, error: 'No active session' };
       }
@@ -273,22 +275,39 @@ export class ProfileService {
     }
   ): PlayerProfile {
     const authProvider =
-      dbProfile.primary_auth_provider ?? this.extractAuthProvider(user);
+      dbProfile.primary_auth_provider ??
+      dbProfile.primaryAuthProvider ??
+      this.extractAuthProvider(user);
     return {
       id: dbProfile.id,
-      authUserId: dbProfile.auth_user_id ?? undefined,
-      displayName: dbProfile.display_name ?? dbProfile.nickname ?? 'Player',
-      avatarUrl: dbProfile.avatar_url ?? undefined,
+      authUserId: dbProfile.auth_user_id ?? dbProfile.authUserId ?? undefined,
+      displayName: dbProfile.display_name ?? dbProfile.displayName ?? dbProfile.nickname ?? 'Player',
+      avatarUrl: dbProfile.avatar_url ?? dbProfile.avatarUrl ?? undefined,
       highScore: 0,
       level: 1,
       xp: 0,
       isBanned: false,
       isTester: false,
       totalSessions: 0,
-      createdAt: dbProfile.created_at ?? new Date().toISOString(),
-      lastSeenAt: dbProfile.last_seen_at ?? new Date().toISOString(),
+      createdAt: dbProfile.created_at ?? dbProfile.createdAt ?? new Date().toISOString(),
+      lastSeenAt: dbProfile.last_seen_at ?? dbProfile.lastSeenAt ?? new Date().toISOString(),
       authProvider,
       isVerified: authProvider !== 'anonymous' && authProvider !== 'nickname',
+    };
+  }
+
+  private createRailwayUserContext(auth: {
+    account: { id: string; type: string };
+    profile: { displayName: string };
+  }): {
+    id: string;
+    app_metadata?: { provider?: string };
+    user_metadata?: { wallet_address?: string };
+  } {
+    return {
+      id: auth.account.id,
+      app_metadata: { provider: `railway_${auth.account.type}` },
+      user_metadata: {},
     };
   }
 

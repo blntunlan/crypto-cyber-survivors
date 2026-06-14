@@ -47,6 +47,7 @@ export class EffectRenderer implements IRenderer {
     // 2. Particle Effects (Environmental detail)
     if (graphics.showParticles) {
       this.drawParticles(ctx, pool, bounds);
+      this.drawImpactRings(ctx, pool, bounds);
     }
 
     // 3. UI Overlays (Damage numbers)
@@ -370,6 +371,32 @@ export class EffectRenderer implements IRenderer {
       ctx.fillRect(px, py, size, size);
     }
 
+    ctx.globalAlpha = 1;
+  }
+
+  private drawImpactRings(
+    ctx: CanvasRenderingContext2D,
+    pool: IPoolManager,
+    bounds: ViewportBounds
+  ): void {
+    const rings = pool.activeImpactRings;
+    if (rings.length === 0) {
+      return;
+    }
+
+    ctx.save();
+    for (let i = 0; i < rings.length; i++) {
+      const ring = rings[i]!;
+      if (!isCircleVisible(ring.x, ring.y, ring.maxRadius, bounds)) continue;
+
+      ctx.globalAlpha = Math.max(0, ring.life);
+      ctx.strokeStyle = ring.color;
+      ctx.lineWidth = ring.lineWidth;
+      ctx.beginPath();
+      ctx.arc(Math.round(ring.x), Math.round(ring.y), ring.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 

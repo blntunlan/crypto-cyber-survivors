@@ -11,7 +11,7 @@
 This document describes the current production-facing backend and database topology after the Railway PostgreSQL migration. It is the operational reference for:
 
 - HTTP API ownership and route clusters
-- Supabase Auth to Railway backend trust boundaries
+- Railway-native auth and backend trust boundaries
 - PostgreSQL tables, views, functions, and triggers actually used at runtime
 - Market ingestion, session verification, telemetry, replay, and meta-progression flows
 
@@ -21,13 +21,13 @@ This document should be read together with `docs/DATABASE_SCHEMA.md`.
 
 ```text
 React Client
-  |- Supabase JS -> Supabase Auth only
+  |- Railway JWT -> Railway Market Server /api/v1/auth/*
   |- fetch -> Railway Market Server /api/v1/*
   |- SSE -> Railway Market Server /api/v1/market/stream
 
 Railway Market Server
   |- Express route layer
-  |- Supabase JWT verification middleware
+  |- Railway JWT verification middleware
   |- Drizzle + pg pool
   |- Binance/Coinbase ingestion services
   |- Indicator + price logging pipeline
@@ -45,7 +45,7 @@ Railway PostgreSQL
 
 | Concern | System of Record | Notes |
 |---|---|---|
-| Authentication | Supabase Auth | Backend trusts Supabase JWTs via ES256 JWKS or HS256 fallback |
+| Authentication | Railway Auth | Backend verifies Railway-native JWTs signed by API secrets |
 | Player profile/app data | Railway PostgreSQL | `profiles` is the app identity root |
 | Session lifecycle | Railway backend + PostgreSQL | Start, sync, verify, replay ownership all terminate here |
 | Market stream | Railway backend | Client no longer owns exchange websocket logic |
@@ -57,12 +57,12 @@ Railway PostgreSQL
 | Layer | Primary Files | Responsibility |
 |---|---|---|
 | App bootstrap | `src/index.ts` | Express wiring, CORS, route registration, health/debug endpoints, migrations, cron, price logger startup |
-| Auth middleware | `src/middleware/auth.ts` | Verify Supabase JWT, populate `req.authUserId`, expose required-auth helper |
+| Auth middleware | `src/middleware/auth.ts` | Verify Railway JWT, populate `req.authUserId`/`req.accountId`, expose required-auth helpers |
 | Route layer | `src/routes/*.ts` | Thin controllers for profiles, sessions, wallet, leaderboard, telemetry, market, meta, challenges, replays |
 | Validation | `src/db/validation.ts` | Zod schemas for selected payloads |
 | DB access | `src/db/index.ts`, `src/db/helpers.ts`, `src/db/pool.ts` | Drizzle instance, profile lookup helpers, raw query/transaction access |
 | DB schema/migrations | `src/db/schema.ts`, `src/db/migrate.ts`, `src/db/schema.sql` | Table definitions, startup migrations, SQL functions/views/triggers |
-| Market services | `src/services/binanceService.ts`, `coinbaseService.ts`, `indicatorService.ts`, `priceLogger.ts`, `supabaseService.ts` | Exchange ingest, indicator computation, `market_state` upsert, `price_history` logging |
+| Market services | `src/services/binanceService.ts`, `coinbaseService.ts`, `indicatorService.ts`, `priceLogger.ts`, `databaseService.ts` | Exchange ingest, indicator computation, `market_state` upsert, `price_history` logging |
 | Shared domain logic | `src/shared/RewardCalculator.ts` | Reward math reused by verification flow |
 
 ## :Link: API Surface Summary
@@ -206,8 +206,8 @@ Client reports
 
 This document reflects the current Railway PostgreSQL architecture. Older documents may still describe pre-migration or transitional states:
 
-- `docs/archived/reports/RAILWAY_SUPABASE_INTEGRATION.md` contains the legacy Supabase DB and edge-function topology.
-- `docs/architecture/AUTH_SYSTEM_ARCHITECTURE.md` has been reduced to the current identity/runtime boundary; use archived migration notes only when you need historical Supabase rollout context.
+- `docs/archived/reports/RAILWAY_SUPABASE_INTEGRATION.md` contains the legacy DB and edge-function topology.
+- `docs/architecture/AUTH_SYSTEM_ARCHITECTURE.md` has been reduced to the current identity/runtime boundary; use archived migration notes only when you need historical rollout context.
 
 Use the code paths listed at the top of this file as the final authority when conflicts exist.
 

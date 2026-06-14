@@ -1,39 +1,30 @@
 /**
  * RailwayClient — HTTP client for Railway API
  *
- * Auto-attaches Supabase Auth JWT to all requests.
+ * Auto-attaches Railway-native JWT when present.
  * Provides typed GET/POST/PATCH/DELETE helpers.
  */
 
-import { supabase, isSupabaseConfigured } from '../supabase/client';
 import { Logger } from '../system/Logger';
+import { RailwayAuthTokenStore } from './RailwayAuthTokenStore';
 
-const BASE_URL = import.meta.env.VITE_RAILWAY_API_URL as string | undefined;
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
+const railwayBaseUrl = (import.meta.env.VITE_RAILWAY_API_URL as string | undefined)?.trim();
+const configuredBaseUrl =
+  apiBaseUrl && apiBaseUrl.length > 0 ? apiBaseUrl : railwayBaseUrl;
+
+const BASE_URL = configuredBaseUrl?.replace(/\/$/, '');
 
 if (!BASE_URL) {
-  Logger.warn('[RailwayClient] VITE_RAILWAY_API_URL not set. API calls will fail.');
+  Logger.warn('[RailwayClient] VITE_API_BASE_URL / VITE_RAILWAY_API_URL not set. API calls will fail.');
+}
+
+export function isRailwayApiConfigured(): boolean {
+  return Boolean(BASE_URL);
 }
 
 async function getAuthToken(): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
-  try {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/** Force-refresh the Supabase session and return a fresh access token. */
-async function refreshAuthToken(): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
-  try {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error || !data.session) return null;
-    return data.session.access_token;
-  } catch {
-    return null;
-  }
+  return RailwayAuthTokenStore.getAccessToken();
 }
 
 async function doFetch(
@@ -67,7 +58,7 @@ async function delay(ms: number): Promise<void> {
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   if (!BASE_URL) {
-    throw new Error('VITE_RAILWAY_API_URL is not configured');
+    throw new Error('VITE_API_BASE_URL / VITE_RAILWAY_API_URL is not configured');
   }
 
   const url = `${BASE_URL}${path}`;
@@ -76,15 +67,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const token = await getAuthToken();
-      let res = await doFetch(method, url, token, body);
-
-      // On 401, try refreshing the token once and retry
-      if (res.status === 401 && token) {
-        const freshToken = await refreshAuthToken();
-        if (freshToken && freshToken !== token) {
-          res = await doFetch(method, url, freshToken, body);
-        }
-      }
+      const res = await doFetch(method, url, token, body);
 
       // Retry on transient server errors
       if (RETRYABLE_STATUSES.has(res.status) && attempt < MAX_RETRIES) {

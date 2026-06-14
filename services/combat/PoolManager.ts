@@ -4,6 +4,7 @@ import {
   type Particle,
   type FloatingText,
   type SpeedLine,
+  type ImpactRing,
   type Interactable,
   MarketPosition,
   type CryptoPair,
@@ -153,6 +154,7 @@ export class PoolManager implements IPoolManager {
   private particles: ObjectPool<Particle>;
   private floatingTexts: ObjectPool<FloatingText>;
   private speedLines: ObjectPool<SpeedLine>;
+  private impactRings: ObjectPool<ImpactRing>;
   private interactables: ObjectPool<Interactable>;
   private unregisterResetHandler: (() => void) | null = null;
 
@@ -163,6 +165,7 @@ export class PoolManager implements IPoolManager {
     this.particles = new ObjectPool<Particle>(POOL.MAX_ACTIVE.PARTICLES);
     this.floatingTexts = new ObjectPool<FloatingText>(POOL.MAX_ACTIVE.FLOATING_TEXTS);
     this.speedLines = new ObjectPool<SpeedLine>(POOL.MAX_ACTIVE.SPEED_LINES);
+    this.impactRings = new ObjectPool<ImpactRing>(POOL.MAX_ACTIVE.IMPACT_RINGS);
     // Use a conservative limit for interactables as they are sparse
     this.interactables = new ObjectPool<Interactable>(50);
     this.unregisterResetHandler = ResetOrchestrator.registerResetHandler(
@@ -205,6 +208,9 @@ export class PoolManager implements IPoolManager {
   }
   get activeSpeedLines(): SpeedLine[] {
     return this.speedLines.active;
+  }
+  get activeImpactRings(): ImpactRing[] {
+    return this.impactRings.active;
   }
   get activeInteractables(): Interactable[] {
     return this.interactables.active;
@@ -354,6 +360,10 @@ export class PoolManager implements IPoolManager {
 
   releaseSpeedLine(line: SpeedLine): void {
     this.speedLines.release(line);
+  }
+
+  releaseImpactRing(ring: ImpactRing): void {
+    this.impactRings.release(ring);
   }
 
   releaseInteractable(interactable: Interactable): void {
@@ -695,6 +705,40 @@ export class PoolManager implements IPoolManager {
     );
   }
 
+  getImpactRing(
+    x: number,
+    y: number,
+    startRadius: number,
+    maxRadius: number,
+    color: string,
+    lineWidth: number
+  ): ImpactRing {
+    return this.impactRings.get(
+      () => ({
+        active: true,
+        x,
+        y,
+        radius: startRadius,
+        startRadius,
+        maxRadius,
+        color,
+        lineWidth,
+        life: 1,
+      }),
+      obj => {
+        obj.active = true;
+        obj.x = x;
+        obj.y = y;
+        obj.radius = startRadius;
+        obj.startRadius = startRadius;
+        obj.maxRadius = maxRadius;
+        obj.color = color;
+        obj.lineWidth = lineWidth;
+        obj.life = 1;
+      }
+    );
+  }
+
   /**
    * Retrieves an interactable environment object (e.g. Mining Rig).
    */
@@ -751,6 +795,7 @@ export class PoolManager implements IPoolManager {
     this.particles.cleanup();
     this.floatingTexts.cleanup();
     this.speedLines.cleanup();
+    this.impactRings.cleanup();
     this.interactables.cleanup();
   }
 
@@ -764,6 +809,7 @@ export class PoolManager implements IPoolManager {
     this.particles.clear();
     this.floatingTexts.clear();
     this.speedLines.clear();
+    this.impactRings.clear();
     this.interactables.clear();
     this.trimFreeLists(POOL.TRIM_SIZE);
     EnemyFactory.resetIdCounter();
@@ -779,6 +825,7 @@ export class PoolManager implements IPoolManager {
     this.particles.trim(maxPoolSize * 3);
     this.floatingTexts.trim(maxPoolSize);
     this.speedLines.trim(maxPoolSize);
+    this.impactRings.trim(maxPoolSize);
     this.interactables.trim(maxPoolSize);
   }
 }

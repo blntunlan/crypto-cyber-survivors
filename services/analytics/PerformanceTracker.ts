@@ -345,9 +345,9 @@ export class PerformanceTracker {
   }
 
   /**
-   * Sync performance metrics to Supabase.
+   * Sync performance metrics to Railway.
    */
-  async syncToSupabase(sessionId?: string): Promise<void> {
+  async syncToRailway(sessionId?: string): Promise<void> {
     const stats = this.getStats();
     const snapshot = this.getSnapshot();
     const runtimeDiagnostics = RuntimeDiagnosticsService.getTelemetryContext();

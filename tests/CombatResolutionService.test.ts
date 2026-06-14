@@ -50,6 +50,7 @@ describe('CombatResolutionService', () => {
     mockPool = {
       getParticle: vi.fn(),
       getGem: vi.fn(),
+      getImpactRing: vi.fn(),
     };
 
     mockPlayer = {
@@ -111,6 +112,32 @@ describe('CombatResolutionService', () => {
       const highLeverageParticles = mockPool.getParticle.mock.calls.length;
 
       expect(highLeverageParticles).toBe(lowLeverageParticles);
+    });
+
+    it('should spawn an impact ring on enemy death', () => {
+      CombatResolutionService.handleEnemyDeath(mockPool, mockEnemy, mockPlayer, false);
+
+      expect(mockPool.getImpactRing).toHaveBeenCalledWith(
+        mockEnemy.x,
+        mockEnemy.y,
+        expect.any(Number),
+        expect.any(Number),
+        mockEnemy.color,
+        expect.any(Number)
+      );
+    });
+
+    it('should spawn a larger impact ring for whale deaths', () => {
+      const whaleEnemy = { ...mockEnemy, type: 'whale' } as Enemy;
+
+      CombatResolutionService.handleEnemyDeath(mockPool, mockEnemy, mockPlayer, false);
+      const normalMaxRadius = mockPool.getImpactRing.mock.calls[0][3];
+
+      mockPool.getImpactRing.mockClear();
+      CombatResolutionService.handleEnemyDeath(mockPool, whaleEnemy, mockPlayer, false);
+      const whaleMaxRadius = mockPool.getImpactRing.mock.calls[0][3];
+
+      expect(whaleMaxRadius).toBeGreaterThan(normalMaxRadius);
     });
   });
 

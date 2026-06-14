@@ -84,9 +84,9 @@ describe('DeviceProfiler', () => {
     });
   });
 
-  describe('syncToSupabase', () => {
+  describe('syncToRailway', () => {
     it('should upsert profile via Railway API', async () => {
-      await DeviceProfiler.syncToSupabase();
+      await DeviceProfiler.syncToRailway();
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/v1/telemetry/device-profiles',
@@ -104,14 +104,14 @@ describe('DeviceProfiler', () => {
         configurable: true,
       });
 
-      await DeviceProfiler.syncToSupabase();
+      await DeviceProfiler.syncToRailway();
       expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('should identify as mobile if width < 768', async () => {
       Object.defineProperty(window, 'innerWidth', { value: 500, configurable: true });
 
-      await DeviceProfiler.syncToSupabase();
+      await DeviceProfiler.syncToRailway();
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/v1/telemetry/device-profiles',

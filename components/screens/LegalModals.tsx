@@ -287,7 +287,7 @@ export const PrivacyPolicy: React.FC<{
     </p>
     <ul>
       <li>
-        <strong>Service Providers:</strong> Supabase (database), Railway (hosting),
+        <strong>Service Providers:</strong> Railway (hosting, API, database),
         Cloudflare (CDN/security)
       </li>
       <li>
@@ -303,7 +303,7 @@ export const PrivacyPolicy: React.FC<{
     <h2>5. Data Security</h2>
     <p>Your data is protected using industry-standard security measures including:</p>
     <ul>
-      <li>Row Level Security (RLS) policies on Supabase</li>
+      <li>Server-side authorization and PostgreSQL constraints on Railway</li>
       <li>HTTPS encryption for all data transmission</li>
       <li>HMAC signature verification for score submissions</li>
       <li>Regular security audits and penetration testing</li>
@@ -462,7 +462,7 @@ export const TermsOfService: React.FC<{
         <strong>Twitter/X:</strong> Optional social authentication
       </li>
       <li>
-        <strong>Supabase:</strong> Authentication and data storage
+        <strong>Railway:</strong> Authentication, gameplay APIs, and data storage
       </li>
     </ul>
     <p>Your use of these services is subject to their respective terms of service.</p>

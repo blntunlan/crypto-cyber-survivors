@@ -1,6 +1,6 @@
 import { BinanceService, type KlineData } from './binanceService';
 import { CoinbaseService } from './coinbaseService';
-import { SupabaseService } from './supabaseService';
+import { DatabaseService } from './databaseService';
 import { Logger } from '../utils/logger';
 import { withRetry } from '../utils/retry';
 import { IndicatorService } from './indicatorService';
@@ -15,7 +15,7 @@ interface LoggerStats {
 export class PriceLogger {
   private static instance: PriceLogger | null = null;
   private binance: BinanceService;
-  private supabase: SupabaseService;
+  private database: DatabaseService;
   private stats: LoggerStats = {
     totalLogged: 0,
     lastLogTime: null,
@@ -35,7 +35,7 @@ export class PriceLogger {
   private constructor() {
     this.binance = BinanceService.getInstance();
     this.coinbase = CoinbaseService.getInstance();
-    this.supabase = SupabaseService.getInstance();
+    this.database = DatabaseService.getInstance();
   }
 
   static getInstance(): PriceLogger {
@@ -132,12 +132,12 @@ export class PriceLogger {
       const now = Date.now();
       const lastLog = this.lastLogTimes.get(data.pair) || 0;
 
-      // Only log to Supabase if interval passed
+      // Only write to Railway PostgreSQL if interval passed
       if (now - lastLog >= this.LOG_INTERVAL) {
-        // Log to Supabase with retry
+        // Write to Railway PostgreSQL with retry
         await withRetry(
           () =>
-            this.supabase.insertPriceLog({
+            this.database.insertPriceLog({
               pair: data.pair,
               price: data.close,
               high: data.high,

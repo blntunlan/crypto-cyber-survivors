@@ -10,16 +10,16 @@ vi.mock('../../services/auth/SecurityUtils', () => ({
   },
 }));
 
-// These tests require full MSW integration with Supabase mock responses.
+// These tests require full MSW integration with Railway API mock responses.
 // They work locally but have timing issues in CI due to module hoisting.
-// Skip in CI environment where MSW may not fully intercept Supabase calls.
+// Skip in CI environment where MSW may not fully intercept Railway API calls.
 const isCI = process.env.CI === 'true';
 
 describe('Registration Flow (Integration with MSW)', () => {
   beforeEach(() => {
     UserSessionService.clearUser();
 
-    // Bypass localhost check to trigger real-world-like Supabase path
+    // Bypass localhost check to trigger real-world-like Railway path
     Object.defineProperty(window, 'location', {
       value: {
         hostname: 'crypto-survivors.com',

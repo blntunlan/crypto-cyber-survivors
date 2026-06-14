@@ -8,6 +8,8 @@
 import { Logger } from '../system/Logger';
 import { EventBus, type GameEvent } from '../core/EventBus';
 import { signPayload, createSignablePayload } from '../../utils/crypto';
+import { railwayClient, isRailwayApiConfigured } from '../api/RailwayClient';
+import { type RewardVerificationResponse } from '../../types/reward';
 
 const STORAGE_KEY = 'verification_queue';
 const MAX_RETRIES = 5;
@@ -40,6 +42,9 @@ export interface VerificationData {
   optimisticReward: number;
   sessionId?: string;
   signature?: string; // HMAC signature
+  exitType?: 'portal' | 'death' | 'afk_death' | 'cycle_complete';
+  portalType?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'FLOW_EXIT' | 'FORCED' | null;
+  maxStreak?: number;
   replayData?: string; // Compressed replay events
   metadata?: {
     finalHash: string;
@@ -94,9 +99,7 @@ class VerificationQueueService {
     // Generate signature if signing key is provided
     if (signingKey && !data.signature) {
       try {
-        const signablePayload = createSignablePayload(
-          data as unknown as Record<string, unknown>
-        );
+        const signablePayload = createSignablePayload(this.createRailwayPayload(data));
         data.signature = await signPayload(signablePayload, signingKey);
         Logger.debug('[VerificationQueue] Session signature generated');
       } catch (err) {
@@ -211,74 +214,51 @@ class VerificationQueueService {
     }
   }
 
+  private createRailwayPayload(data: VerificationData): Record<string, unknown> {
+    return {
+      sessionId: data.sessionId,
+      pair: data.pair,
+      position: data.position.toUpperCase() === 'SHORT' ? 'SHORT' : 'LONG',
+      leverage: data.leverage,
+      claimedEntryPrice: data.claimedEntryPrice,
+      claimedExitPrice: data.claimedExitPrice,
+      claimedPnL: data.claimedPnL,
+      kills: data.kills,
+      level: data.level,
+      survivalSeconds: Math.floor(data.survivalTimeMs / 1000),
+      exitType: data.exitType ?? 'death',
+      portalType: data.portalType ?? null,
+      maxStreak: data.maxStreak ?? 0,
+    };
+  }
+
   /**
-   * Verify a request against the edge function
+   * Verify a request against the Railway session verification endpoint.
    */
   private async verify(request: VerificationRequest): Promise<VerificationResult> {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase not configured');
+    if (!isRailwayApiConfigured()) {
+      throw new Error('Railway API not configured');
     }
 
     const { data } = request;
-    // verify-replay still targets legacy `game_sessions` schema and will reject
-    // current `sessions` records. Gate it behind an explicit flag until the
-    // replay verifier is migrated to the current `sessions` schema.
-    const isReplayEnabled =
-      import.meta.env.VITE_ENABLE_REPLAY_VERIFICATION === 'true' &&
-      !!data.replayData &&
-      !!data.metadata;
-
-    // We will use the existing endpoint structure
-    const functionName = isReplayEnabled ? 'verify-replay' : 'verify-game';
-
-    // Prepare body based on new session schema
-    const body = isReplayEnabled
-      ? {
-          sessionId: data.sessionId,
-          metadata: data.metadata,
-          replayData: data.replayData,
-          claimedStats: {
-            kills: data.kills,
-            level: data.level,
-            survivalSeconds: Math.floor(data.survivalTimeMs / 1000),
-            pnlPercent: data.claimedPnL,
-          },
-        }
-      : {
-          profileId: data.userId, // Profile UUID
-          sessionId: data.sessionId,
-          startTime: data.startTime,
-          endTime: data.endTime,
-          pair: data.pair,
-          position: data.position,
-          leverage: data.leverage,
-          claimedEntryPrice: data.claimedEntryPrice,
-          claimedExitPrice: data.claimedExitPrice,
-          kills: data.kills,
-          level: data.level,
-          survivalSeconds: Math.floor(data.survivalTimeMs / 1000),
-          claimedPnL: data.claimedPnL,
-          signature: data.signature,
-        };
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${supabaseAnonKey}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error ?? `HTTP ${response.status}`);
+    if (!data.sessionId || !data.signature) {
+      throw new Error('Session id and signature are required');
     }
 
-    return response.json();
+    const response = await railwayClient.post<
+      RewardVerificationResponse & { pnl?: number }
+    >('/api/v1/sessions/verify', {
+      sessionId: data.sessionId,
+      signature: data.signature,
+      payload: this.createRailwayPayload(data),
+    });
+
+    return {
+      verified: response.verified,
+      reward: response.reward,
+      verifiedPnL: response.pnl,
+      method: 'railway',
+    };
   }
 
   /**

@@ -71,12 +71,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<TabId>('price');
 
   // Start background price feeds for all pairs when dashboard opens
-  // Also load historical data from Supabase for accurate change calculations
+  // Also load historical data from Railway for accurate change calculations
   useEffect(() => {
     adminPriceFeed.start();
 
-    // Load historical price data from Supabase
-    void priceAnalyzer.loadHistoryFromSupabase();
+    // Load historical price data from Railway
+    void priceAnalyzer.loadHistoryFromRailway();
 
     return () => {
       // Don't stop on unmount - keep feeds running for next open
@@ -1116,8 +1116,8 @@ const AnalyticsPanel: React.FC = () => {
         <div className="space-y-1 text-xs text-slate-500">
           <p className="font-medium text-slate-400">Monitoring System Status</p>
           <p>
-            Railway Market Server is pushing data to Supabase. Edge Functions are
-            verifying gameplay.
+            Railway Market Server is writing market data to Railway PostgreSQL.
+            Railway API routes are verifying gameplay.
           </p>
           <p>
             Global error tracking is active. Offline reports will be queued until the

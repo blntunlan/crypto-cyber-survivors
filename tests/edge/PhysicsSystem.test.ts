@@ -118,6 +118,17 @@ describe('PhysicsSystem Edge Cases', () => {
       activeGems: [],
       activeInteractables: [],
       activeSpeedLines: [],
+      activeImpactRings: [],
+      getImpactRing: vi.fn(() => ({
+        x: 0,
+        y: 0,
+        radius: 0,
+        maxRadius: 10,
+        color: '#fff',
+        lineWidth: 2,
+        life: 1,
+        active: true,
+      })),
       getParticle: vi.fn(() => ({
         active: true,
         x: 0,

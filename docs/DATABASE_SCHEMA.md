@@ -13,7 +13,7 @@
 ```
 Client (React + Vite)
   │
-  ├── [supabase-js] ──► Supabase Auth (JWT only — no DB)
+  ├── [Railway JWT] ──► Railway Server /api/v1/auth/*
   ├── [SSE] ──────────► Railway Server /api/v1/market/stream
   └── [fetch] ────────► Railway Server /api/v1/*
                               │
@@ -21,7 +21,7 @@ Client (React + Vite)
                               └── [WebSocket] ► Binance/Coinbase (prices)
 ```
 
-- **Supabase**: Auth only (login/signup/JWT). Zero database usage.
+- **Railway Auth**: Anonymous accounts and JWT issuance through Railway API routes.
 - **Railway PostgreSQL**: All 16 tables, 3 views, 7 functions, 3 triggers.
 - **Connection**: `DATABASE_URL` env var → `pg.Pool` in `railway-market-server/src/db/pool.ts`
 
@@ -36,12 +36,12 @@ Central identity table. Every authenticated user has one profile. Auto-creates `
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | UUID | NOT NULL | `gen_random_uuid()` | **PK**. Internal profile ID |
-| `auth_user_id` | UUID | YES | - | Maps to Supabase Auth user ID. **UNIQUE** |
+| `auth_user_id` | UUID | YES | - | Maps to Railway account ID. **UNIQUE** |
 | `nickname` | TEXT | YES | - | Unique display handle. **UNIQUE** |
 | `display_name` | TEXT | YES | - | Friendly name (leaderboard display, falls back to nickname) |
 | `avatar_url` | TEXT | YES | - | Profile picture URL |
 | `wallet_address` | TEXT | YES | - | Crypto wallet address. **UNIQUE** |
-| `primary_auth_provider` | TEXT | NOT NULL | `'supabase'` | `'supabase'`, `'twitter'`, `'google'`, etc. |
+| `primary_auth_provider` | TEXT | NOT NULL | `'railway'` | `'railway_anonymous'`, `'twitter'`, `'google'`, etc. |
 | `last_seen_at` | TIMESTAMPTZ | NOT NULL | `now()` | Last activity heartbeat |
 | `created_at` | TIMESTAMPTZ | NOT NULL | `now()` | Account creation |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | `now()` | Last profile edit |
@@ -142,7 +142,7 @@ Game session records. Created at game start, verified at game end. Core table fo
 
 **6. market_state**
 
-Live market indicators. One row per trading pair. Updated every ~1s by the price pipeline via `supabaseService.updateMarketState()`.
+Live market indicators. One row per trading pair. Updated every ~1s by the price pipeline via `DatabaseService.updateMarketState()`.
 
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
@@ -169,7 +169,7 @@ Live market indicators. One row per trading pair. Updated every ~1s by the price
 | `enemy_aggro_multiplier_short` | DOUBLE PRECISION | NOT NULL | `1` | Enemy aggression modifier for SHORT positions |
 | `updated_at` | TIMESTAMPTZ | NOT NULL | `now()` | Last update timestamp |
 
-**Used by**: `supabaseService.ts` (UPSERT, throttled 1s/pair), `marketStream.ts` (read for history warmup)
+**Used by**: `databaseService.ts` (UPSERT, throttled 1s/pair), `marketStream.ts` (read for history warmup)
 
 ---
 
@@ -540,7 +540,7 @@ Keeps only top 5 replays per player (by score). Fires after each replay insert.
 | replays | GET | `/api/v1/replays/top/:pair` | game_replays, profiles | No |
 | market | GET | `/api/v1/market/stream` | None (in-memory SSE) | No |
 | market | GET | `/api/v1/market/history` | price_history | No |
-| (service) | - | supabaseService.updateMarketState | market_state | - |
+| (service) | - | DatabaseService.updateMarketState | market_state | - |
 | (service) | - | priceLogger.insertPriceLog | price_history | - |
 
 ---

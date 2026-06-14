@@ -64,7 +64,7 @@ describe('PriceAnalyzerService', () => {
       return Promise.resolve([]);
     });
 
-    await priceAnalyzer.loadHistoryFromSupabase();
+    await priceAnalyzer.loadHistoryFromRailway();
     expect(priceAnalyzer.isHistoryLoaded()).toBe(true);
     expect(priceAnalyzer.getHistory('BTC').length).toBe(2);
     expect(priceAnalyzer.getAnalysis('BTC')?.currentPrice).toBe(50000);

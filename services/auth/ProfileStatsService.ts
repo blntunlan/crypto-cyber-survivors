@@ -2,12 +2,18 @@ import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 import { AchievementService } from '../gameplay/AchievementService';
 import { type FullProfileData, type PlayerStats } from '../../types/profile';
-import { SupabaseAuthService, type AuthProvider } from '../auth/SupabaseAuthService';
+import { RailwayAuthService, type AuthProvider } from '../auth/RailwayAuthService';
 import { railwayClient } from '../api/RailwayClient';
+
+type EconomyWalletResponse = {
+  wallet: {
+    balance: number;
+  };
+};
 
 /**
  * ProfileStatsService - Aggregates player statistics and achievements
- * Uses Railway API instead of direct Supabase DB queries.
+ * Uses Railway API instead of direct DB queries.
  */
 export class ProfileStatsService {
   private static instance: ProfileStatsService | null = null;
@@ -28,8 +34,8 @@ export class ProfileStatsService {
     }
 
     try {
-      // 1. Base Profile (via Railway API through SupabaseAuthService)
-      const profileResult = await SupabaseAuthService.getCurrentProfile();
+      // 1. Base Profile (via Railway API through RailwayAuthService)
+      const profileResult = await RailwayAuthService.getCurrentProfile();
       if (!profileResult) return null;
 
       // 2. Stats + Balance via Railway API
@@ -85,12 +91,12 @@ export class ProfileStatsService {
     try {
       // Fetch balance
       const balanceData = await railwayClient
-        .get<{ balance: number }>('/api/v1/wallet/balance')
-        .catch(() => ({ balance: 0 }));
+        .get<EconomyWalletResponse>('/api/v1/economy/wallet')
+        .catch(() => ({ wallet: { balance: 0 } }));
 
       return {
         ...defaults,
-        goldBalance: balanceData.balance,
+        goldBalance: balanceData.wallet.balance,
       };
     } catch {
       return defaults;

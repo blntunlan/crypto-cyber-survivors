@@ -10,6 +10,7 @@ import { GameStatus, MarketPosition, type GameState } from '../types';
 import { type IPoolManager } from '../services/interfaces/IPoolManager';
 import { ThemeService } from '../services/system/ThemeService';
 import { portalSystem } from '../services/gameplay/PortalSystem';
+import { TimeService } from '../services/core/TimeService';
 
 vi.mock('../services/system/ThemeService', () => ({
   ThemeService: {
@@ -37,6 +38,8 @@ describe('GameRenderer', () => {
   let mockPlayer: any;
 
   beforeEach(() => {
+    TimeService.reset();
+    TimeService.setGameTime(0);
     renderer = GameRenderer.getInstance();
 
     // Mock Canvas Context
@@ -85,6 +88,7 @@ describe('GameRenderer', () => {
       activeParticles: [],
       activeFloatingTexts: [],
       activeSpeedLines: [],
+      activeImpactRings: [],
       activeInteractables: [],
     } as unknown as IPoolManager;
 
@@ -253,6 +257,49 @@ describe('GameRenderer', () => {
         GameStatus.PLAYING
       );
       expect(mockCtx.strokeRect).toHaveBeenCalled();
+    });
+
+    it('should draw player damage direction indicators', () => {
+      mockState.damageIndicators = [{ sourceX: 500, sourceY: 300, timestamp: 0 }];
+      TimeService.setGameTime(100);
+
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
+
+      expect(mockCtx.rotate).toHaveBeenCalledWith(0);
+      expect(mockCtx.arc).toHaveBeenCalledWith(
+        0,
+        0,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(mockCtx.closePath).toHaveBeenCalled();
+      expect(mockState.damageIndicators).toHaveLength(1);
+    });
+
+    it('should clean expired player damage direction indicators', () => {
+      mockState.damageIndicators = [{ sourceX: 500, sourceY: 300, timestamp: 0 }];
+      TimeService.setGameTime(2000);
+
+      renderer.render(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        mockPlayer,
+        mockPool,
+        GameStatus.PLAYING
+      );
+
+      expect(mockState.damageIndicators).toHaveLength(0);
     });
 
     it('should draw Take Profit portal', () => {

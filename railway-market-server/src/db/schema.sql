@@ -4,12 +4,12 @@
 -- 1. profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_user_id UUID UNIQUE,           -- maps to Supabase Auth user id
+  auth_user_id UUID UNIQUE,           -- maps to Railway account id
   nickname TEXT UNIQUE,
   display_name TEXT,
   avatar_url TEXT,
   wallet_address TEXT UNIQUE,
-  primary_auth_provider TEXT DEFAULT 'supabase',
+  primary_auth_provider TEXT DEFAULT 'railway',
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

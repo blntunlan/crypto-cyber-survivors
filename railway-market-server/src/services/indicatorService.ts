@@ -1,7 +1,7 @@
 import { RSICalculator } from '../indicators/RSICalculator';
 import { ATRCalculator } from '../indicators/ATRCalculator';
 import { VolumeAnalyzer } from '../indicators/VolumeAnalyzer';
-import { SupabaseService } from './supabaseService';
+import { DatabaseService } from './databaseService';
 import { Logger } from '../utils/logger';
 import { broadcastMarketData } from '../routes/marketStream';
 
@@ -15,7 +15,7 @@ export class IndicatorService {
   private static instance: IndicatorService | null = null;
   private indicators: Map<string, PairIndicators> = new Map();
   private lastDbUpdate: Map<string, number> = new Map();
-  private supabase: SupabaseService;
+  private database: DatabaseService;
   
   private readonly DB_UPDATE_THROTTLE = 1000; // 1 second throttle per pair
 
@@ -27,7 +27,7 @@ export class IndicatorService {
   };
 
   private constructor() {
-    this.supabase = SupabaseService.getInstance();
+    this.database = DatabaseService.getInstance();
 
     // Initialize indicators for each pair
     // Volume: 300 data points = 5 minutes of 1s candles
@@ -72,7 +72,7 @@ export class IndicatorService {
         rsiResult.rsi
       );
 
-      // Update Supabase (Throttled per pair)
+      // Update Railway PostgreSQL (throttled per pair)
       const now = Date.now();
       const lastUpdate = this.lastDbUpdate.get(data.pair) || 0;
 
@@ -81,7 +81,7 @@ export class IndicatorService {
         // but we handle it such that we track the last update attempt.
         this.lastDbUpdate.set(data.pair, now);
         
-        void this.supabase.updateMarketState({
+        void this.database.updateMarketState({
           pair: data.pair,
           price: data.price,
           volume: data.volume,

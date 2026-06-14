@@ -28,7 +28,7 @@ The Aggregator acts as the single source of truth for live market data. It sits 
 The API Server is the traditional backend for game logic, progression, and security.
 
 **Responsibilities:**
-- **Authentication**: Validates Supabase JWTs and handles Twitter OAuth.
+- **Authentication**: Validates Railway-native JWTs and handles Twitter OAuth.
 - **Session Verification**: Receives cryptographic payloads from the client (`ReplayRecorderService`), verifies the HMAC signatures, and records valid game sessions.
 - **Progression & Economy**: Updates player profiles, wallets (Gold), meta-progression, and daily challenges.
 - **Leaderboards**: Serves paginated leaderboard data.

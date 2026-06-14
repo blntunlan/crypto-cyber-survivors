@@ -14,7 +14,7 @@ This workflow documents how reward feedback, wallet balance, and backend verific
 
 ## 2. Provider behavior
 
-Despite its historical name, `SupabaseCoinProvider` now talks to Railway-backed wallet APIs for balance reads and acts as an optimistic provider for in-run credit events. It does not make the client authoritative for durable rewards.
+`RailwayCoinProvider` talks to Railway-backed wallet APIs for balance reads and acts as an optimistic provider for in-run credit events. It does not make the client authoritative for durable rewards.
 
 ## 3. Session-local feedback
 

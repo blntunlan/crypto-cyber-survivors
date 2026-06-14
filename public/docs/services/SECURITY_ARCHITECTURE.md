@@ -31,13 +31,13 @@ The client signs the final session payload with the session secret and submits i
 
 `MarketSyncQueue` persists market audit batches so a run can still be verified after brief disconnects or offline periods. This queue is a core part of the trust model because it preserves ordered runtime evidence instead of trusting the final summary alone.
 
-**Identity and edge compatibility**
+**Identity and API boundary**
 
-The project still has mixed identity paths:
+The project is now centered on Railway-native identity:
 
-- Supabase Auth remains part of selected login and identity flows
+- Railway auth routes issue JWTs and own account/profile identity
 - Railway backend routes own wallet, profile, leaderboard, and session persistence
-- `VerificationQueue` still targets legacy Supabase edge verification as a fallback queue and should be treated as a migration boundary, not the primary runtime path
+- `VerificationQueue` submits to Railway session verification and should remain a migration boundary until all replay/economy flows are unified
 
 **Optional edge hardening**
 

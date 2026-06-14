@@ -9,7 +9,7 @@
 import { Logger } from '../system/Logger';
 import { railwayClient } from '../api/RailwayClient';
 import { UserSessionService } from '../auth/UserSessionService';
-import { type AuthProvider } from '../auth/SupabaseAuthService';
+import { type AuthProvider } from '../auth/RailwayAuthService';
 
 // ============================================================================
 // Types

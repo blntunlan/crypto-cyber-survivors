@@ -151,8 +151,8 @@ vi.stubGlobal('import.meta', {
     DEV: true,
     PROD: false,
     MODE: 'test',
-    VITE_SUPABASE_URL: 'https://nymgxiyrpaqcdlxqmhhd.supabase.co',
-    VITE_SUPABASE_ANON_KEY: 'mock-key',
+    VITE_API_BASE_URL: 'https://test-api.railway.app',
+    VITE_RAILWAY_API_URL: 'https://test-api.railway.app',
   },
 });
 

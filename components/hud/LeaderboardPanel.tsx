@@ -26,7 +26,7 @@ import { LeaderboardService } from '../../services/leaderboard/LeaderboardServic
 import { UserSessionService } from '../../services/auth/UserSessionService';
 import { Logger } from '../../services/system/Logger';
 import { COLORS } from '../../config/Colors';
-import type { AuthProvider } from '../../services/auth/SupabaseAuthService';
+import type { AuthProvider } from '../../services/auth/RailwayAuthService';
 
 interface LeaderboardEntry {
   id: string;

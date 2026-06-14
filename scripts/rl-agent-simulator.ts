@@ -1,15 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
 
 // Load environment variables
 dotenv.config({ path: resolve(process.cwd(), '.env') });
-
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase =
-  SUPABASE_URL && SUPABASE_KEY ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 // --- CONFIGURATION ---
 const CONFIG = {
@@ -176,33 +169,9 @@ class Simulation {
   marketVolatility: number = 1.0;
 
   async init() {
-    console.log('Fetching market data from Supabase to set volatility...');
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('price_logs')
-        .select('price')
-        .eq('pair', 'BTC')
-        .order('timestamp', { ascending: false })
-        .limit(100);
-
-      if (!error && data && data.length > 10) {
-        // Calculate basic volatility
-        const prices = data.map(d => d.price);
-        const min = Math.min(...prices);
-        const max = Math.max(...prices);
-        const range = (max - min) / min; // e.g., 0.05 is 5% change
-        this.marketVolatility = 1.0 + range * 10; // Scale up impact
-        console.log(
-          `[Market] Real Market Volatility multiplier calculated: ${this.marketVolatility.toFixed(2)}x`
-        );
-      } else {
-        console.log('[Market] No recent data found, using baseline volatility 1.0x');
-      }
-    } else {
-      console.log(
-        '[Market] Supabase not connected. Using synthetic baseline volatility 1.0x'
-      );
-    }
+    console.log(
+      '[Market] Railway-native market history adapter is not wired here. Using synthetic baseline volatility 1.0x'
+    );
 
     for (let i = 0; i < CONFIG.POPULATION_SIZE; i++) {
       this.agents.push(new Agent());

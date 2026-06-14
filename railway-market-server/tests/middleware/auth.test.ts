@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
+import {
+  RAILWAY_JWT_AUDIENCE,
+  RAILWAY_JWT_ISSUER,
+} from '../../src/utils/railwayJwt';
 
 vi.mock('../../src/utils/logger', () => ({
   Logger: {
@@ -10,10 +14,8 @@ vi.mock('../../src/utils/logger', () => ({
   },
 }));
 
-const SUPABASE_URL = 'https://project-ref.supabase.co';
-const RAW_SECRET = 'legacy-test-secret';
-const ENCODED_SECRET = Buffer.from(RAW_SECRET).toString('base64');
-const SIGNING_SECRET = Buffer.from(ENCODED_SECRET, 'base64');
+const API_JWT_SECRET = 'railway-test-secret';
+const ACCOUNT_ID = '550e8400-e29b-41d4-a716-446655440001';
 
 function makeResponse(): Response & {
   status: ReturnType<typeof vi.fn>;
@@ -29,58 +31,79 @@ function makeResponse(): Response & {
   };
 }
 
-function makeRequest(token: string): Request {
+function makeRequest(token?: string): Request {
   return {
-    headers: {
-      authorization: `Bearer ${token}`,
-    },
+    headers: token
+      ? {
+          authorization: `Bearer ${token}`,
+        }
+      : {},
   } as Request;
 }
 
-async function loadMiddleware() {
+async function loadMiddleware(configureSecret = true) {
   vi.resetModules();
-  process.env.SUPABASE_URL = SUPABASE_URL;
-  process.env.SUPABASE_JWT_SECRET = ENCODED_SECRET;
+  delete process.env.API_JWT_SECRET;
+  delete process.env.RAILWAY_JWT_SECRET;
+  delete process.env.JWT_SECRET;
+
+  if (configureSecret) {
+    process.env.API_JWT_SECRET = API_JWT_SECRET;
+  }
+
   return import('../../src/middleware/auth');
 }
 
-function signToken(overrides: jwt.JwtPayload = {}): string {
+function signRailwayToken(
+  overrides: jwt.JwtPayload = {},
+  options: jwt.SignOptions = {}
+): string {
   return jwt.sign(
     {
-      sub: '550e8400-e29b-41d4-a716-446655440000',
-      aud: 'authenticated',
-      iss: `${SUPABASE_URL}/auth/v1`,
-      role: 'authenticated',
+      sub: ACCOUNT_ID,
+      account_id: ACCOUNT_ID,
+      account_type: 'anonymous',
+      role: 'player',
+      token_use: 'access',
       ...overrides,
     },
-    SIGNING_SECRET,
-    { algorithm: 'HS256', expiresIn: '5m' }
+    API_JWT_SECRET,
+    {
+      algorithm: 'HS256',
+      issuer: RAILWAY_JWT_ISSUER,
+      audience: RAILWAY_JWT_AUDIENCE,
+      expiresIn: '5m',
+      ...options,
+    }
   );
 }
 
 describe('requireAuth', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    delete process.env.SUPABASE_URL;
-    delete process.env.SUPABASE_JWT_SECRET;
+    delete process.env.API_JWT_SECRET;
+    delete process.env.RAILWAY_JWT_SECRET;
+    delete process.env.JWT_SECRET;
   });
 
-  it('accepts a Supabase access token with the expected issuer and audience', async () => {
+  it('accepts a Railway-native access token', async () => {
     const { requireAuth } = await loadMiddleware();
-    const req = makeRequest(signToken());
+    const req = makeRequest(signRailwayToken());
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
     requireAuth(req, res, next);
 
     expect(next).toHaveBeenCalledOnce();
-    expect(req.authUserId).toBe('550e8400-e29b-41d4-a716-446655440000');
+    expect(req.authUserId).toBe(ACCOUNT_ID);
+    expect(req.accountId).toBe(ACCOUNT_ID);
     expect(res.status).not.toHaveBeenCalled();
   });
 
   it('rejects a token signed for the wrong audience', async () => {
     const { requireAuth } = await loadMiddleware();
-    const req = makeRequest(signToken({ aud: 'anon' }));
+    const token = signRailwayToken({}, { audience: 'authenticated' });
+    const req = makeRequest(token);
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
@@ -93,7 +116,8 @@ describe('requireAuth', () => {
 
   it('rejects a token from the wrong issuer', async () => {
     const { requireAuth } = await loadMiddleware();
-    const req = makeRequest(signToken({ iss: 'https://other.supabase.co/auth/v1' }));
+    const token = signRailwayToken({}, { issuer: 'legacy-auth-provider' });
+    const req = makeRequest(token);
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
@@ -102,5 +126,33 @@ describe('requireAuth', () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid token' });
+  });
+
+  it('rejects requests without a bearer token', async () => {
+    const { requireAuth } = await loadMiddleware();
+    const req = makeRequest();
+    const res = makeResponse();
+    const next = vi.fn() as NextFunction;
+
+    requireAuth(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      error: 'Missing or invalid Authorization header',
+    });
+  });
+
+  it('fails closed when Railway JWT secret is not configured', async () => {
+    const { requireAuth } = await loadMiddleware(false);
+    const req = makeRequest(signRailwayToken());
+    const res = makeResponse();
+    const next = vi.fn() as NextFunction;
+
+    requireAuth(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Auth not configured' });
   });
 });
