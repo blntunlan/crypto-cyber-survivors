@@ -36,6 +36,8 @@ export interface TrustedMetricsResult {
 
 interface TrustedMetricsOptions {
   nowMs?: number;
+  realEntryPrice?: number;
+  realExitPrice?: number;
 }
 
 const hasPositiveNumber = (value: number | null | undefined): value is number => {
@@ -135,6 +137,12 @@ export const deriveTrustedSessionMetrics = (
   }
 
   if (
+    hasPositiveNumber(options.realEntryPrice) &&
+    !isWithinTolerance(entryPrice, options.realEntryPrice, PRICE_DRIFT_TOLERANCE_RATIO)
+  ) {
+    entryPrice = options.realEntryPrice;
+    suspiciousFlags.push('entry_price_clamped_to_history');
+  } else if (
     hasPositiveNumber(snapshot.entryPrice) &&
     !isWithinTolerance(entryPrice, snapshot.entryPrice, PRICE_DRIFT_TOLERANCE_RATIO)
   ) {
@@ -143,6 +151,12 @@ export const deriveTrustedSessionMetrics = (
   }
 
   if (
+    hasPositiveNumber(options.realExitPrice) &&
+    !isWithinTolerance(exitPrice, options.realExitPrice, PRICE_DRIFT_TOLERANCE_RATIO)
+  ) {
+    exitPrice = options.realExitPrice;
+    suspiciousFlags.push('exit_price_clamped_to_history');
+  } else if (
     hasPositiveNumber(snapshot.exitPrice) &&
     !isWithinTolerance(exitPrice, snapshot.exitPrice, PRICE_DRIFT_TOLERANCE_RATIO)
   ) {

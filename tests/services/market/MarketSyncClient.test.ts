@@ -10,7 +10,7 @@ import { MarketSyncClient } from '../../../services/market/sync/MarketSyncClient
 import { type MarketSyncRecord } from '../../../services/market/sync/MarketSyncStore';
 
 const { getAccessTokenMock } = vi.hoisted(() => ({
-  getAccessTokenMock: vi.fn(() => null),
+  getAccessTokenMock: vi.fn<() => string | null>(() => null),
 }));
 
 vi.mock('../../../services/api/RailwayAuthTokenStore', () => ({

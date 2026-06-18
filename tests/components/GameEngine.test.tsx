@@ -19,7 +19,9 @@ vi.mock('../../services/combat/PoolManager', () => {
     activeImpactRings = [];
     activeInteractables = [];
     cleanup = vi.fn();
+    clearAll = vi.fn();
     preWarm = vi.fn();
+    dispose = vi.fn();
     initialize = vi.fn();
     static getInstance = vi.fn(() => new MockPoolManager());
   }
@@ -59,6 +61,8 @@ vi.mock('../../services/combat/PhysicsSystem', () => {
 vi.mock('../../services/combat/SpawnSystem', () => {
   class MockSpawnSystem {
     update = vi.fn();
+    reset = vi.fn();
+    dispose = vi.fn();
     static getInstance = vi.fn(() => new MockSpawnSystem());
   }
   return { SpawnSystem: MockSpawnSystem };

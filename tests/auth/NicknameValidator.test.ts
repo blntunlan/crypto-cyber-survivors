@@ -22,9 +22,9 @@ describe('NicknameValidator', () => {
   it('should reject invalid characters', () => {
     expect(NicknameValidator.isValid('user!')).toBe(false);
     expect(NicknameValidator.isValid('user space')).toBe(false);
-    expect(NicknameValidator.isValid('user-name')).toBe(false);
+    expect(NicknameValidator.isValid('user-name')).toBe(true);
     expect(NicknameValidator.validate('user!')).toContain(
-      'Only letters, numbers, and underscores'
+      'Only letters, numbers, underscores, and hyphens'
     );
   });
 

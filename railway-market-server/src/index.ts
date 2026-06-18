@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import { DatabaseService } from './services/databaseService';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
@@ -144,24 +145,23 @@ app.get('/stats', (_req, res) => {
   });
 });
 
-const ADMIN_API_SECRET = process.env.ADMIN_API_SECRET;
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+function getAdminSecret(): string {
+  let secret = process.env.ADMIN_API_SECRET;
+  if (!secret) {
+    secret = crypto.randomBytes(32).toString('hex');
+    process.env.ADMIN_API_SECRET = secret;
+    Logger.warn(`[Admin] ADMIN_API_SECRET is not configured. Generated ephemeral secret: ${secret}`);
+  }
+  return secret;
+}
+
 function requireAdmin(
   req: express.Request,
   res: express.Response,
   next: () => void
 ): void {
-  if (!ADMIN_API_SECRET) {
-    if (IS_PRODUCTION) {
-      Logger.error('[Admin] ADMIN_API_SECRET is not configured in production');
-      res.status(503).json({ error: 'Admin API is not configured' });
-      return;
-    }
-    next();
-    return;
-  }
   const auth = req.headers['authorization'];
-  if (auth !== `Bearer ${ADMIN_API_SECRET}`) {
+  if (auth !== `Bearer ${getAdminSecret()}`) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }

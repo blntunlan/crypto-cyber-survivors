@@ -12,11 +12,11 @@ import { EventBus } from '../services/core/EventBus';
 import { audio } from '../services/audio';
 import { COLORS } from '../constants';
 import { type PoolManager } from '../services/combat/PoolManager';
-import { spawnSystem } from '../services/combat/SpawnSystem';
 import { CombatResolutionService } from '../services/combat/physics/CombatResolutionService';
 import { BuffManager } from '../services/patterns/decorators/BuffManager';
 import { BuffGemSpawner } from '../services/spawners/BuffGemSpawner';
 import { GAME_STATE_DEFAULTS } from '../services/core/GameStateManager';
+import { type ISpawnSystem } from '../services/interfaces/ISpawnSystem';
 import type { GameState, Candle } from '../types';
 
 interface UseGameEventsParams {
@@ -24,12 +24,14 @@ interface UseGameEventsParams {
   pool: RefObject<PoolManager>;
   /** Reference to game state */
   state: RefObject<GameState>;
+  /** Reference to session-scoped spawn system */
+  spawnSystem: RefObject<ISpawnSystem>;
 }
 
 /**
  * Hook to subscribe to game-wide events
  */
-export function useGameEvents({ pool, state }: UseGameEventsParams): void {
+export function useGameEvents({ pool, state, spawnSystem }: UseGameEventsParams): void {
   // Listen for afterReset event from GameStateManager to fully reset all game state
   useEffect(() => {
     const unsub = EventBus.subscribe('afterReset', () => {
@@ -47,10 +49,10 @@ export function useGameEvents({ pool, state }: UseGameEventsParams): void {
       // Reset buff manager
       BuffManager.reset();
       BuffGemSpawner.reset();
-      spawnSystem.reset();
+      spawnSystem.current.reset();
     });
     return () => unsub();
-  }, [pool, state]);
+  }, [pool, state, spawnSystem]);
 
   // Listen for killAll cheat command
   useEffect(() => {

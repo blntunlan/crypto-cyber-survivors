@@ -9,6 +9,8 @@ import { useGameStore } from '../../stores/gameStore';
 
 describe('GameStore', () => {
   beforeEach(() => {
+    localStorage.clear();
+
     // Reset store to initial state before each test
     useGameStore.setState({
       audio: {
@@ -46,6 +48,20 @@ describe('GameStore', () => {
         favoritePosition: null,
         cardsCollected: [],
         achievementsUnlocked: [],
+      },
+      gameplay: {
+        dashKey: 'space',
+        autoFire: true,
+        showTutorialHints: true,
+      },
+      mobile: {
+        controlType: 'drag',
+        joystickPosition: 'left',
+        joystickSize: 'medium',
+        dashMethod: 'secondTap',
+        hapticFeedback: true,
+        sensitivity: 1,
+        showDragFeedback: true,
       },
       hasSeenTutorial: false,
     });
@@ -198,6 +214,93 @@ describe('GameStore', () => {
       expect(useGameStore.getState().audio.masterVolume).toBe(1.0);
       expect(useGameStore.getState().audio.isMuted).toBe(false);
       expect(useGameStore.getState().graphics.showParticles).toBe(true);
+    });
+  });
+
+  describe('settings persistence', () => {
+    it('should rehydrate audio, controls, and reduced effects preferences', async () => {
+      localStorage.setItem(
+        'crypto-survivors-store',
+        JSON.stringify({
+          state: {
+            audio: {
+              masterVolume: 0.35,
+              sfxVolume: 0.25,
+              musicVolume: 0.15,
+              isMuted: true,
+              categoryVolumes: {
+                combat: 0.2,
+                feedback: 0.3,
+                movement: 0.4,
+                ui: 0.5,
+                alerts: 0.6,
+                slots: 0.7,
+                music: 0.8,
+                sfx: 0.9,
+              },
+            },
+            graphics: {
+              showParticles: false,
+              showScreenShake: false,
+              showDamageNumbers: false,
+              reducedMotion: true,
+              hudScale: 1.35,
+              showFPS: true,
+            },
+            gameplay: {
+              dashKey: 'shift',
+              autoFire: false,
+              showTutorialHints: false,
+            },
+            mobile: {
+              controlType: 'joystick',
+              joystickPosition: 'right',
+              joystickSize: 'large',
+              dashMethod: 'hold',
+              hapticFeedback: false,
+              sensitivity: 1.5,
+              showDragFeedback: false,
+            },
+            hasSeenTutorial: true,
+            lastPlayedVersion: 'beta-refresh-test',
+          },
+        })
+      );
+
+      await useGameStore.persist.rehydrate();
+
+      const state = useGameStore.getState();
+      expect(state.audio).toMatchObject({
+        masterVolume: 0.35,
+        sfxVolume: 0.25,
+        musicVolume: 0.15,
+        isMuted: true,
+      });
+      expect(state.audio.categoryVolumes.combat).toBe(0.2);
+      expect(state.graphics).toMatchObject({
+        showParticles: false,
+        showScreenShake: false,
+        showDamageNumbers: false,
+        reducedMotion: true,
+        hudScale: 1.35,
+        showFPS: true,
+      });
+      expect(state.gameplay).toMatchObject({
+        dashKey: 'shift',
+        autoFire: false,
+        showTutorialHints: false,
+      });
+      expect(state.mobile).toMatchObject({
+        controlType: 'joystick',
+        joystickPosition: 'right',
+        joystickSize: 'large',
+        dashMethod: 'hold',
+        hapticFeedback: false,
+        sensitivity: 1.5,
+        showDragFeedback: false,
+      });
+      expect(state.hasSeenTutorial).toBe(true);
+      expect(state.lastPlayedVersion).toBe('beta-refresh-test');
     });
   });
 });

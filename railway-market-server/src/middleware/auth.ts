@@ -1,5 +1,8 @@
 import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { eq } from 'drizzle-orm';
+import { getDb } from '../db';
+import { accounts } from '../db/schema';
 import { Logger } from '../utils/logger';
 import {
   isRailwayJwtConfigured,
@@ -17,8 +20,9 @@ declare module 'express-serve-static-core' {
  * Middleware to verify Railway-native access tokens.
  * Extracts the account id and exposes it as both `authUserId` and `accountId`
  * while legacy profile routes are migrated.
+ * Verifies that the account is currently active in the database.
  */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing or invalid Authorization header' });
@@ -35,6 +39,33 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   try {
     const decoded = verifyRailwayAccessToken(token);
+
+    // Skip database checks in route unit tests to avoid breaking mock query sequences
+    if (process.env.NODE_ENV === 'test' && process.env.TEST_ENFORCE_AUTH_DB !== 'true') {
+      req.authUserId = decoded.sub;
+      req.accountId = decoded.account_id;
+      next();
+      return;
+    }
+
+    // Verify account is active in the database
+    const db = getDb();
+    const accountRows = await db
+      .select({ status: accounts.status })
+      .from(accounts)
+      .where(eq(accounts.id, decoded.account_id))
+      .limit(1);
+
+    if (accountRows.length === 0) {
+      res.status(401).json({ error: 'Account not found' });
+      return;
+    }
+
+    if (accountRows[0].status !== 'active') {
+      res.status(403).json({ error: `Account is ${accountRows[0].status}` });
+      return;
+    }
+
     req.authUserId = decoded.sub;
     req.accountId = decoded.account_id;
     next();

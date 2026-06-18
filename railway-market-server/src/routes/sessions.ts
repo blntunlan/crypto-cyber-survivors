@@ -4,7 +4,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { getRequiredAccountId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
-import { sessions } from '../db/schema';
+import { sessions, priceHistory } from '../db/schema';
 import { getProfileId } from '../db/helpers';
 import { startSessionSchema, verifySessionSchema, syncSessionSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
@@ -188,14 +188,65 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       return;
     }
 
-    const { metrics: trustedMetrics, suspiciousFlags } = deriveTrustedSessionMetrics(payload, {
-      createdAt: session.createdAt,
-      entryPrice: session.entryPrice,
-      exitPrice: session.exitPrice,
-      survivalSeconds: session.survivalSeconds,
-      kills: session.kills,
-      level: session.level,
-    });
+    // Fetch historic entry and exit prices from price_history table
+    let realEntryPrice: number | null = null;
+    let realExitPrice: number | null = null;
+
+    try {
+      const entryRows = await db
+        .select({ price: priceHistory.price })
+        .from(priceHistory)
+        .where(
+          and(
+            eq(priceHistory.pair, session.pair),
+            sql`timestamp >= ${session.createdAt} - INTERVAL '30 seconds'`,
+            sql`timestamp <= ${session.createdAt} + INTERVAL '30 seconds'`
+          )
+        )
+        .orderBy(sql`ABS(EXTRACT(EPOCH FROM (timestamp - ${session.createdAt})))`)
+        .limit(1);
+
+      if (entryRows.length > 0 && entryRows[0]?.price) {
+        realEntryPrice = entryRows[0].price;
+      }
+
+      const survivalSec = Math.floor(payload.survivalSeconds);
+      const exitTime = new Date(new Date(session.createdAt).getTime() + survivalSec * 1000);
+      const exitRows = await db
+        .select({ price: priceHistory.price })
+        .from(priceHistory)
+        .where(
+          and(
+            eq(priceHistory.pair, session.pair),
+            sql`timestamp >= ${exitTime} - INTERVAL '30 seconds'`,
+            sql`timestamp <= ${exitTime} + INTERVAL '30 seconds'`
+          )
+        )
+        .orderBy(sql`ABS(EXTRACT(EPOCH FROM (timestamp - ${exitTime})))`)
+        .limit(1);
+
+      if (exitRows.length > 0 && exitRows[0]?.price) {
+        realExitPrice = exitRows[0].price;
+      }
+    } catch (err) {
+      Logger.warn(`[verify] Failed to fetch historic prices for validation: ${err}`);
+    }
+
+    const { metrics: trustedMetrics, suspiciousFlags } = deriveTrustedSessionMetrics(
+      payload,
+      {
+        createdAt: session.createdAt,
+        entryPrice: session.entryPrice,
+        exitPrice: session.exitPrice,
+        survivalSeconds: session.survivalSeconds,
+        kills: session.kills,
+        level: session.level,
+      },
+      {
+        realEntryPrice: realEntryPrice ?? undefined,
+        realExitPrice: realExitPrice ?? undefined,
+      }
+    );
 
     if (suspiciousFlags.length > 0) {
       Logger.warn(`[verify] Session ${sessionId} required metric normalization`, {
@@ -503,6 +554,7 @@ router.post('/sync', requireAuth, asyncHandler(async (req: Request, res: Respons
         id: sessions.id,
         profileId: sessions.profileId,
         isVerified: sessions.isVerified,
+        createdAt: sessions.createdAt,
       })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
@@ -522,6 +574,31 @@ router.post('/sync', requireAuth, asyncHandler(async (req: Request, res: Respons
     if (existing.isVerified) {
       res.status(409).json({ error: 'Verified sessions cannot be mutated' });
       return;
+    }
+
+    // Validate sync values against implausible/manipulated metrics
+    if (sessionData.survival_seconds !== undefined) {
+      const elapsedSeconds = Math.floor((Date.now() - new Date(existing.createdAt).getTime()) / 1000);
+      if (sessionData.survival_seconds > elapsedSeconds + 15) {
+        res.status(400).json({ error: 'Implausible survival duration' });
+        return;
+      }
+    }
+
+    if (sessionData.kills !== undefined && sessionData.survival_seconds !== undefined) {
+      const duration = Math.max(1, sessionData.survival_seconds);
+      if (sessionData.kills / duration > 5) {
+        res.status(400).json({ error: 'Implausible kill rate' });
+        return;
+      }
+    }
+
+    if (sessionData.level !== undefined && sessionData.survival_seconds !== undefined) {
+      const duration = Math.max(1, sessionData.survival_seconds);
+      if (sessionData.level / duration > 0.5 && sessionData.level > 5) {
+        res.status(400).json({ error: 'Implausible progression rate' });
+        return;
+      }
     }
 
     // Strict column whitelist — only runtime metrics can be synced after start.

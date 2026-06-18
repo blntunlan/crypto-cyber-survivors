@@ -73,8 +73,9 @@ export class SpawnSystem implements ISpawnSystem {
   private static readonly MAX_ACTIVE_WHALES = 3;
 
   private pendingGatekeeperSpawn: { x: number; y: number; count: number } | null = null;
+  private unsubscribeEventListeners: Array<() => void> = [];
 
-  private constructor() {
+  constructor() {
     this.setupEventListeners();
   }
 
@@ -83,22 +84,24 @@ export class SpawnSystem implements ISpawnSystem {
   }
 
   public static resetInstance(): void {
+    SpawnSystem.instance?.dispose();
     SpawnSystem.instance = null;
   }
 
   private setupEventListeners(): void {
-    EventBus.on('gameMarketEvent', data => {
-      this.activeEvents.set(data.type, {
-        intensity: data.intensity,
-        expiry: Date.now() + data.durationMs,
-      });
-      Logger.info(`[SpawnSystem] Active Event Received: ${data.type}`);
-    });
-
-    EventBus.on('portalOpened', data => {
-      this.pendingGatekeeperSpawn = { x: data.x, y: data.y, count: 8 };
-      Logger.info(`[SpawnSystem] Queued 8 gatekeepers for portal`);
-    });
+    this.unsubscribeEventListeners.push(
+      EventBus.on('gameMarketEvent', data => {
+        this.activeEvents.set(data.type, {
+          intensity: data.intensity,
+          expiry: Date.now() + data.durationMs,
+        });
+        Logger.info(`[SpawnSystem] Active Event Received: ${data.type}`);
+      }),
+      EventBus.on('portalOpened', data => {
+        this.pendingGatekeeperSpawn = { x: data.x, y: data.y, count: 8 };
+        Logger.info(`[SpawnSystem] Queued 8 gatekeepers for portal`);
+      })
+    );
   }
 
   public update(
@@ -666,6 +669,14 @@ export class SpawnSystem implements ISpawnSystem {
     this.previousRSIState = 'NEUTRAL';
     this.rsiSpawnCooldownTimer = 0;
     this.attackCooldownTimer = 0;
+  }
+
+  public dispose(): void {
+    for (let i = 0; i < this.unsubscribeEventListeners.length; i++) {
+      this.unsubscribeEventListeners[i]?.();
+    }
+    this.unsubscribeEventListeners.length = 0;
+    this.reset();
   }
 
   getDebugState(currentActiveEnemies: number = 0): SpawnDebugState {

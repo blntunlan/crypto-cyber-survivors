@@ -105,8 +105,8 @@ test.describe('Mobile Touch Controls - iPhone SE', () => {
         hasMobileControls,
       });
 
-      // At least one control type should be available on mobile
-      expect(hasJoystick || hasDragArea || hasMobileControls || true).toBe(true);
+      // At least one real control surface must be available on mobile.
+      expect(hasJoystick || hasDragArea || hasMobileControls).toBe(true);
     }
 
     await expect(page.locator('body')).toBeVisible();
@@ -682,7 +682,10 @@ test.describe('Edge Cases - Network Conditions', () => {
       'CDP network throttling is only available in Chromium.'
     );
 
-    // Simulate 3G
+    await setupMobileSession(page, MOBILE_DEVICES.iPhoneSE);
+
+    // Simulate 3G after the app shell is loaded; this scenario verifies
+    // touch responsiveness during slow network, not cold-start loading time.
     const client = await page.context().newCDPSession(page);
     await client.send('Network.emulateNetworkConditions', {
       offline: false,
@@ -691,7 +694,6 @@ test.describe('Edge Cases - Network Conditions', () => {
       latency: 200, // 200ms latency
     });
 
-    await setupMobileSession(page, MOBILE_DEVICES.iPhoneSE);
     await page.waitForTimeout(5000);
 
     // Touch should still work despite slow network
@@ -750,21 +752,20 @@ test.describe('Edge Cases - Viewport Changes', () => {
 
     // Very large "mobile" viewport
     await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.evaluate(() => {
+      localStorage.setItem('has_seen_landing', 'true');
+      localStorage.setItem('tutorial-completed', 'true');
+      localStorage.setItem(
+        'crypto_survivors_user',
+        JSON.stringify({
+          profileId: '00000000-0000-4000-a000-000000000000',
+          nickname: 'ViewportUser',
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
+        })
+      );
+    });
     await page.reload();
-
-    // Wait for the app to settle
-    const nicknameInput = page.locator('input[id="nickname-input"]');
-    const playHubBtn = page.getByRole('button', { name: /PLAY|hub\.play/i });
-
-    await Promise.race([
-      nicknameInput.waitFor({ state: 'visible', timeout: 15000 }),
-      playHubBtn.waitFor({ state: 'visible', timeout: 15000 }),
-    ]).catch(() => {});
-
-    if (await nicknameInput.isVisible()) {
-      await nicknameInput.fill('ViewportUser');
-      await page.keyboard.press('Enter');
-    }
 
     await goToMainMenuFromHub(page);
     await page.waitForTimeout(2000);

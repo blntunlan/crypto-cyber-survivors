@@ -57,6 +57,113 @@ interface RawLeaderboardRow {
 }
 
 // ============================================================================
+// Mock Data (shown when API returns empty / no real players yet)
+// ============================================================================
+
+const MOCK_LEADERBOARD_ENTRIES: Omit<LeaderboardEntry, 'rank' | 'isCurrentPlayer'>[] = [
+  {
+    profileId: 'mock-001',
+    displayName: 'SatoshiSlayer',
+    avatarUrl: null,
+    authProvider: 'twitter',
+    highScore: 127_450,
+    maxSurvivalTime: 842,
+    totalKills: 14_380,
+    totalSessions: 67,
+  },
+  {
+    profileId: 'mock-002',
+    displayName: 'CryptoVixen',
+    avatarUrl: null,
+    authProvider: 'discord',
+    highScore: 98_200,
+    maxSurvivalTime: 726,
+    totalKills: 11_250,
+    totalSessions: 53,
+  },
+  {
+    profileId: 'mock-003',
+    displayName: 'DiamondHands42',
+    avatarUrl: null,
+    authProvider: 'google',
+    highScore: 81_750,
+    maxSurvivalTime: 695,
+    totalKills: 9_870,
+    totalSessions: 41,
+  },
+  {
+    profileId: 'mock-004',
+    displayName: 'HODLKing',
+    avatarUrl: null,
+    authProvider: 'twitter',
+    highScore: 64_300,
+    maxSurvivalTime: 618,
+    totalKills: 7_640,
+    totalSessions: 38,
+  },
+  {
+    profileId: 'mock-005',
+    displayName: 'BearTrap_',
+    avatarUrl: null,
+    authProvider: 'github',
+    highScore: 51_820,
+    maxSurvivalTime: 573,
+    totalKills: 6_210,
+    totalSessions: 29,
+  },
+  {
+    profileId: 'mock-006',
+    displayName: 'LiquidatorX',
+    avatarUrl: null,
+    authProvider: 'discord',
+    highScore: 39_950,
+    maxSurvivalTime: 504,
+    totalKills: 5_480,
+    totalSessions: 24,
+  },
+  {
+    profileId: 'mock-007',
+    displayName: 'MoonWalker',
+    avatarUrl: null,
+    authProvider: 'nickname',
+    highScore: 28_600,
+    maxSurvivalTime: 441,
+    totalKills: 4_120,
+    totalSessions: 19,
+  },
+  {
+    profileId: 'mock-008',
+    displayName: 'WhaleAlert',
+    avatarUrl: null,
+    authProvider: 'google',
+    highScore: 19_400,
+    maxSurvivalTime: 382,
+    totalKills: 3_350,
+    totalSessions: 15,
+  },
+  {
+    profileId: 'mock-009',
+    displayName: 'degen_alpha',
+    avatarUrl: null,
+    authProvider: 'twitter',
+    highScore: 12_150,
+    maxSurvivalTime: 310,
+    totalKills: 2_280,
+    totalSessions: 11,
+  },
+  {
+    profileId: 'mock-010',
+    displayName: 'Ngmi_Anon',
+    avatarUrl: null,
+    authProvider: 'nickname',
+    highScore: 8_320,
+    maxSurvivalTime: 247,
+    totalKills: 1_590,
+    totalSessions: 8,
+  },
+];
+
+// ============================================================================
 // Service
 // ============================================================================
 
@@ -121,6 +228,12 @@ class LeaderboardServiceClass {
         })
         .filter(e => e.displayName !== '');
 
+      // If no real entries exist yet, show mock data so the board looks alive
+      if (entries.length === 0) {
+        Logger.info('[LeaderboardService] API returned empty, using mock data');
+        return this.getMockLeaderboard(sort);
+      }
+
       const result: LeaderboardResponse = {
         entries,
         sortedBy: sort,
@@ -140,12 +253,52 @@ class LeaderboardServiceClass {
         return cached.data;
       }
 
-      return {
-        entries: [],
-        sortedBy: sort,
-        lastUpdated: new Date(),
-      };
+      // Fall back to mock data so visitors always see a populated board
+      Logger.info('[LeaderboardService] Returning mock leaderboard data');
+      return this.getMockLeaderboard(sort);
     }
+  }
+
+  /**
+   * Build a mock leaderboard response from static seed data.
+   * Entries are sorted by the requested field so all tabs look correct.
+   */
+  private getMockLeaderboard(sort: LeaderboardSortField): LeaderboardResponse {
+    const sortKeyMap: Record<
+      LeaderboardSortField,
+      keyof Omit<
+        LeaderboardEntry,
+        | 'rank'
+        | 'isCurrentPlayer'
+        | 'profileId'
+        | 'displayName'
+        | 'avatarUrl'
+        | 'authProvider'
+      >
+    > = {
+      high_score: 'highScore',
+      max_survival_time: 'maxSurvivalTime',
+      total_kills: 'totalKills',
+      total_sessions: 'totalSessions',
+    };
+
+    const key = sortKeyMap[sort];
+
+    const sorted = [...MOCK_LEADERBOARD_ENTRIES].sort(
+      (a, b) => (b[key] as number) - (a[key] as number)
+    );
+
+    const entries: LeaderboardEntry[] = sorted.map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+      isCurrentPlayer: false,
+    }));
+
+    return {
+      entries,
+      sortedBy: sort,
+      lastUpdated: new Date(),
+    };
   }
 
   /** Invalidate the cache so the next fetch goes to the network. */

@@ -1,23 +1,27 @@
 import { Router, type Request, type Response } from 'express';
+import crypto from 'crypto';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getPool } from '../db/pool';
 import { Logger } from '../utils/logger';
 
 const router = Router();
 
-const ADMIN_SECRET = process.env.ADMIN_API_SECRET;
+function getAdminSecret(): string {
+  let secret = process.env.ADMIN_API_SECRET;
+  if (!secret) {
+    secret = crypto.randomBytes(32).toString('hex');
+    process.env.ADMIN_API_SECRET = secret;
+    Logger.warn(`[Admin] ADMIN_API_SECRET is not configured in admin route. Generated ephemeral secret: ${secret}`);
+  }
+  return secret;
+}
 
 /**
  * Simple admin auth — checks Bearer token against ADMIN_API_SECRET env var.
- * Falls back to open access in dev when no secret is configured.
  */
 function requireAdmin(req: Request, res: Response, next: () => void): void {
-  if (!ADMIN_SECRET) {
-    next();
-    return;
-  }
   const auth = req.headers['authorization'];
-  if (auth !== `Bearer ${ADMIN_SECRET}`) {
+  if (auth !== `Bearer ${getAdminSecret()}`) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -28,6 +32,7 @@ type CountRow = { count: string };
 type ProviderRow = { provider: string; count: string };
 type AuditRow = { action: string; count: string };
 type TopPlayer = { nickname: string; total_reward: string; sessions_count: string };
+type AverageRow = { avg: string | null };
 
 /**
  * GET /api/v1/admin/dashboard — Comprehensive system dashboard
@@ -136,6 +141,7 @@ router.get(
 
     // --- Security ---
     let security: Record<string, unknown> = {};
+    let telemetry: Record<string, unknown> = {};
     try {
       const [cheatsR, errorsR] = await Promise.all([
         pool.query<CountRow>(
@@ -161,6 +167,37 @@ router.get(
       };
     } catch {
       security = { error: 'query failed' };
+    }
+
+    // --- Telemetry visibility ---
+    try {
+      const [errorsR, cheatR, perfR, avgFpsR, devicesR] = await Promise.all([
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM error_reports WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM cheat_attempts WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM performance_metrics WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<AverageRow>(
+          `SELECT COALESCE(AVG(avg_fps), 0)::TEXT AS avg FROM performance_metrics WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM device_profiles WHERE last_seen_at > now() - INTERVAL '24 hours'`
+        ),
+      ]);
+
+      telemetry = {
+        errorReports24h: Number(errorsR.rows[0]?.count ?? 0),
+        cheatAttempts24h: Number(cheatR.rows[0]?.count ?? 0),
+        performanceMetrics24h: Number(perfR.rows[0]?.count ?? 0),
+        avgFps24h: Math.round(Number(avgFpsR.rows[0]?.avg ?? 0)),
+        activeDeviceProfiles24h: Number(devicesR.rows[0]?.count ?? 0),
+      };
+    } catch {
+      telemetry = { error: 'query failed' };
     }
 
     // --- Audit Log Summary ---
@@ -202,6 +239,7 @@ router.get(
       economy,
       authProviders: providers,
       security,
+      telemetry,
       auditSummary,
       topPlayers,
     });

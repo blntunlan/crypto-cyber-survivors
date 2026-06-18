@@ -29,6 +29,7 @@ export default tseslint.config(
       '.github/skills/**', // Skill templates - not part of main project
       'supabase/functions/**', // Deno environment - different runtime
       'railway-market-server/**',
+      'railway-market-aggregator/**',
       'scripts/**',
       'e2e/**', // Playwright tests - separate environment
       'remotion-video/**',

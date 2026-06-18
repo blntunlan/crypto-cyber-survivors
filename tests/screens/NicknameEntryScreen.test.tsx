@@ -62,7 +62,7 @@ describe('NicknameEntryScreen', () => {
     fireEvent.click(submitBtn);
 
     const errorElements = await screen.findAllByText(
-      /Only letters, numbers, and underscores/i
+      /Only letters, numbers, underscores, and hyphens/i
     );
     expect(errorElements.length).toBeGreaterThan(0);
     expect(errorElements[0]).toBeInTheDocument();

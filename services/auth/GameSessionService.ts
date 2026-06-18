@@ -17,6 +17,7 @@ import { getMarketSyncQueue } from '../market/sync';
 import { railwayClient } from '../api/RailwayClient';
 import { SessionValidator } from '../validators/SessionValidator';
 import { type SessionValidationInput } from '../validators/types';
+import { EventBus } from '../core/EventBus';
 
 export interface ServerSessionResponse {
   sessionId: string;
@@ -24,21 +25,45 @@ export interface ServerSessionResponse {
   sessionSecret: string;
 }
 
+type RuntimeAuditFlushResult = {
+  ok: boolean;
+  batches: number;
+  acked: number;
+  retried: number;
+  remaining: number;
+  error?: string;
+};
+
 export class GameSessionService {
   private static currentSessionId: string | null = null;
   private static currentSessionSecret: string | null = null;
   private static isStarting = false;
   private static isSubmitting = false;
 
-  private static async flushRuntimeAuditQueue(reason: string): Promise<void> {
+  private static async flushRuntimeAuditQueue(
+    reason: string
+  ): Promise<RuntimeAuditFlushResult> {
     try {
       const result = await getMarketSyncQueue().flushAll();
       Logger.info(`[GameSession] Runtime sync queue flushed (${reason})`, result);
+      return {
+        ok: result.remaining === 0,
+        ...result,
+      };
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       Logger.warn('[GameSession] Runtime sync queue flush failed', {
         reason,
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       });
+      return {
+        ok: false,
+        batches: 0,
+        acked: 0,
+        retried: 0,
+        remaining: 1,
+        error: message,
+      };
     }
   }
 
@@ -189,7 +214,28 @@ export class GameSessionService {
         `[GameSession] Submitting results to verify session: ${this.currentSessionId}`
       );
 
-      await this.flushRuntimeAuditQueue('before_submit');
+      const auditFlush = await this.flushRuntimeAuditQueue('before_submit');
+      if (!auditFlush.ok) {
+        const error =
+          auditFlush.error === undefined
+            ? 'MARKET_SYNC_PENDING'
+            : 'MARKET_SYNC_FLUSH_FAILED';
+        Logger.warn(
+          '[GameSession] Submission paused until runtime sync flush completes',
+          {
+            sessionId: this.currentSessionId,
+            auditFlush,
+            error,
+          }
+        );
+        EventBus.emit('verification:queued', {
+          sessionId: this.currentSessionId,
+          source: 'market_sync',
+          error,
+          auditFlush,
+        });
+        return { success: false, error };
+      }
 
       const survivalSeconds = Math.floor(
         rewardPayload?.survivalSeconds ?? Math.floor(results.survivalTimeMs / 1000)

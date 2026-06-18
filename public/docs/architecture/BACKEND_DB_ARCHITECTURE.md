@@ -190,6 +190,57 @@ Client reports
 | `handle_new_meta_progression()` trigger | inserts on `profiles` | Auto-create `meta_progression` |
 | `prune_old_replays()` trigger | inserts on `game_replays` | Keep top replay set per player |
 
+## :Clipboard: DB Object Ownership Matrix
+
+Beta DB ownership is Railway-first. `railway-market-server/src/db/schema.sql` is the full idempotent schema source, `railway-market-server/src/db/migrations/*.sql` are ordered deltas, and legacy `supabase/migrations/legacy/*` files are historical unless a current Railway migration explicitly ports the object.
+
+**Stored procedures**
+
+| Procedure | Owner | Source | Runtime caller | Critical dependency |
+|---|---|---|---|---|
+| `credit_coins(...)` | Backend economy | `schema.sql` | `sessions.ts` verify transaction | Must be the only gold balance mutation path; writes `virtual_accounts` and `ledger` together |
+| `purchase_meta_upgrade(...)` | Backend meta progression | `schema.sql`, migration `001_meta_challenges_replays.sql` | `metaProgression.ts` purchase route | Locks `meta_progression` row, validates max level and balance before JSONB mutation |
+| `transfer_meta_coins(...)` | Backend rewards/meta | `schema.sql`, migration `001_meta_challenges_replays.sql` | `sessions.ts`, `metaProgression.ts`, `challenges.ts` | Upserts `meta_progression`; reward verification depends on this not throwing after coin credit |
+| `cleanup_old_price_history(...)` | Data retention | `schema.sql` | `CleanupCron.runCleanup()` | Keeps market warmup/verification history bounded to 24h retention batches |
+| `cleanup_old_error_reports(...)` | Telemetry retention | `schema.sql`, migration `003_pg_best_practices.sql` | `CleanupCron.runCleanup()` | Deletes error telemetry older than 30 days in batches |
+| `cleanup_old_performance_metrics(...)` | Telemetry retention | `schema.sql`, migration `003_pg_best_practices.sql` | `CleanupCron.runCleanup()` | Deletes performance metrics older than 30 days in batches |
+| `cleanup_old_cheat_attempts(...)` | Security telemetry retention | `schema.sql`, migration `003_pg_best_practices.sql` | `CleanupCron.runCleanup()` | Deletes cheat reports older than 60 days in batches |
+| `cleanup_old_audit_logs(...)` | Audit retention | `schema.sql`, migration `004_audit_log.sql` | Manual/admin DB operation until wired into cron | Retains audit log for 90 days; not part of the scheduled cleanup loop yet |
+
+**Views**
+
+| View | Owner | Source | Runtime caller | Contract |
+|---|---|---|---|---|
+| `v_leaderboard` | Backend leaderboard | `schema.sql`, migration `002_fix_leaderboard_view.sql` | `leaderboard.ts` | One row per player per pair, verified sessions only |
+| `v_challenge_leaderboard` | Backend challenges | `schema.sql`, migration `001_meta_challenges_replays.sql` | `challenges.ts` public leaderboard route | Per challenge score ordering joined with profile/challenge metadata |
+| `v_meta_leaderboard` | Backend meta progression | `schema.sql`, migration `001_meta_challenges_replays.sql` | `metaProgression.ts` public leaderboard route | Lifetime meta progression ranking |
+
+**Triggers**
+
+| Trigger | Function | Table | Owner | Contract |
+|---|---|---|---|---|
+| `on_profile_created` | `handle_new_profile()` | `profiles` | Identity/economy | Every inserted profile gets a `virtual_accounts` row |
+| `on_profile_created_meta` | `handle_new_meta_progression()` | `profiles` | Identity/meta progression | Every inserted profile gets a `meta_progression` row |
+| `after_replay_insert` | `prune_old_replays()` | `game_replays` | Replay storage | Inserted replay triggers top-5-per-player pruning by score |
+
+**Migration ownership**
+
+| Migration | Owner | Objects touched | Required after |
+|---|---|---|---|
+| `001_meta_challenges_replays.sql` | Backend gameplay persistence | `meta_progression`, `daily_challenges`, `challenge_completions`, `game_replays`, `challenge_seed_log`, `v_challenge_leaderboard`, `v_meta_leaderboard`, meta/replay functions and triggers | Base `schema.sql` tables `profiles` and `sessions` |
+| `002_fix_leaderboard_view.sql` | Backend leaderboard | `idx_sessions_verified_pair_survival`, `v_leaderboard` | Base `sessions` and `profiles` |
+| `003_pg_best_practices.sql` | Backend DB hardening | CHECK constraints, FK/time-series indexes, cleanup functions, autovacuum settings, table comments | Base schema plus migration `001` for meta/challenge/replay constraints |
+| `004_audit_log.sql` | Backend audit | `audit_log`, audit indexes, `cleanup_old_audit_logs(...)` | Base `profiles` |
+
+**Cleanup cron dependencies**
+
+| Cron | Source | Schedule | DB functions | Notes |
+|---|---|---|---|---|
+| Railway API cleanup | `railway-market-server/src/cron/cleanup.ts` | Starts 60s after boot, then every 6h | `cleanup_old_price_history`, `cleanup_old_error_reports`, `cleanup_old_performance_metrics`, `cleanup_old_cheat_attempts` | Guards concurrent runs with `isRunning`; price cleanup loops in 5000-row batches up to 100 iterations |
+| Market aggregator cleanup | `railway-market-aggregator/src/cron/cleanup.ts` | Starts 60s after boot, then every 6h | Same retention helpers as API cleanup | Same retention contract if the aggregator owns the market DB connection in a deployment |
+
+Do not add direct route-level writes that bypass the listed stored procedures for gold, meta progression, or replay pruning. If a new DB object is added, update this matrix, `docs/DATABASE_SCHEMA.md`, the matching public mirror, and the migration guide in the same change.
+
 ## :Wrench: Operational Characteristics
 
 | Concern | Current Behavior |

@@ -237,6 +237,13 @@ class CoinServiceClass {
     if (success) {
       this.sessionCoins += amount;
       EventBus.emit('xpGained', { amount });
+      EventBus.emit('verification:success', {
+        sessionId: metadata?.['sessionId'],
+        verifiedAmount: amount,
+        source,
+        metaShare: metadata?.['metaShare'],
+        serverVerified: true,
+      });
 
       Logger.debug(
         `[CoinService] Credited ${amount} verified coins. Session total: ${this.sessionCoins}`

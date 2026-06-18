@@ -9,16 +9,11 @@ import {
 } from '../types';
 import { type CryptoPair } from '../types/crypto';
 import { COLORS, GAME_ENGINE } from '../constants';
-import { PoolManager } from '../services/combat/PoolManager';
-import { GameRenderer } from '../services/renderers/GameRenderer';
 import { useGameInput } from '../hooks/useGameInput';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { TimeService } from '../services/core/TimeService';
 import { getHUDLayout } from '../config/UILayout';
 import { useGameStore, selectGraphics } from '../stores/gameStore';
-import { PhysicsSystem } from '../services/combat/PhysicsSystem';
-import { SpawnSystem } from '../services/combat/SpawnSystem';
-import { CombatSystem } from '../services/combat/CombatSystem';
 import { GameHUD } from './GameHUD';
 import { MobileControls } from './mobile';
 import { useDevice } from '../hooks/useDevice';
@@ -37,8 +32,6 @@ import { marketApiClient } from '../services/api/MarketApiClient';
 import { ClientIndicatorService } from '../services/indicators/ClientIndicatorService';
 import { Logger } from '../services/system/Logger';
 import { EventBus } from '../services/core/EventBus';
-import { EngineRegistry } from '../services/core/EngineRegistry';
-import { difficultyContext } from '../services/difficulty/DifficultyContext';
 import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
 import { checkPortalCollision } from '../services/gameplay/portal/portalCollision';
 import { type RewardPayload } from '../types/reward';
@@ -81,6 +74,7 @@ import { ReplayRecorderService } from '../services/replay/ReplayRecorderService'
 import { useLanguage } from '../contexts/LanguageContext';
 import { type ClientIndicatorsUpdatedEvent } from '../types/events';
 import { updateNearMissFeedbackTimers } from '../services/gameplay/NearMissTiming';
+import { createGameRuntime } from '../services/gameplay/GameRuntime';
 import {
   getRuntimeDebugFlags,
   resolveRuntimeCanvasDpr,
@@ -134,12 +128,13 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   const canvasPixelWidth = Math.max(1, Math.round(width * canvasDpr));
   const canvasPixelHeight = Math.max(1, Math.round(height * canvasDpr));
 
-  // Use singleton instances for heavy systems (Architectural Compliance)
-  const pool = useRef(PoolManager.getInstance());
-  const renderer = useLazyRef(() => GameRenderer.getInstance());
-  const combatSystem = useRef(CombatSystem.getInstance());
-  const physicsSystem = useRef(PhysicsSystem.getInstance());
-  const spawnSystemRef = useLazyRef(() => SpawnSystem.getInstance());
+  const runtimeRef = useLazyRef(() => createGameRuntime());
+  const pool = useRef(runtimeRef.current.poolManager);
+  const renderer = useRef(runtimeRef.current.renderer);
+  const combatSystem = useRef(runtimeRef.current.combatSystem);
+  const physicsSystem = useRef(runtimeRef.current.physicsSystem);
+  const spawnSystemRef = useRef(runtimeRef.current.spawnSystem);
+  const difficultyContextRef = useRef(runtimeRef.current.difficultyContext);
   const speedLineSpawner = useLazyRef(() => new SpeedLineSpawner());
   const lastCycleRef = useRef(1);
 
@@ -515,14 +510,10 @@ export const GameEngine: React.FC<GameEngineProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Register services with EngineRegistry for Dependency Injection
   useEffect(() => {
-    EngineRegistry.setPoolManager(pool.current);
-    EngineRegistry.setCombatSystem(combatSystem.current);
-    EngineRegistry.setPhysicsSystem(physicsSystem.current);
-    EngineRegistry.setSpawnSystem(spawnSystemRef.current);
-    EngineRegistry.setAudioService(audio);
-  }, [spawnSystemRef]); // Singletons aren't going to change, and spawnSystemRef is stable
+    const runtime = runtimeRef.current;
+    return () => runtime.dispose();
+  }, [runtimeRef]);
 
   // ========================================
   // Custom Hooks for Setup, Events & Status
@@ -532,7 +523,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
   useGameSetup({ pool, state, width, height });
 
   // Event subscriptions: afterReset, killAll
-  useGameEvents({ pool, state });
+  useGameEvents({ pool, state, spawnSystem: spawnSystemRef });
 
   // Status change effects: menu cleanup, buff initialization, pause handling
   useGameStatusEffects({ status, pool, state, playerRef, width, height });
@@ -582,7 +573,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
       void initFlow();
 
       // Initialize market engines with game context
-      const currentLeverage = difficultyContext.inputs.leverage;
+      const currentLeverage = difficultyContextRef.current.inputs.leverage;
       PriceMomentumEngine.setContext(position, currentLeverage);
 
       // Start market-synced audio pulse (delayed to let audio context fully init)
@@ -1181,7 +1172,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           WeaponSystem.getWeapons(),
           coreLoopOutput.flowState
         );
-        difficultyContext.updatePlayerPower(
+        difficultyContextRef.current.updatePlayerPower(
           playerPowerState.playerPower,
           playerPowerState.offensePower,
           playerPowerState.counterPressure,

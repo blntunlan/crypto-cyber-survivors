@@ -12,6 +12,7 @@ import {
 } from '../config/TutorialConfig';
 import { Logger } from '../services/system/Logger';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
+import { UserSessionService } from '../services/auth/UserSessionService';
 
 interface TutorialState {
   /** Whether user has completed the tutorial */
@@ -199,7 +200,7 @@ export function useTutorial(options: { enabled?: boolean } = {}): UseTutorialRet
     // FIX: Ensure user exists when skipping
     if (!UserPersistenceService.getLegacyStoredUser()) {
       Logger.info('[useTutorial] No user found - Creating Survivor profile...');
-      void UserPersistenceService.createOrUpdateUser('Survivor');
+      void UserSessionService.registerNickname('Survivor');
     }
 
     Logger.info(`[useTutorial] Tutorial skipped at step: ${stepId}`);
@@ -220,7 +221,7 @@ export function useTutorial(options: { enabled?: boolean } = {}): UseTutorialRet
     // FIX: Ensure user exists when completing
     if (!UserPersistenceService.getLegacyStoredUser()) {
       Logger.info('[useTutorial] No user found - Creating Survivor profile...');
-      void UserPersistenceService.createOrUpdateUser('Survivor');
+      void UserSessionService.registerNickname('Survivor');
     }
 
     Logger.info(`[useTutorial] Tutorial completed in ${durationMs}ms`);

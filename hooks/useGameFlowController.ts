@@ -37,6 +37,7 @@ import { MetaProgressionService } from '../services/progression/MetaProgressionS
 import { ChallengeService } from '../services/challenges/ChallengeService';
 import { ReplayRecorderService } from '../services/replay/ReplayRecorderService';
 import { type RewardPayload } from '../types/reward';
+import { AntiCheatService } from '../services/system/AntiCheatService';
 
 interface UseGameFlowControllerParams {
   gameMode: GameMode;
@@ -127,7 +128,10 @@ export const useGameFlowController = ({
   }, [healFull, playerRef]);
   const markRunStarted = useCallback(() => {
     liquidationGraceUntilRef.current = Date.now() + startOfRunLiquidationGraceMs;
-  }, [startOfRunLiquidationGraceMs]);
+    AntiCheatService.registerCriticalValue('player_level', playerRef.current.level);
+    AntiCheatService.registerCriticalValue('player_exp', playerRef.current.exp);
+    AntiCheatService.registerCriticalValue('run_kills', runStatsTotalKills);
+  }, [startOfRunLiquidationGraceMs, playerRef, runStatsTotalKills]);
 
   const selectUpgrade = useCallback(
     (card: Card) => {
@@ -145,6 +149,9 @@ export const useGameFlowController = ({
         nextPlayer.level,
         leverage
       );
+
+      AntiCheatService.updateCriticalValue('player_level', nextPlayer.level);
+      AntiCheatService.updateCriticalValue('player_exp', nextPlayer.exp);
 
       MetricsService.trackLevelUp(nextPlayer.level, card.name, card.tier);
       playerRef.current = nextPlayer;
@@ -274,8 +281,10 @@ export const useGameFlowController = ({
             MetaProgressionService.applyVerifiedTransfer(metaShare);
           }
 
-          // Replay: save recording
-          void ReplayRecorderService.saveReplay(submission.reward ?? 0);
+          // Replay: save recording only after authoritative verification succeeds.
+          if (submission.success && submission.verified === true) {
+            void ReplayRecorderService.saveReplay(submission.reward ?? 0);
+          }
         } catch (error) {
           Logger.error('[App] Critical error during session submission:', error);
         }
@@ -304,6 +313,10 @@ export const useGameFlowController = ({
       void handleGameOver(GameEndReason.LIQUIDATION);
     }
   }, [gameStatus, marketData.effectivePnl, marketData.price, handleGameOver]);
+
+  useEffect(() => {
+    AntiCheatService.updateCriticalValue('run_kills', runStatsTotalKills);
+  }, [runStatsTotalKills]);
 
   useEffect(() => {
     const handleCycleComplete = (data: {

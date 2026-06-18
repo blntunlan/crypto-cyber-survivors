@@ -141,15 +141,29 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       void MarketEventManager;
     }, []);
 
+    const refreshWalletBalance = useCallback(() => {
+      void WalletService.getInstance()
+        .getBalance()
+        .then(balance => setWalletBalance(balance));
+    }, []);
+
     useEffect(() => {
       if (gameStatus === GameStatus.MENU && hasNickname) {
-        void WalletService.getInstance()
-          .getBalance()
-          .then(balance => setWalletBalance(balance));
+        refreshWalletBalance();
       } else if (!hasNickname) {
         setWalletBalance(0);
       }
-    }, [gameStatus, hasNickname]);
+    }, [gameStatus, hasNickname, refreshWalletBalance]);
+
+    useEffect(() => {
+      if (!hasNickname) return;
+
+      const unsubscribe = EventBus.on('verification:success', () => {
+        refreshWalletBalance();
+      });
+
+      return () => unsubscribe();
+    }, [hasNickname, refreshWalletBalance]);
 
     const { playerRef, uiStats, setUiStats, resetPlayer, healFull, setPositionColor } =
       usePlayerState(dimensions.width, dimensions.height);
@@ -210,10 +224,8 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
       resetRunStats();
       resetPlayer();
       resetFlowState();
-      void WalletService.getInstance()
-        .getBalance()
-        .then(balance => setWalletBalance(balance));
-    }, [resetPlayer, resetRunStats, resetFlowState]);
+      refreshWalletBalance();
+    }, [resetPlayer, resetRunStats, resetFlowState, refreshWalletBalance]);
 
     const startGame = useCallback(
       async (choice: MarketPosition, selectedLeverage: LeverageOption) => {

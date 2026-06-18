@@ -1,5 +1,6 @@
 import { MarketPosition, type MarketData } from '../../../types';
 import { type CryptoPair } from '../../../types/crypto';
+import { type RSIState } from '../../../types/indicators';
 import {
   type MarketRunConstants,
   type MarketRuntimeTick,
@@ -20,6 +21,18 @@ const normalizeFloat = (value: number, decimals: number): number => {
 
 const toBasisPoints = (value: number): number => {
   return Math.round(value * 10_000);
+};
+
+const normalizeRSIState = (value: MarketData['rsiState']): RSIState => {
+  return value === 'OVERSOLD' || value === 'OVERBOUGHT' || value === 'NEUTRAL'
+    ? value
+    : 'NEUTRAL';
+};
+
+const normalizeWhaleTier = (
+  value: MarketData['whaleTier']
+): MarketRuntimeSnapshot['whaleTier'] => {
+  return value === 1 || value === 2 || value === 3 ? value : 0;
 };
 
 const normalizeRuntimeSource = (
@@ -131,19 +144,9 @@ export const createRuntimeSnapshot = (
   const rawPnl = normalizeFloat(marketData.pnl, 8);
   const effectivePnl = normalizeFloat(marketData.effectivePnl, 8);
   const atrPercent = normalizeFloat(marketData.atrPercent ?? 0, 8);
-  const rsiState =
-    marketData.rsiState === 'OVERSOLD' ||
-    marketData.rsiState === 'OVERBOUGHT' ||
-    marketData.rsiState === 'NEUTRAL'
-      ? marketData.rsiState
-      : 'NEUTRAL';
+  const rsiState = normalizeRSIState(marketData.rsiState);
   const normalizedVolume = normalizeFloat(marketData.normalizedVolume ?? 0.5, 8);
-  const whaleTier =
-    marketData.whaleTier === 1 ||
-    marketData.whaleTier === 2 ||
-    marketData.whaleTier === 3
-      ? marketData.whaleTier
-      : 0;
+  const whaleTier = normalizeWhaleTier(marketData.whaleTier);
 
   const snapshotCore = {
     runId: runConstants.runId,
@@ -209,7 +212,7 @@ export const createRuntimeSnapshot = (
   return {
     ...snapshotCore,
     checksum,
-  };
+  } satisfies MarketRuntimeSnapshot;
 };
 
 export interface CreateRunConstantsInput {

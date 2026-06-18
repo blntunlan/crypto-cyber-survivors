@@ -1,5 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const chromeExecutablePath = process.env.PLAYWRIGHT_CHROME_EXECUTABLE_PATH;
+const chromeLaunchOptions = chromeExecutablePath
+  ? {
+      launchOptions: {
+        executablePath: chromeExecutablePath,
+      },
+    }
+  : {};
+
 /**
  * Playwright E2E Test Configuration
  *
@@ -61,12 +70,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], ...chromeLaunchOptions },
     },
 
     {
       name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'], ...chromeLaunchOptions },
     },
 
     {

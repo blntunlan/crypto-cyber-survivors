@@ -133,6 +133,17 @@ describe('DeviceBenchmarkService', () => {
       expect(localStorage.getItem('ccs_manual_perf_profile')).toBe(DeviceProfile.LOW);
     });
 
+    it('should load persisted manual profile after refresh', () => {
+      localStorage.setItem('ccs_manual_perf_profile', DeviceProfile.HIGH);
+
+      DeviceBenchmarkService.resetStateForTesting();
+
+      expect(DeviceBenchmarkService.isInManualMode()).toBe(true);
+      expect(DeviceBenchmarkService.getPerformanceConfig().profile).toBe(
+        DeviceProfile.HIGH
+      );
+    });
+
     it('should keep manual profile if selected while benchmark is running', async () => {
       const benchmarkResult = {
         gpuScore: 700,

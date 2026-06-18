@@ -45,7 +45,7 @@ export class CombatSystem implements ICombatSystem {
    *
    * @param audioService - Service responsible for playing combat sounds.
    */
-  private constructor(audioService: IAudioService = defaultAudio) {
+  constructor(audioService: IAudioService = defaultAudio) {
     this.audio = audioService;
   }
 

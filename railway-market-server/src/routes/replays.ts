@@ -53,13 +53,18 @@ router.post('/save', requireAuth, asyncHandler(async (req: Request, res: Respons
 
     // Verify session belongs to this profile
     const sessionRows = await db
-      .select({ id: sessions.id })
+      .select({ id: sessions.id, isVerified: sessions.isVerified })
       .from(sessions)
       .where(and(eq(sessions.id, sessionId), eq(sessions.profileId, profileId)))
       .limit(1);
 
     if (sessionRows.length === 0) {
       res.status(403).json({ error: 'Session not found or not owned by user' });
+      return;
+    }
+
+    if (sessionRows[0]?.isVerified !== true) {
+      res.status(409).json({ error: 'Session must be verified before replay save' });
       return;
     }
 

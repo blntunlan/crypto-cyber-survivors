@@ -109,6 +109,58 @@
         {
           "text": "Testing & QA Strategy",
           "link": "/docs/workflows/TESTING_STRATEGY"
+        },
+        {
+          "text": "Stabilization Protocol",
+          "link": "/docs/workflows/STABILIZATION_PROTOCOL"
+        },
+        {
+          "text": "Beta Readiness Checklist",
+          "link": "/docs/BETA_READINESS_CHECKLIST"
+        },
+        {
+          "text": "Mobile Beta QA Checklist",
+          "link": "/docs/workflows/MOBILE_BETA_QA_CHECKLIST"
+        },
+        {
+          "text": "Beta Env Guardrail",
+          "link": "/docs/workflows/BETA_ENV_GUARDRAIL"
+        },
+        {
+          "text": "Beta Smoke Test Checklist",
+          "link": "/docs/workflows/BETA_SMOKE_TEST_CHECKLIST"
+        },
+        {
+          "text": "Beta E2E Matrix",
+          "link": "/docs/workflows/BETA_E2E_MATRIX"
+        },
+        {
+          "text": "Beta Backend API Contract",
+          "link": "/docs/workflows/BETA_BACKEND_API_CONTRACT"
+        },
+        {
+          "text": "Beta SSE Market Contract",
+          "link": "/docs/workflows/BETA_SSE_MARKET_CONTRACT"
+        },
+        {
+          "text": "Beta Legal Risk Copy Review",
+          "link": "/docs/workflows/BETA_LEGAL_RISK_COPY_REVIEW"
+        },
+        {
+          "text": "Beta Onboarding QA",
+          "link": "/docs/workflows/BETA_ONBOARDING_QA"
+        },
+        {
+          "text": "Beta Settings Persistence QA",
+          "link": "/docs/workflows/BETA_SETTINGS_PERSISTENCE_QA"
+        },
+        {
+          "text": "Beta Bundle Budget Report",
+          "link": "/docs/workflows/BETA_BUNDLE_BUDGET_REPORT"
+        },
+        {
+          "text": "Beta Feedback Triage",
+          "link": "/docs/workflows/BETA_FEEDBACK_TRIAGE"
         }
       ]
     },

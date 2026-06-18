@@ -7,7 +7,7 @@
  */
 
 export class NicknameValidator {
-  private static readonly NICKNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+  private static readonly NICKNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
   private static readonly MIN_LENGTH = 3;
   private static readonly MAX_LENGTH = 16;
 
@@ -32,7 +32,7 @@ export class NicknameValidator {
     }
 
     if (!this.NICKNAME_REGEX.test(trimmed)) {
-      return 'Only letters, numbers, and underscores are allowed';
+      return 'Only letters, numbers, underscores, and hyphens are allowed';
     }
 
     return null;

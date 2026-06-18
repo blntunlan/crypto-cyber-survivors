@@ -72,6 +72,8 @@ vi.mock('../../services/api/RailwayClient', () => ({
   isRailwayApiConfigured: isRailwayApiConfiguredMock,
 }));
 
+import { EventBus } from '../../services/core/EventBus';
+
 // Dynamic import to avoid module caching issues
 async function getQueue() {
   // Clear module cache
@@ -240,6 +242,16 @@ describe('VerificationQueue', () => {
 
       // Should be removed from queue after max retries
       expect(queue.getStats().pendingCount).toBe(0);
+      expect(EventBus.emit).toHaveBeenCalledWith(
+        'verification:failed',
+        expect.objectContaining({
+          request: expect.objectContaining({
+            id: 'test-uuid-1',
+            retryCount: 5,
+          }),
+          error: expect.any(Error),
+        })
+      );
     });
   });
 

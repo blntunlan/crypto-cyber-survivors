@@ -216,6 +216,7 @@ export const DragToMoveController: React.FC<DragToMoveProps> = ({
 
   return (
     <div
+      data-testid="drag-controller"
       className="fixed inset-0 touch-none"
       style={{ zIndex: Z_LAYERS.MOBILE_CONTROLS }}
       onTouchStart={handleTouchStart}

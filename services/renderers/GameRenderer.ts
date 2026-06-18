@@ -34,7 +34,7 @@ export class GameRenderer implements IGameRenderer {
     return (GameRenderer.instance ??= new GameRenderer());
   }
 
-  private constructor(
+  constructor(
     background: BackgroundRenderer = new BackgroundRenderer(),
     entity: EntityRenderer = new EntityRenderer(),
     projectile: ProjectileRenderer = ProjectileRenderer.getInstance(),

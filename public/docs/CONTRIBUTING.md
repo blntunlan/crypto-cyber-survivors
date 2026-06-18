@@ -37,6 +37,7 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 - Use the **Bug Report** template.
 - Provide a clear description and reproduction steps.
 - Attach screenshots if possible.
+- For beta-specific gameplay, performance, market, wallet, replay, or onboarding feedback, use the **Beta Feedback** template.
 
 ## 💡 Feature Requests
 

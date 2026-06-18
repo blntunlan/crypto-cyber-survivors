@@ -199,6 +199,7 @@ export const DashButton: React.FC<DashButtonProps> = ({
 
   return (
     <div
+      data-testid="dash-button"
       style={buttonStyle}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

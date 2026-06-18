@@ -164,6 +164,10 @@
       return jsonResponse(buildMarketHistory(pair, limit));
     }
 
+    if (pathname.includes('/api/v1/economy/wallet')) {
+      return jsonResponse({ wallet: { balance: 1337 } });
+    }
+
     if (pathname.includes('/api/v1/wallet/balance')) {
       return jsonResponse({ balance: 1337 });
     }

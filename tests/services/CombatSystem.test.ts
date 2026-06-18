@@ -76,6 +76,9 @@ const mockPool = {
   releaseFloatingText: vi.fn(),
   releaseSpeedLine: vi.fn(),
   releaseInteractable: vi.fn(),
+  activeImpactRings: [],
+  getImpactRing: vi.fn(),
+  releaseImpactRing: vi.fn(),
 };
 
 // Mock Objects

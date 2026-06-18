@@ -42,6 +42,15 @@ const cases: Array<RewardCalculationParams | Record<string, unknown>> = [
     portalType: 'FLOW_EXIT',
   },
   {
+    survivalTimeSeconds: 180,
+    kills: 40,
+    level: 4,
+    pnl: 0.05,
+    maxStreak: 12,
+    exitType: 'portal',
+    portalType: 'FORCED',
+  },
+  {
     survivalTimeSeconds: 120,
     kills: 25,
     level: 3,

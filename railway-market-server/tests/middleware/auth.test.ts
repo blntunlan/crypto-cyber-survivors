@@ -1,10 +1,20 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 import {
   RAILWAY_JWT_AUDIENCE,
   RAILWAY_JWT_ISSUER,
 } from '../../src/utils/railwayJwt';
+
+process.env.TEST_ENFORCE_AUTH_DB = 'true';
+
+const mocks = vi.hoisted(() => ({
+  getDb: vi.fn(),
+}));
+
+vi.mock('../../src/db', () => ({
+  getDb: mocks.getDb,
+}));
 
 vi.mock('../../src/utils/logger', () => ({
   Logger: {
@@ -78,7 +88,25 @@ function signRailwayToken(
   );
 }
 
+const mockSelectBuilder = (status: string | null) => {
+  const rows = status ? [{ status }] : [];
+  const limit = vi.fn(async () => rows);
+  const where = vi.fn(() => ({ limit }));
+  const from = vi.fn(() => ({ where }));
+  return { from };
+};
+
+function setupDbMock(status: string | null) {
+  mocks.getDb.mockReturnValue({
+    select: vi.fn(() => mockSelectBuilder(status)),
+  });
+}
+
 describe('requireAuth', () => {
+  beforeEach(() => {
+    setupDbMock('active');
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
     delete process.env.API_JWT_SECRET;
@@ -86,18 +114,46 @@ describe('requireAuth', () => {
     delete process.env.JWT_SECRET;
   });
 
-  it('accepts a Railway-native access token', async () => {
+  it('accepts a Railway-native access token when account is active', async () => {
     const { requireAuth } = await loadMiddleware();
     const req = makeRequest(signRailwayToken());
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(next).toHaveBeenCalledOnce();
     expect(req.authUserId).toBe(ACCOUNT_ID);
     expect(req.accountId).toBe(ACCOUNT_ID);
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it('rejects requests if account is not found in database', async () => {
+    setupDbMock(null); // Account not found
+    const { requireAuth } = await loadMiddleware();
+    const req = makeRequest(signRailwayToken());
+    const res = makeResponse();
+    const next = vi.fn() as NextFunction;
+
+    await requireAuth(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Account not found' });
+  });
+
+  it('rejects requests if account status is suspended', async () => {
+    setupDbMock('suspended');
+    const { requireAuth } = await loadMiddleware();
+    const req = makeRequest(signRailwayToken());
+    const res = makeResponse();
+    const next = vi.fn() as NextFunction;
+
+    await requireAuth(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Account is suspended' });
   });
 
   it('rejects a token signed for the wrong audience', async () => {
@@ -107,7 +163,7 @@ describe('requireAuth', () => {
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
@@ -121,7 +177,7 @@ describe('requireAuth', () => {
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
@@ -134,7 +190,7 @@ describe('requireAuth', () => {
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(401);
@@ -149,7 +205,7 @@ describe('requireAuth', () => {
     const res = makeResponse();
     const next = vi.fn() as NextFunction;
 
-    requireAuth(req, res, next);
+    await requireAuth(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(500);

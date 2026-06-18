@@ -228,6 +228,7 @@ describe('CollisionSystem', () => {
         radius: 10,
         active: true,
         damage: 10,
+        type: 'bear',
         maxHealth: 100,
         isDying: false,
         hasEnteredScreen: true,
@@ -551,6 +552,9 @@ describe('CollisionSystem', () => {
         health: 100,
         maxHealth: 100,
         type: 'bear',
+        hitImpactTimer: 0,
+        hitRecoilX: 0,
+        hitRecoilY: 0,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [enemy];
@@ -609,6 +613,9 @@ describe('CollisionSystem', () => {
         health: 100,
         maxHealth: 100,
         type: 'bear',
+        hitImpactTimer: 0,
+        hitRecoilX: 0,
+        hitRecoilY: 0,
         behavior: { move: vi.fn() },
       };
       mockPool.activeEnemies = [enemy];

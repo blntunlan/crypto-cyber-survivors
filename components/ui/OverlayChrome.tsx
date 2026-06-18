@@ -5,6 +5,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { COLORS } from '../../config/Colors';
 import { cn } from '../../utils/classnames';
+import { MODERN_SCREEN_OVERLAY } from '../../config/modernSurface';
 
 export interface OverlayChromeProps {
   children: React.ReactNode;
@@ -36,7 +37,7 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
     <div
       className={cn(
         'allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto px-4 pb-[calc(1rem+var(--sab))] pt-[calc(1rem+var(--sat))] sm:px-6 sm:py-6',
-        isRetro ? 'bg-black/90' : 'bg-slate-950/60 backdrop-blur-sm',
+        isRetro ? 'bg-black/90' : `${MODERN_SCREEN_OVERLAY} animate-fade-in`,
         className
       )}
       style={zIndex ? { zIndex } : undefined}

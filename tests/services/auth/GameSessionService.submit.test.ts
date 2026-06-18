@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameSessionService } from '../../../services/auth/GameSessionService';
 
-const { flushAllMock, railwayPostMock } = vi.hoisted(() => ({
+const { eventBusEmitMock, flushAllMock, railwayPostMock } = vi.hoisted(() => ({
+  eventBusEmitMock: vi.fn(),
   flushAllMock: vi.fn(async () => ({
     batches: 0,
     acked: 0,
@@ -24,6 +25,12 @@ vi.mock('../../../services/market/sync', () => ({
   getMarketSyncQueue: () => ({
     flushAll: flushAllMock,
   }),
+}));
+
+vi.mock('../../../services/core/EventBus', () => ({
+  EventBus: {
+    emit: eventBusEmitMock,
+  },
 }));
 
 vi.mock('../../../services/auth/UserSessionService', () => ({
@@ -346,5 +353,58 @@ describe('GameSessionService.submitSession', () => {
     // flushAll called once on seedSession's clearSession (from previous beforeEach clear)
     // and once from the 'before_submit' flush inside submitSession
     expect(flushAllMock).toHaveBeenCalled();
+  });
+
+  it('does not verify while runtime audit records are still pending', async () => {
+    await seedSession();
+
+    flushAllMock.mockResolvedValueOnce({
+      batches: 1,
+      acked: 0,
+      retried: 1,
+      remaining: 1,
+    });
+
+    const result = await GameSessionService.submitSession(baseResults);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'MARKET_SYNC_PENDING',
+    });
+    expect(
+      railwayPostMock.mock.calls.some(([path]) => path === '/api/v1/sessions/verify')
+    ).toBe(false);
+    expect(eventBusEmitMock).toHaveBeenCalledWith(
+      'verification:queued',
+      expect.objectContaining({
+        sessionId: 'sess-42',
+        source: 'market_sync',
+        error: 'MARKET_SYNC_PENDING',
+      })
+    );
+  });
+
+  it('reports flush failures instead of submitting unverifiable audit state', async () => {
+    await seedSession();
+
+    flushAllMock.mockRejectedValueOnce(new Error('sync offline'));
+
+    const result = await GameSessionService.submitSession(baseResults);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'MARKET_SYNC_FLUSH_FAILED',
+    });
+    expect(
+      railwayPostMock.mock.calls.some(([path]) => path === '/api/v1/sessions/verify')
+    ).toBe(false);
+    expect(eventBusEmitMock).toHaveBeenCalledWith(
+      'verification:queued',
+      expect.objectContaining({
+        sessionId: 'sess-42',
+        source: 'market_sync',
+        error: 'MARKET_SYNC_FLUSH_FAILED',
+      })
+    );
   });
 });

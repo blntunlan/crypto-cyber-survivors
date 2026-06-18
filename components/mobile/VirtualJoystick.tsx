@@ -224,6 +224,7 @@ export const VirtualJoystick: React.FC<VirtualJoystickProps> = ({
   return (
     <div
       ref={containerRef}
+      data-testid="virtual-joystick"
       style={containerStyle}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

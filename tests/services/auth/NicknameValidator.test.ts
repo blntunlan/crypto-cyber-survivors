@@ -137,62 +137,84 @@ describe('NicknameValidator', () => {
     describe('invalid characters', () => {
       it('should return error for nickname with spaces', () => {
         const result = NicknameValidator.validate('Hello World');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
-      it('should return error for nickname with hyphen', () => {
+      it('should allow nickname with hyphen', () => {
         const result = NicknameValidator.validate('player-one');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBeNull();
       });
 
       it('should return error for nickname with period', () => {
         const result = NicknameValidator.validate('player.one');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with @ symbol', () => {
         const result = NicknameValidator.validate('player@crypto');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with hash symbol', () => {
         const result = NicknameValidator.validate('player#123');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with exclamation mark', () => {
         const result = NicknameValidator.validate('player!');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with emoji', () => {
         const result = NicknameValidator.validate('player🚀');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with unicode characters', () => {
         const result = NicknameValidator.validate('плейер');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with Chinese characters', () => {
         const result = NicknameValidator.validate('玩家123');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with special symbols', () => {
         const result = NicknameValidator.validate('$player$');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with parentheses', () => {
         const result = NicknameValidator.validate('player(1)');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
 
       it('should return error for nickname with plus sign', () => {
         const result = NicknameValidator.validate('player+one');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
     });
 
@@ -256,7 +278,9 @@ describe('NicknameValidator', () => {
       it('should show character error if length is valid', () => {
         // "!!!" is 3 chars (valid length) but has invalid chars
         const result = NicknameValidator.validate('!!!');
-        expect(result).toBe('Only letters, numbers, and underscores are allowed');
+        expect(result).toBe(
+          'Only letters, numbers, underscores, and hyphens are allowed'
+        );
       });
     });
   });

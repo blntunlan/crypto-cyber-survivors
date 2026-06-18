@@ -105,6 +105,52 @@ describe('RuntimeContractBuilder', () => {
     expect(snapshot.checksum).toHaveLength(8);
   });
 
+  it('normalizes invalid upstream rsi state at the runtime boundary', () => {
+    const runConstants = createRunConstants({
+      runId: 'run-1',
+      pair: 'BTC',
+      position: toRuntimePosition(MarketPosition.LONG),
+      leverage: 5,
+      entryPrice: 40000,
+      liquidationPrice: 32000,
+      startedAt: 123,
+      versions: MARKET_RUNTIME_VERSION,
+    });
+
+    const tick = createRuntimeTick({
+      runId: 'run-1',
+      seq: 3,
+      pair: 'BTC',
+      source: 'fallback',
+      sourceTs: 3000,
+      recvTs: 3010,
+      price: 41000,
+      volume: 8,
+      prevHash: 'seed',
+    });
+
+    const marketData: MarketData = {
+      price: 41000,
+      volume: 8,
+      pnl: 0.025,
+      effectivePnl: 0.125,
+      leverage: 5,
+      rsi: 50,
+      rsiState: 'STALE',
+      difficulty: 1,
+      momentum: 0,
+    };
+
+    const snapshot = createRuntimeSnapshot({
+      runConstants,
+      tick,
+      marketData,
+      createdAt: 3030,
+    });
+
+    expect(snapshot.rsiState).toBe('NEUTRAL');
+  });
+
   it('maps feed health states', () => {
     const health = createRuntimeFeedHealth(
       {

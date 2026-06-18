@@ -170,13 +170,14 @@ describe('LeaderboardPanel', () => {
     });
   });
 
-  it('should show "hud.no_scores" when list is empty', async () => {
+  it('should show mock data when API returns empty list', async () => {
     mockRailwayGet.mockResolvedValueOnce({ entries: [] });
 
     render(<LeaderboardPanel isVisible={true} />);
 
+    // Mock entries should appear instead of "no scores"
     await waitFor(() => {
-      expect(screen.getByText('hud.no_scores')).toBeInTheDocument();
+      expect(screen.getByText('SatoshiSlayer')).toBeInTheDocument();
     });
   });
 

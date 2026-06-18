@@ -255,6 +255,26 @@ describe('CoinService System', () => {
       expect(spy).toHaveBeenCalledWith(expect.objectContaining({ amount: 120 }));
     });
 
+    it('creditVerifiedCoins emits verification:success for wallet refresh listeners', async () => {
+      const spy = vi.fn();
+      EventBus.on('verification:success', spy);
+
+      await CoinService.creditVerifiedCoins(120, 'cycle_complete', {
+        sessionId: 'verified-session',
+        metaShare: 18,
+      });
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'verified-session',
+          verifiedAmount: 120,
+          source: 'cycle_complete',
+          metaShare: 18,
+          serverVerified: true,
+        })
+      );
+    });
+
     it('generates a sessionId when metadata lacks one', async () => {
       const spy = vi.fn();
       EventBus.on('verification:queued', spy);

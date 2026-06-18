@@ -78,21 +78,23 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
   // Render based on control type
   if (settings.controlType === 'drag') {
     return (
-      <DragToMoveController
-        onMove={handleMove}
-        onDash={handleDash}
-        showVisualFeedback={settings.showDragFeedback}
-        hapticFeedback={settings.hapticFeedback}
-        sensitivity={settings.sensitivity}
-        disabled={!isActive}
-        scale={scale}
-      />
+      <div data-testid="mobile-controls">
+        <DragToMoveController
+          onMove={handleMove}
+          onDash={handleDash}
+          showVisualFeedback={settings.showDragFeedback}
+          hapticFeedback={settings.hapticFeedback}
+          sensitivity={settings.sensitivity}
+          disabled={!isActive}
+          scale={scale}
+        />
+      </div>
     );
   }
 
   // Joystick mode with separate dash button
   return (
-    <>
+    <div data-testid="mobile-controls">
       {/* Left zone - Joystick */}
       <div
         className="mobile-controls-zone mobile-controls-zone--left"
@@ -135,6 +137,6 @@ export const MobileControls: React.FC<MobileControlsProps> = ({
           size={rs(80)}
         />
       </div>
-    </>
+    </div>
   );
 };

@@ -65,10 +65,10 @@ const BackgroundEffects = memo(function BackgroundEffects({
 const CornerDecorations = memo(function CornerDecorations() {
   return (
     <>
-      <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 rounded-tl-lg border-l-2 border-t-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
-      <div className="pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-tr-lg border-r-2 border-t-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
-      <div className="pointer-events-none absolute -bottom-3 -left-3 h-10 w-10 rounded-bl-lg border-b-2 border-l-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
-      <div className="pointer-events-none absolute -bottom-3 -right-3 h-10 w-10 rounded-br-lg border-b-2 border-r-2 border-cyan-500/60 sm:h-12 sm:w-12 sm:border-cyan-400/70 sm:shadow-[0_0_10px_rgba(34,211,238,0.3)]" />
+      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -left-3 -top-3 h-10 w-10 rounded-tl-lg border-l-2 border-t-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
+      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-tr-lg border-r-2 border-t-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
+      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -bottom-3 -left-3 h-10 w-10 rounded-bl-lg border-b-2 border-l-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
+      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -bottom-3 -right-3 h-10 w-10 rounded-br-lg border-b-2 border-r-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
     </>
   );
 });
@@ -82,11 +82,11 @@ const PanelChrome = memo(function PanelChrome({ isRetro }: { isRetro: boolean })
   return (
     <>
       <m.div
-        className="pointer-events-none absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+        className="pointer-events-none absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent"
         animate={{ opacity: [0.7, 1, 0.7] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <div className="pointer-events-none absolute -inset-1 rounded-sm bg-gradient-to-r from-cyan-500/10 via-purple-500/5 to-cyan-500/10 opacity-50 blur-xl sm:opacity-60" />
+      <div className="from-[var(--color-primary)]/10 via-[var(--color-secondary)]/5 to-[var(--color-primary)]/10 pointer-events-none absolute -inset-1 rounded-sm bg-gradient-to-r opacity-50 blur-xl sm:opacity-60" />
     </>
   );
 });
@@ -104,7 +104,7 @@ const HeaderIcon = memo(function HeaderIcon({
 }) {
   return (
     <m.div
-      className={`inline-flex p-4 ${isRetro ? 'rounded-none border-2 border-cyan-400 bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'relative rounded-full border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-purple-500/10'}`}
+      className={`inline-flex p-4 ${isRetro ? 'rounded-none border-2 border-[var(--color-primary)] bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'border-[var(--color-primary)]/30 from-[var(--color-primary)]/20 to-[var(--color-secondary)]/10 relative rounded-full border bg-gradient-to-br'}`}
       animate={{
         boxShadow: isRetro
           ? undefined
@@ -241,7 +241,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
           {/* Corner decorations — memo'd */}
           {!isRetro && <CornerDecorations />}
 
-          <ThemedPanel className="relative overflow-hidden p-5 transition-all sm:p-8">
+          <ThemedPanel className="relative overflow-hidden !rounded-[1.5rem] p-5 transition-all sm:p-8">
             {/* Panel chrome — memo'd */}
             <PanelChrome isRetro={isRetro} />
 
@@ -321,13 +321,13 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                   <div className="flex items-center justify-between px-1">
                     <label
                       htmlFor="nickname-input"
-                      className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-400/80"
+                      className="text-[var(--color-primary)]/80 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
                     >
                       <Shield className="h-3 w-3" />{' '}
                       {(t('common.nickname_screen.callsign') as string) || 'Callsign'}
                     </label>
                     <span
-                      className={`text-[10px] font-black tracking-tighter transition-colors ${nickname.length >= 3 ? 'text-cyan-400' : 'text-slate-600'}`}
+                      className={`text-[10px] font-black tracking-tighter transition-colors ${nickname.length >= 3 ? 'text-[var(--color-primary)]' : 'text-slate-600'}`}
                     >
                       {nickname.length}/16
                     </span>
@@ -335,7 +335,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
 
                   <div className="group relative">
                     {!isRetro && (
-                      <div className="pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r from-cyan-500/0 via-cyan-500/20 to-cyan-500/0 opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
+                      <div className="from-[var(--color-primary)]/0 via-[var(--color-primary)]/20 to-[var(--color-primary)]/0 pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
                     )}
                     <ThemedInput
                       id="nickname-input"
@@ -352,7 +352,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                       className={`min-h-[48px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 placeholder:font-normal focus:outline-none focus:ring-2 sm:px-5 sm:py-4 ${
                         error
                           ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                          : `text-white focus:border-cyan-500/60 focus:ring-cyan-500/40 ${!isRetro ? 'sm:hover:border-cyan-500/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
+                          : `focus:border-[var(--color-primary)]/60 focus:ring-[var(--color-primary)]/40 text-white ${!isRetro ? 'sm:hover:border-[var(--color-primary)]/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
                       } ${!isRetro ? 'font-semibold' : ''}`}
                       placeholder={(() => {
                         const p = t('common.nickname_screen.placeholder');

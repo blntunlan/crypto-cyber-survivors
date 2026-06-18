@@ -11,7 +11,9 @@ async function globalSetup(config: FullConfig) {
     throw new Error('No projects found in Playwright config');
   }
   const { baseURL, storageState } = project.use;
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    executablePath: process.env.PLAYWRIGHT_CHROME_EXECUTABLE_PATH,
+  });
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.addInitScript({ path: runtimeMocksPath });

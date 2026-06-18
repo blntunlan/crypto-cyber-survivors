@@ -285,7 +285,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     <div
       className={cn(
         'allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 md:p-6',
-        isRetro ? 'bg-black/90' : MODERN_SCREEN_OVERLAY
+        isRetro ? 'bg-black/90' : `${MODERN_SCREEN_OVERLAY} animate-fade-in`
       )}
       style={{
         zIndex: Z_LAYERS.SETTINGS_PANEL,
@@ -510,7 +510,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               className={`flex-1 border py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
                 isRetro
                   ? 'rounded-none border-b-2 border-cyan-900 bg-cyan-800 text-white active:translate-y-0.5'
-                  : 'rounded-sm border-cyan-700/50 bg-cyan-900/50 text-cyan-400 shadow-sm hover:bg-cyan-800/50 hover:text-cyan-300'
+                  : 'rounded-lg border-cyan-700/50 bg-cyan-900/50 text-cyan-400 shadow-sm hover:bg-cyan-800/50 hover:text-cyan-300'
               }`}
               title={t('tutorial.replay')}
             >
@@ -526,7 +526,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             className={`flex-1 border py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
               isRetro
                 ? 'rounded-none border-b-2 border-zinc-900 bg-zinc-700 text-white active:translate-y-0.5'
-                : 'rounded-sm border-slate-700 bg-slate-800 text-slate-400 shadow-sm hover:bg-slate-700 hover:text-white'
+                : 'rounded-lg border-slate-700 bg-slate-800 text-slate-400 shadow-sm hover:bg-slate-700 hover:text-white'
             } ${focusedIndex === RESET_INDEX ? (isRetro ? 'bg-zinc-600 ring-2 ring-yellow-400' : 'scale-105 bg-slate-700 text-white ring-2 ring-white') : ''}`}
           >
             {t('settings.reset')}
@@ -540,7 +540,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             className={`flex-[2] py-3 text-sm font-black uppercase tracking-[0.2em] transition-all ${
               isRetro
                 ? 'rounded-none border-b-4 border-yellow-700 text-black active:translate-y-1 active:border-b-0'
-                : 'rounded-sm bg-white text-black shadow-lg shadow-white/5 hover:bg-yellow-500'
+                : 'rounded-lg bg-white text-black shadow-lg shadow-white/5 hover:bg-yellow-500'
             } ${focusedIndex === CLOSE_INDEX ? (isRetro ? 'scale-[1.02] ring-2 ring-white' : 'scale-[1.02] bg-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.5)]') : ''}`}
             style={{ backgroundColor: isRetro ? COLORS.JACKPOT_YELLOW : undefined }}
           >

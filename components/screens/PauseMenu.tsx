@@ -214,7 +214,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
             className={`w-full ${sizes.buttonLg} min-h-[52px] font-black uppercase tracking-widest transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.98] ${
               isRetro
                 ? 'rounded-none border-4 border-b-[6px] border-emerald-400 border-b-emerald-900 font-retro-pixel text-white active:translate-y-1 active:border-b-4'
-                : 'rounded-sm border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-500 hover:text-white active:shadow-[0_0_30px_rgba(16,185,129,0.4)] md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(16,185,129,0.4),0_0_60px_rgba(16,185,129,0.2)]'
+                : 'rounded-lg border border-emerald-500/30 bg-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:bg-emerald-500 hover:text-white active:shadow-[0_0_30px_rgba(16,185,129,0.4)] md:hover:scale-[1.02] md:hover:shadow-[0_0_30px_rgba(16,185,129,0.4),0_0_60px_rgba(16,185,129,0.2)]'
             }`}
             style={{ backgroundColor: isRetro ? COLORS.CASINO_GREEN : undefined }}
           >
@@ -227,7 +227,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.buttonMd} min-h-[48px] font-black uppercase tracking-widest transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.98] ${
                 isRetro
                   ? 'rounded-none border-4 border-b-[6px] border-red-400 border-b-red-900 font-retro-pixel text-white active:translate-y-1 active:border-b-4'
-                  : 'rounded-sm border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white md:hover:scale-[1.02] md:hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                  : 'rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white md:hover:scale-[1.02] md:hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]'
               }`}
               style={{ backgroundColor: isRetro ? COLORS.CASINO_RED : undefined }}
             >
@@ -239,7 +239,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`${sizes.buttonMd} min-h-[48px] font-black uppercase tracking-widest transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.98] ${
                 isRetro
                   ? 'rounded-none border-4 border-b-[6px] border-zinc-600 border-b-zinc-900 bg-zinc-800 font-retro-pixel text-white active:translate-y-1 active:border-b-4'
-                  : 'rounded-sm border border-white/10 bg-slate-800 text-white hover:bg-slate-700 md:hover:scale-[1.02] md:hover:border-white/20'
+                  : 'rounded-lg border border-white/10 bg-slate-800 text-white hover:bg-slate-700 md:hover:scale-[1.02] md:hover:border-white/20'
               }`}
             >
               {t('common.back')}
@@ -252,7 +252,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`min-h-[48px] w-full py-3 font-black uppercase ${sizes.small} flex items-center justify-center gap-2 tracking-widest transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.98] ${
                 isRetro
                   ? 'rounded-none border-2 border-b-4 border-zinc-600 border-b-zinc-900 bg-zinc-800 font-retro-text text-white active:translate-y-1 active:border-b-2'
-                  : 'rounded-sm border border-white/5 bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white md:hover:scale-[1.02] md:hover:border-cyan-500/20'
+                  : 'rounded-lg border border-white/5 bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white md:hover:scale-[1.02] md:hover:border-cyan-500/20'
               }`}
             >
               <IconSettings
@@ -267,7 +267,7 @@ export const PauseMenu: React.FC<PauseMenuProps> = ({
               className={`min-h-[48px] w-full py-3 font-black uppercase ${sizes.small} flex items-center justify-center gap-2 tracking-widest transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.98] ${
                 isRetro
                   ? 'rounded-none border-2 border-b-4 border-zinc-600 border-b-zinc-900 bg-zinc-800 font-retro-text text-white active:translate-y-1 active:border-b-2'
-                  : 'rounded-sm border border-white/5 bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white md:hover:scale-[1.02] md:hover:border-cyan-500/20'
+                  : 'rounded-lg border border-white/5 bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white md:hover:scale-[1.02] md:hover:border-cyan-500/20'
               }`}
             >
               {isMuted ? (

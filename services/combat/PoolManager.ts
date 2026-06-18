@@ -158,7 +158,7 @@ export class PoolManager implements IPoolManager {
   private interactables: ObjectPool<Interactable>;
   private unregisterResetHandler: (() => void) | null = null;
 
-  private constructor() {
+  constructor() {
     this.enemies = new ObjectPool<GameEnemy>(POOL.MAX_ACTIVE.ENEMIES);
     this.bullets = new ObjectPool<Bullet>(POOL.MAX_ACTIVE.BULLETS);
     this.gems = new ObjectPool<Gem>(POOL.MAX_ACTIVE.GEMS);
@@ -186,7 +186,7 @@ export class PoolManager implements IPoolManager {
    * Resets the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    PoolManager.instance?.unregisterResetHandler?.();
+    PoolManager.instance?.dispose();
     PoolManager.instance = null;
   }
 
@@ -827,5 +827,11 @@ export class PoolManager implements IPoolManager {
     this.speedLines.trim(maxPoolSize);
     this.impactRings.trim(maxPoolSize);
     this.interactables.trim(maxPoolSize);
+  }
+
+  dispose(): void {
+    this.unregisterResetHandler?.();
+    this.unregisterResetHandler = null;
+    this.clearAll();
   }
 }

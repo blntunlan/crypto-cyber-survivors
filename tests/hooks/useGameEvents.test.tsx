@@ -52,6 +52,12 @@ const mockState = {
   },
 };
 
+const mockSpawnSystem = {
+  current: {
+    reset: vi.fn(),
+  },
+};
+
 describe('useGameEvents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -64,6 +70,7 @@ describe('useGameEvents', () => {
       useGameEvents({
         pool: mockPool as any,
         state: mockState as any,
+        spawnSystem: mockSpawnSystem as any,
       })
     );
 
@@ -91,6 +98,7 @@ describe('useGameEvents', () => {
       useGameEvents({
         pool: mockPool as any,
         state: mockState as any,
+        spawnSystem: mockSpawnSystem as any,
       })
     );
 
@@ -101,6 +109,7 @@ describe('useGameEvents', () => {
     expect(mockPool.current.clearAll).toHaveBeenCalled();
     expect(mockState.current.dashTrail).toHaveLength(0);
     expect(BuffManager.reset).toHaveBeenCalled();
+    expect(mockSpawnSystem.current.reset).toHaveBeenCalled();
   });
 
   it('should handle killAll cheat', () => {
@@ -114,6 +123,7 @@ describe('useGameEvents', () => {
       useGameEvents({
         pool: mockPool as any,
         state: mockState as any,
+        spawnSystem: mockSpawnSystem as any,
       })
     );
 
@@ -139,6 +149,7 @@ describe('useGameEvents', () => {
       useGameEvents({
         pool: mockPool as any,
         state: mockState as any,
+        spawnSystem: mockSpawnSystem as any,
       })
     );
 
