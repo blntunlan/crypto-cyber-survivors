@@ -73,6 +73,42 @@ describe('SpawnSystem', () => {
     expect(mockPool.getEnemy).not.toHaveBeenCalled();
   });
 
+  it('should scale spawn rate with difficulty', () => {
+    const difficulty = 3;
+    const threshold = 1000 / difficulty; // baseInterval=1000, so threshold is 333.3ms
+
+    // Just under threshold
+    spawnSystem.update(
+      threshold - 10,
+      difficulty,
+      800,
+      600,
+      MarketPosition.LONG,
+      mockPool
+    );
+    expect(mockPool.getEnemy).not.toHaveBeenCalled();
+
+    // Just over threshold
+    spawnSystem.update(20, difficulty, 800, 600, MarketPosition.LONG, mockPool);
+    expect(mockPool.getEnemy).toHaveBeenCalled();
+  });
+
+  it('should spawn at off-screen positions', () => {
+    const difficulty = 1;
+    const width = 800;
+    const height = 600;
+
+    spawnSystem.update(1100, difficulty, width, height, MarketPosition.LONG, mockPool);
+
+    expect(mockPool.getEnemy).toHaveBeenCalled();
+    const args = vi.mocked(mockPool.getEnemy).mock.calls[0]!;
+    const x = args[0] as number;
+    const y = args[1] as number;
+
+    const outside = x < 0 || x > width || y < 0 || y > height;
+    expect(outside).toBe(true);
+  });
+
   it('should spawn whales if whaleTier > 0', () => {
     // This is probabilistic, so mock Math.random to ensure it spawns
     vi.spyOn(Math, 'random').mockReturnValue(0.001); // < config.spawnChance (0.2 * 0.01 = 0.002)

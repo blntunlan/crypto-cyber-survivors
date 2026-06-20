@@ -687,21 +687,20 @@ export class PoolManager implements IPoolManager {
         vx: 0,
         vy: 0,
       }),
-      obj =>
-        Object.assign(obj, {
-          active: true,
-          x,
-          y,
-          length,
-          width,
-          angle,
-          opacity,
-          decay: 0.05,
-          radius: 0,
-          color: '#fff',
-          vx: 0,
-          vy: 0,
-        })
+      obj => {
+        obj.active = true;
+        obj.x = x;
+        obj.y = y;
+        obj.length = length;
+        obj.width = width;
+        obj.angle = angle;
+        obj.opacity = opacity;
+        obj.decay = 0.05;
+        obj.radius = 0;
+        obj.color = '#fff';
+        obj.vx = 0;
+        obj.vy = 0;
+      }
     );
   }
 

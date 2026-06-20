@@ -19,6 +19,7 @@ vi.mock('../../../services/api/RailwayClient', () => ({
     patch: vi.fn(),
     del: vi.fn(),
   },
+  isRailwayApiConfigured: vi.fn(() => true),
 }));
 
 vi.mock('../../../services/market/sync', () => ({
@@ -36,6 +37,7 @@ vi.mock('../../../services/core/EventBus', () => ({
 vi.mock('../../../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getNickname: vi.fn(() => 'TestUser'),
+    getProfileId: vi.fn(() => 'test-profile-id-uuid'),
     clearUser: vi.fn(),
   },
 }));

@@ -11,6 +11,7 @@ import {
   type ChallengeObjective,
   type ChallengeStatus,
 } from '../../types/challenge';
+import { ProductAnalyticsService } from '../analytics/ProductAnalyticsService';
 
 class ChallengeServiceClass {
   private activeChallenge: ChallengeDefinition | null = null;
@@ -53,6 +54,7 @@ class ChallengeServiceClass {
     for (const obj of challenge.objectives) {
       this.objectives.set(obj.type, { ...obj, current: 0, completed: false });
     }
+    void ProductAnalyticsService.trackSeasonJoined();
   }
 
   getActiveChallenge(): ChallengeDefinition | null {
@@ -182,6 +184,11 @@ class ChallengeServiceClass {
 
       if (result.success) {
         if (result.alreadyCompleted) return;
+        void ProductAnalyticsService.trackQuestCompleted({
+          questId: challengeId,
+          rewardMetaCoins: result.reward.metaCoins,
+          rewardBonusXp: result.reward.bonusXp,
+        });
         EventBus.emit('challengeCompleted', { challengeId, reward: result.reward });
         EventBus.emit('gameNotification', {
           title: 'Challenge Complete!',

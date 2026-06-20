@@ -87,4 +87,16 @@ describe('MilestoneService', () => {
     expect(service.getAchievedMilestones().length).toBe(0);
     expect(service.getTotalKills()).toBe(0);
   });
+
+  describe('backward compatibility', () => {
+    it('should start session without throwing', () => {
+      expect(() => service.startSession()).not.toThrow();
+    });
+
+    it('should return initial empty states', () => {
+      const freshService = new MilestoneServiceClass();
+      expect(freshService.getTotalKills()).toBe(0);
+      expect(freshService.getAchievedMilestones()).toEqual([]);
+    });
+  });
 });

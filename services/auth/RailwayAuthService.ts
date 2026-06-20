@@ -10,11 +10,7 @@ import {
   type RailwayStoredAuth,
 } from '../api/RailwayAuthTokenStore';
 import { Logger } from '../system/Logger';
-import {
-  type AuthProvider,
-  type AuthSession,
-  type AuthUser,
-} from './types';
+import { type AuthProvider, type AuthSession, type AuthUser } from './types';
 
 export type { AuthProvider } from './types';
 
@@ -347,20 +343,17 @@ class RailwayAuthServiceClass {
       authUserId: (data.auth_user_id ?? data.authUserId) as string | null,
       email: (data.email as string | null) ?? null,
       emailVerified:
-        ((data.email_verified ?? data.emailVerified) as boolean | undefined) ??
-        false,
+        ((data.email_verified ?? data.emailVerified) as boolean | undefined) ?? false,
       displayName: (data.display_name ??
         data.displayName ??
         data.nickname ??
         'Player') as string,
       username: (data.username ?? data.nickname) as string | null,
       avatarUrl: (data.avatar_url ?? data.avatarUrl) as string | null,
-      level: ((data.level as number | undefined) ?? 1),
-      xp: ((data.xp as number | undefined) ?? 0),
-      isTester:
-        ((data.is_tester ?? data.isTester) as boolean | undefined) ?? false,
-      isBanned:
-        ((data.is_banned ?? data.isBanned) as boolean | undefined) ?? false,
+      level: (data.level as number | undefined) ?? 1,
+      xp: (data.xp as number | undefined) ?? 0,
+      isTester: ((data.is_tester ?? data.isTester) as boolean | undefined) ?? false,
+      isBanned: ((data.is_banned ?? data.isBanned) as boolean | undefined) ?? false,
       primaryAuthProvider:
         ((data.primary_auth_provider ?? data.primaryAuthProvider) as
           | string

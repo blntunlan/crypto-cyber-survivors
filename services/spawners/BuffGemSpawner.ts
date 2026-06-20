@@ -240,20 +240,18 @@ class BuffGemSpawnerClass {
         pulsePhase: 0,
       };
     } else {
-      Object.assign(gem, {
-        active: true,
-        x,
-        y,
-        radius: this.config.gemRadius,
-        color: config.color,
-        icon: config.icon,
-        buffType,
-        decoratorClass: BUFF_DECORATORS[buffType],
-        spawnTime: now,
-        elapsedLifetime: 0,
-        lifetime: this.config.gemLifetime,
-        pulsePhase: 0,
-      });
+      gem.active = true;
+      gem.x = x;
+      gem.y = y;
+      gem.radius = this.config.gemRadius;
+      gem.color = config.color;
+      gem.icon = config.icon;
+      gem.buffType = buffType;
+      gem.decoratorClass = BUFF_DECORATORS[buffType];
+      gem.spawnTime = now;
+      gem.elapsedLifetime = 0;
+      gem.lifetime = this.config.gemLifetime;
+      gem.pulsePhase = 0;
     }
 
     this.activeGems.push(gem);

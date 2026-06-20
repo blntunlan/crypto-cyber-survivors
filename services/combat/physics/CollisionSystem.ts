@@ -501,7 +501,7 @@ export class CollisionSystem implements ICollisionSystem {
 
     if (distSq >= combinedRadius * combinedRadius) return;
 
-    system.primeWeaponStateOnHit(bullet);
+    system.primeWeaponStateOnHit(bullet, pool);
     if (system.shouldSkipRepeatedHit(obj, bullet, 'interactable')) {
       return;
     }
@@ -555,7 +555,7 @@ export class CollisionSystem implements ICollisionSystem {
     dtFactor: number,
     particleMultiplier: number
   ): void {
-    this.primeWeaponStateOnHit(bullet);
+    this.primeWeaponStateOnHit(bullet, pool);
     if (this.shouldSkipRepeatedHit(enemy, bullet, 'enemy')) {
       return;
     }
@@ -615,7 +615,7 @@ export class CollisionSystem implements ICollisionSystem {
     }
   }
 
-  private primeWeaponStateOnHit(bullet: Bullet): void {
+  private primeWeaponStateOnHit(bullet: Bullet, pool: IPoolManager): void {
     if (bullet.weaponId !== 'aoe_nuke' || bullet.phase === 'shockwave') {
       return;
     }
@@ -627,6 +627,7 @@ export class CollisionSystem implements ICollisionSystem {
     bullet.shockwaveRadius = 5;
     bullet.radius = 5;
     bullet.hitSet?.clear();
+    spawnNukeDetonationParticles(bullet.x, bullet.y, pool);
   }
 
   private shouldKeepBulletActiveAfterHit(bullet: Bullet): boolean {
@@ -879,5 +880,30 @@ export class CollisionSystem implements ICollisionSystem {
         isRetro
       ).life = impactCfg.life;
     }
+  }
+}
+
+/**
+ * Spawns orange/yellow debris particles and dark smoke particles on Nuke detonation.
+ */
+function spawnNukeDetonationParticles(x: number, y: number, pool: IPoolManager): void {
+  // Debris particles (orange/yellow)
+  for (let i = 0; i < 26; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 5;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    const color = Math.random() < 0.5 ? '#ff8833' : '#ffcc44';
+    const p = pool.getParticle(x, y, vx, vy, color);
+    p.life = 0.6 + Math.random() * 0.4;
+  }
+  // Smoke particles (dark brown, slowly rising)
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.5 + Math.random() * 1.5;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 1.0; // drift upwards
+    const p = pool.getParticle(x, y, vx, vy, '#3e2723'); // Dark brown smoke
+    p.life = 0.8 + Math.random() * 0.4;
   }
 }

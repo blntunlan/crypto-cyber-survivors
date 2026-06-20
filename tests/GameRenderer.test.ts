@@ -9,7 +9,7 @@ import { GameRenderer } from '../services/renderers/GameRenderer';
 import { GameStatus, MarketPosition, type GameState } from '../types';
 import { type IPoolManager } from '../services/interfaces/IPoolManager';
 import { ThemeService } from '../services/system/ThemeService';
-import { portalSystem } from '../services/gameplay/PortalSystem';
+import { PortalSystemV2 } from '../services/gameplay/PortalSystemV2';
 import { TimeService } from '../services/core/TimeService';
 
 vi.mock('../services/system/ThemeService', () => ({
@@ -24,9 +24,9 @@ vi.mock('../services/system/ThemeService', () => ({
   },
 }));
 
-vi.mock('../services/gameplay/PortalSystem', () => ({
-  portalSystem: {
-    getState: vi.fn(),
+vi.mock('../services/gameplay/PortalSystemV2', () => ({
+  PortalSystemV2: {
+    getPortalState: vi.fn(),
   },
 }));
 
@@ -147,13 +147,14 @@ describe('GameRenderer', () => {
     };
 
     // Default Mocks
-    vi.mocked(portalSystem.getState).mockReturnValue({
+    vi.mocked(PortalSystemV2.getPortalState).mockReturnValue({
       isActive: false,
       x: 0,
       y: 0,
       radius: 0,
       timeLeft: 0,
       type: 'TAKE_PROFIT',
+      portalNumber: 0,
     });
     vi.mocked(ThemeService.isRetro).mockReturnValue(false);
   });
@@ -303,13 +304,14 @@ describe('GameRenderer', () => {
     });
 
     it('should draw Take Profit portal', () => {
-      vi.mocked(portalSystem.getState).mockReturnValue({
+      vi.mocked(PortalSystemV2.getPortalState).mockReturnValue({
         isActive: true,
         x: 500,
         y: 400,
         radius: 50,
         type: 'TAKE_PROFIT',
         timeLeft: 10,
+        portalNumber: 1,
       });
       renderer.render(
         mockCtx,

@@ -72,7 +72,8 @@ const getProfileNickname = (
   profile: RemoteProfileResponse,
   fallback: string
 ): string => {
-  const candidate = profile.nickname ?? profile.display_name ?? profile.displayName ?? fallback;
+  const candidate =
+    profile.nickname ?? profile.display_name ?? profile.displayName ?? fallback;
   return candidate.trim() || fallback;
 };
 
@@ -137,9 +138,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       try {
         const railwayAuth = RailwayAuthTokenStore.get();
         if (railwayAuth) {
-          const profile = await railwayClient.get<RemoteProfileResponse>(
-            '/api/v1/profile'
-          );
+          const profile =
+            await railwayClient.get<RemoteProfileResponse>('/api/v1/profile');
 
           const reconciledUser: LegacyStoredUser = {
             ...storedUser,

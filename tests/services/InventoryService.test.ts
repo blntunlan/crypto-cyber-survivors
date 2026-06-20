@@ -83,6 +83,36 @@ describe('InventoryService', () => {
 
       expect(InventoryService.getEffectMultiplier('damage_boost')).toBe(1.0);
     });
+
+    it('should store and consume revive effects exactly once', () => {
+      InventoryService.addItem('consumable', 'rug_pull_protection', 1);
+
+      expect(InventoryService.useConsumable('rug_pull_protection')).toBe(true);
+      expect(InventoryService.hasRevive()).toBe(true);
+      expect(InventoryService.consumeRevive()).toBe(true);
+      expect(InventoryService.hasRevive()).toBe(false);
+      expect(InventoryService.consumeRevive()).toBe(false);
+    });
+
+    it('should emit immediate kill_all and full_heal effects', () => {
+      const killAllSpy = vi.fn();
+      const healedSpy = vi.fn();
+      const unsubscribeKillAll = EventBus.on('killAll', killAllSpy);
+      const unsubscribeHealed = EventBus.on('playerHealed', healedSpy);
+
+      InventoryService.addItem('consumable', 'smart_contract', 1);
+      InventoryService.addItem('consumable', 'staking_reward', 1);
+
+      expect(InventoryService.useConsumable('smart_contract')).toBe(true);
+      expect(InventoryService.useConsumable('staking_reward')).toBe(true);
+      expect(killAllSpy).toHaveBeenCalledWith({});
+      expect(healedSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 9999, source: 'pickup' })
+      );
+
+      unsubscribeKillAll();
+      unsubscribeHealed();
+    });
   });
 
   describe('Character Skins', () => {
@@ -164,6 +194,19 @@ describe('InventoryService', () => {
       EventBus.emit('gameReset', {});
 
       expect(InventoryService.getEffectMultiplier('damage_boost')).toBe(1.0);
+    });
+  });
+
+  describe('Debug State', () => {
+    it('should report empty debug state before a player is selected', () => {
+      expect(InventoryService.getDebugState()).toEqual({
+        playerId: null,
+        consumables: 0,
+        skins: 0,
+        cryptoTokens: 0,
+        equippedSkin: 'default',
+        activeEffects: {},
+      });
     });
   });
 });

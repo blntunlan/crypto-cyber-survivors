@@ -1,9 +1,9 @@
 import { Router, type Request, type Response } from 'express';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { getRequiredAuthUserId, requireAuth } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
-import { profiles } from '../db/schema';
+import { profiles, sessions, wallets } from '../db/schema';
 import { createProfileSchema, updateProfileSchema } from '../db/validation';
 import { Logger } from '../utils/logger';
 import { logAudit, getClientInfo } from '../utils/auditLogger';
@@ -31,6 +31,62 @@ router.get('/', requireAuth, asyncHandler(async (req: Request, res: Response) =>
     res.json(rows[0]);
   } catch (error) {
     Logger.error('[Profile] GET error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+/**
+ * GET /api/v1/profile/stats — Fetch verified gameplay stats for current user.
+ */
+router.get('/stats', requireAuth, asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const authUserId = getRequiredAuthUserId(req);
+    const db = getDb();
+    const profileRows = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.authUserId, authUserId))
+      .limit(1);
+
+    const profileId = profileRows[0]?.id;
+    if (!profileId) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
+
+    const statsRows = await db
+      .select({
+        totalKills: sql<number>`COALESCE(SUM(${sessions.kills}), 0)::int`,
+        totalSurvivalTime: sql<number>`COALESCE(SUM(${sessions.survivalSeconds}), 0)::int`,
+        totalGames: sql<number>`COUNT(${sessions.id})::int`,
+        maxSurvivalTime: sql<number>`COALESCE(MAX(${sessions.survivalSeconds}), 0)::int`,
+        maxKills: sql<number>`COALESCE(MAX(${sessions.kills}), 0)::int`,
+        totalGoldEarned: sql<number>`COALESCE(SUM(${sessions.rewardAmount}), 0)::int`,
+      })
+      .from(sessions)
+      .where(and(eq(sessions.profileId, profileId), eq(sessions.isVerified, true)));
+
+    const walletRows = await db
+      .select({ balance: wallets.balance })
+      .from(wallets)
+      .where(eq(wallets.profileId, profileId))
+      .limit(1);
+
+    const stats = statsRows[0];
+    res.json({
+      stats: {
+        totalKills: Number(stats?.totalKills ?? 0),
+        totalSurvivalTime: Number(stats?.totalSurvivalTime ?? 0),
+        totalGames: Number(stats?.totalGames ?? 0),
+        maxSurvivalTime: Number(stats?.maxSurvivalTime ?? 0),
+        maxKills: Number(stats?.maxKills ?? 0),
+        totalGoldEarned: Number(stats?.totalGoldEarned ?? 0),
+        goldBalance: Number(walletRows[0]?.balance ?? 0),
+        gemsBalance: 0,
+      },
+    });
+  } catch (error) {
+    Logger.error('[Profile] GET stats error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 }));

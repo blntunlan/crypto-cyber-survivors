@@ -43,6 +43,32 @@ describe('BuffGemSpawner', () => {
 
       expect(BuffGemSpawner.getActiveGems()).toHaveLength(1);
     });
+
+    it('should force spawn negative category gems only from debuff pool', () => {
+      const gem = BuffGemSpawner.forceSpawnAt(120, 140, 'negative');
+
+      expect(gem).not.toBeNull();
+      expect(['slow', 'vulnerable']).toContain(gem?.buffType);
+      expect(gem).toEqual(expect.objectContaining({ x: 120, y: 140, active: true }));
+    });
+
+    it('should recycle expired gems with the next spawn properties', () => {
+      const firstGem = BuffGemSpawner.spawnGem('rage', 10, 10);
+      firstGem.elapsedLifetime = firstGem.lifetime;
+
+      BuffGemSpawner.update(1, 1);
+
+      const recycledGem = BuffGemSpawner.spawnGem('vulnerable', 30, 40);
+      expect(recycledGem).toBe(firstGem);
+      expect(recycledGem).toMatchObject({
+        active: true,
+        x: 30,
+        y: 40,
+        buffType: 'vulnerable',
+        elapsedLifetime: 0,
+        pulsePhase: 0,
+      });
+    });
   });
 
   describe('Permanent Buff Protection', () => {

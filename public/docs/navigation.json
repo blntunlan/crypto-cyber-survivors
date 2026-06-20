@@ -119,6 +119,18 @@
           "link": "/docs/BETA_READINESS_CHECKLIST"
         },
         {
+          "text": "Beta External Sign-off Board",
+          "link": "/docs/workflows/BETA_EXTERNAL_SIGNOFF_BOARD"
+        },
+        {
+          "text": "Beta Launch Runbook",
+          "link": "/docs/workflows/BETA_LAUNCH_RUNBOOK"
+        },
+        {
+          "text": "Beta Launch Notes Template",
+          "link": "/docs/workflows/BETA_LAUNCH_NOTES_TEMPLATE"
+        },
+        {
           "text": "Mobile Beta QA Checklist",
           "link": "/docs/workflows/MOBILE_BETA_QA_CHECKLIST"
         },
@@ -159,8 +171,48 @@
           "link": "/docs/workflows/BETA_BUNDLE_BUDGET_REPORT"
         },
         {
+          "text": "Beta Bundle Splitting",
+          "link": "/docs/workflows/BETA_BUNDLE_SPLITTING"
+        },
+        {
           "text": "Beta Feedback Triage",
           "link": "/docs/workflows/BETA_FEEDBACK_TRIAGE"
+        },
+        {
+          "text": "Beta Coverage Risk Reduction",
+          "link": "/docs/workflows/BETA_COVERAGE_RISK_REDUCTION"
+        },
+        {
+          "text": "Beta Dependency Cleanup",
+          "link": "/docs/workflows/BETA_DEPENDENCY_CLEANUP"
+        },
+        {
+          "text": "Beta Achievement Backend Plan",
+          "link": "/docs/workflows/BETA_ACHIEVEMENT_BACKEND_PLAN"
+        },
+        {
+          "text": "Beta Replay Storage Decision",
+          "link": "/docs/workflows/BETA_REPLAY_STORAGE_DECISION"
+        },
+        {
+          "text": "Beta Docs Navigation Maintenance",
+          "link": "/docs/workflows/BETA_DOCS_NAVIGATION_MAINTENANCE"
+        },
+        {
+          "text": "Beta Telemetry Dashboard",
+          "link": "/docs/workflows/BETA_TELEMETRY_DASHBOARD"
+        },
+        {
+          "text": "Solana First Product Roadmap",
+          "link": "/docs/workflows/SOLANA_FIRST_PRODUCT_ROADMAP"
+        },
+        {
+          "text": "Beta Balance Tuning Playbook",
+          "link": "/docs/workflows/BETA_BALANCE_TUNING_PLAYBOOK"
+        },
+        {
+          "text": "Beta Runtime FPS Sign-off",
+          "link": "/docs/workflows/BETA_RUNTIME_FPS_SIGNOFF"
         }
       ]
     },
@@ -211,6 +263,15 @@
         {
           "text": "Darwin (AI Training)",
           "link": "/docs/services/AI_TRAINING_WORKFLOW"
+        }
+      ]
+    },
+    {
+      "text": "Reports",
+      "items": [
+        {
+          "text": "UI Functional Audit",
+          "link": "/docs/reports/UI_FUNCTIONAL_AUDIT_20260620"
         }
       ]
     }

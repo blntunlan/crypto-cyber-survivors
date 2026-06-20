@@ -287,8 +287,8 @@ export const PrivacyPolicy: React.FC<{
     </p>
     <ul>
       <li>
-        <strong>Service Providers:</strong> Railway (hosting, API, database),
-        Cloudflare (CDN/security)
+        <strong>Service Providers:</strong> Railway (hosting, API, database), Cloudflare
+        (CDN/security)
       </li>
       <li>
         <strong>Market Data Providers:</strong> Binance and Coinbase APIs for real-time

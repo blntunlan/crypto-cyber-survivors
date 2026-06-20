@@ -8,11 +8,7 @@ import { nanoid } from 'nanoid';
 
 // ── Hoisted mocks ──────────────────────────────────────────────────────────
 
-const {
-  mockIsRailwayApiConfigured,
-  mockSupabaseAuth,
-  mockRailwayClient,
-} = vi.hoisted(
+const { mockIsRailwayApiConfigured, mockSupabaseAuth, mockRailwayClient } = vi.hoisted(
   () => ({
     mockIsRailwayApiConfigured: vi.fn().mockReturnValue(false),
     mockSupabaseAuth: {

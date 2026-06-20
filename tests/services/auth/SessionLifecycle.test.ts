@@ -47,11 +47,13 @@ vi.mock('../../../services/api/RailwayClient', () => ({
   railwayClient: {
     post: (...args: unknown[]) => mockPost(...args),
   },
+  isRailwayApiConfigured: vi.fn(() => true),
 }));
 
 vi.mock('../../../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getNickname: vi.fn().mockReturnValue('TestPlayer'),
+    getProfileId: vi.fn().mockReturnValue('test-profile-id-uuid'),
     clearUser: vi.fn(),
   },
 }));

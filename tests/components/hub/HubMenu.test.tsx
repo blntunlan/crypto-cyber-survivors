@@ -116,7 +116,7 @@ describe('HubMenu', () => {
     // Grid layout uses 2 columns for this viewport (>= sm breakpoint):
     // [0: PLAY]    [1: STASH*]
     // [2: LOOT*]   [3: SKINS*]
-    // [4: RANKS*]  [5: GEAR]
+    // [4: RANKS]   [5: GEAR]
     // * = disabled buttons that won't trigger onNavigate
 
     // Navigate to GEAR (index 5) which is enabled:

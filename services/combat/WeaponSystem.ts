@@ -51,26 +51,46 @@ class WeaponSystemClass {
   }
 
   private checkEvolution(): void {
-    if (this.weapons.length < 2) return;
-    const a = this.weapons[0];
-    const b = this.weapons[1];
-    if (!a || !b) return;
-    const cfgA = WEAPON_REGISTRY[a.id];
-    const cfgB = WEAPON_REGISTRY[b.id];
-    const evolutionResult =
-      cfgA.evolutionPair === b.id
-        ? cfgA.evolutionResult
-        : cfgB.evolutionPair === a.id
-          ? cfgB.evolutionResult
-          : undefined;
+    // 1. Standard evolution between two inventory weapons (if both are present in inventory)
+    if (this.weapons.length >= 2) {
+      const a = this.weapons[0];
+      const b = this.weapons[1];
+      if (a && b) {
+        const cfgA = WEAPON_REGISTRY[a.id];
+        const cfgB = WEAPON_REGISTRY[b.id];
+        const evolutionResult =
+          cfgA.evolutionPair === b.id
+            ? cfgA.evolutionResult
+            : cfgB.evolutionPair === a.id
+              ? cfgB.evolutionResult
+              : undefined;
 
-    if (a.level === 5 && b.level === 5 && evolutionResult) {
-      this.weapons = [{ id: evolutionResult, level: 5, cooldownTimer: 0 }];
+        if (a.level === 5 && b.level === 5 && evolutionResult) {
+          this.weapons = [{ id: evolutionResult, level: 5, cooldownTimer: 0 }];
+          EventBus.emit('weaponEvolution', {
+            from: [a.id, b.id],
+            to: evolutionResult,
+          });
+          Logger.info(
+            `[WeaponSystem] Evolution: ${a.id} + ${b.id} → ${evolutionResult}`
+          );
+          return;
+        }
+      }
+    }
+
+    // 2. Base weapon evolution: if laser reaches Level 5, it evolves with the implicit quantum_bullet
+    const laserIndex = this.weapons.findIndex(w => w.id === 'laser' && w.level === 5);
+    if (laserIndex !== -1) {
+      const evolutionResult = 'hyper_cannon';
+      this.weapons[laserIndex] = { id: evolutionResult, level: 5, cooldownTimer: 0 };
       EventBus.emit('weaponEvolution', {
-        from: [a.id, b.id],
+        from: ['quantum_bullet', 'laser'],
         to: evolutionResult,
       });
-      Logger.info(`[WeaponSystem] Evolution: ${a.id} + ${b.id} → ${evolutionResult}`);
+      Logger.info(
+        `[WeaponSystem] Evolution: quantum_bullet + laser → ${evolutionResult}`
+      );
     }
   }
 

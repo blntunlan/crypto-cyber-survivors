@@ -27,6 +27,7 @@ import { priceAnalyzer } from '../../services/admin/PriceAnalyzerService';
 import { adminPriceFeed } from '../../services/admin/AdminPriceFeedService';
 import {
   adminAnalytics,
+  type AdminDashboardSummary,
   type MarketHealth,
   type ErrorOccurence,
 } from '../../services/admin/AdminAnalyticsService';
@@ -830,6 +831,8 @@ const VisualsPanel: React.FC = () => {
 const AnalyticsPanel: React.FC = () => {
   const [health, setHealth] = useState<MarketHealth | null>(null);
   const [errors, setErrors] = useState<ErrorOccurence[]>([]);
+  const [dashboardSummary, setDashboardSummary] =
+    useState<AdminDashboardSummary | null>(null);
   const [perfStats, setPerfStats] = useState(FPSMonitor.getStats());
   const [isLoading, setIsLoading] = useState(true);
 
@@ -843,12 +846,14 @@ const AnalyticsPanel: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [h, e] = await Promise.all([
+      const [h, e, summary] = await Promise.all([
         adminAnalytics.getMarketHealth(),
         adminAnalytics.getErrorSummary(),
+        adminAnalytics.getDashboardSummary(),
       ]);
       setHealth(h);
       setErrors(e as ErrorOccurence[]);
+      setDashboardSummary(summary);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
     } finally {
@@ -887,9 +892,155 @@ const AnalyticsPanel: React.FC = () => {
     last_ping: null,
     delay_seconds: null,
   };
+  const telemetrySummary = dashboardSummary?.telemetry;
+  const sessionSummary = dashboardSummary?.sessions;
+  const productSummary = dashboardSummary?.product;
+  const deviceBreakdown = telemetrySummary?.deviceTypeBreakdown ?? {};
+  const recommendedProfileBreakdown =
+    telemetrySummary?.recommendedProfileBreakdown ?? {};
+  const topDeviceType =
+    Object.entries(deviceBreakdown).sort(
+      ([, left], [, right]) => right - left
+    )[0]?.[0] ?? 'N/A';
+  const topRecommendedProfile =
+    Object.entries(recommendedProfileBreakdown).sort(
+      ([, left], [, right]) => right - left
+    )[0]?.[0] ?? 'N/A';
 
   return (
     <div className="space-y-8">
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+            <Activity size={20} className="text-cyan-400" />
+            Beta Telemetry Dashboard
+          </h2>
+          <div className="font-mono text-xs text-slate-500">
+            {dashboardSummary
+              ? new Date(dashboardSummary.timestamp).toLocaleTimeString()
+              : 'Admin API not configured'}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-5 gap-4">
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Crash-Free Sessions</div>
+            <div className="font-mono text-2xl font-bold text-green-400">
+              {telemetrySummary ? `${telemetrySummary.crashFreeSessionRate24h}%` : '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {telemetrySummary
+                ? `${telemetrySummary.crashFreeSessions24h} clean sessions`
+                : 'Awaiting admin summary'}
+            </div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Verification Fail Rate</div>
+            <div
+              className={`font-mono text-2xl font-bold ${
+                (sessionSummary?.verificationFailRate ?? 0) > 5
+                  ? 'text-red-400'
+                  : 'text-cyan-400'
+              }`}
+            >
+              {sessionSummary ? `${sessionSummary.verificationFailRate}%` : '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              {sessionSummary
+                ? `${sessionSummary.unverified24h}/${sessionSummary.total24h} unverified`
+                : 'Awaiting session data'}
+            </div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Reconnect Events</div>
+            <div className="font-mono text-2xl font-bold text-yellow-400">
+              {telemetrySummary?.reconnectEvents24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">24h network signals</div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Device Profiles</div>
+            <div className="font-mono text-2xl font-bold text-purple-400">
+              {telemetrySummary?.activeDeviceProfiles24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">Top: {topDeviceType}</div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Perf Cohort</div>
+            <div className="font-mono text-2xl font-bold text-blue-400">
+              {topRecommendedProfile}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              Avg FPS: {telemetrySummary?.avgFps24h ?? '--'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+            <Activity size={20} className="text-purple-400" />
+            Product Traction Dashboard
+          </h2>
+          <div className="font-mono text-xs text-slate-500">
+            Solana-first investor metrics
+          </div>
+        </div>
+
+        <div className="grid grid-cols-5 gap-4">
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Season Participants</div>
+            <div className="font-mono text-2xl font-bold text-purple-400">
+              {productSummary?.seasonParticipants24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">24h competitive loop</div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Wallet Connects</div>
+            <div className="font-mono text-2xl font-bold text-green-400">
+              {productSummary?.walletConnects24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              Unique: {productSummary?.uniqueWallets24h ?? '--'}
+            </div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Quest Completions</div>
+            <div className="font-mono text-2xl font-bold text-yellow-400">
+              {productSummary?.questCompletions24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">Daily/weekly completions</div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Leaderboard Submits</div>
+            <div className="font-mono text-2xl font-bold text-cyan-400">
+              {productSummary?.leaderboardSubmissions24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              Verified competition signal
+            </div>
+          </div>
+
+          <div className="rounded-sm border border-slate-700 bg-slate-800/50 p-4">
+            <div className="mb-1 text-xs text-slate-500">Referral Joins</div>
+            <div className="font-mono text-2xl font-bold text-pink-400">
+              {productSummary?.referralJoins24h ?? '--'}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              Events: {productSummary?.productEvents24h ?? '--'}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Performance Metrics Section */}
       <section>
         <div className="mb-4 flex items-center justify-between">
@@ -1116,8 +1267,8 @@ const AnalyticsPanel: React.FC = () => {
         <div className="space-y-1 text-xs text-slate-500">
           <p className="font-medium text-slate-400">Monitoring System Status</p>
           <p>
-            Railway Market Server is writing market data to Railway PostgreSQL.
-            Railway API routes are verifying gameplay.
+            Railway Market Server is writing market data to Railway PostgreSQL. Railway
+            API routes are verifying gameplay.
           </p>
           <p>
             Global error tracking is active. Offline reports will be queued until the

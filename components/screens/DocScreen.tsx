@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
 import { Database, ChevronRight, Terminal, Share2, Search, Power } from 'lucide-react';
 import * as CardIcons from '../icons/CardIcons';
@@ -100,6 +100,10 @@ async function fetchDocContent(docPath: string): Promise<string> {
     throw new Error('Document not found');
   }
   return response.text();
+}
+
+async function copyTextToClipboard(text: string): Promise<void> {
+  await navigator.clipboard.writeText(text);
 }
 
 function renderCodeBlock(key: string, code: string, language?: string) {
@@ -378,6 +382,7 @@ const DocContentRenderer: React.FC<DocContentRendererProps> = ({
 
 export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
   const [state, dispatch] = useReducer(docScreenReducer, INITIAL_DOC_SCREEN_STATE);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const { navigation, selectedDoc, content, loading, searchQuery } = state;
 
   useEffect(() => {
@@ -429,6 +434,26 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
 
   const handleDocSelect = (link: string) => {
     dispatch({ type: 'setSelectedDoc', selectedDoc: normalizeSelectedDocLink(link) });
+    setShareStatus('idle');
+  };
+
+  const handleShareDoc = async () => {
+    const shareUrl = new URL(window.location.href);
+    shareUrl.hash = selectedDoc.replace(/^\//, '');
+
+    try {
+      if (typeof navigator.share === 'function') {
+        await navigator.share({
+          title: `Crypto Survivors Docs · ${selectedDoc}`,
+          url: shareUrl.toString(),
+        });
+      } else {
+        await copyTextToClipboard(shareUrl.toString());
+      }
+      setShareStatus('copied');
+    } catch {
+      setShareStatus('failed');
+    }
   };
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -558,10 +583,20 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
               <button
                 type="button"
                 aria-label="Share documentation"
+                onClick={() => void handleShareDoc()}
                 className="group rounded-sm p-2 transition-colors hover:bg-white/5"
               >
                 <Share2 className="h-4 w-4 text-slate-500 group-hover:text-white" />
               </button>
+              {shareStatus !== 'idle' && (
+                <span
+                  className={`text-[10px] font-black uppercase tracking-[0.18em] ${
+                    shareStatus === 'copied' ? 'text-green-500' : 'text-red-400'
+                  }`}
+                >
+                  {shareStatus === 'copied' ? 'Link Copied' : 'Share Failed'}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={onClose}

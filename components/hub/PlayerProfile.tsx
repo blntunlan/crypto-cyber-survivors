@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import {
   X,
   Trophy,
@@ -44,6 +44,20 @@ interface PlayerProfileProps {
 
 type TabId = 'overview' | 'stats' | 'achievements' | 'settings';
 
+const PROFILE_TABS: Array<{ id: TabId; icon: LucideIcon }> = [
+  { id: 'overview', icon: LayoutDashboard },
+  { id: 'stats', icon: BarChart3 },
+  { id: 'achievements', icon: Medal },
+  { id: 'settings', icon: Settings },
+];
+
+const formatProfileDuration = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
+};
+
 export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose }) => {
   const { isRetro } = useTheme();
   const { t } = useLanguage();
@@ -51,13 +65,6 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
   const [profile, setProfile] = useState<FullProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const tabs: Array<{ id: TabId; icon: LucideIcon }> = [
-    { id: 'overview', icon: LayoutDashboard },
-    { id: 'stats', icon: BarChart3 },
-    { id: 'achievements', icon: Medal },
-    { id: 'settings', icon: Settings },
-  ];
-
   const accentColor = isRetro ? COLORS.NEON_GREEN : COLORS.PUMP_GREEN;
   const secondaryAccent = isRetro ? COLORS.JACKPOT_YELLOW : COLORS.WHALE;
   const panelHeaderClass = isRetro
@@ -101,7 +108,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -116,7 +123,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
           } as React.CSSProperties
         }
       >
-        <motion.div
+        <m.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -135,6 +142,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
 
           {/* Close Button */}
           <button
+            type="button"
             onClick={onClose}
             className="absolute right-2 top-2 z-50 p-2.5 text-slate-400 transition-colors hover:text-white md:right-4 md:top-4 md:p-2"
           >
@@ -180,7 +188,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
                 )}
               >
                 <span className="flex items-center gap-1">
-                  <User size={14} /> @{profile?.username ?? 'user'}
+                  <User size={14} /> @{profile?.username ?? 'local-profile'}
                 </span>
                 <span className="flex items-center gap-1">
                   <Zap size={14} className="text-yellow-400" /> LVL {profile?.level}
@@ -200,10 +208,11 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
               tabsContainerClass
             )}
           >
-            {tabs.map(tab => {
+            {PROFILE_TABS.map(tab => {
               const TabIcon = tab.icon;
               return (
                 <button
+                  type="button"
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
@@ -227,7 +236,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
                     {t(`profile.tabs.${tab.id}`)}
                   </span>
                   {activeTab === tab.id && (
-                    <motion.div
+                    <m.div
                       layoutId="activeTab"
                       className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--hub-accent)]"
                     />
@@ -271,6 +280,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
                     network connection.
                   </p>
                   <button
+                    type="button"
                     onClick={() => {
                       void loadProfileData();
                     }}
@@ -337,8 +347,8 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
               </div>
             )}
           </div>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </AnimatePresence>
   );
 };
@@ -363,9 +373,37 @@ const OverviewTab: React.FC<{
   bodyClass,
 }) => {
   const levelProgress = Math.min(100, ((profile.xp % 1000) / 1000) * 100);
+  const statsSource = profile.stats.source ?? 'unavailable';
+  const hasVerifiedRuns = profile.stats.hasVerifiedRuns ?? profile.stats.totalGames > 0;
+  const hasAchievementCatalog = profile.achievements.all.length > 0;
 
   return (
     <div className={cn('grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2', bodyClass)}>
+      {statsSource !== 'railway' && (
+        <div className="md:col-span-2">
+          <ProfileDataNotice
+            title="Profile stats pending"
+            message="Gameplay aggregates are not connected for this profile yet. Wallet balance is still shown when available."
+            isRetro={isRetro}
+            accentColor={secondaryAccent}
+            cardSurface={subtleCardSurface}
+            bodyClass={bodyClass}
+          />
+        </div>
+      )}
+      {statsSource === 'railway' && !hasVerifiedRuns && (
+        <div className="md:col-span-2">
+          <ProfileDataNotice
+            title="No verified runs yet"
+            message="Complete a verified run to populate kills, survival time, achievements, and combat analytics."
+            isRetro={isRetro}
+            accentColor={accentColor}
+            cardSurface={subtleCardSurface}
+            bodyClass={bodyClass}
+          />
+        </div>
+      )}
+
       <div className={cn('p-4 sm:p-6', cardSurface)}>
         <div className="mb-4 flex items-end justify-between">
           <div>
@@ -399,7 +437,7 @@ const OverviewTab: React.FC<{
               : 'rounded-full border border-white/10 bg-black/40'
           )}
         >
-          <motion.div
+          <m.div
             initial={{ width: 0 }}
             animate={{ width: `${levelProgress}%` }}
             className="h-full"
@@ -420,7 +458,11 @@ const OverviewTab: React.FC<{
         <SummaryCard
           icon={<Trophy size={18} color={secondaryAccent} />}
           label="Achievements"
-          value={`${profile.achievements.unlocked.length}/${profile.achievements.all.length}`}
+          value={
+            hasAchievementCatalog
+              ? `${profile.achievements.unlocked.length}/${profile.achievements.all.length}`
+              : 'Pending'
+          }
           isRetro={isRetro}
           bodyClass={bodyClass}
           cardSurface={subtleCardSurface}
@@ -465,41 +507,53 @@ const OverviewTab: React.FC<{
           <ShieldCheck size={16} /> Latest Unlocks
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          {profile.achievements.unlocked.slice(0, 3).map(unlock => {
-            const def = profile.achievements.all.find(
-              a => a.id === unlock.achievementId
-            );
-            return (
-              <div
-                key={unlock.id}
-                className={cn(
-                  'flex items-center gap-2.5 p-2.5 sm:gap-3 sm:p-3',
-                  subtleCardSurface,
-                  bodyClass
-                )}
-              >
+          {hasAchievementCatalog &&
+            profile.achievements.unlocked.slice(0, 3).map(unlock => {
+              const def = profile.achievements.all.find(
+                a => a.id === unlock.achievementId
+              );
+              return (
                 <div
+                  key={unlock.id}
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded sm:h-10 sm:w-10',
-                    isRetro
-                      ? 'bg-[#39FF14]/10 text-[#39FF14]'
-                      : 'bg-yellow-500/10 text-yellow-400'
+                    'flex items-center gap-2.5 p-2.5 sm:gap-3 sm:p-3',
+                    subtleCardSurface,
+                    bodyClass
                   )}
                 >
-                  <Trophy size={16} />
-                </div>
-                <div className="min-w-0">
-                  <div className="max-w-[140px] truncate text-[11px] font-bold text-white sm:text-xs">
-                    {def?.name}
+                  <div
+                    className={cn(
+                      'flex h-9 w-9 items-center justify-center rounded sm:h-10 sm:w-10',
+                      isRetro
+                        ? 'bg-[#39FF14]/10 text-[#39FF14]'
+                        : 'bg-yellow-500/10 text-yellow-400'
+                    )}
+                  >
+                    <Trophy size={16} />
                   </div>
-                  <div className="text-[10px] text-slate-500">
-                    {unlock.formattedDate}
+                  <div className="min-w-0">
+                    <div className="max-w-[140px] truncate text-[11px] font-bold text-white sm:text-xs">
+                      {def?.name}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {unlock.formattedDate}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          {profile.achievements.unlocked.length === 0 && (
+              );
+            })}
+          {!hasAchievementCatalog && (
+            <div
+              className={cn(
+                'py-4 text-center text-sm italic sm:col-span-3',
+                isRetro ? 'text-[#DCDCDC]' : 'text-slate-500'
+              )}
+            >
+              Achievement catalog is not connected yet. This tab will activate when
+              Railway achievement endpoints ship.
+            </div>
+          )}
+          {hasAchievementCatalog && profile.achievements.unlocked.length === 0 && (
             <div
               className={cn(
                 'py-4 text-center text-sm italic sm:col-span-3',
@@ -532,15 +586,36 @@ const StatsTab: React.FC<{
   subtleCardSurface,
   bodyClass,
 }) => {
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
-  };
+  const statsSource = profile.stats.source ?? 'unavailable';
+  const hasVerifiedRuns = profile.stats.hasVerifiedRuns ?? profile.stats.totalGames > 0;
+  const averageKills =
+    profile.stats.totalGames > 0
+      ? (profile.stats.totalKills / profile.stats.totalGames).toFixed(1)
+      : '0';
 
   return (
     <div className={cn('space-y-4 sm:space-y-6', bodyClass)}>
+      {statsSource !== 'railway' && (
+        <ProfileDataNotice
+          title="Stats backend unavailable"
+          message="Verified gameplay aggregates are not available right now. Values below remain local/default until Railway profile stats responds."
+          isRetro={isRetro}
+          accentColor={secondaryAccent}
+          cardSurface={subtleCardSurface}
+          bodyClass={bodyClass}
+        />
+      )}
+      {statsSource === 'railway' && !hasVerifiedRuns && (
+        <ProfileDataNotice
+          title="No tracked combat data"
+          message="Stats are connected, but this profile has no verified sessions yet."
+          isRetro={isRetro}
+          accentColor={accentColor}
+          cardSurface={subtleCardSurface}
+          bodyClass={bodyClass}
+        />
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <StatItem
           icon={<Target size={16} color={secondaryAccent} />}
@@ -563,7 +638,7 @@ const StatsTab: React.FC<{
         <StatItem
           icon={<Timer size={16} color={secondaryAccent} />}
           label="Survival Time"
-          value={formatTime(profile.stats.totalSurvivalTime)}
+          value={formatProfileDuration(profile.stats.totalSurvivalTime)}
           isRetro={isRetro}
           bodyClass={bodyClass}
           subtleCardSurface={subtleCardSurface}
@@ -572,7 +647,7 @@ const StatsTab: React.FC<{
         <StatItem
           icon={<Clock size={16} color={accentColor} />}
           label="Best Survival"
-          value={formatTime(profile.stats.maxSurvivalTime)}
+          value={formatProfileDuration(profile.stats.maxSurvivalTime)}
           isRetro={isRetro}
           bodyClass={bodyClass}
           subtleCardSurface={subtleCardSurface}
@@ -593,11 +668,7 @@ const StatsTab: React.FC<{
         <StatItem
           icon={<BarChart3 size={16} color={accentColor} />}
           label="Average Kills/Match"
-          value={
-            profile.stats.totalGames > 0
-              ? (profile.stats.totalKills / profile.stats.totalGames).toFixed(1)
-              : '0'
-          }
+          value={averageKills}
           isRetro={isRetro}
           bodyClass={bodyClass}
           subtleCardSurface={subtleCardSurface}
@@ -618,8 +689,9 @@ const StatsTab: React.FC<{
           Combat Analytics
         </h3>
         <p className="mx-auto max-w-sm text-xs text-slate-400 sm:text-sm">
-          Your killing efficiency is in the top 15% of all survivors. Maintain your
-          momentum for better rewards.
+          {hasVerifiedRuns
+            ? `Averaging ${averageKills} kills across ${profile.stats.totalGames.toLocaleString()} verified runs.`
+            : 'Combat analytics unlock after your first verified run.'}
         </p>
       </div>
     </div>
@@ -634,6 +706,22 @@ const AchievementsTab: React.FC<{
   subtleCardSurface: string;
   accentColor: string;
 }> = ({ profile, isRetro, bodyClass, cardSurface, subtleCardSurface, accentColor }) => {
+  if (profile.achievements.all.length === 0) {
+    return (
+      <div className={cn('p-6 text-center', cardSurface, bodyClass)}>
+        <Trophy className="mx-auto mb-3" size={36} style={{ color: accentColor }} />
+        <h3 className="mb-2 text-sm font-black uppercase tracking-[0.22em] text-white">
+          Achievements Pending
+        </h3>
+        <p className="mx-auto max-w-md text-sm text-slate-400">
+          The profile modal is ready for achievements, but the Railway achievement
+          catalog is not available yet. This tab now reports that state instead of
+          showing an empty list as completed content.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -730,6 +818,28 @@ const SummaryCard: React.FC<{
     >
       {value}
     </div>
+  </div>
+);
+
+const ProfileDataNotice: React.FC<{
+  title: string;
+  message: string;
+  isRetro: boolean;
+  accentColor: string;
+  cardSurface: string;
+  bodyClass: string;
+}> = ({ title, message, isRetro, accentColor, cardSurface, bodyClass }) => (
+  <div className={cn('p-3 text-sm sm:p-4', cardSurface, bodyClass)}>
+    <div
+      className={cn(
+        'mb-1 text-[10px] font-black uppercase tracking-[0.24em]',
+        isRetro ? 'text-[#FFD600]' : 'text-yellow-300'
+      )}
+      style={{ color: accentColor }}
+    >
+      {title}
+    </div>
+    <p className="text-xs leading-relaxed text-slate-400 sm:text-sm">{message}</p>
   </div>
 );
 

@@ -1,12 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameAppShell } from '../../components/GameAppShell';
 import { TUTORIAL_STEPS } from '../../config/TutorialConfig';
 import { EventBus } from '../../services/core/EventBus';
-import { GameStatus } from '../../types';
+import { GameStatus, MarketPosition } from '../../types';
 
 const mocks = vi.hoisted(() => ({
   walletGetBalance: vi.fn(),
+  initializeNewGame: vi.fn(),
+  challengeStartTracking: vi.fn(),
+  validateChallengeConstraints: vi.fn(),
 }));
 
 vi.mock('../../contexts/useUser', () => ({
@@ -143,7 +146,7 @@ vi.mock('../../services/core/GameStateMachine', () => ({
 vi.mock('../../services/core/GameStateManager', () => ({
   GameStateManager: {
     resetAll: vi.fn(),
-    initializeNewGame: vi.fn(async () => true),
+    initializeNewGame: mocks.initializeNewGame,
   },
 }));
 
@@ -192,7 +195,8 @@ vi.mock('../../services/gameplay/MilestoneService', () => ({
 
 vi.mock('../../services/challenges/ChallengeService', () => ({
   ChallengeService: {
-    startTracking: vi.fn(async () => undefined),
+    startTracking: mocks.challengeStartTracking,
+    validateConstraints: mocks.validateChallengeConstraints,
   },
 }));
 
@@ -232,8 +236,19 @@ vi.mock('../../services/system/Logger', () => ({
 }));
 
 vi.mock('../../components/GameScreenRouter', () => ({
-  GameScreenRouter: ({ walletBalance }: { walletBalance: number }) => (
-    <div data-testid="wallet-balance">{walletBalance}</div>
+  GameScreenRouter: ({
+    walletBalance,
+    startGame,
+  }: {
+    walletBalance: number;
+    startGame: (choice: MarketPosition, leverage: 10) => Promise<void>;
+  }) => (
+    <div>
+      <div data-testid="wallet-balance">{walletBalance}</div>
+      <button onClick={() => void startGame(MarketPosition.LONG, 10)}>
+        Start Shell Game
+      </button>
+    </div>
   ),
 }));
 
@@ -282,6 +297,12 @@ const renderShell = () =>
 describe('GameAppShell wallet refresh', () => {
   beforeEach(() => {
     mocks.walletGetBalance.mockReset();
+    mocks.initializeNewGame.mockReset();
+    mocks.initializeNewGame.mockResolvedValue(true);
+    mocks.challengeStartTracking.mockReset();
+    mocks.challengeStartTracking.mockResolvedValue(undefined);
+    mocks.validateChallengeConstraints.mockReset();
+    mocks.validateChallengeConstraints.mockReturnValue(null);
     EventBus.clearEvent('verification:success');
   });
 
@@ -306,5 +327,31 @@ describe('GameAppShell wallet refresh', () => {
       expect(screen.getByTestId('wallet-balance')).toHaveTextContent('175');
     });
     expect(mocks.walletGetBalance).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocks game start when active challenge constraints fail', async () => {
+    mocks.walletGetBalance.mockResolvedValue(10);
+    mocks.validateChallengeConstraints.mockReturnValue(
+      'This challenge requires SHORT position'
+    );
+    const emitSpy = vi.spyOn(EventBus, 'emit');
+
+    renderShell();
+
+    fireEvent.click(await screen.findByText('Start Shell Game'));
+
+    await waitFor(() => {
+      expect(mocks.validateChallengeConstraints).toHaveBeenCalledWith(
+        MarketPosition.LONG,
+        10
+      );
+    });
+    expect(mocks.initializeNewGame).not.toHaveBeenCalled();
+    expect(mocks.challengeStartTracking).not.toHaveBeenCalled();
+    expect(emitSpy).toHaveBeenCalledWith('gameNotification', {
+      title: 'Challenge Requirement',
+      message: 'This challenge requires SHORT position',
+      type: 'warning',
+    });
   });
 });

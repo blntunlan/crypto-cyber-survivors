@@ -23,14 +23,15 @@ export interface ViewportBounds {
 export function createViewportBounds(
   width: number,
   height: number,
-  padding: number = 50
+  padding: number = 50,
+  out?: ViewportBounds
 ): ViewportBounds {
-  return {
-    left: -padding,
-    right: width + padding,
-    top: -padding,
-    bottom: height + padding,
-  };
+  const bounds = out ?? { left: 0, right: 0, top: 0, bottom: 0 };
+  bounds.left = -padding;
+  bounds.right = width + padding;
+  bounds.top = -padding;
+  bounds.bottom = height + padding;
+  return bounds;
 }
 
 /**

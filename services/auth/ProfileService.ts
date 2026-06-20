@@ -281,7 +281,11 @@ export class ProfileService {
     return {
       id: dbProfile.id,
       authUserId: dbProfile.auth_user_id ?? dbProfile.authUserId ?? undefined,
-      displayName: dbProfile.display_name ?? dbProfile.displayName ?? dbProfile.nickname ?? 'Player',
+      displayName:
+        dbProfile.display_name ??
+        dbProfile.displayName ??
+        dbProfile.nickname ??
+        'Player',
       avatarUrl: dbProfile.avatar_url ?? dbProfile.avatarUrl ?? undefined,
       highScore: 0,
       level: 1,
@@ -289,8 +293,10 @@ export class ProfileService {
       isBanned: false,
       isTester: false,
       totalSessions: 0,
-      createdAt: dbProfile.created_at ?? dbProfile.createdAt ?? new Date().toISOString(),
-      lastSeenAt: dbProfile.last_seen_at ?? dbProfile.lastSeenAt ?? new Date().toISOString(),
+      createdAt:
+        dbProfile.created_at ?? dbProfile.createdAt ?? new Date().toISOString(),
+      lastSeenAt:
+        dbProfile.last_seen_at ?? dbProfile.lastSeenAt ?? new Date().toISOString(),
       authProvider,
       isVerified: authProvider !== 'anonymous' && authProvider !== 'nickname',
     };

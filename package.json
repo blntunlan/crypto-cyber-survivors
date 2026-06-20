@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/sync-docs.js && vite --open",
-    "build": "node scripts/sync-docs.js && vite build",
+    "dev": "node scripts/sync-docs.js && tsx scripts/generate-sitemap.ts && vite --open",
+    "build": "node scripts/sync-docs.js && tsx scripts/generate-sitemap.ts && vite build",
     "docs:sync": "node scripts/sync-docs.js",
+    "docs:check": "node scripts/check-docs-navigation.mjs",
     "start": "node server.js",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -42,8 +43,6 @@
     "train:ai": "tsx simulation/evolution/Trainer.ts --watch"
   },
   "dependencies": {
-    "ami": "^1.0.0",
-    "bs58": "^6.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "12.23.26",
     "howler": "2.2.4",

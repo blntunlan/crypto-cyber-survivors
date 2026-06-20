@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventBus } from '../services/core/EventBus';
+import { EventBus } from '../../../services/core/EventBus';
 import type {
   EnemyKilledEvent,
   GemCollectedEvent,
@@ -8,7 +8,7 @@ import type {
   CritHitEvent,
   PlayerHitEvent,
   GameOverEvent,
-} from '../types/events';
+} from '../../../types/events';
 
 /**
  * EventBus Unit Tests
@@ -313,6 +313,7 @@ describe('EventBus', () => {
       }
     });
   });
+
   // =====================
   // SECTION: unsubscribe()
   // =====================
@@ -536,6 +537,7 @@ describe('EventBus', () => {
       expect(() => EventBus.clearScope('debug')).not.toThrow();
     });
   });
+
   // =====================
   // SECTION: clearEvent()
   // =====================
@@ -656,6 +658,7 @@ describe('EventBus', () => {
       expect(callOrder).toEqual([1, 2, 3]);
     });
   });
+
   // =====================
   // SECTION: Tracing API
   // =====================
@@ -737,6 +740,46 @@ describe('EventBus', () => {
       });
       expect(debugState.recentEmits).toHaveLength(1);
       expect(debugState.totalEvents).toBeGreaterThan(0);
+    });
+  });
+
+  // =====================
+  // SECTION: Flat Caching API (Performance optimizations)
+  // =====================
+  describe('flat cache & performance API', () => {
+    it('should invalidate flat cache on subscribe/unsubscribe', () => {
+      let count = 0;
+      const handler = () => {
+        count++;
+      };
+      const unsub = EventBus.on('enemyKilled', handler);
+
+      // First emit builds cache
+      EventBus.emit('enemyKilled', { x: 1, y: 2 });
+      expect(count).toBe(1);
+
+      // Unsubscribe invalidates cache
+      unsub();
+      EventBus.emit('enemyKilled', { x: 3, y: 4 });
+      expect(count).toBe(1); // Should NOT increment
+    });
+
+    it('should invalidate flat cache on clearScope', () => {
+      let count = 0;
+      EventBus.on(
+        'enemyKilled',
+        () => {
+          count++;
+        },
+        { scope: 'gameplay' }
+      );
+
+      EventBus.emit('enemyKilled', { x: 1, y: 2 });
+      expect(count).toBe(1);
+
+      EventBus.clearScope('gameplay');
+      EventBus.emit('enemyKilled', { x: 3, y: 4 });
+      expect(count).toBe(1);
     });
   });
 });

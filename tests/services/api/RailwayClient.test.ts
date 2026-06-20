@@ -57,7 +57,9 @@ describe('RailwayClient', () => {
     vi.resetModules();
     const mod = await import('../../../services/api/RailwayClient');
     railwayClient = mod.railwayClient;
-    RailwayAuthTokenStore = (await import('../../../services/api/RailwayAuthTokenStore')).RailwayAuthTokenStore;
+    RailwayAuthTokenStore = (
+      await import('../../../services/api/RailwayAuthTokenStore')
+    ).RailwayAuthTokenStore;
   });
 
   afterEach(() => {

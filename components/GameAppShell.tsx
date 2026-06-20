@@ -253,6 +253,19 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
           return;
         }
 
+        const challengeConstraintError = ChallengeService.validateConstraints(
+          choice,
+          selectedLeverage
+        );
+        if (challengeConstraintError) {
+          EventBus.emit('gameNotification', {
+            title: 'Challenge Requirement',
+            message: challengeConstraintError,
+            type: 'warning',
+          });
+          return;
+        }
+
         resetPlayer();
 
         const boosted = MetaProgressionService.applyBonuses(playerRef.current);

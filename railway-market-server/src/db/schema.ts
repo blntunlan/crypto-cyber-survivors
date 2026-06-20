@@ -508,6 +508,48 @@ export const performanceMetrics = pgTable(
   ]
 );
 
+// ── Product telemetry events ────────────────────────────────────────────────
+
+export const productTelemetryEvents = pgTable(
+  'product_telemetry_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id').references(() => profiles.id, {
+      onDelete: 'set null',
+    }),
+    sessionId: uuid('session_id').references(() => sessions.id, {
+      onDelete: 'set null',
+    }),
+    eventType: text('event_type').notNull(),
+    seasonId: text('season_id'),
+    questId: text('quest_id'),
+    referralCode: text('referral_code'),
+    walletProvider: text('wallet_provider'),
+    walletAddressHash: text('wallet_address_hash'),
+    metadata: jsonb('metadata').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'ck_product_telemetry_events_type',
+      sql`${table.eventType} IN (
+        'wallet_connected',
+        'wallet_connect_failed',
+        'season_joined',
+        'quest_completed',
+        'leaderboard_submitted',
+        'leaderboard_viewed',
+        'referral_joined'
+      )`
+    ),
+    index('idx_product_events_created').on(table.createdAt),
+    index('idx_product_events_type_created').on(table.eventType, table.createdAt),
+    index('idx_product_events_season_created').on(table.seasonId, table.createdAt),
+    index('idx_product_events_profile_created').on(table.profileId, table.createdAt),
+    index('idx_product_events_wallet_hash').on(table.walletAddressHash),
+  ]
+);
+
 // ── 12. meta_progression ─────────────────────────────────────────────────────
 
 export const metaProgression = pgTable(

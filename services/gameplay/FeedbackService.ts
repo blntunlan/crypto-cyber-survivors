@@ -29,8 +29,7 @@ class FeedbackServiceClass {
 
     this.unsubscribeFns = [
       EventBus.on('playerHit', data => {
-        const type =
-          data.remainingHp <= 20 || data.damage >= 20 ? 'heavy' : 'medium';
+        const type = data.remainingHp <= 20 || data.damage >= 20 ? 'heavy' : 'medium';
         this.triggerHaptic('playerHit', type);
       }),
       EventBus.on('critHit', data => {

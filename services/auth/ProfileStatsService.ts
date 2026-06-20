@@ -11,6 +11,16 @@ type EconomyWalletResponse = {
   };
 };
 
+type ProfileStatsResponse = {
+  stats: Partial<PlayerStats>;
+};
+
+const LOCAL_ONLY_PROFILE_ID = '00000000-0000-4000-a000-000000000000';
+
+function isLocalOnlyProfileId(profileId: string): boolean {
+  return profileId.startsWith('anon_') || profileId === LOCAL_ONLY_PROFILE_ID;
+}
+
 /**
  * ProfileStatsService - Aggregates player statistics and achievements
  * Uses Railway API instead of direct DB queries.
@@ -27,10 +37,9 @@ export class ProfileStatsService {
    */
   async getFullProfile(): Promise<FullProfileData | null> {
     const profileId = UserSessionService.getProfileId();
-    const isGuest = !profileId || profileId.startsWith('anon_');
 
-    if (isGuest) {
-      return this.getGuestProfile();
+    if (isLocalOnlyProfileId(profileId)) {
+      return this.getLocalProfile(profileId);
     }
 
     try {
@@ -86,9 +95,16 @@ export class ProfileStatsService {
       goldBalance: 0,
       gemsBalance: 0,
       totalGoldEarned: 0,
+      source: 'unavailable',
+      hasVerifiedRuns: false,
     };
 
     try {
+      const profileStats = await railwayClient.get<ProfileStatsResponse>(
+        '/api/v1/profile/stats'
+      );
+      return this.normalizeStats(profileStats.stats, 'railway');
+    } catch {
       // Fetch balance
       const balanceData = await railwayClient
         .get<EconomyWalletResponse>('/api/v1/economy/wallet')
@@ -98,15 +114,35 @@ export class ProfileStatsService {
         ...defaults,
         goldBalance: balanceData.wallet.balance,
       };
-    } catch {
-      return defaults;
     }
   }
 
-  private getGuestProfile(): FullProfileData {
+  private normalizeStats(
+    stats: Partial<PlayerStats>,
+    source: PlayerStats['source']
+  ): PlayerStats {
+    const normalized = {
+      totalKills: Math.max(0, Math.floor(stats.totalKills ?? 0)),
+      totalSurvivalTime: Math.max(0, Math.floor(stats.totalSurvivalTime ?? 0)),
+      totalGames: Math.max(0, Math.floor(stats.totalGames ?? 0)),
+      maxSurvivalTime: Math.max(0, Math.floor(stats.maxSurvivalTime ?? 0)),
+      maxKills: Math.max(0, Math.floor(stats.maxKills ?? 0)),
+      totalGoldEarned: Math.max(0, Math.floor(stats.totalGoldEarned ?? 0)),
+      goldBalance: Math.max(0, Math.floor(stats.goldBalance ?? 0)),
+      gemsBalance: Math.max(0, Math.floor(stats.gemsBalance ?? 0)),
+      source,
+    };
+
+    return {
+      ...normalized,
+      hasVerifiedRuns: normalized.totalGames > 0,
+    };
+  }
+
+  private getLocalProfile(profileId: string): FullProfileData {
     const nickname = UserSessionService.getNickname() ?? 'Guest';
     return {
-      id: 'guest',
+      id: profileId,
       displayName: nickname,
       username: null,
       avatarUrl: null,
@@ -124,6 +160,8 @@ export class ProfileStatsService {
         goldBalance: 0,
         gemsBalance: 0,
         totalGoldEarned: 0,
+        source: 'local',
+        hasVerifiedRuns: false,
       },
       achievements: {
         all: [],

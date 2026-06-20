@@ -10,6 +10,7 @@ import { Logger } from '../system/Logger';
 import { railwayClient } from '../api/RailwayClient';
 import { UserSessionService } from '../auth/UserSessionService';
 import { type AuthProvider } from '../auth/RailwayAuthService';
+import { ProductAnalyticsService } from '../analytics/ProductAnalyticsService';
 
 // ============================================================================
 // Types
@@ -190,6 +191,11 @@ class LeaderboardServiceClass {
 
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       Logger.debug('[LeaderboardService] Serving from cache', { sort, limit });
+      void ProductAnalyticsService.trackLeaderboardViewed({
+        sort,
+        entryCount: cached.data.entries.length,
+        source: 'cache',
+      });
       return cached.data;
     }
 
@@ -231,7 +237,13 @@ class LeaderboardServiceClass {
       // If no real entries exist yet, show mock data so the board looks alive
       if (entries.length === 0) {
         Logger.info('[LeaderboardService] API returned empty, using mock data');
-        return this.getMockLeaderboard(sort);
+        const mockResult = this.getMockLeaderboard(sort);
+        void ProductAnalyticsService.trackLeaderboardViewed({
+          sort,
+          entryCount: mockResult.entries.length,
+          source: 'mock',
+        });
+        return mockResult;
       }
 
       const result: LeaderboardResponse = {
@@ -242,6 +254,11 @@ class LeaderboardServiceClass {
 
       this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
       Logger.debug('[LeaderboardService] Fetched', { sort, count: entries.length });
+      void ProductAnalyticsService.trackLeaderboardViewed({
+        sort,
+        entryCount: entries.length,
+        source: 'api',
+      });
 
       return result;
     } catch (err) {
@@ -250,12 +267,23 @@ class LeaderboardServiceClass {
       // Return stale cache if available
       if (cached) {
         Logger.warn('[LeaderboardService] Returning stale cache after error');
+        void ProductAnalyticsService.trackLeaderboardViewed({
+          sort,
+          entryCount: cached.data.entries.length,
+          source: 'stale',
+        });
         return cached.data;
       }
 
       // Fall back to mock data so visitors always see a populated board
       Logger.info('[LeaderboardService] Returning mock leaderboard data');
-      return this.getMockLeaderboard(sort);
+      const mockResult = this.getMockLeaderboard(sort);
+      void ProductAnalyticsService.trackLeaderboardViewed({
+        sort,
+        entryCount: mockResult.entries.length,
+        source: 'mock',
+      });
+      return mockResult;
     }
   }
 

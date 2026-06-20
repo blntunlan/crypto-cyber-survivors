@@ -22,6 +22,13 @@ import { PriceMomentumEngine } from '../market/PriceMomentumEngine';
  * 4. Drawing dynamic speed lines to visualize player velocity/momentum.
  */
 export class EffectRenderer implements IRenderer {
+  private static readonly VIEWPORT_BOUNDS: ViewportBounds = {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  };
+
   /**
    * Primary render loop for cumulative visual effects.
    */
@@ -38,7 +45,8 @@ export class EffectRenderer implements IRenderer {
     const bounds = createViewportBounds(
       width,
       height,
-      GAME_ENGINE.EFFECT_CULLING_PADDING
+      GAME_ENGINE.EFFECT_CULLING_PADDING,
+      EffectRenderer.VIEWPORT_BOUNDS
     );
 
     // 1. Combat Feedback (Bottom layer of effects)

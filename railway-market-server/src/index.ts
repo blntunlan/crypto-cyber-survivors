@@ -193,6 +193,7 @@ app.get(
         'cheat_attempts',
         'device_profiles',
         'performance_metrics',
+        'product_telemetry_events',
         'identities',
         'meta_progression',
         'daily_challenges',

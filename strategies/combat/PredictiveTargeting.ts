@@ -19,13 +19,16 @@ export const PredictiveTargeting = {
    * Predicts where a target will be when a projectile arrives.
    * Optimized with quadratic formula for high-speed intercepts.
    */
-  calculateIntercept(origin: Point, target: TargetData): Point {
+  calculateIntercept(origin: Point, target: TargetData, out?: Point): Point {
     const distSafe = target.dist || 1;
     const bulletSpeed = COMBAT_CONFIG.BULLET_SPEED;
+    const res = out ?? { x: 0, y: 0 };
 
     // Early return for very close targets
     if (distSafe < COMBAT_CONFIG.MIN_LEAD_DISTANCE) {
-      return { x: target.x, y: target.y };
+      res.x = target.x;
+      res.y = target.y;
+      return res;
     }
 
     // Vector analysis of enemy movement relative to player
@@ -80,9 +83,8 @@ export const PredictiveTargeting = {
 
     interceptTime *= leadFactor;
 
-    return {
-      x: target.x + enemyVx * interceptTime,
-      y: target.y + enemyVy * interceptTime,
-    };
+    res.x = target.x + enemyVx * interceptTime;
+    res.y = target.y + enemyVy * interceptTime;
+    return res;
   },
 };

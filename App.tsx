@@ -14,12 +14,13 @@
  * - useSurfaceState: Landing/legal/settings navigation state
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { GameStatus } from './types';
 import { EventBus } from './services/core/EventBus';
 import { ImagePreloader } from './services/system/ImagePreloader';
 import { Logger } from './services/system/Logger';
 import { UserSessionService } from './services/auth/UserSessionService';
+import { ReplayPlayerService } from './services/replay/ReplayPlayerService';
 
 // Custom hooks
 import { useLanguage } from './contexts/LanguageContext';
@@ -47,10 +48,18 @@ import {
 
 // Lazy load heavy components for performance optimization
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { LazyMotionProvider } from './components/LazyMotionProvider';
-import { LandingPage } from './components/screens/LandingPage';
 
 // Lazy-load feature screens
+const LazyMotionProvider = React.lazy(() =>
+  import('./components/LazyMotionProvider').then(m => ({
+    default: m.LazyMotionProvider,
+  }))
+);
+const LandingPage = React.lazy(() =>
+  import('./components/screens/LandingPage').then(m => ({
+    default: m.LandingPage,
+  }))
+);
 const GameAppShell = React.lazy(() =>
   import('./components/GameAppShell').then(m => ({
     default: m.GameAppShell,
@@ -74,6 +83,11 @@ const ChallengeScreen = React.lazy(() =>
 const ReplayListScreen = React.lazy(() =>
   import('./components/screens/ReplayListScreen').then(m => ({
     default: m.ReplayListScreen,
+  }))
+);
+const ReplayPlaybackScreen = React.lazy(() =>
+  import('./components/screens/ReplayPlaybackScreen').then(m => ({
+    default: m.ReplayPlaybackScreen,
   }))
 );
 
@@ -273,6 +287,8 @@ const App: React.FC = () => {
   const [featureOverlay, setFeatureOverlay] = useState<
     'none' | 'upgrades' | 'challenges' | 'replays'
   >('none');
+  const [activeReplayId, setActiveReplayId] = useState<string | null>(null);
+  const [isReplayLoading, setIsReplayLoading] = useState(false);
   const {
     showLanding,
     showSettings,
@@ -329,6 +345,31 @@ const App: React.FC = () => {
       gameStatus === GameStatus.PAUSED ||
       gameStatus === GameStatus.LEVEL_UP);
 
+  const handleWatchReplay = useCallback(async (replayId: string) => {
+    setIsReplayLoading(true);
+
+    const isLoaded = await ReplayPlayerService.loadReplayFromServer(replayId);
+    setIsReplayLoading(false);
+
+    if (!isLoaded) {
+      EventBus.emit('gameNotification', {
+        title: 'Replay Load Failed',
+        message: 'Replay data could not be loaded. Try again later.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setFeatureOverlay('none');
+    setActiveReplayId(replayId);
+    Logger.info(`[App] Loaded replay: ${replayId}`);
+  }, []);
+
+  const handleExitReplay = useCallback(() => {
+    ReplayPlayerService.reset();
+    setActiveReplayId(null);
+  }, []);
+
   useEffect(() => {
     Logger.info('[MarketRuntime] Mode initialized', {
       mode: marketRuntimeConfig.mode,
@@ -384,156 +425,175 @@ const App: React.FC = () => {
   // Main Game App
   return (
     <UserProvider>
-      <LazyMotionProvider>
-        {DevPerformanceOverlay && (
-          <React.Suspense fallback={null}>
-            <DevPerformanceOverlay />
-          </React.Suspense>
-        )}
-        <div
-          data-runtime-gameplay-active={isLiveGameSurface ? 'true' : 'false'}
-          className={cn(
-            'relative h-screen w-full font-mono',
-            showLanding ? 'bg-transparent' : 'bg-slate-950',
-            gameStatus === GameStatus.PLAYING && !showLanding
-              ? 'overflow-hidden'
-              : 'overflow-y-auto'
+      <React.Suspense fallback={<FallbackLoader />}>
+        <LazyMotionProvider>
+          {DevPerformanceOverlay && (
+            <React.Suspense fallback={null}>
+              <DevPerformanceOverlay />
+            </React.Suspense>
           )}
-        >
-          <ErrorBoundary>
-            {/* Dynamic public-route SEO metadata */}
-            {seoMetadata}
+          <div
+            data-runtime-gameplay-active={isLiveGameSurface ? 'true' : 'false'}
+            className={cn(
+              'relative h-screen w-full font-mono',
+              showLanding ? 'bg-transparent' : 'bg-slate-950',
+              gameStatus === GameStatus.PLAYING && !showLanding
+                ? 'overflow-hidden'
+                : 'overflow-y-auto'
+            )}
+          >
+            <ErrorBoundary>
+              {/* Dynamic public-route SEO metadata */}
+              {seoMetadata}
 
-            {showLanding ? (
-              <LandingPage
-                onLaunch={handleLaunchGame}
-                onViewPrivacy={() => {
-                  patchLegalRoute({
-                    showPrivacy: true,
-                    showTerms: false,
-                    showDocs: false,
-                  });
-                  navigateToPublicRoute('/privacy');
-                }}
-                onViewTerms={() => {
-                  patchLegalRoute({
-                    showTerms: true,
-                    showPrivacy: false,
-                    showDocs: false,
-                  });
-                  navigateToPublicRoute('/terms');
-                }}
-                onViewDocs={() => {
-                  patchLegalRoute({
-                    showDocs: true,
-                    showPrivacy: false,
-                    showTerms: false,
-                  });
-                  navigateToPublicRoute('/docs');
-                }}
-              />
-            ) : (
-              <React.Suspense fallback={<FallbackLoader />}>
-                <GameAppShell
-                  dimensions={dimensions}
-                  gameStatus={gameStatus}
-                  handlePauseToggle={handlePauseToggle}
-                  marketRuntimeMode={marketRuntimeConfig.mode}
-                  hubScreen={hubScreen}
-                  setHubScreen={setHubScreen}
-                  showSettings={showSettings}
-                  setShowSettings={setShowSettings}
-                  handleReturnToLanding={handleReturnToLanding}
-                  showDocs={showDocs}
-                  showPrivacy={showPrivacy}
-                  showTerms={showTerms}
-                  tutorial={tutorial}
-                  onOpenUpgrades={() => setFeatureOverlay('upgrades')}
-                  onOpenChallenges={() => setFeatureOverlay('challenges')}
-                  onOpenReplays={() => setFeatureOverlay('replays')}
-                />
-              </React.Suspense>
-            )}
+              {showLanding ? (
+                <React.Suspense fallback={<FallbackLoader />}>
+                  <LandingPage
+                    onLaunch={handleLaunchGame}
+                    onViewPrivacy={() => {
+                      patchLegalRoute({
+                        showPrivacy: true,
+                        showTerms: false,
+                        showDocs: false,
+                      });
+                      navigateToPublicRoute('/privacy');
+                    }}
+                    onViewTerms={() => {
+                      patchLegalRoute({
+                        showTerms: true,
+                        showPrivacy: false,
+                        showDocs: false,
+                      });
+                      navigateToPublicRoute('/terms');
+                    }}
+                    onViewDocs={() => {
+                      patchLegalRoute({
+                        showDocs: true,
+                        showPrivacy: false,
+                        showTerms: false,
+                      });
+                      navigateToPublicRoute('/docs');
+                    }}
+                  />
+                </React.Suspense>
+              ) : (
+                <React.Suspense fallback={<FallbackLoader />}>
+                  <GameAppShell
+                    dimensions={dimensions}
+                    gameStatus={gameStatus}
+                    handlePauseToggle={handlePauseToggle}
+                    marketRuntimeMode={marketRuntimeConfig.mode}
+                    hubScreen={hubScreen}
+                    setHubScreen={setHubScreen}
+                    showSettings={showSettings}
+                    setShowSettings={setShowSettings}
+                    handleReturnToLanding={handleReturnToLanding}
+                    showDocs={showDocs}
+                    showPrivacy={showPrivacy}
+                    showTerms={showTerms}
+                    tutorial={tutorial}
+                    onOpenUpgrades={() => setFeatureOverlay('upgrades')}
+                    onOpenChallenges={() => setFeatureOverlay('challenges')}
+                    onOpenReplays={() => setFeatureOverlay('replays')}
+                  />
+                </React.Suspense>
+              )}
 
-            {/* Feature Overlay Screens */}
-            {featureOverlay === 'upgrades' && (
-              <React.Suspense fallback={null}>
-                <MetaUpgradeScreen onBack={() => setFeatureOverlay('none')} />
-              </React.Suspense>
-            )}
-            {featureOverlay === 'challenges' && (
-              <React.Suspense fallback={null}>
-                <ChallengeScreen onBack={() => setFeatureOverlay('none')} />
-              </React.Suspense>
-            )}
-            {featureOverlay === 'replays' && (
-              <React.Suspense fallback={null}>
-                <ReplayListScreen
-                  onBack={() => setFeatureOverlay('none')}
-                  onWatch={id => {
-                    setFeatureOverlay('none');
-                    Logger.info(`[App] Watch replay: ${id}`);
-                  }}
-                />
-              </React.Suspense>
-            )}
+              {/* Feature Overlay Screens */}
+              {featureOverlay === 'upgrades' && (
+                <React.Suspense fallback={null}>
+                  <MetaUpgradeScreen onBack={() => setFeatureOverlay('none')} />
+                </React.Suspense>
+              )}
+              {featureOverlay === 'challenges' && (
+                <React.Suspense fallback={null}>
+                  <ChallengeScreen onBack={() => setFeatureOverlay('none')} />
+                </React.Suspense>
+              )}
+              {featureOverlay === 'replays' && (
+                <React.Suspense fallback={null}>
+                  <ReplayListScreen
+                    onBack={() => setFeatureOverlay('none')}
+                    onWatch={id => void handleWatchReplay(id)}
+                  />
+                </React.Suspense>
+              )}
 
-            {/* Legal Modals */}
-            {showPrivacy && (
-              <React.Suspense fallback={null}>
-                <PrivacyPolicy
-                  onClose={() => {
-                    patchLegalRoute({ showPrivacy: false });
-                    closePublicRoute('/privacy');
-                  }}
-                  onViewTerms={() => {
-                    patchLegalRoute({
-                      showPrivacy: false,
-                      showTerms: true,
-                    });
-                    navigateToPublicRoute('/terms');
-                  }}
-                />
-              </React.Suspense>
-            )}
-            {showTerms && (
-              <React.Suspense fallback={null}>
-                <TermsOfService
-                  onClose={() => {
-                    patchLegalRoute({ showTerms: false });
-                    closePublicRoute('/terms');
-                  }}
-                  onViewPrivacy={() => {
-                    patchLegalRoute({
-                      showTerms: false,
-                      showPrivacy: true,
-                    });
-                    navigateToPublicRoute('/privacy');
-                  }}
-                />
-              </React.Suspense>
-            )}
-            {showDocs && (
-              <React.Suspense fallback={null}>
-                <DocScreen
-                  onClose={() => {
-                    patchLegalRoute({ showDocs: false });
-                    window.location.hash = '';
-                    closePublicRoute('/docs');
-                  }}
-                />
-              </React.Suspense>
-            )}
+              {isReplayLoading && (
+                <div
+                  className="fixed inset-0 flex items-center justify-center bg-slate-950/80 font-mono text-sm uppercase tracking-[0.25em] text-violet-200"
+                  style={{ zIndex: 3200 }}
+                >
+                  Loading replay&hellip;
+                </div>
+              )}
 
-            {/* DEV-only VFX Preview Lab (Ctrl+Shift+V) */}
-            {import.meta.env.DEV && showVfxLab && VfxLabScreen && (
-              <React.Suspense fallback={null}>
-                <VfxLabScreen onClose={closeVfxLab} />
-              </React.Suspense>
-            )}
-          </ErrorBoundary>
-        </div>
-      </LazyMotionProvider>
+              {activeReplayId && (
+                <React.Suspense fallback={<FallbackLoader />}>
+                  <ReplayPlaybackScreen
+                    key={activeReplayId}
+                    onExit={handleExitReplay}
+                  />
+                </React.Suspense>
+              )}
+
+              {/* Legal Modals */}
+              {showPrivacy && (
+                <React.Suspense fallback={null}>
+                  <PrivacyPolicy
+                    onClose={() => {
+                      patchLegalRoute({ showPrivacy: false });
+                      closePublicRoute('/privacy');
+                    }}
+                    onViewTerms={() => {
+                      patchLegalRoute({
+                        showPrivacy: false,
+                        showTerms: true,
+                      });
+                      navigateToPublicRoute('/terms');
+                    }}
+                  />
+                </React.Suspense>
+              )}
+              {showTerms && (
+                <React.Suspense fallback={null}>
+                  <TermsOfService
+                    onClose={() => {
+                      patchLegalRoute({ showTerms: false });
+                      closePublicRoute('/terms');
+                    }}
+                    onViewPrivacy={() => {
+                      patchLegalRoute({
+                        showTerms: false,
+                        showPrivacy: true,
+                      });
+                      navigateToPublicRoute('/privacy');
+                    }}
+                  />
+                </React.Suspense>
+              )}
+              {showDocs && (
+                <React.Suspense fallback={null}>
+                  <DocScreen
+                    onClose={() => {
+                      patchLegalRoute({ showDocs: false });
+                      window.location.hash = '';
+                      closePublicRoute('/docs');
+                    }}
+                  />
+                </React.Suspense>
+              )}
+
+              {/* DEV-only VFX Preview Lab (Ctrl+Shift+V) */}
+              {import.meta.env.DEV && showVfxLab && VfxLabScreen && (
+                <React.Suspense fallback={null}>
+                  <VfxLabScreen onClose={closeVfxLab} />
+                </React.Suspense>
+              )}
+            </ErrorBoundary>
+          </div>
+        </LazyMotionProvider>
+      </React.Suspense>
     </UserProvider>
   );
 };

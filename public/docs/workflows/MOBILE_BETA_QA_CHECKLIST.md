@@ -34,11 +34,57 @@ Bu belge beta öncesi mobil input ve küçük ekran doğrulamasının manuel cih
 - [ ] **Offline ve reconnect**: oyun devam eder, market disconnected state UI’ı inputu kilitlemez.
 - [ ] **Thermal / uzun run**: 5 dakikalık oynanışta input gecikmesi belirgin artmaz.
 
+## Cihaz Matrisi
+
+| Profil | Minimum Cihaz | Browser | Orientation | Zorunlu |
+|---|---|---|---|---|
+| Küçük iOS | iPhone SE veya benzer 375px genişlik | Safari | Portrait + landscape | Evet |
+| Modern iOS | iPhone 13+ veya benzer | Safari | Portrait | Evet |
+| Küçük Android | 360px genişlik Android cihaz | Chrome | Portrait + landscape | Evet |
+| Modern Android | Orta/üst segment Android cihaz | Chrome | Portrait | Evet |
+| Tablet | iPad veya Android tablet | Safari veya Chrome | Landscape | Tercihen |
+
+## Kabul Kriteri
+
+| Kontrol | Kabul |
+|---|---|
+| Kritik input | Joystick/drag, dash, pause ve cash out her zorunlu profilde geçmeli |
+| HUD çakışması | Küçük iOS ve küçük Android profillerinde kritik UI overlap olmamalı |
+| Orientation | Küçük cihazlarda portrait-landscape dönüşünden sonra input yeniden çalışmalı |
+| Reconnect | Offline/reconnect sırasında input kilitlenmemeli |
+| Uzun run | 5 dakikalık run sonunda input gecikmesi belirgin artmamalı |
+| Crash | Test sırasında reload, blank screen veya fatal error olmamalı |
+
+## Evidence Formatı
+
+```text
+Date: YYYY-MM-DD
+Tester: <name>
+Build: <commit-or-build-id>
+Device: <model>
+OS / Browser: <version>
+Orientation: portrait | landscape | both
+Scenarios passed: <count>/<count>
+Blocking issues: none | <issue id>
+Notes: <short observation>
+```
+
+## Bloklayıcı Durumlar
+
+- Zorunlu profillerden biri test edilmediyse madde kapatılamaz.
+- Joystick/drag, dash, pause veya cash out akışında hata varsa beta çıkışı bloklanır.
+- Küçük ekran HUD kritik butonları kapatıyorsa veya safe-area altında bırakıyorsa beta çıkışı bloklanır.
+- Crash, blank screen veya input kilitlenmesi varsa regression issue açılmadan sign-off verilemez.
+
 ## Sign-off Kaydı
 
 | Tarih | Cihaz | OS / Browser | Senaryolar | Sonuç | Not |
 |---|---|---|---|---|---|
-| TBD | TBD | TBD | TBD | Bekliyor | Gerçek cihaz QA yapılmadı |
+| TBD | Küçük iOS | Safari | Portrait + landscape | Bekliyor | Zorunlu |
+| TBD | Modern iOS | Safari | Portrait | Bekliyor | Zorunlu |
+| TBD | Küçük Android | Chrome | Portrait + landscape | Bekliyor | Zorunlu |
+| TBD | Modern Android | Chrome | Portrait | Bekliyor | Zorunlu |
+| TBD | Tablet | Safari veya Chrome | Landscape | Bekliyor | Opsiyonel ancak önerilir |
 
 ## Beta Checklist Bağlantısı
 

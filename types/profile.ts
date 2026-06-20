@@ -13,6 +13,8 @@ export interface PlayerStats {
   totalGoldEarned: number;
   goldBalance: number;
   gemsBalance: number;
+  source?: 'railway' | 'local' | 'unavailable';
+  hasVerifiedRuns?: boolean;
 }
 
 export interface Achievement {

@@ -20,11 +20,7 @@ const IGNORED_DIRS = new Set([
   'test-results',
 ]);
 
-const WEAK_MATCHERS = new Set([
-  'toBeDefined',
-  'toBeTruthy',
-  'toBeFalsy',
-]);
+const WEAK_MATCHERS = new Set(['toBeDefined', 'toBeTruthy', 'toBeFalsy']);
 const SNAPSHOT_MATCHERS = new Set(['toMatchSnapshot', 'toMatchInlineSnapshot']);
 const CALL_MATCHERS = new Set([
   'toHaveBeenCalled',
@@ -134,7 +130,7 @@ async function main() {
   }
 
   const rankedFiles = analyzedFiles
-    .filter((file) => file.score >= options.minScore)
+    .filter(file => file.score >= options.minScore)
     .sort((left, right) => {
       if (right.score !== left.score) {
         return right.score - left.score;
@@ -236,19 +232,27 @@ function analyzeFile(repoRoot, filePath, source) {
 
 function collectMetrics(code, testCases) {
   const matchers = getMatchers(code);
-  const activeTestCases = testCases.filter((testCase) => !testCase.skipped && !testCase.todo);
-  const weakMatcherCount = matchers.filter((matcher) => WEAK_MATCHERS.has(matcher)).length;
-  const snapshotCount = matchers.filter((matcher) => SNAPSHOT_MATCHERS.has(matcher)).length;
-  const callMatcherCount = matchers.filter((matcher) => CALL_MATCHERS.has(matcher)).length;
+  const activeTestCases = testCases.filter(
+    testCase => !testCase.skipped && !testCase.todo
+  );
+  const weakMatcherCount = matchers.filter(matcher =>
+    WEAK_MATCHERS.has(matcher)
+  ).length;
+  const snapshotCount = matchers.filter(matcher =>
+    SNAPSHOT_MATCHERS.has(matcher)
+  ).length;
+  const callMatcherCount = matchers.filter(matcher =>
+    CALL_MATCHERS.has(matcher)
+  ).length;
 
   return {
-    loc: code.split(/\r?\n/).filter((line) => line.trim().length > 0).length,
+    loc: code.split(/\r?\n/).filter(line => line.trim().length > 0).length,
     describeCount: countPattern(code, /\bdescribe(?:\.\w+)?\s*\(/g),
     testCount: testCases.length,
     activeTestCount: activeTestCases.length,
-    skippedTestCount: testCases.filter((testCase) => testCase.skipped).length,
-    todoTestCount: testCases.filter((testCase) => testCase.todo).length,
-    onlyTestCount: testCases.filter((testCase) => testCase.only).length,
+    skippedTestCount: testCases.filter(testCase => testCase.skipped).length,
+    todoTestCount: testCases.filter(testCase => testCase.todo).length,
+    onlyTestCount: testCases.filter(testCase => testCase.only).length,
     expectCount: countExpectCalls(code),
     matcherCount: matchers.length,
     weakMatcherCount,
@@ -261,23 +265,30 @@ function collectMetrics(code, testCases) {
       /\bexpect\s*\(\s*(true|false)\s*\)\s*\.\s*toBe\s*\(\s*\1\s*\)/g
     ),
     renderCount: countPattern(code, /\brender\s*\(/g),
-    userInteractionCount: countPattern(code, /\b(?:fireEvent|userEvent|act|waitFor)\s*[\.(]/g),
+    userInteractionCount: countPattern(
+      code,
+      /\b(?:fireEvent|userEvent|act|waitFor)\s*[\.(]/g
+    ),
     mockCount: countPattern(
       code,
       /\b(?:vi|jest)\s*\.\s*(?:mock|fn|spyOn|stubGlobal|useFakeTimers)\s*\(/g
     ),
-    assertionlessTestCount: activeTestCases.filter((testCase) => testCase.metrics.expectCount === 0)
+    assertionlessTestCount: activeTestCases.filter(
+      testCase => testCase.metrics.expectCount === 0
+    ).length,
+    weakOnlyTestCount: activeTestCases.filter(testCase => isWeakOnly(testCase.metrics))
       .length,
-    weakOnlyTestCount: activeTestCases.filter((testCase) => isWeakOnly(testCase.metrics)).length,
-    snapshotOnlyTestCount: activeTestCases.filter((testCase) => isSnapshotOnly(testCase.metrics))
-      .length,
+    snapshotOnlyTestCount: activeTestCases.filter(testCase =>
+      isSnapshotOnly(testCase.metrics)
+    ).length,
     renderWithoutAssertionCount: activeTestCases.filter(
-      (testCase) => testCase.metrics.renderCount > 0 && testCase.metrics.expectCount === 0
+      testCase => testCase.metrics.renderCount > 0 && testCase.metrics.expectCount === 0
     ).length,
     placeholderTestCount: activeTestCases.filter(
-      (testCase) => testCase.metrics.placeholderAssertionCount > 0
+      testCase => testCase.metrics.placeholderAssertionCount > 0
     ).length,
-    callOnlyTestCount: activeTestCases.filter((testCase) => isCallOnly(testCase.metrics)).length,
+    callOnlyTestCount: activeTestCases.filter(testCase => isCallOnly(testCase.metrics))
+      .length,
   };
 }
 
@@ -308,7 +319,8 @@ function buildFindings(metrics, testCases, duplicateTitles) {
   );
   addFinding(
     findings,
-    metrics.weakOnlyTestCount >= 2 || metrics.weakOnlyTestCount / activeTestCount >= 0.4,
+    metrics.weakOnlyTestCount >= 2 ||
+      metrics.weakOnlyTestCount / activeTestCount >= 0.4,
     'weak-only-tests',
     Math.min(25, Math.max(10, metrics.weakOnlyTestCount * 5)),
     `${metrics.weakOnlyTestCount} test case(s) only use weak existence/truthiness assertions.`
@@ -383,9 +395,9 @@ function addFinding(findings, condition, code, weight, message) {
 
 function buildExamples(testCases) {
   return testCases
-    .filter((testCase) => testCase.reasons.length > 0)
+    .filter(testCase => testCase.reasons.length > 0)
     .slice(0, 8)
-    .map((testCase) => ({
+    .map(testCase => ({
       line: testCase.line,
       title: testCase.title,
       reasons: testCase.reasons,
@@ -454,9 +466,15 @@ function reasonsForTestCase(testCase) {
 
 function collectBodyMetrics(body) {
   const matchers = getMatchers(body);
-  const weakMatcherCount = matchers.filter((matcher) => WEAK_MATCHERS.has(matcher)).length;
-  const snapshotCount = matchers.filter((matcher) => SNAPSHOT_MATCHERS.has(matcher)).length;
-  const callMatcherCount = matchers.filter((matcher) => CALL_MATCHERS.has(matcher)).length;
+  const weakMatcherCount = matchers.filter(matcher =>
+    WEAK_MATCHERS.has(matcher)
+  ).length;
+  const snapshotCount = matchers.filter(matcher =>
+    SNAPSHOT_MATCHERS.has(matcher)
+  ).length;
+  const callMatcherCount = matchers.filter(matcher =>
+    CALL_MATCHERS.has(matcher)
+  ).length;
 
   return {
     expectCount: countExpectCalls(body),
@@ -769,7 +787,10 @@ function stripCommentsKeepingLength(source) {
 }
 
 function summarize(allFiles, flaggedFiles) {
-  const totalTests = allFiles.reduce((total, file) => total + file.metrics.testCount, 0);
+  const totalTests = allFiles.reduce(
+    (total, file) => total + file.metrics.testCount,
+    0
+  );
   const severityCounts = flaggedFiles.reduce(
     (counts, file) => {
       counts[file.severity] += 1;
@@ -793,7 +814,7 @@ function buildMarkdown(report, top) {
     '# Test Audit Report',
     '',
     `Generated: ${report.generatedAt}`,
-    `Roots: ${report.roots.map((root) => `\`${root}\``).join(', ')}`,
+    `Roots: ${report.roots.map(root => `\`${root}\``).join(', ')}`,
     '',
     'This is a heuristic report. Treat entries as review candidates, not automatic deletion requests.',
     '',
@@ -821,7 +842,7 @@ function buildMarkdown(report, top) {
     const link = `[${escapeMarkdown(file.path)}](${file.path}:${firstLine})`;
     const signals = file.findings
       .slice(0, 4)
-      .map((finding) => `\`${finding.code}\``)
+      .map(finding => `\`${finding.code}\``)
       .join(', ');
 
     lines.push(
@@ -883,7 +904,7 @@ function lineNumberAt(source, index) {
 }
 
 function minPositive(...values) {
-  const positives = values.filter((value) => value >= 0);
+  const positives = values.filter(value => value >= 0);
   return positives.length > 0 ? Math.min(...positives) : null;
 }
 
@@ -899,7 +920,7 @@ function escapeMarkdown(value) {
   return value.replaceAll('|', '\\|');
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });

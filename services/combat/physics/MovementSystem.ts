@@ -55,6 +55,63 @@ function easeInOutSine(k: number): number {
  * - Enemy death animations (scaling progress)
  */
 export class MovementSystem implements IMovementSystem {
+  private static readonly SEPARATION_CONTEXT = {
+    enemy: null as unknown as Enemy,
+    sepX: 0,
+    sepY: 0,
+    neighborCount: 0,
+  };
+
+  private static handleSeparationNeighbor(
+    neighbor: Enemy,
+    ctx: typeof MovementSystem.SEPARATION_CONTEXT
+  ): void {
+    const enemy = ctx.enemy;
+    // Skip self and dying enemies
+    if (neighbor === enemy || neighbor.isDying || !neighbor.active) {
+      return;
+    }
+
+    const dx = enemy.x - neighbor.x;
+    const dy = enemy.y - neighbor.y;
+    const distSq = dx * dx + dy * dy;
+
+    // Skip if too far (optimization)
+    if (distSq > SEPARATION.SKIP_DIST_SQ) {
+      return;
+    }
+
+    // Minimum distance = combined radii + buffer
+    const minDist = enemy.radius + neighbor.radius + SEPARATION.BUFFER_PX;
+    const minDistSq = minDist * minDist;
+
+    // Only apply force if overlapping or very close
+    if (distSq < minDistSq) {
+      let dist = Math.sqrt(distSq);
+      let dxForce = dx;
+      let dyForce = dy;
+
+      // Zero distance fallback: push in a random direction
+      // This is critical to break clumping when enemies are at exact same coordinates
+      if (dist < 0.01) {
+        const angle = Math.random() * Math.PI * 2;
+        dxForce = Math.cos(angle);
+        dyForce = Math.sin(angle);
+        dist = 1.0; // Use a virtual distance of 1px for force calculation
+      }
+
+      const overlap = minDist - dist;
+
+      // Soft falloff: closer = stronger push
+      const force = (overlap / minDist) * SEPARATION.STRENGTH;
+
+      // Accumulate separation vector (direction away from neighbor)
+      ctx.sepX += (dxForce / dist) * force;
+      ctx.sepY += (dyForce / dist) * force;
+      ctx.neighborCount++;
+    }
+  }
+
   /** Frame counter for throttled separation updates */
   private frameCounter: number = 0;
 
@@ -191,7 +248,8 @@ export class MovementSystem implements IMovementSystem {
         bullet,
         dtFactor,
         dtMs,
-        player
+        player,
+        pool
       );
 
       if (!handledByWeapon) {
@@ -240,7 +298,8 @@ export class MovementSystem implements IMovementSystem {
     bullet: Bullet,
     dtFactor: number,
     dtMs: number,
-    player: Player
+    player: Player,
+    pool: IPoolManager
   ): boolean {
     switch (bullet.weaponId) {
       case 'laser':
@@ -253,10 +312,10 @@ export class MovementSystem implements IMovementSystem {
         this.updateOrbitBullet(bullet, dtMs, player);
         return true;
       case 'boomerang':
-        this.updateBoomerangBullet(bullet, dtFactor, dtMs, player);
+        this.updateBoomerangBullet(bullet, dtFactor, dtMs, player, pool);
         return true;
       case 'aoe_nuke':
-        this.updateNukeBullet(bullet, dtFactor, dtMs);
+        this.updateNukeBullet(bullet, dtFactor, dtMs, pool);
         return true;
       default:
         return false;
@@ -297,7 +356,8 @@ export class MovementSystem implements IMovementSystem {
     bullet: Bullet,
     dtFactor: number,
     dtMs: number,
-    player: Player
+    player: Player,
+    pool: IPoolManager
   ): void {
     const maxAge = bullet.maxAge ?? 1550;
     const previousX = bullet.x;
@@ -315,6 +375,16 @@ export class MovementSystem implements IMovementSystem {
     if (returning && !wasReturning) {
       bullet.phase = 'return';
       bullet.hitSet?.clear();
+
+      // Spawn apex sparks (fuchsia)
+      const sparkCount = 14;
+      for (let i = 0; i < sparkCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const vx = Math.cos(angle) * (1 + Math.random() * 3);
+        const vy = Math.sin(angle) * (1 + Math.random() * 3);
+        const p = pool.getParticle(bullet.x, bullet.y, vx, vy, '#d946ef');
+        p.life = 0.5 + Math.random() * 0.3;
+      }
     }
 
     const spawnX = bullet.spawnX ?? previousX;
@@ -346,7 +416,12 @@ export class MovementSystem implements IMovementSystem {
     }
   }
 
-  private updateNukeBullet(bullet: Bullet, dtFactor: number, dtMs: number): void {
+  private updateNukeBullet(
+    bullet: Bullet,
+    dtFactor: number,
+    dtMs: number,
+    pool: IPoolManager
+  ): void {
     bullet.age = (bullet.age ?? 0) + dtMs;
 
     if (bullet.phase === 'shockwave') {
@@ -364,11 +439,11 @@ export class MovementSystem implements IMovementSystem {
     bullet.x += bullet.vx * dtFactor;
     bullet.y += bullet.vy * dtFactor;
     if (bullet.maxAge !== undefined && bullet.age >= bullet.maxAge) {
-      this.detonateNuke(bullet);
+      this.detonateNuke(bullet, pool);
     }
   }
 
-  private detonateNuke(bullet: Bullet): void {
+  private detonateNuke(bullet: Bullet, pool: IPoolManager): void {
     bullet.phase = 'shockwave';
     bullet.age = 0;
     bullet.vx = 0;
@@ -376,6 +451,7 @@ export class MovementSystem implements IMovementSystem {
     bullet.shockwaveRadius = NUKE_SHOCKWAVE_START_RADIUS;
     bullet.radius = NUKE_SHOCKWAVE_START_RADIUS;
     bullet.hitSet?.clear();
+    spawnNukeDetonationParticles(bullet.x, bullet.y, pool);
   }
 
   /**
@@ -442,9 +518,11 @@ export class MovementSystem implements IMovementSystem {
    * @param enemy - The enemy to apply separation to
    */
   private applySeparation(enemy: Enemy, player: Player): void {
-    let sepX = 0;
-    let sepY = 0;
-    let neighborCount = 0;
+    const ctx = MovementSystem.SEPARATION_CONTEXT;
+    ctx.enemy = enemy;
+    ctx.sepX = 0;
+    ctx.sepY = 0;
+    ctx.neighborCount = 0;
 
     // 1. Separation from Player (prevents enemies from stacking at player's center)
     const pdx = enemy.x - player.x;
@@ -470,72 +548,61 @@ export class MovementSystem implements IMovementSystem {
       const pOverlap = minPlayerDist - pdist;
       const pForce = (pOverlap / minPlayerDist) * SEPARATION.STRENGTH * 1.5; // Slightly stronger push from player
 
-      sepX += (fx / pdist) * pForce;
-      sepY += (fy / pdist) * pForce;
-      neighborCount++;
+      ctx.sepX += (fx / pdist) * pForce;
+      ctx.sepY += (fy / pdist) * pForce;
+      ctx.neighborCount++;
     }
 
-    // 2. Separation from other Enemies
-    enemyGrid.forEachNearby(enemy.x, enemy.y, neighbor => {
-      // Skip self and dying enemies
-      if (neighbor === enemy || neighbor.isDying || !neighbor.active) {
-        return;
-      }
-
-      const dx = enemy.x - neighbor.x;
-      const dy = enemy.y - neighbor.y;
-      const distSq = dx * dx + dy * dy;
-
-      // Skip if too far (optimization)
-      if (distSq > SEPARATION.SKIP_DIST_SQ) {
-        return;
-      }
-
-      // Minimum distance = combined radii + buffer
-      const minDist = enemy.radius + neighbor.radius + SEPARATION.BUFFER_PX;
-      const minDistSq = minDist * minDist;
-
-      // Only apply force if overlapping or very close
-      if (distSq < minDistSq) {
-        let dist = Math.sqrt(distSq);
-        let dxForce = dx;
-        let dyForce = dy;
-
-        // Zero distance fallback: push in a random direction
-        // This is critical to break clumping when enemies are at exact same coordinates
-        if (dist < 0.01) {
-          const angle = Math.random() * Math.PI * 2;
-          dxForce = Math.cos(angle);
-          dyForce = Math.sin(angle);
-          dist = 1.0; // Use a virtual distance of 1px for force calculation
-        }
-
-        const overlap = minDist - dist;
-
-        // Soft falloff: closer = stronger push
-        const force = (overlap / minDist) * SEPARATION.STRENGTH;
-
-        // Accumulate separation vector (direction away from neighbor)
-        sepX += (dxForce / dist) * force;
-        sepY += (dyForce / dist) * force;
-        neighborCount++;
-      }
-    });
+    // 2. Separation from other Enemies (using zero-allocation context variant)
+    enemyGrid.forEachNearbyWithContext(
+      enemy.x,
+      enemy.y,
+      ctx,
+      MovementSystem.handleSeparationNeighbor
+    );
 
     // Apply accumulated separation force
-    if (neighborCount > 0) {
+    if (ctx.neighborCount > 0) {
       // Clamp force to prevent jittering in dense swarms
       const clampedX = Math.max(
         -SEPARATION.MAX_FORCE,
-        Math.min(SEPARATION.MAX_FORCE, sepX)
+        Math.min(SEPARATION.MAX_FORCE, ctx.sepX)
       );
       const clampedY = Math.max(
         -SEPARATION.MAX_FORCE,
-        Math.min(SEPARATION.MAX_FORCE, sepY)
+        Math.min(SEPARATION.MAX_FORCE, ctx.sepY)
       );
 
       enemy.x += clampedX;
       enemy.y += clampedY;
     }
+
+    // Clean up reference to prevent memory leaks
+    ctx.enemy = null!;
+  }
+}
+
+/**
+ * Spawns orange/yellow debris particles and dark smoke particles on Nuke detonation.
+ */
+function spawnNukeDetonationParticles(x: number, y: number, pool: IPoolManager): void {
+  // Debris particles (orange/yellow)
+  for (let i = 0; i < 26; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 5;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    const color = Math.random() < 0.5 ? '#ff8833' : '#ffcc44';
+    const p = pool.getParticle(x, y, vx, vy, color);
+    p.life = 0.6 + Math.random() * 0.4;
+  }
+  // Smoke particles (dark brown, slowly rising)
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.5 + Math.random() * 1.5;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 1.0; // drift upwards
+    const p = pool.getParticle(x, y, vx, vy, '#3e2723'); // Dark brown smoke
+    p.life = 0.8 + Math.random() * 0.4;
   }
 }

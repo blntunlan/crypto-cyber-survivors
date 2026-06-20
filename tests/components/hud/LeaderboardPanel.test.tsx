@@ -54,6 +54,7 @@ vi.mock('../../../services/api/RailwayClient', () => ({
   railwayClient: {
     get: (...args: any[]) => mockRailwayGet(...args),
   },
+  isRailwayApiConfigured: vi.fn(() => true),
 }));
 
 // Mock UserSessionService

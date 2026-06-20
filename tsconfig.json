@@ -33,5 +33,11 @@
     "noUncheckedIndexedAccess": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "railway-market-server", "railway-market-aggregator", "scripts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "railway-market-server",
+    "railway-market-aggregator",
+    "scripts"
+  ]
 }

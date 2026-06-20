@@ -15,8 +15,10 @@ import { BoomerangPreview } from './previews/BoomerangPreview';
 import { QuantumBulletPreview } from './previews/QuantumBulletPreview';
 import { SpreadShotPreview } from './previews/SpreadShotPreview';
 import { AoeNukePreview } from './previews/AoeNukePreview';
+import { GameFeelJuicePreview } from './previews/GameFeelJuicePreview';
 
 export const VFX_CATALOG: ReadonlyArray<VfxPreviewModule> = [
+  GameFeelJuicePreview,
   QuantumBulletPreview,
   SpreadShotPreview,
   LaserBeamPreview,

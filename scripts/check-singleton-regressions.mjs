@@ -119,7 +119,9 @@ const main = async () => {
     console.error('Stale singleton whitelist entries detected:');
     console.error(formatList(staleWhitelistEntries));
     console.error('');
-    console.error('Remove retired entries from config/architecture/singleton-whitelist.json.');
+    console.error(
+      'Remove retired entries from config/architecture/singleton-whitelist.json.'
+    );
   }
 
   process.exit(1);

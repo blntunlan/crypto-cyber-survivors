@@ -33,6 +33,13 @@ type ProviderRow = { provider: string; count: string };
 type AuditRow = { action: string; count: string };
 type TopPlayer = { nickname: string; total_reward: string; sessions_count: string };
 type AverageRow = { avg: string | null };
+type BreakdownRow = { key: string | null; count: string };
+
+function toBreakdown(rows: BreakdownRow[]): Record<string, number> {
+  return Object.fromEntries(
+    rows.map(row => [row.key && row.key.length > 0 ? row.key : 'unknown', Number(row.count)])
+  );
+}
 
 /**
  * GET /api/v1/admin/dashboard — Comprehensive system dashboard
@@ -99,6 +106,7 @@ router.get(
         verified24h: verified24,
         unverified24h: total24 - verified24,
         verificationRate: total24 > 0 ? Math.round((verified24 / total24) * 100) : 0,
+        verificationFailRate: total24 > 0 ? Math.round(((total24 - verified24) / total24) * 100) : 0,
         avgSurvivalSeconds: Math.round(Number(avgDurR.rows[0]?.avg ?? 0)),
       };
     } catch {
@@ -171,9 +179,23 @@ router.get(
 
     // --- Telemetry visibility ---
     try {
-      const [errorsR, cheatR, perfR, avgFpsR, devicesR] = await Promise.all([
+      const [
+        errorsR,
+        criticalErrorsR,
+        cheatR,
+        perfR,
+        avgFpsR,
+        devicesR,
+        sessionsR,
+        reconnectR,
+        deviceTypesR,
+        recommendedProfilesR,
+      ] = await Promise.all([
         pool.query<CountRow>(
           `SELECT COUNT(*) AS count FROM error_reports WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM error_reports WHERE severity = 'critical' AND created_at > now() - INTERVAL '24 hours'`
         ),
         pool.query<CountRow>(
           `SELECT COUNT(*) AS count FROM cheat_attempts WHERE created_at > now() - INTERVAL '24 hours'`
@@ -187,14 +209,45 @@ router.get(
         pool.query<CountRow>(
           `SELECT COUNT(*) AS count FROM device_profiles WHERE last_seen_at > now() - INTERVAL '24 hours'`
         ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM sessions WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM error_reports
+           WHERE created_at > now() - INTERVAL '24 hours'
+             AND (error_type ILIKE '%reconnect%' OR message ILIKE '%reconnect%' OR category ILIKE '%network%')`
+        ),
+        pool.query<BreakdownRow>(
+          `SELECT COALESCE(device_type, 'unknown') AS key, COUNT(*)::TEXT AS count
+           FROM device_profiles
+           WHERE last_seen_at > now() - INTERVAL '24 hours'
+           GROUP BY COALESCE(device_type, 'unknown')
+           ORDER BY count DESC`
+        ),
+        pool.query<BreakdownRow>(
+          `SELECT COALESCE(recommended_profile, 'unknown') AS key, COUNT(*)::TEXT AS count
+           FROM device_profiles
+           WHERE last_seen_at > now() - INTERVAL '24 hours'
+           GROUP BY COALESCE(recommended_profile, 'unknown')
+           ORDER BY count DESC`
+        ),
       ]);
+      const sessions24h = Number(sessionsR.rows[0]?.count ?? 0);
+      const criticalErrors24h = Number(criticalErrorsR.rows[0]?.count ?? 0);
+      const crashFreeSessions24h = Math.max(sessions24h - criticalErrors24h, 0);
 
       telemetry = {
         errorReports24h: Number(errorsR.rows[0]?.count ?? 0),
+        criticalErrors24h,
         cheatAttempts24h: Number(cheatR.rows[0]?.count ?? 0),
         performanceMetrics24h: Number(perfR.rows[0]?.count ?? 0),
         avgFps24h: Math.round(Number(avgFpsR.rows[0]?.avg ?? 0)),
         activeDeviceProfiles24h: Number(devicesR.rows[0]?.count ?? 0),
+        crashFreeSessions24h,
+        crashFreeSessionRate24h: sessions24h > 0 ? Math.round((crashFreeSessions24h / sessions24h) * 100) : 100,
+        reconnectEvents24h: Number(reconnectR.rows[0]?.count ?? 0),
+        deviceTypeBreakdown: toBreakdown(deviceTypesR.rows),
+        recommendedProfileBreakdown: toBreakdown(recommendedProfilesR.rows),
       };
     } catch {
       telemetry = { error: 'query failed' };
@@ -209,6 +262,70 @@ router.get(
       auditSummary = Object.fromEntries(rows.map(r => [r.action, Number(r.count)]));
     } catch {
       /* audit_log may not exist */
+    }
+
+    // --- Product traction ---
+    let product: Record<string, unknown> = {};
+    try {
+      const [
+        productEventsR,
+        walletConnectedR,
+        uniqueWalletsR,
+        seasonParticipantsR,
+        questCompletionsR,
+        leaderboardSubmissionsR,
+        referralJoinsR,
+      ] = await Promise.all([
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM product_telemetry_events WHERE created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM product_telemetry_events
+           WHERE event_type = 'wallet_connected'
+             AND created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(DISTINCT wallet_address_hash) AS count FROM product_telemetry_events
+           WHERE event_type = 'wallet_connected'
+             AND wallet_address_hash IS NOT NULL
+             AND created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(DISTINCT COALESCE(profile_id::TEXT, session_id::TEXT, wallet_address_hash)) AS count
+           FROM product_telemetry_events
+           WHERE event_type IN ('season_joined', 'quest_completed', 'leaderboard_viewed', 'leaderboard_submitted')
+             AND created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM product_telemetry_events
+           WHERE event_type = 'quest_completed'
+             AND created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM product_telemetry_events
+           WHERE event_type = 'leaderboard_submitted'
+             AND created_at > now() - INTERVAL '24 hours'`
+        ),
+        pool.query<CountRow>(
+          `SELECT COUNT(*) AS count FROM product_telemetry_events
+           WHERE event_type = 'referral_joined'
+             AND created_at > now() - INTERVAL '24 hours'`
+        ),
+      ]);
+
+      product = {
+        productEvents24h: Number(productEventsR.rows[0]?.count ?? 0),
+        walletConnects24h: Number(walletConnectedR.rows[0]?.count ?? 0),
+        uniqueWallets24h: Number(uniqueWalletsR.rows[0]?.count ?? 0),
+        seasonParticipants24h: Number(seasonParticipantsR.rows[0]?.count ?? 0),
+        questCompletions24h: Number(questCompletionsR.rows[0]?.count ?? 0),
+        leaderboardSubmissions24h: Number(
+          leaderboardSubmissionsR.rows[0]?.count ?? 0
+        ),
+        referralJoins24h: Number(referralJoinsR.rows[0]?.count ?? 0),
+      };
+    } catch {
+      product = { error: 'query failed' };
     }
 
     // --- Top Players ---
@@ -240,6 +357,7 @@ router.get(
       authProviders: providers,
       security,
       telemetry,
+      product,
       auditSummary,
       topPlayers,
     });

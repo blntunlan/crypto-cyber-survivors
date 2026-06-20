@@ -1,7 +1,11 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Bullet } from '../../types';
-import { createViewportBounds, isCircleVisible } from './CullingUtils';
+import {
+  createViewportBounds,
+  isCircleVisible,
+  type ViewportBounds,
+} from './CullingUtils';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
 import { gradientCache } from '../../utils/GradientCache';
@@ -21,6 +25,12 @@ import { difficultyContext } from '../difficulty/DifficultyContext';
 
 export class ProjectileRenderer implements IRenderer {
   private static instance: ProjectileRenderer | null = null;
+  private static readonly VIEWPORT_BOUNDS: ViewportBounds = {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  };
 
   public static getInstance(): ProjectileRenderer {
     return (ProjectileRenderer.instance ??= new ProjectileRenderer());
@@ -41,7 +51,8 @@ export class ProjectileRenderer implements IRenderer {
     const bounds = createViewportBounds(
       opts.width,
       opts.height,
-      GAME_ENGINE.BULLET_CULLING_PADDING
+      GAME_ENGINE.BULLET_CULLING_PADDING,
+      ProjectileRenderer.VIEWPORT_BOUNDS
     );
 
     const isRetro = ThemeService.isRetro();
@@ -472,6 +483,20 @@ export class ProjectileRenderer implements IRenderer {
         const alpha = Math.max(0, 1 - p1.age / BOOMERANG_TRAIL_LIFE_MS);
         ctx.strokeStyle = `rgba(168,85,247,${alpha * 0.9})`;
         ctx.lineWidth = 3 * alpha + 1;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
+
+      // Bright magenta core
+      for (let i = 1; i < trail.length; i++) {
+        const p0 = trail[i - 1]!;
+        const p1 = trail[i]!;
+        const alpha = Math.max(0, 1 - p1.age / BOOMERANG_TRAIL_LIFE_MS);
+        ctx.strokeStyle = `rgba(240,171,252,${alpha * 0.8})`;
+        ctx.lineWidth = Math.max(0.5, alpha * 1.5);
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(p0.x, p0.y);

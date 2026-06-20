@@ -2,10 +2,45 @@ import { Router, type Request, type Response } from 'express';
 import { sql } from 'drizzle-orm';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getDb } from '../db';
-import { errorReports, cheatAttempts, deviceProfiles, performanceMetrics } from '../db/schema';
+import {
+  errorReports,
+  cheatAttempts,
+  deviceProfiles,
+  performanceMetrics,
+  productTelemetryEvents,
+} from '../db/schema';
 import { Logger } from '../utils/logger';
 
 const router = Router();
+
+const PRODUCT_EVENT_TYPES = new Set([
+  'wallet_connected',
+  'wallet_connect_failed',
+  'season_joined',
+  'quest_completed',
+  'leaderboard_submitted',
+  'leaderboard_viewed',
+  'referral_joined',
+]);
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function asOptionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function asOptionalUuid(value: unknown): string | null {
+  const text = asOptionalString(value);
+  return text && UUID_REGEX.test(text) ? text : null;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
 
 /**
  * POST /api/v1/errors — Submit error reports (public, no auth required)
@@ -167,6 +202,54 @@ router.post('/performance-metrics', asyncHandler(async (req: Request, res: Respo
   } catch (error) {
     Logger.error('[Telemetry] Performance metrics insert failed:', error);
     res.status(500).json({ error: 'Failed to store performance metrics' });
+  }
+}));
+
+/**
+ * POST /api/v1/telemetry/product-events — Insert product traction events (public)
+ */
+router.post('/product-events', asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const events = Array.isArray(req.body) ? req.body : [req.body];
+
+    if (events.length === 0) {
+      res.status(400).json({ error: 'No events provided' });
+      return;
+    }
+
+    const batch = events.slice(0, 50) as Record<string, unknown>[];
+    const invalidEvent = batch.find(event => {
+      const eventType = asOptionalString(event.eventType ?? event.event_type);
+      return !eventType || !PRODUCT_EVENT_TYPES.has(eventType);
+    });
+
+    if (invalidEvent) {
+      res.status(400).json({ error: 'Invalid product event type' });
+      return;
+    }
+
+    const db = getDb();
+
+    await db.insert(productTelemetryEvents).values(
+      batch.map(event => ({
+        profileId: asOptionalUuid(event.profileId ?? event.profile_id),
+        sessionId: asOptionalUuid(event.sessionId ?? event.session_id),
+        eventType: asOptionalString(event.eventType ?? event.event_type) ?? 'season_joined',
+        seasonId: asOptionalString(event.seasonId ?? event.season_id),
+        questId: asOptionalString(event.questId ?? event.quest_id),
+        referralCode: asOptionalString(event.referralCode ?? event.referral_code),
+        walletProvider: asOptionalString(event.walletProvider ?? event.wallet_provider),
+        walletAddressHash: asOptionalString(
+          event.walletAddressHash ?? event.wallet_address_hash
+        ),
+        metadata: asObject(event.metadata),
+      }))
+    );
+
+    res.json({ accepted: batch.length });
+  } catch (error) {
+    Logger.error('[Telemetry] Product event insert failed:', error);
+    res.status(500).json({ error: 'Failed to store product events' });
   }
 }));
 

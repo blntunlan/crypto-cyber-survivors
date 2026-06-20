@@ -198,6 +198,35 @@ CREATE INDEX IF NOT EXISTS idx_performance_metrics_session ON performance_metric
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_profile ON performance_metrics(profile_id);
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_created_at ON performance_metrics(created_at DESC);
 
+-- 11b. product_telemetry_events (investor traction analytics)
+CREATE TABLE IF NOT EXISTS product_telemetry_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN (
+    'wallet_connected',
+    'wallet_connect_failed',
+    'season_joined',
+    'quest_completed',
+    'leaderboard_submitted',
+    'leaderboard_viewed',
+    'referral_joined'
+  )),
+  season_id TEXT,
+  quest_id TEXT,
+  referral_code TEXT,
+  wallet_provider TEXT,
+  wallet_address_hash TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_events_created ON product_telemetry_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_type_created ON product_telemetry_events(event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_season_created ON product_telemetry_events(season_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_profile_created ON product_telemetry_events(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_wallet_hash ON product_telemetry_events(wallet_address_hash);
+
 -- ============================================================
 -- VIEW: v_leaderboard
 -- ============================================================

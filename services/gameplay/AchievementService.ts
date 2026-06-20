@@ -1,6 +1,22 @@
 import { Logger } from '../system/Logger';
 import { UserSessionService } from '../auth/UserSessionService';
 import { type Achievement, type ProfileAchievement } from '../../types';
+import { railwayClient } from '../api/RailwayClient';
+
+type AchievementsResponse = {
+  achievements?: Achievement[];
+};
+
+type MyAchievementsResponse = {
+  unlocked?: ProfileAchievement[];
+  achievements?: ProfileAchievement[];
+};
+
+const LOCAL_ONLY_PROFILE_ID = '00000000-0000-4000-a000-000000000000';
+
+function isLocalOnlyProfileId(profileId: string): boolean {
+  return profileId.startsWith('anon_') || profileId === LOCAL_ONLY_PROFILE_ID;
+}
 
 export class AchievementService {
   private static instance: AchievementService | null = null;
@@ -14,23 +30,34 @@ export class AchievementService {
 
   /**
    * Fetch all achievement definitions.
-   * TODO: Move achievements table to Railway DB and add GET /api/v1/achievements endpoint.
    */
   async getAchievements(): Promise<Achievement[]> {
-    // Achievements table not yet in Railway DB
-    return [];
+    try {
+      const result =
+        await railwayClient.get<AchievementsResponse>('/api/v1/achievements');
+      return result.achievements ?? [];
+    } catch {
+      Logger.warn('[AchievementService] Achievement catalog unavailable');
+      return [];
+    }
   }
 
   /**
    * Fetch unlocked achievements for the current player.
-   * TODO: Add GET /api/v1/achievements/mine endpoint to Railway server.
    */
   async getMyUnlocks(): Promise<ProfileAchievement[]> {
     const profileId = UserSessionService.getProfileId();
-    if (profileId.startsWith('anon_')) return [];
+    if (isLocalOnlyProfileId(profileId)) return [];
 
-    // Achievements not yet in Railway DB
-    return [];
+    try {
+      const result = await railwayClient.get<MyAchievementsResponse>(
+        '/api/v1/achievements/mine'
+      );
+      return result.unlocked ?? result.achievements ?? [];
+    } catch {
+      Logger.warn('[AchievementService] Player achievements unavailable');
+      return [];
+    }
   }
 
   /**

@@ -137,19 +137,20 @@ Replay payload maximum size `500KB` decoded binarydir. Replay row ownership sess
 | POST | `/api/v1/telemetry/cheat-reports` | Yok | `cheatType`, optional profile/session/details/severity | `{ accepted: true }` | `400`, `500` |
 | POST | `/api/v1/telemetry/device-profiles` | Yok | `fingerprint` ve optional device fields | `{ accepted: true }` | `400`, `500` |
 | POST | `/api/v1/telemetry/performance-metrics` | Yok | FPS, device, session metadata | `{ accepted: true }` | `500` |
+| POST | `/api/v1/telemetry/product-events` | Yok | Single event veya batch array, allowlisted `event_type`, max 50 accepted | `{ accepted }` | `400`, `500` |
 
-Telemetry public ingest rate limitedir ve kullanıcı-facing gameplay authority değildir. Anti-cheat kararları client telemetry’ye güvenerek kalıcı reward yazmaz.
+Telemetry public ingest rate limitedir ve kullanıcı-facing gameplay authority değildir. Anti-cheat ve product traction kararları client telemetry’ye güvenerek kalıcı reward yazmaz.
 
 ## Admin
 
 | Method | Path | Auth | Response |
 |---|---|---|---|
-| GET | `/api/v1/admin/dashboard` | Admin secret | System, users, sessions, economy, security, telemetry, audit summary ve top players |
+| GET | `/api/v1/admin/dashboard` | Admin secret | System, users, sessions, economy, security, telemetry, product traction, audit summary ve top players |
 | GET | `/api/v1/admin/audit` | Admin secret | Recent audit log entries, optional `action` filter |
 
 Admin secret beta/prod ortamında zorunludur. Secret yoksa server ephemeral secret üretir; bu sadece local/dev fallback kabul edilir.
 
-Dashboard telemetry summary `errorReports24h`, `cheatAttempts24h`, `performanceMetrics24h`, `avgFps24h` ve `activeDeviceProfiles24h` alanlarını döndürür.
+Dashboard telemetry summary `errorReports24h`, `cheatAttempts24h`, `performanceMetrics24h`, `avgFps24h` ve `activeDeviceProfiles24h` alanlarını döndürür. Product summary `productEvents24h`, `walletConnects24h`, `uniqueWallets24h`, `seasonParticipants24h`, `questCompletions24h`, `leaderboardSubmissions24h` ve `referralJoins24h` alanlarını döndürür.
 
 ## DB Ownership
 
@@ -159,7 +160,7 @@ Dashboard telemetry summary `errorReports24h`, `cheatAttempts24h`, `performanceM
 | Session/reward | `sessions`, `price_history`, `reward_claims`, `wallets`, `ledger_entries` | Verification transaction reward authoritydir |
 | Market audit | `market_runtime_audit` | Runtime tick/snapshot audit insertleri idempotent seq ile yapılır |
 | Meta/challenges | `meta_progression`, `daily_challenges`, `challenge_completions`, `challenge_seed_log`, `v_meta_leaderboard`, `v_challenge_leaderboard` | Challenge seed ve completion audit server-owned |
-| Telemetry | `error_reports`, `cheat_attempts`, `device_profiles`, `performance_metrics` | Public ingest, analytics/triage amaçlıdır |
+| Telemetry | `error_reports`, `cheat_attempts`, `device_profiles`, `performance_metrics`, `product_telemetry_events` | Public ingest, analytics/triage ve investor traction amaçlıdır |
 | Replay | `game_replays` | Session owner save eder; public read endpointleri metadata/replay sunar |
 | Leaderboard | `v_leaderboard` | Public read view; dynamic sort whitelist uygulanır |
 

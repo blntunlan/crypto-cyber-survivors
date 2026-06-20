@@ -155,5 +155,6 @@ describe('Rate Limiters', () => {
     expect(telemetryRoute).toContain("router.post('/errors'");
     expect(telemetryRoute).toContain("router.post('/cheat-reports'");
     expect(telemetryRoute).toContain("router.post('/performance-metrics'");
+    expect(telemetryRoute).toContain("router.post('/product-events'");
   });
 });

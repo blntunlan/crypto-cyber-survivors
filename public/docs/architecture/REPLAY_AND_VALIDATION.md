@@ -24,6 +24,8 @@ Crypto Survivors relies on a client-authoritative gameplay loop for responsivene
 
 The beta decision is explicit: replay storage is an optional post-verification artifact. Reward verification remains owned by `POST /api/v1/sessions/verify`; replay save happens after authoritative verification succeeds and can fail without changing wallet, ledger, or session verification state.
 
+The storage product decision is tracked in [Beta Replay Storage Decision](/docs/workflows/BETA_REPLAY_STORAGE_DECISION): beta keeps PostgreSQL `BYTEA` storage, top-5-per-player pruning, and no object storage dependency.
+
 ## Replay Recording
 
 The `ReplayRecorderService` runs continuously during an active game session, capturing crucial state data without impacting the 60 FPS render loop.

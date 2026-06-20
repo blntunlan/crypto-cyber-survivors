@@ -60,7 +60,7 @@ const mockPool = {
   preWarm: vi.fn(),
   getEnemy: vi.fn(),
   getWhaleEnemy: vi.fn(),
-  getBullet: vi.fn(),
+  getBullet: vi.fn(() => ({})), // Return empty object to prevent weaponId assignment error
   getGem: vi.fn(),
   getParticle: vi.fn(),
   getFloatingText: vi.fn(),
@@ -129,6 +129,8 @@ describe('CombatSystem', () => {
     mockPlayer.critChance = 0.1;
     mockPlayer.baseDamage = 10;
     mockPlayer.projectiles = 1;
+    mockPlayer.x = 0;
+    mockPlayer.y = 0;
 
     // Reset cheats
     vi.mocked(CheatManager.isForcedCrit).mockReturnValue(false);
@@ -185,6 +187,41 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 40, 800, 600);
       expect(mockPool.getBullet).toHaveBeenCalledTimes(1); // No new call
     });
+
+    it('should not fire when no enemies exist', () => {
+      mockPool.activeEnemies = [];
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 1000, 800, 600);
+      expect(mockPool.getBullet).not.toHaveBeenCalled();
+    });
+
+    it('should use decorated fire rate if BuffManager is initialized', () => {
+      const enemy = createEnemy(100, 0);
+      mockPool.activeEnemies = [enemy];
+      mockGameState.fireTimer = 0;
+
+      vi.mocked(BuffManager.isInitialized).mockReturnValue(true);
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 100,
+        getProjectiles: () => 1,
+        getDamage: () => 10,
+        getArea: () => 1,
+        getLuck: () => 0,
+        getCritChance: () => 0.1,
+      } as unknown as IPlayerStats);
+
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 150, 800, 600);
+      expect(mockPool.getBullet).toHaveBeenCalled();
+    });
+
+    it('should preserve fireTimer overflow when firing', () => {
+      const enemy = createEnemy(100, 0);
+      mockPool.activeEnemies = [enemy];
+      mockGameState.fireTimer = 0;
+      mockPlayer.fireRate = 300;
+
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 1000, 800, 600);
+      expect(mockGameState.fireTimer).toBe(700); // 1000 - 300
+    });
   });
 
   describe('Targeting & Culling', () => {
@@ -206,7 +243,6 @@ describe('CombatSystem', () => {
     });
 
     it('should calculate intercept for moving targets', () => {
-      // Enemy moving UP at speed 5
       const enemy = createEnemy(100, 0);
       enemy.speed = 5;
       enemy.active = true;
@@ -221,8 +257,6 @@ describe('CombatSystem', () => {
       const call = calls[0];
       if (!call) throw new Error('Call not found');
 
-      // Since enemy is moving directly at player, bullet should fire directly at enemy
-      // No lead needed on Y axis
       const vy = call[3];
       expect(Math.abs(vy as number)).toBeLessThan(0.1);
     });
@@ -234,6 +268,26 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).not.toHaveBeenCalled();
+    });
+
+    it('should target on-screen enemy when screen dimensions provided', () => {
+      const enemy = createEnemy(500, 0); // on-screen
+      mockPool.activeEnemies = [enemy];
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
+      expect(mockPool.getBullet).toHaveBeenCalled();
+    });
+
+    it('should skip off-screen enemies and target on-screen one', () => {
+      const enemyOff = createEnemy(2000, 0); // off-screen
+      const enemyOn = createEnemy(500, 0); // on-screen
+      mockPool.activeEnemies = [enemyOff, enemyOn];
+
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
+
+      expect(mockPool.getBullet).toHaveBeenCalled();
+      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      expect(call).toBeDefined();
+      expect(call![2]).toBeGreaterThan(0); // fires toward positive x (on-screen)
     });
   });
 
@@ -259,7 +313,6 @@ describe('CombatSystem', () => {
       const enemy = createEnemy(100, 0);
       mockPool.activeEnemies = [enemy];
 
-      // Force crit via probability
       vi.spyOn(Math, 'random').mockReturnValue(0.05); // < 0.1 (critChance)
       mockPlayer.critChance = 0.1;
 
@@ -290,14 +343,49 @@ describe('CombatSystem', () => {
       expect(call[8]).toBe(true); // isSuperCrit
       expect(call[6]).toBe(COLORS.SUPER_CRIT);
     });
+
+    it('should use decorated damage for normal shots', () => {
+      const enemy = createEnemy(100, 0);
+      mockPool.activeEnemies = [enemy];
+
+      vi.mocked(BuffManager.isInitialized).mockReturnValue(true);
+      vi.mocked(BuffManager.getDecoratedStats).mockReturnValue({
+        getFireRate: () => 300,
+        getDamage: () => 50,
+        getProjectiles: () => 1,
+        getArea: () => 1,
+        getLuck: () => 0,
+        getCritChance: () => 0,
+      } as unknown as IPlayerStats);
+
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
+
+      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      expect(call).toBeDefined();
+      expect(call![4]).toBe(50);
+    });
   });
 
   describe('Projectile Spawning', () => {
+    it('should spawn bullet at player position', () => {
+      const enemy = createEnemy(100, 0);
+      mockPool.activeEnemies = [enemy];
+      mockPlayer.x = 123;
+      mockPlayer.y = 456;
+
+      combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
+
+      expect(mockPool.getBullet).toHaveBeenCalled();
+      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      expect(call).toBeDefined();
+      expect(call![0]).toBe(123);
+      expect(call![1]).toBe(456);
+    });
+
     it('should spawn multiple projectiles with spread', () => {
       const enemy = createEnemy(100, 0);
       mockPool.activeEnemies = [enemy];
 
-      // 3 Projectiles
       mockPlayer.projectiles = 3;
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
@@ -306,14 +394,11 @@ describe('CombatSystem', () => {
 
       const calls = vi.mocked(mockPool.getBullet).mock.calls;
 
-      // Check spread angles
-      // Center (index 1) should be straight (vy ~ 0)
       const centerCall = calls[1];
       if (centerCall) {
         expect(Math.abs(centerCall[3])).toBeLessThan(0.1);
       }
 
-      // Top/Bottom (indices 0 and 2) should have y component
       const topCall = calls[0];
       const bottomCall = calls[2];
 
@@ -335,7 +420,6 @@ describe('CombatSystem', () => {
       if (!call) throw new Error('Call not found');
       const radius = call[5];
 
-      // Base radius * area(2) * multipliers
       expect(radius).toBeGreaterThan(COMBAT.PROJECTILE_RADIUS_BASE);
     });
   });

@@ -11,7 +11,7 @@ import { ThemeService } from '../system/ThemeService';
 import { type GraphicsConfig } from '../renderers/types';
 import { type IGameRenderer } from '../interfaces/IGameRenderer';
 import { GAME_ENGINE } from '../../constants';
-import { portalSystem } from '../gameplay/PortalSystem';
+import { PortalSystemV2 } from '../gameplay/PortalSystemV2';
 
 /**
  * GameRenderer - Main Canvas Orchestrator
@@ -142,7 +142,7 @@ export class GameRenderer implements IGameRenderer {
     _state: GameState,
     disableGlow: boolean
   ): void {
-    const portal = portalSystem.getState();
+    const portal = PortalSystemV2.getPortalState();
     if (!portal.isActive) return;
 
     const { x, y, radius, type } = portal;

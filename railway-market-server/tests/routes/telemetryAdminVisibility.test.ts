@@ -62,7 +62,7 @@ describe('telemetry ingestion and admin visibility', () => {
     mocks.getDb.mockReturnValue({ insert: mocks.insert });
   });
 
-  it('persists error reports, cheat attempts, device profiles, and performance metrics', async () => {
+  it('persists error reports, cheat attempts, device profiles, performance metrics, and product events', async () => {
     const app = makeTelemetryApp();
 
     await request(app).post('/api/v1/telemetry/errors').send({
@@ -105,7 +105,17 @@ describe('telemetry ingestion and admin visibility', () => {
       metadata: { onePercentLow: 48 },
     }).expect(200);
 
-    expect(mocks.insert).toHaveBeenCalledTimes(4);
+    await request(app).post('/api/v1/telemetry/product-events').send({
+      profile_id: '550e8400-e29b-41d4-a716-446655440001',
+      session_id: '550e8400-e29b-41d4-a716-446655440002',
+      event_type: 'wallet_connected',
+      season_id: 'solana-alpha-2026-q3',
+      wallet_provider: 'phantom',
+      wallet_address_hash: 'wallet-hash',
+      metadata: { rawWalletStored: false },
+    }).expect(200);
+
+    expect(mocks.insert).toHaveBeenCalledTimes(5);
     expect(mocks.values).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
@@ -134,6 +144,27 @@ describe('telemetry ingestion and admin visibility', () => {
         frameDrops: 3,
       })
     );
+    expect(mocks.values).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: 'wallet_connected',
+          seasonId: 'solana-alpha-2026-q3',
+          walletProvider: 'phantom',
+          walletAddressHash: 'wallet-hash',
+        }),
+      ])
+    );
+  });
+
+  it('rejects unknown product event types', async () => {
+    const response = await request(makeTelemetryApp())
+      .post('/api/v1/telemetry/product-events')
+      .send({
+        event_type: 'token_claimed',
+      })
+      .expect(400);
+
+    expect(response.body).toEqual({ error: 'Invalid product event type' });
   });
 
   it('exposes telemetry counts in the admin dashboard summary', async () => {
@@ -155,6 +186,20 @@ describe('telemetry ingestion and admin visibility', () => {
       if (queryText.includes('FROM sessions s JOIN profiles')) {
         return { rows: [{ nickname: 'satoshi', total_reward: '300', sessions_count: '2' }] };
       }
+      if (queryText.includes('GROUP BY COALESCE(device_type')) {
+        return { rows: [{ key: 'desktop', count: '5' }, { key: 'mobile', count: '2' }] };
+      }
+      if (queryText.includes('GROUP BY COALESCE(recommended_profile')) {
+        return { rows: [{ key: 'high', count: '4' }, { key: 'low', count: '1' }] };
+      }
+      if (queryText.includes('COUNT(DISTINCT wallet_address_hash)')) return countRows(2);
+      if (queryText.includes("event_type = 'wallet_connected'")) return countRows(3);
+      if (queryText.includes('COALESCE(profile_id::TEXT')) return countRows(4);
+      if (queryText.includes("event_type = 'quest_completed'")) return countRows(5);
+      if (queryText.includes("event_type = 'leaderboard_submitted'")) return countRows(6);
+      if (queryText.includes("event_type = 'referral_joined'")) return countRows(7);
+      if (queryText.includes('FROM product_telemetry_events WHERE created_at')) return countRows(9);
+      if (queryText.includes('ILIKE')) return countRows(2);
       if (queryText.includes('FROM error_reports WHERE created_at')) return countRows(4);
       if (queryText.includes('FROM cheat_attempts WHERE created_at')) return countRows(3);
       if (queryText.includes('AVG(avg_fps)')) return avgRows(58.6);
@@ -177,11 +222,32 @@ describe('telemetry ingestion and admin visibility', () => {
 
     expect(response.body.telemetry).toEqual({
       errorReports24h: 4,
+      criticalErrors24h: 2,
       cheatAttempts24h: 3,
       performanceMetrics24h: 5,
       avgFps24h: 59,
       activeDeviceProfiles24h: 7,
+      crashFreeSessions24h: 6,
+      crashFreeSessionRate24h: 75,
+      reconnectEvents24h: 2,
+      deviceTypeBreakdown: {
+        desktop: 5,
+        mobile: 2,
+      },
+      recommendedProfileBreakdown: {
+        high: 4,
+        low: 1,
+      },
     });
+    expect(response.body.sessions).toEqual(
+      expect.objectContaining({
+        total24h: 8,
+        verified24h: 8,
+        unverified24h: 0,
+        verificationRate: 100,
+        verificationFailRate: 0,
+      })
+    );
     expect(response.body.security).toEqual(
       expect.objectContaining({
         cheatAttempts24h: 3,
@@ -189,5 +255,14 @@ describe('telemetry ingestion and admin visibility', () => {
         suspiciousSessions24h: 1,
       })
     );
+    expect(response.body.product).toEqual({
+      productEvents24h: 9,
+      walletConnects24h: 3,
+      uniqueWallets24h: 2,
+      seasonParticipants24h: 4,
+      questCompletions24h: 5,
+      leaderboardSubmissions24h: 6,
+      referralJoins24h: 7,
+    });
   });
 });

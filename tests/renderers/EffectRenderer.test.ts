@@ -127,6 +127,29 @@ describe('EffectRenderer', () => {
       expect(drawFloatingTextsSpy).not.toHaveBeenCalled();
       expect(drawSpeedLinesSpy).not.toHaveBeenCalled();
     });
+
+    it('should skip motion-heavy overlays when reduced motion is enabled', () => {
+      mockOpts.graphics.reducedMotion = true;
+      mockPool.activeSpeedLines = [
+        { x: 400, y: 300, angle: 0, length: 20, width: 2, opacity: 1 },
+      ];
+
+      const drawSpeedLinesSpy = vi.spyOn(renderer as any, 'drawSpeedLines');
+      const drawMomentumOverlaySpy = vi.spyOn(renderer as any, 'drawMomentumOverlay');
+      const drawMarketAmbianceSpy = vi.spyOn(renderer as any, 'drawMarketAmbiance');
+
+      renderer.render(mockCtx, mockPool, mockState, mockPlayer, mockOpts);
+
+      expect(drawSpeedLinesSpy).not.toHaveBeenCalled();
+      expect(drawMomentumOverlaySpy).not.toHaveBeenCalled();
+      expect(drawMarketAmbianceSpy).toHaveBeenCalledWith(
+        mockCtx,
+        800,
+        600,
+        mockState,
+        true
+      );
+    });
   });
 
   describe('drawCritFlash', () => {

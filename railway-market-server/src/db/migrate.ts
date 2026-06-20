@@ -28,6 +28,7 @@ export async function runMigrations(): Promise<void> {
     { name: '005_railway_native_foundation', sql: MIGRATION_005 },
     { name: '006_market_runtime_audit', sql: MIGRATION_006 },
     { name: '007_railway_only_auth_defaults', sql: MIGRATION_007 },
+    { name: '008_product_telemetry_events', sql: MIGRATION_008 },
   ];
 
   for (const migration of migrations) {
@@ -923,4 +924,42 @@ SET primary_auth_provider = 'railway',
     updated_at = now()
 WHERE primary_auth_provider IS NULL
    OR primary_auth_provider = 'supabase';
+`;
+
+const MIGRATION_008 = `
+-- Migration 008: Product telemetry events for Solana-first traction metrics
+
+CREATE TABLE IF NOT EXISTS product_telemetry_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  event_type TEXT NOT NULL,
+  season_id TEXT,
+  quest_id TEXT,
+  referral_code TEXT,
+  wallet_provider TEXT,
+  wallet_address_hash TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_product_telemetry_events_type CHECK (event_type IN (
+    'wallet_connected',
+    'wallet_connect_failed',
+    'season_joined',
+    'quest_completed',
+    'leaderboard_submitted',
+    'leaderboard_viewed',
+    'referral_joined'
+  ))
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_events_created
+  ON product_telemetry_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_type_created
+  ON product_telemetry_events(event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_season_created
+  ON product_telemetry_events(season_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_profile_created
+  ON product_telemetry_events(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_product_events_wallet_hash
+  ON product_telemetry_events(wallet_address_hash);
 `;

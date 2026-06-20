@@ -18,6 +18,7 @@ import { railwayClient } from '../api/RailwayClient';
 import { SessionValidator } from '../validators/SessionValidator';
 import { type SessionValidationInput } from '../validators/types';
 import { EventBus } from '../core/EventBus';
+import { ProductAnalyticsService } from '../analytics/ProductAnalyticsService';
 
 export interface ServerSessionResponse {
   sessionId: string;
@@ -305,6 +306,18 @@ export class GameSessionService {
       });
 
       Logger.info('[GameSession] Results verified successfully', data);
+
+      void ProductAnalyticsService.track({
+        eventType: 'leaderboard_submitted',
+        sessionId: this.currentSessionId,
+        metadata: {
+          pair: results.pair,
+          position: results.position,
+          leverage: results.leverage,
+          verified: data.verified,
+          reward: data.reward,
+        },
+      });
 
       this.clearSession();
 

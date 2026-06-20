@@ -2,6 +2,66 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const getManualChunk = (id: string): string | undefined => {
+  const normalizedId = id.replace(/\\/g, '/');
+
+  if (normalizedId.includes('/node_modules/')) {
+    if (
+      normalizedId.includes('/node_modules/react/') ||
+      normalizedId.includes('/node_modules/react-dom/')
+    ) {
+      return 'vendor-react';
+    }
+
+    if (
+      normalizedId.includes('/node_modules/framer-motion/') ||
+      normalizedId.includes('/node_modules/lucide-react/')
+    ) {
+      return 'vendor-ui';
+    }
+
+    if (
+      normalizedId.includes('/node_modules/zod/') ||
+      normalizedId.includes('/node_modules/zustand/') ||
+      normalizedId.includes('/node_modules/howler/') ||
+      normalizedId.includes('/node_modules/nanoid/')
+    ) {
+      return 'vendor-utils';
+    }
+
+    return undefined;
+  }
+
+  if (
+    normalizedId.includes('/components/screens/landing/') ||
+    normalizedId.endsWith('/components/screens/LandingPage.tsx')
+  ) {
+    return 'feature-landing';
+  }
+
+  if (normalizedId.endsWith('/components/screens/DocScreen.tsx')) {
+    return 'feature-docs';
+  }
+
+  if (normalizedId.includes('/components/admin/')) {
+    return 'feature-admin';
+  }
+
+  if (normalizedId.includes('/components/vfx-lab/')) {
+    return 'feature-vfx-lab';
+  }
+
+  if (
+    normalizedId.endsWith('/components/screens/MetaUpgradeScreen.tsx') ||
+    normalizedId.endsWith('/components/screens/ChallengeScreen.tsx') ||
+    normalizedId.endsWith('/components/screens/ReplayListScreen.tsx')
+  ) {
+    return 'feature-overlays';
+  }
+
+  return undefined;
+};
+
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
 
@@ -29,6 +89,7 @@ export default defineConfig(({ mode }) => {
       // Obfuscate asset directory name in production
       // /assets/ → /a/ (shorter, less obvious)
       assetsDir: isProduction ? 'a' : 'assets',
+      modulePreload: false,
       terserOptions: isProduction
         ? {
             compress: {
@@ -66,11 +127,7 @@ export default defineConfig(({ mode }) => {
           assetFileNames: isProduction
             ? 'a/[hash].[ext]'
             : 'assets/[name]-[hash].[ext]',
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-ui': ['framer-motion', 'lucide-react'],
-            'vendor-utils': ['zod', 'zustand', 'howler', 'nanoid'],
-          },
+          manualChunks: getManualChunk,
         },
       },
       chunkSizeWarningLimit: 2000,

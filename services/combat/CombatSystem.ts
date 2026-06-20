@@ -38,6 +38,7 @@ interface NearestEnemy {
  */
 export class CombatSystem implements ICombatSystem {
   private static instance: CombatSystem | null = null;
+  private static readonly SCRATCH_INTERCEPT = { x: 0, y: 0 };
   private audio: IAudioService;
 
   /**
@@ -268,8 +269,9 @@ export class CombatSystem implements ICombatSystem {
 
     // 4. Calculate predictive intercept position (Leading shots) using extracted strategy
     const interceptPos = PredictiveTargeting.calculateIntercept(
-      { x: player.x, y: player.y },
-      target
+      player,
+      target,
+      CombatSystem.SCRATCH_INTERCEPT
     );
     const baseAngle = Math.atan2(interceptPos.y - player.y, interceptPos.x - player.x);
 
@@ -349,7 +351,7 @@ export class CombatSystem implements ICombatSystem {
           ? COLORS.CRIT
           : COLORS.BULLET;
 
-      pool.getBullet(
+      const bullet = pool.getBullet(
         player.x,
         player.y,
         Math.cos(finalAngle) * COMBAT_CONFIG.BULLET_SPEED,
@@ -360,6 +362,7 @@ export class CombatSystem implements ICombatSystem {
         isCrit,
         isSuperCrit
       );
+      bullet.weaponId = 'quantum_bullet';
     }
   }
 }

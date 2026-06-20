@@ -321,6 +321,17 @@ describe('GameEngine', () => {
     expect(canvas.dataset.runtimeCanvasDpr).toBe('1.5');
   });
 
+  it('clamps oversized runtime DPR to protect canvas memory', () => {
+    window.history.pushState({}, '', '/?runtimeDpr=99');
+
+    render(<GameEngine {...mockProps} />);
+
+    const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+    expect(canvas.width).toBe(2400);
+    expect(canvas.height).toBe(1800);
+    expect(canvas.dataset.runtimeCanvasDpr).toBe('3');
+  });
+
   it('renders mobile controls on mobile device', async () => {
     // Override useDevice for this test
     const { useDevice } = await import('../../hooks/useDevice');

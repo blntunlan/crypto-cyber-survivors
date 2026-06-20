@@ -66,13 +66,48 @@ railway run --service <api-service> --environment <beta-or-production> npm run c
 railway run --service <aggregator-service> --environment <beta-or-production> npm run check:beta-env -- --scope market-aggregator --profile beta
 ```
 
+## Railway Kabul Kriteri
+
+| Kontrol | Kabul |
+|---|---|
+| CLI oturumu | `railway whoami --json` başarılı olmalı |
+| Project link | `railway status --json` doğru project ve environment göstermeli |
+| Frontend service | `--scope frontend --profile beta` `0` exit code ile bitmeli |
+| API service | `--scope api-server --profile beta` `0` exit code ile bitmeli |
+| Aggregator service | `--scope market-aggregator --profile beta` `0` exit code ile bitmeli |
+| Secret hygiene | Çıktıda raw secret, token, DB URL veya private key değeri bulunmamalı |
+| Cloudflare optional config | Oracle ve validator URL'leri birlikte set veya birlikte unset olmalı |
+
+## Railway Evidence Formatı
+
+```text
+Date: YYYY-MM-DD
+Operator: <name>
+Railway project: <project-name>
+Environment: beta | production
+Frontend service: <service-name> => pass | fail
+API service: <service-name> => pass | fail
+Aggregator service: <service-name> => pass | fail
+Notes: <redacted, no raw secrets>
+```
+
+## Bloklayıcı Durumlar
+
+- Railway CLI oturumu yoksa bu madde kapatılamaz.
+- Herhangi bir service için validator fail olursa beta çıkışı bloklanır.
+- `VITE_VERIFY_COINS_ONLY=false`, debug API açık, HTTP URL veya placeholder secret beta/prod ortamında bloklayıcıdır.
+- Evidence içine raw secret değeri girildiyse kayıt silinip redacted formatla yeniden alınmalı.
+
 ## Sign-off Kaydı
 
 | Tarih | Ortam | Service | Komut | Sonuç | Not |
 |---|---|---|---|---|---|
 | 2026-06-18 | Local dummy | frontend | `npm run check:beta-env -- --scope frontend --profile beta` | Geçti | Cloudflare workers unset uyarısı beklenen optional risk |
 | 2026-06-18 | Local dummy | api-server | `npm run check:beta-env -- --scope api-server --profile beta` | Geçti | Dummy secret değerleri kullanıldı, raw secret basılmadı |
-| TBD | Railway beta/prod | frontend/api/aggregator | `railway run ... check:beta-env` | Bekliyor | CLI oturumu gerekli |
+| 2026-06-20 | Railway CLI | auth preflight | `railway whoami --json`; `railway status --json` | Bloklu | CLI 4.66.0 kurulu, OAuth `invalid_grant` / unauthorized; `railway login` gerekli |
+| 2026-06-20 | Railway production | frontend | `railway run --service crypto-survivors --environment production -- npm run check:beta-env -- --scope frontend --profile beta` | Geçti | Optional Cloudflare worker URL warning kabul edildi; raw secret basılmadı |
+| 2026-06-20 | Railway production | api-server | `railway run --service market-server --environment production -- npm run check:beta-env -- --scope api-server --profile beta` | Geçti | Raw secret basılmadı |
+| 2026-06-20 | Railway production | market-aggregator | `railway run --service market-aggregator --environment production -- npm run check:beta-env -- --scope market-aggregator --profile beta` | Geçti | Raw secret basılmadı |
 
 ## Beta Checklist Bağlantısı
 

@@ -8,6 +8,8 @@ const {
   useGameStatusMock,
   usePauseBudgetMock,
   autoResumeCallbackRef,
+  loadReplayFromServerMock,
+  resetReplayPlayerMock,
 } = vi.hoisted(() => ({
   transitionMock: vi.fn(),
   forceStateMock: vi.fn(),
@@ -28,6 +30,8 @@ const {
   autoResumeCallbackRef: {
     current: null as null | (() => void),
   },
+  loadReplayFromServerMock: vi.fn(),
+  resetReplayPlayerMock: vi.fn(),
 }));
 
 // Mock Services
@@ -128,6 +132,13 @@ vi.mock('../services/auth/UserSessionService', () => ({
   UserSessionService: {
     getNickname: vi.fn(() => 'TestUser'),
     getProfileId: vi.fn(() => 'test-profile-id'),
+  },
+}));
+
+vi.mock('../services/replay/ReplayPlayerService', () => ({
+  ReplayPlayerService: {
+    loadReplayFromServer: loadReplayFromServerMock,
+    reset: resetReplayPlayerMock,
   },
 }));
 
@@ -286,11 +297,13 @@ vi.mock('../components/GameAppShell', () => ({
     hubScreen,
     showSettings,
     setShowSettings,
+    onOpenReplays,
   }: {
     gameStatus: string;
     hubScreen: string;
     showSettings: boolean;
     setShowSettings: (showSettings: boolean) => void;
+    onOpenReplays: () => void;
   }) => {
     usePauseBudgetMock('COMPETITIVE', gameStatus, () => {
       setShowSettings(false);
@@ -299,6 +312,7 @@ vi.mock('../components/GameAppShell', () => ({
 
     return (
       <div>
+        <button onClick={onOpenReplays}>Open Replays</button>
         {gameStatus === 'PAUSED' ? (
           <button onClick={() => setShowSettings(true)}>Open Settings</button>
         ) : hubScreen === 'play' ? (
@@ -359,6 +373,31 @@ vi.mock('../components/screens/LandingPage', () => ({
   ),
 }));
 
+vi.mock('../components/screens/ReplayListScreen', () => ({
+  ReplayListScreen: ({
+    onBack,
+    onWatch,
+  }: {
+    onBack: () => void;
+    onWatch: (replayId: string) => void;
+  }) => (
+    <div>
+      <div>ReplayListScreen</div>
+      <button onClick={() => onWatch('replay-1')}>Watch Replay</button>
+      <button onClick={onBack}>Back Replays</button>
+    </div>
+  ),
+}));
+
+vi.mock('../components/screens/ReplayPlaybackScreen', () => ({
+  ReplayPlaybackScreen: ({ onExit }: { onExit: () => void }) => (
+    <div>
+      <div>ReplayPlaybackScreen</div>
+      <button onClick={onExit}>Exit Replay</button>
+    </div>
+  ),
+}));
+
 // Mock SEO component to avoid <html> nesting issues
 vi.mock('../components/SEO', () => ({
   SEO: () => null,
@@ -370,6 +409,8 @@ describe('App', () => {
     localStorage.clear();
     sessionStorage.clear();
     autoResumeCallbackRef.current = null;
+    loadReplayFromServerMock.mockResolvedValue(true);
+    resetReplayPlayerMock.mockReturnValue(undefined);
     useGameStatusMock.mockReturnValue({
       gameStatus: 'MENU',
       handlePauseToggle: vi.fn(),
@@ -426,5 +467,19 @@ describe('App', () => {
       expect(screen.queryByText('SettingsPanel')).not.toBeInTheDocument();
     });
     expect(transitionMock).toHaveBeenCalledWith('PLAYING');
+  });
+
+  it('loads selected replay and opens playback screen', async () => {
+    localStorage.setItem('has_seen_landing', 'true');
+
+    render(<App />);
+
+    fireEvent.click(await screen.findByText('Open Replays'));
+    fireEvent.click(await screen.findByText('Watch Replay'));
+
+    await waitFor(() => {
+      expect(loadReplayFromServerMock).toHaveBeenCalledWith('replay-1');
+    });
+    expect(await screen.findByText('ReplayPlaybackScreen')).toBeInTheDocument();
   });
 });

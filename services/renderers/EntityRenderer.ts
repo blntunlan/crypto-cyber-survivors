@@ -27,6 +27,12 @@ import { ELITE_CONFIG } from '../../config/EliteConfig';
  */
 export class EntityRenderer implements IRenderer {
   private isMobileDevice: boolean;
+  private static readonly VIEWPORT_BOUNDS: ViewportBounds = {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  };
 
   constructor() {
     this.isMobileDevice = screenService.isMobile();
@@ -50,7 +56,8 @@ export class EntityRenderer implements IRenderer {
     const bounds = createViewportBounds(
       opts.width,
       opts.height,
-      GAME_ENGINE.ENTITY_CULLING_PADDING
+      GAME_ENGINE.ENTITY_CULLING_PADDING,
+      EntityRenderer.VIEWPORT_BOUNDS
     );
 
     // Layered rendering (Bottom to Top)
