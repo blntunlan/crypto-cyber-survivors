@@ -5,7 +5,7 @@
  * Provides typed GET/POST/PATCH/DELETE helpers.
  */
 
-import { Logger } from '../system/Logger';
+// import { Logger } from '../system/Logger'; // Circular dependency warning in tests
 import { RailwayAuthTokenStore } from './RailwayAuthTokenStore';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
@@ -16,7 +16,8 @@ const configuredBaseUrl =
 const BASE_URL = configuredBaseUrl?.replace(/\/$/, '');
 
 if (!BASE_URL) {
-  Logger.warn('[RailwayClient] VITE_API_BASE_URL / VITE_RAILWAY_API_URL not set. API calls will fail.');
+  // eslint-disable-next-line no-console
+  console.warn('[RailwayClient] VITE_API_BASE_URL / VITE_RAILWAY_API_URL not set. API calls will fail.');
 }
 
 export function isRailwayApiConfigured(): boolean {
