@@ -1,0 +1,3 @@
+## 2026-06-20 - Optimization of Hot Loops in MovementSystem
+**Learning:** In high-frequency 60 FPS update loops like `MovementSystem.ts`, replacing `Array.prototype.forEach` with a standard `for` loop over arrays like `pool.activeEnemies` and `pool.activeParticles` prevents closure function allocations and minimizes GC pressure. Sparse array checks (e.g. `if (e === undefined) continue;`) are critical for safety when using `for` loops on object pools.
+**Action:** Convert `forEach` loops in `updateEnemies`, `updateParticles`, `updateFloatingTexts`, `updateSpeedLines`, `updateImpactRings`, and `updateDyingEnemies` to standard `for` loops.
