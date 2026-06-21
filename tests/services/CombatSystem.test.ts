@@ -60,7 +60,10 @@ const mockPool = {
   preWarm: vi.fn(),
   getEnemy: vi.fn(),
   getWhaleEnemy: vi.fn(),
-  getBullet: vi.fn(() => ({})), // Return empty object to prevent weaponId assignment error
+  getBullet: vi.fn(
+    (_x, _y, _vx, _vy, _damage, _radius, _color, _isCrit, _isSuperCrit, _weaponId) =>
+      ({}) as any
+  ), // Cast to any to prevent type errors
   getGem: vi.fn(),
   getParticle: vi.fn(),
   getFloatingText: vi.fn(),
@@ -79,7 +82,7 @@ const mockPool = {
   activeImpactRings: [],
   getImpactRing: vi.fn(),
   releaseImpactRing: vi.fn(),
-};
+} as unknown as any;
 
 // Mock Objects
 const mockPlayer: Player = {

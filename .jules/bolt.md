@@ -1,0 +1,3 @@
+## 2025-02-20 - Unrolling Object Pool `forEach` Loops
+**Learning:** When unrolling standard `Array.prototype.forEach` loops over object pools (like `pool.activeEnemies`, `pool.activeGems`) into manual `for` loops to reduce closure allocations in hot paths like `MovementSystem.ts` and `EntityRenderer.ts`, it is critical to add a guard clause (`if (entity === undefined) continue;`). Object pools might contain sparse arrays or `undefined` entries, and without this check, direct index access causes runtime `TypeError`s during high-frequency ticks.
+**Action:** Always include an explicit `undefined` check immediately after array index access when converting `.forEach` loops into `for` loops, especially when iterating over shared Object Pool structures in this game engine.

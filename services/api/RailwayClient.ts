@@ -5,7 +5,8 @@
  * Provides typed GET/POST/PATCH/DELETE helpers.
  */
 
-import { Logger } from '../system/Logger';
+const _console = console;
+
 import { RailwayAuthTokenStore } from './RailwayAuthTokenStore';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
@@ -18,7 +19,7 @@ const configuredBaseUrl =
 const BASE_URL = configuredBaseUrl?.replace(/\/$/, '');
 
 if (!BASE_URL) {
-  Logger.warn(
+  _console.warn(
     '[RailwayClient] VITE_API_BASE_URL / VITE_RAILWAY_API_URL not set. API calls will fail.'
   );
 }
