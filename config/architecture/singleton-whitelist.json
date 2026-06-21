@@ -38,7 +38,6 @@
     "services/gameplay/DifficultyManager.ts",
     "services/gameplay/LeverageEngine.ts",
     "services/gameplay/MilestoneService.ts",
-    "services/gameplay/PortalSystem.ts",
     "services/gameplay/PortalSystemV2.ts",
     "services/gameplay/VisualEffectService.ts",
     "services/gameplay/WalletService.ts",
