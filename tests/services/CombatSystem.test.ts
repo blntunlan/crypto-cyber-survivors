@@ -49,7 +49,7 @@ const mockAudio = {
 };
 
 // Mock Pool Manager
-const mockPool = {
+const mockPool: any = {
   activeEnemies: [] as GameEnemy[],
   activeBullets: [],
   activeGems: [],
@@ -60,7 +60,7 @@ const mockPool = {
   preWarm: vi.fn(),
   getEnemy: vi.fn(),
   getWhaleEnemy: vi.fn(),
-  getBullet: vi.fn(() => ({})), // Return empty object to prevent weaponId assignment error
+  getBullet: vi.fn(() => ({}) as any), // Return empty object to prevent weaponId assignment error
   getGem: vi.fn(),
   getParticle: vi.fn(),
   getFloatingText: vi.fn(),
@@ -233,11 +233,12 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const calls = vi.mocked(mockPool.getBullet).mock.calls;
+      const calls: any[][] = vi.mocked(mockPool.getBullet).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
 
       const call = calls[0];
       if (!call) throw new Error('Call not found');
+
       const vx = call[2]; // getBullet(x, y, vx, vy, ...)
       expect(vx).toBeGreaterThan(0);
     });
@@ -251,7 +252,7 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const calls = vi.mocked(mockPool.getBullet).mock.calls;
+      const calls: any[][] = vi.mocked(mockPool.getBullet).mock.calls;
       expect(calls.length).toBeGreaterThan(0);
 
       const call = calls[0];
@@ -285,7 +286,7 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
       expect(call).toBeDefined();
       expect(call![2]).toBeGreaterThan(0); // fires toward positive x (on-screen)
     });
@@ -300,8 +301,7 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
-      if (!call) throw new Error('Call not found');
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
 
       expect(call[4]).toBe(10); // Damage
       expect(call[7]).toBe(false); // isCrit
@@ -319,8 +319,8 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
-      if (!call) throw new Error('Call not found');
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
+
       const expectedDamage = 10 * COMBAT.CRIT_MULTIPLIER;
       expect(call[4]).toBe(expectedDamage);
       expect(call[7]).toBe(true); // isCrit
@@ -336,8 +336,8 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
-      if (!call) throw new Error('Call not found');
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
+
       const expectedDamage = 10 * COMBAT.SUPER_CRIT_MULTIPLIER;
       expect(call[4]).toBe(expectedDamage);
       expect(call[8]).toBe(true); // isSuperCrit
@@ -360,7 +360,7 @@ describe('CombatSystem', () => {
 
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
       expect(call).toBeDefined();
       expect(call![4]).toBe(50);
     });
@@ -376,7 +376,7 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
       expect(call).toBeDefined();
       expect(call![0]).toBe(123);
       expect(call![1]).toBe(456);
@@ -392,15 +392,15 @@ describe('CombatSystem', () => {
 
       expect(mockPool.getBullet).toHaveBeenCalledTimes(3);
 
-      const calls = vi.mocked(mockPool.getBullet).mock.calls;
+      const calls: any[][] = vi.mocked(mockPool.getBullet).mock.calls;
 
-      const centerCall = calls[1];
+      const centerCall: any = calls[1];
       if (centerCall) {
         expect(Math.abs(centerCall[3])).toBeLessThan(0.1);
       }
 
-      const topCall = calls[0];
-      const bottomCall = calls[2];
+      const topCall: any = calls[0];
+      const bottomCall: any = calls[2];
 
       if (topCall && bottomCall) {
         expect(topCall[3]).not.toBe(0);
@@ -416,8 +416,8 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 500, 800, 600);
 
       expect(mockPool.getBullet).toHaveBeenCalled();
-      const call = vi.mocked(mockPool.getBullet).mock.calls[0];
-      if (!call) throw new Error('Call not found');
+      const call: any[] = vi.mocked(mockPool.getBullet).mock.calls[0] as any;
+
       const radius = call[5];
 
       expect(radius).toBeGreaterThan(COMBAT.PROJECTILE_RADIUS_BASE);

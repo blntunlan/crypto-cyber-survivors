@@ -1,0 +1,3 @@
+## 2025-06-22 - Replace Array.prototype.forEach with standard for loops
+**Learning:** `Array.prototype.forEach` creates an inline closure function per iteration. In high-frequency 60FPS update loops like `MovementSystem.ts` and `EntityRenderer.ts`, this leads to thousands of short-lived allocations per frame. This triggers frequent Garbage Collection (GC) pauses which cause visible frame drops and stuttering.
+**Action:** Use standard `for` loops (e.g., `for (let i = 0, len = arr.length; i < len; i++)`) for iterating over large arrays in high-frequency paths to eliminate these closure allocations.
