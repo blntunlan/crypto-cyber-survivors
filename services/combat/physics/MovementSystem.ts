@@ -176,7 +176,7 @@ export class MovementSystem implements IMovementSystem {
 
       // Apply separation steering to prevent clumping (throttled)
       if (shouldApplySeparation && e.hasEnteredScreen) {
-        this.applySeparation(e, player);
+        this.applySeparation(e, player, dtFactor);
       }
 
       if (!e.hasEnteredScreen) {
@@ -516,8 +516,9 @@ export class MovementSystem implements IMovementSystem {
    * and is called only every THROTTLE_FRAMES frames.
    *
    * @param enemy - The enemy to apply separation to
+   * @param dtFactor - Delta time factor (1.0 = 60fps) for frame-rate independence
    */
-  private applySeparation(enemy: Enemy, player: Player): void {
+  private applySeparation(enemy: Enemy, player: Player, dtFactor: number): void {
     const ctx = MovementSystem.SEPARATION_CONTEXT;
     ctx.enemy = enemy;
     ctx.sepX = 0;
@@ -573,8 +574,10 @@ export class MovementSystem implements IMovementSystem {
         Math.min(SEPARATION.MAX_FORCE, ctx.sepY)
       );
 
-      enemy.x += clampedX;
-      enemy.y += clampedY;
+      // Scale by dtFactor so anti-clumping push is frame-rate independent:
+      // separation runs every frame, so without this enemies separate faster at higher FPS.
+      enemy.x += clampedX * dtFactor;
+      enemy.y += clampedY * dtFactor;
     }
 
     // Clean up reference to prevent memory leaks
