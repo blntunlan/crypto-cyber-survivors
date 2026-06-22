@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatSystem } from '../../services/combat/CombatSystem';
 import { type IPlayerStats } from '../../services/patterns/decorators/IPlayerStats';
-import { type Player, type GameState } from '../../types';
+import { type Player, type GameState, type Bullet } from '../../types';
 import { type GameEnemy } from '../../factories/EnemyFactory';
 import { BuffManager } from '../../services/patterns/decorators/BuffManager';
 import { CheatManager } from '../../services/system/CheatManager';
@@ -60,7 +60,19 @@ const mockPool = {
   preWarm: vi.fn(),
   getEnemy: vi.fn(),
   getWhaleEnemy: vi.fn(),
-  getBullet: vi.fn(() => ({})), // Return empty object to prevent weaponId assignment error
+  getBullet: vi.fn(
+    (
+      _x: number,
+      _y: number,
+      _vx: number,
+      _vy: number,
+      _damage: number,
+      _radius: number,
+      _color: string,
+      _isCrit: boolean,
+      _isSuperCrit: boolean
+    ): Bullet => ({}) as Bullet
+  ),
   getGem: vi.fn(),
   getParticle: vi.fn(),
   getFloatingText: vi.fn(),

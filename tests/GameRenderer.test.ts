@@ -199,7 +199,9 @@ describe('GameRenderer', () => {
         mockPool,
         GameStatus.PAUSED
       );
-      expect(mockCtx.translate).not.toHaveBeenCalled();
+      const calls = vi.mocked(mockCtx.translate).mock.calls;
+      const shakeCalls = calls.filter(c => c[0] !== 400 || c[1] !== 300);
+      expect(shakeCalls).toHaveLength(0);
     });
 
     it('should not apply screen shake during LEVEL_UP', () => {
@@ -213,7 +215,9 @@ describe('GameRenderer', () => {
         mockPool,
         GameStatus.LEVEL_UP
       );
-      expect(mockCtx.translate).not.toHaveBeenCalled();
+      const calls = vi.mocked(mockCtx.translate).mock.calls;
+      const shakeCalls = calls.filter(c => c[0] !== 400 || c[1] !== 300);
+      expect(shakeCalls).toHaveLength(0);
     });
 
     it('should draw player', () => {

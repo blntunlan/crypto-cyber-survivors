@@ -15,6 +15,7 @@ import { type SpawnDebugState, getDebugTimestamp } from '../../types/DebugState'
 import { type ISpawnSystem } from '../interfaces/ISpawnSystem';
 import { type EnemyId } from '../../config/EnemyRegistry';
 import { EventBus } from '../core/EventBus';
+import { ResetOrchestrator, RESET_PRIORITY } from '../core/ResetOrchestrator';
 import { type GameMarketEvent } from '../market/MarketEventManager';
 
 export interface SpawnMarketSignals {
@@ -77,6 +78,9 @@ export class SpawnSystem implements ISpawnSystem {
 
   constructor() {
     this.setupEventListeners();
+    ResetOrchestrator.registerResetHandler(RESET_PRIORITY.GAMEPLAY, 'SpawnSystem', () =>
+      this.reset()
+    );
   }
 
   public static getInstance(): SpawnSystem {

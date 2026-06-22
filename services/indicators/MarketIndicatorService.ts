@@ -76,7 +76,6 @@ export class MarketIndicatorService {
       }
 
       const previousRsiState = this.state.rsiState;
-      const previousWhaleTier = this.state.whaleTier;
 
       this.state = {
         ...this.state,
@@ -104,13 +103,6 @@ export class MarketIndicatorService {
           state: serverState.rsiState,
           rsi: serverState.rsi,
           pair: serverState.pair,
-        });
-      }
-
-      if (serverState.whaleTier !== previousWhaleTier) {
-        EventBus.emit('whaleTierChanged', {
-          tier: serverState.whaleTier as 0 | 1 | 2 | 3,
-          percentile: serverState.volumePercentile,
         });
       }
 
@@ -287,13 +279,6 @@ export class MarketIndicatorService {
           state: rsiState,
           rsi,
           pair,
-        });
-      }
-
-      if (whaleTier !== this.state.whaleTier && whaleTier !== WhaleTier.NONE) {
-        EventBus.emit('whaleTierChanged', {
-          tier: whaleTier,
-          percentile: this.state.normalizedVolume,
         });
       }
     }

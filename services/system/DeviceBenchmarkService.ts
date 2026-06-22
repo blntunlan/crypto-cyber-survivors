@@ -265,7 +265,12 @@ export class DeviceBenchmarkServiceClass {
 
     this.updateProgress(BENCHMARK.PROGRESS_CALC, 'Calculating profile...');
     const combinedScore = calculateCombinedScore(gpuScore, cpuScore);
-    const profile = getProfileFromScore(combinedScore);
+    const profile = getProfileFromScore(
+      combinedScore,
+      gpuRenderer,
+      hardwareConcurrency,
+      deviceMemory
+    );
 
     return {
       gpuScore,
@@ -412,14 +417,24 @@ export class DeviceBenchmarkServiceClass {
   }
 
   private getFallbackResult(): BenchmarkResult {
+    const hardwareConcurrency = navigator.hardwareConcurrency;
+    const deviceMemory = this.getDeviceMemory();
+    const gpuRenderer = this.getGPURenderer();
+    const profile = getProfileFromScore(
+      BENCHMARK.FALLBACK_SCORE,
+      gpuRenderer,
+      hardwareConcurrency,
+      deviceMemory
+    );
+
     return {
       gpuScore: BENCHMARK.FALLBACK_SCORE,
       cpuScore: BENCHMARK.FALLBACK_SCORE,
       combinedScore: BENCHMARK.FALLBACK_SCORE,
-      profile: DeviceProfile.MEDIUM,
-      deviceMemory: null,
-      hardwareConcurrency: navigator.hardwareConcurrency,
-      gpuRenderer: null,
+      profile,
+      deviceMemory,
+      hardwareConcurrency,
+      gpuRenderer,
       timestamp: Date.now(),
       version: BENCHMARK_CONFIG.VERSION,
     };

@@ -119,6 +119,9 @@ class ComboSystemClass {
             this.emitUpdate();
           }
         }
+      }),
+      EventBus.on('gameReset', () => {
+        this.startGame();
       })
     );
   }

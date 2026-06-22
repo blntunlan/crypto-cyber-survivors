@@ -4,6 +4,7 @@ import { ThemeService } from '../../services/system/ThemeService';
 import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { type GameState, type Player, GameStatus } from '../../types';
 import { difficultyContext } from '../../services/difficulty/DifficultyContext';
+import { gradientCache } from '../../utils/GradientCache';
 
 describe('ProjectileRenderer', () => {
   let renderer: ProjectileRenderer;
@@ -13,6 +14,7 @@ describe('ProjectileRenderer', () => {
   let mockPlayer: Player;
 
   beforeEach(() => {
+    gradientCache.clear();
     renderer = new ProjectileRenderer();
 
     mockCtx = {

@@ -529,6 +529,16 @@ describe('CoinService System', () => {
 
       expect(CoinService.getSessionCoins()).toBe(0);
     });
+
+    it('is triggered by gameReset event', async () => {
+      vi.stubEnv('VITE_VERIFY_COINS_ONLY', '');
+      await CoinService.creditCoins(100, 'kill_bonus');
+      expect(CoinService.getSessionCoins()).toBe(100);
+
+      EventBus.emit('gameReset', {});
+
+      expect(CoinService.getSessionCoins()).toBe(0);
+    });
   });
 
   describe('CoinService - creditCoins validation', () => {

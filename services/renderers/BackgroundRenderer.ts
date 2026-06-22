@@ -5,6 +5,7 @@ import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { ThemeService } from '../system/ThemeService';
 import { GAME_ENGINE } from '../../constants';
+import { DeviceProfile } from '../../types/DeviceProfile';
 
 /**
  * BackgroundRenderer - Orchestrates the dynamic background visuals.
@@ -50,6 +51,7 @@ export class BackgroundRenderer implements IRenderer {
       graphics.showScreenShake &&
       !graphics.disableGlow &&
       perfConfig.shadowsEnabled &&
+      perfConfig.profile === DeviceProfile.ULTRA &&
       !this.isMobileDevice;
 
     // Fill background color

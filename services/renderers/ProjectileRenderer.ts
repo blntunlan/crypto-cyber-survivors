@@ -392,21 +392,26 @@ export class ProjectileRenderer implements IRenderer {
       }
     }
 
-    // 2. Radial glow.
-    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 9);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.4, 'rgba(34,211,238,0.8)');
-    grad.addColorStop(1, 'rgba(34,211,238,0)');
+    // 2. Radial glow (relative coordinate translation for gradient caching).
+    ctx.save();
+    ctx.translate(b.x, b.y);
+
+    const grad = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, 9, [
+      { offset: 0, color: '#ffffff' },
+      { offset: 0.4, color: 'rgba(34,211,238,0.8)' },
+      { offset: 1, color: 'rgba(34,211,238,0)' },
+    ]);
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 9, 0, Math.PI * 2);
+    ctx.arc(0, 0, 9, 0, Math.PI * 2);
     ctx.fill();
 
     // 3. Bright white core.
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
   /**
@@ -445,21 +450,26 @@ export class ProjectileRenderer implements IRenderer {
       }
     }
 
-    // 2. Radial-gradient pellet (white center -> coreColor -> fading trailRgb).
-    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 7);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.4, coreColor);
-    grad.addColorStop(1, `rgba(${trailRgb},0)`);
+    // 2. Radial-gradient pellet (relative coordinate translation for gradient caching).
+    ctx.save();
+    ctx.translate(b.x, b.y);
+
+    const grad = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, 7, [
+      { offset: 0, color: '#ffffff' },
+      { offset: 0.4, color: coreColor },
+      { offset: 1, color: `rgba(${trailRgb},0)` },
+    ]);
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
     ctx.fill();
 
     // 3. Tiny bright white core dot.
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 2, 0, Math.PI * 2);
+    ctx.arc(0, 0, 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
   private renderBoomerang(ctx: CanvasRenderingContext2D, b: Bullet): void {
@@ -586,56 +596,70 @@ export class ProjectileRenderer implements IRenderer {
       const radius = b.shockwaveRadius ?? b.radius;
       const alpha = Math.max(0, 1 - (b.age ?? 0) / NUKE_SHOCKWAVE_LIFE_MS);
 
+      ctx.save();
+      ctx.translate(b.x, b.y);
       ctx.strokeStyle = `rgba(255,160,60,${alpha * 0.9})`;
       ctx.lineWidth = 4 * alpha + 1;
       ctx.beginPath();
-      ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.stroke();
 
-      const grad = ctx.createRadialGradient(
-        b.x,
-        b.y,
-        Math.max(0, radius - 10),
-        b.x,
-        b.y,
-        radius
+      const innerRadius = Math.max(0, radius - 10);
+      const grad = gradientCache.getRadialGradient(
+        ctx,
+        0,
+        0,
+        innerRadius,
+        0,
+        0,
+        radius,
+        [
+          { offset: 0, color: 'rgba(255,200,120,0)' },
+          { offset: 1, color: `rgba(255,180,80,${alpha * 0.35})` },
+        ]
       );
-      grad.addColorStop(0, 'rgba(255,200,120,0)');
-      grad.addColorStop(1, `rgba(255,180,80,${alpha * 0.35})`);
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(b.x, b.y, radius, 0, Math.PI * 2);
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
       return;
     }
 
     const pulse = 0.7 + 0.3 * Math.sin(((b.age ?? 0) / 150) * Math.PI * 2);
-    const glow = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 22 * pulse);
-    glow.addColorStop(0, '#ffdd66');
-    glow.addColorStop(0.5, 'rgba(255,140,50,0.6)');
-    glow.addColorStop(1, 'rgba(255,100,30,0)');
+    const glowRadius = Math.round(22 * pulse);
+
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    const glow = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, glowRadius, [
+      { offset: 0, color: '#ffdd66' },
+      { offset: 0.5, color: 'rgba(255,140,50,0.6)' },
+      { offset: 1, color: 'rgba(255,100,30,0)' },
+    ]);
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 22 * pulse, 0, Math.PI * 2);
+    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 7, 0, Math.PI * 2);
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    const tx = b.x - b.vx * 8;
-    const ty = b.y - b.vy * 8;
-    const trailGrad = ctx.createLinearGradient(b.x, b.y, tx, ty);
-    trailGrad.addColorStop(0, 'rgba(255,150,60,0.5)');
-    trailGrad.addColorStop(1, 'rgba(100,60,40,0)');
+    const tx = -b.vx * 8;
+    const ty = -b.vy * 8;
+    const trailGrad = gradientCache.getLinearGradient(ctx, 0, 0, tx, ty, [
+      { offset: 0, color: 'rgba(255,150,60,0.5)' },
+      { offset: 1, color: 'rgba(100,60,40,0)' },
+    ]);
     ctx.strokeStyle = trailGrad;
     ctx.lineWidth = 8;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(b.x, b.y);
+    ctx.moveTo(0, 0);
     ctx.lineTo(tx, ty);
     ctx.stroke();
+    ctx.restore();
   }
 
   private renderOrbit(ctx: CanvasRenderingContext2D, b: Bullet, player: Player): void {
@@ -648,20 +672,25 @@ export class ProjectileRenderer implements IRenderer {
       ctx.stroke();
     }
 
-    const glowR = b.radius + 8;
-    const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, glowR);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.4, 'rgba(68,221,255,0.8)');
-    grad.addColorStop(1, 'rgba(68,221,255,0)');
+    const glowR = Math.round(b.radius + 8);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+
+    const grad = gradientCache.getRadialGradient(ctx, 0, 0, 0, 0, 0, glowR, [
+      { offset: 0, color: '#ffffff' },
+      { offset: 0.4, color: 'rgba(68,221,255,0.8)' },
+      { offset: 1, color: 'rgba(68,221,255,0)' },
+    ]);
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, glowR, 0, Math.PI * 2);
+    ctx.arc(0, 0, glowR, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 

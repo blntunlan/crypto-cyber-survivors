@@ -78,6 +78,7 @@ vi.mock('../../services/auth/GameSessionService', () => ({
 vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getTotalElapsedSeconds: vi.fn(() => 123),
+    resetForCycleContinue: vi.fn(),
   },
 }));
 
@@ -121,6 +122,7 @@ vi.mock('../../services/analytics/DeviceProfiler', () => ({
 vi.mock('../../services/combat/ComboSystem', () => ({
   ComboSystem: {
     getMaxStreak: vi.fn(() => 7),
+    resetCombo: vi.fn(),
   },
 }));
 
@@ -205,7 +207,6 @@ describe('useGameFlowController', () => {
     EventBus.clearEvent('cycleComplete');
     EventBus.clearEvent('levelUpComplete');
     EventBus.clearEvent('levelUp');
-    EventBus.clearEvent('playerLevelUp');
 
     vi.mocked(CardSystem.generateChoices).mockReturnValue([makeCard()]);
     vi.mocked(MetaProgressionService.getCardChoiceCount).mockReturnValue(3);
@@ -328,7 +329,6 @@ describe('useGameFlowController', () => {
     expect(setUiStats).toHaveBeenCalled();
     expect(emitSpy).toHaveBeenCalledWith('levelUpComplete', { newLevel: 3 });
     expect(emitSpy).toHaveBeenCalledWith('levelUp', { level: 3 });
-    expect(emitSpy).toHaveBeenCalledWith('playerLevelUp', { level: 3 });
     expect(GameStateMachine.transition).toHaveBeenCalledWith(GameStatus.PLAYING);
   });
 
@@ -848,6 +848,9 @@ describe('useGameFlowController', () => {
   it('handleContinue calls resetForCycleContinue then applies new cycleFactor', async () => {
     const { difficultyContext } =
       await import('../../services/difficulty/DifficultyContext');
+    const { DifficultyManager } =
+      await import('../../services/gameplay/DifficultyManager');
+    const { ComboSystem } = await import('../../services/combat/ComboSystem');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
     const { result } = renderHook(() =>
@@ -878,7 +881,8 @@ describe('useGameFlowController', () => {
       result.current.handleContinue();
     });
 
-    expect(difficultyContext.resetForCycleContinue).toHaveBeenCalled();
+    expect(DifficultyManager.resetForCycleContinue).toHaveBeenCalled();
+    expect(ComboSystem.resetCombo).toHaveBeenCalled();
     expect(difficultyContext.updateInputs).toHaveBeenCalledWith({ cycleFactor: 2 });
   });
 

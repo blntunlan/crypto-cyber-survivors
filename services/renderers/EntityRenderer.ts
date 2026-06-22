@@ -654,25 +654,27 @@ export class EntityRenderer implements IRenderer {
     const isRetro = ThemeService.isRetro();
 
     const pColor = player.color;
+    const px = Math.round(player.x);
+    const py = Math.round(player.y);
+
+    ctx.translate(px, py);
 
     if (isRetro) {
       // Retro 16-bit: High-contrast blinking squared halo
       const size = haloRadius * 2;
-      const px = Math.round(player.x);
-      const py = Math.round(player.y);
 
       // A. Outer square ring (White for visibility)
       ctx.globalAlpha = opac * 0.8;
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 4;
-      ctx.strokeRect(px - size / 2, py - size / 2, size, size);
+      ctx.strokeRect(-size / 2, -size / 2, size, size);
 
       // B. Inner square ring (Player color)
       const innerSize = size - 8;
       ctx.globalAlpha = opac * 0.6;
       ctx.strokeStyle = pColor;
       ctx.lineWidth = 2;
-      ctx.strokeRect(px - innerSize / 2, py - innerSize / 2, innerSize, innerSize);
+      ctx.strokeRect(-innerSize / 2, -innerSize / 2, innerSize, innerSize);
     } else {
       // Cyberpunk: High-energy neon glow rings based on player state
 
@@ -681,7 +683,7 @@ export class EntityRenderer implements IRenderer {
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(Math.round(player.x), Math.round(player.y), haloRadius, 0, Math.PI * 2);
+      ctx.arc(0, 0, haloRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       // B. Energy Burst Ring (Player color)
@@ -689,13 +691,7 @@ export class EntityRenderer implements IRenderer {
       ctx.strokeStyle = pColor;
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(
-        Math.round(player.x),
-        Math.round(player.y),
-        haloRadius + 4,
-        0,
-        Math.PI * 2
-      );
+      ctx.arc(0, 0, haloRadius + 4, 0, Math.PI * 2);
       ctx.stroke();
 
       // C. Radial Field Glow
@@ -703,11 +699,11 @@ export class EntityRenderer implements IRenderer {
         ctx.globalAlpha = opac * 0.3;
         const gradient = gradientCache.getRadialGradient(
           ctx,
-          player.x,
-          player.y,
+          0,
+          0,
           player.radius,
-          player.x,
-          player.y,
+          0,
+          0,
           haloRadius + 10,
           [
             { offset: 0, color: `${pColor}80` },
@@ -716,13 +712,7 @@ export class EntityRenderer implements IRenderer {
         );
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(
-          Math.round(player.x),
-          Math.round(player.y),
-          haloRadius + 10,
-          0,
-          Math.PI * 2
-        );
+        ctx.arc(0, 0, haloRadius + 10, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -771,6 +761,9 @@ export class EntityRenderer implements IRenderer {
     const px = Math.round(player.x);
     const py = Math.round(player.y);
 
+    ctx.save();
+    ctx.translate(px, py);
+
     // 1. Outer Glow Ring (Always visible, pulsing)
     const pulseTime = performance.now() * 0.003;
     const pulseScale = 1 + Math.sin(pulseTime) * 0.1; // Subtle pulse
@@ -781,7 +774,7 @@ export class EntityRenderer implements IRenderer {
     ctx.strokeStyle = player.color;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(px, py, outerRingRadius, 0, Math.PI * 2);
+    ctx.arc(0, 0, outerRingRadius, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
 
@@ -790,11 +783,11 @@ export class EntityRenderer implements IRenderer {
     const glowRadius = player.radius * 1.8;
     const gradient = gradientCache.getRadialGradient(
       ctx,
-      px,
-      py,
+      0,
+      0,
       player.radius * 0.5,
-      px,
-      py,
+      0,
+      0,
       glowRadius,
       [
         { offset: 0, color: `${player.color}25` },
@@ -804,7 +797,7 @@ export class EntityRenderer implements IRenderer {
     );
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
+    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -812,8 +805,8 @@ export class EntityRenderer implements IRenderer {
     ctx.beginPath();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'; // Increased from 0.15
     ctx.arc(
-      px,
-      py,
+      0,
+      0,
       player.radius * GAME_ENGINE.PLAYER_SPOTLIGHT_RADIUS_MULT,
       0,
       Math.PI * 2
@@ -835,8 +828,8 @@ export class EntityRenderer implements IRenderer {
       Math.abs(state.playerScaleY - 1) > 0.001
     ) {
       ctx.ellipse(
-        px,
-        py,
+        0,
+        0,
         player.radius * state.playerScaleX,
         player.radius * state.playerScaleY,
         state.playerRotation,
@@ -844,7 +837,7 @@ export class EntityRenderer implements IRenderer {
         Math.PI * 2
       );
     } else {
-      ctx.arc(px, py, player.radius, 0, Math.PI * 2);
+      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
     }
 
     ctx.fill();
@@ -855,8 +848,8 @@ export class EntityRenderer implements IRenderer {
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
     ctx.arc(
-      px - player.radius * 0.2,
-      py - player.radius * 0.2,
+      -player.radius * 0.2,
+      -player.radius * 0.2,
       player.radius * 0.35,
       0,
       Math.PI * 2
@@ -870,8 +863,10 @@ export class EntityRenderer implements IRenderer {
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(px, py, player.radius + 1, 0, Math.PI * 2);
+    ctx.arc(0, 0, player.radius + 1, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
+
     ctx.restore();
   }
 }

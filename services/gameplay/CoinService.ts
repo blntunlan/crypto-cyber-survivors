@@ -131,6 +131,12 @@ class CoinServiceClass {
   private sessionCoins: number = 0;
   private pendingVerifications: Map<string, number> = new Map();
 
+  constructor() {
+    EventBus.on('gameReset', () => {
+      this.resetSession();
+    });
+  }
+
   /**
    * Set the coin provider (mock, blockchain, etc.)
    * Call this early with the appropriate provider for your environment

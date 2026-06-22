@@ -335,4 +335,28 @@ describe('DifficultyManager', () => {
       expect(state.cycleNumber).toBeDefined();
     });
   });
+
+  describe('Cycle Continue Reset', () => {
+    it('should reset per-cycle difficulty state on resetForCycleContinue', () => {
+      DifficultyManager.startGame(1);
+
+      // Accumulate some kill streak
+      mockGameTimeSeconds = 1;
+      DifficultyManager.recordKill();
+      mockGameTimeSeconds = 2;
+      DifficultyManager.recordKill();
+
+      expect(DifficultyManager.getKillStreak()).toBe(2);
+
+      // Perform resetForCycleContinue
+      DifficultyManager.resetForCycleContinue();
+
+      expect(DifficultyManager.getKillStreak()).toBe(0);
+
+      // First kill in new cycle should start fresh at 1, even if done quickly
+      mockGameTimeSeconds = 3;
+      DifficultyManager.recordKill();
+      expect(DifficultyManager.getKillStreak()).toBe(1);
+    });
+  });
 });

@@ -426,6 +426,20 @@ class DifficultyManagerClass {
     Logger.info('[DifficultyManager] V2 State reset');
   }
 
+  resetForCycleContinue(): void {
+    this.killStreak = 0;
+    this.lastKillStreakTime = 0;
+    this.lastShockTime = -20;
+    this.dashCount = 0;
+    this.damageTakenSum = 0;
+    this.killsInWindow = 0;
+    this.windowStartTime = 0;
+
+    difficultyContext.resetForCycleContinue();
+    UnifiedDirector.reset();
+    Logger.info('[DifficultyManager] Cycle continue state reset');
+  }
+
   static resetForTesting(): void {
     if (this.instance) {
       this.instance.unsubscribeFns.forEach(unsub => unsub());

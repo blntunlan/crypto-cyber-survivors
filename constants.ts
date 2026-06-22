@@ -496,8 +496,8 @@ export const CHEATS = {
 export const BENCHMARK = {
   FALLBACK_SCORE: 300,
   MAX_SCORE: 1000,
-  GPU_ITERATIONS: 500,
-  CPU_ITERATIONS: 50000,
+  GPU_ITERATIONS: 100, // Reduced from 500 to run 5x faster
+  CPU_ITERATIONS: 15000, // Reduced from 50000 to run 3.3x faster
   PROGRESS_INFO: 5,
   PROGRESS_GPU: 20,
   PROGRESS_CPU: 60,

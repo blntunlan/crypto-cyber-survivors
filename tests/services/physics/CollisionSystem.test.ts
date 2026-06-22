@@ -939,5 +939,45 @@ describe('CollisionSystem', () => {
       expect(bullet.phase).toBe('shockwave');
       expect(bullet.radius).toBe(5);
     });
+
+    it('should ignore bullet hits on already dying enemies', () => {
+      const enemy = {
+        x: 100,
+        y: 100,
+        radius: 20,
+        active: true,
+        health: 0,
+        maxHealth: 100,
+        type: 'bear',
+        isDying: true,
+        behavior: { move: vi.fn() },
+      };
+      mockPool.activeEnemies = [enemy];
+      const bullet = {
+        x: 100,
+        y: 100,
+        radius: 5,
+        active: true,
+        damage: 10,
+        vx: 0,
+        vy: 0,
+      } as Bullet;
+
+      vi.mocked(mockContext.bulletGrid.forEachNearbyWithContext).mockImplementation(
+        (
+          _x: number,
+          _y: number,
+          context: unknown,
+          callback: (b: any, c: unknown) => void
+        ) => {
+          callback(bullet, context);
+        }
+      );
+
+      collisionSystem.update(mockPool, mockPlayer, mockState, 1, 800, 600, onGameOver);
+
+      expect(CombatResolutionService.handleEnemyDeath).not.toHaveBeenCalled();
+      expect(bullet.active).toBe(true);
+    });
   });
 });

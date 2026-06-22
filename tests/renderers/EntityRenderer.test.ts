@@ -424,8 +424,8 @@ describe('EntityRenderer', () => {
       (renderer as any).drawPlayer(mockCtx, mockPlayer, mockState, true);
 
       expect(mockCtx.arc).toHaveBeenCalledWith(
-        100,
-        100,
+        0,
+        0,
         expect.any(Number),
         0,
         Math.PI * 2
@@ -439,15 +439,7 @@ describe('EntityRenderer', () => {
 
       (renderer as any).drawPlayer(mockCtx, mockPlayer, mockState, true);
 
-      expect(mockCtx.ellipse).toHaveBeenCalledWith(
-        100,
-        100,
-        12,
-        8,
-        0.5,
-        0,
-        Math.PI * 2
-      );
+      expect(mockCtx.ellipse).toHaveBeenCalledWith(0, 0, 12, 8, 0.5, 0, Math.PI * 2);
     });
 
     it('should draw retro player with details', () => {

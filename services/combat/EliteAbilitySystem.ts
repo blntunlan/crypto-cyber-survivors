@@ -21,7 +21,7 @@ export class EliteAbilitySystem {
   private phaseTeleportTimers: WeakMap<Enemy, number> = new WeakMap();
 
   private constructor() {
-    // Private constructor for singleton pattern
+    EventBus.on('gameReset', () => this.reset());
   }
 
   static getInstance(): EliteAbilitySystem {

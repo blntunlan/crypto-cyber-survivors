@@ -10,9 +10,10 @@ Crypto Survivors is a real-time market-driven Vampire Survivors game. Live BTC/U
 
 ```bash
 # Development
-npm run dev              # Vite dev server on port 3000
+npm run dev              # Sync docs + generate sitemap, then Vite dev server (opens browser)
 npm run build            # Production build (terser minification + anti-cheat obfuscation)
 npm run preview          # Preview production build locally
+npm run start            # Serve the built app via server.js (production-style)
 
 # Testing
 npm run test             # Vitest unit tests (2100+)
@@ -22,18 +23,21 @@ npm run test:coverage    # V8 coverage report (70%+ target)
 npm run test:e2e         # Playwright E2E tests (chromium, firefox, webkit, mobile-chrome)
 npm run test:e2e:ui      # Playwright UI mode
 npm run test:e2e:debug   # Playwright debug mode
+npm run test:e2e:beta:critical   # Beta smoke gate (chromium + mobile-chrome)
 
 # Code Quality
 npm run lint             # ESLint (expect 0 errors, 0 warnings)
 npm run lint:fix         # ESLint auto-fix
+npm run typecheck        # tsc --noEmit (strict, no emit)
 npm run format           # Prettier
 npm run lint:ui          # UI consistency audit (typography, colors)
+npm run check:architecture       # Guard: no un-whitelisted singletons (scripts/check-singleton-regressions.mjs)
+npm run check:baseline   # Full gate: typecheck + check:architecture + lint + test + build
 
-# Backend / Database
-npm run supabase:gen     # Regenerate TypeScript types from Supabase schema
-npm run supabase:push    # Apply database migrations
-npm run supabase:functions:deploy  # Deploy edge functions
-cd railway-market-server && npm run validate  # Typecheck + lint + build market server
+# Backend / Deploy (Railway)
+npm run railway:deploy           # railway up (API server)
+npm run railway:market:deploy    # Deploy market server from railway-market-server/
+npm run deploy                   # git push origin main (Railway auto-deploys)
 ```
 
 ## Architecture
@@ -124,7 +128,7 @@ API Server --------[pg]----------> Railway PostgreSQL (all data tables)
 - Singletons must call `reset()` in `beforeEach` to isolate tests
 - Coverage targets `services/**`, `components/**`, `factories/**`
 - Pre-commit hooks (husky + lint-staged) auto-run: ESLint fix, Prettier, related Vitest tests
-- Before PR: `npm run lint && npm run test && npm run build`
+- Before PR: `npm run check:baseline` (runs typecheck + check:architecture + lint + test + build)
 
 ## Commits
 
@@ -144,13 +148,14 @@ Conventional Commits enforced by commitlint: `feat:`, `fix:`, `perf:`, `test:`, 
 3. Wire into `BuffManager.addBuff()`/`addDebuff()`
 4. Emit `buffApplied`/`buffExpired` events for UI
 
-## Known Architectural Issues (see `docs/refactor-roadmap.md`)
+## Known Architectural Issues (see `docs/archived/refactor-roadmap.md`)
 
-Three active issues to be aware of when touching related code:
+Two active issues to be aware of when touching related code:
 
 1. **Reward divergence** — `CoinService.creditCoins` grants coins optimistically; Railway `sessions/verify` endpoint can't reconcile because the client payload omits `exitType`/`portalType`/`maxStreak`. Don't add more optimistic credit calls.
 2. **DifficultyContext leakage** — `cycleFactor` is never cleared between cycles on death/continue, causing compounding difficulty. Call `difficultyContext.reset()` on `handleGameOver` and `handleCashOut`.
-3. **Missing validators** — `GameplayValidator`, `ShopService`, and `GameplaySessionOrchestrator` were deleted. Anti-cheat/marketplace guardrails are absent. A replacement `services/gameplay/validators/` module is planned.
+
+Resolved: anti-cheat guardrails are back — `services/gameplay/validators/` (`GameplayValidator`) now exists; prefer extending it over reintroducing optimistic trust.
 
 ## Backend
 

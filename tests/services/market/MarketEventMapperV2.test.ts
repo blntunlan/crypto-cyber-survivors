@@ -114,13 +114,6 @@ describe('MarketEventMapperV2', () => {
 
       expect(mapper.isEventActive('VOLUME_SPIKE')).toBe(true);
       expect(mapper.getSpawnRateMultiplier()).toBeGreaterThan(1.0);
-      expect(EventBus.emit).toHaveBeenCalledWith(
-        'marketEventActive',
-        expect.objectContaining({
-          type: 'VOLUME_SPIKE',
-          intensity: 0.8,
-        })
-      );
     });
 
     it('should scale effects based on intensity', () => {
@@ -184,7 +177,6 @@ describe('MarketEventMapperV2', () => {
         durationMs: 30000,
       });
 
-      expect(EventBus.emit).toHaveBeenCalledWith('screenShake', expect.any(Object));
       expect(EventBus.emit).toHaveBeenCalledWith(
         'spawnBoss',
         expect.objectContaining({
@@ -267,9 +259,6 @@ describe('MarketEventMapperV2', () => {
       mapper.update(1100);
 
       expect(mapper.isEventActive('VOLUME_SPIKE')).toBe(false);
-      expect(EventBus.emit).toHaveBeenCalledWith('marketEventExpired', {
-        type: 'VOLUME_SPIKE',
-      });
       expect(EventBus.emit).toHaveBeenCalledWith('playerModifierRemoved', {
         source: 'market_VOLUME_SPIKE',
       });

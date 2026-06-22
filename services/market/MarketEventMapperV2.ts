@@ -281,14 +281,6 @@ class MarketEventMapperV2Class {
     effect: MarketEventEffect,
     intensity: number
   ): void {
-    // Screen shake
-    if (effect.screenShake) {
-      EventBus.emit('screenShake', {
-        intensity: effect.screenShakeIntensity,
-        duration: Math.min(2000, effect.durationMs / 4),
-      });
-    }
-
     // Visual overlay
     if (effect.overlayEffect !== 'none') {
       EventBus.emit('visualOverlay', {
@@ -330,14 +322,6 @@ class MarketEventMapperV2Class {
         source: type,
       });
     }
-
-    // Notify UnifiedDirector of market event
-    EventBus.emit('marketEventActive', {
-      type,
-      intensity,
-      spawnModifier: effect.spawnRateMultiplier,
-      eliteModifier: effect.eliteChanceBonus,
-    });
   }
 
   /**
@@ -352,11 +336,6 @@ class MarketEventMapperV2Class {
       const effect = this.activeEffects[i];
       if (effect && now >= effect.endTime) {
         Logger.debug(`[MarketEventMapperV2] ${effect.type} effect expired`);
-
-        // Emit expiration event
-        EventBus.emit('marketEventExpired', {
-          type: effect.type,
-        });
 
         // Remove player modifier
         EventBus.emit('playerModifierRemoved', {

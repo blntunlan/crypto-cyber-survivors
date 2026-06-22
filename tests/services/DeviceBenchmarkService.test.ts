@@ -219,5 +219,20 @@ describe('DeviceBenchmarkService', () => {
       expect(result.profile).toBe(DeviceProfile.MEDIUM);
       expect(DeviceBenchmarkService.getState().status).toBe(BenchmarkStatus.ERROR);
     });
+
+    it('should use hardware-specific baseline for fallback on error', async () => {
+      // Stub high-end GPU renderer
+      vi.spyOn(DeviceBenchmarkService as any, 'getGPURenderer').mockReturnValue(
+        'NVIDIA GeForce RTX 4080'
+      );
+
+      vi.spyOn(DeviceBenchmarkService as any, 'executeBenchmark').mockRejectedValue(
+        new Error('Test error')
+      );
+
+      const result = await DeviceBenchmarkService.runBenchmark(true);
+      expect(result.profile).toBe(DeviceProfile.ULTRA); // RTX 4080 boosts fallback to ULTRA
+      expect(DeviceBenchmarkService.getState().status).toBe(BenchmarkStatus.ERROR);
+    });
   });
 });

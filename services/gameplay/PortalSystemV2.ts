@@ -144,9 +144,6 @@ class PortalSystemV2Class {
     EventBus.on('levelUpComplete', data => {
       this.currentLevel = data.newLevel;
     });
-    EventBus.on('playerLevelUp', data => {
-      this.currentLevel = data.level;
-    });
 
     // Flash crash detection from legacy event
     EventBus.on('clientIndicatorsUpdated', data => {

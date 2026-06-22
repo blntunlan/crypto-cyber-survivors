@@ -158,7 +158,6 @@ export const useGameFlowController = ({
       setUiStats({ ...nextPlayer });
       EventBus.emit('levelUpComplete', { newLevel: nextPlayer.level });
       EventBus.emit('levelUp', { level: nextPlayer.level });
-      EventBus.emit('playerLevelUp', { level: nextPlayer.level });
 
       if (nextPlayer.exp >= nextPlayer.nextLevelExp) {
         handleLevelUp();
@@ -394,7 +393,8 @@ export const useGameFlowController = ({
   const handleContinue = useCallback(() => {
     if (cycleData) {
       // Reset per-cycle state before applying new cycle factor to prevent compounding
-      difficultyContext.resetForCycleContinue();
+      DifficultyManager.resetForCycleContinue();
+      ComboSystem.resetCombo();
       // Apply difficulty multiplier for continuing (risk/reward)
       const cycleFactor = cycleData.continueMultiplier;
       difficultyContext.updateInputs({ cycleFactor });

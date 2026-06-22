@@ -59,7 +59,6 @@ export type GameEvent =
   | 'buffGemCollected'
   | 'marketDataTimeout'
   | 'marketTimeoutWarning'
-  | 'whaleTierChanged'
   | 'rsiStateChanged'
   | 'marketStateUpdated'
   | 'marketStateChanged'
@@ -102,7 +101,6 @@ export type GameEvent =
   | 'sessionSyncFailed'
   // Difficulty System V2 events
   | 'marketUpdate'
-  | 'playerLevelUp'
   | 'playerExperienceChange'
   | 'playerHealthChange'
   | 'gameStart'
@@ -131,8 +129,6 @@ export type GameEvent =
   | 'twitterLoginSuccess'
   | 'twitterUnlinked'
   // AI Director / Optimization events
-  | 'playerDied'
-  | 'playerDeath'
   | 'playerRespawn'
   | 'optimizationProgress'
   | 'trainingProgress'
@@ -149,14 +145,11 @@ export type GameEvent =
   | 'portalRejected'
   | 'portalMissed'
   // Market / Gameplay interaction events
-  | 'screenShake'
   | 'visualOverlay'
   | 'spawnBoss'
   | 'playerModifierApplied'
   | 'playerModifierRemoved'
   | 'marketFlowInfluence'
-  | 'marketEventActive'
-  | 'marketEventExpired'
   // Price Momentum Engine events
   | 'priceMomentumUpdate'
   // Consolidated market event (Step 3)
@@ -361,12 +354,6 @@ export interface MarketStateData {
   whaleTier: 0 | 1 | 2 | 3;
   enemyAggroMultiplier: number;
   updatedAt: Date;
-}
-
-/** Whale tier changed event data */
-export interface WhaleTierChangedEvent {
-  tier: 0 | 1 | 2 | 3;
-  percentile: number;
 }
 
 /** RSI state changed event data */
@@ -734,8 +721,6 @@ export interface EventDataMap {
   afterReset: EmptyEvent;
   gameInitialized: GameInitializedEvent;
   settingsUpdate: SettingsUpdateEvent;
-  playerDied: EmptyEvent;
-  playerDeath: EmptyEvent;
   playerRespawn: EmptyEvent;
   optimizationProgress: { progress: number; iteration?: number; total?: number };
   trainingProgress: {
@@ -764,7 +749,6 @@ export interface EventDataMap {
     blendFactor: number;
     spawnRate: number;
   };
-  whaleTierChanged: WhaleTierChangedEvent;
   rsiStateChanged: RSIStateChangedEvent;
   marketStateUpdated: MarketStateUpdatedEvent;
   xpGained: { amount: number };
@@ -808,7 +792,6 @@ export interface EventDataMap {
   sessionSyncFailed: SessionSyncFailedEvent;
   // Difficulty System V2 events
   marketUpdate: MarketUpdateEvent;
-  playerLevelUp: { level: number };
   playerExperienceChange: { exp: number; nextLevelExp: number; expPercent: number };
   playerHealthChange: { hpPercent: number; hp: number; maxHp: number };
   gameStart: { leverage?: number; position?: 'LONG' | 'SHORT'; entryPrice?: number };
@@ -892,7 +875,6 @@ export interface EventDataMap {
   marketReconnectAttempt: { attempt: number };
 
   // Market Event Mapper V2 events
-  screenShake: { intensity: number; duration: number };
   visualOverlay: {
     effect: 'none' | 'red_flash' | 'green_pulse' | 'blue_calm' | 'purple_chaos';
     intensity: number;
@@ -912,14 +894,6 @@ export interface EventDataMap {
     engagementChange: number;
     source: string;
   };
-  marketEventActive: {
-    type: string;
-    intensity: number;
-    spawnModifier: number;
-    eliteModifier: number;
-  };
-  marketEventExpired: { type: string };
-
   // Gameplay validation events
   gameplayValidation: GameplayValidationEvent;
   // Railway health events

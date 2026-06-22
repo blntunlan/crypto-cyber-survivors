@@ -192,6 +192,15 @@ describe('CollectionSystem', () => {
       expect(gem.active).toBe(false);
       expect(player.exp).toBe(0); // Not collected
     });
+
+    it('should ignore already inactive gems in the active pool', () => {
+      const gem: Gem = { x: 5, y: 5, radius: 5, value: 10, active: false } as any;
+      (mockPool as any).activeGems = [gem];
+
+      system.update(mockPool, player, state, 1);
+
+      expect(player.exp).toBe(0); // Should not have collected the gem
+    });
   });
 
   describe('Buff Gems', () => {

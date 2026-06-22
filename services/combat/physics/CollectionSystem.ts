@@ -69,6 +69,10 @@ export class CollectionSystem implements ICollectionSystem {
     effectiveMagnet: number
   ): void {
     pool.activeGems.forEach(gem => {
+      if (!gem.active) {
+        return;
+      }
+
       // 1. Lifetime check - gems despawn if not collected
       gem.elapsedLifetime ??= 0;
       gem.elapsedLifetime += dtFactor * GAME_ENGINE.MS_PER_FRAME;
