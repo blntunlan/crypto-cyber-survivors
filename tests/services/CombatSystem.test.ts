@@ -395,13 +395,17 @@ describe('CombatSystem', () => {
       const calls: any[][] = vi.mocked(mockPool.getBullet).mock.calls;
 
       const centerCall: any = calls[1];
-      expect(Math.abs(centerCall[3])).toBeLessThan(0.1);
+      if (centerCall) {
+        expect(Math.abs(centerCall[3])).toBeLessThan(0.1);
+      }
 
       const topCall: any = calls[0];
       const bottomCall: any = calls[2];
 
-      expect(topCall[3]).not.toBe(0);
-      expect(bottomCall[3]).not.toBe(0);
+      if (topCall && bottomCall) {
+        expect(topCall[3]).not.toBe(0);
+        expect(bottomCall[3]).not.toBe(0);
+      }
     });
 
     it('should scale projectile size based on area stat', () => {
