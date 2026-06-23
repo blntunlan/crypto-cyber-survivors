@@ -23,6 +23,7 @@ import { type StatDecorator, type DecoratorConstructor } from './BaseDecorator';
 import { EventBus } from '../../core/EventBus';
 import { Logger } from '../../system/Logger';
 import { TimeService } from '../../core/TimeService';
+import { ResetOrchestrator, RESET_PRIORITY } from '../../core/ResetOrchestrator';
 
 /** Constant for permanent effects */
 const PERMANENT_DURATION = -1;
@@ -64,6 +65,15 @@ class BuffManagerClass {
     // Listen for game reset to clear all effects
     EventBus.on('gameReset', () => {
       this.reset();
+    });
+
+    // Register with the GameLifecycle registry for DEV leak detection.
+    // reset() is idempotent; the redundant call during orchestrateReset is safe.
+    ResetOrchestrator.registerResettable({
+      resetName: 'BuffManager',
+      resetPriority: RESET_PRIORITY.GAMEPLAY,
+      reset: () => this.reset(),
+      debugIsClean: () => this.state.activeEffects.length === 0,
     });
   }
 

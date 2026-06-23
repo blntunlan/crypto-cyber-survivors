@@ -8,6 +8,7 @@
 
 import { EventBus } from '../core/EventBus';
 import { TimeService } from '../core/TimeService';
+import { ResetOrchestrator, RESET_PRIORITY } from '../core/ResetOrchestrator';
 import { COLORS, COMBO } from '../../constants';
 import { type ComboDebugState, getDebugTimestamp } from '../../types/DebugState';
 
@@ -91,6 +92,18 @@ class ComboSystemClass {
 
   private constructor() {
     this.setupListeners();
+
+    // Register with the GameLifecycle registry for DEV leak detection.
+    // startGame() (the reset) is idempotent; redundant calls are safe.
+    ResetOrchestrator.registerResettable({
+      resetName: 'ComboSystem',
+      resetPriority: RESET_PRIORITY.GAMEPLAY,
+      reset: () => this.startGame(),
+      debugIsClean: () =>
+        this.state.killStreak === 0 &&
+        this.state.totalKills === 0 &&
+        this.state.totalBonusXp === 0,
+    });
   }
 
   /**

@@ -104,6 +104,13 @@ export class CombatSystem implements ICombatSystem {
     // Identify target - prioritizing enemies currently visible to the player
     const nearest = this.findNearestEnemy(pool, player, screenWidth, screenHeight);
     if (!nearest) {
+      // No on-screen target: clamp the accumulated timer to a single cooldown
+      // interval. Otherwise it keeps growing while no enemy is visible (e.g.
+      // before the first enemy enters the viewport at game start), then drains
+      // one cooldown per frame once a target appears — firing a rapid-fire
+      // burst of catch-up shots. Clamping keeps the weapon "ready" without a
+      // backlog, so the first valid target gets exactly one shot.
+      state.fireTimer = cappedFireRate;
       return false;
     }
 

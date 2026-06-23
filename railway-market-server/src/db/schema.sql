@@ -1,10 +1,69 @@
+-- ============================================================
 -- Railway PostgreSQL Schema for Crypto Survivors
--- 16 tables + 3 views + 6 functions
+-- ============================================================
+-- Current-state snapshot after migrations 000-010.
+-- Source of truth: src/db/migrate.ts (runMigrations applies them).
+-- This file is regenerated from migrate.ts — do not edit by hand.
+--
+-- 27 tables + 4 views + 10 functions + 3 triggers
+-- ============================================================
 
--- 1. profiles
+-- ============================================================
+-- 0. _migrations (internal migration tracking)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS _migrations (
+  id SERIAL PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ============================================================
+-- 1. accounts (Railway-native account foundation)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_type TEXT NOT NULL DEFAULT 'anonymous',
+  status TEXT NOT NULL DEFAULT 'active',
+  display_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_accounts_type CHECK (account_type IN ('anonymous', 'registered', 'service')),
+  CONSTRAINT ck_accounts_status CHECK (status IN ('active', 'suspended', 'deleted'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_accounts_type ON accounts(account_type);
+CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts(status);
+CREATE INDEX IF NOT EXISTS idx_accounts_last_seen ON accounts(last_seen_at DESC);
+
+-- ============================================================
+-- 2. account_identities (Railway-native OAuth links)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS account_identities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  provider_subject TEXT NOT NULL,
+  provider_username TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(provider, provider_subject)
+);
+
+CREATE INDEX IF NOT EXISTS idx_account_identities_account ON account_identities(account_id);
+CREATE INDEX IF NOT EXISTS idx_account_identities_provider ON account_identities(provider);
+
+-- ============================================================
+-- 3. profiles
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_user_id UUID UNIQUE,           -- maps to Railway account id
+  auth_user_id UUID UNIQUE,
   nickname TEXT UNIQUE,
   display_name TEXT,
   avatar_url TEXT,
@@ -18,11 +77,14 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE INDEX IF NOT EXISTS idx_profiles_auth_user_id ON profiles(auth_user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_nickname ON profiles(nickname);
 
--- 2. identities (OAuth provider connections)
+-- ============================================================
+-- 4. identities (OAuth provider connections)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS identities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL,           -- 'twitter', 'google', etc.
+  provider TEXT NOT NULL,
   provider_user_id TEXT NOT NULL,
   provider_username TEXT,
   access_token TEXT,
@@ -35,7 +97,27 @@ CREATE TABLE IF NOT EXISTS identities (
 
 CREATE INDEX IF NOT EXISTS idx_identities_profile_id ON identities(profile_id);
 
--- 3. virtual_accounts (gold balance)
+-- ============================================================
+-- 5. wallets (Railway-native balance — supersedes virtual_accounts)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID UNIQUE NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  profile_id UUID UNIQUE REFERENCES profiles(id) ON DELETE SET NULL,
+  balance BIGINT NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'gold',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_wallets_balance_non_negative CHECK (balance >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallets_profile ON wallets(profile_id);
+
+-- ============================================================
+-- 6. virtual_accounts (legacy gold balance — read-only, kept for wallet_address future)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS virtual_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID UNIQUE NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -44,13 +126,16 @@ CREATE TABLE IF NOT EXISTS virtual_accounts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. ledger (immutable transaction history)
+-- ============================================================
+-- 7. ledger (legacy transaction log — read-only)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS ledger (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   amount BIGINT NOT NULL,
-  transaction_type TEXT NOT NULL,    -- 'game_reward', 'purchase', 'refund', etc.
-  reference_id TEXT,                 -- session_id or other reference
+  transaction_type TEXT NOT NULL,
+  reference_id TEXT,
   metadata JSONB DEFAULT '{}',
   balance_after BIGINT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -60,7 +145,82 @@ CREATE INDEX IF NOT EXISTS idx_ledger_profile_id ON ledger(profile_id);
 CREATE INDEX IF NOT EXISTS idx_ledger_reference_id ON ledger(reference_id);
 CREATE INDEX IF NOT EXISTS idx_ledger_created_at ON ledger(created_at DESC);
 
--- 5. sessions (game sessions for verification + leaderboard)
+-- ============================================================
+-- 8. ledger_entries (Railway-native immutable transaction log)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  amount BIGINT NOT NULL,
+  balance_after BIGINT NOT NULL,
+  entry_type TEXT NOT NULL,
+  reference_type TEXT,
+  reference_id TEXT,
+  idempotency_key TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_ledger_entries_balance_after_non_negative CHECK (balance_after >= 0)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_entries_idempotency
+  ON ledger_entries(account_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_account_created ON ledger_entries(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_wallet_created ON ledger_entries(wallet_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_reference ON ledger_entries(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_profile ON ledger_entries(profile_id);
+
+-- ============================================================
+-- 9. reward_claims (Railway-native idempotent reward claims)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS reward_claims (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID UNIQUE NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  amount BIGINT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'claimed',
+  idempotency_key TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_reward_claims_amount_non_negative CHECK (amount >= 0),
+  CONSTRAINT ck_reward_claims_status CHECK (status IN ('claimed', 'reversed', 'rejected'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reward_claims_idempotency
+  ON reward_claims(account_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_reward_claims_account_created ON reward_claims(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reward_claims_profile ON reward_claims(profile_id);
+
+-- ============================================================
+-- 10. idempotency_keys (API idempotency vault)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
+  key TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  request_hash TEXT,
+  response_body JSONB,
+  status_code INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT now() + INTERVAL '24 hours',
+  UNIQUE(scope, key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_idempotency_keys_account ON idempotency_keys(account_id);
+CREATE INDEX IF NOT EXISTS idx_idempotency_keys_expires ON idempotency_keys(expires_at);
+
+-- ============================================================
+-- 11. sessions (game sessions for verification + leaderboard)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -85,7 +245,10 @@ CREATE INDEX IF NOT EXISTS idx_sessions_profile_id ON sessions(profile_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_is_verified ON sessions(is_verified);
 CREATE INDEX IF NOT EXISTS idx_sessions_verified_pair_survival ON sessions(is_verified, pair, survival_seconds DESC);
 
--- 6. market_state (live market indicators, 1 row per pair)
+-- ============================================================
+-- 12. market_state (live market indicators, 1 row per pair)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS market_state (
   pair TEXT PRIMARY KEY,
   price DOUBLE PRECISION NOT NULL DEFAULT 0,
@@ -111,7 +274,44 @@ CREATE TABLE IF NOT EXISTS market_state (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 7. price_history (24h retention for anti-cheat)
+-- ============================================================
+-- 13. market_runtime_audit (Railway-native runtime audit trail)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS market_runtime_audit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  run_id TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  pair TEXT NOT NULL,
+  source TEXT,
+  run_constants JSONB NOT NULL,
+  tick JSONB NOT NULL,
+  snapshot JSONB NOT NULL,
+  tick_hash TEXT,
+  snapshot_checksum TEXT,
+  client_created_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_market_runtime_audit_seq CHECK (seq >= 0),
+  UNIQUE(account_id, run_id, seq)
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_account_run
+  ON market_runtime_audit(account_id, run_id, seq);
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_profile_created
+  ON market_runtime_audit(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_session_seq
+  ON market_runtime_audit(session_id, seq)
+  WHERE session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_market_runtime_audit_pair_created
+  ON market_runtime_audit(pair, created_at DESC);
+
+-- ============================================================
+-- 14. price_history (24h retention for anti-cheat)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS price_history (
   id BIGSERIAL PRIMARY KEY,
   pair TEXT NOT NULL,
@@ -124,7 +324,10 @@ CREATE TABLE IF NOT EXISTS price_history (
 
 CREATE INDEX IF NOT EXISTS idx_price_history_pair_ts ON price_history(pair, timestamp DESC);
 
--- 8. error_reports
+-- ============================================================
+-- 15. error_reports
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS error_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   error_type TEXT NOT NULL,
@@ -141,7 +344,10 @@ CREATE TABLE IF NOT EXISTS error_reports (
 
 CREATE INDEX IF NOT EXISTS idx_error_reports_created_at ON error_reports(created_at DESC);
 
--- 9. cheat_attempts
+-- ============================================================
+-- 16. cheat_attempts
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS cheat_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -156,7 +362,10 @@ CREATE INDEX IF NOT EXISTS idx_cheat_attempts_profile_id ON cheat_attempts(profi
 CREATE INDEX IF NOT EXISTS idx_cheat_attempts_session_id ON cheat_attempts(session_id);
 CREATE INDEX IF NOT EXISTS idx_cheat_attempts_created_at ON cheat_attempts(created_at DESC);
 
--- 10. device_profiles (analytics)
+-- ============================================================
+-- 17. device_profiles (analytics)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS device_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fingerprint TEXT UNIQUE NOT NULL,
@@ -174,7 +383,10 @@ CREATE TABLE IF NOT EXISTS device_profiles (
 
 CREATE INDEX IF NOT EXISTS idx_device_profiles_fingerprint ON device_profiles(fingerprint);
 
--- 11. performance_metrics (analytics)
+-- ============================================================
+-- 18. performance_metrics (analytics)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS performance_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -198,7 +410,10 @@ CREATE INDEX IF NOT EXISTS idx_performance_metrics_session ON performance_metric
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_profile ON performance_metrics(profile_id);
 CREATE INDEX IF NOT EXISTS idx_performance_metrics_created_at ON performance_metrics(created_at DESC);
 
--- 11b. product_telemetry_events (investor traction analytics)
+-- ============================================================
+-- 19. product_telemetry_events (investor traction analytics)
+-- ============================================================
+
 CREATE TABLE IF NOT EXISTS product_telemetry_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -226,180 +441,51 @@ CREATE INDEX IF NOT EXISTS idx_product_events_type_created ON product_telemetry_
 CREATE INDEX IF NOT EXISTS idx_product_events_season_created ON product_telemetry_events(season_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_product_events_profile_created ON product_telemetry_events(profile_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_product_events_wallet_hash ON product_telemetry_events(wallet_address_hash);
+CREATE INDEX IF NOT EXISTS idx_product_events_session ON product_telemetry_events(session_id);
 
 -- ============================================================
--- VIEW: v_leaderboard
+-- 20. audit_events (Railway-native structured audit log)
 -- ============================================================
-CREATE OR REPLACE VIEW v_leaderboard AS
-SELECT
-  p.id AS profile_id,
-  COALESCE(p.display_name, p.nickname) AS display_name,
-  p.avatar_url,
-  p.primary_auth_provider,
-  s.pair,
-  MAX(s.survival_seconds) AS max_survival_time,
-  SUM(s.kills) AS total_kills,
-  MAX(s.level) AS high_score,
-  COUNT(s.id) AS total_sessions,
-  MAX(s.created_at) AS last_played_at
-FROM sessions s
-JOIN profiles p ON s.profile_id = p.id
-WHERE s.is_verified = true
-GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider, s.pair
-ORDER BY max_survival_time DESC;
+
+CREATE TABLE IF NOT EXISTS audit_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  event_type TEXT NOT NULL,
+  resource TEXT,
+  severity TEXT NOT NULL DEFAULT 'info',
+  metadata JSONB NOT NULL DEFAULT '{}',
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_audit_events_severity CHECK (severity IN ('debug', 'info', 'warn', 'error', 'critical'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_events_account_created ON audit_events(account_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_profile_created ON audit_events(profile_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_type_created ON audit_events(event_type, created_at DESC);
 
 -- ============================================================
--- FUNCTION: credit_coins (atomic gold crediting)
+-- 21. audit_log (legacy audit table — kept for cleanup_old_audit_logs cron)
 -- ============================================================
-CREATE OR REPLACE FUNCTION credit_coins(
-  p_profile_id UUID,
-  p_amount BIGINT,
-  p_transaction_type TEXT,
-  p_reference_id TEXT DEFAULT NULL,
-  p_metadata JSONB DEFAULT '{}'
-) RETURNS TABLE(new_balance BIGINT) AS $$
-DECLARE
-  v_new_balance BIGINT;
-BEGIN
-  -- Atomically update balance
-  UPDATE virtual_accounts
-  SET gold_balance = gold_balance + p_amount,
-      updated_at = now()
-  WHERE profile_id = p_profile_id
-  RETURNING gold_balance INTO v_new_balance;
 
-  -- If no row existed, create one
-  IF NOT FOUND THEN
-    INSERT INTO virtual_accounts (profile_id, gold_balance)
-    VALUES (p_profile_id, GREATEST(0, p_amount))
-    RETURNING gold_balance INTO v_new_balance;
-  END IF;
+CREATE TABLE IF NOT EXISTS audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  resource TEXT NOT NULL,
+  details JSONB DEFAULT '{}',
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-  -- Record in ledger
-  INSERT INTO ledger (profile_id, amount, transaction_type, reference_id, metadata, balance_after)
-  VALUES (p_profile_id, p_amount, p_transaction_type, p_reference_id, p_metadata, v_new_balance);
-
-  RETURN QUERY SELECT v_new_balance;
-END;
-$$ LANGUAGE plpgsql;
+CREATE INDEX IF NOT EXISTS idx_audit_log_profile ON audit_log(profile_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
 
 -- ============================================================
--- FUNCTION: handle_new_profile (auto-create virtual_account)
--- ============================================================
-CREATE OR REPLACE FUNCTION handle_new_profile()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO virtual_accounts (profile_id, gold_balance)
-  VALUES (NEW.id, 0)
-  ON CONFLICT (profile_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS on_profile_created ON profiles;
-CREATE TRIGGER on_profile_created
-  AFTER INSERT ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_new_profile();
-
--- ============================================================
--- FUNCTION: cleanup_old_price_history (used by cron)
--- ============================================================
-CREATE OR REPLACE FUNCTION cleanup_old_price_history(
-  p_cutoff TIMESTAMPTZ,
-  p_batch_size INTEGER DEFAULT 5000
-) RETURNS BIGINT AS $$
-DECLARE
-  v_deleted BIGINT;
-BEGIN
-  WITH deleted AS (
-    DELETE FROM price_history
-    WHERE id IN (
-      SELECT id FROM price_history
-      WHERE timestamp < p_cutoff
-      LIMIT p_batch_size
-    )
-    RETURNING 1
-  )
-  SELECT COUNT(*) INTO v_deleted FROM deleted;
-  RETURN v_deleted;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================
--- FUNCTION: cleanup_old_error_reports (30-day retention)
--- ============================================================
-CREATE OR REPLACE FUNCTION cleanup_old_error_reports(
-  p_days_ago INTEGER DEFAULT 30,
-  p_batch_size INTEGER DEFAULT 5000
-) RETURNS BIGINT AS $$
-DECLARE
-  v_deleted BIGINT;
-BEGIN
-  WITH deleted AS (
-    DELETE FROM error_reports
-    WHERE id IN (
-      SELECT id FROM error_reports
-      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
-      LIMIT p_batch_size
-    )
-    RETURNING 1
-  )
-  SELECT COUNT(*) INTO v_deleted FROM deleted;
-  RETURN v_deleted;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================
--- FUNCTION: cleanup_old_performance_metrics (30-day retention)
--- ============================================================
-CREATE OR REPLACE FUNCTION cleanup_old_performance_metrics(
-  p_days_ago INTEGER DEFAULT 30,
-  p_batch_size INTEGER DEFAULT 5000
-) RETURNS BIGINT AS $$
-DECLARE
-  v_deleted BIGINT;
-BEGIN
-  WITH deleted AS (
-    DELETE FROM performance_metrics
-    WHERE id IN (
-      SELECT id FROM performance_metrics
-      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
-      LIMIT p_batch_size
-    )
-    RETURNING 1
-  )
-  SELECT COUNT(*) INTO v_deleted FROM deleted;
-  RETURN v_deleted;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================
--- FUNCTION: cleanup_old_cheat_attempts (60-day retention)
--- ============================================================
-CREATE OR REPLACE FUNCTION cleanup_old_cheat_attempts(
-  p_days_ago INTEGER DEFAULT 60,
-  p_batch_size INTEGER DEFAULT 5000
-) RETURNS BIGINT AS $$
-DECLARE
-  v_deleted BIGINT;
-BEGIN
-  WITH deleted AS (
-    DELETE FROM cheat_attempts
-    WHERE id IN (
-      SELECT id FROM cheat_attempts
-      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
-      LIMIT p_batch_size
-    )
-    RETURNING 1
-  )
-  SELECT COUNT(*) INTO v_deleted FROM deleted;
-  RETURN v_deleted;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================
--- 12. meta_progression (server-side persistent upgrades)
+-- 22. meta_progression (server-side persistent upgrades)
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS meta_progression (
@@ -415,24 +501,8 @@ CREATE TABLE IF NOT EXISTS meta_progression (
 
 CREATE INDEX IF NOT EXISTS idx_meta_progression_profile ON meta_progression(profile_id);
 
-CREATE OR REPLACE FUNCTION handle_new_meta_progression()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO meta_progression (profile_id, meta_coins, upgrades)
-  VALUES (NEW.id, 0, '{}')
-  ON CONFLICT (profile_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS on_profile_created_meta ON profiles;
-CREATE TRIGGER on_profile_created_meta
-  AFTER INSERT ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_new_meta_progression();
-
 -- ============================================================
--- 13. daily_challenges
+-- 23. daily_challenges
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS daily_challenges (
@@ -454,7 +524,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_challenges_expires ON daily_challenges(expi
 CREATE INDEX IF NOT EXISTS idx_daily_challenges_active ON daily_challenges(is_active) WHERE is_active = true;
 
 -- ============================================================
--- 14. challenge_completions
+-- 24. challenge_completions
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS challenge_completions (
@@ -478,7 +548,7 @@ CREATE INDEX IF NOT EXISTS idx_challenge_completions_session_id ON challenge_com
 CREATE INDEX IF NOT EXISTS idx_challenge_completions_challenge_score ON challenge_completions(challenge_id, score DESC);
 
 -- ============================================================
--- 15. game_replays
+-- 25. game_replays
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS game_replays (
@@ -504,7 +574,7 @@ CREATE INDEX IF NOT EXISTS idx_game_replays_score ON game_replays(profile_id, sc
 CREATE INDEX IF NOT EXISTS idx_game_replays_created ON game_replays(created_at DESC);
 
 -- ============================================================
--- 16. challenge_seed_log (audit)
+-- 26. challenge_seed_log (audit)
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS challenge_seed_log (
@@ -516,6 +586,51 @@ CREATE TABLE IF NOT EXISTS challenge_seed_log (
   generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(challenge_date, challenge_type)
 );
+
+CREATE INDEX IF NOT EXISTS idx_challenge_seed_log_challenge_id ON challenge_seed_log(challenge_id);
+
+-- ============================================================
+-- VIEW: v_leaderboard (one row per player, pair-agnostic)
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_leaderboard AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider
+ORDER BY max_survival_time DESC;
+
+-- ============================================================
+-- VIEW: v_leaderboard_by_pair (one row per player per pair)
+-- ============================================================
+
+CREATE OR REPLACE VIEW v_leaderboard_by_pair AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  s.pair,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider, s.pair
+ORDER BY max_survival_time DESC;
 
 -- ============================================================
 -- VIEW: v_challenge_leaderboard
@@ -554,6 +669,71 @@ SELECT
 FROM meta_progression mp
 JOIN profiles p ON mp.profile_id = p.id
 ORDER BY mp.total_meta_coins_earned DESC;
+
+-- ============================================================
+-- FUNCTION: handle_new_profile (auto-create virtual_account)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION handle_new_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO virtual_accounts (profile_id, gold_balance)
+  VALUES (NEW.id, 0)
+  ON CONFLICT (profile_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_profile_created ON profiles;
+CREATE TRIGGER on_profile_created
+  AFTER INSERT ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_profile();
+
+-- ============================================================
+-- FUNCTION: handle_new_meta_progression (auto-create meta_progression)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION handle_new_meta_progression()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO meta_progression (profile_id, meta_coins, upgrades)
+  VALUES (NEW.id, 0, '{}')
+  ON CONFLICT (profile_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_profile_created_meta ON profiles;
+CREATE TRIGGER on_profile_created_meta
+  AFTER INSERT ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_meta_progression();
+
+-- ============================================================
+-- FUNCTION: prune_old_replays (keep top 5 per player)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION prune_old_replays()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM game_replays
+  WHERE profile_id = NEW.profile_id
+    AND id NOT IN (
+      SELECT id FROM game_replays
+      WHERE profile_id = NEW.profile_id
+      ORDER BY score DESC
+      LIMIT 5
+    );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS after_replay_insert ON game_replays;
+CREATE TRIGGER after_replay_insert
+  AFTER INSERT ON game_replays
+  FOR EACH ROW
+  EXECUTE FUNCTION prune_old_replays();
 
 -- ============================================================
 -- FUNCTION: purchase_meta_upgrade
@@ -646,50 +826,109 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
--- FUNCTION + TRIGGER: prune_old_replays (keep top 5 per player)
+-- FUNCTION: cleanup_old_price_history (24h retention, used by cron)
 -- ============================================================
 
-CREATE OR REPLACE FUNCTION prune_old_replays()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION cleanup_old_price_history(
+  p_cutoff TIMESTAMPTZ,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
 BEGIN
-  DELETE FROM game_replays
-  WHERE profile_id = NEW.profile_id
-    AND id NOT IN (
-      SELECT id FROM game_replays
-      WHERE profile_id = NEW.profile_id
-      ORDER BY score DESC
-      LIMIT 5
-    );
-  RETURN NEW;
+  WITH deleted AS (
+    DELETE FROM price_history
+    WHERE id IN (
+      SELECT id FROM price_history
+      WHERE timestamp < p_cutoff
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS after_replay_insert ON game_replays;
-CREATE TRIGGER after_replay_insert
-  AFTER INSERT ON game_replays
-  FOR EACH ROW
-  EXECUTE FUNCTION prune_old_replays();
+-- ============================================================
+-- FUNCTION: cleanup_old_error_reports (30-day retention)
+-- ============================================================
 
--- ============================================================================
--- AUDIT LOGGING
--- ============================================================================
+CREATE OR REPLACE FUNCTION cleanup_old_error_reports(
+  p_days_ago INTEGER DEFAULT 30,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM error_reports
+    WHERE id IN (
+      SELECT id FROM error_reports
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE TABLE IF NOT EXISTS audit_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  action TEXT NOT NULL,
-  resource TEXT NOT NULL,
-  details JSONB DEFAULT '{}',
-  ip_address TEXT,
-  user_agent TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- ============================================================
+-- FUNCTION: cleanup_old_performance_metrics (30-day retention)
+-- ============================================================
 
-CREATE INDEX IF NOT EXISTS idx_audit_log_profile ON audit_log(profile_id);
-CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
-CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
+CREATE OR REPLACE FUNCTION cleanup_old_performance_metrics(
+  p_days_ago INTEGER DEFAULT 30,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM performance_metrics
+    WHERE id IN (
+      SELECT id FROM performance_metrics
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
 
--- Cleanup function: retain 90 days
+-- ============================================================
+-- FUNCTION: cleanup_old_cheat_attempts (60-day retention)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION cleanup_old_cheat_attempts(
+  p_days_ago INTEGER DEFAULT 60,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM cheat_attempts
+    WHERE id IN (
+      SELECT id FROM cheat_attempts
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- FUNCTION: cleanup_old_audit_logs (90-day retention)
+-- ============================================================
+
 CREATE OR REPLACE FUNCTION cleanup_old_audit_logs(days_ago INT DEFAULT 90, batch_size INT DEFAULT 5000)
 RETURNS INT AS $$
 DECLARE
@@ -706,3 +945,24 @@ BEGIN
   RETURN deleted_count;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- AUTOVACUUM TUNING (high-write tables)
+-- ============================================================
+
+ALTER TABLE ledger SET (
+  autovacuum_vacuum_scale_factor = 0.02,
+  autovacuum_analyze_scale_factor = 0.01
+);
+ALTER TABLE price_history SET (
+  autovacuum_vacuum_scale_factor = 0.02,
+  autovacuum_analyze_scale_factor = 0.01
+);
+ALTER TABLE performance_metrics SET (
+  autovacuum_vacuum_scale_factor = 0.05,
+  autovacuum_analyze_scale_factor = 0.02
+);
+ALTER TABLE error_reports SET (
+  autovacuum_vacuum_scale_factor = 0.05,
+  autovacuum_analyze_scale_factor = 0.02
+);

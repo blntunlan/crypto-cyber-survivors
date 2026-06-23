@@ -54,13 +54,11 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
 
   const teamSection = page.locator('#team');
   await teamSection.scrollIntoViewIfNeeded();
-  await expect(page.getByText('PEOPLE BEHIND THE ENGINE')).toBeVisible();
+  await expect(page.getByText('ONE DEVELOPER, FULL STACK')).toBeVisible();
   await expect(page.getByText('Bulent Unalan')).toBeVisible();
-  await expect(page.getByText('Lead Architect & Founder')).toBeVisible();
-  await expect(page.getByText('Core Contributors')).toBeVisible();
-  await expect(
-    page.getByText('maintain Crypto Survivors in their LinkedIn Experience records')
-  ).toBeVisible();
+  await expect(page.getByText('Solo Developer & Founder')).toBeVisible();
+  await expect(page.getByText('Engine & Gameplay')).toBeVisible();
+  await expect(page.getByText('@blntunlan on GitHub')).toBeVisible();
 
   await page.waitForTimeout(900);
   await teamSection.screenshot({ path: 'output/startup-audit-team.png' });

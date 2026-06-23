@@ -335,8 +335,9 @@ export const GAME_ENGINE = {
   BG_GRADIENT_MAX_R: 30,
   BG_GRADIENT_MAX_G: 30,
   BG_GRADIENT_MAX_B: 60,
-  BG_CANDLE_OPACITY_BASE_MOBILE: 0.15,
-  BG_CANDLE_OPACITY_BASE_DESKTOP: 0.1,
+  // Per-profile base opacity now lives in PERFORMANCE_PRESETS (candleOpacity).
+  // This is an additive boost for mobile screens (dimmer, sRGB-limited).
+  BG_CANDLE_OPACITY_MOBILE_BOOST: 0.05,
   BG_CANDLE_OPACITY_STEP: 0.02,
   BG_CANDLE_SHADOW_BLUR: 10,
   BG_CANDLE_WICK_WIDTH_FACTOR: 0.5,

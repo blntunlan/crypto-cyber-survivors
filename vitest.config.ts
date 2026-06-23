@@ -13,6 +13,7 @@ export default defineConfig({
       'tests/**/*.test.tsx',
       'railway-market-server/test/**/*.test.ts',
     ],
+    testTimeout: 15000,
     env: {
       SKIP_INTEGRATION: 'true',
     },

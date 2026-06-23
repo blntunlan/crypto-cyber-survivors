@@ -462,6 +462,7 @@ export class PoolManager implements IPoolManager {
           e.maxHealth = e.health;
           e.valueMultiplier = tierConfig.valueMultiplier;
         }
+        e.whaleTier = tier;
         e.speed *= speedMultiplier;
         return e;
       },
@@ -487,6 +488,7 @@ export class PoolManager implements IPoolManager {
           obj.maxHealth = obj.health;
           obj.valueMultiplier = tierConfig.valueMultiplier;
         }
+        obj.whaleTier = tier;
         obj.speed *= speedMultiplier;
       }
     );

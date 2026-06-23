@@ -110,7 +110,9 @@ export function generateBackgroundCandles(
 export function generateDefaultCandles(width: number, height: number): Candle[] {
   return generateBackgroundCandles(width, height, {
     profile: 'MEDIUM' as never,
-    candleCount: 70,
+    candleCount: 55,
+    candleOpacity: 0.19,
+    bgBrightnessFloor: 5,
     shadowsEnabled: false,
     glowEnabled: false,
     particleMultiplier: 1.0,

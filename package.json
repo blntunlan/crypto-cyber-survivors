@@ -15,8 +15,9 @@
     "lint:ui": "npx ts-node scripts/ui-consistency-audit.ts",
     "typecheck": "tsc --noEmit --pretty false",
     "check:architecture": "node scripts/check-singleton-regressions.mjs",
+    "check:reset-coverage": "node scripts/check-reset-coverage.mjs",
     "check:beta-env": "tsx scripts/check-beta-env.ts",
-    "check:baseline": "npm run typecheck && npm run check:architecture && npm run lint && npm run test && npm run build",
+    "check:baseline": "npm run typecheck && npm run check:architecture && npm run check:reset-coverage && npm run lint && npm run test && npm run build",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:audit": "node scripts/test-audit.mjs",
@@ -94,7 +95,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.50.0",
     "vite": "^6.4.1",
-    "vitest": "^4.0.16"
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=20.0.0"

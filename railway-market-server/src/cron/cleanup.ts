@@ -147,6 +147,21 @@ export class CleanupCron {
         Logger.debug('[Cleanup] cleanup_old_cheat_attempts function not yet available');
       }
 
+      // 5. Audit logs (90-day retention)
+      try {
+        const auditResult = await db.execute(
+          sql`SELECT cleanup_old_audit_logs(90, ${BATCH_SIZE})`
+        );
+        const auditRow = auditResult.rows[0] as { cleanup_old_audit_logs?: string } | undefined;
+        const auditDeleted = Number(auditRow?.cleanup_old_audit_logs ?? 0);
+        if (auditDeleted > 0) {
+          totalDeleted += auditDeleted;
+          Logger.info(`[Cleanup] Deleted ${auditDeleted} old audit_log records`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_audit_logs function not yet available');
+      }
+
       const duration = Date.now() - startTime;
       this.lastCleanup = new Date();
       this.totalDeleted += totalDeleted;

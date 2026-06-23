@@ -203,10 +203,16 @@ describe('Game Entry Flow', () => {
       );
     });
 
-    // Should show LandingPage first
-    await waitFor(() => {
-      expect(screen.getByText(/HIGH STAKES/i)).toBeInTheDocument();
-    });
+    // Should show LandingPage first. The initial App mount resolves several
+    // async effects (UserPersistenceService.initialize, etc.); under heavy
+    // parallel-suite CPU load this can exceed waitFor's 1000ms default, so give
+    // it explicit headroom rather than a fixed sleep.
+    await waitFor(
+      () => {
+        expect(screen.getByText(/HIGH STAKES/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     const launchBtn = screen.getByText(/EXECUTE ENGINE/i);
     await act(async () => {

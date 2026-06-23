@@ -552,10 +552,10 @@
       "protocol_cyber": "प्रोटोकॉल: साइबर"
     },
     "stats": {
-      "tests_passing": "Tests Passing",
-      "singleton_services": "Singleton Services",
-      "target_performance": "Target Performance",
-      "event_types": "Event Types"
+      "performance_target": "Performance Target",
+      "languages": "Languages",
+      "live_market": "Live Market Data",
+      "open_source": "Open Source"
     },
     "terminal": {
       "initializing": "INITIALIZING_SUBSYSTEMS...",

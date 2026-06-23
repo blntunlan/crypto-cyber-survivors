@@ -1,183 +1,130 @@
 # AGENTS.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+Guidance for AI agents working in the **Crypto Survivors** repository. Verified against config and source on 2026-06-23.
 
-## Project Summary
+## Project
 
-**Crypto Survivors** is a real-time market-driven Vampire Survivors-style game. Live BTC/USD price data from Binance/Coinbase WebSockets dynamically adjusts difficulty, enemy behavior, and rewards. Built with React 19 + TypeScript 5.8 + Vite 6, targeting stable 60 FPS on mobile and desktop.
+Real-time market-driven Vampire Survivors–style game. Live BTC/USD price feeds dynamically adjust difficulty, enemy behavior, and rewards. React 19 + TypeScript 5.8 + Vite 6, targeting stable 60 FPS on mobile and desktop. Node ≥ 20.
 
 ## Commands
 
 ```bash
-# Development
-npm run dev              # Vite dev server on port 3000
-npm run build            # Production build (terser + anti-cheat obfuscation, no source maps)
-npm run preview          # Serve production build locally
+# Dev / build (root)
+npm run dev          # sync-docs + generate-sitemap + vite --open  (port 3000, host 0.0.0.0)
+npm run build        # production: terser obfuscation, no source maps, assets dir renamed /a/
+npm run preview      # vite preview (built output)
+npm run start        # node server.js — production-style Express server (NOT a vite command)
 
-# Testing
-npm run test             # Vitest unit tests (2100+)
-npm run test:watch       # Vitest watch mode (TDD)
-npx vitest run tests/services/SpawnSystem.test.ts  # Run a single test file
-npm run test:coverage    # V8 coverage report (70%+ target)
-npm run test:e2e         # Playwright E2E (chromium, firefox, webkit, mobile-chrome)
-npm run test:e2e:ui      # Playwright UI mode
-npm run test:e2e:debug   # Playwright debug mode
+# Tests (Vitest, jsdom, pool: forks)
+npm run test                              # runs ALL tests incl. railway-market-server/test/**
+npx vitest run tests/services/Foo.test.ts # single file
+npm run test:watch                        # TDD mode
+npm run test:coverage                     # V8 coverage; targets services/**, components/**, factories/**
+npm run test:audit                        # test-suite structure audit
 
-# Code Quality
-npm run lint             # ESLint (expect 0 errors, 0 warnings)
-npm run lint:fix         # ESLint auto-fix
-npm run format           # Prettier
-npm run lint:ui          # UI consistency audit (typography, colors)
-npm run security:check   # Dependency vulnerability scan
+# E2E (Playwright)
+npm run test:e2e                          # auto-starts `npx vite` webServer (reuse-first), ?no-sw=true baseURL
+npm run test:e2e:ui | test:e2e:debug | test:e2e:headed
+npm run test:e2e:beta:critical            # smoke gate (chromium + mobile-chrome)
+npm run test:e2e:triage                   # run-e2e-triage.mjs
 
-# Backend / Database
-npm run supabase:gen     # Regenerate types/supabase.ts from live schema
-npm run supabase:push    # Apply database migrations
-npm run supabase:functions:deploy  # Deploy edge functions
-npm run supabase:functions:serve   # Serve edge functions locally (no JWT)
+# Code quality / gates
+npm run lint | lint:fix | format | typecheck | lint:ui
+npm run check:architecture                # new singletons must be in config/architecture/singleton-whitelist.json or CI fails
+npm run check:reset-coverage              # every singleton with reset() must have coverage
+npm run security:check
 
-# Market Server (separate project)
-cd railway-market-server && npm run validate  # Typecheck + lint + build
+npm run check:baseline                    # THE full gate: typecheck → check:architecture → check:reset-coverage → lint → test → build
+                                          # (this is what CI runs — do not substitute lint+test+build)
 
-# Deployment
-npm run deploy           # git push origin main (Railway auto-deploys on push)
-npm run railway:market:deploy  # Deploy market server
+# Deploy
+npm run deploy                # git push origin main (Railway auto-deploys frontend)
+npm run railway:deploy        # railway up (API server)
+npm run railway:market:deploy # deploy from railway-market-server/
 
 # Other
-npm run train:ai         # Evolutionary NEAT trainer for enemy AI
+npm run train:ai              # NEAT evolutionary trainer for enemy AI (tsx simulation/...)
 ```
+
+## Multi-Package Layout
+
+Three independent packages — each has its own `package.json`, `tsconfig.json`, ESLint config, and lockfile:
+
+- **Root** — the React/Vite game frontend.
+- **`railway-market-server/`** — stateless REST API (profile, sessions, wallet, leaderboard, telemetry). Owns the Postgres schema in `src/db/schema.sql` (27 tables, 4 views, 10 functions). Migrations run automatically on startup via `src/db/migrate.ts` (000–010). `npm run validate` (typecheck + lint + build) inside the dir.
+- **`railway-market-aggregator/`** — stateful market pipeline: Binance/Coinbase WS → Indicators → SSE stream to clients + `price_history`/`market_state` DB writes + cleanup cron. `npm run validate` inside the dir.
+
+Root `tsc --noEmit` and ESLint **exclude** both `railway-*` dirs and `scripts/` — they use different tsconfigs/runtime (Deno-style functions historically). The root `npm test` **does** include `railway-market-server/test/**` (see `vitest.config.ts`), so a market-server test failure breaks the root suite. CI runs `server-validate` for both `railway-*` packages.
+
+## Backend & Data Flow
+
+**Supabase = Auth only** (login/signup/JWT). No DB, no edge functions, no migrations from this repo. `supabase/functions/` is empty.
+
+**Railway Postgres** holds all game data (schema in `railway-market-server/src/db/schema.sql`; migrations are manual SQL files under `supabase/migrations/`).
+
+```
+Client --[supabase-js]--> Supabase Auth (JWT only)
+Client --[SSE]----------> Market Aggregator /api/v1/market/stream  (price + indicators, ~1s)
+Client --[fetch]--------> API Server /api/v1/* (profile, sessions, wallet, leaderboard, telemetry)
+Aggregator --[WS]--> Binance/Coinbase   →  API Server uses same Postgres
+```
+
+- `services/api/RailwayClient.ts` — HTTP client, auto-attaches Supabase JWT.
+- `services/market/SSEMarketService.ts` — EventSource; reads `VITE_MARKET_AGGREGATOR_URL` and falls back to `VITE_RAILWAY_API_URL`.
+- Two Railway services (API server + aggregator) share the same Postgres and deploy independently.
+
+Market → gameplay: WS → Aggregator → SSE → `SSEMarketService` → `MarketIndicatorService` → `UnifiedDirector` + `FlowStateManager` → `DifficultyContext` → SpawnSystem / CombatSystem / BuffManager.
 
 ## Architecture
 
-### Layer Overview
+- Layered: Presentation (React + `useRef`, never `useState` for 60fps data) ↔ `GameEngine.tsx` (`requestAnimationFrame` loop) ↔ singleton service layer ↔ data layer (Zustand for settings/progress only, Railway API for cloud, localStorage offline).
+- Services live under `services/{category}/` (core, combat, difficulty, market, gameplay, auth, system, renderers, patterns/decorators, etc.). Each singleton: `class FooClass { static getInstance() }` and `export const Foo = FooClass.getInstance()` at file bottom.
+- `EventBus` — type-safe Observer across systems; 40+ events in `types/events.ts`. `on()` returns an unsubscribe; always clean up.
+- `GameStateMachine` enforces `MENU → PLAYING → PAUSED / LEVEL_UP / GAMEOVER`.
+- `UnifiedDirector` (`services/difficulty/UnifiedDirector.ts`) is the runtime difficulty pipeline — it replaced direct `DifficultyManager` calls in the hot path. `DifficultyContext` (`services/difficulty/DifficultyContext.ts`) holds mutable difficulty state and **must be `reset()` on game-over, cash-out, and continue** — see handlers in `hooks/useGameFlowController.ts` (lines 185/389/419). The legacy `cycleFactor`-leak regression is guarded by `tests/services/difficulty/DifficultyContextReset.test.ts`.
+- `@/*` path alias maps to the project root (tsconfig + vite.config + vitest.config).
 
-```
-Presentation (React components, HUD, screens)
-    ↕ EventBus + useRef (never useState for 60fps data)
-Game Engine (components/GameEngine.tsx — requestAnimationFrame loop)
-    ↕
-Service Layer (42+ singletons in services/)
-    ↕
-Data Layer (Zustand: settings/progress | Supabase: cloud | localStorage: offline)
-```
+## Performance Rules (non-negotiable for 60 FPS)
 
-### Service Layer Organization
-
-Services live under `services/{category}/`. Key categories:
-- `core/` — `EventBus`, `TimeService`, `MetricsService`
-- `combat/` — `PhysicsSystem`, `SpawnSystem`, `PoolManager`, `SpatialGrid`
-- `difficulty/` — `UnifiedDirector`, `DifficultyContext`, `DifficultyManager`, `FlowStateManager`
-- `market/` — `MarketService` (WebSocket feeds), `MarketIndicatorService` (RSI, ATR, volume)
-- `gameplay/` — `PortalSystem`, validators (planned)
-- `auth/` — `GameSessionService`
-- `system/` — `AntiCheatService`
-- `patterns/decorators/` — `BuffManager`, `BaseDecorator`, buff/debuff subclasses
-- `renderers/` — layer-specific canvas drawing logic
-
-All services are singletons accessed via `ServiceClass.getInstance()`, with `export const MyService = MyServiceClass.getInstance()` at the bottom of each file.
-
-### Market → Gameplay Data Flow
-
-```
-Binance/Coinbase WebSocket → MarketService → MarketIndicatorService (RSI, ATR, Volume)
-    → UnifiedDirector (services/difficulty/UnifiedDirector.ts) + FlowStateManager
-    → DifficultyContext → SpawnSystem, CombatSystem, BuffManager
-```
-
-`UnifiedDirector` is the runtime difficulty pipeline (replaces direct `DifficultyManager` calls in the hot path). `DifficultyContext` (`services/difficulty/DifficultyContext.ts`) holds mutable difficulty state and **must** be reset on game-over and cash-out, not just on `gameStart`.
-
-### State Machine
-
-`GameStateMachine` enforces validated transitions: `MENU → PLAYING → PAUSED / LEVEL_UP / GAMEOVER`. `App.tsx` handles screen routing driven by this machine.
-
-### EventBus Pattern
-
-Type-safe Observer across all systems. 40+ event types in `types/events.ts`.
-
-```typescript
-const unsub = EventBus.on('enemyKilled', (data) => { /* fully typed */ });
-EventBus.emit('enemyKilled', { x, y, type: 'bear' });
-// unsub() to clean up
-```
-
-### Zustand Store
-
-Slice pattern in `stores/`. **Only** for settings, progress, and session tracking — never for game-loop data. Access via selectors: `useGameStore(selectGraphics)`.
-
-## Critical Performance Rules
-
-These are non-negotiable for maintaining 60 FPS:
-
-1. **No `useState`/`setState` in the game loop** — use `useRef` or singleton services for anything updating at 60 FPS inside `GameEngine.tsx`.
-2. **No allocations in the render loop** — no `new Object()`, `[].map()`, `[].filter()` inside the RAF loop. Use pre-allocated arrays.
-3. **Object pooling required** — all high-frequency entities (bullets, enemies, particles) must use `PoolManager` (`services/combat/PoolManager.ts`) for O(1) alloc/dealloc with zero GC pressure. `PoolManager.getBullet()` / `PoolManager.releaseBullet(bullet)`.
-4. **Spatial hashing for collision** — use `SpatialGrid` (`services/combat/SpatialGrid.ts`) for O(N/k) neighbor lookup. Never O(N²) collision loops.
-5. **Pause-aware timing** — use `TimeService.setTimeout()` instead of native `setTimeout()` so timers freeze during pause/level-up.
-6. **Canvas rendering** — use `requestAnimationFrame`, never `setInterval`. Batch draw calls to minimize context switches. Use `OffscreenCanvas` for background pre-rendering.
+1. No `useState`/`setState` in the game loop — use `useRef` or singleton services inside `GameEngine.tsx`.
+2. No allocations in the RAF loop — no `new Object()`, `[].map()`, `[].filter()`; use pre-allocated arrays.
+3. Object pooling required for high-frequency entities (bullets, enemies, particles) via `services/combat/PoolManager.ts` (`getBullet()` / `releaseBullet()`).
+4. `SpatialGrid` for collisions (`services/combat/SpatialGrid.ts`) — never O(N²) loops.
+5. Pause-aware timing — `TimeService.setTimeout()`, not native `setTimeout()` (timers must freeze during pause/level-up).
+6. `requestAnimationFrame` only, never `setInterval`; batch canvas draw calls; `OffscreenCanvas` for background pre-render.
 
 ## Code Conventions
 
-### TypeScript
-- Strict mode with `noUncheckedIndexedAccess: true` — no `any` in app code (`any` is allowed in test files)
-- Use `type` over `interface` for consistency
-- Use type-only imports: `import { type Foo } from './bar'` (ESLint-enforced)
-- Prefix unused parameters with `_`
-- Discriminated unions for type narrowing: `type: 'bear' | 'bull'`
+- TS strict + `noUncheckedIndexedAccess: true`; no `any` in app code (allowed in tests). `type` over `interface`. Type-only imports enforced: `import { type Foo } from './bar'`. Prefix unused params with `_`.
+- Discriminated unions for narrowing (e.g. `type: 'bear' | 'bull'`).
+- Naming: `FooClass` (class) / `Foo` (exported singleton) · `PascalCase.tsx` components · `useFoo.ts` hooks · `SCREAMING_SNAKE_CASE` constants. Centralize all magic numbers in `config/` — never hardcode in services.
+- ESLint relaxation specifics: bitwise, labels, and `++` in for-loops are allowed for game code; `no-console` warns (allowed: `warn`, `error`).
+- Test files relax `no-explicit-any`, `no-non-null-assertion`, `no-console`.
 
-### Naming
-- Services: `MyServiceClass` (class), `MyService` (exported singleton)
-- Components: `PascalCase.tsx`
-- Hooks: `useMyHook.ts`
-- Constants: `SCREAMING_SNAKE_CASE` in `config/` or `constants/`
-- Config values: centralize all "magic numbers" in `config/` — never hardcode in services
+## Testing Quirks
 
-### Path Alias
-`@/*` maps to the project root (configured in `tsconfig.json` and `vite.config.ts`).
+- Unit/integration: `tests/**/*.test.ts(x)` — Vitest, jsdom, `pool: 'forks'`, `SKIP_INTEGRATION=true` injected via config. Setup in `tests/setup.ts` mocks Canvas, Howler, localStorage, `matchMedia`, `AudioContext`, `import.meta.env`, `requestAnimationFrame`, `WebSocket`, `fetch`, ResizeObserver. MSW handlers in `tests/mocks/handlers.ts`.
+- E2E: `e2e/**/*.spec.ts` — Playwright. `webServer.command` is `npx vite` (not `npm run dev`, so no doc-sync/sitemap side effects). `reuseExistingServer: true`. Committed `e2e/storage-state.json` + `e2e/global-setup.ts`. `?no-sw=true` base URL disables the service worker. CI only runs the `@smoke` subset on chromium; full matrix (`chromium`, `mobile-chrome`, `firefox`, `webkit`) locally.
+- Singletons with `reset()` must call it in `beforeEach` — `check:reset-coverage` enforces coverage. Coverage target: services/components/factories, global 70%+.
 
-## Testing
+## Workflow & Architecture Guardrails
 
-- **Unit/integration**: `tests/**/*.test.ts(x)` — Vitest with jsdom, pool: forks
-- **E2E**: `e2e/**/*.spec.ts` — Playwright (auto-starts dev server); includes a11y (`@axe-core/playwright`), performance, and stability sub-suites
-- **Singletons must call `reset()` in `beforeEach`** to isolate state between tests
-- Coverage targets `services/**`, `components/**`, `factories/**`; global target is 70%+
-- Pre-commit hooks (husky + lint-staged) auto-run: ESLint fix, Prettier, related Vitest tests
-- CI baseline before PR: `npm run lint && npm run test && npm run build`
+- **Conventional Commits** enforced by commitlint (`feat:`, `fix:`, `perf:`, `test:`, `docs:`, `chore:`; optional scopes like `feat(auth):`).
+- **Pre-commit** (husky + lint-staged): eslint --fix, prettier, `vitest related --run --pool=forks --maxWorkers=1 --bail=1` on changed `*.{ts,tsx}`, ui-consistency-audit on `components/**/*.tsx`. Market-server changes run `scripts/run-market-typecheck.js`.
+- **Pre-push**: re-runs `npm run build`; if `railway-market-server/` changed, installs deps there and runs typecheck + build.
+- **New singletons** must be added to `config/architecture/singleton-whitelist.json` or `check:architecture` fails CI. Prefer `GameRuntime` or explicit DI for session state instead of new singletons.
+- **Anti-cheat**: extend `services/gameplay/validators/` (`GameplayValidator`, actively used by `MetaProgressionService` / `InventoryService`) — do **not** reintroduce optimistic `CoinService.creditCoins` reward calls; rewards are server-verified via `POST /api/v1/sessions/verify` (`railway-market-server/src/routes/sessions.ts`), which now consumes `exitType`/`portalType`/`maxStreak`.
+- **Env**: `VITE_MARKET_RUNTIME_MODE` (`legacy`|`dual`|`runtime`) toggles the market-runtime authority path. Beta/prod must keep `VITE_VERIFY_COINS_ONLY=true` and `VITE_ANTI_CHEAT_SPEED_HACK_ENABLED=true`. Backend secrets (no `VITE_` prefix) live in `railway-market-server/.env`, not the frontend service.
 
-## Adding New Game Elements
+## Adding Game Elements
 
-### New Enemy Type
-1. Define config in `config/EnemyRegistry.ts`
-2. Add factory logic in `factories/EnemyFactory.ts`
-3. Update `services/combat/SpawnSystem.ts` spawn logic
-4. Register pool in `PoolManager.ts` if a new pool is needed
+**New enemy**: define config in `config/EnemyRegistry.ts` → factory in `factories/EnemyFactory.ts` → update `services/combat/SpawnSystem.ts` → register a pool in `PoolManager.ts` if needed.
 
-### New Buff/Debuff
-1. Create decorator in `services/patterns/decorators/buffs/` or `debuffs/`
-2. Extend `BaseDecorator`, implement `decorate(stats: IPlayerStats)`
-3. Wire into `BuffManager.addBuff()` / `addDebuff()`
-4. Emit `buffApplied` / `buffExpired` events for UI
+**New buff/debuff**: create a decorator in `services/patterns/decorators/buffs/` or `debuffs/` extending `BaseDecorator` → implement stat modifications → wire into `BuffManager.addBuff()`/`addDebuff()` → emit `buffApplied`/`buffExpired` events for UI.
 
 ## Debugging Tools
 
-- **Admin Dashboard**: `Ctrl + Shift + A` — metrics, price analysis panels
-- **Cheat Manager**: `F1` (dev mode only) — god mode, XP boost
-- **EventBus tracing**: `EventBus.enableTracing()` to log all events in the console
-- **Debug panels**: `DebugService.registerPanel('MyDebug', () => ({...}))`
-
-## Known Architectural Issues
-
-Three active issues to be aware of (see `docs/refactor-roadmap.md`):
-
-1. **Reward divergence** — `CoinService.creditCoins` grants coins optimistically; the `verify-game` edge function cannot reconcile because the client payload omits `exitType`/`portalType`/`maxStreak`. Do not add more optimistic credit calls.
-2. **DifficultyContext leakage** — `cycleFactor` is never cleared between cycles on death/continue, causing compounding difficulty. Call `difficultyContext.reset()` on `handleGameOver` and `handleCashOut`.
-3. **Missing validators** — `GameplayValidator`, `ShopService`, and `GameplaySessionOrchestrator` were deleted. A replacement `services/gameplay/validators/` module is planned. Anti-cheat/marketplace guardrails are currently absent.
-
-## Backend
-
-- **Supabase**: PostgreSQL with RLS enabled on all tables, edge functions in `supabase/functions/`. Schema types are generated into `types/supabase.ts` via `npm run supabase:gen`. Use `services/auth/GameSessionService.ts` for authenticated sessions.
-- **Railway Market Server**: Standalone WebSocket aggregator in `railway-market-server/` — a separate TypeScript project with its own `package.json`, `tsconfig.json`, and `eslint.config.mjs`. Validates with `npm run validate` inside that directory. Handles Binance/Coinbase feed aggregation and HMAC price verification.
-- **Deployment**: Railway auto-deploys the frontend on push to `main`. Supabase migrations applied via `npm run supabase:push`.
-
-## Commits
-
-Conventional Commits enforced by commitlint: `feat:`, `fix:`, `perf:`, `test:`, `docs:`, `chore:`. Optional scopes are common: `feat(auth): ...`.
+- Admin Dashboard: `Ctrl + Shift + A`.
+- Cheat Manager: `F1` (dev mode only).
+- EventBus tracing: `EventBus.enableTracing()`.
+- Custom debug pane: `DebugService.registerPanel('MyDebug', () => ({ ... }))`.

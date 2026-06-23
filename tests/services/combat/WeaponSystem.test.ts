@@ -59,6 +59,18 @@ describe('WeaponSystem', () => {
     WeaponSystem.reset();
   });
 
+  it('clears the weapon inventory on gameReset (no leak between runs)', () => {
+    // Simulate a previous run that acquired the laser.
+    WeaponSystem.addWeapon('laser');
+    expect(WeaponSystem.hasWeapon('laser')).toBe(true);
+
+    // Canonical reset path fired by GameStateManager.resetAll on every new run.
+    EventBus.emit('gameReset', {});
+
+    expect(WeaponSystem.hasWeapon('laser')).toBe(false);
+    expect(WeaponSystem.getWeapons()).toHaveLength(0);
+  });
+
   it('evolves maxed quantum bullet and laser into hyper cannon', () => {
     const emitSpy = vi.spyOn(EventBus, 'emit');
 

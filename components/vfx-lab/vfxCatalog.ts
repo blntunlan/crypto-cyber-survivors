@@ -15,6 +15,9 @@ import { BoomerangPreview } from './previews/BoomerangPreview';
 import { QuantumBulletPreview } from './previews/QuantumBulletPreview';
 import { SpreadShotPreview } from './previews/SpreadShotPreview';
 import { AoeNukePreview } from './previews/AoeNukePreview';
+import { LightningNetworkPreview } from './previews/LightningNetworkPreview';
+import { LiquidityVortexPreview } from './previews/LiquidityVortexPreview';
+import { BollingerPulsePreview } from './previews/BollingerPulsePreview';
 import { GameFeelJuicePreview } from './previews/GameFeelJuicePreview';
 
 export const VFX_CATALOG: ReadonlyArray<VfxPreviewModule> = [
@@ -25,4 +28,7 @@ export const VFX_CATALOG: ReadonlyArray<VfxPreviewModule> = [
   BoomerangPreview,
   AoeNukePreview,
   OrbitShieldPreview,
+  LightningNetworkPreview,
+  LiquidityVortexPreview,
+  BollingerPulsePreview,
 ];

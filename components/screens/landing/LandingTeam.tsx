@@ -1,30 +1,32 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users } from 'lucide-react';
+import { trackRender } from '../../../utils/trackRender';
+import { ArrowUpRight, Gamepad2, Database, Rocket } from 'lucide-react';
 import { staggerContainer, fadeInUp } from './motionVariants';
 
+const REPO_URL = 'https://github.com/blntunlan/crypto-cyber-survivors';
+
 export const LandingTeam: React.FC = () => {
-  const teamMembers = [
+  trackRender('LandingTeam');
+
+  const scope = [
     {
-      name: 'Bulent Unalan',
-      role: 'Lead Architect & Founder',
-      summary:
-        'Owns engine architecture, C-SYNC protocol design, and end-to-end performance discipline.',
-      proof: 'Company profile: Crypto Survivors',
+      icon: Gamepad2,
+      area: 'Engine & Gameplay',
+      detail:
+        'Combat, physics, spawning, buffs, and the 60 FPS render loop — the singleton service layer.',
     },
     {
-      name: 'Core Contributors',
-      role: 'Engine, QA, and Infrastructure',
-      summary:
-        'Contributors focused on gameplay systems, anti-cheat, CI quality gates, and deployment reliability.',
-      proof: 'Public contribution log available on GitHub',
+      icon: Database,
+      area: 'Market & Backend',
+      detail:
+        'Binance/Coinbase ingestion, indicator pipeline, the SSE aggregator, and the Railway API.',
     },
     {
-      name: 'Market & Operations Support',
-      role: 'Data Pipeline and Product Ops',
-      summary:
-        'Supports market feed resilience, production monitoring, and release operations for the live runtime.',
-      proof: 'Verification references maintained in company records',
+      icon: Rocket,
+      area: 'Release & Ops',
+      detail:
+        'CI quality gates, anti-cheat, deployments, and production monitoring for the live runtime.',
     },
   ];
 
@@ -42,18 +44,52 @@ export const LandingTeam: React.FC = () => {
           className="mb-12 text-center sm:mb-16"
         >
           <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
-            TEAM / ABOUT
+            WHO BUILDS THIS
           </h2>
           <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
-            PEOPLE BEHIND THE ENGINE
+            ONE DEVELOPER, FULL STACK
           </div>
-          <p className="mx-auto mt-6 max-w-3xl font-mono text-sm leading-relaxed text-slate-400 sm:text-base">
-            Crypto Survivors is built as a public, digital-native software company. This
-            section documents who is responsible for product, infrastructure, and
-            runtime reliability.
+          <p className="mx-auto mt-6 max-w-2xl font-mono text-sm leading-relaxed text-slate-400 sm:text-base">
+            Crypto Survivors is a solo project. No studio, no fake roster — one person
+            owns the engine, the backend, and everything that ships.
           </p>
         </motion.div>
 
+        {/* Founder card */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={fadeInUp}
+          className="mx-auto mb-8 max-w-3xl border border-[#d6b85c]/25 bg-[#d6b85c]/[0.04] p-6 sm:p-8"
+        >
+          <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222] font-cyber text-2xl font-black text-white">
+              BU
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-black uppercase tracking-widest text-[#d6b85c]">
+                Solo Developer &amp; Founder
+              </p>
+              <p className="text-2xl font-bold text-white">Bulent Unalan</p>
+              <p className="mt-3 font-mono text-sm leading-relaxed text-slate-300">
+                Designs and builds the whole stack — from the object-pooled game loop to
+                the live market pipeline and release infrastructure.
+              </p>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group mt-4 inline-flex min-h-[44px] items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest text-slate-300 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
+              >
+                @blntunlan on GitHub
+                <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </a>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* What one person covers */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -61,37 +97,23 @@ export const LandingTeam: React.FC = () => {
           variants={staggerContainer}
           className="grid gap-6 md:grid-cols-3"
         >
-          {teamMembers.map(member => (
+          {scope.map(item => (
             <motion.div
-              key={member.name}
+              key={item.area}
               variants={fadeInUp}
               whileHover={{ y: -4 }}
               className="group relative border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-[#d6b85c]/30 sm:p-8"
             >
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222]">
-                  <Users className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-black uppercase tracking-wider text-[#d6b85c]">
-                    {member.role}
-                  </p>
-                  <p className="text-lg font-bold text-white">{member.name}</p>
-                </div>
-              </div>
-              <p className="mb-4 font-mono text-sm leading-relaxed text-slate-300">
-                {member.summary}
+              <item.icon className="mb-4 h-7 w-7 text-[#d6b85c]" />
+              <p className="mb-2 font-cyber text-lg font-bold italic tracking-wide text-white transition-colors duration-300 group-hover:text-[#d6b85c]">
+                {item.area}
               </p>
-              <div className="border-l-2 border-[#b22222] pl-3 font-mono text-[11px] uppercase tracking-wider text-slate-500">
-                {member.proof}
-              </div>
+              <p className="font-mono text-sm leading-relaxed text-slate-400">
+                {item.detail}
+              </p>
             </motion.div>
           ))}
         </motion.div>
-        <div className="mt-8 rounded-sm border border-[#d6b85c]/20 bg-[#d6b85c]/5 p-4 font-mono text-xs leading-relaxed text-slate-300 sm:p-5">
-          Audit note: founder and key team members maintain Crypto Survivors in their
-          LinkedIn Experience records with role and timeline details.
-        </div>
       </div>
     </section>
   );

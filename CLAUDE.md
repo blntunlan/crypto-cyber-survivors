@@ -84,7 +84,7 @@ API Server --------[pg]----------> Railway PostgreSQL (all data tables)
 - **`services/market/SSEMarketService.ts`**: EventSource client, connects to aggregator (`VITE_MARKET_AGGREGATOR_URL`, falls back to `VITE_RAILWAY_API_URL`)
 - **`railway-market-server/`**: Stateless REST API server (profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays)
 - **`railway-market-aggregator/`**: Stateful market data pipeline (Binance/Coinbase WS → Indicators → SSE stream + DB writes + Cleanup cron)
-- **`railway-market-server/src/db/`**: PostgreSQL pool + schema (16 tables, 3 views, 6 functions)
+- **`railway-market-server/src/db/`**: PostgreSQL pool + schema (27 tables, 4 views, 10 functions). Migrations 000–010 via `migrate.ts`.
 
 ### Key Design Patterns
 - **EventBus** (Observer): `EventBus.on('eventName', handler)` / `EventBus.emit('eventName', data)` - decoupled cross-system communication
@@ -160,7 +160,7 @@ Resolved: anti-cheat guardrails are back — `services/gameplay/validators/` (`G
 ## Backend
 
 - **Supabase**: Auth only (login/signup/JWT). No DB or edge functions.
-- **Railway PostgreSQL**: All data tables (16 tables, 3 views, 6 functions). Schema in `railway-market-server/src/db/schema.sql`.
+- **Railway PostgreSQL**: All data tables (27 tables, 4 views, 10 functions). Schema in `railway-market-server/src/db/schema.sql`; migrations in `src/db/migrate.ts` (000–010, auto-applied on startup).
 - **Railway API Server** (`railway-market-server/`): Stateless REST API — profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays
 - **Railway Market Aggregator** (`railway-market-aggregator/`): Stateful market pipeline — Binance/Coinbase WS → Indicator calc → SSE stream to clients + price_history/market_state DB writes + Cleanup cron. Deploy independently from API.
 - **Deployment**: Railway auto-deploys on push to main. API Server and Market Aggregator are separate Railway services sharing the same Postgres.

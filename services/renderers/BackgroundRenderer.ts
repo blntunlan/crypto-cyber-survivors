@@ -54,8 +54,13 @@ export class BackgroundRenderer implements IRenderer {
       perfConfig.profile === DeviceProfile.ULTRA &&
       !this.isMobileDevice;
 
-    // Fill background color
-    const { r, g, b } = state.currentBg;
+    // Fill background color. Lift the near-black backdrop by the profile's
+    // brightness floor so the (fewer, bolder) candles on lower profiles read
+    // clearly; ULTRA uses floor 0 for the darkest atmospheric look.
+    const floor = perfConfig.bgBrightnessFloor;
+    const r = Math.min(255, state.currentBg.r + floor);
+    const g = Math.min(255, state.currentBg.g + floor);
+    const b = Math.min(255, state.currentBg.b + floor);
     const bgColorKey = `${r}-${g}-${b}`;
 
     // Theme-based strategy selection
@@ -72,7 +77,8 @@ export class BackgroundRenderer implements IRenderer {
         bgColorKey,
         perfConfig.gradientBackground,
         state,
-        shadowsEnabled
+        shadowsEnabled,
+        perfConfig.candleOpacity
       );
     }
 
@@ -188,7 +194,8 @@ export class BackgroundRenderer implements IRenderer {
     bgColorKey: string,
     useGradient: boolean,
     state: GameState,
-    shadowsEnabled: boolean
+    shadowsEnabled: boolean,
+    candleOpacity: number
   ): void {
     if (useGradient) {
       const needsNewGradient =
@@ -235,11 +242,13 @@ export class BackgroundRenderer implements IRenderer {
     // Render smooth neon candles
     state.bgCandles.forEach(c => {
       const sizeRatio = (c.w / 8) * (c.z ?? 1); // Changed || to ??
+      // Per-profile base opacity (higher on lower profiles to keep the fewer
+      // candles visible) plus a small mobile boost for dimmer screens.
+      const mobileBoost = this.isMobileDevice
+        ? GAME_ENGINE.BG_CANDLE_OPACITY_MOBILE_BOOST
+        : 0;
       const baseOpacity =
-        (this.isMobileDevice
-          ? GAME_ENGINE.BG_CANDLE_OPACITY_BASE_MOBILE
-          : GAME_ENGINE.BG_CANDLE_OPACITY_BASE_DESKTOP) +
-        sizeRatio * GAME_ENGINE.BG_CANDLE_OPACITY_STEP;
+        candleOpacity + mobileBoost + sizeRatio * GAME_ENGINE.BG_CANDLE_OPACITY_STEP;
 
       ctx.globalAlpha = baseOpacity;
       ctx.fillStyle = c.color;

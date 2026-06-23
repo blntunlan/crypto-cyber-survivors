@@ -29,7 +29,7 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
       className="pointer-events-none fixed left-1/2 z-[125] flex -translate-x-1/2 flex-col items-center"
       style={{
         top: 'calc(14rem + env(safe-area-inset-top, 0px))',
-        animation: 'milestoneIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+        animation: 'milestoneIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}
     >
       <div
@@ -74,12 +74,13 @@ const DesktopAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }>
             <div
               className="absolute left-1/2 top-1/2 -z-10"
               style={{
-                width: '130%',
-                height: '240%',
+                width: '170%',
+                height: '320%',
                 transform: 'translate(-50%, -50%)',
-                filter: 'blur(10px)',
-                opacity: 0.5,
-                backgroundColor: color,
+                filter: 'blur(8px)',
+                // Radial gradient that fades to transparent → soft halo instead
+                // of a blurred rectangle (a solid bg + small blur reads as a box).
+                background: `radial-gradient(ellipse at center, ${color}99 0%, ${color}40 40%, transparent 70%)`,
               }}
             />
           )}
@@ -165,8 +166,12 @@ const MobileAnnouncer: React.FC<MilestoneAnnouncerProps & { isRetro: boolean }> 
                 {/* Simplified glow for mobile perf - hidden in retro */}
                 {!isRetro && (
                   <div
-                    className="absolute inset-0 -z-10 opacity-30 blur-lg"
-                    style={{ backgroundColor: color }}
+                    className="absolute -z-10 blur-xl"
+                    style={{
+                      inset: '-50% -25%',
+                      // Radial fade to transparent → soft halo, not a blurry box.
+                      background: `radial-gradient(ellipse at center, ${color}80 0%, transparent 70%)`,
+                    }}
                   />
                 )}
               </div>

@@ -51,6 +51,10 @@ const getManualChunk = (id: string): string | undefined => {
     return 'feature-vfx-lab';
   }
 
+  if (normalizedId.includes('/components/preview-lab/')) {
+    return 'feature-preview-lab';
+  }
+
   if (
     normalizedId.endsWith('/components/screens/MetaUpgradeScreen.tsx') ||
     normalizedId.endsWith('/components/screens/ChallengeScreen.tsx') ||

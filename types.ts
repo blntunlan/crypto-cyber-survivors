@@ -164,6 +164,8 @@ export interface Enemy extends Entity {
   // Elite enemy metadata
   isElite?: boolean;
   eliteAbility?: string;
+  // Whale tier (1=BABY_WHALE, 2=WHALE, 3=MEGA_WHALE) — set by PoolManager
+  whaleTier?: number;
 }
 
 export interface BulletTrailPoint {

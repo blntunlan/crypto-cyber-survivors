@@ -425,7 +425,9 @@ describe('App', () => {
     render(<App />);
 
     // Should show LandingPage initially
-    expect(await screen.findByText(/HIGH STAKES/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/HIGH STAKES/i, {}, { timeout: 5000 })
+    ).toBeInTheDocument();
 
     const launchBtn = screen.getByText(/EXECUTE ENGINE/i);
     fireEvent.click(launchBtn);

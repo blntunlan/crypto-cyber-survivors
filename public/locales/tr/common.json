@@ -552,10 +552,10 @@
       "protocol_cyber": "PROTOKOL: CYBER"
     },
     "stats": {
-      "tests_passing": "Başarılı Testler",
-      "singleton_services": "Tekil Servisler",
-      "target_performance": "Hedef Performans",
-      "event_types": "Olay Türleri"
+      "performance_target": "Hedef Performans",
+      "languages": "Dil Desteği",
+      "live_market": "Canlı Piyasa Verisi",
+      "open_source": "Açık Kaynak"
     },
     "terminal": {
       "initializing": "ALTSİSTEMLER_BAŞLATILIYOR...",

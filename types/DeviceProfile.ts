@@ -27,6 +27,20 @@ export interface PerformanceConfig {
   /** Number of background candles (30-150) */
   candleCount: number;
 
+  /**
+   * Base opacity for background candles. Tuned inversely to candleCount:
+   * lower profiles render fewer but bolder candles so the market stream stays
+   * visible. Layer/size multipliers in BackgroundRenderer are applied on top.
+   */
+  candleOpacity: number;
+
+  /**
+   * Brightness floor lift (0-255 added per channel) applied to the background
+   * fill. Lifts the near-black backdrop on lower profiles so the (fewer)
+   * candles read clearly; 0 keeps the darkest atmospheric look on ULTRA.
+   */
+  bgBrightnessFloor: number;
+
   /** Enable shadow effects (GPU intensive) */
   shadowsEnabled: boolean;
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { trackRender } from '../../../utils/trackRender';
-import { Check, Cpu, Zap, Activity } from 'lucide-react';
+import { Zap, Globe, Activity, Code2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { AnimatedCounter } from './AnimatedCounter';
 import { staggerContainer, fadeInUp } from './motionVariants';
@@ -22,32 +22,32 @@ export const LandingStats: React.FC = () => {
         >
           {[
             {
-              value: 2100,
-              suffix: '+',
-              label: t('landing.stats.tests_passing'),
-              icon: Check,
-              color: '#22c55e',
-            },
-            {
-              value: 42,
-              suffix: '+',
-              label: t('landing.stats.singleton_services'),
-              icon: Cpu,
-              color: '#d6b85c',
-            },
-            {
               value: 60,
               suffix: ' FPS',
-              label: t('landing.stats.target_performance'),
+              label: t('landing.stats.performance_target'),
               icon: Zap,
               color: '#00ffff',
             },
             {
-              value: 90,
-              suffix: '+',
-              label: t('landing.stats.event_types'),
+              value: 8,
+              suffix: '',
+              label: t('landing.stats.languages'),
+              icon: Globe,
+              color: '#d6b85c',
+            },
+            {
+              value: 24,
+              suffix: '/7',
+              label: t('landing.stats.live_market'),
               icon: Activity,
               color: '#b22222',
+            },
+            {
+              value: 100,
+              suffix: '%',
+              label: t('landing.stats.open_source'),
+              icon: Code2,
+              color: '#22c55e',
             },
           ].map((stat, index) => (
             <motion.div

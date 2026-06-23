@@ -23,10 +23,32 @@ import {
 } from '../../types/weapons';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { WeaponFiringPipeline } from './WeaponFiringPipeline';
+import { ResetOrchestrator, RESET_PRIORITY } from '../core/ResetOrchestrator';
 
 class WeaponSystemClass {
   private weapons: WeaponInstance[] = [];
   static readonly MAX_WEAPONS = 2;
+
+  constructor() {
+    // Clear the weapon inventory on every game reset. This is the canonical
+    // reset path (GameStateManager.resetAll emits `gameReset` on both "return
+    // to menu" and "start new game"). Without this, weapons picked up in a
+    // previous run leak into the next one — the MENU-status reset in
+    // useGameStatusEffects is dead code because GameEngine unmounts at MENU.
+    EventBus.on('gameReset', () => {
+      this.reset();
+    });
+
+    // Register with the GameLifecycle registry for DEV leak detection. The
+    // reset() here is idempotent, so the redundant call during orchestrateReset
+    // (handler + the `gameReset` shim above) is harmless.
+    ResetOrchestrator.registerResettable({
+      resetName: 'WeaponSystem',
+      resetPriority: RESET_PRIORITY.GAMEPLAY,
+      reset: () => this.reset(),
+      debugIsClean: () => this.weapons.length === 0,
+    });
+  }
 
   addWeapon(id: WeaponId): boolean {
     const existing = this.weapons.find(w => w.id === id);

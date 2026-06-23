@@ -60,14 +60,14 @@ class DifficultyContextManager {
       );
     });
 
-    // Register with ResetOrchestrator for deterministic reset order (priority 100 = Data)
-    ResetOrchestrator.registerResetHandler(
-      RESET_PRIORITY.DATA,
-      'DifficultyContext',
-      () => {
-        this.reset();
-      }
-    );
+    // Register with the GameLifecycle registry for deterministic reset order
+    // (priority 100 = Data) plus DEV leak detection.
+    ResetOrchestrator.registerResettable({
+      resetName: 'DifficultyContext',
+      resetPriority: RESET_PRIORITY.DATA,
+      reset: () => this.reset(),
+      debugIsClean: () => this._elapsedSeconds === 0,
+    });
 
     // Keep legacy listener for backward compat during migration
     EventBus.on('gameReset', () => {

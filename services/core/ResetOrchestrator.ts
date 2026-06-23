@@ -21,6 +21,35 @@ interface ResetHandler {
   priority: number;
   name: string;
   handler: () => void;
+  /**
+   * Optional dev-only cleanliness assertion. Called after the reset pass in
+   * DEV/test builds; returning `false` means the system still holds run state
+   * after its own `reset()` ran — i.e. a leak. See {@link Resettable}.
+   */
+  debugIsClean?: () => boolean;
+}
+
+/**
+ * Canonical contract for any system that holds per-run state and must be
+ * cleared on a new game. Register with {@link ResetOrchestratorClass.registerResettable}.
+ *
+ * This is the single, verifiable reset path (the "GameLifecycle"): handlers run
+ * in deterministic priority order, and `debugIsClean` lets DEV builds catch a
+ * system that forgot to clear a field — the class of bug that silently leaked a
+ * weapon from one run into the next.
+ */
+export interface Resettable {
+  /** Human-readable name for debugging and leak reports. */
+  resetName: string;
+  /** Priority band (use RESET_PRIORITY constants); lower runs first. */
+  resetPriority: number;
+  /** Clear all per-run state. Must be idempotent. */
+  reset(): void;
+  /**
+   * Optional: return `true` when no run state remains after `reset()`.
+   * Used only in DEV/test for leak detection; never called in production.
+   */
+  debugIsClean?(): boolean;
 }
 
 /**
@@ -72,7 +101,32 @@ class ResetOrchestratorClass {
   }
 
   /**
+   * Register a {@link Resettable} system. Preferred over `registerResetHandler`
+   * because it also captures `debugIsClean` for DEV leak detection.
+   *
+   * @returns Unregister function
+   */
+  registerResettable(system: Resettable): () => void {
+    const entry: ResetHandler = {
+      priority: system.resetPriority,
+      name: system.resetName,
+      handler: () => system.reset(),
+      debugIsClean: system.debugIsClean ? () => system.debugIsClean!() : undefined,
+    };
+    this.handlers.push(entry);
+    this.sorted = false;
+
+    return () => {
+      const idx = this.handlers.indexOf(entry);
+      if (idx >= 0) {
+        this.handlers.splice(idx, 1);
+      }
+    };
+  }
+
+  /**
    * Execute all reset handlers in priority order, then emit `gameReset`.
+   * In DEV/test builds, verify each registered system is clean afterwards.
    */
   orchestrateReset(): void {
     if (!this.sorted) {
@@ -91,6 +145,37 @@ class ResetOrchestratorClass {
 
     // Emit legacy event for services not yet migrated
     EventBus.emit('gameReset', {} as Record<string, never>);
+
+    // DEV-only leak detection: after every system has reset (including the
+    // legacy `gameReset` subscribers above), assert nothing still holds run
+    // state. Loud console.error so leaks surface immediately during play/tests.
+    this.verifyCleanState();
+  }
+
+  /**
+   * DEV/test-only: call every registered `debugIsClean()` and report leaks.
+   * No-op in production (tree-shaken via `import.meta.env.DEV`).
+   */
+  private verifyCleanState(): void {
+    if (!import.meta.env.DEV) return;
+
+    for (let i = 0; i < this.handlers.length; i++) {
+      const h = this.handlers[i]!;
+      if (!h.debugIsClean) continue;
+      let clean: boolean;
+      try {
+        clean = h.debugIsClean();
+      } catch (err) {
+        console.error(`[GameLifecycle] LEAK CHECK threw for '${h.name}':`, err);
+        continue;
+      }
+      if (!clean) {
+        console.error(
+          `[GameLifecycle] LEAK: '${h.name}' still holds run state after reset. ` +
+            `Its reset() likely forgot to clear a field.`
+        );
+      }
+    }
   }
 
   /**

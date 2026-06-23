@@ -1,6 +1,8 @@
 /**
- * Drizzle ORM schema — single source of truth for all DB tables.
- * Generated from schema.sql, maintained here going forward.
+ * Drizzle ORM schema — mirrors the tables/indexes/constraints created by
+ * src/db/migrate.ts (migrations 000-010). migrate.ts is the source of truth
+ * for the live DB; this file keeps Drizzle ORM in sync for typed queries.
+ * schema.sql is a human-readable current-state snapshot of the same.
  */
 import {
   pgTable,
@@ -145,6 +147,7 @@ export const ledgerEntries = pgTable(
     index('idx_ledger_entries_account_created').on(table.accountId, table.createdAt),
     index('idx_ledger_entries_wallet_created').on(table.walletId, table.createdAt),
     index('idx_ledger_entries_reference').on(table.referenceType, table.referenceId),
+    index('idx_ledger_entries_profile').on(table.profileId),
   ]
 );
 
@@ -547,6 +550,7 @@ export const productTelemetryEvents = pgTable(
     index('idx_product_events_season_created').on(table.seasonId, table.createdAt),
     index('idx_product_events_profile_created').on(table.profileId, table.createdAt),
     index('idx_product_events_wallet_hash').on(table.walletAddressHash),
+    index('idx_product_events_session').on(table.sessionId),
   ]
 );
 
@@ -691,6 +695,7 @@ export const challengeSeedLog = pgTable(
       sql`${table.challengeType} IN ('daily', 'weekly')`
     ),
     unique('challenge_seed_log_date_type_key').on(table.challengeDate, table.challengeType),
+    index('idx_challenge_seed_log_challenge_id').on(table.challengeId),
   ]
 );
 

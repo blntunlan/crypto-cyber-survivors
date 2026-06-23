@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lerp, clamp, mapRange, roundTo } from '../../utils/math';
+import { lerp, clamp, mapRange, roundTo, smoothstep } from '../../utils/math';
 
 describe('math utilities', () => {
   describe('lerp', () => {
@@ -78,6 +78,21 @@ describe('math utilities', () => {
     it('should handle edge cases', () => {
       expect(roundTo(0, 2)).toBe(0);
       expect(roundTo(1.005, 2)).toBe(1); // 1.005 rounds to 1.01, but due to floating point precision it might be 1.00
+    });
+  });
+
+  describe('smoothstep', () => {
+    it('should clamp values outside range', () => {
+      expect(smoothstep(0, 10, -5)).toBe(0);
+      expect(smoothstep(0, 10, 15)).toBe(1);
+    });
+
+    it('should return 0.5 at the midpoint', () => {
+      expect(smoothstep(0, 10, 5)).toBe(0.5);
+    });
+
+    it('should calculate smooth transition inside range', () => {
+      expect(smoothstep(0, 1, 0.25)).toBe(0.15625);
     });
   });
 });

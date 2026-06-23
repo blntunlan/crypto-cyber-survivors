@@ -5,7 +5,7 @@
  * Provides reset, heal, and color change functionality.
  */
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { type Player, MarketPosition } from '../types';
 import { COLORS } from '../constants';
 import { PLAYER_DEFAULTS } from '../services/core/GameStateManager';
@@ -41,6 +41,17 @@ export const usePlayerState = (width: number, height: number) => {
     Object.assign(playerRef.current, freshPlayer);
     setUiStats({ ...playerRef.current });
   }, [width, height]);
+
+  /**
+   * Wire player reset into the canonical GameLifecycle path. Every new run
+   * fires `gameReset` (GameStateManager.resetAll), so HP/damage/level/status
+   * return to PLAYER_DEFAULTS without relying on the UI calling resetGame() —
+   * keeping player state leak-free alongside the singleton services.
+   */
+  useEffect(() => {
+    const unsubscribe = EventBus.on('gameReset', resetPlayer);
+    return unsubscribe;
+  }, [resetPlayer]);
 
   /**
    * Heal player to full HP

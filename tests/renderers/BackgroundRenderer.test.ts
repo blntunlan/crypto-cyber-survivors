@@ -16,6 +16,8 @@ vi.mock('../../services/system/DeviceBenchmarkService', () => ({
     getPerformanceConfig: vi.fn(() => ({
       shadowsEnabled: true,
       gradientBackground: true,
+      candleOpacity: 0.19,
+      bgBrightnessFloor: 5,
     })),
   },
 }));

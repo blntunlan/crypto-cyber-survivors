@@ -234,6 +234,39 @@ describe('CombatSystem', () => {
       combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 1000, 800, 600);
       expect(mockGameState.fireTimer).toBe(700); // 1000 - 300
     });
+
+    it('should not accumulate fireTimer backlog while no target is on screen', () => {
+      mockPlayer.fireRate = 300;
+      mockPool.activeEnemies = [];
+
+      // Simulate several seconds with no enemy on screen (game start).
+      for (let i = 0; i < 200; i++) {
+        combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 16, 800, 600);
+      }
+      expect(mockPool.getBullet).not.toHaveBeenCalled();
+      // Timer must be clamped to one cooldown interval, not a huge backlog.
+      expect(mockGameState.fireTimer).toBe(300);
+    });
+
+    it('should not rapid-fire a burst when the first enemy appears after idle', () => {
+      mockPlayer.fireRate = 300;
+      mockPool.activeEnemies = [];
+
+      // Accumulate idle time with no target (≈3.2s before first enemy).
+      for (let i = 0; i < 200; i++) {
+        combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 16, 800, 600);
+      }
+
+      // First enemy enters the viewport; advance 10 frames (~160ms).
+      mockPool.activeEnemies = [createEnemy(100, 0)];
+      for (let i = 0; i < 10; i++) {
+        combatSystem.processAutoFire(mockPool, mockPlayer, mockGameState, 16, 800, 600);
+      }
+
+      // 160ms at a 300ms cooldown allows at most one shot. Without clamping,
+      // the drained backlog would fire ~10 consecutive frames.
+      expect(mockPool.getBullet).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Targeting & Culling', () => {

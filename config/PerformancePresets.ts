@@ -14,7 +14,9 @@ import { DeviceProfile, type PerformanceConfig } from '../types/DeviceProfile';
 export const PERFORMANCE_PRESETS: Record<DeviceProfile, PerformanceConfig> = {
   [DeviceProfile.ULTRA]: {
     profile: DeviceProfile.ULTRA,
-    candleCount: 150,
+    candleCount: 110,
+    candleOpacity: 0.1,
+    bgBrightnessFloor: 0,
     shadowsEnabled: true,
     glowEnabled: true,
     particleMultiplier: 1.5,
@@ -24,7 +26,9 @@ export const PERFORMANCE_PRESETS: Record<DeviceProfile, PerformanceConfig> = {
   },
   [DeviceProfile.HIGH]: {
     profile: DeviceProfile.HIGH,
-    candleCount: 120,
+    candleCount: 80,
+    candleOpacity: 0.14,
+    bgBrightnessFloor: 2,
     shadowsEnabled: true,
     glowEnabled: true,
     particleMultiplier: 1.0,
@@ -34,7 +38,9 @@ export const PERFORMANCE_PRESETS: Record<DeviceProfile, PerformanceConfig> = {
   },
   [DeviceProfile.MEDIUM]: {
     profile: DeviceProfile.MEDIUM,
-    candleCount: 70,
+    candleCount: 55,
+    candleOpacity: 0.19,
+    bgBrightnessFloor: 5,
     shadowsEnabled: false,
     glowEnabled: false,
     particleMultiplier: 0.7,
@@ -44,7 +50,9 @@ export const PERFORMANCE_PRESETS: Record<DeviceProfile, PerformanceConfig> = {
   },
   [DeviceProfile.LOW]: {
     profile: DeviceProfile.LOW,
-    candleCount: 30,
+    candleCount: 35,
+    candleOpacity: 0.3,
+    bgBrightnessFloor: 10,
     shadowsEnabled: false,
     glowEnabled: false,
     particleMultiplier: 0.3,

@@ -14,6 +14,7 @@ import { GAME_ENGINE } from '../../constants';
 import { ECONOMY_CONFIG } from '../../config';
 import { gradientCache } from '../../utils/GradientCache';
 import { ELITE_CONFIG } from '../../config/EliteConfig';
+import { WhaleTier } from '../../types/indicators';
 
 /**
  * EntityRenderer - Orchestrates the drawing of all primary game entities.
@@ -406,16 +407,20 @@ export class EntityRenderer implements IRenderer {
       if (isSpawning) this.applyEnemySpawnTransform(ctx, e);
       if (hasImpact) this.applyEnemyHitTransform(ctx, e);
 
-      if (isHit) {
-        ctx.fillStyle = '#FFFFFF';
-        ctx.globalAlpha = 0.8;
+      if (e.type === 'whale') {
+        this.renderWhaleBody(ctx, e, isHit);
       } else {
-        ctx.fillStyle = e.color;
-      }
+        if (isHit) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.globalAlpha = 0.8;
+        } else {
+          ctx.fillStyle = e.color;
+        }
 
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
 
@@ -428,6 +433,96 @@ export class EntityRenderer implements IRenderer {
     if (e.spawnTimer === undefined || e.spawnTimer < 0.7) {
       this.drawEnemyHealthBar(ctx, e, ex, ey);
     }
+  }
+
+  private renderWhaleBody(
+    ctx: CanvasRenderingContext2D,
+    e: Enemy,
+    isHit: boolean
+  ): void {
+    const r = e.radius;
+    const tier = e.whaleTier ?? WhaleTier.WHALE;
+    const phase = performance.now() * 0.003;
+    const tailWag = Math.sin(phase * 2) * 0.15;
+    const fill = isHit ? '#FFFFFF' : e.color;
+    const isBaby = tier === WhaleTier.BABY_WHALE;
+    const isMega = tier === WhaleTier.MEGA_WHALE;
+
+    if (isHit) ctx.globalAlpha = 0.8;
+
+    // MEGA: outer aura ring
+    if (isMega && !isHit) {
+      ctx.save();
+      ctx.globalAlpha = 0.25 + Math.sin(phase * 3) * 0.08;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 1.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Glow
+    if (!isHit) {
+      ctx.shadowColor = e.color;
+      ctx.shadowBlur = Math.min(20, r * 0.5);
+    }
+    ctx.fillStyle = fill;
+
+    // Body ellipse
+    ctx.beginPath();
+    ctx.ellipse(r * 0.1, 0, r * 0.8, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail flukes (tier-scaled)
+    const tailSize = isBaby ? 0.85 : isMega ? 1.2 : 1.0;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.65, 0);
+    ctx.lineTo(-r * 1.1 * tailSize, -r * 0.45 * tailSize + tailWag * r);
+    ctx.lineTo(-r * 0.9, 0);
+    ctx.lineTo(-r * 1.1 * tailSize, r * 0.45 * tailSize + tailWag * r);
+    ctx.closePath();
+    ctx.fill();
+
+    // Dorsal fin (tier 2+)
+    if (!isBaby) {
+      ctx.beginPath();
+      ctx.ellipse(r * 0.15, -r * 0.7, r * 0.25, r * 0.15, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.shadowBlur = 0;
+
+    // MEGA: side stripes
+    if (isMega && !isHit) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const yOff = (i - 1) * r * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.3, yOff);
+        ctx.lineTo(r * 0.5, yOff);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Eye
+    if (!isHit) {
+      const eyeR = isBaby ? r * 0.14 : r * 0.1;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.arc(r * 0.45, -r * 0.15, eyeR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.beginPath();
+      ctx.arc(r * 0.48, -r * 0.15, eyeR * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
   }
 
   private applyEnemyHitTransform(ctx: CanvasRenderingContext2D, e: Enemy): void {

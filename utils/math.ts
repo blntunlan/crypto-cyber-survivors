@@ -73,3 +73,17 @@ export function roundTo(value: number, decimals: number): number {
   const factor = Math.pow(10, decimals);
   return Math.round(value * factor) / factor;
 }
+
+/**
+ * Performs smooth Hermite interpolation between two values.
+ * Clamps the output between 0 and 1.
+ *
+ * @param edge0 - Lower edge
+ * @param edge1 - Upper edge
+ * @param x - Input value
+ * @returns Interpolated value in [0, 1]
+ */
+export function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}

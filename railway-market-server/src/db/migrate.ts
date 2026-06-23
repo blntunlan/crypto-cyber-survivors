@@ -29,6 +29,8 @@ export async function runMigrations(): Promise<void> {
     { name: '006_market_runtime_audit', sql: MIGRATION_006 },
     { name: '007_railway_only_auth_defaults', sql: MIGRATION_007 },
     { name: '008_product_telemetry_events', sql: MIGRATION_008 },
+    { name: '009_leaderboard_global_view', sql: MIGRATION_009 },
+    { name: '010_market_state_full_columns', sql: MIGRATION_010 },
   ];
 
   for (const migration of migrations) {
@@ -962,4 +964,111 @@ CREATE INDEX IF NOT EXISTS idx_product_events_profile_created
   ON product_telemetry_events(profile_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_product_events_wallet_hash
   ON product_telemetry_events(wallet_address_hash);
+`;
+
+const MIGRATION_009 = `
+-- Migration 009: Split v_leaderboard into global + per-pair views
+-- Date: 2026-06-23
+-- Problem: v_leaderboard grouped by (profile, pair), so the public leaderboard
+--          (which does NOT filter by pair) returned one row per pair per player
+--          → same user appeared multiple times.
+-- Fix:
+--   * v_leaderboard        → one row per player (global, pair-agnostic)
+--   * v_leaderboard_by_pair → one row per player per pair (for ?pair= queries)
+
+CREATE OR REPLACE VIEW v_leaderboard AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider
+ORDER BY max_survival_time DESC;
+
+CREATE OR REPLACE VIEW v_leaderboard_by_pair AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  s.pair,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider, s.pair
+  ORDER BY max_survival_time DESC;
+`;
+
+const MIGRATION_010 = `
+-- Migration 010: market_state full columns + cleanup_old_price_history + FK indexes + drop credit_coins
+-- Date: 2026-06-24
+-- Fixes three drift issues discovered during schema audit:
+--   1. market_state was created in MIGRATION_000 with only 9 base columns, but
+--      databaseService.updateMarketState writes 22 columns. The extra 12
+--      volume/whale/aggro columns were only in schema.sql (and a legacy supabase
+--      migration), never in any migrate.ts migration → fresh DBs were missing them.
+--   2. cleanup_old_price_history is called by cron/cleanup.ts but was never
+--      created by any migration (only existed in schema.sql). On a fresh DB the
+--      cron's primary retention cleanup would fail.
+--   3. Three FK columns with ON DELETE SET NULL had no index (PostgreSQL does
+--      not auto-index FKs), causing full table scans on parent deletes.
+--   4. credit_coins() function is dead code — rewards now flow through the
+--      railway-native wallets/ledger_entries path. Drop it.
+
+-- 1. market_state: add 12 missing columns (non-volatile defaults → no table rewrite)
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS spawn_rate_multiplier DOUBLE PRECISION NOT NULL DEFAULT 1;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS normalized_volume DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_percentile DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_z_score DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_mean DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_std_dev DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS whale_tier INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_history_min DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_history_max DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS volume_history_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS enemy_aggro_multiplier_long DOUBLE PRECISION NOT NULL DEFAULT 1;
+ALTER TABLE market_state ADD COLUMN IF NOT EXISTS enemy_aggro_multiplier_short DOUBLE PRECISION NOT NULL DEFAULT 1;
+
+-- 2. cleanup_old_price_history (24h retention, called by cron)
+CREATE OR REPLACE FUNCTION cleanup_old_price_history(
+  p_cutoff TIMESTAMPTZ,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM price_history
+    WHERE id IN (
+      SELECT id FROM price_history
+      WHERE timestamp < p_cutoff
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Missing FK indexes (ON DELETE SET NULL cascades need index lookups)
+CREATE INDEX IF NOT EXISTS idx_ledger_entries_profile ON ledger_entries(profile_id);
+CREATE INDEX IF NOT EXISTS idx_product_events_session ON product_telemetry_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_challenge_seed_log_challenge_id ON challenge_seed_log(challenge_id);
+
+-- 4. Drop dead function: credit_coins (rewards now via wallets/ledger_entries)
+DROP FUNCTION IF EXISTS credit_coins;
 `;

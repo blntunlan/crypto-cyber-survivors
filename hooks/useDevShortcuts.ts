@@ -15,13 +15,13 @@ interface DevShortcutsState {
   showAnalytics: boolean;
   /** Whether Admin Dashboard is open */
   showAdminDashboard: boolean;
-  /** Whether VFX Lab is open */
+  /** Whether Preview Lab is open (VFX + Assets + Sounds) */
   showVfxLab: boolean;
   /** Close Analytics Dashboard */
   closeAnalytics: () => void;
   /** Close Admin Dashboard */
   closeAdminDashboard: () => void;
-  /** Close VFX Lab */
+  /** Close Preview Lab */
   closeVfxLab: () => void;
 }
 
@@ -62,7 +62,7 @@ export function useDevShortcuts(): DevShortcutsState {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // VFX Lab: Ctrl+Shift+V
+  // Preview Lab: Ctrl+Shift+V
   useEffect(() => {
     if (!import.meta.env.DEV) return;
 

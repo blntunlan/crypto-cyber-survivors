@@ -2,6 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { usePlayerState } from '../../hooks/usePlayerState';
 import { PLAYER_DEFAULTS } from '../../services/core/GameStateManager';
+import { EventBus } from '../../services/core/EventBus';
 import { MarketPosition } from '../../types';
 
 describe('usePlayerState', () => {
@@ -87,6 +88,24 @@ describe('usePlayerState', () => {
       result.current.setPositionColor(MarketPosition.SHORT);
     });
     expect(result.current.uiStats.color).toBe('#ef4444');
+  });
+
+  it('resets player to defaults on the canonical gameReset event (no leak between runs)', () => {
+    const { result } = renderHook(() => usePlayerState(800, 600));
+
+    act(() => {
+      // Simulate a previous run that leveled up and took damage.
+      result.current.playerRef.current.hp = 25;
+      result.current.playerRef.current.level = 8;
+      result.current.playerRef.current.baseDamage = 200;
+      // Fired by GameStateManager.resetAll() on every new run.
+      EventBus.emit('gameReset', {});
+    });
+
+    expect(result.current.uiStats.hp).toBe(PLAYER_DEFAULTS.hp);
+    expect(result.current.uiStats.level).toBe(PLAYER_DEFAULTS.level);
+    expect(result.current.uiStats.baseDamage).toBe(PLAYER_DEFAULTS.baseDamage);
+    expect(result.current.playerRef.current.hp).toBe(PLAYER_DEFAULTS.hp);
   });
 
   it('should sync uiStats with playerRef on reset', () => {

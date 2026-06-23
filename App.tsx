@@ -114,11 +114,11 @@ const DevPerformanceOverlay = import.meta.env.DEV
     )
   : null;
 
-// DEV-only VFX preview lab (Ctrl+Shift+V)
-const VfxLabScreen = import.meta.env.DEV
+// DEV-only Preview Lab (Ctrl+Shift+V) — VFX + Assets + Sounds
+const PreviewLabScreen = import.meta.env.DEV
   ? React.lazy(() =>
-      import('./components/vfx-lab/VfxLabScreen').then(m => ({
-        default: m.VfxLabScreen,
+      import('./components/preview-lab/PreviewLabScreen').then(m => ({
+        default: m.PreviewLabScreen,
       }))
     )
   : null;
@@ -584,10 +584,10 @@ const App: React.FC = () => {
                 </React.Suspense>
               )}
 
-              {/* DEV-only VFX Preview Lab (Ctrl+Shift+V) */}
-              {import.meta.env.DEV && showVfxLab && VfxLabScreen && (
+              {/* DEV-only Preview Lab (Ctrl+Shift+V) — VFX + Assets + Sounds */}
+              {import.meta.env.DEV && showVfxLab && PreviewLabScreen && (
                 <React.Suspense fallback={null}>
-                  <VfxLabScreen onClose={closeVfxLab} />
+                  <PreviewLabScreen onClose={closeVfxLab} />
                 </React.Suspense>
               )}
             </ErrorBoundary>

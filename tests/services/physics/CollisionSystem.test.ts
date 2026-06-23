@@ -60,6 +60,8 @@ describe('CollisionSystem', () => {
         getPerformanceConfig: () => ({
           profile: DeviceProfile.MEDIUM,
           candleCount: 60,
+          candleOpacity: 0.19,
+          bgBrightnessFloor: 5,
           shadowsEnabled: true,
           glowEnabled: true,
           particleMultiplier: 1.0,

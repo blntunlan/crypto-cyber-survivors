@@ -60,7 +60,7 @@ describe('useGameStatusEffects', () => {
     mockPlayer.current.y = 100;
   });
 
-  it('should reset state and pool when entering MENU', () => {
+  it('resets the time tracker on any status change', () => {
     renderHook(() =>
       useGameStatusEffects({
         status: GameStatus.MENU,
@@ -72,11 +72,28 @@ describe('useGameStatusEffects', () => {
       })
     );
 
-    expect(mockPool.current.clearAll).toHaveBeenCalled();
     expect(mockState.current.lastTime).toBe(0);
-    expect(mockState.current.spawnTimer).toBe(0);
-    expect(mockState.current.shake).toBe(0);
-    expect(BuffManager.reset).toHaveBeenCalled();
+  });
+
+  it('does NOT perform MENU cleanup here (GameEngine is unmounted at MENU)', () => {
+    // Cross-run cleanup is owned by canonical reset paths (ResetOrchestrator
+    // for the pool, `gameReset` subscribers for BuffManager/WeaponSystem),
+    // NOT by this hook — its host component never renders while in MENU.
+    // A MENU branch here would be dead code and previously masked weapon leaks.
+    renderHook(() =>
+      useGameStatusEffects({
+        status: GameStatus.MENU,
+        pool: mockPool as any,
+        state: mockState as any,
+        playerRef: mockPlayer as any,
+        width: 800,
+        height: 600,
+      })
+    );
+
+    expect(mockPool.current.clearAll).not.toHaveBeenCalled();
+    expect(BuffManager.reset).not.toHaveBeenCalled();
+    expect(mockState.current.spawnTimer).toBe(50); // untouched
   });
 
   it('should initialize BuffManager when entering PLAYING', () => {
