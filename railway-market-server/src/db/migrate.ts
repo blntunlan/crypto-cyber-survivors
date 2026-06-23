@@ -976,6 +976,9 @@ const MIGRATION_009 = `
 --   * v_leaderboard        → one row per player (global, pair-agnostic)
 --   * v_leaderboard_by_pair → one row per player per pair (for ?pair= queries)
 
+DROP VIEW IF EXISTS v_leaderboard CASCADE;
+DROP VIEW IF EXISTS v_leaderboard_by_pair CASCADE;
+
 CREATE OR REPLACE VIEW v_leaderboard AS
 SELECT
   p.id AS profile_id,
