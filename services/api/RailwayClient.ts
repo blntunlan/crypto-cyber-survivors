@@ -5,7 +5,6 @@
  * Provides typed GET/POST/PATCH/DELETE helpers.
  */
 
-import { Logger } from '../system/Logger';
 import { RailwayAuthTokenStore } from './RailwayAuthTokenStore';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
