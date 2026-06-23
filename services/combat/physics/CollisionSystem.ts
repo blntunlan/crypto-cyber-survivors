@@ -466,8 +466,9 @@ export class CollisionSystem implements ICollisionSystem {
     const pool = system.nearbyPool;
     const player = system.nearbyPlayer;
     const state = system.nearbyState;
-    if (!enemy?.active || enemy.isDying || !bullet.active || !pool || !player || !state)
+    if (!enemy?.active || enemy.isDying || !bullet.active || !pool || !player || !state) {
       return;
+    }
 
     const dx = enemy.x - bullet.x;
     const dy = enemy.y - bullet.y;
