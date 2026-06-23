@@ -1,0 +1,3 @@
+## 2024-06-23 - [SpatialGrid Hybrid Clearing Strategy]
+**Learning:** [In a spatial hash grid implementation with pooled arrays, unconditionally pushing all cells back to the pool and clearing the map each frame causes unbounded map growth and increased GC pressure, as empty cells are recreated every frame if objects are no longer there.]
+**Action:** [Use a hybrid clearing strategy to reduce GC pressure and iteration overhead: reuse arrays for active cells (`.length = 0`), and for empty cells (`.length === 0` from the previous frame) push them back to an array pool and delete their keys (`map.delete(key)`).]
