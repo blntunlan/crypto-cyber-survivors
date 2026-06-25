@@ -226,7 +226,7 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   return (
     <LazyMotion features={domAnimation}>
       <div
-        className="fixed inset-0 flex items-start justify-center overflow-y-auto bg-slate-950 px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] font-mono sm:items-center sm:px-6"
+        className="bg-slate-950/92 fixed inset-0 flex items-start justify-center overflow-y-auto px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] font-mono sm:items-center sm:px-6"
         style={{ zIndex: 3300 }}
       >
         {/* Background — memo'd, never re-renders on input */}

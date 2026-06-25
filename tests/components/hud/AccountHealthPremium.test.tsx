@@ -61,8 +61,10 @@ describe('AccountHealthPremium', () => {
     // Mobile elements present
     expect(screen.getAllByText('100').length).toBeGreaterThanOrEqual(1); // HP text
 
-    // Desktop elements hidden
-    expect(screen.queryByText('hud.system_phase')).not.toBeInTheDocument();
+    // System phase label now shown on mobile (smaller font)
+    expect(screen.getByText('hud.system_phase')).toBeInTheDocument();
+
+    // Desktop-only cosmetic decals still hidden on mobile
     expect(
       screen.queryByText('Terminal_ID: CC-S_08.21 // Core_Integrity_Module')
     ).not.toBeInTheDocument();
@@ -122,8 +124,12 @@ describe('AccountHealthPremium', () => {
 
     rerender(<AccountHealthPremium {...defaultProps} />);
 
-    // Should now be minimal
-    expect(screen.queryByText('hud.system_phase')).not.toBeInTheDocument();
+    // System phase label still visible on mobile (smaller font)
+    expect(screen.getByText('hud.system_phase')).toBeInTheDocument();
+    // Desktop-only tech decals hidden on mobile
+    expect(
+      screen.queryByText('Terminal_ID: CC-S_08.21 // Core_Integrity_Module')
+    ).not.toBeInTheDocument();
   });
 
   // NOTE: Wave Phase Colors tests removed in AI Director V2

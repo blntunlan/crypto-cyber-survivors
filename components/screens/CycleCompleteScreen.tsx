@@ -151,22 +151,23 @@ export function CycleCompleteScreen({
               className={cn(
                 'space-y-3 p-4',
                 isRetro
-                  ? 'border-2 border-[#FFD600]/50 bg-[#0a0a12]/80'
-                  : 'rounded-sm border border-[#FFD600]/20 bg-[#FFD600]/5'
+                  ? 'border-2 border-yellow-500/50 bg-[#0a0a12]/80'
+                  : 'rounded-sm border border-yellow-500/20 bg-yellow-500/5'
               )}
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-cyber text-sm font-black uppercase tracking-[0.18em] text-slate-300">
-                  Cycle reward
+                  {t('common.cycle_complete_screen.cycle_reward') as string}
                 </span>
-                <button
+                <ThemedButton
+                  intent="ghost"
                   onClick={() => setShowBreakdown(!showBreakdown)}
-                  className="text-xs uppercase tracking-[0.18em] text-slate-400 underline"
+                  className="text-xs uppercase tracking-[0.18em]"
                 >
                   {showBreakdown
                     ? t('common.cycle_complete_screen.hide')
                     : t('common.cycle_complete_screen.details')}
-                </button>
+                </ThemedButton>
               </div>
               <div
                 className={`${sizes.heading} font-cyber font-black`}
@@ -194,14 +195,11 @@ export function CycleCompleteScreen({
 
         <div
           className={cn(
-            'rounded-sm border px-4 py-3 text-center text-sm uppercase tracking-[0.16em]',
-            isRetro ? 'border-2' : ''
+            'px-4 py-3 text-center text-sm uppercase tracking-[0.16em]',
+            isRetro
+              ? 'border-2 border-orange-500/50 bg-orange-500/10 text-orange-400'
+              : 'rounded-sm border border-orange-500/40 bg-orange-500/10 text-orange-400'
           )}
-          style={{
-            backgroundColor: `${COLORS.DUMP_ORANGE}10`,
-            borderColor: `${COLORS.DUMP_ORANGE}66`,
-            color: COLORS.DUMP_ORANGE,
-          }}
         >
           {t('common.cycle_complete_screen.continue_risk', {
             val: Math.round(continueRisk * 100),
@@ -215,7 +213,7 @@ export function CycleCompleteScreen({
               audio.playButton();
               void onCashOut();
             }}
-            className="min-h-[50px] text-xs font-black uppercase tracking-[0.22em]"
+            className="min-h-[52px] text-xs font-black uppercase tracking-[0.22em]"
           >
             <span className="inline-flex items-center gap-2">
               <IconBitcoin className="h-5 w-5" color="currentColor" />
@@ -229,7 +227,7 @@ export function CycleCompleteScreen({
               audio.playButton();
               void onContinue();
             }}
-            className="min-h-[50px] text-xs font-black uppercase tracking-[0.22em]"
+            className="min-h-[52px] text-xs font-black uppercase tracking-[0.22em]"
           >
             <span className="inline-flex items-center gap-2">
               <IconZap

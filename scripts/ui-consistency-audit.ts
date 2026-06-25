@@ -22,28 +22,37 @@ import * as glob from 'glob';
 
 const DESIGN_STANDARDS = {
   // Approved button heights
-  buttonHeights: ['h-10', 'h-11', 'h-12', 'min-h-\\[44px\\]', 'min-h-\\[48px\\]'],
+  buttonHeights: [
+    'h-10',
+    'h-11',
+    'h-12',
+    'min-h-\\[44px\\]',
+    'min-h-\\[48px\\]',
+    'min-h-\\[52px\\]',
+  ],
 
-  // Approved border radius values (cyberpunk = sharp, minimal rounding)
+  // Approved border radius values.
+  // Modern themed system: rounded-lg for buttons (BUTTON_VARIANTS),
+  // rounded-[1.5rem] for overlay panels (OverlayChrome/MODERN_PANEL_FRAME).
+  // Retro themed system: rounded-none (sharp).
   borderRadius: {
-    approved: ['rounded-none', 'rounded-sm', 'rounded'],
+    approved: ['rounded-none', 'rounded-sm', 'rounded', 'rounded-lg'],
     flagged: ['rounded-xl', 'rounded-2xl', 'rounded-3xl', 'rounded-full'],
   },
 
-  // Design tokens - primary colors
+  // Design tokens — canonical themed palette (cyan cyberpunk modern, neon-green retro)
+  // Legacy casino palette (gold/red) is scoped to landing/public surface only.
   colorTokens: {
-    gold: '#d6b85c',
-    red: '#b22222',
+    primaryCyan: '#22d3ee',
+    electricBlue: '#00BFFF',
+    neonGreen: '#39FF14',
+    retroSilver: '#DCDCDC',
     darkBg: '#020617',
     white: '#ffffff',
   },
 
   // Approved fonts
   fonts: ['font-mono', 'font-cyber', 'font-retro-pixel'],
-
-  // Standard navigation button class pattern
-  navButtonPattern:
-    'h-10 px-4 flex items-center.*bg-white/5.*border-white/10.*hover:border-\\[#d6b85c\\]',
 
   // Standard spacing gaps
   gaps: ['gap-1', 'gap-1.5', 'gap-2', 'gap-3', 'gap-4', 'gap-6', 'gap-8'],
@@ -140,7 +149,7 @@ function auditBorderRadius(content: string, filePath: string): AuditIssue[] {
           line: index + 1,
           type: 'warning',
           category: 'border-radius',
-          message: `Found "${pattern}" - cyberpunk theme prefers sharp corners`,
+          message: `Found "${pattern}" - prefer approved radius values`,
           suggestion: `Consider using: ${DESIGN_STANDARDS.borderRadius.approved.join(', ')}`,
         });
       }
@@ -221,15 +230,56 @@ function auditColorUsage(content: string, filePath: string): AuditIssue[] {
   // Look for hardcoded colors that should use tokens
   const hardcodedColorRegex = /#[0-9a-fA-F]{6}/gi;
 
-  // Known acceptable colors (Tailwind palette, design tokens, common grays)
+  // Known acceptable colors (Tailwind palette, design tokens, theme palette, semantic colors)
   const acceptableColors = new Set(
     [
-      // Design tokens
-      '#d6b85c',
-      '#b22222',
-      '#020617',
-      '#ffffff',
-      '#000000',
+      // Themed palette (modern cyberpunk + retro 16-bit) — canonical
+      '#22d3ee', // cyan-400 (modern primary accent)
+      '#00bfff', // electric blue (COLORS.ELECTRIC_BLUE, retro primary)
+      '#39ff14', // neon green (COLORS.NEON_GREEN, retro accent)
+      '#dcdcdd', // retro silver (COLORS.SLOT_SILVER) — also #DCDCDC
+      '#dcdcdc', // retro silver (COLORS.SLOT_SILVER)
+      '#ffd600', // jackpot yellow (COLORS.JACKPOT_YELLOW, retro secondary)
+      '#00ffff', // cyan neon (CSS --color-primary)
+      '#ff00ff', // magenta (CSS --color-secondary)
+      // Legacy casino palette (landing/public surface only)
+      '#d6b85c', // casino gold (COLORS.CASINO_GOLD)
+      '#b22222', // casino red (COLORS.CASINO_RED)
+      '#020617', // slate-950 (COLORS.BG, dark bg)
+      '#0a0a12', // retro bg (COLORS.BG_RETRO)
+      // Semantic / status colors
+      '#4ade80', // green-400 (positive/online/success)
+      '#22c55e', // green-500 (COLORS.LONG)
+      '#10b981', // emerald-500 (resume/positive action)
+      '#05732c', // casino green (COLORS.CASINO_GREEN)
+      '#ef4444', // red-500 (COLORS.SHORT)
+      '#ff3d00', // dump orange (COLORS.DUMP_ORANGE)
+      '#ff6600', // neon orange (COLORS.NEON_ORANGE)
+      '#facc15', // yellow-400
+      '#eab308', // yellow-500
+      '#ffd700', // gold (COLORS.GEM/CRIT)
+      '#c4b5fd', // violet-300 (replay accent)
+      '#8b5cf6', // violet-500
+      '#b026ff', // neon purple (COLORS.WHALE)
+      '#ff10f0', // neon pink (COLORS.RARE_GEM)
+      // Brand colors (third-party)
+      '#4285f4', // Google blue
+      '#5865f2', // Discord blurple
+      '#9146ff', // Twitch purple
+      '#24292e', // GitHub dark
+      // Additional COLORS.* design tokens (config/Colors.ts)
+      '#ff10f0', // RARE_GEM
+      '#d20202', // SUPER_CRIT
+      '#f4599d', // BRILLIANT_ROSE
+      '#1a1a1a', // SLOT_BLACK
+      '#00e676', // PUMP_GREEN
+      '#dc143c', // RUGPULL_CRIMSON
+      '#ffea00', // FLASH_LOAN_YELLOW
+      '#ff1493', // SANDWICH_PINK
+      '#8b0000', // ATTACK_51_RED
+      '#c800ff', // PRIMARY_CYBER
+      '#00ccff', // SECONDARY_CYBER
+      '#7558a4', // ROYAL_PURPLE
       // Tailwind slate palette
       '#f8fafc',
       '#f1f5f9',
@@ -300,7 +350,7 @@ function auditColorUsage(content: string, filePath: string): AuditIssue[] {
           category: 'color-token',
           message: `Hardcoded color "${color}" found`,
           suggestion:
-            'Consider using design tokens: #d6b85c (gold), #b22222 (red), #020617 (dark)',
+            'Consider using themed tokens: #22d3ee (cyan modern), #39FF14 (neon retro), or COLORS.* constants',
         });
       });
     }
@@ -496,9 +546,21 @@ async function runAudit(): Promise<void> {
   }
 
   console.log('\n📖 Design Standards Reference:');
-  console.log('  • Button heights: h-10, h-11, h-12');
-  console.log('  • Border radius: rounded-none, rounded-sm (cyberpunk = sharp)');
-  console.log('  • Colors: #d6b85c (gold), #b22222 (red), #020617 (bg)');
+  console.log(
+    '  • Button heights: h-10, h-11, h-12, min-h-[44px], min-h-[48px], min-h-[52px]'
+  );
+  console.log(
+    '  • Border radius: rounded-lg (buttons), rounded-[1.5rem] (overlay panels), rounded-none (retro)'
+  );
+  console.log(
+    '  • Themed palette: #22d3ee (cyan modern), #39FF14 (neon-green retro), #00BFFF (electric blue)'
+  );
+  console.log(
+    '  • Legacy casino palette (landing/public only): #d6b85c (gold), #b22222 (red)'
+  );
+  console.log(
+    '  • Backdrop: MODERN_SCREEN_OVERLAY = bg-slate-950/60 backdrop-blur-sm (in-game overlays)'
+  );
   console.log('  • Fonts: font-mono, font-cyber, font-retro-pixel');
   console.log('='.repeat(60) + '\n');
 

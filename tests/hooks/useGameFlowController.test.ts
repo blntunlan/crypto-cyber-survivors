@@ -78,6 +78,7 @@ vi.mock('../../services/auth/GameSessionService', () => ({
 vi.mock('../../services/gameplay/DifficultyManager', () => ({
   DifficultyManager: {
     getTotalElapsedSeconds: vi.fn(() => 123),
+    reset: vi.fn(),
     resetForCycleContinue: vi.fn(),
   },
 }));
@@ -559,9 +560,9 @@ describe('useGameFlowController', () => {
     );
   });
 
-  it('handleGameOver calls difficultyContext.reset()', async () => {
-    const { difficultyContext } =
-      await import('../../services/difficulty/DifficultyContext');
+  it('handleGameOver calls DifficultyManager.reset()', async () => {
+    const { DifficultyManager } =
+      await import('../../services/gameplay/DifficultyManager');
     const playerRef = { current: makePlayer() };
 
     const { result } = renderHook(() =>
@@ -584,12 +585,12 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(DifficultyManager.reset).toHaveBeenCalled();
   });
 
   it('handleGameOver does not submit session side effects when state transition is rejected', async () => {
-    const { difficultyContext } =
-      await import('../../services/difficulty/DifficultyContext');
+    const { DifficultyManager } =
+      await import('../../services/gameplay/DifficultyManager');
     const playerRef = { current: makePlayer() };
     vi.mocked(GameStateMachine.transition)
       .mockReturnValueOnce(false)
@@ -615,7 +616,7 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(difficultyContext.reset).not.toHaveBeenCalled();
+    expect(DifficultyManager.reset).not.toHaveBeenCalled();
     expect(MetricsService.endSession).not.toHaveBeenCalled();
     expect(GameSessionService.submitSession).not.toHaveBeenCalled();
 
@@ -623,7 +624,7 @@ describe('useGameFlowController', () => {
       await result.current.handleGameOver(GameEndReason.DEATH);
     });
 
-    expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(DifficultyManager.reset).toHaveBeenCalled();
     expect(MetricsService.endSession).toHaveBeenCalled();
   });
 
@@ -809,9 +810,9 @@ describe('useGameFlowController', () => {
     expect(CoinService.creditVerifiedCoins).not.toHaveBeenCalled();
   });
 
-  it('handleCashOut calls difficultyContext.reset() before ending run', async () => {
-    const { difficultyContext } =
-      await import('../../services/difficulty/DifficultyContext');
+  it('handleCashOut calls DifficultyManager.reset() before ending run', async () => {
+    const { DifficultyManager } =
+      await import('../../services/gameplay/DifficultyManager');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
     const { result } = renderHook(() =>
@@ -842,7 +843,7 @@ describe('useGameFlowController', () => {
       await result.current.handleCashOut();
     });
 
-    expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(DifficultyManager.reset).toHaveBeenCalled();
   });
 
   it('handleContinue calls resetForCycleContinue then applies new cycleFactor', async () => {
@@ -887,8 +888,8 @@ describe('useGameFlowController', () => {
   });
 
   it('resetFlowState clears frozen pnl, cycle data, upgrade choices, and resets difficulty', async () => {
-    const { difficultyContext } =
-      await import('../../services/difficulty/DifficultyContext');
+    const { DifficultyManager } =
+      await import('../../services/gameplay/DifficultyManager');
     const playerRef = { current: makePlayer({ level: 4 }) };
 
     const { result } = renderHook(() =>
@@ -927,6 +928,54 @@ describe('useGameFlowController', () => {
     expect(result.current.upgradeChoices).toEqual([]);
     expect(result.current.cycleData).toBeNull();
     expect(result.current.frozenPnlRef.current).toBe(0);
-    expect(difficultyContext.reset).toHaveBeenCalled();
+    expect(DifficultyManager.reset).toHaveBeenCalled();
+  });
+
+  it('handleGameOver calls ChallengeService.onRunEnd synchronously before async submission (race condition guard)', async () => {
+    const playerRef = { current: makePlayer({ level: 5 }) };
+    vi.mocked(MetricsService.endSession).mockReturnValue({
+      replayData: { events: [] },
+      performance: { avgFps: 60 },
+    } as any);
+
+    // Make submitSession hang forever so we can verify onRunEnd fires first
+    let resolveSubmit: (val: any) => void = () => {};
+    vi.mocked(GameSessionService.submitSession).mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveSubmit = resolve;
+        })
+    );
+
+    const { result } = renderHook(() =>
+      useGameFlowController({
+        gameMode: GameMode.COMPETITIVE,
+        gameStatus: GameStatus.PLAYING,
+        leverage: 10,
+        marketData: makeMarketData(),
+        position: MarketPosition.LONG,
+        entryPrice: 45000,
+        selectedPair: 'BTC',
+        runStatsTotalKills: 5,
+        playerRef,
+        setUiStats: vi.fn(),
+        healFull: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleGameOver(GameEndReason.DEATH);
+    });
+
+    // onRunEnd must have been called even though submitSession is still pending
+    expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(1);
+    expect(GameSessionService.submitSession).toHaveBeenCalledTimes(1);
+
+    // Resolve the pending submission
+    resolveSubmit({ success: true, verified: true, reward: 100, metaShare: 15 });
+    await waitFor(() => {
+      // onRunEnd must NOT be called a second time after submission resolves
+      expect(ChallengeService.onRunEnd).toHaveBeenCalledTimes(1);
+    });
   });
 });

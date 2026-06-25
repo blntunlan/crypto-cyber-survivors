@@ -73,7 +73,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
   return (
     <div
       className={`hud-bottom-safe pointer-events-none fixed left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center transition-all duration-500 ${
-        isMobile ? (isSmallDevice ? 'w-[85%]' : 'w-[80%]') : 'bottom-10 w-[450px]'
+        isMobile ? (isSmallDevice ? 'w-[70%]' : 'w-[75%]') : 'bottom-10 w-[450px]'
       }`}
       style={
         isMobile
@@ -89,14 +89,12 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
       {/* Top Info Bar - Combined Desktop/Mobile */}
       <div className="mb-2 flex w-full items-end justify-between px-1 font-stats tracking-tighter">
         <div className="flex flex-col">
-          {!isMobile && (
-            <span
-              className="font-bold uppercase text-slate-500 opacity-60"
-              style={{ fontSize: '10px' }}
-            >
-              {t('hud.system_phase')}
-            </span>
-          )}
+          <span
+            className="font-bold uppercase text-slate-500 opacity-60"
+            style={{ fontSize: isMobile ? rfs(8) : '10px' }}
+          >
+            {t('hud.system_phase')}
+          </span>
 
           {/* AI Director V2: Simplified "ACTIVE" status - Now shown on mobile too */}
           <span
@@ -120,7 +118,7 @@ const PremiumHealthInner: React.FC<AccountHealthProps & { isMobile: boolean }> =
           >
             {Math.ceil(hp)}
             <span
-              className="ml-0.5 opacity-50"
+              className={`ml-0.5 opacity-70`}
               style={{ fontSize: isMobile ? rfs(10) : '12px' }}
             >
               /{Math.ceil(maxHp)}

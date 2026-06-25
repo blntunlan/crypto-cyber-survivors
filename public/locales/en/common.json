@@ -231,6 +231,7 @@
       "total_kills": "Total Kills",
       "pnl_performance": "P&L Performance",
       "coins_earned": "COINS EARNED",
+      "cycle_reward": "Cycle reward",
       "details": "Details",
       "hide": "Hide",
       "continue_risk": "Continue Risk: {{val}}% difficulty increase",

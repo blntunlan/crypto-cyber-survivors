@@ -16,7 +16,7 @@ npm run preview          # Preview production build locally
 npm run start            # Serve the built app via server.js (production-style)
 
 # Testing
-npm run test             # Vitest unit tests (2100+)
+npm run test             # Vitest unit tests (2400+)
 npm run test:watch       # Vitest watch mode (TDD)
 npx vitest run tests/services/SpawnSystem.test.ts  # Run a single test file
 npm run test:coverage    # V8 coverage report (70%+ target)
@@ -32,7 +32,8 @@ npm run typecheck        # tsc --noEmit (strict, no emit)
 npm run format           # Prettier
 npm run lint:ui          # UI consistency audit (typography, colors)
 npm run check:architecture       # Guard: no un-whitelisted singletons (scripts/check-singleton-regressions.mjs)
-npm run check:baseline   # Full gate: typecheck + check:architecture + lint + test + build
+npm run check:reset-coverage     # Guard: every singleton with state is reset on game-reset (scripts/check-reset-coverage.mjs)
+npm run check:baseline   # Full gate: typecheck + check:architecture + check:reset-coverage + lint + test + build
 
 # Backend / Deploy (Railway)
 npm run railway:deploy           # railway up (API server)
@@ -43,16 +44,16 @@ npm run deploy                   # git push origin main (Railway auto-deploys)
 ## Architecture
 
 ### Singleton Service Pattern
-All game logic lives in singleton services (`services/`), never in React state. Services communicate via a strongly-typed `EventBus` (Observer Pattern) with 40+ event types defined in `types/events.ts`.
+All game logic lives in singleton services (`services/`), never in React state. Services communicate via a strongly-typed `EventBus` (Observer Pattern) with 150+ event types defined in `types/events.ts` (the `GameEvent` union).
 
 ```
 Presentation (React components, HUD, screens)
     ↕ EventBus + useRef (never useState for 60fps data)
 Game Engine (GameEngine.tsx - requestAnimationFrame loop)
     ↕
-Service Layer (42+ singletons: Combat, Physics, Difficulty, Spawn, etc.)
+Service Layer (60+ singletons: Combat, Physics, Difficulty, Spawn, etc.)
     ↕
-Data Layer (Zustand store for settings/progress, Railway API for cloud, Supabase Auth only, localStorage for offline)
+Data Layer (Zustand store for settings/progress, Railway API for cloud + auth, localStorage for offline)
 ```
 
 ### Critical Performance Rules
@@ -72,7 +73,7 @@ The `UnifiedDirector` is the runtime difficulty pipeline introduced in the lates
 
 ### Client ↔ Server Architecture
 ```
-Client --[supabase-js]--> Supabase Auth (login/signup/JWT only)
+Client --[fetch]--------> API Server /api/v1/auth/* (login/signup/OAuth → issues Railway JWT)
 Client --[SSE]----------> Market Aggregator /api/v1/market/stream (price + indicators, ~1s)
 Client --[fetch]--------> API Server /api/v1/* (profile, sessions, wallet, leaderboard, telemetry)
 Market Aggregator --[WebSocket]---> Binance/Coinbase (single source of truth for prices)
@@ -80,7 +81,8 @@ Market Aggregator --[pg]----------> Railway PostgreSQL (market_state, price_hist
 API Server --------[pg]----------> Railway PostgreSQL (all data tables)
 ```
 
-- **`services/api/RailwayClient.ts`**: HTTP client, auto-attaches Supabase JWT
+- **Auth is Railway-native** (no Supabase): `services/auth/RailwayAuthService.ts` handles login/signup/OAuth; the API server signs JWTs (issuer `crypto-survivors-api`, audience `crypto-survivors-client`) verified in `railway-market-server/src/middleware/auth.ts` / `src/utils/railwayJwt.ts`
+- **`services/api/RailwayClient.ts`**: HTTP client, auto-attaches the Railway JWT as `Authorization: Bearer`
 - **`services/market/SSEMarketService.ts`**: EventSource client, connects to aggregator (`VITE_MARKET_AGGREGATOR_URL`, falls back to `VITE_RAILWAY_API_URL`)
 - **`railway-market-server/`**: Stateless REST API server (profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays)
 - **`railway-market-aggregator/`**: Stateful market data pipeline (Binance/Coinbase WS → Indicators → SSE stream + DB writes + Cleanup cron)
@@ -128,7 +130,7 @@ API Server --------[pg]----------> Railway PostgreSQL (all data tables)
 - Singletons must call `reset()` in `beforeEach` to isolate tests
 - Coverage targets `services/**`, `components/**`, `factories/**`
 - Pre-commit hooks (husky + lint-staged) auto-run: ESLint fix, Prettier, related Vitest tests
-- Before PR: `npm run check:baseline` (runs typecheck + check:architecture + lint + test + build)
+- Before PR: `npm run check:baseline` (runs typecheck + check:architecture + check:reset-coverage + lint + test + build)
 
 ## Commits
 
@@ -148,20 +150,24 @@ Conventional Commits enforced by commitlint: `feat:`, `fix:`, `perf:`, `test:`, 
 3. Wire into `BuffManager.addBuff()`/`addDebuff()`
 4. Emit `buffApplied`/`buffExpired` events for UI
 
-## Known Architectural Issues (see `docs/archived/refactor-roadmap.md`)
+## Known Architectural Issues (history in `docs/archived/refactor-roadmap.md`)
 
-Two active issues to be aware of when touching related code:
+The two issues previously tracked here are now **resolved in code** (verified 2026-06-24). Kept as guidance for related work:
 
-1. **Reward divergence** — `CoinService.creditCoins` grants coins optimistically; Railway `sessions/verify` endpoint can't reconcile because the client payload omits `exitType`/`portalType`/`maxStreak`. Don't add more optimistic credit calls.
-2. **DifficultyContext leakage** — `cycleFactor` is never cleared between cycles on death/continue, causing compounding difficulty. Call `difficultyContext.reset()` on `handleGameOver` and `handleCashOut`.
+1. **Reward divergence** — resolved. The client `sessions/verify` payload now includes `exitType`/`portalType`/`maxStreak` (`services/auth/GameSessionService.ts:256-258`), and `handleCashOut` builds a full `RewardPayload` (`hooks/useGameFlowController.ts:367-387`), so the Railway endpoint can reconcile. **Standing guidance:** `CoinService.creditCoins` still credits optimistically — don't add *more* optimistic credit paths; route new rewards through the verified submit path.
+2. **DifficultyContext leakage** — resolved. `cycleFactor` is cleared via `difficultyContext.reset()` on `handleGameOver` (`useGameFlowController.ts:185`), `handleCashOut` (`:389`), `resetFlowState` (`:419`), `GameRuntime.ts:48/52`, and the `gameOver` EventBus listener (`DifficultyContext.ts:78`). The continue path calls `DifficultyManager.resetForCycleContinue()` *before* applying the new multiplier (`useGameFlowController.ts:396`), which resets `cycleFactor` to `1.0` (`LeverageStateProvider.ts:59-61`) and prevents compounding. **Standing guidance:** keep resetting `DifficultyContext` on every run-end path.
 
-Resolved: anti-cheat guardrails are back — `services/gameplay/validators/` (`GameplayValidator`) now exists; prefer extending it over reintroducing optimistic trust.
+Also resolved: anti-cheat guardrails are back — two validator layers exist; prefer extending them over reintroducing optimistic trust:
+- `services/gameplay/validators/` (`GameplayValidator`) — in-run gameplay sanity checks.
+- `services/validators/` (`SessionValidator`, `rewardValidator`, `fieldRangeValidators`) — session/reward validation run by `GameSessionService` before the `sessions/verify` submit; `rewardValidator` cross-checks client reward vs `RewardCalculator` within tolerance.
+
+> Note: `docs/archived/refactor-roadmap.md` is historical and still describes these as open against the old Supabase-edge-function backend. The backend has since moved to Railway (`/api/v1/sessions/verify`); treat that doc as history, not current state.
 
 ## Backend
 
-- **Supabase**: Auth only (login/signup/JWT). No DB or edge functions.
+- **Auth**: Railway-native (no Supabase). `services/auth/RailwayAuthService.ts` handles login/signup/OAuth; the API server issues and verifies JWTs (`railway-market-server/src/utils/railwayJwt.ts`, issuer `crypto-survivors-api`). The leftover `supabase/` directory is legacy and unused — not wired into the app or `package.json`.
 - **Railway PostgreSQL**: All data tables (27 tables, 4 views, 10 functions). Schema in `railway-market-server/src/db/schema.sql`; migrations in `src/db/migrate.ts` (000–010, auto-applied on startup).
 - **Railway API Server** (`railway-market-server/`): Stateless REST API — profile, sessions, wallet, leaderboard, telemetry, identities, meta, challenges, replays
 - **Railway Market Aggregator** (`railway-market-aggregator/`): Stateful market pipeline — Binance/Coinbase WS → Indicator calc → SSE stream to clients + price_history/market_state DB writes + Cleanup cron. Deploy independently from API.
 - **Deployment**: Railway auto-deploys on push to main. API Server and Market Aggregator are separate Railway services sharing the same Postgres.
-- **Env vars**: `DATABASE_URL` (Railway PG), `SUPABASE_JWT_SECRET` (for auth middleware), `VITE_RAILWAY_API_URL` (client-side API), `VITE_MARKET_AGGREGATOR_URL` (client-side SSE, optional — falls back to `VITE_RAILWAY_API_URL`)
+- **Env vars**: `DATABASE_URL` (Railway PG), `API_JWT_SECRET` (auth middleware; also accepts `RAILWAY_JWT_SECRET`/`JWT_SECRET`), `VITE_RAILWAY_API_URL` (client-side API), `VITE_MARKET_AGGREGATOR_URL` (client-side SSE, optional — falls back to `VITE_RAILWAY_API_URL`)

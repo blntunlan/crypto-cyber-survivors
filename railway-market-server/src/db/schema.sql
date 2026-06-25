@@ -5,7 +5,7 @@
 -- Source of truth: src/db/migrate.ts (runMigrations applies them).
 -- This file is regenerated from migrate.ts — do not edit by hand.
 --
--- 27 tables + 4 views + 10 functions + 3 triggers
+-- 27 tables + 2 views + 2 materialized views + 13 functions + 3 triggers
 -- ============================================================
 
 -- ============================================================
@@ -590,10 +590,12 @@ CREATE TABLE IF NOT EXISTS challenge_seed_log (
 CREATE INDEX IF NOT EXISTS idx_challenge_seed_log_challenge_id ON challenge_seed_log(challenge_id);
 
 -- ============================================================
--- VIEW: v_leaderboard (one row per player, pair-agnostic)
+-- MATERIALIZED VIEW: v_leaderboard (one row per player, pair-agnostic)
+-- Refreshed by the API server's LeaderboardRefreshCron (REFRESH CONCURRENTLY,
+-- ~2 min). Reads are an indexed scan instead of re-aggregating all sessions.
 -- ============================================================
 
-CREATE OR REPLACE VIEW v_leaderboard AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS v_leaderboard AS
 SELECT
   p.id AS profile_id,
   COALESCE(p.display_name, p.nickname) AS display_name,
@@ -608,13 +610,20 @@ FROM sessions s
 JOIN profiles p ON s.profile_id = p.id
 WHERE s.is_verified = true
 GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider
-ORDER BY max_survival_time DESC;
+WITH DATA;
+
+-- UNIQUE index is required for REFRESH ... CONCURRENTLY.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_v_leaderboard_profile ON v_leaderboard (profile_id);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_survival ON v_leaderboard (max_survival_time DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_kills ON v_leaderboard (total_kills DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_score ON v_leaderboard (high_score DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_sessions ON v_leaderboard (total_sessions DESC);
 
 -- ============================================================
--- VIEW: v_leaderboard_by_pair (one row per player per pair)
+-- MATERIALIZED VIEW: v_leaderboard_by_pair (one row per player per pair)
 -- ============================================================
 
-CREATE OR REPLACE VIEW v_leaderboard_by_pair AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS v_leaderboard_by_pair AS
 SELECT
   p.id AS profile_id,
   COALESCE(p.display_name, p.nickname) AS display_name,
@@ -630,7 +639,13 @@ FROM sessions s
 JOIN profiles p ON s.profile_id = p.id
 WHERE s.is_verified = true
 GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider, s.pair
-ORDER BY max_survival_time DESC;
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_v_leaderboard_by_pair ON v_leaderboard_by_pair (profile_id, pair);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_survival ON v_leaderboard_by_pair (pair, max_survival_time DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_kills ON v_leaderboard_by_pair (pair, total_kills DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_score ON v_leaderboard_by_pair (pair, high_score DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_sessions ON v_leaderboard_by_pair (pair, total_sessions DESC);
 
 -- ============================================================
 -- VIEW: v_challenge_leaderboard
@@ -947,6 +962,81 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
+-- FUNCTION: cleanup_old_market_runtime_audit (30-day retention)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION cleanup_old_market_runtime_audit(
+  p_days_ago INTEGER DEFAULT 30,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM market_runtime_audit
+    WHERE id IN (
+      SELECT id FROM market_runtime_audit
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- FUNCTION: cleanup_old_audit_events (90-day retention)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION cleanup_old_audit_events(
+  p_days_ago INTEGER DEFAULT 90,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM audit_events
+    WHERE id IN (
+      SELECT id FROM audit_events
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
+-- FUNCTION: cleanup_old_product_telemetry_events (365-day retention)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION cleanup_old_product_telemetry_events(
+  p_days_ago INTEGER DEFAULT 365,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM product_telemetry_events
+    WHERE id IN (
+      SELECT id FROM product_telemetry_events
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
 -- AUTOVACUUM TUNING (high-write tables)
 -- ============================================================
 
@@ -965,4 +1055,8 @@ ALTER TABLE performance_metrics SET (
 ALTER TABLE error_reports SET (
   autovacuum_vacuum_scale_factor = 0.05,
   autovacuum_analyze_scale_factor = 0.02
+);
+ALTER TABLE market_runtime_audit SET (
+  autovacuum_vacuum_scale_factor = 0.02,
+  autovacuum_analyze_scale_factor = 0.01
 );

@@ -17,6 +17,7 @@ import {
   Smartphone,
   Monitor,
   Gamepad2,
+  X,
 } from 'lucide-react';
 import { Logger } from '../../services/system/Logger';
 import { railwayClient } from '../../services/api/RailwayClient';
@@ -97,7 +98,7 @@ const StatCard = React.memo(
 );
 StatCard.displayName = 'StatCard';
 
-export const AnalyticsDashboard: React.FC = () => {
+export const AnalyticsDashboard: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const [state, dispatch] = React.useReducer(
     (prev: DashboardState, next: Partial<DashboardState>) => ({ ...prev, ...next }),
     {
@@ -187,14 +188,26 @@ export const AnalyticsDashboard: React.FC = () => {
             </p>
           )}
         </div>
-        <button
-          onClick={() => void fetchData()}
-          disabled={state.loading}
-          className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-600/20 px-4 py-2 text-cyan-400 transition-colors hover:bg-cyan-600/30 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${state.loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void fetchData()}
+            disabled={state.loading}
+            className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-600/20 px-4 py-2 text-cyan-400 transition-colors hover:bg-cyan-600/30 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${state.loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-600/20 px-4 py-2 text-red-400 transition-colors hover:bg-red-600/30"
+              aria-label="Close analytics dashboard"
+            >
+              <X className="h-4 w-4" />
+              Close
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -351,12 +364,14 @@ export const AnalyticsDashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="mt-6 flex gap-4">
-        <button
-          onClick={() => (window.location.href = '/')}
-          className="rounded-lg bg-slate-700 px-4 py-2 text-slate-300 transition-colors hover:bg-slate-600"
-        >
-          ← Back to Game
-        </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-slate-700 px-4 py-2 text-slate-300 transition-colors hover:bg-slate-600"
+          >
+            ← Back to Game
+          </button>
+        )}
       </div>
     </div>
   );

@@ -71,7 +71,7 @@ const LegalPageLayout: React.FC<
     </nav>
 
     {/* Main Content */}
-    <main className="allow-scroll relative z-10 h-[calc(100vh-88px)] overflow-y-auto">
+    <main className="allow-scroll relative z-10 h-[calc(100dvh-88px)] overflow-y-auto">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
         {/* Page Header */}
         <motion.div

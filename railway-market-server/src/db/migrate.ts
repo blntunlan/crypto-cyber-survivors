@@ -31,13 +31,14 @@ export async function runMigrations(): Promise<void> {
     { name: '008_product_telemetry_events', sql: MIGRATION_008 },
     { name: '009_leaderboard_global_view', sql: MIGRATION_009 },
     { name: '010_market_state_full_columns', sql: MIGRATION_010 },
+    { name: '011_retention_cleanup_functions', sql: MIGRATION_011 },
+    { name: '012_materialized_leaderboards', sql: MIGRATION_012 },
   ];
 
   for (const migration of migrations) {
-    const { rows } = await pool.query(
-      'SELECT 1 FROM _migrations WHERE name = $1',
-      [migration.name]
-    );
+    const { rows } = await pool.query('SELECT 1 FROM _migrations WHERE name = $1', [
+      migration.name,
+    ]);
 
     if (rows.length > 0) {
       Logger.info(`[Migration] ${migration.name} — already applied, skipping`);
@@ -47,9 +48,7 @@ export async function runMigrations(): Promise<void> {
     try {
       Logger.info(`[Migration] Applying ${migration.name}...`);
       await pool.query(migration.sql);
-      await pool.query('INSERT INTO _migrations (name) VALUES ($1)', [
-        migration.name,
-      ]);
+      await pool.query('INSERT INTO _migrations (name) VALUES ($1)', [migration.name]);
       Logger.info(`[Migration] ${migration.name} — applied successfully`);
     } catch (error) {
       Logger.error(`[Migration] ${migration.name} failed:`, error);
@@ -1074,4 +1073,180 @@ CREATE INDEX IF NOT EXISTS idx_challenge_seed_log_challenge_id ON challenge_seed
 
 -- 4. Drop dead function: credit_coins (rewards now via wallets/ledger_entries)
 DROP FUNCTION IF EXISTS credit_coins;
+`;
+
+const MIGRATION_011 = `
+-- Migration 011: retention cleanup for high-write Railway-native tables
+-- Date: 2026-06-24
+-- Closes the unbounded-growth gap found during the schema audit. These three
+-- tables were actively written but had no cleanup_old_* function and were never
+-- pruned by any cron:
+--   * market_runtime_audit     — per-tick anti-cheat JSONB (3 blobs/row), by far
+--                                the highest-volume table; also had no autovacuum
+--                                tuning. Retention 30d (anti-cheat dispute window).
+--   * audit_events             — Railway-native structured audit log (auth/economy/
+--                                marketRuntime write it). Retention 90d (matches the
+--                                legacy audit_log window).
+--   * product_telemetry_events — investor funnel metrics (small rows). Retention
+--                                365d — keep a year of history but bound growth.
+-- All functions mirror the existing cleanup_old_* signature exactly
+-- (p_days_ago INT, p_batch_size INT) RETURNS BIGINT so the cron consumes them the
+-- same way. Idempotent (CREATE OR REPLACE / ALTER TABLE SET) → safe to re-run.
+
+-- 1. market_runtime_audit retention (30-day default; high volume → cron loops it)
+CREATE OR REPLACE FUNCTION cleanup_old_market_runtime_audit(
+  p_days_ago INTEGER DEFAULT 30,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM market_runtime_audit
+    WHERE id IN (
+      SELECT id FROM market_runtime_audit
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. audit_events retention (90-day default, matches legacy audit_log)
+CREATE OR REPLACE FUNCTION cleanup_old_audit_events(
+  p_days_ago INTEGER DEFAULT 90,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM audit_events
+    WHERE id IN (
+      SELECT id FROM audit_events
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. product_telemetry_events retention (365-day default — small rows, keep a year)
+CREATE OR REPLACE FUNCTION cleanup_old_product_telemetry_events(
+  p_days_ago INTEGER DEFAULT 365,
+  p_batch_size INTEGER DEFAULT 5000
+) RETURNS BIGINT AS $$
+DECLARE
+  v_deleted BIGINT;
+BEGIN
+  WITH deleted AS (
+    DELETE FROM product_telemetry_events
+    WHERE id IN (
+      SELECT id FROM product_telemetry_events
+      WHERE created_at < (now() - (p_days_ago || ' days')::INTERVAL)
+      LIMIT p_batch_size
+    )
+    RETURNING 1
+  )
+  SELECT COUNT(*) INTO v_deleted FROM deleted;
+  RETURN v_deleted;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 4. autovacuum tuning for market_runtime_audit (high insert + delete churn)
+ALTER TABLE market_runtime_audit SET (
+  autovacuum_vacuum_scale_factor = 0.02,
+  autovacuum_analyze_scale_factor = 0.01
+);
+`;
+
+const MIGRATION_012 = `
+-- Migration 012: materialized leaderboard views (read-scale fix)
+-- Date: 2026-06-24
+-- v_leaderboard / v_leaderboard_by_pair were plain VIEWs, so every public
+-- leaderboard request re-aggregated (GROUP BY) over ALL verified sessions —
+-- O(sessions) on the hottest read path. Convert them to MATERIALIZED VIEWs that
+-- the API server refreshes periodically (LeaderboardRefreshCron → REFRESH ...
+-- CONCURRENTLY, ~2 min). Reads become an indexed scan of a one-row-per-player
+-- table. Trade-off: leaderboard is eventually-consistent (<= refresh interval).
+--
+-- REFRESH ... CONCURRENTLY requires a UNIQUE index and must run OUTSIDE a
+-- transaction — that happens in the cron (autocommit), not here. The CREATE
+-- below is plain DDL and is safe inside the migration's implicit transaction.
+--
+-- The DROP guards use a catalog check so the migration is idempotent regardless
+-- of whether the object currently exists as a plain view (first run) or a
+-- materialized view (replay): a bare DROP VIEW on a matview (or vice-versa)
+-- errors even with IF EXISTS.
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'v_leaderboard') THEN
+    EXECUTE 'DROP MATERIALIZED VIEW v_leaderboard CASCADE';
+  ELSIF EXISTS (SELECT 1 FROM pg_views WHERE viewname = 'v_leaderboard') THEN
+    EXECUTE 'DROP VIEW v_leaderboard CASCADE';
+  END IF;
+END $$;
+
+CREATE MATERIALIZED VIEW v_leaderboard AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_v_leaderboard_profile ON v_leaderboard (profile_id);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_survival ON v_leaderboard (max_survival_time DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_kills ON v_leaderboard (total_kills DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_score ON v_leaderboard (high_score DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_sessions ON v_leaderboard (total_sessions DESC);
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'v_leaderboard_by_pair') THEN
+    EXECUTE 'DROP MATERIALIZED VIEW v_leaderboard_by_pair CASCADE';
+  ELSIF EXISTS (SELECT 1 FROM pg_views WHERE viewname = 'v_leaderboard_by_pair') THEN
+    EXECUTE 'DROP VIEW v_leaderboard_by_pair CASCADE';
+  END IF;
+END $$;
+
+CREATE MATERIALIZED VIEW v_leaderboard_by_pair AS
+SELECT
+  p.id AS profile_id,
+  COALESCE(p.display_name, p.nickname) AS display_name,
+  p.avatar_url,
+  p.primary_auth_provider,
+  s.pair,
+  MAX(s.survival_seconds) AS max_survival_time,
+  SUM(s.kills) AS total_kills,
+  MAX(s.level) AS high_score,
+  COUNT(s.id) AS total_sessions,
+  MAX(s.created_at) AS last_played_at
+FROM sessions s
+JOIN profiles p ON s.profile_id = p.id
+WHERE s.is_verified = true
+GROUP BY p.id, p.display_name, p.nickname, p.avatar_url, p.primary_auth_provider, s.pair
+WITH DATA;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_v_leaderboard_by_pair ON v_leaderboard_by_pair (profile_id, pair);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_survival ON v_leaderboard_by_pair (pair, max_survival_time DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_kills ON v_leaderboard_by_pair (pair, total_kills DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_score ON v_leaderboard_by_pair (pair, high_score DESC);
+CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_sessions ON v_leaderboard_by_pair (pair, total_sessions DESC);
 `;

@@ -1,16 +1,16 @@
 {
   "leaderboard": {
-    "global_rankings": "Global Rankings",
-    "sort_score": "Score",
-    "sort_time": "Time",
-    "sort_kills": "Kills",
-    "sort_sessions": "Runs",
-    "survived": "survived",
-    "total": "total",
-    "runs": "runs",
-    "all_players": "All Players",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing..."
+    "global_rankings": "Bảng Xếp Hạng Toàn Cầu",
+    "sort_score": "Điểm",
+    "sort_time": "Thời gian",
+    "sort_kills": "Tiêu diệt",
+    "sort_sessions": "Lượt chơi",
+    "survived": "sống sót",
+    "total": "tổng",
+    "runs": "lượt chơi",
+    "all_players": "Tất cả người chơi",
+    "refresh": "Làm mới",
+    "refreshing": "Đang làm mới..."
   },
   "common": {
     "start": "Bắt đầu",
@@ -244,6 +244,7 @@
       "total_kills": "Tổng hạ gục",
       "pnl_performance": "Hiệu suất P&L",
       "coins_earned": "XU KIẾM ĐƯỢC",
+      "cycle_reward": "Phần thưởng chu kỳ",
       "details": "Chi tiết",
       "hide": "Ẩn",
       "continue_risk": "Tiếp tục Rủi ro: Tăng {{val}}% độ khó",

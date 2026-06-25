@@ -1,16 +1,16 @@
 {
   "leaderboard": {
-    "global_rankings": "Global Rankings",
-    "sort_score": "Score",
-    "sort_time": "Time",
-    "sort_kills": "Kills",
-    "sort_sessions": "Runs",
-    "survived": "survived",
-    "total": "total",
-    "runs": "runs",
-    "all_players": "All Players",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing..."
+    "global_rankings": "Мировой рейтинг",
+    "sort_score": "Очки",
+    "sort_time": "Время",
+    "sort_kills": "Убийства",
+    "sort_sessions": "Забеги",
+    "survived": "выжил",
+    "total": "всего",
+    "runs": "забеги",
+    "all_players": "Все игроки",
+    "refresh": "Обновить",
+    "refreshing": "Обновление..."
   },
   "common": {
     "start": "Начать игру",
@@ -244,6 +244,7 @@
       "total_kills": "Всего убийств",
       "pnl_performance": "P&L Эффективность",
       "coins_earned": "ЗАРАБОТАНО МОНЕТ",
+      "cycle_reward": "Награда за цикл",
       "details": "Детали",
       "hide": "Скрыть",
       "continue_risk": "Продолжить риск: +{{val}}% к сложности",

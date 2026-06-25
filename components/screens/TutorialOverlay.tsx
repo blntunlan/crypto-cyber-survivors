@@ -6,6 +6,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useIsMobile } from '../../hooks/useDevice';
 import { TutorialSpotlight } from '../ui/TutorialSpotlight';
 import { TutorialTooltip } from '../ui/TutorialTooltip';
 import type { TutorialStep } from '../../config/TutorialConfig';
@@ -50,6 +51,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 }) => {
   const { t } = useLanguage();
   const { themeName } = useTheme();
+  const isMobile = useIsMobile();
 
   // Handle next action (either next step or complete)
   const handleNext = (): void => {
@@ -128,20 +130,22 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         finishText={t('tutorial.gotIt')}
       />
 
-      {/* Keyboard hints (desktop only) */}
-      <motion.div
-        className="tutorial-overlay-hints"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.3 }}
-      >
-        <span className="tutorial-hint">
-          <kbd>Enter</kbd> {t('tutorial.next')}
-        </span>
-        <span className="tutorial-hint">
-          <kbd>Esc</kbd> {t('tutorial.skip')}
-        </span>
-      </motion.div>
+      {/* Keyboard hints (desktop only — mobile uses on-screen buttons) */}
+      {!isMobile && (
+        <motion.div
+          className="tutorial-overlay-hints"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.3 }}
+        >
+          <span className="tutorial-hint">
+            <kbd>Enter</kbd> {t('tutorial.next')}
+          </span>
+          <span className="tutorial-hint">
+            <kbd>Esc</kbd> {t('tutorial.skip')}
+          </span>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

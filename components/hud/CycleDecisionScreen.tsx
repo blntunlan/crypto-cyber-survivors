@@ -16,6 +16,12 @@ import { EventBus } from '../../services/core/EventBus';
 import { DifficultyManager } from '../../services/gameplay/DifficultyManager';
 import { Z_LAYERS } from '../../constants/ZIndex';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useIsRetro } from '../../contexts/useTheme';
+import { COLORS } from '../../config/Colors';
+import { cn } from '../../utils/classnames';
+import { OverlayChrome } from '../ui/OverlayChrome';
+import { ThemedButton } from '../themed/ThemedButton';
+import { IconZap, IconBitcoin } from '../icons/CardIcons';
 
 interface CycleDecisionScreenProps {
   /** Callback when player chooses to continue */
@@ -60,6 +66,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
 }) => {
   trackRender('CycleDecisionScreen');
   const { t } = useLanguage();
+  const isRetro = useIsRetro();
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<DecisionState>({
     cycleNumber: 1,
@@ -88,7 +95,9 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
       lastProcessedCycleRef.current = 0;
     });
 
-    return unsubReset;
+    return () => {
+      unsubReset();
+    };
   }, []);
 
   // Use ref to avoid stale closure in timer
@@ -187,7 +196,9 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
       }
     );
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, [externalVisible]);
 
   // Countdown timer
@@ -198,7 +209,7 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
     const timer = setInterval(() => {
       setState(prev => {
         if (prev.timeRemaining <= 1) {
-          // Auto-continue when timer expires - use ref to get latest handler
+          // Auto-continue when timer reaches zero - use ref to get latest handler
           handleContinueRef.current();
           return prev;
         }
@@ -219,71 +230,85 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="fixed inset-0 flex items-center justify-center"
-          style={{
-            zIndex: Z_LAYERS.CYCLE_COMPLETE,
-            background:
-              'radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.9) 100%)',
-            backdropFilter: 'blur(8px)',
-          }}
         >
-          {/* Ambient glow */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
-            }}
-          />
-
-          <motion.div
-            initial={{ scale: 0.9, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-            className="relative mx-4 w-full max-w-lg"
+          <OverlayChrome
+            zIndex={Z_LAYERS.CYCLE_COMPLETE}
+            maxWidthClassName="max-w-lg"
+            title={getText('hud.cycle_complete')}
+            subtitle={`${t('hud.cycle_count', { count: state.cycleNumber })} ${getText('hud.finished')}`}
+            accentColor={COLORS.ELECTRIC_BLUE}
+            contentClassName="space-y-6"
           >
-            {/* Main Card */}
-            <div className="overflow-hidden rounded-sm border border-purple-500/30 bg-slate-900/95 shadow-2xl">
-              {/* Header */}
-              <div className="border-b border-purple-500/20 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-black tracking-tight text-white">
-                      {getText('hud.cycle_complete')}
-                    </h2>
-                    <p className="mt-1 text-sm text-purple-300">
-                      {t('hud.cycle_count', { count: state.cycleNumber })}{' '}
-                      {getText('hud.finished')}
-                    </p>
-                  </div>
-                  {/* Timer */}
-                  <div className="text-right">
-                    <div className="font-mono text-3xl font-bold text-cyan-400">
-                      {state.timeRemaining}s
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      {getText('hud.auto_continue')}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            {/* Timer row */}
+            <div className="flex items-center justify-between">
+              <span
+                className={cn(
+                  'text-xs uppercase tracking-[0.18em] text-slate-400',
+                  isRetro && 'font-retro-pixel'
+                )}
+              >
+                {getText('hud.auto_continue')}
+              </span>
+              <span
+                className={cn(
+                  'font-cyber text-3xl font-bold text-cyan-400',
+                  isRetro && 'font-retro-pixel'
+                )}
+              >
+                {state.timeRemaining}s
+              </span>
+            </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 border-b border-slate-800 p-6">
-                <div className="rounded-sm border border-slate-700/50 bg-slate-800/50 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-wider text-slate-400">
+            {/* Stats */}
+            <section className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div
+                  className={cn(
+                    'p-4',
+                    isRetro
+                      ? 'border-2 border-[#39FF14]/30 bg-[#0a0a12]/80'
+                      : 'rounded-sm border border-white/10 bg-white/5'
+                  )}
+                >
+                  <p
+                    className={cn(
+                      'mb-1 text-xs uppercase tracking-wider text-slate-400',
+                      isRetro && 'font-retro-pixel'
+                    )}
+                  >
                     {getText('hud.current_difficulty')}
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p
+                    className={cn(
+                      'text-2xl font-bold text-white',
+                      isRetro && 'font-retro-pixel'
+                    )}
+                  >
                     {state.currentDifficulty.toFixed(2)}x
                   </p>
                 </div>
-                <div className="rounded-sm border border-orange-500/30 bg-slate-800/50 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-wider text-orange-400">
+                <div
+                  className={cn(
+                    'p-4',
+                    isRetro
+                      ? 'border-2 border-orange-500/50 bg-[#0a0a12]/80'
+                      : 'rounded-sm border border-orange-500/30 bg-orange-500/5'
+                  )}
+                >
+                  <p
+                    className={cn(
+                      'mb-1 text-xs uppercase tracking-wider text-orange-400',
+                      isRetro && 'font-retro-pixel'
+                    )}
+                  >
                     {getText('hud.next_difficulty')}
                   </p>
-                  <p className="text-2xl font-bold text-orange-400">
+                  <p
+                    className={cn(
+                      'text-2xl font-bold text-orange-400',
+                      isRetro && 'font-retro-pixel'
+                    )}
+                  >
                     {state.nextDifficulty.toFixed(2)}x
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -297,72 +322,52 @@ export const CycleDecisionScreen: React.FC<CycleDecisionScreenProps> = ({
                   </p>
                 </div>
               </div>
+            </section>
 
-              {/* Decision Buttons */}
-              <div className="space-y-4 p-6">
-                {/* Continue Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleContinue}
-                  disabled={selectedOption !== null}
-                  className={`
-                    w-full rounded-sm px-6 py-4 text-lg font-bold transition-all
-                    ${
-                      selectedOption === 'continue'
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-600/30 hover:from-green-500 hover:to-emerald-500'
-                    }
-                    ${selectedOption === 'cashout' ? 'opacity-50' : ''}
-                    disabled:cursor-not-allowed
-                  `}
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-2xl">🚀</span>
-                    <div className="text-left">
-                      <div>{getText('hud.continue_playing')}</div>
-                      <div className="text-xs font-normal opacity-80">
-                        {getText('hud.risk_reward')}
-                      </div>
-                    </div>
-                  </div>
-                </motion.button>
+            {/* Decision Buttons */}
+            <div className="space-y-4">
+              <ThemedButton
+                intent="primary"
+                onClick={handleContinue}
+                disabled={selectedOption !== null}
+                className="flex min-h-[52px] w-full items-center justify-center gap-3 text-sm font-black uppercase tracking-[0.22em]"
+              >
+                <IconZap
+                  className="h-5 w-5"
+                  color={isRetro ? COLORS.NEON_GREEN : 'currentColor'}
+                />
+                <span className="text-left">
+                  <span className="block">{getText('hud.continue_playing')}</span>
+                  <span className="block text-xs font-normal opacity-80">
+                    {getText('hud.risk_reward')}
+                  </span>
+                </span>
+              </ThemedButton>
 
-                {/* Cash Out Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleCashOut}
-                  disabled={selectedOption !== null}
-                  className={`
-                    w-full rounded-sm px-6 py-4 text-lg font-bold transition-all
-                    ${
-                      selectedOption === 'cashout'
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-lg shadow-amber-600/30 hover:from-amber-500 hover:to-yellow-500'
-                    }
-                    ${selectedOption === 'continue' ? 'opacity-50' : ''}
-                    disabled:cursor-not-allowed
-                  `}
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-2xl">💰</span>
-                    <div className="text-left">
-                      <div>{getText('hud.cash_out')}</div>
-                      <div className="text-xs font-normal opacity-80">
-                        {getText('hud.secure_rewards')}
-                      </div>
-                    </div>
-                  </div>
-                </motion.button>
-              </div>
-
-              {/* Footer hint */}
-              <div className="px-6 pb-4 text-center">
-                <p className="text-xs text-slate-500">{getText('hud.decision_hint')}</p>
-              </div>
+              <ThemedButton
+                intent="danger"
+                onClick={handleCashOut}
+                disabled={selectedOption !== null}
+                className={cn(
+                  'flex min-h-[52px] w-full items-center justify-center gap-3 text-sm font-black uppercase tracking-[0.22em]',
+                  selectedOption === 'continue' && 'opacity-50'
+                )}
+              >
+                <IconBitcoin className="h-5 w-5" color="currentColor" />
+                <span className="text-left">
+                  <span className="block">{getText('hud.cash_out')}</span>
+                  <span className="block text-xs font-normal opacity-80">
+                    {getText('hud.secure_rewards')}
+                  </span>
+                </span>
+              </ThemedButton>
             </div>
-          </motion.div>
+
+            {/* Footer hint */}
+            <div className="text-center">
+              <p className="text-xs text-slate-500">{getText('hud.decision_hint')}</p>
+            </div>
+          </OverlayChrome>
         </motion.div>
       )}
     </AnimatePresence>

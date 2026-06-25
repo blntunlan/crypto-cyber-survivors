@@ -1,5 +1,7 @@
 # Gameplay Refactor Review & Roadmap
 
+> **ARCHIVED / HISTORICAL (status note 2026-06-24).** The two headline issues below — reward divergence and `difficultyContext.cycleFactor` compounding — are **resolved in the current code**, and the backend has moved off Supabase edge functions to the Railway API (`/api/v1/sessions/verify`). See the "Known Architectural Issues" section in `CLAUDE.md` for the current (resolved) state. This document is retained for history only.
+
 ## Executive Summary
 - Portal reward architecture now mixes optimistic UI credits with server-side validation; without deterministic inputs (kills, level, cycle metadata) the edge function cannot reconstruct true rewards, exposing griefing vectors and inconsistent payouts.
 - Game loop orchestration keeps accruing state between cycles (e.g., `difficultyContext.cycleFactor`, auto `cycleComplete` events) but the React memo + lifecycle guards were not updated, so competitive runs can desync UI, analytics, and Supabase sessions.

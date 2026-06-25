@@ -435,7 +435,7 @@ export const LeaderboardScreen: React.FC = () => {
       exit={{ opacity: 0 }}
       className={cn(
         'allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-3 pb-[calc(1rem+var(--sab))] sm:p-5',
-        isRetro ? 'bg-[#0a0a12]/95' : 'bg-slate-950/60 backdrop-blur-sm'
+        isRetro ? 'bg-[#0a0a12]/95' : 'bg-slate-950/92'
       )}
     >
       <div className="w-full max-w-2xl space-y-4 py-2 sm:space-y-5 sm:py-4">
@@ -529,16 +529,16 @@ export const LeaderboardScreen: React.FC = () => {
           className={cn(
             'relative overflow-hidden',
             !isRetro &&
-              'bg-slate-900/70 !rounded-[1.5rem] border border-white/15 shadow-[0_20px_60px_rgba(2,6,23,0.7)] backdrop-blur-xl'
+              'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
           )}
         >
           {/* Top accent line */}
           {!isRetro && (
             <>
-              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/15" />
+              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
               <div
-                className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/15 to-transparent"
-                style={{ boxShadow: `0 0 20px ${activeTab.color}30` }}
+                className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                style={{ boxShadow: `0 0 20px ${activeTab.color}40` }}
               />
             </>
           )}

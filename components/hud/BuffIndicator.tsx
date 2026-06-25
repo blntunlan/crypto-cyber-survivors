@@ -69,21 +69,35 @@ export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
     };
   }, [updateEffects]);
 
-  // Don't show when not playing, no effects, or on very narrow screens
-  if (status !== GameStatus.PLAYING || effects.length === 0 || isVeryNarrow) {
+  // Don't show when not playing or no effects
+  if (status !== GameStatus.PLAYING || effects.length === 0) {
     return null;
   }
 
-  // On small devices, show more effects since they are now horizontal and compact
-  const displayEffects = isMobile ? effects.slice(0, 6) : effects;
+  // On small devices, show more effects since they are now horizontal and compact.
+  // Very narrow screens (<320px) get an ultra-compact icon-only row instead of
+  // being hidden entirely — players still need to see active buffs/debuffs.
+  const MOBILE_CAP = isVeryNarrow ? 4 : 6;
+  const displayEffects = isMobile ? effects.slice(0, MOBILE_CAP) : effects;
+  const overflowCount = isMobile ? Math.max(0, effects.length - MOBILE_CAP) : 0;
 
   return (
     <div
       className={`flex ${isMobile ? 'flex-row flex-wrap gap-1.5' : 'flex-col gap-1'} pointer-events-none mt-2`}
     >
       {displayEffects.map(effect => (
-        <BuffItem key={effect.id} effect={effect} isMobile={isMobile} />
+        <BuffItem
+          key={effect.id}
+          effect={effect}
+          isMobile={isMobile}
+          isVeryNarrow={isVeryNarrow}
+        />
       ))}
+      {overflowCount > 0 && (
+        <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5">
+          <span className="text-[8px] font-bold text-slate-400">+{overflowCount}</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -91,9 +105,14 @@ export const BuffIndicator: React.FC<BuffIndicatorProps> = ({ status }) => {
 interface BuffItemProps {
   effect: ActiveEffect;
   isMobile?: boolean;
+  isVeryNarrow?: boolean;
 }
 
-const BuffItem: React.FC<BuffItemProps> = ({ effect, isMobile = false }) => {
+const BuffItem: React.FC<BuffItemProps> = ({
+  effect,
+  isMobile = false,
+  isVeryNarrow = false,
+}) => {
   const { t } = useLanguage();
   const remainingSeconds = effect.isPermanent
     ? null
@@ -104,7 +123,37 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect, isMobile = false }) => {
     effect.name
   );
 
+  const localizedName = t(`hud.buffs.${effect.name.toLowerCase().replace(/ /g, '_')}`, {
+    defaultValue: effect.name,
+  });
+
   if (isMobile) {
+    // Ultra-compact: icon + timer only (very narrow screens <320px)
+    if (isVeryNarrow) {
+      return (
+        <div
+          className={`
+            flex items-center gap-0.5 rounded border border-white/10 px-1 py-0.5
+            ${isDebuff ? 'bg-rose-500/20' : 'bg-emerald-500/20'}
+            animate-pulse-slow
+          `}
+          title={`${localizedName} — ${effect.description}`}
+        >
+          <span className="text-[10px]">{effect.icon}</span>
+          {remainingSeconds !== null ? (
+            <span
+              className={`font-stats text-[7px] font-bold ${remainingSeconds <= 3 ? 'animate-pulse text-white' : 'opacity-90'}`}
+            >
+              {remainingSeconds}s
+            </span>
+          ) : (
+            <span className="text-[7px] font-bold text-yellow-400">∞</span>
+          )}
+        </div>
+      );
+    }
+
+    // Mobile: icon + truncated name + timer
     return (
       <div
         className={`
@@ -112,8 +161,14 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect, isMobile = false }) => {
           ${isDebuff ? 'bg-rose-500/20' : 'bg-emerald-500/20'}
           animate-pulse-slow
         `}
+        title={`${localizedName} — ${effect.description}`}
       >
         <span className="text-xs">{effect.icon}</span>
+        <span
+          className={`max-w-[48px] truncate text-[8px] font-medium ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
+        >
+          {localizedName}
+        </span>
         {remainingSeconds !== null ? (
           <span
             className={`font-stats text-[8px] font-bold ${remainingSeconds <= 3 ? 'animate-pulse text-white' : 'opacity-90'}`}
@@ -148,9 +203,7 @@ const BuffItem: React.FC<BuffItemProps> = ({ effect, isMobile = false }) => {
       <span
         className={`text-xs font-medium md:text-sm ${isDebuff ? 'text-rose-200' : 'text-emerald-200'}`}
       >
-        {t(`hud.buffs.${effect.name.toLowerCase().replace(/ /g, '_')}`, {
-          defaultValue: effect.name,
-        })}
+        {localizedName}
       </span>
 
       {/* Duration */}

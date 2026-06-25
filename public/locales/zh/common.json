@@ -1,16 +1,16 @@
 {
   "leaderboard": {
-    "global_rankings": "Global Rankings",
-    "sort_score": "Score",
-    "sort_time": "Time",
-    "sort_kills": "Kills",
-    "sort_sessions": "Runs",
-    "survived": "survived",
-    "total": "total",
-    "runs": "runs",
-    "all_players": "All Players",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing..."
+    "global_rankings": "全球排行榜",
+    "sort_score": "得分",
+    "sort_time": "时间",
+    "sort_kills": "击杀",
+    "sort_sessions": "局数",
+    "survived": "存活",
+    "total": "总计",
+    "runs": "局",
+    "all_players": "所有玩家",
+    "refresh": "刷新",
+    "refreshing": "刷新中..."
   },
   "common": {
     "start": "开始游戏",
@@ -244,6 +244,7 @@
       "total_kills": "总击杀",
       "pnl_performance": "盈亏表现",
       "coins_earned": "获得代币",
+      "cycle_reward": "周期奖励",
       "details": "详情",
       "hide": "隐藏",
       "continue_risk": "继续风险：难度增加 {{val}}%",

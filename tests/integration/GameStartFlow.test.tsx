@@ -110,6 +110,10 @@ vi.mock('../../components/GameEngine', () => ({
   default: () => <div data-testid="game-engine">Game Engine Running</div>,
 }));
 
+vi.mock('../../components/LazyMotionProvider', () => ({
+  LazyMotionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock('../../components/GameUI', () => ({
   GameUI: () => <div data-testid="game-ui">Game UI Running</div>,
 }));

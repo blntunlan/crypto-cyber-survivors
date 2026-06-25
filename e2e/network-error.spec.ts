@@ -166,7 +166,7 @@ test.describe('Error Handling', () => {
 });
 
 test.describe('Memory Management', () => {
-  test('should not leak memory on navigation', async ({ page }) => {
+  test('should not leak memory on navigation', async ({ page, context }) => {
     await page.goto('/?no-sw=true');
     await page.evaluate(() => {
       localStorage.setItem(
@@ -180,6 +180,24 @@ test.describe('Memory Management', () => {
       );
     });
 
+    const browserName = page.context().browser()?.browserType().name();
+    const collectGarbage = async () => {
+      if (browserName !== 'chromium') return;
+
+      const client = await context.newCDPSession(page);
+      try {
+        await client.send('HeapProfiler.collectGarbage');
+      } finally {
+        await client.detach();
+      }
+    };
+
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: /crypto survivors/i })
+    ).toBeVisible();
+    await collectGarbage();
+
     // Get initial heap size
     const initialHeap = await page.evaluate(() => {
       // @ts-expect-error - performance.memory is Chrome-specific
@@ -191,10 +209,13 @@ test.describe('Memory Management', () => {
     });
 
     // Reload multiple times
-    for (let i = 0; i < 3; i++) {
+    for (let reloadCount = 0; reloadCount < 3; reloadCount++) {
       await page.reload();
-      await page.waitForTimeout(1000);
+      await expect(
+        page.getByRole('heading', { name: /crypto survivors/i })
+      ).toBeVisible();
     }
+    await collectGarbage();
 
     // Get final heap size
     const finalHeap = await page.evaluate(() => {

@@ -205,8 +205,10 @@ vi.mock('../hooks/useDevShortcuts', () => ({
   useDevShortcuts: () => ({
     showAnalytics: false,
     showAdminDashboard: false,
+    showVfxLab: false,
     closeAnalytics: vi.fn(),
     closeAdminDashboard: vi.fn(),
+    closeVfxLab: vi.fn(),
   }),
 }));
 
@@ -285,6 +287,10 @@ vi.mock('../components/GameEngine', () => ({
   __esModule: true,
   GameEngine: () => <div>GameEngine</div>,
   default: () => <div>GameEngine</div>,
+}));
+
+vi.mock('../components/LazyMotionProvider', () => ({
+  LazyMotionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 vi.mock('../components/GameUI', () => ({

@@ -47,7 +47,7 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
           'relative my-auto w-full overflow-hidden p-5 sm:p-6',
           maxWidthClassName,
           !isRetro &&
-            'bg-slate-900/78 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-xl',
+            'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]',
           panelClassName
         )}
       >
@@ -155,6 +155,7 @@ export const OverlayBackButton: React.FC<OverlayBackButtonProps> = ({
   zIndex = 260,
 }) => {
   const { t } = useLanguage();
+  const isRetro = useIsRetro();
   const translated = t('common.back');
   const text = label ?? (Array.isArray(translated) ? translated[0] : translated);
 
@@ -162,7 +163,10 @@ export const OverlayBackButton: React.FC<OverlayBackButtonProps> = ({
     <button
       onClick={onClick}
       className={cn(
-        'fixed flex h-10 touch-manipulation items-center gap-2 border border-white/10 bg-white/5 px-4 font-cyber text-xs font-semibold uppercase tracking-widest text-slate-400 backdrop-blur-sm transition-all duration-300 hover:border-[#d6b85c]/40 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] active:scale-95',
+        'fixed flex h-10 touch-manipulation items-center gap-2 px-4 text-xs font-semibold uppercase tracking-widest transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 active:scale-95',
+        isRetro
+          ? 'rounded-none border-2 border-[#39FF14]/50 bg-black/60 font-retro-pixel text-[#DCDCDC] hover:border-[#39FF14] hover:bg-[#39FF14]/10 hover:text-[#39FF14] focus-visible:ring-[#39FF14]'
+          : 'border border-white/10 bg-white/5 font-cyber text-slate-400 backdrop-blur-sm hover:border-cyan-400/40 hover:bg-white/10 hover:text-white focus-visible:ring-cyan-400',
         className
       )}
       style={{

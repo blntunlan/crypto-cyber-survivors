@@ -326,8 +326,8 @@ const NotificationSystemComponent: React.FC = () => {
       <style>{`
         .notification-system-container {
           position: fixed;
-          top: 20px;
-          right: 20px;
+          top: calc(20px + env(safe-area-inset-top, 0px));
+          right: calc(20px + env(safe-area-inset-right, 0px));
           z-index: ${Z_LAYERS.TOAST};
           display: flex;
           flex-direction: column;

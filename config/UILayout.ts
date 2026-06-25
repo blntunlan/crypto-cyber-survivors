@@ -69,7 +69,7 @@ export const MOBILE_LAYOUT: HUDLayout = {
     clutchAnnouncement: { visible: true, scale: 0.9, opacity: 1.0 },
   },
   positioning: 'compact',
-  maxEnemies: 100, // Reduced from 150 for performance
+  maxEnemies: 150, // Gameplay cap uniform across platforms — DeviceBenchmarkService handles perf scaling
 };
 
 /**
@@ -88,7 +88,7 @@ export const SMALL_MOBILE_LAYOUT: HUDLayout = {
     clutchAnnouncement: { visible: true, scale: 0.8, opacity: 1.0 },
   },
   positioning: 'minimal',
-  maxEnemies: 80, // Further reduced for performance on low-end devices
+  maxEnemies: 150, // Gameplay cap uniform across platforms — DeviceBenchmarkService handles perf scaling
 };
 
 /**

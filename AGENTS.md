@@ -124,7 +124,9 @@ Market → gameplay: WS → Aggregator → SSE → `SSEMarketService` → `Marke
 
 ## Debugging Tools
 
-- Admin Dashboard: `Ctrl + Shift + A`.
+- Analytics Dashboard: `Ctrl + Shift + A` (beta metrics, errors, devices).
+- Admin Dashboard: `Ctrl + Shift + D` (config, price analysis, difficulty, spawn).
+- Preview Lab: `Ctrl + Shift + V` (VFX + Assets + Sounds).
 - Cheat Manager: `F1` (dev mode only).
 - EventBus tracing: `EventBus.enableTracing()`.
 - Custom debug pane: `DebugService.registerPanel('MyDebug', () => ({ ... }))`.

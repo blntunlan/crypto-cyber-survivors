@@ -1,16 +1,16 @@
 {
   "leaderboard": {
-    "global_rankings": "Global Rankings",
-    "sort_score": "Score",
-    "sort_time": "Time",
-    "sort_kills": "Kills",
-    "sort_sessions": "Runs",
-    "survived": "survived",
+    "global_rankings": "Clasificación Global",
+    "sort_score": "Puntuación",
+    "sort_time": "Tiempo",
+    "sort_kills": "Bajas",
+    "sort_sessions": "Partidas",
+    "survived": "sobrevivió",
     "total": "total",
-    "runs": "runs",
-    "all_players": "All Players",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing..."
+    "runs": "partidas",
+    "all_players": "Todos los Jugadores",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando..."
   },
   "common": {
     "start": "Iniciar Juego",
@@ -244,6 +244,7 @@
       "total_kills": "Total Eliminaciones",
       "pnl_performance": "Rendimiento P&L",
       "coins_earned": "MONEDAS GANADAS",
+      "cycle_reward": "Recompensa de ciclo",
       "details": "Detalles",
       "hide": "Ocultar",
       "continue_risk": "Continuar Riesgo: {{val}}% aumento de dificultad",

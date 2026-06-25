@@ -1,16 +1,16 @@
 {
   "leaderboard": {
-    "global_rankings": "Global Rankings",
-    "sort_score": "Score",
-    "sort_time": "Time",
-    "sort_kills": "Kills",
-    "sort_sessions": "Runs",
-    "survived": "survived",
-    "total": "total",
-    "runs": "runs",
-    "all_players": "All Players",
-    "refresh": "Refresh",
-    "refreshing": "Refreshing..."
+    "global_rankings": "वैश्विक रैंकिंग",
+    "sort_score": "स्कोर",
+    "sort_time": "समय",
+    "sort_kills": "किल्स",
+    "sort_sessions": "राउंड",
+    "survived": "जीवित रहे",
+    "total": "कुल",
+    "runs": "राउंड",
+    "all_players": "सभी खिलाड़ी",
+    "refresh": "ताज़ा करें",
+    "refreshing": "ताज़ा हो रहा है..."
   },
   "common": {
     "start": "खेल शुरू करें",
@@ -244,6 +244,7 @@
       "total_kills": "कुल शिकार",
       "pnl_performance": "P&L प्रदर्शन",
       "coins_earned": "अर्जित सिक्के",
+      "cycle_reward": "चक्र पुरस्कार",
       "details": "विवरण",
       "hide": "छिपाएं",
       "continue_risk": "जोखिम जारी रखें: {{val}}% कठिनाई वृद्धि",

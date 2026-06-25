@@ -8,6 +8,7 @@ import { ErrorReporter } from './utils/errorReporter';
 import twitterAuthRouter from './services/twitterAuth';
 import { closePool, getPool, getPoolMax } from './db/pool';
 import { runMigrations } from './db/migrate';
+import { LeaderboardRefreshCron } from './cron/leaderboardRefresh';
 import { asyncHandler } from './utils/asyncHandler';
 import {
   globalLimiter,
@@ -150,7 +151,9 @@ function getAdminSecret(): string {
   if (!secret) {
     secret = crypto.randomBytes(32).toString('hex');
     process.env.ADMIN_API_SECRET = secret;
-    Logger.warn(`[Admin] ADMIN_API_SECRET is not configured. Generated ephemeral secret: ${secret}`);
+    Logger.warn(
+      `[Admin] ADMIN_API_SECRET is not configured. Generated ephemeral secret: ${secret}`
+    );
   }
   return secret;
 }
@@ -383,6 +386,10 @@ async function startServer(): Promise<void> {
     const server = app.listen(PORT, () => {
       Logger.info(`🚀 API Server ready at http://localhost:${PORT}`);
     });
+
+    // Keep materialized leaderboard views fresh (reads stay indexed scans
+    // instead of re-aggregating all verified sessions on every request).
+    LeaderboardRefreshCron.getInstance().start();
 
     // Graceful shutdown — drain in-flight requests before closing
     const SHUTDOWN_TIMEOUT_MS = 10_000;

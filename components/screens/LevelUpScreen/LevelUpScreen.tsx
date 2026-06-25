@@ -20,6 +20,7 @@ import {
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { GameMode } from '../../../types/gameMode';
 import { Logger } from '../../../services/system/Logger';
+import { MODERN_SCREEN_OVERLAY } from '../../../config/modernSurface';
 
 export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
   upgradeChoices,
@@ -208,7 +209,7 @@ export const LevelUpScreen: React.FC<LevelUpScreenProps> = ({
     <LevelUpErrorBoundary debugInfo={debugInfo}>
       <AnimatePresence>
         <motion.div
-          className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : 'bg-slate-950/85'}`}
+          className={`allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto p-4 ${isRetro ? 'bg-black/90' : MODERN_SCREEN_OVERLAY}`}
           style={{ zIndex: Z_LAYERS.LEVEL_UP_SCREEN }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

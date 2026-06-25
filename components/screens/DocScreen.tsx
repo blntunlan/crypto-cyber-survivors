@@ -1,8 +1,17 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
-import { Database, ChevronRight, Terminal, Share2, Search, Power } from 'lucide-react';
+import {
+  Database,
+  ChevronRight,
+  Terminal,
+  Share2,
+  Search,
+  Power,
+  Menu,
+} from 'lucide-react';
 import * as CardIcons from '../icons/CardIcons';
 import { IconShield } from '../icons/CardIcons';
+import { useIsMobile } from '../../hooks/useDevice';
 
 interface DocItem {
   text: string;
@@ -117,13 +126,13 @@ function renderCodeBlock(key: string, code: string, language?: string) {
           {code}
         </code>
       </pre>
-      <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="absolute right-2 top-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
         <button
           type="button"
           onClick={() => {
             void navigator.clipboard.writeText(code);
           }}
-          className="rounded-sm bg-white/5 p-2 text-[10px] font-black uppercase text-slate-500 transition-all hover:bg-white/10 hover:text-white"
+          className="min-h-[44px] rounded-sm bg-white/5 p-2 text-[10px] font-black uppercase text-slate-500 transition-all hover:bg-white/10 hover:text-white"
         >
           Copy
         </button>
@@ -383,6 +392,8 @@ const DocContentRenderer: React.FC<DocContentRendererProps> = ({
 export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
   const [state, dispatch] = useReducer(docScreenReducer, INITIAL_DOC_SCREEN_STATE);
   const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
   const { navigation, selectedDoc, content, loading, searchQuery } = state;
 
   useEffect(() => {
@@ -435,6 +446,7 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
   const handleDocSelect = (link: string) => {
     dispatch({ type: 'setSelectedDoc', selectedDoc: normalizeSelectedDocLink(link) });
     setShareStatus('idle');
+    setSidebarOpen(false);
   };
 
   const handleShareDoc = async () => {
@@ -489,108 +501,150 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[3300] flex flex-col overflow-hidden border-t-2 border-[#b22222]/50 bg-[#020617] font-mono text-slate-300 shadow-[0_-10px_50px_rgba(178,34,34,0.2)] md:flex-row"
       >
-        {/* Sidebar - Navigation */}
-        <div className="flex w-full flex-col border-r border-[#b22222]/20 bg-black/40 backdrop-blur-xl md:w-80">
-          <div className="flex items-center justify-between border-b border-[#b22222]/20 p-6">
-            <div className="flex items-center gap-3">
-              <Database className="h-5 w-5 text-[#d6b85c]" />
-              <span className="font-display font-black tracking-tighter text-white">
-                DOCS_V2.0
-              </span>
-            </div>
-            <button
-              type="button"
-              aria-label="Close documentation"
-              onClick={onClose}
-              className="rounded-full p-2 transition-colors hover:bg-white/5 md:hidden"
+        {/* Sidebar - Navigation (desktop: persistent, mobile: slide-over drawer) */}
+        <AnimatePresence>
+          {(!isMobile || sidebarOpen) && (
+            <m.div
+              key="sidebar"
+              initial={isMobile ? { x: '-100%' } : false}
+              animate={{ x: 0 }}
+              exit={isMobile ? { x: '-100%' } : undefined}
+              transition={{ type: 'tween', duration: 0.25 }}
+              className={`flex flex-col border-r border-[#b22222]/20 bg-black/40 backdrop-blur-xl md:w-80 ${
+                isMobile
+                  ? 'absolute inset-y-0 left-0 z-20 w-[85%] max-w-[320px]'
+                  : 'w-full md:relative md:z-auto'
+              }`}
             >
-              <Power className="h-5 w-5" />
-            </button>
-          </div>
+              <div className="flex items-center justify-between border-b border-[#b22222]/20 p-6">
+                <div className="flex items-center gap-3">
+                  <Database className="h-5 w-5 text-[#d6b85c]" />
+                  <span className="font-display font-black tracking-tighter text-white">
+                    DOCS_V2.0
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close documentation"
+                  onClick={onClose}
+                  className="min-h-[44px] min-w-[44px] rounded-full p-2 transition-colors hover:bg-white/5 md:hidden"
+                >
+                  <Power className="h-5 w-5" />
+                </button>
+              </div>
 
-          <div className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                aria-label="Search documentation"
-                placeholder="Search Protocol..."
-                className="w-full rounded-sm border border-white/10 bg-white/5 py-2 pl-10 pr-4 text-xs transition-all focus:outline-none focus:ring-1 focus:ring-[#d6b85c]"
-                value={searchQuery}
-                onChange={event => {
-                  dispatch({ type: 'setSearchQuery', searchQuery: event.target.value });
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto p-6">
-            {visibleSections.map(section => (
-              <div key={`section-${section.text}`} className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#b22222] opacity-80">
-                  {section.text}
-                </h3>
-                <div className="space-y-1">
-                  {section.items.map(item => {
-                    const normalizedItemDoc = normalizeSelectedDocLink(item.link);
-                    const isSelected = selectedDoc === normalizedItemDoc;
-
-                    return (
-                      <button
-                        type="button"
-                        key={`item-${section.text}-${item.link}`}
-                        onClick={() => handleDocSelect(item.link)}
-                        className={`group flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-xs transition-all
-                          ${
-                            isSelected
-                              ? 'border-l-2 border-[#d6b85c] bg-[#d6b85c]/10 text-white'
-                              : 'text-slate-500 hover:bg-white/5 hover:text-slate-100'
-                          }`}
-                      >
-                        <span>{item.text}</span>
-                        {isSelected && (
-                          <ChevronRight className="h-3 w-3 text-[#d6b85c]" />
-                        )}
-                      </button>
-                    );
-                  })}
+              <div className="p-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    aria-label="Search documentation"
+                    placeholder="Search Protocol..."
+                    className="w-full rounded-sm border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-base transition-all focus:outline-none focus:ring-1 focus:ring-[#d6b85c] md:text-xs"
+                    value={searchQuery}
+                    onChange={event => {
+                      dispatch({
+                        type: 'setSearchQuery',
+                        searchQuery: event.target.value,
+                      });
+                    }}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
 
-          <div className="space-y-2 border-t border-[#b22222]/20 bg-black/20 p-6 text-[10px]">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600">CONNECTION:</span>
-              <span className="text-green-500">ENCRYPTED</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600">LATENCY:</span>
-              <span className="text-[#d6b85c]">8MS</span>
-            </div>
-          </div>
-        </div>
+              <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto p-6">
+                {visibleSections.map(section => (
+                  <div key={`section-${section.text}`} className="space-y-3">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#b22222] opacity-80">
+                      {section.text}
+                    </h3>
+                    <div className="space-y-1">
+                      {section.items.map(item => {
+                        const normalizedItemDoc = normalizeSelectedDocLink(item.link);
+                        const isSelected = selectedDoc === normalizedItemDoc;
+
+                        return (
+                          <button
+                            type="button"
+                            key={`item-${section.text}-${item.link}`}
+                            onClick={() => handleDocSelect(item.link)}
+                            className={`group flex min-h-[44px] w-full items-center justify-between rounded-sm px-3 py-3 text-left text-xs transition-all
+                              ${
+                                isSelected
+                                  ? 'border-l-2 border-[#d6b85c] bg-[#d6b85c]/10 text-white'
+                                  : 'text-slate-500 hover:bg-white/5 hover:text-slate-100'
+                              }`}
+                          >
+                            <span>{item.text}</span>
+                            {isSelected && (
+                              <ChevronRight className="h-3 w-3 text-[#d6b85c]" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 border-t border-[#b22222]/20 bg-black/20 p-6 text-[10px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">CONNECTION:</span>
+                  <span className="text-green-500">ENCRYPTED</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">LATENCY:</span>
+                  <span className="text-[#d6b85c]">8MS</span>
+                </div>
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile sidebar backdrop */}
+        <AnimatePresence>
+          {isMobile && sidebarOpen && (
+            <m.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSidebarOpen(false)}
+              className="absolute inset-0 z-10 bg-black/60"
+            />
+          )}
+        </AnimatePresence>
 
         {/* Main Content Area */}
         <div className="relative flex flex-1 flex-col bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed opacity-[0.98]">
           {/* Header toolbar */}
-          <div className="flex h-16 items-center justify-between border-b border-[#b22222]/20 bg-black/20 px-8 backdrop-blur-md">
-            <div className="flex items-center gap-4 font-mono text-xs uppercase tracking-widest text-[#d6b85c]">
-              <Terminal className="h-4 w-4" />
-              <span>{selectedDoc}</span>
+          <div className="flex h-16 items-center justify-between border-b border-[#b22222]/20 bg-black/20 px-4 backdrop-blur-md md:px-8">
+            <div className="flex min-w-0 items-center gap-4 font-mono text-xs uppercase tracking-widest text-[#d6b85c]">
+              {isMobile && (
+                <button
+                  type="button"
+                  aria-label="Open sections"
+                  onClick={() => setSidebarOpen(true)}
+                  className="min-h-[44px] min-w-[44px] rounded-sm p-2 transition-colors hover:bg-white/5"
+                >
+                  <Menu className="h-5 w-5 text-slate-400" />
+                </button>
+              )}
+              <Terminal className="hidden h-4 w-4 shrink-0 sm:block" />
+              <span className="truncate">{selectedDoc}</span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex shrink-0 items-center gap-4">
               <button
                 type="button"
                 aria-label="Share documentation"
                 onClick={() => void handleShareDoc()}
-                className="group rounded-sm p-2 transition-colors hover:bg-white/5"
+                className="min-h-[44px] min-w-[44px] rounded-sm p-2 transition-colors hover:bg-white/5"
               >
                 <Share2 className="h-4 w-4 text-slate-500 group-hover:text-white" />
               </button>
               {shareStatus !== 'idle' && (
                 <span
-                  className={`text-[10px] font-black uppercase tracking-[0.18em] ${
+                  className={`hidden text-[10px] font-black uppercase tracking-[0.18em] sm:inline ${
                     shareStatus === 'copied' ? 'text-green-500' : 'text-red-400'
                   }`}
                 >
@@ -600,16 +654,17 @@ export const DocScreen: React.FC<DocScreenProps> = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex items-center gap-2 border border-[#b22222]/30 bg-[#b22222]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#b22222] transition-all hover:bg-[#b22222]/40"
+                className="flex min-h-[44px] items-center gap-2 border border-[#b22222]/30 bg-[#b22222]/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#b22222] transition-all hover:bg-[#b22222]/40"
               >
                 <Power className="h-4 w-4" />
-                EXIT_TERMINAL
+                <span className="hidden sm:inline">EXIT_TERMINAL</span>
+                <span className="sm:hidden">EXIT</span>
               </button>
             </div>
           </div>
 
           {/* Markdown Renderer Area */}
-          <div className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth p-8 md:p-16">
+          <div className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth p-4 md:p-16">
             <AnimatePresence mode="wait">
               {loading ? (
                 <m.div

@@ -182,7 +182,12 @@ export const useGameFlowController = ({
       }
 
       frozenPnlRef.current = marketData.pnl;
-      difficultyContext.reset();
+      DifficultyManager.reset();
+
+      // Challenge: end tracking synchronously BEFORE async session submission.
+      // If onRunEnd runs after the await, a rapid retry can start a new run whose
+      // tracking gets killed by this stale call. (race condition fix)
+      ChallengeService.onRunEnd();
 
       const tracker = PerformanceTracker.getInstance();
       tracker.stop();
@@ -223,7 +228,6 @@ export const useGameFlowController = ({
         Logger.warn(
           '[GameFlow] Metrics unavailable during game over; skipping session submission'
         );
-        ChallengeService.onRunEnd();
         isGameOverProcessingRef.current = false;
         return;
       }
@@ -287,9 +291,6 @@ export const useGameFlowController = ({
         } catch (error) {
           Logger.error('[App] Critical error during session submission:', error);
         }
-
-        // Challenge: end tracking
-        ChallengeService.onRunEnd();
       })();
     },
     [
@@ -386,7 +387,7 @@ export const useGameFlowController = ({
       },
     };
 
-    difficultyContext.reset();
+    DifficultyManager.reset();
     await handleGameOver(GameEndReason.CYCLE_COMPLETE, rewardPayload);
   }, [cycleData, handleGameOver]);
 
@@ -416,7 +417,7 @@ export const useGameFlowController = ({
     lastProcessedCycleRef.current = 0;
     setCycleData(null);
     setUpgradeChoices([]);
-    difficultyContext.reset();
+    DifficultyManager.reset();
   }, []);
 
   const pauseMenuStats = useMemo<PauseMenuStats>(

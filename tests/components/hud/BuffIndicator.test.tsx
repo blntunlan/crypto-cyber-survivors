@@ -158,8 +158,8 @@ describe('BuffIndicator', () => {
     (screenService.isMobile as any).mockReturnValue(true);
     render(<BuffIndicator status={GameStatus.PLAYING} />);
 
-    // Mobile mode renders different structure (no names, just icons and time)
-    expect(screen.queryByText('Rage Mode')).not.toBeInTheDocument();
+    // Mobile mode now shows buff names (compact) alongside icons and time
+    expect(screen.getByText('Rage Mode')).toBeInTheDocument();
     expect(screen.getByText('😡')).toBeInTheDocument();
     expect(screen.getByText('5s')).toBeInTheDocument();
   });
@@ -181,14 +181,21 @@ describe('BuffIndicator', () => {
     expect(screen.queryByText('Rage Mode')).not.toBeInTheDocument();
   });
 
-  it('should not render on very narrow screens', async () => {
+  it('should render icon-only on very narrow screens (not hidden)', async () => {
     // Re-mock hook for this specific test
     const useResponsiveUIModule = await import('../../../hooks/useResponsiveUI');
     (useResponsiveUIModule.useResponsiveUI as any).mockReturnValue({
       isVeryNarrow: true,
     });
+    // Very narrow screens are always mobile in practice
+    (screenService.isMobile as any).mockReturnValue(true);
 
     render(<BuffIndicator status={GameStatus.PLAYING} />);
+
+    // Very narrow screens show ultra-compact icon-only row (no names)
     expect(screen.queryByText('Rage Mode')).not.toBeInTheDocument();
+    // Icons should still be visible
+    expect(screen.getByText('😡')).toBeInTheDocument();
+    expect(screen.getByText('5s')).toBeInTheDocument();
   });
 });

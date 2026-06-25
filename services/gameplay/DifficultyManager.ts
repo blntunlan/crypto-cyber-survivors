@@ -77,7 +77,19 @@ class DifficultyManagerClass {
         },
         { scope: 'gameplay' }
       ),
-      EventBus.on('gameReset', () => this.reset(), { scope: 'system' })
+      EventBus.on('gameReset', () => this.reset(), { scope: 'system' }),
+      // Belt-and-suspenders: reset UnifiedDirector on gameOver event so its
+      // smoothedOutputs don't leak across runs (mirrors DifficultyContext's
+      // own gameOver listener). The liquidation path (useMarketTimeout) emits
+      // gameOver without going through handleGameOver, so this listener is the
+      // only reset trigger for UnifiedDirector on that path.
+      EventBus.on(
+        'gameOver',
+        () => {
+          UnifiedDirector.reset();
+        },
+        { scope: 'system' }
+      )
     );
   }
 

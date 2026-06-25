@@ -147,7 +147,62 @@ export class CleanupCron {
         Logger.debug('[Cleanup] cleanup_old_cheat_attempts function not yet available');
       }
 
-      // 5. Audit logs (90-day retention)
+      // 5. Market runtime audit (30-day retention, high volume → loop in batches)
+      try {
+        let mraDeleted = 0;
+        let mraDeletedInBatch = 0;
+        let mraIterations = 0;
+        do {
+          const mraResult = await db.execute(
+            sql`SELECT cleanup_old_market_runtime_audit(30, ${BATCH_SIZE})`
+          );
+          const mraRow = mraResult.rows[0] as { cleanup_old_market_runtime_audit?: string } | undefined;
+          const mraCount = Number(mraRow?.cleanup_old_market_runtime_audit ?? 0);
+          mraDeletedInBatch = Number.isFinite(mraCount) && mraCount >= 0 ? mraCount : 0;
+          if (mraDeletedInBatch === 0) break;
+          mraDeleted += mraDeletedInBatch;
+          mraIterations++;
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } while (mraDeletedInBatch === BATCH_SIZE && mraIterations < maxIterations);
+        if (mraDeleted > 0) {
+          totalDeleted += mraDeleted;
+          Logger.info(`[Cleanup] Deleted ${mraDeleted} old market_runtime_audit records`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_market_runtime_audit function not yet available');
+      }
+
+      // 6. Audit events (90-day retention)
+      try {
+        const auditEvResult = await db.execute(
+          sql`SELECT cleanup_old_audit_events(90, ${BATCH_SIZE})`
+        );
+        const auditEvRow = auditEvResult.rows[0] as { cleanup_old_audit_events?: string } | undefined;
+        const auditEvDeleted = Number(auditEvRow?.cleanup_old_audit_events ?? 0);
+        if (auditEvDeleted > 0) {
+          totalDeleted += auditEvDeleted;
+          Logger.info(`[Cleanup] Deleted ${auditEvDeleted} old audit_events`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_audit_events function not yet available');
+      }
+
+      // 7. Product telemetry events (365-day retention)
+      try {
+        const telemetryResult = await db.execute(
+          sql`SELECT cleanup_old_product_telemetry_events(365, ${BATCH_SIZE})`
+        );
+        const telemetryRow = telemetryResult.rows[0] as { cleanup_old_product_telemetry_events?: string } | undefined;
+        const telemetryDeleted = Number(telemetryRow?.cleanup_old_product_telemetry_events ?? 0);
+        if (telemetryDeleted > 0) {
+          totalDeleted += telemetryDeleted;
+          Logger.info(`[Cleanup] Deleted ${telemetryDeleted} old product_telemetry_events`);
+        }
+      } catch {
+        Logger.debug('[Cleanup] cleanup_old_product_telemetry_events function not yet available');
+      }
+
+      // 8. Audit logs (90-day retention)
       try {
         const auditResult = await db.execute(
           sql`SELECT cleanup_old_audit_logs(90, ${BATCH_SIZE})`

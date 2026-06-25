@@ -123,6 +123,24 @@ const PreviewLabScreen = import.meta.env.DEV
     )
   : null;
 
+// DEV-only Admin Dashboard (Ctrl+Shift+D) — config, price analysis, analytics
+const AdminDashboard = import.meta.env.DEV
+  ? React.lazy(() =>
+      import('./components/admin/AdminDashboard').then(m => ({
+        default: m.AdminDashboard,
+      }))
+    )
+  : null;
+
+// DEV-only Analytics Dashboard (Ctrl+Shift+A) — beta metrics, errors, devices
+const AnalyticsDashboard = import.meta.env.DEV
+  ? React.lazy(() =>
+      import('./components/admin/AnalyticsDashboard').then(m => ({
+        default: m.AnalyticsDashboard,
+      }))
+    )
+  : null;
+
 const FallbackLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center bg-[#020617] font-mono text-sm tracking-wide text-yellow-500">
     LOADING ENGINE&hellip;
@@ -311,9 +329,11 @@ const App: React.FC = () => {
   const { isInitialized } = useAppInitialization();
   useAudioSettingsSync();
   const {
-    showAnalytics: _showAnalytics,
-    showAdminDashboard: _showAdminDashboard,
+    showAnalytics,
+    showAdminDashboard,
     showVfxLab,
+    closeAnalytics,
+    closeAdminDashboard,
     closeVfxLab,
   } = useDevShortcuts();
   const isPublicInfoSurface = showDocs || showPrivacy || showTerms;
@@ -588,6 +608,20 @@ const App: React.FC = () => {
               {import.meta.env.DEV && showVfxLab && PreviewLabScreen && (
                 <React.Suspense fallback={null}>
                   <PreviewLabScreen onClose={closeVfxLab} />
+                </React.Suspense>
+              )}
+
+              {/* DEV-only Admin Dashboard (Ctrl+Shift+D) */}
+              {import.meta.env.DEV && showAdminDashboard && AdminDashboard && (
+                <React.Suspense fallback={null}>
+                  <AdminDashboard onClose={closeAdminDashboard} />
+                </React.Suspense>
+              )}
+
+              {/* DEV-only Analytics Dashboard (Ctrl+Shift+A) */}
+              {import.meta.env.DEV && showAnalytics && AnalyticsDashboard && (
+                <React.Suspense fallback={null}>
+                  <AnalyticsDashboard onClose={closeAnalytics} />
                 </React.Suspense>
               )}
             </ErrorBoundary>

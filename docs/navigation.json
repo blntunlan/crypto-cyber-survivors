@@ -80,6 +80,10 @@
         {
           "text": "Security & Anti-Cheat",
           "link": "/docs/services/SECURITY_ARCHITECTURE"
+        },
+        {
+          "text": "Auth System Design (Future)",
+          "link": "/docs/design/AUTH_SYSTEM_DESIGN"
         }
       ]
     },
@@ -101,6 +105,10 @@
         {
           "text": "Rewards & Verification",
           "link": "/docs/workflows/rewards-and-verification"
+        },
+        {
+          "text": "Coin Reward Economy Brainstorm",
+          "link": "/docs/workflows/coin-reward-economy-brainstorm"
         },
         {
           "text": "Game Feel Juice Workflow",

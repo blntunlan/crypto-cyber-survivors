@@ -22,6 +22,11 @@ import { MarketInputAggregator } from '../../../services/difficulty/aggregators/
 import { PlayerMetricsAggregator } from '../../../services/difficulty/aggregators/PlayerMetricsAggregator';
 import { LeverageStateProvider } from '../../../services/difficulty/aggregators/LeverageStateProvider';
 import { ResetOrchestrator } from '../../../services/core/ResetOrchestrator';
+import {
+  UnifiedDirector,
+  type UnifiedInputs,
+} from '../../../services/difficulty/UnifiedDirector';
+import { DifficultyManager } from '../../../services/gameplay/DifficultyManager';
 
 /**
  * Helper: pollute all difficulty state categories to detectable values.
@@ -111,6 +116,7 @@ function expectDefaultState() {
 describe('DifficultyContext Reset Regression', () => {
   beforeEach(() => {
     difficultyContext.reset();
+    UnifiedDirector.reset();
     vi.restoreAllMocks();
   });
 
@@ -389,6 +395,144 @@ describe('DifficultyContext Reset Regression', () => {
       difficultyContext.reset();
       EventBus.emit('gameOver', { finalLevel: 1, finalPnl: -1.0 });
       expectDefaultState();
+    });
+  });
+
+  // ─── UnifiedDirector reset coverage ──────────────────────────────────
+
+  describe('UnifiedDirector reset coverage', () => {
+    /** Inputs that produce non-default difficulty outputs */
+    const extremeInputs: UnifiedInputs = {
+      rsi: 0.85,
+      rsiMomentum: 0.5,
+      atrPercent: 0.06,
+      volumeNorm: 0.95,
+      priceChange: 0.12,
+      trendStrength: 0.8,
+      macdHistogram: 0.06,
+      side: 'long',
+      hpPercent: 0.08,
+      pnlRatio: 0.6,
+      killsPerMin: 40,
+      dashFrequency: 0.85,
+      playerDPS: 250,
+      damageTakenRate: 0.6,
+      elapsedMinutes: 6,
+      playerLevel: 25,
+      leverage: 1.0,
+      gemPileup: 80,
+      engagementScore: 0.9,
+      frustrationScore: 0.6,
+    };
+
+    /** Assert UnifiedDirector outputs are at defaults */
+    function expectUnifiedDefaults() {
+      const o = UnifiedDirector.getOutputs();
+      expect(o.spawnRate).toBe(1.0);
+      expect(o.enemySpeed).toBe(1.0);
+      expect(o.enemyHP).toBe(1.0);
+      expect(o.enemyDamage).toBe(1.0);
+      expect(o.gemDropRate).toBe(1.0);
+      expect(o.enemyVariety).toBe(1.0);
+      expect(o.chaosLevel).toBe(0);
+      expect(o.mercyFactor).toBe(0);
+      expect(o.pressureIntensity).toBe(0);
+      expect(o.whaleProbability).toBe(0);
+      expect(o.xpMultiplier).toBe(1.0);
+      expect(o.trendAlignment).toBe('neutral');
+      expect(o.lootboxDropChance).toBe(0.03);
+    }
+
+    it('reset() clears polluted smoothedOutputs to defaults', () => {
+      // Pollute
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+      const polluted = UnifiedDirector.getOutputs();
+      // At least one value should have moved away from default
+      const moved =
+        polluted.spawnRate !== 1.0 ||
+        polluted.enemyHP !== 1.0 ||
+        polluted.chaosLevel !== 0 ||
+        polluted.pressureIntensity !== 0;
+      expect(moved).toBe(true);
+
+      // Reset
+      UnifiedDirector.reset();
+      expectUnifiedDefaults();
+    });
+
+    it('gameOver event resets UnifiedDirector (belt-and-suspenders via DifficultyManager)', () => {
+      // Pollute
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      // gameOver event should trigger DifficultyManager's listener
+      EventBus.emit('gameOver', { finalLevel: 10, finalPnl: 0.5 });
+
+      expectUnifiedDefaults();
+    });
+
+    it('gameReset event resets UnifiedDirector via DifficultyManager.reset()', () => {
+      // Pollute
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      EventBus.emit('gameReset', {});
+
+      expectUnifiedDefaults();
+    });
+
+    it('ResetOrchestrator.orchestrateReset() resets UnifiedDirector', () => {
+      // Pollute
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      ResetOrchestrator.orchestrateReset();
+
+      expectUnifiedDefaults();
+    });
+
+    it('DifficultyManager.reset() resets both DifficultyContext and UnifiedDirector', () => {
+      // Pollute both
+      polluteAllState();
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      DifficultyManager.reset();
+
+      expectDefaultState();
+      expectUnifiedDefaults();
+    });
+
+    it('DifficultyManager.resetForCycleContinue() resets UnifiedDirector', () => {
+      // Pollute
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      DifficultyManager.resetForCycleContinue();
+
+      expectUnifiedDefaults();
+    });
+
+    it('UnifiedDirector does not leak across gameOver → new game cycle', () => {
+      // First game: pollute
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      // Game over
+      EventBus.emit('gameOver', { finalLevel: 20, finalPnl: 0.75 });
+      expectUnifiedDefaults();
+
+      // New game starts
+      EventBus.emit('gameStart', { leverage: 10, position: 'LONG', entryPrice: 50000 });
+
+      // Pollute again in second game
+      UnifiedDirector.update(extremeInputs, Date.now());
+      UnifiedDirector.snapToTargets();
+
+      // Second death
+      EventBus.emit('gameOver', { finalLevel: 5, finalPnl: -0.3 });
+      expectUnifiedDefaults();
     });
   });
 });

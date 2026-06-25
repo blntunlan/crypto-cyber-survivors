@@ -27,6 +27,21 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
       ? sortParam
       : 'max_survival_time';
 
+    // Deterministic tiebreakers per sort column. Without a secondary ORDER BY,
+    // players tied on the primary metric are returned in non-deterministic
+    // physical-storage order, so LIMIT 10 (desktop sidebar) and LIMIT 50
+    // (mobile/desktop full screen) surface DIFFERENT people in the visible top
+    // ranks — the mobile vs desktop leaderboard mismatch. The final
+    // `display_name ASC` guarantees a fully deterministic order regardless of
+    // LIMIT/OFFSET or materialized-view refresh reordering.
+    const ORDER_BY_CLAUSES: Record<AllowedSort, string> = {
+      high_score: 'high_score DESC, total_kills DESC, max_survival_time DESC, display_name ASC',
+      max_survival_time: 'max_survival_time DESC, total_kills DESC, high_score DESC, display_name ASC',
+      total_kills: 'total_kills DESC, max_survival_time DESC, high_score DESC, display_name ASC',
+      total_sessions: 'total_sessions DESC, total_kills DESC, max_survival_time DESC, display_name ASC',
+    };
+    const orderByClause = ORDER_BY_CLAUSES[sort];
+
     const db = getDb();
 
     // View queries stay as raw SQL since Drizzle views are read-only and
@@ -36,10 +51,10 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     // specific pair is requested (groups by profile + pair).
     const result = pair
       ? await db.execute(
-          sql`SELECT * FROM v_leaderboard_by_pair WHERE pair = ${pair} ORDER BY ${sql.raw(sort)} DESC LIMIT ${limit} OFFSET ${offset}`
+          sql`SELECT * FROM v_leaderboard_by_pair WHERE pair = ${pair} ORDER BY ${sql.raw(orderByClause)} LIMIT ${limit} OFFSET ${offset}`
         )
       : await db.execute(
-          sql`SELECT * FROM v_leaderboard ORDER BY ${sql.raw(sort)} DESC LIMIT ${limit} OFFSET ${offset}`
+          sql`SELECT * FROM v_leaderboard ORDER BY ${sql.raw(orderByClause)} LIMIT ${limit} OFFSET ${offset}`
         );
 
     res.json({ data: result.rows, limit, offset, sort });

@@ -16,6 +16,7 @@ import { useIsRetro } from '../../contexts/useTheme';
 import { screenService } from '../../services/system/ScreenService';
 import { useResponsiveUI } from '../../hooks/useResponsiveUI';
 import type { LiquidationWarning } from '../../services/difficulty';
+import { COLORS } from '../../config/Colors';
 import { cn } from '../../utils/classnames';
 
 interface WarningConfig {
@@ -40,8 +41,8 @@ const WARNING_CONFIGS: Record<LiquidationWarning, WarningConfig> = {
     scanLines: false,
   },
   CAUTION: {
-    color: '#fbbf24',
-    glowColor: '#ffcc00',
+    color: COLORS.JACKPOT_YELLOW,
+    glowColor: COLORS.JACKPOT_YELLOW,
     opacity: 0.12,
     pulseSpeed: 2.5,
     blur: 0,
@@ -49,8 +50,8 @@ const WARNING_CONFIGS: Record<LiquidationWarning, WarningConfig> = {
     scanLines: false,
   },
   DANGER: {
-    color: '#ff6b35',
-    glowColor: '#ff4500',
+    color: COLORS.NEON_ORANGE,
+    glowColor: COLORS.DUMP_ORANGE,
     opacity: 0.2,
     pulseSpeed: 1.2,
     blur: 0,
@@ -58,8 +59,8 @@ const WARNING_CONFIGS: Record<LiquidationWarning, WarningConfig> = {
     scanLines: true,
   },
   CRITICAL: {
-    color: '#ff1744',
-    glowColor: '#ff0040',
+    color: COLORS.SUPER_CRIT,
+    glowColor: COLORS.CASINO_RED,
     opacity: 0.32,
     pulseSpeed: 0.4,
     blur: 0,
@@ -80,8 +81,8 @@ const MOBILE_WARNING_CONFIGS: Record<LiquidationWarning, WarningConfig> = {
     scanLines: false,
   },
   CAUTION: {
-    color: '#fbbf24',
-    glowColor: '#ffcc00',
+    color: COLORS.JACKPOT_YELLOW,
+    glowColor: COLORS.JACKPOT_YELLOW,
     opacity: 0.18,
     pulseSpeed: 3,
     blur: 0,
@@ -89,8 +90,8 @@ const MOBILE_WARNING_CONFIGS: Record<LiquidationWarning, WarningConfig> = {
     scanLines: false,
   },
   DANGER: {
-    color: '#f97316',
-    glowColor: '#ff4500',
+    color: COLORS.NEON_ORANGE,
+    glowColor: COLORS.DUMP_ORANGE,
     opacity: 0.28,
     pulseSpeed: 1.5,
     blur: 0,
@@ -98,13 +99,13 @@ const MOBILE_WARNING_CONFIGS: Record<LiquidationWarning, WarningConfig> = {
     scanLines: false,
   },
   CRITICAL: {
-    color: '#ef4444',
-    glowColor: '#ff0040',
+    color: COLORS.CASINO_RED,
+    glowColor: COLORS.CASINO_RED,
     opacity: 0.4,
     pulseSpeed: 0.6,
     blur: 0,
     showText: true,
-    scanLines: false, // No scan lines on mobile for performance
+    scanLines: true, // Enable scan lines for CRITICAL on mobile — critical combat clarity
   },
 };
 
@@ -197,12 +198,12 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
             }}
           />
 
-          {/* Neon Edge Glow - Cyberpunk Desktop only */}
-          {!isRetro && !isMobile && (
+          {/* Neon Edge Glow - Cyberpunk effect (lighter on mobile for performance) */}
+          {!isRetro && (
             <motion.div
               className="neon-edge-glow gpu-accelerated"
               animate={{
-                opacity: [0.3, 0.6, 0.3],
+                opacity: isMobile ? [0.2, 0.4, 0.2] : [0.3, 0.6, 0.3],
               }}
               transition={{
                 duration: config.pulseSpeed * 0.8,
@@ -212,33 +213,34 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
               style={{
                 position: 'absolute',
                 inset: 0,
-                boxShadow: `
-                inset 0 0 80px ${config.glowColor}40,
-                inset 0 0 160px ${config.glowColor}20
-              `,
+                boxShadow: isMobile
+                  ? `inset 0 0 40px ${config.glowColor}30, inset 0 0 80px ${config.glowColor}15`
+                  : `inset 0 0 80px ${config.glowColor}40, inset 0 0 160px ${config.glowColor}20`,
               }}
             />
           )}
 
-          {/* Scan Lines Effect - Cyberpunk Desktop only */}
-          {config.scanLines && !isRetro && !isMobile && (
-            <div
-              className="scan-lines"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: `repeating-linear-gradient(
+          {/* Scan Lines Effect - Cyberpunk (lighter on mobile, CRITICAL only) */}
+          {config.scanLines &&
+            !isRetro &&
+            (!isMobile || activeLevel === 'CRITICAL') && (
+              <div
+                className="scan-lines"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `repeating-linear-gradient(
                 0deg,
                 transparent,
                 transparent 2px,
-                rgba(0, 0, 0, 0.06) 2px,
-                rgba(0, 0, 0, 0.06) 4px
+                rgba(0, 0, 0, ${isMobile ? 0.04 : 0.06}) 2px,
+                rgba(0, 0, 0, ${isMobile ? 0.04 : 0.06}) 4px
               )`,
-                pointerEvents: 'none',
-                opacity: activeLevel === 'CRITICAL' ? 0.5 : 0.3,
-              }}
-            />
-          )}
+                  pointerEvents: 'none',
+                  opacity: isMobile ? 0.25 : activeLevel === 'CRITICAL' ? 0.5 : 0.3,
+                }}
+              />
+            )}
 
           {/* FOV Tunneling Effect (Critical only) */}
           {fovReduction > 0 && (
@@ -271,11 +273,16 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
             <motion.div
               className={cn(
                 'warning-text gpu-accelerated',
+                isRetro && 'font-retro-pixel',
                 !isRetro && 'font-cyber font-black'
               )}
               animate={{
                 opacity: [0.7, 1, 0.7],
-                scale: isRetro || isMobile ? [1, 1, 1] : [0.98, 1.02, 0.98],
+                scale: isRetro
+                  ? [1, 1, 1]
+                  : isMobile
+                    ? [1, 1.03, 1]
+                    : [0.98, 1.02, 0.98],
               }}
               transition={{
                 duration: config.pulseSpeed,
@@ -290,17 +297,16 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                 left: '50%',
                 transform: 'translateX(-50%)',
                 color: isRetro ? config.color : '#ffffff',
-                fontFamily: isRetro ? "'Press Start 2P', monospace" : undefined,
                 fontSize: isMobile
                   ? rfs(activeLevel === 'CRITICAL' ? 14 : 11)
                   : activeLevel === 'CRITICAL'
                     ? '1.75rem'
                     : '1.125rem',
-                background: !isRetro ? 'rgba(2, 6, 23, 0.7)' : undefined,
+                background: !isRetro ? `${COLORS.BG}B3` : undefined,
                 border: !isRetro ? `1px solid ${config.glowColor}66` : undefined,
                 borderRadius: !isRetro ? (isMobile ? rs(10) : 12) : undefined,
                 boxShadow: !isRetro
-                  ? `0 10px 40px rgba(2,6,23,0.55), 0 0 20px ${config.glowColor}40, inset 0 1px 0 rgba(255,255,255,0.12)`
+                  ? `0 10px 40px ${COLORS.BG}8C, 0 0 20px ${config.glowColor}40, inset 0 1px 0 rgba(255,255,255,0.12)`
                   : undefined,
                 // Enhanced neon glow for cyberpunk desktop
                 textShadow: isRetro
@@ -349,6 +355,7 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
             <motion.div
               className={cn(
                 'distance-indicator gpu-accelerated',
+                isRetro && 'font-retro-pixel',
                 !isRetro && 'font-cyber uppercase tracking-[0.12em]'
               )}
               animate={{ opacity: [0.5, 0.85, 0.5] }}
@@ -361,7 +368,6 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                 left: '50%',
                 transform: 'translateX(-50%)',
                 color: config.color,
-                fontFamily: isRetro ? "'Press Start 2P', monospace" : undefined,
                 fontWeight: isRetro ? 400 : 600,
                 fontSize: isMobile
                   ? rfs(isRetro ? 8 : 12)
@@ -375,7 +381,7 @@ export const LiquidationWarningOverlay: React.FC<LiquidationWarningOverlayProps>
                     : `0 0 8px ${config.glowColor}, 0 0 16px ${config.glowColor}80`,
                 textAlign: 'center',
                 letterSpacing: isRetro ? '0.05em' : undefined,
-                background: !isRetro ? 'rgba(2, 6, 23, 0.55)' : undefined,
+                background: !isRetro ? `${COLORS.BG}8C` : undefined,
                 border: !isRetro ? `1px solid ${config.glowColor}44` : undefined,
                 borderRadius: !isRetro ? (isMobile ? rs(8) : 10) : undefined,
                 padding: !isRetro

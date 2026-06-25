@@ -73,8 +73,8 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      // PauseMenu uses the shared modern panel shell to match MainMenu rhythm
-      const frame = container.querySelector('.cyber-glass');
+      // PauseMenu uses the shared solid modern panel shell to match MainMenu rhythm
+      const frame = container.querySelector('.rounded-\\[1\\.5rem\\]');
       expect(frame).toBeDefined();
       expect(frame?.className).toContain('rounded-[1.5rem]');
       expect(frame?.className).toContain('border-white/20');
