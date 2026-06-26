@@ -212,6 +212,7 @@ export class CombatSystem implements ICombatSystem {
     );
 
     // Step 2: If nothing found, check 7x7 grid (extended surroundings)
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!ctx.found) {
       enemyGrid.forEachInRangeWithContext(
         player.x,
@@ -224,6 +225,7 @@ export class CombatSystem implements ICombatSystem {
 
     // Fallback: If no enemies found in extended grid, scan all active enemies.
     // This handles edge cases where enemies are at the very edges of wide viewports.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!ctx.found) {
       const enemies = pool.activeEnemies;
       for (let i = 0, len = enemies.length; i < len; i++) {
@@ -237,6 +239,7 @@ export class CombatSystem implements ICombatSystem {
     // Clean up reference to prevent memory leaks
     ctx.viewportBounds = null;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return ctx.found
       ? {
           x: ctx.bestX,
