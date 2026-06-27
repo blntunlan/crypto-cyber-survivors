@@ -24,7 +24,7 @@ vi.mock('../../../services/core/EventBus', () => ({
 // Mock Logger
 vi.mock('../../../services/system/Logger', () => ({
   Logger: {
-    info: vi.fn(),
+    info: vi.fn(), warn: vi.fn(),
     error: vi.fn(),
   },
 }));
