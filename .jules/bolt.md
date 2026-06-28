@@ -1,0 +1,3 @@
+## 2025-06-28 - Optimize EntityRenderer loop iterations
+**Learning:** Using `Array.prototype.forEach` inside the core `EntityRenderer` loop paths causes unnecessary closure allocations and garbage collection overhead, particularly when iterating over heavily populated entity arrays (`pool.activeEnemies`, `pool.activeGems`) at 60FPS.
+**Action:** Replace `Array.prototype.forEach` calls with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in 60 FPS update loops like renderers to avoid allocation bottlenecks. Ensure `return` is converted to `continue`, and include a safeguard against sparse arrays (`if (entity === undefined) continue;`).
