@@ -1,0 +1,3 @@
+## 2024-05-24 - Zero-Allocation Loops in High-Frequency Render Paths
+**Learning:** Using `Array.prototype.forEach` inside hot paths like `EntityRenderer` and `MovementSystem` (which execute at 60 FPS) creates implicit closure function allocations, resulting in significant GC pressure and frame stutter in JS engines.
+**Action:** When iterating over entity pools (e.g., `activeEnemies`, `activeGems`), always replace `forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops accompanied by an `if (entity === undefined) continue;` guard clause to prevent type errors on sparse arrays.
