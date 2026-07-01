@@ -9,7 +9,6 @@ import {
   RailwayAuthTokenStore,
   type RailwayStoredAuth,
 } from '../api/RailwayAuthTokenStore';
-import { Logger } from '../system/Logger';
 import { type AuthProvider, type AuthSession, type AuthUser } from './types';
 
 export type { AuthProvider } from './types';
@@ -85,7 +84,8 @@ class RailwayAuthServiceClass {
   }
 
   initialize(): void {
-    Logger.debug('[RailwayAuth] Browser auth listener is not required');
+    // eslint-disable-next-line no-console
+    console.debug('[RailwayAuth] Browser auth listener is not required');
   }
 
   async signUp(_options: SignUpOptions): Promise<AuthResult> {
@@ -266,10 +266,12 @@ class RailwayAuthServiceClass {
         await railwayClient.patch('/api/v1/profile', patchData);
       }
 
-      Logger.info('[RailwayAuth] Profile updated');
+      // eslint-disable-next-line no-console
+      console.info('[RailwayAuth] Profile updated');
       return { success: true };
     } catch (err) {
-      Logger.error('[RailwayAuth] Update profile exception:', err);
+
+      console.error('[RailwayAuth] Update profile exception:', err);
       const message = err instanceof Error ? err.message : 'Failed to update profile';
       return { success: false, error: message };
     }
@@ -298,7 +300,8 @@ class RailwayAuthServiceClass {
 
       return { success: true, profile: this.mapProfileData(data) };
     } catch (err) {
-      Logger.error('[RailwayAuth] Update profile with auth error:', err);
+
+      console.error('[RailwayAuth] Update profile with auth error:', err);
       return { success: false, error: 'Failed to update profile' };
     }
   }
@@ -380,14 +383,16 @@ class RailwayAuthServiceClass {
       };
       RailwayAuthTokenStore.save(storedAuth);
 
-      Logger.info('[RailwayAuth] Anonymous sign-in successful');
+      // eslint-disable-next-line no-console
+      console.info('[RailwayAuth] Anonymous sign-in successful');
       return {
         success: true,
         user: this.mapRailwayAuthToUser(storedAuth),
         session: this.mapRailwayAuthToSession(storedAuth),
       };
     } catch (err) {
-      Logger.error('[RailwayAuth] Anonymous sign-in exception:', err);
+
+      console.error('[RailwayAuth] Anonymous sign-in exception:', err);
       const message = err instanceof Error ? err.message : 'Connection error';
       return { success: false, error: message };
     }

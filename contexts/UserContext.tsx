@@ -7,7 +7,6 @@ import React, {
   useRef,
 } from 'react';
 import { type LegacyStoredUser } from '../services/auth/types';
-import { Logger } from '../services/system/Logger';
 import { nanoid } from 'nanoid';
 import { UserPersistenceService } from '../services/auth/UserPersistenceService';
 import { SecurityUtils } from '../services/auth/SecurityUtils';
@@ -159,12 +158,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           return;
         }
 
-        Logger.warn('[UserContext] Railway auth missing. Clearing stored user.');
+
+        console.warn('[UserContext] Railway auth missing. Clearing stored user.');
         UserPersistenceService.clear();
         await RailwayAuthService.signOut();
         if (mounted) commitUser(null);
       } catch (err) {
-        Logger.error('[UserContext] Failed to verify session', err);
+
+        console.error('[UserContext] Failed to verify session', err);
         if (isInvalidRemoteSessionError(err)) {
           RailwayAuthTokenStore.clear();
           UserPersistenceService.clear();
@@ -199,7 +200,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       if (!isRemoteMode()) {
-        Logger.warn('[UserContext] Local environment detected, using local-only mode');
+
+        console.warn('[UserContext] Local environment detected, using local-only mode');
         const localUser = createLegacyUser(LOCAL_DEV_PROFILE_ID, normalizedNickname);
         UserPersistenceService.saveUser(localUser);
         commitUser(localUser);
@@ -248,14 +250,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         UserPersistenceService.saveUser(legacyUser);
         commitUser(legacyUser);
 
-        Logger.info(
+        // eslint-disable-next-line no-console
+        console.info(
           `[UserContext] Login successful: ${legacyUser.nickname} (${profile.id})`
         );
         return { success: true };
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
 
-        Logger.error(`[UserContext] Login error: ${errorMsg}`, error);
+
+        console.error(`[UserContext] Login error: ${errorMsg}`, error);
 
         // Handle specific errors
         if (errorMsg.includes('Nickname already taken')) {
@@ -307,7 +311,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         });
       }
     } catch (error) {
-      Logger.error('[UserContext] Failed to update lastSeenAt', error);
+
+      console.error('[UserContext] Failed to update lastSeenAt', error);
     }
   }, [commitUser]);
 
