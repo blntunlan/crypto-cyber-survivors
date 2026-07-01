@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "framer-motion": "12.42.2",
+    "framer-motion": "12.23.26",
     "howler": "2.2.4",
     "lucide-react": "0.562.0",
     "nanoid": "5.1.6",
