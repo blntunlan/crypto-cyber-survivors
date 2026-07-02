@@ -1,0 +1,3 @@
+## 2025-02-20 - Closure Allocations in Hot Paths
+**Learning:** In highly active 60 FPS update loops like `MovementSystem.ts`, using `Array.prototype.forEach` creates significant garbage collection pressure due to continuous closure allocations for each active object pool (enemies, particles, bullets, etc.).
+**Action:** Always replace `forEach` with standard `for` loops caching the array length (`for (let i = 0, len = arr.length; i < len; i++)`) in engine hot-paths. Make sure to translate `return` to `continue` and include safety checks against sparse array indices (e.g., `if (arr[i] === undefined) continue;`).
