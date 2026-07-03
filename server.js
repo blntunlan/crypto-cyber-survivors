@@ -579,7 +579,12 @@ function handleRequest(req, res) {
 
   // Google SearchAction schema placeholder — return 410 Gone so Google drops
   // the URL from its index instead of keeping it as a redirect.
-  if (parsedUrl.search.includes('{search_term_string}')) {
+  // Check decoded param values because Node URL encodes braces as %7B/%7D.
+  const hasSearchActionPlaceholder = Array.from(
+    parsedUrl.searchParams.values()
+  ).some(value => value.includes('search_term_string'));
+
+  if (hasSearchActionPlaceholder) {
     logRequest(ip, req.method, urlPath, 410, Date.now() - startTime);
     sendGone(res);
     return;
