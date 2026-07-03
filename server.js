@@ -577,6 +577,14 @@ function handleRequest(req, res) {
     return;
   }
 
+  // Google SearchAction schema placeholder — return 410 Gone so Google drops
+  // the URL from its index instead of keeping it as a redirect.
+  if (parsedUrl.search.includes('{search_term_string}')) {
+    logRequest(ip, req.method, urlPath, 410, Date.now() - startTime);
+    sendGone(res);
+    return;
+  }
+
   const canonicalQueryRedirect = getCanonicalQueryRedirect(parsedUrl, urlPath);
   if (canonicalQueryRedirect) {
     logRequest(ip, req.method, urlPath, 301, Date.now() - startTime);
@@ -621,7 +629,10 @@ function handleRequest(req, res) {
   // Health check endpoint
   if (urlPath === '/health') {
     logRequest(ip, req.method, urlPath, 200, Date.now() - startTime);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'X-Robots-Tag': 'noindex, nofollow',
+    });
     res.end(
       JSON.stringify({
         status: 'healthy',
@@ -634,7 +645,10 @@ function handleRequest(req, res) {
 
   if (urlPath === '/stats') {
     logRequest(ip, req.method, urlPath, 200, Date.now() - startTime);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'X-Robots-Tag': 'noindex, nofollow',
+    });
     res.end(
       JSON.stringify({
         service: 'crypto-survivors',
@@ -771,16 +785,28 @@ function serveStaticFile(req, res, urlPath, ip, startTime) {
 function sendResponse(res, statusCode, message) {
   const headers = {
     'Content-Type': 'text/plain; charset=utf-8',
+    'X-Robots-Tag': 'noindex, nofollow',
     ...getSecurityHeaders(false),
   };
   res.writeHead(statusCode, headers);
   res.end(message);
 }
 
+function sendGone(res) {
+  const headers = {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Robots-Tag': 'noindex, nofollow',
+    ...getSecurityHeaders(false),
+  };
+  res.writeHead(410, headers);
+  res.end('Gone');
+}
+
 function sendRedirect(res, location) {
   const headers = {
     Location: location,
-    'Cache-Control': 'public, max-age=3600',
+    'Cache-Control': 'public, max-age=86400',
     ...getSecurityHeaders(false),
   };
   res.writeHead(301, headers);

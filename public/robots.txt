@@ -22,6 +22,7 @@ Disallow: /backup/
 Disallow: /.env
 Disallow: /.git/
 Disallow: /config/
+Disallow: /*?q={search_term_string}
 
 Sitemap: https://crypto-survivors.com/sitemap.xml
 
