@@ -23,6 +23,7 @@ vi.mock('../../services/audio', () => ({
   audio: {
     playLevelUp: vi.fn(),
     playButton: vi.fn(),
+    playSlotTick: vi.fn(),
   },
 }));
 
@@ -133,6 +134,105 @@ describe('CycleCompleteScreen', () => {
     const continueBtn = screen.getByText('common.cycle_complete_screen.continue');
     fireEvent.click(continueBtn);
     expect(mockOnContinue).toHaveBeenCalled();
+  });
+
+  it('selects Cash Out via Enter key (default selection is Cash Out)', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(mockOnCashOut).toHaveBeenCalledTimes(1);
+    expect(mockOnContinue).not.toHaveBeenCalled();
+  });
+
+  it('navigates to Continue with ArrowRight and selects via Enter', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+    expect(mockOnCashOut).not.toHaveBeenCalled();
+  });
+
+  it('navigates to Continue with ArrowDown', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('wraps from Cash Out to Continue with ArrowLeft', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports WASD navigation (d to Continue)', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'd' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('selects Continue with Space key', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: ' ' });
+    expect(mockOnContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it('prevents double activation on repeated Enter', () => {
+    render(
+      <CycleCompleteScreen
+        data={mockData}
+        onCashOut={mockOnCashOut}
+        onContinue={mockOnContinue}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: 'Enter' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(mockOnCashOut).toHaveBeenCalledTimes(1);
   });
 
   // TODO: Fix mock setup for icons. These fail because CardIcons mock isn't rendering as expected in test env.

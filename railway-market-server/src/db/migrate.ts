@@ -33,6 +33,7 @@ export async function runMigrations(): Promise<void> {
     { name: '010_market_state_full_columns', sql: MIGRATION_010 },
     { name: '011_retention_cleanup_functions', sql: MIGRATION_011 },
     { name: '012_materialized_leaderboards', sql: MIGRATION_012 },
+    { name: '013_player_achievements', sql: MIGRATION_013 },
   ];
 
   for (const migration of migrations) {
@@ -1249,4 +1250,29 @@ CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_survival ON v_leaderboard_b
 CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_kills ON v_leaderboard_by_pair (pair, total_kills DESC);
 CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_score ON v_leaderboard_by_pair (pair, high_score DESC);
 CREATE INDEX IF NOT EXISTS idx_v_leaderboard_by_pair_sessions ON v_leaderboard_by_pair (pair, total_sessions DESC);
+`;
+
+const MIGRATION_013 = `
+-- Migration 013: player_achievements
+-- Date: 2026-07-02
+-- Persistent record of which profile unlocked which achievement.
+-- Achievements are unlocked server-side during session verification
+-- (server-authoritative model — same as rewards). The catalog of achievement
+-- definitions lives in application code (src/config/achievementCatalog.ts),
+-- so achievement_id is a plain TEXT with no FK.
+
+CREATE TABLE IF NOT EXISTS player_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  achievement_id TEXT NOT NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  unlocked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(profile_id, achievement_id),
+  CHECK (achievement_id <> '')
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_achievements_profile ON player_achievements(profile_id);
+CREATE INDEX IF NOT EXISTS idx_player_achievements_achievement ON player_achievements(achievement_id);
+CREATE INDEX IF NOT EXISTS idx_player_achievements_unlocked_at ON player_achievements(unlocked_at DESC);
 `;

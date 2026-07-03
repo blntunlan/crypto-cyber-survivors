@@ -590,6 +590,28 @@ CREATE TABLE IF NOT EXISTS challenge_seed_log (
 CREATE INDEX IF NOT EXISTS idx_challenge_seed_log_challenge_id ON challenge_seed_log(challenge_id);
 
 -- ============================================================
+-- TABLE: player_achievements
+-- Persistent record of which profile unlocked which achievement.
+-- Achievement definitions live in app code (src/config/achievementCatalog.ts).
+-- Unlocked server-side during session verification (server-authoritative).
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS player_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  achievement_id TEXT NOT NULL,
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  unlocked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(profile_id, achievement_id),
+  CHECK (achievement_id <> '')
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_achievements_profile ON player_achievements(profile_id);
+CREATE INDEX IF NOT EXISTS idx_player_achievements_achievement ON player_achievements(achievement_id);
+CREATE INDEX IF NOT EXISTS idx_player_achievements_unlocked_at ON player_achievements(unlocked_at DESC);
+
+-- ============================================================
 -- MATERIALIZED VIEW: v_leaderboard (one row per player, pair-agnostic)
 -- Refreshed by the API server's LeaderboardRefreshCron (REFRESH CONCURRENTLY,
 -- ~2 min). Reads are an indexed scan instead of re-aggregating all sessions.

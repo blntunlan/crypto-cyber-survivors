@@ -41,9 +41,6 @@ npm run check:baseline                    # THE full gate: typecheck → check:a
 npm run deploy                # git push origin main (Railway auto-deploys frontend)
 npm run railway:deploy        # railway up (API server)
 npm run railway:market:deploy # deploy from railway-market-server/
-
-# Other
-npm run train:ai              # NEAT evolutionary trainer for enemy AI (tsx simulation/...)
 ```
 
 ## Multi-Package Layout
@@ -51,29 +48,29 @@ npm run train:ai              # NEAT evolutionary trainer for enemy AI (tsx simu
 Three independent packages — each has its own `package.json`, `tsconfig.json`, ESLint config, and lockfile:
 
 - **Root** — the React/Vite game frontend.
-- **`railway-market-server/`** — stateless REST API (profile, sessions, wallet, leaderboard, telemetry). Owns the Postgres schema in `src/db/schema.sql` (27 tables, 4 views, 10 functions). Migrations run automatically on startup via `src/db/migrate.ts` (000–010). `npm run validate` (typecheck + lint + build) inside the dir.
+- **`railway-market-server/`** — stateless REST API (profile, sessions, wallet, leaderboard, telemetry). Owns the Postgres schema in `src/db/schema.sql`. Numbered migrations run automatically on startup via `src/db/migrate.ts` (000–012, SQL files in `src/db/migrations/`). `npm run validate` (typecheck + lint + build) inside the dir.
 - **`railway-market-aggregator/`** — stateful market pipeline: Binance/Coinbase WS → Indicators → SSE stream to clients + `price_history`/`market_state` DB writes + cleanup cron. `npm run validate` inside the dir.
 
 Root `tsc --noEmit` and ESLint **exclude** both `railway-*` dirs and `scripts/` — they use different tsconfigs/runtime (Deno-style functions historically). The root `npm test` **does** include `railway-market-server/test/**` (see `vitest.config.ts`), so a market-server test failure breaks the root suite. CI runs `server-validate` for both `railway-*` packages.
 
 ## Backend & Data Flow
 
-**Supabase = Auth only** (login/signup/JWT). No DB, no edge functions, no migrations from this repo. `supabase/functions/` is empty.
+**Railway-native — no Supabase.** There is no `@supabase/supabase-js` dependency and no `supabase/` directory. Auth (login/signup/OAuth/anonymous) is handled by `services/auth/RailwayAuthService.ts`; the API server issues and verifies JWTs (issuer `crypto-survivors-api`, audience `crypto-survivors-client`).
 
-**Railway Postgres** holds all game data (schema in `railway-market-server/src/db/schema.sql`; migrations are manual SQL files under `supabase/migrations/`).
+**Railway Postgres** holds all game data. Schema in `railway-market-server/src/db/schema.sql`; numbered migrations `000`–`012` auto-apply on startup via `src/db/migrate.ts` (SQL files in `src/db/migrations/`).
 
 ```
-Client --[supabase-js]--> Supabase Auth (JWT only)
-Client --[SSE]----------> Market Aggregator /api/v1/market/stream  (price + indicators, ~1s)
-Client --[fetch]--------> API Server /api/v1/* (profile, sessions, wallet, leaderboard, telemetry)
-Aggregator --[WS]--> Binance/Coinbase   →  API Server uses same Postgres
+Client --[fetch]--> API Server /api/v1/auth/*  (login/signup/OAuth/anonymous → Railway JWT)
+Client --[SSE]----> Market Aggregator /api/v1/market/stream  (price + indicators, ~1s)
+Client --[fetch]--> API Server /api/v1/*  (profile, sessions, wallet, leaderboard, telemetry)
+Aggregator --[WS]--> Binance/Coinbase   ·   API server + aggregator share the same Postgres
 ```
 
-- `services/api/RailwayClient.ts` — HTTP client, auto-attaches Supabase JWT.
+- `services/api/RailwayClient.ts` — HTTP client, auto-attaches the Railway JWT (from `RailwayAuthTokenStore`) as `Authorization: Bearer`.
 - `services/market/SSEMarketService.ts` — EventSource; reads `VITE_MARKET_AGGREGATOR_URL` and falls back to `VITE_RAILWAY_API_URL`.
 - Two Railway services (API server + aggregator) share the same Postgres and deploy independently.
 
-Market → gameplay: WS → Aggregator → SSE → `SSEMarketService` → `MarketIndicatorService` → `UnifiedDirector` + `FlowStateManager` → `DifficultyContext` → SpawnSystem / CombatSystem / BuffManager.
+Market → gameplay: WS → Aggregator (server-computed RSI/ATR/Volume) → SSE → `SSEMarketService` → `UnifiedDirector` + `FlowStateManager` → `DifficultyContext` → SpawnSystem / CombatSystem / BuffManager.
 
 ## Architecture
 

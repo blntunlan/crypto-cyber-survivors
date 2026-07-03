@@ -1,7 +1,7 @@
 # Crypto Survivors AI Coding Instructions
 
 ## Project Overview
-Real-time market-driven Vampire Survivors game integrating live BTC price feeds with 60 FPS Canvas rendering. React 19 + TypeScript 5 + Vite, targeting 1431 passing tests.
+Real-time market-driven Vampire Survivors game integrating live BTC price feeds with 60 FPS Canvas rendering. React 19 + TypeScript 5.8 + Vite 6.
 
 ## Architecture Fundamentals
 
@@ -78,9 +78,9 @@ TimeService.setTimeout(() => {...}, 1000);
 
 ### Test Commands
 ```bash
-npm run test          # 1431 unit tests
+npm run test          # Vitest unit/integration tests
 npm run test:watch    # TDD mode
-npm run test:e2e      # 72 Playwright E2E tests
+npm run test:e2e      # Playwright E2E tests
 npm run lint          # 0 errors, 0 warnings expected
 ```
 
@@ -141,9 +141,9 @@ DebugService.registerPanel('MyDebug', () => ({...}));
 ```
 
 ### Market Data Integration
-- **MarketService**: WebSocket feeds (Binance/Coinbase) with auto-failover
-- **MarketIndicatorService**: RSI, ATR, volume calculations
-- **DifficultyManager**: Maps market volatility → spawn rates
+- **SSEMarketService**: receives price + server-computed indicators via SSE from the Railway aggregator
+- **UnifiedDirector + FlowStateManager**: map market state → `DifficultyContext` (spawn rate, enemy behavior)
+- The aggregator (`railway-market-aggregator/`) is the single source of truth for prices/indicators
 
 ## Performance Guidelines
 
@@ -166,15 +166,14 @@ PhysicsSystem.addToGrid(entity);
 
 ## Security & Anti-Cheat
 
-### AntiCheatService (services/system/AntiCheatService.ts)
-- Client-side validation + server-side verification (Supabase Edge Functions)
-- HMAC signing for score submissions (`railway-market-server/` for price verification)
-- Device fingerprinting for session tracking
+### Server-verified rewards (no optimistic trust)
+- Two validator layers: `services/gameplay/validators/` (`GameplayValidator`, in-run sanity) and `services/validators/` (`SessionValidator`, `rewardValidator`, `fieldRangeValidators`)
+- `GameSessionService` (`services/auth/`) submits to `POST /api/v1/sessions/verify`; `rewardValidator` cross-checks the client reward against `RewardCalculator` within tolerance
+- `AntiCheatService` (`services/system/`) handles speed-hack detection (`VITE_ANTI_CHEAT_SPEED_HACK_ENABLED=true` in beta/prod) + device fingerprinting
 
-### Supabase Integration
-- Row Level Security (RLS) enabled on all tables
-- Use `services/auth/GameSessionService.ts` for authenticated sessions
-- Schema: `types/supabase.ts` (generate via `npm run supabase:gen`)
+### Railway backend (no Supabase)
+- All data lives in Railway PostgreSQL; auth is Railway-native JWT issued by the API server
+- Schema + numbered migrations in `railway-market-server/src/db/` — there is no `supabase:gen`/`supabase:push` (those scripts do not exist)
 
 ## Commit & PR Standards
 
@@ -198,13 +197,13 @@ End-to-end deployment process covering tests → lint → build → git → depl
 ```bash
 git status                    # Check branch & uncommitted changes
 npm ls                        # Verify dependencies
-railway version; supabase -v  # CLI availability
+railway version               # CLI availability
 ```
 
 ### Phase 2: Test & Auto-Fix (max 3 iterations)
 ```bash
-npm run test                  # Run 1431 unit tests
-npm run test:e2e              # Run 72 E2E tests
+npm run test                  # Run unit/integration tests
+npm run test:e2e              # Run Playwright E2E tests
 # Auto-fix failing tests using fix_react_test strategies
 ```
 
@@ -224,9 +223,7 @@ git push origin main
 
 ### Phase 5: Deploy (Railway auto-deploys on push)
 ```bash
-# Supabase migrations (if any)
-npm run supabase:push         # Apply database migrations
-
+# Railway DB migrations auto-apply on API-server startup (src/db/migrate.ts)
 # Railway (auto-triggered by GitHub push)
 railway status                # Verify deployment
 railway logs                  # Monitor first 5 minutes

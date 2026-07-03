@@ -12,6 +12,7 @@ import { gradientCache } from '../../utils/GradientCache';
 import { WEAPON_REGISTRY } from '../../config/WeaponRegistry';
 import { type WeaponRenderKind } from '../../types/weapons';
 import { difficultyContext } from '../difficulty/DifficultyContext';
+import { ComboSystem } from '../combat/ComboSystem';
 
 /**
  * ProjectileRenderer - Visualizes player bullets and projectiles.
@@ -143,6 +144,7 @@ export class ProjectileRenderer implements IRenderer {
       // volume-reactive weapon visuals (e.g. spread_shot). `normalizedVolume`
       // is already 0..1 from the market aggregator.
       const heat = difficultyContext.inputs.normalizedVolume;
+      const comboColor = ComboSystem.getComboColor();
       const activeBullets = pool.activeBullets;
       const count = activeBullets.length;
       for (let i = 0; i < count; i++) {
@@ -166,7 +168,8 @@ export class ProjectileRenderer implements IRenderer {
           normalCoreColor,
           superCritColor,
           heat,
-          player
+          player,
+          comboColor
         );
       }
     }
@@ -191,7 +194,8 @@ export class ProjectileRenderer implements IRenderer {
     cachedCoreColor: string,
     superCritGlow: string,
     heat: number,
-    player: Player
+    player: Player,
+    comboColor: string
   ): void {
     const kind = this.resolveRenderKind(b);
     switch (kind) {
@@ -215,7 +219,13 @@ export class ProjectileRenderer implements IRenderer {
         return;
       case 'default':
       default:
-        this.renderCyberpunkProjectile(ctx, b, cachedCoreColor, superCritGlow);
+        this.renderCyberpunkProjectile(
+          ctx,
+          b,
+          cachedCoreColor,
+          superCritGlow,
+          comboColor
+        );
         return;
     }
   }
@@ -247,13 +257,14 @@ export class ProjectileRenderer implements IRenderer {
     ctx: CanvasRenderingContext2D,
     b: Bullet,
     cachedCoreColor: string,
-    superCritGlow: string
+    superCritGlow: string,
+    comboColor: string
   ): void {
     // 1. Base Properties
     const angle = Math.atan2(b.vy, b.vx);
     let lengthMult = GAME_ENGINE.BULLET_LASER_LENGTH_MULT_NORMAL;
     let widthMult = GAME_ENGINE.BULLET_LASER_WIDTH_MULT_NORMAL;
-    let glowColor = b.color;
+    let glowColor = b.isSuperCrit ? superCritGlow : b.color;
     const coreColor = cachedCoreColor;
 
     if (b.isSuperCrit) {
@@ -332,7 +343,7 @@ export class ProjectileRenderer implements IRenderer {
       ctx.fill();
     } else {
       // --- NORMAL: "Smooth Tracer" Design ---
-      // Transparent Tail
+      // Transparent Tail — tinted by current combo tier (casino palette)
       const gradient = gradientCache.getLinearGradient(
         ctx,
         -length / 2,
@@ -341,8 +352,8 @@ export class ProjectileRenderer implements IRenderer {
         0,
         [
           { offset: 0, color: 'transparent' },
-          { offset: 0.5, color: `${b.color}80` },
-          { offset: 1, color: b.color },
+          { offset: 0.5, color: `${comboColor}80` },
+          { offset: 1, color: comboColor },
         ]
       );
 

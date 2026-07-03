@@ -47,7 +47,7 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
           'relative my-auto w-full overflow-hidden p-5 sm:p-6',
           maxWidthClassName,
           !isRetro &&
-            'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]',
+            'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]',
           panelClassName
         )}
       >

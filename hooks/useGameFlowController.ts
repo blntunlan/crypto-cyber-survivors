@@ -100,6 +100,11 @@ export const useGameFlowController = ({
 
   const lastProcessedCycleRef = useRef<number>(0);
 
+  const marketDataRef = useRef(marketData);
+  useEffect(() => {
+    marketDataRef.current = marketData;
+  }, [marketData]);
+
   const cycleSnapshotRef = useRef({
     totalKills: runStatsTotalKills,
     pnl: marketData.pnl,
@@ -181,7 +186,7 @@ export const useGameFlowController = ({
         return;
       }
 
-      frozenPnlRef.current = marketData.pnl;
+      frozenPnlRef.current = marketDataRef.current.pnl;
       DifficultyManager.reset();
 
       // Challenge: end tracking synchronously BEFORE async session submission.
@@ -193,12 +198,13 @@ export const useGameFlowController = ({
       tracker.stop();
       const perfStats = tracker.getStats();
 
+      const md = marketDataRef.current;
       const metrics = MetricsService.endSession(reason, {
-        price: marketData.price,
-        pnl: marketData.pnl,
+        price: md.price,
+        pnl: md.pnl,
         level: playerRef.current.level,
         hp: playerRef.current.hp,
-        difficulty: marketData.difficulty,
+        difficulty: md.difficulty,
         playerStats: {
           damage: playerRef.current.baseDamage,
           fireRate: playerRef.current.fireRate,
@@ -243,8 +249,8 @@ export const useGameFlowController = ({
                 (rewardPayload?.survivalSeconds ??
                   DifficultyManager.getTotalElapsedSeconds()) * 1000,
               entryPrice,
-              exitPrice: marketData.price,
-              pnlPercent: marketData.pnl,
+              exitPrice: md.price,
+              pnlPercent: md.pnl,
               pair: selectedPair,
               position,
               leverage,
@@ -288,20 +294,30 @@ export const useGameFlowController = ({
           if (submission.success && submission.verified === true) {
             void ReplayRecorderService.saveReplay(submission.reward ?? 0);
           }
+
+          // Achievements: emit UI events for server-unlocked achievements.
+          if (
+            submission.success &&
+            submission.verified === true &&
+            submission.newlyUnlockedAchievements?.length
+          ) {
+            for (const ach of submission.newlyUnlockedAchievements) {
+              EventBus.emit('milestoneAchieved', {
+                id: ach.achievementId,
+                name: ach.name,
+                icon: ach.iconKey,
+                color: '#ffd700',
+                type: 'achievement',
+                threshold: 0,
+              });
+            }
+          }
         } catch (error) {
           Logger.error('[App] Critical error during session submission:', error);
         }
       })();
     },
-    [
-      marketData,
-      playerRef,
-      position,
-      entryPrice,
-      leverage,
-      selectedPair,
-      runStatsTotalKills,
-    ]
+    [playerRef, position, entryPrice, leverage, selectedPair, runStatsTotalKills]
   );
 
   useEffect(() => {

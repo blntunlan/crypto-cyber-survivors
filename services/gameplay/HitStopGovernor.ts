@@ -5,10 +5,12 @@ import { type HitStopEvent } from '../../types/events';
  * Adapts hit-stop durations under super-crit bursts to protect frame pacing.
  */
 export class HitStopGovernor {
+  private readonly critTimestamps: number[] = [];
   private readonly superCritTimestamps: number[] = [];
   private lastSuperCritAppliedAt = Number.NEGATIVE_INFINITY;
 
   public reset(): void {
+    this.critTimestamps.length = 0;
     this.superCritTimestamps.length = 0;
     this.lastSuperCritAppliedAt = Number.NEGATIVE_INFINITY;
   }
@@ -18,7 +20,18 @@ export class HitStopGovernor {
       return 0;
     }
 
+    if (event.isCrit) {
+      this.recordCrit(nowMs);
+    }
+
     if (!event.isSuperCrit) {
+      if (
+        event.isCrit &&
+        this.getCritRate(nowMs) > GAME_ENGINE.CRIT_HITSTOP_RATE_THRESHOLD
+      ) {
+        return 0;
+      }
+
       return event.duration;
     }
 
@@ -57,11 +70,11 @@ export class HitStopGovernor {
 
   private recordSuperCrit(nowMs: number): void {
     this.superCritTimestamps.push(nowMs);
-    this.prune(nowMs);
+    this.pruneSuperCrit(nowMs);
   }
 
   private getSuperCritRate(nowMs: number): number {
-    this.prune(nowMs);
+    this.pruneSuperCrit(nowMs);
     const windowSec = GAME_ENGINE.SUPER_CRIT_HITSTOP_WINDOW_MS / 1000;
     if (windowSec <= 0) {
       return 0;
@@ -69,7 +82,22 @@ export class HitStopGovernor {
     return this.superCritTimestamps.length / windowSec;
   }
 
-  private prune(nowMs: number): void {
+  private recordCrit(nowMs: number): void {
+    this.critTimestamps.push(nowMs);
+    this.pruneCrit(nowMs);
+  }
+
+  private getCritRate(nowMs: number): number {
+    this.pruneCrit(nowMs);
+    const windowSec = GAME_ENGINE.CRIT_HITSTOP_WINDOW_MS / 1000;
+    if (windowSec <= 0) {
+      return 0;
+    }
+
+    return this.critTimestamps.length / windowSec;
+  }
+
+  private pruneSuperCrit(nowMs: number): void {
     const cutoff = nowMs - GAME_ENGINE.SUPER_CRIT_HITSTOP_WINDOW_MS;
     while (
       this.superCritTimestamps.length > 0 &&
@@ -77,6 +105,17 @@ export class HitStopGovernor {
       this.superCritTimestamps[0] < cutoff
     ) {
       this.superCritTimestamps.shift();
+    }
+  }
+
+  private pruneCrit(nowMs: number): void {
+    const cutoff = nowMs - GAME_ENGINE.CRIT_HITSTOP_WINDOW_MS;
+    while (
+      this.critTimestamps.length > 0 &&
+      this.critTimestamps[0] !== undefined &&
+      this.critTimestamps[0] < cutoff
+    ) {
+      this.critTimestamps.shift();
     }
   }
 }

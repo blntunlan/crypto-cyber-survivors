@@ -2,7 +2,7 @@
  * CycleCompleteScreen - Displayed when a 5-minute cycle ends in COMPETITIVE mode
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { CoinService, type CoinCalculation } from '../../services/gameplay/CoinService';
@@ -44,6 +44,14 @@ export function CycleCompleteScreen({
   const [coinCalculation, setCoinCalculation] = useState<CoinCalculation | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedIndexRef = useRef(0);
+  const hasSelectedRef = useRef(false);
+
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
+
   useEffect(() => {
     Logger.info('[CycleCompleteScreen] Mounted');
   }, []);
@@ -59,6 +67,63 @@ export function CycleCompleteScreen({
     setCoinCalculation(calc);
     audio.playLevelUp();
   }, [data]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (hasSelectedRef.current) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'a':
+        case 'A':
+        case 'ArrowLeft':
+        case 'w':
+        case 'W':
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex(prev => {
+            const newIndex = prev > 0 ? prev - 1 : 1;
+            audio.playSlotTick(0.5);
+            return newIndex;
+          });
+          break;
+        case 'd':
+        case 'D':
+        case 'ArrowRight':
+        case 's':
+        case 'S':
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex(prev => {
+            const newIndex = prev < 1 ? prev + 1 : 0;
+            audio.playSlotTick(0.5);
+            return newIndex;
+          });
+          break;
+        case ' ':
+        case 'Enter': {
+          e.preventDefault();
+          const currentIdx = selectedIndexRef.current;
+          hasSelectedRef.current = true;
+          audio.playButton();
+          if (currentIdx === 0) {
+            void onCashOut();
+          } else {
+            void onContinue();
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCashOut, onContinue]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -210,10 +275,16 @@ export function CycleCompleteScreen({
           <ThemedButton
             intent="primary"
             onClick={() => {
+              if (hasSelectedRef.current) return;
+              hasSelectedRef.current = true;
               audio.playButton();
               void onCashOut();
             }}
-            className="min-h-[52px] text-xs font-black uppercase tracking-[0.22em]"
+            className={cn(
+              'min-h-[52px] text-xs font-black uppercase tracking-[0.22em] transition-transform',
+              selectedIndex === 0 &&
+                'scale-[1.03] ring-2 ring-yellow-400 ring-offset-2 ring-offset-black/80'
+            )}
           >
             <span className="inline-flex items-center gap-2">
               <IconBitcoin className="h-5 w-5" color="currentColor" />
@@ -224,10 +295,16 @@ export function CycleCompleteScreen({
           <ThemedButton
             intent="secondary"
             onClick={() => {
+              if (hasSelectedRef.current) return;
+              hasSelectedRef.current = true;
               audio.playButton();
               void onContinue();
             }}
-            className="min-h-[52px] text-xs font-black uppercase tracking-[0.22em]"
+            className={cn(
+              'min-h-[52px] text-xs font-black uppercase tracking-[0.22em] transition-transform',
+              selectedIndex === 1 &&
+                'scale-[1.03] ring-2 ring-yellow-400 ring-offset-2 ring-offset-black/80'
+            )}
           >
             <span className="inline-flex items-center gap-2">
               <IconZap

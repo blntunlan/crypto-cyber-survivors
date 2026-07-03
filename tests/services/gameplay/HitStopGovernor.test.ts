@@ -12,6 +12,17 @@ describe('HitStopGovernor', () => {
     expect(result).toBe(60);
   });
 
+  it('suppresses standard crit hit-stop once crit request rate exceeds threshold', () => {
+    const governor = new HitStopGovernor();
+    const event = { duration: 15, isCrit: true, isSuperCrit: false };
+
+    const results = [1000, 1100, 1200, 1300, 1400].map(now =>
+      governor.getAdjustedDuration(event, now)
+    );
+
+    expect(results[results.length - 1]).toBe(0);
+  });
+
   it('keeps super crit duration unchanged when rate is under threshold', () => {
     const governor = new HitStopGovernor();
 

@@ -8,6 +8,7 @@
 import { type Card, type CardTier, TIER_ORDER } from './types';
 import { TIER_CONFIG, getTierConfig, getAllTiers } from './tierConfig';
 import { ALL_CARDS, ALL_CARDS_FLAT } from './cardDefinitions';
+import { WeaponSystem } from '../combat/WeaponSystem';
 
 export { type Card, type CardTier, TIER_ORDER };
 export { TIER_CONFIG, getTierConfig, getAllTiers };
@@ -69,6 +70,12 @@ class CardSystemClass {
     return true;
   }
 
+  private isCardAvailable(card: Card, playerLevel: number): boolean {
+    if (!this.isTierAvailable(card.tier, playerLevel)) return false;
+    if (card.grantsWeapon && WeaponSystem.hasWeapon(card.grantsWeapon)) return false;
+    return true;
+  }
+
   /**
    * Generate card choices for level up.
    */
@@ -76,8 +83,19 @@ class CardSystemClass {
     const choices: Card[] = [];
     const usedIds = new Set<string>();
     const availableCards = ALL_CARDS_FLAT.filter(card =>
-      this.isTierAvailable(card.tier, playerLevel)
+      this.isCardAvailable(card, playerLevel)
     );
+    const availableCardsByTier: Record<CardTier, Card[]> = {
+      common: [],
+      rare: [],
+      epic: [],
+      legendary: [],
+    };
+
+    for (const card of availableCards) {
+      availableCardsByTier[card.tier].push(card);
+    }
+
     const targetCount = Math.max(1, Math.min(choiceCount, availableCards.length));
     const maxAttempts = targetCount * 20;
     let attempts = 0;
@@ -85,9 +103,10 @@ class CardSystemClass {
     while (choices.length < targetCount && attempts < maxAttempts) {
       attempts += 1;
       const tier = this.rollTier(playerLuck, playerLevel);
-      const card = this.getRandomCardFromTier(tier);
+      const tierCards = availableCardsByTier[tier];
+      const card = tierCards[Math.floor(Math.random() * tierCards.length)];
 
-      if (!usedIds.has(card.id)) {
+      if (card && !usedIds.has(card.id)) {
         choices.push(card);
         usedIds.add(card.id);
       }

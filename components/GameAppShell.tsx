@@ -109,20 +109,23 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
     const tabHiddenSinceRef = useRef<number | null>(null);
 
     useEffect(() => {
-      const handleVisibilityChange = () => {
-        const isCompetitive = gameMode === GameMode.COMPETITIVE;
+      const isCompetitive = gameMode === GameMode.COMPETITIVE;
 
+      const autoPauseIfPlaying = (reason: string) => {
+        if (gameStatus !== GameStatus.PLAYING) return;
+        if (isCompetitive) {
+          tabHiddenSinceRef.current = Date.now();
+          Logger.info(
+            `[App] Competitive mode: ${reason}, auto-pausing to use pause budget`
+          );
+        }
+        GameStateMachine.transition(GameStatus.PAUSED);
+      };
+
+      const handleVisibilityChange = () => {
         if (document.hidden) {
           if (gameStatus === GameStatus.PLAYING) {
-            if (isCompetitive) {
-              tabHiddenSinceRef.current = Date.now();
-              Logger.info(
-                '[App] Competitive mode: Tab hidden, auto-pausing to use pause budget'
-              );
-              GameStateMachine.transition(GameStatus.PAUSED);
-            } else {
-              GameStateMachine.transition(GameStatus.PAUSED);
-            }
+            autoPauseIfPlaying('Tab hidden');
           } else if (gameStatus === GameStatus.LEVEL_UP && isCompetitive) {
             Logger.info('[App] Competitive mode: Tab hidden during level-up');
           }
@@ -130,9 +133,24 @@ export const GameAppShell: React.FC<GameAppShellProps> = React.memo(
           tabHiddenSinceRef.current = null;
         }
       };
+
+      // iOS Safari restores frozen tabs from the Back/Forward cache via
+      // `pagehide`(persisted), which may NOT be accompanied by
+      // `visibilitychange`. Auto-pause here too so backgrounding still
+      // engages the pause budget (anti-abuse) on iOS app-switch.
+      const handlePageHide = (event: PageTransitionEvent) => {
+        if (event.persisted) autoPauseIfPlaying('Tab hidden (BF-cache)');
+      };
+      const handleFreeze = () => autoPauseIfPlaying('Tab hidden (frozen)');
+
       document.addEventListener('visibilitychange', handleVisibilityChange);
-      return () =>
+      window.addEventListener('pagehide', handlePageHide);
+      document.addEventListener('freeze', handleFreeze);
+      return () => {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pagehide', handlePageHide);
+        document.removeEventListener('freeze', handleFreeze);
+      };
     }, [gameStatus, gameMode]);
 
     useEffect(() => {

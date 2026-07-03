@@ -31,6 +31,7 @@ import metaProgressionRouter from './routes/metaProgression';
 import challengesRouter from './routes/challenges';
 import replaysRouter from './routes/replays';
 import marketRuntimeRouter from './routes/marketRuntime';
+import achievementsRouter from './routes/achievements';
 import adminRouter from './routes/admin';
 
 const app = express();
@@ -90,6 +91,7 @@ app.use('/api/v1/meta', writeLimiter, metaProgressionRouter);
 app.use('/api/v1/challenges', writeLimiter, challengesRouter);
 app.use('/api/v1/replays', writeLimiter, replaysRouter);
 app.use('/api/v1/market', writeLimiter, marketRuntimeRouter);
+app.use('/api/v1/achievements', authLimiter, achievementsRouter);
 
 // ---- Admin (no rate limiter — secret-protected) ----
 app.use('/api/v1/admin', adminRouter);

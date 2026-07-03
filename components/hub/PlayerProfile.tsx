@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence, m } from 'framer-motion';
+import { m } from 'framer-motion';
 import {
   X,
   Trophy,
@@ -25,20 +25,12 @@ import { type FullProfileData } from '../../types/profile';
 import { type AuthProvider } from '../../services/auth/RailwayAuthService';
 import { UserAvatar } from '../ui/UserAvatar';
 import { COLORS } from '../../config/Colors';
-import { PANEL_VARIANTS, TEXT_VARIANTS } from '../../config/themeVariants';
+import { TEXT_VARIANTS } from '../../config/themeVariants';
 import { cn } from '../../utils/classnames';
 import { ProfileSettingsContent } from '../settings/ProfileSettings';
-import { Z_LAYERS } from '../../constants/ZIndex';
-import {
-  MODERN_PANEL_FRAME,
-  MODERN_PANEL_INNER_BORDER,
-  MODERN_PANEL_OUTER_BORDER,
-  MODERN_PANEL_TOP_ACCENT,
-  MODERN_SCREEN_OVERLAY,
-} from '../../config/modernSurface';
 
 interface PlayerProfileProps {
-  isOpen: boolean;
+  /** Navigate back to the hub (rendered as a full-screen route, not a modal). */
   onClose: () => void;
 }
 
@@ -58,7 +50,7 @@ const formatProfileDuration = (seconds: number) => {
   return `${h > 0 ? `${h}h ` : ''}${m}m ${s}s`;
 };
 
-export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose }) => {
+export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
   const { isRetro } = useTheme();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -82,10 +74,8 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
     : 'rounded-lg border border-white/10 bg-white/5';
 
   useEffect(() => {
-    if (isOpen) {
-      void loadProfileData();
-    }
-  }, [isOpen]);
+    void loadProfileData();
+  }, []);
 
   const loadProfileData = async () => {
     setIsLoading(true);
@@ -104,252 +94,222 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ isOpen, onClose })
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <m.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className={cn(
-          'fixed inset-0 flex items-end justify-center p-2 md:items-center md:p-6 lg:p-8',
-          isRetro ? 'bg-black/80 backdrop-blur-md' : MODERN_SCREEN_OVERLAY
-        )}
-        style={
-          {
-            zIndex: Z_LAYERS.TOAST + 1,
-            '--hub-accent': accentColor,
-          } as React.CSSProperties
-        }
-      >
-        <m.div
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+    <m.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={cn(
+        'absolute inset-0 z-[100] flex flex-col overflow-hidden',
+        isRetro ? 'bg-[#050505]' : 'bg-slate-950'
+      )}
+      style={{ '--hub-accent': accentColor } as React.CSSProperties}
+    >
+      <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden">
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-2 top-2 z-50 p-2.5 text-slate-400 transition-colors hover:text-white md:right-4 md:top-4 md:p-2"
+        >
+          <X size={isRetro ? 32 : 24} />
+        </button>
+
+        {/* Header Section */}
+        <div
           className={cn(
-            'relative h-[92dvh] w-full max-w-[980px] flex flex-col overflow-hidden rounded-t-2xl md:h-[88vh] md:rounded-2xl lg:h-[84vh] lg:max-w-5xl',
-            isRetro ? PANEL_VARIANTS.retro : MODERN_PANEL_FRAME
+            'flex flex-col items-center gap-3 p-4 md:flex-row md:gap-6 md:p-6 lg:p-7',
+            panelHeaderClass,
+            bodyClass
           )}
         >
-          {!isRetro && (
-            <>
-              <div className={MODERN_PANEL_OUTER_BORDER} />
-              <div className={MODERN_PANEL_INNER_BORDER} />
-              <div className={MODERN_PANEL_TOP_ACCENT} />
-            </>
-          )}
-
-          {/* Close Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-2 top-2 z-50 p-2.5 text-slate-400 transition-colors hover:text-white md:right-4 md:top-4 md:p-2"
-          >
-            <X size={isRetro ? 32 : 24} />
-          </button>
-
-          {/* Header Section */}
-          <div
-            className={cn(
-              'flex flex-col items-center gap-3 p-4 md:flex-row md:gap-6 md:p-6 lg:p-7',
-              panelHeaderClass,
-              bodyClass
+          <div className="relative">
+            <UserAvatar
+              avatarUrl={profile?.avatarUrl ?? undefined}
+              displayName={profile?.displayName ?? 'Player'}
+              size="xl"
+              provider={profile?.primaryAuthProvider as AuthProvider | undefined}
+              showProviderBadge
+            />
+            {profile?.isTester && (
+              <div className="absolute -bottom-2 -right-2 inline-flex items-center gap-1 rounded-full bg-yellow-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter text-black">
+                <ShieldCheck size={10} /> Tester
+              </div>
             )}
-          >
-            <div className="relative">
-              <UserAvatar
-                avatarUrl={profile?.avatarUrl ?? undefined}
-                displayName={profile?.displayName ?? 'Player'}
-                size="xl"
-                provider={profile?.primaryAuthProvider as AuthProvider | undefined}
-                showProviderBadge
+          </div>
+
+          <div className="flex-1 text-center md:text-left">
+            <h2
+              className={cn(
+                'mb-1 text-2xl md:text-3xl lg:text-4xl',
+                isRetro ? TEXT_VARIANTS.h1.retro : TEXT_VARIANTS.h1.modern
+              )}
+            >
+              {profile?.displayName}
+            </h2>
+            <div
+              className={cn(
+                'flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] md:justify-start md:text-sm lg:text-[15px]',
+                isRetro ? 'text-[#A1FFE1]' : 'text-slate-400'
+              )}
+            >
+              <span className="flex items-center gap-1">
+                <User size={14} /> @{profile?.username ?? 'local-profile'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Zap size={14} className="text-yellow-400" /> LVL {profile?.level}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar size={14} /> Joined{' '}
+                {profile ? new Date(profile.createdAt).toLocaleDateString() : '...'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <div
+          className={cn(
+            'custom-scrollbar flex gap-1 overflow-x-auto px-2 py-2 md:grid md:grid-cols-4 md:gap-0 md:overflow-visible md:px-0 md:py-0',
+            tabsContainerClass
+          )}
+        >
+          {PROFILE_TABS.map(tab => {
+            const TabIcon = tab.icon;
+            return (
+              <button
+                type="button"
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'relative min-w-[112px] shrink-0 overflow-hidden rounded-md px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all md:min-w-0 md:flex-1 md:rounded-none md:py-4 md:text-sm md:tracking-widest lg:text-[13px]',
+                  activeTab === tab.id
+                    ? 'text-[var(--hub-accent)]'
+                    : isRetro
+                      ? 'text-[#DCDCDC]/70 hover:text-[#39FF14] hover:bg-[#39FF14]/10'
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/5',
+                  isRetro ? 'font-retro-pixel tracking-[0.2em]' : 'font-cyber',
+                  bodyClass
+                )}
+                style={
+                  {
+                    '--hub-accent': accentColor,
+                  } as React.CSSProperties
+                }
+              >
+                <span className="inline-flex items-center gap-1.5 md:gap-2">
+                  <TabIcon size={14} />
+                  {t(`profile.tabs.${tab.id}`)}
+                </span>
+                {activeTab === tab.id && (
+                  <m.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--hub-accent)]"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="scrollbar-thin scrollbar-thumb-white/10 flex-1 overflow-y-auto p-3 md:p-6 lg:p-7">
+          {isLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <div
+                className="h-12 w-12 animate-spin rounded-full border-4 border-solid"
+                style={{
+                  borderColor: `${accentColor}33`,
+                  borderTopColor: accentColor,
+                }}
               />
-              {profile?.isTester && (
-                <div className="absolute -bottom-2 -right-2 inline-flex items-center gap-1 rounded-full bg-yellow-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter text-black">
-                  <ShieldCheck size={10} /> Tester
+            </div>
+          ) : !profile ? (
+            <div className="flex h-full items-center justify-center">
+              <div
+                className={cn(
+                  'w-full max-w-md p-6 text-center',
+                  cardSurface,
+                  bodyClass
+                )}
+              >
+                <h3
+                  className={cn(
+                    'mb-2 text-base font-bold uppercase tracking-wide',
+                    isRetro ? 'text-[#FF3D00]' : 'text-red-400'
+                  )}
+                >
+                  {loadError ?? 'Failed to load profile'}
+                </h3>
+                <p className="mb-4 text-sm text-slate-400">
+                  Please try again. If the issue continues, check your session or
+                  network connection.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void loadProfileData();
+                  }}
+                  className={cn(
+                    'rounded-lg px-4 py-2 text-sm font-bold uppercase tracking-wide transition-colors',
+                    isRetro
+                      ? 'border border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14]/10'
+                      : 'border border-cyan-400/40 text-cyan-300 hover:bg-cyan-400/10'
+                  )}
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 md:space-y-7 lg:space-y-8">
+              {activeTab === 'overview' && (
+                <OverviewTab
+                  profile={profile}
+                  isRetro={isRetro}
+                  accentColor={accentColor}
+                  bodyClass={bodyClass}
+                  cardSurface={cardSurface}
+                  subtleCardSurface={subtleCardSurface}
+                  secondaryAccent={secondaryAccent}
+                />
+              )}
+              {activeTab === 'stats' && (
+                <StatsTab
+                  profile={profile}
+                  isRetro={isRetro}
+                  accentColor={accentColor}
+                  bodyClass={bodyClass}
+                  cardSurface={cardSurface}
+                  subtleCardSurface={subtleCardSurface}
+                  secondaryAccent={secondaryAccent}
+                />
+              )}
+              {activeTab === 'achievements' && (
+                <AchievementsTab
+                  profile={profile}
+                  isRetro={isRetro}
+                  bodyClass={bodyClass}
+                  cardSurface={cardSurface}
+                  subtleCardSurface={subtleCardSurface}
+                  accentColor={accentColor}
+                />
+              )}
+              {activeTab === 'settings' && (
+                <div
+                  className={cn('mx-auto max-w-2xl p-4 sm:p-6', cardSurface, bodyClass)}
+                >
+                  <ProfileSettingsContent
+                    onProfileUpdate={() => {
+                      void loadProfileData();
+                    }}
+                  />
                 </div>
               )}
             </div>
-
-            <div className="flex-1 text-center md:text-left">
-              <h2
-                className={cn(
-                  'mb-1 text-2xl md:text-3xl lg:text-4xl',
-                  isRetro ? TEXT_VARIANTS.h1.retro : TEXT_VARIANTS.h1.modern
-                )}
-              >
-                {profile?.displayName}
-              </h2>
-              <div
-                className={cn(
-                  'flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] md:justify-start md:text-sm lg:text-[15px]',
-                  isRetro ? 'text-[#A1FFE1]' : 'text-slate-400'
-                )}
-              >
-                <span className="flex items-center gap-1">
-                  <User size={14} /> @{profile?.username ?? 'local-profile'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Zap size={14} className="text-yellow-400" /> LVL {profile?.level}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar size={14} /> Joined{' '}
-                  {profile ? new Date(profile.createdAt).toLocaleDateString() : '...'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs Navigation */}
-          <div
-            className={cn(
-              'custom-scrollbar flex gap-1 overflow-x-auto px-2 py-2 md:grid md:grid-cols-4 md:gap-0 md:overflow-visible md:px-0 md:py-0',
-              tabsContainerClass
-            )}
-          >
-            {PROFILE_TABS.map(tab => {
-              const TabIcon = tab.icon;
-              return (
-                <button
-                  type="button"
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'relative min-w-[112px] shrink-0 overflow-hidden rounded-md px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all md:min-w-0 md:flex-1 md:rounded-none md:py-4 md:text-sm md:tracking-widest lg:text-[13px]',
-                    activeTab === tab.id
-                      ? 'text-[var(--hub-accent)]'
-                      : isRetro
-                        ? 'text-[#DCDCDC]/70 hover:text-[#39FF14] hover:bg-[#39FF14]/10'
-                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5',
-                    isRetro ? 'font-retro-pixel tracking-[0.2em]' : 'font-cyber',
-                    bodyClass
-                  )}
-                  style={
-                    {
-                      '--hub-accent': accentColor,
-                    } as React.CSSProperties
-                  }
-                >
-                  <span className="inline-flex items-center gap-1.5 md:gap-2">
-                    <TabIcon size={14} />
-                    {t(`profile.tabs.${tab.id}`)}
-                  </span>
-                  {activeTab === tab.id && (
-                    <m.div
-                      layoutId="activeTab"
-                      className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--hub-accent)]"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Scrollable Content */}
-          <div className="scrollbar-thin scrollbar-thumb-white/10 flex-1 overflow-y-auto p-3 md:p-6 lg:p-7">
-            {isLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <div
-                  className="h-12 w-12 animate-spin rounded-full border-4 border-solid"
-                  style={{
-                    borderColor: `${accentColor}33`,
-                    borderTopColor: accentColor,
-                  }}
-                />
-              </div>
-            ) : !profile ? (
-              <div className="flex h-full items-center justify-center">
-                <div
-                  className={cn(
-                    'w-full max-w-md p-6 text-center',
-                    cardSurface,
-                    bodyClass
-                  )}
-                >
-                  <h3
-                    className={cn(
-                      'mb-2 text-base font-bold uppercase tracking-wide',
-                      isRetro ? 'text-[#FF3D00]' : 'text-red-400'
-                    )}
-                  >
-                    {loadError ?? 'Failed to load profile'}
-                  </h3>
-                  <p className="mb-4 text-sm text-slate-400">
-                    Please try again. If the issue continues, check your session or
-                    network connection.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void loadProfileData();
-                    }}
-                    className={cn(
-                      'rounded-lg px-4 py-2 text-sm font-bold uppercase tracking-wide transition-colors',
-                      isRetro
-                        ? 'border border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14]/10'
-                        : 'border border-cyan-400/40 text-cyan-300 hover:bg-cyan-400/10'
-                    )}
-                  >
-                    Retry
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4 md:space-y-7 lg:space-y-8">
-                {activeTab === 'overview' && (
-                  <OverviewTab
-                    profile={profile}
-                    isRetro={isRetro}
-                    accentColor={accentColor}
-                    bodyClass={bodyClass}
-                    cardSurface={cardSurface}
-                    subtleCardSurface={subtleCardSurface}
-                    secondaryAccent={secondaryAccent}
-                  />
-                )}
-                {activeTab === 'stats' && (
-                  <StatsTab
-                    profile={profile}
-                    isRetro={isRetro}
-                    accentColor={accentColor}
-                    bodyClass={bodyClass}
-                    cardSurface={cardSurface}
-                    subtleCardSurface={subtleCardSurface}
-                    secondaryAccent={secondaryAccent}
-                  />
-                )}
-                {activeTab === 'achievements' && (
-                  <AchievementsTab
-                    profile={profile}
-                    isRetro={isRetro}
-                    bodyClass={bodyClass}
-                    cardSurface={cardSurface}
-                    subtleCardSurface={subtleCardSurface}
-                    accentColor={accentColor}
-                  />
-                )}
-                {activeTab === 'settings' && (
-                  <div
-                    className={cn(
-                      'mx-auto max-w-2xl p-4 sm:p-6',
-                      cardSurface,
-                      bodyClass
-                    )}
-                  >
-                    <ProfileSettingsContent
-                      onProfileUpdate={() => {
-                        void loadProfileData();
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </m.div>
-      </m.div>
-    </AnimatePresence>
+          )}
+        </div>
+      </div>
+    </m.div>
   );
 };
 

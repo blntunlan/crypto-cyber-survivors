@@ -111,7 +111,7 @@ const PODIUM_CONFIGS = [
   {
     rank: 2,
     icon: Medal,
-    gradient: 'from-slate-300/15 via-slate-400/8 to-transparent',
+    gradient: 'from-slate-300/15 via-slate-400/10 to-transparent',
     border: 'border-slate-300/30',
     glow: 'shadow-[0_0_20px_rgba(203,213,225,0.1)]',
     textColor: 'text-slate-300',
@@ -121,7 +121,7 @@ const PODIUM_CONFIGS = [
   {
     rank: 3,
     icon: Medal,
-    gradient: 'from-amber-600/15 via-amber-700/8 to-transparent',
+    gradient: 'from-amber-600/15 via-amber-700/10 to-transparent',
     border: 'border-amber-500/30',
     glow: 'shadow-[0_0_20px_rgba(180,83,9,0.1)]',
     textColor: 'text-amber-500',
@@ -260,7 +260,7 @@ const RankRow: React.FC<RankRowProps> = ({ entry, sortTab, isRetro, animDelay })
       entry.isCurrentPlayer
         ? isRetro
           ? 'border-l-4 border-yellow-400/60 bg-yellow-500/5'
-          : 'border-l-2 border-cyan-400 bg-cyan-500/8 shadow-[inset_10px_0_20px_rgba(34,211,238,0.03)]'
+          : 'border-l-2 border-cyan-400 bg-cyan-500/10 shadow-[inset_10px_0_20px_rgba(34,211,238,0.03)]'
         : 'hover:bg-white/[0.03]'
     )}
   >
@@ -435,7 +435,7 @@ export const LeaderboardScreen: React.FC = () => {
       exit={{ opacity: 0 }}
       className={cn(
         'allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-3 pb-[calc(1rem+var(--sab))] sm:p-5',
-        isRetro ? 'bg-[#0a0a12]/95' : 'bg-slate-950/92'
+        isRetro ? 'bg-[#0a0a12]/95' : 'bg-slate-950/95'
       )}
     >
       <div className="w-full max-w-2xl space-y-4 py-2 sm:space-y-5 sm:py-4">
@@ -529,7 +529,7 @@ export const LeaderboardScreen: React.FC = () => {
           className={cn(
             'relative overflow-hidden',
             !isRetro &&
-              'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
+              'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
           )}
         >
           {/* Top accent line */}

@@ -3,6 +3,7 @@ import { CardSystem } from '../../../services/cards/CardSystem';
 import { ALL_CARDS } from '../../../services/cards/cardDefinitions';
 import { TIER_CONFIG } from '../../../services/cards/tierConfig';
 import { type CardTier, TIER_ORDER } from '../../../services/cards/types';
+import { WeaponSystem } from '../../../services/combat/WeaponSystem';
 
 /**
  * CardSystem Unit Tests
@@ -22,11 +23,13 @@ describe('CardSystem', () => {
 
   beforeEach(() => {
     originalRandom = Math.random;
+    WeaponSystem.reset();
   });
 
   afterEach(() => {
     Math.random = originalRandom;
     vi.restoreAllMocks();
+    WeaponSystem.reset();
   });
 
   // =====================
@@ -374,6 +377,18 @@ describe('CardSystem', () => {
         expect(id1).not.toBe(id2);
         expect(id2).not.toBe(id3);
         expect(id1).not.toBe(id3);
+      });
+    });
+
+    describe('weapon card availability', () => {
+      it('should not offer an already acquired weapon card again', () => {
+        WeaponSystem.addWeapon('boomerang');
+        vi.spyOn(CardSystem, 'rollTier').mockReturnValue('rare');
+        Math.random = vi.fn(() => 0.85);
+
+        const choices = CardSystem.generateChoices(0, 3);
+
+        expect(choices.map(card => card.id)).not.toContain('weapon_boomerang');
       });
     });
 

@@ -301,6 +301,16 @@ class ComboSystemClass {
   }
 
   /**
+   * Returns the casino-palette color for the current combo tier.
+   * Falls back to the default bullet color when no milestone is active.
+   * Used by ProjectileRenderer to tint projectile tails by combo level.
+   */
+  public getComboColor(): string {
+    const milestone = this.getCurrentMilestone();
+    return milestone?.color ?? COLORS.BULLET;
+  }
+
+  /**
    * Current active tier information.
    */
   public getCurrentMilestone(): ComboMilestone | null {

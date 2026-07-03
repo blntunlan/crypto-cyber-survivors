@@ -6,7 +6,7 @@ import type {
   LiquidationWarning,
 } from '../services/difficulty/types';
 
-export function useDifficultyV2(updateInterval: number = 100) {
+export function useDifficultyV2() {
   const [state, setState] = useState({
     output: null as DifficultyOutputV2 | null,
     fovReduction: 0,
@@ -14,17 +14,27 @@ export function useDifficultyV2(updateInterval: number = 100) {
     total: 1,
   });
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const updateState = useCallback(() => {
     try {
       const output = DifficultyManager.getLatestOutput();
       if (!output) return;
-      setState({
-        output,
-        fovReduction: output.fovReduction,
-        shockActive: output.shockActive,
-        total: output.total,
+      setState(prev => {
+        if (
+          prev.fovReduction === output.fovReduction &&
+          prev.shockActive === output.shockActive &&
+          prev.total === output.total &&
+          prev.output === output
+        ) {
+          return prev;
+        }
+        return {
+          output,
+          fovReduction: output.fovReduction,
+          shockActive: output.shockActive,
+          total: output.total,
+        };
       });
     } catch {
       // Context not ready
@@ -33,11 +43,15 @@ export function useDifficultyV2(updateInterval: number = 100) {
 
   useEffect(() => {
     updateState();
-    intervalRef.current = setInterval(updateState, updateInterval);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    const tick = () => {
+      updateState();
+      rafRef.current = requestAnimationFrame(tick);
     };
-  }, [updateState, updateInterval]);
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [updateState]);
 
   return state;
 }

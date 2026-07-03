@@ -6,6 +6,7 @@
 
 import { type Player } from '../../types';
 import { type StatKey } from '../../config/StatRegistry';
+import { type WeaponId } from '../../types/weapons';
 
 /**
  * Card rarity tiers
@@ -30,6 +31,7 @@ export interface Card {
   description: string;
   icon: string;
   tier: CardTier;
+  grantsWeapon?: WeaponId;
   modifiers?: StatModifier[];
   effect?: (player: Player) => Player; // Keep for custom or highly complex logic
 }

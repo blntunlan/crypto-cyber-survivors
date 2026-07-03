@@ -389,6 +389,8 @@ export const GAME_ENGINE = {
   HIT_STOP_NORMAL: 15, // Reduced for smoother flow (Standard Crit)
   HIT_STOP_CRIT: 60, // Reduced for smoother flow (Super Crit)
   HIT_STOP_CHAIN_CAP_MS: 72, // Prevent long chained freeze from repeated crit bursts
+  CRIT_HITSTOP_WINDOW_MS: 1200, // Rolling window for standard crit hit-stop suppression
+  CRIT_HITSTOP_RATE_THRESHOLD: 4, // Disable standard crit hit-stop above this rate (/sec)
   SUPER_CRIT_HITSTOP_WINDOW_MS: 1200, // Rolling window for burst-density calculation
   SUPER_CRIT_HITSTOP_RATE_THRESHOLD: 4, // Start reducing hit stop above this rate (/sec)
   SUPER_CRIT_HITSTOP_MAX_OVERLOAD_RATE: 8, // Full reduction reached at threshold + this value

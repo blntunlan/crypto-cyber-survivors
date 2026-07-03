@@ -10,7 +10,6 @@ import { cn } from '../../utils/classnames';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { OverlayBackButton } from '../ui/OverlayChrome';
 import { HubPlayerCard } from './HubPlayerCard.tsx';
-import { PlayerProfile } from './PlayerProfile';
 import { LootboxService } from '../../services/lootbox';
 import { InventoryService } from '../../services/inventory';
 import { HubMenuButton } from './HubMenuButton.tsx';
@@ -47,7 +46,6 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
 
   const [lootboxCount, setLootboxCount] = useState(0);
   const [consumableCount, setConsumableCount] = useState(0);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     const updateCounts = () => {
@@ -232,8 +230,6 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           </div>
         </motion.header>
 
-        <PlayerProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-
         <ThemedPanel
           className={cn(
             'relative space-y-5 overflow-hidden p-4 sm:p-5',
@@ -258,7 +254,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
                 equippedSkin={equippedSkin}
                 onAvatarClick={() => {
                   audio.playButton();
-                  setIsProfileOpen(true);
+                  onNavigate('profile');
                 }}
               />
             </div>

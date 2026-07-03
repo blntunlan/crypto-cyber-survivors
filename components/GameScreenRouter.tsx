@@ -52,6 +52,9 @@ const LeaderboardPanel = React.lazy(() =>
 const LeaderboardScreen = React.lazy(() =>
   import('./screens/LeaderboardScreen').then(m => ({ default: m.LeaderboardScreen }))
 );
+const PlayerProfile = React.lazy(() =>
+  import('./hub/PlayerProfile').then(m => ({ default: m.PlayerProfile }))
+);
 const PauseMenu = React.lazy(() =>
   import('./screens/PauseMenu').then(m => ({ default: m.PauseMenu }))
 );
@@ -328,6 +331,12 @@ export const GameScreenRouter: React.FC<GameScreenRouterProps> = ({
               onClick={() => setHubScreen('hub')}
               label={!device.isMobile ? 'Hub' : undefined}
             />
+          </React.Suspense>
+        )}
+
+        {isMenuRoute && hubScreen === 'profile' && (
+          <React.Suspense fallback={<UIFallback />}>
+            <PlayerProfile onClose={() => setHubScreen('hub')} />
           </React.Suspense>
         )}
 

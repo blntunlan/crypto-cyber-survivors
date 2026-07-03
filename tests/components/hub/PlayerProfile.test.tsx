@@ -51,7 +51,7 @@ describe('PlayerProfile', () => {
   });
 
   it('shows explicit pending states instead of empty profile content', async () => {
-    render(<PlayerProfile isOpen onClose={vi.fn()} />);
+    render(<PlayerProfile onClose={vi.fn()} />);
 
     expect(await screen.findByText('Profile stats pending')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();

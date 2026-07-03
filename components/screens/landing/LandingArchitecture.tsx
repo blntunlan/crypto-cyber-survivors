@@ -8,22 +8,22 @@ export const LandingArchitecture: React.FC = () => {
 
   const technologyHighlights = [
     {
-      title: 'C-SYNC Protocol',
+      badge: 'EVENT CORE',
+      title: 'Typed EventBus',
       description:
-        'A deterministic event contract that maps market ticks into gameplay-safe signals.',
-      badge: 'SYNC CORE',
+        '150+ typed events decouple every system through an Observer-pattern bus.',
     },
     {
-      title: 'Real-Time WebSocket Fabric',
-      description:
-        'Dual exchange streams (Binance + Coinbase) with failover and continuity guards.',
       badge: 'LIVE DATA',
+      title: 'Dual-Exchange Feed',
+      description:
+        'Binance + Coinbase WebSockets aggregate server-side into a ~1s SSE stream with failover.',
     },
     {
-      title: 'Neural AI Director',
+      badge: 'ADAPTIVE',
+      title: 'Unified Difficulty Director',
       description:
-        'A neural difficulty layer that evaluates market and player telemetry every cycle.',
-      badge: 'ADAPTIVE AI',
+        'Live RSI, ATR, and volume become spawn pressure and rewards every cycle.',
     },
   ];
 

@@ -58,4 +58,16 @@ export type RewardVerificationResponse = {
     balance: number;
     currency: string;
   } | null;
+  newlyUnlockedAchievements?: UnlockedAchievement[];
+};
+
+export type UnlockedAchievement = {
+  id: string;
+  achievementId: string;
+  name: string;
+  description: string;
+  category: string;
+  iconKey: string;
+  rewardGold: number;
+  unlockedAt: string;
 };

@@ -719,3 +719,26 @@ export const auditLog = pgTable(
     index('idx_audit_log_created').on(table.createdAt),
   ]
 );
+
+// ── 18. player_achievements ─────────────────────────────────────────────────
+
+export const playerAchievements = pgTable(
+  'player_achievements',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    profileId: uuid('profile_id')
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    achievementId: text('achievement_id').notNull(),
+    sessionId: uuid('session_id').references(() => sessions.id, { onDelete: 'set null' }),
+    unlockedAt: timestamp('unlocked_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('player_achievements_achievement_id_check', sql`${table.achievementId} <> ''`),
+    unique('uq_player_achievements_profile_achievement').on(table.profileId, table.achievementId),
+    index('idx_player_achievements_profile').on(table.profileId),
+    index('idx_player_achievements_achievement').on(table.achievementId),
+    index('idx_player_achievements_unlocked_at').on(table.unlockedAt),
+  ]
+);

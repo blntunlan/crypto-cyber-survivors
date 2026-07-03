@@ -29,7 +29,6 @@ import { ThemedPanel } from '../themed/ThemedPanel';
 import { OverlayBackButton } from '../ui/OverlayChrome';
 
 import { HubPlayerCard } from './HubPlayerCard.tsx';
-import { PlayerProfile } from './PlayerProfile';
 import { LootboxService } from '../../services/lootbox/LootboxService';
 import { InventoryService } from '../../services/inventory/InventoryService';
 import { useHubButtons, type HubButtonConfig } from './useHubButtons.tsx';
@@ -38,7 +37,15 @@ import {
   useHubGridClassName,
 } from './useResponsiveHubColumns.ts';
 
-export type HubScreen = 'hub' | 'play' | 'stash' | 'loot' | 'skins' | 'ranks' | 'gear';
+export type HubScreen =
+  | 'hub'
+  | 'play'
+  | 'stash'
+  | 'loot'
+  | 'skins'
+  | 'ranks'
+  | 'gear'
+  | 'profile';
 
 interface HubMenuProps {
   nickname: string;
@@ -67,7 +74,6 @@ export const HubMenu: React.FC<HubMenuProps> = ({
 
   const [lootboxCount] = useState(() => LootboxService.getTotalUnopenedCount());
   const [consumableCount] = useState(() => InventoryService.getConsumables().length);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const columnCount = useResponsiveHubColumns();
   const hubGridClass = useHubGridClassName();
 
@@ -171,7 +177,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
         justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))]
         sm:justify-center sm:p-6 sm:pb-6
         landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2
-        ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/92'}
+        ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/95'}
       `}
     >
       {/* Back Button (Top Left) */}
@@ -221,14 +227,11 @@ export const HubMenu: React.FC<HubMenuProps> = ({
           </div>
         </header>
 
-        {/* Player Profile Modal */}
-        <PlayerProfile isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-
         <ThemedPanel
           className={cn(
             'relative space-y-3.5 overflow-hidden p-3.5 transition-colors duration-200 sm:space-y-5 sm:p-6',
             !isRetro &&
-              'bg-slate-900/92 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
+              'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
           )}
         >
           {!isRetro && (
@@ -255,7 +258,7 @@ export const HubMenu: React.FC<HubMenuProps> = ({
               variant="embedded"
               onAvatarClick={() => {
                 audio.playButton();
-                setIsProfileOpen(true);
+                onNavigate('profile');
               }}
             />
           </div>

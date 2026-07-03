@@ -88,11 +88,11 @@ npm run dev
 
 ### Environment Variables
 
-Create a `.env.local` file based on `.env.example`:
+Copy `.env.example` to `.env` and fill in real values:
 
 ```bash
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_RAILWAY_API_URL=https://your-api.up.railway.app                # API server
+VITE_MARKET_AGGREGATOR_URL=https://your-aggregator.up.railway.app   # SSE (optional; falls back to API URL)
 ```
 
 ### Available Scripts
@@ -176,8 +176,8 @@ npm run docs         # Generate TypeDoc API documentation
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                          DATA LAYER                                   │   │
 │  │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────────────┐ │   │
-│  │  │   Zustand      │  │   Supabase     │  │     localStorage        │ │   │
-│  │  │  (gameStore)   │  │ (Cloud Sync)   │  │   (Offline Metrics)     │ │   │
+│  │  │   Zustand      │  │  Railway API   │  │     localStorage        │ │   │
+│  │  │  (gameStore)   │  │ (API + Auth)   │  │   (Offline Metrics)     │ │   │
 │  │  └────────────────┘  └────────────────┘  └─────────────────────────┘ │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
@@ -624,15 +624,11 @@ crypto-cyber-survivors/
 │   ├── 📄 network-error.spec.ts
 │   └── 📄 visual.spec.ts           # Visual regression
 │
-├── 📁 supabase/                     # Supabase Configuration
-│   ├── 📁 migrations/              # Database migrations (18 files)
-│   │   └── 📄 20260114_security_hardening.sql
-│   └── 📁 functions/               # Edge Functions
-│       ├── 📁 verify-game/         # Score verification
-│       └── 📁 start-session/       # Session initialization
+├── 📁 railway-market-server/        # Stateless REST API (profile, sessions, wallet, leaderboard)
+│   └── 📁 src/db/                  # Postgres schema + numbered migrations (000–012, migrate.ts)
 │
-├── 📁 railway-market-server/        # Price Logger Backend (22 files)
-│   └── 📁 src/                     # Express.js server
+├── 📁 railway-market-aggregator/    # Binance/Coinbase WS → indicators → SSE stream + DB writes
+│   └── 📁 src/                     # Stateful market pipeline
 │
 ├── 📁 docs/                         # Documentation (62 files)
 │   ├── 📄 MASTER_ROADMAP.md       # Feature roadmap
@@ -687,7 +683,7 @@ crypto-cyber-survivors/
 | **Styling** | Tailwind CSS 3 + Vanilla CSS |
 | **Animation** | Framer Motion 12 |
 | **Testing** | Vitest 4 + Playwright 1.57 |
-| **Backend** | Supabase (PostgreSQL + Edge Functions) |
+| **Backend** | Railway (PostgreSQL + REST API + SSE market aggregator) |
 | **Deployment** | Railway |
 | **Data Feeds** | Binance & Coinbase WebSocket |
 | **Validation** | Zod 4 |
@@ -726,16 +722,12 @@ crypto-cyber-survivors/
 
 ## 🌐 Integrations
 
-### Supabase
-- **Database**: PostgreSQL with RLS policies
-- **Tables**: `players`, `game_sessions`, `player_wallets`, `price_logs`, `coin_transactions`
-- **Views**: `leaderboard` (SECURITY INVOKER)
-- **Edge Functions**: `verify-game`, `start-session`
-- **Real-time**: Leaderboard subscriptions
-
-### Railway
-- **Frontend**: Static site deployment
-- **Backend**: `railway-market-server` (price logger)
+### Railway (backend — no Supabase)
+- **Auth**: Railway-native JWT (login/signup/OAuth/anonymous) via the API server (`services/auth/RailwayAuthService.ts`)
+- **Database**: Railway PostgreSQL — all game data. Schema + numbered migrations in `railway-market-server/src/db/`
+- **API Server** (`railway-market-server/`): stateless REST — profile, sessions, wallet, leaderboard, telemetry. Rewards are server-verified via `POST /api/v1/sessions/verify`
+- **Market Aggregator** (`railway-market-aggregator/`): Binance/Coinbase WS → indicators → SSE stream + DB writes; deploys independently
+- **Frontend**: Static site; Railway auto-deploys on push to `main`
 
 ### WebSocket Feeds
 - **Primary**: Binance (`wss://stream.binance.com:9443/ws/btcusdt@trade`)

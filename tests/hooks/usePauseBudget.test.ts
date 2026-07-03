@@ -246,4 +246,171 @@ describe('usePauseBudget', () => {
       expect(onAutoResume).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('Tab Visibility (Anti-Abuse & Background)', () => {
+    beforeEach(() => {
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    /** Helper: toggle document.hidden and dispatch visibilitychange */
+    const setHidden = (hidden: boolean) => {
+      act(() => {
+        Object.defineProperty(document, 'hidden', {
+          value: hidden,
+          configurable: true,
+          writable: true,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+    };
+
+    it('should consume the budget while hidden (anti-abuse) but defer auto-resume to visible', () => {
+      const onAutoResume = vi.fn();
+      const { result } = renderHook(() =>
+        usePauseBudget(GameMode.COMPETITIVE, GameStatus.PAUSED, onAutoResume)
+      );
+
+      // 2s visible countdown -> budget ~8
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(result.current.remainingSeconds).toBeCloseTo(8, 0);
+
+      // Hide tab; budget must STILL drain in wall-clock time so backgrounding
+      // (mobile app-switch / desktop alt-tab) cannot be used to stall for free.
+      setHidden(true);
+      act(() => {
+        vi.advanceTimersByTime(10000); // depletes the remaining 8s + 2s
+      });
+      expect(result.current.remainingSeconds).toBe(0);
+
+      // Auto-resume must NOT fire while hidden (RAF suspended -> no delta jump)
+      expect(onAutoResume).not.toHaveBeenCalled();
+
+      // On return to visible, the deferred auto-resume fires cleanly
+      setHidden(false);
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fire deferred auto-resume when becoming visible with budget already at 0', () => {
+      const onAutoResume = vi.fn();
+      const { result, rerender } = renderHook(
+        ({ status }) => usePauseBudget(GameMode.COMPETITIVE, status, onAutoResume),
+        { initialProps: { status: GameStatus.PAUSED } }
+      );
+
+      // 1. Deplete budget to 0 while visible -> auto-resume fires immediately
+      act(() => {
+        vi.advanceTimersByTime(10500);
+      });
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+      expect(result.current.remainingSeconds).toBe(0);
+
+      // 2. Simulate the auto-resume (transition to PLAYING resets trigger flag)
+      rerender({ status: GameStatus.PLAYING });
+
+      // 3. Hide the tab, then re-pause (simulating the visibility auto-pause)
+      setHidden(true);
+      rerender({ status: GameStatus.PAUSED });
+
+      // 4. While hidden: budget is 0 and PAUSED, but auto-resume must NOT fire
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+
+      // 5. Become visible -> deferred auto-resume fires
+      setHidden(false);
+      expect(onAutoResume).toHaveBeenCalledTimes(2);
+    });
+
+    it('should consume the full hidden wall-clock on return even if timers were suspended', () => {
+      const onAutoResume = vi.fn();
+      const { result } = renderHook(() =>
+        usePauseBudget(GameMode.COMPETITIVE, GameStatus.PAUSED, onAutoResume)
+      );
+
+      // 2s visible -> budget ~8
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(result.current.remainingSeconds).toBeCloseTo(8, 0);
+
+      // Hide and simulate full timer suspension: jump the system clock 30s
+      // forward (throttled callbacks may or may not fire depending on browser)
+      const hiddenStart = Date.now();
+      setHidden(true);
+      act(() => {
+        vi.setSystemTime(new Date(hiddenStart + 30000));
+      });
+
+      // Auto-resume must never fire while hidden regardless of suspension
+      expect(onAutoResume).not.toHaveBeenCalled();
+
+      // Return to visible. The 30s of wall-clock pause time is consumed
+      // (countdown is uncapped for anti-abuse) and the deferred auto-resume
+      // fires cleanly — no way to escape the budget via tab suspension.
+      setHidden(false);
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      expect(result.current.remainingSeconds).toBe(0);
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle iOS BF-cache: pagehide hides, pageshow restores (no visibilitychange)', () => {
+      const onAutoResume = vi.fn();
+      const { result, rerender } = renderHook(
+        ({ status }) => usePauseBudget(GameMode.COMPETITIVE, status, onAutoResume),
+        { initialProps: { status: GameStatus.PAUSED } }
+      );
+
+      // 1. Deplete budget to 0 while visible -> auto-resume fires immediately
+      act(() => {
+        vi.advanceTimersByTime(10500);
+      });
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+      expect(result.current.remainingSeconds).toBe(0);
+
+      // 2. Simulate auto-resume (PLAYING resets the trigger flag)
+      rerender({ status: GameStatus.PLAYING });
+
+      // 3. iOS BF-cache freeze FIRST: pagehide(persisted) — visibilitychange
+      //    may NOT fire on iOS in this path. The hook must treat the tab as
+      //    hidden before any re-pause happens.
+      act(() => {
+        const e = new Event('pagehide');
+        Object.defineProperty(e, 'persisted', { value: true });
+        window.dispatchEvent(e);
+      });
+
+      // 4. Now re-pause WHILE hidden (budget still 0). Auto-resume must NOT
+      //    fire because isTabVisible is false (deferred until restore).
+      rerender({ status: GameStatus.PAUSED });
+      expect(onAutoResume).toHaveBeenCalledTimes(1);
+
+      // 5. Restore from BF cache via pageshow (persisted) — visibilitychange
+      //    may not fire, so the hook must resync from pageshow.
+      act(() => {
+        const e = new Event('pageshow');
+        Object.defineProperty(e, 'persisted', { value: true });
+        window.dispatchEvent(e);
+      });
+
+      // Now visible again -> deferred auto-resume fires
+      expect(onAutoResume).toHaveBeenCalledTimes(2);
+    });
+  });
 });

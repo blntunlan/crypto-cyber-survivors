@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { TimeService } from '../services/core/TimeService';
 import { EventBus } from '../services/core/EventBus';
+import { COLORS } from '../constants';
 
 describe('ComboSystem', () => {
   let mockTime = 1000;
@@ -111,5 +112,43 @@ describe('ComboSystem', () => {
     ComboSystem.resetCombo();
     expect(ComboSystem.getKillStreak()).toBe(0);
     expect(ComboSystem.getMaxStreak()).toBe(15); // Should persist
+  });
+
+  describe('getComboColor', () => {
+    it('returns default bullet color when no milestone is active', () => {
+      expect(ComboSystem.getComboColor()).toBe(COLORS.BULLET);
+    });
+
+    it('returns ELECTRIC_BLUE at COMBO tier (5 kills)', () => {
+      for (let i = 0; i < 5; i++) ComboSystem.recordKill();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.ELECTRIC_BLUE);
+    });
+
+    it('returns NEON_ORANGE at SUPER COMBO tier (10 kills)', () => {
+      for (let i = 0; i < 10; i++) ComboSystem.recordKill();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.NEON_ORANGE);
+    });
+
+    it('returns BRILLIANT_ROSE at MEGA COMBO tier (25 kills)', () => {
+      for (let i = 0; i < 25; i++) ComboSystem.recordKill();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.BRILLIANT_ROSE);
+    });
+
+    it('returns ROYAL_PURPLE at ULTRA COMBO tier (50 kills)', () => {
+      for (let i = 0; i < 50; i++) ComboSystem.recordKill();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.ROYAL_PURPLE);
+    });
+
+    it('returns JACKPOT_YELLOW at JACKPOT tier (100 kills)', () => {
+      for (let i = 0; i < 100; i++) ComboSystem.recordKill();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.JACKPOT_YELLOW);
+    });
+
+    it('falls back to bullet color after combo reset', () => {
+      for (let i = 0; i < 25; i++) ComboSystem.recordKill();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.BRILLIANT_ROSE);
+      ComboSystem.resetCombo();
+      expect(ComboSystem.getComboColor()).toBe(COLORS.BULLET);
+    });
   });
 });

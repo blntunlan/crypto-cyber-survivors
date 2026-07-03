@@ -16,6 +16,14 @@ interface ComboPanelProps {
   totalBonusXp: number;
 }
 
+// Proximity fade: cursor/touch within this range fades the panel
+const PROXIMITY_FADE_START = 200;
+const PROXIMITY_FADE_END = 100;
+
+// Combo level fade: at 25+ kills the counter starts fading (projectile tail takes over)
+const COMBO_FADE_START = 25;
+const COMBO_FADE_END = 50;
+
 /**
  * useComboDOM - Internal hook for driving ComboPanel via EventBus + RAF
  *
@@ -24,16 +32,26 @@ interface ComboPanelProps {
  * 2. Update #combo-streak-count with current kill streak
  * 3. Update #combo-multiplier-badge inner text with current multiplier
  * 4. Animate #combo-timer-bar width based on ComboSystem.getComboTimeRemaining()
- * 5. Hide and reset everything on comboEnd / gameReset
+ * 5. Proximity fade: cursor/touch near panel → fade out (desktop + mobile)
+ * 6. Combo level fade: at high combos the counter fades, projectile tail color takes over
+ * 7. Hide and reset everything on comboEnd / gameReset
  */
 function useComboDOM(containerRef: React.RefObject<HTMLDivElement | null>) {
   const isActiveRef = useRef(false);
   const rafIdRef = useRef<number | null>(null);
+  const cursorPosRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
+    const calcComboOpacity = (): number => {
+      const streak = ComboSystem.getKillStreak();
+      if (streak >= COMBO_FADE_END) return 0;
+      if (streak <= COMBO_FADE_START) return 1;
+      return 1 - (streak - COMBO_FADE_START) / (COMBO_FADE_END - COMBO_FADE_START);
+    };
+
     const showPanel = () => {
       if (containerRef.current) {
-        containerRef.current.style.opacity = '1';
+        containerRef.current.style.opacity = String(calcComboOpacity());
         containerRef.current.style.transform = 'translateX(-50%) translateY(0)';
       }
       if (!isActiveRef.current) {
@@ -68,21 +86,72 @@ function useComboDOM(containerRef: React.RefObject<HTMLDivElement | null>) {
       }
     };
 
-    // RAF loop for smooth timer bar countdown
+    // RAF loop for smooth timer bar countdown + proximity/combo-level fade
     const startTimerLoop = () => {
       const animate = () => {
         if (!isActiveRef.current) return;
 
+        // 1. Update timer bar
         const timerBar = document.getElementById('combo-timer-bar');
         if (timerBar) {
           const timeRemaining = ComboSystem.getComboTimeRemaining();
           timerBar.style.width = `${(timeRemaining * 100).toFixed(1)}%`;
         }
 
+        // 2. Proximity fade (mouse/touch near panel)
+        let proximityOpacity = 1;
+        if (cursorPosRef.current && containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = cursorPosRef.current.x - cx;
+            const dy = cursorPosRef.current.y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist <= PROXIMITY_FADE_END) {
+              proximityOpacity = 0;
+            } else if (dist < PROXIMITY_FADE_START) {
+              proximityOpacity =
+                (dist - PROXIMITY_FADE_END) /
+                (PROXIMITY_FADE_START - PROXIMITY_FADE_END);
+            }
+          }
+        }
+
+        // 3. Combo level fade (high combos → projectile tail takes over)
+        const comboOpacity = calcComboOpacity();
+
+        // 4. Apply final opacity
+        if (containerRef.current) {
+          containerRef.current.style.opacity = String(
+            Math.min(proximityOpacity, comboOpacity)
+          );
+        }
+
         rafIdRef.current = requestAnimationFrame(animate);
       };
       rafIdRef.current = requestAnimationFrame(animate);
     };
+
+    // Cursor/touch tracking for proximity fade
+    const handleMouseMove = (e: MouseEvent) => {
+      cursorPosRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        cursorPosRef.current = {
+          x: e.touches[0]!.clientX,
+          y: e.touches[0]!.clientY,
+        };
+      }
+    };
+    const handleMouseLeave = () => {
+      cursorPosRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('mouseleave', handleMouseLeave);
 
     // EventBus subscriptions
     const unsubUpdate = EventBus.on('comboUpdate', (data: ComboUpdateEvent) => {
@@ -111,6 +180,9 @@ function useComboDOM(containerRef: React.RefObject<HTMLDivElement | null>) {
     });
 
     return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
       unsubUpdate();
       unsubEnd();
       unsubReset();

@@ -163,6 +163,7 @@ export const RARE_CARDS: Card[] = [
     description: 'Adds Laser weapon (ATR bonus)',
     icon: '⚡',
     tier: 'rare',
+    grantsWeapon: 'laser',
     effect: player => {
       WeaponSystem.addWeapon('laser');
       return player;
@@ -174,6 +175,7 @@ export const RARE_CARDS: Card[] = [
     description: 'Adds Boomerang weapon (RSI bonus)',
     icon: '🪃',
     tier: 'rare',
+    grantsWeapon: 'boomerang',
     effect: player => {
       WeaponSystem.addWeapon('boomerang');
       return player;
@@ -285,6 +287,7 @@ export const EPIC_CARDS: Card[] = [
     description: 'Adds SpreadShot weapon (Volume bonus)',
     icon: '🔫',
     tier: 'epic',
+    grantsWeapon: 'spread_shot',
     effect: player => {
       WeaponSystem.addWeapon('spread_shot');
       return player;
@@ -296,6 +299,7 @@ export const EPIC_CARDS: Card[] = [
     description: 'Adds AOE Nuke weapon (PnL bonus)',
     icon: '💥',
     tier: 'epic',
+    grantsWeapon: 'aoe_nuke',
     effect: player => {
       WeaponSystem.addWeapon('aoe_nuke');
       return player;
@@ -416,6 +420,7 @@ export const LEGENDARY_CARDS: Card[] = [
     description: 'Adds orbiting shield weapon',
     icon: '🛡️',
     tier: 'legendary',
+    grantsWeapon: 'orbit_shield',
     effect: player => {
       WeaponSystem.addWeapon('orbit_shield');
       return player;

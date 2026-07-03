@@ -11,6 +11,7 @@ import { type CryptoPair } from '../../types/crypto';
 import {
   type RewardPayload,
   type RewardVerificationResponse,
+  type UnlockedAchievement,
 } from '../../types/reward';
 import { signPayload, createSignablePayload } from '../../utils/crypto';
 import { getMarketSyncQueue } from '../market/sync';
@@ -197,6 +198,7 @@ export class GameSessionService {
     metaShare?: number;
     verified?: boolean;
     error?: string;
+    newlyUnlockedAchievements?: UnlockedAchievement[];
   }> {
     if (!this.currentSessionId || !this.currentSessionSecret) {
       Logger.warn('[GameSession] Cannot submit: No active session found');
@@ -326,6 +328,7 @@ export class GameSessionService {
         verified: data.verified,
         reward: data.reward,
         metaShare: data.metaShare,
+        newlyUnlockedAchievements: data.newlyUnlockedAchievements,
       };
     } catch (error) {
       Logger.error('[GameSession] Failed to submit session results', error);

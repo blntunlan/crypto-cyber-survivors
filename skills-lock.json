@@ -18,12 +18,6 @@
       "skillPath": "skills/antfu/SKILL.md",
       "computedHash": "79a663bcf1f0580143905b81dc86bc86a21a6e759bdfa674f70a3d0a94e06ba3"
     },
-    "antfu-design": {
-      "source": "antfu/skills",
-      "sourceType": "github",
-      "skillPath": "skills/antfu-design/SKILL.md",
-      "computedHash": "79b14b59749a69b04c0c6f4e6908d36aea0df920eb0d9c44be144cdca388d25d"
-    },
     "brainstorming": {
       "source": "obra/superpowers",
       "sourceType": "github",
@@ -103,21 +97,6 @@
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "computedHash": "91cc673368267da80368129c80baad245785a872271d3196de56bca6e69c9d72"
-    },
-    "gsap-core": {
-      "source": "greensock/gsap-skills",
-      "sourceType": "github",
-      "computedHash": "b891c9ed42d9319685250231085ebe21538f2c844613b277b9dd2b3ff529a542"
-    },
-    "gsap-performance": {
-      "source": "greensock/gsap-skills",
-      "sourceType": "github",
-      "computedHash": "da73dbf11663abb1a880e1796367f84b19877db4a16186b36d1dce96fe0ce983"
-    },
-    "gsap-react": {
-      "source": "greensock/gsap-skills",
-      "sourceType": "github",
-      "computedHash": "255206fb6a4a079ad73b4a12e7c63197dc451a8549c7ac4e852b50ff74ef3bd6"
     },
     "internal-comms": {
       "source": "anthropics/skills",
@@ -212,16 +191,6 @@
       "skillPath": "skills/slidev/SKILL.md",
       "computedHash": "949d94a83134759f3e9dd7ffc41ade2d1e03eb69706322f0467cda73705e47ce"
     },
-    "stitch-design": {
-      "source": "google-labs-code/stitch-skills",
-      "sourceType": "github",
-      "computedHash": "14d1deae897bc05a31c4e0d9fcf8c86e90cfe77bfbde2f22fafa0735bd0e861c"
-    },
-    "stitch-loop": {
-      "source": "google-labs-code/stitch-skills",
-      "sourceType": "github",
-      "computedHash": "cf47da05045ce0c11f1a8b21dc4ef9bbfed0122d68548a48786cb1608257d574"
-    },
     "subagent-driven-development": {
       "source": "obra/superpowers",
       "sourceType": "github",
@@ -268,12 +237,6 @@
       "sourceType": "github",
       "skillPath": "skills/turborepo/SKILL.md",
       "computedHash": "8d79e43351214e623cecd20e0ddf0ef64226fca4930a025249d9072451635fcd"
-    },
-    "unocss": {
-      "source": "antfu/skills",
-      "sourceType": "github",
-      "skillPath": "skills/unocss/SKILL.md",
-      "computedHash": "1054e69977e1d2d3b7c8479adf16b4db43191bf775f150ce8a06a0b1c191318b"
     },
     "use-railway": {
       "source": "railwayapp/railway-skills",
@@ -356,12 +319,6 @@
       "sourceType": "github",
       "skillPath": "skills/web-artifacts-builder/SKILL.md",
       "computedHash": "fdddbe9bb720ea1aea9292ee513ec10b2a8f4912e2c343bdc246ab3febd7c9b3"
-    },
-    "web-design-guidelines": {
-      "source": "antfu/skills",
-      "sourceType": "github",
-      "skillPath": "skills/web-design-guidelines/SKILL.md",
-      "computedHash": "57cefa41cea390d412000acc24e5526034027ca46d4f7581ba8fa05777a8687f"
     },
     "webapp-testing": {
       "source": "anthropics/skills",

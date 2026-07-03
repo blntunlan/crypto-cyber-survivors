@@ -210,7 +210,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
   return (
     <div
-      className={`allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6 sm:pb-6 landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2 ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/92'}`}
+      className={`allow-scroll absolute inset-0 z-[100] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-6 sm:pb-6 landscape:px-[calc(0.75rem+var(--sal))] landscape:py-2 ${isRetro ? 'bg-[#0a0a12]/70' : 'bg-slate-950/95'}`}
     >
       <div className="w-full max-w-xl space-y-4 py-2 text-center sm:space-y-8 sm:py-0 landscape:space-y-2">
         <header className="space-y-2.5 sm:space-y-5">
@@ -243,7 +243,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </header>
 
         <ThemedPanel
-          className={`relative p-3.5 transition-colors duration-200 sm:p-6 ${!isRetro ? 'bg-slate-900/92 overflow-hidden !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]' : ''}`}
+          className={`relative p-3.5 transition-colors duration-200 sm:p-6 ${!isRetro ? 'overflow-hidden !rounded-[1.5rem] border border-white/20 bg-slate-900/95 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]' : ''}`}
         >
           {!isRetro && (
             <>

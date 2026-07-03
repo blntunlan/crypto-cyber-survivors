@@ -47,7 +47,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 };
 
 export const DifficultyV2Monitor: React.FC = () => {
-  const { output, total } = useDifficultyV2(100);
+  const { output, total } = useDifficultyV2();
 
   if (!output) {
     return (

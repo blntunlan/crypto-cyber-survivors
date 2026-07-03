@@ -14,6 +14,7 @@ import {
   calculateLeveragedRewardPnl,
   deriveTrustedSessionMetrics,
 } from '../utils/trustedSessionMetrics';
+import { evaluateAndUnlockAchievements } from '../utils/achievementEvaluator';
 
 const router = Router();
 
@@ -476,6 +477,13 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       userAgent,
     });
 
+    // 6. Server-authoritative achievement evaluation (best-effort, non-fatal).
+    //    Runs after the session is verified so cumulative stats include this run.
+    const newlyUnlockedAchievements = await evaluateAndUnlockAchievements(
+      session.profileId,
+      sessionId
+    );
+
     res.json({
       verified: true,
       reward: rewardAmount,
@@ -484,6 +492,8 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       ledgerEntryId: txResult.ledgerEntryId,
       wallet: txResult.wallet,
       pnl: trustedMetrics.pnl,
+      newlyUnlockedAchievements:
+        newlyUnlockedAchievements.length > 0 ? newlyUnlockedAchievements : undefined,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';

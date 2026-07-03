@@ -5,6 +5,13 @@ import { type IPoolManager } from '../../services/interfaces/IPoolManager';
 import { type GameState, type Player, GameStatus } from '../../types';
 import { difficultyContext } from '../../services/difficulty/DifficultyContext';
 import { gradientCache } from '../../utils/GradientCache';
+import { ComboSystem } from '../../services/combat/ComboSystem';
+
+vi.mock('../../services/combat/ComboSystem', () => ({
+  ComboSystem: {
+    getComboColor: vi.fn().mockReturnValue('#00FFFF'),
+  },
+}));
 
 describe('ProjectileRenderer', () => {
   let renderer: ProjectileRenderer;
@@ -54,6 +61,7 @@ describe('ProjectileRenderer', () => {
     mockPlayer = { x: 0, y: 0 } as Player;
 
     ThemeService.setTheme('cyberpunk');
+    vi.mocked(ComboSystem.getComboColor).mockReturnValue('#00FFFF');
   });
 
   it('should render cyberpunk projectiles correctly', () => {
@@ -517,5 +525,73 @@ describe('ProjectileRenderer', () => {
     });
 
     expect(mockCtx.fillRect).not.toHaveBeenCalled();
+  });
+
+  it('uses combo milestone color for normal bullet tail gradient', () => {
+    vi.mocked(ComboSystem.getComboColor).mockReturnValue('#FF6600');
+    gradientCache.clear();
+
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 10,
+        vy: 0,
+        radius: 5,
+        color: '#00FFFF',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+      },
+    ];
+
+    const spy = vi.spyOn(gradientCache, 'getLinearGradient');
+
+    renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+      width: 800,
+      height: 600,
+      status: GameStatus.PLAYING,
+      graphics: { showParticles: true, showDamageNumbers: true, showScreenShake: true },
+    });
+
+    expect(spy).toHaveBeenCalled();
+    const stops = spy.mock.calls[0]![5];
+    expect(stops).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ color: '#FF6600' }),
+        expect.objectContaining({ color: '#FF660080' }),
+      ])
+    );
+  });
+
+  it('does not apply combo color to crit bullets (keeps bullet color for glow)', () => {
+    vi.mocked(ComboSystem.getComboColor).mockReturnValue('#FF6600');
+    gradientCache.clear();
+
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 10,
+        vy: 10,
+        radius: 5,
+        color: '#FFD700',
+        isCrit: true,
+        isSuperCrit: false,
+        active: true,
+      },
+    ];
+
+    renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+      width: 800,
+      height: 600,
+      status: GameStatus.PLAYING,
+      graphics: { showParticles: true, showDamageNumbers: true, showScreenShake: true },
+    });
+
+    // Crit glow uses b.color (#FFD700), not the combo color (#FF6600)
+    // strokeStyle is set to glowColor then coreColor during crit rendering
+    expect(mockCtx.strokeStyle).not.toBe('#FF6600');
+    expect(mockCtx.arc).toHaveBeenCalled(); // Impact flare confirms crit path
   });
 });
