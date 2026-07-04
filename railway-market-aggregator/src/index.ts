@@ -4,7 +4,6 @@ import cors from 'cors';
 import { BinanceService } from './services/binanceService';
 import { DatabaseService } from './services/databaseService';
 import { PriceLogger } from './services/priceLogger';
-import { CleanupCron } from './cron/cleanup';
 import { Logger } from './utils/logger';
 import { ErrorReporter } from './utils/errorReporter';
 import { closePool, getPool, getPoolMax } from './db/pool';
@@ -88,7 +87,9 @@ app.get(
       : null;
     const dataFresh = lastDataAge !== null && lastDataAge < 30;
 
-    res.json({
+    // 503 on DB failure so Railway's healthcheck sees the outage; feed
+    // staleness alone stays a 200 'degraded' (a restart wouldn't fix Binance).
+    res.status(db ? 200 : 503).json({
       status: binance.isConnected() && db && dataFresh ? 'ok' : 'degraded',
       service: 'market-aggregator',
       uptime: process.uptime(),
@@ -104,7 +105,6 @@ app.get(
 
 app.get('/stats', (_req, res) => {
   const priceStats = PriceLogger.getInstance().getStats();
-  const cleanupStats = CleanupCron.getInstance().getStats();
   const pool = getPool();
   res.json({
     service: 'market-aggregator',
@@ -114,7 +114,6 @@ app.get('/stats', (_req, res) => {
       memory: getMemoryStats(),
     },
     price: priceStats,
-    cleanup: cleanupStats,
     sseClients: getSSEClientCount(),
     historyCacheSize: getHistoryCacheSize(),
     database: {
@@ -191,7 +190,6 @@ app.get(
     }
 
     const priceStats = PriceLogger.getInstance().getStats();
-    const cleanupStats = CleanupCron.getInstance().getStats();
 
     res.json({
       timestamp: new Date().toISOString(),
@@ -219,7 +217,6 @@ app.get(
         },
         marketFreshness,
       },
-      cleanup: cleanupStats,
     });
   })
 );
@@ -240,12 +237,8 @@ app.get('/', (_req, res) => {
   });
 });
 
-app.post('/cleanup', requireAdmin, (_req, res) => {
-  void CleanupCron.getInstance()
-    .runCleanup()
-    .then(result => res.json(result))
-    .catch(error => res.status(500).json({ error: (error as Error).message }));
-});
+// Retention cleanup moved to railway-market-server (the schema owner) —
+// see its cron/cleanup.ts. The aggregator is a pure writer now.
 
 async function startServer(): Promise<void> {
   ErrorReporter.initGlobalHandlers();
@@ -263,10 +256,6 @@ async function startServer(): Promise<void> {
     const priceLogger = PriceLogger.getInstance();
     await priceLogger.start();
 
-    // Start cleanup cron
-    const cleanupCron = CleanupCron.getInstance();
-    cleanupCron.start();
-
     // Start SSE heartbeat
     const heartbeatTimer = startHeartbeat(5000);
 
@@ -280,7 +269,6 @@ async function startServer(): Promise<void> {
     const shutdown = (signal: string) => {
       Logger.info(`${signal} received, shutting down gracefully...`);
       clearInterval(heartbeatTimer);
-      cleanupCron.stop();
       server.close(() => {
         Logger.info('HTTP server closed, stopping pipeline...');
         void priceLogger
@@ -288,6 +276,10 @@ async function startServer(): Promise<void> {
           .then(() => closePool())
           .finally(() => process.exit(0));
       });
+      // Long-lived SSE streams would otherwise keep server.close() pending
+      // forever, so every deploy rode the force-exit path (killing in-flight
+      // DB writes). Terminate open connections so the callback actually runs.
+      server.closeAllConnections();
       // Force exit if graceful shutdown takes too long
       setTimeout(() => {
         Logger.warn('Graceful shutdown timed out, forcing exit');

@@ -34,8 +34,8 @@ const ChallengeCard: React.FC<{
   const accentColor = challenge.type === 'daily' ? COLORS.CASINO_GOLD : COLORS.WHALE;
   const contractLabel =
     challenge.type === 'daily'
-      ? (t('menu_pages.challenges.daily_contract') as string)
-      : (t('menu_pages.challenges.weekly_contract') as string);
+      ? (t('common.menu_pages.challenges.daily_contract') as string)
+      : (t('common.menu_pages.challenges.weekly_contract') as string);
 
   return (
     <ThemedPanel
@@ -82,7 +82,7 @@ const ChallengeCard: React.FC<{
             )}
             style={{ color: COLORS.PUMP_GREEN }}
           >
-            {t('menu_pages.challenges.cleared')}
+            {t('common.menu_pages.challenges.cleared')}
           </span>
         )}
       </div>
@@ -126,10 +126,10 @@ const ChallengeCard: React.FC<{
 
       <div className="mb-4 flex items-center justify-between rounded-sm border border-white/10 bg-slate-950/50 px-3 py-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-          {t('menu_pages.challenges.reward_label')}
+          {t('common.menu_pages.challenges.reward_label')}
         </span>
         <span className="font-cyber text-sm font-black uppercase tracking-[0.12em] text-[#FFD600]">
-          {t('menu_pages.challenges.reward_value', {
+          {t('common.menu_pages.challenges.reward_value', {
             meta: challenge.reward.metaCoins.toLocaleString(),
             xp: challenge.reward.bonusXp.toLocaleString(),
           })}
@@ -142,11 +142,11 @@ const ChallengeCard: React.FC<{
           onClick={() => onSelect(challenge)}
           className="min-h-[46px] w-full text-xs font-black uppercase tracking-[0.22em]"
         >
-          {t('menu_pages.challenges.activate')}
+          {t('common.menu_pages.challenges.activate')}
         </ThemedButton>
       ) : (
         <div className="text-center text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
-          {t('menu_pages.challenges.completed_label')}
+          {t('common.menu_pages.challenges.completed_label')}
         </div>
       )}
     </ThemedPanel>
@@ -181,7 +181,7 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
   const selectChallenge = (challenge: ChallengeDefinition) => {
     ChallengeService.setActiveChallenge(challenge);
     EventBus.emit('gameNotification', {
-      title: t('menu_pages.challenges.toast_title') as string,
+      title: t('common.menu_pages.challenges.toast_title') as string,
       message: challenge.name,
       type: 'info',
     });
@@ -194,14 +194,14 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
       <OverlayChrome
         zIndex={200}
         maxWidthClassName="max-w-5xl"
-        title={t('menu.challenges') as string}
-        subtitle={t('menu_pages.challenges.subtitle') as string}
+        title={t('common.menu.challenges') as string}
+        subtitle={t('common.menu_pages.challenges.subtitle') as string}
       >
         <div className="space-y-5">
           <div className="grid gap-4 lg:grid-cols-2">
             {loading && (
               <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500 lg:col-span-2">
-                {t('menu_pages.challenges.loading')}
+                {t('common.menu_pages.challenges.loading')}
               </ThemedPanel>
             )}
             {!loading && daily && (
@@ -222,7 +222,7 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
 
           {!loading && !daily && !weekly && (
             <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500">
-              {t('menu_pages.challenges.empty_state')}
+              {t('common.menu_pages.challenges.empty_state')}
             </ThemedPanel>
           )}
         </div>

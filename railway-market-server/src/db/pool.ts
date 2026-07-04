@@ -7,12 +7,43 @@ let pool: pg.Pool | null = null;
 
 const DEFAULT_POOL_MAX = 10;
 
+/**
+ * Per-connection statement timeout applied by node-pg at connect time.
+ * Long-running maintenance work (migrations, MV refresh, cleanup batches)
+ * raises its own SET statement_timeout on a dedicated client and must SET
+ * back to this value before releasing (RESET would fall back to the server
+ * default of 0 = unlimited, not this pool default).
+ */
+export const POOL_STATEMENT_TIMEOUT_MS = 30_000;
+
 export function getPoolMax(): number {
   const configured = Number(process.env.PG_POOL_MAX);
   if (Number.isInteger(configured) && configured > 0) {
     return configured;
   }
   return DEFAULT_POOL_MAX;
+}
+
+/**
+ * SSL selection. Explicit override via DATABASE_SSL (or PGSSLMODE):
+ *   disable | require (no cert verification) | verify-full.
+ * Default heuristic: Railway's private network (*.railway.internal) needs no
+ * TLS; public endpoints (legacy *.railway.app, *.proxy.rlwy.net) get TLS
+ * without CA verification (Railway serves self-signed certs).
+ */
+export function resolveSsl(
+  connectionString: string
+): { rejectUnauthorized: boolean } | undefined {
+  const mode = (process.env.DATABASE_SSL ?? process.env.PGSSLMODE ?? '').toLowerCase();
+  if (mode === 'disable') return undefined;
+  if (mode === 'require' || mode === 'no-verify') return { rejectUnauthorized: false };
+  if (mode === 'verify-full') return { rejectUnauthorized: true };
+
+  if (connectionString.includes('.railway.internal')) return undefined;
+  if (connectionString.includes('railway.app') || connectionString.includes('rlwy.net')) {
+    return { rejectUnauthorized: false };
+  }
+  return undefined;
 }
 
 export function getPool(): pg.Pool {
@@ -30,11 +61,11 @@ export function getPool(): pg.Pool {
     max: poolMax,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
-    // Railway internal networking uses private network — rejectUnauthorized:false
-    // is acceptable for internal connections. For external PG, use proper CA certs.
-    ssl: connectionString.includes('railway.app')
-      ? { rejectUnauthorized: false }
-      : undefined,
+    // Backstop against runaway queries holding connections indefinitely.
+    // Crons that legitimately run longer (MV refresh, cleanup batches) use a
+    // dedicated client and SET their own timeout.
+    statement_timeout: POOL_STATEMENT_TIMEOUT_MS,
+    ssl: resolveSsl(connectionString),
   });
 
   pool.on('error', (err) => {
@@ -71,6 +102,18 @@ export function getPool(): pg.Pool {
   return pool;
 }
 
+// Mutating SQL functions invoked via SELECT in this codebase — never retry these.
+const MUTATING_FN_PATTERN = /\b(purchase_|transfer_|cleanup_old_|prune_|handle_new_)/i;
+
+/**
+ * Only pure reads are safe to re-execute blind: connection-error codes like
+ * 57P01/08006 can arrive AFTER the server committed the statement, so a
+ * retried INSERT/UPDATE (ledger entries, wallets) could apply twice.
+ */
+export function isRetriableStatement(text: string): boolean {
+  return /^\s*select\b/i.test(text) && !MUTATING_FN_PATTERN.test(text);
+}
+
 /**
  * Helper for parameterized queries with logging on error.
  */
@@ -82,9 +125,13 @@ export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
   try {
     return await p.query<T>(text, params);
   } catch (error) {
-    // Retry once on connection errors (pool exhaustion, transient disconnect)
+    // Retry once on connection errors (pool exhaustion, transient disconnect),
+    // but only for statements that are safe to double-execute.
     const code = (error as { code?: string }).code;
-    if (code === 'ECONNREFUSED' || code === '57P01' || code === '08006') {
+    if (
+      (code === 'ECONNREFUSED' || code === '57P01' || code === '08006') &&
+      isRetriableStatement(text)
+    ) {
       Logger.warn('[DB] Connection error, retrying once...', { code });
       try {
         return await p.query<T>(text, params);

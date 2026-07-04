@@ -11,13 +11,16 @@
  *
  * Interval is configurable via LEADERBOARD_REFRESH_MS (min 30s, default 2 min).
  */
-import { sql } from 'drizzle-orm';
-import { getDb } from '../db';
+import { getPool, POOL_STATEMENT_TIMEOUT_MS } from '../db/pool';
 import { Logger } from '../utils/logger';
 
 const DEFAULT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 const MIN_INTERVAL_MS = 30_000;
 const FIRST_RUN_DELAY_MS = 30_000;
+
+// Cross-instance guard: extra replicas skip the refresh instead of queueing
+// duplicate REFRESH ... CONCURRENTLY runs on the same MV lock.
+const LEADERBOARD_REFRESH_LOCK_KEY = 771003;
 
 export function getRefreshIntervalMs(): number {
   const configured = Number(process.env.LEADERBOARD_REFRESH_MS);
@@ -71,21 +74,41 @@ export class LeaderboardRefreshCron {
     this.isRunning = true;
     const startTime = Date.now();
 
+    // Dedicated client: the advisory lock is session-scoped, and REFRESH ...
+    // CONCURRENTLY must run outside a transaction (plain query = autocommit).
+    const client = await getPool().connect();
     try {
-      const db = getDb();
+      const lockResult = await client.query<{ locked: boolean }>(
+        'SELECT pg_try_advisory_lock($1) AS locked',
+        [LEADERBOARD_REFRESH_LOCK_KEY]
+      );
+      if (!lockResult.rows[0]?.locked) {
+        Logger.debug('[LeaderboardRefresh] Skipped — another instance is refreshing');
+        return;
+      }
+
+      // MV refresh can legitimately outlive the pool's general statement_timeout
+      await client.query(`SET statement_timeout = '120s'`);
+
       // CONCURRENTLY → does not take an AccessExclusiveLock, so leaderboard reads
       // keep serving the previous snapshot while the refresh runs.
-      await db.execute(sql`REFRESH MATERIALIZED VIEW CONCURRENTLY v_leaderboard`);
-      await db.execute(
-        sql`REFRESH MATERIALIZED VIEW CONCURRENTLY v_leaderboard_by_pair`
-      );
+      await client.query('REFRESH MATERIALIZED VIEW CONCURRENTLY v_leaderboard');
+      await client.query('REFRESH MATERIALIZED VIEW CONCURRENTLY v_leaderboard_by_pair');
       this.lastRefresh = new Date();
       Logger.debug(`[LeaderboardRefresh] Refreshed in ${Date.now() - startTime}ms`);
     } catch (error) {
-      // Views may not exist yet (pre-migration) or a concurrent refresh may race —
-      // log and try again on the next tick rather than crashing the timer.
+      // Views may not exist yet (pre-migration) — log and try again on the
+      // next tick rather than crashing the timer.
       Logger.debug('[LeaderboardRefresh] Refresh skipped/failed:', error);
     } finally {
+      // Restore the pool default (RESET would fall back to server unlimited)
+      await client
+        .query(`SET statement_timeout = ${POOL_STATEMENT_TIMEOUT_MS}`)
+        .catch(() => undefined);
+      await client
+        .query('SELECT pg_advisory_unlock($1)', [LEADERBOARD_REFRESH_LOCK_KEY])
+        .catch(() => undefined);
+      client.release();
       this.isRunning = false;
     }
   }

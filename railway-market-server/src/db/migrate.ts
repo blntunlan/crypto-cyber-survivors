@@ -1,63 +1,100 @@
-import { getPool } from './pool';
+import { getPool, POOL_STATEMENT_TIMEOUT_MS } from './pool';
 import { Logger } from '../utils/logger';
+
+/**
+ * Advisory lock key serializing migration runs across server instances.
+ * A Railway rolling redeploy (or a future numReplicas bump) can boot two
+ * servers concurrently, and check-then-apply below is not safe to interleave
+ * (012/013 contain DROP ... CASCADE). Session-level advisory locks are
+ * released automatically if the holder disconnects, so a crashed runner can
+ * never leave the lock stuck.
+ */
+const MIGRATION_LOCK_KEY = 771001;
 
 /**
  * Run pending migrations on startup.
  * Each migration is idempotent (IF NOT EXISTS / CREATE OR REPLACE).
  * Tracks applied migrations in a `_migrations` table.
+ *
+ * Concurrency: the whole run holds pg_advisory_lock(MIGRATION_LOCK_KEY) on a
+ * dedicated client, and each migration's apply+record is one transaction —
+ * a second instance blocks on the lock, then sees the migration as applied.
+ * NOTE: migration SQL must therefore stay transaction-safe (no CREATE INDEX
+ * CONCURRENTLY / VACUUM / REFRESH ... CONCURRENTLY inside a migration).
  */
 export async function runMigrations(): Promise<void> {
   Logger.info('[Migration] Starting runMigrations...');
   const pool = getPool();
+  const client = await pool.connect();
 
-  // Create migrations tracking table
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS _migrations (
-      id SERIAL PRIMARY KEY,
-      name TEXT UNIQUE NOT NULL,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    );
-  `);
+  try {
+    await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
 
-  const migrations: { name: string; sql: string }[] = [
-    { name: '000_core_schema', sql: MIGRATION_000 },
-    { name: '001_meta_challenges_replays', sql: MIGRATION_001 },
-    { name: '002_fix_leaderboard_view', sql: MIGRATION_002 },
-    { name: '003_pg_best_practices', sql: MIGRATION_003 },
-    { name: '004_audit_log', sql: MIGRATION_004 },
-    { name: '005_railway_native_foundation', sql: MIGRATION_005 },
-    { name: '006_market_runtime_audit', sql: MIGRATION_006 },
-    { name: '007_railway_only_auth_defaults', sql: MIGRATION_007 },
-    { name: '008_product_telemetry_events', sql: MIGRATION_008 },
-    { name: '009_leaderboard_global_view', sql: MIGRATION_009 },
-    { name: '010_market_state_full_columns', sql: MIGRATION_010 },
-    { name: '011_retention_cleanup_functions', sql: MIGRATION_011 },
-    { name: '012_materialized_leaderboards', sql: MIGRATION_012 },
-    { name: '013_player_achievements', sql: MIGRATION_013 },
-  ];
+    // Migrations may legitimately outlive the pool's general timeout
+    await client.query(`SET statement_timeout = '300s'`);
 
-  for (const migration of migrations) {
-    const { rows } = await pool.query('SELECT 1 FROM _migrations WHERE name = $1', [
-      migration.name,
-    ]);
+    // Create migrations tracking table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS _migrations (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
 
-    if (rows.length > 0) {
-      Logger.info(`[Migration] ${migration.name} — already applied, skipping`);
-      continue;
+    const migrations: { name: string; sql: string }[] = [
+      { name: '000_core_schema', sql: MIGRATION_000 },
+      { name: '001_meta_challenges_replays', sql: MIGRATION_001 },
+      { name: '002_fix_leaderboard_view', sql: MIGRATION_002 },
+      { name: '003_pg_best_practices', sql: MIGRATION_003 },
+      { name: '004_audit_log', sql: MIGRATION_004 },
+      { name: '005_railway_native_foundation', sql: MIGRATION_005 },
+      { name: '006_market_runtime_audit', sql: MIGRATION_006 },
+      { name: '007_railway_only_auth_defaults', sql: MIGRATION_007 },
+      { name: '008_product_telemetry_events', sql: MIGRATION_008 },
+      { name: '009_leaderboard_global_view', sql: MIGRATION_009 },
+      { name: '010_market_state_full_columns', sql: MIGRATION_010 },
+      { name: '011_retention_cleanup_functions', sql: MIGRATION_011 },
+      { name: '012_materialized_leaderboards', sql: MIGRATION_012 },
+      { name: '013_player_achievements', sql: MIGRATION_013 },
+      { name: '014_db_hardening', sql: MIGRATION_014 },
+    ];
+
+    for (const migration of migrations) {
+      const { rows } = await client.query('SELECT 1 FROM _migrations WHERE name = $1', [
+        migration.name,
+      ]);
+
+      if (rows.length > 0) {
+        Logger.info(`[Migration] ${migration.name} — already applied, skipping`);
+        continue;
+      }
+
+      try {
+        Logger.info(`[Migration] Applying ${migration.name}...`);
+        await client.query('BEGIN');
+        await client.query(migration.sql);
+        await client.query('INSERT INTO _migrations (name) VALUES ($1)', [migration.name]);
+        await client.query('COMMIT');
+        Logger.info(`[Migration] ${migration.name} — applied successfully`);
+      } catch (error) {
+        await client.query('ROLLBACK').catch(() => undefined);
+        Logger.error(`[Migration] ${migration.name} failed:`, error);
+        throw error;
+      }
     }
 
-    try {
-      Logger.info(`[Migration] Applying ${migration.name}...`);
-      await pool.query(migration.sql);
-      await pool.query('INSERT INTO _migrations (name) VALUES ($1)', [migration.name]);
-      Logger.info(`[Migration] ${migration.name} — applied successfully`);
-    } catch (error) {
-      Logger.error(`[Migration] ${migration.name} failed:`, error);
-      throw error;
-    }
+    Logger.info('[Migration] All migrations up to date');
+  } finally {
+    // Restore the pool default before the connection is reused
+    await client
+      .query(`SET statement_timeout = ${POOL_STATEMENT_TIMEOUT_MS}`)
+      .catch(() => undefined);
+    await client
+      .query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY])
+      .catch(() => undefined);
+    client.release();
   }
-
-  Logger.info('[Migration] All migrations up to date');
 }
 
 // ============================================================
@@ -1275,4 +1312,85 @@ CREATE TABLE IF NOT EXISTS player_achievements (
 CREATE INDEX IF NOT EXISTS idx_player_achievements_profile ON player_achievements(profile_id);
 CREATE INDEX IF NOT EXISTS idx_player_achievements_achievement ON player_achievements(achievement_id);
 CREATE INDEX IF NOT EXISTS idx_player_achievements_unlocked_at ON player_achievements(unlocked_at DESC);
+`;
+
+const MIGRATION_014 = `
+-- Migration 014: DB hardening — anti-cheat observability + hot-table tuning
+-- Date: 2026-07-04
+-- Problems fixed:
+--   1. sessions never persisted max_streak (it only lived inside
+--      reward_claims.metadata JSONB), and nothing recorded whether the
+--      price_history cross-check in /sessions/verify actually ran — which is
+--      exactly the signal needed to spot rewards granted while the market
+--      aggregator was down (the window an attacker would target).
+--   2. product_telemetry_events.event_type had a hard CHECK enum, so shipping
+--      any new product event required a schema migration. The app-level
+--      whitelist (PRODUCT_EVENT_TYPES in routes/telemetry.ts) is the real
+--      gate; the DB keeps TEXT NOT NULL.
+--   3. market_state takes ~259k single-row updates/day on a 3-row table with
+--      default fillfactor/autovacuum — bloats whenever a long-lived snapshot
+--      (leaderboard MV refresh, analytics query) holds back vacuum.
+--   4. Redundant indexes add write amplification on hot tables:
+--      - idx_price_history_pair_ts duplicates UNIQUE(pair,timestamp); btree
+--        backward scans already serve ORDER BY timestamp DESC.
+--      - idx_sessions_is_verified is the leading column of
+--        idx_sessions_verified_pair_survival.
+--      - idx_meta_progression_profile duplicates the UNIQUE(profile_id)
+--        constraint index.
+-- Notes: ADD COLUMN with NULL default is metadata-only (no table rewrite).
+
+-- 1. Anti-cheat observability on sessions
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS max_streak INTEGER;
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS price_check TEXT;
+
+ALTER TABLE sessions DROP CONSTRAINT IF EXISTS ck_sessions_max_streak;
+ALTER TABLE sessions ADD CONSTRAINT ck_sessions_max_streak
+  CHECK (max_streak IS NULL OR max_streak >= 0);
+
+-- NULL = legacy row (verified before this migration)
+ALTER TABLE sessions DROP CONSTRAINT IF EXISTS ck_sessions_price_check;
+ALTER TABLE sessions ADD CONSTRAINT ck_sessions_price_check
+  CHECK (price_check IS NULL OR price_check IN ('ok', 'partial', 'skipped'));
+
+-- 2. Drop the event_type CHECK enum (inline/unnamed constraint — locate it
+--    by definition). App-level whitelist stays authoritative.
+DO $$
+DECLARE c RECORD;
+BEGIN
+  FOR c IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid = 'product_telemetry_events'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%event_type%'
+  LOOP
+    EXECUTE format('ALTER TABLE product_telemetry_events DROP CONSTRAINT %I', c.conname);
+  END LOOP;
+END
+$$;
+
+-- 3. Hot-row tuning for market_state (3 rows, ~3 updates/sec from the
+--    aggregator). fillfactor 70 keeps free space per page for HOT updates;
+--    fixed vacuum/analyze thresholds fire on churn count, not table share.
+ALTER TABLE market_state SET (
+  fillfactor = 70,
+  autovacuum_vacuum_scale_factor = 0.0,
+  autovacuum_vacuum_threshold = 500,
+  autovacuum_analyze_scale_factor = 0.0,
+  autovacuum_analyze_threshold = 1000
+);
+
+-- 4. Drop redundant indexes (write amplification on hot insert paths)
+DROP INDEX IF EXISTS idx_price_history_pair_ts;
+DROP INDEX IF EXISTS idx_sessions_is_verified;
+DROP INDEX IF EXISTS idx_meta_progression_profile;
+
+-- 5. Query observability (best effort — collection additionally requires
+--    pg_stat_statements in shared_preload_libraries; harmless if unavailable)
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_stat_statements unavailable: %', SQLERRM;
+END
+$$;
 `;

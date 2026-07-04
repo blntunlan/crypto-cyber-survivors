@@ -308,6 +308,11 @@ export const sessions = pgTable(
     level: integer('level').default(1),
     exitType: text('exit_type'),
     portalType: text('portal_type'),
+    // max_streak: server-trusted kill streak (migration 014); NULL on legacy rows
+    maxStreak: integer('max_streak'),
+    // price_check: 'ok' | 'partial' | 'skipped' — whether the price_history
+    // reconciliation in /verify found real entry/exit prices; NULL on legacy rows
+    priceCheck: text('price_check'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
   },
@@ -318,8 +323,14 @@ export const sessions = pgTable(
     check('sessions_survival_seconds_check', sql`${table.survivalSeconds} >= 0`),
     check('sessions_kills_check', sql`${table.kills} >= 0`),
     check('sessions_level_check', sql`${table.level} >= 1`),
+    check('ck_sessions_max_streak', sql`${table.maxStreak} IS NULL OR ${table.maxStreak} >= 0`),
+    check(
+      'ck_sessions_price_check',
+      sql`${table.priceCheck} IS NULL OR ${table.priceCheck} IN ('ok', 'partial', 'skipped')`
+    ),
     index('idx_sessions_profile_id').on(table.profileId),
-    index('idx_sessions_is_verified').on(table.isVerified),
+    // idx_sessions_is_verified dropped in migration 014 — the leading column of
+    // idx_sessions_verified_pair_survival covers is_verified-only filters
     index('idx_sessions_verified_pair_survival').on(
       table.isVerified,
       table.pair,
@@ -416,8 +427,9 @@ export const priceHistory = pgTable(
     metadata: jsonb('metadata').default({}),
   },
   (table) => [
+    // idx_price_history_pair_ts dropped in migration 014 — the UNIQUE index
+    // serves (pair, timestamp DESC) queries via backward scan
     unique('price_history_pair_timestamp_key').on(table.pair, table.timestamp),
-    index('idx_price_history_pair_ts').on(table.pair, table.timestamp),
   ]
 );
 
@@ -575,7 +587,8 @@ export const metaProgression = pgTable(
     check('meta_progression_meta_coins_check', sql`${table.metaCoins} >= 0`),
     check('meta_progression_total_runs_check', sql`${table.totalRunsCompleted} >= 0`),
     check('meta_progression_total_earned_check', sql`${table.totalMetaCoinsEarned} >= 0`),
-    index('idx_meta_progression_profile').on(table.profileId),
+    // idx_meta_progression_profile dropped in migration 014 — profile_id is
+    // already UNIQUE (constraint index)
   ]
 );
 

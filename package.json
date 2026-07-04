@@ -38,6 +38,9 @@
     "railway:link": "railway link",
     "railway:deploy": "railway up",
     "railway:market:deploy": "cd railway-market-server && railway up",
+    "cloudflare:pages:deploy": "npm run build && npx --yes wrangler@4.76.0 pages deploy ./dist --project-name crypto-cyber-survivors --branch main",
+    "cloudflare:pages:deploy:preview": "npm run build && npx --yes wrangler@4.76.0 pages deploy ./dist --project-name crypto-cyber-survivors --branch preview",
+    "cloudflare:whoami": "npx --yes wrangler@4.76.0 whoami",
     "security:check": "node scripts/security-check.js",
     "indexnow:submit": "node scripts/submit-indexnow.mjs",
     "deploy": "git push origin main"

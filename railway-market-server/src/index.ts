@@ -9,6 +9,7 @@ import twitterAuthRouter from './services/twitterAuth';
 import { closePool, getPool, getPoolMax } from './db/pool';
 import { runMigrations } from './db/migrate';
 import { LeaderboardRefreshCron } from './cron/leaderboardRefresh';
+import { CleanupCron } from './cron/cleanup';
 import { asyncHandler } from './utils/asyncHandler';
 import {
   globalLimiter,
@@ -115,7 +116,9 @@ app.get(
   asyncHandler(async (_req: express.Request, res: express.Response) => {
     const db = await DatabaseService.getInstance().checkHealth();
 
-    res.json({
+    // 503 on DB failure so Railway's healthcheck actually sees the outage
+    // (a 200-with-degraded-body is invisible to platform monitoring).
+    res.status(db ? 200 : 503).json({
       status: db ? 'ok' : 'degraded',
       service: 'api-server',
       uptime: process.uptime(),
@@ -392,6 +395,11 @@ async function startServer(): Promise<void> {
     // Keep materialized leaderboard views fresh (reads stay indexed scans
     // instead of re-aggregating all verified sessions on every request).
     LeaderboardRefreshCron.getInstance().start();
+
+    // Retention cleanup — the schema owner also owns data hygiene. Guarded by
+    // a pg advisory lock, so overlapping instances (or the aggregator's old
+    // copy during rollout) never double-delete.
+    CleanupCron.getInstance().start();
 
     // Graceful shutdown — drain in-flight requests before closing
     const SHUTDOWN_TIMEOUT_MS = 10_000;

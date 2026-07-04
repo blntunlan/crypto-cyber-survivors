@@ -563,7 +563,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 onClick={onOpenUpgrades}
                 className="min-h-[36px] flex-1 touch-manipulation py-2 text-[10px] font-bold uppercase tracking-wider active:scale-[0.98] sm:text-xs"
               >
-                {t('menu.upgrades') as string}
+                {t('common.menu.upgrades') as string}
               </ThemedButton>
             )}
             {onOpenChallenges && (
@@ -572,7 +572,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 onClick={onOpenChallenges}
                 className="min-h-[36px] flex-1 touch-manipulation py-2 text-[10px] font-bold uppercase tracking-wider active:scale-[0.98] sm:text-xs"
               >
-                {t('menu.challenges') as string}
+                {t('common.menu.challenges') as string}
               </ThemedButton>
             )}
             {onOpenReplays && (
@@ -581,7 +581,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 onClick={onOpenReplays}
                 className="min-h-[36px] flex-1 touch-manipulation py-2 text-[10px] font-bold uppercase tracking-wider active:scale-[0.98] sm:text-xs"
               >
-                {t('menu.replays') as string}
+                {t('common.menu.replays') as string}
               </ThemedButton>
             )}
           </div>

@@ -237,12 +237,19 @@ CREATE TABLE IF NOT EXISTS sessions (
   level INTEGER DEFAULT 1 CHECK (level >= 1),
   exit_type TEXT,
   portal_type TEXT,
+  -- max_streak: server-trusted kill streak (migration 014); NULL on legacy rows
+  max_streak INTEGER,
+  -- price_check: whether the price_history reconciliation in /verify found real
+  -- entry/exit prices ('ok'|'partial'|'skipped'); NULL on legacy rows
+  price_check TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  verified_at TIMESTAMPTZ
+  verified_at TIMESTAMPTZ,
+  CONSTRAINT ck_sessions_max_streak CHECK (max_streak IS NULL OR max_streak >= 0),
+  CONSTRAINT ck_sessions_price_check CHECK (price_check IS NULL OR price_check IN ('ok', 'partial', 'skipped'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_profile_id ON sessions(profile_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_is_verified ON sessions(is_verified);
+-- idx_sessions_is_verified dropped in migration 014 (leading column of the composite below)
 CREATE INDEX IF NOT EXISTS idx_sessions_verified_pair_survival ON sessions(is_verified, pair, survival_seconds DESC);
 
 -- ============================================================
@@ -322,7 +329,8 @@ CREATE TABLE IF NOT EXISTS price_history (
   UNIQUE(pair, timestamp)
 );
 
-CREATE INDEX IF NOT EXISTS idx_price_history_pair_ts ON price_history(pair, timestamp DESC);
+-- idx_price_history_pair_ts dropped in migration 014: the UNIQUE(pair, timestamp)
+-- constraint index serves (pair, timestamp DESC) queries via backward scan.
 
 -- ============================================================
 -- 15. error_reports
@@ -418,15 +426,10 @@ CREATE TABLE IF NOT EXISTS product_telemetry_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
-  event_type TEXT NOT NULL CHECK (event_type IN (
-    'wallet_connected',
-    'wallet_connect_failed',
-    'season_joined',
-    'quest_completed',
-    'leaderboard_submitted',
-    'leaderboard_viewed',
-    'referral_joined'
-  )),
+  -- No CHECK enum (dropped in migration 014): the app-level whitelist
+  -- (PRODUCT_EVENT_TYPES in routes/telemetry.ts) is authoritative, so new
+  -- product events ship without a schema migration.
+  event_type TEXT NOT NULL,
   season_id TEXT,
   quest_id TEXT,
   referral_code TEXT,
@@ -499,7 +502,7 @@ CREATE TABLE IF NOT EXISTS meta_progression (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_meta_progression_profile ON meta_progression(profile_id);
+-- idx_meta_progression_profile dropped in migration 014 (profile_id is already UNIQUE)
 
 -- ============================================================
 -- 23. daily_challenges
@@ -1081,4 +1084,14 @@ ALTER TABLE error_reports SET (
 ALTER TABLE market_runtime_audit SET (
   autovacuum_vacuum_scale_factor = 0.02,
   autovacuum_analyze_scale_factor = 0.01
+);
+-- market_state (migration 014): 3 rows, ~3 updates/sec from the aggregator.
+-- fillfactor keeps page space free for HOT updates; fixed thresholds fire on
+-- churn count instead of table share.
+ALTER TABLE market_state SET (
+  fillfactor = 70,
+  autovacuum_vacuum_scale_factor = 0.0,
+  autovacuum_vacuum_threshold = 500,
+  autovacuum_analyze_scale_factor = 0.0,
+  autovacuum_analyze_threshold = 1000
 );

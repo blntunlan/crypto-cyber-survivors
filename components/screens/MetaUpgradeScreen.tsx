@@ -82,27 +82,27 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
 
   const localizedCategoryLabels: Record<UpgradeCategoryView, string> = useMemo(
     () => ({
-      all: t('menu_pages.upgrades.categories.all') as string,
-      combat: t('menu_pages.upgrades.categories.combat') as string,
-      survival: t('menu_pages.upgrades.categories.survival') as string,
-      economy: t('menu_pages.upgrades.categories.economy') as string,
-      special: t('menu_pages.upgrades.categories.special') as string,
+      all: t('common.menu_pages.upgrades.categories.all') as string,
+      combat: t('common.menu_pages.upgrades.categories.combat') as string,
+      survival: t('common.menu_pages.upgrades.categories.survival') as string,
+      economy: t('common.menu_pages.upgrades.categories.economy') as string,
+      special: t('common.menu_pages.upgrades.categories.special') as string,
     }),
     [t]
   );
 
   const panelCopy = useMemo(
     () => ({
-      tagline: t('menu_pages.upgrades.tagline') as string,
-      summaryHelper: t('menu_pages.upgrades.summary_helper') as string,
-      searchPlaceholder: t('menu_pages.upgrades.search_placeholder') as string,
-      searchLabel: t('menu_pages.upgrades.search_label') as string,
-      filtersLabel: t('menu_pages.upgrades.filters_label') as string,
-      affordableLabel: t('menu_pages.upgrades.affordable_label') as string,
-      noResults: t('menu_pages.upgrades.no_results') as string,
-      maxedLabel: t('menu_pages.upgrades.maxed_label') as string,
-      progressLabel: t('menu_pages.upgrades.progress_label') as string,
-      buyLabel: t('menu_pages.upgrades.buy_label') as string,
+      tagline: t('common.menu_pages.upgrades.tagline') as string,
+      summaryHelper: t('common.menu_pages.upgrades.summary_helper') as string,
+      searchPlaceholder: t('common.menu_pages.upgrades.search_placeholder') as string,
+      searchLabel: t('common.menu_pages.upgrades.search_label') as string,
+      filtersLabel: t('common.menu_pages.upgrades.filters_label') as string,
+      affordableLabel: t('common.menu_pages.upgrades.affordable_label') as string,
+      noResults: t('common.menu_pages.upgrades.no_results') as string,
+      maxedLabel: t('common.menu_pages.upgrades.maxed_label') as string,
+      progressLabel: t('common.menu_pages.upgrades.progress_label') as string,
+      buyLabel: t('common.menu_pages.upgrades.buy_label') as string,
     }),
     [t]
   );
@@ -110,23 +110,23 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
   const summaryTiles = useMemo(
     () => [
       {
-        label: t('menu_pages.upgrades.tiles.balance.label') as string,
+        label: t('common.menu_pages.upgrades.tiles.balance.label') as string,
         value: metaCoins.toLocaleString(),
-        helper: t('menu_pages.upgrades.tiles.balance.helper') as string,
+        helper: t('common.menu_pages.upgrades.tiles.balance.helper') as string,
         accent: COLORS.CASINO_GOLD,
         Icon: IconSparkles,
       },
       {
-        label: t('menu_pages.upgrades.tiles.runs.label') as string,
+        label: t('common.menu_pages.upgrades.tiles.runs.label') as string,
         value: totalRunsCompleted.toLocaleString(),
-        helper: t('menu_pages.upgrades.tiles.runs.helper') as string,
+        helper: t('common.menu_pages.upgrades.tiles.runs.helper') as string,
         accent: COLORS.ELECTRIC_BLUE,
         Icon: IconTrophy,
       },
       {
-        label: t('menu_pages.upgrades.tiles.lifetime.label') as string,
+        label: t('common.menu_pages.upgrades.tiles.lifetime.label') as string,
         value: totalMetaCoinsEarned.toLocaleString(),
-        helper: t('menu_pages.upgrades.tiles.lifetime.helper') as string,
+        helper: t('common.menu_pages.upgrades.tiles.lifetime.helper') as string,
         accent: COLORS.PUMP_GREEN,
         Icon: IconActivity,
       },
@@ -155,7 +155,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
     });
   }, [activeCategory, onlyAffordable, searchValue, upgrades, metaCoins]);
 
-  const subtitle = t('menu_pages.upgrades.subtitle', {
+  const subtitle = t('common.menu_pages.upgrades.subtitle', {
     meta: metaCoins.toLocaleString(),
   }) as string;
 
@@ -166,7 +166,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
         zIndex={200}
         maxWidthClassName="max-w-6xl"
         contentClassName="space-y-6"
-        title={t('menu.upgrades') as string}
+        title={t('common.menu.upgrades') as string}
         subtitle={subtitle}
       >
         <div className="grid gap-5 lg:grid-cols-[minmax(0,300px)_1fr]">
@@ -178,7 +178,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
                 {panelCopy.summaryHelper}
               </p>
               <h2 className="mt-2 text-2xl font-black uppercase text-white">
-                {t('menu.upgrades') as string}
+                {t('common.menu.upgrades') as string}
               </h2>
               <p className="mt-1 text-sm text-slate-400">{panelCopy.tagline}</p>
             </div>

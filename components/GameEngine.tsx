@@ -1137,7 +1137,7 @@ export const GameEngine: React.FC<GameEngineProps> = ({
             s.targetBg.b = minVal;
           }
 
-          const bgLerpFactor = 1 - Math.pow(GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
+          const bgLerpFactor = 1 - Math.pow(1 - GAME_ENGINE.BG_LERP_FACTOR, dtFactor);
           s.currentBg.r = lerp(s.currentBg.r, s.targetBg.r, bgLerpFactor);
           s.currentBg.g = lerp(s.currentBg.g, s.targetBg.g, bgLerpFactor);
           s.currentBg.b = lerp(s.currentBg.b, s.targetBg.b, bgLerpFactor);

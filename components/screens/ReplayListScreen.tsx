@@ -52,24 +52,24 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
       <OverlayChrome
         zIndex={200}
         maxWidthClassName="max-w-5xl"
-        title={t('menu.replays') as string}
-        subtitle={t('menu_pages.replays.subtitle') as string}
+        title={t('common.menu.replays') as string}
+        subtitle={t('common.menu_pages.replays.subtitle') as string}
       >
         <div className="space-y-4">
           <OverlaySectionRail
-            label={t('menu_pages.replays.section_saved') as string}
+            label={t('common.menu_pages.replays.section_saved') as string}
             color={COLORS.WHALE}
           />
 
           {loading && (
             <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500">
-              {t('menu_pages.replays.loading')}
+              {t('common.menu_pages.replays.loading')}
             </ThemedPanel>
           )}
 
           {!loading && replays.length === 0 && (
             <ThemedPanel className="px-4 py-10 text-center font-cyber text-slate-500">
-              {t('menu_pages.replays.empty_state')}
+              {t('common.menu_pages.replays.empty_state')}
             </ThemedPanel>
           )}
 
@@ -90,12 +90,12 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-cyber text-sm font-black uppercase tracking-[0.2em] text-white">
-                      {t('menu_pages.replays.score', {
+                      {t('common.menu_pages.replays.score', {
                         value: replay.score.toLocaleString(),
                       })}
                     </span>
                     <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                      {t('menu_pages.replays.duration', {
+                      {t('common.menu_pages.replays.duration', {
                         value: formatDuration(replay.durationMs),
                       })}
                     </span>
@@ -104,12 +104,14 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-400">
                     {replay.finalLevel ? (
                       <span>
-                        {t('menu_pages.replays.level', { value: replay.finalLevel })}
+                        {t('common.menu_pages.replays.level', {
+                          value: replay.finalLevel,
+                        })}
                       </span>
                     ) : null}
                     {replay.totalKills ? (
                       <span>
-                        {t('menu_pages.replays.kills', {
+                        {t('common.menu_pages.replays.kills', {
                           value: replay.totalKills.toLocaleString(),
                         })}
                       </span>
@@ -126,7 +128,7 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
                     !isRetro && 'border-[#8b5cf6]/30 text-[#c4b5fd] hover:text-white'
                   )}
                 >
-                  {t('menu_pages.replays.watch')}
+                  {t('common.menu_pages.replays.watch')}
                 </ThemedButton>
               </ThemedPanel>
             ))}

@@ -187,8 +187,12 @@ export class EffectRenderer implements IRenderer {
 
     // Whale Splash Effect
     if (state.whaleEventTimer > 0) {
+      // Session Fade-in: Prevent harsh flashes on start
+      const timeInGame = TimeService.getGameTimeSeconds();
+      const sessionFadeIn = Math.min(1, timeInGame / 2.0); // 2 second fade
+
       const intensity = Math.min(1, state.whaleEventTimer / 1000); // Fade out last second
-      ctx.globalAlpha = intensity * (reducedMotion ? 0.06 : 0.2);
+      ctx.globalAlpha = intensity * (reducedMotion ? 0.06 : 0.2) * sessionFadeIn;
 
       if (isRetro) {
         // Retro: Solid full-screen flash then fade
@@ -234,9 +238,14 @@ export class EffectRenderer implements IRenderer {
     const pressure = Math.min(1, Math.abs(spawnDelta) / 0.5);
     if (pressure < 0.08) return;
 
+    // Session Fade-in: Prevent harsh flashes on start
+    const timeInGame = TimeService.getGameTimeSeconds();
+    const sessionFadeIn = Math.min(1, timeInGame / 2.0); // 2 second fade
+
     // Keep pulse phase stable while remaining test-friendly with second-based time mocks.
     const pulse = (Math.sin(TimeService.getGameTimeSeconds() * 6) + 1) * 0.5;
-    const alpha = Math.min(0.16, (0.04 + pressure * 0.12) * (0.6 + pulse * 0.4));
+    const alpha =
+      Math.min(0.16, (0.04 + pressure * 0.12) * (0.6 + pulse * 0.4)) * sessionFadeIn;
     if (alpha <= 0.01) return;
 
     ctx.globalAlpha = alpha;
@@ -566,6 +575,10 @@ export class EffectRenderer implements IRenderer {
     ctx.save();
     const isRetro = ThemeService.isRetro();
 
+    // Session Fade-in: Prevent harsh flashes on start
+    const timeInGame = TimeService.getGameTimeSeconds();
+    const sessionFadeIn = Math.min(1, timeInGame / 2.0); // 2 second fade
+
     // Base alpha scales with intensity
     // Reduced cap from 0.2 to 0.10 to prevent overly intense green/red screen wash
     const alpha = Math.min(0.1, (mom.intensity - 0.25) * 0.25);
@@ -574,7 +587,7 @@ export class EffectRenderer implements IRenderer {
     const pulseTime = TimeService.getGameTimeSeconds();
     const bpm = mom.suggestedBPM / 60; // beats per second
     const pulse = Math.sin(pulseTime * bpm * Math.PI * 2) * 0.5 + 0.5; // 0-1
-    const finalAlpha = alpha * (0.8 + pulse * 0.4);
+    const finalAlpha = alpha * (0.8 + pulse * 0.4) * sessionFadeIn;
 
     ctx.globalAlpha = finalAlpha;
 

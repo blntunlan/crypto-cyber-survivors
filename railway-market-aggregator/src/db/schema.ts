@@ -10,7 +10,6 @@ import {
   doublePrecision,
   integer,
   jsonb,
-  index,
   unique,
 } from 'drizzle-orm/pg-core';
 // ── market_state (upserted by IndicatorService) ─────────────────────────────
@@ -57,8 +56,9 @@ export const priceHistory = pgTable(
     metadata: jsonb('metadata').default({}),
   },
   table => [
+    // idx_price_history_pair_ts dropped in server migration 014 — the UNIQUE
+    // index serves (pair, timestamp DESC) queries via backward scan
     unique('price_history_pair_timestamp_key').on(table.pair, table.timestamp),
-    index('idx_price_history_pair_ts').on(table.pair, table.timestamp),
   ]
 );
 

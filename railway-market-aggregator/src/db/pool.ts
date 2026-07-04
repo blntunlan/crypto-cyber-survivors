@@ -53,6 +53,31 @@ export function getPoolUsageSnapshot(
   };
 }
 
+/**
+ * SSL selection (kept in sync with railway-market-server/src/db/pool.ts).
+ * Explicit override via DATABASE_SSL (or PGSSLMODE): disable | require |
+ * verify-full. Default heuristic: Railway's private network
+ * (*.railway.internal) needs no TLS; public endpoints (legacy *.railway.app,
+ * *.proxy.rlwy.net) get TLS without CA verification (self-signed certs).
+ */
+export function resolveSsl(
+  connectionString: string
+): { rejectUnauthorized: boolean } | undefined {
+  const mode = (process.env.DATABASE_SSL ?? process.env.PGSSLMODE ?? '').toLowerCase();
+  if (mode === 'disable') return undefined;
+  if (mode === 'require' || mode === 'no-verify') return { rejectUnauthorized: false };
+  if (mode === 'verify-full') return { rejectUnauthorized: true };
+
+  if (connectionString.includes('.railway.internal')) return undefined;
+  if (
+    connectionString.includes('railway.app') ||
+    connectionString.includes('rlwy.net')
+  ) {
+    return { rejectUnauthorized: false };
+  }
+  return undefined;
+}
+
 export function getPool(): pg.Pool {
   if (pool) return pool;
 
@@ -69,11 +94,7 @@ export function getPool(): pg.Pool {
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     statement_timeout: 5000, // Query timeout of 5s max
-    // Railway internal networking uses private network — rejectUnauthorized:false
-    // is acceptable for internal connections. For external PG, use proper CA certs.
-    ssl: connectionString.includes('railway.app')
-      ? { rejectUnauthorized: false }
-      : undefined,
+    ssl: resolveSsl(connectionString),
   });
 
   pool.on('error', err => {

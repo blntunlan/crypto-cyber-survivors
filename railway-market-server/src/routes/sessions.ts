@@ -233,6 +233,20 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
       Logger.warn(`[verify] Failed to fetch historic prices for validation: ${err}`);
     }
 
+    // Persisted on the session so cheaters exploiting aggregator downtime
+    // (no reference prices → cross-check silently disabled) leave a trail.
+    const priceCheck: 'ok' | 'partial' | 'skipped' =
+      realEntryPrice !== null && realExitPrice !== null
+        ? 'ok'
+        : realEntryPrice !== null || realExitPrice !== null
+          ? 'partial'
+          : 'skipped';
+    if (priceCheck !== 'ok') {
+      Logger.warn(
+        `[verify] Price reconciliation ${priceCheck} for session ${sessionId} (pair=${session.pair}) — reward granted without full market cross-check`
+      );
+    }
+
     const { metrics: trustedMetrics, suspiciousFlags } = deriveTrustedSessionMetrics(
       payload,
       {
@@ -443,6 +457,8 @@ router.post('/verify', requireAuth, asyncHandler(async (req: Request, res: Respo
           level: trustedMetrics.level,
           exitType: payload.exitType ?? null,
           portalType: payload.portalType ?? null,
+          maxStreak: trustedMetrics.maxStreak,
+          priceCheck,
           verifiedAt: sql`now()`,
         })
         .where(and(eq(sessions.id, sessionId), eq(sessions.isVerified, false)))
