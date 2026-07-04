@@ -1,0 +1,3 @@
+## 2024-07-04 - High-Frequency Loop Optimization
+**Learning:** The codebase employs zero-allocation patterns in high-frequency paths (e.g., 60 FPS update loops like `MovementSystem.ts`) to minimize GC overhead. Using `Array.prototype.forEach` in these hot loops creates closure allocations that cause GC pressure and degrade performance.
+**Action:** Replace `Array.prototype.forEach` with standard `for (let i = 0, len = arr.length; i < len; i++)` loops in high-frequency paths. Ensure return statements within the forEach callback are translated to continue, and include guard clauses for sparse arrays or undefined entities.

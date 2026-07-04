@@ -4,7 +4,6 @@ import LeaderboardPanel from '../../../components/hud/LeaderboardPanel';
 import { LeaderboardService } from '../../../services/leaderboard/LeaderboardService';
 
 // Mock Framer Motion to avoid animation issues in tests
-vi.mock('framer-motion', () => {
   const motionMock = {
     div: ({
       children,

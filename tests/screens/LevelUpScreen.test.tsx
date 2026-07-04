@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 
 // Mock framer-motion BEFORE importing LevelUpScreen
-vi.mock('framer-motion', () => {
   const createMotionComponent = (tag: string) => {
     const Component = React.forwardRef<HTMLElement, any>(
       (

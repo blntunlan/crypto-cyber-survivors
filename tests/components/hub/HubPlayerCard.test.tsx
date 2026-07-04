@@ -10,7 +10,6 @@ vi.mock('../../../contexts/useTheme', () => ({
   }),
 }));
 
-vi.mock('framer-motion', () => ({
   m: {
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
