@@ -201,3 +201,31 @@ global.fetch = vi.fn(() =>
     status: 200,
   } as Response)
 );
+
+// Mock framer-motion globally to avoid JSDOM compatibility issues
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+  return {
+    motion: {
+      div: ({ children, ...props }: any) => React.createElement('div', props, children),
+      span: ({ children, ...props }: any) => React.createElement('span', props, children),
+      button: ({ children, ...props }: any) => React.createElement('button', props, children),
+      svg: ({ children, ...props }: any) => React.createElement('svg', props, children),
+      path: ({ children, ...props }: any) => React.createElement('path', props, children),
+      g: ({ children, ...props }: any) => React.createElement('g', props, children),
+      circle: ({ children, ...props }: any) => React.createElement('circle', props, children),
+    },
+    AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    m: {
+      div: ({ children, ...props }: any) => React.createElement('div', props, children),
+      span: ({ children, ...props }: any) => React.createElement('span', props, children),
+      button: ({ children, ...props }: any) => React.createElement('button', props, children),
+      svg: ({ children, ...props }: any) => React.createElement('svg', props, children),
+      path: ({ children, ...props }: any) => React.createElement('path', props, children),
+      g: ({ children, ...props }: any) => React.createElement('g', props, children),
+      circle: ({ children, ...props }: any) => React.createElement('circle', props, children),
+    },
+    LazyMotion: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    domAnimation: {},
+  };
+});

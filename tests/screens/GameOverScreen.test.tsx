@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GameOverScreen } from '../../components/screens/GameOverScreen';
 
 // Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => {
   const motionMock = {
     div: ({
       children,

@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '../test-utils';
 import { SettingsPanel } from '../../components/settings/SettingsPanel';
 
 // Mock framer-motion
-vi.mock('framer-motion', () => {
   return {
     motion: {
       div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
