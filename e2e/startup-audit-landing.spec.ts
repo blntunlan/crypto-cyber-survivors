@@ -38,14 +38,12 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   await topNav.screenshot({ path: 'output/startup-audit-nav.png' });
 
   await expect(page.getByText('Technology / How It Works')).toBeVisible();
+  await expect(page.getByText('Typed EventBus', { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByText('C-SYNC Protocol', { exact: true }).first()
+    page.getByText('Dual-Exchange Feed', { exact: true }).first()
   ).toBeVisible();
   await expect(
-    page.getByText('Real-Time WebSocket Fabric', { exact: true }).first()
-  ).toBeVisible();
-  await expect(
-    page.getByText('Neural AI Director', { exact: true }).first()
+    page.getByText('Unified Difficulty Director', { exact: true }).first()
   ).toBeVisible();
   const technologySection = page.locator('#dev');
   await technologySection.scrollIntoViewIfNeeded();
