@@ -18,7 +18,8 @@ const configuredBaseUrl =
 const BASE_URL = configuredBaseUrl?.replace(/\/$/, '');
 
 if (!BASE_URL) {
-  Logger.warn(
+  // eslint-disable-next-line no-console
+  console.warn(
     '[RailwayClient] VITE_API_BASE_URL / VITE_RAILWAY_API_URL not set. API calls will fail.'
   );
 }
