@@ -1,0 +1,3 @@
+## 2025-02-18 - [SpatialGrid Map Iteration Optimization]
+**Learning:** [Using a hybrid clearing strategy in SpatialGrid (reusing arrays for active cells by setting length=0, and deleting empty cells by returning them to the pool) reduces both GC pressure and redundant map operations compared to clearing all cells and the map every frame.]
+**Action:** [To reduce GC pressure and iteration overhead in SpatialGrid, use a hybrid clearing strategy: reuse arrays for active cells (.length = 0), and for empty cells (.length === 0 from the previous frame) push them back to an array pool and delete their keys (map.delete(key)). This prevents unbounded map growth while maintaining fast iteration.]
