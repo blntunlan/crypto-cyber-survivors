@@ -192,9 +192,8 @@ describe('SSEMarketService', () => {
       const { service } = createService({ pair: 'ETH' as never });
       service.connect();
 
-      expect(mockEs.url).toBe(
-        'https://market.test.local/api/v1/market/stream?pair=ETH'
-      );
+      // SSEMarketService now uses relative URLs (Vite proxy / same-origin)
+      expect(mockEs.url).toBe('/api/v1/market/stream?pair=ETH');
     });
   });
 
@@ -490,8 +489,8 @@ describe('SSEMarketService', () => {
   // ─── Edge: no base URL configured ────────────────────────────────────
 
   describe('missing configuration', () => {
-    it('reports disconnected when no base URL is available', () => {
-      // Temporarily override env
+    it('proceeds to connecting with relative URL even when env vars are empty', () => {
+      // SSEMarketService now uses relative URLs so it always attempts connection
       const prevVal = import.meta.env.VITE_MARKET_AGGREGATOR_URL;
       const prevApi = import.meta.env.VITE_RAILWAY_API_URL;
       import.meta.env.VITE_MARKET_AGGREGATOR_URL = '';
@@ -501,7 +500,7 @@ describe('SSEMarketService', () => {
       service.connect();
 
       const lastStatus = onStatusChange.mock.calls.at(-1)?.[0] as SSEConnectionStatus;
-      expect(lastStatus.state).toBe('disconnected');
+      expect(lastStatus.state).toBe('connecting');
 
       // Restore
       import.meta.env.VITE_MARKET_AGGREGATOR_URL = prevVal;

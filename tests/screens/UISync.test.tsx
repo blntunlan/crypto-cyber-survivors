@@ -54,10 +54,10 @@ describe('UI Consistency Sync', () => {
         />
       );
 
-      // ThemedPanel modern: uses cyber-glass class with rounded-xl
-      const panel = container.querySelector('.cyber-glass');
-      expect(panel).toBeDefined();
-      expect(panel?.className).toContain('rounded-xl');
+      // ThemedPanel modern variant: rounded-lg base, MainMenu overrides to !rounded-[1.5rem]
+      const panel = container.querySelector('.rounded-lg, .\\!rounded-\\[1\\.5rem\\]');
+      expect(panel).toBeTruthy();
+      expect(panel?.className).toContain('border');
     });
 
     it('PauseMenu should have the same frame styling as MainMenu', () => {

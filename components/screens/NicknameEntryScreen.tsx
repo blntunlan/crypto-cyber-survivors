@@ -1,146 +1,211 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { AnimatePresence, LazyMotion, domAnimation, m } from 'framer-motion';
+import { Activity, AlertCircle, ChevronRight, Shield, Zap } from 'lucide-react';
 import { useTheme } from '../../contexts/useTheme';
 import { useUser } from '../../contexts/useUser';
 import { NicknameValidator } from '../../services/auth/NicknameValidator';
-import { audio } from '../../services/audio';
-import { User, Shield, Zap, ChevronRight, AlertCircle } from 'lucide-react';
+import { audio } from '../../services/audio/AudioService';
 import { Logger } from '../../services/system/Logger';
 import { ThemedPanel } from '../themed/ThemedPanel';
 import { ThemedInput } from '../themed/ThemedInput';
 import { ThemedButton } from '../themed/ThemedButton';
-import { ThemedText } from '../themed/ThemedText';
 import { useLanguage } from '../../contexts/LanguageContext';
-
-// ============================================
-// Types
-// ============================================
+import { COLORS } from '../../config/Colors';
 
 interface NicknameEntryScreenProps {
   onComplete: (nickname: string) => void;
 }
 
-// ============================================
-// Memoized Background (NEVER re-renders on keystroke)
-// ============================================
+const withAlpha = (hex: string, alpha: number): string => {
+  const normalized = hex.replace('#', '');
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+};
+
+const normalizeText = (value: unknown, fallback: string): string => {
+  if (Array.isArray(value)) return normalizeText(value[0], fallback);
+  if (typeof value === 'string' && value.length > 0) return value;
+  return fallback;
+};
+
+const SHELL_STYLE = {
+  backgroundColor: COLORS.BG,
+} satisfies React.CSSProperties;
+
+const PANEL_STYLE = {
+  background: `linear-gradient(145deg, ${withAlpha(COLORS.BG, 0.96)}, ${withAlpha(COLORS.SLOT_BLACK, 0.92)})`,
+  borderColor: withAlpha(COLORS.SECONDARY_CYBER, 0.24),
+  boxShadow: `0 28px 90px ${withAlpha(COLORS.SLOT_BLACK, 0.82)}, 0 0 0 1px ${withAlpha(COLORS.SECONDARY_CYBER, 0.16)}`,
+} satisfies React.CSSProperties;
+
+const TERMINAL_ACCENT_STYLE = {
+  backgroundColor: COLORS.SECONDARY_CYBER,
+  boxShadow: `0 0 24px ${withAlpha(COLORS.SECONDARY_CYBER, 0.48)}`,
+} satisfies React.CSSProperties;
 
 const BackgroundEffects = memo(function BackgroundEffects({
   isRetro,
 }: {
   isRetro: boolean;
 }) {
+  const gridColor = isRetro ? COLORS.ACCENT_RETRO : COLORS.SECONDARY_CYBER;
+  const scanColor = isRetro ? COLORS.SECONDARY_RETRO : COLORS.SECONDARY_CYBER;
+
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
       {!isRetro && (
-        <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(34,211,238,0.15),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(168,85,247,0.1),transparent_50%)]" />
-        </>
+        <div
+          className="absolute inset-0"
+          style={{
+            background: [
+              `radial-gradient(circle at 50% 18%, ${withAlpha(COLORS.SECONDARY_CYBER, 0.18)}, transparent 38%)`,
+              `radial-gradient(circle at 78% 72%, ${withAlpha(COLORS.PRIMARY_CYBER, 0.12)}, transparent 44%)`,
+              `linear-gradient(180deg, ${withAlpha(COLORS.BG, 0.16)}, ${withAlpha(COLORS.BG, 0.94)})`,
+            ].join(', '),
+          }}
+        />
       )}
+
       <div
-        className={`absolute inset-0 ${isRetro ? 'opacity-[0.05]' : 'opacity-[0.03]'}`}
+        className={
+          isRetro
+            ? 'absolute inset-0 opacity-[0.06]'
+            : 'absolute inset-0 opacity-[0.045]'
+        }
         style={{
-          backgroundImage: `linear-gradient(rgba(34,211,238,0.5) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(34,211,238,0.5) 1px, transparent 1px)`,
-          backgroundSize: isRetro ? '25px 25px' : '50px 50px',
+          backgroundImage: `linear-gradient(${withAlpha(gridColor, 0.72)} 1px, transparent 1px),
+                           linear-gradient(90deg, ${withAlpha(gridColor, 0.72)} 1px, transparent 1px)`,
+          backgroundSize: isRetro ? '24px 24px' : '44px 44px',
         }}
       />
-      <m.div
-        className={`absolute left-0 right-0 h-[2px] ${isRetro ? 'bg-white/10' : 'bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent'}`}
-        animate={{ top: ['0%', '100%'] }}
-        transition={{
-          duration: isRetro ? 4 : 8,
-          repeat: Infinity,
-          ease: 'linear',
+
+      {!isRetro && (
+        <m.div
+          className="absolute left-0 right-0 top-0 h-px"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${withAlpha(scanColor, 0.56)}, transparent)`,
+          }}
+          animate={{ y: ['8vh', '92vh'] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+        />
+      )}
+    </div>
+  );
+});
+
+const TerminalDivider = memo(function TerminalDivider({
+  label,
+  accent,
+  isRetro,
+}: {
+  label: string;
+  accent: string;
+  isRetro: boolean;
+}) {
+  const lineStyle = {
+    background: `linear-gradient(90deg, transparent, ${withAlpha(accent, 0.44)})`,
+  } satisfies React.CSSProperties;
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-px flex-1" style={lineStyle} />
+      <span
+        className={`${isRetro ? 'font-retro-pixel text-[9px]' : 'font-cyber text-[10px]'} font-bold uppercase tracking-[0.22em]`}
+        style={{ color: accent }}
+      >
+        {label}
+      </span>
+      <div
+        className="h-px flex-1"
+        style={{
+          background: `linear-gradient(270deg, transparent, ${withAlpha(accent, 0.44)})`,
         }}
       />
     </div>
   );
 });
 
-// ============================================
-// Memoized Corner Decorations
-// ============================================
-
-const CornerDecorations = memo(function CornerDecorations() {
-  return (
-    <>
-      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -left-3 -top-3 h-10 w-10 rounded-tl-lg border-l-2 border-t-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
-      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-tr-lg border-r-2 border-t-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
-      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -bottom-3 -left-3 h-10 w-10 rounded-bl-lg border-b-2 border-l-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
-      <div className="border-[var(--color-primary)]/60 sm:border-[var(--color-primary)]/70 pointer-events-none absolute -bottom-3 -right-3 h-10 w-10 rounded-br-lg border-b-2 border-r-2 sm:h-12 sm:w-12 sm:shadow-[0_0_10px_var(--color-primary)]" />
-    </>
-  );
-});
-
-// ============================================
-// Memoized Panel Chrome (animated border + glow)
-// ============================================
-
-const PanelChrome = memo(function PanelChrome({ isRetro }: { isRetro: boolean }) {
-  if (isRetro) return null;
-  return (
-    <>
-      <m.div
-        className="pointer-events-none absolute left-0 right-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-primary)] to-transparent"
-        animate={{ opacity: [0.7, 1, 0.7] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <div className="from-[var(--color-primary)]/10 via-[var(--color-secondary)]/5 to-[var(--color-primary)]/10 pointer-events-none absolute -inset-1 rounded-sm bg-gradient-to-r opacity-50 blur-xl sm:opacity-60" />
-    </>
-  );
-});
-
-// ============================================
-// Memoized Header Icon
-// ============================================
-
-const HeaderIcon = memo(function HeaderIcon({
+const IdentityScanStrip = memo(function IdentityScanStrip({
+  isValid,
   isRetro,
-  children,
 }: {
+  isValid: boolean;
   isRetro: boolean;
-  children: React.ReactNode;
 }) {
+  const accent = isValid ? COLORS.PUMP_GREEN : COLORS.SECONDARY_CYBER;
+
   return (
-    <m.div
-      className={`inline-flex p-4 ${isRetro ? 'rounded-none border-2 border-[var(--color-primary)] bg-zinc-900 shadow-[4px_4px_0px_rgba(0,0,0,0.8)]' : 'border-[var(--color-primary)]/30 from-[var(--color-primary)]/20 to-[var(--color-secondary)]/10 relative rounded-full border bg-gradient-to-br'}`}
-      animate={{
-        boxShadow: isRetro
-          ? undefined
-          : [
-              '0 0 20px rgba(34,211,238,0.2)',
-              '0 0 40px rgba(34,211,238,0.3)',
-              '0 0 20px rgba(34,211,238,0.2)',
-            ],
+    <div
+      className={`${isRetro ? 'rounded-none' : 'rounded-sm'} relative overflow-hidden border px-3 py-2.5`}
+      style={{
+        backgroundColor: withAlpha(COLORS.SLOT_BLACK, 0.7),
+        borderColor: withAlpha(accent, 0.34),
       }}
-      transition={{ duration: 2, repeat: Infinity }}
     >
-      {children}
-    </m.div>
+      {!isRetro && (
+        <m.div
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-1/3"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${withAlpha(accent, 0.18)}, transparent)`,
+          }}
+          animate={{ x: ['-120%', '360%'] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
+        />
+      )}
+
+      <div className="relative z-10 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Activity className="h-3.5 w-3.5" color={accent} />
+          <span
+            className={`${isRetro ? 'font-retro-pixel text-[9px]' : 'font-mono text-[10px]'} uppercase tracking-[0.2em]`}
+            style={{ color: COLORS.SLOT_SILVER }}
+          >
+            IDENTITY SCAN
+          </span>
+        </div>
+        <span
+          className={`${isRetro ? 'font-retro-pixel text-[8px]' : 'font-cyber text-[9px]'} whitespace-nowrap uppercase tracking-[0.18em]`}
+          style={{ color: accent }}
+        >
+          {isValid ? 'SIGNAL LOCKED' : 'AWAITING CALLSIGN'}
+        </span>
+      </div>
+    </div>
   );
 });
 
-// ============================================
-// Memoized Footer
-// ============================================
-
-const AuthFooter = memo(function AuthFooter() {
+const AuthFooter = memo(function AuthFooter({ isRetro }: { isRetro: boolean }) {
   const { t } = useLanguage();
+
   return (
-    <footer className="mt-6 flex items-center justify-between border-t border-slate-700/30 pt-4 text-[9px] text-slate-500">
+    <footer
+      className="mt-5 flex items-center justify-between border-t pt-3 text-[9px] uppercase tracking-[0.18em]"
+      style={{ borderColor: withAlpha(COLORS.SECONDARY_CYBER, 0.16) }}
+    >
       <div className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full bg-green-500" />
-        <span>{t('auth.footer_systems_online')}</span>
+        <span
+          className={`${isRetro ? '' : 'animate-pulse rounded-full'} h-2 w-2`}
+          style={{ backgroundColor: COLORS.PUMP_GREEN }}
+        />
+        <span style={{ color: COLORS.SLOT_SILVER }}>
+          {normalizeText(t('auth.footer_systems_online'), 'Systems online')}
+        </span>
       </div>
-      <span>{t('auth.footer_title')}</span>
+      <span
+        className={isRetro ? 'font-retro-pixel' : 'font-cyber'}
+        style={{ color: withAlpha(COLORS.CASINO_GOLD, 0.82) }}
+      >
+        {normalizeText(t('auth.footer_title'), 'Railway auth')}
+      </span>
     </footer>
   );
 });
-
-// ============================================
-// Main Component
-// ============================================
 
 export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   onComplete,
@@ -154,143 +219,186 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ============================================
-  // Helpers
-  // ============================================
+  const copy = useMemo(
+    () => ({
+      identify: normalizeText(t('common.nickname_screen.title_identify'), 'Identify'),
+      survivor: normalizeText(t('common.nickname_screen.title_survivor'), 'Survivor'),
+      devModeHint: normalizeText(
+        t('common.nickname_screen.dev_mode_hint'),
+        'Anonymous Railway session'
+      ),
+      callsign: normalizeText(t('common.nickname_screen.callsign'), 'Callsign'),
+      placeholder: normalizeText(
+        t('common.nickname_screen.placeholder'),
+        'Enter callsign'
+      ),
+      enterArena: normalizeText(t('common.nickname_screen.enter_arena'), 'Enter Arena'),
+      registrationFailed: normalizeText(
+        t('common.nickname_screen.registration_failed'),
+        'Registration failed'
+      ),
+      systemError: normalizeText(
+        t('common.nickname_screen.system_error'),
+        'System error'
+      ),
+      signingIn: normalizeText(t('auth.signing_in'), 'Signing in'),
+      ruleLength: normalizeText(t('auth.nickname_rules_length'), '3-16 characters'),
+      ruleChars: normalizeText(
+        t('auth.nickname_rules_chars'),
+        'Letters, numbers, underscores, hyphens'
+      ),
+    }),
+    [t]
+  );
+
+  const isNicknameReady = nickname.length >= 3;
+  const inputAccent = error
+    ? COLORS.CASINO_RED
+    : isNicknameReady
+      ? COLORS.PUMP_GREEN
+      : COLORS.SECONDARY_CYBER;
 
   const clearMessages = useCallback(() => {
     setError(null);
     setSuccessMessage(null);
   }, []);
 
-  // ============================================
-  // Nickname Submit Handler (auth-free)
-  // ============================================
-
   const handleNicknameSubmit = useCallback(async () => {
     if (isSubmitting) return;
-    const validationError = NicknameValidator.validate(nickname);
+
+    const normalizedNickname = nickname.trim();
+    const validationError = NicknameValidator.validate(normalizedNickname);
     if (validationError) {
       setError(validationError);
       audio.playHit();
       return;
     }
+
     setIsSubmitting(true);
     clearMessages();
-    try {
-      const result = await login(nickname);
-      const success = result.success;
-      const msg = result.error ?? t('common.nickname_screen.registration_failed');
-      const errorMsg = Array.isArray(msg) ? (msg[0] ?? 'Error') : msg;
 
-      if (success) {
+    try {
+      const result = await login(normalizedNickname);
+
+      if (result.success) {
         audio.playLevelUp();
-        onComplete(nickname);
+        onComplete(normalizedNickname);
       } else {
-        setError(Array.isArray(errorMsg) ? (errorMsg[0] ?? 'Error') : errorMsg);
+        setError(normalizeText(result.error, copy.registrationFailed));
         audio.playHit();
       }
     } catch (err) {
       Logger.error('[NicknameEntryScreen] Submission error:', err);
-      const sysError = t('common.nickname_screen.system_error');
-      setError(Array.isArray(sysError) ? (sysError[0] ?? 'System error') : sysError);
+      setError(copy.systemError);
       audio.playHit();
     } finally {
       setIsSubmitting(false);
     }
-  }, [nickname, isSubmitting, login, onComplete, clearMessages, t]);
-
-  // ============================================
-  // Mode config (stable)
-  // ============================================
-
-  const modeConfig = useMemo(
-    () => ({
-      nicknameSetup: {
-        title: `${(t('common.nickname_screen.title_identify') as string) || 'Identify'} `,
-        titleHighlight:
-          (t('common.nickname_screen.title_survivor') as string) || 'Survivor',
-        subtitle: 'Choose Your Callsign',
-        icon: <User className="h-7 w-7 text-cyan-400" />,
-      },
-    }),
-    [t]
-  );
-
-  const currentMode = modeConfig.nicknameSetup;
-
-  // ============================================
-  // Render
-  // ============================================
+  }, [
+    clearMessages,
+    copy.registrationFailed,
+    copy.systemError,
+    isSubmitting,
+    login,
+    nickname,
+    onComplete,
+  ]);
 
   return (
     <LazyMotion features={domAnimation}>
       <div
-        className="fixed inset-0 flex items-start justify-center overflow-y-auto bg-slate-950/95 px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] font-mono sm:items-center sm:px-6"
-        style={{ zIndex: 3300 }}
+        data-testid="identity-terminal-shell"
+        className="allow-scroll fixed inset-0 z-[3300] flex items-start justify-center overflow-y-auto px-3 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] font-mono sm:items-center sm:px-6"
+        style={SHELL_STYLE}
       >
-        {/* Background — memo'd, never re-renders on input */}
         <BackgroundEffects isRetro={isRetro} />
 
         <m.div
-          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+          initial={{ opacity: 0, y: 26, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative my-auto w-full max-w-md py-6 sm:py-0"
+          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+          className="relative my-auto w-full max-w-xl py-4 sm:py-6"
         >
-          {/* Corner decorations — memo'd */}
-          {!isRetro && <CornerDecorations />}
-
-          <ThemedPanel className="relative overflow-hidden !rounded-[1.5rem] p-5 transition-all sm:p-8">
-            {/* Panel chrome — memo'd */}
-            <PanelChrome isRetro={isRetro} />
-
-            <div className="relative z-10">
-              {/* Header */}
-              <header className="mb-6 space-y-2 text-center sm:mb-8 sm:space-y-3">
-                <HeaderIcon isRetro={isRetro}>{currentMode.icon}</HeaderIcon>
-
-                <ThemedText
-                  variant="h1"
-                  className={`text-2xl font-black uppercase tracking-tight ${isRetro ? 'text-white' : 'italic text-white'}`}
+          <header className="relative z-10 mb-4 space-y-2 text-center sm:mb-6">
+            <p
+              className={`${isRetro ? 'font-retro-pixel text-[10px]' : 'font-cyber text-[10px]'} font-bold uppercase tracking-[0.32em]`}
+              style={{ color: COLORS.CASINO_GOLD }}
+            >
+              CRYPTO SURVIVORS
+            </p>
+            <h1
+              className={`${isRetro ? 'font-retro-pixel' : 'cyber-sway-text font-cyber'} text-3xl font-black uppercase leading-tight tracking-tight sm:text-5xl`}
+              style={{ color: COLORS.TEXT }}
+            >
+              <span className="sr-only">IDENTITY TERMINAL</span>
+              <span aria-hidden="true">
+                IDENTITY
+                <br />
+                <span
+                  style={{
+                    color: isRetro ? COLORS.ELECTRIC_BLUE : COLORS.SECONDARY_CYBER,
+                  }}
                 >
-                  {currentMode.title}
-                  <span
-                    className={
-                      isRetro
-                        ? 'text-cyan-400'
-                        : 'bg-gradient-to-r from-[var(--color-primary)] to-white bg-clip-text text-transparent'
-                    }
-                  >
-                    {currentMode.titleHighlight}
-                  </span>
-                </ThemedText>
+                  TERMINAL
+                </span>
+              </span>
+            </h1>
+            <p
+              className={`${isRetro ? 'font-retro-pixel text-[9px]' : 'font-mono text-[10px]'} uppercase tracking-[0.22em]`}
+              style={{ color: withAlpha(COLORS.SLOT_SILVER, 0.82) }}
+            >
+              {copy.identify} {copy.survivor} · Choose Your Callsign
+            </p>
+          </header>
 
-                <div className="space-y-1">
-                  <ThemedText
-                    variant="mono"
-                    className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400"
-                  >
-                    {currentMode.subtitle}
-                  </ThemedText>
-                  <ThemedText
-                    variant="mono"
-                    className="text-[7px] uppercase tracking-[0.4em] text-cyan-500/50"
-                  >
-                    {t('common.nickname_screen.dev_mode_hint')}
-                  </ThemedText>
-                </div>
-              </header>
+          <ThemedPanel
+            data-testid="identity-terminal-panel"
+            className={`${isRetro ? '' : '!rounded-[1.5rem]'} relative overflow-hidden border p-4 sm:p-6`}
+            style={isRetro ? undefined : PANEL_STYLE}
+          >
+            {!isRetro && (
+              <>
+                <div
+                  data-testid="identity-terminal-accent"
+                  className="absolute left-0 right-0 top-0 h-1"
+                  style={TERMINAL_ACCENT_STYLE}
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-[1.5rem] border"
+                  style={{ borderColor: withAlpha(COLORS.TEXT, 0.14) }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-2 rounded-[1.1rem] border"
+                  style={{ borderColor: withAlpha(COLORS.SECONDARY_CYBER, 0.1) }}
+                />
+              </>
+            )}
 
-              {/* Error / Success */}
+            <div className="relative z-10 space-y-4 sm:space-y-5">
+              <TerminalDivider
+                label="RAILWAY ACCOUNT LINK"
+                accent={isRetro ? COLORS.NEON_GREEN : COLORS.CASINO_GOLD}
+                isRetro={isRetro}
+              />
+
+              <IdentityScanStrip
+                isValid={isNicknameReady && !error}
+                isRetro={isRetro}
+              />
+
               <AnimatePresence mode="wait">
                 {error && (
                   <m.div
                     key="error"
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400"
+                    exit={{ opacity: 0, y: -8 }}
+                    className="flex items-center gap-2 rounded-sm border p-3 text-sm"
+                    style={{
+                      backgroundColor: withAlpha(COLORS.CASINO_RED, 0.12),
+                      borderColor: withAlpha(COLORS.CASINO_RED, 0.42),
+                      color: COLORS.DUMP_ORANGE,
+                    }}
                   >
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     <span>{error}</span>
@@ -299,10 +407,15 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                 {successMessage && (
                   <m.div
                     key="success"
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-4 flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400"
+                    exit={{ opacity: 0, y: -8 }}
+                    className="flex items-center gap-2 rounded-sm border p-3 text-sm"
+                    style={{
+                      backgroundColor: withAlpha(COLORS.PUMP_GREEN, 0.1),
+                      borderColor: withAlpha(COLORS.PUMP_GREEN, 0.38),
+                      color: COLORS.PUMP_GREEN,
+                    }}
                   >
                     <Zap className="h-4 w-4 flex-shrink-0" />
                     <span>{successMessage}</span>
@@ -310,24 +423,30 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                 )}
               </AnimatePresence>
 
-              {/* ===== NICKNAME SETUP (auth hidden) ===== */}
               <form
                 action={() => {
                   void handleNicknameSubmit();
                 }}
-                className="space-y-4 sm:space-y-6"
+                className="space-y-4"
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between px-1">
+                <div
+                  className={`${isRetro ? 'rounded-none' : 'rounded-lg'} border p-3 sm:p-4`}
+                  style={{
+                    backgroundColor: withAlpha(COLORS.SLOT_BLACK, 0.58),
+                    borderColor: withAlpha(inputAccent, 0.26),
+                  }}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
                     <label
                       htmlFor="nickname-input"
-                      className="text-[var(--color-primary)]/80 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
+                      className={`${isRetro ? 'font-retro-pixel text-[9px]' : 'font-cyber text-[10px]'} flex items-center gap-1.5 font-bold uppercase tracking-[0.2em]`}
+                      style={{ color: inputAccent }}
                     >
-                      <Shield className="h-3 w-3" />{' '}
-                      {(t('common.nickname_screen.callsign') as string) || 'Callsign'}
+                      <Shield className="h-3.5 w-3.5" /> {copy.callsign}
                     </label>
                     <span
-                      className={`text-[10px] font-black tracking-tighter transition-colors ${nickname.length >= 3 ? 'text-[var(--color-primary)]' : 'text-slate-600'}`}
+                      className={`${isRetro ? 'font-retro-pixel text-[9px]' : 'font-mono text-[10px]'} font-black`}
+                      style={{ color: inputAccent }}
                     >
                       {nickname.length}/16
                     </span>
@@ -335,7 +454,13 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
 
                   <div className="group relative">
                     {!isRetro && (
-                      <div className="from-[var(--color-primary)]/0 via-[var(--color-primary)]/20 to-[var(--color-primary)]/0 pointer-events-none absolute -inset-0.5 hidden rounded-lg bg-gradient-to-r opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100 sm:block" />
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -inset-0.5 rounded-lg opacity-0 blur-sm transition-opacity duration-300 group-focus-within:opacity-100"
+                        style={{
+                          background: `linear-gradient(90deg, transparent, ${withAlpha(inputAccent, 0.24)}, transparent)`,
+                        }}
+                      />
                     )}
                     <ThemedInput
                       id="nickname-input"
@@ -344,20 +469,20 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                       inputMode="text"
                       enterKeyHint="go"
                       value={nickname}
-                      onChange={e => {
-                        setNickname(e.target.value);
+                      onChange={event => {
+                        setNickname(event.target.value);
                         if (error) clearMessages();
                       }}
-                      onKeyDown={e => e.stopPropagation()}
-                      className={`min-h-[48px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 placeholder:font-normal focus:outline-none focus:ring-2 sm:px-5 sm:py-4 ${
-                        error
-                          ? 'border-red-500/50 text-red-400 focus:ring-red-500/30'
-                          : `focus:border-[var(--color-primary)]/60 focus:ring-[var(--color-primary)]/40 text-white ${!isRetro ? 'sm:hover:border-[var(--color-primary)]/30 sm:hover:bg-slate-800/70' : 'group-hover:border-slate-600'}`
-                      } ${!isRetro ? 'font-semibold' : ''}`}
-                      placeholder={(() => {
-                        const p = t('common.nickname_screen.placeholder');
-                        return Array.isArray(p) ? p[0] : p;
-                      })()}
+                      onKeyDown={event => event.stopPropagation()}
+                      className={`${isRetro ? '' : 'font-semibold'} relative min-h-[52px] w-full px-4 py-3 text-base tracking-wide transition-all duration-200 focus:outline-none focus:ring-2 sm:px-5 sm:py-4`}
+                      style={{
+                        borderColor: withAlpha(inputAccent, error ? 0.62 : 0.42),
+                        color: COLORS.TEXT,
+                        boxShadow: isNicknameReady
+                          ? `0 0 18px ${withAlpha(inputAccent, 0.16)}`
+                          : 'none',
+                      }}
+                      placeholder={copy.placeholder}
                       maxLength={16}
                       disabled={isSubmitting}
                       autoComplete="off"
@@ -369,55 +494,77 @@ export const NicknameEntryScreen: React.FC<NicknameEntryScreenProps> = ({
                       className="absolute right-4 top-1/2 -translate-y-1/2"
                       initial={{ opacity: 0, scale: 0.5 }}
                       animate={{
-                        opacity: nickname.length >= 3 ? 1 : 0,
-                        scale: nickname.length >= 3 ? 1 : 0.5,
+                        opacity: isNicknameReady ? 1 : 0,
+                        scale: isNicknameReady ? 1 : 0.5,
                       }}
                     >
                       <Zap
-                        className={`h-5 w-5 fill-yellow-400 text-yellow-400 ${isRetro ? '' : 'drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'}`}
+                        className="h-5 w-5"
+                        color={COLORS.JACKPOT_YELLOW}
+                        fill={COLORS.JACKPOT_YELLOW}
                       />
                     </m.div>
                   </div>
+
+                  <p
+                    className={`${isRetro ? 'font-retro-pixel text-[8px]' : 'font-mono text-[9px]'} mt-3 uppercase tracking-[0.18em]`}
+                    style={{ color: withAlpha(COLORS.SLOT_SILVER, 0.72) }}
+                  >
+                    {copy.devModeHint}
+                  </p>
                 </div>
 
                 <ThemedButton
                   type="submit"
                   intent="primary"
-                  disabled={isSubmitting || nickname.length < 3}
-                  className={`group relative flex min-h-[48px] w-full items-center justify-center gap-2 py-3 text-sm font-bold sm:py-4 sm:text-base ${
-                    nickname.length < 3 ? 'opacity-50 grayscale' : ''
-                  }`}
+                  disabled={isSubmitting || !isNicknameReady}
+                  className={`${!isNicknameReady ? 'opacity-50 grayscale' : ''} group relative flex min-h-[52px] w-full items-center justify-center gap-2 overflow-hidden py-3 text-sm font-black uppercase tracking-[0.16em] sm:py-4 sm:text-base`}
+                  style={{
+                    background: isNicknameReady
+                      ? `linear-gradient(90deg, ${COLORS.PRIMARY_CYBER}, ${COLORS.SECONDARY_CYBER})`
+                      : `linear-gradient(90deg, ${withAlpha(COLORS.SLOT_BLACK, 0.9)}, ${withAlpha(COLORS.BG, 0.94)})`,
+                    borderColor: withAlpha(COLORS.SECONDARY_CYBER, 0.34),
+                    color: COLORS.TEXT,
+                  }}
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      <span>{t('auth.signing_in')}</span>
+                      <div
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+                        style={{
+                          borderColor: withAlpha(COLORS.TEXT, 0.55),
+                          borderTopColor: 'transparent',
+                        }}
+                      />
+                      <span>{copy.signingIn}</span>
                     </div>
                   ) : (
                     <>
-                      <span>
-                        {(t('common.nickname_screen.enter_arena') as string) ||
-                          'Enter Arena'}
-                      </span>
-                      <ChevronRight className="h-4 w-4" />
+                      <span>{copy.enterArena}</span>
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </>
                   )}
                 </ThemedButton>
               </form>
 
-              {/* Footer — memo'd */}
-              <AuthFooter />
+              <AuthFooter isRetro={isRetro} />
             </div>
           </ThemedPanel>
 
-          {/* Info hints */}
-          <div className="mt-4 flex justify-center gap-2">
-            <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
-              {t('auth.nickname_rules_length')}
-            </div>
-            <div className="rounded-full border border-slate-700/30 bg-slate-900/60 px-3 py-1.5 text-[9px] text-slate-400">
-              {t('auth.nickname_rules_chars')}
-            </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center sm:mt-4">
+            {[copy.ruleLength, copy.ruleChars].map(rule => (
+              <div
+                key={rule}
+                className={`${isRetro ? 'rounded-none font-retro-pixel text-[8px]' : 'rounded-sm font-mono text-[9px]'} border px-2 py-2 uppercase tracking-[0.12em]`}
+                style={{
+                  backgroundColor: withAlpha(COLORS.SLOT_BLACK, 0.52),
+                  borderColor: withAlpha(COLORS.SECONDARY_CYBER, 0.18),
+                  color: withAlpha(COLORS.SLOT_SILVER, 0.78),
+                }}
+              >
+                {rule}
+              </div>
+            ))}
           </div>
         </m.div>
       </div>

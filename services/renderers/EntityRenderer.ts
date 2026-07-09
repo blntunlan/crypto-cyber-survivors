@@ -1,6 +1,7 @@
 import { type IRenderer, type RenderOptions } from './types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { type GameState, type Player, type Enemy } from '../../types';
+import { type ReplayedEnemy } from '../../types/replayPlayback';
 import { screenService } from '../system/ScreenService';
 import { DeviceBenchmarkService } from '../system/DeviceBenchmarkService';
 import { BuffGemSpawner } from '../spawners/BuffGemSpawner';
@@ -67,6 +68,45 @@ export class EntityRenderer implements IRenderer {
     this.drawBuffGems(ctx, shadowsEnabled, bounds);
     this.drawEnemies(ctx, pool, bounds);
     this.drawPlayer(ctx, player, state, shadowsEnabled);
+  }
+
+  /**
+   * Draws replay-reconstructed enemies (no pool required).
+   * Builds minimal Enemy-like objects and delegates to renderEnemyLiving
+   * to reuse all existing visual logic (whale bodies, elite indicators, etc.).
+   */
+  drawReplayEnemies(
+    ctx: CanvasRenderingContext2D,
+    enemies: ReplayedEnemy[],
+    width: number,
+    height: number
+  ): void {
+    const isRetro = ThemeService.isRetro();
+    const retroSizeMult = GAME_ENGINE.ENEMY_RETRO_SIZE_MULT;
+    const bounds = createViewportBounds(
+      width,
+      height,
+      GAME_ENGINE.ENTITY_CULLING_PADDING,
+      EntityRenderer.VIEWPORT_BOUNDS
+    );
+
+    for (let i = 0; i < enemies.length; i++) {
+      const re = enemies[i]!;
+      if (!isCircleVisible(re.x, re.y, re.radius + 8, bounds)) continue;
+
+      const proxy = {
+        x: re.x,
+        y: re.y,
+        type: re.type,
+        color: re.color,
+        radius: re.radius,
+        isElite: re.isElite,
+        health: 100,
+        maxHealth: 100,
+      } as unknown as Enemy;
+
+      this.renderEnemyLiving(ctx, proxy, isRetro, retroSizeMult);
+    }
   }
 
   /**

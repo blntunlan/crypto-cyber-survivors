@@ -10,7 +10,9 @@
     "runs": "partidas",
     "all_players": "Todos los Jugadores",
     "refresh": "Actualizar",
-    "refreshing": "Actualizando..."
+    "refreshing": "Actualizando...",
+    "you": "TÚ",
+    "loading": "Cargando clasificación..."
   },
   "common": {
     "start": "Iniciar Juego",
@@ -112,7 +114,15 @@
         "duration": "Duración {{value}}",
         "level": "Nivel {{value}}",
         "kills": "{{value}} bajas",
-        "watch": "Ver"
+        "watch": "Ver",
+        "playback_badge": "REPETICIÓN",
+        "playback_stats": "Nivel {{level}} · {{kills}} bajas",
+        "playback_complete": "Repetición completada",
+        "playback_complete_hint": "Usa SALIR para volver a la terminal.",
+        "loading_replay": "Cargando repetición...",
+        "error_title": "Error al cargar la repetición",
+        "error_message": "No se pudo cargar la repetición. Inténtalo más tarde.",
+        "exit": "SALIR"
       }
     },
     "long": "LONG",
@@ -264,6 +274,26 @@
     "disconnected_desc": "El juego se ha pausado para garantizar la equidad del mercado. El estado del mundo está congelado hasta que los datos se reanuden.",
     "waiting_signal": "Esperando Señal...",
     "exit_terminal": "Salir a Terminal"
+  },
+  "milestones": {
+    "kills_100": "FURIA",
+    "kills_250": "MASACRE",
+    "kills_500": "BAÑO DE SANGRE",
+    "kills_1000": "ANIQUILACIÓN",
+    "kills_2500": "VELA DE DIOS",
+    "time_60": "¡1 MINUTO!",
+    "time_180": "¡3 MINUTOS!",
+    "time_300": "¡5 MINUTOS!",
+    "time_600": "¡10 MINUTOS!",
+    "level": "NIVEL {{val}}",
+    "pnl_5": "EN GANANCIA",
+    "pnl_10": "SOLO SUBE",
+    "pnl_25": "A LA LUNA",
+    "pnl_50": "SUPERNOVA",
+    "danger_10": "ALERTA DE PÉRDIDA",
+    "danger_25": "ZONA DE LIQUIDACIÓN",
+    "milestone_badge": "HITO",
+    "danger_badge": "POSICIÓN EN RIESGO"
   },
   "hud": {
     "clutch": "¡CLUTCH!",
@@ -554,146 +584,5 @@
     "step": "Paso {{current}} de {{total}}",
     "gotIt": "¡Entendido!",
     "replay": "Repetir Tutorial"
-  },
-  "landing": {
-    "nav": {
-      "engine": "01. Motor",
-      "pipeline": "02. Canal de Datos",
-      "dev": "03. Solo Dev",
-      "docs": "04. Documentación",
-      "execute": "EJECUTAR MOTOR",
-      "protocol_retro": "PROTOCOLO: RETRO",
-      "protocol_cyber": "PROTOCOLO: CYBER"
-    },
-    "stats": {
-      "performance_target": "Performance Target",
-      "languages": "Languages",
-      "live_market": "Live Market Data",
-      "open_source": "Open Source"
-    },
-    "terminal": {
-      "initializing": "INITIALIZING_SUBSYSTEMS...",
-      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
-      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
-      "process_pulse": "PROCESS: PULSE"
-    },
-    "hero": {
-      "status": "ESTADO DEL SISTEMA: STANDBY (BETA_v1.0)",
-      "title_top": "ALTO RIESGO",
-      "title_highlight": "VOLATILIDAD",
-      "description": "Creando un puente sistemático entre los mercados financieros en vivo y el juego rogue-lite hiper-casual.",
-      "start": "INICIAR SUPERVIVENCIA",
-      "inspect": "Inspeccionar Protocolo"
-    },
-    "manifesto": {
-      "title": "Manifiesto de Ingeniería",
-      "solo": "Solo Indie",
-      "enterprise": "Estándares Corporativos"
-    },
-    "features": {
-      "tag_memory": "MEMORIA",
-      "title_memory": "POOLING O(1)",
-      "desc_memory": "Bucle de juego sin asignación que utiliza pooling de objetos avanzado para evitar picos de GC.",
-      "tag_physics": "FÍSICA",
-      "title_physics": "REJILLA ESPACIAL",
-      "desc_physics": "Spatial Hashing personalizado para detección de colisiones, garantizando complejidad O(N).",
-      "tag_state": "ESTADO",
-      "title_state": "ZUSTAND DESACOPLADO",
-      "desc_state": "Gestión de estado atómica con control de suscripción manual para sincronización de 60FPS.",
-      "tag_backend": "BACKEND",
-      "title_backend": "CANAL SEGURO",
-      "desc_backend": "Supabase RLS junto con Edge Functions para una validación a prueba de balas."
-    },
-    "architecture": {
-      "title": "Arquitectura Ultra-Innovadora",
-      "description": "Como desarrollador solo indie, mi requisito era simple: construir un sistema que se gestione solo.",
-      "balance_title": "Equilibrio Sistémico",
-      "balance_desc": "La dificultad escala automáticamente con el Apalancamiento (1x-100x).",
-      "integrity_title": "Integridad en Tiempo Real",
-      "integrity_desc": "El failover del feed WSS garantiza cero interrupciones en el juego.",
-      "performance_title": "60 FPS Nativo",
-      "performance_desc": "Canal de renderizado optimizado para Canvas que omite la sobrecarga del DOM."
-    },
-    "modes": {
-      "title": "Elige tu Camino",
-      "subtitle": "Modos de Juego",
-      "casual_title": "Casual",
-      "casual_desc": "Perfecto para aprender mecánicas y disfrutar de un juego relajado.",
-      "comp_title": "Competitivo",
-      "comp_desc": "Demuestra tus habilidades en el escenario global con partidas verificadas.",
-      "comp_pro_tag": "Pro",
-      "casual_items": [
-        "Curva de dificultad permisiva",
-        "Práctica sin presión",
-        "Todas las funciones desbloqueadas",
-        "Guardado de progreso local",
-        "Modo offline disponible"
-      ],
-      "comp_items": [
-        "Tablas de clasificación globales",
-        "Validación anti-cheat",
-        "Grabación de repeticiones",
-        "Seguimiento de logros",
-        "Rankings estacionales"
-      ]
-    },
-    "roadmap": {
-      "title": "Línea de Tiempo",
-      "subtitle": "Roadmap",
-      "active_tag": "Activo",
-      "phase1": "Q1 2026",
-      "phase1_title": "Fundación",
-      "phase1_items": [
-        "Bucle de juego principal",
-        "Motor Canvas 60 FPS",
-        "Integración Supabase"
-      ],
-      "phase2": "Q2 2026",
-      "phase2_title": "Mercados en Vivo",
-      "phase2_items": [
-        "WSS Binance/Coinbase",
-        "Director de IA Neural",
-        "Sistema Anti-cheat"
-      ],
-      "phase3": "Q3 2026",
-      "phase3_title": "Social",
-      "phase3_items": [
-        "Tablas de clasificación",
-        "Compartir repeticiones",
-        "Insignias de logros"
-      ],
-      "phase4": "Q4 2026",
-      "phase4_title": "Expansión",
-      "phase4_items": [
-        "Soporte multi-cripto",
-        "Desafíos diarios",
-        "Eventos estacionales"
-      ]
-    },
-    "faq": {
-      "title": "Preguntas Frecuentes",
-      "subtitle": "FAQ",
-      "q1": "¿Qué hace que Crypto Survivors sea diferente de otros juegos?",
-      "a1": "Los feeds de precios de BTC/USD en tiempo real influyen directamente en la dificultad. La volatilidad crea desafíos únicos en cada sesión.",
-      "q2": "¿Es un juego play-to-earn o con billetera cripto?",
-      "a2": "No. Este es un juego de arcade basado en la habilidad. Sin dinero real, sin billeteras, sin transacciones blockchain.",
-      "q3": "¿Qué son los modos Casual y Competitivo?",
-      "a3": "El modo Casual ofrece dificultad relajada. El modo Competitivo cuenta con tablas globales y validación anti-cheat.",
-      "q4": "¿Funciona el juego sin conexión?",
-      "a4": "Modo offline limitado vía PWA. Las funciones completas requieren internet para los datos del mercado.",
-      "q5": "¿Qué plataformas son compatibles?",
-      "a5": "Navegador web (escritorio y móvil), instalable como PWA. Apps nativas planeadas para el futuro."
-    },
-    "footer": {
-      "trademark": "Proyecto de desarrollador solo indie. © 2026 PROTOCOLO CSYNC.",
-      "access": "Acceso_Terminal",
-      "privacy": "Doc_Privacidad",
-      "terms": "Doc_Términos",
-      "contact": "Canal_Contacto",
-      "top": "INICIO",
-      "back_to_top": "Volver Arriba",
-      "discord_soon": "Discord (Próximamente)",
-      "twitter_soon": "Twitter/X (Próximamente)"
-    }
   }
 }

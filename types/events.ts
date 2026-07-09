@@ -24,6 +24,7 @@ import {
 import { type CanonicalMarketPayload } from './marketCanonical';
 import { type InventoryItemType } from './inventory';
 import { type WeaponId } from './weapons';
+import { type TutorialPhase } from './tutorial';
 
 // =============================================================================
 // EVENT NAMES
@@ -33,6 +34,7 @@ export type EventScope = 'ui' | 'gameplay' | 'system' | 'debug';
 
 export type GameEvent =
   | 'enemyKilled'
+  | 'enemySpawned'
   | 'gemCollected'
   | 'levelUp'
   | 'levelUpComplete'
@@ -178,7 +180,13 @@ export type GameEvent =
   // Replay events
   | 'replaySaved'
   | 'replayLoaded'
-  | 'replayTick';
+  | 'replayTick'
+  // Tutorial lifecycle events
+  | 'tutorialStarted'
+  | 'tutorialStepChanged'
+  | 'tutorialActionCompleted'
+  | 'tutorialCompleted'
+  | 'tutorialSkipped';
 
 // =============================================================================
 // EVENT PAYLOADS
@@ -193,6 +201,17 @@ export interface EnemyKilledEvent {
   enemyId?: string;
   coinDrop?: number;
   isCrit?: boolean;
+}
+
+/** Enemy spawned event data — emitted by SpawnSystem on every spawn */
+export interface EnemySpawnedEvent {
+  /** Per-spawn instance id (monotonic counter assigned by SpawnSystem) */
+  spawnId: number;
+  /** Enemy type id from EnemyRegistry */
+  enemyType: string;
+  x: number;
+  y: number;
+  isElite?: boolean;
 }
 
 /** Gem collected event data */
@@ -289,11 +308,17 @@ export interface ComboEndEvent {
 /** Milestone achieved event data */
 export interface MilestoneAchievedEvent {
   id: string;
+  /** Resolved English fallback name (used when no locale entry exists) */
   name: string;
+  /** i18n key under `milestones.*`, translated by the announcer */
+  nameKey?: string;
+  nameParams?: Record<string, string | number>;
   icon: string;
   color: string;
   type: string;
   threshold: number;
+  severity?: 'celebration' | 'danger';
+  sound?: 'glint' | 'tension';
 }
 
 // ...
@@ -701,6 +726,7 @@ export interface GameplayValidationEvent {
  */
 export interface EventDataMap {
   enemyKilled: EnemyKilledEvent;
+  enemySpawned: EnemySpawnedEvent;
   gemCollected: GemCollectedEvent;
   levelUp: LevelUpEvent;
   levelUpComplete: LevelUpCompleteEvent;
@@ -951,6 +977,12 @@ export interface EventDataMap {
   replaySaved: ReplaySavedEvent;
   replayLoaded: ReplayLoadedEvent;
   replayTick: ReplayTickEvent;
+  // Tutorial lifecycle events
+  tutorialStarted: TutorialStartedEvent;
+  tutorialStepChanged: TutorialStepChangedEvent;
+  tutorialActionCompleted: TutorialActionCompletedEvent;
+  tutorialCompleted: TutorialCompletedEvent;
+  tutorialSkipped: TutorialSkippedEvent;
 }
 
 export interface NotificationEvent {
@@ -1101,4 +1133,38 @@ export interface ReplayLoadedEvent {
 export interface ReplayTickEvent {
   progress: number;
   currentTimeMs: number;
+}
+
+// =============================================================================
+// TUTORIAL EVENTS
+// =============================================================================
+
+/** Emitted when the tutorial run starts (auto or replay). */
+export interface TutorialStartedEvent {
+  startedAt: number;
+}
+
+/** Emitted when the active tutorial step changes. */
+export interface TutorialStepChangedEvent {
+  stepId: string;
+  stepIndex: number;
+  phase: TutorialPhase;
+}
+
+/** Emitted when a step's required action is completed (before advancing). */
+export interface TutorialActionCompletedEvent {
+  stepId: string;
+  actionType: string;
+}
+
+/** Emitted when the tutorial run completes fully. */
+export interface TutorialCompletedEvent {
+  completedAt: number;
+  durationMs: number;
+}
+
+/** Emitted when the player skips the tutorial. */
+export interface TutorialSkippedEvent {
+  stepId: string;
+  skippedAt: number;
 }

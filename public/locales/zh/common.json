@@ -10,7 +10,9 @@
     "runs": "局",
     "all_players": "所有玩家",
     "refresh": "刷新",
-    "refreshing": "刷新中..."
+    "refreshing": "刷新中...",
+    "you": "你",
+    "loading": "正在加载排行榜..."
   },
   "common": {
     "start": "开始游戏",
@@ -112,7 +114,15 @@
         "duration": "时长 {{value}}",
         "level": "等级 {{value}}",
         "kills": "{{value}} 次击杀",
-        "watch": "观看"
+        "watch": "观看",
+        "playback_badge": "回放",
+        "playback_stats": "等级 {{level}} · 击杀 {{kills}}",
+        "playback_complete": "回放结束",
+        "playback_complete_hint": "点击退出返回终端。",
+        "loading_replay": "正在加载回放...",
+        "error_title": "回放加载失败",
+        "error_message": "无法加载回放数据，请稍后重试。",
+        "exit": "退出"
       }
     },
     "long": "做多 (LONG)",
@@ -264,6 +274,26 @@
     "disconnected_desc": "为确保市场公平，游戏已暂停。世界状态将冻结直至数据恢复。",
     "waiting_signal": "等待信号...",
     "exit_terminal": "退出到终端"
+  },
+  "milestones": {
+    "kills_100": "杀戮狂潮",
+    "kills_250": "大屠杀",
+    "kills_500": "血流成河",
+    "kills_1000": "毁天灭地",
+    "kills_2500": "神级大阳线",
+    "time_60": "1分钟！",
+    "time_180": "3分钟！",
+    "time_300": "5分钟！",
+    "time_600": "10分钟！",
+    "level": "等级 {{val}}",
+    "pnl_5": "开始盈利",
+    "pnl_10": "只涨不跌",
+    "pnl_25": "冲向月球",
+    "pnl_50": "超新星",
+    "danger_10": "回撤警报",
+    "danger_25": "爆仓区域",
+    "milestone_badge": "里程碑",
+    "danger_badge": "仓位告急"
   },
   "hud": {
     "clutch": "极限操作！",
@@ -554,124 +584,5 @@
     "step": "步骤 {{current}} / {{total}}",
     "gotIt": "明白了！",
     "replay": "重新开始教程"
-  },
-  "landing": {
-    "nav": {
-      "engine": "01. 引擎",
-      "pipeline": "02. 数据管道",
-      "dev": "03. 独立开发",
-      "docs": "04. 文档",
-      "execute": "启动引擎",
-      "protocol_retro": "协议: 复古",
-      "protocol_cyber": "协议: 赛博"
-    },
-    "stats": {
-      "performance_target": "Performance Target",
-      "languages": "Languages",
-      "live_market": "Live Market Data",
-      "open_source": "Open Source"
-    },
-    "terminal": {
-      "initializing": "INITIALIZING_SUBSYSTEMS...",
-      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
-      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
-      "process_pulse": "PROCESS: PULSE"
-    },
-    "hero": {
-      "status": "系统状态: 待机模式 (BETA_v1.0)",
-      "title_top": "高风险",
-      "title_highlight": "波动性",
-      "description": "在实时金融市场与肉鸽超休闲游戏之间构建系统性桥梁。",
-      "start": "开始生存",
-      "inspect": "检查协议"
-    },
-    "manifesto": {
-      "title": "工程宣言",
-      "solo": "独立开发",
-      "enterprise": "企业级标准"
-    },
-    "features": {
-      "tag_memory": "内存",
-      "title_memory": "O(1) 对象池",
-      "desc_memory": "采用高级对象池技术的零分配游戏循环，防止 GC 溢出。",
-      "tag_physics": "物理",
-      "title_physics": "空间网格",
-      "desc_physics": "自定义空间哈希进行碰撞检测，确保 O(N) 复杂度。",
-      "tag_state": "状态",
-      "title_state": "解耦 ZUSTAND",
-      "desc_state": "具有手动订阅控制的原子状态管理，确保 60FPS 同步。",
-      "tag_backend": "后端",
-      "title_backend": "安全管道",
-      "desc_backend": "Supabase RLS 结合 Edge Functions 实现无懈可击的验证。"
-    },
-    "architecture": {
-      "title": "超创新架构",
-      "description": "作为一个独立开发者，我的需求很简单：构建一个自我管理的系统。",
-      "balance_title": "系统平衡",
-      "balance_desc": "难度随杠杆（1x-100x）自动伸缩。",
-      "integrity_title": "实时完整性",
-      "integrity_desc": "WSS 馈送故障转移确保游戏零中断。",
-      "performance_title": "原生 60 FPS",
-      "performance_desc": "绕过 DOM 开销的 Canvas 优化渲染管道。"
-    },
-    "modes": {
-      "title": "选择你的道路",
-      "subtitle": "游戏模式",
-      "casual_title": "休闲",
-      "casual_desc": "非常适合学习机制并享受轻松的游戏体验。",
-      "comp_title": "竞技",
-      "comp_desc": "通过经过验证的对局在全球舞台上证明你的技能。",
-      "comp_pro_tag": "专业",
-      "casual_items": [
-        "平缓的难度曲线",
-        "无压力的练习",
-        "解锁所有功能",
-        "本地进度保存",
-        "支持离线模式"
-      ],
-      "comp_items": ["全球排行榜", "反作弊验证", "重放录制", "成就追踪", "赛季排名"]
-    },
-    "roadmap": {
-      "title": "开发时间轴",
-      "subtitle": "路线图",
-      "active_tag": "进行中",
-      "phase1": "2026 Q1",
-      "phase1_title": "基础",
-      "phase1_items": ["核心游戏循环", "60 FPS Canvas 引擎", "Supabase 集成"],
-      "phase2": "2026 Q2",
-      "phase2_title": "实时市场",
-      "phase2_items": ["Binance/Coinbase WSS", "神经 AI 总监", "反作弊系统"],
-      "phase3": "2026 Q3",
-      "phase3_title": "社交",
-      "phase3_items": ["全球排行榜", "重放分享", "成就徽章"],
-      "phase4": "2026 Q4",
-      "phase4_title": "扩张",
-      "phase4_items": ["多币种支持", "每日挑战", "季节性活动"]
-    },
-    "faq": {
-      "title": "常见问题",
-      "subtitle": "FAQ",
-      "q1": "Crypto Survivors 与其他游戏有什么不同？",
-      "a1": "实时 BTC/USD 价格馈送直接影响游戏难度。市场波动为每一局游戏带来独特的挑战。",
-      "q2": "这是一款 P2E 或加密钱包游戏吗？",
-      "a2": "不。这是一款基于技能的街机游戏。无需真钱、无需钱包、无需区块链交易。",
-      "q3": "什么是休闲和竞技模式？",
-      "a3": "休闲模式提供轻松的难度供学习。竞技模式具有全球排行榜和反作弊验证。",
-      "q4": "游戏可以离线运行吗？",
-      "a4": "通过 PWA 提供有限的离线模式。完整功能需要互联网连接以获取实时市场数据。",
-      "q5": "支持哪些平台？",
-      "a5": "网页浏览器（桌面和移动设备），可作为 PWA 安装。计划在未来发布原生应用。"
-    },
-    "footer": {
-      "trademark": "独立开发者项目。 © 2026 CSYNC 协议。",
-      "access": "访问终端",
-      "privacy": "隐私文档",
-      "terms": "条款文档",
-      "contact": "联系渠道",
-      "top": "顶部",
-      "back_to_top": "返回顶部",
-      "discord_soon": "Discord (即将推出)",
-      "twitter_soon": "Twitter/X (即将推出)"
-    }
   }
 }

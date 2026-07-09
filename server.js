@@ -18,6 +18,12 @@ const PORT = process.env.PORT || 3000;
 const DIST_DIR = join(process.cwd(), 'dist');
 const BASE_URL = 'https://crypto-survivors.com';
 const BYTES_PER_MB = 1024 * 1024;
+const MARKET_STREAM_PATH = '/api/v1/market/stream';
+const MARKET_AGGREGATOR_URL =
+  getNormalizedEnvUrl('MARKET_AGGREGATOR_URL') ||
+  getNormalizedEnvUrl('VITE_MARKET_AGGREGATOR_URL') ||
+  getNormalizedEnvUrl('VITE_RAILWAY_API_URL');
+const ALLOWED_MARKET_PAIRS = new Set(['BTC', 'ETH', 'SOL']);
 
 // =============================================================================
 // SECURITY: Blocked Paths (WordPress vulnerability scanners, bots, etc.)
@@ -542,6 +548,148 @@ function shouldServeSpaFallback(urlPath) {
   return PUBLIC_SPA_ROUTES.has(normalizeRoutePath(urlPath));
 }
 
+function getNormalizedEnvUrl(name) {
+  const value = process.env[name]?.trim();
+  return value ? value.replace(/\/+$/, '') : '';
+}
+
+function normalizeMarketPair(value) {
+  const pair = String(value || 'BTC')
+    .trim()
+    .toUpperCase();
+  return ALLOWED_MARKET_PAIRS.has(pair) ? pair : null;
+}
+
+function getMarketAggregatorStreamUrl(pair) {
+  const upstreamUrl = new URL(
+    `${MARKET_STREAM_PATH}?pair=${pair}`,
+    MARKET_AGGREGATOR_URL
+  );
+  return upstreamUrl.toString();
+}
+
+async function handleMarketStreamProxy(req, res, parsedUrl, ip, startTime) {
+  if (req.method !== 'GET') {
+    logRequest(ip, req.method, parsedUrl.pathname, 405, Date.now() - startTime);
+    res.writeHead(405, {
+      ...getSecurityHeaders(true),
+      Allow: 'GET',
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Robots-Tag': 'noindex',
+    });
+    res.end('Method Not Allowed');
+    return;
+  }
+
+  if (!MARKET_AGGREGATOR_URL) {
+    logRequest(ip, req.method, parsedUrl.pathname, 503, Date.now() - startTime);
+    res.writeHead(503, {
+      ...getSecurityHeaders(true),
+      'Content-Type': 'application/json; charset=utf-8',
+      'X-Robots-Tag': 'noindex',
+    });
+    res.end(JSON.stringify({ error: 'Market stream upstream is not configured' }));
+    return;
+  }
+
+  const pair = normalizeMarketPair(parsedUrl.searchParams.get('pair'));
+  if (!pair) {
+    logRequest(ip, req.method, parsedUrl.pathname, 400, Date.now() - startTime);
+    res.writeHead(400, {
+      ...getSecurityHeaders(true),
+      'Content-Type': 'application/json; charset=utf-8',
+      'X-Robots-Tag': 'noindex',
+    });
+    res.end(JSON.stringify({ error: 'Unsupported market pair' }));
+    return;
+  }
+
+  const abortController = new AbortController();
+  const abortUpstream = () => abortController.abort();
+  res.on('close', abortUpstream);
+
+  try {
+    const upstreamResponse = await fetch(getMarketAggregatorStreamUrl(pair), {
+      headers: {
+        Accept: 'text/event-stream',
+        'User-Agent': 'crypto-survivors-market-proxy',
+        'X-Forwarded-For': ip,
+      },
+      signal: abortController.signal,
+    });
+
+    if (!upstreamResponse.ok || !upstreamResponse.body) {
+      const body = await upstreamResponse.text().catch(() => '');
+      logRequest(
+        ip,
+        req.method,
+        parsedUrl.pathname,
+        upstreamResponse.status || 502,
+        Date.now() - startTime
+      );
+      res.writeHead(upstreamResponse.status || 502, {
+        ...getSecurityHeaders(true),
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Robots-Tag': 'noindex',
+      });
+      res.end(
+        JSON.stringify({
+          error: 'Market stream upstream failed',
+          status: upstreamResponse.status,
+          body,
+        })
+      );
+      return;
+    }
+
+    logRequest(ip, req.method, parsedUrl.pathname, 200, Date.now() - startTime);
+    res.writeHead(200, {
+      ...getSecurityHeaders(true),
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'X-Robots-Tag': 'noindex',
+    });
+    res.flushHeaders?.();
+
+    const reader = upstreamResponse.body.getReader();
+    try {
+      while (!abortController.signal.aborted) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const canContinue = res.write(Buffer.from(value));
+        if (!canContinue) {
+          await new Promise(resolve => res.once('drain', resolve));
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (error) {
+    if (!abortController.signal.aborted && !res.headersSent) {
+      logRequest(ip, req.method, parsedUrl.pathname, 502, Date.now() - startTime);
+      res.writeHead(502, {
+        ...getSecurityHeaders(true),
+        'Content-Type': 'application/json; charset=utf-8',
+        'X-Robots-Tag': 'noindex',
+      });
+      res.end(
+        JSON.stringify({
+          error: 'Market stream proxy failed',
+          message: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+  } finally {
+    res.off('close', abortUpstream);
+    if (!res.destroyed && !res.writableEnded) {
+      res.end();
+    }
+  }
+}
+
 function handleRequest(req, res) {
   const startTime = Date.now();
   const ip =
@@ -580,9 +728,9 @@ function handleRequest(req, res) {
   // Google SearchAction schema placeholder — return 410 Gone so Google drops
   // the URL from its index instead of keeping it as a redirect.
   // Check decoded param values because Node URL encodes braces as %7B/%7D.
-  const hasSearchActionPlaceholder = Array.from(
-    parsedUrl.searchParams.values()
-  ).some(value => value.includes('search_term_string'));
+  const hasSearchActionPlaceholder = Array.from(parsedUrl.searchParams.values()).some(
+    value => value.includes('search_term_string')
+  );
 
   if (hasSearchActionPlaceholder) {
     logRequest(ip, req.method, urlPath, 410, Date.now() - startTime);
@@ -628,6 +776,11 @@ function handleRequest(req, res) {
   if (isBlockedPath || isBlockedExt || isHiddenPathProbe) {
     logRequest(ip, req.method, urlPath, 418, Date.now() - startTime);
     sendResponse(res, 418, "I'm a teapot 🫖");
+    return;
+  }
+
+  if (urlPath === MARKET_STREAM_PATH) {
+    void handleMarketStreamProxy(req, res, parsedUrl, ip, startTime);
     return;
   }
 

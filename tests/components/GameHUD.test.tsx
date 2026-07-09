@@ -16,9 +16,9 @@ vi.mock('../../stores/gameStore', () => ({
 
 vi.mock('../../hooks/useHUDEvents', () => ({
   useHUDEvents: vi.fn(() => ({
-    uiMeta: { maxStreak: 10, totalBonusXp: 100, milestoneText: '', milestoneColor: '' },
+    uiMeta: { maxStreak: 10, totalBonusXp: 100 },
     flash: 0,
-    showMilestone: false,
+    announcement: null,
     clutchActive: false,
     achievement: null,
   })),
@@ -60,7 +60,7 @@ vi.mock('../../config/UILayout', () => ({
       waveTimer: { visible: true },
       fpsCounter: { visible: true },
       comboPanel: { visible: true, offset: 0 },
-      milestoneAnnouncer: { visible: true },
+      milestoneAnnouncer: { visible: true, scale: 1 },
       achievementPopup: { visible: true },
     },
   })),

@@ -166,6 +166,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
         zIndex={200}
         maxWidthClassName="max-w-6xl"
         contentClassName="space-y-6"
+        reserveBackButtonSpace
         title={t('common.menu.upgrades') as string}
         subtitle={subtitle}
       >
@@ -226,7 +227,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
                       type="button"
                       onClick={() => setActiveCategory(filter)}
                       className={cn(
-                        'rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] transition-all',
+                        'rounded-sm border px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] transition-all',
                         selected
                           ? isRetro
                             ? 'bg-black text-white'
@@ -340,9 +341,9 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
                         <span>{panelCopy.progressLabel}</span>
                         <span>{progressPercent}%</span>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                      <div className="h-1.5 overflow-hidden rounded-sm bg-white/10">
                         <div
-                          className="h-full rounded-full"
+                          className="h-full rounded-sm"
                           style={{
                             width: `${progressPercent}%`,
                             backgroundColor: accent,
@@ -354,7 +355,7 @@ export const MetaUpgradeScreen: React.FC<MetaUpgradeScreenProps> = ({ onBack }) 
 
                     <div className="mt-auto flex flex-wrap items-center gap-3 pt-1">
                       {isMaxed ? (
-                        <span className="rounded-full border border-emerald-400/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
+                        <span className="rounded-sm border border-emerald-400/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
                           {panelCopy.maxedLabel}
                         </span>
                       ) : (

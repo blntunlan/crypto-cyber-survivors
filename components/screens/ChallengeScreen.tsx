@@ -194,6 +194,7 @@ export const ChallengeScreen: React.FC<ChallengeScreenProps> = ({ onBack }) => {
       <OverlayChrome
         zIndex={200}
         maxWidthClassName="max-w-5xl"
+        reserveBackButtonSpace
         title={t('common.menu.challenges') as string}
         subtitle={t('common.menu_pages.challenges.subtitle') as string}
       >

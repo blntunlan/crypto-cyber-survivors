@@ -99,7 +99,15 @@
         "duration": "Duration {{value}}",
         "level": "Level {{value}}",
         "kills": "{{value}} kills",
-        "watch": "Watch"
+        "watch": "Watch",
+        "playback_badge": "REPLAY",
+        "playback_stats": "Level {{level}} · {{kills}} kills",
+        "playback_complete": "Replay Complete",
+        "playback_complete_hint": "Use EXIT to return to the terminal.",
+        "loading_replay": "Loading replay...",
+        "error_title": "Replay Load Failed",
+        "error_message": "Replay data could not be loaded. Try again later.",
+        "exit": "EXIT"
       }
     },
     "long": "LONG",
@@ -251,6 +259,26 @@
     "disconnected_desc": "The game has been paused to ensure market fairness. World state is frozen until data resumes.",
     "waiting_signal": "Waiting for Signal...",
     "exit_terminal": "Exit to Terminal"
+  },
+  "milestones": {
+    "kills_100": "RAMPAGE",
+    "kills_250": "MASSACRE",
+    "kills_500": "BLOODBATH",
+    "kills_1000": "OBLITERATION",
+    "kills_2500": "GOD CANDLE",
+    "time_60": "1 MINUTE!",
+    "time_180": "3 MINUTES!",
+    "time_300": "5 MINUTES!",
+    "time_600": "10 MINUTES!",
+    "level": "LEVEL {{val}}",
+    "pnl_5": "IN PROFIT",
+    "pnl_10": "UP ONLY",
+    "pnl_25": "MOONSHOT",
+    "pnl_50": "SUPERNOVA",
+    "danger_10": "DRAWDOWN ALERT",
+    "danger_25": "LIQUIDATION ZONE",
+    "milestone_badge": "MILESTONE",
+    "danger_badge": "POSITION AT RISK"
   },
   "hud": {
     "clutch": "CLUTCH!",
@@ -542,139 +570,6 @@
     "gotIt": "Got it!",
     "replay": "Replay Tutorial"
   },
-  "landing": {
-    "nav": {
-      "engine": "01. Engine",
-      "pipeline": "02. Pipeline",
-      "dev": "03. Solo Dev",
-      "docs": "04. Documentation",
-      "execute": "EXECUTE ENGINE",
-      "protocol_retro": "PROTOCOL: RETRO",
-      "protocol_cyber": "PROTOCOL: CYBER"
-    },
-    "stats": {
-      "performance_target": "Performance Target",
-      "languages": "Languages",
-      "live_market": "Live Market Data",
-      "open_source": "Open Source"
-    },
-    "terminal": {
-      "initializing": "INITIALIZING_SUBSYSTEMS...",
-      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
-      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
-      "process_pulse": "PROCESS: PULSE"
-    },
-    "hero": {
-      "status": "SYSTEM STATUS: STANDBY_MODE (BETA_v1.0)",
-      "title_top": "HIGH STAKES",
-      "title_highlight": "VOLATILITY",
-      "description": "Crafting a systematic bridge between live financial markets and rogue-lite hyper-casual gameplay.",
-      "start": "START SURVIVAL",
-      "inspect": "Inspect Protocol"
-    },
-    "manifesto": {
-      "title": "Engineering Manifesto",
-      "solo": "Solo Indie",
-      "enterprise": "Enterprise Standards"
-    },
-    "features": {
-      "tag_memory": "MEMORY",
-      "title_memory": "O(1) POOLING",
-      "desc_memory": "Zero-allocation game loop using advanced object pooling to prevent GC spikes.",
-      "tag_physics": "PHYSICS",
-      "title_physics": "SPATIAL GRID",
-      "desc_physics": "Custom Spatial Hashing for collision detection, ensuring O(N) complexity.",
-      "tag_state": "STATE",
-      "title_state": "DECOUPLED ZUSTAND",
-      "desc_state": "Atomic state management with manual subscription control for 60FPS sync.",
-      "tag_backend": "BACKEND",
-      "title_backend": "SECURE PIPELINE",
-      "desc_backend": "Supabase RLS coupled with Edge Functions for bulletproof validation."
-    },
-    "architecture": {
-      "title": "Ultra-Innovative Architecture",
-      "description": "As a solo indie developer, my requirement was simple: build a system that manages itself.",
-      "balance_title": "Systemic Balance",
-      "balance_desc": "Difficulty scales automatically with Leverage (1x-100x).",
-      "integrity_title": "Real-Time Integrity",
-      "integrity_desc": "WSS feed failover ensures zero game interruption.",
-      "performance_title": "60 FPS Native",
-      "performance_desc": "Canvas-optimized rendering pipeline bypasses DOM overhead."
-    },
-    "modes": {
-      "title": "Choose Your Path",
-      "subtitle": "Game Modes",
-      "casual_title": "Casual",
-      "casual_desc": "Perfect for learning mechanics and enjoying relaxed gameplay.",
-      "comp_title": "Competitive",
-      "comp_desc": "Prove your skills on the global stage with verified runs.",
-      "comp_pro_tag": "Pro",
-      "casual_items": [
-        "Forgiving difficulty curve",
-        "Practice without pressure",
-        "All features unlocked",
-        "Local progress saving",
-        "Offline mode available"
-      ],
-      "comp_items": [
-        "Global leaderboards",
-        "Anti-cheat validation",
-        "Replay recording",
-        "Achievement tracking",
-        "Seasonal rankings"
-      ]
-    },
-    "roadmap": {
-      "title": "Development Timeline",
-      "subtitle": "Roadmap",
-      "active_tag": "Active",
-      "phase1": "Q1 2026",
-      "phase1_title": "Foundation",
-      "phase1_items": [
-        "Core gameplay loop",
-        "60 FPS Canvas engine",
-        "Supabase integration"
-      ],
-      "phase2": "Q2 2026",
-      "phase2_title": "Live Markets",
-      "phase2_items": [
-        "Binance/Coinbase WSS",
-        "Neural AI Director",
-        "Anti-cheat system"
-      ],
-      "phase3": "Q3 2026",
-      "phase3_title": "Social",
-      "phase3_items": ["Global leaderboards", "Replay sharing", "Achievement badges"],
-      "phase4": "Q4 2026",
-      "phase4_title": "Expansion",
-      "phase4_items": ["Multi-crypto support", "Daily challenges", "Seasonal events"]
-    },
-    "faq": {
-      "title": "Common Questions",
-      "subtitle": "FAQ",
-      "q1": "What makes Crypto Survivors different from other games?",
-      "a1": "Real-time BTC/USD price feeds directly influence gameplay difficulty. Market volatility creates unique challenges every session.",
-      "q2": "Is this a play-to-earn or crypto wallet game?",
-      "a2": "No. This is a skill-based arcade game. No real money, no wallets, no blockchain transactions required.",
-      "q3": "What are Casual and Competitive modes?",
-      "a3": "Casual mode offers relaxed difficulty for learning. Competitive mode features global leaderboards and anti-cheat validation.",
-      "q4": "Does the game work offline?",
-      "a4": "Limited offline mode available via PWA. Full features require internet for live market data.",
-      "q5": "What platforms are supported?",
-      "a5": "Web browser (desktop & mobile), PWA installable. Native apps planned for future releases."
-    },
-    "footer": {
-      "trademark": "Solo indie developer project. © 2026 CSYNC PROTOCOL.",
-      "access": "Access_Terminal",
-      "privacy": "Privacy_Doc",
-      "terms": "Terms_Doc",
-      "contact": "Contact_Channel",
-      "top": "TOP",
-      "back_to_top": "Back to Top",
-      "discord_soon": "Discord (Coming Soon)",
-      "twitter_soon": "Twitter/X (Coming Soon)"
-    }
-  },
   "leaderboard": {
     "global_rankings": "Global Rankings",
     "sort_score": "Score",
@@ -686,6 +581,8 @@
     "runs": "runs",
     "all_players": "All Players",
     "refresh": "Refresh",
-    "refreshing": "Refreshing..."
+    "refreshing": "Refreshing...",
+    "you": "YOU",
+    "loading": "Loading rankings..."
   }
 }

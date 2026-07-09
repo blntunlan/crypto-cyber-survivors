@@ -1,132 +1,20 @@
 /**
- * MilestoneService - Achievement & Milestone Tracking
+ * MilestoneService - In-Run Milestone Tracking
  *
  * Tracks player progress and emits events when milestones are reached.
- * Milestones are shown once per session (no repeats).
+ * Milestones fire once per run (no repeats); definitions live in
+ * config/MilestoneConfig.ts. PnL/danger milestones are fed by the canonical
+ * market stream and only fire while the game is actively PLAYING.
  */
 
 import { EventBus } from '../core/EventBus';
-
-interface MilestoneConfig {
-  id: string;
-  name: string;
-  type: 'kills' | 'time' | 'level';
-  threshold: number;
-  icon: string;
-  color: string;
-}
-
-const MILESTONES: MilestoneConfig[] = [
-  // Kill Milestones
-  {
-    id: 'kills_100',
-    name: 'CENTURION',
-    type: 'kills',
-    threshold: 100,
-    icon: '⚔️',
-    color: '#c0c0c0',
-  },
-  {
-    id: 'kills_250',
-    name: 'SLAYER',
-    type: 'kills',
-    threshold: 250,
-    icon: '🗡️',
-    color: '#ffd700',
-  },
-  {
-    id: 'kills_500',
-    name: 'DESTROYER',
-    type: 'kills',
-    threshold: 500,
-    icon: '💀',
-    color: '#ff6b00',
-  },
-  {
-    id: 'kills_1000',
-    name: 'ANNIHILATOR',
-    type: 'kills',
-    threshold: 1000,
-    icon: '🔥',
-    color: '#ff0000',
-  },
-  {
-    id: 'kills_2500',
-    name: 'LEGEND',
-    type: 'kills',
-    threshold: 2500,
-    icon: '👑',
-    color: '#a855f7',
-  },
-
-  // Time Milestones (seconds)
-  {
-    id: 'time_60',
-    name: '1 MINUTE!',
-    type: 'time',
-    threshold: 60,
-    icon: '⏱️',
-    color: '#22c55e',
-  },
-  {
-    id: 'time_180',
-    name: '3 MINUTES!',
-    type: 'time',
-    threshold: 180,
-    icon: '⏱️',
-    color: '#3b82f6',
-  },
-  {
-    id: 'time_300',
-    name: '5 MINUTES!',
-    type: 'time',
-    threshold: 300,
-    icon: '⏱️',
-    color: '#f59e0b',
-  },
-  {
-    id: 'time_600',
-    name: '10 MINUTES!',
-    type: 'time',
-    threshold: 600,
-    icon: '🏆',
-    color: '#ef4444',
-  },
-
-  // Level Milestones
-  {
-    id: 'level_5',
-    name: 'LEVEL 5',
-    type: 'level',
-    threshold: 5,
-    icon: '⬆️',
-    color: '#22c55e',
-  },
-  {
-    id: 'level_10',
-    name: 'LEVEL 10',
-    type: 'level',
-    threshold: 10,
-    icon: '⬆️',
-    color: '#3b82f6',
-  },
-  {
-    id: 'level_15',
-    name: 'LEVEL 15',
-    type: 'level',
-    threshold: 15,
-    icon: '⬆️',
-    color: '#f59e0b',
-  },
-  {
-    id: 'level_20',
-    name: 'LEVEL 20',
-    type: 'level',
-    threshold: 20,
-    icon: '🌟',
-    color: '#ef4444',
-  },
-];
+import { GameStateMachine } from '../core/GameStateMachine';
+import { GameStatus } from '../../types';
+import {
+  MILESTONE_DEFINITIONS,
+  type MilestoneDefinition,
+  type MilestoneType,
+} from '../../config/MilestoneConfig';
 
 // Exported for testing
 export class MilestoneServiceClass {
@@ -151,6 +39,14 @@ export class MilestoneServiceClass {
       EventBus.on(
         'secondElapsed',
         data => this.checkTimeMilestones(data.totalSeconds),
+        { scope: 'gameplay' }
+      ),
+      // NOTE: the canonicalMarketUpdate payload is a shared object mutated in
+      // place by MarketEventConsolidator — read pnlPercent immediately, never
+      // retain the reference.
+      EventBus.on(
+        'canonicalMarketUpdate',
+        data => this.checkPnLMilestones(data.pnlPercent),
         { scope: 'gameplay' }
       ),
       EventBus.on('gameReset', () => this.reset(), { scope: 'system' })
@@ -199,24 +95,49 @@ export class MilestoneServiceClass {
   }
 
   /**
+   * Check PnL milestones (positive) and danger announcements (negative).
+   * Market events keep flowing during PAUSED/LEVEL_UP/GAMEOVER, so gate on
+   * the live PLAYING state.
+   */
+  checkPnLMilestones(pnlPercent: number): void {
+    if (!Number.isFinite(pnlPercent)) return;
+    if (GameStateMachine.getState() !== GameStatus.PLAYING) return;
+    this.checkMilestones('pnl', pnlPercent);
+    this.checkMilestones('danger', pnlPercent);
+  }
+
+  /**
    * Check and emit any newly achieved milestones
    */
-  private checkMilestones(type: 'kills' | 'time' | 'level', value: number): void {
-    for (const milestone of MILESTONES) {
+  private checkMilestones(type: MilestoneType, value: number): void {
+    for (const milestone of MILESTONE_DEFINITIONS) {
       if (milestone.type !== type) continue;
       if (this.achievedMilestones.has(milestone.id)) continue;
-      if (value >= milestone.threshold) {
-        this.achievedMilestones.add(milestone.id);
-        EventBus.emit('milestoneAchieved', {
-          id: milestone.id,
-          name: milestone.name,
-          icon: milestone.icon,
-          color: milestone.color,
-          type: milestone.type,
-          threshold: milestone.threshold,
-        });
-      }
+      if (!this.isThresholdMet(milestone, value)) continue;
+      this.achievedMilestones.add(milestone.id);
+      EventBus.emit('milestoneAchieved', {
+        id: milestone.id,
+        name: milestone.fallbackName,
+        nameKey: milestone.nameKey,
+        nameParams: milestone.nameParams,
+        icon: milestone.icon,
+        color: milestone.color,
+        type: milestone.type,
+        threshold: milestone.threshold,
+        severity: milestone.severity,
+        sound: milestone.sound,
+      });
     }
+  }
+
+  /**
+   * Danger thresholds are negative and trigger on the way down; everything
+   * else triggers on the way up.
+   */
+  private isThresholdMet(milestone: MilestoneDefinition, value: number): boolean {
+    return milestone.type === 'danger'
+      ? value <= milestone.threshold
+      : value >= milestone.threshold;
   }
 
   /**

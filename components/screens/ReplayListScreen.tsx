@@ -52,6 +52,7 @@ export const ReplayListScreen: React.FC<ReplayListScreenProps> = ({
       <OverlayChrome
         zIndex={200}
         maxWidthClassName="max-w-5xl"
+        reserveBackButtonSpace
         title={t('common.menu.replays') as string}
         subtitle={t('common.menu_pages.replays.subtitle') as string}
       >

@@ -10,7 +10,9 @@
     "runs": "lượt chơi",
     "all_players": "Tất cả người chơi",
     "refresh": "Làm mới",
-    "refreshing": "Đang làm mới..."
+    "refreshing": "Đang làm mới...",
+    "you": "BẠN",
+    "loading": "Đang tải bảng xếp hạng..."
   },
   "common": {
     "start": "Bắt đầu",
@@ -112,7 +114,15 @@
         "duration": "Thời lượng {{value}}",
         "level": "Cấp {{value}}",
         "kills": "{{value}} hạ gục",
-        "watch": "Xem"
+        "watch": "Xem",
+        "playback_badge": "PHÁT LẠI",
+        "playback_stats": "Cấp {{level}} · {{kills}} hạ gục",
+        "playback_complete": "Phát lại hoàn tất",
+        "playback_complete_hint": "Dùng THOÁT để quay lại terminal.",
+        "loading_replay": "Đang tải bản phát lại...",
+        "error_title": "Tải bản phát lại thất bại",
+        "error_message": "Không thể tải dữ liệu phát lại. Hãy thử lại sau.",
+        "exit": "THOÁT"
       }
     },
     "long": "LONG",
@@ -264,6 +274,26 @@
     "disconnected_desc": "Trò chơi đã tạm dừng để đảm bảo công bằng thị trường. Trạng thái thế giới bị đóng băng cho đến khi có dữ liệu.",
     "waiting_signal": "Đang đợi tín hiệu...",
     "exit_terminal": "Thoát ra Terminal"
+  },
+  "milestones": {
+    "kills_100": "CUỒNG SÁT",
+    "kills_250": "THẢM SÁT",
+    "kills_500": "BỂ MÁU",
+    "kills_1000": "HỦY DIỆT",
+    "kills_2500": "NẾN THẦN",
+    "time_60": "1 PHÚT!",
+    "time_180": "3 PHÚT!",
+    "time_300": "5 PHÚT!",
+    "time_600": "10 PHÚT!",
+    "level": "CẤP {{val}}",
+    "pnl_5": "CÓ LÃI",
+    "pnl_10": "CHỈ CÓ TĂNG",
+    "pnl_25": "LÊN MẶT TRĂNG",
+    "pnl_50": "SIÊU TÂN TINH",
+    "danger_10": "CẢNH BÁO THUA LỖ",
+    "danger_25": "VÙNG THANH LÝ",
+    "milestone_badge": "CỘT MỐC",
+    "danger_badge": "VỊ THẾ GẶP NGUY"
   },
   "hud": {
     "clutch": "CLUTCH!",
@@ -554,146 +584,5 @@
     "step": "Bước {{current}} / {{total}}",
     "gotIt": "Đã hiểu!",
     "replay": "Phát lại hướng dẫn"
-  },
-  "landing": {
-    "nav": {
-      "engine": "01. Động cơ",
-      "pipeline": "02. Đường ống dữ liệu",
-      "dev": "03. Nhà phát triển Solo",
-      "docs": "04. Tài liệu",
-      "execute": "CHẠY ĐỘNG CƠ",
-      "protocol_retro": "GIAO THỨC: RETRO",
-      "protocol_cyber": "GIAO THỨC: CYBER"
-    },
-    "stats": {
-      "performance_target": "Performance Target",
-      "languages": "Languages",
-      "live_market": "Live Market Data",
-      "open_source": "Open Source"
-    },
-    "terminal": {
-      "initializing": "INITIALIZING_SUBSYSTEMS...",
-      "connection_established": "CONNECTION_ESTABLISHED: LATENCY 8ms",
-      "status_ready": "STATUS: READY_FOR_DEPLOYMENT",
-      "process_pulse": "PROCESS: PULSE"
-    },
-    "hero": {
-      "status": "TRẠNG THÁI HỆ THỐNG: CHẾ ĐỘ CHỜ (BETA_v1.0)",
-      "title_top": "RỦI RO CAO",
-      "title_highlight": "BIẾN ĐỘNG",
-      "description": "Xây dựng cầu nối hệ thống giữa thị trường tài chính trực tiếp và lối chơi rogue-lite hyper-casual.",
-      "start": "BẮT ĐẦU SINH TỒN",
-      "inspect": "Kiểm tra giao thức"
-    },
-    "manifesto": {
-      "title": "Tuyên ngôn kỹ thuật",
-      "solo": "Nhà phát triển Solo",
-      "enterprise": "Tiêu chuẩn doanh nghiệp"
-    },
-    "features": {
-      "tag_memory": "BỘ NHỚ",
-      "title_memory": "POOLING O(1)",
-      "desc_memory": "Vòng lặp trò chơi không cấp phát sử dụng pooling đối tượng nâng cao để ngăn chặn đột biến GC.",
-      "tag_physics": "VẬT LÝ",
-      "title_physics": "LƯỚI KHÔNG GIAN",
-      "desc_physics": "Spatial Hashing tùy chỉnh để phát hiện va chạm, đảm bảo độ phức tạp O(N).",
-      "tag_state": "TRẠNG THÁI",
-      "title_state": "ZUSTAND TÁCH BIỆT",
-      "desc_state": "Quản lý trạng thái nguyên tử với kiểm soát đăng ký thủ công để đồng bộ hóa 60FPS.",
-      "tag_backend": "HẬU CẦN",
-      "title_backend": "ĐƯỜNG ỐNG BẢO MẬT",
-      "desc_backend": "Supabase RLS kết hợp với Edge Functions để xác thực an toàn tuyệt đối."
-    },
-    "architecture": {
-      "title": "Kiến trúc siêu sáng tạo",
-      "description": "Là một nhà phát triển solo, yêu cầu của tôi rất đơn giản: xây dựng một hệ thống tự quản lý.",
-      "balance_title": "Cân bằng hệ thống",
-      "balance_desc": "Độ khó tự động mở rộng theo đòn bẩy (1x-100x).",
-      "integrity_title": "Tính toàn vẹn thời gian thực",
-      "integrity_desc": "Dòng dữ liệu WSS dự phòng đảm bảo trò chơi không bao giờ bị gián đoạn.",
-      "performance_title": "60 FPS nguyên bản",
-      "performance_desc": "Đường ống rẽ nhánh Canvas được tối ưu hóa bỏ qua chi phí DOM."
-    },
-    "modes": {
-      "title": "Chọn con đường của bạn",
-      "subtitle": "Chế độ chơi",
-      "casual_title": "Thư giãn",
-      "casual_desc": "Hoàn hảo để học cơ chế và tận hưởng lối chơi thoải mái.",
-      "comp_title": "Cạnh tranh",
-      "comp_desc": "Chứng minh kỹ năng của bạn trên đấu trường toàn cầu với các lượt chơi được xác thực.",
-      "comp_pro_tag": "Chuyên nghiệp",
-      "casual_items": [
-        "Đường cong độ khó nhẹ nhàng",
-        "Luyện tập không áp lực",
-        "Mở khóa tất cả tính năng",
-        "Lưu tiến trình cục bộ",
-        "Chế độ ngoại tuyến khả dụng"
-      ],
-      "comp_items": [
-        "Bảng xếp hạng toàn cầu",
-        "Xác thực chống gian lận",
-        "Ghi lại phát lại",
-        "Theo dõi thành tích",
-        "Xếp hạng theo mùa"
-      ]
-    },
-    "roadmap": {
-      "title": "Lộ trình phát triển",
-      "subtitle": "Roadmap",
-      "active_tag": "Đang hoạt động",
-      "phase1": "Q1 2026",
-      "phase1_title": "Nền tảng",
-      "phase1_items": [
-        "Vòng lặp cốt lõi",
-        "Động cơ Canvas 60 FPS",
-        "Tích hợp Supabase"
-      ],
-      "phase2": "Q2 2026",
-      "phase2_title": "Thị trường trực tiếp",
-      "phase2_items": [
-        "Binance/Coinbase WSS",
-        "Giám đốc AI thần kinh",
-        "Hệ thống chống gian lận"
-      ],
-      "phase3": "Q3 2026",
-      "phase3_title": "Xã hội",
-      "phase3_items": [
-        "Bảng xếp hạng toàn cầu",
-        "Chia sẻ phát lại",
-        "Huy hiệu thành tích"
-      ],
-      "phase4": "Q4 2026",
-      "phase4_title": "Mở rộng",
-      "phase4_items": [
-        "Hỗ trợ đa tiền điện tử",
-        "Thử thách hàng ngày",
-        "Sự kiện theo mùa"
-      ]
-    },
-    "faq": {
-      "title": "Câu hỏi thường gặp",
-      "subtitle": "FAQ",
-      "q1": "Điều gì khiến Crypto Survivors khác biệt với các trò chơi khác?",
-      "a1": "Dữ liệu giá BTC/USD theo thời gian thực ảnh hưởng trực tiếp đến độ khó. Sự biến động tạo ra thử thách duy nhất mỗi phiên.",
-      "q2": "Đây có phải là trò chơi play-to-earn hay ví tiền điện tử không?",
-      "a2": "Không. Đây là trò chơi arcade dựa trên kỹ năng. Không dùng tiền thật, không ví, không cần giao dịch blockchain.",
-      "q3": "Chế độ Thư giãn và Cạnh tranh là gì?",
-      "a3": "Chế độ Thư giãn cung cấp độ khó nhẹ nhàng để học hỏi. Chế độ Cạnh tranh có bảng xếp hạng toàn cầu và xác thực chống gian lận.",
-      "q4": "Trò chơi có hoạt động ngoại tuyến không?",
-      "a4": "Chế độ ngoại tuyến giới hạn qua PWA. Các tính năng đầy đủ cần internet để lấy dữ liệu thị trường trực tiếp.",
-      "q5": "Những nền tảng nào được hỗ trợ?",
-      "a5": "Trình duyệt web (PC & di động), có thể cài đặt PWA. Dự kiến có ứng dụng gốc trong tương lai."
-    },
-    "footer": {
-      "trademark": "Dự án nhà phát triển solo. © 2026 GIAO THỨC CSYNC.",
-      "access": "Truy_cập_Terminal",
-      "privacy": "Tài_liệu_Bảo_mật",
-      "terms": "Điều_khoản_Dịch_vụ",
-      "contact": "Kênh_Liên_hệ",
-      "top": "LÊN ĐẦU",
-      "back_to_top": "Về đầu trang",
-      "discord_soon": "Discord (Sớm ra mắt)",
-      "twitter_soon": "Twitter/X (Sớm ra mắt)"
-    }
   }
 }

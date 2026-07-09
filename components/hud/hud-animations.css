@@ -38,6 +38,30 @@
   }
 }
 
+@keyframes milestoneOut {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.85);
+  }
+}
+
+/* Danger Announcement Screen-Edge Pulse (opacity-only, GPU-cheap) */
+@keyframes dangerEdgePulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes milestonePulse {
   0%,
   100% {

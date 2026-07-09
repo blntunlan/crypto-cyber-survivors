@@ -1,5 +1,5 @@
 export const PANEL_VARIANTS = {
-  modern: 'cyber-glass rounded-xl', // Shadow is now handled solely by .cyber-glass in CSS
+  modern: 'rounded-lg border border-white/10 bg-white/5',
   retro:
     'bg-[#0a0a12]/95 border-2 border-[#39FF14]/60 rounded-none shadow-[4px_4px_0px_rgba(57,255,20,0.3)]',
 };
@@ -7,7 +7,7 @@ export const PANEL_VARIANTS = {
 export const BUTTON_VARIANTS = {
   primary: {
     modern:
-      'rounded-lg bg-gradient-to-r from-cyan-600 to-cyan-500 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white shadow-lg shadow-cyan-900/20',
+      'rounded-lg border border-cyan-400/30 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white shadow-lg shadow-cyan-900/20',
     retro:
       'rounded-none border-2 border-[#FFD600] bg-[#00BFFF] hover:bg-[#39FF14] active:translate-y-1 active:shadow-none text-white shadow-[4px_4px_0px_rgba(0,0,0,1)]',
   },

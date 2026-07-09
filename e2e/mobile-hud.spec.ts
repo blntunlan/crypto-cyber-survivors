@@ -83,50 +83,41 @@ test.describe('Mobile HUD Layout', () => {
     test('HUD panels should be constrained with maxWidth', async ({ page }) => {
       await page.goto('/?no-sw=true');
       const gameStarted = await navigateToGame(page);
+      expect(gameStarted).toBe(true);
 
-      if (gameStarted) {
-        // Check that HUD panels have the constraint class
-        const leftPanel = page.locator('.hud-element-left');
-        const rightPanel = page.locator('.hud-element-right');
+      // Check that HUD panels have the constraint class
+      const leftPanel = page.locator('.hud-element-left');
+      const rightPanel = page.locator('.hud-element-right');
 
-        // At least one of these should be visible if in game
-        const hasLeftPanel = (await leftPanel.count()) > 0;
-        const hasRightPanel = (await rightPanel.count()) > 0;
+      const hasLeftPanel = (await leftPanel.count()) > 0;
+      const hasRightPanel = (await rightPanel.count()) > 0;
+      expect(hasLeftPanel).toBe(true);
+      expect(hasRightPanel).toBe(true);
 
-        if (hasLeftPanel && hasRightPanel) {
-          // Get computed styles via JavaScript
-          const styles = await page.evaluate(() => {
-            const left = document.querySelector(
-              '.hud-element-left'
-            ) as HTMLElement | null;
-            const right = document.querySelector(
-              '.hud-element-right'
-            ) as HTMLElement | null;
-            if (left && right) {
-              const leftStyle = window.getComputedStyle(left);
-              const rightStyle = window.getComputedStyle(right);
-              const leftRect = left.getBoundingClientRect();
-              const rightRect = right.getBoundingClientRect();
-              return {
-                leftMaxWidth: leftStyle.maxWidth,
-                rightMaxWidth: rightStyle.maxWidth,
-                leftRight: leftRect.right,
-                rightLeft: rightRect.left,
-                noOverlap: leftRect.right < rightRect.left,
-              };
-            }
-            return null;
-          });
-
-          if (styles) {
-            // Verify no horizontal overlap
-            expect(styles.noOverlap).toBe(true);
-          }
+      // Get computed styles via JavaScript
+      const styles = await page.evaluate(() => {
+        const left = document.querySelector('.hud-element-left') as HTMLElement | null;
+        const right = document.querySelector(
+          '.hud-element-right'
+        ) as HTMLElement | null;
+        if (left && right) {
+          const leftStyle = window.getComputedStyle(left);
+          const rightStyle = window.getComputedStyle(right);
+          const leftRect = left.getBoundingClientRect();
+          const rightRect = right.getBoundingClientRect();
+          return {
+            leftMaxWidth: leftStyle.maxWidth,
+            rightMaxWidth: rightStyle.maxWidth,
+            leftRight: leftRect.right,
+            rightLeft: rightRect.left,
+            noOverlap: leftRect.right < rightRect.left,
+          };
         }
-      }
+        return null;
+      });
 
-      // Test passes if we get here without errors
-      expect(true).toBe(true);
+      expect(styles).not.toBeNull();
+      expect(styles?.noOverlap).toBe(true);
     });
   });
 

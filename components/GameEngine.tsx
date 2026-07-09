@@ -1271,13 +1271,14 @@ export const GameEngine: React.FC<GameEngineProps> = ({
           height
         );
 
-        // Record replay snapshot (every 500ms internally)
+        // Record replay snapshot (player every 500ms, enemies every 1000ms internally)
         ReplayRecorderService.tick(
           deltaTime,
           player.x,
           player.y,
           player.hp,
-          player.level
+          player.level,
+          p.activeEnemies
         );
 
         // Only update React state if meaningful stats changed AND enough time passed (Throttle 100ms)

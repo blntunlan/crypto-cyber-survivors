@@ -5,15 +5,24 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { EventBus } from '../../services/core/EventBus';
 import { ReplayPlayerService } from '../../services/replay/ReplayPlayerService';
+import { useTheme } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { ThemedButton } from '../themed/ThemedButton';
+import { COLORS } from '../../config/Colors';
+import { cn } from '../../utils/classnames';
 
 interface ReplayOverlayProps {
   onExit: () => void;
 }
 
+const PLAYBACK_SPEEDS = [1, 2, 4] as const;
+
 export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
   const [speed, setSpeed] = useState(1);
   const progressTextRef = useRef<HTMLSpanElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const { isRetro } = useTheme();
+  const { t } = useLanguage();
 
   const formatTime = (pct: number) => {
     const replay = ReplayPlayerService.getReplay();
@@ -52,80 +61,78 @@ export const ReplayOverlay: React.FC<ReplayOverlayProps> = ({ onExit }) => {
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        bottom: 16,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: 'rgba(2, 6, 23, 0.9)',
-        border: '1px solid #334155',
-        borderRadius: 8,
-        padding: '8px 16px',
-        fontFamily: 'monospace',
-        fontSize: 11,
-        color: '#e2e8f0',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        zIndex: 100,
-      }}
+      className={cn(
+        'absolute bottom-[calc(0.75rem+var(--sab))] left-1/2 z-[100] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center gap-2 px-3 py-1.5 sm:gap-3 sm:px-4 sm:py-2',
+        isRetro
+          ? 'border-2 border-[#39FF14]/40 bg-[#0a0a12]/95 font-retro-pixel'
+          : 'cyber-glass rounded-lg border border-white/10 bg-slate-950/90 font-cyber'
+      )}
     >
-      <span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>REPLAY</span>
+      <span
+        className="text-[10px] font-black uppercase tracking-[0.2em]"
+        style={{ color: isRetro ? COLORS.NEON_GREEN : COLORS.WHALE }}
+      >
+        {t('common.menu_pages.replays.playback_badge')}
+      </span>
 
-      <span ref={progressTextRef} style={{ color: '#64748b' }}>
+      <span
+        ref={progressTextRef}
+        className="whitespace-nowrap text-[10px] tabular-nums text-slate-400"
+      >
         0:00 / {totalTime()}
       </span>
 
       {/* Progress bar */}
       <div
-        style={{ width: 120, height: 4, backgroundColor: '#1e293b', borderRadius: 2 }}
+        className={cn(
+          'h-1 w-14 overflow-hidden bg-slate-800 sm:w-28',
+          !isRetro && 'rounded-full'
+        )}
       >
         <div
           ref={progressBarRef}
-          style={{
-            height: '100%',
-            width: '0%',
-            backgroundColor: '#8b5cf6',
-            borderRadius: 2,
-          }}
+          className={cn('h-full w-0', !isRetro && 'rounded-full')}
+          style={{ backgroundColor: isRetro ? COLORS.NEON_GREEN : COLORS.WHALE }}
         />
       </div>
 
       {/* Speed buttons */}
-      {[1, 2, 4].map(s => (
-        <button
-          key={s}
-          onClick={() => setPlaybackSpeed(s)}
-          style={{
-            background: speed === s ? '#8b5cf6' : 'none',
-            border: `1px solid ${speed === s ? '#8b5cf6' : '#475569'}`,
-            color: speed === s ? '#020617' : '#94a3b8',
-            padding: '2px 8px',
-            fontFamily: 'monospace',
-            fontSize: 10,
-            cursor: 'pointer',
-            borderRadius: 3,
-          }}
-        >
-          {s}x
-        </button>
-      ))}
+      <div className="flex items-center gap-1 sm:gap-1.5">
+        {PLAYBACK_SPEEDS.map(s => (
+          <ThemedButton
+            key={s}
+            intent="ghost"
+            onClick={() => setPlaybackSpeed(s)}
+            className={cn(
+              'min-h-[44px] min-w-[38px] px-2 text-[10px] font-black uppercase tracking-[0.1em] touch-manipulation active:scale-95 focus-visible:ring-2 focus-visible:ring-cyan-400',
+              !isRetro && 'border',
+              !isRetro &&
+                (speed === s
+                  ? 'border-[#B026FF]/60 bg-[#B026FF]/15 text-[#c4b5fd] shadow-[0_0_12px_rgba(176,38,255,0.25)]'
+                  : 'border-white/10 text-slate-400 hover:text-white'),
+              isRetro &&
+                (speed === s
+                  ? 'border-2 border-[#39FF14] text-[#39FF14]'
+                  : 'border-2 border-white/20 text-slate-400')
+            )}
+          >
+            {s}x
+          </ThemedButton>
+        ))}
+      </div>
 
-      <button
+      <ThemedButton
+        intent="ghost"
         onClick={onExit}
-        style={{
-          background: 'none',
-          border: '1px solid #ef4444',
-          color: '#ef4444',
-          padding: '2px 10px',
-          fontFamily: 'monospace',
-          fontSize: 10,
-          cursor: 'pointer',
-          borderRadius: 3,
-        }}
+        className={cn(
+          'min-h-[44px] px-2.5 text-[10px] font-black uppercase tracking-[0.15em] touch-manipulation active:scale-95 focus-visible:ring-2 focus-visible:ring-red-400',
+          isRetro
+            ? 'border-2 border-red-500/60 text-red-400'
+            : 'border border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300'
+        )}
       >
-        EXIT
-      </button>
+        {t('common.menu_pages.replays.exit')}
+      </ThemedButton>
     </div>
   );
 };

@@ -10,18 +10,18 @@ export const LandingBackground: React.FC = () => {
       aria-hidden="true"
     >
       <div className="absolute inset-0 bg-[#020617]" />
-      <div className="absolute inset-0 bg-[radial-gradient(130%_90%_at_50%_0%,rgba(214,184,92,0.12),transparent_55%),radial-gradient(110%_90%_at_95%_90%,rgba(178,34,34,0.15),transparent_60%),radial-gradient(90%_80%_at_10%_80%,rgba(15,23,42,0.8),transparent_65%)]" />
-
-      {/* Gold blob - CSS animation instead of framer-motion */}
+      <div className="landing-depth-field absolute inset-0 bg-[radial-gradient(95%_72%_at_18%_26%,rgba(214,184,92,0.12),transparent_52%),radial-gradient(85%_70%_at_88%_74%,rgba(178,34,34,0.24),transparent_58%),linear-gradient(125deg,rgba(2,6,23,0.98)_0%,rgba(7,11,20,0.94)_48%,rgba(19,7,13,0.94)_100%)]" />
+      <div className="landing-red-radial absolute -bottom-[18%] -right-[18%] h-[76%] w-[78%] bg-[radial-gradient(ellipse_at_center,rgba(178,34,34,0.32)_0%,rgba(178,34,34,0.18)_34%,rgba(178,34,34,0.06)_58%,transparent_76%)]" />
       <div
-        className={`absolute -left-[18%] top-[-12%] h-[56%] w-[56%] rounded-full bg-[#d6b85c]/[0.12] blur-[120px] md:blur-[150px] ${prefersReducedMotion ? 'opacity-[0.28]' : 'landing-blob-gold'}`}
-      />
-      {/* Red blob - CSS animation */}
-      <div
-        className={`absolute -bottom-[24%] -right-[16%] h-[62%] w-[62%] rounded-full bg-[#b22222]/[0.14] blur-[130px] md:blur-[170px] ${prefersReducedMotion ? 'opacity-[0.26]' : 'landing-blob-red'}`}
+        className="landing-candle-ribbon absolute right-0 top-0 hidden h-full w-[46vw] opacity-55 mix-blend-screen md:block"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(90deg, transparent 0 22px, rgba(214,184,92,0.16) 22px 24px, transparent 24px 46px, rgba(178,34,34,0.16) 46px 49px, transparent 49px 72px)',
+          maskImage:
+            'linear-gradient(90deg, transparent 0%, black 35%, black 82%, transparent 100%)',
+        }}
       />
 
-      {/* Grid pattern - static with subtle opacity pulse via CSS */}
       <div
         className={`absolute inset-0 ${prefersReducedMotion ? 'opacity-[0.18]' : 'landing-grid-pulse'}`}
         style={{
@@ -33,7 +33,6 @@ export const LandingBackground: React.FC = () => {
         }}
       />
 
-      {/* Striped pattern - static, no animation needed for subtle effect */}
       <div
         className="absolute inset-0 hidden md:block"
         style={{
@@ -43,19 +42,7 @@ export const LandingBackground: React.FC = () => {
         }}
       />
 
-      {/* Gold gradient sweep - CSS animation */}
-      <div
-        className={`absolute -left-[35%] top-[-28%] h-[95%] w-[95%] rotate-[-20deg] bg-[linear-gradient(90deg,transparent_0%,rgba(214,184,92,0.34)_45%,transparent_100%)] blur-[68px] ${prefersReducedMotion ? 'opacity-[0.2]' : 'landing-sweep-gold'}`}
-      />
-      {/* Red gradient sweep - CSS animation */}
-      <div
-        className={`absolute -right-[38%] bottom-[-35%] h-[110%] w-[90%] rotate-[18deg] bg-[linear-gradient(90deg,transparent_0%,rgba(178,34,34,0.30)_45%,transparent_100%)] blur-[72px] ${prefersReducedMotion ? 'opacity-[0.18]' : 'landing-sweep-red'}`}
-      />
-
-      {/* Rotating circle - CSS animation */}
-      <div
-        className={`absolute left-1/2 top-1/2 hidden h-[66vmax] w-[66vmax] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d6b85c]/15 md:block ${prefersReducedMotion ? '' : 'landing-rotate-circle'}`}
-      />
+      <div className="landing-market-rift absolute inset-y-0 right-[6%] hidden w-[36vw] -skew-x-12 bg-[linear-gradient(90deg,transparent_0%,rgba(214,184,92,0.07)_34%,rgba(178,34,34,0.14)_52%,transparent_82%)] opacity-70 mix-blend-screen md:block" />
 
       <div
         className="absolute inset-0 opacity-[0.15] md:opacity-[0.2]"

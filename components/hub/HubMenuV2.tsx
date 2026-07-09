@@ -169,7 +169,7 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
       transition={{ duration: 0.4 }}
       className={cn(
         'allow-scroll absolute inset-0 z-[110] flex flex-col items-center justify-start overflow-y-auto p-2.5 pb-[calc(0.75rem+var(--sab))] sm:justify-center sm:p-5',
-        isRetro ? 'bg-[#0a0a12]/80' : 'bg-slate-950/60 backdrop-blur-lg'
+        isRetro ? 'bg-[#0a0a12]/80' : 'bg-slate-950'
       )}
     >
       <div
@@ -234,14 +234,14 @@ export const HubMenuV2: React.FC<HubMenuV2Props> = ({
           className={cn(
             'relative space-y-5 overflow-hidden p-4 sm:p-5',
             !isRetro &&
-              'bg-slate-900/85 !rounded-[1.75rem] border border-white/15 shadow-[0_30px_80px_rgba(2,6,23,0.85)] backdrop-blur-2xl'
+              'bg-slate-900/95 !rounded-[1.5rem] border border-white/20 shadow-[0_20px_80px_rgba(2,6,23,0.8),0_0_0_1px_rgba(148,163,184,0.22)]'
           )}
         >
           {!isRetro && (
             <>
-              <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] border border-white/15" />
-              <div className="pointer-events-none absolute inset-3 rounded-[1.25rem] border border-cyan-200/10" />
-              <div className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] border border-white/25" />
+              <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
+              <div className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </>
           )}
 
@@ -329,7 +329,7 @@ const HubMetricCard: React.FC<HubMetricCardProps> = ({
 }) => (
   <div
     className={cn(
-      'flex flex-col justify-between rounded-xl border border-white/5 p-2.5 text-left transition-shadow duration-300 sm:p-3',
+      'flex flex-col justify-between rounded-lg border border-white/5 p-2.5 text-left transition-shadow duration-300 sm:p-3',
       !isRetro && 'bg-white/5 hover:shadow-[0_0_25px_rgba(148,163,184,0.25)]',
       isRetro && 'border-2 border-[#39FF14]/30 bg-zinc-900/70'
     )}

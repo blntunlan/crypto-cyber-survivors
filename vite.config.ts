@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const getManualChunk = (id: string): string | undefined => {
@@ -68,11 +68,31 @@ const getManualChunk = (id: string): string | undefined => {
 
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
+  const env = loadEnv(mode, process.cwd(), '');
+  const marketAggregatorUrl = (
+    env.MARKET_AGGREGATOR_URL ||
+    env.VITE_MARKET_AGGREGATOR_URL ||
+    env.VITE_RAILWAY_API_URL ||
+    ''
+  )
+    .trim()
+    .replace(/\/+$/, '');
 
   return {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      ...(marketAggregatorUrl
+        ? {
+            proxy: {
+              '/api/v1/market': {
+                target: marketAggregatorUrl,
+                changeOrigin: true,
+                secure: true,
+              },
+            },
+          }
+        : {}),
     },
     plugins: [react()],
     resolve: {

@@ -8,14 +8,15 @@ import { render, screen, fireEvent, waitFor } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NicknameEntryScreen } from '../../components/screens/NicknameEntryScreen';
 import { useUser } from '../../contexts/useUser';
-import { audio } from '../../services/audio';
+import { audio } from '../../services/audio/AudioService';
+import { COLORS } from '../../config/Colors';
 
 // Mock dependencies
 vi.mock('../../contexts/useUser', () => ({
   useUser: vi.fn(),
 }));
 
-vi.mock('../../services/audio', () => ({
+vi.mock('../../services/audio/AudioService', () => ({
   audio: {
     playLevelUp: vi.fn(),
     playHit: vi.fn(),
@@ -47,6 +48,19 @@ describe('NicknameEntryScreen', () => {
     expect(
       screen.getByPlaceholderText('common.nickname_screen.placeholder')
     ).toBeInTheDocument();
+  });
+
+  it('renders as a cyber identity terminal using the shared color palette', () => {
+    render(<NicknameEntryScreen onComplete={mockOnComplete} />);
+
+    expect(screen.getByText(/IDENTITY TERMINAL/i)).toBeInTheDocument();
+    expect(screen.getByText(/RAILWAY ACCOUNT LINK/i)).toBeInTheDocument();
+    expect(screen.getByTestId('identity-terminal-shell')).toHaveStyle({
+      backgroundColor: COLORS.BG,
+    });
+    expect(screen.getByTestId('identity-terminal-accent')).toHaveStyle({
+      backgroundColor: COLORS.SECONDARY_CYBER,
+    });
   });
 
   it('shows error for invalid nicknames', async () => {
@@ -85,6 +99,25 @@ describe('NicknameEntryScreen', () => {
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith('TopTrader');
       expect(mockOnComplete).toHaveBeenCalledWith('TopTrader');
+    });
+  });
+
+  it('trims nickname before login and completion callbacks', async () => {
+    mockLogin.mockResolvedValue({ success: true });
+
+    render(<NicknameEntryScreen onComplete={mockOnComplete} />);
+
+    const input = screen.getByPlaceholderText('common.nickname_screen.placeholder');
+    fireEvent.change(input, { target: { value: '  TrimNick  ' } });
+
+    const submitBtn = screen.getByRole('button', {
+      name: 'common.nickname_screen.enter_arena',
+    });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith('TrimNick');
+      expect(mockOnComplete).toHaveBeenCalledWith('TrimNick');
     });
   });
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useIsRetro } from '../../contexts/useTheme';
 import { useThemeSize } from '../../hooks/useThemeSize';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -17,6 +18,7 @@ export interface OverlayChromeProps {
   contentClassName?: string;
   accentColor?: string;
   zIndex?: number;
+  reserveBackButtonSpace?: boolean;
 }
 
 export const OverlayChrome: React.FC<OverlayChromeProps> = ({
@@ -29,6 +31,7 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
   contentClassName,
   accentColor = COLORS.ELECTRIC_BLUE,
   zIndex,
+  reserveBackButtonSpace = false,
 }) => {
   const isRetro = useIsRetro();
   const sizes = useThemeSize();
@@ -36,7 +39,8 @@ export const OverlayChrome: React.FC<OverlayChromeProps> = ({
   return (
     <div
       className={cn(
-        'allow-scroll fixed inset-0 flex items-center justify-center overflow-y-auto px-4 pb-[calc(1rem+var(--sab))] pt-[calc(1rem+var(--sat))] sm:px-6 sm:py-6',
+        'allow-scroll fixed inset-0 flex items-start justify-center overflow-y-auto px-3 pb-[calc(1rem+var(--sab))] pt-[calc(1rem+var(--sat))] sm:items-center sm:px-6 sm:py-6',
+        reserveBackButtonSpace && 'pt-[calc(4rem+var(--sat))] sm:pt-6',
         isRetro ? 'bg-black/90' : `${MODERN_SCREEN_OVERLAY} animate-fade-in`,
         className
       )}
@@ -161,12 +165,14 @@ export const OverlayBackButton: React.FC<OverlayBackButtonProps> = ({
 
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label={text}
       className={cn(
-        'fixed flex h-10 touch-manipulation items-center gap-2 px-4 text-xs font-semibold uppercase tracking-widest transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 active:scale-95',
+        'fixed flex h-11 w-11 touch-manipulation items-center justify-center gap-2 px-0 text-xs font-semibold uppercase tracking-widest transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 active:scale-95 sm:h-10 sm:w-auto sm:px-4',
         isRetro
           ? 'rounded-none border-2 border-[#39FF14]/50 bg-black/60 font-retro-pixel text-[#DCDCDC] hover:border-[#39FF14] hover:bg-[#39FF14]/10 hover:text-[#39FF14] focus-visible:ring-[#39FF14]'
-          : 'border border-white/10 bg-white/5 font-cyber text-slate-400 backdrop-blur-sm hover:border-cyan-400/40 hover:bg-white/10 hover:text-white focus-visible:ring-cyan-400',
+          : 'rounded-lg border border-white/10 bg-slate-900/95 font-cyber text-slate-400 shadow-[0_16px_40px_rgba(2,6,23,0.55)] hover:border-cyan-400/40 hover:bg-slate-800 hover:text-white focus-visible:ring-cyan-400',
         className
       )}
       style={{
@@ -175,7 +181,8 @@ export const OverlayBackButton: React.FC<OverlayBackButtonProps> = ({
         zIndex,
       }}
     >
-      ← {text}
+      <ArrowLeft className="pointer-events-none h-4 w-4" aria-hidden="true" />
+      <span className="hidden sm:inline">{text}</span>
     </button>
   );
 };

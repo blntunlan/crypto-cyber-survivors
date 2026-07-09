@@ -1,4 +1,9 @@
-import { MarketPosition, type CryptoPair, type EnemyIntent } from '../../types';
+import {
+  MarketPosition,
+  type CryptoPair,
+  type EnemyIntent,
+  type Enemy,
+} from '../../types';
 import { type IPoolManager } from '../interfaces/IPoolManager';
 import { ENEMY_SPAWN } from '../../config';
 import { useAdminConfigStore } from '../../stores/admin/configStore';
@@ -106,6 +111,23 @@ export class SpawnSystem implements ISpawnSystem {
         Logger.info(`[SpawnSystem] Queued 8 gatekeepers for portal`);
       })
     );
+  }
+
+  /**
+   * Tracks a newly spawned enemy by emitting an `enemySpawned` event.
+   * The numeric spawnId is parsed from the enemy.id string assigned by EnemyFactory
+   * (format: "enemy-N"). Used by ReplayRecorderService for replay capture.
+   */
+  private trackSpawn(enemy: Enemy | undefined): void {
+    if (!enemy) return;
+    const spawnId = Number(enemy.id?.replace(/^\D+/, '') ?? 0);
+    EventBus.emit('enemySpawned', {
+      spawnId,
+      enemyType: enemy.type,
+      x: enemy.x,
+      y: enemy.y,
+      isElite: enemy.isElite ?? false,
+    });
   }
 
   public update(
@@ -230,6 +252,7 @@ export class SpawnSystem implements ISpawnSystem {
       // Special flag for orbit logic in GameEngine
       enemy.orbitPoint = { x: data.x, y: data.y };
       enemy.orbitAngle = angle;
+      this.trackSpawn(enemy);
     }
   }
 
@@ -272,7 +295,7 @@ export class SpawnSystem implements ISpawnSystem {
       activeWhales < SpawnSystem.MAX_ACTIVE_WHALES
     ) {
       const { x, y } = this.getRandomSpawnPosition(width, height);
-      pool.getWhaleEnemy(
+      const whale = pool.getWhaleEnemy(
         x,
         y,
         difficulty,
@@ -285,6 +308,7 @@ export class SpawnSystem implements ISpawnSystem {
         'boss',
         response.powerTier
       );
+      this.trackSpawn(whale);
       this.whaleCooldownTimer = 20000;
     }
   }
@@ -387,7 +411,7 @@ export class SpawnSystem implements ISpawnSystem {
       }
       if (!has51Attack) {
         const bossPos = this.getRandomSpawnPosition(width, height);
-        pool.getEnemy(
+        const boss = pool.getEnemy(
           bossPos.x,
           bossPos.y,
           difficulty,
@@ -401,12 +425,13 @@ export class SpawnSystem implements ISpawnSystem {
           'boss',
           response.powerTier
         );
+        this.trackSpawn(boss);
         this.attackCooldownTimer = SpawnSystem.ATTACK_51_COOLDOWN_MS;
         Logger.info('[SpawnSystem] 51% Attack boss spawned!');
       }
     }
 
-    pool.getEnemy(
+    const enemy = pool.getEnemy(
       x,
       y,
       difficulty,
@@ -420,6 +445,7 @@ export class SpawnSystem implements ISpawnSystem {
       this.resolveEnemyIntent(enemyType, response),
       response.powerTier
     );
+    this.trackSpawn(enemy);
   }
 
   /**
@@ -459,7 +485,7 @@ export class SpawnSystem implements ISpawnSystem {
       y2 = height + safeOffset;
     }
 
-    pool.getEnemy(
+    const e1 = pool.getEnemy(
       x1,
       y1,
       difficulty,
@@ -473,7 +499,8 @@ export class SpawnSystem implements ISpawnSystem {
       'counter',
       response.powerTier
     );
-    pool.getEnemy(
+    this.trackSpawn(e1);
+    const e2 = pool.getEnemy(
       x2,
       y2,
       difficulty,
@@ -487,6 +514,7 @@ export class SpawnSystem implements ISpawnSystem {
       'counter',
       response.powerTier
     );
+    this.trackSpawn(e2);
   }
 
   private resolveEnemyResponse(

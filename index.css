@@ -1164,42 +1164,8 @@ canvas {
 }
 
 /* ========================================
-   LANDING BACKGROUND - GPU-composited CSS animations
-   Replace framer-motion JS animations with compositor-only CSS.
-   Only transform + opacity are animated (no layout/paint).
+   LANDING BACKGROUND - restrained compositor-only motion
    ======================================== */
-
-.landing-blob-gold {
-  animation: landing-blob-gold 24s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-@keyframes landing-blob-gold {
-  0%,
-  100% {
-    transform: translate(-28px, 0) scale(1);
-    opacity: 0.26;
-  }
-  50% {
-    transform: translate(22px, 26px) scale(1.08);
-    opacity: 0.38;
-  }
-}
-
-.landing-blob-red {
-  animation: landing-blob-red 30s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-@keyframes landing-blob-red {
-  0%,
-  100% {
-    transform: translate(18px, 0) scale(1.04);
-    opacity: 0.22;
-  }
-  50% {
-    transform: translate(-26px, -24px) scale(0.96);
-    opacity: 0.34;
-  }
-}
 
 .landing-grid-pulse {
   animation: landing-grid-pulse 26s ease-in-out infinite;
@@ -1212,51 +1178,6 @@ canvas {
   }
   50% {
     opacity: 0.3;
-  }
-}
-
-.landing-sweep-gold {
-  animation: landing-sweep-gold 18s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-@keyframes landing-sweep-gold {
-  0%,
-  100% {
-    transform: translate(-24px, 0);
-    opacity: 0.14;
-  }
-  50% {
-    transform: translate(36px, 12px);
-    opacity: 0.3;
-  }
-}
-
-.landing-sweep-red {
-  animation: landing-sweep-red 21s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-@keyframes landing-sweep-red {
-  0%,
-  100% {
-    transform: translate(18px, 0);
-    opacity: 0.12;
-  }
-  50% {
-    transform: translate(-26px, -16px);
-    opacity: 0.26;
-  }
-}
-
-.landing-rotate-circle {
-  animation: landing-rotate-circle 95s linear infinite;
-  will-change: transform;
-}
-@keyframes landing-rotate-circle {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -1276,4 +1197,10 @@ canvas {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Generic screen entrance (CSS replacement for framer-motion; use inline
+   animation-delay for staggering) */
+.screen-fade-in {
+  animation: hub-fade-in 0.4s ease-out both;
 }

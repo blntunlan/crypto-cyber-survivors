@@ -28,6 +28,7 @@ import { COLORS } from '../../config/Colors';
 import { TEXT_VARIANTS } from '../../config/themeVariants';
 import { cn } from '../../utils/classnames';
 import { ProfileSettingsContent } from '../settings/ProfileSettings';
+import { OverlaySectionRail } from '../ui/OverlayChrome';
 
 interface PlayerProfileProps {
   /** Navigate back to the hub (rendered as a full-screen route, not a modal). */
@@ -58,20 +59,20 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const accentColor = isRetro ? COLORS.NEON_GREEN : COLORS.PUMP_GREEN;
-  const secondaryAccent = isRetro ? COLORS.JACKPOT_YELLOW : COLORS.WHALE;
+  const secondaryAccent = isRetro ? COLORS.JACKPOT_YELLOW : COLORS.CASINO_GOLD;
   const panelHeaderClass = isRetro
     ? 'border-b-2 border-[#39FF14]/40 bg-[#050505]'
-    : 'border-b border-white/5 bg-white/5';
+    : 'border-b border-white/10 bg-white/[0.03]';
   const tabsContainerClass = isRetro
     ? 'border-b-2 border-[#39FF14]/30 bg-[#050505]'
-    : 'border-b border-white/5 bg-transparent';
+    : 'border-b border-white/10 bg-transparent';
   const bodyClass = isRetro ? TEXT_VARIANTS.body.retro : TEXT_VARIANTS.body.modern;
   const cardSurface = isRetro
     ? 'rounded-none border-2 border-[#39FF14]/40 bg-[#050505]/95 shadow-[4px_4px_0px_rgba(0,0,0,0.45)]'
-    : 'rounded-xl border border-white/10 bg-white/5 shadow-[0_20px_60px_rgba(2,6,23,0.45)]';
+    : 'rounded-xl border border-white/10 bg-white/5 shadow-[0_20px_60px_rgba(2,6,23,0.45)] transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(148,163,184,0.2)]';
   const subtleCardSurface = isRetro
     ? 'rounded-none border border-[#39FF14]/25 bg-[#0f0f18]'
-    : 'rounded-lg border border-white/10 bg-white/5';
+    : 'rounded-lg border border-white/10 bg-white/5 transition-shadow duration-300 hover:shadow-[0_0_25px_rgba(148,163,184,0.18)]';
 
   useEffect(() => {
     void loadProfileData();
@@ -100,18 +101,42 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
       animate={{ opacity: 1 }}
       className={cn(
         'absolute inset-0 z-[100] flex flex-col overflow-hidden',
-        isRetro ? 'bg-[#050505]' : 'bg-slate-950'
+        isRetro ? 'bg-[#050505]' : 'bg-slate-950/90 backdrop-blur-md'
       )}
       style={{ '--hub-accent': accentColor } as React.CSSProperties}
     >
-      <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden">
+      <div
+        className={cn(
+          'relative mx-auto flex h-full w-full max-w-5xl flex-col overflow-hidden',
+          isRetro
+            ? 'rounded-none border-2 border-[#39FF14]/60 bg-[#050505]/95 shadow-[4px_4px_0px_rgba(57,255,20,0.3)]'
+            : 'rounded-none border border-white/20 bg-slate-900/90 shadow-[0_30px_80px_rgba(2,6,23,0.85),0_0_0_1px_rgba(148,163,184,0.22)] backdrop-blur-2xl sm:rounded-[1.5rem]'
+        )}
+      >
+        {!isRetro && (
+          <>
+            <div className="pointer-events-none absolute inset-0 rounded-none border border-white/25 sm:rounded-[1.5rem]" />
+            <div className="pointer-events-none absolute inset-2 rounded-[1.1rem] border border-cyan-200/10" />
+            <div
+              className="pointer-events-none absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              style={{ boxShadow: `0 0 20px ${accentColor}40` }}
+            />
+          </>
+        )}
+
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-2 top-2 z-50 p-2.5 text-slate-400 transition-colors hover:text-white md:right-4 md:top-4 md:p-2"
+          aria-label="Close profile"
+          className={cn(
+            'absolute right-2 top-2 z-50 flex h-9 w-9 items-center justify-center transition-all duration-300 md:right-4 md:top-4 md:h-10 md:w-10',
+            isRetro
+              ? 'rounded-none border-2 border-[#39FF14]/50 bg-black/60 text-[#DCDCDC] hover:border-[#39FF14] hover:bg-[#39FF14]/10 hover:text-[#39FF14]'
+              : 'rounded-lg border border-white/10 bg-white/5 text-slate-400 backdrop-blur-sm hover:border-cyan-400/40 hover:bg-white/10 hover:text-white'
+          )}
         >
-          <X size={isRetro ? 32 : 24} />
+          <X size={isRetro ? 26 : 18} />
         </button>
 
         {/* Header Section */}
@@ -123,13 +148,18 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
           )}
         >
           <div className="relative">
-            <UserAvatar
-              avatarUrl={profile?.avatarUrl ?? undefined}
-              displayName={profile?.displayName ?? 'Player'}
-              size="xl"
-              provider={profile?.primaryAuthProvider as AuthProvider | undefined}
-              showProviderBadge
-            />
+            <div
+              className="rounded-full"
+              style={{ boxShadow: isRetro ? 'none' : `0 0 28px ${accentColor}55` }}
+            >
+              <UserAvatar
+                avatarUrl={profile?.avatarUrl ?? undefined}
+                displayName={profile?.displayName ?? 'Player'}
+                size="xl"
+                provider={profile?.primaryAuthProvider as AuthProvider | undefined}
+                showProviderBadge
+              />
+            </div>
             {profile?.isTester && (
               <div className="absolute -bottom-2 -right-2 inline-flex items-center gap-1 rounded-full bg-yellow-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tighter text-black">
                 <ShieldCheck size={10} /> Tester
@@ -141,7 +171,9 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
             <h2
               className={cn(
                 'mb-1 text-2xl md:text-3xl lg:text-4xl',
-                isRetro ? TEXT_VARIANTS.h1.retro : TEXT_VARIANTS.h1.modern
+                isRetro
+                  ? TEXT_VARIANTS.h1.retro
+                  : 'cyber-sway-text font-cyber font-bold tracking-tight uppercase text-white'
               )}
             >
               {profile?.displayName}
@@ -149,14 +181,19 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
             <div
               className={cn(
                 'flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] md:justify-start md:text-sm lg:text-[15px]',
-                isRetro ? 'text-[#A1FFE1]' : 'text-slate-400'
+                isRetro
+                  ? 'font-retro-pixel text-[#A1FFE1]'
+                  : 'font-cyber uppercase tracking-[0.18em] text-slate-400'
               )}
             >
               <span className="flex items-center gap-1">
                 <User size={14} /> @{profile?.username ?? 'local-profile'}
               </span>
-              <span className="flex items-center gap-1">
-                <Zap size={14} className="text-yellow-400" /> LVL {profile?.level}
+              <span
+                className="flex items-center gap-1"
+                style={{ color: secondaryAccent }}
+              >
+                <Zap size={14} /> LVL {profile?.level}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar size={14} /> Joined{' '}
@@ -204,6 +241,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
                   <m.div
                     layoutId="activeTab"
                     className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--hub-accent)]"
+                    style={{ boxShadow: `0 0 12px ${accentColor}80` }}
                   />
                 )}
               </button>
@@ -220,6 +258,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
                 style={{
                   borderColor: `${accentColor}33`,
                   borderTopColor: accentColor,
+                  boxShadow: `0 0 20px ${accentColor}40`,
                 }}
               />
             </div>
@@ -235,7 +274,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({ onClose }) => {
                 <h3
                   className={cn(
                     'mb-2 text-base font-bold uppercase tracking-wide',
-                    isRetro ? 'text-[#FF3D00]' : 'text-red-400'
+                    isRetro ? 'text-[#FF3D00]' : 'font-cyber text-red-400'
                   )}
                 >
                   {loadError ?? 'Failed to load profile'}
@@ -370,18 +409,28 @@ const OverviewTab: React.FC<{
             <h3
               className={cn(
                 'mb-1 text-[10px] uppercase tracking-[0.3em] sm:text-xs',
-                isRetro ? 'text-[#39FF14]' : 'text-slate-400'
+                isRetro ? 'text-[#39FF14]' : 'font-cyber text-slate-400'
               )}
             >
               Total Experience
             </h3>
-            <div className="text-xl font-bold text-white sm:text-2xl">
+            <div
+              className={cn(
+                'text-xl font-bold text-white sm:text-2xl',
+                isRetro ? 'font-retro-pixel' : 'font-numbers'
+              )}
+            >
               {profile.xp.toLocaleString()} XP
             </div>
           </div>
           <div className="text-right">
             <div
-              className="text-[10px] font-bold italic sm:text-xs"
+              className={cn(
+                'text-[10px] font-bold italic sm:text-xs',
+                isRetro
+                  ? 'font-retro-pixel'
+                  : 'font-cyber not-italic uppercase tracking-[0.18em]'
+              )}
               style={{ color: secondaryAccent }}
             >
               REACH LVL {profile.level + 1}
@@ -458,14 +507,15 @@ const OverviewTab: React.FC<{
       </div>
 
       <div className="col-span-1 md:col-span-2">
-        <h3
-          className={cn(
-            'mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] sm:mb-4 sm:text-xs',
-            isRetro ? 'text-[#39FF14]' : 'text-slate-400'
-          )}
-        >
-          <ShieldCheck size={16} /> Latest Unlocks
-        </h3>
+        <OverlaySectionRail
+          label={
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck size={14} /> Latest Unlocks
+            </span>
+          }
+          color={accentColor}
+          className="mb-3 sm:mb-4"
+        />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           {hasAchievementCatalog &&
             profile.achievements.unlocked.slice(0, 3).map(unlock => {
@@ -642,10 +692,15 @@ const StatsTab: React.FC<{
           size={32}
           style={{
             color: accentColor,
-            filter: 'drop-shadow(0 0 8px rgba(57,255,20,0.35))',
+            filter: `drop-shadow(0 0 8px ${accentColor}59)`,
           }}
         />
-        <h3 className="mb-1 font-bold uppercase tracking-wider text-white">
+        <h3
+          className={cn(
+            'mb-1 font-bold uppercase tracking-wider text-white',
+            isRetro ? 'font-retro-pixel' : 'font-cyber'
+          )}
+        >
           Combat Analytics
         </h3>
         <p className="mx-auto max-w-sm text-xs text-slate-400 sm:text-sm">
@@ -669,8 +724,20 @@ const AchievementsTab: React.FC<{
   if (profile.achievements.all.length === 0) {
     return (
       <div className={cn('p-6 text-center', cardSurface, bodyClass)}>
-        <Trophy className="mx-auto mb-3" size={36} style={{ color: accentColor }} />
-        <h3 className="mb-2 text-sm font-black uppercase tracking-[0.22em] text-white">
+        <Trophy
+          className="mx-auto mb-3"
+          size={36}
+          style={{
+            color: accentColor,
+            filter: `drop-shadow(0 0 10px ${accentColor}55)`,
+          }}
+        />
+        <h3
+          className={cn(
+            'mb-2 text-sm font-black uppercase tracking-[0.22em] text-white',
+            isRetro ? 'font-retro-pixel' : 'font-cyber'
+          )}
+        >
           Achievements Pending
         </h3>
         <p className="mx-auto max-w-md text-sm text-slate-400">
@@ -714,6 +781,11 @@ const AchievementsTab: React.FC<{
                     ? 'bg-yellow-500/20 text-yellow-400'
                     : 'bg-slate-800 text-slate-500'
                 )}
+                style={
+                  isUnlocked && !isRetro
+                    ? { boxShadow: '0 0 18px rgba(250,204,21,0.35)' }
+                    : undefined
+                }
               >
                 <Trophy size={20} />
               </div>
@@ -729,13 +801,23 @@ const AchievementsTab: React.FC<{
               )}
             </div>
 
-            <h4 className="mb-1 text-sm font-bold text-white">{ach.name}</h4>
+            <h4
+              className={cn(
+                'mb-1 text-sm font-bold text-white',
+                isRetro ? 'font-retro-pixel' : 'font-cyber'
+              )}
+            >
+              {ach.name}
+            </h4>
             <p className="mb-4 flex-1 text-[10px] leading-tight text-slate-400 sm:text-[11px]">
               {ach.description}
             </p>
 
             <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3 text-[10px]">
-              <span className="font-mono" style={{ color: accentColor }}>
+              <span
+                className={cn(isRetro ? 'font-retro-pixel' : 'font-numbers font-bold')}
+                style={{ color: accentColor }}
+              >
                 +{ach.rewardGold} GOLD
               </span>
               {unlockInfo && (
@@ -766,14 +848,17 @@ const SummaryCard: React.FC<{
     <div
       className={cn(
         'mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide sm:text-[10px] sm:tracking-wider',
-        isRetro ? 'text-[#39FF14]' : 'text-slate-400'
+        isRetro ? 'text-[#39FF14]' : 'font-cyber text-slate-400'
       )}
     >
       <span className="text-base">{icon}</span>
       {label}
     </div>
     <div
-      className="font-mono text-base font-black leading-none sm:text-lg"
+      className={cn(
+        'text-base font-black leading-none sm:text-lg',
+        isRetro ? 'font-retro-pixel' : 'font-numbers'
+      )}
       style={{ color: accentColor }}
     >
       {value}
@@ -793,7 +878,7 @@ const ProfileDataNotice: React.FC<{
     <div
       className={cn(
         'mb-1 text-[10px] font-black uppercase tracking-[0.24em]',
-        isRetro ? 'text-[#FFD600]' : 'text-yellow-300'
+        isRetro ? 'text-[#FFD600]' : 'font-cyber text-yellow-300'
       )}
       style={{ color: accentColor }}
     >
@@ -816,14 +901,17 @@ const StatItem: React.FC<{
     <div
       className={cn(
         'mb-1 flex items-center gap-1.5 text-[9px] uppercase tracking-wide sm:text-[10px] sm:tracking-[0.3em]',
-        isRetro ? 'text-[#39FF14]' : 'text-slate-400'
+        isRetro ? 'text-[#39FF14]' : 'font-cyber text-slate-400'
       )}
     >
       <span className="text-base">{icon}</span>
       {label}
     </div>
     <div
-      className="font-mono text-lg font-bold sm:text-xl"
+      className={cn(
+        'text-lg font-bold sm:text-xl',
+        isRetro ? 'font-retro-pixel' : 'font-numbers'
+      )}
       style={{ color: accentColor }}
     >
       {value}

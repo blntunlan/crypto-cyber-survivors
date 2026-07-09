@@ -99,7 +99,15 @@
         "duration": "Süre {{value}}",
         "level": "Seviye {{value}}",
         "kills": "{{value}} öldürme",
-        "watch": "İzle"
+        "watch": "İzle",
+        "playback_badge": "TEKRAR",
+        "playback_stats": "Seviye {{level}} · {{kills}} öldürme",
+        "playback_complete": "Tekrar Tamamlandı",
+        "playback_complete_hint": "Terminale dönmek için ÇIKIŞ'ı kullan.",
+        "loading_replay": "Tekrar yükleniyor...",
+        "error_title": "Tekrar Yüklenemedi",
+        "error_message": "Tekrar verisi yüklenemedi. Daha sonra tekrar dene.",
+        "exit": "ÇIKIŞ"
       }
     },
     "long": "LONG",
@@ -251,6 +259,26 @@
     "disconnected_desc": "Oyun market adaletini sağlamak için duraklatıldı. Veri geri gelene kadar dünya durumu donduruldu.",
     "waiting_signal": "Sinyal Bekleniyor...",
     "exit_terminal": "Terminal'e Çık"
+  },
+  "milestones": {
+    "kills_100": "YIKIM",
+    "kills_250": "KATLİAM",
+    "kills_500": "KAN GÖLÜ",
+    "kills_1000": "TOPYEKÛN İMHA",
+    "kills_2500": "TANRI MUMU",
+    "time_60": "1 DAKİKA!",
+    "time_180": "3 DAKİKA!",
+    "time_300": "5 DAKİKA!",
+    "time_600": "10 DAKİKA!",
+    "level": "SEVİYE {{val}}",
+    "pnl_5": "KÂRDASIN",
+    "pnl_10": "DURMAK YOK",
+    "pnl_25": "AY YOLCULUĞU",
+    "pnl_50": "SÜPERNOVA",
+    "danger_10": "ZARAR UYARISI",
+    "danger_25": "LİKİDASYON BÖLGESİ",
+    "milestone_badge": "KİLOMETRE TAŞI",
+    "danger_badge": "POZİSYON RİSKTE"
   },
   "hud": {
     "clutch": "KRİTİK!",
@@ -542,143 +570,6 @@
     "gotIt": "Anladım!",
     "replay": "Öğreticiyi Tekrarla"
   },
-  "landing": {
-    "nav": {
-      "engine": "01. Motor",
-      "pipeline": "02. Veri Hattı",
-      "dev": "03. Solo Geliştirici",
-      "docs": "04. Dokümantasyon",
-      "execute": "MOTORU ÇALIŞTIR",
-      "protocol_retro": "PROTOKOL: RETRO",
-      "protocol_cyber": "PROTOKOL: CYBER"
-    },
-    "stats": {
-      "performance_target": "Hedef Performans",
-      "languages": "Dil Desteği",
-      "live_market": "Canlı Piyasa Verisi",
-      "open_source": "Açık Kaynak"
-    },
-    "terminal": {
-      "initializing": "ALTSİSTEMLER_BAŞLATILIYOR...",
-      "connection_established": "BAĞLANTI_KURULDU: GECİKME 8ms",
-      "status_ready": "DURUM: DAĞITI_İÇİN_HAZIR",
-      "process_pulse": "SÜREÇ: NABIZ"
-    },
-    "hero": {
-      "status": "SİSTEM DURUMU: BEKLEMEDE (BETA_v1.0)",
-      "title_top": "YÜKSEK RİSK",
-      "title_highlight": "VOLATİLİTE",
-      "description": "Canlı finans piyasaları ile rogue-lite hiper-casual oynanış arasında sistematik bir köprü kuruyoruz.",
-      "start": "HAYATTA KALMAYA BAŞLA",
-      "inspect": "Protokolü İncele"
-    },
-    "manifesto": {
-      "title": "Mühendislik Manifestosu",
-      "solo": "Solo Bağımsız",
-      "enterprise": "Kurumsal Standartlar"
-    },
-    "features": {
-      "tag_memory": "BELLEK",
-      "title_memory": "O(1) HAVUZLAMA",
-      "desc_memory": "GC (Çöp Toplayıcı) sapmalarını önlemek için gelişmiş nesne havuzlama kullanan sıfır tahsisli oyun döngüsü.",
-      "tag_physics": "FİZİK",
-      "title_physics": "UZAMSAL IZGARA",
-      "desc_physics": "Çarpışma tespiti için O(N) karmaşıklığı sağlayan özel Uzamsal Karma (Spatial Hashing).",
-      "tag_state": "DURUM",
-      "title_state": "AYRIK ZUSTAND",
-      "desc_state": "60FPS senkronizasyonu için manuel abonelik kontrollü atomik durum yönetimi.",
-      "tag_backend": "ARKA PLAN",
-      "title_backend": "GÜVENLİ HATT",
-      "desc_backend": "Kurşun geçirmez doğrulama için Edge Fonksiyonları ile eşleştirilmiş Supabase RLS."
-    },
-    "architecture": {
-      "title": "Ultra Yenilikçi Mimari",
-      "description": "Solo bir bağımsız geliştirici olarak gereksinimim basitti: Kendi kendini yöneten bir sistem inşa et.",
-      "balance_title": "Sistematik Denge",
-      "balance_desc": "Zorluk seviyesi, Kaldıraç (1x-100x) ile otomatik olarak ölçeklenir.",
-      "integrity_title": "Gerçek Zamanlı Bütünlük",
-      "integrity_desc": "WSS veri akışı hata toleransı, sıfır oyun kesintisi sağlar.",
-      "performance_title": "60 FPS Yerel",
-      "performance_desc": "Canvas odaklı işleme hattı, DOM ek yükünü baypas eder."
-    },
-    "modes": {
-      "title": "Yolunu Seç",
-      "subtitle": "Oyun Modları",
-      "casual_title": "Serbest",
-      "casual_desc": "Mekaniği öğrenmek ve rahat bir oynanışın tadını çıkarmak için mükemmel.",
-      "comp_title": "Rekabetçi",
-      "comp_desc": "Doğrulanmış oyunlarla becerilerini dünya sahnesinde kanıtla.",
-      "comp_pro_tag": "Profesyonel",
-      "casual_items": [
-        "Kolay öğrenme eğrisi",
-        "Baskı olmadan pratik yapma",
-        "Tüm özellikler açık",
-        "Yerel ilerleme kaydı",
-        "Çevrimdışı mod desteği"
-      ],
-      "comp_items": [
-        "Dünya sıralamaları",
-        "Anti-cheat doğrulaması",
-        "Tekrar kaydı",
-        "Başarım takibi",
-        "Sezonluk sıralamalar"
-      ]
-    },
-    "roadmap": {
-      "title": "Geliştirme Takvimi",
-      "subtitle": "Yol Haritası",
-      "active_tag": "Aktif",
-      "phase1": "2026 Q1",
-      "phase1_title": "Temel",
-      "phase1_items": [
-        "Temel oynanış döngüsü",
-        "60 FPS Canvas motoru",
-        "Supabase entegrasyonu"
-      ],
-      "phase2": "2026 Q2",
-      "phase2_title": "Canlı Piyasalar",
-      "phase2_items": [
-        "Binance/Coinbase WSS",
-        "Sinaptik Yapay Zeka Direktörü",
-        "Anti-cheat sistemi"
-      ],
-      "phase3": "2026 Q3",
-      "phase3_title": "Sosyal",
-      "phase3_items": ["Dünya sıralamaları", "Tekrar paylaşımı", "Başarım rozetleri"],
-      "phase4": "2026 Q4",
-      "phase4_title": "Genişleme",
-      "phase4_items": [
-        "Çoklu kripto desteği",
-        "Günlük görevler",
-        "Sezonluk etkinlikler"
-      ]
-    },
-    "faq": {
-      "title": "Sıkça Sorulan Sorular",
-      "subtitle": "SSS",
-      "q1": "Crypto Survivors'ı diğer oyunlardan farklı kılan nedir?",
-      "a1": "Gerçek zamanlı BTC/USD fiyat verileri oyun zorluğunu doğrudan etkiler. Piyasa volatilitesi her seansta benzersiz zorluklar yaratır.",
-      "q2": "Bu bir oyna-kazan (play-to-earn) veya kripto cüzdan oyunu mu?",
-      "a2": "Hayır. Bu beceri tabanlı bir arcade oyunudur. Gerçek para, cüzdan veya blok zinciri işlemi gerektirmez.",
-      "q3": "Serbest ve Rekabetçi modlar nelerdir?",
-      "a3": "Serbest mod öğrenme için rahat bir zorluk sunar. Rekabetçi mod ise dünya sıralaması ve hile koruması doğrulaması içerir.",
-      "q4": "Oyun çevrimdışı çalışıyor mu?",
-      "a4": "PWA üzerinden sınırlı çevrimdışı mod mevcuttur. Tam özellikler için canlı piyasa verileri internet gerektirir.",
-      "q5": "Hangi platformlar destekleniyor?",
-      "a5": "Web tarayıcısı (masaüstü & mobil), PWA olarak yüklenebilir. Gelecek sürümler için yerel uygulamalar planlanmaktadır."
-    },
-    "footer": {
-      "trademark": "Solo bağımsız geliştirici projesi. © 2026 CSYNC PROTOKOLÜ.",
-      "access": "Terminal_Erişimi",
-      "privacy": "Gizlilik_Belgesi",
-      "terms": "Şartlar_Belgesi",
-      "contact": "İletişim_Kanalı",
-      "top": "YUKARI",
-      "back_to_top": "Başa Dön",
-      "discord_soon": "Discord (Çok Yakında)",
-      "twitter_soon": "Twitter/X (Çok Yakında)"
-    }
-  },
   "leaderboard": {
     "global_rankings": "Dünya Sıralaması",
     "sort_score": "Skor",
@@ -690,6 +581,8 @@
     "runs": "koşu",
     "all_players": "Tüm Oyuncular",
     "refresh": "Yenile",
-    "refreshing": "Yenileniyor..."
+    "refreshing": "Yenileniyor...",
+    "you": "SEN",
+    "loading": "Sıralamalar yükleniyor..."
   }
 }

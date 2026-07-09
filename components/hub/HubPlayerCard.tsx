@@ -58,14 +58,14 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
           ? PANEL_VARIANTS.retro
           : isEmbedded
             ? 'rounded-sm border border-white/10 bg-white/[0.04]'
-            : 'rounded-2xl border border-white/10 bg-slate-900/60 cyber-glass'
+            : 'rounded-lg border border-white/10 bg-white/[0.04]'
       )}
     >
       {!isRetro && (
         <m.div
           className={cn(
             'absolute left-0 right-0 top-0 h-1 bg-white/20',
-            isEmbedded ? 'rounded-t-sm opacity-70' : 'rounded-t-2xl'
+            isEmbedded ? 'rounded-t-sm opacity-70' : 'rounded-t-lg'
           )}
           style={{
             background: `linear-gradient(90deg, transparent, ${skinDef.color}80, transparent)`,
@@ -86,7 +86,7 @@ export const HubPlayerCard: React.FC<HubPlayerCardProps> = ({
           ${
             isRetro
               ? 'rounded-none border-2 border-zinc-600 bg-zinc-800'
-              : 'rounded-xl border border-white/20 bg-gradient-to-br from-white/10 to-white/5'
+              : 'rounded-lg border border-white/20 bg-gradient-to-br from-white/10 to-white/5'
           }
 
           ${onAvatarClick ? 'cursor-pointer' : 'cursor-default'}

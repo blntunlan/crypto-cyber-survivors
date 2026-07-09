@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { trackRender } from '../../../utils/trackRender';
-import { ArrowUpRight, Gamepad2, Database, Rocket } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { staggerContainer, fadeInUp } from './motionVariants';
 
 const REPO_URL = 'https://github.com/blntunlan/crypto-cyber-survivors';
@@ -11,19 +11,16 @@ export const LandingTeam: React.FC = () => {
 
   const scope = [
     {
-      icon: Gamepad2,
       area: 'Engine & Gameplay',
       detail:
         'Combat, physics, spawning, buffs, and the 60 FPS render loop — the singleton service layer.',
     },
     {
-      icon: Database,
       area: 'Market & Backend',
       detail:
         'Binance/Coinbase ingestion, indicator pipeline, the SSE aggregator, and the Railway API.',
     },
     {
-      icon: Rocket,
       area: 'Release & Ops',
       detail:
         'CI quality gates, anti-cheat, deployments, and production monitoring for the live runtime.',
@@ -64,7 +61,7 @@ export const LandingTeam: React.FC = () => {
           className="mx-auto mb-8 max-w-3xl border border-[#d6b85c]/25 bg-[#d6b85c]/[0.04] p-6 sm:p-8"
         >
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d6b85c] to-[#b22222] font-cyber text-2xl font-black text-white">
+            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center border-2 border-[#d6b85c]/60 bg-black/50 font-cyber text-2xl font-black italic text-[#d6b85c]">
               BU
             </div>
             <div className="flex-1">
@@ -101,10 +98,8 @@ export const LandingTeam: React.FC = () => {
             <motion.div
               key={item.area}
               variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              className="group relative border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-[#d6b85c]/30 sm:p-8"
+              className="group relative border border-white/10 bg-white/5 p-6 transition-colors duration-300 hover:border-[#d6b85c]/30 sm:p-8"
             >
-              <item.icon className="mb-4 h-7 w-7 text-[#d6b85c]" />
               <p className="mb-2 font-cyber text-lg font-bold italic tracking-wide text-white transition-colors duration-300 group-hover:text-[#d6b85c]">
                 {item.area}
               </p>

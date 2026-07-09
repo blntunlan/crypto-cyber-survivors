@@ -81,20 +81,9 @@ export class SSEMarketService {
   }
 
   private createEventSource(): void {
-    // Use dedicated aggregator URL if set, otherwise fall back to API URL
-    const baseUrl = (import.meta.env.VITE_MARKET_AGGREGATOR_URL ??
-      import.meta.env.VITE_RAILWAY_API_URL) as string | undefined;
-    if (!baseUrl) {
-      Logger.error(
-        '[SSE] VITE_MARKET_AGGREGATOR_URL / VITE_RAILWAY_API_URL not configured'
-      );
-      this.updateState('disconnected');
-      return;
-    }
-
     this.updateState('connecting');
 
-    const url = `${baseUrl}/api/v1/market/stream?pair=${this.pair}`;
+    const url = `/api/v1/market/stream?pair=${encodeURIComponent(this.pair)}`;
     this.eventSource = new EventSource(url);
 
     // Connection timeout: if no data in 30s, mark as failed

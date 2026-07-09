@@ -1,30 +1,15 @@
 /**
- * LandingPage.tsx - Corporate Showcase & Engine Entry
- *
- * DESIGN MANIFESTO:
- * 1. Aesthetic: "Casino-Cyber Mix" (High-stakes luxury meets gritty cyberpunk architecture).
- * 2. Branding: Professional red accents (#b22222) vs Elite gold accents (#d6b85c).
- * 3. Typography: Orbitron for display (Headings) + Monospace for technical data.
- * 4. Architecture: Config-driven sections, pure CSS animations for landing-specific FX.
- *
- * DESIGN TOKENS:
- * - Primary Gold: #d6b85c (Trust, Reward, Rarity)
- * - Primary Red: #b22222 (Danger, High-Stakes, Action)
- * - Dark BG: #020617 (Deep Obsidian)
- * - Transition: 300ms cubic-bezier (Professional "Snap")
+ * LandingPage.tsx - Public game landing and app entry surface.
  */
 
 import React, { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { trackRender } from '../../utils/trackRender';
 import { Menu, X } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { LandingHero } from './landing/LandingHero';
-import { LandingStats } from './landing/LandingStats';
 import { LandingFeatures } from './landing/LandingFeatures';
 import { LandingArchitecture } from './landing/LandingArchitecture';
 import { LandingModes } from './landing/LandingModes';
-import { LandingTestimonials } from './landing/LandingTestimonials';
 import { LandingRoadmap } from './landing/LandingRoadmap';
 import { LandingTeam } from './landing/LandingTeam';
 import { LandingFaq } from './landing/LandingFaq';
@@ -44,7 +29,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewDocs,
 }) => {
   trackRender('LandingPage');
-  const { t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -55,10 +39,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     };
   }, []);
 
-  const navLabel = (key: string): string =>
-    t(key)
-      .replace(/^\s*\d+\.\s*/, '')
-      .trim();
   const framedNavButtonClass =
     'group relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap px-3 xl:px-4 text-slate-300 transition-all duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]';
   const navAccentLineClass =
@@ -107,19 +87,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-2 lg:flex xl:gap-3">
           {/* Navigation Links */}
           <a href="#engine" className={`${framedNavButtonClass} w-[108px]`}>
-            <span className={desktopNavLabelClass}>
-              {navLabel('landing.nav.engine')}
-            </span>
+            <span className={desktopNavLabelClass}>Engine</span>
             <span className={navAccentLineClass} />
           </a>
           <a href="#pipeline" className={`${framedNavButtonClass} w-[118px]`}>
-            <span className={desktopNavLabelClass}>
-              {navLabel('landing.nav.pipeline')}
-            </span>
+            <span className={desktopNavLabelClass}>Pipeline</span>
             <span className={navAccentLineClass} />
           </a>
           <a href="#dev" className={`${framedNavButtonClass} w-[120px]`}>
-            <span className={desktopNavLabelClass}>{navLabel('landing.nav.dev')}</span>
+            <span className={desktopNavLabelClass}>Solo Dev</span>
             <span className={navAccentLineClass} />
           </a>
           <a href="#team" className={`${framedNavButtonClass} w-[96px]`}>
@@ -131,7 +107,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             onClick={onViewDocs}
             className={`${framedNavButtonClass} w-[146px]`}
           >
-            <span className={desktopNavLabelClass}>{navLabel('landing.nav.docs')}</span>
+            <span className={desktopNavLabelClass}>Documentation</span>
             <span className={navAccentLineClass} />
           </button>
         </div>
@@ -140,7 +116,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           onClick={onLaunch}
           className={`hidden h-12 min-w-[182px] items-center justify-center bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-7 font-black uppercase text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex ${desktopCtaClass}`}
         >
-          {t('landing.nav.execute')}
+          PLAY THE BETA
         </button>
       </nav>
 
@@ -179,7 +155,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  <span>{navLabel('landing.nav.engine')}</span>
+                  <span>Engine</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </a>
 
@@ -188,7 +164,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  <span>{navLabel('landing.nav.pipeline')}</span>
+                  <span>Pipeline</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </a>
 
@@ -197,7 +173,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  <span>{navLabel('landing.nav.dev')}</span>
+                  <span>Solo Dev</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </a>
                 <a
@@ -216,7 +192,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   }}
                   className="group relative min-h-[48px] w-full overflow-hidden border border-white/10 bg-white/5 p-4 text-left text-slate-300 transition-all duration-300 hover:border-[#b22222] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c]"
                 >
-                  <span>{navLabel('landing.nav.docs')}</span>
+                  <span>Documentation</span>
                   <span className="pointer-events-none absolute bottom-[8px] left-4 right-4 h-px bg-gradient-to-r from-transparent via-[#d6b85c]/45 to-transparent opacity-70 transition-all duration-300 group-hover:via-[#d6b85c]" />
                 </button>
               </div>
@@ -229,7 +205,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 }}
                 className="mt-auto min-h-[48px] w-full border border-[#d6b85c] bg-[#d6b85c] p-4 text-center font-black text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95"
               >
-                {t('landing.nav.execute')}
+                PLAY THE BETA
               </button>
             </m.nav>
           </m.div>
@@ -237,9 +213,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </AnimatePresence>
       {/* --- 02. HERO & CTA STACK --- */}
       <LandingHero onLaunch={onLaunch} />
-
-      {/* --- STATS COUNTER SECTION --- */}
-      <LandingStats />
 
       {/* --- 03. ENGINEERING EXCELLENCE SHOWCASE --- */}
       <LandingFeatures />
@@ -249,16 +222,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       {/* --- 05. FEATURE COMPARISON --- */}
       <LandingModes />
 
-      {/* --- 06. SOCIAL PROOF / TESTIMONIALS --- */}
-      <LandingTestimonials />
-
-      {/* --- 07. ROADMAP --- */}
+      {/* --- 06. ROADMAP --- */}
       <LandingRoadmap />
 
-      {/* --- 08. TEAM / ABOUT --- */}
+      {/* --- 07. TEAM / ABOUT --- */}
       <LandingTeam />
 
-      {/* --- 09. FAQ ACCORDION --- */}
+      {/* --- 08. FAQ ACCORDION --- */}
       <LandingFaq />
 
       <LandingFooter
@@ -276,7 +246,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         @media (prefers-reduced-motion: reduce) {
           .animate-scanline { animation: none; opacity: 0; }
         }
-        .clip-path-poly { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
         .font-display { font-family: 'Orbitron', sans-serif; }
       `}</style>
     </m.div>

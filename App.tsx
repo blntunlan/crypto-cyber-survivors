@@ -36,6 +36,8 @@ import { useSurfaceState } from './hooks/useSurfaceState';
 import { useAudioSettingsSync } from './hooks/useAudioSettingsSync';
 import { UserProvider } from './contexts/UserContext';
 import { cn } from './utils/classnames';
+import { COLORS } from './config/Colors';
+import { MODERN_SCREEN_OVERLAY } from './config/modernSurface';
 import { SEO as SeoMetadata } from './components/SEO';
 import { getMarketRuntimeConfig } from './config/marketRuntime';
 import { getSeoContent } from './config/seo';
@@ -365,25 +367,28 @@ const App: React.FC = () => {
       gameStatus === GameStatus.PAUSED ||
       gameStatus === GameStatus.LEVEL_UP);
 
-  const handleWatchReplay = useCallback(async (replayId: string) => {
-    setIsReplayLoading(true);
+  const handleWatchReplay = useCallback(
+    async (replayId: string) => {
+      setIsReplayLoading(true);
 
-    const isLoaded = await ReplayPlayerService.loadReplayFromServer(replayId);
-    setIsReplayLoading(false);
+      const isLoaded = await ReplayPlayerService.loadReplayFromServer(replayId);
+      setIsReplayLoading(false);
 
-    if (!isLoaded) {
-      EventBus.emit('gameNotification', {
-        title: 'Replay Load Failed',
-        message: 'Replay data could not be loaded. Try again later.',
-        type: 'error',
-      });
-      return;
-    }
+      if (!isLoaded) {
+        EventBus.emit('gameNotification', {
+          title: t('common.menu_pages.replays.error_title') as string,
+          message: t('common.menu_pages.replays.error_message') as string,
+          type: 'error',
+        });
+        return;
+      }
 
-    setFeatureOverlay('none');
-    setActiveReplayId(replayId);
-    Logger.info(`[App] Loaded replay: ${replayId}`);
-  }, []);
+      setFeatureOverlay('none');
+      setActiveReplayId(replayId);
+      Logger.info(`[App] Loaded replay: ${replayId}`);
+    },
+    [t]
+  );
 
   const handleExitReplay = useCallback(() => {
     ReplayPlayerService.reset();
@@ -541,10 +546,27 @@ const App: React.FC = () => {
 
               {isReplayLoading && (
                 <div
-                  className="fixed inset-0 flex items-center justify-center bg-slate-950/80 font-mono text-sm uppercase tracking-[0.25em] text-violet-200"
+                  className={cn(
+                    'fixed inset-0 flex flex-col items-center justify-center gap-4',
+                    isRetro ? 'bg-[#0a0a12]/95' : MODERN_SCREEN_OVERLAY
+                  )}
                   style={{ zIndex: 3200 }}
                 >
-                  Loading replay&hellip;
+                  <div
+                    className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
+                    style={{
+                      borderColor: `${isRetro ? COLORS.NEON_GREEN : COLORS.WHALE}30`,
+                      borderTopColor: isRetro ? COLORS.NEON_GREEN : COLORS.WHALE,
+                    }}
+                  />
+                  <span
+                    className={cn(
+                      'text-xs uppercase tracking-[0.25em] text-slate-400',
+                      isRetro ? 'font-retro-pixel' : 'font-cyber'
+                    )}
+                  >
+                    {t('common.menu_pages.replays.loading_replay')}
+                  </span>
                 </div>
               )}
 

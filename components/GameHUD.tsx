@@ -65,7 +65,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   const pointerContainerRef = useRef<HTMLDivElement>(null);
 
   // ---------- CUSTOM HOOKS ----------
-  const { uiMeta, flash, showMilestone, clutchActive, achievement } = useHUDEvents(
+  const { uiMeta, flash, announcement, clutchActive, achievement } = useHUDEvents(
     player,
     status
   );
@@ -113,9 +113,8 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       )}
       {layout.elements.milestoneAnnouncer.visible && (
         <MilestoneAnnouncer
-          show={showMilestone}
-          text={uiMeta.milestoneText}
-          color={uiMeta.milestoneColor}
+          announcement={announcement}
+          scale={layout.elements.milestoneAnnouncer.scale}
         />
       )}
       {layout.elements.achievementPopup.visible && (

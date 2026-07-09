@@ -6,3 +6,8 @@ export const IconZap = () => <div data-testid="icon-zap" />;
 export const IconBitcoin = () => <div data-testid="icon-bitcoin" />;
 export const IconMonitor = () => <div data-testid="icon-monitor" />;
 export const IconFlashPulse = () => <div data-testid="icon-flash-pulse" />;
+export const IconCrown = () => <div data-testid="icon-crown" />;
+export const IconMedal = () => <div data-testid="icon-medal" />;
+export const IconTimeLock = () => <div data-testid="icon-time-lock" />;
+export const IconRepeat = () => <div data-testid="icon-repeat" />;
+export const IconActivity = () => <div data-testid="icon-activity" />;

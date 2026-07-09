@@ -102,7 +102,8 @@ test.describe('Local Storage', () => {
 
     console.log('User after reload:', userAfterReload);
 
-    expect(true).toBe(true); // Session handling tested
+    await expect(page.locator('body')).toBeVisible();
+    expect(userAfterReload).toBe(userData);
   });
 
   test('should handle localStorage quota exceeded', async ({ page }) => {

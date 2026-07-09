@@ -1,9 +1,20 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ReplayOverlay } from '../hud/ReplayOverlay';
 import { ReplayPlayerService } from '../../services/replay/ReplayPlayerService';
-import { type PlaybackData, type PlaybackTickResult } from '../../types/replayPlayback';
+import { EntityRenderer } from '../../services/renderers/EntityRenderer';
+import { type PlaybackTickResult } from '../../types/replayPlayback';
 import { COLORS } from '../../config/Colors';
 import { Z_LAYERS } from '../../constants/ZIndex';
+import { useTheme } from '../../contexts/useTheme';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { cn } from '../../utils/classnames';
+import {
+  MODERN_PANEL_FRAME,
+  MODERN_PANEL_TOP_ACCENT,
+} from '../../config/modernSurface';
+
+/** Single EntityRenderer instance for replay rendering (stateless, safe to reuse). */
+const entityRenderer = new EntityRenderer();
 
 interface ReplayPlaybackScreenProps {
   onExit: () => void;
@@ -39,7 +50,6 @@ const drawGrid = (
 
 const drawReplayFrame = (
   canvas: HTMLCanvasElement,
-  replay: PlaybackData,
   tickResult: PlaybackTickResult
 ): void => {
   const context = canvas.getContext('2d');
@@ -64,15 +74,10 @@ const drawReplayFrame = (
 
   drawGrid(context, width, height);
 
-  const progress = tickResult.progress ?? 0;
-  context.fillStyle = 'rgba(148, 163, 184, 0.72)';
-  context.font = '12px monospace';
-  context.fillText(`SESSION ${replay.sessionId}`, 24, 34);
-  context.fillText(
-    `LVL ${replay.finalLevel} · KILLS ${replay.totalKills} · ${Math.round(progress * 100)}%`,
-    24,
-    54
-  );
+  // Draw reconstructed enemies (behind ghost player)
+  if (tickResult.enemies && tickResult.enemies.length > 0) {
+    entityRenderer.drawReplayEnemies(context, tickResult.enemies, width, height);
+  }
 
   if (!tickResult.ghost) return;
 
@@ -103,6 +108,10 @@ export const ReplayPlaybackScreen: React.FC<ReplayPlaybackScreenProps> = ({
   const frameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const { isRetro } = useTheme();
+  const { t } = useLanguage();
+  const replay = ReplayPlayerService.getReplay();
+  const accentColor = isRetro ? COLORS.NEON_GREEN : COLORS.WHALE;
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -135,7 +144,7 @@ export const ReplayPlaybackScreen: React.FC<ReplayPlaybackScreenProps> = ({
       lastFrameTimeRef.current = timestamp;
 
       const tickResult = ReplayPlayerService.tick(deltaTime);
-      drawReplayFrame(canvas, replay, tickResult);
+      drawReplayFrame(canvas, tickResult);
 
       if (tickResult.done) {
         setIsComplete(true);
@@ -158,22 +167,62 @@ export const ReplayPlaybackScreen: React.FC<ReplayPlaybackScreenProps> = ({
 
   return (
     <div
-      className="fixed inset-0 overflow-hidden bg-slate-950 font-mono text-white"
+      className={cn(
+        'fixed inset-0 overflow-hidden bg-slate-950 text-white',
+        isRetro ? 'font-retro-pixel' : 'font-cyber'
+      )}
       style={{ zIndex: Z_LAYERS.CYCLE_COMPLETE }}
     >
       <canvas ref={canvasRef} className="h-full w-full" />
 
-      <div className="pointer-events-none absolute left-6 top-6 rounded border border-violet-400/30 bg-slate-950/75 px-4 py-3 text-xs uppercase tracking-[0.22em] text-violet-200">
-        Replay Playback
+      <div
+        className={cn(
+          'pointer-events-none absolute left-[calc(1rem+var(--sal))] top-[calc(1rem+var(--sat))] px-3 py-2 sm:px-4 sm:py-3',
+          isRetro
+            ? 'border-2 bg-[#0a0a12]/90'
+            : 'cyber-glass rounded-lg border bg-slate-950/80'
+        )}
+        style={{ borderColor: `${accentColor}4D` }}
+      >
+        <div
+          className="text-[10px] font-black uppercase tracking-[0.22em] sm:text-xs"
+          style={{ color: accentColor }}
+        >
+          {t('common.menu_pages.replays.playback_badge')}
+        </div>
+        {replay && (
+          <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">
+            {t('common.menu_pages.replays.playback_stats', {
+              level: replay.finalLevel,
+              kills: replay.totalKills.toLocaleString(),
+            })}
+          </div>
+        )}
       </div>
 
       {isComplete && (
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 mx-auto max-w-sm -translate-y-1/2 rounded border border-emerald-400/40 bg-slate-950/85 px-6 py-4 text-center">
-          <div className="text-sm font-black uppercase tracking-[0.24em] text-emerald-300">
-            Replay Complete
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-x-4 top-1/2 mx-auto max-w-sm -translate-y-1/2 px-6 py-5 text-center',
+            isRetro
+              ? 'border-2 border-[#39FF14]/60 bg-[#0a0a12]/95'
+              : MODERN_PANEL_FRAME
+          )}
+        >
+          {!isRetro && (
+            <div
+              className={MODERN_PANEL_TOP_ACCENT}
+              style={{ boxShadow: `0 0 20px ${accentColor}40` }}
+            />
+          )}
+          <div
+            className="text-sm font-black uppercase tracking-[0.24em]"
+            style={{ color: accentColor }}
+          >
+            {t('common.menu_pages.replays.playback_complete')}
           </div>
           <div className="mt-2 text-xs text-slate-400">
-            Use EXIT to return to the terminal.
+            {t('common.menu_pages.replays.playback_complete_hint')}
           </div>
         </div>
       )}

@@ -1,20 +1,38 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import { useLanguage } from '../../../contexts/LanguageContext';
 import { staggerContainer, fadeInUp } from './motionVariants';
 
-export const LandingFaq: React.FC = () => {
-  const { t } = useLanguage();
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+const FAQ_ITEMS = [
+  {
+    question: 'What makes Crypto Survivors different from other games?',
+    answer:
+      'Real-time BTC/USD price feeds directly influence gameplay difficulty. Market volatility creates unique challenges every session.',
+  },
+  {
+    question: 'Is this a play-to-earn or crypto wallet game?',
+    answer:
+      'No. This is a skill-based arcade game. No real money, no wallets, no blockchain transactions required.',
+  },
+  {
+    question: 'What are Casual and Competitive modes?',
+    answer:
+      'Casual mode offers relaxed difficulty for learning. Competitive mode features global leaderboards and anti-cheat validation.',
+  },
+  {
+    question: 'Does the game work offline?',
+    answer:
+      'Limited offline mode available via PWA. Full features require internet for live market data.',
+  },
+  {
+    question: 'What platforms are supported?',
+    answer:
+      'Web browser (desktop & mobile), PWA installable. Native apps planned for future releases.',
+  },
+];
 
-  const faqItems = [
-    { question: t('landing.faq.q1'), answer: t('landing.faq.a1') },
-    { question: t('landing.faq.q2'), answer: t('landing.faq.a2') },
-    { question: t('landing.faq.q3'), answer: t('landing.faq.a3') },
-    { question: t('landing.faq.q4'), answer: t('landing.faq.a4') },
-    { question: t('landing.faq.q5'), answer: t('landing.faq.a5') },
-  ];
+export const LandingFaq: React.FC = () => {
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   return (
     <section className="relative z-10 border-t border-[#b22222]/10 px-4 py-20 sm:px-6 sm:py-24 lg:py-32">
@@ -27,10 +45,10 @@ export const LandingFaq: React.FC = () => {
           className="mb-12 text-center sm:mb-16"
         >
           <h2 className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-[#d6b85c]">
-            {t('landing.faq.title')}
+            Common Questions
           </h2>
           <div className="font-cyber text-2xl font-black uppercase italic text-white sm:text-4xl md:text-5xl">
-            {t('landing.faq.subtitle')}
+            FAQ
           </div>
         </motion.div>
 
@@ -41,7 +59,7 @@ export const LandingFaq: React.FC = () => {
           variants={staggerContainer}
           className="space-y-3"
         >
-          {faqItems.map((faq, i) => (
+          {FAQ_ITEMS.map((faq, i) => (
             <motion.div
               key={i}
               variants={fadeInUp}

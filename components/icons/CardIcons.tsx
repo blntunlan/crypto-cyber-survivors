@@ -1384,6 +1384,56 @@ export const IconTrophy: React.FC<IconProps> = ({
 );
 
 /**
+ * UI: Crown (rank #1)
+ */
+export const IconCrown: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M3 7L8 11L12 4L16 11L21 7L19 17H5L3 7Z"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M3 7L8 11L12 4L16 11L21 7L19 17H5L3 7Z" fill={color} fillOpacity="0.1" />
+    <path d="M7 21H17" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+/**
+ * UI: Medal (podium ranks)
+ */
+export const IconMedal: React.FC<IconProps> = ({
+  className,
+  color = 'currentColor',
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle cx="12" cy="15" r="6" stroke={color} strokeWidth="2.5" />
+    <circle cx="12" cy="15" r="6" fill={color} fillOpacity="0.1" />
+    <path
+      d="M8.5 10L6 2H10L12 6L14 2H18L15.5 10"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+/**
  * UI: Sparkles
  */
 export const IconSparkles: React.FC<IconProps> = ({

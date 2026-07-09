@@ -3,7 +3,7 @@
  *
  * Handles all EventBus subscriptions for HUD:
  * - Combo updates
- * - Combo milestones
+ * - Combo milestones + in-run milestone announcements (queued)
  * - Combo end
  * - Level up flash
  * - Clutch kills
@@ -15,12 +15,14 @@ import { useEffect, useRef, useState } from 'react';
 import { EventBus } from '../services/core/EventBus';
 import { ComboSystem } from '../services/combat/ComboSystem';
 import { audio } from '../services/audio';
-import { COLORS } from '../constants';
+import {
+  ANNOUNCER_MILESTONE_TYPES,
+  MILESTONE_ANNOUNCEMENT,
+} from '../config/MilestoneConfig';
+import { type MilestoneAchievedEvent } from '../types/events';
 import { type Player, GameStatus } from '../types';
 
 export interface ComboUIState {
-  milestoneText: string;
-  milestoneColor: string;
   maxStreak: number;
   totalBonusXp: number;
 }
@@ -31,10 +33,23 @@ export interface Achievement {
   color: string;
 }
 
+/** A single center-screen announcement (combo milestone or in-run milestone). */
+export interface ActiveAnnouncement {
+  /** Monotonic id — used as a React key so animations restart per entry */
+  seq: number;
+  kind: 'combo' | 'milestone' | 'danger';
+  name: string;
+  nameKey?: string;
+  nameParams?: Record<string, string | number>;
+  color: string;
+  icon?: string;
+  sound?: string;
+}
+
 export interface UseHUDEventsReturn {
   uiMeta: ComboUIState;
   flash: number;
-  showMilestone: boolean;
+  announcement: ActiveAnnouncement | null;
   clutchActive: boolean;
   achievement: Achievement | null;
 }
@@ -47,18 +62,22 @@ export function useHUDEvents(
   status: GameStatus
 ): UseHUDEventsReturn {
   const [uiMeta, setUiMeta] = useState<ComboUIState>({
-    milestoneText: '',
-    milestoneColor: COLORS.NEON_ORANGE,
     maxStreak: 0,
     totalBonusXp: 0,
   });
   const [flash, setFlash] = useState(0);
-  const [showMilestone, setShowMilestone] = useState(false);
+  const [announcement, setAnnouncement] = useState<ActiveAnnouncement | null>(null);
   const [clutchActive, setClutchActive] = useState(false);
   const [achievement, setAchievement] = useState<Achievement | null>(null);
 
+  // Announcement queue (refs — event-driven, never touched in the RAF loop)
+  const queueRef = useRef<ActiveAnnouncement[]>([]);
+  const activeAnnouncementRef = useRef<ActiveAnnouncement | null>(null);
+  const announcementSeqRef = useRef(0);
+
   // Timeout refs for cleanup
-  const milestoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const showTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const gapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clutchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const achievementTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -105,6 +124,74 @@ export function useHUDEvents(
   }, [status]);
 
   useEffect(() => {
+    const playAnnouncementSound = (entry: ActiveAnnouncement) => {
+      if (!entry.sound) return;
+      if (entry.kind === 'combo') {
+        audio.playComboMilestone(
+          entry.sound as 'combo1' | 'combo2' | 'combo3' | 'combo4' | 'combo5'
+        );
+      } else if (entry.sound === 'tension') {
+        audio.playSlowdownTension();
+      } else if (entry.sound === 'glint') {
+        audio.playAchievementGlint();
+      }
+    };
+
+    const displayDuration = (entry: ActiveAnnouncement) =>
+      entry.kind === 'combo'
+        ? MILESTONE_ANNOUNCEMENT.COMBO_DISPLAY_MS
+        : MILESTONE_ANNOUNCEMENT.DISPLAY_MS;
+
+    const scheduleHide = (entry: ActiveAnnouncement) => {
+      if (showTimeoutRef.current) clearTimeout(showTimeoutRef.current);
+      showTimeoutRef.current = setTimeout(() => {
+        showTimeoutRef.current = null;
+        activeAnnouncementRef.current = null;
+        setAnnouncement(null);
+        gapTimeoutRef.current = setTimeout(() => {
+          gapTimeoutRef.current = null;
+          showNext();
+        }, MILESTONE_ANNOUNCEMENT.GAP_MS);
+      }, displayDuration(entry));
+    };
+
+    const showNext = () => {
+      const next = queueRef.current.shift();
+      if (!next) return;
+      activeAnnouncementRef.current = next;
+      setAnnouncement(next);
+      playAnnouncementSound(next);
+      scheduleHide(next);
+    };
+
+    const chainIdle = () =>
+      !activeAnnouncementRef.current &&
+      !showTimeoutRef.current &&
+      !gapTimeoutRef.current;
+
+    const enqueue = (entry: ActiveAnnouncement, priority: boolean) => {
+      if (priority) {
+        queueRef.current.unshift(entry);
+      } else {
+        queueRef.current.push(entry);
+        // Bound the queue: newest info matters most, drop the oldest pending
+        while (queueRef.current.length > MILESTONE_ANNOUNCEMENT.MAX_QUEUE) {
+          queueRef.current.shift();
+        }
+      }
+      if (chainIdle()) showNext();
+    };
+
+    const clearAnnouncements = () => {
+      if (showTimeoutRef.current) clearTimeout(showTimeoutRef.current);
+      if (gapTimeoutRef.current) clearTimeout(gapTimeoutRef.current);
+      showTimeoutRef.current = null;
+      gapTimeoutRef.current = null;
+      queueRef.current = [];
+      activeAnnouncementRef.current = null;
+      setAnnouncement(null);
+    };
+
     const unsubUpdate = EventBus.on('comboUpdate', (data: { totalBonusXp: number }) => {
       setUiMeta(prev => ({
         ...prev,
@@ -116,20 +203,23 @@ export function useHUDEvents(
     const unsubMilestone = EventBus.on(
       'comboMilestone',
       (data: { name: string; color: string; sound?: string }) => {
-        if (milestoneTimeoutRef.current) clearTimeout(milestoneTimeoutRef.current);
-        setUiMeta(prev => ({
-          ...prev,
-          milestoneText: data.name,
-          milestoneColor: data.color,
-        }));
-        setShowMilestone(true);
-        // Only play sound if provided (may be on cooldown)
-        if (data.sound) {
-          audio.playComboMilestone(
-            data.sound as 'combo1' | 'combo2' | 'combo3' | 'combo4' | 'combo5'
-          );
+        const entry: ActiveAnnouncement = {
+          seq: ++announcementSeqRef.current,
+          kind: 'combo',
+          name: data.name,
+          color: data.color,
+          sound: data.sound,
+        };
+        if (activeAnnouncementRef.current?.kind === 'combo') {
+          // Escalating combo replaces the shown one in place and resets its timer
+          activeAnnouncementRef.current = entry;
+          setAnnouncement(entry);
+          playAnnouncementSound(entry);
+          scheduleHide(entry);
+        } else {
+          // A milestone is showing (combo takes priority) or the chain is idle
+          enqueue(entry, true);
         }
-        milestoneTimeoutRef.current = setTimeout(() => setShowMilestone(false), 2500);
       }
     );
 
@@ -149,13 +239,8 @@ export function useHUDEvents(
     });
 
     const unsubReset = EventBus.on('gameReset', () => {
-      setUiMeta({
-        milestoneText: '',
-        milestoneColor: COLORS.NEON_ORANGE,
-        maxStreak: 0,
-        totalBonusXp: 0,
-      });
-      setShowMilestone(false);
+      setUiMeta({ maxStreak: 0, totalBonusXp: 0 });
+      clearAnnouncements();
       setFlash(0);
       setClutchActive(false);
       setAchievement(null);
@@ -165,7 +250,26 @@ export function useHUDEvents(
 
     const unsubAchievement = EventBus.on(
       'milestoneAchieved',
-      (data: { name: string; icon: string; color: string; type: string }) => {
+      (data: MilestoneAchievedEvent) => {
+        // In-run milestones (kills/time/level/pnl/danger) go to the queued
+        // center-screen announcer
+        if (ANNOUNCER_MILESTONE_TYPES.has(data.type)) {
+          enqueue(
+            {
+              seq: ++announcementSeqRef.current,
+              kind: data.severity === 'danger' ? 'danger' : 'milestone',
+              name: data.name,
+              nameKey: data.nameKey,
+              nameParams: data.nameParams,
+              color: data.color,
+              icon: data.icon,
+              sound: data.sound,
+            },
+            false
+          );
+          return;
+        }
+
         // Only show market-related milestones (e.g. Volatility Shock) in development mode
         if (data.type === 'market' && !import.meta.env.DEV) {
           return;
@@ -185,7 +289,8 @@ export function useHUDEvents(
       unsubEnemyKilled();
       unsubReset();
       unsubAchievement();
-      if (milestoneTimeoutRef.current) clearTimeout(milestoneTimeoutRef.current);
+      if (showTimeoutRef.current) clearTimeout(showTimeoutRef.current);
+      if (gapTimeoutRef.current) clearTimeout(gapTimeoutRef.current);
       if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       if (clutchTimeoutRef.current) clearTimeout(clutchTimeoutRef.current);
       if (achievementTimeoutRef.current) clearTimeout(achievementTimeoutRef.current);
@@ -195,7 +300,7 @@ export function useHUDEvents(
   return {
     uiMeta,
     flash,
-    showMilestone,
+    announcement,
     clutchActive,
     achievement,
   };
