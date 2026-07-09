@@ -63,12 +63,12 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
 
   startTutorial: () => {
     const first = TUTORIAL_STEPS[0];
-    set(state => ({
+    set(() => ({
       tutorial: {
         ...DEFAULT_TUTORIAL,
         runState: 'in-progress',
         currentStepId: first?.id ?? null,
-        currentPhase: first?.phase ?? 'menu-tour',
+        currentPhase: 'menu-tour',
         startedAt: Date.now(),
       },
     }));
@@ -81,7 +81,7 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
       tutorial: {
         ...state.tutorial,
         currentStepId: stepId,
-        currentPhase: step.phase,
+        currentPhase: 'menu-tour', // Phase is managed by components or EventBus now
       },
     }));
   },
@@ -117,7 +117,7 @@ export const createTutorialSlice: StateCreator<TutorialSlice> = set => ({
           ...tut,
           completedSteps,
           currentStepId: next.id,
-          currentPhase: next.phase,
+          currentPhase: 'menu-tour',
         },
       };
     });
