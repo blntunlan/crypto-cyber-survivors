@@ -16,7 +16,6 @@ vi.mock('../../stores/gameStore', () => ({
 
 vi.mock('../../hooks/useHUDEvents', () => ({
   useHUDEvents: vi.fn(() => ({
-    uiMeta: { maxStreak: 10, totalBonusXp: 100 },
     flash: 0,
     announcement: null,
     clutchActive: false,
@@ -46,7 +45,6 @@ vi.mock('../../components/hud', () => ({
   MilestoneAnnouncer: () => (
     <div data-testid="milestone-announcer">MilestoneAnnouncer</div>
   ),
-  ComboPanel: () => <div data-testid="combo-panel">ComboPanel</div>,
   MarketAnnouncementBanner: () => (
     <div data-testid="market-announcement-banner">MarketAnnouncementBanner</div>
   ),
@@ -59,7 +57,6 @@ vi.mock('../../config/UILayout', () => ({
     elements: {
       waveTimer: { visible: true },
       fpsCounter: { visible: true },
-      comboPanel: { visible: true, offset: 0 },
       milestoneAnnouncer: { visible: true, scale: 1 },
       achievementPopup: { visible: true },
     },
@@ -91,7 +88,7 @@ describe('GameHUD', () => {
     expect(screen.getByTestId('enemy-pointers')).toBeTruthy();
     expect(screen.getByTestId('level-up-flash')).toBeTruthy();
     expect(screen.getByTestId('clutch-announcement')).toBeTruthy();
-    expect(screen.getByTestId('combo-panel')).toBeTruthy();
+    expect(screen.queryByTestId('combo-panel')).toBeNull();
     expect(screen.getByTestId('milestone-announcer')).toBeTruthy();
     expect(screen.getByTestId('achievement-popup')).toBeTruthy();
   });
@@ -103,7 +100,6 @@ describe('GameHUD', () => {
       elements: {
         waveTimer: { visible: false },
         fpsCounter: { visible: false },
-        comboPanel: { visible: false, offset: 0 },
         milestoneAnnouncer: { visible: false },
         achievementPopup: { visible: false },
       },

@@ -15,15 +15,20 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
+    const landingSurface = document.querySelector<HTMLElement>(
+      '[data-runtime-gameplay-active]'
+    );
+    if (!landingSurface) return;
+
     const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 480);
+      setShowBackToTop(landingSurface.scrollTop > 480);
     };
 
     handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    landingSurface.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      landingSurface.removeEventListener('scroll', handleScroll);
     };
   }, []);
 

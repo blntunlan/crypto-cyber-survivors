@@ -29,7 +29,6 @@ import {
   EnemyPointers,
   AchievementPopup,
   MilestoneAnnouncer,
-  ComboPanel,
   MarketAnnouncementBanner,
 } from './hud';
 import { ChallengeProgressHUD } from './hud/ChallengeProgressHUD';
@@ -61,11 +60,10 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   const globalScale = layout.globalScale * hudScale;
 
   // ---------- REFS ----------
-  const containerRef = useRef<HTMLDivElement>(null);
   const pointerContainerRef = useRef<HTMLDivElement>(null);
 
   // ---------- CUSTOM HOOKS ----------
-  const { uiMeta, flash, announcement, clutchActive, achievement } = useHUDEvents(
+  const { flash, announcement, clutchActive, achievement } = useHUDEvents(
     player,
     status
   );
@@ -104,13 +102,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       <LevelUpFlash intensity={flash} />
       <ClutchAnnouncement active={clutchActive} />
       <MarketAnnouncementBanner />
-      {layout.elements.comboPanel.visible && (
-        <ComboPanel
-          containerRef={containerRef}
-          maxStreak={uiMeta.maxStreak}
-          totalBonusXp={uiMeta.totalBonusXp}
-        />
-      )}
       {layout.elements.milestoneAnnouncer.visible && (
         <MilestoneAnnouncer
           announcement={announcement}

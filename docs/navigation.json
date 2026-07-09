@@ -88,6 +88,19 @@
       ]
     },
     {
+      "text": "Design Specs",
+      "items": [
+        {
+          "text": "Combo Milestone Feedback",
+          "link": "/docs/superpowers/specs/2026-07-09-combo-milestone-feedback-design"
+        },
+        {
+          "text": "Combo Milestone Feedback Plan",
+          "link": "/docs/superpowers/plans/2026-07-09-combo-milestone-feedback"
+        }
+      ]
+    },
+    {
       "text": "Core Workflows",
       "items": [
         {

@@ -14,7 +14,7 @@ const ROADMAP_ITEMS = [
     phase: 'Live now',
     title: 'Live Markets',
     status: 'current',
-    items: ['Binance/Coinbase WSS', 'Market-driven difficulty', 'Anti-cheat system'],
+    items: ['Live price feed', 'Market-driven difficulty', 'Anti-cheat system'],
   },
   {
     phase: 'Next',

@@ -1,121 +1,117 @@
 import { GAME_ENGINE } from '../../constants';
 import { type HitStopEvent } from '../../types/events';
 
+const BUDGET_HISTORY_CAPACITY = Math.ceil(
+  GAME_ENGINE.CRIT_HITSTOP_WINDOW_BUDGET_MS / GAME_ENGINE.CRIT_HITSTOP_MIN_DURATION_MS
+);
+
 /**
- * Adapts hit-stop durations under super-crit bursts to protect frame pacing.
+ * Adapts crit hit-stop durations to protect frame pacing during dense bursts.
  */
 export class HitStopGovernor {
-  private readonly critTimestamps: number[] = [];
-  private readonly superCritTimestamps: number[] = [];
-  private lastSuperCritAppliedAt = Number.NEGATIVE_INFINITY;
+  private readonly rateTimestamps = new Float64Array(
+    GAME_ENGINE.CRIT_HITSTOP_HISTORY_CAPACITY
+  );
+  private readonly budgetTimestamps = new Float64Array(BUDGET_HISTORY_CAPACITY);
+  private readonly budgetDurations = new Float64Array(BUDGET_HISTORY_CAPACITY);
+  private rateHead = 0;
+  private rateSize = 0;
+  private budgetHead = 0;
+  private budgetSize = 0;
+  private windowAppliedDuration = 0;
 
   public reset(): void {
-    this.critTimestamps.length = 0;
-    this.superCritTimestamps.length = 0;
-    this.lastSuperCritAppliedAt = Number.NEGATIVE_INFINITY;
+    this.rateHead = 0;
+    this.rateSize = 0;
+    this.budgetHead = 0;
+    this.budgetSize = 0;
+    this.windowAppliedDuration = 0;
   }
 
   public getAdjustedDuration(event: HitStopEvent, nowMs: number): number {
-    if (event.duration <= 0) {
+    if (!Number.isFinite(event.duration) || event.duration <= 0) {
       return 0;
     }
 
-    if (event.isCrit) {
-      this.recordCrit(nowMs);
-    }
-
-    if (!event.isSuperCrit) {
-      if (
-        event.isCrit &&
-        this.getCritRate(nowMs) > GAME_ENGINE.CRIT_HITSTOP_RATE_THRESHOLD
-      ) {
-        return 0;
-      }
-
+    if (!event.isCrit) {
       return event.duration;
     }
 
-    this.recordSuperCrit(nowMs);
-    const superCritRate = this.getSuperCritRate(nowMs);
-
-    if (superCritRate <= GAME_ENGINE.SUPER_CRIT_HITSTOP_RATE_THRESHOLD) {
-      this.lastSuperCritAppliedAt = nowMs;
-      return event.duration;
-    }
-
-    if (
-      nowMs - this.lastSuperCritAppliedAt <
-      GAME_ENGINE.SUPER_CRIT_HITSTOP_MIN_INTERVAL_MS
-    ) {
-      return 0;
-    }
-
-    const overloadRate = Math.max(
+    this.prune(nowMs);
+    const adjustedDuration = this.scaleForCritRate(
+      event.duration,
+      this.getCritRateWithIncomingEvent()
+    );
+    const availableBudget = Math.max(
       0,
-      superCritRate - GAME_ENGINE.SUPER_CRIT_HITSTOP_RATE_THRESHOLD
+      GAME_ENGINE.CRIT_HITSTOP_WINDOW_BUDGET_MS - this.windowAppliedDuration
     );
-    const normalizedOverload = Math.min(
+    const appliedDuration = Math.min(adjustedDuration, availableBudget);
+    const duration =
+      appliedDuration >= GAME_ENGINE.CRIT_HITSTOP_MIN_DURATION_MS ? appliedDuration : 0;
+
+    this.recordCritRate(nowMs);
+    if (duration > 0) {
+      this.recordAppliedDuration(nowMs, duration);
+    }
+
+    return duration;
+  }
+
+  private scaleForCritRate(duration: number, critRate: number): number {
+    if (critRate <= GAME_ENGINE.CRIT_HITSTOP_SOFT_RATE) {
+      return duration;
+    }
+
+    const normalizedPressure = Math.min(
       1,
-      overloadRate / GAME_ENGINE.SUPER_CRIT_HITSTOP_MAX_OVERLOAD_RATE
+      (critRate - GAME_ENGINE.CRIT_HITSTOP_SOFT_RATE) /
+        (GAME_ENGINE.CRIT_HITSTOP_HARD_RATE - GAME_ENGINE.CRIT_HITSTOP_SOFT_RATE)
     );
-    const scale =
-      1 - normalizedOverload * (1 - GAME_ENGINE.SUPER_CRIT_HITSTOP_MIN_SCALE);
+    const scale = 1 - normalizedPressure * (1 - GAME_ENGINE.CRIT_HITSTOP_MIN_SCALE);
 
-    this.lastSuperCritAppliedAt = nowMs;
-    return Math.max(
-      GAME_ENGINE.SUPER_CRIT_HITSTOP_MIN_DURATION_MS,
-      event.duration * scale
-    );
+    return duration * scale;
   }
 
-  private recordSuperCrit(nowMs: number): void {
-    this.superCritTimestamps.push(nowMs);
-    this.pruneSuperCrit(nowMs);
+  private getCritRateWithIncomingEvent(): number {
+    return (this.rateSize + 1) / (GAME_ENGINE.CRIT_HITSTOP_WINDOW_MS / 1000);
   }
 
-  private getSuperCritRate(nowMs: number): number {
-    this.pruneSuperCrit(nowMs);
-    const windowSec = GAME_ENGINE.SUPER_CRIT_HITSTOP_WINDOW_MS / 1000;
-    if (windowSec <= 0) {
-      return 0;
-    }
-    return this.superCritTimestamps.length / windowSec;
-  }
+  private recordCritRate(nowMs: number): void {
+    const capacity = GAME_ENGINE.CRIT_HITSTOP_HISTORY_CAPACITY;
+    let index = (this.rateHead + this.rateSize) % capacity;
 
-  private recordCrit(nowMs: number): void {
-    this.critTimestamps.push(nowMs);
-    this.pruneCrit(nowMs);
-  }
-
-  private getCritRate(nowMs: number): number {
-    this.pruneCrit(nowMs);
-    const windowSec = GAME_ENGINE.CRIT_HITSTOP_WINDOW_MS / 1000;
-    if (windowSec <= 0) {
-      return 0;
+    if (this.rateSize === capacity) {
+      index = this.rateHead;
+      this.rateHead = (this.rateHead + 1) % capacity;
+    } else {
+      this.rateSize += 1;
     }
 
-    return this.critTimestamps.length / windowSec;
+    this.rateTimestamps[index] = nowMs;
   }
 
-  private pruneSuperCrit(nowMs: number): void {
-    const cutoff = nowMs - GAME_ENGINE.SUPER_CRIT_HITSTOP_WINDOW_MS;
-    while (
-      this.superCritTimestamps.length > 0 &&
-      this.superCritTimestamps[0] !== undefined &&
-      this.superCritTimestamps[0] < cutoff
-    ) {
-      this.superCritTimestamps.shift();
-    }
+  private recordAppliedDuration(nowMs: number, duration: number): void {
+    const index = (this.budgetHead + this.budgetSize) % BUDGET_HISTORY_CAPACITY;
+
+    this.budgetTimestamps[index] = nowMs;
+    this.budgetDurations[index] = duration;
+    this.budgetSize += 1;
+    this.windowAppliedDuration += duration;
   }
 
-  private pruneCrit(nowMs: number): void {
+  private prune(nowMs: number): void {
     const cutoff = nowMs - GAME_ENGINE.CRIT_HITSTOP_WINDOW_MS;
-    while (
-      this.critTimestamps.length > 0 &&
-      this.critTimestamps[0] !== undefined &&
-      this.critTimestamps[0] < cutoff
-    ) {
-      this.critTimestamps.shift();
+
+    while (this.rateSize > 0 && this.rateTimestamps[this.rateHead]! <= cutoff) {
+      this.rateHead = (this.rateHead + 1) % GAME_ENGINE.CRIT_HITSTOP_HISTORY_CAPACITY;
+      this.rateSize -= 1;
+    }
+
+    while (this.budgetSize > 0 && this.budgetTimestamps[this.budgetHead]! <= cutoff) {
+      this.windowAppliedDuration -= this.budgetDurations[this.budgetHead]!;
+      this.budgetHead = (this.budgetHead + 1) % BUDGET_HISTORY_CAPACITY;
+      this.budgetSize -= 1;
     }
   }
 }

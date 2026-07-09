@@ -2,9 +2,7 @@
  * useHUDEvents - HUD Event Subscription Hook
  *
  * Handles all EventBus subscriptions for HUD:
- * - Combo updates
  * - Combo milestones + in-run milestone announcements (queued)
- * - Combo end
  * - Level up flash
  * - Clutch kills
  * - Game reset
@@ -13,7 +11,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { EventBus } from '../services/core/EventBus';
-import { ComboSystem } from '../services/combat/ComboSystem';
 import { audio } from '../services/audio';
 import {
   ANNOUNCER_MILESTONE_TYPES,
@@ -21,11 +18,6 @@ import {
 } from '../config/MilestoneConfig';
 import { type MilestoneAchievedEvent } from '../types/events';
 import { type Player, GameStatus } from '../types';
-
-export interface ComboUIState {
-  maxStreak: number;
-  totalBonusXp: number;
-}
 
 export interface Achievement {
   name: string;
@@ -47,7 +39,6 @@ export interface ActiveAnnouncement {
 }
 
 export interface UseHUDEventsReturn {
-  uiMeta: ComboUIState;
   flash: number;
   announcement: ActiveAnnouncement | null;
   clutchActive: boolean;
@@ -61,10 +52,6 @@ export function useHUDEvents(
   player: Player | undefined,
   status: GameStatus
 ): UseHUDEventsReturn {
-  const [uiMeta, setUiMeta] = useState<ComboUIState>({
-    maxStreak: 0,
-    totalBonusXp: 0,
-  });
   const [flash, setFlash] = useState(0);
   const [announcement, setAnnouncement] = useState<ActiveAnnouncement | null>(null);
   const [clutchActive, setClutchActive] = useState(false);
@@ -192,14 +179,6 @@ export function useHUDEvents(
       setAnnouncement(null);
     };
 
-    const unsubUpdate = EventBus.on('comboUpdate', (data: { totalBonusXp: number }) => {
-      setUiMeta(prev => ({
-        ...prev,
-        totalBonusXp: data.totalBonusXp,
-        maxStreak: ComboSystem.getMaxStreak(),
-      }));
-    });
-
     const unsubMilestone = EventBus.on(
       'comboMilestone',
       (data: { name: string; color: string; sound?: string }) => {
@@ -223,10 +202,6 @@ export function useHUDEvents(
       }
     );
 
-    const unsubEnd = EventBus.on('comboEnd', (data: { bonusXp: number }) => {
-      setUiMeta(prev => ({ ...prev, totalBonusXp: data.bonusXp }));
-    });
-
     const unsubLevelUp = EventBus.on('levelUpStart', () => {
       if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       setFlash(1.0);
@@ -239,7 +214,6 @@ export function useHUDEvents(
     });
 
     const unsubReset = EventBus.on('gameReset', () => {
-      setUiMeta({ maxStreak: 0, totalBonusXp: 0 });
       clearAnnouncements();
       setFlash(0);
       setClutchActive(false);
@@ -282,9 +256,7 @@ export function useHUDEvents(
     );
 
     return () => {
-      unsubUpdate();
       unsubMilestone();
-      unsubEnd();
       unsubLevelUp();
       unsubEnemyKilled();
       unsubReset();
@@ -298,7 +270,6 @@ export function useHUDEvents(
   }, []); // Removed [player] dependency from this effect loop as it uses EventBus
 
   return {
-    uiMeta,
     flash,
     announcement,
     clutchActive,

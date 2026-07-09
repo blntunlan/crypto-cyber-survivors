@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { MARKET } from '../../../constants';
 import {
   SSEMarketService,
@@ -33,8 +34,8 @@ type Forecast = {
   reasons: [string, string, string];
 };
 
-const MAX_FEED_POINTS = 24;
-const VISIBLE_CANDLES = 14;
+const MAX_FEED_POINTS = 48;
+const TRAIL_LENGTH = 10;
 const SEED_POINT_INTERVAL_MS = 1800;
 const FALLBACK_BTC_PRICE = MARKET.FALLBACK_PRICES.BTC;
 
@@ -63,7 +64,7 @@ const formatCompactPrice = (price: number): string => {
 };
 
 const formatDisplayPrice = (price: number, status: FeedStatus): string =>
-  status === 'connecting' ? 'SYNCING' : formatCompactPrice(price);
+  status === 'connecting' ? 'SYNCING' : `$${Math.round(price).toLocaleString('en-US')}`;
 
 const formatPercent = (value: number): string =>
   `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -165,21 +166,114 @@ const getLatestPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
 const getPreviousPoint = (points: LandingMarketPoint[]): LandingMarketPoint =>
   points[points.length - 2] ?? getLatestPoint(points);
 
-const buildSparklinePath = (points: LandingMarketPoint[]): string => {
-  if (points.length === 0) return '';
+type ChartCoordinate = { x: number; y: number; isUp: boolean };
+
+type ChartGridLevel = { y: number; label: string };
+
+type ChartVolumeBar = {
+  x: number;
+  width: number;
+  y: number;
+  height: number;
+  isUp: boolean;
+};
+
+type ChartModel = {
+  coordinates: ChartCoordinate[];
+  linePath: string;
+  areaPath: string;
+  gridLevels: ChartGridLevel[];
+  volumeBars: ChartVolumeBar[];
+  livePriceY: number;
+  windowChangePercent: number;
+  isWindowUp: boolean;
+};
+
+// Chart layout in the 0–100 SVG space: price plot on top, volume histogram below.
+const CHART_PRICE_TOP_Y = 8;
+const CHART_PRICE_BOTTOM_Y = 70;
+const CHART_VOLUME_MAX_HEIGHT = 18;
+
+const EMPTY_CHART_MODEL: ChartModel = {
+  coordinates: [],
+  linePath: '',
+  areaPath: '',
+  gridLevels: [],
+  volumeBars: [],
+  livePriceY: 50,
+  windowChangePercent: 0,
+  isWindowUp: true,
+};
+
+const formatAxisPrice = (price: number): string =>
+  `$${Math.round(price).toLocaleString('en-US')}`;
+
+const buildSmoothLinePath = (coordinates: ChartCoordinate[]): string => {
+  const firstCoordinate = coordinates[0];
+  if (!firstCoordinate) return '';
+
+  let path = `M ${firstCoordinate.x.toFixed(2)} ${firstCoordinate.y.toFixed(2)}`;
+  for (let index = 1; index < coordinates.length; index++) {
+    const previous = coordinates[index - 1];
+    const current = coordinates[index];
+    if (!previous || !current) continue;
+    const midX = ((previous.x + current.x) / 2).toFixed(2);
+    path += ` C ${midX} ${previous.y.toFixed(2)}, ${midX} ${current.y.toFixed(2)}, ${current.x.toFixed(2)} ${current.y.toFixed(2)}`;
+  }
+  return path;
+};
+
+const buildChartModel = (points: LandingMarketPoint[]): ChartModel => {
+  if (points.length === 0) return EMPTY_CHART_MODEL;
 
   const prices = points.map(point => point.price);
   const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const priceRange = Math.max(maxPrice - minPrice, 1);
+  // Guard against a flat window so the line stays centered instead of exploding.
+  const priceRange = Math.max(maxPrice - minPrice, maxPrice * 0.0004, 1);
+  const toY = (price: number): number =>
+    CHART_PRICE_TOP_Y +
+    ((maxPrice - price) / priceRange) * (CHART_PRICE_BOTTOM_Y - CHART_PRICE_TOP_Y);
 
-  return points
-    .map((point, index) => {
-      const xCoordinate = (index / Math.max(points.length - 1, 1)) * 100;
-      const yCoordinate = 86 - ((point.price - minPrice) / priceRange) * 66;
-      return `${index === 0 ? 'M' : 'L'} ${xCoordinate.toFixed(2)} ${yCoordinate.toFixed(2)}`;
-    })
-    .join(' ');
+  const coordinates = points.map((point, index) => ({
+    x: (index / Math.max(points.length - 1, 1)) * 100,
+    y: toY(point.price),
+    isUp: point.price >= (points[index - 1] ?? point).price,
+  }));
+
+  const linePath = buildSmoothLinePath(coordinates);
+  const gridLevels = [maxPrice, (maxPrice + minPrice) / 2, minPrice].map(price => ({
+    y: toY(price),
+    label: formatAxisPrice(price),
+  }));
+
+  const maxVolume = Math.max(...points.map(point => point.normalizedVolume), 0.01);
+  const slotWidth = 100 / points.length;
+  const volumeBars = points.map((point, index) => {
+    const height = 2.5 + (point.normalizedVolume / maxVolume) * CHART_VOLUME_MAX_HEIGHT;
+    return {
+      x: slotWidth * index + slotWidth * 0.15,
+      width: slotWidth * 0.7,
+      y: 100 - height,
+      height,
+      isUp: coordinates[index]?.isUp ?? true,
+    };
+  });
+
+  const firstPrice = prices[0] ?? 0;
+  const lastPrice = prices[prices.length - 1] ?? 0;
+
+  return {
+    coordinates,
+    linePath,
+    areaPath: linePath ? `${linePath} L 100 100 L 0 100 Z` : '',
+    gridLevels,
+    volumeBars,
+    livePriceY: coordinates[coordinates.length - 1]?.y ?? 50,
+    windowChangePercent:
+      firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0,
+    isWindowUp: lastPrice >= firstPrice,
+  };
 };
 
 const buildForecast = (points: LandingMarketPoint[]): Forecast => {
@@ -308,13 +402,21 @@ export const LandingPriceFeed: React.FC = () => {
     previousPoint.price > 0
       ? ((latestPoint.price - previousPoint.price) / previousPoint.price) * 100
       : 0;
-  const sparklinePath = useMemo(() => buildSparklinePath(points), [points]);
+  const chartModel = useMemo(() => buildChartModel(points), [points]);
+  const priceOrbCoordinate =
+    chartModel.coordinates[chartModel.coordinates.length - 1] ?? null;
+  const priceTrailCoordinates = chartModel.coordinates.slice(-(TRAIL_LENGTH + 1), -1);
+  const isPriceRising = priceChangePercent >= 0;
+  const orbColor = isPriceRising ? '#22c55e' : '#b22222';
+  const orbGlowColor = isPriceRising ? '#6ee7b7' : '#ff7777';
+  const lineColor = chartModel.isWindowUp ? '#22c55e' : '#b22222';
+  // Tailwind's motion-reduce: variants can't override inline transition styles,
+  // so reduced motion has to be resolved in JS.
+  const prefersReducedMotion = useReducedMotion();
+  const glideTransition = prefersReducedMotion
+    ? 'none'
+    : 'left 0.7s linear, top 0.7s linear, background-color 0.7s linear, box-shadow 0.7s linear';
   const forecast = useMemo(() => buildForecast(points), [points]);
-  const visibleCandles = points.slice(-VISIBLE_CANDLES);
-  const candlePrices = visibleCandles.map(point => point.price);
-  const candleMinPrice = Math.min(...candlePrices);
-  const candleMaxPrice = Math.max(...candlePrices);
-  const candleRange = Math.max(candleMaxPrice - candleMinPrice, 1);
 
   return (
     <section
@@ -362,46 +464,190 @@ export const LandingPriceFeed: React.FC = () => {
 
         <div className="bg-[#05070d]/88 relative min-h-[170px] overflow-hidden border border-white/10 p-3 sm:min-h-[210px] sm:p-4">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(214,184,92,0.12),transparent_30%),linear-gradient(180deg,transparent,rgba(2,6,23,0.58))]" />
-          <svg
-            className="relative z-10 h-28 w-full text-[#d6b85c] sm:h-36"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <path
-              d={`${sparklinePath} L 100 100 L 0 100 Z`}
-              fill="url(#landingPriceFill)"
-              opacity="0.24"
-            />
-            <path
-              d={sparklinePath}
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="2.5"
-            />
-            <defs>
-              <linearGradient id="landingPriceFill" x1="0" x2="0" y1="0" y2="1">
-                <stop stopColor="#d6b85c" />
-                <stop offset="1" stopColor="#b22222" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <div className="relative z-10 h-44 w-full sm:h-56">
+            {/* Plot area — right gutter reserved for the price axis */}
+            <div className="absolute inset-y-0 left-0 right-12 sm:right-14">
+              <svg
+                className="h-full w-full"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="landingPriceFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop stopColor={lineColor} stopOpacity="0.3" />
+                    <stop offset="1" stopColor={lineColor} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
 
-          <div className="relative z-10 mt-2 flex h-16 items-end gap-1.5">
-            {visibleCandles.map((point, index) => {
-              const previousVisiblePoint = visibleCandles[index - 1] ?? point;
-              const candleHeight =
-                22 + ((point.price - candleMinPrice) / candleRange) * 42;
-              const isUp = point.price >= previousVisiblePoint.price;
-              return (
-                <span
-                  key={`${point.timestamp}-${index}`}
-                  className={`w-full min-w-0 ${isUp ? 'bg-[#22c55e]' : 'bg-[#b22222]'} shadow-[0_0_16px_rgba(214,184,92,0.12)]`}
-                  style={{ height: `${candleHeight}px` }}
+                {chartModel.gridLevels.map((level, index) => (
+                  <line
+                    key={`grid-${index}`}
+                    x1="0"
+                    x2="100"
+                    y1={level.y}
+                    y2={level.y}
+                    stroke="#d6b85c"
+                    strokeDasharray={index === 1 ? '2 4' : undefined}
+                    strokeWidth="1"
+                    vectorEffect="non-scaling-stroke"
+                    opacity="0.14"
+                  />
+                ))}
+                {[25, 50, 75].map(gridX => (
+                  <line
+                    key={`vgrid-${gridX}`}
+                    x1={gridX}
+                    x2={gridX}
+                    y1="0"
+                    y2="100"
+                    stroke="#d6b85c"
+                    strokeWidth="1"
+                    vectorEffect="non-scaling-stroke"
+                    opacity="0.06"
+                  />
+                ))}
+
+                {chartModel.volumeBars.map((bar, index) => (
+                  <rect
+                    key={`volume-${index}`}
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.width}
+                    height={bar.height}
+                    fill={bar.isUp ? '#22c55e' : '#b22222'}
+                    opacity="0.3"
+                  />
+                ))}
+
+                <path d={chartModel.areaPath} fill="url(#landingPriceFill)" />
+                <path
+                  d={chartModel.linePath}
+                  fill="none"
+                  stroke={lineColor}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="5"
+                  vectorEffect="non-scaling-stroke"
+                  opacity="0.16"
                 />
-              );
-            })}
+                <path
+                  d={chartModel.linePath}
+                  fill="none"
+                  stroke={lineColor}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                  vectorEffect="non-scaling-stroke"
+                />
+
+                <line
+                  x1="0"
+                  x2="100"
+                  y1={chartModel.livePriceY}
+                  y2={chartModel.livePriceY}
+                  stroke={orbColor}
+                  strokeDasharray="5 4"
+                  strokeWidth="1"
+                  vectorEffect="non-scaling-stroke"
+                  opacity="0.45"
+                />
+              </svg>
+
+              <span
+                className={`absolute left-0 top-0 border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest ${
+                  chartModel.isWindowUp
+                    ? 'border-[#22c55e]/30 bg-[#22c55e]/10 text-[#6ee7b7]'
+                    : 'border-[#b22222]/40 bg-[#b22222]/15 text-[#ff7777]'
+                }`}
+              >
+                WINDOW {formatPercent(chartModel.windowChangePercent)}
+              </span>
+              <span className="absolute bottom-0 left-0 text-[8px] font-black uppercase tracking-widest text-slate-600">
+                VOL
+              </span>
+
+              {/* Player-style price orb + bullet trail (mirrors EntityRenderer dash trail) */}
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                {priceTrailCoordinates.map((coordinate, index) => {
+                  const progress = (index + 1) / (priceTrailCoordinates.length + 1);
+                  const dotSize = 3 + progress * 5;
+                  const dotColor = coordinate.isUp ? '#22c55e' : '#b22222';
+                  const dotGlowColor = coordinate.isUp ? '#6ee7b7' : '#ff7777';
+                  return (
+                    <span
+                      key={`price-trail-${index}`}
+                      className="absolute rounded-full"
+                      style={{
+                        left: `${coordinate.x}%`,
+                        top: `${coordinate.y}%`,
+                        width: `${dotSize}px`,
+                        height: `${dotSize}px`,
+                        marginLeft: `${-dotSize / 2}px`,
+                        marginTop: `${-dotSize / 2}px`,
+                        opacity: 0.12 + progress * 0.5,
+                        backgroundColor: dotColor,
+                        boxShadow: `0 0 ${4 + progress * 8}px ${dotGlowColor}`,
+                        transition: glideTransition,
+                      }}
+                    />
+                  );
+                })}
+                {priceOrbCoordinate && (
+                  <span
+                    className="absolute"
+                    style={{
+                      left: `${priceOrbCoordinate.x}%`,
+                      top: `${priceOrbCoordinate.y}%`,
+                      transition: glideTransition,
+                    }}
+                  >
+                    <span
+                      className="absolute -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full opacity-40 motion-reduce:animate-none"
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        backgroundColor: orbGlowColor,
+                      }}
+                    />
+                    <span
+                      className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/60"
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        backgroundColor: orbColor,
+                        boxShadow: `0 0 14px ${orbGlowColor}, 0 0 28px ${orbColor}`,
+                        transition: glideTransition,
+                      }}
+                    />
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Price axis */}
+            <div className="absolute inset-y-0 right-0 w-12 border-l border-white/5 sm:w-14">
+              {chartModel.gridLevels.map((level, index) => (
+                <span
+                  key={`axis-${index}`}
+                  className="absolute right-0 -translate-y-1/2 pl-1 text-[8px] font-bold tracking-wide text-[#d6b85c]/60"
+                  style={{ top: `${level.y}%` }}
+                >
+                  {level.label}
+                </span>
+              ))}
+              <span
+                className="absolute right-0 z-10 -translate-y-1/2 px-1 py-0.5 text-[9px] font-black tracking-wide text-white"
+                style={{
+                  top: `${chartModel.livePriceY}%`,
+                  backgroundColor: orbColor,
+                  boxShadow: `0 0 10px ${orbGlowColor}55`,
+                  transition: glideTransition,
+                }}
+              >
+                {formatAxisPrice(latestPoint.price)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -459,6 +705,10 @@ export const LandingPriceFeed: React.FC = () => {
               Gameplay signal only
             </span>
           </div>
+          <p className="mt-3 text-[9px] leading-relaxed tracking-wide text-slate-600">
+            Not financial advice. Indicators shown are gameplay mechanics only and
+            should not be used for trading decisions.
+          </p>
         </div>
       </div>
     </section>

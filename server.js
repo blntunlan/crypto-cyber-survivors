@@ -753,10 +753,11 @@ function handleRequest(req, res) {
   }
 
   // Check for blocked paths (WordPress scanners, etc.)
+  // The market stream proxy lives under /api/v1, which is otherwise blocked.
   const normalizedPath = urlPath.toLowerCase();
-  const isBlockedPath = BLOCKED_PATHS.some(blocked =>
-    normalizedPath.includes(blocked.toLowerCase())
-  );
+  const isBlockedPath =
+    urlPath !== MARKET_STREAM_PATH &&
+    BLOCKED_PATHS.some(blocked => normalizedPath.includes(blocked.toLowerCase()));
   const isHiddenPathProbe = hasBlockedDotPathSegment(normalizedPath);
 
   // Check for blocked file extensions

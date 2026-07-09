@@ -3,27 +3,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GameHUD } from '../components/GameHUD';
 import { GameStatus, type Player } from '../types';
 import { EventBus } from '../services/core/EventBus';
-import { ComboSystem } from '../services/combat/ComboSystem';
-
-// Mock ComboSystem
-vi.mock('../services/combat/ComboSystem', () => ({
-  ComboSystem: {
-    getComboTimeRemaining: vi.fn(() => 1.0),
-    getNextMilestone: vi.fn(() => ({
-      kills: 10,
-      name: 'SUPER COMBO!',
-      multiplier: 1.5,
-      color: '#00ff00',
-    })),
-    getCurrentMilestone: vi.fn(() => null),
-    getMaxStreak: vi.fn(() => 0),
-    getState: vi.fn(() => ({ killStreak: 0, comboMultiplier: 1.0, totalBonusXp: 0 })),
-  },
-  COMBO_MILESTONES: [
-    { kills: 5, name: 'COMBO!', multiplier: 1.2, color: '#ffffff' },
-    { kills: 10, name: 'SUPER COMBO!', multiplier: 1.5, color: '#00ff00' },
-  ],
-}));
 
 // Mock audioService
 vi.mock('../services/audio', () => ({
@@ -38,7 +17,6 @@ describe('GameHUD', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     EventBus.clear();
-    vi.mocked(ComboSystem.getComboTimeRemaining).mockReturnValue(1.0);
 
     mockPlayer = {
       hp: 100,
@@ -76,15 +54,13 @@ describe('GameHUD', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('should render and contain essential HUD elements', () => {
+  it('does not render a persistent combo counter', () => {
     render(<GameHUD status={GameStatus.PLAYING} />);
 
-    // In the new decoupled architecture, streak and multiplier are updated via DOM
-    // We check if the elements exist with correct IDs
-    expect(screen.getByText('hud.combo')).toBeInTheDocument();
-    expect(document.getElementById('combo-streak-count')).toBeInTheDocument();
-    expect(document.getElementById('combo-multiplier-badge')).toBeInTheDocument();
-    expect(document.getElementById('combo-timer-bar')).toBeInTheDocument();
+    expect(screen.queryByText('hud.combo')).not.toBeInTheDocument();
+    expect(document.getElementById('combo-streak-count')).toBeNull();
+    expect(document.getElementById('combo-multiplier-badge')).toBeNull();
+    expect(document.getElementById('combo-timer-bar')).toBeNull();
   });
 
   it('should show milestone text when comboMilestone event is emitted', () => {

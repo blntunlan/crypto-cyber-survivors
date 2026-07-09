@@ -22,7 +22,7 @@ const FEATURE_CARDS = [
   {
     tag: 'BACKEND',
     title: 'VERIFIED REWARDS',
-    desc: 'Cash-out rewards are checked against server-side price history before coins land.',
+    desc: 'In-game rewards are validated against server-side price history before coins land.',
   },
 ] as const;
 

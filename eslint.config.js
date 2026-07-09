@@ -26,6 +26,7 @@ export default tseslint.config(
       '.agent/**',
       '.agents/**',
       '.windsurf/**',
+      '.worktrees/**',
       '.github/skills/**', // Skill templates - not part of main project
       'supabase/functions/**', // Deno environment - different runtime
       'railway-market-server/**',
@@ -35,6 +36,7 @@ export default tseslint.config(
       'remotion-video/**',
       '.tmp-codex-push-repo-2/**',
       'googleerror/**',
+      '**/*.tmp.*', // Temp scratch files
     ],
   },
 

@@ -3,19 +3,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useHUDEvents } from '../../hooks/useHUDEvents';
 import { EventBus } from '../../services/core/EventBus';
 import { audio } from '../../services/audio';
-import { GameStatus } from '../../types';
+import { GameStatus, type Player } from '../../types';
 
 // Mock dependencies
 vi.mock('../../services/core/EventBus', () => ({
   EventBus: {
     on: vi.fn(() => vi.fn()),
     emit: vi.fn(),
-  },
-}));
-
-vi.mock('../../services/combat/ComboSystem', () => ({
-  ComboSystem: {
-    getMaxStreak: vi.fn().mockReturnValue(10),
   },
 }));
 
@@ -58,24 +52,16 @@ describe('useHUDEvents', () => {
     );
 
     expect(result.current.announcement).toBeNull();
-    expect(result.current.uiMeta.maxStreak).toBe(0);
     expect(result.current.clutchActive).toBe(false);
     expect(result.current.flash).toBe(0);
   });
 
-  it('should update uiMeta on comboUpdate', () => {
-    const callbacks = captureCallbacks();
-
+  it('does not expose persistent combo counter metadata', () => {
     const { result } = renderHook(() =>
-      useHUDEvents(mockPlayer as any, GameStatus.PLAYING)
+      useHUDEvents(mockPlayer as Player, GameStatus.PLAYING)
     );
 
-    act(() => {
-      callbacks.get('comboUpdate')!({ totalBonusXp: 500 });
-    });
-
-    expect(result.current.uiMeta.totalBonusXp).toBe(500);
-    expect(result.current.uiMeta.maxStreak).toBe(10);
+    expect(result.current).not.toHaveProperty('uiMeta');
   });
 
   it('should show combo announcement on comboMilestone event', () => {

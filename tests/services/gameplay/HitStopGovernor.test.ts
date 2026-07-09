@@ -1,77 +1,131 @@
 import { describe, expect, it } from 'vitest';
+import { GAME_ENGINE } from '../../../constants';
 import { HitStopGovernor } from '../../../services/gameplay/HitStopGovernor';
 
 describe('HitStopGovernor', () => {
-  it('returns unchanged duration for non-super crit events', () => {
+  it('keeps normal and super crit base durations at low realised crit density', () => {
     const governor = new HitStopGovernor();
-    const result = governor.getAdjustedDuration(
-      { duration: 60, isCrit: true, isSuperCrit: false },
-      1000
-    );
+    const normalCrit = {
+      duration: GAME_ENGINE.HIT_STOP_NORMAL,
+      isCrit: true,
+      isSuperCrit: false,
+    };
+    const superCrit = {
+      duration: GAME_ENGINE.HIT_STOP_CRIT,
+      isCrit: true,
+      isSuperCrit: true,
+    };
 
-    expect(result).toBe(60);
+    expect(governor.getAdjustedDuration(normalCrit, 1000)).toBe(normalCrit.duration);
+    expect(governor.getAdjustedDuration(superCrit, 2500)).toBe(superCrit.duration);
   });
 
-  it('suppresses standard crit hit-stop once crit request rate exceeds threshold', () => {
-    const governor = new HitStopGovernor();
-    const event = { duration: 15, isCrit: true, isSuperCrit: false };
+  it('scales normal crits and applies the same realised-rate policy to super crits', () => {
+    const normalGovernor = new HitStopGovernor();
+    const mixedGovernor = new HitStopGovernor();
+    const normalCrit = {
+      duration: GAME_ENGINE.HIT_STOP_NORMAL,
+      isCrit: true,
+      isSuperCrit: false,
+    };
+    const superCrit = {
+      duration: GAME_ENGINE.HIT_STOP_CRIT,
+      isCrit: true,
+      isSuperCrit: true,
+    };
+    const burstTimes = [1000, 1100, 1200, 1300, 1400];
 
-    const results = [1000, 1100, 1200, 1300, 1400].map(now =>
+    const normalResults = burstTimes.map(now =>
+      normalGovernor.getAdjustedDuration(normalCrit, now)
+    );
+    burstTimes.forEach(now => {
+      mixedGovernor.getAdjustedDuration(
+        {
+          duration: 4,
+          isCrit: true,
+          isSuperCrit: false,
+        },
+        now
+      );
+    });
+    const superUnderPressure = mixedGovernor.getAdjustedDuration(superCrit, 1500);
+
+    const normalUnderPressure = normalResults[normalResults.length - 1]!;
+
+    expect(normalUnderPressure).toBeGreaterThan(0);
+    expect(normalUnderPressure).toBeLessThan(normalCrit.duration);
+    expect(superUnderPressure).toBeGreaterThan(normalUnderPressure);
+    expect(superUnderPressure).toBeLessThan(superCrit.duration);
+  });
+
+  it('exhausts the rolling hit-stop budget before skipping later crit events', () => {
+    const governor = new HitStopGovernor();
+    const event = {
+      duration: GAME_ENGINE.HIT_STOP_NORMAL,
+      isCrit: true,
+      isSuperCrit: false,
+    };
+
+    const durations = [1000, 1100, 1200, 1300, 1400, 1500].map(now =>
       governor.getAdjustedDuration(event, now)
     );
 
-    expect(results[results.length - 1]).toBe(0);
+    const totalDuration = durations.reduce((total, duration) => total + duration, 0);
+
+    expect(totalDuration).toBe(GAME_ENGINE.CRIT_HITSTOP_WINDOW_BUDGET_MS);
+    expect(durations[durations.length - 1]).toBe(0);
   });
 
-  it('keeps super crit duration unchanged when rate is under threshold', () => {
+  it('does not release applied super crit budget when crit-rate history wraps', () => {
     const governor = new HitStopGovernor();
+    const event = {
+      duration: GAME_ENGINE.HIT_STOP_CRIT,
+      isCrit: true,
+      isSuperCrit: true,
+    };
+    const eventCount = GAME_ENGINE.CRIT_HITSTOP_HISTORY_CAPACITY + 2;
+    let totalAppliedDuration = 0;
 
-    const r1 = governor.getAdjustedDuration(
-      { duration: 60, isCrit: true, isSuperCrit: true },
-      1000
-    );
-    const r2 = governor.getAdjustedDuration(
-      { duration: 60, isCrit: true, isSuperCrit: true },
-      1300
-    );
+    for (let index = 0; index < eventCount; index += 1) {
+      totalAppliedDuration += governor.getAdjustedDuration(event, 1000);
+    }
 
-    expect(r1).toBe(60);
-    expect(r2).toBe(60);
+    expect(totalAppliedDuration).toBeLessThanOrEqual(
+      GAME_ENGINE.CRIT_HITSTOP_WINDOW_BUDGET_MS
+    );
   });
 
-  it('reduces duration when super crit burst exceeds threshold', () => {
+  it('recovers the full duration at the exact rolling window boundary', () => {
     const governor = new HitStopGovernor();
-    const baseDuration = 60;
+    const event = {
+      duration: GAME_ENGINE.HIT_STOP_CRIT,
+      isCrit: true,
+      isSuperCrit: true,
+    };
 
-    // Build burst density inside rolling window.
-    const t = [1000, 1100, 1200, 1300, 1400];
-    const results = t.map(now =>
-      governor.getAdjustedDuration(
-        { duration: baseDuration, isCrit: true, isSuperCrit: true },
-        now
-      )
+    governor.getAdjustedDuration(event, 1000);
+
+    const recoveredDuration = governor.getAdjustedDuration(
+      event,
+      1000 + GAME_ENGINE.CRIT_HITSTOP_WINDOW_MS
     );
 
-    const last = results[results.length - 1];
-    expect(last).toBeLessThan(baseDuration);
-    expect(last).toBeGreaterThan(0);
+    expect(recoveredDuration).toBe(event.duration);
   });
 
-  it('skips super crit hit-stop if events are too close in burst mode', () => {
+  it('clears crit density and budget history on reset', () => {
     const governor = new HitStopGovernor();
-    const event = { duration: 60, isCrit: true, isSuperCrit: true };
+    const event = {
+      duration: GAME_ENGINE.HIT_STOP_NORMAL,
+      isCrit: true,
+      isSuperCrit: false,
+    };
 
-    // Saturate the rolling window first.
-    [1000, 1050, 1100, 1150, 1200, 1250].forEach(now => {
+    [1000, 1100, 1200, 1300, 1400, 1500].forEach(now => {
       governor.getAdjustedDuration(event, now);
     });
+    governor.reset();
 
-    // First eligible call applies reduced duration.
-    const applied = governor.getAdjustedDuration(event, 1400);
-    // Too soon after previous applied call -> should be skipped.
-    const skipped = governor.getAdjustedDuration(event, 1430);
-
-    expect(applied).toBeGreaterThan(0);
-    expect(skipped).toBe(0);
+    expect(governor.getAdjustedDuration(event, 1500)).toBe(event.duration);
   });
 });

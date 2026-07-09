@@ -12,9 +12,9 @@ export const LandingArchitecture: React.FC = () => {
     },
     {
       badge: 'LIVE DATA',
-      title: 'Dual-Exchange Feed',
+      title: 'Live Price Feed',
       description:
-        'Binance + Coinbase WebSockets aggregate server-side into a ~1s SSE stream with failover.',
+        'Real-time market WebSockets aggregate server-side into a ~1s SSE stream with failover.',
     },
     {
       badge: 'ADAPTIVE',
@@ -93,7 +93,7 @@ export const LandingArchitecture: React.FC = () => {
                     Systemic Balance
                   </div>
                   <div className="font-mono text-[10px] text-slate-500">
-                    Difficulty scales automatically with Leverage (1x-100x).
+                    Difficulty scales with Leverage, a risk multiplier (1x–100x).
                   </div>
                 </div>
               </div>

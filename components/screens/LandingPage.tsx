@@ -77,14 +77,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center p-3 text-white transition-all duration-300 hover:text-[#d6b85c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] lg:hidden"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center p-3 text-white transition-all duration-300 hover:text-[#d6b85c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b85c] xl:hidden"
           aria-label="Open menu"
         >
           <Menu className="h-6 w-6" />
         </button>
 
         {/* Desktop Nav Menu */}
-        <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-2 lg:flex xl:gap-3">
+        <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-3 xl:flex">
           {/* Navigation Links */}
           <a href="#engine" className={`${framedNavButtonClass} w-[108px]`}>
             <span className={desktopNavLabelClass}>Engine</span>
@@ -114,7 +114,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Desktop CTA */}
         <button
           onClick={onLaunch}
-          className={`hidden h-12 min-w-[182px] items-center justify-center bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-7 font-black uppercase text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex ${desktopCtaClass}`}
+          className={`hidden h-12 min-w-[182px] items-center justify-center bg-gradient-to-r from-[#d6b85c] to-[#c9a94e] px-7 font-black uppercase text-black shadow-[0_0_20px_rgba(214,184,92,0.3)] transition-all duration-300 hover:from-white hover:to-white hover:shadow-[0_0_30px_rgba(214,184,92,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white xl:flex ${desktopCtaClass}`}
         >
           PLAY THE BETA
         </button>
@@ -128,7 +128,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm xl:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <m.nav

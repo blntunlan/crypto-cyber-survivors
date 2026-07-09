@@ -85,7 +85,7 @@ test('landing surfaces technology and team transparency blocks @smoke', async ({
   ).toBeVisible();
   const btcPrice = page.getByTestId('landing-btc-price');
   await expect(btcPrice).toBeVisible();
-  await expect(btcPrice).toHaveText(/^(SYNCING|\$\d{2,3}\.\dK)$/);
+  await expect(btcPrice).toHaveText(/^(SYNCING|\$\d{1,3}(,\d{3})*)$/);
   await expect(btcPrice).not.toHaveText(/\.\d{2}$/);
   await expect(page.locator('.landing-forecast-bias')).toBeVisible();
   await expect(page.getByTestId('landing-feed-status')).toHaveText(
@@ -176,7 +176,7 @@ test('landing does not present unavailable market data as demo', async ({ page }
     /LIVE|SYNCING|CACHED/
   );
   await expect(page.getByTestId('landing-btc-price')).toHaveText(
-    /^(SYNCING|\$\d{2,3}\.\dK)$/
+    /^(SYNCING|\$\d{1,3}(,\d{3})*)$/
   );
 });
 

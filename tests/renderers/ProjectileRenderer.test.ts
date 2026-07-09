@@ -297,6 +297,39 @@ describe('ProjectileRenderer', () => {
     expect(mockCtx.createRadialGradient).toHaveBeenCalled();
   });
 
+  it('uses combo milestone color for quantum bullet trails', () => {
+    vi.mocked(ComboSystem.getComboColor).mockReturnValue('#FF6600');
+
+    mockPool.activeBullets = [
+      {
+        x: 100,
+        y: 100,
+        vx: 5,
+        vy: 0,
+        radius: 5,
+        color: '#22d3ee',
+        isCrit: false,
+        isSuperCrit: false,
+        active: true,
+        weaponId: 'quantum_bullet',
+        trail: [
+          { x: 80, y: 100, age: 160 },
+          { x: 90, y: 100, age: 80 },
+          { x: 100, y: 100, age: 0 },
+        ],
+      },
+    ];
+
+    renderer.render(mockCtx, mockPool, mockState, mockPlayer, {
+      width: 800,
+      height: 600,
+      status: GameStatus.PLAYING,
+      graphics: { showParticles: true, showDamageNumbers: true, showScreenShake: true },
+    });
+
+    expect(mockCtx.strokeStyle).toBe('#FF6600');
+  });
+
   it('should render spread_shot without throwing (cool state, heat <= threshold)', () => {
     mockPool.activeBullets = [
       {

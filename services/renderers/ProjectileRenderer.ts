@@ -200,7 +200,7 @@ export class ProjectileRenderer implements IRenderer {
     const kind = this.resolveRenderKind(b);
     switch (kind) {
       case 'quantum':
-        this.renderQuantum(ctx, b);
+        this.renderQuantum(ctx, b, comboColor);
         return;
       case 'spread':
         this.renderSpread(ctx, b, heat);
@@ -376,7 +376,7 @@ export class ProjectileRenderer implements IRenderer {
   }
 
   /**
-   * Phase 1 VFX — QuantumBullet: cyan trail polyline + radial glow + bright core.
+   * Phase 1 VFX — QuantumBullet: combo-colored trail polyline + radial glow + bright core.
    *
    * Ported from `components/vfx-lab/previews/QuantumBulletPreview.ts`. The
    * trail is populated and aged by `MovementSystem.updateBullets`; this
@@ -384,23 +384,30 @@ export class ProjectileRenderer implements IRenderer {
    * gradient (unavoidable for the glow — the gradient cache doesn't cover
    * per-bullet origins at this revision).
    */
-  private renderQuantum(ctx: CanvasRenderingContext2D, b: Bullet): void {
+  private renderQuantum(
+    ctx: CanvasRenderingContext2D,
+    b: Bullet,
+    comboColor: string
+  ): void {
     const trail = b.trail;
     // 1. Trail polyline (drawn first so it sits behind the glow/core).
     if (trail !== undefined && trail.length > 1) {
+      const previousAlpha = ctx.globalAlpha;
       ctx.lineCap = 'round';
       for (let i = 1; i < trail.length; i++) {
         const p0 = trail[i - 1]!;
         const p1 = trail[i]!;
         const alpha = Math.max(0, 1 - p1.age / QUANTUM_TRAIL_LIFE_MS);
         if (alpha <= 0) continue;
-        ctx.strokeStyle = `rgba(34,211,238,${alpha * 0.7})`;
+        ctx.globalAlpha = previousAlpha * alpha * 0.7;
+        ctx.strokeStyle = comboColor;
         ctx.lineWidth = 2 * alpha + 0.5;
         ctx.beginPath();
         ctx.moveTo(p0.x, p0.y);
         ctx.lineTo(p1.x, p1.y);
         ctx.stroke();
       }
+      ctx.globalAlpha = previousAlpha;
     }
 
     // 2. Radial glow (relative coordinate translation for gradient caching).

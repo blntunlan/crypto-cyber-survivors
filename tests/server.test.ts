@@ -25,4 +25,9 @@ describe('server.js hardening script', () => {
     expect(file).toContain('hasBlockedDotPathSegment');
     expect(file).toContain('shouldServeSpaFallback');
   });
+
+  it('exempts the market stream proxy path from blocked-path matching', () => {
+    const file = readFileSync(join(process.cwd(), 'server.js'), 'utf8');
+    expect(file).toContain('urlPath !== MARKET_STREAM_PATH &&');
+  });
 });

@@ -42,7 +42,7 @@ export function useGameEngineEvents({
   // Hit Stop Event Listener (freeze frame on impact)
   useEffect(() => {
     const unsubscribe = EventBus.on('hitStop', data => {
-      const nowMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const nowMs = TimeService.getGameTime();
       const adjustedDuration = hitStopGovernorRef.current.getAdjustedDuration(
         data,
         nowMs

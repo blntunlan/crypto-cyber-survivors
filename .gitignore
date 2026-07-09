@@ -60,6 +60,7 @@ dist-ssr
 .gemini/
 .gemini_security/
 .windsurf/
+.worktrees/
 
 # Test coverage
 coverage/

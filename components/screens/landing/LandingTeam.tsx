@@ -18,7 +18,7 @@ export const LandingTeam: React.FC = () => {
     {
       area: 'Market & Backend',
       detail:
-        'Binance/Coinbase ingestion, indicator pipeline, the SSE aggregator, and the Railway API.',
+        'Live price feed ingestion, indicator pipeline, the SSE aggregator, and the Railway API.',
     },
     {
       area: 'Release & Ops',

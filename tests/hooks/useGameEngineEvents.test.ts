@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useGameEngineEvents } from '../../hooks/useGameEngineEvents';
 import { EventBus } from '../../services/core/EventBus';
+import { TimeService } from '../../services/core/TimeService';
 import { type HitStopGovernor } from '../../services/gameplay/HitStopGovernor';
 import {
   type GameState,
@@ -59,16 +60,35 @@ describe('useGameEngineEvents', () => {
     vi.restoreAllMocks();
   });
 
-  it('subscribes to hitStop events', () => {
+  it('passes pause-aware game time to the hit-stop governor', () => {
     const refs = makeRefs();
+    vi.spyOn(TimeService, 'getGameTime').mockReturnValue(4321);
+    renderHook(() => useGameEngineEvents(refs));
+
+    const event = {
+      duration: 50,
+      isCrit: false,
+    };
+    EventBus.emit('hitStop', event);
+
+    expect(refs.hitStopGovernorRef.current.getAdjustedDuration).toHaveBeenCalledWith(
+      event,
+      4321
+    );
+  });
+
+  it('leaves the active hit-stop timer unchanged when the governor skips an event', () => {
+    const refs = makeRefs();
+    refs.stateRef.current.hitStopTimer = 20;
+    vi.mocked(refs.hitStopGovernorRef.current.getAdjustedDuration).mockReturnValue(0);
     renderHook(() => useGameEngineEvents(refs));
 
     EventBus.emit('hitStop', {
       duration: 50,
-      isCrit: false,
+      isCrit: true,
     });
 
-    expect(refs.hitStopGovernorRef.current.getAdjustedDuration).toHaveBeenCalled();
+    expect(refs.stateRef.current.hitStopTimer).toBe(20);
   });
 
   it('subscribes to gameMarketUpdate events and updates marketDataRef', () => {
